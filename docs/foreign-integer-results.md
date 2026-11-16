@@ -63,7 +63,25 @@ of unsigned/float/bool/nullable/language-integer results.
 `foreign_integer_min_ir.c` separately damages seven target/declaration contracts
 and verifies rejection of 63 mutations and 126 empty C/header outputs.
 
-The shared FlowGraph/Workflow model APIs still require their approved native
-reference-counted ownership integration and canvas handoff validation. This
-generic result contract does not by itself qualify those model APIs or install
-new compiler/SDK/IDE binaries.
+The complete O2 compiler/TCC/VFS builds with canonical XRT 6305aa54 have now
+passed this gate on Windows and Linux. The additional full-product gate is:
+
+```text
+python -B tools/check_foreign_integer_delivery.py --root <frozen-source> --compiler <xl> --compiler-report <complete-build.json> --out <new-directory>
+```
+
+It executes JIT, independent static EXE/shared modules and real nested compiler
+hosts in both EXE and shared-module form. The nested input is in memory and uses
+a standard C function; it requires no project source files or headers. Both the
+legal bound and the cold checked failure execute from the embedded/precompiled
+compiler/runtime. Import checks reject dependencies on xl/xlc/libtcc dynamic
+libraries in these independent outputs. The existing C-string contract passes
+the same full-product modes on both platforms as an adjacent regression.
+Together these three gates have 53 passing steps per platform. Their input,
+output and full-build hashes are indexed in
+`dev/release-materials/provenance/foreign-integer-delivery-20261116.json`.
+
+Native FlowGraph sharing and canvas handoff have separate CPU qualification;
+see [shared model status](xui-flow-shared.md). Complete Workflow sharing and the
+safe language-side model/domain integration remain work in progress. Neither
+these gates nor the native tests install new compiler/SDK/IDE runtime bytes.

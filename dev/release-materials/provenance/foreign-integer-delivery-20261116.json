@@ -1,0 +1,93 @@
+{
+  "schema": 1,
+  "date": "2026-11-16",
+  "scope": "Full O2/TCC/VFS signed C integer bound qualification with canonical latest committed XRT 6305aa54",
+  "shippingDelivery": false,
+  "releaseInstalled": false,
+  "fullCompilerQualification": true,
+  "networkTests": false,
+  "builds": [
+    {
+      "platform": "win",
+      "path": "F:\\xlang-validation\\xge-full-20261110\\compiler-integer-min-win-full-r2\\build.json",
+      "sha256": "eb44e5442bb99d89f873743ebf995c8c3d60cd59418520a6ede805885377aa83",
+      "source": "F:\\xlang-validation\\xge-full-20261110\\compiler-integer-min-win-full-r2\\source",
+      "products": {
+        "xl.exe": {
+          "path": "F:\\xlang-validation\\xge-full-20261110\\compiler-integer-min-win-full-r2\\source\\release\\win_x64\\xl.exe",
+          "sha256": "b5cff32f9f66e2e9288a1414c0c044fa18618a409f545e911e78655e3257b9a3",
+          "bytes": 72704
+        },
+        "xl.dll": {
+          "path": "F:\\xlang-validation\\xge-full-20261110\\compiler-integer-min-win-full-r2\\source\\release\\win_x64\\xl.dll",
+          "sha256": "fefaa28709d78fdf48efca13245e188aae1401d5cdde88b43e059d27de12b7fc",
+          "bytes": 15400960
+        },
+        "xlc.dll": {
+          "path": "F:\\xlang-validation\\xge-full-20261110\\compiler-integer-min-win-full-r2\\source\\release\\win_x64\\xlc.dll",
+          "sha256": "eaa27f561389fa50f14593609827761d308871c6075fb6240ff6b9f1f0a10ee0",
+          "bytes": 21650432
+        }
+      },
+      "sourceFreezeSha256": "14e094ea9e9d3e91ec653d97b03d9d7f816aa6f1154bf63e073c4b5dfbd9b5bf"
+    },
+    {
+      "platform": "linux",
+      "path": "F:\\xlang-validation\\xge-full-20261110\\compiler-integer-min-linux-full-r2\\build.json",
+      "sha256": "51ab8c41409d3970ea8fadb18ea1c59e8ad4771dfbb1063dad356ad4f590c85e",
+      "source": "/mnt/f/xlang-validation/xge-full-20261110/compiler-integer-min-linux-full-r2/source",
+      "products": {
+        "xl": {
+          "path": "/mnt/f/xlang-validation/xge-full-20261110/compiler-integer-min-linux-full-r2/source/release/linux_x64/xl",
+          "sha256": "faa25e49bdf8c5ce8ccdb084810075b406cc6dd499a59577664616eb2a08265b",
+          "bytes": 47224
+        },
+        "libxl.so": {
+          "path": "/mnt/f/xlang-validation/xge-full-20261110/compiler-integer-min-linux-full-r2/source/release/linux_x64/libxl.so",
+          "sha256": "32f913c03fb56703cf33ccceafc9e5e9695d50e0c9cc0a3f61941c8c8484d1f6",
+          "bytes": 16608144
+        },
+        "libxlc.so": {
+          "path": "/mnt/f/xlang-validation/xge-full-20261110/compiler-integer-min-linux-full-r2/source/release/linux_x64/libxlc.so",
+          "sha256": "c4502e40b0a273a78e9409881f9bf92bf38bd7cb0ad325250c16b32b43985a72",
+          "bytes": 22666384
+        }
+      },
+      "sourceFreezeSha256": "efa5495893108e4095ca5b102ebbde7b9982315fa94a3b73d607eeeec1b1fd5f"
+    }
+  ],
+  "gates": [
+    {
+      "path": "F:\\xlang-validation\\xge-full-20261110\\integer-min-full-gate-win-r1\\results.json",
+      "sha256": "3071c6e03fb888d2a65735fc57b821151378dc7d430de604e12217dfa0458622",
+      "steps": 19
+    },
+    {
+      "path": "F:\\xlang-validation\\xge-full-20261110\\integer-min-full-gate-linux-r1\\results.json",
+      "sha256": "abe8edd24704a31feec9bee89b0edb21a53201a16f4d908a540b188d6d8e2ffc",
+      "steps": 19
+    },
+    {
+      "path": "F:\\xlang-validation\\xge-full-20261110\\integer-min-delivery-win-r1\\results.json",
+      "sha256": "69cba8be9b5530aac9a6da2899ff22d7a99cc80fdd53eaea85b4bbf70b5dbdfb",
+      "steps": 17
+    },
+    {
+      "path": "F:\\xlang-validation\\xge-full-20261110\\integer-min-delivery-linux-r1\\results.json",
+      "sha256": "48c13933266d18a8e494aa0224921f405a5efd1ff214c5427172c8e5a6c3772d",
+      "steps": 17
+    },
+    {
+      "path": "F:\\xlang-validation\\xge-full-20261110\\integer-min-cstring-regression-win-r1\\results.json",
+      "sha256": "a5bf4df0b0432d2c5d103ec2c7a66a0cf575d078f9eef146e716b97f9c2d6131",
+      "steps": 17
+    },
+    {
+      "path": "F:\\xlang-validation\\xge-full-20261110\\integer-min-cstring-regression-linux-r1\\results.json",
+      "sha256": "4b3c268de453e8fa468f11cb1fffcf01a80d3303d2c550bf4ad48f146be67cf3",
+      "steps": 17
+    }
+  ],
+  "stepsPerPlatform": 53,
+  "rootRuntimeXrtAndIdePromoted": false
+}
