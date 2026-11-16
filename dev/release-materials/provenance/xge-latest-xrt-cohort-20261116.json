@@ -1,0 +1,74 @@
+{
+  "schema": 1,
+  "date": "2026-11-16",
+  "scope": "Qualified isolated latest-XRT full O2 compiler/SDK cohorts and portable actual runtime host gate",
+  "sourceHeadBeforeCommit": "6cea04b8e4e6e177ebc60b63590815749f1b1bcc",
+  "nativeHead": "dc9352d24ae4f6fb14ed9ea2fa945d1dc5688727",
+  "committedXrtRevision": "6305aa546828d40a0b081d8d68d21718cc317d51",
+  "coreHeaderSha256": "1567b04ec597aa0183ad198c413610dda09075704209edccf515a8c91add5726",
+  "shippingDelivery": false,
+  "releaseInstalled": false,
+  "xlangRootSnapshotPromoted": false,
+  "includesIntegerMinimumContract": false,
+  "networkTests": false,
+  "artifacts": {
+    "latest-xrt-cohort-verified-win-r1.json": {
+      "path": "F:\\xlang-validation\\xge-full-20261110\\latest-xrt-cohort-verified-win-r1.json",
+      "sha256": "be8c9c80aacbae270fe893e3b1ba1294f5bb3b0a48485b2f969180570947be41"
+    },
+    "latest-xrt-cohort-verified-linux-r1.json": {
+      "path": "F:\\xlang-validation\\xge-full-20261110\\latest-xrt-cohort-verified-linux-r1.json",
+      "sha256": "db81dfe866f888d94fa99a911640c7d1610c6d224b378db287c2b41b3c04d5ca"
+    },
+    "latest-native-vendor-verified-r1.json": {
+      "path": "F:\\xlang-validation\\xge-full-20261110\\latest-native-vendor-verified-r1.json",
+      "sha256": "d3b36d0215e4a72da1c05729eb4b8d6ff1652a98462af8addc046e7de37a8608"
+    },
+    "xrt-latest-committed-6305-r1/results.json": {
+      "path": "F:\\xlang-validation\\xge-full-20261110\\xrt-latest-committed-6305-r1\\results.json",
+      "sha256": "d8bdf8425d924cec3bcc508c71f698f00da95b613e39c44bb1a73627dc6547cf"
+    },
+    "xrt-sync-canonical-win-r4/results.json": {
+      "path": "F:\\xlang-validation\\xge-full-20261110\\xrt-sync-canonical-win-r4\\results.json",
+      "sha256": "734239bf01bd99e6fd82fc50a6365f1c6f03d6e1e85c1306057595f5ae7f16da"
+    },
+    "xrt-sync-canonical-linux-r4/results.json": {
+      "path": "F:\\xlang-validation\\xge-full-20261110\\xrt-sync-canonical-linux-r4\\results.json",
+      "sha256": "d60f4555e42e3769bacb5d6b29d1d4e48aef7d4eb5b229dede8b13c47ff40da1"
+    },
+    "xrt-latest-api-delta-r1.json": {
+      "path": "F:\\xlang-validation\\xge-full-20261110\\xrt-latest-api-delta-r1.json",
+      "sha256": "c0169d807933e7fcc56baad7d13a639485a5ed71ad2f8193fa626ead4d4efff0"
+    }
+  },
+  "sourceSha256": {
+    "tools/check_xge_host_runtime.py": "f23e0724bfa95cbdb14b1af079c9d68ecbd853cb719acb1a9a5c9f42f2faa02d",
+    "docs/xge3-latest-xrt-cohort.md": "54f4a0573e829838fe6a1cbddcff9785bb98bf1ec74c32493a65057545fd5e90"
+  },
+  "qualification": {
+    "fullO2CompilerPlatforms": [
+      "Windows x64",
+      "Linux x64"
+    ],
+    "nativeSdkKinds": [
+      "host",
+      "static"
+    ],
+    "nativeHostFreshCompiledUnitsPerPlatform": 164,
+    "requiredHostSymbols": {
+      "windows": 213,
+      "linux": 211
+    },
+    "hostRuntimeImagesPerPlatform": 2,
+    "contextWidgetCyclesPerImage": 4,
+    "tccNativeInvocation": true,
+    "sharedAllocationAndCleanupBalanced": true,
+    "staticLanguageExecutionQualified": false
+  },
+  "remaining": [
+    "Combined full integer_min/latest-XRT compiler qualification",
+    "Latest matched native static/dynamic language package execution",
+    "Shared model ownership and remaining complete integration",
+    "Final root snapshot/runtime/SDK/IDE/help delivery"
+  ]
+}
