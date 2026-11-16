@@ -1,0 +1,66 @@
+{
+  "complete": true,
+  "passed": true,
+  "scope": "Four existing storage contract pins re-reviewed; no new public API or runtime implementation.",
+  "shippingDelivery": false,
+  "runtimeQualification": false,
+  "sourceSha256": {
+    "docs/xge3-xui3-api-map-storage.json": "46a91532282437bf460f7eb0e0ef105284694b7f11b51ef3d62f05465c9041d4",
+    "docs/xge3-storage-reviews.md": "39da0a8d24ab6ab52b21cef2ab4322b5680962c8ec7d5cdb3acf552dae20219c"
+  },
+  "evidence": [
+    {
+      "path": "F:\\xlang-validation\\xge-full-20261110\\flow-model-storage-rereview-r1.json",
+      "sha256": "b27d47d9fa3fede6d0e792b5616f54036a4bf2f21ab17b889f1c699ad4b4ebe6"
+    },
+    {
+      "path": "F:\\xlang-validation\\xge-full-20261110\\flow-model-replay-header-delta-r1.json",
+      "sha256": "1b61502fb6643c54f42a0f2a774d18b5187871dea280327826e30419a183b09c"
+    },
+    {
+      "path": "F:\\xlang-validation\\xge-full-20261110\\flow-model-font-source-diff-r1.txt",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    }
+  ],
+  "changes": [
+    {
+      "group": "entries",
+      "name": "xgeFontFallbackSetMemory"
+    },
+    {
+      "group": "entries",
+      "name": "xgeFontLoadMemory"
+    },
+    {
+      "group": "fieldEntries",
+      "name": "xui_proxy_t.textDraw"
+    },
+    {
+      "group": "fieldEntries",
+      "name": "xui_proxy_t.drawTextShapeRangeSpans"
+    }
+  ],
+  "wholeFontImplementationPinned": true,
+  "existingHeaderComparison": {
+    "function": 3637,
+    "type": 596,
+    "constant": 1353
+  },
+  "addedHeaderFunctions": [
+    "xuiFlowGraphCreateOwned",
+    "xuiFlowGraphIsOwned",
+    "xuiFlowGraphOwnership",
+    "xuiFlowGraphOwnershipAdapterV1",
+    "xuiFlowGraphOwnershipCompletionV2",
+    "xuiFlowGraphOwnershipFinalizationV1",
+    "xuiFlowGraphOwnershipPreparationV1",
+    "xuiFlowGraphOwnershipQuiescenceV1",
+    "xuiFlowGraphOwnershipReadReady",
+    "xuiFlowGraphReleaseChecked",
+    "xuiFlowGraphReleaseOwnerChecked",
+    "xuiFlowGraphShareOwned",
+    "xuiFlowGraphWidgetGetGraphOwned",
+    "xuiFlowGraphWidgetSetGraphShared"
+  ],
+  "networkTests": false
+}

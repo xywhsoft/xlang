@@ -100,3 +100,19 @@ also exercises all four corners, typed bound and protocol calls, retained
 scene children and the readable bounds lesson through JIT/dynamic/static AOT
 on both operating systems. Its emitted-C check requires contiguous `.Elements`
 output; static import checks reject runtime/host DLL dependencies.
+
+## Shared-model source synchronization
+
+Four stale storage pins were reviewed against the immutable 09d Native SDK
+source. `FontLoadMemory` still copies input into Face-owned bytes; the fallback
+path builds that owned replacement and publishes it under the native spin lock.
+Both reviews now pin the whole Font implementation, including the copy helper,
+instead of relying only on their caller bodies. Root and frozen Font sources
+are byte-identical after line-ending normalization.
+
+The two text-drawing reviews depended on an older `xui.h`. A parsed comparison
+preserves all 3,637 existing function declarations, 596 type shapes and 1,353
+constants; only fourteen FlowGraph ownership functions are added. Their header
+dependency pins now match the exact SDK. This is a source review, not a new
+rendering or runtime performance measurement. Evidence is indexed by
+`dev/release-materials/provenance/xge-storage-rereview-09d-20261116.json`.
