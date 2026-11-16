@@ -2147,9 +2147,13 @@ export extern "xui_widget_t*" class Chart @header("xge3_runtime.h") @lifetime("o
 
  extern "xuiChartSetViewRange" @no_raise @c_result("status",0) func setViewRange(c_double fMinX,c_double fMaxX,c_double fMinY,c_double fMaxY)
 
+ extern "xuiChartGetViewRange" @no_raise @c_outputs(-1,1,2,3,4) @c_result("integer_min",0) func getViewRange() as (c_int,c_double,c_double,c_double,c_double)
+
  extern "xuiChartResetViewRange" @no_raise @c_result("status",0) func resetViewRange()
 
  extern "xuiChartSetBrushRange" @no_raise @c_result("status",0) func setBrushRange(c_double fMinX,c_double fMaxX,c_double fMinY,c_double fMaxY)
+
+ extern "xuiChartGetBrushRange" @no_raise @c_outputs(-1,1,2,3,4) @c_result("integer_min",0) func getBrushRange() as (c_int,c_double,c_double,c_double,c_double)
 
  extern "xuiChartClearBrushRange" @no_raise @c_result("status",0) func clearBrushRange()
 
@@ -2160,6 +2164,8 @@ export extern "xui_widget_t*" class Chart @header("xge3_runtime.h") @lifetime("o
  extern "xuiChartGetLastLodStride" @no_raise func getLastLodStride() as c_int
 
  extern "xuiChartSetAnimation" @no_raise @c_result("status",0) func setAnimation(c_int bEnabled,c_float fDuration)
+
+ extern "xuiChartGetAnimation" @no_raise @c_outputs(-1,1,2,3) @c_result("integer_min",0) func getAnimation() as (c_int,c_int,c_float,c_float)
 
  extern "xuiChartStepAnimation" @no_raise @c_result("status",0) func stepAnimation(c_float fDeltaSeconds)
 
@@ -2174,6 +2180,8 @@ export extern "xui_widget_t*" class Chart @header("xge3_runtime.h") @lifetime("o
  extern "xuiChartGetSeriesColor" @no_raise func getSeriesColor(c_int iSeries) as c_uint
 
  extern "xuiChartSetSeriesAreaFill" @no_raise @c_result("status",0) func setSeriesAreaFill(c_int iSeries,c_int bEnabled,c_uint iColor)
+
+ extern "xuiChartGetSeriesAreaFill" @no_raise @c_outputs(-1,2) @c_result("integer_min",0) func getSeriesAreaFill(c_int iSeries) as (c_int,c_uint)
 
  extern "xuiChartSetSeriesSmooth" @no_raise @c_result("status",0) func setSeriesSmooth(c_int iSeries,c_int bSmooth)
 
@@ -2201,9 +2209,13 @@ export extern "xui_widget_t*" class Chart @header("xge3_runtime.h") @lifetime("o
 
  extern "xuiChartClearSeriesValueRadius" @no_raise @c_result("status",0) func clearSeriesValueRadius(c_int iSeries)
 
+ extern "xuiChartGetSeriesValueRadius" @no_raise @c_outputs(-1,2,3) @c_result("integer_min",0) func getSeriesValueRadius(c_int iSeries) as (c_int,c_float,c_float)
+
  extern "xuiChartSetSeriesValueColor" @no_raise @c_result("status",0) func setSeriesValueColor(c_int iSeries,c_uint iMinColor,c_uint iMaxColor)
 
  extern "xuiChartClearSeriesValueColor" @no_raise @c_result("status",0) func clearSeriesValueColor(c_int iSeries)
+
+ extern "xuiChartGetSeriesValueColor" @no_raise @c_outputs(-1,2,3) @c_result("integer_min",0) func getSeriesValueColor(c_int iSeries) as (c_int,c_uint,c_uint)
 
  extern "xuiChartSetPieMode" @no_raise @c_result("status",0) func setPieMode(c_int iMode)
 

@@ -7,7 +7,12 @@ Window.show("Chart / typed data columns", func(xui.Context ui, xui.Widget root)
  chart.setFont(ui.getDefaultFont())
  Window.place(root, chart, 24, 24, 640, 340)
  chart.setTitle("Measured values")
+ chart.setXAxis(xui.XUI_CHART_AXIS_VALUE)
  c_int line = chart.addSeries(xui.XUI_CHART_SERIES_LINE, "Samples")
  chart.setSeriesData(line, [0, 1, 2, 3], [2, 5, 3, 7])
+ // 返回的首项表示是否使用手动范围，后四项是实际坐标范围。
+ chart.setViewRange(0, 3, 0, 8)
+ auto manual, minX, maxX, minY, maxY = chart.getViewRange()
+ assert manual == 1 and minX == 0 and maxX == 3 and minY == 0 and maxY == 8
  chart.setLegendVisible(1)
 end)

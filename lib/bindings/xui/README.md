@@ -33,9 +33,13 @@ not unregister it. See `docs/xui-localization.md` for costs and qualification.
 Geometry queries such as `slider.getMetrics()`, `scrollView.getOffset()` and
 `chart.pixelToData(x,y)` directly project native scalar/record outputs into
 ordinary values. Native failure publishes no partial result. See
-`docs/xui-geometry-queries.md` and `examples/geometry_queries.xl`. Chart state
-queries that return both 0/1 and pointer outputs require a separate contract;
-they are not silently treated as zero-success status producers.
+`docs/xui-geometry-queries.md` and `examples/geometry_queries.xl`.
+`Chart.getViewRange()`, `getBrushRange()`, `getAnimation()`,
+`getSeriesAreaFill(series)`, `getSeriesValueRadius(series)` and
+`getSeriesValueColor(series)` return the native 0/1 flag followed by the
+queried values. Negative native errors reject the entire result. Disabled
+options can retain their configured values; inspect the flag separately.
+See `docs/xui-chart-queries.md` and `examples/chart.xl`.
 
 The default Document model has seven typed resource classes: `Document`,
 `DocumentSnapshot`, `DocumentChangeSet`, `DocumentPrepare`, `DocumentFragment`,

@@ -1,0 +1,155 @@
+import xui
+extern "fixtureRenderProxy" @header("test/cases/foreign_xui_chart_queries.h") @no_raise @c_result("owned_view") @factory(0,0,dropProxy) func cpuProxy() as xui.Proxy
+extern "xuiProxyReleaseChecked" @header("xge3_runtime.h") @no_raise @c_result("status",0) func dropProxy(xui.Proxy proxy)
+extern "fixtureRenderBalanced" @no_raise func balanced() as c_int
+extern "fixtureChartView" @no_raise func viewCheck(xui.Chart chart,c_int state,c_double a,c_double b,c_double c,c_double d)
+extern "fixtureChartBrush" @no_raise func brushCheck(xui.Chart chart,c_int state,c_double a,c_double b,c_double c,c_double d)
+extern "fixtureChartAnimation" @no_raise func animationCheck(xui.Chart chart,c_int active,c_int enabled,c_float duration,c_float progress)
+extern "fixtureChartArea" @no_raise func areaCheck(xui.Chart chart,c_int series,c_int enabled,c_uint color)
+extern "fixtureChartRadius" @no_raise func radiusCheck(xui.Chart chart,c_int series,c_int enabled,c_float minimum,c_float maximum)
+extern "fixtureChartColor" @no_raise func colorCheck(xui.Chart chart,c_int series,c_int enabled,c_uint minimum,c_uint maximum)
+extern "fixtureChartHeapBegin" @no_raise func heapBegin()
+extern "fixtureChartHeapEnd" @no_raise func heapEnd(c_int native)
+extern "fixtureChartNativeHot" @no_raise func nativeHot(xui.Chart chart,c_int line,c_int scatter)
+
+protocol ViewReader
+ func getViewRange() as (c_int,c_double,c_double,c_double,c_double)
+end
+
+func main(...) as int
+ auto proxy=cpuProxy()
+ auto ui=xui.create(proxy,xui.XUI_SYSTEM_FONT_DISABLED)
+ auto chart=ui.chartNative()
+ c_int line=chart.addSeries(xui.XUI_CHART_SERIES_LINE,"line")
+ c_int scatter=chart.addSeries(xui.XUI_CHART_SERIES_SCATTER,"scatter")
+ chart.setSeriesData(line,[0,1,2],[2,5,3])
+ auto manual,a,b,c,d=chart.getViewRange()
+ assert manual==0
+ viewCheck(chart,manual,a,b,c,d)
+ chart.setViewRange(0,10,-5,5)
+ manual,a,b,c,d=chart.getViewRange()
+ assert manual==1 and a==0 and b==10 and c==-5 and d==5
+ viewCheck(chart,manual,a,b,c,d)
+ ViewReader reader=chart
+ auto protocolFlag,pa,pb,pc,pd=reader.getViewRange()
+ assert protocolFlag==manual and pa==a and pb==b and pc==c and pd==d
+ func() as (c_int,c_double,c_double,c_double,c_double) read=chart.getViewRange
+ auto boundFlag,ba,bb,bc,bd=read()
+ assert boundFlag==manual and ba==a and bb==b and bc==c and bd==d
+ var dynamicChart=chart
+ auto dynamicFlag,da,db,dc,dd=dynamicChart.getViewRange()
+ assert dynamicFlag==manual and da==a and db==b and dc==c and dd==d
+ chart.resetViewRange()
+ manual,a,b,c,d=chart.getViewRange()
+ assert manual==0
+ viewCheck(chart,manual,a,b,c,d)
+ auto brushed,xa,xb,ya,yb=chart.getBrushRange()
+ assert brushed==0
+ brushCheck(chart,brushed,xa,xb,ya,yb)
+ chart.setBrushRange(3,1,4,-2)
+ brushed,xa,xb,ya,yb=chart.getBrushRange()
+ assert brushed==1 and xa==1 and xb==3 and ya==-2 and yb==4
+ brushCheck(chart,brushed,xa,xb,ya,yb)
+ chart.clearBrushRange()
+ brushed,xa,xb,ya,yb=chart.getBrushRange()
+ assert brushed==0
+ brushCheck(chart,brushed,xa,xb,ya,yb)
+ chart.setAnimation(1,2)
+ auto active,enabled,duration,progress=chart.getAnimation()
+ assert active==1 and enabled==1 and duration==2 and progress==0
+ animationCheck(chart,active,enabled,duration,progress)
+ chart.stepAnimation(0.5)
+ active,enabled,duration,progress=chart.getAnimation()
+ assert active==1 and progress==c_float(0.25)
+ animationCheck(chart,active,enabled,duration,progress)
+ chart.stepAnimation(2)
+ active,enabled,duration,progress=chart.getAnimation()
+ assert active==0 and progress==1
+ auto filled,color=chart.getSeriesAreaFill(line)
+ assert filled==0
+ areaCheck(chart,line,filled,color)
+ chart.setSeriesAreaFill(line,1,c_uint(0xff123456))
+ filled,color=chart.getSeriesAreaFill(line)
+ assert filled==1 and color==c_uint(0xff123456)
+ areaCheck(chart,line,filled,color)
+ auto invalidArea,zero=chart.getSeriesAreaFill(c_int(-1))
+ assert invalidArea==0 and zero==0
+ areaCheck(chart,c_int(-1),invalidArea,zero)
+ auto scatterArea,scatterColor=chart.getSeriesAreaFill(scatter)
+ assert scatterArea==0 and scatterColor==0
+ areaCheck(chart,scatter,scatterArea,scatterColor)
+ auto radius,low,high=chart.getSeriesValueRadius(scatter)
+ assert radius==0
+ radiusCheck(chart,scatter,radius,low,high)
+ chart.setSeriesValueRadius(scatter,2,12)
+ radius,low,high=chart.getSeriesValueRadius(scatter)
+ assert radius==1 and low==2 and high==12
+ radiusCheck(chart,scatter,radius,low,high)
+ chart.clearSeriesValueRadius(scatter)
+ radius,low,high=chart.getSeriesValueRadius(scatter)
+ assert radius==0 and low==2 and high==12
+ auto colored,minColor,maxColor=chart.getSeriesValueColor(scatter)
+ assert colored==0
+ colorCheck(chart,scatter,colored,minColor,maxColor)
+ chart.setSeriesValueColor(scatter,c_uint(0xff000001),c_uint(0xff000099))
+ colored,minColor,maxColor=chart.getSeriesValueColor(scatter)
+ assert colored==1 and minColor==c_uint(0xff000001) and maxColor==c_uint(0xff000099)
+ colorCheck(chart,scatter,colored,minColor,maxColor)
+ chart.clearSeriesValueColor(scatter)
+ colored,minColor,maxColor=chart.getSeriesValueColor(scatter)
+ assert colored==0
+ colorCheck(chart,scatter,colored,minColor,maxColor)
+ bool rejected=false
+ try
+  radius,low,high=chart.getSeriesValueRadius(line)
+ catch Error
+  rejected=true
+ end
+ assert rejected and radius==0 and low==2 and high==12
+ rejected=false
+ try
+  colored,minColor,maxColor=chart.getSeriesValueColor(c_int(-1))
+ catch Error
+  rejected=true
+ end
+ assert rejected and colored==0 and minColor==c_uint(0xff000001) and maxColor==c_uint(0xff000099)
+ chart.setViewRange(0,10,-5,5)
+ chart.setBrushRange(1,3,-2,4)
+ chart.setAnimation(0,2)
+ chart.setSeriesValueRadius(scatter,2,12)
+ chart.setSeriesValueColor(scatter,c_uint(0xff000001),c_uint(0xff000099))
+ heapBegin()
+ int turn=0
+ while turn<1000
+  auto v,a,b,c,d=chart.getViewRange()
+  auto r,e,f,g,h=chart.getBrushRange()
+  auto s,on,duration,progress=chart.getAnimation()
+  auto t,color=chart.getSeriesAreaFill(line)
+  auto u,low,high=chart.getSeriesValueRadius(scatter)
+  auto w,minColor,maxColor=chart.getSeriesValueColor(scatter)
+  assert v==1 and a==0 and b==10 and c==-5 and d==5
+  assert r==1 and e==1 and f==3 and g==-2 and h==4
+  assert s==0 and on==0 and duration==2 and progress==1
+  assert t==1 and color==c_uint(0xff123456)
+  assert u==1 and low==2 and high==12
+  assert w==1 and minColor==c_uint(0xff000001) and maxColor==c_uint(0xff000099)
+  turn+=1
+ end
+ heapEnd(0)
+ heapBegin()
+ nativeHot(chart,line,scatter)
+ heapEnd(1)
+ chart.close()
+ rejected=false
+ try
+  auto f,a,b,c,d=chart.getViewRange()
+ catch Error
+  rejected=true
+ end
+ assert rejected
+ ui.close()
+ proxy.close()
+ assert balanced()==1
+ println("XUI_CHART_QUERIES_OK")
+ return 0
+end

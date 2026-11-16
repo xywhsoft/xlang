@@ -1,0 +1,169 @@
+{
+  "complete": true,
+  "passed": true,
+  "sourceParent": "9ca5779aa917b421bd65c34dbe423e20b4c7368f",
+  "scope": "Six declarative Chart getters preserving native int flags, scalar pointer outputs and checked errors; no new native bridge or binary",
+  "sourceHashes": {
+    "lib/bindings/xui/README.md": "d6006ae4234d9bcc23452a8aea5dd8ccdef1b33cec69ce9ba096b2b657048737",
+    "lib/bindings/xui/examples/chart.xl": "1a7c1508d2ff933d93e943353b008dac60afba88673f453d68615e7cbdb70667",
+    "docs/xui-geometry-queries.md": "b7340a1d18461a02e9f739b345bf89c91739d7024d775d3acea09d53ae462cfd",
+    "docs/xui-chart-queries.md": "26846f81cb8b987d19afda7d17510e7a43d1ef5a7572c8abf0cc40384eb18b47",
+    "tools/check_xui_chart_queries.py": "4a71d2ac4d8e2b8156a1dd3aff033e1f35c52402fb0017d3cf74c41463dc29ad",
+    "test/cases/foreign_xui_chart_queries.xl": "d03b4fc36180891f0230d0f214ef8e139180c6e53c0bbf29696f42e01ef83308",
+    "test/cases/foreign_xui_chart_queries.h": "9e655ea92ff13cb8b9ebe760196a2bd21c32e42c0845bfe192d40a4d06ccc214",
+    "test/cases/foreign_xui_chart_queries.c": "1ebdf56e325074c068f85763570babf62017bcec9b47f6dbed38fe6ed5c6238a",
+    "test/cases/foreign_xui_chart_queries_native.c": "072f0b6d28e0da3a7d2484954d8bb9d6adcc74b7e24661e1ebb472d466176848"
+  },
+  "projectedSources": {
+    "lib/bindings/xui/src/managed.xl": {
+      "path": "F:\\xlang-validation\\xge-full-20261110\\chart-query-commit-projection-r1\\lib\\bindings\\xui\\src\\managed.xl",
+      "sha256": "d307ff9f30e13842eae64eda663572857d425091de953250ea6c89ad5f26b7a3",
+      "workingSha256": "415418735b2266b48e43646b486e2de221cea1f13d10d05068949bae7418a55c"
+    },
+    "tools/xui_managed_contracts.py": {
+      "path": "F:\\xlang-validation\\xge-full-20261110\\chart-query-commit-projection-r1\\tools\\xui_managed_contracts.py",
+      "sha256": "cc7323e12fca4abb0b5a3de2d675214e8fedd08c3496995bdfa93eaf0c776814",
+      "workingSha256": "a5fef658671d8bd8ecef4055f1874c20d09dcf826859a7ef15a61591951fb78a"
+    }
+  },
+  "projectionIndex": {
+    "path": "F:\\xlang-validation\\xge-full-20261110\\chart-query-commit-projection-r1\\index.json",
+    "sha256": "8f59ea3644fbe0af00175e722cc9a1b052b6b34bc8a99c068f31d3efd985fd6f"
+  },
+  "requiresCompilerCommit": "9ca5779aa917b421bd65c34dbe423e20b4c7368f",
+  "shippingDelivery": false,
+  "nativeBinariesRebuilt": false,
+  "networkTests": false,
+  "qualifiedCommands": 48,
+  "qualification": [
+    {
+      "path": "F:\\xlang-validation\\xge-full-20261110\\chart-query-qualified-win-r1.json",
+      "sha256": "3c0e477fbfe15915438626c2c207e0f5e361657e200a717b0ccac746bfbe94f4",
+      "commands": 24,
+      "reports": [
+        {
+          "path": "F:\\xlang-validation\\xge-full-20261110\\chart-queries-win-r3\\results.json",
+          "sha256": "c47dbcedff04326c4fa467892a0bda02a580f2900212b40d31a10f2557e7b38d",
+          "commands": 19,
+          "inputsUnchanged": true,
+          "renders": []
+        },
+        {
+          "path": "F:\\xlang-validation\\xge-full-20261110\\chart-query-lesson-win-r2\\results.json",
+          "sha256": "354cbd1951fe0c8bb4497350f9a444245a0d0971ac1221caea2f98ab072c7a7f",
+          "commands": 5,
+          "inputsUnchanged": true,
+          "renders": [
+            {
+              "path": "F:\\xlang-validation\\xge-full-20261110\\chart-query-lesson-win-r2\\jit.rgba",
+              "sha256": "0d4c48eb4ebd179d84f48cdffc84fa35ec12365600cc2f3007a91c3ef2e7e318",
+              "width": 800,
+              "height": 600
+            },
+            {
+              "path": "F:\\xlang-validation\\xge-full-20261110\\chart-query-lesson-win-r2\\dynamic.rgba",
+              "sha256": "0d4c48eb4ebd179d84f48cdffc84fa35ec12365600cc2f3007a91c3ef2e7e318",
+              "width": 800,
+              "height": 600
+            },
+            {
+              "path": "F:\\xlang-validation\\xge-full-20261110\\chart-query-lesson-win-r2\\static.rgba",
+              "sha256": "0d4c48eb4ebd179d84f48cdffc84fa35ec12365600cc2f3007a91c3ef2e7e318",
+              "width": 800,
+              "height": 600
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "path": "F:\\xlang-validation\\xge-full-20261110\\chart-query-qualified-linux-r1.json",
+      "sha256": "7dd7f6569d46a15da5bd9c5937a81fcea805fe432421fa0ef22a28347c3a5324",
+      "commands": 24,
+      "reports": [
+        {
+          "path": "/var/tmp/xlang-validation/xge-full-20261110/chart-queries-linux-r1/results.json",
+          "sha256": "a7f3fd084315c68fd7f98c764e7df8ae74fe84cd2dc68651fc380742e183c12e",
+          "commands": 19,
+          "inputsUnchanged": true,
+          "renders": []
+        },
+        {
+          "path": "/var/tmp/xlang-validation/xge-full-20261110/chart-query-lesson-linux-r2/results.json",
+          "sha256": "6fc63c9cea12d957f7905a98c2768f7072cfb868bfee574ef731f98d3ebb0dcd",
+          "commands": 5,
+          "inputsUnchanged": true,
+          "renders": [
+            {
+              "path": "/var/tmp/xlang-validation/xge-full-20261110/chart-query-lesson-linux-r2/jit.rgba",
+              "sha256": "de30d90f7019ac17cfad0b17b1497aa022d6a73c1927e9e141164a45d8b9cfa2",
+              "width": 800,
+              "height": 600
+            },
+            {
+              "path": "/var/tmp/xlang-validation/xge-full-20261110/chart-query-lesson-linux-r2/dynamic.rgba",
+              "sha256": "de30d90f7019ac17cfad0b17b1497aa022d6a73c1927e9e141164a45d8b9cfa2",
+              "width": 800,
+              "height": 600
+            },
+            {
+              "path": "/var/tmp/xlang-validation/xge-full-20261110/chart-query-lesson-linux-r2/static.rgba",
+              "sha256": "de30d90f7019ac17cfad0b17b1497aa022d6a73c1927e9e141164a45d8b9cfa2",
+              "width": 800,
+              "height": 600
+            }
+          ]
+        }
+      ]
+    }
+  ],
+  "reviewedReplay": {
+    "path": "F:\\xlang-validation\\xge-full-20261110\\chart-query-reviewed-replay-r1.json",
+    "sha256": "bdfd3272d7671906438c432ce9775bbe1f7abf418aa7baac290677b061808b0b",
+    "functions": [
+      "xuiChartGetAnimation",
+      "xuiChartGetBrushRange",
+      "xuiChartGetSeriesAreaFill",
+      "xuiChartGetSeriesValueColor",
+      "xuiChartGetSeriesValueRadius",
+      "xuiChartGetViewRange"
+    ],
+    "fullPackageRegeneration": false
+  },
+  "surface": {
+    "path": "F:\\xlang-validation\\xge-full-20261110\\chart-query-surface-r1\\surface.json",
+    "sha256": "cab92d434ed98304a5affa75c9f94e09c4300de08489f32fccc36836d53400eb",
+    "declarationInventoryOnly": true
+  },
+  "heap": {
+    "callsPerInterval": 6000,
+    "languageAndNative": true,
+    "alloc": 0,
+    "free": 0,
+    "realloc": 0,
+    "liveCountAndBytesUnchanged": true,
+    "cpuEquivalenceMeasured": false,
+    "osAllocatorMeasured": false
+  },
+  "graphicalLesson": {
+    "framesPerRun": 3,
+    "modes": [
+      "JIT",
+      "dynamic AOT",
+      "static AOT"
+    ],
+    "platforms": [
+      "Windows",
+      "Linux"
+    ],
+    "numericXAxis": true,
+    "windowsRenderVisuallyInspected": true,
+    "sourcePath": "F:\\xlang-validation\\xge-full-20261110\\chart-query-lesson-source-r2\\chart.xl",
+    "sourceSha256": "1a7c1508d2ff933d93e943353b008dac60afba88673f453d68615e7cbdb70667"
+  },
+  "limitations": [
+    "The existing whole-package generator refuses a stale include/xge.h dependency for xgeShapeExGetOBB. Its failed r1 output is preserved. Only the six actual override declarations were replay-qualified; the stale storage index has not been refreshed.",
+    "Area-fill retains native invalid/non-line return 0, with zero initialized color; radius/color negative results raise checked errors",
+    "Native host/owned lifetime design decisions and final matching runtime/SDK/IDE installation remain outside this batch"
+  ]
+}

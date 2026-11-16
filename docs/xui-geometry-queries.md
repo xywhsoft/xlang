@@ -42,11 +42,10 @@ the previous complete value on failure. Chart rejects non-finite input through
 its original native implementation. Widget/Context lifetime, creation-thread
 access and callback/code ownership continue to use the existing generic gates.
 
-Several other Chart queries return an ordinary 0/1 state together with pointer
-outputs: view range, brush range, animation and optional series settings. Their
-return value must remain visible. They are **not** classified as zero-success
-status functions by this batch; their remaining projection work stays in the
-full integration plan.
+Chart queries returning an ordinary 0/1 state together with pointer outputs use
+the separate [return-value contract](foreign-return-outputs.md). View range,
+brush range, animation and optional series settings preserve that flag as the
+first result; see [Chart state queries](xui-chart-queries.md).
 
 The readable [geometry_queries.xl](../lib/bindings/xui/examples/geometry_queries.xl)
 lesson shows slider dimensions and a real line chart. It explicitly selects a

@@ -385,6 +385,27 @@ METHODS.update({
         ['extern "xuiWebViewGetZoomFactor" @no_raise @c_output(1,0) func getZoomFactor() as c_double']],
 })
 
+METHODS.update({
+    'xuiChartGetViewRange': [
+        'int xuiChartGetViewRange(xui_widget pWidget, double* pMinX, double* pMaxX, double* pMinY, double* pMaxY)',
+        'Chart', ['extern "xuiChartGetViewRange" @no_raise @c_outputs(-1,1,2,3,4) @c_result("integer_min",0) func getViewRange() as (c_int,c_double,c_double,c_double,c_double)']],
+    'xuiChartGetBrushRange': [
+        'int xuiChartGetBrushRange(xui_widget pWidget, double* pMinX, double* pMaxX, double* pMinY, double* pMaxY)',
+        'Chart', ['extern "xuiChartGetBrushRange" @no_raise @c_outputs(-1,1,2,3,4) @c_result("integer_min",0) func getBrushRange() as (c_int,c_double,c_double,c_double,c_double)']],
+    'xuiChartGetAnimation': [
+        'int xuiChartGetAnimation(xui_widget pWidget, int* pEnabled, float* pDuration, float* pProgress)',
+        'Chart', ['extern "xuiChartGetAnimation" @no_raise @c_outputs(-1,1,2,3) @c_result("integer_min",0) func getAnimation() as (c_int,c_int,c_float,c_float)']],
+    'xuiChartGetSeriesAreaFill': [
+        'int xuiChartGetSeriesAreaFill(xui_widget pWidget, int iSeries, uint32_t* pColor)',
+        'Chart', ['extern "xuiChartGetSeriesAreaFill" @no_raise @c_outputs(-1,2) @c_result("integer_min",0) func getSeriesAreaFill(c_int iSeries) as (c_int,c_uint)']],
+    'xuiChartGetSeriesValueRadius': [
+        'int xuiChartGetSeriesValueRadius(xui_widget pWidget, int iSeries, float* pMinSize, float* pMaxSize)',
+        'Chart', ['extern "xuiChartGetSeriesValueRadius" @no_raise @c_outputs(-1,2,3) @c_result("integer_min",0) func getSeriesValueRadius(c_int iSeries) as (c_int,c_float,c_float)']],
+    'xuiChartGetSeriesValueColor': [
+        'int xuiChartGetSeriesValueColor(xui_widget pWidget, int iSeries, uint32_t* pMinColor, uint32_t* pMaxColor)',
+        'Chart', ['extern "xuiChartGetSeriesValueColor" @no_raise @c_outputs(-1,2,3) @c_result("integer_min",0) func getSeriesValueColor(c_int iSeries) as (c_int,c_uint,c_uint)']],
+})
+
 CALLBACKS = {'xui_accessibility_event_proc': ('typedef void (*xui_accessibility_event_proc)(xui_context_t* pContext, xui_widget_t* pWidget, const '
                                   'xui_accessibility_event_t* pEvent, void* pUser);',
                                   'export typedef AccessibilityEventProc = '
