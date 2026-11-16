@@ -1,0 +1,34 @@
+import xlang
+func main(...) as int
+ auto root=env.get("XLANG_PACK_GROUP_ROOT")
+ auto context=xlang.Context()
+ if root!=null then
+  assert context.setWorkDir(root)
+ else
+  return 2
+ end
+ auto temporary=env.get("XLANG_PACK_GROUP_TEMP")
+ if temporary!=null then
+  assert context.setTempDir(temporary)
+ end
+ string source=r"""
+typedef Handler=func(c_int) as c_int
+extern "gpn_call" @header("test/cases/foreign_pack_owned_callback_nested.h") @no_raise @c_result("integer_min",0) @c_pack(0,"GpnDesc",0,2) @c_pack_callback_group(0,"user",1) @c_pack_field(0,"callback",0,"owned_callback") @c_pack_field(0,"seed",1,"value") @c_owned_callback(0,-1,"GpnOwner",-19) func call(Handler? callback,c_int seed) as c_int
+func main(...) as int
+ c_int observed=c_int(0)
+ Handler callback=func(c_int value) as c_int
+  observed+=value
+  return observed
+ end
+ assert call(callback,c_int(3))==c_int(3)
+ assert call(callback,c_int(4))==c_int(7)
+ assert call(null,c_int(9))==c_int(9)
+ return 0
+end
+"""
+ assert context.run(source),context.lastError
+ assert not context.run("int broken=missingOwnedGroupSymbol")
+ assert context.run(source),context.lastError
+ println("PACK_GROUP_NESTED_OK")
+ return 0
+end

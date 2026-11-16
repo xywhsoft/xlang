@@ -100,6 +100,7 @@ static inline int xl6ForeignPackFieldRead(const XL6_AstNode* attr,XL6_ForeignPac
             !strcmp(mode,"span_count") ? XL6_FOREIGN_PACK_FIELD_SPAN_COUNT :
             !strcmp(mode,"c_string") ? XL6_FOREIGN_PACK_FIELD_C_STRING :
             !strcmp(mode,"callback") ? XL6_FOREIGN_PACK_FIELD_SYNC_CALLBACK :
+            !strcmp(mode,"owned_callback") ? XL6_FOREIGN_PACK_FIELD_OWNED_CALLBACK :
             !strcmp(mode,"callback_user") ? XL6_FOREIGN_PACK_FIELD_CALLBACK_USER : XL6_FOREIGN_PACK_FIELD_INVALID;
         if(!row.kind)return 0;
         if(row.kind==XL6_FOREIGN_PACK_FIELD_TEXT_SIZE){
@@ -113,6 +114,42 @@ static inline int xl6ForeignPackFieldRead(const XL6_AstNode* attr,XL6_ForeignPac
     return 1;
 }
 
+static inline int xl6ForeignPackCallbackGroupRead(const XL6_AstNode* attr,XL6_ForeignPackContract* output)
+{
+    int32 pack,owner;XL6_ForeignPackContract row={0};
+    if(!attr || !attr->text || strcmp(attr->text,"c_pack_callback_group") || attr->childCount!=3 ||
+        !xl6ForeignDecimalInt(attr->children[0],&pack) || pack<0 || pack>=64 ||
+        !xl6ForeignQuotedText(attr->children[1],row.callbackUserField,sizeof(row.callbackUserField)) ||
+        !xl6ForeignPackPath(row.callbackUserField) ||
+        !xl6ForeignDecimalInt(attr->children[2],&owner) || owner<0 || owner>=64 || owner==pack)return 0;
+    row.physicalIndex=(uint32)pack;row.callbackOwnerPhysicalIndexPlusOne=(uint32)owner+1;
+    if(output)*output=row;
+    return 1;
+}
+static inline int xl6ForeignPackApplyCallbackGroup(const XL6_AstNode* node,XL6_ForeignPackContract* pack)
+{
+    const XL6_AstNode* attrs=xl6ForeignFunctionAttributes(node);size_t found=0;
+    for(size_t i=0;attrs && i<attrs->childCount;++i){XL6_ForeignPackContract row;
+        if(xl6ForeignPackCallbackGroupRead(attrs->children[i],&row) && row.physicalIndex==pack->physicalIndex){
+            if(++found>1)return 0;
+            pack->callbackOwnerPhysicalIndexPlusOne=row.callbackOwnerPhysicalIndexPlusOne;
+            strcpy(pack->callbackUserField,row.callbackUserField);
+        }
+    }
+    return 1;
+}
+static inline int xl6ForeignPackCallbackOwnerAt(const XL6_AstNode* node,size_t physical,XL6_ForeignPackContract* output)
+{
+    const XL6_AstNode* attrs=xl6ForeignFunctionAttributes(node);size_t found=0;XL6_ForeignPackContract row={0};
+    for(size_t i=0;attrs && i<attrs->childCount;++i){XL6_ForeignPackContract candidate;
+        if(xl6ForeignPackCallbackGroupRead(attrs->children[i],&candidate) &&
+            candidate.callbackOwnerPhysicalIndexPlusOne==physical+1){row=candidate;++found;}
+    }
+    if(found!=1)return 0;
+    if(output)*output=row;
+    return 1;
+}
+
 /* Syntactic grouping is shared by semantics and AST-to-IR normalization.
  * Call emission uses the separately closed IR rows instead of these nodes. */
 static inline int xl6ForeignPackForParameter(const XL6_AstNode* node,size_t parameter,XL6_ForeignPackContract* output)
@@ -121,6 +158,7 @@ static inline int xl6ForeignPackForParameter(const XL6_AstNode* node,size_t para
     for(size_t i=0;attrs && i<attrs->childCount;++i){XL6_ForeignPackContract row;
         if(xl6ForeignPackRead(attrs->children[i],&row) && parameter>=row.firstParameter && parameter-row.firstParameter<row.parameterCount){match=row;++found;}}
     if(found!=1)return 0;
+    if(!xl6ForeignPackApplyCallbackGroup(node,&match))return 0;
     if(output)*output=match;
     return 1;
 }
@@ -163,7 +201,8 @@ static inline size_t xl6ForeignPhysicalStepCount(const XL6_AstNode* node,size_t 
         if(xl6ForeignArrayGroupRead(attrs->children[i],&group)){
             if(group.arrayCount>count)return SIZE_MAX;
             count-=group.arrayCount;
-        }XL6_ForeignFixedInputContract nullRow;if(xl6ForeignFixedInputRead(attrs->children[i],&nullRow))++count;}
+        }XL6_ForeignFixedInputContract nullRow;if(xl6ForeignFixedInputRead(attrs->children[i],&nullRow))++count;
+        if(xl6ForeignPackCallbackGroupRead(attrs->children[i],NULL))++count;}
     return count;
 }
 static inline int xl6ForeignPackAtPhysical(const XL6_AstNode* node,size_t physical,XL6_ForeignPackContract* output)
@@ -172,6 +211,7 @@ static inline int xl6ForeignPackAtPhysical(const XL6_AstNode* node,size_t physic
     for(size_t i=0;attrs && i<attrs->childCount;++i){XL6_ForeignPackContract candidate;
         if(xl6ForeignPackRead(attrs->children[i],&candidate) && candidate.physicalIndex==physical){row=candidate;++found;}}
     if(found!=1)return 0;
+    if(!xl6ForeignPackApplyCallbackGroup(node,&row))return 0;
     if(output)*output=row;
     return 1;
 }
@@ -189,6 +229,9 @@ static inline int xl6ForeignPhysicalStepRead(const XL6_AstNode* node,const XL6_F
             ++ordinal;++physical;
         }else if(xl6ForeignFixedInputAt(node,physical,NULL)){
             step.kind=XL6_FOREIGN_PHYSICAL_STEP_FIXED;step.parameter=UINT32_MAX;++physical;
+        }else if(xl6ForeignPackCallbackOwnerAt(node,physical,&physicalPack)){
+            step.kind=XL6_FOREIGN_PHYSICAL_STEP_CALLBACK_GROUP_OWNER;step.parameter=UINT32_MAX;
+            step.ordinal=physicalPack.physicalIndex;++physical;
         }else if(xl6ForeignPackAtPhysical(node,physical,&physicalPack)){
             if(physicalPack.firstParameter+receiver>parameters || physicalPack.parameterCount>parameters-physicalPack.firstParameter-receiver)return 0;
             step.kind=XL6_FOREIGN_PHYSICAL_STEP_PACK;step.parameter=physicalPack.firstParameter+(uint32)receiver;++physical;

@@ -337,7 +337,7 @@ static inline int xl6ForeignFunctionRead(const XL6_AstNode* node,
     XL6_ForeignCallFacts* output)
 {
     XL6_ForeignCallFacts facts = {0};int countedField=0,retainedResult=0,voidFactory=0,outputStatus=0,fieldCall=0;uint64 callbackSpans=0,callbackParameters=0,outputSizes=0,outputViews=0,regions=0,regionObservers=0,packs=0,packText=0,packCstrings=0,nulls=0,spanLimits=0;size_t callbackSpanCount=0,packFields=0;
-    uint64 recordFields=0,recordRetains=0,arrayGroups=0,arrayRecords=0;size_t arrayInputs=0,arrayFields=0;
+    uint64 recordFields=0,recordRetains=0,arrayGroups=0,arrayRecords=0,callbackGroups=0,callbackGroupOwners=0;size_t arrayInputs=0,arrayFields=0;
     const XL6_AstNode* attributes = xl6ForeignFunctionAttributes(node);
     for (size_t i = 0; attributes && i < attributes->childCount; ++i) {
         const XL6_AstNode* attr = attributes->children[i];
@@ -364,6 +364,14 @@ static inline int xl6ForeignFunctionRead(const XL6_AstNode* node,
             XL6_ForeignPackContract row;
             if(!xl6ForeignPackRead(attr,&row) || (packs&(UINT64_C(1)<<row.physicalIndex)))return 0;
             packs|=UINT64_C(1)<<row.physicalIndex;continue;
+        }
+        if(attr && attr->text && !strcmp(attr->text,"c_pack_callback_group")){
+            XL6_ForeignPackContract row;
+            if(!xl6ForeignPackCallbackGroupRead(attr,&row) ||
+                (callbackGroups&(UINT64_C(1)<<row.physicalIndex)) ||
+                (callbackGroupOwners&(UINT64_C(1)<<(row.callbackOwnerPhysicalIndexPlusOne-1))))return 0;
+            callbackGroups|=UINT64_C(1)<<row.physicalIndex;
+            callbackGroupOwners|=UINT64_C(1)<<(row.callbackOwnerPhysicalIndexPlusOne-1);continue;
         }
         if(attr && attr->text && (!strcmp(attr->text,"c_null") || !strcmp(attr->text,"c_code_owner"))){
             XL6_ForeignFixedInputContract row;
@@ -604,7 +612,8 @@ static inline int xl6ForeignFunctionRead(const XL6_AstNode* node,
     if((regionObservers&~regions) || (regions && ((node->flags&XL6_AST_FLAG_FOREIGN_FIELD) || facts.receiverDereference)) ||
         (packs && (regions || (node->flags&XL6_AST_FLAG_FOREIGN_FIELD) || facts.receiverDereference)) ||
         !xl6ForeignInputMappingsSet(callbackSpanCount,regions!=0,packs!=0,&facts.inputMappingFacts))return 0;
-    if((arrayRecords&~arrayGroups) || (!arrayGroups && (arrayInputs || arrayFields)) ||
+    if((callbackGroups&~packs) || (callbackGroupOwners&(packs|nulls|regions|arrayGroups)) ||
+        (arrayRecords&~arrayGroups) || (!arrayGroups && (arrayInputs || arrayFields)) ||
         (arrayGroups && (regions || (node->flags&XL6_AST_FLAG_FOREIGN_FIELD) || facts.receiverDereference)))return 0;
     if(arrayGroups)facts.inputMappingFacts|=XL6_FOREIGN_INPUT_ARRAY_GROUPS_PRESENT;
     if(nulls)facts.inputMappingFacts|=XL6_FOREIGN_INPUT_FIXED_PRESENT;

@@ -441,6 +441,8 @@ static const char* xl6IrCgenCellKind(const XL6_IrType* element)
     if (element == NULL) return NULL;
     const XL6_IrNativeValuePlan* native=xl6IrOwnedTransferPlanForType(element);
     if(native)return native->graphCapture ? "XL6_CELL_NATIVE_GRAPH_V3" : "XL6_CELL_NATIVE_LEAF_V2";
+    if(element->ownershipAbi==XL6_IR_OWNERSHIP_ABI_TRIVIAL && xl6IrCAbiUsesScalarByteCell(element->cAbi))
+        return "XL6_CELL_TRIVIAL_BYTES";
     switch (element->cAbi) {
     case XL6_IR_C_ABI_BOOL: return "XL6_CELL_BOOL";
     case XL6_IR_C_ABI_CHAR_U32: return "XL6_CELL_CHAR";

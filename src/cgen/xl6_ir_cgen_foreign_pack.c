@@ -26,6 +26,9 @@ static int xl6IrCgenPackProof(XL6_Output* out,const XL6_IrModule* module,const X
             "XLIR_NATIVE_ASSERT(sizeof(%s)>0, \"native descriptor completeness\");\n"
             "#ifdef __cplusplus\nXLIR_NATIVE_ASSERT(std::is_trivial<%s>::value && std::is_standard_layout<%s>::value, \"native descriptor trivial layout\");\n#endif\n",
             pack->recordCName,pack->recordCName,pack->recordCName,pack->recordCName,pack->recordCName);
+        if(pack->callbackOwnerPhysicalIndexPlusOne)
+            xl6OutputPrintf(out,"XLIR_NATIVE_ASSERT(XLIR_NATIVE_IS_TYPE(((%s*)0)->%s,void*), \"native callback group userdata field\");\n",
+                pack->recordCName,pack->callbackUserField);
         for(size_t f=0;f<module->foreignPackFieldCount;++f){const XL6_ForeignPackFieldContract* field=&module->foreignPackFields[f];
             if(field->declaration!=pack->declaration || field->packPhysicalIndex!=pack->physicalIndex)continue;
             if(field->kind==XL6_FOREIGN_PACK_FIELD_RECORD){
@@ -80,12 +83,21 @@ static int xl6IrCgenForeignPacksBegin(XL6_Output* out,const XL6_IrModule* module
             case XL6_FOREIGN_PACK_FIELD_SPAN_COUNT:xl6OutputPrintf(out,"(%s)native_span_count_%lu",field->physicalCName,(unsigned long)p);break;
             case XL6_FOREIGN_PACK_FIELD_SYNC_CALLBACK:
                 xl6OutputPrintf(out,"native_callback_%lu.invocation.self ? %s_thunk : NULL",(unsigned long)p,field->physicalCName);break;
+            case XL6_FOREIGN_PACK_FIELD_OWNED_CALLBACK:{
+                size_t member;const XL6_ForeignPackContract* group=xl6IrForeignPackCallbackMember(module,target,p,&member,NULL);
+                if(group!=pack)return -1;
+                xl6OutputPrintf(out,"native_callback_group_%u->Members[%lu] ? %s_thunk : NULL",pack->physicalIndex,
+                    (unsigned long)member,field->physicalCName);break;
+            }
             case XL6_FOREIGN_PACK_FIELD_CALLBACK_USER:
                 xl6OutputPrintf(out,"native_callback_%lu.invocation.self ? &native_callback_%lu : NULL",(unsigned long)p,(unsigned long)p);break;
             default:return -1;
             }
             xl6OutputPuts(";\n",out);
         }
+        if(pack->callbackOwnerPhysicalIndexPlusOne)
+            xl6OutputPrintf(out,"    if (native_packs_ok) native_pack_%u.%s=native_callback_group_%u;\n",
+                pack->physicalIndex,pack->callbackUserField,pack->physicalIndex);
     }
     if(count)xl6OutputPuts("    if (native_packs_ok) {\n",out);
     return count;

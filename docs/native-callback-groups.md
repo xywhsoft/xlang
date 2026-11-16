@@ -1,9 +1,10 @@
 # Owning native callback-group foundation
 
 The user approved a shared userdata environment for multiple retained callback
-fields. The current implementation provides its **internal runtime foundation**;
-language pack declarations, IR/lowering, generated thunks and HostSession are
-still pending. No runtime, SDK or IDE installation is performed by this batch.
+fields. The internal runtime foundation now supports the compiler's owned pack
+declarations, closed IR/lowering and generated typed thunks described in
+`docs/c-pack-owned-callbacks.md`. HostSession remains pending. No workspace
+runtime, SDK or IDE installation is performed by these batches.
 
 `XL6_NativeCallbackGroupRuntimeV1` constructs an owned group from borrowed closure,
 signature and optional native-context arrays. Its read-only public prefix holds
@@ -58,8 +59,8 @@ allocations and 448 bytes. This excludes the preexisting closure and is not a
 CPU-time or complete language-bridge equivalence claim. The actual language
 scope may already hold a shareable adapter lease; it must be measured separately.
 
-Before language delivery, the approved pack contract, IR/lowering and generated
-thunks must be implemented and qualified. Real module unload, cold-thread OOM,
+The language projection is qualified separately, including actual complete O2
+compiler/VFS and nested compiler programs. Real module unload, cold-thread OOM,
 whole cyclic language/native graphs, HostSession renderer integration and matched
 latest-XRT/native SDK/IDE convergence remain open. The full builds here still use
 the previously qualified pinned XRT core; they are not a latest-XRT delivery.
@@ -69,3 +70,5 @@ Exact source/object/log hashes and limits are indexed by
 The component/thread/full-artifact addendum is
 `dev/release-materials/provenance/native-callback-group-isolation-20261116.json`.
 Historical report bytes and paths are preserved.
+The compiler projection receipt is
+`dev/release-materials/provenance/native-callback-group-pack-20261116.json`.

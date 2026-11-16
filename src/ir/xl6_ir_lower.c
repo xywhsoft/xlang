@@ -14304,7 +14304,8 @@ static int xl6IrLowerClosureCaptureAdd(
                          captureType->cAbi == XL6_IR_C_ABI_U64 ||
                          captureType->cAbi == XL6_IR_C_ABI_TYPE_ID ||
                          captureType->cAbi == XL6_IR_C_ABI_F64 ||
-                         captureType->cAbi == XL6_IR_C_ABI_TAGGED_NULLABLE)) ||
+                         captureType->cAbi == XL6_IR_C_ABI_TAGGED_NULLABLE ||
+                         xl6IrCAbiUsesScalarByteCell(captureType->cAbi))) ||
                       captureType->cAbi == XL6_IR_C_ABI_MANAGED_STRING ||
                       captureType->cAbi == XL6_IR_C_ABI_RUNTIME_XVALUE_PTR ||
                       captureType->cAbi == XL6_IR_C_ABI_MANAGED_BYTES ||

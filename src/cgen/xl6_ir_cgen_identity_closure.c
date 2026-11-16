@@ -471,6 +471,10 @@ static int xl6IrCgenEmitExternPrototypeWithBindings(
             const XL6_ForeignFixedInputContract* row=xl6IrForeignFixedInputGet(module,target,step.physicalIndex);if(!row)return 0;
             xl6OutputPuts(row->pointerCName,out);continue;
         }
+        if(step.kind==XL6_FOREIGN_PHYSICAL_STEP_CALLBACK_GROUP_OWNER){
+            const XL6_ForeignPackContract* group=xl6IrForeignPackCallbackOwner(module,target,step.physicalIndex);if(!group)return 0;
+            xl6OutputPrintf(out,"const %s*",group->callbackGroupOwnerCName);continue;
+        }
         if(step.kind==XL6_FOREIGN_PHYSICAL_STEP_ARRAY_GROUP){
             const XL6_ForeignArrayGroupContract* group=xl6IrForeignArrayGroupGet(module,target,step.physicalIndex);if(!group)return 0;
             if(group->recordCName[0])xl6OutputPrintf(out,"const %s*",group->recordCName);

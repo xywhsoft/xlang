@@ -81,7 +81,14 @@ static int xl6IrCgenEmitNativeCallbackThunks(XL6_Output* out,const XL6_IrModule*
         if(sync){
             xl6OutputPrintf(out,"    %s_context* record=userdata;\n    XL6_SyncCallbackScopeV1 scope={0};\n",row->callbackTypeCName);
             if(root)xl6OutputPuts("    XL6_ForeignViewCallV1 native_owner={0};\n",out);
-        }else xl6OutputPuts("    XL6_NativeCallback* record=userdata;\n    XL6_NativeCallbackScopeV1 scope={0};\n",out);
+        }else {
+            size_t member;const XL6_ForeignPackContract* group=xl6IrForeignPackCallbackMember(module,target,parameter,&member,NULL);
+            if(group)xl6OutputPrintf(out,"    const XL6_NativeCallbackGroupV1* group=userdata;\n"
+                "    XL6_NativeCallback* record=group && group->Members && group->Count>%lu ? group->Members[%lu]:NULL;\n",
+                (unsigned long)member,(unsigned long)member);
+            else xl6OutputPuts("    XL6_NativeCallback* record=userdata;\n",out);
+            xl6OutputPuts("    XL6_NativeCallbackScopeV1 scope={0};\n",out);
+        }
         xl6OutputPuts("    xl6_error_scope errors={0};\n    if (!xl6ErrorScopeBegin(&errors)) abort();\n",out);
         if(signature->returnCount)xl6OutputPrintf(out,"    %s result = {%d};\n",result,row->callbackFailureCode);
         bool scoped=false;
@@ -166,12 +173,53 @@ static int xl6IrCgenNativeCallbacksBegin(XL6_Output* out,const XL6_IrModule* mod
     const XL6_IrCallTarget* target,const XL6_IrValueId* values,const char* errors)
 {
     int count=0;
+    for(size_t i=0;i<module->foreignPackCount;++i){const XL6_ForeignPackContract* pack=&module->foreignPacks[i];
+        if(pack->declaration!=target->declaration || !pack->callbackOwnerPhysicalIndexPlusOne)continue;
+        size_t members=0;
+        for(size_t p=pack->firstParameter;p<pack->firstParameter+pack->parameterCount;++p)
+            if(xl6IrForeignPackCallbackMember(module,target,p,NULL,NULL))++members;
+        if(!members || members>64)return -1;
+        if(!count++)xl6OutputPuts("    { bool native_callbacks_ok=true;\n",out);
+        xl6OutputPrintf(out,"    XL6_NativeCallbackGroupV1* native_callback_group_%u=NULL;\n"
+            "    %s native_callback_group_owner_%u={0};\n"
+            "    XL6_Closure* native_callback_group_closures_%u[%lu]={",
+            pack->physicalIndex,pack->callbackGroupOwnerCName,pack->physicalIndex,pack->physicalIndex,(unsigned long)members);
+        size_t n=0;
+        for(size_t p=pack->firstParameter;p<pack->firstParameter+pack->parameterCount;++p)
+            if(xl6IrForeignPackCallbackMember(module,target,p,NULL,NULL)){
+                if(n++)xl6OutputPuts(",",out);
+                xl6IrCgenForeignViewArgument(out,values,p,NULL);
+            }
+        xl6OutputPrintf(out,"};\n    XL6_ForeignView* native_callback_group_contexts_%u[%lu]={",pack->physicalIndex,(unsigned long)members);n=0;
+        for(size_t p=pack->firstParameter;p<pack->firstParameter+pack->parameterCount;++p){
+            if(!xl6IrForeignPackCallbackMember(module,target,p,NULL,NULL))continue;
+            const XL6_ForeignParameterContract* row=xl6IrForeignParameterGet(module,target,p);
+            if(n++)xl6OutputPuts(",",out);
+            if(row->callbackOwnerIndexPlusOne)xl6IrCgenForeignViewArgument(out,values,row->callbackOwnerIndexPlusOne-1,NULL);
+            else xl6OutputPuts("NULL",out);
+        }
+        xl6OutputPrintf(out,"};\n    const uint64_t native_callback_group_signatures_%u[%lu]={",pack->physicalIndex,(unsigned long)members);n=0;
+        for(size_t p=pack->firstParameter;p<pack->firstParameter+pack->parameterCount;++p){
+            if(!xl6IrForeignPackCallbackMember(module,target,p,NULL,NULL))continue;
+            const XL6_IrType* signature=xl6IrForeignCallbackSignature(module,target,p);if(!signature)return -1;
+            if(n++)xl6OutputPuts(",",out);
+            xl6OutputPrintf(out,"0x%016llXULL",(unsigned long long)signature->typeValueId);
+        }
+        xl6OutputPrintf(out,"};\n    if (native_callbacks_ok) { native_callback_group_%u=xl6NativeCallbackGroupRuntimeV1Get()->Create("
+            "xlir_closure_owner,native_callback_group_closures_%u,native_callback_group_contexts_%u,native_callback_group_signatures_%u,%lu);\n"
+            "    if (!native_callback_group_%u) { native_callbacks_ok=false; xl6ErrorScopeCaptureFailure(&%s); }\n"
+            "    else native_callback_group_owner_%u=(%s){xl6NativeCallbackGroupRuntimeV1Get()->Ownership(native_callback_group_%u),"
+            "xl6NativeCallbackGroupRuntimeV1Get()->HoldNative,xl6NativeCallbackGroupRuntimeV1Get()->DropNative}; }\n",
+            pack->physicalIndex,pack->physicalIndex,pack->physicalIndex,pack->physicalIndex,(unsigned long)members,
+            pack->physicalIndex,errors,pack->physicalIndex,pack->callbackGroupOwnerCName,pack->physicalIndex);
+    }
     for(size_t p=0;p<target->parameterCount;++p) {
         if(target->parameterPhysicalAbis[p]!=XL6_IR_CALL_PARAMETER_PHYSICAL_RETAINED_C_CALLBACK &&
             target->parameterPhysicalAbis[p]!=XL6_IR_CALL_PARAMETER_PHYSICAL_SYNC_C_CALLBACK)continue;
         const XL6_ForeignParameterContract* row=xl6IrForeignParameterGet(module,target,p);
         const XL6_IrType* signature=xl6IrForeignCallbackSignature(module,target,p);
         if(!row || !signature)return -1;
+        if(xl6IrForeignPackCallbackMember(module,target,p,NULL,NULL))continue;
         if(!count++)xl6OutputPuts("    { bool native_callbacks_ok=true;\n",out);
         if(row->kind==XL6_FOREIGN_PARAMETER_SYNC_CALLBACK){
             xl6OutputPrintf(out,"    %s_context native_callback_%lu={0};\n",row->callbackTypeCName,(unsigned long)p);
@@ -203,14 +251,20 @@ static void xl6IrCgenNativeCallbacksObserve(XL6_Output* out,const XL6_IrCallTarg
         if(target->parameterPhysicalAbis[p]==XL6_IR_CALL_PARAMETER_PHYSICAL_SYNC_C_CALLBACK)
             xl6OutputPrintf(out,"    if(native_callback_%lu.invocation.self) { xl6_error_result callback_result=xl6SyncCallbackCompleteV1(&native_callback_%lu.invocation); if(!callback_result.ok) { xl6ErrorScopePropagateFailure(callback_result); xl6ErrorScopeCaptureFailure(&%s); } }\n",(unsigned long)p,(unsigned long)p,errors);
 }
-static void xl6IrCgenNativeCallbacksEnd(XL6_Output* out,const XL6_IrCallTarget* target,const char* errors)
+static void xl6IrCgenNativeCallbacksEnd(XL6_Output* out,const XL6_IrModule* module,const XL6_IrCallTarget* target,const char* errors)
 {
     xl6OutputPuts("    }\n",out);
     for(size_t p=target->parameterCount;p>0;--p)
         if(target->parameterPhysicalAbis[p-1]==XL6_IR_CALL_PARAMETER_PHYSICAL_SYNC_C_CALLBACK)
             xl6OutputPrintf(out,"    if(native_callback_%lu.invocation.self) { xl6_error_result callback_cleanup=xl6SyncCallbackEndV1(&native_callback_%lu.invocation); if(!callback_cleanup.ok) { xl6ErrorScopePropagateFailure(callback_cleanup); xl6ErrorScopeCaptureFailure(&%s); } }\n",(unsigned long)(p-1),(unsigned long)(p-1),errors);
-        else if(target->parameterPhysicalAbis[p-1]==XL6_IR_CALL_PARAMETER_PHYSICAL_RETAINED_C_CALLBACK)
+        else if(target->parameterPhysicalAbis[p-1]==XL6_IR_CALL_PARAMETER_PHYSICAL_RETAINED_C_CALLBACK &&
+            !xl6IrForeignPackCallbackMember(module,target,p-1,NULL,NULL))
             xl6OutputPrintf(out,"    if (native_callback_%lu && !xl6NativeCallbackRuntimeV1Get()->Release(native_callback_%lu)) xl6ErrorScopeCaptureFailure(&%s);\n",
                 (unsigned long)(p-1),(unsigned long)(p-1),errors);
+    for(size_t i=module->foreignPackCount;i>0;--i){const XL6_ForeignPackContract* pack=&module->foreignPacks[i-1];
+        if(pack->declaration==target->declaration && pack->callbackOwnerPhysicalIndexPlusOne)
+            xl6OutputPrintf(out,"    if (native_callback_group_%u && !xl6NativeCallbackGroupRuntimeV1Get()->Release(native_callback_group_%u)) xl6ErrorScopeCaptureFailure(&%s);\n",
+                pack->physicalIndex,pack->physicalIndex,errors);
+    }
     xl6OutputPuts("    }\n",out);
 }

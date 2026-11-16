@@ -502,6 +502,13 @@ typedef enum XL6_IrCAbi {
     XL6_IR_C_ABI_NATIVE_SEQUENCE_READ_PTR
 } XL6_IrCAbi;
 
+/* Exact pointer-free scalar bytes can use the existing resident cell carrier.
+ * Keep this shared by lowering and Cgen; native pointers/resources are excluded. */
+static inline int xl6IrCAbiUsesScalarByteCell(XL6_IrCAbi abi)
+{
+    return abi==XL6_IR_C_ABI_F32 || (abi>=XL6_IR_C_ABI_C_CHAR && abi<=XL6_IR_C_ABI_C_WCHAR);
+}
+
 static inline int xl6IrCAbiIsAggregate(XL6_IrCAbi abi)
 {
     return abi == XL6_IR_C_ABI_UNION || abi == XL6_IR_C_ABI_C_RECORD;
@@ -8146,6 +8153,8 @@ const XL6_ForeignOutputViewContract* xl6IrForeignOutputViewGet(const XL6_IrModul
 int xl6IrForeignOutputViewsMatch(const XL6_IrModule*,const XL6_IrCallTarget*);
 const XL6_ForeignPackContract* xl6IrForeignPackGet(const XL6_IrModule*,const XL6_IrCallTarget*,size_t);
 const XL6_ForeignPackContract* xl6IrForeignPackParameter(const XL6_IrModule*,const XL6_IrCallTarget*,size_t);
+const XL6_ForeignPackContract* xl6IrForeignPackCallbackOwner(const XL6_IrModule*,const XL6_IrCallTarget*,size_t);
+const XL6_ForeignPackContract* xl6IrForeignPackCallbackMember(const XL6_IrModule*,const XL6_IrCallTarget*,size_t,size_t*,size_t*);
 const XL6_ForeignFixedInputContract* xl6IrForeignFixedInputGet(const XL6_IrModule*,const XL6_IrCallTarget*,size_t);
 size_t xl6IrForeignPhysicalStepCount(const XL6_IrModule*,const XL6_IrCallTarget*);
 int xl6IrForeignPhysicalStepGet(const XL6_IrModule*,const XL6_IrCallTarget*,size_t,XL6_ForeignPhysicalStep*);

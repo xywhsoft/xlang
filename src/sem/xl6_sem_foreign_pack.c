@@ -1,4 +1,5 @@
-/* Logical inputs are packed only into synchronous immutable native records. */
+/* Immutable descriptors borrow their inputs for the call; explicit callback
+ * groups let a native publisher acquire independent closure/code references. */
 static const char* xl6SemForeignPackScalarCName(const XL6_AstNode* type)
 {
     if(!type || type->childCount || !type->text)return NULL;
@@ -47,7 +48,8 @@ static int xl6SemForeignPacks(XL6_SemContext* ctx,XL6_AstNode* node,const XL6_As
         xl6ForeignInputHasRegions(facts->inputMappingFacts))goto invalid;
     for(size_t a=0;attrs && a<attrs->childCount;++a){
         XL6_ForeignPackContract pack;if(!xl6ForeignPackRead(attrs->children[a],&pack))continue;
-        ++packCount;if(pack.firstParameter>count || pack.parameterCount>count-pack.firstParameter)goto invalid;
+        ++packCount;if(pack.firstParameter>count || pack.parameterCount>count-pack.firstParameter ||
+            !xl6ForeignPackApplyCallbackGroup(node,&pack))goto invalid;
         for(size_t p=pack.firstParameter;p<pack.firstParameter+pack.parameterCount;++p){
             if(consumed&(UINT64_C(1)<<p))goto invalid;
             if(!params->children[p] || !params->children[p]->childCount ||
@@ -58,11 +60,13 @@ static int xl6SemForeignPacks(XL6_SemContext* ctx,XL6_AstNode* node,const XL6_As
         }
         for(size_t b=0;b<a;++b){XL6_ForeignPackContract previous;
             if(xl6ForeignPackRead(attrs->children[b],&previous) && previous.physicalIndex==pack.physicalIndex)goto invalid;}
-        uint64 used=0,textData=0,textSize=0,spanData=0,spanCount=0,callbacks=0,callbackUsers=0;
+        uint64 used=0,textData=0,textSize=0,spanData=0,spanCount=0,callbacks=0,callbackUsers=0,ownedCallbacks=0;
+        char groupOwner[64]={0};
         size_t fields=0;
         for(size_t f=0;f<attrs->childCount;++f){
             XL6_ForeignPackFieldContract field;if(!xl6ForeignPackFieldRead(attrs->children[f],&field) || field.packPhysicalIndex!=pack.physicalIndex)continue;
             ++fields;++fieldCount;
+            if(pack.callbackOwnerPhysicalIndexPlusOne && !strcmp(pack.callbackUserField,field.field))goto invalid;
             for(size_t old=0;old<f;++old){XL6_ForeignPackFieldContract previous;
                 if(xl6ForeignPackFieldRead(attrs->children[old],&previous) && previous.packPhysicalIndex==field.packPhysicalIndex && !strcmp(previous.field,field.field))goto invalid;}
             size_t parent=xl6ForeignPackParentLength(field.field),parents=0;
@@ -84,6 +88,12 @@ static int xl6SemForeignPacks(XL6_SemContext* ctx,XL6_AstNode* node,const XL6_As
                 uint64* bits=field.kind==XL6_FOREIGN_PACK_FIELD_SPAN_DATA ? &spanData:&spanCount;
                 if(*bits&(UINT64_C(1)<<p))goto invalid;
                 *bits|=UINT64_C(1)<<p;
+            }else if(field.kind==XL6_FOREIGN_PACK_FIELD_OWNED_CALLBACK){
+                XL6_ForeignParameterContract callback;
+                if(!pack.callbackOwnerPhysicalIndexPlusOne || !xl6SemExternParameterExpansion(node,p,&callback) ||
+                    callback.kind!=XL6_FOREIGN_PARAMETER_RETAINED_CALLBACK || (ownedCallbacks&(UINT64_C(1)<<p)))goto invalid;
+                if(groupOwner[0] && strcmp(groupOwner,callback.callbackOwnerCName))goto invalid;
+                strcpy(groupOwner,callback.callbackOwnerCName);ownedCallbacks|=UINT64_C(1)<<p;
             }else if(field.kind==XL6_FOREIGN_PACK_FIELD_SYNC_CALLBACK || field.kind==XL6_FOREIGN_PACK_FIELD_CALLBACK_USER){
                 XL6_ForeignParameterContract callback;
                 if(!xl6SemExternParameterExpansion(node,p,&callback) || callback.kind!=XL6_FOREIGN_PARAMETER_SYNC_CALLBACK)goto invalid;
@@ -100,7 +110,17 @@ static int xl6SemForeignPacks(XL6_SemContext* ctx,XL6_AstNode* node,const XL6_As
             }
         }
         uint64 expected=pack.parameterCount==64 ? UINT64_MAX:((UINT64_C(1)<<pack.parameterCount)-1)<<pack.firstParameter;
-        if(!fields || used!=expected || textData!=textSize || spanData!=spanCount || callbacks!=callbackUsers)goto invalid;
+        if(!fields || used!=expected || textData!=textSize || spanData!=spanCount || callbacks!=callbackUsers ||
+            (!!ownedCallbacks)!=!!pack.callbackOwnerPhysicalIndexPlusOne)goto invalid;
+        if(pack.callbackOwnerPhysicalIndexPlusOne){
+            size_t parent=xl6ForeignPackParentLength(pack.callbackUserField),parents=0;
+            for(size_t f=0;f<attrs->childCount;++f){XL6_ForeignPackFieldContract field;
+                if(xl6ForeignPackFieldRead(attrs->children[f],&field) && field.packPhysicalIndex==pack.physicalIndex &&
+                    field.kind==XL6_FOREIGN_PACK_FIELD_RECORD && strlen(field.field)==parent &&
+                    !strncmp(field.field,pack.callbackUserField,parent))++parents;
+            }
+            if(parent ? parents!=1:parents!=0)goto invalid;
+        }
     }
     if((packCount!=0)!=(fieldCount!=0))goto invalid;
     {
@@ -118,6 +138,15 @@ static int xl6SemForeignPacks(XL6_SemContext* ctx,XL6_AstNode* node,const XL6_As
                 if(!xl6ForeignPhysicalStepRead(node,facts,count+receiver,receiver,outputs,outputCount,i,&step))goto invalid;
                 found+=step.kind==XL6_FOREIGN_PHYSICAL_STEP_FIXED && step.physicalIndex==nullRow.physicalIndex;}
             if(found!=1 || (receiver && !nullRow.physicalIndex))goto invalid;
+        }
+        for(size_t a=0;attrs && a<attrs->childCount;++a){XL6_ForeignPackContract group;
+            if(!xl6ForeignPackCallbackGroupRead(attrs->children[a],&group))continue;
+            size_t found=0;for(size_t i=0;i<steps;++i){XL6_ForeignPhysicalStep step;
+                if(!xl6ForeignPhysicalStepRead(node,facts,count+receiver,receiver,outputs,outputCount,i,&step))goto invalid;
+                found+=step.kind==XL6_FOREIGN_PHYSICAL_STEP_CALLBACK_GROUP_OWNER &&
+                    step.ordinal==group.physicalIndex && step.physicalIndex+1==group.callbackOwnerPhysicalIndexPlusOne;
+            }
+            if(found!=1 || (receiver && group.callbackOwnerPhysicalIndexPlusOne==1))goto invalid;
         }
         if(receiver<64 && ((consumed<<receiver)&facts->controlViews))goto invalid;
         for(size_t a=0;attrs && a<attrs->childCount;++a){uint32 qualifier;XL6_ForeignValueContract value;

@@ -6,6 +6,10 @@
 typedef struct XL6_ForeignPackContract {
     uint32 declaration,physicalIndex,firstParameter,parameterCount;
     char recordCName[64],header[256];
+    /* Optional retained callback group. A distinct physical owner slot has no
+     * logical language argument; its record ABI is derived from the members. */
+    uint32 callbackOwnerPhysicalIndexPlusOne;
+    char callbackUserField[64],callbackGroupOwnerCName[64];
 } XL6_ForeignPackContract;
 
 typedef enum XL6_ForeignPackFieldKind {
@@ -22,7 +26,8 @@ typedef enum XL6_ForeignPackFieldKind {
     /* A synchronous callback and its userdata share one logical parameter.
      * The invocation remains scoped by the existing callback contract. */
     XL6_FOREIGN_PACK_FIELD_SYNC_CALLBACK,
-    XL6_FOREIGN_PACK_FIELD_CALLBACK_USER
+    XL6_FOREIGN_PACK_FIELD_CALLBACK_USER,
+    XL6_FOREIGN_PACK_FIELD_OWNED_CALLBACK
 } XL6_ForeignPackFieldKind;
 
 typedef struct XL6_ForeignPackFieldContract {
@@ -53,7 +58,8 @@ typedef enum XL6_ForeignPhysicalStepKind {
     XL6_FOREIGN_PHYSICAL_STEP_OUTPUT,
     XL6_FOREIGN_PHYSICAL_STEP_PACK,
     XL6_FOREIGN_PHYSICAL_STEP_ARRAY_GROUP,
-    XL6_FOREIGN_PHYSICAL_STEP_FIXED
+    XL6_FOREIGN_PHYSICAL_STEP_FIXED,
+    XL6_FOREIGN_PHYSICAL_STEP_CALLBACK_GROUP_OWNER
 } XL6_ForeignPhysicalStepKind;
 typedef struct XL6_ForeignPhysicalStep {
     XL6_ForeignPhysicalStepKind kind;

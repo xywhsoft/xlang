@@ -686,6 +686,7 @@ static int xl6IrCgenEmitWitnessNativeCall(XL6_Output* out, const XL6_IrModule* m
             else xl6OutputPrintf(out,"(%s)0",row->pointerCName);
             continue;
         }
+        if(step.kind==XL6_FOREIGN_PHYSICAL_STEP_CALLBACK_GROUP_OWNER){xl6OutputPrintf(out,"&native_callback_group_owner_%u",step.ordinal);continue;}
         if(step.kind==XL6_FOREIGN_PHYSICAL_STEP_ARRAY_GROUP){if(!xl6IrCgenArrayArguments(out,module,target,step.physicalIndex))return 0;continue;}
         if(step.kind==XL6_FOREIGN_PHYSICAL_STEP_PACK){xl6OutputPrintf(out,"&native_pack_%u",step.physicalIndex);continue;}
         if(step.kind==XL6_FOREIGN_PHYSICAL_STEP_OUTPUT){
@@ -744,7 +745,7 @@ static int xl6IrCgenEmitWitnessNativeCall(XL6_Output* out, const XL6_IrModule* m
     if (probe) xl6IrCgenFactoryProbeEnd(out, scope);
     if(fieldCallee)xl6OutputPuts("    } }\n",out);
     if(packs)xl6IrCgenForeignPacksEnd(out);
-    if(callbacks)xl6IrCgenNativeCallbacksEnd(out,target,scope);
+    if(callbacks)xl6IrCgenNativeCallbacksEnd(out,module,target,scope);
     if (access) xl6IrCgenNativeAccessEnd(out,target,scope);
     if(regions)xl6IrCgenForeignRegionsEnd(out,module,target,scope);
     if(spans)xl6IrCgenForeignSpansEnd(out,module,target,scope);
@@ -1148,7 +1149,8 @@ static int xl6IrCgenEmitDirectCall(
                 else xl6OutputPrintf(out,"(%s)0",row->pointerCName);
                 continue;
             }
-            if(step.kind==XL6_FOREIGN_PHYSICAL_STEP_ARRAY_GROUP){if(!xl6IrCgenArrayArguments(out,module,target,step.physicalIndex))return 0;continue;}
+            if(step.kind==XL6_FOREIGN_PHYSICAL_STEP_CALLBACK_GROUP_OWNER){xl6OutputPrintf(out,"&native_callback_group_owner_%u",step.ordinal);continue;}
+        if(step.kind==XL6_FOREIGN_PHYSICAL_STEP_ARRAY_GROUP){if(!xl6IrCgenArrayArguments(out,module,target,step.physicalIndex))return 0;continue;}
             if(step.kind==XL6_FOREIGN_PHYSICAL_STEP_PACK){xl6OutputPrintf(out,"&native_pack_%u",step.physicalIndex);continue;}
             if(step.kind==XL6_FOREIGN_PHYSICAL_STEP_OUTPUT){
                 if(mappedOutputs){
@@ -1223,7 +1225,7 @@ static int xl6IrCgenEmitDirectCall(
     if(probePrepared)xl6IrCgenFactoryProbeEnd(out,nativeScope);
     if(fieldCallee)xl6OutputPuts("    } }\n",out);
     if(packsPrepared)xl6IrCgenForeignPacksEnd(out);
-    if(callbacksPrepared)xl6IrCgenNativeCallbacksEnd(out,target,nativeScope);
+    if(callbacksPrepared)xl6IrCgenNativeCallbacksEnd(out,module,target,nativeScope);
     if(accessPrepared)xl6IrCgenNativeAccessEnd(out,target,nativeScope);
     if(regionsPrepared)xl6IrCgenForeignRegionsEnd(out,module,target,nativeScope);
     if(spansPrepared)xl6IrCgenForeignSpansEnd(out,module,target,nativeScope);

@@ -4503,7 +4503,7 @@ static XL6_IrNodeId xl6IrBuildAstNode(
         }
         if(declaration && declaration->text && !strcmp(declaration->text,"c_pack")){
             XL6_ForeignPackContract row;
-            if(!xl6ForeignPackRead(declaration,&row) || !xl6IrGrow((void**)&module->foreignPacks,&module->foreignPackCapacity,
+            if(!xl6ForeignPackRead(declaration,&row) || !xl6ForeignPackApplyCallbackGroup(source,&row) || !xl6IrGrow((void**)&module->foreignPacks,&module->foreignPackCapacity,
                 module->foreignPackCount,sizeof(*module->foreignPacks))){*ok=0;return 0;}
             row.declaration=id;
             if(source->kind==XL6_AST_NATIVE_EXTERN_FUNC && !(source->flags&XL6_AST_FLAG_STATIC))++row.firstParameter;
@@ -54695,8 +54695,9 @@ void xl6IrDumpModuleJson(XL6_Output* out, const XL6_IrModule* module)
     }
     xl6OutputPuts("  ],\n  \"foreignPacks\": [\n",out);
     for(i=0;i<module->foreignPackCount;++i){const XL6_ForeignPackContract* row=&module->foreignPacks[i];
-        xl6OutputPrintf(out,"    {\"declaration\":%u,\"physicalIndex\":%u,\"firstParameter\":%u,\"parameterCount\":%u,\"recordCName\":\"%s\",\"header\":\"%s\"}%s\n",
-            row->declaration,row->physicalIndex,row->firstParameter,row->parameterCount,row->recordCName,row->header,i+1==module->foreignPackCount ? "":",");
+        xl6OutputPrintf(out,"    {\"declaration\":%u,\"physicalIndex\":%u,\"firstParameter\":%u,\"parameterCount\":%u,\"recordCName\":\"%s\",\"header\":\"%s\",\"callbackOwnerPhysicalIndexPlusOne\":%u,\"callbackUserField\":\"%s\",\"callbackGroupOwnerCName\":\"%s\"}%s\n",
+            row->declaration,row->physicalIndex,row->firstParameter,row->parameterCount,row->recordCName,row->header,
+            row->callbackOwnerPhysicalIndexPlusOne,row->callbackUserField,row->callbackGroupOwnerCName,i+1==module->foreignPackCount ? "":",");
     }
     xl6OutputPuts("  ],\n  \"foreignPackFields\": [\n",out);
     for(i=0;i<module->foreignPackFieldCount;++i){const XL6_ForeignPackFieldContract* row=&module->foreignPackFields[i];

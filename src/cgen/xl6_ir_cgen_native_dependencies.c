@@ -496,6 +496,7 @@ int xl6IrCgenVisitResidentSymbols(const XL6_IrModule* module, XL6_DiagList* diag
                 if(!field || !visitor(context,field->nativeHandlePolicyCName) ||
                     !visitor(context,"xl6NativeHandleAccessBeginV1") || !visitor(context,"xl6NativeHandleAccessEndV1"))return 0;
             }
+            if(xl6IrForeignPackCallbackMember(module,target,p,NULL,NULL) && !visitor(context,"xl6NativeCallbackGroupRuntimeV1Get"))return 0;
             if(target->parameterPhysicalAbis[p]==XL6_IR_CALL_PARAMETER_PHYSICAL_RETAINED_C_CALLBACK &&
                 (!visitor(context,"xl6NativeCallbackRuntimeV1Get") || !visitor(context,"xl6NativeCallbackReportFailureV1") ||
                  !visitor(context,"xl6ForeignScopeBeginV2") || !visitor(context,"xl6ForeignScopeEndV2") || !visitor(context,"xl6ForeignScopeViewMakeV2") ||

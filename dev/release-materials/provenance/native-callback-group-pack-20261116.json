@@ -1,0 +1,129 @@
+{
+  "schema": 1,
+  "sourceParent": "f28f55d86f9c9dcd1c405250e8a01d544a06679f",
+  "sourceHashes": {
+    "src/type/xl6_foreign_pack_contract.h": "92a0007ba8e4064d3c53c10baf5cb55ce83137ec104c8b7f30817474eb1adc87",
+    "src/type/xl6_foreign_pack_decl.h": "ec3f381965f519d67a92d80b7182bf03f0977bb85d3fecabca4177c204927b55",
+    "src/type/xl6_foreign_decl.h": "ada32ea63e82c5b40707c2d7eafd0507fbb2012b73f3ebf3aa84e678663bd406",
+    "src/sem/xl6_sem_foreign_pack.c": "9950bd8d1dbeede1997a76944bf4009c023f8a8066966654553796a7627236e5",
+    "src/ir/xl6_ir_foreign_pack.c": "bacdd961e7632c39731f49634d7b6544a5f74cbd1003d5c3c4c0d7cb891e7c27",
+    "src/ir/xl6_ir.h": "0722520389e706bf633b8063aa53054c6c674d2aafb4847fe73111000f497af7",
+    "src/ir/xl6_ir.c": "99008a933454206f436de1897564afe5adc32d7e7f64d0a63032cbc676a682af",
+    "src/cgen/xl6_ir_cgen_native_callback.c": "f16a44ce4d7669a4c725d09615f9b38b20c7c657a83ac7ea7bd86c1a43add222",
+    "src/cgen/xl6_ir_cgen_foreign_pack.c": "d1e47401f58ac79613893c9eaa3f2af60c65b3d17c36b2e74d84c48ae697753f",
+    "src/cgen/xl6_ir_cgen_identity_closure.c": "99a972434a4d6ea21dc2516e595362adf17afe4d5e75d1d65e67448bb2b98e9c",
+    "src/cgen/xl6_ir_cgen_type_call.c": "c3c8cb2d7b21d816ad2242a0c1f6ae247793562669f7d57c67d66df9d1b74cd9",
+    "src/cgen/xl6_ir_cgen_native_dependencies.c": "f37124c70d6d076b44f6b96a758142a839ed3181c192559d4fea77060d07f948",
+    "src/ir/xl6_ir_lower.c": "33a9977197b96910c8022c40fb0f0b5daaee697c222bdc946826f81ba276aca5",
+    "src/cgen/xl6_ir_cgen_type_definitions.c": "330bc7bd19997c91e1e78eeb387bc288b4e941294f7e64f6ad7371489d3419f0",
+    "test/cases/foreign_pack_owned_callback.h": "9d381a1766be5a36264192071934f76b39d1a0484676125f9ae95406359a3f3c",
+    "test/cases/foreign_pack_owned_callback_native.c": "3359cce8035bcc0adec206ab4444377b1752f915471ff9fb1da61b6969b357ba",
+    "test/cases/foreign_pack_owned_callback.xl": "e212515cf6e719242ece4554ee6d67de63823b2734a2625d95c70e7043835dc5",
+    "test/cases/foreign_pack_owned_callback_ir.c": "abb26ee6e803028dd8f6556031a0577c19ca398db9825368c00e4e24c38eec44",
+    "test/cases/foreign_pack_owned_callback_driver.c": "03e404a9a7c74108ac2d794113898ac72a094f9aafe6ee83d1e6fe423e3f9546",
+    "test/cases/foreign_pack_owned_callback_host.c": "24c3aad349e844ba2602d7dfc3768b410e821a74c5cbb418cca0c25fd66a766f",
+    "test/cases/closure_native_scalar_cells.xl": "55dacfc9f43b38559ae80fecb110a9908d5e5d05d36e31a28e86ca75a16cdc73",
+    "test/cases/foreign_pack_owned_callback_nested.h": "340062fa42b669d35ab4a63e25570d4878900888a9cb9a33bdc136c88ba4f75c",
+    "test/cases/foreign_pack_owned_callback_nested.xl": "4a131d98a0478cc36c4f81d86e59a832ad99ac246cc6092fc336db4c912b000e",
+    "tools/check_foreign_pack_owned_callbacks.py": "6f6fb220ba91b6eccde64c5665a47b20aa5acd0feb4a8e147cf28b324693e1c6",
+    "tools/check_foreign_pack_owned_callbacks_full.py": "4cb3af246e761b0ce640473c6146396d2d23e6531d9d6294b8ac9ce1a5a5b217",
+    "docs/c-pack-owned-callbacks.md": "24a892dcf855c4afb0e7f7d124c429c73f06799165058d4147c7e64572ae2779",
+    "docs/native-callback-groups.md": "e923d25ba7c0ce74a798d173199dad1b922bafe7ccce9bc33a67cde24e321966"
+  },
+  "productionFiles": 14,
+  "sourceBaseline": "F:\\xlang-validation\\xge-full-20261110\\callback-group-pack-baseline-r1\\index.json",
+  "sourceBaselineSha256": "aea3e114280c2bbc8ce420dcdba8fabb6ff2b909c5520ee8fd0361407b2958ad",
+  "scope": "Owned callback-group pack declarations, closed physical mapping/IR verification and direct typed thunk emission; exact C scalar/float32 mutable capture cells using existing resident byte carrier.",
+  "reports": [
+    {
+      "path": "F:\\xlang-validation\\xge-full-20261110\\callback-group-pack-win-r4\\results.json",
+      "sha256": "400cb5352be4978089eadabcbb22145202723d8cfcda9cc03a01827e3095ea91",
+      "passed": true,
+      "commands": 60,
+      "scope": "Qualify owned callback-group declarations/IR/Cgen over a whole source cohort.\n\nCPU-only direct/bound/protocol callbacks, shared userdata, nullable members,\nfailure/clear reentry, exact scalar captures, OOM and warm allocation checks.\nThe actual shipping compiler/VFS and HostSession remain separate gates.\n"
+    },
+    {
+      "path": "F:\\xlang-validation\\xge-full-20261110\\callback-group-pack-full-win-r3\\results.json",
+      "sha256": "4ac63c25bdd321d8cc42a6bbc94653e7df3b4e5d66ef9e7c5eb8a92e4c532361",
+      "passed": true,
+      "commands": 19,
+      "scope": "Actual complete O2 compiler/VFS qualification for owned callback-group packs.\n\nAssemble matching private SDK headers without changing the immutable build;\nexercise JIT/static/shared and a standalone nested compiler. CPU-only.\n"
+    },
+    {
+      "path": "F:\\xlang-validation\\xge-full-20261110\\callback-group-pack-source-win-r2\\qualification.json",
+      "sha256": "46e8a6f814309666e9728a5af242e4f662a78ec367485858ba7ca65180c7f23f",
+      "passed": true,
+      "fullTccXrtAndVfs": false,
+      "seconds": 405.7029999999795
+    },
+    {
+      "path": "F:\\xlang-validation\\xge-full-20261110\\compiler-callback-group-pack-win-full-r1\\build.json",
+      "sha256": "b4f1b31cc38282ce7226c099b4242234c7ef672b5abfe4a3358eb1cbfdb1b66c",
+      "passed": true,
+      "fullTccXrtAndVfs": true,
+      "seconds": 962.5620000000345
+    },
+    {
+      "path": "\\\\wsl.localhost\\Ubuntu\\var\\tmp\\xlang-validation\\xge-full-20261110\\callback-group-pack-linux-r4\\results.json",
+      "sha256": "f8f87318d67c39de19dc2d99e169b8dcce3e8dbb394a777a63769c5ee10f501c",
+      "passed": true,
+      "commands": 60,
+      "scope": "Qualify owned callback-group declarations/IR/Cgen over a whole source cohort.\n\nCPU-only direct/bound/protocol callbacks, shared userdata, nullable members,\nfailure/clear reentry, exact scalar captures, OOM and warm allocation checks.\nThe actual shipping compiler/VFS and HostSession remain separate gates.\n"
+    },
+    {
+      "path": "\\\\wsl.localhost\\Ubuntu\\var\\tmp\\xlang-validation\\xge-full-20261110\\callback-group-pack-full-linux-r2\\results.json",
+      "sha256": "dac03b16cd6ed962c7cc21eb2cfda949c3561d18797460809a9c45522259d965",
+      "passed": true,
+      "commands": 19,
+      "scope": "Actual complete O2 compiler/VFS qualification for owned callback-group packs.\n\nAssemble matching private SDK headers without changing the immutable build;\nexercise JIT/static/shared and a standalone nested compiler. CPU-only.\n"
+    },
+    {
+      "path": "\\\\wsl.localhost\\Ubuntu\\var\\tmp\\xlang-validation\\xge-full-20261110\\callback-group-pack-source-linux-r2\\qualification.json",
+      "sha256": "69e4a62df5dd8ea2d0ebffb9c3ec3013c12b0405704cac41885dfa292177d945",
+      "passed": true,
+      "fullTccXrtAndVfs": false,
+      "seconds": 187.111598757
+    },
+    {
+      "path": "\\\\wsl.localhost\\Ubuntu\\var\\tmp\\xlang-validation\\xge-full-20261110\\compiler-callback-group-pack-linux-full-r1\\build.json",
+      "sha256": "3b47aec49ee424649f07ff3c0d44a4c7e40a179661806ed0f2689481688e9f98",
+      "passed": true,
+      "fullTccXrtAndVfs": true,
+      "seconds": 1149.239839184
+    }
+  ],
+  "commands": 158,
+  "fullO2Builds": 2,
+  "wholePublicSourceBuilds": 2,
+  "irMutationsPerChecker": 222,
+  "irCheckerExecutions": 4,
+  "foreignFactsBytes": 88,
+  "packFieldBytes": 220,
+  "packContractBytes": 468,
+  "networkTests": false,
+  "shippingDelivery": false,
+  "releaseFilesAdded": false,
+  "qualified": [
+    "direct, bound and protocol calls",
+    "multiple groups and nested descriptors",
+    "nullable members, first/last userdata and void callback errors",
+    "self-clearing native publisher snapshots through thunk return",
+    "failed factory output rollback with independently retained group",
+    "21 exact scalar capture types and preserved cell after checked overflow",
+    "C11/C++11/C++17 headers and C/C++ ABI negatives",
+    "24-prefix OOM sweep repeated without retained allocations; 1000 allocation/free/reallocation-free warm calls per sweep",
+    "JIT, standalone, repeated shared execution, standalone nested compiler after failed compilation",
+    "legacy packs, synchronous callbacks, nested typed NULL and POD regressions"
+  ],
+  "limits": [
+    "group byte cells reuse existing generic cell plus payload allocations; cold paths are not zero allocation",
+    "group member selection still checks/reads shared vector and existing callback/scope/ownership bookkeeping remains",
+    "no CPU-time equivalence or byte-for-byte machine-code pruning claim",
+    "native test publisher explicitly releases external roots; complete cyclic native/language ownership and actual module unload remain pending",
+    "no cold native thread OS allocation-failure qualification",
+    "HostSession GL/renderer/checked recovery integration remains pending",
+    "builds retain qualified pinned XRT09d; latest-XRT/native/compiler/SDK/IDE delivery convergence remains pending",
+    "nested test uses source-root working directory for explicit source-relative C header; xlang.Context lacks a public include-path method"
+  ],
+  "sdkAssembly": "Full artifact gates assemble matching private headers next to exact verified binaries; immutable builds and workspace release are unchanged."
+}
