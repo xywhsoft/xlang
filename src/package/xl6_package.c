@@ -186,6 +186,8 @@ void xl6PackageManifestFree(XL6_PackageManifest* manifest)
     xrtFree(manifest->nativeInfo.version);
     xrtFree(manifest->nativeInfo.staticManifest);
     xrtFree(manifest->nativeInfo.dynamicManifest);
+    xl6PackageStringListFree(&manifest->nativeInfo.features);
+    xl6PackageStringListFree(&manifest->requiresNativeFeatures);
     memset(manifest, 0, sizeof(*manifest));
 }
 
@@ -261,6 +263,36 @@ static int xl6PackageValueReadStringArray(
             return 0;
         }
         xrtFree(copy);
+    }
+    return 1;
+}
+
+/* Feature keys are opaque, case-sensitive capability tokens, never C code.
+ * Check the counted string before duplication so NUL cannot truncate a key. */
+static int xl6PackageValueReadFeatures(const xvalue* object, const char* field,
+                                      XL6_PackageStringList* result)
+{
+    if (!xl6PackageValueHasField(object, field)) return 1;
+    const xvalue* values = xl6PackageValueField(object, field);
+    if (xrtValueType(values) != XVALUE_ARRAY) return 0;
+    for (size_t i = 0; i < xrtValueCount(values); ++i) {
+        xstrview key;
+        if (!xrtValueGetString(xrtValueArrayGet(values, i), &key) || !key.Size) return 0;
+        for (size_t n = 0; n < key.Size; ++n) {
+            unsigned char c = (unsigned char)key.Data[n];
+            if (!((c >= 'A' && c <= 'Z') || (c >= 'a' && c <= 'z') ||
+                  (c >= '0' && c <= '9') || c == '_' || c == '.' || c == ':' || c == '-')) return 0;
+        }
+        for (size_t n = 0; n < result->count; ++n)
+            if (strlen(result->items[n]) == key.Size && !memcmp(result->items[n], key.Data, key.Size)) return 0;
+        if (result->count >= SIZE_MAX / sizeof(*result->items)) return 0;
+        char* text = xrtStrDupN(key.Data, key.Size);
+        if (!text) return 0;
+        /* The counted JSON view is copied once. Generic Append would duplicate
+         * this temporary again and scan for NUL despite the checked length. */
+        char** items = (char**)xrtRealloc(result->items, (result->count + 1) * sizeof(*items));
+        if (!items) { xrtFree(text); return 0; }
+        result->items = items; result->items[result->count++] = text;
     }
     return 1;
 }
@@ -471,7 +503,8 @@ static int xl6PackageValueReadNative(const xvalue* root, XL6_PackageManifest* ma
         if ((manifest->nativeInfo.staticManifest && !*manifest->nativeInfo.staticManifest) ||
             (manifest->nativeInfo.dynamicManifest && !*manifest->nativeInfo.dynamicManifest)) return 0;
     }
-    return xl6PackageValueReadText(native, "loadName", &manifest->nativeInfo.loadName, 0) &&
+    return xl6PackageValueReadFeatures(native, "features", &manifest->nativeInfo.features) &&
+           xl6PackageValueReadText(native, "loadName", &manifest->nativeInfo.loadName, 0) &&
            xl6PackageValueReadText(native, "version", &manifest->nativeInfo.version, 0);
 }
 
@@ -488,6 +521,7 @@ static int xl6PackageManifestReadXrtValue(const xvalue* root, XL6_PackageManifes
            xl6PackageValueReadStringArray(root, "links", &manifest->links) &&
            xl6PackageValueReadStringArray(root, "loadlibs", &manifest->loadlibs) &&
            xl6PackageValueReadDependencies(root, manifest) &&
+           xl6PackageValueReadFeatures(root, "requiresNativeFeatures", &manifest->requiresNativeFeatures) &&
            xl6PackageValueReadNative(root, manifest);
 }
 

@@ -1,0 +1,57 @@
+{
+  "schema": 1,
+  "date": "2026-11-16",
+  "status": "source-frontend-native-features-prerequisite-qualified",
+  "shippingDelivery": false,
+  "goalComplete": false,
+  "releasePromoted": false,
+  "fullCompilerQualification": false,
+  "compiledInterfaceQualification": false,
+  "sourceHeadBefore": "b155657159b8d20bfd1131ff324aab4b28f790a3",
+  "sourceSha256": {
+    "src/package/xl6_package.h": "a7ef80bd348ad9507553887801f985bdca055f7886e4b413eea93325d0fbc6c5",
+    "src/package/xl6_package.c": "6965c48b04399876ec5c710d6b99bc84958c67ed45049056681bf3f59aa82a3a",
+    "src/package/xl6_package_native_variants.inc": "4391ee265c00632f8ec6873820d65b9e30350e4cf50f95257f10b915c4a7e089",
+    "src/compile/xl6_imports.h": "caec208f0270cb5edbd07dccc80ff67aa89d9a8042ebfac77b593380a27732b2",
+    "src/compile/xl6_imports.c": "9b206f2a569833029d0cab5654dc4e9d824069b07d568ac9c92c793fce781be1",
+    "src/compile/xl6_import_native_features.inc": "00cc0f13653fa83a421187fe9a92e1f047422d7a7d1488850d2231a88b7fb584",
+    "tools/stage_xge3_packages.py": "bf8d85b9d553fc8aa9273d4eb94618876198cb4fa4790cab04bdcada50198df9",
+    "tools/stage_xge3_static_packages.py": "eb22d89e00c96fd05e356e3b0d34275879e6025886d4dbfd82facc3710a2347a",
+    "test/cases/package_native_features.c": "c57104c905c50fa45ff7f0cb1cf2057f5ab792a27e3d7d1d956994a1afba0d4d",
+    "tools/check_package_native_features.py": "b69c0eb236544bb8eaa6bd780598e5b371f65f829f0661343089d1d325696d8d",
+    "test/cases/package_native_features_import.c": "600aab6d5a5c52cd8c735b7c66776bbf74e8ec0c3e9ee3c37282f2461a16320a",
+    "tools/check_package_native_feature_imports.py": "84bcfd391ccc53390d4ea397af60e9b236a6d19079b5c2f3b21fa9b52ea14bcc",
+    "docs/package-native-features.md": "f3c1c0f15a707a67b5ef7a68d3bd8fc1eeb02d0a34e313645b67c92cd2e24565"
+  },
+  "reports": {
+    "win": {
+      "path": "F:\\xlang-validation\\xge-full-20261110\\package-features-prerequisite-verified-win-r2.json",
+      "sha256": "b210f10ffdfe0d47c7e56261747d38a3a7425293b57aca24ab8b8a2720294059"
+    },
+    "linux": {
+      "path": "F:\\xlang-validation\\xge-full-20261110\\package-features-prerequisite-verified-linux-r2.json",
+      "sha256": "f2103bd867ab76c9931b8c1952530d4e63b138dc4dc7e5235c8be6205c2765db"
+    }
+  },
+  "acceptance": {
+    "windowsSteps": 150,
+    "linuxSteps": 150,
+    "totalSteps": 300,
+    "optimization": [
+      "O0",
+      "O2"
+    ],
+    "scope": "Source manifest/closure and real source frontend; selected matched SDK metadata. Not full compiler, TCC/VFS, context reuse or binary compiled interface execution."
+  },
+  "costs": [
+    "One owned copy per capability token while parsing; variant set comparison scans existing lists.",
+    "No requirements: validator adds no scratch allocations.",
+    "Requirements: two cold scratch allocations per outermost source expansion, followed by declared dependency-closure scans.",
+    "No new graphics/input/audio frame-path operation."
+  ],
+  "remaining": [
+    "Preserve and enforce native capability metadata across compiled-package wire interfaces and mixed source/registered dependencies.",
+    "Full compiler/TCC/VFS, context reuse, debug-enabled backend and final matched SDK/IDE/runtime delivery.",
+    "Remaining full XGE/XUI/Document API, native lifetime and latest XRT alignment work."
+  ]
+}

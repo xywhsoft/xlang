@@ -20,6 +20,10 @@ typedef struct XL6_ImportPackageInfo {
     char* abiVersion;
     char* dir;
     XL6_PackageStringList dependencies;
+    XL6_PackageStringList requiredNativeFeatures;
+    XL6_PackageStringList providedNativeFeatures;
+    char* featureSource;
+    int featureLine, featureColumn;
     int compiledRoot;
 } XL6_ImportPackageInfo;
 
@@ -59,6 +63,7 @@ typedef struct XL6_ImportDeps {
     int hasUndeclaredCSourceModules;
     unsigned int features;
     int nativeSelection; /* Per compilation; no process environment mutation. */
+    size_t nativeFeatureDepth; /* Outermost expansion validates the whole graph. */
 } XL6_ImportDeps;
 
 void xl6ImportDepsInit(XL6_ImportDeps* deps);

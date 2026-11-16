@@ -9,6 +9,18 @@ static int xl6NativeVariantSameList(const XL6_PackageStringList* a,
     return 1;
 }
 
+static int xl6NativeVariantSameFeatureSet(const XL6_PackageStringList* a,
+                                         const XL6_PackageStringList* b)
+{
+    if (a->count != b->count) return 0;
+    for (size_t i = 0; i < a->count; ++i) {
+        int found = 0;
+        for (size_t j = 0; j < b->count; ++j) found |= !strcmp(a->items[i], b->items[j]);
+        if (!found) return 0;
+    }
+    return 1;
+}
+
 int xl6PackageSelectNativeVariant(const XL6_PackageManifest* base, int selection,
     XL6_PackageManifest* selected, XL6_SourceReport* report, char* error, size_t errorSize)
 {
@@ -38,6 +50,7 @@ int xl6PackageSelectNativeVariant(const XL6_PackageManifest* base, int selection
     }
     int same = selected->nativeInfo.linkage == wanted &&
         !strcmp(base->packageId, selected->packageId) &&
+        xl6NativeVariantSameFeatureSet(&base->requiresNativeFeatures, &selected->requiresNativeFeatures) &&
         xl6NativeVariantSameList(&base->xlSources, &selected->xlSources) &&
         base->dependencyCount == selected->dependencyCount;
     for (size_t i = 0; same && i < base->dependencyCount; ++i) {
@@ -45,7 +58,7 @@ int xl6PackageSelectNativeVariant(const XL6_PackageManifest* base, int selection
         same = !strcmp(a->packageId, b->packageId);
     }
     if (!same) {
-        snprintf(error, errorSize, "package %s: native variant changes package identity, language sources or dependencies", base->name);
+        snprintf(error, errorSize, "package %s: native variant changes package identity, language sources, dependencies or native requirements", base->name);
         return -1;
     }
     return 1;

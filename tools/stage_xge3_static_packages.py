@@ -104,6 +104,7 @@ def main():
     assert set(manifest['artifact']['runtimeSymbols'])=={'xl6ErrorScopeTryPropagateFailureV1','xl6CallbackFailureRecordV1','xl6ForeignStatusFailureV1'}
     manifest['artifact']['nativeLink']=dict(gcSections=True,functionSections=True,dataSections=True)
     manifest['native'].update(loadName='xge-static-api3',platform=metadata['platform'],linkage='static',sha256=sha(archive))
+    manifest['native']['features']=sorted(set(metadata['features'])|({'XGE_HAS_DEBUGMODE'}if metadata['debug_api']else set()))
     manifest['native'].pop('variants',None)
     if a.dynamic_variant:manifest['native']['variants']={'dynamic':a.dynamic_variant}
     manifest_path.write_text(json.dumps(manifest,indent=2)+'\n',encoding='utf-8',newline='\n')

@@ -161,6 +161,8 @@ def main():
     manifest["loadlibs"] = [link]
     manifest["artifact"]["xrtModules"] = modules
     manifest["native"]["linkage"] = "dynamic"
+    manifest["native"]["features"] = sorted(set(metadata.get("features", [])) |
+        ({"XGE_HAS_DEBUGMODE"} if debug_flags[0] == '-DXGE_DEBUGMODE=1' else set()))
     manifest["native"].pop("variants", None)
     if args.static_variant:
         manifest["native"]["variants"] = {"static": args.static_variant}

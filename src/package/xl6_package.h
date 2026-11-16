@@ -61,6 +61,7 @@ typedef struct XL6_PackageNativeInfo {
     int linkage; /* 0 unspecified, 1 static, 2 dynamic. */
     char* staticManifest;
     char* dynamicManifest;
+    XL6_PackageStringList features; /* Capabilities of this selected artifact. */
 } XL6_PackageNativeInfo;
 
 enum {
@@ -90,6 +91,7 @@ typedef struct XL6_PackageManifest {
     XL6_PackageStringList loadlibs;
     XL6_PackageDependency* dependencies;
     size_t dependencyCount;
+    XL6_PackageStringList requiresNativeFeatures;
     XL6_PackageNativeInfo nativeInfo;
 } XL6_PackageManifest;
 

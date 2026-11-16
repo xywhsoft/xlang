@@ -211,6 +211,9 @@ void xl6ImportDepsFree(XL6_ImportDeps* deps)
         XL6_ImportPackageInfo* info = &deps->packageInfos[i];
         xrtFree(info->name); xrtFree(info->version); xrtFree(info->abiVersion); xrtFree(info->dir);
         xl6PackageStringListFree(&info->dependencies);
+        xl6PackageStringListFree(&info->requiredNativeFeatures);
+        xl6PackageStringListFree(&info->providedNativeFeatures);
+        xrtFree(info->featureSource);
     }
     if (deps) xrtFree(deps->packageInfos);
     size_t i;
@@ -552,11 +555,24 @@ static int xl6ImportsCollectEffectiveManifestDeps(
         int copied = info.name && info.version && info.abiVersion && info.dir;
         for (size_t p = 0; copied && p < manifest->dependencyCount; ++p)
             copied = xl6PackageStringListAppend(&info.dependencies, manifest->dependencies[p].name);
+        for (size_t p = 0; copied && p < manifest->requiresNativeFeatures.count; ++p)
+            copied = xl6PackageStringListAppend(&info.requiredNativeFeatures, manifest->requiresNativeFeatures.items[p]);
+        for (size_t p = 0; copied && p < manifest->nativeInfo.features.count; ++p)
+            copied = xl6PackageStringListAppend(&info.providedNativeFeatures, manifest->nativeInfo.features.items[p]);
+        if (copied && info.requiredNativeFeatures.count && importNode) {
+            const char* source = xl6AstSourcePath(importNode);
+            info.featureSource = source ? xrtStrDup(source) : NULL;
+            copied = !source || info.featureSource;
+            info.featureLine = importNode->line; info.featureColumn = importNode->column;
+        }
         XL6_ImportPackageInfo* items = copied ? (XL6_ImportPackageInfo*)xrtRealloc(
             deps->packageInfos, (deps->packageInfoCount + 1) * sizeof(*items)) : NULL;
         if (!items) {
             xrtFree(info.name); xrtFree(info.version); xrtFree(info.abiVersion); xrtFree(info.dir);
-            xl6PackageStringListFree(&info.dependencies); return 0;
+            xl6PackageStringListFree(&info.dependencies);
+            xl6PackageStringListFree(&info.requiredNativeFeatures);
+            xl6PackageStringListFree(&info.providedNativeFeatures);
+            xrtFree(info.featureSource); return 0;
         }
         deps->packageInfos = items; items[deps->packageInfoCount++] = info;
     }
@@ -628,6 +644,8 @@ static int xl6ImportsCollectManifestDeps(XL6_ImportDeps* deps,
     xl6PackageManifestFree(&selected);
     return okay;
 }
+
+#include "xl6_import_native_features.inc"
 
 static int xl6ImportsDependencyMatches(
     const XL6_PackageDependency* dep,
@@ -3072,6 +3090,7 @@ int xl6ImportsExpandModule(XL6_AstNode* root, const char* sourcePath, XL6_DiagLi
         }
         activeSourcePushed = 1;
     }
+    ++deps->nativeFeatureDepth;
     xl6ImportsAddSourceCompanionC(sourcePath, deps);
     xl6ImportsSymbolTableInit(&symbols);
     xl6ImportsNameMapInit(&directImports);
@@ -3149,6 +3168,9 @@ int xl6ImportsExpandModule(XL6_AstNode* root, const char* sourcePath, XL6_DiagLi
     if ( ok ) {
         ok = xl6ImportsRewriteNamespaceRefs(root, &symbols, diags);
     }
+    if (ok && deps->nativeFeatureDepth == 1)
+        ok = xl6ImportsValidateNativeFeatures(deps, diags);
+    --deps->nativeFeatureDepth;
     xl6ImportsNameMapFree(&directImports);
     xl6ImportsSymbolTableFree(&symbols);
     if ( activeSourcePushed ) {
