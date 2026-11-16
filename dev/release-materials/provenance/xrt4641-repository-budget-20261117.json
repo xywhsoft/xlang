@@ -1,0 +1,29 @@
+{
+  "complete": true,
+  "passed": true,
+  "sourceParent": "cef1a7ac891d5b893f29beb2287632cb7d841073",
+  "sourceHashes": {
+    "tools/git_repository_policy.json": "b90e49a374aa01d9ff4ec0da47a887de18e1ac8f05083d8109876165c62f613c"
+  },
+  "scope": "Exact-object budget pin for the already reviewed canonical latest-XRT source; limits unchanged",
+  "shippingDelivery": false,
+  "approvedBlob": {
+    "oid": "fa561bd691cd2b919169d115172c2554f31d9165",
+    "bytes": 9258080,
+    "path": "lib/xrt/xrt.h",
+    "sha256": "369f884c1c1fdc9621f654c81bb86850e85d992dc56b9cebf395e20ea03dfe7b"
+  },
+  "budget": {
+    "path": "F:\\xlang-validation\\xge-full-20261110\\canonical-xrt-budget-pinned-r1.json",
+    "sha256": "b7bbf9a776a23024bd4eca2c486bba7b8dfd794863123869a61de85d59c749e7",
+    "packMiB": 169.06,
+    "hardLimitMiB": 350,
+    "warnMiB": 250,
+    "fileLimitMiB": 5
+  },
+  "canonicalReceiptClarifications": {
+    "receipt": "dev/release-materials/provenance/xge3-canonical-xrt-20261117.json",
+    "runtimeImplementationChangedField": "Applies to lib/xruntime/xruntime.h only, whose implementation bytes are unchanged. The core XRT implementation adds the three function bodies shown in its source diff; it is not byte-identical to 09d."
+  },
+  "releaseBytesModified": false
+}

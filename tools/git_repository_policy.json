@@ -4459,6 +4459,11 @@
       "bytes": 9254903,
       "path": "lib/xrt/xrt.h",
       "reason": "Pinned qualified shared XRT 09d source; source digest verified against dev/release-materials/provenance/xrt-shared-sdk-09d-20261116.json"
+    },
+    "fa561bd691cd2b919169d115172c2554f31d9165": {
+      "bytes": 9258080,
+      "path": "lib/xrt/xrt.h",
+      "reason": "Pinned latest committed XRT 4641 source, SHA-256 369f884c1c1fdc9621f654c81bb86850e85d992dc56b9cebf395e20ea03dfe7b; exact SDK/source qualification in dev/release-materials/provenance/xge3-canonical-xrt-20261117.json"
     }
   }
 }
