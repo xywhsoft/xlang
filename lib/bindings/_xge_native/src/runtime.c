@@ -237,8 +237,10 @@ const XL6_ForeignViewDescriptorV1* Name##PolicyGet(void) \
 XN_DATA_OBJECT_POLICY(xl6Xge3DataObject,xgeDataObject,XGE_STATUS_DEFERRED,"xge.dataObject")
 #if XGE_ENABLE_XUI
 XN_DATA_OBJECT_POLICY(xl6Xui3DataObject,xuiDataObject,XUI_STATUS_DEFERRED,"xui.dataObject")
+XN_DATA_OBJECT_POLICY(xl6Xui3FlowGraph,xuiFlowGraph,XUI_STATUS_DEFERRED,"xui.flowGraph")
 #else
 const XL6_ForeignViewDescriptorV1* xl6Xui3DataObjectPolicyGet(void){return NULL;}
+const XL6_ForeignViewDescriptorV1* xl6Xui3FlowGraphPolicyGet(void){return NULL;}
 #endif
 #undef XN_DATA_OBJECT_POLICY
 
@@ -341,6 +343,38 @@ static bool proxy_domain_read(xrtownershipref ref)
     const xrtownershipquiescencev1* exact=xuiProxyResourceOwnershipQuiescenceV1(ref);
     return exact && exact->Ops==ref.Ops && !exact->Busy(ref.Data);
 }
+#if XGE_ENABLE_XUI
+/* Model views and owning canvas slots converge on the same authentic native
+ * RC origin. Only collector/domain admission uses these cold descriptor
+ * lookups; ordinary methods remain direct calls to the native model. */
+static bool flow_domain_resolve(xrtownershipref ref,const XL6_OwnershipPoliciesV1* policies,
+    const xrtownershipadapterv1** adapter,const xrtownershippreparationv1** preparation,
+    const XL6_OwnershipFinishV1** finish)
+{
+    (void)policies;*adapter=NULL;*preparation=NULL;*finish=NULL;
+    const xrtownershipadapterv1* exact=xuiFlowGraphOwnershipAdapterV1(ref);
+    if(!exact)return false;
+    const xrtownershippreparationv1* ready=xuiFlowGraphOwnershipPreparationV1(ref);
+    const xrtownershipfinishv2* complete=xuiFlowGraphOwnershipCompletionV2(ref);
+    if(!ready || ready->size!=sizeof(*ready) || ready->Adapter!=exact || !complete ||
+       complete->V1.size!=sizeof(*complete) || complete->AbiTag!=XRT_OWNERSHIP_FINISH_V2_TAG ||
+       complete->V1.Adapter!=exact || !complete->DropChecked || !complete->DropReady)return false;
+    *adapter=exact;*preparation=ready;*finish=&complete->V1;return true;
+}
+static bool flow_domain_read(xrtownershipref ref)
+{return xuiFlowGraphOwnershipReadReady(ref);}
+static bool flow_domain_finalization(xrtownershipref ref,const xrtownershipadapterv1* adapter,
+    const xrtownershipfinalizationv1** output)
+{
+    *output=NULL;const xrtownershipadapterv1* exact=xuiFlowGraphOwnershipAdapterV1(ref);
+    if(!exact)return true;
+    if(exact!=adapter)return false;
+    const xrtownershipfinalizationv1* value=xuiFlowGraphOwnershipFinalizationV1(ref);
+    if(!value || value->size!=sizeof(*value) || value->AbiTag!=XRT_OWNERSHIP_FINALIZATION_V1_TAG ||
+       value->Adapter!=adapter || !value->CanStep || !value->Step)return false;
+    *output=value;return true;
+}
+#endif
 static bool xui_domain_resolve(xrtownershipref ref,const XL6_OwnershipPoliciesV1* policies,
     const xrtownershipadapterv1** adapter,const xrtownershippreparationv1** preparation,
     const XL6_OwnershipFinishV1** finish)
@@ -348,16 +382,26 @@ static bool xui_domain_resolve(xrtownershipref ref,const XL6_OwnershipPoliciesV1
     return cell_domain_resolve(ref,policies,adapter,preparation,finish) ||
         proxy_domain_resolve(ref,policies,adapter,preparation,finish) ||
         transfer_domain_resolve(ref,policies,adapter,preparation,finish) ||
+#if XGE_ENABLE_XUI
+        flow_domain_resolve(ref,policies,adapter,preparation,finish) ||
+#endif
         xl6Xui3DocumentModelDomainV1Get()->Resolve(ref,policies,adapter,preparation,finish);
 }
 static bool xui_domain_read(xrtownershipref ref)
-{return cell_domain_read(ref) || proxy_domain_read(ref) || transfer_domain_read(ref) || xl6Xui3DocumentModelDomainV1Get()->AdmitsRead(ref);}
+{return cell_domain_read(ref) || proxy_domain_read(ref) || transfer_domain_read(ref) ||
+#if XGE_ENABLE_XUI
+    flow_domain_read(ref) ||
+#endif
+    xl6Xui3DocumentModelDomainV1Get()->AdmitsRead(ref);}
 static bool document_domain_finalization(xrtownershipref,const xrtownershipadapterv1*,const xrtownershipfinalizationv1**);
 static bool xui_domain_finalization(xrtownershipref ref,const xrtownershipadapterv1* adapter,
     const xrtownershipfinalizationv1** output)
 {
     bool ui=false;
     if(transfer_exact(ref,&ui))return transfer_domain_finalization(ref,adapter,output);
+#if XGE_ENABLE_XUI
+    if(xuiFlowGraphOwnershipAdapterV1(ref))return flow_domain_finalization(ref,adapter,output);
+#endif
     return document_domain_finalization(ref,adapter,output);
 }
 

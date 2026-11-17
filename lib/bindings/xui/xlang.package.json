@@ -34,6 +34,7 @@
       "src/document_ui_records.xl",
       "src/document_ui.xl",
       "src/data_object.xl",
+      "src/flow_graph.xl",
       "src/find.xl"
     ]
   },

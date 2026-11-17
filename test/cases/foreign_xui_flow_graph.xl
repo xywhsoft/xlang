@@ -1,0 +1,171 @@
+import xui
+
+extern "flowModelReferences" @header("test/cases/foreign_xui_flow_graph.h") @no_raise func references(xui.FlowGraph graph) as c_size
+extern "flowModelExpectId" @no_raise @c_span(0,"const char*","size_t") func expectId(Buffer output,c_int kind)
+extern "flowModelWarmBegin" @no_raise func warmBegin()
+extern "flowModelWarmEnd" @no_raise func warmEnd()
+extern "flowModelWarmNative" @no_raise func warmNative(xui.FlowGraph graph)
+extern "flowModelBudget" @no_raise func budget(c_int allocations)
+extern "flowModelResetBudget" @no_raise func resetBudget()
+extern "flowModelBudgetTriggered" @no_raise func triggered() as c_int
+typedef ConfigProbe=func(c_int) as c_int
+extern "flowModelConfigReentry" @no_raise @c_sync_callback(1,-1,-16,"last","test/cases/foreign_xui_flow_graph.h") @c_result("status",0) func configReentry(xui.FlowGraph graph,ConfigProbe callback)
+
+func modelBehavior()
+    auto graph=xui.createFlowGraph()
+    assert graph.nodeCount==0 and graph.findNode("missing")==-1
+    assert references(graph)==1
+    auto alias=graph.share()
+    assert references(graph)==2
+    assert graph.addNode("a",null,"开始")==0
+    assert graph.addNode("b")==1
+    assert graph.addPort(0,"out",null,"text",xui.XUI_FLOW_PORT_OUTPUT,xui.XUI_FLOW_PORT_DATA)==0
+    assert graph.addPort(1,"in",null,"text",xui.XUI_FLOW_PORT_INPUT,xui.XUI_FLOW_PORT_DATA)==0
+    assert graph.addEdge("e",xui.XUI_FLOW_PORT_DATA,"a","out","b","in")==0
+    assert graph.edgeCount==1 and graph.getNodePortCount(0)==1 and graph.findEdge("missing")==-1
+
+    auto id,type,title,summary,x,y,width,height,state,preview=graph.getNode(0)
+    assert id=="a" and type==null and (title as string)=="开始" and summary==null
+    assert x==0 and y==0 and width==0 and height==0 and state==0 and preview==null
+    graph.setNodeSummary("a","")
+    auto id2,type2,title2,empty,x2,y2,w2,h2,state2,p2=graph.getNode(0)
+    assert empty!=null and (empty as string)==""
+    graph.clearNodeSummary("a")
+    graph.setNodeRunState("a",0,"preview")
+    graph.setNodeRunState("a",0)
+    auto id3,type3,title3,cleared,x3,y3,w3,h3,state3,p3=graph.getNode(0)
+    assert cleared==null and p3==null
+    auto edgeId,kind,fromNode,fromPort,toNode,toPort,ni,pi,nj,pj,invalid,edgeState,edgePreview,route,bias,sourceOffset,targetOffset=graph.getEdge(0)
+    assert edgeId=="e" and fromNode=="a" and toNode=="b" and fromPort=="out" and toPort=="in"
+    assert kind==xui.XUI_FLOW_PORT_DATA and ni==0 and nj==1 and pi==0 and pj==0 and invalid==0
+
+    array<string?> titles=[null,"动态"]
+    array<string?> dataTypes=[null,"text"]
+    graph.rebuildNodeDynamicPorts("a",["dynamic0","dynamic1"],titles,dataTypes,[c_int(1),c_int(1)],[c_int(1),c_int(1)],[c_int(0),c_int(0)],[c_int(0),c_int(0)],[c_int(1),c_int(1)])
+    assert graph.getNodePortCount(0)==3
+    auto portId,portTitle,dataType,direction,portKind,required,multiple,dynamic=graph.getPort(0,1)
+    assert portId=="dynamic0" and portTitle==null and dataType==null and dynamic==1
+
+    var source={"answer":42}
+    graph.setNodeConfig("a",source)
+    source["answer"]=99
+    var config=graph.getNodeConfigClone("a")
+    assert config["answer"]==42
+    config["answer"]=7
+    assert graph.getNodeConfigClone("a")["answer"]==42
+    // Explicit Shared stores the identity of a native data graph. Clone copies it.
+    graph.setNodeConfigShared("a",config)
+    config["answer"]=8
+    assert graph.getNodeConfigShared("a")["answer"]==8
+    graph.setNodeConfigClone("a",config)
+    config["answer"]=9
+    assert graph.getNodeConfigShared("a")["answer"]==8
+    graph.commandSetNodeConfig("a",source)
+    source["answer"]=100
+    assert graph.getNodeConfigShared("a")["answer"]==99
+    graph.undo()
+    assert graph.getNodeConfigShared("a")["answer"]==8
+    graph.redo()
+    assert graph.getNodeConfigShared("a")["answer"]==99
+    graph.setNodeConfig("a",null)
+    assert graph.getNodeConfigClone("a")==null
+    auto peer=xui.createFlowGraph()
+    int callbacks=0
+    configReentry(graph,func(c_int phase) as c_int
+        assert phase==1 or phase==2
+        bool countRejected=false
+        bool findRejected=false
+        try
+            auto count=graph.nodeCount
+        catch Error
+            countRejected=true
+        end
+        try
+            auto index=graph.findNode("a")
+        catch Error
+            findRejected=true
+        end
+        assert countRejected and findRejected and peer.nodeCount==0
+        callbacks+=1
+        return c_int(0)
+    end)
+    assert callbacks==2 and graph.nodeCount==2
+    peer.close()
+
+    graph.commandMoveNode("a",5,6)
+    assert graph.canUndo==1
+    graph.undo()
+    assert graph.canRedo==1
+    graph.redo()
+    graph.setNodePosition("a",8,9)
+    graph.commandRecordMoveNodes(["a"],[c_float(5)],[c_float(6)],[c_float(8)],[c_float(9)])
+    graph.undo()
+    auto movedId,mt,tt,ss,oldX,oldY,ww,hh,st,pp=graph.getNode(0)
+    assert oldX==5 and oldY==6
+    graph.redo()
+    graph.setHistoryLimit(16)
+    assert graph.historyLimit==16
+    graph.markClean()
+    assert graph.dirty==0 and graph.cleanRevision==graph.revision
+    graph.setNodePosition("a",10,11)
+    assert graph.dirty==1
+
+    graph.selectNode("a")
+    graph.selectEdge("e")
+    assert graph.isNodeSelected("a")==1 and graph.isEdgeSelected("e")==1
+    assert graph.selectedNodeCount==1 and graph.selectedEdgeCount==1
+    graph.clearSelection()
+    assert graph.selectedNodeCount==0 and graph.selectedEdgeCount==0
+    graph.setViewport(10,20,2,800,600)
+    auto viewport=graph.getViewport()
+    assert viewport.fZoom==2 and viewport.fPanX==10 and viewport.fPanY==20
+    auto screenX,screenY=graph.worldToScreen(2.5,3.75)
+    auto worldX,worldY=graph.screenToWorld(screenX,screenY)
+    assert worldX==2.5 and worldY==3.75
+
+    assert graph.addDiagnostic(1,"TEST","说明","a")==0
+    assert graph.diagnosticCount==1 and graph.getNodeDiagnosticCount("a")==1 and graph.getEdgeDiagnosticCount("e")==0
+    auto severity,code,message,node,edge,path=graph.getDiagnostic(0)
+    assert severity==1 and (code as string)=="TEST" and (message as string)=="说明" and (node as string)=="a" and edge==null and path==null
+    graph.clearDiagnostics()
+    assert graph.diagnosticCount==0
+
+    Buffer output=Buffer(64)
+    for i in range(64)
+        output.appendByte(0)
+    end
+    graph.makeNodeId(output)
+    expectId(output,0)
+    graph.makeEdgeId(output)
+    expectId(output,1)
+    graph.makePortId(0,output)
+    expectId(output,2)
+    warmBegin()
+    for i in range(1000)
+        assert graph.nodeCount==2
+    end
+    warmEnd()
+    warmBegin()
+    warmNative(graph)
+    warmEnd()
+
+    func(string) as c_int bound=graph.findNode
+    assert bound("a")==0
+    graph.close()
+    assert references(alias)==1 and alias.nodeCount==2 and (title as string)=="开始"
+    bool rejected=false
+    try
+        bound("a")
+    catch Error
+        rejected=true
+    end
+    assert rejected
+    alias.close()
+    assert (title as string)=="开始" and (message as string)=="说明"
+end
+
+func main(...) as int
+    modelBehavior()
+    println("XUI_SHARED_FLOW_MODEL_OK")
+    return 0
+end

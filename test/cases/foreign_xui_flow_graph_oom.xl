@@ -1,0 +1,99 @@
+// Allocation failure and rollback checks, separate from the learning examples.
+import xui
+extern "flowModelBudget" @header("test/cases/foreign_xui_flow_graph.h") @no_raise func budget(c_int allocations)
+extern "flowModelResetBudget" @no_raise func resetBudget()
+extern "flowModelBudgetTriggered" @no_raise func triggered() as c_int
+extern "flowModelLiveCount" @no_raise func liveCount() as c_size
+
+func factoryAttempt(c_int limit) as bool
+    budget(limit)
+    try
+        auto graph=xui.createFlowGraph()
+        resetBudget()
+        assert graph.nodeCount==0
+        graph.close()
+        return true
+    catch Error
+        resetBudget()
+        return false
+    end
+end
+
+func outputAttempt(xui.FlowGraph graph,c_int limit) as bool
+    budget(limit)
+    try
+        auto id,type,title,summary,x,y,width,height,state,preview=graph.getNode(0)
+        resetBudget()
+        assert id=="node" and (type as string)=="type" and (title as string)=="标题"
+        assert (summary as string)=="summary" and (preview as string)=="preview"
+        return true
+    catch Error
+        resetBudget()
+        return false
+    end
+end
+
+func commandAttempt(c_int limit) as bool
+    auto graph=xui.createFlowGraph()
+    budget(limit)
+    try
+        auto index=graph.commandAddNode("new",null,"新节点")
+        resetBudget()
+        assert index==0 and graph.nodeCount==1
+        graph.undo()
+        assert graph.nodeCount==0
+        graph.redo()
+        assert graph.nodeCount==1
+        graph.close()
+        return true
+    catch Error
+        resetBudget()
+        assert graph.nodeCount==0 and graph.canUndo==0
+        graph.close()
+        return false
+    end
+end
+
+func sweep(xui.FlowGraph output)
+    int factories=0
+    int snapshots=0
+    int edits=0
+    for i in range(48)
+        if not factoryAttempt(c_int(i)) then factories+=1 end
+        if not outputAttempt(output,c_int(i)) then snapshots+=1 end
+        if not commandAttempt(c_int(i)) then edits+=1 end
+    end
+    assert factories>0 and factories<48
+    assert snapshots>0 and snapshots<48
+    assert edits>0 and edits<48
+end
+
+func main(...) as int
+    auto output=xui.createFlowGraph()
+    assert output.addNode("node","type","标题",0,0,10,10,"summary")==0
+    output.setNodeRunState("node",0,"preview")
+    // Warm error metadata/caches before comparing live allocations.
+    sweep(output)
+    auto before=liveCount()
+    sweep(output)
+    assert liveCount()==before
+    // The native count query deliberately treats an invalid node as empty.
+    assert output.getNodePortCount(-1)==0
+    bool rejected=false
+    try
+        auto id,type,title,summary,x,y,width,height,state,preview=output.getNode(-1)
+    catch Error
+        rejected=true
+    end
+    assert rejected and output.nodeCount==1
+    rejected=false
+    try
+        auto found=output.findNode("node\0suffix")
+    catch Error
+        rejected=true
+    end
+    assert rejected and output.findNode("missing")==-1
+    output.close()
+    println("XUI_SHARED_FLOW_OOM_OK")
+    return 0
+end

@@ -1,0 +1,83 @@
+import xui
+
+extern "flowModelBudget" @header("test/cases/foreign_xui_flow_graph.h") @no_raise func budget(c_int count)
+extern "flowModelResetBudget" @no_raise func resetBudget()
+extern "flowModelBudgetTriggered" @no_raise func triggered() as c_int
+extern "flowModelLiveCount" @no_raise func liveCount() as c_size
+
+int getterCalls=0
+class Parent
+    string inherited="base"
+    private string secret="private"
+end
+class Fields extends Parent
+    string title="public"
+    private Buffer hidden=Buffer("private native resource")
+    get computed() as string
+        getterCalls+=1
+        return "must not execute"
+    end
+end
+
+func attempt(xui.FlowGraph graph,var supplied,c_int allowance,bool command) as bool
+    budget(allowance)
+    try
+        if command then
+            graph.commandSetNodeConfig("a",supplied)
+        else
+            graph.setNodeConfig("a",supplied)
+        end
+        resetBudget()
+        assert graph.getNodeConfigShared("a")["n"]==9
+        return true
+    catch Error
+        auto failedAllocation=triggered()
+        resetBudget()
+        assert failedAllocation==1
+        assert graph.getNodeConfigShared("a")["n"]==3 and graph.canUndo==0
+        return false
+    end
+end
+
+func sweep(bool command) as int
+    var supplied={"n":9,"child":{"text":"a\0b","bytes":b"\0\xff"}}
+    for i in range(256)
+        auto graph=xui.createFlowGraph()
+        graph.addNode("a")
+        graph.setNodeConfig("a",{"n":3})
+        bool complete=attempt(graph,supplied,c_int(i),command)
+        graph.close()
+        if complete then return i end
+    end
+    return -1
+end
+
+func main(...) as int
+    auto graph=xui.createFlowGraph()
+    graph.addNode("a")
+    auto fields=Fields()
+    graph.setNodeConfig("a",fields)
+    fields.title="changed"
+    var result=graph.getNodeConfigShared("a")
+    assert result["title"]=="public" and result["inherited"]=="base"
+    assert result["secret"]==null and result["hidden"]==null and result["computed"]==null
+    assert getterCalls==0
+    bool refused=false
+    try
+        graph.setNodeConfig("a",graph)
+    catch Error
+        refused=true
+    end
+    assert refused and graph.getNodeConfigShared("a")["title"]=="public"
+    graph.close()
+    assert result["title"]=="public"
+    int ordinary=sweep(false)
+    int history=sweep(true)
+    assert ordinary>0 and history>ordinary
+    auto before=liveCount()
+    assert sweep(false)==ordinary and sweep(true)==history
+    assert liveCount()==before
+    println("XUI_FLOW_SNAPSHOT_PREFIXES=",ordinary,",",history)
+    println("XUI_FLOW_SNAPSHOT_OK")
+    return 0
+end

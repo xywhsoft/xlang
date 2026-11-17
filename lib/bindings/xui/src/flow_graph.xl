@@ -1,0 +1,94 @@
+// Each view owns one native reference. Default setters snapshot public data once.
+// Reads are explicitly Clone/Shared until the result-snapshot contract is qualified.
+// Text in returned tuples is snapshotted before the native call scope ends.
+export extern "xui_flow_graph" class FlowGraph @header("xge3_runtime.h") @lifetime("owned") @policy("xl6Xui3FlowGraphPolicy") @domain("xl6Xui3OwnershipDomainV1")
+ native point handle
+ extern "xuiFlowGraphShareOwned" @no_raise @c_result("owned_view") @factory(1,0,rollbackFlowGraph) func share() as FlowGraph
+ extern "xl6ForeignViewCloseV1" @no_raise @c_control(0) @c_result("bool_status") func close()
+
+ extern "xuiFlowGraphGetNodeCount" @no_raise @c_result("integer_min",0) get nodeCount() as c_int
+ extern "xuiFlowGraphGetEdgeCount" @no_raise @c_result("integer_min",0) get edgeCount() as c_int
+ extern "xuiFlowGraphGetNodePortCount" @no_raise @c_result("integer_min",0) func getNodePortCount(c_int node) as c_int
+ extern "xuiFlowGraphFindNode" @no_raise @c_cstr(0) @c_result("integer_min",-1) func findNode(string id) as c_int
+ extern "xuiFlowGraphFindEdge" @no_raise @c_cstr(0) @c_result("integer_min",-1) func findEdge(string id) as c_int
+ extern "xuiFlowGraphGetRevisionChecked" @no_raise @c_output(1,0) get revision() as c_uint
+ extern "xuiFlowGraphGetCleanRevisionChecked" @no_raise @c_output(1,0) get cleanRevision() as c_uint
+
+ extern "xuiFlowGraphAddNode" @no_raise @c_pack(1,"xui_flow_node_desc_t",0,8) @c_pack_size(1,"iSize","uint32_t") @c_pack_field(1,"sId",0,"c_string") @c_pack_field(1,"sType",1,"c_string") @c_pack_field(1,"sTitle",2,"c_string") @c_pack_field(1,"fX",3,"value") @c_pack_field(1,"fY",4,"value") @c_pack_field(1,"fW",5,"value") @c_pack_field(1,"fH",6,"value") @c_pack_field(1,"sSummary",7,"c_string") @c_output(2,0) func addNode(string id,string? type=null,string? title=null,c_float x=0,c_float y=0,c_float width=0,c_float height=0,string? summary=null) as c_int
+ extern "xuiFlowGraphCommandAddNode" @no_raise @c_pack(1,"xui_flow_node_desc_t",0,8) @c_pack_size(1,"iSize","uint32_t") @c_pack_field(1,"sId",0,"c_string") @c_pack_field(1,"sType",1,"c_string") @c_pack_field(1,"sTitle",2,"c_string") @c_pack_field(1,"fX",3,"value") @c_pack_field(1,"fY",4,"value") @c_pack_field(1,"fW",5,"value") @c_pack_field(1,"fH",6,"value") @c_pack_field(1,"sSummary",7,"c_string") @c_output(2,0) func commandAddNode(string id,string? type=null,string? title=null,c_float x=0,c_float y=0,c_float width=0,c_float height=0,string? summary=null) as c_int
+ extern "xuiFlowGraphRemoveNode" @no_raise @c_cstr(0) @c_result("status",0) func removeNode(string id)
+ extern "xuiFlowGraphCommandRemoveNode" @no_raise @c_cstr(0) @c_result("status",0) func commandRemoveNode(string id)
+ extern "xuiFlowGraphSetNodePosition" @no_raise @c_cstr(0) @c_result("status",0) func setNodePosition(string id,c_float x,c_float y)
+ extern "xuiFlowGraphSetNodeBounds" @no_raise @c_cstr(0) @c_result("status",0) func setNodeBounds(string id,c_float x,c_float y,c_float width,c_float height)
+ extern "xuiFlowGraphSetNodeSummary" @no_raise @c_cstr(0) @c_cstr(1) @c_result("status",0) func setNodeSummary(string id,string summary)
+ extern "xuiFlowGraphSetNodeSummary" @no_raise @c_cstr(0) @c_null(2,"const char*") @c_result("status",0) func clearNodeSummary(string id)
+ extern "xuiFlowGraphSetNodeRunState" @no_raise @c_cstr(0) @c_cstr(2) @c_result("status",0) func setNodeRunState(string id,c_int state,string preview)
+ extern "xuiFlowGraphSetNodeRunState" @no_raise @c_cstr(0) @c_null(3,"const char*") @c_result("status",0) func setNodeRunState(string id,c_int state)
+ extern "xuiFlowGraphSetNodeConfigShared" @no_raise @c_cstr(0) @c_data_snapshot(1) @c_result("status",0) func setNodeConfig(string id,var config)
+ extern "xuiFlowGraphGetNodeConfig" @no_raise @c_cstr(0) @c_output(2,0) @c_output_view(2,"owned_value") func getNodeConfigClone(string id) as var
+ extern "xuiFlowGraphCommandSetNodeConfigShared" @no_raise @c_cstr(0) @c_data_snapshot(1) @c_result("status",0) func commandSetNodeConfig(string id,var config)
+ // Advanced operations retain the native Clone or identity-sharing semantics.
+ extern "xuiFlowGraphSetNodeConfig" @no_raise @c_cstr(0) @c_result("status",0) func setNodeConfigClone(string id,var config)
+ extern "xuiFlowGraphSetNodeConfigShared" @no_raise @c_cstr(0) @c_result("status",0) func setNodeConfigShared(string id,var config)
+ extern "xuiFlowGraphGetNodeConfigShared" @no_raise @c_cstr(0) @c_output(2,0) @c_output_view(2,"owned_value") func getNodeConfigShared(string id) as var
+ extern "xuiFlowGraphCommandSetNodeConfig" @no_raise @c_cstr(0) @c_result("status",0) func commandSetNodeConfigClone(string id,var config)
+ extern "xuiFlowGraphCommandSetNodeConfigShared" @no_raise @c_cstr(0) @c_result("status",0) func commandSetNodeConfigShared(string id,var config)
+ extern "xuiFlowGraphCommandMoveNode" @no_raise @c_pack(1,"xui_flow_move_node_desc_t",0,3) @c_pack_size(1,"iSize","uint32_t") @c_pack_field(1,"sId",0,"c_string") @c_pack_field(1,"fX",1,"value") @c_pack_field(1,"fY",2,"value") @c_result("status",0) func commandMoveNode(string id,c_float x,c_float y)
+ extern "xuiFlowGraphCommandRecordMoveNode" @no_raise @c_cstr(0) @c_result("status",0) func commandRecordMoveNode(string id,c_float oldX,c_float oldY,c_float newX,c_float newY)
+ extern "xuiFlowGraphCommandRecordMoveNodes" @no_raise @c_array_group(1,0,5,"int",5) @c_array_record(1,"xui_flow_move_node_record_t","iSize","uint32_t") @c_array_field(1,"sId",0,"c_string") @c_array_field(1,"fOldX",1,"value") @c_array_field(1,"fOldY",2,"value") @c_array_field(1,"fNewX",3,"value") @c_array_field(1,"fNewY",4,"value") @c_result("status",0) func commandRecordMoveNodes(array<string> ids,array<c_float> oldX,array<c_float> oldY,array<c_float> newX,array<c_float> newY,int size=-1)
+
+ extern "xuiFlowGraphAddPort" @no_raise @c_pack(2,"xui_flow_port_desc_t",1,8) @c_pack_size(2,"iSize","uint32_t") @c_pack_field(2,"sId",1,"c_string") @c_pack_field(2,"sTitle",2,"c_string") @c_pack_field(2,"sDataType",3,"c_string") @c_pack_field(2,"iDirection",4,"value") @c_pack_field(2,"iKind",5,"value") @c_pack_field(2,"bRequired",6,"value") @c_pack_field(2,"bMulti",7,"value") @c_pack_field(2,"bDynamic",8,"value") @c_output(3,0) func addPort(c_int node,string id,string? title=null,string? dataType=null,c_int direction=0,c_int kind=0,c_int required=0,c_int multiple=0,c_int dynamic=0) as c_int
+ // Column arrays become one checked temporary C record array, O(n).
+ extern "xuiFlowGraphRebuildNodeDynamicPorts" @no_raise @c_cstr(0) @c_array_group(2,1,8,"int",9) @c_array_record(2,"xui_flow_port_desc_t","iSize","uint32_t") @c_array_field(2,"sId",0,"c_string") @c_array_field(2,"sTitle",1,"c_string") @c_array_field(2,"sDataType",2,"c_string") @c_array_field(2,"iDirection",3,"value") @c_array_field(2,"iKind",4,"value") @c_array_field(2,"bRequired",5,"value") @c_array_field(2,"bMulti",6,"value") @c_array_field(2,"bDynamic",7,"value") @c_result("status",0) func rebuildNodeDynamicPorts(string nodeId,array<string> ids,array<string?> titles,array<string?> dataTypes,array<c_int> directions,array<c_int> kinds,array<c_int> required,array<c_int> multiple,array<c_int> dynamic,int size=-1)
+
+ extern "xuiFlowGraphAddEdge" @no_raise @c_pack(1,"xui_flow_edge_desc_t",0,10) @c_pack_size(1,"iSize","uint32_t") @c_pack_field(1,"sId",0,"c_string") @c_pack_field(1,"iKind",1,"value") @c_pack_field(1,"sFromNode",2,"c_string") @c_pack_field(1,"sFromPort",3,"c_string") @c_pack_field(1,"sToNode",4,"c_string") @c_pack_field(1,"sToPort",5,"c_string") @c_pack_field(1,"iRouteStyle",6,"value") @c_pack_field(1,"fRouteBias",7,"value") @c_pack_field(1,"fRouteSourceOffset",8,"value") @c_pack_field(1,"fRouteTargetOffset",9,"value") @c_output(2,0) func addEdge(string id,c_int kind,string fromNode,string fromPort,string toNode,string toPort,c_int routeStyle=0,c_float bias=0,c_float sourceOffset=0,c_float targetOffset=0) as c_int
+ extern "xuiFlowGraphAddEdgePreserveInvalid" @no_raise @c_pack(1,"xui_flow_edge_desc_t",0,10) @c_pack_size(1,"iSize","uint32_t") @c_pack_field(1,"sId",0,"c_string") @c_pack_field(1,"iKind",1,"value") @c_pack_field(1,"sFromNode",2,"c_string") @c_pack_field(1,"sFromPort",3,"c_string") @c_pack_field(1,"sToNode",4,"c_string") @c_pack_field(1,"sToPort",5,"c_string") @c_pack_field(1,"iRouteStyle",6,"value") @c_pack_field(1,"fRouteBias",7,"value") @c_pack_field(1,"fRouteSourceOffset",8,"value") @c_pack_field(1,"fRouteTargetOffset",9,"value") @c_output(2,0) func addEdgePreserveInvalid(string id,c_int kind,string fromNode,string fromPort,string toNode,string toPort,c_int routeStyle=0,c_float bias=0,c_float sourceOffset=0,c_float targetOffset=0) as c_int
+ extern "xuiFlowGraphCommandAddEdge" @no_raise @c_pack(1,"xui_flow_edge_desc_t",0,10) @c_pack_size(1,"iSize","uint32_t") @c_pack_field(1,"sId",0,"c_string") @c_pack_field(1,"iKind",1,"value") @c_pack_field(1,"sFromNode",2,"c_string") @c_pack_field(1,"sFromPort",3,"c_string") @c_pack_field(1,"sToNode",4,"c_string") @c_pack_field(1,"sToPort",5,"c_string") @c_pack_field(1,"iRouteStyle",6,"value") @c_pack_field(1,"fRouteBias",7,"value") @c_pack_field(1,"fRouteSourceOffset",8,"value") @c_pack_field(1,"fRouteTargetOffset",9,"value") @c_output(2,0) func commandAddEdge(string id,c_int kind,string fromNode,string fromPort,string toNode,string toPort,c_int routeStyle=0,c_float bias=0,c_float sourceOffset=0,c_float targetOffset=0) as c_int
+ extern "xuiFlowGraphRemoveEdge" @no_raise @c_cstr(0) @c_result("status",0) func removeEdge(string id)
+ extern "xuiFlowGraphCommandRemoveEdge" @no_raise @c_cstr(0) @c_result("status",0) func commandRemoveEdge(string id)
+ extern "xuiFlowGraphSetEdgeRunState" @no_raise @c_cstr(0) @c_cstr(2) @c_result("status",0) func setEdgeRunState(string id,c_int state,string preview)
+ extern "xuiFlowGraphSetEdgeRunState" @no_raise @c_cstr(0) @c_null(3,"const char*") @c_result("status",0) func setEdgeRunState(string id,c_int state)
+ extern "xuiFlowGraphSetEdgeRoute" @no_raise @c_cstr(0) @c_result("status",0) func setEdgeRoute(string id,c_int style,c_float bias,c_float sourceOffset,c_float targetOffset)
+
+ // Each tuple is an independent snapshot; strings survive later edits/close.
+ extern "xuiFlowGraphGetNode" @no_raise @c_output_record(2,"xui_flow_node_info_t","borrowed") @c_output_size(2,"iSize") @c_status(0) @c_output_field(0,"sId","cstring") @c_output_field(1,"sType","cstring") @c_output_field(2,"sTitle","cstring") @c_output_field(3,"sSummary","cstring") @c_output_field(4,"fX") @c_output_field(5,"fY") @c_output_field(6,"fW") @c_output_field(7,"fH") @c_output_field(8,"iRunState") @c_output_field(9,"sRunPreview","cstring") func getNode(c_int index) as (string,string?,string?,string?,c_float,c_float,c_float,c_float,c_int,string?)
+ extern "xuiFlowGraphGetPort" @no_raise @c_output_record(3,"xui_flow_port_info_t","borrowed") @c_output_size(3,"iSize") @c_status(0) @c_output_field(0,"sId","cstring") @c_output_field(1,"sTitle","cstring") @c_output_field(2,"sDataType","cstring") @c_output_field(3,"iDirection") @c_output_field(4,"iKind") @c_output_field(5,"bRequired") @c_output_field(6,"bMulti") @c_output_field(7,"bDynamic") func getPort(c_int node,c_int index) as (string,string?,string?,c_int,c_int,c_int,c_int,c_int)
+ extern "xuiFlowGraphGetEdge" @no_raise @c_output_record(2,"xui_flow_edge_info_t","borrowed") @c_output_size(2,"iSize") @c_status(0) @c_output_field(0,"sId","cstring") @c_output_field(1,"iKind") @c_output_field(2,"sFromNode","cstring") @c_output_field(3,"sFromPort","cstring") @c_output_field(4,"sToNode","cstring") @c_output_field(5,"sToPort","cstring") @c_output_field(6,"iFromNode") @c_output_field(7,"iFromPort") @c_output_field(8,"iToNode") @c_output_field(9,"iToPort") @c_output_field(10,"bInvalid") @c_output_field(11,"iRunState") @c_output_field(12,"sRunPreview","cstring") @c_output_field(13,"iRouteStyle") @c_output_field(14,"fRouteBias") @c_output_field(15,"fRouteSourceOffset") @c_output_field(16,"fRouteTargetOffset") func getEdge(c_int index) as (string,c_int,string,string,string,string,c_int,c_int,c_int,c_int,c_int,c_int,string?,c_int,c_float,c_float,c_float)
+
+ extern "xuiFlowGraphCanUndo" @no_raise @c_result("integer_min",0) get canUndo() as c_int
+ extern "xuiFlowGraphCanRedo" @no_raise @c_result("integer_min",0) get canRedo() as c_int
+ extern "xuiFlowGraphUndo" @no_raise @c_result("status",0) func undo()
+ extern "xuiFlowGraphRedo" @no_raise @c_result("status",0) func redo()
+ extern "xuiFlowGraphSetCommandHistoryLimit" @no_raise @c_result("status",0) func setHistoryLimit(c_int limit)
+ extern "xuiFlowGraphGetCommandHistoryLimit" @no_raise @c_result("integer_min",0) get historyLimit() as c_int
+ extern "xuiFlowGraphMarkClean" @no_raise @c_result("status",0) func markClean()
+ extern "xuiFlowGraphIsDirty" @no_raise @c_result("integer_min",0) get dirty() as c_int
+
+ // Native IDs fit in 64 bytes including NUL. These calls write a caller
+ // Buffer directly; initialize its length to at least 64 before calling.
+ extern "xuiFlowGraphMakeNodeId" @no_raise @c_span(0,"char*","int") @c_result("status",0) func makeNodeId(Buffer output)
+ extern "xuiFlowGraphMakeEdgeId" @no_raise @c_span(0,"char*","int") @c_result("status",0) func makeEdgeId(Buffer output)
+ extern "xuiFlowGraphMakePortId" @no_raise @c_span(1,"char*","int") @c_result("status",0) func makePortId(c_int node,Buffer output)
+ extern "xuiFlowGraphClearSelection" @no_raise @c_result("status",0) func clearSelection()
+ extern "xuiFlowGraphSelectNode" @no_raise @c_cstr(0) @c_result("status",0) func selectNode(string id,c_int selected=1)
+ extern "xuiFlowGraphSelectEdge" @no_raise @c_cstr(0) @c_result("status",0) func selectEdge(string id,c_int selected=1)
+ extern "xuiFlowGraphIsNodeSelected" @no_raise @c_cstr(0) @c_result("integer_min",0) func isNodeSelected(string id) as c_int
+ extern "xuiFlowGraphIsEdgeSelected" @no_raise @c_cstr(0) @c_result("integer_min",0) func isEdgeSelected(string id) as c_int
+ extern "xuiFlowGraphGetSelectedNodeCount" @no_raise @c_result("integer_min",0) get selectedNodeCount() as c_int
+ extern "xuiFlowGraphGetSelectedEdgeCount" @no_raise @c_result("integer_min",0) get selectedEdgeCount() as c_int
+ extern "xuiFlowGraphDeleteSelection" @no_raise @c_result("status",0) func deleteSelection()
+
+ extern "xuiFlowGraphSetViewport" @no_raise @c_pack(1,"xui_flow_viewport_t",0,5) @c_pack_size(1,"iSize","uint32_t") @c_pack_field(1,"fPanX",0,"value") @c_pack_field(1,"fPanY",1,"value") @c_pack_field(1,"fZoom",2,"value") @c_pack_field(1,"fWidth",3,"value") @c_pack_field(1,"fHeight",4,"value") @c_result("status",0) func setViewport(c_float panX=0,c_float panY=0,c_float zoom=1,c_float width=0,c_float height=0)
+ extern "xuiFlowGraphGetViewport" @no_raise @c_output(1,0) @c_output_size(1,"iSize") func getViewport() as FlowViewport
+ extern "xuiFlowGraphWorldToScreen" @no_raise @c_outputs(3,4) @c_status(0) func worldToScreen(c_float x,c_float y) as (c_float,c_float)
+ extern "xuiFlowGraphScreenToWorld" @no_raise @c_outputs(3,4) @c_status(0) func screenToWorld(c_float x,c_float y) as (c_float,c_float)
+
+ extern "xuiFlowGraphAddDiagnostic" @no_raise @c_pack(1,"xui_flow_diagnostic_desc_t",0,6) @c_pack_size(1,"iSize","uint32_t") @c_pack_field(1,"iSeverity",0,"value") @c_pack_field(1,"sCode",1,"c_string") @c_pack_field(1,"sMessage",2,"c_string") @c_pack_field(1,"sNode",3,"c_string") @c_pack_field(1,"sEdge",4,"c_string") @c_pack_field(1,"sPath",5,"c_string") @c_output(2,0) func addDiagnostic(c_int severity,string? code=null,string? message=null,string? node=null,string? edge=null,string? path=null) as c_int
+ extern "xuiFlowGraphClearDiagnostics" @no_raise @c_result("status",0) func clearDiagnostics()
+ extern "xuiFlowGraphGetDiagnosticCount" @no_raise @c_result("integer_min",0) get diagnosticCount() as c_int
+ extern "xuiFlowGraphGetDiagnostic" @no_raise @c_output_record(2,"xui_flow_diagnostic_desc_t","borrowed") @c_output_size(2,"iSize") @c_status(0) @c_output_field(0,"iSeverity") @c_output_field(1,"sCode","cstring") @c_output_field(2,"sMessage","cstring") @c_output_field(3,"sNode","cstring") @c_output_field(4,"sEdge","cstring") @c_output_field(5,"sPath","cstring") func getDiagnostic(c_int index) as (c_int,string?,string?,string?,string?,string?)
+ extern "xuiFlowGraphGetNodeDiagnosticCount" @no_raise @c_cstr(0) @c_result("integer_min",0) func getNodeDiagnosticCount(string id) as c_int
+ extern "xuiFlowGraphGetEdgeDiagnosticCount" @no_raise @c_cstr(0) @c_result("integer_min",0) func getEdgeDiagnosticCount(string id) as c_int
+end
+extern "xuiFlowGraphReleaseChecked" @header("xge3_runtime.h") @no_raise @c_result("status",0) func rollbackFlowGraph(FlowGraph value)
+export extern "xuiFlowGraphCreateOwned" @header("xge3_runtime.h") @no_raise @c_result("owned_view") @factory(0,0,rollbackFlowGraph) func createFlowGraph() as FlowGraph

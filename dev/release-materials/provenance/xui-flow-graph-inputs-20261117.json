@@ -1,0 +1,124 @@
+{
+  "complete": true,
+  "passed": true,
+  "sourceParent": "7e8d319714ef0faf77774e7f50cd24ffa2895144",
+  "nativeCommit": "d8b2914242b0582422fe47d7d87a3f6400fa9ca3",
+  "xrtCommit": "804cc769de3030118c2b46ef7af69543d1b82d9d",
+  "sourceHashes": {
+    "lib/bindings/xui/src/flow_graph.xl": "f4ac5feaa9324085e06746a4c6fe16585720ed440fa9ee806086d11973f341a8",
+    "lib/bindings/xui/xlang.package.json": "a4d6d28b2a6c3c538309e452839ee8f0ae8143b202e7bbf1f6f0c7b7aa28411a",
+    "lib/bindings/_xge_native/src/runtime.c": "c2c1f3867e58e13ef7a867fd568e7196ee3f2d0c5f944684067669c795e703ab",
+    "lib/bindings/_xge_native/include/xge3_runtime.h": "30fe3a74de942c76415f465dd2da021cba5b05de7ef897b3b9f7da83cd198632",
+    "lib/bindings/xui/src/managed.xl": "415418735b2266b48e43646b486e2de221cea1f13d10d05068949bae7418a55c",
+    "tools/xui_managed_contracts.py": "a5fef658671d8bd8ecef4055f1874c20d09dcf826859a7ef15a61591951fb78a",
+    "tools/check_xge3_storage_reviews.py": "16c3d66aafa5174616233aa5c84a4785afff7ddcf2956d3dfa56c952fec2744e",
+    "lib/bindings/xui/examples/flow_model.xl": "d6c3acbee8b184849d96d2eb30eba5dd132e0c8695773047e3f8330bd6ce1ea9",
+    "test/cases/foreign_xui_flow_graph.xl": "0fa450c94926f9cea1cc7b9a73e50d006443fa9bd1019b3842ec8e95f3f92999",
+    "test/cases/foreign_xui_flow_graph.h": "07bb5ea941289dca3bc4eecf62906cfb268b51bb0b6568fbb364a0eed104ff97",
+    "test/cases/foreign_xui_flow_graph_native.c": "26992daa2dd22d2fbfcaf08e37b7a2e5fbf3efa7563b0e38b95129cc780f5bab",
+    "test/cases/foreign_xui_flow_graph_oom.xl": "3aab556b13413da56ee84c4d0fc6419b6a3698bcbc8dc2e310f15047acca897a",
+    "tools/check_foreign_xui_flow_graph.py": "c84e859027af08d7fae9504f8d39dc722f1fabadfbdb792212da43d8e8e62fb8",
+    "test/cases/foreign_xui_flow_graph_snapshot.xl": "3c3bdd439e4c67864a6ca1768122558ee4d281c83108c50571906c103a9ef96b",
+    "docs/xui-flow-graph.md": "ba0bdc2c5f8f99374ed3dc0608b3f905b01a9572ced7d3e87e5c7a02b1082529",
+    "docs/xge3-xui3-full-coverage-plan.md": "505bbb0f7bbc079bab92bfe347a3f32a72103130c55318adc223ccdf53b184d4"
+  },
+  "candidateBefore": {
+    "path": "F:\\xlang-validation\\xge-full-20261110\\graph-language-candidate-before-r1\\witness.json",
+    "sha256": "bc44fc04fb3a8603fe3a167af5226dae630f60fa3c6a4bc8ed95d757ece049ec"
+  },
+  "reports": {
+    "win": {
+      "path": "F:\\xlang-validation\\xge-full-20261110\\graph-scope-verified-win-r1.json",
+      "sha256": "57dc1da85357344ee3aac2ca26e41c0828c76d305d84eb39e792239e330f2011",
+      "commands": 51,
+      "sourceChecks": 409,
+      "verifiedFiles": 15997,
+      "compilerBuild": {
+        "path": "F:\\xlang-validation\\xge-full-20261110\\compiler-scope-stack-win-full-r1\\build.json",
+        "sha256": "c86fafae5831d571fabc4c2ca9e1b183823db9891cf083de6c3843a00b3e1395"
+      },
+      "sourceFreeze": {
+        "path": "F:\\xlang-validation\\xge-full-20261110\\graph-input-binding-freeze-win-r1.json",
+        "sha256": "6f9122276909ec16d21d9c50cb8dd13b346047ba38f5fd3a0cc81e95ddb95135"
+      },
+      "gates": {
+        "graph-scope-behavior-win-r2": {
+          "path": "F:\\xlang-validation\\xge-full-20261110\\graph-scope-behavior-win-r2\\results.json",
+          "sha256": "14f1c5fd50d1ebaa4cc2a76aebb2d6cb97073bcae73971696d39e723f9f8bbe8",
+          "commands": 18
+        },
+        "graph-scope-oom-win-r2": {
+          "path": "F:\\xlang-validation\\xge-full-20261110\\graph-scope-oom-win-r2\\results.json",
+          "sha256": "c5ad5a1825389feb0012a9a78db4c65b2ccf8498668f07d0e0df2695c309fa94",
+          "commands": 13
+        },
+        "graph-scope-snapshot-win-r2": {
+          "path": "F:\\xlang-validation\\xge-full-20261110\\graph-scope-snapshot-win-r2\\results.json",
+          "sha256": "37be632a9218dfb73def6f70c90708452e52e4ca532b78765b48cfc19278fcb3",
+          "commands": 13
+        },
+        "graph-scope-examples-win-r1": {
+          "path": "F:\\xlang-validation\\xge-full-20261110\\graph-scope-examples-win-r1\\results.json",
+          "sha256": "869d1f82e1e043c183c14d54d153b3d09a0eb6b9094acb70da3875db1fd7ad51",
+          "commands": 7
+        }
+      },
+      "storage": {
+        "path": "F:\\xlang-validation\\xge-full-20261110\\graph-input-storage-win-r1\\results.json",
+        "sha256": "eeb72d39734bbc7424b63a5d58d33f5861123aa3b345b5781fad8d198f6fb0e1"
+      }
+    },
+    "linux": {
+      "path": "/var/tmp/xlang-validation/xge-full-20261110/graph-scope-verified-linux-r1.json",
+      "sha256": "2a224e9be70a043d43167bf1bb5e60cb8f1dc4540c79f540955b4843cdcb30ca",
+      "commands": 51,
+      "sourceChecks": 410,
+      "verifiedFiles": 17522,
+      "compilerBuild": {
+        "path": "/var/tmp/xlang-validation/xge-full-20261110/compiler-scope-stack-linux-full-r1/build.json",
+        "sha256": "1974138ec82cefc7e2cbaccf42e4d6af789465e8fb41ab74365a49ba5300e496"
+      },
+      "sourceFreeze": {
+        "path": "/var/tmp/xlang-validation/xge-full-20261110/graph-input-binding-freeze-linux-r2.json",
+        "sha256": "867fcfdd4c9287a2bba317bf6d9cfabea42745935c5d30e95aa8363ba13a106d"
+      },
+      "gates": {
+        "graph-scope-behavior-linux-r1": {
+          "path": "/var/tmp/xlang-validation/xge-full-20261110/graph-scope-behavior-linux-r1/results.json",
+          "sha256": "19e39785287831c28a9e93771fe49abcaee9e39f1aa7e1534e314f8a17e071f3",
+          "commands": 18
+        },
+        "graph-scope-oom-linux-r1": {
+          "path": "/var/tmp/xlang-validation/xge-full-20261110/graph-scope-oom-linux-r1/results.json",
+          "sha256": "7ca4c0fa7c1b6e2e4576a92f4925d33b16e3c7f0ff3a11ca20513c7598098001",
+          "commands": 13
+        },
+        "graph-scope-snapshot-linux-r1": {
+          "path": "/var/tmp/xlang-validation/xge-full-20261110/graph-scope-snapshot-linux-r1/results.json",
+          "sha256": "3d7ef10519382ef1bccacce37077be95a289054ab1d8bd1e2a5ca3b8dd0b823d",
+          "commands": 13
+        },
+        "graph-scope-examples-linux-r1": {
+          "path": "/var/tmp/xlang-validation/xge-full-20261110/graph-scope-examples-linux-r1/results.json",
+          "sha256": "08d9c732c19a4e8470274cf2c54a0f472cca545cdd9a1c86e78598501372c475",
+          "commands": 7
+        }
+      },
+      "storage": {
+        "path": "/var/tmp/xlang-validation/xge-full-20261110/graph-input-storage-linux-r1/results.json",
+        "sha256": "dd0b3ebc341e2457156e8b2286692eccde49423e16c60ae9f272753b1189b078"
+      }
+    }
+  },
+  "languageExampleCommands": 102,
+  "sourceChecks": 819,
+  "independentlyVerifiedFiles": 33519,
+  "declarations": 73,
+  "nativeFunctionNames": 68,
+  "defaultWriteSnapshot": true,
+  "defaultReadSnapshotQualified": false,
+  "advancedCycleAndWidgetQualificationComplete": false,
+  "wholeXgeGoalComplete": false,
+  "releaseInstalled": false,
+  "shippingDelivery": false
+}

@@ -1,0 +1,26 @@
+// 创建两个节点并连接端口，演示撤销和模型共享引用。
+// 这是独立的数据模型示例，可直接在终端运行。
+import xui
+
+auto graph=xui.createFlowGraph()
+auto source=graph.addNode("source","input","数据源",20,40,160,80)
+auto target=graph.addNode("target","output","数据目标",260,40,160,80)
+graph.addPort(source,"out","输出","text",xui.XUI_FLOW_PORT_OUTPUT,xui.XUI_FLOW_PORT_DATA)
+graph.addPort(target,"in","输入","text",xui.XUI_FLOW_PORT_INPUT,xui.XUI_FLOW_PORT_DATA)
+graph.addEdge("connection",xui.XUI_FLOW_PORT_DATA,"source","out","target","in")
+println("节点：",graph.nodeCount,"，连线：",graph.edgeCount)
+assert graph.nodeCount==2 and graph.edgeCount==1
+
+// command 前缀的编辑会记录历史，普通 setter 不记录历史。
+graph.commandMoveNode("source",80,40)
+assert graph.canUndo==1
+graph.undo()
+assert graph.canRedo==1
+graph.redo()
+
+// share 取得独立引用，关闭一个视图后，另一个视图仍可使用。
+auto reader=graph.share()
+graph.close()
+assert reader.findNode("source")==source and reader.nodeCount==2
+reader.close()
+println("FLOW_MODEL_EXAMPLE_OK")

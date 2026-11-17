@@ -375,6 +375,17 @@ METHODS = {'xl6Xui3CopyToClipboard': ['int xl6Xui3CopyToClipboard(xui_context,xu
                                    'iEventType,uint64 iNodeId)']]}
 
 METHODS.update({
+    'xuiFlowGraphWidgetGetGraphOwned': [
+        'int xuiFlowGraphWidgetGetGraphOwned(xui_widget widget,xui_flow_graph* output)',
+        'FlowGraphWidget',
+        ['extern "xuiFlowGraphWidgetGetGraphOwned" @no_raise @c_result("owned_view") @factory(1,0,rollbackFlowGraph) func getGraph() as FlowGraph']],
+    'xuiFlowGraphWidgetSetGraphShared': [
+        'int xuiFlowGraphWidgetSetGraphShared(xui_widget widget,xui_flow_graph graph)',
+        'FlowGraphWidget',
+        ['extern "xuiFlowGraphWidgetSetGraphShared" @no_raise @c_result("status",0) func setGraph(FlowGraph graph)']],
+})
+
+METHODS.update({
     'xuiWebViewSetEventOwned': [
         'int xuiWebViewSetEventOwned(xui_widget pWidget, xui_webview_event_proc onEvent, void* pUser, const xui_callback_owner_t* pOwner)',
         'WebView',
@@ -533,6 +544,15 @@ TYPE_SHAPES = {'xui_accessibility_event_proc': 'e024773384cabe3acdff878404d4c09f
  'xui_terminal_cell_t': '27a463797f92b3289f54fd8c61b4bd80a31bfe5b798debdc446ed61b263a445c',
  'xui_timeline_hit_t': '85a7722fb57db5cef87d1e94fa011f96ec4bf34592116e3791fb1d99751a5df1',
  'xui_vec2_t': 'dba0d1ca7b2f5c1eb244a9eee5d2743563abeeab4f0af14162f52ab3182c4cf0'}
+
+RECORDS.update({
+    'xui_flow_graph_t': 'typedef struct xui_flow_graph_t xui_flow_graph_t;',
+    'xui_flow_graph': 'typedef xui_flow_graph_t* xui_flow_graph;',
+})
+TYPE_SHAPES.update({
+    'xui_flow_graph_t': '7c2b3b3f108a91ce4f9154f75b371307823f520c9bf35400f869572483f9a6a0',
+    'xui_flow_graph': '53f509f41455dcfcdd627b8e143e9b88647ba9ad8e73369b7bff9fdb88013ee4',
+})
 
 TYPE_SHAPES.update({
     'xui_webview_event_proc': '4c8d001e4b5001ef70e4347f5955528d82a5fb5237178cdde269a1237d680db1',

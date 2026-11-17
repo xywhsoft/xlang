@@ -175,7 +175,13 @@ def main():
             # resolved shape. A declaration-only pin must not accept this.
             shape=copy.deepcopy(next(t['type']for t in ui_header['types']if t['name']==name))
             if shape.get('fields'):shape['fields'][0]['type']=dict(kind='named',names=['double'],qualifiers=[])
-            else:shape['to']['parameters'][0]['type']=dict(kind='named',names=['double'],qualifiers=[])
+            elif shape.get('kind')=='struct':
+                shape['fields']=[dict(name='unexpected',type=dict(kind='named',names=['double'],qualifiers=[]))]
+            elif shape.get('kind')=='pointer' and shape.get('to',{}).get('kind')=='named':
+                shape['to']['qualifiers']=['const']
+            elif shape.get('to',{}).get('parameters'):
+                shape['to']['parameters'][0]['type']=dict(kind='named',names=['double'],qualifiers=[])
+            else:raise AssertionError('unsupported resolved-shape mutation fixture: '+name)
             changed=dict(ui_header,types=[dict(t,type=shape)if t['name']==name else t for t in ui_header['types']])
             check('managed-resolved-layout-reject-'+name,lambda c=changed:reject_managed(c))
         inline=out/'managed-inline.h';inline.write_text(Path(ui_header['header']).read_text(encoding='utf-8-sig').replace('case XUI_EVENT_DRAG_LEAVE:case XUI_EVENT_DROP:break;','case XUI_EVENT_DRAG_LEAVE:case XUI_EVENT_DROP+1:break;'))
