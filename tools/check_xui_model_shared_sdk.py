@@ -22,7 +22,8 @@ def main():
     sdk_report=json.loads((sdk/'results.json').read_text());assert sdk_report['complete'] and sdk_report['passed']
     assert Path(sdk_report['source']).resolve()==source
     frozen=json.loads(Path(sdk_report['freeze']).read_text());assert sha(sdk_report['freeze'])==sdk_report['freezeSha256']
-    for name,h in frozen['overlays'].items():assert sha(source/name)==h and sha(native/name)==h
+    overlays=frozen['overlays'] if 'overlays' in frozen else frozen['overrides']
+    for name,h in overlays.items():assert sha(source/name)==h and sha(native/name)==h
     g=json.loads(gate.read_text());assert g['complete'] and g['passed'] and g['inputsUnchanged']
     for name,h in g['inputs'].items():assert sha(name)==h
     host=sdk/'host';static=sdk/'static'

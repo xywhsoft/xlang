@@ -1,0 +1,38 @@
+{
+  "complete": true,
+  "passed": true,
+  "xrtCommit": "804cc769de3030118c2b46ef7af69543d1b82d9d",
+  "nativeCommit": "d8b2914242b0582422fe47d7d87a3f6400fa9ca3",
+  "compilerFeatureCommit": "0599fe60c90a53914f92cab3cc579ad7ba23714f",
+  "reports": {
+    "win": {
+      "path": "F:\\xlang-validation\\xge-full-20261110\\xrt804-sdk-verified-win-r1.json",
+      "sha256": "b4eed892360767b6e1f7239b650b7fca069738b9d42283b3adf18da7c47af9a0",
+      "verifiedFiles": 7659,
+      "sourceGate": "F:\\xlang-validation\\xge-full-20261110\\xrt804-model-source-win-r3\\results.json",
+      "sdkGate": "F:\\xlang-validation\\xge-full-20261110\\xrt804-model-sdk-win-r3\\results.json",
+      "sdkBuild": "F:\\xlang-validation\\xge-full-20261110\\xrt804-sdk-win-r1\\results.json"
+    },
+    "linux": {
+      "path": "/var/tmp/xlang-validation/xge-full-20261110/xrt804-sdk-verified-linux-r1.json",
+      "sha256": "1e924edcc0d7f8b657240b72fe3842c1e916fa91840848700eccbd544cc43cd4",
+      "verifiedFiles": 7451,
+      "sourceGate": "/var/tmp/xlang-validation/xge-full-20261110/xrt804-model-source-linux-r3/results.json",
+      "sdkGate": "/var/tmp/xlang-validation/xge-full-20261110/xrt804-model-sdk-linux-r3/results.json",
+      "sdkBuild": "/var/tmp/xlang-validation/xge-full-20261110/xrt804-sdk-linux-r1/results.json"
+    }
+  },
+  "fullSdkBuilds": 4,
+  "freshO2Units": 660,
+  "commands": 186,
+  "productionObjectOverrides": false,
+  "shippingDelivery": false,
+  "releaseInstalled": false,
+  "fullGoalComplete": false,
+  "sourceParent": "fc6cddc54094f6404f6be85d6e357194d4b7ef3e",
+  "sourceHashes": {
+    "tools/check_xui_model_shared_sdk.py": "c4645a8932208652699e9fbd7786ca0c5a8eb17c658a005760d1f8ca45224e67",
+    "docs/xge3-xrt804-sdk.md": "a1a33e7771903935e24e6db56760050f6d6680cd8c96b449702b43a5c0e42fb0",
+    "docs/xge3-xui3-full-coverage-plan.md": "fb3099eb183e8c20280b68887e63aa0f325e8862ee3a51ed19ddef2c137a0d56"
+  }
+}
