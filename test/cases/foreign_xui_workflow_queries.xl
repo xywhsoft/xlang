@@ -1,0 +1,65 @@
+import xui
+
+func main(...) as int
+ auto workflow=xui.createWorkflow()
+ array<string> ids=[]
+ array<string?> labels=[]
+ array<c_int> settings=[]
+ workflow.registerNodeType("job",2,"Job","Tests",null,null,
+    ids,labels,labels,settings,settings,settings,settings,settings,0,
+    ids,labels,labels,settings,settings,settings,settings,settings,0,null)
+ auto typeId,revision,title,category,description,icon,inputs,outputs=workflow.getNodeLibraryItem(0)
+ assert typeId=="job" and revision==2 and (title as string)=="Job" and (category as string)=="Tests"
+ assert description==null and icon==null and inputs==0 and outputs==0
+ auto first=workflow.addNode("job","first",12,18)
+ auto next=workflow.addNode("job","next")
+ bool rejected=false
+ try
+  auto badId,badType,badTitle,badSummary,badX,badY,badWidth,badHeight,badState,badPreview=workflow.getSelectedNode()
+ catch Error
+  rejected=true
+ end
+ assert rejected
+ workflow.selectNode("first",1)
+ auto selected,kind,label,summary,x,y,w,h,state,preview=workflow.getSelectedNode()
+ assert selected=="first" and x==12 and y==18 and state==xui.XUI_WORKFLOW_NODE_RUN_IDLE
+ assert preview==null
+
+ auto graph=workflow.graph()
+ graph.addPort(first,"output",null,null,xui.XUI_FLOW_PORT_OUTPUT,xui.XUI_FLOW_PORT_CONTROL)
+ graph.addPort(next,"input",null,null,xui.XUI_FLOW_PORT_INPUT,xui.XUI_FLOW_PORT_CONTROL)
+ workflow.connect("route","first","output","next","input")
+ workflow.setNodeRunState("first",xui.XUI_WORKFLOW_NODE_RUN_RUNNING,"working")
+ workflow.setEdgeRunState("route",xui.XUI_WORKFLOW_EDGE_RUN_ACTIVE,"flowing")
+ auto nodeState,nodePreview=workflow.getNodeRunState("first")
+ auto edgeState,edgePreview=workflow.getEdgeRunState("route")
+ assert nodeState==xui.XUI_WORKFLOW_NODE_RUN_RUNNING and (nodePreview as string)=="working"
+ assert edgeState==xui.XUI_WORKFLOW_EDGE_RUN_ACTIVE and (edgePreview as string)=="flowing"
+ workflow.setNodeRunState("first",xui.XUI_WORKFLOW_NODE_RUN_SUCCESS,"")
+ workflow.setEdgeRunState("route",xui.XUI_WORKFLOW_EDGE_RUN_TAKEN)
+ auto finished,blank=workflow.getNodeRunState("first")
+ auto taken,unset=workflow.getEdgeRunState("route")
+ assert finished==xui.XUI_WORKFLOW_NODE_RUN_SUCCESS and blank!=null and (blank as string)==""
+ assert taken==xui.XUI_WORKFLOW_EDGE_RUN_TAKEN and unset==null
+
+ auto short=Buffer(b".")
+ auto id=Buffer(b"......")
+ rejected=false
+ try
+  workflow.writeVariableId(short)
+ catch Error
+  rejected=true
+ end
+ assert rejected
+ workflow.writeVariableId(id)
+ assert id.toBytes()==b"var_1\0"
+ workflow.addVariable("var_2")
+ workflow.writeVariableId(id)
+ assert id.toBytes()==b"var_3\0"
+
+ workflow.close()
+ graph.close()
+ assert (nodePreview as string)=="working" and (edgePreview as string)=="flowing"
+ println("WORKFLOW_QUERIES_OK")
+ return 0
+end

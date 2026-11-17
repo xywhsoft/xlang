@@ -65,3 +65,16 @@ environment. Dispatch enters the compiler-generated callback directly. A
 configuration read incurs a snapshot traversal. Writers use temporary row
 storage and copy text, and the Graph copies port metadata into its own
 storage. The diagnostic batch transfers its existing strings to the Graph.
+
+`getNodeLibraryItem(index)` returns the type ID, version, optional title,
+category, description and icon, followed by the fixed input and output
+counts. `getSelectedNode()` returns the first selected node in model
+order and reports a checked error when there is no selection. Its fields
+match `FlowGraph.getNode()`.
+
+Use `setNodeRunState()` and `setEdgeRunState()` to update execution
+highlighting. Their getters return the native state and optional preview.
+The copied preview distinguishes an empty string from null and can outlive
+the model. `writeVariableId(buffer)` writes a NUL-terminated identifier in
+a caller-sized Buffer. A 16-byte writable Buffer fits every supported ID.
+An insufficient Buffer raises a checked error without advancing the sequence.
