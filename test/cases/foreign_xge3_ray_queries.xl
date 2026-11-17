@@ -1,0 +1,37 @@
+import xge3d
+extern "fixtureRayInput" @header("test/cases/foreign_xge3_ray_queries.h") @no_raise @c_outputs(1,2,3,4,5) @c_status(0) func input(c_int which) as (xge3d.Xge3dRay,xge3d.Xge3dAabb,xge3d.Xge3dSphere,xge3d.Xge3dVec3[3],c_float)
+extern "fixtureRayCompare" @header("test/cases/foreign_xge3_ray_queries.h") @no_raise func compare(c_int which,c_int boxStatus,c_float boxDistance,c_int sphereStatus,c_float sphereDistance,c_int triangleStatus,xge3d.Xge3dHit hit)
+extern "fixtureRayNativeOracle" @header("test/cases/foreign_xge3_ray_queries.h") @no_raise func nativeOracle()
+extern "fixtureRayNativeHot" @header("test/cases/foreign_xge3_ray_queries.h") @no_raise func nativeHot()
+extern "fixtureRayHeapBegin" @header("test/cases/foreign_xge3_ray_queries.h") @no_raise func heapBegin()
+extern "fixtureRayHeapEnd" @header("test/cases/foreign_xge3_ray_queries.h") @no_raise func heapEnd(c_int native)
+
+func main(...) as int
+    nativeOracle()
+    for i in range(26)
+        auto ray,box,sphere,triangle,maximum=input(c_int(i))
+        auto boxStatus,boxDistance=xge3d.rayAabb(ray,box,maximum)
+        auto sphereStatus,sphereDistance=xge3d.raySphere(ray,sphere,maximum)
+        auto triangleStatus,hit=xge3d.rayTriangle(ray,triangle,maximum)
+        compare(c_int(i),boxStatus,boxDistance,sphereStatus,sphereDistance,triangleStatus,hit)
+    end
+    auto ray,box,sphere,triangle,maximum=input(c_int(0))
+    func(xge3d.Xge3dRay,xge3d.Xge3dAabb,c_float) as (c_int,c_float) boxQuery=xge3d.rayAabb
+    auto status,distance=boxQuery(ray,box,maximum)
+    assert status==0 and distance==c_float(2)
+    assert ray.direction.z==c_float(-2) and triangle[0].x==c_float(-1)
+    heapBegin()
+    for i in range(1000)
+        auto a,ad=xge3d.rayAabb(ray,box,maximum)
+        auto b,bd=xge3d.raySphere(ray,sphere,maximum)
+        auto c,hit=xge3d.rayTriangle(ray,triangle,maximum)
+        assert a==0 and ad==c_float(2) and b==0 and bd==c_float(2)
+        assert c==0 and hit.distance==c_float(3)
+    end
+    heapEnd(c_int(0))
+    heapBegin()
+    nativeHot()
+    heapEnd(c_int(1))
+    println("XGE3D_RAY_QUERIES_OK")
+    return 0
+end

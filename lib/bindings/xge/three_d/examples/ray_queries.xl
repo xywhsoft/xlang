@@ -1,0 +1,24 @@
+// CPU geometry: a ray starts at Z=3 and points towards two objects at Z=0.
+// Requires XGE_ENABLE_3D=1; no window or graphics context is created.
+import xge
+import xge3d
+
+auto ray=xge3d.Xge3dRay()
+ray.origin.z=c_float(3)
+ray.direction.z=c_float(-1)
+auto box=xge3d.Xge3dAabb()
+box.min.x=c_float(-1)
+box.min.y=c_float(-1)
+box.min.z=c_float(-1)
+box.max.x=c_float(1)
+box.max.y=c_float(1)
+box.max.z=c_float(1)
+auto sphere=xge3d.Xge3dSphere()
+sphere.radius=c_float(1)
+auto boxStatus,boxDistance=xge3d.rayAabb(ray,box,c_float(10))
+auto sphereStatus,sphereDistance=xge3d.raySphere(ray,sphere,c_float(10))
+assert boxStatus==xge.XGE_OK and boxDistance==c_float(2)
+assert sphereStatus==xge.XGE_OK and sphereDistance==c_float(2)
+auto shortStatus,shortDistance=xge3d.rayAabb(ray,box,c_float(1))
+assert shortStatus==xge.XGE_ERROR_NOT_FOUND and shortDistance==c_float(0)
+println("3D ray queries passed: box=2, sphere=2; short ray misses")

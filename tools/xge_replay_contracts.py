@@ -53,6 +53,15 @@ CONTRACTS = {
     'xgeDebugDumpCaps': (
         'int xgeDebugDumpCaps(char* sBuffer, int iSize)',
         'export extern "xgeDebugDumpCaps" @header("xge3_runtime.h") @no_raise @c_span(0,"char*","int") func debugDumpCaps(Buffer output) as c_int'),
+    'xge3dRayAabb': (
+        'int xge3dRayAabb(const xge3d_ray_t *ray, const xge3d_aabb_t *box, float max_distance, float *out_distance)',
+        'export extern "xge3dRayAabb" @header("xge3_runtime.h") @no_raise @c_ref(0) @c_ref(1) @c_outputs(-1,3) func rayAabb(Xge3dRay ray,Xge3dAabb box,c_float maxDistance) as (c_int,c_float)'),
+    'xge3dRaySphere': (
+        'int xge3dRaySphere(const xge3d_ray_t *ray, const xge3d_sphere_t *sphere, float max_distance, float *out_distance)',
+        'export extern "xge3dRaySphere" @header("xge3_runtime.h") @no_raise @c_ref(0) @c_ref(1) @c_outputs(-1,3) func raySphere(Xge3dRay ray,Xge3dSphere sphere,c_float maxDistance) as (c_int,c_float)'),
+    'xge3dRayTriangle': (
+        'int xge3dRayTriangle(const xge3d_ray_t *ray, const xge3d_vec3_t triangle[3], float max_distance, xge3d_hit_t *out)',
+        'export extern "xge3dRayTriangle" @header("xge3_runtime.h") @no_raise @c_ref(0) @c_ref(1) @c_outputs(-1,3) func rayTriangle(Xge3dRay ray,Xge3dVec3[3] triangle,c_float maxDistance) as (c_int,Xge3dHit)'),
 }
 
 REPLACED = {

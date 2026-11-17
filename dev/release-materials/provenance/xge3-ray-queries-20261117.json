@@ -1,0 +1,167 @@
+{
+  "schema": 1,
+  "date": "2026-11-17",
+  "scope": "Three direct CPU 3D ray queries and a readable box/sphere lesson",
+  "sourceParent": "cab17bd2551292f28d48790ac131452dc1bf536d",
+  "nativeCommit": "b44cdfa716e455fda2de8c02fa6b9216fee7f78f",
+  "xrtCommit": "4641cd2e4da09d8b1a66872cabe085c263d8b5ba",
+  "sourceHashes": {
+    "lib/bindings/xge/three_d/src/functions.xl": "83d7977dabe01ba119ef99d90c53745be945aa988a83b8ba66f108946d486d27",
+    "tools/xge_replay_contracts.py": "c8ad9efad15d8b7c5c57c25f126c174ffd17a6d6b185dd72fe9be69a1580fe4e",
+    "lib/bindings/xge/three_d/examples/ray_queries.xl": "043850a39acf13552da10460ad4b9214b0ebcb0d78099ffa94952a1d0f577b6a",
+    "lib/bindings/xge/three_d/examples/README.md": "6d024d521fb5b03103daab135ef4794083a7e0b9402beabc580d9d043054a98f",
+    "test/cases/foreign_xge3_ray_queries.h": "7b03498d80d99bb105705d088ca7f52c81098f452aaa581bded550db9a397d7c",
+    "test/cases/foreign_xge3_ray_queries.c": "7902a3d8313c934c31eb75d2c62e2877d40951a4b81bde451d887b37ddb852e8",
+    "test/cases/foreign_xge3_ray_queries.xl": "9662889ea47aaf67d7c3b6e6885096ecf1ef6a62480d48f857b8e129a062c23f",
+    "test/cases/foreign_xge3_ray_queries_native.c": "ff2d51c67f31f32084f0ebe4c5627fa699b4d9ecf612e732f360a2780a6414a6",
+    "tools/check_xge3_ray_queries.py": "19f1d3576ea5a1d2defd66e80386a3b0826c57bb75d55eaab999c519abcd2817",
+    "docs/xge3-ray-queries.md": "689c9fcb53e4c8d4295fa1c9afcd398af0bfe9d2f8f69cb23e4696e4b1966c07"
+  },
+  "gates": [
+    {
+      "path": "F:\\xlang-validation\\xge-full-20261110\\ray-storage-reviews-win-r1\\results.json",
+      "sha256": "e276c5f65edb5ea8be6362be07c2cc2f7b202de9c13216c146edc218b1f21921",
+      "kind": "source",
+      "checksOrCommands": 399
+    },
+    {
+      "path": "F:\\xlang-validation\\xge-full-20261110\\ray-storage-reviews-linux-r1-results.json",
+      "sha256": "bf03081b37731c213a4a7ba10f051714f29b7b105797e7c151f4a98bc5b25ddb",
+      "kind": "source",
+      "checksOrCommands": 400
+    },
+    {
+      "path": "F:\\xlang-validation\\xge-full-20261110\\ray-queries-win-r2\\results.json",
+      "sha256": "1d22be06ea4766ab04a4872eb3e68f04d87d6b2e0f2ed358f1ee31da6a31cf66",
+      "kind": "runtimeBuild",
+      "checksOrCommands": 27
+    },
+    {
+      "path": "F:\\xlang-validation\\xge-full-20261110\\ray-queries-linux-r2-results.json",
+      "sha256": "e559ca147ad771095c3549e9fa1da18a0ac379b3836d1180861c0d5b291471ed",
+      "kind": "runtimeBuild",
+      "checksOrCommands": 27
+    }
+  ],
+  "sourceChecks": 799,
+  "runtimeBuildCommands": 54,
+  "scenarioCount": 26,
+  "queries": [
+    "xge3dRayAabb",
+    "xge3dRaySphere",
+    "xge3dRayTriangle"
+  ],
+  "sourceWitnesses": [
+    {
+      "path": "F:\\xlang-validation\\xge-full-20261110\\ray-binding-source-freeze-r1.json",
+      "sha256": "08f233253e297c8afe01e7572b57b8bb98276a0b7200a609daebcd506fe60ab6"
+    },
+    {
+      "path": "F:\\xlang-validation\\xge-full-20261110\\ray-binding-source-freeze-r2.json",
+      "sha256": "8a7308d8cc43e5201e380461ed5d1a8efc9b3703bf8d294fafb39c6b0e74fccd"
+    }
+  ],
+  "sourceGateReuse": {
+    "changedInputs": [
+      "lib/bindings/xge/three_d/examples/ray_queries.xl",
+      "lib/bindings/xge/three_d/examples/README.md"
+    ],
+    "productionDeclarationsAndGeneratorUnchanged": true
+  },
+  "packageStages": [
+    {
+      "path": "F:\\xlang-validation\\xge-full-20261110\\ray-base-host-win-r2.json",
+      "sha256": "7aee231606b27273837e2b0a8e01535f5fe2767b34eb2f7d882b710b4f22c102"
+    },
+    {
+      "path": "F:\\xlang-validation\\xge-full-20261110\\ray-base-static-win-r2.json",
+      "sha256": "2e8b7b72519d317192a9a27fc6a619ab96eac225bdfec6430b9a9e19255e5812"
+    },
+    {
+      "path": "F:\\xlang-validation\\xge-full-20261110\\ray-base-host-linux-r2.json",
+      "sha256": "42d11fe3d0a509ab20f5e05cc244dad37acd03954593e6f517d2f947f38f88bc"
+    },
+    {
+      "path": "F:\\xlang-validation\\xge-full-20261110\\ray-base-static-linux-r2.json",
+      "sha256": "3bba082ad3d5cad0d42adcac583772dd396d8e03fa235e89e77a1213b5e26494"
+    },
+    {
+      "path": "F:\\xlang-validation\\xge-full-20261110\\ray-replay-packages-win-r2\\stage-report.json",
+      "sha256": "b49ca67d96087e0ac0f596fc8555c20efd719e3a7584e9a7bc79bbe594822817"
+    },
+    {
+      "path": "F:\\xlang-validation\\xge-full-20261110\\ray-replay-packages-linux-r2-stage-report.json",
+      "sha256": "ee9e7faab60cbb81942db62ccbfec04473b9fadd8734d2e6a121feabcea19265"
+    }
+  ],
+  "completeDeclarationUnitsPreserved": 5573,
+  "sdkCompilerBasis": {
+    "path": "D:\\GIT\\x-lang\\dev\\release-materials\\provenance\\xge3-workflow-sdk-replay-20261117.json",
+    "sha256": "a0862ec8d1b9d7dba6c2bc673e403fbac305d83df81b1329d27f8306e3cadf33"
+  },
+  "stageOrchestrator": {
+    "path": "F:\\xlang-validation\\xge-full-20261110\\stage_ray_candidates_r2.py",
+    "sha256": "3df554dfd2762372a84d1fc441ba67ba2f455e0957b7e85f80d8315857586f99"
+  },
+  "qualificationOrchestrator": {
+    "path": "F:\\xlang-validation\\xge-full-20261110\\run_ray_qualification_r2.py",
+    "sha256": "1b5e45fd169d35e1a2032cccd78e6cb953fe128775501c25d6d33122c69ed33f"
+  },
+  "knownDefaultArrayGap": {
+    "status": "pending language initializer contract",
+    "source": {
+      "path": "F:\\xlang-validation\\xge-full-20261110\\ray-binding-source-r1\\lib\\bindings\\xge\\three_d\\examples\\ray_queries.xl",
+      "sha256": "1af8563d62095871a4ff6e48c78f8b5a577007ddb6a64532c0358ebb5691bb91"
+    },
+    "failures": [
+      {
+        "result": {
+          "path": "F:\\xlang-validation\\xge-full-20261110\\ray-queries-win-r1\\results.json",
+          "sha256": "0fe926b7008da78c5b22e5d339d1b1dde4b542425a8c4b4be65764e29cda6dfa"
+        },
+        "log": {
+          "path": "F:\\xlang-validation\\xge-full-20261110\\ray-queries-win-r1\\ray_queries-emit.log",
+          "sha256": "a2bc138e9089675ef928e41f9a7000e1fd82d37ef93d735dd6856926c672ad1a"
+        }
+      },
+      {
+        "result": {
+          "path": "F:\\xlang-validation\\xge-full-20261110\\ray-queries-linux-r1-results.json",
+          "sha256": "f27bb1e16a8c27e8213830d659c7eee9a24c9030003172c66e23dfe3dadbf169"
+        },
+        "log": {
+          "path": "F:\\xlang-validation\\xge-full-20261110\\ray-queries-linux-r1-default-array-emit.log",
+          "sha256": "2346e5cc536399955df19a53c81f20f95776668f2432c67feb91e61e38bb121b"
+        }
+      }
+    ],
+    "symptom": "Standalone fixed-array declaration is semantically accepted but rejected by XLIR initializer lowering",
+    "fixedArrayInputsAndOutputsQualified": true,
+    "compilerImplementationChanged": false
+  },
+  "preservedUnrelatedPaths": 1098,
+  "qualification": {
+    "complete": true,
+    "passed": true,
+    "fullGoalComplete": false,
+    "shippingDelivery": false,
+    "releaseInstalled": false,
+    "nativeImplementationRebuilt": false,
+    "compilerImplementationRebuilt": false,
+    "networkTests": false,
+    "graphicsTests": false,
+    "securityTests": false,
+    "cpuEquivalenceClaim": false
+  },
+  "costs": {
+    "warmQueriesPerLoop": 3000,
+    "languageXrtHeapOperations": 0,
+    "nativeXrtHeapOperations": 0,
+    "additionalHeapArrayForTriangle": false,
+    "notes": "Normal POD/fixed-array value copies, tuple copies and call/code bookkeeping remain; setup, OS heap and CPU throughput not measured."
+  },
+  "remaining": [
+    "Standalone fixed C-array default initialization decision and implementation.",
+    "Other 3D scene/resource capabilities, pending model/Engine/view/cycle contracts and final matched release integration."
+  ]
+}
