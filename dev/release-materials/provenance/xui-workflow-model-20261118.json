@@ -1,0 +1,139 @@
+{
+  "complete": true,
+  "passed": true,
+  "sourceParent": "f9cc8a731a8e4bdf441a05cd884ac0507244f9b1",
+  "shippingDelivery": false,
+  "qualification": {
+    "nativeCommit": "e3a483b688288753450d5ce6f1aa7feedd259732",
+    "freshSdkObjectBuilds": 660,
+    "nativeCompilerRuns": 48,
+    "nativeSdkSteps": 120,
+    "nativeCallsPerInvocation": 1,
+    "retainedWorkflowCallbacksPending": true
+  },
+  "evidence": {
+    "win": {
+      "path": "F:\\xlang-validation\\xge-full-20261110\\workflow-batches-verified-win-full.json",
+      "sha256": "434ea0666a577bd3054952426b8adc53da72f6fb873ac0c77222d847b6a00fa1",
+      "complete": true,
+      "passed": true,
+      "checks": {
+        "compiler": {
+          "path": "F:\\xlang-validation\\xge-full-20261110\\compiler-borrowed-output-value-win-full-r1\\build.json",
+          "sha256": "3ccf8105a2c41bb6077f168deb8ea37525e3f7bf55bdf94ddded2ce7bd5a26c7"
+        },
+        "borrowed_value_record": {
+          "path": "F:\\xlang-validation\\xge-full-20261110\\borrowed-output-value-runner-win-r1\\borrowed_value_record\\results.json",
+          "sha256": "6fe4deab6c435dabb388d9264cf5ea7759cb0f92de12dc9904352a124feda4e9",
+          "steps": 26
+        },
+        "result_snapshot": {
+          "path": "F:\\xlang-validation\\xge-full-20261110\\borrowed-output-value-runner-win-r1\\result_snapshot\\results.json",
+          "sha256": "b99fee68feaf59ab494a579b30f141f0a65c0e449156de24f77c91680cb6e15f",
+          "steps": 28
+        },
+        "output_snapshots": {
+          "path": "F:\\xlang-validation\\xge-full-20261110\\borrowed-output-value-runner-win-r1\\output_snapshots\\results.json",
+          "sha256": "b2710b37068106ee4ea1c7f9e9e30891224146061eacd31aa5d306ffcd3ad562",
+          "steps": 27
+        },
+        "compiler-runner": {
+          "path": "F:\\xlang-validation\\xge-full-20261110\\borrowed-output-value-runner-win-r1\\results.json",
+          "sha256": "1fef7ce488cb7361632e6cd8f3527c91aa641991556574958c585491fb0d157a",
+          "steps": 5
+        },
+        "ir": {
+          "path": "F:\\xlang-validation\\xge-full-20261110\\borrowed-output-value-runner-win-r1\\ir-run.log",
+          "sha256": "75c9c14cf2903dfeb4c98dd2041e4bf43eaefed59ac32bdcb25a4be59de0d5b7",
+          "mutations": 55
+        },
+        "packages": {
+          "path": "F:\\xlang-validation\\xge-full-20261110\\workflow-language-packages-win-r2\\results.json",
+          "sha256": "12d26790b4c53a807ed2b0bb396fb81122d31cd44b98e105ec1af141554fc224"
+        },
+        "workflow": {
+          "path": "F:\\xlang-validation\\xge-full-20261110\\workflow-language-qualification-win-r1\\results.json",
+          "sha256": "be805d10708baef89dda410ecbddd4cc3fba4bf945db78316b4c080f5d427b97",
+          "steps": 10
+        },
+        "native-source": {
+          "path": "F:\\xlang-validation\\xge-full-20261110\\workflow-shared-storage-source-win-r4\\results.json",
+          "sha256": "a0f97960cded163c958b066e95a3955e41c231b5fc5733499147e5f27cfb4aea",
+          "steps": 24
+        },
+        "native-sdk": {
+          "path": "F:\\xlang-validation\\xge-full-20261110\\workflow-shared-storage-real-sdk-win-r2\\qualified\\results.json",
+          "sha256": "24bc18a4da14483d3907b42e2adc48126c2d61f662a0281fe2f5120bbb97b97a",
+          "steps": 60
+        }
+      },
+      "verifiedPaths": 19595
+    },
+    "linux": {
+      "path": "F:\\xlang-validation\\xge-full-20261110\\workflow-batches-verified-linux-full.json",
+      "sha256": "05ba258bc5ab4b5edf796e536bed018bf374ea7f69240c0abf64e7276acd4f53",
+      "complete": true,
+      "passed": true,
+      "checks": {
+        "compiler": {
+          "path": "/var/tmp/xlang-validation/xge-full-20261110/compiler-borrowed-output-value-linux-full-r1/build.json",
+          "sha256": "f1c9953162ec14cb7c9089e6a292d4cf150a7d29e80e0340e899d89f6fa8874b"
+        },
+        "borrowed_value_record": {
+          "path": "/var/tmp/xlang-validation/xge-full-20261110/borrowed-output-value-runner-linux-r1/borrowed_value_record/results.json",
+          "sha256": "ecc455d4648cc09273884af2ae49405ead0eddde196f2c942d1e7931ab89d873",
+          "steps": 26
+        },
+        "result_snapshot": {
+          "path": "/var/tmp/xlang-validation/xge-full-20261110/borrowed-output-value-runner-linux-r1/result_snapshot/results.json",
+          "sha256": "bd11aa967a7520fee2549bad14f49fdec25ca975d367c892d80fea2d77126f95",
+          "steps": 28
+        },
+        "output_snapshots": {
+          "path": "/var/tmp/xlang-validation/xge-full-20261110/borrowed-output-value-runner-linux-r1/output_snapshots/results.json",
+          "sha256": "6d5b73acccde88ca04b8e11cc82161658b962c8f5f0de1b5fcd845205c699dd3",
+          "steps": 27
+        },
+        "compiler-runner": {
+          "path": "/var/tmp/xlang-validation/xge-full-20261110/borrowed-output-value-runner-linux-r1/results.json",
+          "sha256": "5305a430e643d3a99c804b2b77f4971a0a50b48cf97ad9b5db14c3c945caf179",
+          "steps": 5
+        },
+        "ir": {
+          "path": "/var/tmp/xlang-validation/xge-full-20261110/borrowed-output-value-runner-linux-r1/ir-run.log",
+          "sha256": "0c4fdcf2caf35639f5f8da04c6794265d8c4b11ed38c2b4c44fe7138623e7dd9",
+          "mutations": 55
+        },
+        "packages": {
+          "path": "/var/tmp/xlang-validation/xge-full-20261110/workflow-language-packages-linux-r2/results.json",
+          "sha256": "cd5f3ffa71bf743e2b73712e040b9c1863689b8e2857d5da1e03cc1f2dc3fdd5"
+        },
+        "workflow": {
+          "path": "/var/tmp/xlang-validation/xge-full-20261110/workflow-language-qualification-linux-r1/results.json",
+          "sha256": "f520d5fefa1d5c37f3666638c8563abd13e40a8c480bf9c2ac799aeaffe48cee",
+          "steps": 10
+        },
+        "native-source": {
+          "path": "/var/tmp/xlang-validation/xge-full-20261110/workflow-shared-storage-source-linux-r4/results.json",
+          "sha256": "221c6ed37a12adfc9a440c8901ca75e0cfabd9d2d3017da4fd136a63d448c23d",
+          "steps": 24
+        },
+        "native-sdk": {
+          "path": "/var/tmp/xlang-validation/xge-full-20261110/workflow-shared-storage-real-sdk-linux-r2/qualified/results.json",
+          "sha256": "8a19d66432d019659c6f1ac489eda25ceaffd6a3db990367e56cd1e018cbcfe4",
+          "steps": 60
+        }
+      },
+      "verifiedPaths": 21136
+    }
+  },
+  "sourceHashes": {
+    "lib/bindings/xui/xlang.package.json": "6105789076b7363aa638bfc0343b76ebaac6bfd497476cbb78613a54285906ad",
+    "lib/bindings/xui/examples/workflow_model.xl": "f88f1a7239449c2f9fa4d25cc79c141b65780f2ec5aeb6f81f3f6d48e235762e",
+    "lib/bindings/xui/src/workflow.xl": "80cbd265fad0eda1f7a97dc8acb88b7d10a889e516bfd7fdb9f5ec8be5e24729",
+    "lib/bindings/_xge_native/include/xge3_runtime.h": "f6583058f4dc5b62d86d259b12dd19766d3c6c845563d1c97d96af20562673b4",
+    "lib/bindings/_xge_native/src/runtime.c": "e84ccb4decd965649ed75f601cafb39be0ba7a40cbad94d25505e5e9c722ad53",
+    "docs/xui-workflow-model.md": "25cfd28687ca17b98181f80e86f341801a5bbc18757a9e1058bb0f91e7ad6426",
+    "docs/xge3-xui3-full-coverage-plan.md": "76e60f534bebd72af854c8f91df9ac5fe7a322a777dff22457b0b68e1265dfb6"
+  }
+}

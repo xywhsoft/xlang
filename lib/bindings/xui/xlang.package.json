@@ -35,6 +35,7 @@
       "src/document_ui.xl",
       "src/data_object.xl",
       "src/flow_graph.xl",
+      "src/workflow.xl",
       "src/find.xl"
     ]
   },

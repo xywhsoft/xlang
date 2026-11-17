@@ -242,6 +242,11 @@ XN_DATA_OBJECT_POLICY(xl6Xui3FlowGraph,xuiFlowGraph,XUI_STATUS_DEFERRED,"xui.flo
 const XL6_ForeignViewDescriptorV1* xl6Xui3DataObjectPolicyGet(void){return NULL;}
 const XL6_ForeignViewDescriptorV1* xl6Xui3FlowGraphPolicyGet(void){return NULL;}
 #endif
+#if XGE_ENABLE_XUI && XUI_ENABLE_WORKFLOW
+XN_DATA_OBJECT_POLICY(xl6Xui3Workflow,xuiWorkflow,XUI_STATUS_DEFERRED,"xui.workflow")
+#else
+const XL6_ForeignViewDescriptorV1* xl6Xui3WorkflowPolicyGet(void){return NULL;}
+#endif
 #undef XN_DATA_OBJECT_POLICY
 
 /* One adapter lookup authenticates which exact family/type owns this ref.
@@ -353,23 +358,45 @@ static bool flow_domain_resolve(xrtownershipref ref,const XL6_OwnershipPoliciesV
 {
     (void)policies;*adapter=NULL;*preparation=NULL;*finish=NULL;
     const xrtownershipadapterv1* exact=xuiFlowGraphOwnershipAdapterV1(ref);
+    const xrtownershippreparationv1* ready=NULL;
+    const xrtownershipfinishv2* complete=NULL;
+    if(exact){
+        ready=xuiFlowGraphOwnershipPreparationV1(ref);
+        complete=xuiFlowGraphOwnershipCompletionV2(ref);
+    }
+#if XUI_ENABLE_WORKFLOW
+    else if((exact=xuiWorkflowOwnershipAdapterV1(ref))!=NULL){
+        ready=xuiWorkflowOwnershipPreparationV1(ref);
+        complete=xuiWorkflowOwnershipCompletionV2(ref);
+    }
+#endif
     if(!exact)return false;
-    const xrtownershippreparationv1* ready=xuiFlowGraphOwnershipPreparationV1(ref);
-    const xrtownershipfinishv2* complete=xuiFlowGraphOwnershipCompletionV2(ref);
     if(!ready || ready->size!=sizeof(*ready) || ready->Adapter!=exact || !complete ||
        complete->V1.size!=sizeof(*complete) || complete->AbiTag!=XRT_OWNERSHIP_FINISH_V2_TAG ||
        complete->V1.Adapter!=exact || !complete->DropChecked || !complete->DropReady)return false;
     *adapter=exact;*preparation=ready;*finish=&complete->V1;return true;
 }
 static bool flow_domain_read(xrtownershipref ref)
-{return xuiFlowGraphOwnershipReadReady(ref);}
+{
+    return xuiFlowGraphOwnershipReadReady(ref)
+#if XUI_ENABLE_WORKFLOW
+        || xuiWorkflowOwnershipReadReady(ref)
+#endif
+        ;
+}
 static bool flow_domain_finalization(xrtownershipref ref,const xrtownershipadapterv1* adapter,
     const xrtownershipfinalizationv1** output)
 {
-    *output=NULL;const xrtownershipadapterv1* exact=xuiFlowGraphOwnershipAdapterV1(ref);
+    *output=NULL;
+    const xrtownershipadapterv1* exact=xuiFlowGraphOwnershipAdapterV1(ref);
+    const xrtownershipfinalizationv1* value=NULL;
+    if(exact)value=xuiFlowGraphOwnershipFinalizationV1(ref);
+#if XUI_ENABLE_WORKFLOW
+    else if((exact=xuiWorkflowOwnershipAdapterV1(ref))!=NULL)
+        value=xuiWorkflowOwnershipFinalizationV1(ref);
+#endif
     if(!exact)return true;
     if(exact!=adapter)return false;
-    const xrtownershipfinalizationv1* value=xuiFlowGraphOwnershipFinalizationV1(ref);
     if(!value || value->size!=sizeof(*value) || value->AbiTag!=XRT_OWNERSHIP_FINALIZATION_V1_TAG ||
        value->Adapter!=adapter || !value->CanStep || !value->Step)return false;
     *output=value;return true;
@@ -400,7 +427,11 @@ static bool xui_domain_finalization(xrtownershipref ref,const xrtownershipadapte
     bool ui=false;
     if(transfer_exact(ref,&ui))return transfer_domain_finalization(ref,adapter,output);
 #if XGE_ENABLE_XUI
-    if(xuiFlowGraphOwnershipAdapterV1(ref))return flow_domain_finalization(ref,adapter,output);
+    if(xuiFlowGraphOwnershipAdapterV1(ref)
+#if XUI_ENABLE_WORKFLOW
+       || xuiWorkflowOwnershipAdapterV1(ref)
+#endif
+    )return flow_domain_finalization(ref,adapter,output);
 #endif
     return document_domain_finalization(ref,adapter,output);
 }

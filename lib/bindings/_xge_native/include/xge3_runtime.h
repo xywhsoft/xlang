@@ -62,6 +62,7 @@ const XL6_OwnershipDomainV1* xl6Xge3TransferDomainV1Get(void);
 const XL6_ForeignViewDescriptorV1* xl6Xge3DataObjectPolicyGet(void);
 const XL6_ForeignViewDescriptorV1* xl6Xui3DataObjectPolicyGet(void);
 const XL6_ForeignViewDescriptorV1* xl6Xui3FlowGraphPolicyGet(void);
+const XL6_ForeignViewDescriptorV1* xl6Xui3WorkflowPolicyGet(void);
 const XL6_OwnershipDomainV1* xl6Xui3DocumentModelDomainV1Get(void);
 const XL6_ForeignViewDescriptorV1* xl6Xui3DocumentPolicyGet(void);
 const XL6_ForeignViewDescriptorV1* xl6Xui3DocumentSnapshotPolicyGet(void);
@@ -128,6 +129,7 @@ const XL6_ForeignViewDescriptorV1* xl6Xge3AudioClipPolicyGet(void);
 #define xl6Xge3TransferDomainV1 (*xl6Xge3TransferDomainV1Get())
 #define xl6Xge3DataObjectPolicy (*xl6Xge3DataObjectPolicyGet())
 #define xl6Xui3FlowGraphPolicy (*xl6Xui3FlowGraphPolicyGet())
+#define xl6Xui3WorkflowPolicy (*xl6Xui3WorkflowPolicyGet())
 #define xl6Xui3DataObjectPolicy (*xl6Xui3DataObjectPolicyGet())
 #define xl6Xui3DocumentRendererPolicy (*xl6Xui3DocumentRendererPolicyGet())
 #define xl6Xui3DocumentHtmlInteractionPolicy (*xl6Xui3DocumentHtmlInteractionPolicyGet())

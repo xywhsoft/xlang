@@ -1,0 +1,51 @@
+import xui
+
+// This model example runs without a window or a rendering device.
+func main(...) as int
+ auto workflow=xui.createWorkflow()
+ var schema=xui.createWorkflowSchema()
+ xui.addWorkflowSchemaField(schema,"count","Count",xui.XUI_WORKFLOW_CONFIG_FIELD_INT,c_int(1),c_int(1),2)
+
+ array<string> inputIds=["in"]
+ array<string> outputIds=["out"]
+ array<string?> inputTitles=["Input"]
+ array<string?> outputTitles=["Output"]
+ array<string?> types=[null]
+ array<c_int> inputDirections=[xui.XUI_FLOW_PORT_INPUT]
+ array<c_int> outputDirections=[xui.XUI_FLOW_PORT_OUTPUT]
+ array<c_int> control=[xui.XUI_FLOW_PORT_CONTROL]
+ array<c_int> no=[c_int(0)]
+ assert workflow.registerNodeType("example",c_int(1),"Example",null,null,null,
+    inputIds,inputTitles,types,inputDirections,control,no,no,no,-1,
+    outputIds,outputTitles,types,outputDirections,control,no,no,no,-1,schema)==c_int(0)
+ assert workflow.nodeTypeCount==c_int(1)
+ assert workflow.addNode("example","node")==c_int(0)
+ assert workflow.defaultConfig("example")["count"]==2
+
+ var config={"count":5}
+ workflow.setNodeConfig("node",config)
+ config["count"]=6
+ var saved=workflow.getNodeConfig("node")
+ assert saved["count"]==5
+ saved["count"]=7
+ assert workflow.getNodeConfig("node")["count"]==5
+
+ var initial={"label":"Ready"}
+ assert workflow.addVariable("state",null,"object",null,initial)==c_int(0)
+ initial.label="changed"
+ auto id,title,kind,scope,defaultValue=workflow.getVariable(c_int(0))
+ assert id=="state" and title==null and (kind as string)=="object" and scope==null
+ assert defaultValue.label=="Ready"
+ defaultValue.label="copy"
+
+ auto graph=workflow.graph()
+ assert graph.getNodePortCount(c_int(0))==c_int(2)
+ auto stateId,stateTitle,stateKind,stateScope,sharedValue=workflow.getVariableShared(c_int(0))
+ assert sharedValue.label=="Ready"
+ workflow.close()
+ assert sharedValue.label=="Ready"
+ assert graph.getNodeConfig("node")["count"]==5
+ graph.close()
+ println("WORKFLOW_MODEL_EXAMPLE_OK")
+ return 0
+end
