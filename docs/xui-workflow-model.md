@@ -40,5 +40,28 @@ canvas's default model. Both the returned view and previously acquired views
 can outlive the canvas and context. A native failure while retiring the old
 reference may be reported after the new model is already installed.
 
-The example covers the owned data model. Retained dynamic-port and validation
-callbacks have their own pending integration.
+Use `registerNodeTypeWithCallbacks()` to generate ports from a node's
+configuration or provide additional validation diagnostics. Its first
+arguments follow `registerNodeType()`. The two optional callbacks receive
+a `WorkflowCallbackNode` and a typed output writer. The Workflow retains
+the callback group and its captured values for the lifetime of that node
+type. Return 0 on success. A thrown error is propagated by the model
+operation that invoked the callback.
+
+`node.config()` returns an independent data snapshot. The node view and
+writer expire when the callback returns. Use the data snapshot or copy the
+node's `id` and `kind` when you need them afterward. Calls on the same
+Workflow and its associated FlowGraph report Busy while a callback runs.
+
+Each writer takes a typed row and copies its strings during `append()`.
+Dynamic ports are marked automatically. A diagnostic with no node ID is
+associated with the current node. An append failure rejects that callback's
+entire result, even if the callback catches the error. Configuration changes
+keep the previous configuration and ports when dynamic output preparation
+fails. See the [callbacks example](../lib/bindings/xui/examples/workflow_callbacks.xl).
+
+Registration calls the native entry once. A callback group allocates a shared
+environment. Dispatch enters the compiler-generated callback directly. A
+configuration read incurs a snapshot traversal. Writers use temporary row
+storage and copy text, and the Graph copies port metadata into its own
+storage. The diagnostic batch transfers its existing strings to the Graph.

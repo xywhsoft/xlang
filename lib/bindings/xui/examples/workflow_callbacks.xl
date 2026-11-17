@@ -1,0 +1,46 @@
+import xui
+
+func writePorts(xui.WorkflowCallbackNode node,xui.WorkflowPortOutput ports) as c_int
+ var config=node.config()
+ if config["preview"]==true then
+  ports.append("preview",xui.XUI_FLOW_PORT_OUTPUT,xui.XUI_FLOW_PORT_DATA,"Preview","string")
+ end
+ return 0
+end
+
+func validate(xui.WorkflowCallbackNode node,xui.WorkflowDiagnosticOutput diagnostics) as c_int
+ var config=node.config()
+ if config["preview"]==false then
+  diagnostics.append(xui.XUI_CODE_DIAGNOSTIC_WARNING,"PREVIEW_OFF","This node has no preview output.")
+ end
+ return 0
+end
+
+func main(...) as int
+ auto workflow=xui.createWorkflow()
+ var schema=xui.createWorkflowSchema()
+ xui.addWorkflowSchemaField(schema,"preview","Preview",xui.XUI_WORKFLOW_CONFIG_FIELD_BOOL,0,1,false)
+
+ // The node type has no fixed ports. The callback adds the output when needed.
+ array<string> ids=[]
+ array<string?> labels=[]
+ array<c_int> settings=[]
+ workflow.registerNodeTypeWithCallbacks("preview",1,"Preview",null,null,null,
+    ids,labels,labels,settings,settings,settings,settings,settings,0,
+    ids,labels,labels,settings,settings,settings,settings,settings,0,schema,writePorts,validate)
+ auto node=workflow.addNode("preview","preview-1")
+
+ auto graph=workflow.graph()
+ assert graph.getNodePortCount(node)==0
+ workflow.validateGraph()
+ assert graph.getNodeDiagnosticCount("preview-1")==1
+ workflow.setNodeConfig("preview-1",{"preview":true})
+ assert graph.getNodePortCount(node)==1
+ workflow.validateGraph()
+ assert graph.getNodeDiagnosticCount("preview-1")==0
+ auto port,title,type,direction,kind,required,multi,dynamic=graph.getPort(node,0)
+ println(port)
+ graph.close()
+ workflow.close()
+ return 0
+end

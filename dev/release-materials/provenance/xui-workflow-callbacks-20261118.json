@@ -1,0 +1,143 @@
+{
+  "complete": true,
+  "passed": true,
+  "title": "xui-workflow-callbacks-20261118",
+  "sourceHashes": {
+    "docs/xui-workflow-model.md": "f4a8716c6145e7c50a43cb679ec17de49e4e93e07bd5bcf7d5b3189de56aa700",
+    "lib/bindings/xui/src/workflow.xl": "6887fe319212ae342f2327e035bee103de12ba73d235440f090ff530fdcecf15",
+    "test/cases/foreign_xui_workflow_callbacks.xl": "8bfcec158316f934c5936543cce92d908335913b732fe2e0cf093a28e444e0a5",
+    "lib/bindings/xui/examples/README.md": "875beb34cb14337c57072196d6df0eff7d3df934cb3c5abef06a41903373dd34",
+    "lib/bindings/xui/examples/workflow_callbacks.xl": "f2c66510b43f507f2e0cc05211b9414407c1c2a6253ddc4ecdaec6d2096b0712"
+  },
+  "nativeCommit": "b65a0c19a1cdf68a5a21b6688a0de5ad06668acf",
+  "releaseInstalled": false,
+  "evidence": {
+    "win": {
+      "nativeBuild": {
+        "path": "F:\\xlang-validation\\xge-full-20261110\\workflow-owned-callbacks-sdk-win-r2\\results.json",
+        "sha256": "0eb55074db107b56085d408064441977017d617d51596deaf2210c2f830ba5fa",
+        "steps": 2
+      },
+      "nativeSource": {
+        "path": "F:\\xlang-validation\\xge-full-20261110\\workflow-owned-callbacks-source-win-r3\\results.json",
+        "sha256": "80fdfcead3cda678593b14b7d918ae1222fe539eb89038098c2592bb22b4af6c",
+        "steps": 24
+      },
+      "nativeSdk": {
+        "path": "F:\\xlang-validation\\xge-full-20261110\\workflow-owned-callbacks-real-sdk-win-r2\\qualified\\results.json",
+        "sha256": "70638395f759b8424626c15ccf06aa1f544f1829afa0d64c4f842c41e8473ed6",
+        "steps": 60
+      },
+      "package": {
+        "path": "F:\\xlang-validation\\xge-full-20261110\\workflow-callbacks-packages-win-r2\\results.json",
+        "sha256": "d1484d4c567f6d43c2ea499a6f791bb71eecb70a01a83dcb843e2ef57c9ddf09",
+        "steps": 4
+      },
+      "language": {
+        "path": "F:\\xlang-validation\\xge-full-20261110\\workflow-callbacks-qualification-win-r3\\results.json",
+        "sha256": "1f82a6471eb8291a3315103044908d8477ec008f333b86778a082a094f749e84",
+        "steps": 11
+      },
+      "programs": [
+        {
+          "path": "F:\\xlang-validation\\xge-full-20261110\\workflow-callbacks-qualification-win-r3\\host.exe",
+          "sha256": "d2df8f0213a3856df07036054a1c6853edb2787c3f5783d80a9a3f611e12cb52",
+          "imports": [
+            "msvcrt.dll",
+            "xge3_host.dll",
+            "kernel32.dll",
+            "SHELL32.dll",
+            "ucrtbase.dll"
+          ]
+        },
+        {
+          "path": "F:\\xlang-validation\\xge-full-20261110\\workflow-callbacks-qualification-win-r3\\static.exe",
+          "sha256": "aa25fe88e75e2a59053b85d210aa3666e5f1c74cfcc85954109c4795825fd8ac",
+          "imports": [
+            "msvcrt.dll",
+            "kernel32.dll",
+            "ole32.dll",
+            "SHELL32.dll"
+          ]
+        },
+        {
+          "path": "F:\\xlang-validation\\xge-full-20261110\\workflow-callbacks-qualification-win-r3\\workflow.dll",
+          "sha256": "aa9d2f99f29926e0887b70e9751d9bb2df12e2886c26af3e60646273b3284506",
+          "imports": [
+            "msvcrt.dll",
+            "kernel32.dll",
+            "ole32.dll"
+          ]
+        }
+      ]
+    },
+    "linux": {
+      "nativeBuild": {
+        "path": "\\\\wsl.localhost\\Ubuntu\\var\\tmp\\xlang-validation\\xge-full-20261110\\workflow-owned-callbacks-sdk-linux-r2\\results.json",
+        "sha256": "1e3db036d7519428dad647abd21c8f07850392d0d9b2e44a61efaa025886eea8",
+        "steps": 2
+      },
+      "nativeSource": {
+        "path": "\\\\wsl.localhost\\Ubuntu\\var\\tmp\\xlang-validation\\xge-full-20261110\\workflow-owned-callbacks-source-linux-r3\\results.json",
+        "sha256": "d62ea5e13ee2e00b63bfdeb6f77fd4c43a10cdafb1fb947a8c0b2f65a914f3d3",
+        "steps": 24
+      },
+      "nativeSdk": {
+        "path": "\\\\wsl.localhost\\Ubuntu\\var\\tmp\\xlang-validation\\xge-full-20261110\\workflow-owned-callbacks-real-sdk-linux-r2\\qualified\\results.json",
+        "sha256": "2e62a10fbc27b4ea96b9e6f3496e9f44b5314db826528e36113f210d6ff2833e",
+        "steps": 60
+      },
+      "package": {
+        "path": "\\\\wsl.localhost\\Ubuntu\\var\\tmp\\xlang-validation\\xge-full-20261110\\workflow-callbacks-packages-linux-r2\\results.json",
+        "sha256": "a92ac4897dac35a5231e7aa3d31987d7d7a8b4af71df2c6711d221b1666c3ac2",
+        "steps": 4
+      },
+      "language": {
+        "path": "\\\\wsl.localhost\\Ubuntu\\var\\tmp\\xlang-validation\\xge-full-20261110\\workflow-callbacks-qualification-linux-r3\\results.json",
+        "sha256": "582fe0acb5785c33167f79f650aa219d9d9ed8531ac54f2e58a5b7613bbbbcf2",
+        "steps": 11
+      },
+      "programs": [
+        {
+          "path": "/var/tmp/xlang-validation/xge-full-20261110/workflow-callbacks-qualification-linux-r3/host",
+          "sha256": "258841fdc1650a4dc82b27481ea79fafc7aeb356da46eb8cb99e0e883a4fa397",
+          "imports": [
+            "libm.so.6",
+            "libmvec.so.1",
+            "libxge3_host.so",
+            "libc.so.6",
+            "ld-linux-x86-64.so.2"
+          ]
+        },
+        {
+          "path": "/var/tmp/xlang-validation/xge-full-20261110/workflow-callbacks-qualification-linux-r3/static",
+          "sha256": "6445cf6d7c445939cdaea158c3aa243a7eda6541666e0e8d8a143cb860eb04f1",
+          "imports": [
+            "libm.so.6",
+            "libmvec.so.1",
+            "libX11.so.6",
+            "libXi.so.6",
+            "libXcursor.so.1",
+            "libGL.so.1",
+            "libc.so.6",
+            "ld-linux-x86-64.so.2"
+          ]
+        },
+        {
+          "path": "/var/tmp/xlang-validation/xge-full-20261110/workflow-callbacks-qualification-linux-r3/workflow.so",
+          "sha256": "d3856f21be12c342da7e491a14058e4f801a274dddd0db39a7cceac9c136df4e",
+          "imports": [
+            "libm.so.6",
+            "libmvec.so.1",
+            "libX11.so.6",
+            "libXi.so.6",
+            "libXcursor.so.1",
+            "libGL.so.1",
+            "libc.so.6",
+            "ld-linux-x86-64.so.2"
+          ]
+        }
+      ]
+    }
+  }
+}

@@ -1,0 +1,101 @@
+import xui
+from xui import WorkflowCallbackNode,WorkflowPortOutput
+
+xui.WorkflowCallbackNode? savedNode=null
+xui.WorkflowPortOutput? savedOutput=null
+int portCalls=0
+int validationCalls=0
+bool throwFromCallback=false
+
+func register(xui.Workflow workflow)
+ string prefix="port"
+ array<string> ids=[]
+ array<string?> labels=[]
+ array<c_int> settings=[]
+ var schema=xui.createWorkflowSchema()
+ xui.addWorkflowSchemaField(schema,"number","Number",xui.XUI_WORKFLOW_CONFIG_FIELD_INT,0,1,1)
+ xui.WorkflowDynamicPorts ports=func(xui.WorkflowCallbackNode node,xui.WorkflowPortOutput output) as c_int
+  portCalls+=1
+  savedNode=node
+  savedOutput=output
+  assert node.id=="node" and node.kind=="task"
+  bool busy=false
+  try
+   auto rejected=workflow.nodeCount
+  catch Error
+   busy=true
+  end
+  assert busy
+  var config=node.config()
+  string name=f"{prefix}-{config.number}"
+  config.number=99
+  output.append(name,xui.XUI_FLOW_PORT_OUTPUT,xui.XUI_FLOW_PORT_DATA,name,"text")
+  if throwFromCallback then
+   throw "workflow callback failed"
+  end
+  return 0
+ end
+ xui.WorkflowValidate validation=func(xui.WorkflowCallbackNode node,xui.WorkflowDiagnosticOutput output) as c_int
+  validationCalls+=1
+  string message=f"{prefix}-{node.id}"
+  output.append(xui.XUI_CODE_DIAGNOSTIC_WARNING,"FROM_SCRIPT",message)
+  return 0
+ end
+ assert workflow.registerNodeTypeWithCallbacks("task",1,"Task",null,null,null,
+    ids,labels,labels,settings,settings,settings,settings,settings,0,
+    ids,labels,labels,settings,settings,settings,settings,settings,0,schema,ports,validation)==0
+end
+
+func main(...) as int
+ auto original=xui.createWorkflow()
+ register(original)
+ auto workflow=original.share()
+ auto index=workflow.addNode("task","node")
+ assert workflow.getNodeConfig("node").number==1 and portCalls==1
+ auto graph=workflow.graph()
+ auto port,title,kind,direction,category,required,multi,dynamic=graph.getPort(index,0)
+ assert port=="port-1" and (title as string)=="port-1" and dynamic==1
+ bool rejected=false
+ try
+  auto expired=savedNode as WorkflowCallbackNode
+  auto invalid=expired.config()
+ catch StateError
+  rejected=true
+ end
+ assert rejected
+ rejected=false
+ try
+  auto expired=savedOutput as WorkflowPortOutput
+  expired.append("late",xui.XUI_FLOW_PORT_OUTPUT,xui.XUI_FLOW_PORT_DATA)
+ catch StateError
+  rejected=true
+ end
+ assert rejected
+
+ throwFromCallback=true
+ rejected=false
+ try
+  workflow.setNodeConfig("node",{"number":2})
+ catch Error failure
+  rejected=failure.message=="workflow callback failed"
+ end
+ assert rejected and workflow.getNodeConfig("node").number==1 and portCalls==2
+ throwFromCallback=false
+ workflow.setNodeConfig("node",{"number":2})
+ assert workflow.getNodeConfig("node").number==2 and portCalls==3
+ assert workflow.validateGraph()>=1 and validationCalls==1
+ bool found=false
+ for i in range(int(graph.diagnosticCount))
+  auto severity,code,message,node,edge,path=graph.getDiagnostic(c_int(i))
+  if code!=null and (code as string)=="FROM_SCRIPT" then
+   assert (message as string)=="port-node" and (node as string)=="node"
+   found=true
+  end
+ end
+ assert found
+ original.close()
+ workflow.close()
+ graph.close()
+ println("WORKFLOW_CALLBACKS_OK")
+ return 0
+end
