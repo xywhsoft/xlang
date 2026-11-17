@@ -1911,3 +1911,14 @@ xui-managed-replay-20261116.json。该项解决声明可重建问题，
 所有候选／源码／日志／产物独立复核，详见 package-compiled-native-features.md 和
 package-compiled-native-features-20261116.json。调试后端执行、最新 XRT、其余能力
 和最终 SDK／编译器／IDE 配套交付仍开放；未替换 release 或混入并行几何／LSP 改动。
+
+2026-11-17 补齐固定 C 数组的通用默认零初始化。局部、全局、别名及外部 C 记录
+数组字段沿用值语义；普通语言类直接声明 C 数组字段仍明确拒绝。独立的
+c-array-zero 初始化 ABI 经语义、IR、降低和 Cgen 双端校验，不分配语言容器。
+三角形查询范例直接填写 Vec3[3]，不再绕过原生数组入口。Windows／Linux 完整 O2
+编译器、TCC、XRT、VFS 各重新构建，两端各46步通过，覆盖 JIT、独立 EXE、共享库
+checked 退役／卸载、await／yield／闭包、错误边界及六项既有默认值／数组回归。
+1000次循环声明没有 XRT 堆操作，构造清零仍有写入成本，不宣称CPU零开销。
+修正两份旧默认值测试对1970时间字面量的误用，时间合同本身不变。详情见
+fixed-c-array-defaults.md 和同名小型验收记录；模型快照／Workflow Busy 补全、其他
+未决生命周期规则及最终配套发布仍开放，未安装 release／IDE。

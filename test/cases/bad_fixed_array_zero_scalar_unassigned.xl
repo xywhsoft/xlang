@@ -1,0 +1,4 @@
+func main(...) as int
+ c_int value
+ return int(value)
+end

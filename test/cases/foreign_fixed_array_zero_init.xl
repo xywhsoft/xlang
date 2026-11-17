@@ -1,0 +1,104 @@
+extern "fixed_zero_point_t" struct ZeroPoint @header("test/cases/foreign_fixed_array_zero_init.h")
+ c_float x
+ c_float y
+ c_float z
+end
+extern "fixed_zero_record_t" struct ZeroRecord @header("test/cases/foreign_fixed_array_zero_init.h")
+ c_uchar bytes[7]
+ c_ushort tags[5]
+ ZeroPoint points[3]
+end
+extern "fixtureFixedZeroInts" @header("test/cases/foreign_fixed_array_zero_init.h") @no_raise @c_ref(0) func checkInts(c_int[3] values)
+extern "fixtureFixedZeroPoints" @no_raise @c_ref(0) func checkPoints(ZeroPoint[3] values)
+extern "fixtureFixedZeroRecord" @no_raise @c_ref(0) func checkRecord(ZeroRecord value)
+extern "fixtureFixedZeroHeapBegin" @no_raise func heapBegin()
+extern "fixtureFixedZeroHeapEnd" @no_raise func heapEnd()
+
+typedef ThreeInts = c_int[3]
+c_int[3] globalInts
+ZeroPoint[3] globalPoints
+
+class RecordField
+ ZeroRecord data
+end
+
+func zeroReturn() as ThreeInts
+ ThreeInts values
+ return values
+end
+
+func zeroStream() as generator<int>
+ ThreeInts values
+ yield int(values[0])
+ values[2]=c_int(17)
+ yield int(values[2])
+end
+
+func makeReader() as func() as int
+ ThreeInts values
+ values[1]=c_int(12)
+ return func() as int
+  return int(values[0])+int(values[1])
+ end
+end
+
+func main(...) as int
+ auto read=makeReader()
+ assert read()==12
+ checkInts(globalInts)
+ checkPoints(globalPoints)
+ ThreeInts localInts
+ ZeroPoint[3] localPoints
+ checkInts(localInts)
+ checkPoints(localPoints)
+ c_float[4] floats
+ c_double[2] doubles
+ uint64[3] words
+ point[2] pointers
+ assert floats[3]==c_float(0) and doubles[1]==c_double(0)
+ assert words[2]==uint64(0) and pointers[0]==null and pointers[1]==null
+ localInts[0]=c_int(7)
+ auto independent=localInts
+ independent[0]=c_int(9)
+ assert localInts[0]==c_int(7) and independent[0]==c_int(9)
+ assert globalInts[0]==c_int(0)
+ localPoints[0].x=c_float(12)
+ assert localPoints[0].x==c_float(12) and globalPoints[0].x==c_float(0)
+ checkInts(zeroReturn())
+ auto record=ZeroRecord()
+ checkRecord(record)
+ auto holder=RecordField()
+ checkRecord(holder.data)
+ bool failed=false
+ try
+  auto invalid=localInts[-1]
+ catch RangeError
+  failed=true
+ end
+ assert failed
+ failed=false
+ try
+  localInts[3]=c_int(1)
+ catch RangeError
+  failed=true
+ end
+ assert failed and localInts[0]==c_int(7)
+ int count=0
+ for value in zeroStream()
+  if count==0 then assert value==0 end
+  if count==1 then assert value==17 end
+  count+=1
+ end
+ assert count==2
+ heapBegin()
+ for i in range(1000)
+  ThreeInts resetInts
+  ZeroPoint[3] resetPoints
+  assert resetInts[2]==c_int(0) and resetPoints[2].z==c_float(0)
+  resetInts[2]=c_int(11)
+  resetPoints[2].z=c_float(13)
+ end
+ heapEnd()
+ println("FIXED_ARRAY_ZERO_INIT_OK")
+ return 0
+end

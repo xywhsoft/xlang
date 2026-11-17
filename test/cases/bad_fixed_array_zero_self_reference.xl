@@ -1,0 +1,4 @@
+func main(...) as int
+ c_int[3] values=values
+ return 0
+end

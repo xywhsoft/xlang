@@ -17595,6 +17595,8 @@ static XL6_IrInitializerAbi xl6IrDefaultValueInitializerAbi(
     XL6_IrInitializerAbi nullDefault = xl6IrNullDefaultInitializerAbi(type);
     if ( type == NULL ) return XL6_IR_INITIALIZER_NONE;
     if (nullDefault != XL6_IR_INITIALIZER_NONE) return nullDefault;
+    if ( xl6IrTypeIsDefaultZeroCArray(type) )
+        return XL6_IR_INITIALIZER_C_ARRAY_ZERO;
     if ( xl6IrScalarZeroInitializerType(type) )
         return XL6_IR_INITIALIZER_SCALAR_ZERO;
     if ( type->cAbi == XL6_IR_C_ABI_MANAGED_STRING )
@@ -48872,12 +48874,14 @@ int xl6IrVerifyModule(const XL6_IrModule* module, XL6_DiagList* diags)
                     return xl6IrDiag(diags, instructionOrigin,
                         "fixed C array access has no exact value, index and true-edge bounds proof");
                 if ( instruction->kind == XL6_IR_INSTR_AGGREGATE_ZERO ) {
-                    /* Source record/union zero remains a separate operation
-                     * from checked fixed-array element access below. */
+                    /* A zero value is distinct from checked element access.
+                     * Fixed arrays retain their own exact ABI/type predicate. */
                     const XL6_IrType* unionType =
                         xl6IrTypeGet(&module->types, instruction->type);
-                    if ( unionType == NULL || !xl6IrTypeKindIsAggregate(unionType->kind) ||
-                         !xl6IrCAbiIsAggregate(unionType->cAbi) ||
+                    if ( unionType == NULL ||
+                         ((!xl6IrTypeKindIsAggregate(unionType->kind) ||
+                           !xl6IrCAbiIsAggregate(unionType->cAbi)) &&
+                          !xl6IrTypeIsDefaultZeroCArray(unionType)) ||
                          unionType->ownershipAbi != XL6_IR_OWNERSHIP_ABI_TRIVIAL ||
                          instruction->result == XL6_IR_VALUE_INVALID ||
                          instruction->operandCount != 0 || instruction->targetSymbol != 0 ||
@@ -52504,6 +52508,7 @@ static const char* xl6IrInitializerAbiName(XL6_IrInitializerAbi abi)
     case XL6_IR_INITIALIZER_CLASS_NULL: return "class-null";
     case XL6_IR_INITIALIZER_TAGGED_NULL: return "tagged-null";
     case XL6_IR_INITIALIZER_UNION_ZERO: return "union-zero";
+    case XL6_IR_INITIALIZER_C_ARRAY_ZERO: return "c-array-zero";
     case XL6_IR_INITIALIZER_RUNTIME_RESOURCE_DEFAULT:
         return "runtime-resource-default";
     default: return "none";

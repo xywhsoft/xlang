@@ -27591,6 +27591,13 @@ static XL6_IrValueId xl6IrLowerValueInitializer(
                 : xrtStrDupN(immediate, strlen(immediate));
         return instruction->immediateText != NULL ? result : XL6_IR_VALUE_INVALID;
     }
+    if ( initializer->abi == XL6_IR_INITIALIZER_C_ARRAY_ZERO ) {
+        if ( !xl6IrTypeIsDefaultZeroCArray(type) ||
+             !xl6IrLowerEmit(ctx, XL6_IR_INSTR_AGGREGATE_ZERO, declarationId,
+                              initializer->type, 0, NULL, 0, &result) )
+            return XL6_IR_VALUE_INVALID;
+        return result;
+    }
     if ( initializer->abi == XL6_IR_INITIALIZER_UNION_ZERO ) {
         if ( !xl6IrTypeKindIsAggregate(type->kind) ||
              !xl6IrCAbiIsAggregate(type->cAbi) ||

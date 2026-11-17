@@ -93,8 +93,10 @@ static int xl6IrCgenVerifyInstructions(
         case XL6_IR_INSTR_AGGREGATE_ZERO:
             {
                 const XL6_IrType* type = xl6IrTypeGet(&module->types, instruction->type);
-                if ( type == NULL || !xl6IrTypeKindIsAggregate(type->kind) ||
-                     !xl6IrCAbiIsAggregate(type->cAbi) ||
+                if ( type == NULL ||
+                     ((!xl6IrTypeKindIsAggregate(type->kind) ||
+                       !xl6IrCAbiIsAggregate(type->cAbi)) &&
+                      !xl6IrTypeIsDefaultZeroCArray(type)) ||
                      instruction->result == XL6_IR_VALUE_INVALID ||
                      instruction->operandCount != 0 ||
                      instruction->elementIndex != SIZE_MAX )

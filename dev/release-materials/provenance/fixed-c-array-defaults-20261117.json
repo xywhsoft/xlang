@@ -1,0 +1,106 @@
+{
+  "complete": true,
+  "passed": true,
+  "sourceParent": "94959a6c9811c5526e1f380ea7aab2f71427d973",
+  "nativeRevision": "fb0b60669ace63eea6c6da950aac0ba2f90f4c40",
+  "sourceHashes": {
+    "src/sem/xl6_sem.c": "3bfc2dadd106a942b492e9bebf3d0e0200653092641b960bdb0c3d16c88aff81",
+    "src/ir/xl6_ir.h": "7b5512bd459229855a609d4975ab391d8e5fc14c1028e1944a0c82e7f8779d75",
+    "src/ir/xl6_ir.c": "4064c281639046b94a5cc2b16fc33d9321fdbe309b9806f73cac200656a49a8a",
+    "src/ir/xl6_ir_lower.c": "dd51d4f9cff9c0ddbd02a0d9b265650fc73317d9f81f1836a6d7bf6e92c70913",
+    "src/cgen/xl6_ir_cgen_verify_instructions.c": "acd3c56db98df80aa797ec86958193363f814694bcecafc14110a2fd9814f861",
+    "test/cases/foreign_fixed_array_zero_init.xl": "fb710bd7403129cdb6c72ad5dccb9324f7f1133f7775d4dfafdf0256902d0bbe",
+    "test/cases/foreign_fixed_array_zero_init.c": "f4073223e864ea4928342239024482e1d1996f53b37d21650b019ce78e499941",
+    "test/cases/foreign_fixed_array_zero_init.h": "687f637dad3114910fb8fd33baac4b0283ff53290d8d7073b6c3b26b0dbdc55e",
+    "test/cases/foreign_fixed_array_zero_async.xl": "9932ebaab2cabf483ea3384352511e14ed6f3715724443c46c622dcb6d38542c",
+    "test/cases/bad_fixed_array_zero_owned_element.xl": "acf327b8de038f856d76cf1940d490d9b2fbfc8ce098d6619880d568df0a8c04",
+    "test/cases/bad_fixed_array_zero_plain_class_field.xl": "7547f534bb81e5a39383cf08ac80b35941002ee19566c9d0fc19aa8952d2b310",
+    "test/cases/bad_fixed_array_zero_self_reference.xl": "2513a2f52ea1a845452796c4225f33371cf3bb76da763e123be15829d595c549",
+    "test/cases/bad_fixed_array_zero_scalar_unassigned.xl": "4f7ec3b362a77138e573ce60a2ae930b6f1813879966884180aa1b2d6cafda4f",
+    "test/cases/xlir_value_initializer_class_default.xl": "1c928a798feaadca6d02aacfeb68434df95608bab271b3b23ddaaa1b72096efe",
+    "test/cases/xlir_value_initializer_class_default_differential.xl": "55d9746a82e33cca916c189db0dc5d9651371b894c3ffa5c1d852067df2535c8",
+    "tools/check_foreign_fixed_array_zero.py": "45ecd7b628e22f36fc9daec799ad0fc37c30b4d85de20a3d8777923457cbabbd",
+    "lib/bindings/xge/three_d/examples/ray_queries.xl": "2c3d418507ec62f171bbd6016f8c118f3425fe9b29ebfa3fee340b033117e296",
+    "docs/fixed-c-array-defaults.md": "11a4b2735ac42d953c2bcd6925f1be5a707e29d0d5959c448f1f21a5b95ae8d5",
+    "docs/xge3-xui3-full-coverage-plan.md": "6b27931d4b3bc0df7fff1a5482d327845e398391f1174b8ec28754be7d4e8c9a"
+  },
+  "platforms": {
+    "win": {
+      "path": "F:\\xlang-validation\\xge-full-20261110\\fixed-array-zero-verified-win-r2.json",
+      "sha256": "cf0f7873f1c0738232cd2ddc43a436cb31d219917d371b0e15546026ac018b10",
+      "complete": true,
+      "passed": true,
+      "platform": "win",
+      "compilerBuild": "F:\\xlang-validation\\xge-full-20261110\\compiler-fixed-array-zero-win-full-r1\\build.json",
+      "buildSha256": "e9ec38a07a1aa1abd2aefc0fec9e2bc8399a9b65f10b4897f4eff3f36aa4eaa1",
+      "gate": "F:\\xlang-validation\\xge-full-20261110\\fixed-array-zero-gate-win-r4\\results.json",
+      "gateSha256": "85ab75629173fb32e6645657f6efbfee9850e956fe45d9cd509ec573495f0407",
+      "frozenFileCount": 14248,
+      "pinnedGateInputs": 668,
+      "runtimeCommands": 46,
+      "timeDefaultBaseline": "F:\\xlang-validation\\xge-full-20261110\\fixed-array-zero-time-baseline-win-r2",
+      "noShippingDelivery": true,
+      "networkTests": false,
+      "cpuEquivalenceClaim": false
+    },
+    "linux": {
+      "path": "/var/tmp/xlang-validation/xge-full-20261110/fixed-array-zero-verified-linux-r2.json",
+      "sha256": "617e8977e8d2539d3e7c59b0e58e6226ac28b7bcdb235281b6e7e9a6bc63efe7",
+      "complete": true,
+      "passed": true,
+      "platform": "linux",
+      "compilerBuild": "/var/tmp/xlang-validation/xge-full-20261110/compiler-fixed-array-zero-linux-full-r1/build.json",
+      "buildSha256": "a386e9f276faac1a7d37264268231c0268e579df071b51052069045df42c0ac4",
+      "gate": "/var/tmp/xlang-validation/xge-full-20261110/fixed-array-zero-gate-linux-r4/results.json",
+      "gateSha256": "25cf563e0ed21db6403dfccf9da37789fd4f76bc395a94bafde3bee5d3f1875a",
+      "frozenFileCount": 15807,
+      "pinnedGateInputs": 651,
+      "runtimeCommands": 46,
+      "timeDefaultBaseline": "/var/tmp/xlang-validation/xge-full-20261110/fixed-array-zero-time-baseline-linux-r2",
+      "noShippingDelivery": true,
+      "networkTests": false,
+      "cpuEquivalenceClaim": false
+    }
+  },
+  "compilerOptimization": "O2",
+  "fullCompilerTccXrtVfsRebuilt": true,
+  "runtimeCommands": 92,
+  "cArrayInitializerPlans": {
+    "core": 13,
+    "asynchronous": 1,
+    "triangleLesson": 1
+  },
+  "hotLoop": {
+    "iterations": 1000,
+    "xrtAllocations": 0,
+    "xrtReallocations": 0,
+    "liveCountDelta": 0,
+    "liveByteDelta": 0,
+    "cpuEquivalenceClaim": false
+  },
+  "defaultStorage": [
+    "global",
+    "local",
+    "alias",
+    "external C record field",
+    "language class containing external C record"
+  ],
+  "directLanguageClassArrayFields": "remain unsupported; checked semantic rejection",
+  "regressionsCorrected": [
+    "two stale time assertions compare time(0), without changing time semantics",
+    "gate explicitly supplies existing foreign_decl_array_native.c provider"
+  ],
+  "historicalFailedGates": [
+    "fixed-array-zero-gate-{win,linux}-r1",
+    "fixed-array-zero-gate-{win,linux}-r2"
+  ],
+  "releaseInstalled": false,
+  "networkTests": false,
+  "fullXgeGoalComplete": false,
+  "remaining": [
+    "approved model data snapshots and Workflow callback Busy rules",
+    "remaining XGE/XUI/Document capabilities",
+    "pending ownership decisions",
+    "final matched SDK/compiler/IDE/help delivery"
+  ]
+}

@@ -930,6 +930,22 @@ typedef struct XL6_IrType {
     uint64 hash;
 } XL6_IrType;
 
+/* Fixed C arrays are exact trivial value carriers, distinct from records and
+ * tagged unions. Their default is an explicit zero value, never an allocation,
+ * erased container or inference from a C local's ambient initialization. */
+static inline int xl6IrTypeIsDefaultZeroCArray(const XL6_IrType* type)
+{
+    return type != NULL && type->kind == XL6_IR_TYPE_C_ARRAY &&
+        type->cAbi == XL6_IR_C_ABI_C_ARRAY &&
+        type->ownershipAbi == XL6_IR_OWNERSHIP_ABI_TRIVIAL &&
+        type->nullAbi == XL6_IR_NULL_ABI_NONE &&
+        type->nativeProductAbi == XL6_IR_NATIVE_PRODUCT_NONE &&
+        type->nativeValueAbi == XL6_IR_NATIVE_VALUE_NONE &&
+        type->nativeArrayExtent > 0 && type->nativeArrayExtent <= UINT32_MAX &&
+        type->paramCount == 1 && type->params != NULL &&
+        type->params[0] != XL6_IR_TYPE_INVALID && type->returnCount == 0;
+}
+
 typedef struct XL6_IrTypePool {
     XL6_IrType* items;
     size_t count;
@@ -4050,7 +4066,10 @@ typedef enum XL6_IrInitializerAbi {
     /* No value exists before the verified create body commits this field.
      * This is a compile-time construction obligation, never a nullable
      * language value, a default factory call, or a runtime init flag. */
-    XL6_IR_INITIALIZER_CONSTRUCTOR_REQUIRED
+    XL6_IR_INITIALIZER_CONSTRUCTOR_REQUIRED,
+    /* Exact fixed C-array value: every element starts at its C zero value.
+     * Kept separate from UNION_ZERO and appended to preserve existing tags. */
+    XL6_IR_INITIALIZER_C_ARRAY_ZERO
 } XL6_IrInitializerAbi;
 
 typedef struct XL6_IrValueInitializer {

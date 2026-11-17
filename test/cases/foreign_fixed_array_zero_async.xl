@@ -1,0 +1,14 @@
+async func readyIndex() as int
+ time.sleep(5)
+ return 1
+end
+async func zeroAfterAwait() as int
+ c_int[3] values
+ values[2]=c_int(17)
+ int index=await readyIndex()
+ assert values[0]==c_int(0) and values[2]==c_int(17)
+ values[index]=c_int(23)
+ return int(values[1])+int(values[2])
+end
+assert await zeroAfterAwait()==40
+println("FIXED_ARRAY_ZERO_ASYNC_OK")

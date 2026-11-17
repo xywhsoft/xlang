@@ -13031,7 +13031,8 @@ static int xl6SemTypeHasImplicitDefaultInitialization(
         这里描述的是语言语义，不是 C 存储是否恰好被清零。
         标量仍要求显式赋值；以下类型会由生成器创建真实、可立即使用的默认值。
     */
-    if ( xl6SemTypeIsNullable(concreteType) ||
+    if ( xl6ForeignArrayExtent(concreteType->text, NULL) ||
+         xl6SemTypeIsNullable(concreteType) ||
          xl6SemWeakTargetType(concreteType) != NULL ||
          xl6TextEquals(concreteType->text, "var") ||
          xl6TextEquals(concreteType->text, "error") ||

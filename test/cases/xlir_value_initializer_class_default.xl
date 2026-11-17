@@ -13,4 +13,4 @@ end
 DefaultRecord record
 assert record.count == 0
 assert record.name == ""
-assert record.observed == #00:00:00#
+assert record.observed == time(0)
