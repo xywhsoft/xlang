@@ -1,0 +1,15 @@
+{
+  "complete": true,
+  "passed": true,
+  "sourceParent": "0599fe60c90a53914f92cab3cc579ad7ba23714f",
+  "sourceHashes": {
+    "tools/git_repository_policy.json": "686f862330129c82996a27953e46dd2a8b4245c5b7872fb01fd16549e1ea6856"
+  },
+  "reviewedBlob": "06ceed77fbfa246f14fa8eb1b79c3afc57a8df1d",
+  "policyChange": "one exact already-qualified successor core source blob; all limits and earlier pins unchanged",
+  "budget": {
+    "path": "F:\\xlang-validation\\xge-full-20261110\\snapshot-argument-repository-budget-r2.json",
+    "sha256": "99c9aaf7430f51ee5068f42a5e6dd753f2194601e977350675989fdd1fbfdd23"
+  },
+  "releaseInstalled": false
+}
