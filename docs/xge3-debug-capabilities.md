@@ -75,3 +75,44 @@ The complete input/log/program/package verification is indexed by
 `dev/release-materials/provenance/xge-debug-live-20261116.json`. These are
 isolated candidates. Latest-XRT convergence, remaining XGE/XUI/Document work
 and the final matched release/IDE/help installation are still open.
+
+## Native b44 and XRT4641 convergence, 2026-11-17
+
+The current debug candidates now use the same committed Native b44 and
+XRT4641 baseline as the normal SDK candidates. Each platform uses an
+independent 3810-file native source witness, preserving unrelated native
+working changes. Both hosted SDKs compile all 164 units and both direct-XRT
+static SDKs compile all 166 units at O2, with no object reuse. Debug and 3D
+features are selected before compilation and remain in the staged SDK
+configuration and fingerprint.
+
+`tools/check_xge3_debug_delivery.py` composes the existing live/cold gates with
+the readable live-statistics lesson and actual normal-SDK feature rejection.
+It verifies the complete staged file population and every input/output pin,
+not only the files exercised by the lesson. Twelve local positive/negative
+stage-receipt checks per platform cover incomplete/failed/shipping receipts,
+changed or absent inputs/outputs, extra files and duplicate normalized names.
+
+Windows and Linux each pass 48 final commands: 18 live graphics/module/header/
+import checks, 19 cold/bounded-output checks, seven lesson commands and four
+expected ordinary-SDK rejections. The real JIT, hosted/static executables and
+hosted/static shared modules execute a graphics frame and complete checked
+retirement. The tests include render-target pixels, held-texture Busy shutdown
+and successful release/retry, independent snapshots, warm C/language heap
+checks and zero-allocation-budget stats output. Linux uses Xvfb/software GL;
+Windows uses its native OpenGL backend.
+
+Independent verification rechecks source witnesses, every native object and
+dependency record, compiler/package inputs, logs, program bytes and import
+tables. It indexes 8399 Windows and 8306 Linux files, including the 660 freshly
+compiled native units across the four builds. File counts are provenance
+accounting, not functional coverage claims. The immutable successor receipt is
+`dev/release-materials/provenance/xge-debug-current-20261117.json`; historical
+receipts and their bytes are preserved.
+
+This closes the current debug configuration's older-XRT qualification gap.
+It does not qualify concurrent global operations, other graphics backends,
+arbitrary provider/module cycles, or all remaining 3D/UI/Document features.
+The owning Engine/controller and other pending contracts remain open. Normal
+`release/`, IDE and the mutable shipping delivery index are not replaced by
+this isolated candidate batch. No network or security test ran.

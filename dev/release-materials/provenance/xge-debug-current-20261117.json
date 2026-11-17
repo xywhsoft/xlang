@@ -1,0 +1,162 @@
+{
+  "schema": 1,
+  "date": "2026-11-17",
+  "scope": "Current Native b44/XRT4641 O2 debug SDK, real frames and hosted/static executable/shared module convergence",
+  "sourceParent": "ba8de231b762c360662077bce8672a845c371b04",
+  "sourceHashes": {
+    "tools/check_xge3_debug_delivery.py": "5e00701ffa43f285e461a6277f2d931c548f54c6b746ce089bb9c693a90493ec",
+    "docs/xge3-debug-capabilities.md": "504762154b4e39df831009c51f946433a6119633f2ddb2549b26b93af68cc3fa",
+    "docs/xge3-xui3-full-coverage-plan.md": "b9161df7857b568f0dab206a6b7233e2f12a790c448ae943e15d527ce7b984de"
+  },
+  "nativeCommit": "b44cdfa716e455fda2de8c02fa6b9216fee7f78f",
+  "xrtCommit": "4641cd2e4da09d8b1a66872cabe085c263d8b5ba",
+  "hostOptimization": "O2",
+  "nativeBuildCommands": 4,
+  "freshlyCompiledNativeUnits": 660,
+  "reusedNativeUnits": 0,
+  "gates": [
+    {
+      "path": "F:\\xlang-validation\\xge-full-20261110\\debug-current-delivery-win-r1\\results.json",
+      "sha256": "03474af4a385cb8c3e3f7b570c98ac6da996cb7239dec15efb9f81d4363e03b9",
+      "runtimeBuildCommands": 48,
+      "stageProof": {
+        "path": "F:\\xlang-validation\\xge-full-20261110\\debug-current-stage-proof-win-r1\\results.json",
+        "sha256": "90b44e8bb7ad85d471cfd0f6f6f0d1fdf7b4f94d1ec61a4c84bab55a31099c81"
+      },
+      "stageProofChecks": 12
+    },
+    {
+      "path": "F:\\xlang-validation\\xge-full-20261110\\debug-current-delivery-linux-r1-results.json",
+      "sha256": "884a12d7444d43b1f1db61bdef6d4059128801c7c1ea7993966423ae189a3b04",
+      "runtimeBuildCommands": 48,
+      "stageProof": {
+        "path": "F:\\xlang-validation\\xge-full-20261110\\debug-current-stage-proof-linux-r1-results.json",
+        "sha256": "ed957120e9533ba4993c6ad81709e3b74cda2e3181cfea128a6a7d9ceae59f9b"
+      },
+      "stageProofChecks": 12
+    }
+  ],
+  "nativeBuilds": [
+    {
+      "path": "F:\\xlang-validation\\xge-full-20261110\\debug-current-sdk-win-r1\\results.json",
+      "sha256": "6c6afab813dc0b9c1762d16403176c7adebc0fcb94073111cb2a75cab5ff6b06",
+      "source": "F:\\xlang-validation\\xge-full-20261110\\debug-current-native-win-r1\\source",
+      "sourceFreeze": "F:\\xlang-validation\\xge-full-20261110\\debug-current-native-win-r1\\freeze.json",
+      "sourceFreezeSha256": "d02243a7e3c923825655249f7534d0728d4f782522ecc380e2b16fcad65b093a",
+      "nativeBuildCommands": 2,
+      "sdkUnits": {
+        "host": {
+          "compiled": 164,
+          "reused": 0
+        },
+        "static": {
+          "compiled": 166,
+          "reused": 0
+        }
+      }
+    },
+    {
+      "path": "F:\\xlang-validation\\xge-full-20261110\\debug-current-sdk-linux-r1-results.json",
+      "sha256": "45b387e227b2b8e7f0b8a75d8e52d5d5d0ff952a79753172215445b9a04a385b",
+      "source": "/var/tmp/xlang-validation/xge-full-20261110/debug-current-native-linux-r1/source",
+      "sourceFreeze": "/var/tmp/xlang-validation/xge-full-20261110/debug-current-native-linux-r1/freeze.json",
+      "sourceFreezeSha256": "3d8f7e075d4612d124c112ae78ac6f4493d82a5e43be74b014f224d857289858",
+      "nativeBuildCommands": 2,
+      "sdkUnits": {
+        "host": {
+          "compiled": 164,
+          "reused": 0
+        },
+        "static": {
+          "compiled": 166,
+          "reused": 0
+        }
+      }
+    }
+  ],
+  "stageReports": [
+    {
+      "path": "F:\\xlang-validation\\xge-full-20261110\\debug-current-packages-win-r1-host.json",
+      "sha256": "3c0633871156e3cc798b7874b0ad20fb91c15a9f29cfda2b87911570d74967a7"
+    },
+    {
+      "path": "F:\\xlang-validation\\xge-full-20261110\\debug-current-packages-win-r1-static.json",
+      "sha256": "ab90f6531aea40005afca0bad7277d1734fa701a9ba6ac77eac2524fadbecd34"
+    },
+    {
+      "path": "F:\\xlang-validation\\xge-full-20261110\\debug-current-packages-linux-r1-host.json",
+      "sha256": "101101294d7c110a34473b6356576dd885a5a9a2d7ee10d91c63d0bf09fdf183"
+    },
+    {
+      "path": "F:\\xlang-validation\\xge-full-20261110\\debug-current-packages-linux-r1-static.json",
+      "sha256": "4e1a459416513b08a8bf4c53430b49a858b45606e067621faa7dd3ebd2e78b26"
+    }
+  ],
+  "independentVerification": [
+    {
+      "path": "F:\\xlang-validation\\xge-full-20261110\\debug-current-verified-win-r1\\results.json",
+      "sha256": "74af11070a34ce95d0e0615da538d41f685d3d2e4051bfb5fec4db93815263a5",
+      "verifiedFiles": 8399
+    },
+    {
+      "path": "F:\\xlang-validation\\xge-full-20261110\\debug-current-verified-linux-r1-results.json",
+      "sha256": "c401945309b40c974ba7a3663de5e36db980404ddedf8f39851436d0de625b12",
+      "verifiedFiles": 8306
+    }
+  ],
+  "runtimeBuildCommands": 96,
+  "stageProofChecks": 24,
+  "buildOrchestrator": {
+    "path": "F:\\xlang-validation\\xge-full-20261110\\build_debug_current_sdk_r1.py",
+    "sha256": "e988fdc114838a365761671bf69f64f84b96b79654b9bb76cba579cc7bb15dd6"
+  },
+  "stageOrchestrator": {
+    "path": "F:\\xlang-validation\\xge-full-20261110\\stage_debug_current_packages_r1.py",
+    "sha256": "a30c5c5e0d3a6055cbd64f4fa4221cb74864690519e2186f3e2a5ce9012ff9ab"
+  },
+  "gateOrchestrator": {
+    "path": "F:\\xlang-validation\\xge-full-20261110\\run_debug_current_delivery_r1.py",
+    "sha256": "3f2e69547ae876cc2ea4d9aa3b086b43db7aaf945369e793cdf1f01d861cd927"
+  },
+  "verificationOrchestrator": {
+    "path": "F:\\xlang-validation\\xge-full-20261110\\verify_debug_current_delivery_r1.py",
+    "sha256": "8199d50589f124397858f83618560b31e6a4ba1e8749864292bb5eb2021266b6"
+  },
+  "stageProofTool": {
+    "path": "F:\\xlang-validation\\xge-full-20261110\\check_debug_stage_proof_r1.py",
+    "sha256": "23f8e5cf098093b93a3e7567ea02c769c3cd3fdbcb6ca000faa9779a3eb86c7d"
+  },
+  "normalSdkAndCompilerBasis": {
+    "path": "D:\\GIT\\x-lang\\dev\\release-materials\\provenance\\xge3-ray-queries-20261117.json",
+    "sha256": "5f1f89c8469919aeb4c6ec0f0b0f36b8deb43a687d6367e7fb55d489756fc736"
+  },
+  "nativeConsumerAudit": {
+    "path": "D:\\GIT\\x-lang\\dev\\release-materials\\provenance\\xge3-native-consumer-audit-20261117.json",
+    "sha256": "67df8a173155c03fb4baa1fd1ec85fc01c90662d92d10096e64f61b996f8c68f"
+  },
+  "historicalDebugQualification": {
+    "path": "D:\\GIT\\x-lang\\dev\\release-materials\\provenance\\xge-debug-live-20261116.json",
+    "sha256": "f60919ecf09f53ae5bfe0c773840ac3e7bee3bfb5ad641239ea8d3d8a2abc9ba"
+  },
+  "qualification": {
+    "complete": true,
+    "passed": true,
+    "fullGoalComplete": false,
+    "shippingDelivery": false,
+    "releaseInstalled": false,
+    "nativeOrCompilerImplementationChanged": false,
+    "graphicsTests": true,
+    "networkTests": false,
+    "securityTests": false,
+    "hardwarePerformanceClaim": false,
+    "cpuEquivalenceClaim": false
+  },
+  "scopeLimits": [
+    "Native Windows OpenGL and Linux Xvfb/software GL; other graphics backends remain separate.",
+    "No concurrent global-call, arbitrary provider-unload or module-cycle acceptance claim.",
+    "Actual held-texture Busy shutdown/release/retry and acyclic shared module checked retirement are covered.",
+    "Other remaining XGE/XUI/Document/3D capabilities and pending contracts remain in the full goal.",
+    "Normal release, IDE, help catalog and shipping index are not replaced."
+  ],
+  "preservedPreexistingWorkingPaths": 1098
+}
