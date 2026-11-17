@@ -1922,3 +1922,13 @@ checked 退役／卸载、await／yield／闭包、错误边界及六项既有�
 修正两份旧默认值测试对1970时间字面量的误用，时间合同本身不变。详情见
 fixed-c-array-defaults.md 和同名小型验收记录；模型快照／Workflow Busy 补全、其他
 未决生命周期规则及最终配套发布仍开放，未安装 release／IDE。
+
+2026-11-17 Workflow 的 schema／默认值 Clone／Drop 补齐同模型 Busy 保护，包含
+重复默认字段替换时 ObjectSetTake 内部的 Drop。导入临时 Workflow 沿用目标 Graph
+回调身份；销毁时 Graph 保持存活到表字段 Drop 结束，独立共享 Graph 别名也受保护。
+31个 Workflow／63个 Graph 整数入口、输出保持、独立模型、两种拥有方式、180个
+分配预算及既有首错误清理均覆盖。两端各39步源单元与36步真实SDK客户端通过；
+四份完整O2 SDK共660个单元不复用构建，另有4个构建外层步骤，合154步。
+模型结构未变，无新增分配；计数和调用仍有CPU成本。默认独立数据快照的语言入口
+尚未由本批实现，原生高级Clone行为保留；最终配套交付仍开放。详见
+xui-workflow-value-reentry.md 与同名验收记录。

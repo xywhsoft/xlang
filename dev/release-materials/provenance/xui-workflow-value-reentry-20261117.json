@@ -1,0 +1,54 @@
+{
+  "complete": true,
+  "passed": true,
+  "sourceParent": "054055dfdda444069638670558feac05a02be134",
+  "nativeCommit": "1181e4bca3e0ae1972dbfe8da5c4e993fe644580",
+  "nativeReceipt": {
+    "path": "D:\\GIT\\xge\\docs\\validation\\XUI_WORKFLOW_VALUE_REENTRY_20261117.json",
+    "sha256": "20aefc8504c1765e400a21f62469999a251e3c27457a29d029843c085abdbe45"
+  },
+  "sourceHashes": {
+    "tools/check_xui_workflow_value_sdk.py": "a977683f8dc96d37ecb6613d1178b9a96712253e6a024f9cbfa1b255171a4606",
+    "docs/xui-workflow-value-reentry.md": "0d7fd2f0c9cd669efc7b5a0764ac7545ce5e615cae9f21f22f318b98c163d6c8",
+    "docs/xge3-xui3-full-coverage-plan.md": "afc20706853561444e052ee9172284e588cc7286bb94de8f70711f95e911baae"
+  },
+  "reports": {
+    "win": {
+      "path": "F:\\xlang-validation\\xge-full-20261110\\workflow-value-verified-win-r2.json",
+      "sha256": "8fb583bfc4e9f52bb6c1643c808f4b55ff4859d490569d2a092c58325279e972",
+      "verifiedFiles": 7639,
+      "sourceGate": "F:\\xlang-validation\\xge-full-20261110\\workflow-value-guard-win-r4\\results.json",
+      "sdkGate": "F:\\xlang-validation\\xge-full-20261110\\workflow-value-sdk-gate-win-r2\\results.json",
+      "sdkBuild": "F:\\xlang-validation\\xge-full-20261110\\workflow-value-sdk-win-r1\\results.json"
+    },
+    "linux": {
+      "path": "/var/tmp/xlang-validation/xge-full-20261110/workflow-value-verified-linux-r2.json",
+      "sha256": "e39f70e7c6cf18569f51b8140701c12506c264b28725d19093d86da3e76d6d38",
+      "verifiedFiles": 7431,
+      "sourceGate": "/var/tmp/xlang-validation/xge-full-20261110/workflow-value-guard-linux-r4/results.json",
+      "sdkGate": "/var/tmp/xlang-validation/xge-full-20261110/workflow-value-sdk-gate-linux-r2/results.json",
+      "sdkBuild": "/var/tmp/xlang-validation/xge-full-20261110/workflow-value-sdk-linux-r1/results.json"
+    }
+  },
+  "commands": 154,
+  "sourceUnitCommands": 78,
+  "realSdkClientCommands": 72,
+  "fullSdkBuilds": 4,
+  "freshO2Units": 660,
+  "productionObjectOverrides": false,
+  "publicNativeAbiChanged": false,
+  "modelDefinitionsUnchanged": true,
+  "nativeOwnedDefaultCallbacksProtected": true,
+  "defaultDataSnapshotImplemented": false,
+  "languageModelsPromoted": false,
+  "releaseInstalled": false,
+  "networkTests": false,
+  "cpuEquivalenceClaim": false,
+  "remaining": [
+    "approved default independent data snapshot policy",
+    "safe public model API and ownership graph",
+    "pending lifetime design choices",
+    "remaining XGE/XUI/Document scope",
+    "final SDK/compiler/IDE/help delivery"
+  ]
+}
