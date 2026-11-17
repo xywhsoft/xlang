@@ -1,0 +1,157 @@
+{
+  "schema": 1,
+  "date": "2026-11-17",
+  "scope": "Native Workflow canvas shared handoff, checked cleanup and actual default/3D hosted/static SDK qualification",
+  "sourceParent": "40f2f0c6af3d2438f7f9fba2226cf922c4165880",
+  "nativeCommit": "b44cdfa716e455fda2de8c02fa6b9216fee7f78f",
+  "nativeSourceHashes": {
+    "include/xui.h": "8b06b4aa1626853f9159e153ed5422435c245bc82e386a81f0cd898a11d0e536",
+    "src/xui/core/xui_internal.h": "c02bd48529f008d57f5b3d3558a63458183942e6ede79cf8fd7c421f193e9575",
+    "src/xui/workflow/xui_flow_graph_widget.c": "7b006f3989cdd616833015478cc547f97c885f17b0931df42ca5a69ec6272ad9",
+    "src/xui/workflow/xui_flow_graph_widget_internal.h": "9a9f6cc8fa0b3aff7c11134936462bce28548d7c39296f9f463624d91a923a79",
+    "src/xui/workflow/xui_workflow_widget.c": "9c4dafc3a833fc2b76474edbc9ef77196b7c186ab902bcaf91c198abae21dd25",
+    "tests/xui/xui_workflow_shared_widget_test.c": "512bd026d5f4c747870a53592bcbd1e552b8dd9eb9cb486b00de11750e80aac2",
+    "tools/test/check_workflow_shared_canvas.py": "dfadf1d74e3717787e608b6f65110dde10aa25d07dd85ab7025a9596c352e412",
+    "tools/test/check_flow_graph_shared_canvas.py": "4b51924e87aeae2b5e4abf3ea71547c891d7497a1bf3a9f1b0536c9f369724e0",
+    "tools/test/check_flow_graph_reentry.py": "8e3f201a2f70ff12daa46ef69f2fec59d24ffce1939f1f55862293f1da033186",
+    "docs/validation/XUI_WORKFLOW_SHARED_CANVAS_20261117.md": "e3809bc0b0c4f16aae92b3fcb98e1c7ac1e793f5fe7bd0a93e65fa889c44be1c"
+  },
+  "sourceHashes": {
+    "docs/xui-workflow-shared-canvas.md": "cf57c87d1cce77e4ce17ccefde564fe5091c1150b8684061c744e08a8a49fc3e"
+  },
+  "gates": [
+    {
+      "path": "F:\\xlang-validation\\xge-full-20261110\\workflow-shared-canvas-win-r7\\results.json",
+      "sha256": "01fc6a2025ca482a9d928b0ac3e25619d4d5967ae4528791ab11dba266905069",
+      "commands": 23,
+      "source": "F:\\xlang-validation\\xge-full-20261110\\workflow-shared-canvas-win-r7\\source",
+      "productionSourceOverrides": null
+    },
+    {
+      "path": "F:\\xlang-validation\\xge-full-20261110\\workflow-shared-canvas-linux-r6-results.json",
+      "sha256": "8b69888369939fb84fb6d29e65288b67339252ae4269afa18183dd66b52a55dc",
+      "commands": 23,
+      "source": "/var/tmp/xlang-validation/xge-full-20261110/workflow-shared-canvas-linux-r6/source",
+      "productionSourceOverrides": null
+    },
+    {
+      "path": "F:\\xlang-validation\\xge-full-20261110\\workflow-canvas-graph-regression-win-r3\\results.json",
+      "sha256": "200a074b1bf1e80d6103e0c83f237622a01a0b3c02e23f6c7187244207371bed",
+      "commands": 8,
+      "source": "F:\\xlang-validation\\xge-full-20261110\\workflow-canvas-graph-regression-win-r3\\source",
+      "productionSourceOverrides": null
+    },
+    {
+      "path": "F:\\xlang-validation\\xge-full-20261110\\workflow-canvas-graph-regression-linux-r3-results.json",
+      "sha256": "c7796420152027500bc08d471ee5dce30ef2f4fd87710e381a3ecdcfbc99e412",
+      "commands": 8,
+      "source": "/var/tmp/xlang-validation/xge-full-20261110/workflow-canvas-graph-regression-linux-r3/source",
+      "productionSourceOverrides": null
+    },
+    {
+      "path": "F:\\xlang-validation\\xge-full-20261110\\workflow-canvas-built-sdk-win-r2\\results.json",
+      "sha256": "4abfea9bb5db7de79926df46e4c711b1953ead8277c0e41a26fa459dd514465f",
+      "commands": 10,
+      "source": "F:\\xlang-validation\\xge-full-20261110\\workflow-canvas-native-win-r1\\source",
+      "productionSourceOverrides": false
+    },
+    {
+      "path": "F:\\xlang-validation\\xge-full-20261110\\workflow-canvas-built-sdk-linux-r2-results.json",
+      "sha256": "96f1cabb85fa74d30fb46bd92d5920fbe197e3c4928ed7ed39a7203422f54949",
+      "commands": 10,
+      "source": "/var/tmp/xlang-validation/xge-full-20261110/workflow-canvas-native-linux-r1/source",
+      "productionSourceOverrides": false
+    }
+  ],
+  "qualifiedCommands": 82,
+  "fullNativeBuildCommands": 4,
+  "nativeBuilds": [
+    {
+      "path": "F:\\xlang-validation\\xge-full-20261110\\workflow-canvas-native-sdk-win-r1\\results.json",
+      "sha256": "869b309669d72a884dc208265749028ff78e333740fa35743d8b0d81f156c2d3",
+      "sourceFreeze": "F:\\xlang-validation\\xge-full-20261110\\workflow-canvas-native-win-r1\\freeze.json",
+      "sourceFreezeSha256": "d565a10950ea894eac3144bab56ac9f96c2c3a596f6b0cdf67b5d8b18da892da",
+      "source": "F:\\xlang-validation\\xge-full-20261110\\workflow-canvas-native-win-r1\\source",
+      "buildCommands": 2
+    },
+    {
+      "path": "F:\\xlang-validation\\xge-full-20261110\\workflow-canvas-native-sdk-linux-r1-results.json",
+      "sha256": "4265d2fb1e2210560819f448c918e8babac20905c05850be0f4a37b27ad2a4b2",
+      "sourceFreeze": "/var/tmp/xlang-validation/xge-full-20261110/workflow-canvas-native-linux-r1/freeze.json",
+      "sourceFreezeSha256": "d3f04825a0ce3dc700c0c670ee4cc08a7c0d7308cffd7c5a0f95da64236db039",
+      "source": "/var/tmp/xlang-validation/xge-full-20261110/workflow-canvas-native-linux-r1/source",
+      "buildCommands": 2
+    }
+  ],
+  "buildOrchestrator": {
+    "path": "F:\\xlang-validation\\xge-full-20261110\\build_workflow_canvas_sdk_r1.py",
+    "sha256": "a074808b1511864b76ab7a3bf19c1da987638601d92d53a05f4dd10514b16c53"
+  },
+  "sdkGateOrchestrator": {
+    "path": "F:\\xlang-validation\\xge-full-20261110\\check_workflow_canvas_built_sdk_r2.py",
+    "sha256": "a8dc1724837da8e815ea4ef68111d9f0eb9647e76884fc9e699b3203d22f32af"
+  },
+  "nativeCommitReceipt": {
+    "path": "F:\\xlang-validation\\xge-full-20261110\\workflow-shared-canvas-native-commit-r1.json",
+    "sha256": "fd44bf7320704924b7236694b0dab62f57b510eb6652cfd377814c0677afb6ae"
+  },
+  "declarationInventory": {
+    "path": "F:\\xlang-validation\\xge-full-20261110\\workflow-canvas-full-surface-r1\\surface.json",
+    "sha256": "3e81d6c4c0f2110256c8ae4019d22759c4aa1976695731f4b0ace1fc1655e769",
+    "population": {
+      "functions": 5294,
+      "types": 991,
+      "constants": 1838,
+      "functionMacros": 7,
+      "callableFields": 188,
+      "enums": 40,
+      "enumConstants": 316
+    },
+    "declarationPresent": {
+      "functions": 3966,
+      "types": 396,
+      "constants": 1824,
+      "callableFields": 66,
+      "enumConstants": 316
+    },
+    "runtimeAcceptance": false,
+    "notACompletionPercentage": true
+  },
+  "xrtCommit": "4641cd2e4da09d8b1a66872cabe085c263d8b5ba",
+  "xrtHeaderSha256": "369f884c1c1fdc9621f654c81bb86850e85d992dc56b9cebf395e20ea03dfe7b",
+  "nativeSdkRebuilt": true,
+  "nativeSdkProfile": "default plus XGE_ENABLE_3D=1; other required configurations remain",
+  "compilerRebuilt": false,
+  "compilerCohort": "previously qualified complete O2 compiler-return-output full r1 on each platform",
+  "shippingDelivery": false,
+  "releaseInstalled": false,
+  "safeWorkflowLanguageClassComplete": false,
+  "pendingUserChoices": [
+    "Independent default configuration data snapshot versus native Clone semantics",
+    "Workflow schema/default Clone/Drop same-model reentry Busy",
+    "Claimed callback admission during its current finalization transaction",
+    "Owning Engine controller for module code/context cycles",
+    "Stable parent-owned native record view contract"
+  ],
+  "remaining": [
+    "Workflow language declarations and native owned schema callback groups",
+    "Default configuration/reentry and associated Graph mutation policy",
+    "Persistent module/cycle and owning Engine controller qualification",
+    "Other required native configurations",
+    "Full-scope per-API equivalence/contract review and final matched compiler/SDK/IDE/help/examples delivery"
+  ],
+  "networkTests": false,
+  "graphicsDeviceTests": false,
+  "costs": {
+    "extraCanvasPointerSlots": 1,
+    "warmIterations": 1000,
+    "warmXrtAllocFreeRealloc": 0,
+    "rawCCpuEquivalenceClaimed": false,
+    "handoffOomBudgetSettings": 32,
+    "handoffTriggeredPrefixes": 2
+  },
+  "injectedCases": [
+    "unconsumed retired/current reference release",
+    "post-publication invalidate error and logical retirement"
+  ]
+}
