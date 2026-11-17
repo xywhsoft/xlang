@@ -1,0 +1,109 @@
+{
+  "schema": 1,
+  "date": "2026-11-17",
+  "scope": "Complete non-direct native function review population and actual compiled bridge consumers",
+  "sourceParent": "20dfdc92c2272bc68320f5f246f04e6b23311890",
+  "sourceHashes": {
+    "tools/check_xge3_native_consumers.py": "37fc80e05bb70f0461c83cf71dc8eaf7b72ef9fc0540dd3dccb19e4cf2cfdcef",
+    "docs/xge3-native-consumer-audit.md": "0ce368caeb29682c1ee4f76748a99e2312f81443d4ae6089c249284b7a8fe306"
+  },
+  "nativeCommit": "b44cdfa716e455fda2de8c02fa6b9216fee7f78f",
+  "xrtCommit": "4641cd2e4da09d8b1a66872cabe085c263d8b5ba",
+  "surface": {
+    "path": "F:\\xlang-validation\\xge-full-20261110\\ray-mainline-surface-win-r1\\surface.json",
+    "sha256": "d48eaf2037bb536cbc5782faac2a766c0ae81154f4047b38c1d99487cceb2457"
+  },
+  "reports": [
+    {
+      "path": "F:\\xlang-validation\\xge-full-20261110\\mainline-native-consumers-win-r5\\results.json",
+      "sha256": "a33feaa7b7a1f365c46ffd81cf28c0eb74e3bc11869c659cf812fab86eded412",
+      "commands": 24
+    },
+    {
+      "path": "F:\\xlang-validation\\xge-full-20261110\\mainline-native-consumers-linux-r5-results.json",
+      "sha256": "aee054d2c6f4429e3d166667646a0f1772948fdf58809ab9e7244fc2bcff47c5",
+      "commands": 24
+    }
+  ],
+  "expectedRejections": [
+    {
+      "result": {
+        "path": "F:\\xlang-validation\\xge-full-20261110\\mainline-consumer-old-package-reject-win-r2\\results.json",
+        "sha256": "e2262616e7bf99a9acb44b3afa762800ceec7e230d1ebb0abd1f52723d498a3f"
+      },
+      "expectedRejection": {
+        "path": "F:\\xlang-validation\\xge-full-20261110\\mainline-consumer-old-package-reject-win-r2\\expected-rejection.json",
+        "sha256": "b71c96a25804a60c977da1a79be3b8d229b26881b69ec2d316f2680d35c177fc"
+      }
+    },
+    {
+      "result": {
+        "path": "F:\\xlang-validation\\xge-full-20261110\\mainline-consumer-old-package-reject-linux-r2-results.json",
+        "sha256": "e42943540c3854999ba44a4527bc91bea8141901672f1715a351185bcb8e5eb0"
+      },
+      "expectedRejection": {
+        "path": "F:\\xlang-validation\\xge-full-20261110\\mainline-consumer-old-package-reject-linux-r2-expected.json",
+        "sha256": "4b6ab9be05048c9dc8af44bbc419fa6c395adad83bb2d6cee8d34e0272d7e76f"
+      }
+    }
+  ],
+  "compileSymbolCommands": 48,
+  "oldPackageRejectionChecks": 2,
+  "population": {
+    "functions": 5294,
+    "directDeclarations": 3903,
+    "nonDirectNames": 1391,
+    "compiledConsumers": 131,
+    "explicitReplacements": 5,
+    "neitherEvidence": 1255
+  },
+  "byFamily": {
+    "Document": {
+      "nonDirectFunctions": 57,
+      "compiledConsumers": 20,
+      "explicitReplacements": 0,
+      "neitherEvidence": 37
+    },
+    "Document UI": {
+      "nonDirectFunctions": 27,
+      "compiledConsumers": 9,
+      "explicitReplacements": 0,
+      "neitherEvidence": 18
+    },
+    "XGE": {
+      "nonDirectFunctions": 552,
+      "compiledConsumers": 31,
+      "explicitReplacements": 5,
+      "neitherEvidence": 516
+    },
+    "XUI": {
+      "nonDirectFunctions": 755,
+      "compiledConsumers": 71,
+      "explicitReplacements": 0,
+      "neitherEvidence": 684
+    }
+  },
+  "reviewStatus": "Every non-direct item remains pending contract review; this is not a completion or omission decision.",
+  "artifactBasis": {
+    "path": "D:\\GIT\\x-lang\\dev\\release-materials\\provenance\\xge3-ray-queries-20261117.json",
+    "sha256": "5f1f89c8469919aeb4c6ec0f0b0f36b8deb43a687d6367e7fb55d489756fc736"
+  },
+  "negativeOrchestrator": {
+    "path": "F:\\xlang-validation\\xge-full-20261110\\reject_old_consumer_package_r2.py",
+    "sha256": "04de8a35bd96053e571a807c28f0d3f18568e94a08cd50ade9d1e5f5dfe698f0"
+  },
+  "qualification": {
+    "complete": true,
+    "passed": true,
+    "fullGoalComplete": false,
+    "uncommittedBindingCandidatesIncluded": false,
+    "runtimeAcceptance": false,
+    "apiCompletenessClaim": false,
+    "shippingDelivery": false,
+    "releaseInstalled": false,
+    "nativeOrCompilerImplementationChanged": false,
+    "graphicsTests": false,
+    "networkTests": false
+  },
+  "preservedPreexistingWorkingPaths": 1098
+}
