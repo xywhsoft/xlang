@@ -375,6 +375,8 @@ METHODS = {'xl6Xui3CopyToClipboard': ['int xl6Xui3CopyToClipboard(xui_context,xu
                                    'iEventType,uint64 iNodeId)']]}
 
 METHODS.update({
+    'xuiWorkflowWidgetGetWorkflowOwned': ['int xuiWorkflowWidgetGetWorkflowOwned(xui_widget widget,xui_workflow* output)', "WorkflowWidget", ['extern "xuiWorkflowWidgetGetWorkflowOwned" @no_raise @c_result("owned_view") @factory(1,0,rollbackWorkflow) func getWorkflow() as Workflow']],
+    'xuiWorkflowWidgetSetWorkflowShared': ['int xuiWorkflowWidgetSetWorkflowShared(xui_widget widget,xui_workflow workflow)', "WorkflowWidget", ['extern "xuiWorkflowWidgetSetWorkflowShared" @no_raise @c_result("status",0) func setWorkflow(Workflow workflow)']],
     'xuiFlowGraphWidgetGetGraphOwned': [
         'int xuiFlowGraphWidgetGetGraphOwned(xui_widget widget,xui_flow_graph* output)',
         'FlowGraphWidget',

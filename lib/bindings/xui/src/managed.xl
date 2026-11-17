@@ -6073,6 +6073,10 @@ end
 
 export extern "xui_widget_t*" class WorkflowWidget @header("xge3_runtime.h") @lifetime("owner") @owner(Context) @policy("xl6Xui3WidgetPolicy") @watch("xui_lifetime_link_t") extends Widget
 
+ extern "xuiWorkflowWidgetGetWorkflowOwned" @no_raise @c_result("owned_view") @factory(1,0,rollbackWorkflow) func getWorkflow() as Workflow
+
+ extern "xuiWorkflowWidgetSetWorkflowShared" @no_raise @c_result("status",0) func setWorkflow(Workflow workflow)
+
  extern "xuiWorkflowWidgetSetContextMenuOwned" @no_raise @c_owned_callback(0,0,"xui_callback_owner_t",-16) @c_result("status",0) func setContextMenu(FlowContextProc? onContext)
 
  extern "xuiWorkflowWidgetGetCanvas" @no_raise @c_result("owner_view",0) func getCanvas() as Widget?

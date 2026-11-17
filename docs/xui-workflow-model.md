@@ -34,5 +34,11 @@ one native record array per nonempty port group and prepares the columns in
 O(n) time. The default value and schema snapshots add graph traversal and
 storage. The native model still copies port metadata and validates it.
 
+Use `WorkflowWidget.setWorkflow(model)` to give a canvas a separate reference
+to the model. `getWorkflow()` returns an independent view, including for the
+canvas's default model. Both the returned view and previously acquired views
+can outlive the canvas and context. A native failure while retiring the old
+reference may be reported after the new model is already installed.
+
 The example covers the owned data model. Retained dynamic-port and validation
-callbacks and checked canvas-to-model access have their own pending integration.
+callbacks have their own pending integration.

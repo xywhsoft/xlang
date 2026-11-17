@@ -1,0 +1,26 @@
+{
+  "complete": true,
+  "passed": true,
+  "shippingDelivery": false,
+  "parent": "c7cd08c90fd1dcfe17efe82a8ce9a2679549518d",
+  "qualification": {
+    "win": {
+      "path": "F:\\xlang-validation\\xge-full-20261110\\workflow-canvas-qualification-win-r2\\results.json",
+      "sha256": "4e9683b86e248e8be8424cd65abdcb99933dca7d415b96b48a486fbba52db17b",
+      "steps": 10
+    },
+    "linux": {
+      "path": "\\\\wsl.localhost\\Ubuntu\\var\\tmp\\xlang-validation\\xge-full-20261110\\workflow-canvas-qualification-linux-r2\\results.json",
+      "sha256": "f2a70c60a8773a7d6d43bc9280f746226032c3ee1511a60906ca52aa666a75e5",
+      "steps": 10
+    }
+  },
+  "nativeCallsPerInvocation": 1,
+  "sources": {
+    "tools/xui_managed_contracts.py": "9bf5e53693ffeb2c50bfa85e76350306ff58ce03269b04b4e2ef875db1610c38",
+    "lib/bindings/xui/src/managed.xl": "db09c3e78da908a1640f140a690cb8353229d53a1e379a5e84923540e358d482",
+    "test/cases/foreign_xui_workflow_canvas.xl": "b94b27f7b9a35337cc2059a43dd16c99c6be061f5c5c845d51e3712e917312d1",
+    "docs/xui-workflow-model.md": "ac4bf10cdd41b414461dcc2dede95023eb9dd8507432bea709826c2b7e3b7812",
+    "docs/xge3-xui3-full-coverage-plan.md": "f729479fdcf9c8286ca2f0ec83041b6da0167ffaf8cd6ab6c57e1d97b55479d8"
+  }
+}

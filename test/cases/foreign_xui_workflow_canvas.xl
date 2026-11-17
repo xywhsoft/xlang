@@ -1,0 +1,25 @@
+import xui
+
+func main(...) as int
+ auto proxy=xui.createProxy()
+ auto context=xui.create(proxy,xui.XUI_SYSTEM_FONT_DISABLED)
+ auto canvas=context.workflowWidget()
+ auto old=canvas.getWorkflow()
+ assert old.variableCount==0
+ auto model=xui.createWorkflow()
+ model.addVariable("name",null,"string",null,"value")
+ canvas.setWorkflow(model)
+ model.close()
+ auto shared=canvas.getWorkflow()
+ assert shared.variableCount==1 and old.variableCount==0
+ auto id,title,kind,scope,value=shared.getVariable(c_int(0))
+ assert id=="name" and value=="value"
+ canvas.close()
+ context.close()
+ proxy.close()
+ assert shared.variableCount==1 and old.variableCount==0
+ old.close()
+ shared.close()
+ println("WORKFLOW_CANVAS_OWNERS_OK")
+ return 0
+end
