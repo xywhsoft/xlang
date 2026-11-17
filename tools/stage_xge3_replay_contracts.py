@@ -70,6 +70,53 @@ def installed_path(relative):
     return relative
 
 
+def verify_replay_package(packages, receipt):
+    """Verify a replay's selected units and every unchanged package byte."""
+    packages,receipt=Path(packages).resolve(),Path(receipt).resolve()
+    sha=lambda path:hashlib.sha256(Path(path).read_bytes()).hexdigest()
+    data=json.loads(receipt.read_text(encoding='utf8'))
+    if receipt.parent!=packages.parent or packages.name not in ('host','static'):
+        raise ValueError('Replay receipt does not belong to this package role')
+    if not(data.get('complete') and data.get('passed')) or data.get('shippingDelivery') is not False:
+        raise ValueError('Replay receipt is not a completed local candidate')
+    if set(data.get('selected',()))!=set(SELECTED) or set(data.get('declarationUnits',{}))!=set(SELECTED):
+        raise ValueError('Replay receipt omits declaration preservation')
+    pins=data.get('sourceInputs',{})
+    if not isinstance(pins,dict) or not pins or any(not Path(p).is_file() or sha(p)!=h for p,h in pins.items()):
+        raise ValueError('Replay source input changed or is absent')
+    outputs=data.get('outputs',{}).get(packages.name,{})
+    if set(outputs)!=set(SELECTED):raise ValueError('Replay receipt omits selected outputs')
+    selected={installed_path(r):h for r,h in outputs.items()}
+    for r,h in selected.items():
+        if not(packages/r).is_file() or sha(packages/r)!=h:raise ValueError('Replay output changed: '+r)
+    for r in SELECTED:
+        row=data['declarationUnits'][r]
+        if not isinstance(row,dict) or set(row)!=set(('preserved','approvedAdditions')) or any(type(v) is not int or v<0 for v in row.values()):
+            raise ValueError('Invalid declaration preservation counts')
+        if sum(row.values())!=sum(source_units(packages/installed_path(r)).values()):
+            raise ValueError('Replay declaration preservation count changed: '+r)
+    manifest='_xge_native/xlang.package.json';identity=sha(packages/manifest)
+    origins={Path(p).parent.parent for p,h in pins.items()
+        if Path(p).as_posix().endswith('/'+manifest) and h==identity}
+    if len(origins)!=1:raise ValueError('Replay has no unique native package origin')
+    origin=next(iter(origins))
+    expected_names={Path(p).relative_to(origin).as_posix() for p in pins if Path(p).is_relative_to(origin)}
+    marker='/lib/bindings/xge/debug/'
+    expected_names.update('xgeDebug/'+Path(p).as_posix().split(marker,1)[1] for p in pins if marker in Path(p).as_posix())
+    expected_names.update(selected)
+    present={path.relative_to(packages).as_posix():path for path in packages.rglob('*') if path.is_file()}
+    if set(present)!=expected_names:raise ValueError('Replay package file population changed')
+    for relative,path in present.items():
+        if relative in selected:continue
+        expected=pins.get(str(origin/relative))
+        if expected is None and relative.startswith('xgeDebug/'):
+            suffix='/lib/bindings/xge/debug/'+relative[len('xgeDebug/'):]
+            choices={h for p,h in pins.items() if Path(p).as_posix().endswith(suffix)}
+            if len(choices)==1:expected=next(iter(choices))
+        if expected is None or sha(path)!=expected:raise ValueError('Unreviewed replay package file: '+relative)
+    return [receipt,Path(__file__).resolve(),Path(__file__).with_name('xui_managed_contracts.py').resolve(),*[Path(p) for p in pins]]
+
+
 def main():
     p=argparse.ArgumentParser(description=__doc__)
     for name in('root','generated','dynamic-packages','static-packages','out'):p.add_argument('--'+name,type=Path,required=True)

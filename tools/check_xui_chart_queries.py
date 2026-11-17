@@ -15,6 +15,7 @@ import subprocess
 import time
 from full_compiler_qualification import verify_full_compiler
 from compiler_response import command_with_response
+from stage_xge3_replay_contracts import verify_replay_package
 
 
 def main():
@@ -22,6 +23,8 @@ def main():
     for name in ('root', 'compiler', 'compiler-report', 'native-root', 'engine',
                  'static-build', 'dynamic-packages', 'static-packages', 'out'):
         p.add_argument('--' + name, type=Path, required=True)
+    p.add_argument('--dynamic-replay-report',type=Path)
+    p.add_argument('--static-replay-report',type=Path)
     a = p.parse_args()
     root, compiler, build, native, engine, static_build, dynamic, static, out = (
         v.resolve() for v in (a.root, a.compiler, a.compiler_report, a.native_root,
@@ -55,7 +58,10 @@ def main():
         native / 'tests/xui/xui_test_proxy.c', native / 'tests/xui/xui_test_proxy.h']
     for folder in (sdk, dynamic, static):
         files.extend(f for f in folder.rglob('*') if f.is_file())
-    for packages in (dynamic, static):
+    for packages,replay in ((dynamic,a.dynamic_replay_report),(static,a.static_replay_report)):
+        if replay is not None:
+            files.extend(verify_replay_package(packages,replay))
+            continue
         receipt = packages.with_suffix('.json')
         data = json.loads(receipt.read_text(encoding='utf8'))
         assert data['complete'] and not data['shippingDelivery']

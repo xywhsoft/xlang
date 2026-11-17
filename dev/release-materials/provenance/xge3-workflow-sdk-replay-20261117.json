@@ -1,0 +1,169 @@
+{
+  "schema": 1,
+  "date": "2026-11-17",
+  "scope": "Strict declaration replay and matched Workflow SDK language package convergence",
+  "sourceParent": "17076f4422ddfb9122f3a26d126414f2608dd6e6",
+  "nativeCommit": "b44cdfa716e455fda2de8c02fa6b9216fee7f78f",
+  "xrtCommit": "4641cd2e4da09d8b1a66872cabe085c263d8b5ba",
+  "xrtFullHeaderSha256": "369f884c1c1fdc9621f654c81bb86850e85d992dc56b9cebf395e20ea03dfe7b",
+  "sourceHashes": {
+    "docs/xge3-xui3-api-map-storage.json": "a2fc25de48f5febf7d114c52a632bb81065290507fc0cb743619b709935ecfd3",
+    "tools/stage_xge3_replay_contracts.py": "0c09b3f4cdde13ab1f6dd0d501be3a14eb1484266b256e9633278645299d66c4",
+    "tools/check_xui_chart_queries.py": "0474bcb07d1c7efa0dcf81a081b53e1f50fdebd05fff36cc94f6e38b951c672c",
+    "docs/xge3-workflow-sdk-replay.md": "4702b3fbf447291f9fe16f7d15a3faf8e01d86b73ddf5c92673e4d7643a1abf3"
+  },
+  "headerAdmission": {
+    "path": "F:\\xlang-validation\\xge-full-20261110\\workflow-storage-header-admission-r1.json",
+    "sha256": "a25a43a109ffd71174a92300b8b3aacf8d78e3a0cb85772b626de620772177de"
+  },
+  "headerDiff": {
+    "path": "F:\\xlang-validation\\xge-full-20261110\\workflow-storage-header-diff-r1.patch",
+    "sha256": "848fe8736ccdfb542f6544eb2c83cf4d39aabdb3db699694f47985898774ff78"
+  },
+  "dependencyDrift": {
+    "path": "F:\\xlang-validation\\xge-full-20261110\\workflow-storage-dependency-drift-r1.json",
+    "sha256": "5927f0b3cb72ba92fc81b19cfc17bd1de7885c8909f7a1725c50bce1680e587f"
+  },
+  "sourceFreeze": {
+    "path": "F:\\xlang-validation\\xge-full-20261110\\workflow-storage-replay-source-freeze-r2.json",
+    "sha256": "cf28a3dd7a5d33aac33a83ffa2dc13a7b2eaeef2b28bc3d2129db379b0cf5abd",
+    "files": 304,
+    "unchanged": true
+  },
+  "declarationComparison": {
+    "path": "F:\\xlang-validation\\xge-full-20261110\\workflow-storage-replay-compare-r1.json",
+    "sha256": "ca797e1bea41dd03f821f2c8296131b238e600f37ce2413faebc7b01ea499a2d",
+    "preservedUnits": 5570,
+    "selectedFiles": 9
+  },
+  "existingStageFunctionsPreserved": {
+    "path": "F:\\xlang-validation\\xge-full-20261110\\workflow-replay-existing-functions-preserved-r2.json",
+    "sha256": "06038ee033abfc6ba859cfd8b3a16d7d12742d06b2b8bae2230e38f4ccdf0806"
+  },
+  "gates": [
+    {
+      "path": "F:\\xlang-validation\\xge-full-20261110\\workflow-storage-reviews-win-r1\\results.json",
+      "sha256": "7ce5f76fcc146c444b6dbd3ec5b6ec61495bf289f75e77626c05e6dfbe94ccc2",
+      "kind": "source",
+      "checksOrCommands": 393
+    },
+    {
+      "path": "F:\\xlang-validation\\xge-full-20261110\\workflow-storage-reviews-linux-r1-results.json",
+      "sha256": "dd9886c2c9dc6105bfe8a5d9d5fbdbe4f524380b0bad267048eedfe17efffc8f",
+      "kind": "source",
+      "checksOrCommands": 394
+    },
+    {
+      "path": "F:\\xlang-validation\\xge-full-20261110\\workflow-package-proof-win-r3\\results.json",
+      "sha256": "b2bd42465cf5e5e7b069b716b9b317bc9a464bb64dd749d4df7f90a0bc4a85d7",
+      "kind": "packageProof",
+      "checksOrCommands": 16
+    },
+    {
+      "path": "F:\\xlang-validation\\xge-full-20261110\\workflow-package-proof-linux-r3-results.json",
+      "sha256": "b4fbe9a510b73b15eed25fdb61645b82e82c03452c5d15fdffef2095d6649608",
+      "kind": "packageProof",
+      "checksOrCommands": 16
+    },
+    {
+      "path": "F:\\xlang-validation\\xge-full-20261110\\workflow-text-layout-win-r1\\results.json",
+      "sha256": "055d124d07688370b1e8f854c55ba346d1a9bc82e54a5b144e9d9715f64c2195",
+      "kind": "runtimeBuild",
+      "checksOrCommands": 21
+    },
+    {
+      "path": "F:\\xlang-validation\\xge-full-20261110\\workflow-text-layout-linux-r1-results.json",
+      "sha256": "06b8836ed8540ca4b3026c20199a986d21b4869e25c48ba3e050408c8542f753",
+      "kind": "runtimeBuild",
+      "checksOrCommands": 21
+    },
+    {
+      "path": "F:\\xlang-validation\\xge-full-20261110\\workflow-replay-chart-win-r2\\results.json",
+      "sha256": "aca68803bdc9cafda3877a2ab40bc532987ac427e94d41ced1f5d2b2fc98d173",
+      "kind": "runtimeBuild",
+      "checksOrCommands": 19
+    },
+    {
+      "path": "F:\\xlang-validation\\xge-full-20261110\\workflow-replay-chart-linux-r2-results.json",
+      "sha256": "d524566c41dca9df71ec011ab86eebbb2afcf18b1e47da4cee77a38512964d80",
+      "kind": "runtimeBuild",
+      "checksOrCommands": 19
+    }
+  ],
+  "sourceAndProvenanceChecks": 819,
+  "runtimeBuildCommands": 80,
+  "stages": [
+    {
+      "path": "F:\\xlang-validation\\xge-full-20261110\\workflow-base-packages-host-win-r1.json",
+      "sha256": "c1494183f60d6d30a637d1704f9bdd9c06c1f897eae8d72950a0b3b633613b77"
+    },
+    {
+      "path": "F:\\xlang-validation\\xge-full-20261110\\workflow-base-packages-static-win-r1.json",
+      "sha256": "b12b96212c48c477e60641167a0bf69e2a403cf22146152b8e9f9039b76e1cfe"
+    },
+    {
+      "path": "F:\\xlang-validation\\xge-full-20261110\\workflow-replay-packages-win-r1\\stage-report.json",
+      "sha256": "9d31455a561ed6976aefa6d51e5199859f0895073785ec121db7221b511607af"
+    },
+    {
+      "path": "F:\\xlang-validation\\xge-full-20261110\\workflow-replay-packages-linux-r1-stage-report.json",
+      "sha256": "b0e2b29629cc52916a9cc2d37e3c2b1be300c1bb732398c664915e0687823624"
+    }
+  ],
+  "nativeSdkQualification": {
+    "path": "D:\\GIT\\x-lang\\dev\\release-materials\\provenance\\xui-workflow-shared-canvas-20261117.json",
+    "sha256": "bcc27ead293257747ac7a3a1a42f1fd377295a2d42c3022a79815f420a326740"
+  },
+  "nativeBuilds": [
+    {
+      "path": "F:\\xlang-validation\\xge-full-20261110\\workflow-canvas-native-sdk-win-r1\\results.json",
+      "sha256": "869b309669d72a884dc208265749028ff78e333740fa35743d8b0d81f156c2d3",
+      "sourceFreeze": "F:\\xlang-validation\\xge-full-20261110\\workflow-canvas-native-win-r1\\freeze.json",
+      "sourceFreezeSha256": "d565a10950ea894eac3144bab56ac9f96c2c3a596f6b0cdf67b5d8b18da892da",
+      "source": "F:\\xlang-validation\\xge-full-20261110\\workflow-canvas-native-win-r1\\source",
+      "buildCommands": 2
+    },
+    {
+      "path": "F:\\xlang-validation\\xge-full-20261110\\workflow-canvas-native-sdk-linux-r1-results.json",
+      "sha256": "4265d2fb1e2210560819f448c918e8babac20905c05850be0f4a37b27ad2a4b2",
+      "sourceFreeze": "/var/tmp/xlang-validation/xge-full-20261110/workflow-canvas-native-linux-r1/freeze.json",
+      "sourceFreezeSha256": "d3f04825a0ce3dc700c0c670ee4cc08a7c0d7308cffd7c5a0f95da64236db039",
+      "source": "/var/tmp/xlang-validation/xge-full-20261110/workflow-canvas-native-linux-r1/source",
+      "buildCommands": 2
+    }
+  ],
+  "compilerCohorts": {
+    "win": "F:\\xlang-validation\\xge-full-20261110\\compiler-return-output-win-full-r1",
+    "linux": "/var/tmp/xlang-validation/xge-full-20261110/compiler-return-output-linux-full-r1"
+  },
+  "frozenCpuFixtures": {
+    "path": "F:\\xlang-validation\\xge-full-20261110\\workflow-text-fixture-index-r1.json",
+    "sha256": "f34400fb5d13d31078ff6362dcf6e3e111677e05a2426ea8ff6a3988cab92683"
+  },
+  "packageProofTool": {
+    "path": "F:\\xlang-validation\\xge-full-20261110\\check_workflow_package_proof_r3.py",
+    "sha256": "37e85ec0f0bab9faf624dc6f952aa32fcb07d5ca193c9c130e7eeb3a6cf61896"
+  },
+  "qualification": {
+    "complete": true,
+    "passed": true,
+    "fullGoalComplete": false,
+    "shippingDelivery": false,
+    "releaseInstalled": false,
+    "storageRulesWeakened": false,
+    "preexistingStageFunctionsChanged": false,
+    "candidateFlowGraphPromoted": false,
+    "graphicsExecution": false,
+    "networkTests": false,
+    "securityTests": false,
+    "cpuEquivalenceClaim": false
+  },
+  "limits": [
+    "CPU TextLayout and Chart cases do not certify GPU rendering or arbitrary module cycles.",
+    "TextLayout lesson compiled without window execution.",
+    "Root candidate FlowGraph changes and other unrelated working bytes are not promoted.",
+    "Other configurations and full per-API equivalence review remain.",
+    "Workflow schema/configuration callbacks, claimed-callback cycles, owning Engine and stable parent-owned views remain.",
+    "Final matched SDK/compiler/IDE/help/examples installation remains."
+  ]
+}
