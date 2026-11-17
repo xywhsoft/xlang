@@ -111,6 +111,7 @@ static struct temp_local_variable {
 	short align;
 } arr_temp_local_vars[MAX_TEMP_LOCAL_VARIABLE_NUMBER];
 static int nb_temp_local_vars;
+static int scope_stack_low_water;
 
 static struct scope {
     struct scope *prev;
@@ -118,6 +119,7 @@ static struct scope {
     struct { Sym *s; int n; } cl;
     int *bsym, *csym;
     Sym *lstk, *llstk;
+    int stack_loc, stack_temp_count;
 } *cur_scope, *loop_scope, *root_scope;
 
 typedef struct {
@@ -7119,6 +7121,8 @@ static void new_scope(struct scope *o)
     /* record local declaration stack position */
     o->lstk = local_stack;
     o->llstk = local_label_stack;
+    o->stack_loc = loc;
+    o->stack_temp_count = nb_temp_local_vars;
     ++local_scope;
 }
 
@@ -7145,6 +7149,17 @@ static void prev_scope(struct scope *o, int is_expr)
 
     /* pop locally defined symbols */
     sym_pop(&local_stack, o->lstk, is_expr);
+    /* Statement-expression results can still reference their temporary slots.
+     * BCheck's function-wide local-region table has no scope retirement. */
+    if (!is_expr
+#ifdef CONFIG_TCC_BCHECK
+        && !tcc_state->do_bounds_check
+#endif
+    ) {
+        if (loc < scope_stack_low_water) scope_stack_low_water = loc;
+        loc = o->stack_loc;
+        nb_temp_local_vars = o->stack_temp_count;
+    }
     cur_scope = o->prev;
     --local_scope;
 }
@@ -8666,6 +8681,7 @@ static void gen_function(Sym *sym)
     nb_temp_local_vars = 0;
 
     gfunc_prolog(sym);
+    scope_stack_low_water = loc;
     tcc_debug_prolog_epilog(tcc_state, 0);
     func_vla_arg(sym);
     block(0);
@@ -8673,6 +8689,7 @@ static void gen_function(Sym *sym)
     nocode_wanted = 0;
     tcc_debug_end_scope(NULL, !func_var);
     tcc_debug_prolog_epilog(tcc_state, 1);
+    if (loc > scope_stack_low_water) loc = scope_stack_low_water;
     gfunc_epilog();
 
     /* end of function */

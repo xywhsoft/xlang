@@ -1,0 +1,88 @@
+{
+  "complete": true,
+  "passed": true,
+  "sourceParent": "d0760a6ddf56f22035cd4b50616de7b39e60b7ff",
+  "sourceHashes": {
+    "lib/tcc/tccgen.c": "8c010c816d43b08354d2bbb62b8cf163d8257a0d583ffd27929199d4e2bb8341",
+    "test/cases/tcc_scope_stack.c": "dfa0941c5f1a876f7f33fd670d4e2844e6cf8673f770475d451f329bd2fe1c64",
+    "tools/check_tcc_scope_stack.py": "0c785a98bd3ebaa127b11aa1dc0b5cfcdca56ca8b4388ab095b70547651dd311",
+    "docs/tcc-scope-stack.md": "069e39f1823a31e696caafff6d85dabfa1f749e15a54d9f853288db50a24a00e"
+  },
+  "reports": {
+    "win": {
+      "path": "F:\\xlang-validation\\xge-full-20261110\\tcc-scope-provider-verified-win-r2.json",
+      "sha256": "840072c445224af08559b2d9c090c4ba0f1bf2425f76f75c57587ced6a2a0427",
+      "commands": 25,
+      "checks": 616,
+      "verifiedFiles": 472,
+      "reports": {
+        "stack-formal": {
+          "path": "F:\\xlang-validation\\xge-full-20261110\\tcc-scope-stack-formal-win-r1\\results.json",
+          "sha256": "75d4f82abdb87e098dca8f323d7e35332bf8b3e081c0ba5a0a4158ebb421ab54",
+          "commands": 8
+        },
+        "literal": {
+          "path": "F:\\xlang-validation\\xge-full-20261110\\tcc-scope-literal-win-r1\\results.json",
+          "sha256": "257f67fbb861d46cbbc2e20ab8d62d066cd87cf0d81f6bc1771e842ab30a8768",
+          "commands": 5
+        },
+        "pdata": {
+          "path": "F:\\xlang-validation\\xge-full-20261110\\tcc-scope-pdata-win-r1\\results.json",
+          "sha256": "6d068f183026e3ee11a113619aaf16d3321d049b1adad78ee9b52e1b4ef44930",
+          "commands": 5
+        },
+        "reloc": {
+          "path": "F:\\xlang-validation\\xge-full-20261110\\tcc-scope-reloc-win-r1\\results.json",
+          "sha256": "b12639e1b82433483e48127ad8c90d82ae8d339e244bef8dc6df417fa99308a4",
+          "commands": 7
+        }
+      }
+    },
+    "linux": {
+      "path": "/var/tmp/xlang-validation/xge-full-20261110/tcc-scope-provider-verified-linux-r2.json",
+      "sha256": "480b56f30839d56b53b8d85e986739065353e2f6c76b889f78af1acec5bc6667",
+      "commands": 33,
+      "checks": 344,
+      "verifiedFiles": 476,
+      "reports": {
+        "stack-formal": {
+          "path": "/var/tmp/xlang-validation/xge-full-20261110/tcc-scope-stack-formal-linux-r1/results.json",
+          "sha256": "6e601ddc25258b3059767a30c954aab2456c6776d62c6b05cbe640986b0bb62c",
+          "commands": 8
+        },
+        "literal": {
+          "path": "/var/tmp/xlang-validation/xge-full-20261110/tcc-scope-literal-linux-r1/results.json",
+          "sha256": "0bbde5e94d2efa02fa6bf40e81f93cb59934280411ce2103e653470147bb5384",
+          "commands": 9
+        },
+        "pdata": {
+          "path": "/var/tmp/xlang-validation/xge-full-20261110/tcc-scope-pdata-linux-r1/results.json",
+          "sha256": "65b4fdd1fb0e980b7c426b582594cc69f5c33ea46133ef889671a9157e5e0bb4",
+          "commands": 5
+        },
+        "reloc": {
+          "path": "/var/tmp/xlang-validation/xge-full-20261110/tcc-scope-reloc-linux-r1/results.json",
+          "sha256": "636714e87e691d8375763b3f06088fbcdc98cab0f38ea0a2c6edf46302d7e93f",
+          "commands": 11
+        }
+      }
+    }
+  },
+  "commands": 58,
+  "priorFixtureAssertions": 960,
+  "wholeCompilerQualified": false,
+  "wholeGraphModelQualified": false,
+  "defaultExecutableStackReserveUnchanged": true,
+  "scopeFrameBytes": {
+    "win": {
+      "before": 2097200,
+      "after": 1072
+    },
+    "linux": {
+      "before": 2097156,
+      "after": 1028
+    }
+  },
+  "shippingDelivery": false,
+  "releaseInstalled": false
+}
