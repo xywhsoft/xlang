@@ -94,7 +94,8 @@ static int xl6IrCgenOutputRecordProof(XL6_Output* out,const XL6_IrModule* module
         const XL6_ForeignOutputViewContract* view=xl6IrForeignOutputViewGet(module,target,o);
         const XL6_IrType* type=field ? xl6IrTypeGet(&module->types,field->logicalType):NULL;
         if(!field || !type)return 0;
-        const char* physical=view ? (view->conversion==XL6_FOREIGN_OUTPUT_CONVERSION_CSTRING ? "const char*":type->cName):xl6IrCgenType(module,field->logicalType);
+        const char* physical=view ? (view->conversion==XL6_FOREIGN_OUTPUT_CONVERSION_CSTRING ? "const char*":
+            view->conversion==XL6_FOREIGN_OUTPUT_CONVERSION_BORROWED_VALUE ? "xvalue*":type->cName):xl6IrCgenType(module,field->logicalType);
         xl6OutputPrintf(out,"XLIR_NATIVE_ASSERT(XLIR_NATIVE_IS_TYPE(((%s*)0)->%s,%s), \"borrowed output record field type\");\n",
             record->recordCName,field->field,physical);
     }
@@ -205,8 +206,24 @@ static int xl6IrCgenOutputValuesAdmit(XL6_Output* out,const XL6_IrModule* module
     }
     size_t count=xl6IrForeignOutputCount(module,target);
     xl6OutputPrintf(out,"    %s native_admitted = {0};\n",xl6IrCgenType(module,target->returnType));
+    /* Secure the producer's borrowed values before other fields can invoke
+     * a native retain hook. Only native_admitted owns the retained reference. */
     for(size_t ordinal=0;ordinal<count;++ordinal){
         const XL6_ForeignOutputViewContract* row=xl6IrForeignOutputViewGet(module,target,ordinal);
+        if(!row || row->conversion!=XL6_FOREIGN_OUTPUT_CONVERSION_BORROWED_VALUE)continue;
+        const XL6_ForeignOutputFieldContract* field=record ? xl6IrForeignOutputFieldGet(module,target,ordinal):NULL;
+        if(!field)return 0;
+        char admitted[48]="native_admitted";
+        if(count>1)snprintf(admitted,sizeof(admitted),"native_admitted.e%lu",(unsigned long)ordinal);
+        xl6OutputPrintf(out,"    if(!%s.failed && !xrtGetError()) {\n"
+            "        xvalue* borrowed_output_value=native_raw.%s;\n"
+            "        %s=borrowed_output_value ? xrtValueRetain(borrowed_output_value) : (xvalue*)xrtValueNull();\n"
+            "        if(!%s || xrtGetError())xl6ErrorScopeCaptureFailure(&%s);\n"
+            "    }\n",scope,field->field,admitted,admitted,scope);
+    }
+    for(size_t ordinal=0;ordinal<count;++ordinal){
+        const XL6_ForeignOutputViewContract* row=xl6IrForeignOutputViewGet(module,target,ordinal);
+        if(row && row->conversion==XL6_FOREIGN_OUTPUT_CONVERSION_BORROWED_VALUE)continue;
         char raw[128],admitted[48];
         if(count>1){snprintf(raw,sizeof(raw),"native_raw.e%lu",(unsigned long)ordinal);
             snprintf(admitted,sizeof(admitted),"native_admitted.e%lu",(unsigned long)ordinal);}
@@ -244,10 +261,11 @@ static int xl6IrCgenOutputValuesAdmit(XL6_Output* out,const XL6_IrModule* module
             xl6OutputPrintf(out,"        if (%s && !xl6ForeignViewReleaseV1(%s)) xl6ErrorScopeCaptureFailure(&%s);\n",admitted,admitted,scope);
             continue;
         }
-        const char* drop=(row->conversion==XL6_FOREIGN_OUTPUT_CONVERSION_BYTES || row->conversion==XL6_FOREIGN_OUTPUT_CONVERSION_OWNED_VALUE) ? "xrtValueRelease":"xlir_string_drop";
+        const char* drop=(row->conversion==XL6_FOREIGN_OUTPUT_CONVERSION_BYTES || row->conversion==XL6_FOREIGN_OUTPUT_CONVERSION_OWNED_VALUE ||
+            row->conversion==XL6_FOREIGN_OUTPUT_CONVERSION_BORROWED_VALUE) ? "xrtValueRelease":"xlir_string_drop";
         if(count>1)xl6OutputPrintf(out,"        %s(native_admitted.e%lu);\n",drop,(unsigned long)ordinal);
         else xl6OutputPrintf(out,"        %s(native_admitted);\n",drop);
-        if(row->conversion==XL6_FOREIGN_OUTPUT_CONVERSION_OWNED_VALUE)
+        if(row->conversion==XL6_FOREIGN_OUTPUT_CONVERSION_OWNED_VALUE || row->conversion==XL6_FOREIGN_OUTPUT_CONVERSION_BORROWED_VALUE)
             xl6OutputPrintf(out,"        if(xrtGetError())xl6ErrorScopeCaptureFailure(&%s);\n",scope);
     }
     xl6OutputPuts("        xrtSetErrorTake(output_view_error);\n    }\n",out);return !xl6OutputHasFailed(out);

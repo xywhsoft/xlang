@@ -44,6 +44,8 @@ static int xl6IrCgenBuildNeeds(const XL6_IrModule* module, XL6_IrCgenNeeds* need
             if(output->conversion==XL6_FOREIGN_OUTPUT_CONVERSION_TEXT){
                 needs->needsStringRuntime=1;needs->needsStringScalarRuntime=1;needs->needsStringViews=1;
             }else if(output->conversion==XL6_FOREIGN_OUTPUT_CONVERSION_BYTES){needs->needsBytesRuntime=1;needs->needsXValueRuntime=1;}
+            else if(output->conversion==XL6_FOREIGN_OUTPUT_CONVERSION_BORROWED_VALUE)
+                needs->needsXValueRuntime=1;
         }
         if(xl6IrTypeIsCOwned(xl6IrTypeGet(&module->types,target->returnType)))needs->needsCOwnedRuntime=1;
         for(size_t p=0;p<target->parameterCount;++p)

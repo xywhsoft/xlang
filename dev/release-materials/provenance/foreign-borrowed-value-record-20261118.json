@@ -1,0 +1,113 @@
+{
+  "complete": true,
+  "passed": true,
+  "sourceParent": "5f38660b905a2f1c5e76c64a1d94ca60b27e8450",
+  "shippingDelivery": false,
+  "qualification": {
+    "oomPrefixes": [
+      2,
+      6
+    ],
+    "repetitions": 4,
+    "irMutationsPerPlatform": 55,
+    "foreignFactBytes": 88,
+    "newRuntimeExports": 0,
+    "nativeCallsPerInvocation": 1,
+    "nativeNullUsesSingleton": true
+  },
+  "evidence": {
+    "win": {
+      "path": "F:\\xlang-validation\\xge-full-20261110\\workflow-batches-verified-win-compiler.json",
+      "sha256": "73a36ae87e9dd3a7a00514f1839d6fd908414ab3e8a79070a7ebf78a6fc465ca",
+      "complete": true,
+      "passed": true,
+      "checks": {
+        "compiler": {
+          "path": "F:\\xlang-validation\\xge-full-20261110\\compiler-borrowed-output-value-win-full-r1\\build.json",
+          "sha256": "3ccf8105a2c41bb6077f168deb8ea37525e3f7bf55bdf94ddded2ce7bd5a26c7"
+        },
+        "borrowed_value_record": {
+          "path": "F:\\xlang-validation\\xge-full-20261110\\borrowed-output-value-runner-win-r1\\borrowed_value_record\\results.json",
+          "sha256": "6fe4deab6c435dabb388d9264cf5ea7759cb0f92de12dc9904352a124feda4e9",
+          "steps": 26
+        },
+        "result_snapshot": {
+          "path": "F:\\xlang-validation\\xge-full-20261110\\borrowed-output-value-runner-win-r1\\result_snapshot\\results.json",
+          "sha256": "b99fee68feaf59ab494a579b30f141f0a65c0e449156de24f77c91680cb6e15f",
+          "steps": 28
+        },
+        "output_snapshots": {
+          "path": "F:\\xlang-validation\\xge-full-20261110\\borrowed-output-value-runner-win-r1\\output_snapshots\\results.json",
+          "sha256": "b2710b37068106ee4ea1c7f9e9e30891224146061eacd31aa5d306ffcd3ad562",
+          "steps": 27
+        },
+        "compiler-runner": {
+          "path": "F:\\xlang-validation\\xge-full-20261110\\borrowed-output-value-runner-win-r1\\results.json",
+          "sha256": "1fef7ce488cb7361632e6cd8f3527c91aa641991556574958c585491fb0d157a",
+          "steps": 5
+        },
+        "ir": {
+          "path": "F:\\xlang-validation\\xge-full-20261110\\borrowed-output-value-runner-win-r1\\ir-run.log",
+          "sha256": "75c9c14cf2903dfeb4c98dd2041e4bf43eaefed59ac32bdcb25a4be59de0d5b7",
+          "mutations": 55
+        }
+      },
+      "verifiedPaths": 15947
+    },
+    "linux": {
+      "path": "F:\\xlang-validation\\xge-full-20261110\\workflow-batches-verified-linux-compiler.json",
+      "sha256": "9aa20015a30096a5a677fd8e417eecceb32b5b2cd14b3146d3f52bc51213ff23",
+      "complete": true,
+      "passed": true,
+      "checks": {
+        "compiler": {
+          "path": "/var/tmp/xlang-validation/xge-full-20261110/compiler-borrowed-output-value-linux-full-r1/build.json",
+          "sha256": "f1c9953162ec14cb7c9089e6a292d4cf150a7d29e80e0340e899d89f6fa8874b"
+        },
+        "borrowed_value_record": {
+          "path": "/var/tmp/xlang-validation/xge-full-20261110/borrowed-output-value-runner-linux-r1/borrowed_value_record/results.json",
+          "sha256": "ecc455d4648cc09273884af2ae49405ead0eddde196f2c942d1e7931ab89d873",
+          "steps": 26
+        },
+        "result_snapshot": {
+          "path": "/var/tmp/xlang-validation/xge-full-20261110/borrowed-output-value-runner-linux-r1/result_snapshot/results.json",
+          "sha256": "bd11aa967a7520fee2549bad14f49fdec25ca975d367c892d80fea2d77126f95",
+          "steps": 28
+        },
+        "output_snapshots": {
+          "path": "/var/tmp/xlang-validation/xge-full-20261110/borrowed-output-value-runner-linux-r1/output_snapshots/results.json",
+          "sha256": "6d5b73acccde88ca04b8e11cc82161658b962c8f5f0de1b5fcd845205c699dd3",
+          "steps": 27
+        },
+        "compiler-runner": {
+          "path": "/var/tmp/xlang-validation/xge-full-20261110/borrowed-output-value-runner-linux-r1/results.json",
+          "sha256": "5305a430e643d3a99c804b2b77f4971a0a50b48cf97ad9b5db14c3c945caf179",
+          "steps": 5
+        },
+        "ir": {
+          "path": "/var/tmp/xlang-validation/xge-full-20261110/borrowed-output-value-runner-linux-r1/ir-run.log",
+          "sha256": "0c4fdcf2caf35639f5f8da04c6794265d8c4b11ed38c2b4c44fe7138623e7dd9",
+          "mutations": 55
+        }
+      },
+      "verifiedPaths": 17506
+    }
+  },
+  "sourceHashes": {
+    "src/cgen/xl6_ir_cgen_foreign_output_view.c": "0f99ce5909119db07c0c3cd71cedfdc97d46fe35a28ac0418fc48bbcc1628c15",
+    "src/cgen/xl6_ir_cgen_native_dependencies.c": "5032137780c1e4f9966a8e318e9d4c83164a8c4fceae315334b7706fdb745996",
+    "src/ir/xl6_ir_foreign_output_record.c": "f53846d2abe323e9800398a61bfb6972750bf26f038c8534e92709a084edfcb3",
+    "src/ir/xl6_ir_foreign_output_view.c": "b267b965dee29d72c810f283b2397313ea125b7ddd02d2590685db0ccc2c79d2",
+    "src/ir/xl6_ir_foreign_snapshot.c": "6815a5708f1e41d3e4dc1c229fc87a1627ec2f64a10a4cb2e67cf35adf5253fd",
+    "src/sem/xl6_sem_foreign_output_record.c": "ed4fca014083678344831cf03e60d955180737ac5600b74b5a7a4f0e9d7504f6",
+    "src/type/xl6_foreign_call_contract.h": "29b2ac2e2d5978ac1f160537aca4dbea3dcd0bf991991f17b74910f8875057e2",
+    "src/type/xl6_foreign_output_record_decl.h": "f2d95ff91678fa87f48e1651cba5d10efaec0589b3495b1e7672606503b80976",
+    "test/cases/foreign_borrowed_value_record.c": "b176e6a558e710144f6027ac6e553fb5d85603ad38299ea76ccf2d51891244a8",
+    "test/cases/foreign_borrowed_value_record.h": "98a7fc79888fe9f1d04e83529e67b9168d6e7e1cf41a8138e48df7b42c2210c0",
+    "test/cases/foreign_borrowed_value_record.xl": "ba32f7aef8c9be152a68a439f21951bb2688314c8facb1e6e20a0b1078a3d88e",
+    "test/cases/foreign_borrowed_value_record_ir.c": "62ff264271bbc060297abc6be1fe8b0599b91b88b5882e3f6297ee128925851b",
+    "tools/check_foreign_borrowed_value_record.py": "22ccbd3007322bde9324fd43acce7305e60a8a24d8335de1634b7f763e13895c",
+    "docs/foreign-borrowed-value-record.md": "6dd8555f84c8a088b0429b6aaceea209278f75e31baf31c1a81202f777a50864",
+    "docs/foreign-result-snapshot.md": "2e8d0d49a56f7be063a701973a07ebb5407c3bd73eeceac23c3067010da98f5b"
+  }
+}

@@ -1,0 +1,113 @@
+extern "borrowedRecordBudget" @header("test/cases/foreign_borrowed_value_record.h") @no_raise func budget(c_int allowance)
+extern "borrowedRecordMark" @header("test/cases/foreign_borrowed_value_record.h") @no_raise func mark()
+extern "borrowedRecordBalanced" @header("test/cases/foreign_borrowed_value_record.h") @no_raise func balanced() as c_int
+extern "borrowedRecordRead" @header("test/cases/foreign_borrowed_value_record.h") @no_raise @c_output_record(1,"BorrowedValueRecord","borrowed") @c_output_size(1,"iSize") @c_status(0) @c_output_field(0,"name","cstring") @c_output_field(1,"data","borrowed_value") @c_output_field(2,"tail","cstring") @c_data_snapshot_result(1) func read(c_int mode=0) as (string?,var,string?)
+extern "borrowedRecordRead" @header("test/cases/foreign_borrowed_value_record.h") @no_raise @c_output_record(1,"BorrowedValueRecord","borrowed") @c_output_size(1,"iSize") @c_status(0) @c_output_field(0,"name","cstring") @c_output_field(1,"data","borrowed_value") @c_output_field(2,"tail","cstring") func readShared(c_int mode=0) as (string?,var,string?)
+extern "borrowedRecordReadPair" @header("test/cases/foreign_borrowed_value_record.h") @no_raise @c_output_record(0,"BorrowedValuePair","borrowed") @c_status(0) @c_output_field(0,"first","borrowed_value") @c_output_field(1,"second","borrowed_value") @c_data_snapshot_result(0) @c_data_snapshot_result(1) func readPair() as (var,var)
+extern "BorrowedValueReceiver*" class Receiver @header("test/cases/foreign_borrowed_value_record.h") @lifetime("caller")
+ native point handle
+ extern "borrowedRecordReadBound" @no_raise @c_output_record(1,"BorrowedValueRecord","borrowed") @c_output_size(1,"iSize") @c_status(0) @c_output_field(0,"data","borrowed_value") @c_data_snapshot_result(0) func readValue() as var
+end
+extern "borrowedRecordReceiver" @header("test/cases/foreign_borrowed_value_record.h") @no_raise func receiver() as Receiver
+extern "borrowedRecordSet" @header("test/cases/foreign_borrowed_value_record.h") @no_raise func store(var value)
+extern "borrowedRecordClear" @header("test/cases/foreign_borrowed_value_record.h") @no_raise func clear()
+extern "borrowedRecordCalls" @header("test/cases/foreign_borrowed_value_record.h") @no_raise func calls() as c_int
+int getterCalls=0
+class Data
+ derive json
+ string title="public"
+ private Buffer hidden=Buffer("private")
+ get computed() as string
+  getterCalls+=1
+  return "must not execute"
+ end
+end
+func attempt(c_int mode,c_int allowance) as bool
+ store(Data())
+ int before=calls()
+ bool success=false
+ budget(allowance)
+ try
+  if mode==c_int(0) then
+   auto n,v,t=readShared()
+   budget(c_int(-1))
+   assert (n as string)=="record" and (t as string)=="tail" and v.title=="public"
+  else
+   auto n,v,t=read()
+   budget(c_int(-1))
+   assert (n as string)=="record" and (t as string)=="tail" and v.title=="public"
+  end
+  success=true
+ catch error
+  budget(c_int(-1))
+ finally
+  budget(c_int(-1))
+  clear()
+ end
+ assert calls()==before+1,"producer count"
+ return success
+end
+func sweep(c_int mode) as int
+ attempt(mode,c_int(-1))
+ int successAt=-1
+ int allowance=0
+ while allowance<64
+  mark()
+  bool success=attempt(mode,c_int(allowance))
+  assert balanced()==c_int(1),"whole attempt heap"
+  if success then
+   successAt=allowance
+   break
+  end
+  allowance+=1
+ end
+ assert successAt>=2,"unexpected success prefix"
+ int repeat=0
+ while repeat<3
+  allowance=0
+  while allowance<=successAt
+   mark()
+   bool success=attempt(mode,c_int(allowance))
+   assert success==(allowance==successAt) and balanced()==c_int(1),"repeated prefix or heap"
+   allowance+=1
+  end
+  repeat+=1
+ end
+ return successAt
+end
+func main(...) as int
+ store(Data())
+ auto name,value,tail=read()
+ assert (name as string)=="record" and (tail as string)=="tail" and value.title=="public" and getterCalls==0
+ value.title="copy"
+ auto sn,shared,st=readShared()
+ assert shared.title=="public"
+ auto nn,nil,nt=read(c_int(2))
+ assert nil==null and (nn as string)=="record" and (nt as string)=="tail"
+ auto emptyName,other,emptyTail=read(c_int(3))
+ assert emptyName==null and (emptyTail as string)=="" and other.title=="public"
+ auto first,second=readPair()
+ first.title="pair copy"
+ assert second.title=="public" and shared.title=="public"
+ func() as var bound=receiver().readValue
+ assert bound().title=="public"
+ func erased=bound
+ assert erased().title=="public"
+ int before=calls()
+ bool failed=false
+ try
+  read(c_int(1))
+ catch error
+  failed=true
+ end
+ assert failed and calls()==before+1
+ clear()
+ assert shared.title=="public" and value.title=="copy"
+ assert getterCalls==0
+ budget(c_int(-1))
+ int sharedPrefix=sweep(c_int(0))
+ int snapshotPrefix=sweep(c_int(1))
+ assert sharedPrefix>=2 and snapshotPrefix>sharedPrefix,"final prefix sizes"
+ println("BORROWED_VALUE_RECORD_OK ",sharedPrefix," ",snapshotPrefix)
+ return 0
+end

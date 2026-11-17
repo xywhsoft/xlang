@@ -48,7 +48,9 @@ static int xl6IrResultDataSnapshotExpected(const XL6_IrModule* m,
     if(node->foreignCall.valueOutput){
         XL6_IrCallTarget target={0};target.declaration=row->declaration;
         const XL6_ForeignOutputViewContract* view=xl6IrForeignOutputViewGet(m,&target,ordinal);
-        if(!view || view->conversion!=XL6_FOREIGN_OUTPUT_CONVERSION_OWNED_VALUE || view->logicalType!=output->type)return 0;
+        if(!view || (view->conversion!=XL6_FOREIGN_OUTPUT_CONVERSION_OWNED_VALUE &&
+            !(view->conversion==XL6_FOREIGN_OUTPUT_CONVERSION_BORROWED_VALUE && xl6ForeignValueOutputIsRecord(node->foreignCall.valueOutput))) ||
+            view->logicalType!=output->type)return 0;
     }else if(returns->childCount!=1 || node->foreignCall.borrowedViewResult)return 0;
     *result=output->type;return 1;
 }

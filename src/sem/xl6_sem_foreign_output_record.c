@@ -19,6 +19,8 @@ static int xl6SemForeignOutputRecord(XL6_SemContext* ctx,XL6_AstNode* node,
         if(view.conversion==XL6_FOREIGN_OUTPUT_CONVERSION_CSTRING){
             const XL6_AstNode* inner=xl6SemTypeIsNullable(result) ? xl6SemResolveAliasType(ctx,xl6SemNullableInnerType(result)):result;
             if(!inner || inner->childCount || !xl6TextEquals(inner->text,"string"))goto invalid;
+        }else if(view.conversion==XL6_FOREIGN_OUTPUT_CONVERSION_BORROWED_VALUE){
+            if(!result || result->childCount || !xl6TextEquals(result->text,"var") || (node->flags&XL6_AST_FLAG_FOREIGN_PURE))goto invalid;
         }else if(view.conversion){
             const XL6_AstNode* inner=xl6SemTypeIsNullable(result) ? xl6SemResolveAliasType(ctx,xl6SemNullableInnerType(result)):result;
             XL6_ForeignClassDecl contract={0};const XL6_AstNode* declaration=xl6SemForeignViewDeclaration(ctx,inner,&contract);
@@ -32,5 +34,5 @@ static int xl6SemForeignOutputRecord(XL6_SemContext* ctx,XL6_AstNode* node,
     }
     if(count!=returns->childCount)goto invalid;
     return 1;
-invalid:xl6SemErrorNode(ctx,node,"borrowed C record output requires exact POD fields, explicit C-string snapshots or retained independent resources, one field per logical result, an authoritative header and a complete physical output slot");return 0;
+invalid:xl6SemErrorNode(ctx,node,"borrowed C record output requires one exact POD field, C-string snapshot, retained independent resource, or borrowed xvalue field per result and an authoritative header");return 0;
 }

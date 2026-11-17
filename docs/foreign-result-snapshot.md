@@ -5,9 +5,11 @@ result into an independent strict PUBLIC data snapshot. Ordinals start at
 zero and refer to logical return positions, including tuple positions. They
 do not refer to physical C output argument numbers or an instance receiver.
 Use a direct owned `xvalue*` return or an existing
-`@c_output_view(physicalIndex, "owned_value")` output. Borrowed values,
-nullable `var?`, resources, arbitrary records and asynchronous returns are
-not accepted. An authoritative header must prove the physical ABI.
+`@c_output_view(physicalIndex, "owned_value")` output. An explicitly
+[retained borrowed record field](foreign-borrowed-value-record.md) also
+qualifies after it acquires its own reference. Nullable `var?`, resources,
+arbitrary records and asynchronous returns are rejected. An authoritative
+header must prove the physical ABI.
 
 The native producer executes once. The compiler first completes its existing
 output conversions, then stages one strict traversal per marked result in

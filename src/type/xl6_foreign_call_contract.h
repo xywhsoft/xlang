@@ -250,11 +250,13 @@ typedef enum XL6_ForeignOutputConversion {
     XL6_FOREIGN_OUTPUT_CONVERSION_BYTES,
     XL6_FOREIGN_OUTPUT_CONVERSION_RETAINED_NATIVE,
     XL6_FOREIGN_OUTPUT_CONVERSION_CSTRING,
-    XL6_FOREIGN_OUTPUT_CONVERSION_OWNED_VALUE
+    XL6_FOREIGN_OUTPUT_CONVERSION_OWNED_VALUE,
+    XL6_FOREIGN_OUTPUT_CONVERSION_BORROWED_VALUE
 } XL6_ForeignOutputConversion;
 /* Physical borrowed text/bytes outputs become owned logical values before
  * input/callback scopes end. OWNED_VALUE instead consumes one resident-XRT
  * xvalue reference, including all of its native resource/code responsibilities.
+ * BORROWED_VALUE retains an xvalue field from a borrowed output record.
  * Ordinary outputs occupy no row. */
 typedef struct XL6_ForeignOutputViewContract {
     uint32 declaration,physicalIndex,ordinal,logicalType;
