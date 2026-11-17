@@ -1,0 +1,31 @@
+// No window or graphics context is needed for these node controls.
+import xge3d
+
+auto scene=xge3d.createScene()
+auto root=xge3d.Xge3dNode()
+auto lamp=scene.createNode(root)
+scene.setName(lamp,"Sun")
+
+auto light=xge3d.threeDLightDefault(c_int(0)) // Directional light.
+light.intensity=c_float(2)
+scene.setLight(lamp,light)
+scene.setShadowFlags(lamp,c_uint(1)) // Cast shadows.
+assert scene.shadowFlags(lamp)==c_uint(1)
+
+c_float[4] color
+color[0]=c_float(0.25)
+color[1]=c_float(0.5)
+color[2]=c_float(0.75)
+color[3]=c_float(1)
+scene.setColor(lamp,color)
+scene.clearLight(lamp)
+
+// Remove at most one node per call. A parent is removed after its child.
+auto child=scene.createNode(lamp)
+auto budget=xge3d.Xge3dWorkBudget()
+budget.nodes=c_size(1)
+assert scene.destroyStep(lamp,budget)==c_int(0)
+assert scene.destroyStep(lamp,budget)==c_int(1)
+assert scene.nodeCount==c_size(0)
+scene.close()
+println("Scene controls passed: light, color, shadows and two deletion steps")

@@ -27,6 +27,18 @@ export extern "xge3d_scene*" class Scene @header("xge3d_scene.h") @lifetime("own
  extern "xge3dNodeFind" @no_raise @c_cstr(1) @c_outputs(-1,3) func find(Xge3dNode root,string name) as (c_int,Xge3dNode)
  extern "xge3dNodeSetVisible" @no_raise @c_result("status",0) func setVisible(Xge3dNode node,c_int visible)
  extern "xge3dNodeSetLayers" @no_raise @c_result("status",0) func setLayers(Xge3dNode node,c_uint render,c_uint query,c_uint shadow)
+ // Query status includes NOT_FOUND; the native outputs are cleared on failure.
+ extern "xge3dNodeGetBounds" @no_raise @c_outputs(-1,3) func bounds(Xge3dNode node,c_int descendants=0) as (c_int,Xge3dAabb)
+ extern "xge3dSceneRaycast" @no_raise @c_ref(0) @c_outputs(-1,3) func raycast(Xge3dRay ray,c_float maxDistance) as (c_int,Xge3dHit)
+ extern "xge3dSceneRaycastEx" @no_raise @c_ref(0) @c_ref(2) @c_outputs(-1,4) func raycast(Xge3dRay ray,c_float maxDistance,Xge3dQueryFilter filter) as (c_int,Xge3dHit)
+ extern "xge3dScenePrepareSpatial" @no_raise @c_result("status",0) func prepareSpatial()
+ extern "xge3dNodeSetLight" @no_raise @c_ref(1) @c_result("status",0) func setLight(Xge3dNode node,Xge3dLightDesc light)
+ extern "xge3dNodeSetLight" @no_raise @c_null(2,"const xge3d_light_desc_t*") @c_result("status",0) func clearLight(Xge3dNode node)
+ extern "xge3dNodeSetShadowFlags" @no_raise @c_result("status",0) func setShadowFlags(Xge3dNode node,c_uint flags)
+ extern "xge3dNodeGetShadowFlags" @no_raise @c_output(2,0) func shadowFlags(Xge3dNode node) as c_uint
+ extern "xge3dNodeSetColor" @no_raise @c_ref(1) @c_result("status",0) func setColor(Xge3dNode node,c_float[4] rgba)
+ // Zero nodes pauses after logically retiring the subtree; continue with the same root.
+ extern "xge3dNodeDestroyStep" @no_raise @c_ref(1) @c_output(3,0) func destroyStep(Xge3dNode root,Xge3dWorkBudget budget) as c_int
  extern "xl6ForeignViewCloseV1" @no_raise @c_control(0) @c_result("bool_status") func close()
 end
 extern "xge3dSceneReleaseChecked" @header("xge3d_scene.h") @no_raise @c_result("status",0) func releaseScene(Scene value)

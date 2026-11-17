@@ -7,9 +7,10 @@ context, window, model file or network service.
 | --- | --- |
 | `camera_values.xl` | Checks transform matrices and perspective/orthographic cameras. |
 | `screen_ray.xl` | Preserves a 0.25-unit offset near a world origin of 10^12 and checks the centre screen ray points along negative Z. |
-| `ray_queries.xl` | Tests a ray against a box and sphere; a short ray returns NOT_FOUND with cleared output. |
+| `ray_queries.xl` | Tests a ray against a box, sphere and fixed-array triangle; a short ray returns NOT_FOUND with cleared output. |
 | `particles.xl` | Emits into an eight-particle CPU capacity, reports four dropped particles, then drains to zero. Requires `XGE3D_ENABLE_PARTICLES=1`. |
 | `scene_hierarchy.xl` | Combines parent/child transforms, looks up a named node and keeps a shared scene usable after closing its first view. |
+| `scene_controls.xl` | Configures a light, color and shadows, then retires a parent/child subtree in two bounded steps. |
 
 ```text
 xl run screen_ray.xl
@@ -30,8 +31,17 @@ returns `XGE_ERROR_INVALID_ARGUMENT`. Native queries normalize directions;
 distances and the positive finite maximum are in world units. Starting inside
 a volume returns distance zero. Triangles use exactly three fixed C-record
 values, with no temporary heap array. All inputs remain independent values.
-The triangle query accepts an existing fixed array, such as an array field or
-native output. Standalone fixed-array declarations currently lack a verified
-default initializer; that general compiler contract remains under discussion.
-The separate qualification fixture obtains a fixed array from C and tests all
-three queries; the beginner lesson does not depend on that fixture.
+Standalone fixed C arrays now default to zero. The triangle lesson declares
+`Xge3dVec3[3]`, fills its vertices and calls the query directly.
+
+`Scene.raycast` (with an optional query filter) and `Scene.bounds` also return
+`(status, output)` with native status codes. Bounds can include descendants and
+ignore visibility. Query filters select node query layers and can include
+hidden ancestors. Geometry creation remains a separate resource API; the
+controlled acceptance fixture supplies a CPU triangle to test positive hits.
+
+`destroyStep` immediately retires the entire subtree logically, including when
+`budget.nodes` is zero. Its return value is zero until all nodes are physically
+removed, then one. Continue with the original root handle while incomplete;
+ordinary operations on retiring nodes are rejected. `budget.microseconds` is
+the native soft per-call time budget; zero disables that limit.

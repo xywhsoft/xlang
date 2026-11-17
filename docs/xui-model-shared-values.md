@@ -34,8 +34,8 @@ also needs to reject opaque resources/callables without a declared data
 provider before publication, rather than silently retaining their identity.
 Avoid a second validation traversal by doing this in the same graph copy.
 
-The generic `@c_data_snapshot` declaration rule has been proposed separately
-and remains pending explicit selection. The safe public language model API and
-the final SDK/compiler/IDE/help delivery have not been promoted by this batch.
+The generic `@c_data_snapshot` declaration rule was subsequently approved on
+2026-11-17 and remains to be implemented. The safe public language model API
+and the final SDK/compiler/IDE/help delivery have not been promoted by this batch.
 Evidence is indexed by
 `dev/release-materials/provenance/xui-model-shared-values-20261117.json`.

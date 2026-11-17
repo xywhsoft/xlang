@@ -1,0 +1,126 @@
+{
+  "complete": true,
+  "passed": true,
+  "sourceParent": "aceab8633c69f0c4d04c748634e9da66a7957e11",
+  "sourceHashes": {
+    "lib/bindings/xge/three_d/src/scene.xl": "93da4025637a5bc4329a160ed6d2cf1298c32bc0809bfc7121b4d7dc08f499bc",
+    "lib/bindings/xge/three_d/examples/scene_controls.xl": "9248ff3ed71dbe200ebd8ba858dd9fc2d365284bbd7347d5561a131d39d747cd",
+    "lib/bindings/xge/three_d/examples/README.md": "2a8cb5cf6a8a458ae476490685a4b85f778fd93723069823a482f76a292bf915",
+    "test/cases/foreign_xge3d_scene_controls.xl": "127ee13cd5a736f067bc98bfd549a2849d397a82c6df73d02650359979db3371",
+    "test/cases/foreign_xge3d_scene_controls.c": "2c25d02280b008051dfe08fe4007623c5a9a48d20ce1dd5612542ea8ad344e16",
+    "test/cases/foreign_xge3d_scene_controls.h": "a94619c3de75ed537634588468296842234f73372342436e000a39292b0855e7",
+    "tools/check_xge3_scene_controls.py": "c9945da41eae90275c7631c50b7cdb1ec6bf2b4284ca753cadd2daa45e0edb29",
+    "docs/xge3-scene-controls.md": "223fe272a5299d98591ed2a1358db422d750274f454743cd68afaedc54902302",
+    "docs/xge3-xui3-full-coverage-plan.md": "6951effdf72da131d5e70b0ab053a810e5603a1214480f975c0667a52666cff6",
+    "docs/xge3-xui3-api-map-storage.json": "8285acf92a90b05e07e3d7ed3248d61413ad6f570aa4dae10ed5af98cea63115",
+    "docs/xui-model-shared-values.md": "c1f26affea8b5335dc62dcb89c2951a268ddd1338bcbbd7661caf7524a01a10c"
+  },
+  "nativeRevision": "497121af9da7399bc3c9a8c7ade75b4b9d15e046",
+  "reports": {
+    "win": {
+      "path": "F:\\xlang-validation\\xge-full-20261110\\scene-controls-verified-win-r1.json",
+      "sha256": "b42c363f3e346ba8b4a42df8924578624d6db09f0c5f6fbfc756406fefa27e39",
+      "verifiedFiles": 8705,
+      "sourceChecks": 399,
+      "layout": {
+        "node": 16,
+        "ray": 24,
+        "hit": 72,
+        "box": 24,
+        "light": 48,
+        "budget": 16,
+        "filter": 8,
+        "color": 16,
+        "scope": 8,
+        "hitResult": 80,
+        "boundsResult": 28
+      },
+      "population": {
+        "functions": 5312,
+        "types": 991,
+        "constants": 1838,
+        "functionMacros": 7,
+        "callableFields": 188,
+        "enums": 40,
+        "enumConstants": 316
+      },
+      "directDeclarations": {
+        "functions": 3936,
+        "types": 396,
+        "constants": 1824,
+        "callableFields": 66,
+        "enumConstants": 316
+      }
+    },
+    "linux": {
+      "path": "/var/tmp/xlang-validation/xge-full-20261110/scene-controls-verified-linux-r1.json",
+      "sha256": "034b619ee1269d48ea0430af7b13dd505d1099deca5f826a4918d188b23137b1",
+      "verifiedFiles": 8457,
+      "sourceChecks": 400,
+      "layout": {
+        "node": 16,
+        "ray": 24,
+        "hit": 72,
+        "box": 24,
+        "light": 48,
+        "budget": 16,
+        "filter": 8,
+        "color": 16,
+        "scope": 8,
+        "hitResult": 80,
+        "boundsResult": 28
+      },
+      "population": {
+        "functions": 5312,
+        "types": 991,
+        "constants": 1838,
+        "functionMacros": 7,
+        "callableFields": 188,
+        "enums": 40,
+        "enumConstants": 316
+      },
+      "directDeclarations": {
+        "functions": 3936,
+        "types": 396,
+        "constants": 1824,
+        "callableFields": 66,
+        "enumConstants": 316
+      }
+    }
+  },
+  "runtimeBuildHeaderCommands": 82,
+  "languageAndNativeClientCommands": 78,
+  "layoutCommands": 4,
+  "sourceChecks": 799,
+  "declarationsAdded": 10,
+  "nativeNamesAddedToLanguage": 9,
+  "freshNativeBuildsThisBatch": 0,
+  "qualifiedNativeSdkReuse": "model-shared-sdk-{win,linux}-r1",
+  "compilerCohort": "compiler-fixed-array-zero-{win,linux}-full-r1",
+  "storageWitnessRebase": {
+    "path": "F:\\xlang-validation\\xge-full-20261110\\scene-controls-storage-rebase-proof-r1.json",
+    "sha256": "e115007704a2146a2c945279b4e4107895c67f200d8694370367bb11dae8697c",
+    "entries": 2
+  },
+  "warm": {
+    "iterationsPerPath": 1000,
+    "businessCallsPerIteration": 3,
+    "nativeAccessScopesPerIteration": 3,
+    "xrtAllocations": 0,
+    "xrtReallocations": 0,
+    "xrtFrees": 0,
+    "cpuEquivalenceClaim": false
+  },
+  "spatialFailureBudgets": 32,
+  "outputsDirectInGeneratedProduct": true,
+  "acceptedDataSnapshotRule": {
+    "path": "F:\\xlang-validation\\xge-full-20261110\\accepted-decisions-20261117-c-data-snapshot.json",
+    "sha256": "07d42a7efbfc5cab2d4496b1122e915f6647c31d29f00901759e7ec8fcaf5a65",
+    "implemented": false
+  },
+  "testOnlyPrivateFieldReads": "exact SDK source header, never published as language API",
+  "configuration": "matched normal full 3D SDK; disabled profiles and GPU resources remain separate scope",
+  "releaseInstalled": false,
+  "networkTests": false,
+  "fullGoalComplete": false
+}

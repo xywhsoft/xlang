@@ -1,0 +1,160 @@
+import xge
+import xge3d
+
+extern "fixture3dControlsTriangle" @header("test/cases/foreign_xge3d_scene_controls.h") @no_raise func triangle(xge3d.Scene scene,xge3d.Xge3dNode node)
+extern "fixture3dControlsAppearance" @no_raise func appearance(xge3d.Scene scene,xge3d.Xge3dNode node,c_int light)
+extern "fixture3dControlsBudget" @no_raise func budget(c_int allowance)
+extern "fixture3dControlsTriggered" @no_raise func triggered() as c_int
+extern "fixture3dControlsWarmBegin" @no_raise func warmBegin()
+extern "fixture3dControlsWarmEnd" @no_raise func warmEnd()
+extern "fixture3dControlsNativeWarm" @no_raise func nativeWarm(xge3d.Scene scene,xge3d.Xge3dNode node)
+
+func main(...) as int
+    budget(c_int(-1))
+    auto scene=xge3d.createScene()
+    auto root=xge3d.Xge3dNode()
+    auto parent=scene.createNode(root)
+    auto node=scene.createNode(parent)
+    auto emptyStatus,emptyBox=scene.bounds(node)
+    assert emptyStatus==xge.XGE_ERROR_NOT_FOUND and emptyBox.min.x==c_float(0)
+    triangle(scene,node)
+    scene.prepareSpatial()
+    auto ownBounds,ownBox=scene.bounds(parent)
+    auto treeBounds,treeBox=scene.bounds(parent,c_int(1))
+    assert ownBounds==xge.XGE_ERROR_NOT_FOUND and ownBox.min.x==c_float(0)
+    assert treeBounds==xge.XGE_OK and treeBox.min.x==c_float(-1)
+    auto found,box=scene.bounds(node)
+    assert found==xge.XGE_OK and box.min.x==c_float(-1) and box.max.y==c_float(1)
+    auto ray=xge3d.Xge3dRay()
+    ray.origin.z=c_float(3)
+    ray.direction.z=c_float(-7)
+    auto status,hit=scene.raycast(ray,c_float(5))
+    assert status==xge.XGE_OK and hit.node.slot==node.slot and hit.distance==c_float(3)
+    auto shortStatus,shortHit=scene.raycast(ray,c_float(2))
+    assert shortStatus==xge.XGE_ERROR_NOT_FOUND and shortHit.node.slot==uint64(0) and shortHit.distance==c_float(0)
+    scene.setLayers(node,c_uint(1),c_uint(1),c_uint(1))
+    auto filter=xge3d.Xge3dQueryFilter()
+    filter.layers=c_uint(2)
+    auto masked,maskedHit=scene.raycast(ray,c_float(5),filter)
+    assert masked==xge.XGE_ERROR_NOT_FOUND and maskedHit.node.slot==uint64(0)
+    scene.setLayers(node,c_uint(1),c_uint(2),c_uint(1))
+    auto selected,selectedHit=scene.raycast(ray,c_float(5),filter)
+    assert selected==xge.XGE_OK and selectedHit.node.slot==node.slot
+    scene.setVisible(parent,c_int(0))
+    auto hidden,hiddenHit=scene.raycast(ray,c_float(5),filter)
+    assert hidden==xge.XGE_ERROR_NOT_FOUND and hiddenHit.node.slot==uint64(0)
+    filter.include_hidden=c_int(1)
+    auto included,includedHit=scene.raycast(ray,c_float(5),filter)
+    assert included==xge.XGE_OK and includedHit.node.slot==node.slot
+    auto hiddenBounds,hiddenBox=scene.bounds(parent,c_int(1))
+    assert hiddenBounds==xge.XGE_OK and hiddenBox.max.y==c_float(1)
+    scene.setVisible(parent,c_int(1))
+    auto light=xge3d.threeDLightDefault(c_int(0))
+    light.intensity=c_float(2)
+    light.direction.z=c_float(-2)
+    scene.setLight(node,light)
+    assert light.direction.z==c_float(-2)
+    c_float[4] rgba
+    rgba[0]=c_float(0.25)
+    rgba[1]=c_float(0.5)
+    rgba[2]=c_float(0.75)
+    rgba[3]=c_float(1)
+    scene.setColor(node,rgba)
+    appearance(scene,node,c_int(1))
+    auto badLight=light
+    badLight.intensity=c_float(-1)
+    bool badLightRejected=false
+    try
+        scene.setLight(node,badLight)
+    catch Error
+        badLightRejected=true
+    end
+    assert badLightRejected
+    appearance(scene,node,c_int(1))
+    rgba[1]=c_float(2)
+    bool rejected=false
+    try
+        scene.setColor(node,rgba)
+    catch Error
+        rejected=true
+    end
+    assert rejected
+    appearance(scene,node,c_int(1))
+    rgba[1]=c_float(0.5)
+    scene.clearLight(node)
+    appearance(scene,node,c_int(0))
+    scene.setShadowFlags(node,c_uint(2))
+    assert scene.shadowFlags(node)==c_uint(2)
+    rejected=false
+    try
+        scene.setShadowFlags(node,c_uint(8))
+    catch Error
+        rejected=true
+    end
+    assert rejected and scene.shadowFlags(node)==c_uint(2)
+    scene.setLayers(node,c_uint(1),c_uint(1),c_uint(1))
+    scene.prepareSpatial()
+    warmBegin()
+    for i in range(1000)
+        auto ok,warmHit=scene.raycast(ray,c_float(5))
+        assert ok==xge.XGE_OK and warmHit.distance==c_float(3)
+        assert scene.shadowFlags(node)==c_uint(2)
+        scene.setColor(node,rgba)
+    end
+    warmEnd()
+    warmBegin()
+    nativeWarm(scene,node)
+    warmEnd()
+    auto retiring=scene.createNode(root)
+    auto child=scene.createNode(retiring)
+    auto work=xge3d.Xge3dWorkBudget()
+    assert scene.destroyStep(retiring,work)==c_int(0)
+    rejected=false
+    try
+        scene.setShadowFlags(child,c_uint(1))
+    catch Error
+        rejected=true
+    end
+    assert rejected
+    work.nodes=c_size(1)
+    assert scene.destroyStep(retiring,work)==c_int(0)
+    assert scene.destroyStep(retiring,work)==c_int(1)
+    scene.destroyNode(node)
+    scene.destroyNode(parent)
+    assert scene.nodeCount==c_size(0)
+    scene.close()
+    rejected=false
+    try
+        scene.prepareSpatial()
+    catch Error
+        rejected=true
+    end
+    assert rejected
+    int failed=0
+    int succeeded=0
+    for allowance in range(32)
+        auto candidate=xge3d.createScene()
+        auto candidateNode=candidate.createNode(root)
+        triangle(candidate,candidateNode)
+        budget(c_int(allowance))
+        bool allocationRejected=false
+        try
+            candidate.prepareSpatial()
+            succeeded+=1
+        catch Error
+            failed+=1
+            allocationRejected=true
+        finally
+            assert (triggered()!=c_int(0))==allocationRejected
+            budget(c_int(-1))
+        end
+        assert candidate.nodeCount==c_size(1)
+        candidate.prepareSpatial()
+        auto retry,retryHit=candidate.raycast(ray,c_float(5))
+        assert retry==xge.XGE_OK and retryHit.node.slot==candidateNode.slot
+        candidate.close()
+    end
+    assert failed>0 and succeeded>0
+    println("XGE3D_SCENE_CONTROLS_OK")
+    return 0
+end
