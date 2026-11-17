@@ -48,6 +48,9 @@ XL6_TEXT_API xvalue* xl6PersistenceProjectV1(const xvalue*, const XL6_Persistenc
 /* Native provider/format rules join the SAME object/wire graph memo. The
  * synchronous closed plan is never retained; V1 object/field ABI is unchanged. */
 XL6_TEXT_API xvalue* xl6PersistenceProjectNativeV1(const xvalue*,const XL6_PersistencePlanV1*,const XL6_ValueGraphPlanV1*);
+/* Strict synchronous data input: the same public schema/memo, with no
+ * unhandled resource, callable or raw pointer retention fallback. */
+XL6_TEXT_API xvalue* xl6PersistenceSnapshotNativeV1(const xvalue*,const XL6_PersistencePlanV1*,const XL6_ValueGraphPlanV1*);
 /* Language List persistence is a compact sequence in stable key order, not
  * a sparse-key archive. Genuine native Lists, including open values, use the
  * same rule. Wire/native children share one XRT memo, without a graph pre-copy. */

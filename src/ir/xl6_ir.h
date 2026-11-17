@@ -7126,6 +7126,8 @@ typedef struct XL6_IrModule {
     size_t foreignCallbackSpanCount,foreignCallbackSpanCapacity;
     XL6_ForeignPointerQualifierContract* foreignPointerQualifiers;
     size_t foreignPointerQualifierCount,foreignPointerQualifierCapacity;
+    XL6_ForeignDataSnapshotContract* foreignDataSnapshots;
+    size_t foreignDataSnapshotCount,foreignDataSnapshotCapacity;
     XL6_ForeignFieldCallContract* foreignFieldCalls;
     size_t foreignFieldCallCount,foreignFieldCallCapacity;
     XL6_ForeignFunctionHeaderContract* foreignFunctionHeaders;
@@ -8146,6 +8148,7 @@ static inline int xl6IrForeignViewBorrowPhysical(XL6_IrCallParameterPhysicalAbi 
 {return abi==XL6_IR_CALL_PARAMETER_PHYSICAL_FOREIGN_VIEW_BORROW || abi==XL6_IR_CALL_PARAMETER_PHYSICAL_FOREIGN_VALUE_BORROW || abi==XL6_IR_CALL_PARAMETER_PHYSICAL_CONST_FOREIGN_VIEW_BORROW;}
 const XL6_ForeignPointerQualifierContract* xl6IrForeignPointerQualifierGet(const XL6_IrModule*,const XL6_IrCallTarget*,size_t);
 int xl6IrForeignPointerQualifierMatches(const XL6_IrModule*,const XL6_IrCallTarget*,size_t);
+const XL6_ForeignDataSnapshotContract* xl6IrForeignDataSnapshotGet(const XL6_IrModule*,const XL6_IrCallTarget*,size_t);
 uint32 xl6IrForeignFunctionHeaderIndex(const XL6_IrModule*,XL6_IrNodeId);
 const XL6_ForeignFunctionHeaderContract* xl6IrForeignFunctionHeaderGet(const XL6_IrModule*,const XL6_IrCallTarget*);
 const XL6_ForeignValueContract* xl6IrForeignValueGet(const XL6_IrModule*,const XL6_IrCallTarget*,size_t);

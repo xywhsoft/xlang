@@ -79,7 +79,10 @@ static int xl6SemForeignPacks(XL6_SemContext* ctx,XL6_AstNode* node,const XL6_As
             const XL6_AstNode* type=xl6SemResolveAliasType(ctx,params->children[p]->children[0]);
             const XL6_AstNode* inner=type && xl6SemTypeIsNullable(type) ? xl6SemResolveAliasType(ctx,xl6SemNullableInnerType(type)):type;
             used|=UINT64_C(1)<<p;
-            if(field.kind==XL6_FOREIGN_PACK_FIELD_VALUE){if(!xl6SemForeignTrivialCValue(ctx,type,0))goto invalid;}
+            if(field.kind==XL6_FOREIGN_PACK_FIELD_VALUE){
+                if(!xl6SemForeignTrivialCValue(ctx,type,0) &&
+                    (!type || type->childCount || !xl6TextEquals(type->text,"var")))goto invalid;
+            }
             else if(field.kind==XL6_FOREIGN_PACK_FIELD_VIEW_RAW){XL6_ForeignClassDecl view;
                 if(!xl6SemForeignViewDeclaration(ctx,type,&view) || view.lifetime==XL6_FOREIGN_LIFETIME_CALLER)goto invalid;
             }else if(field.kind==XL6_FOREIGN_PACK_FIELD_SPAN_DATA || field.kind==XL6_FOREIGN_PACK_FIELD_SPAN_COUNT){

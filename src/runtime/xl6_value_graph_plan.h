@@ -30,4 +30,6 @@ XL6_TEXT_API xvalue* xl6ValueDeepCloneNativeV1(const xvalue*,const XL6_ValueGrap
 XL6_TEXT_API xvalue* xl6ValueDataSnapshotNativeV1(const xvalue*,const XL6_ValueGraphPlanV1*);
 XL6_TEXT_API xvalue* xl6ValueDataProjectNativeV1(const xvalue*,xvaluegraphobjectcopyv1,ptr,
     const xvaluegraphsequencev1*,size_t,const XL6_ValueGraphPlanV1*);
+XL6_TEXT_API xvalue* xl6ValueDataProjectStrictNativeV1(const xvalue*,xvaluegraphobjectcopyv1,ptr,
+    const xvaluegraphsequencev1*,size_t,const XL6_ValueGraphPlanV1*);
 #endif

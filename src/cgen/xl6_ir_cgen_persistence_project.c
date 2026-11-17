@@ -21,6 +21,14 @@ static int xl6IrCgenEmitPersistenceProjectPlans(
             "XLIR persistence projection tables are invalid");
     xl6OutputPuts("#include <__xl_runtime/xl6_persistence_project.h>\n", out);
     unsigned graphProviders=0;
+    for(size_t t=0;t<module->callTargetCount;++t){
+        const XL6_IrCallTarget* target=&module->callTargets[t];
+        if(target->reachability==XL6_IR_REACHABILITY_UNREACHABLE)continue;
+        for(size_t a=0;a<target->parameterCount;++a){
+            const XL6_ForeignDataSnapshotContract* row=xl6IrForeignDataSnapshotGet(module,target,a);
+            if(row)graphProviders|=xl6IrValueGraphProvidersForType(module,row->logicalType);
+        }
+    }
     for (s=0;s<module->instructionCount;++s)
         if (xl6IrCgenInstructionIsReachable(module,s) &&
             (module->instructions[s].runtimeOp == XL6_IR_RUNTIME_PUBLIC_DATA_PROJECT || module->instructions[s].runtimeOp == XL6_IR_RUNTIME_PERSISTENCE_JSON_PROJECT ||

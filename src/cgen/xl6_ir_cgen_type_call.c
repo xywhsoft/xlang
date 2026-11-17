@@ -610,6 +610,7 @@ static int xl6IrCgenNativeFieldCallBegin(XL6_Output* out,const XL6_IrModule* mod
 }
 
 #include "src/cgen/xl6_ir_cgen_foreign_region.c"
+#include "src/cgen/xl6_ir_cgen_foreign_snapshot.c"
 
 static int xl6IrCgenEmitWitnessNativeCall(XL6_Output* out, const XL6_IrModule* module,
     const XL6_IrCallTarget* target, const char* result, const char* scope)
@@ -634,6 +635,8 @@ static int xl6IrCgenEmitWitnessNativeCall(XL6_Output* out, const XL6_IrModule* m
     int callbacks=xl6IrCgenNativeCallbacksBegin(out,module,target,NULL,scope);
     if(callbacks<0)return 0;
     if(!xl6IrCgenPrepareForeignCountedField(out,module,target,NULL,scope))return 0;
+    int snapshots=xl6IrCgenDataSnapshotsBegin(out,module,target,NULL,scope);
+    if(snapshots<0)return 0;
     int packs=xl6IrCgenForeignPacksBegin(out,module,target,NULL,scope);
     if(packs<0)return 0;
     int fieldCallee=xl6IrCgenNativeFieldCallBegin(out,module,target,NULL,scope,NULL);
@@ -708,6 +711,7 @@ static int xl6IrCgenEmitWitnessNativeCall(XL6_Output* out, const XL6_IrModule* m
         const XL6_ForeignFieldCallContract* receiverProjection=fieldCallee && p==0 ? xl6IrForeignFieldCallGet(module,target):NULL;
         if(receiverProjection && receiverProjection->receiverField[0])
             xl6OutputPrintf(out,"native_callee_receiver->%s",receiverProjection->receiverField);
+        else if(xl6IrForeignDataSnapshotGet(module,target,p))xl6OutputPrintf(out,"native_snapshot_%lu",(unsigned long)p);
         else if (encoded && valuePlan.inputParameter == p + 1) xl6OutputPuts("&native_value_input", out);
         else {
             char place[40];
@@ -756,6 +760,7 @@ static int xl6IrCgenEmitWitnessNativeCall(XL6_Output* out, const XL6_IrModule* m
     if (probe) xl6IrCgenFactoryProbeEnd(out, scope);
     if(fieldCallee)xl6OutputPuts("    } }\n",out);
     if(packs)xl6IrCgenForeignPacksEnd(out);
+    if(snapshots)xl6IrCgenDataSnapshotsEnd(out,module,target,scope);
     if(callbacks)xl6IrCgenNativeCallbacksEnd(out,module,target,scope);
     if (access) xl6IrCgenNativeAccessEnd(out,target,scope);
     if(regions)xl6IrCgenForeignRegionsEnd(out,module,target,scope);
@@ -1084,6 +1089,8 @@ static int xl6IrCgenEmitDirectCall(
     int callbacksPrepared=xl6IrCgenNativeCallbacksBegin(out,module,target,module->operands+instruction->firstOperand,nativeScope);
     if(callbacksPrepared<0)return 0;
     if(!xl6IrCgenPrepareForeignCountedField(out,module,target,module->operands+instruction->firstOperand,nativeScope))return 0;
+    int snapshotsPrepared=xl6IrCgenDataSnapshotsBegin(out,module,target,module->operands+instruction->firstOperand,nativeScope);
+    if(snapshotsPrepared<0)return 0;
     int packsPrepared=xl6IrCgenForeignPacksBegin(out,module,target,module->operands+instruction->firstOperand,nativeScope);
     if(packsPrepared<0)return 0;
     int fieldCallee=xl6IrCgenNativeFieldCallBegin(out,module,target,module->operands+instruction->firstOperand,nativeScope,diags);
@@ -1175,6 +1182,7 @@ static int xl6IrCgenEmitDirectCall(
             const XL6_ForeignFieldCallContract* receiverProjection=fieldCallee && argument==0 ? xl6IrForeignFieldCallGet(module,target):NULL;
             if(receiverProjection && receiverProjection->receiverField[0])
                 xl6OutputPrintf(out,"native_callee_receiver->%s",receiverProjection->receiverField);
+            else if(xl6IrForeignDataSnapshotGet(module,target,argument))xl6OutputPrintf(out,"native_snapshot_%lu",(unsigned long)argument);
             else if (encoded && nativeValue.inputParameter==argument+1)
                 xl6OutputPuts("&native_value_input",out);
             else if ( !xl6IrCgenEmitCallOperand(
@@ -1238,6 +1246,7 @@ static int xl6IrCgenEmitDirectCall(
     if(probePrepared)xl6IrCgenFactoryProbeEnd(out,nativeScope);
     if(fieldCallee)xl6OutputPuts("    } }\n",out);
     if(packsPrepared)xl6IrCgenForeignPacksEnd(out);
+    if(snapshotsPrepared)xl6IrCgenDataSnapshotsEnd(out,module,target,nativeScope);
     if(callbacksPrepared)xl6IrCgenNativeCallbacksEnd(out,module,target,nativeScope);
     if(accessPrepared)xl6IrCgenNativeAccessEnd(out,target,nativeScope);
     if(regionsPrepared)xl6IrCgenForeignRegionsEnd(out,module,target,nativeScope);

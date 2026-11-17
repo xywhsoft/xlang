@@ -95,6 +95,7 @@ static inline int xl6ForeignValueOutputBitsValid(uint8 mode)
 #define XL6_FOREIGN_INPUT_ARRAY_GROUPS_PRESENT 512u
 #define XL6_FOREIGN_INPUT_FIXED_PRESENT 1024u
 #define XL6_FOREIGN_INPUT_SPAN_PREFIXES_PRESENT 2048u
+#define XL6_FOREIGN_INPUT_DATA_SNAPSHOTS_PRESENT 4096u
 static inline uint8 xl6ForeignInputCallbackCount(uint16 facts)
 {return (uint8)(facts&XL6_FOREIGN_INPUT_CALLBACK_COUNT_MASK);}
 static inline int xl6ForeignInputHasRegions(uint16 facts)
@@ -107,8 +108,10 @@ static inline int xl6ForeignInputHasFixedInputs(uint16 facts)
 {return (facts&XL6_FOREIGN_INPUT_FIXED_PRESENT)!=0;}
 static inline int xl6ForeignInputHasSpanPrefixes(uint16 facts)
 {return (facts&XL6_FOREIGN_INPUT_SPAN_PREFIXES_PRESENT)!=0;}
+static inline int xl6ForeignInputHasDataSnapshots(uint16 facts)
+{return (facts&XL6_FOREIGN_INPUT_DATA_SNAPSHOTS_PRESENT)!=0;}
 static inline int xl6ForeignInputMappingsValid(uint16 facts)
-{return !(facts&~(XL6_FOREIGN_INPUT_CALLBACK_COUNT_MASK|XL6_FOREIGN_INPUT_REGIONS_PRESENT|XL6_FOREIGN_INPUT_PACKS_PRESENT|XL6_FOREIGN_INPUT_ARRAY_GROUPS_PRESENT|XL6_FOREIGN_INPUT_FIXED_PRESENT|XL6_FOREIGN_INPUT_SPAN_PREFIXES_PRESENT)) && xl6ForeignInputCallbackCount(facts)<=64;}
+{return !(facts&~(XL6_FOREIGN_INPUT_CALLBACK_COUNT_MASK|XL6_FOREIGN_INPUT_REGIONS_PRESENT|XL6_FOREIGN_INPUT_PACKS_PRESENT|XL6_FOREIGN_INPUT_ARRAY_GROUPS_PRESENT|XL6_FOREIGN_INPUT_FIXED_PRESENT|XL6_FOREIGN_INPUT_SPAN_PREFIXES_PRESENT|XL6_FOREIGN_INPUT_DATA_SNAPSHOTS_PRESENT)) && xl6ForeignInputCallbackCount(facts)<=64;}
 static inline int xl6ForeignInputMappingsEmpty(uint16 facts)
 {return xl6ForeignInputMappingsValid(facts) && !facts;}
 static inline int xl6ForeignInputMappingsSet(size_t callbacks,int regions,int packs,uint16* output)
@@ -140,6 +143,7 @@ typedef struct XL6_ForeignCallFacts {
     uint8 inplaceOutput; /* XL6_ForeignInplaceKind, not a Boolean. */
     uint16 inputMappingFacts;
     uint8 spanPrefixCount; /* Uses existing padding; authenticates sparse prefix rows. */
+    uint8 dataSnapshotCount; /* Remaining padding; authenticates sparse snapshot rows. */
     uint32 resultOwnerIndexPlusOne;
     uint32 outputIndexPlusOne;
     int32 successCode;
@@ -174,8 +178,25 @@ static inline int xl6ForeignCallFactsEqual(const XL6_ForeignCallFacts* a,const X
         xl6ForeignInputHasArrayGroups(a->inputMappingFacts)==xl6ForeignInputHasArrayGroups(b->inputMappingFacts) &&
         xl6ForeignInputHasFixedInputs(a->inputMappingFacts)==xl6ForeignInputHasFixedInputs(b->inputMappingFacts) &&
         xl6ForeignInputHasSpanPrefixes(a->inputMappingFacts)==xl6ForeignInputHasSpanPrefixes(b->inputMappingFacts) &&
-        a->spanPrefixCount==b->spanPrefixCount;
+        xl6ForeignInputHasDataSnapshots(a->inputMappingFacts)==xl6ForeignInputHasDataSnapshots(b->inputMappingFacts) &&
+        a->spanPrefixCount==b->spanPrefixCount && a->dataSnapshotCount==b->dataSnapshotCount;
 }
+
+/* Snapshot conversion changes the logical admission, never the C signature.
+ * Each declaration retains its own verified rows and raising preparation. */
+static inline int xl6ForeignCallFactsPhysicalEqual(XL6_ForeignCallFacts a,XL6_ForeignCallFacts b)
+{
+    a.inputMappingFacts&=~XL6_FOREIGN_INPUT_DATA_SNAPSHOTS_PRESENT;
+    b.inputMappingFacts&=~XL6_FOREIGN_INPUT_DATA_SNAPSHOTS_PRESENT;
+    a.dataSnapshotCount=b.dataSnapshotCount=0;
+    return xl6ForeignCallFactsEqual(&a,&b);
+}
+
+/* Only explicit snapshot inputs occupy a row. Parameter includes a native
+ * receiver after closure; source syntax indexes explicit parameters only. */
+typedef struct XL6_ForeignDataSnapshotContract {
+    uint32 declaration,parameter,logicalType;
+} XL6_ForeignDataSnapshotContract;
 
 /* Ownership helpers have one exact raw owner input and no physical input
  * rewrites. Release may report int status through the existing checked-result

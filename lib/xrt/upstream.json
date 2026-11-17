@@ -1,22 +1,9 @@
 {
-  "revision": "4641cd2e4da09d8b1a66872cabe085c263d8b5ba",
+  "revision": "804cc769de3030118c2b46ef7af69543d1b82d9d",
   "dirty": false,
-  "sourceSha256": "4fbf52745fde3feee13935746066024640ac8435c4a44a40c64b1161b85a425a",
   "snapshotMode": "immutable-git-export",
   "sourceRepository": "D:\\GIT\\xrt",
-  "sourceRepositoryWorktreeDirty": true,
-  "excludedWorktreeChanges": [
-    " M extlibs/xcron/config/modules.json",
-    " M extlibs/xcron/docs/tzdb.md",
-    " M extlibs/xcron/include/xcron/tzdb.h",
-    " M extlibs/xcron/src/tzdb/tzdb.c",
-    " M extlibs/xcron/tests/package/test_consumer.c",
-    " M single/extlibs/xcron.h",
-    " M single/extlibs/xcron_decl.h",
-    "?? extlibs/xcron/tests/single/test_single_xcron_tzdb_error_failure.c",
-    "?? extlibs/xcron/tests/single/test_single_xcron_tzdb_errors.c",
-    "?? extlibs/xcron/tests/test_tzdb_errors.c"
-  ],
+  "sourceSha256": "1af885138ac2029288cd32866ddad36383b0b989a337bfb8c69a5831a2be51b2",
   "checks": [
     {
       "tool": "check_release_maturity.py",

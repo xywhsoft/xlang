@@ -1,0 +1,144 @@
+extern "snapshot_store" @header("test/cases/foreign_data_snapshot.h") @no_raise @c_data_snapshot(0) func store(var value) as c_int
+extern "snapshot_store" @header("test/cases/foreign_data_snapshot.h") @no_raise func storeShared(var value) as c_int
+extern "snapshot_pair" @header("test/cases/foreign_data_snapshot.h") @no_raise @c_data_snapshot(0) func pair(var value,c_int tag) as c_int
+extern "snapshot_owned" @header("test/cases/foreign_data_snapshot.h") @no_raise @c_data_snapshot(0) func ownedData(var value) as var
+extern "snapshot_const" @header("test/cases/foreign_data_snapshot.h") @no_raise @c_const(0) @c_data_snapshot(0) func constData(var value) as c_int
+extern "snapshot_failing_store" @header("test/cases/foreign_data_snapshot.h") @no_raise @c_data_snapshot(0) @c_result("status",0) func failingStore(var value)
+extern "snapshot_two" @header("test/cases/foreign_data_snapshot.h") @no_raise @c_data_snapshot(0) @c_data_snapshot(1) func two(var first,var second) as c_int
+extern "snapshot_pack" @header("test/cases/foreign_data_snapshot.h") @no_raise @c_data_snapshot(1) @c_pack(0,"SnapshotPack",0,2) @c_pack_field(0,"tag",0,"value") @c_pack_field(0,"value",1,"value") func packed(c_int tag,var value) as c_int
+extern "SnapshotReceiver*" class Receiver @header("test/cases/foreign_data_snapshot.h") @lifetime("caller")
+    native point handle
+    extern "snapshot_receiver_store" @no_raise @c_data_snapshot(0) func store(var value) as c_int
+    extern "consume" @c_field_call @no_raise @c_data_snapshot(0) func consume(var value) as c_int
+end
+extern "snapshot_receiver" @no_raise func receiver() as Receiver
+extern "snapshot_calls" @no_raise func calls() as c_int
+extern "snapshot_number" @no_raise func number() as c_int
+extern "snapshot_same" @no_raise func same(var value) as c_int
+extern "snapshot_opaque" @header("test/cases/foreign_data_snapshot.h") func opaque() as var
+extern "snapshot_opaque_live" @no_raise func opaqueLive() as c_int
+extern "snapshot_public" @no_raise func publicFields() as c_int
+extern "snapshot_array" @no_raise func arraySharing() as c_int
+extern "snapshot_sequence" @no_raise func sequence() as c_int
+extern "snapshot_scalar" @no_raise func scalar(c_int mode) as c_int
+extern "snapshot_clear" @no_raise func clear()
+extern "snapshot_budget" @no_raise func budget(c_int allowance)
+extern "snapshot_triggered" @no_raise func triggered() as c_int
+extern "snapshot_mark" @no_raise func mark()
+extern "snapshot_balanced" @no_raise func balanced() as c_int
+
+int getterCalls=0
+class Base
+    derive json
+    string inherited="base"
+    private string baseSecret="private"
+end
+class Input extends Base
+    derive json
+    string name @json("wire_name")="public"
+    string visible @persist(skip)="public despite serialization override"
+    private string secret @persist(include)="private"
+    private Buffer resource=Buffer("private resource")
+    get computed() as string
+        getterCalls+=1
+        return "getter must not execute"
+    end
+end
+var data={"n":7}
+int evaluations=0
+func mutate() as c_int
+    evaluations+=1
+    data["n"]=11
+    return c_int(42)
+end
+func main(...) as int
+    assert store(data)==c_int(0)
+    assert same(data)==c_int(0)
+    data["n"]=9
+    assert number()==c_int(7)
+    assert pair(data,mutate())==c_int(0)
+    assert evaluations==1 and number()==c_int(11)
+    assert storeShared(data)==c_int(0)
+    assert same(data)==c_int(1)
+    data["n"]=13
+    func(var) as c_int stored=store
+    assert stored(data)==c_int(0)
+    assert same(data)==c_int(0) and number()==c_int(13)
+    var returned=ownedData(data)
+    assert returned["n"]==13
+    bool failedAfterEntry=false
+    try
+        failingStore(data)
+    catch failure
+        failedAfterEntry=true
+    end
+    assert failedAfterEntry and number()==c_int(13)
+    func erased=store
+    assert erased(data)==c_int(0)
+    auto input=Input()
+    assert store(input)==c_int(0) and publicFields()==c_int(1)
+    assert getterCalls==0
+    assert store([input,input])==c_int(0) and arraySharing()==c_int(1)
+    assert store(null)==c_int(0) and scalar(c_int(0))==c_int(1)
+    assert store("a\0b")==c_int(0) and scalar(c_int(1))==c_int(1)
+    assert store(b"\0\xff")==c_int(0) and scalar(c_int(2))==c_int(1)
+    list<int> sparse=list[2:7,42:9]
+    set<int> unique=set{7,9}
+    array<int> values=[7,9]
+    assert store(sparse)==c_int(0) and sequence()==c_int(1)
+    assert store(unique)==c_int(0) and sequence()==c_int(1)
+    assert store(values)==c_int(0) and sequence()==c_int(1)
+    assert constData(data)==c_int(0) and same(data)==c_int(0)
+    assert receiver().store(data)==c_int(0)
+    func(var) as c_int bound=receiver().store
+    assert bound(data)==c_int(0)
+    assert receiver().consume(data)==c_int(0)
+    func(var) as c_int field=receiver().consume
+    assert field(data)==c_int(0)
+    assert packed(c_int(42),input)==c_int(0) and publicFields()==c_int(1)
+    func(c_int,var) as c_int packedFunction=packed
+    assert packedFunction(c_int(42),input)==c_int(0) and publicFields()==c_int(1)
+    clear()
+    int refused=0
+    int before=int(calls())
+    try
+        two(data,opaque())
+    catch failure
+        refused+=1
+    end
+    try
+        store(Buffer("public resource"))
+    catch failure
+        refused+=1
+    end
+    assert refused==2 and int(calls())==before
+    assert opaqueLive()==c_int(0)
+    assert getterCalls==0
+    budget(c_int(-1))
+    int failures=0
+    int firstSuccess=-1
+    for allowance in range(257)
+        bool caught=false
+        mark()
+        budget(c_int(allowance))
+        try
+            two(data,data)
+        catch failure
+            caught=true
+        end
+        bool hit=triggered()!=c_int(0)
+        budget(c_int(-1))
+        assert caught==hit
+        clear()
+        assert balanced()==c_int(1)
+        if not hit then
+            firstSuccess=allowance
+            break
+        end
+        failures+=1
+    end
+    assert firstSuccess==failures and failures>0
+    assert data["n"]==13
+    println("FOREIGN_DATA_SNAPSHOT_OK",failures)
+    return 0
+end

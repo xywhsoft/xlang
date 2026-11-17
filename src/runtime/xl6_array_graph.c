@@ -6,6 +6,7 @@
 
 typedef struct GraphContext {
     bool data;
+    bool strict;
     xvaluegraphobjectcopyv1 object;
     ptr user;
     const xvaluegraphsequencev1* sequences;
@@ -159,7 +160,8 @@ static xvalue* copyGraph(const xvalue* source, GraphContext* graph)
         return NULL;
     }
     const xvaluegraphcopyv1 config={.Size=sizeof(config),
-        .Flags=graph->data ? XVALUE_GRAPH_COPY_DATA_V1 : 0,
+        .Flags=(graph->data ? XVALUE_GRAPH_COPY_DATA_V1 : 0) |
+            (graph->strict ? XVALUE_GRAPH_COPY_STRICT_DATA_V1 : 0),
         .CopyHandle=copyHandle,.UserData=graph,.CopyObject=graph->object || graph->native ? copyObject : NULL,
         .Sequences=graph->sequences,.SequenceCount=graph->sequenceCount};
     xvalue* result=xrtValueGraphCopyV1(source,&config);
@@ -189,5 +191,12 @@ xvalue* xl6ValueDataProjectNativeV1(const xvalue* source,xvaluegraphobjectcopyv1
     const xvaluegraphsequencev1* sequences,size_t count,const XL6_ValueGraphPlanV1* native)
 {
     GraphContext graph={.data=true,.object=object,.user=user,.sequences=sequences,.sequenceCount=count,.native=native};
+    return copyGraph(source,&graph);
+}
+xvalue* xl6ValueDataProjectStrictNativeV1(const xvalue* source,xvaluegraphobjectcopyv1 object,ptr user,
+    const xvaluegraphsequencev1* sequences,size_t count,const XL6_ValueGraphPlanV1* native)
+{
+    GraphContext graph={.data=true,.strict=true,.object=object,.user=user,
+        .sequences=sequences,.sequenceCount=count,.native=native};
     return copyGraph(source,&graph);
 }

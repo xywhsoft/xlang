@@ -41,7 +41,10 @@ static int xl6IrCgenPackProof(XL6_Output* out,const XL6_IrModule* module,const X
             }
             xl6OutputPrintf(out,"XLIR_NATIVE_ASSERT(XLIR_NATIVE_IS_TYPE(((%s*)0)->%s,%s), \"native descriptor field type\");\n",
                 pack->recordCName,field->field,field->physicalCName);
-            if(field->kind==XL6_FOREIGN_PACK_FIELD_VALUE && !xl6IrCgenPackPodProof(out,module,field->logicalType,0))return 0;
+            const XL6_IrType* fieldType=xl6IrTypeGet(&module->types,field->logicalType);
+            if(field->kind==XL6_FOREIGN_PACK_FIELD_VALUE &&
+                (!fieldType || fieldType->cAbi!=XL6_IR_C_ABI_RUNTIME_XVALUE_PTR) &&
+                !xl6IrCgenPackPodProof(out,module,field->logicalType,0))return 0;
             if(field->kind==XL6_FOREIGN_PACK_FIELD_SIZEOF){
                 const char* record=field->recordParentIndexPlusOne ? module->foreignPackFields[field->recordParentIndexPlusOne-1].physicalCName:pack->recordCName;
                 xl6OutputPrintf(out,"XLIR_NATIVE_ASSERT(sizeof(%s)<=((%s)~(%s)0), \"native descriptor size range\");\n",record,field->physicalCName,field->physicalCName);
@@ -74,7 +77,10 @@ static int xl6IrCgenForeignPacksBegin(XL6_Output* out,const XL6_IrModule* module
                 if(field->recordParentIndexPlusOne)xl6OutputPrintf(out,"sizeof(%s)",module->foreignPackFields[field->recordParentIndexPlusOne-1].physicalCName);
                 else xl6OutputPrintf(out,"sizeof(native_pack_%u)",pack->physicalIndex);
                 break;
-            case XL6_FOREIGN_PACK_FIELD_VALUE:xl6IrCgenForeignViewArgument(out,operands,p,NULL);break;
+            case XL6_FOREIGN_PACK_FIELD_VALUE:
+                if(xl6IrForeignDataSnapshotGet(module,target,p))xl6OutputPrintf(out,"native_snapshot_%lu",(unsigned long)p);
+                else xl6IrCgenForeignViewArgument(out,operands,p,NULL);
+                break;
             case XL6_FOREIGN_PACK_FIELD_VIEW_RAW:xl6OutputPrintf(out,"(%s)native_view_%lu.raw",field->physicalCName,(unsigned long)p);break;
             case XL6_FOREIGN_PACK_FIELD_C_STRING:xl6OutputPrintf(out,"xlir_cstr_arg_%lu",(unsigned long)p);break;
             case XL6_FOREIGN_PACK_FIELD_TEXT_DATA:xl6IrCgenForeignViewArgument(out,operands,p,NULL);xl6OutputPuts(".Data",out);break;

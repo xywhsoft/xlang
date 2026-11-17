@@ -481,6 +481,11 @@ int xl6IrCgenVisitResidentSymbols(const XL6_IrModule* module, XL6_DiagList* diag
     for(size_t t=0;t<module->callTargetCount;++t) {
         const XL6_IrCallTarget* target=&module->callTargets[t];
         if(target->reachability==XL6_IR_REACHABILITY_UNREACHABLE)continue;
+        for(size_t p=0;p<target->parameterCount;++p){
+            const XL6_ForeignDataSnapshotContract* row=xl6IrForeignDataSnapshotGet(module,target,p);
+            if(row && (!visitor(context,"xl6PersistenceSnapshotNativeV1") ||
+                !xl6IrCgenVisitValueGraphProviders(xl6IrValueGraphProvidersForType(module,row->logicalType),1,visitor,context)))return 0;
+        }
         for(size_t g=0;g<module->foreignArrayGroupCount;++g)if(module->foreignArrayGroups[g].declaration==target->declaration){
             if(!visitor(context,"xl6SequenceReadPinBeginV1") || !visitor(context,"xl6SequenceReadPinEndV1") ||
                 !visitor(context,"xl6SequenceReadPinSlotV1"))return 0;

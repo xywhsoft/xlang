@@ -1,0 +1,93 @@
+{
+  "complete": true,
+  "passed": true,
+  "scope": "strict scoped @c_data_snapshot input contract only; model promotion/native SDK and final IDE/runtime delivery remain open",
+  "sourceParent": "04cf22da6a497cf815f21c8178a65cf697586ccb",
+  "sourceHashes": {
+    "src/cgen/xl6_ir_cgen_foreign_pack.c": "fdbcbdc2aac11d9d5a18a2ccb1d659a19a39dda1fbc15a6175bbefe71a838356",
+    "src/cgen/xl6_ir_cgen_foreign_snapshot.c": "d6054b5b29120e14641fbe26e882ee9425834cbddfe579d6b38ae42f0684a23b",
+    "src/cgen/xl6_ir_cgen_native_dependencies.c": "1ea5dc0e643fe164ff320e97cb1afd7332c8c14a4af048a762a136bdef57bfd6",
+    "src/cgen/xl6_ir_cgen_persistence_project.c": "1b07094ee4b486a0957e38b3f518b20cc957474e1b8505c47d6f764ff594edf9",
+    "src/cgen/xl6_ir_cgen_type_call.c": "5b11ae4925d4ea899154681407b84338fef9823f8746148894f956b91d6c07cc",
+    "src/ir/xl6_ir.c": "cd68b0b76afd5375be1d54b5bdf7bdf8136041bfa427ff7008228565a1495108",
+    "src/ir/xl6_ir.h": "ef05fd034befe342b38399f0007b238055c2ed19602a9c9d128e4dc5e8b2c20a",
+    "src/ir/xl6_ir_foreign_compat.c": "f3e28722e17a6d1eccdc4a1a0c20f5df2c82e672a63ab7d89a021aeb8a33421f",
+    "src/ir/xl6_ir_foreign_pack.c": "c431127fae13beee91e2ccd31c0282981410c2fe4be9b0c5132fc180c99a3623",
+    "src/ir/xl6_ir_foreign_snapshot.c": "b2519b2cc1e128580da83c8c8da6d39a4f0034ac0851d551da1321506cdd3030",
+    "src/runtime/xl6_array_graph.c": "c8d59059e086448fce5243d94009c40460313a52fe534b79ccc7b622142867b6",
+    "src/runtime/xl6_persistence_project.c": "3e496c554bd9b76d37891e6814fa282ec6dc1ddf03b137d553bac765a95bdbf2",
+    "src/runtime/xl6_persistence_project.h": "5f92b8085ea9b28e0fc317eaedd0c73d4a6cfbfb8a89fde832a0a8eaed1df4b6",
+    "src/runtime/xl6_text_symbols.inc": "108726e5fb15535b72b509887af2e4b0598fa0a67a84da092337d6a168df660f",
+    "src/runtime/xl6_value_graph_plan.h": "98b149b7e5ce7eef1bc926a8c0b304c96779dd1e5e2aa8e7c2b61e2cc1566db5",
+    "src/sem/xl6_sem.c": "e6fe0ec9a1dbf6179a8a6b0c2db535ec2e48a12feeb98f1fb3c88cddaadb1da5",
+    "src/sem/xl6_sem_foreign_compat.c": "7a0e1063fa6d8b9952498a146b99bca387961098ce30fe6f4d7df1f79847b7b8",
+    "src/sem/xl6_sem_foreign_pack.c": "dc60a491d7c70176640f248360467abac23b73bbbb51d1efe6a182034782039a",
+    "src/sem/xl6_sem_foreign_snapshot.c": "ab55d52e67056e79a0d55948d3b4ed1f0448a85556a71dd56211ba30541fb0c5",
+    "src/type/xl6_foreign_call_contract.h": "58dd3cc11768fb88c910084bdc5c83ee8e0fa97c9794849ede5fc4a78d6f69c3",
+    "src/type/xl6_foreign_decl.h": "ffb82a1af2557c1492ec1c53546e6725dd8b810e2648bb026512944b95e906b9",
+    "test/cases/foreign_data_snapshot.xl": "521164759582925abcb098160799029d6a80e8ef62c3a058dc357ee1eae2af24",
+    "test/cases/foreign_data_snapshot.c": "3381b17726f157ecd4455f7738e3e5e7ab3c4b466483d0acb5e7e9f51c1f8bc3",
+    "test/cases/foreign_data_snapshot.h": "0a113d615dc8f06ba44ef14bfd6af1427c74d56c771de4e517c3e8c4dde7adb0",
+    "test/cases/foreign_data_snapshot_ir.c": "b65611e1d876a2a5caa6a31bc6bbd6e060bb3b317f58b8dd76d6bd5039082d38",
+    "tools/check_foreign_data_snapshot.py": "ae21fc45e947ec533464de186037532ec205488f03b2453b26783546007fd18a",
+    "docs/foreign-data-snapshot.md": "93e892354132e0077abf3b1b999cae854dd06be9920dd70cd1ba88716962c8df",
+    "docs/xge3-xui3-full-coverage-plan.md": "c0ba11cc882257bd941eede035c04e12eccc69dc1c774de518a52106c9a1fa65",
+    "docs/xui-model-shared-values.md": "69e0e235d1eb9842812605796b6b6004ba427a4a4a3f36fdd8358e2c8982b2d3",
+    "lib/xrt/xrt.h": "7dd32c65c0779e94e630768902cc3e6eb79e25c7ddbc2d264603d36bae7220b0",
+    "lib/xrt/xrt.snapshot.json": "21ed79c448564bcecf2eb11225066f07f2ba5c7cda4fd82984a5eb12da394de6",
+    "lib/xrt/upstream.json": "79f36f30ac26024271113f5f6d203c6142b9a4eea65f9a9d3b00836f6f2ac0da",
+    "lib/xruntime/xruntime.snapshot.json": "46736a330c6e12e58b3a25dcc37efe2e92aeaf5cb3a3cfb21608cd4c9546b156"
+  },
+  "nativeXrtCommit": "804cc769de3030118c2b46ef7af69543d1b82d9d",
+  "nativeXgeSourceRevisionUnchanged": "497121af9da7399bc3c9a8c7ade75b4b9d15e046",
+  "acceptedDecision": {
+    "path": "F:\\xlang-validation\\xge-full-20261110\\accepted-decisions-20261117-c-data-snapshot.json",
+    "sha256": "07d42a7efbfc5cab2d4496b1122e915f6647c31d29f00901759e7ec8fcaf5a65"
+  },
+  "qualification": {
+    "primaryCommands": 54,
+    "independentGccReplays": 4,
+    "irMutations": 186,
+    "foreignFactBytes": 88,
+    "oomFailurePositionsPerMode": 8,
+    "modesPerOs": 5,
+    "cpuOrWholeBridgeZeroOverheadClaim": false
+  },
+  "compilerBuilds": {
+    "win": {
+      "path": "F:\\xlang-validation\\xge-full-20261110\\compiler-data-snapshot-dev-win-r1\\build.json",
+      "sha256": "2fb738f4e17d0a3a1286426a04ebd39b56d51057dd8660c2acf307abc26ee643"
+    },
+    "linux": {
+      "path": "/var/tmp/xlang-validation/xge-full-20261110/compiler-data-snapshot-dev-linux-r1/build.json",
+      "sha256": "d0c43e88386d84055052d2f120142f562c8ec03b34a945922faae6fcae5b68dd"
+    }
+  },
+  "independentVerification": {
+    "win": {
+      "path": "F:\\xlang-validation\\xge-full-20261110\\data-snapshot-independent-win-r1\\results.json",
+      "sha256": "8ecbce1f7309df11b8e26494928beb7fca7dfadd6a1a2d0a5d1ec64f683f624d"
+    },
+    "linux": {
+      "path": "/var/tmp/xlang-validation/xge-full-20261110/data-snapshot-independent-linux-r1/results.json",
+      "sha256": "e5b8a73e5532e8ae59233eddd185c44d77cafc6ba4ce35598d306a783074cb2a"
+    }
+  },
+  "upstreamStrictFlag": {
+    "win": {
+      "path": "F:\\xlang-validation\\xge-full-20261110\\strict-data-xrt-win-r3\\results.json",
+      "sha256": "b866e239b016b7f1868b5ae14d5eecc38d0ed2253dfa23375ec6feb1beb7f95f"
+    },
+    "linux": {
+      "path": "F:\\xlang-validation\\xge-full-20261110\\strict-data-xrt-linux-r3\\results.json",
+      "sha256": "748ae28f44bf88f1b34f977c281f71ac73c35fa33010de4131736d0074e2f4a0"
+    }
+  },
+  "sourcePromotion": {
+    "path": "F:\\xlang-validation\\xge-full-20261110\\snapshot-xrt-source-promotion-r1.json",
+    "sha256": "a42ad1c551480a844517325f9e7e979527c5e1a0810f3863bd1a161ccf25df8d"
+  },
+  "unrelatedWorkingPathsPreserved": 1098,
+  "releaseInstalled": false,
+  "nativeSdkRebuilt": false
+}

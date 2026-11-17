@@ -9250,9 +9250,10 @@ static int xl6SemExternCDeclsCompatible(XL6_SemContext* ctx, const XL6_AstNode* 
             xl6ForeignValueOutputIsRecord(left.valueOutput) || xl6ForeignValueOutputIsRecord(right.valueOutput) ||
             xl6SemForeignHasRetainedOutputs(a) || xl6SemForeignHasRetainedOutputs(b) ||
             xl6ForeignInputHasPacks(left.inputMappingFacts) || xl6ForeignInputHasPacks(right.inputMappingFacts) ||
+            xl6ForeignInputHasDataSnapshots(left.inputMappingFacts) || xl6ForeignInputHasDataSnapshots(right.inputMappingFacts) ||
             xl6ForeignInputHasFixedInputs(left.inputMappingFacts) || xl6ForeignInputHasFixedInputs(right.inputMappingFacts) ||
             xl6ForeignInputHasRegions(left.inputMappingFacts) || xl6ForeignInputHasRegions(right.inputMappingFacts)) &&
-            (!xl6ForeignCallFactsEqual(&left,&right) || !xl6SemForeignAttributesEqual(a,b) ||
+            (!xl6ForeignCallFactsPhysicalEqual(left,right) || !xl6SemForeignAttributesEqual(a,b) ||
              ((a->flags^b->flags)&(XL6_AST_FLAG_STATIC|XL6_AST_FLAG_FOREIGN_OWNED_STRING|XL6_AST_FLAG_FOREIGN_PURE|
                 XL6_AST_FLAG_FOREIGN_NO_RAISE|XL6_AST_FLAG_FOREIGN_NONBLOCKING))))return 0;
         return ((a->flags ^ b->flags) & XL6_AST_FLAG_FOREIGN_OWNED_STRING) == 0 &&
@@ -21586,6 +21587,7 @@ static const XL6_AstNode* xl6SemForeignOwnershipHelper(XL6_SemContext* ctx,
 #include "src/sem/xl6_sem_foreign_output_record.c"
 #include "src/sem/xl6_sem_foreign_native_sequence.c"
 #include "src/sem/xl6_sem_foreign_owned_output.c"
+#include "src/sem/xl6_sem_foreign_snapshot.c"
 static int xl6SemCheckForeignFunctionDeclaration(XL6_SemContext* ctx, XL6_AstNode* node,const XL6_AstNode* ownerClass)
 {
     XL6_ForeignCallFacts facts;
@@ -21611,6 +21613,7 @@ static int xl6SemCheckForeignFunctionDeclaration(XL6_SemContext* ctx, XL6_AstNod
         if(xl6SemProjectedRecordValue(ctx,projectionReturns->children[p],0)){
             xl6SemErrorNode(ctx,node,"projected C record values require an explicit native sequence producer");return 0;
         }
+    if(!xl6SemForeignDataSnapshots(ctx,node,ownerClass,attrs,&facts))return 0;
     if(!xl6SemForeignPacks(ctx,node,ownerClass,attrs,&facts))return 0;
     if(!xl6SemForeignArrayGroups(ctx,node,ownerClass,attrs,&facts))return 0;
     if(xl6ForeignFunctionFieldCall(node)){

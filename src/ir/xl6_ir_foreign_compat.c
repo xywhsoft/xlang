@@ -148,13 +148,14 @@ static int xl6IrForeignOverloadsCompatible(const XL6_IrModule* module,const XL6_
         af.valueOutput&=~XL6_FOREIGN_VALUE_OUTPUT_VIEW_CONVERTED;
         bf.valueOutput&=~XL6_FOREIGN_VALUE_OUTPUT_VIEW_CONVERTED;
     }
-    if(!xl6ForeignCallFactsEqual(&af,&bf) ||
+    if(!xl6ForeignCallFactsPhysicalEqual(af,bf) ||
         ((left->flags^right->flags)&(XL6_AST_FLAG_STATIC|XL6_AST_FLAG_FOREIGN_OWNED_STRING|XL6_AST_FLAG_FOREIGN_PURE|
             XL6_AST_FLAG_FOREIGN_NO_RAISE|XL6_AST_FLAG_FOREIGN_NONBLOCKING)) ||
         a->foreignOperationAbi!=b->foreignOperationAbi || (!ownedAdmissions && !recordProjection && a->returnType!=b->returnType) || a->resultPhysicalAbi!=b->resultPhysicalAbi ||
         a->resultConversionAbi!=b->resultConversionAbi || a->resultCAbi!=b->resultCAbi || a->outputResultAbi!=b->outputResultAbi ||
         a->nativeSuccessCode!=b->nativeSuccessCode || a->resultPhysicalFieldDeclaration!=b->resultPhysicalFieldDeclaration ||
-        a->resultPhysicalDestroySymbol!=b->resultPhysicalDestroySymbol || a->errorAbi!=b->errorAbi || a->effectAbi!=b->effectAbi ||
+        a->resultPhysicalDestroySymbol!=b->resultPhysicalDestroySymbol ||
+        (a->errorAbi!=b->errorAbi && !af.dataSnapshotCount && !bf.dataSnapshotCount) || a->effectAbi!=b->effectAbi ||
         a->parameterCount!=b->parameterCount || a->variadicAbi!=b->variadicAbi || a->nativeContextAbi!=b->nativeContextAbi ||
         a->nativeServicesRequired!=b->nativeServicesRequired || a->nativeResultAbi!=b->nativeResultAbi ||
         !xl6IrForeignOverloadMetadataEqualMode(module,a,b,recordProjection))return 0;

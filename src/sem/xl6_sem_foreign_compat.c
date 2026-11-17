@@ -10,9 +10,9 @@ static int xl6SemForeignHasRetainedOutputs(const XL6_AstNode* node)
     }
     return 0;
 }
-/* Compare attribute trees as an unordered multiset. Logical names/defaults
- * are deliberately outside the physical native contract. No attributes are
- * silently discarded when admitting a second declaration of one C target. */
+/* Compare physical attributes as an unordered multiset. Data snapshots are
+ * logical input admissions; each declaration keeps its independently checked
+ * rows/effects while the native pointer signature stays identical. */
 static int xl6SemForeignAttributeEqual(const XL6_AstNode* a,const XL6_AstNode* b)
 {
     if(!a || !b || a->kind!=b->kind || a->childCount!=b->childCount ||
@@ -23,9 +23,13 @@ static int xl6SemForeignAttributeEqual(const XL6_AstNode* a,const XL6_AstNode* b
 static int xl6SemForeignAttributesEqual(const XL6_AstNode* a,const XL6_AstNode* b)
 {
     a=xl6ForeignFunctionAttributes(a);b=xl6ForeignFunctionAttributes(b);
-    if(!a || !b)return a==b;
-    if(a->childCount!=b->childCount)return 0;
+    size_t ac=0,bc=0;
+    for(size_t i=0;a && i<a->childCount;++i)ac+=!xl6ForeignDataSnapshotRead(a->children[i],NULL);
+    for(size_t i=0;b && i<b->childCount;++i)bc+=!xl6ForeignDataSnapshotRead(b->children[i],NULL);
+    if(ac!=bc)return 0;
+    if(!ac)return 1;
     for(size_t i=0;i<a->childCount;++i){
+        if(xl6ForeignDataSnapshotRead(a->children[i],NULL))continue;
         size_t left=0,right=0;
         for(size_t j=0;j<a->childCount;++j)left+=xl6SemForeignAttributeEqual(a->children[i],a->children[j]);
         for(size_t j=0;j<b->childCount;++j)right+=xl6SemForeignAttributeEqual(a->children[i],b->children[j]);
