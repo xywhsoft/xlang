@@ -12,7 +12,8 @@
       "src/records.xl",
       "src/functions.xl",
       "src/decode_budget.xl",
-      "src/particles.xl"
+      "src/particles.xl",
+      "src/scene.xl"
     ],
     "includeDirs": [
       "include"

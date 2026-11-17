@@ -9,6 +9,7 @@ context, window, model file or network service.
 | `screen_ray.xl` | Preserves a 0.25-unit offset near a world origin of 10^12 and checks the centre screen ray points along negative Z. |
 | `ray_queries.xl` | Tests a ray against a box and sphere; a short ray returns NOT_FOUND with cleared output. |
 | `particles.xl` | Emits into an eight-particle CPU capacity, reports four dropped particles, then drains to zero. Requires `XGE3D_ENABLE_PARTICLES=1`. |
+| `scene_hierarchy.xl` | Combines parent/child transforms, looks up a named node and keeps a shared scene usable after closing its first view. |
 
 ```text
 xl run screen_ray.xl

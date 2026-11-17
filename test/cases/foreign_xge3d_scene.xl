@@ -1,0 +1,143 @@
+import xge3d
+from xge3d import Scene
+extern "fixture3dSceneBudget" @header("test/cases/foreign_xge3d_scene.h") @no_raise func budget(c_int n)
+extern "fixture3dSceneMark" @no_raise func mark()
+extern "fixture3dSceneBalanced" @no_raise func balanced()
+extern "fixture3dSceneHeapBegin" @no_raise func heapBegin()
+extern "fixture3dSceneHeapEnd" @no_raise func heapEnd()
+extern "fixture3dSceneColdBegin" @no_raise func coldBegin()
+extern "fixture3dSceneColdEnd" @no_raise func coldEnd(c_int kind)
+extern "fixture3dSceneCall" @no_raise @c_sync_callback(1,0,0) @c_result("status",0) func duringCall(xge3d.Scene scene,func() callback)
+extern "fixture3dSceneNativeCount" @no_raise func nativeCount(xge3d.Scene scene) as c_size
+
+func main(...) as int
+    mark()
+    coldBegin()
+    auto scene=xge3d.createScene()
+    coldEnd(c_int(0))
+    auto zero=xge3d.Xge3dNode()
+    assert scene.nodeCount==c_size(0) and scene.nodeAt(c_size(0)).slot==uint64(0)
+    auto parent=scene.createNode(zero)
+    auto child=scene.createNode(parent)
+    assert scene.nodeCount==c_size(2) and scene.childCount(parent)==c_size(1)
+    assert scene.parent(child).slot==parent.slot and scene.childAt(parent,c_size(0)).slot==child.slot
+    assert scene.name(child)==null
+    scene.setName(child,"child")
+    auto name=scene.name(child)
+    scene.setName(child,"renamed")
+    assert (name as string)=="child" and (scene.name(child) as string)=="renamed"
+    auto status,found=scene.find(zero,"renamed")
+    assert status==0 and found.slot==child.slot
+    status,found=scene.find(zero,"missing")
+    assert status!=0 and found.slot==uint64(0) and found.scene==uint64(0)
+
+    auto transform=xge3d.Xge3dTransform()
+    transform.rotation.w=1
+    transform.scale.x=1
+    transform.scale.y=1
+    transform.scale.z=1
+    transform.position.x=3
+    scene.setTransform(parent,transform)
+    transform.position.x=2
+    scene.setTransform(child,transform)
+    assert scene.worldMatrix(child).m[12]==c_float(5)
+    assert scene.transform(child).position.x==c_float(2)
+    auto matrix=scene.localMatrix(child)
+    matrix.m[12]=4
+    scene.setMatrix(child,matrix)
+    assert scene.worldMatrix(child).m[12]==c_float(7)
+    scene.setParent(child,zero)
+    assert scene.parent(child).slot==uint64(0)
+    auto origin=xge3d.Xge3dDvec3()
+    origin.x=1e12
+    scene.setOrigin(origin)
+    origin.x=origin.x+0.25
+    scene.setGlobalPosition(child,origin)
+    assert scene.localMatrix(child).m[12]==c_float(0.25) and scene.origin.x==c_double(1e12)
+    scene.setVisible(child,c_int(0))
+    scene.setLayers(child,c_uint(1),c_uint(2),c_uint(4))
+    assert scene.stats().nodes==c_size(2)
+
+    coldBegin()
+    auto shared=scene.share()
+    coldEnd(c_int(1))
+    scene.close()
+    assert shared.nodeCount==c_size(2)
+    bool rejected=false
+    try
+        auto invalid=scene.nodeCount
+    catch StateError
+        rejected=true
+    end
+    assert rejected
+    heapBegin()
+    for i in range(1000)
+        assert shared.nodeCount==c_size(2)
+    end
+    heapEnd()
+    heapBegin()
+    assert nativeCount(shared)==c_size(2)
+    heapEnd()
+    rejected=false
+    budget(c_int(0))
+    try
+        shared.setName(child,"allocation failure")
+    catch Error failure
+        rejected=true
+    finally
+        budget(c_int(-1))
+    end
+    assert rejected and (shared.name(child) as string)=="renamed"
+    rejected=false
+    try
+        shared.setName(child,"embedded\0nul")
+    catch Error failure
+        rejected=true
+    end
+    assert rejected and (shared.name(child) as string)=="renamed"
+    shared.clearName(child)
+    assert shared.name(child)==null
+    shared.destroyNode(parent)
+    rejected=false
+    try
+        auto invalid=shared.parent(parent)
+    catch Error failure
+        rejected=true
+    end
+    assert rejected and shared.nodeCount==c_size(1)
+    shared.close()
+    // A callback closes the language view while a real native access pin lives.
+    scene=xge3d.createScene()
+    duringCall(scene,func()
+        scene.close()
+    end)
+    scene=xge3d.createScene()
+    rejected=false
+    try
+        duringCall(scene,func()
+            scene.close()
+            throw Error("scene callback failure")
+        end)
+    catch Error failure
+        rejected=failure.message=="scene callback failure"
+    end
+    assert rejected
+    // Exercise each factory/view-allocation failure point without partial output.
+    for allowance in range(12)
+        xge3d.Scene? pending=null
+        budget(c_int(allowance))
+        try
+            pending=xge3d.createScene()
+        catch Error failure
+            assert pending==null
+        finally
+            budget(c_int(-1))
+        end
+        if pending!=null
+            (pending as Scene).close()
+        end
+    end
+    balanced()
+    println("XGE3D_SCENE_LANGUAGE_OK")
+    return 0
+end

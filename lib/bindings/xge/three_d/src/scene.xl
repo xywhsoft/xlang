@@ -1,0 +1,33 @@
+// Nodes are generation-checked values. A zero node selects the scene root list.
+// Each share owns one native reference; close releases only that view's owner.
+export extern "xge3d_scene*" class Scene @header("xge3d_scene.h") @lifetime("owned") @policy("xl6Xge3dScenePolicy") @scope("xl6_xge3d_scene_scope_t") @domain("xl6Xge3dSceneDomainV1")
+ native point handle
+ extern "xge3dSceneShareOwned" @no_raise @c_result("owned_view") @factory(1,0,releaseScene) func share() as Scene
+ extern "xge3dSceneNodeCount" @no_raise @c_const(0) get nodeCount() as c_size
+ extern "xge3dSceneNodeAt" @no_raise @c_const(0) func nodeAt(c_size index) as Xge3dNode
+ extern "xge3dSceneOrigin" @no_raise @c_const(0) get origin() as Xge3dDvec3
+ extern "xge3dSceneSetOrigin" @no_raise @c_result("status",0) func setOrigin(Xge3dDvec3 origin)
+ extern "xge3dSceneStats" @no_raise @c_output(1,0) @c_output_size(1,"size") func stats(c_int reset=0) as Xge3dSceneStats
+ extern "xge3dNodeCreate" @no_raise @c_output(2,0) func createNode(Xge3dNode parent) as Xge3dNode
+ extern "xge3dNodeDestroy" @no_raise @c_result("status",0) func destroyNode(Xge3dNode node)
+ extern "xge3dNodeGetParent" @no_raise @c_output(2,0) func parent(Xge3dNode node) as Xge3dNode
+ extern "xge3dNodeSetParent" @no_raise @c_result("status",0) func setParent(Xge3dNode node,Xge3dNode parent)
+ extern "xge3dNodeChildCount" @no_raise func childCount(Xge3dNode parent) as c_size
+ extern "xge3dNodeChildAt" @no_raise func childAt(Xge3dNode parent,c_size index) as Xge3dNode
+ extern "xge3dNodeSetTransform" @no_raise @c_ref(1) @c_result("status",0) func setTransform(Xge3dNode node,Xge3dTransform transform)
+ extern "xge3dNodeGetTransform" @no_raise @c_output(2,0) func transform(Xge3dNode node) as Xge3dTransform
+ extern "xge3dNodeSetMatrix" @no_raise @c_ref(1) @c_result("status",0) func setMatrix(Xge3dNode node,Xge3dMat4 matrix)
+ extern "xge3dNodeGetLocalMatrix" @no_raise @c_output(2,0) func localMatrix(Xge3dNode node) as Xge3dMat4
+ extern "xge3dNodeGetWorldMatrix" @no_raise @c_output(2,0) func worldMatrix(Xge3dNode node) as Xge3dMat4
+ extern "xge3dNodeSetGlobalPosition" @no_raise @c_result("status",0) func setGlobalPosition(Xge3dNode root,Xge3dDvec3 position)
+ extern "xge3dNodeSetName" @no_raise @c_cstr(1) @c_result("status",0) func setName(Xge3dNode node,string name)
+ extern "xge3dNodeSetName" @no_raise @c_null(2,"const char*") @c_result("status",0) func clearName(Xge3dNode node)
+ extern "xge3dNodeName" @no_raise @c_result("cstring") func name(Xge3dNode node) as string?
+ // Preserve NOT_FOUND and its cleared node separately from successful lookup.
+ extern "xge3dNodeFind" @no_raise @c_cstr(1) @c_outputs(-1,3) func find(Xge3dNode root,string name) as (c_int,Xge3dNode)
+ extern "xge3dNodeSetVisible" @no_raise @c_result("status",0) func setVisible(Xge3dNode node,c_int visible)
+ extern "xge3dNodeSetLayers" @no_raise @c_result("status",0) func setLayers(Xge3dNode node,c_uint render,c_uint query,c_uint shadow)
+ extern "xl6ForeignViewCloseV1" @no_raise @c_control(0) @c_result("bool_status") func close()
+end
+extern "xge3dSceneReleaseChecked" @header("xge3d_scene.h") @no_raise @c_result("status",0) func releaseScene(Scene value)
+export extern "xge3dSceneCreateOwned" @header("xge3d_scene.h") @no_raise @c_result("owned_view") @factory(0,0,releaseScene) func createScene() as Scene

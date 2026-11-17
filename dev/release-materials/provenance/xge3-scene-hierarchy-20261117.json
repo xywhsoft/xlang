@@ -1,0 +1,230 @@
+{
+  "complete": true,
+  "passed": true,
+  "goalComplete": false,
+  "sourceParent": "ed6ebc3d26ece32fd4ae7cfdf62bffb615ab6a51",
+  "nativeCommit": "fb0b60669ace63eea6c6da950aac0ba2f90f4c40",
+  "nativeParent": "b44cdfa716e455fda2de8c02fa6b9216fee7f78f",
+  "xrtCommit": "4641cd2e4da09d8b1a66872cabe085c263d8b5ba",
+  "sourceHashes": {
+    "lib/bindings/xge/three_d/src/scene.xl": "a7f766aacc90a9b5c461074fd2cac5fcb75d4b8f4401bcb0f2ae47f4fcae45e4",
+    "lib/bindings/xge/three_d/include/xge3d_scene.h": "00ad8448354c0558329f1b61924820ac6ecaeff004b9fde3491e1ee5657616ee",
+    "lib/bindings/xge/three_d/xlang.package.json": "d7dd1a55b4f85fd15a2e4a5abcb8b47d68c4f514b8c40478444c9925c7739c32",
+    "lib/bindings/xge/three_d/examples/scene_hierarchy.xl": "0d0c55cffc871a01560e5698e603e5cb5ce4e9cbe0a40d0e388452c12508d52d",
+    "lib/bindings/xge/three_d/examples/README.md": "4a0da7412d94b765d971f00ebd5eeaee60a01c9486d6d8e3011088ec68752e53",
+    "test/cases/foreign_xge3d_scene.xl": "d7e811e3c96c1efc09dae5718f668b64fda4dbe70a702c82ff5b217260484fe2",
+    "test/cases/foreign_xge3d_scene.c": "915775c5e3752f8d27e7bdc0ea9ae74dc43988f4be89dac7fcde802cfedb4e21",
+    "test/cases/foreign_xge3d_scene.h": "2dfa7ed247c7becba09731025824751533d3f8030790a413a4bcbacd4e592805",
+    "tools/check_xge3_scene.py": "fd66d4dd1d3dfd888eb3e3812a313c3893efc7a038d64f80dd850b4a6bfe5e95",
+    "docs/xge3-scene-hierarchy.md": "a3c1028d662372c7e4040b6bc523c9b52e403052b08df4818ac64e2d95c108aa",
+    "docs/xge3-xui3-full-coverage-plan.md": "25c841f1a0c6f2ac88d4a5a4ccc8009cc50e262b0834e2e7f5dcc9bbba424bdd",
+    "docs/xge3-xui3-api-map-storage.json": "ef902351b039b8957bffe11e7495b56322d2762388e02c2cd2edc7cfdb3cd1f2"
+  },
+  "reports": {
+    "win-language": {
+      "path": "F:\\xlang-validation\\xge-full-20261110\\scene3d-owned-language-win-r4\\results.json",
+      "sha256": "00245466b143b4afab98a7cc817f223119e8398a791b1e263bc13f6d552e0804"
+    },
+    "win-storage": {
+      "path": "F:\\xlang-validation\\xge-full-20261110\\scene3d-owned-storage-win-r2\\results.json",
+      "sha256": "4f181ab7729f2d556f87a16add6c29181689513a102c922bd4daf0f8bc581761"
+    },
+    "win-surface": {
+      "path": "F:\\xlang-validation\\xge-full-20261110\\scene3d-owned-surface-win-r2\\surface.json",
+      "sha256": "6fe69510a61eea9158e37e16fe1373aaacafddebae085f823e68674586951c7a"
+    },
+    "win-verified": {
+      "path": "F:\\xlang-validation\\xge-full-20261110\\scene3d-owned-verified-win-r2\\results.json",
+      "sha256": "fb2b1bcd694988ff4d878c68206f7a9efd6ec95d40da535dfba00ba06d332f5a"
+    },
+    "win-package-equivalence": {
+      "path": "F:\\xlang-validation\\xge-full-20261110\\scene3d-owned-package-equivalence-win-r1.json",
+      "sha256": "9791589db09801a102760e55ca08ed69e60d06ce24e662ca2ad5b3d37868cf89"
+    },
+    "win-source-audit": {
+      "path": "F:\\xlang-validation\\xge-full-20261110\\scene3d-owned-source-audit-win-r2.json",
+      "sha256": "4e837effbf4632bc103cb2c66d5c8af656cf300d3c8509a88b538116c5d4a851"
+    },
+    "linux-language": {
+      "path": "F:\\xlang-validation\\xge-full-20261110\\scene3d-owned-language-linux-r4-results.json",
+      "sha256": "18f3bcd85776940192af5563f4937d90d75d97dd77b8c7a39eead8a083760dc7"
+    },
+    "linux-storage": {
+      "path": "F:\\xlang-validation\\xge-full-20261110\\scene3d-owned-storage-linux-r2-results.json",
+      "sha256": "d96145461b60db78abb4d079a97280767dbbea83a409f4addfbf18806b6cdcd8"
+    },
+    "linux-surface": {
+      "path": "F:\\xlang-validation\\xge-full-20261110\\scene3d-owned-surface-linux-r2-surface.json",
+      "sha256": "597f4abc2e6791b7e3c8c97abe68824ba5a34dca83ece694667bdd8aeb752066"
+    },
+    "linux-verified": {
+      "path": "F:\\xlang-validation\\xge-full-20261110\\scene3d-owned-verified-linux-r2-results.json",
+      "sha256": "eb9a1eb19c462bf8e6db8a9c15f4e9b04f678a757d74ce7d6d15400b6ff7839b"
+    },
+    "linux-package-equivalence": {
+      "path": "F:\\xlang-validation\\xge-full-20261110\\scene3d-owned-package-equivalence-linux-r1.json",
+      "sha256": "77bd36ac0378d2a700dd22246f4fbc09bf11a3020e6c7731e61acd81cd5dc4cf"
+    },
+    "linux-source-audit": {
+      "path": "F:\\xlang-validation\\xge-full-20261110\\scene3d-owned-source-audit-linux-r2.json",
+      "sha256": "2c6d60daf3a216fa0cb7f63e37b2db689902709a57cbe0016cdf6a8a1623be72"
+    },
+    "storage-rebase": {
+      "path": "F:\\xlang-validation\\xge-full-20261110\\scene3d-owned-storage-rebase-proof-r1.json",
+      "sha256": "05e649f27263f418c57bd6c1da0468fb4e0d1ae40fcb7706e1fa456ab570ea8b"
+    },
+    "native-commit": {
+      "path": "F:\\xlang-validation\\xge-full-20261110\\scene3d-owned-native-commit-r1.json",
+      "sha256": "55976e12f94f4c338d603f29af66202796a0b70ebe0312ed58222150b2a049f0"
+    },
+    "accepted-decisions": {
+      "path": "F:\\xlang-validation\\xge-full-20261110\\accepted-decisions-20261117-models-fixed-array.json",
+      "sha256": "e6023a47f7d6206925f4554f1ba28fc31fe645eae82ba71c5819f5584a91738c"
+    },
+    "win-original-2d-regression": {
+      "path": "F:\\xlang-validation\\xge-full-20261110\\scene2d-regression-win-r2\\results.json",
+      "sha256": "c522162e05322244032a8a3f3a0e1039be2d80986289c3c3cd085f88b5931abc"
+    },
+    "linux-original-2d-regression": {
+      "path": "F:\\xlang-validation\\xge-full-20261110\\scene2d-regression-linux-r2-results.json",
+      "sha256": "e7636bd13fed6fab9529f2acad786ab5a215dccd6d9d9dcdfe92353b0a85301c"
+    },
+    "historical-candidate-input-preservation": {
+      "path": "F:\\xlang-validation\\xge-full-20261110\\scene3d-fixture-name-collision-r1\\preservation.json",
+      "sha256": "3307e91acef8c31a54ef55e11aa3107475fa52b8b20bc73f6b79a01fb3d9898f"
+    }
+  },
+  "languageMethods": 25,
+  "languageCommands": 56,
+  "nativeCommands": 22,
+  "sourceChecks": 799,
+  "fullNativeBuildCommands": 4,
+  "freshCompiledUnits": 660,
+  "inventory": {
+    "functions": 5307,
+    "types": 991,
+    "directFunctionNames": 3927,
+    "nonDirectNames": 1380,
+    "completenessClaim": false
+  },
+  "nativeLayout": {
+    "previousBodyBytes": 672,
+    "currentBodyBytes": 680,
+    "ownedTailBytes": 32,
+    "ownedBytes": 712,
+    "nativeAllocations": 1
+  },
+  "costs": [
+    {
+      "name": "foreign_xge3d_scene-jit",
+      "warmCallsPerPath": 1000,
+      "warmAllocations": 0,
+      "cold": [
+        [
+          0,
+          3,
+          1248
+        ],
+        [
+          1,
+          2,
+          536
+        ]
+      ],
+      "cpuEquivalenceClaim": false
+    },
+    {
+      "name": "foreign_xge3d_scene-dynamic",
+      "warmCallsPerPath": 1000,
+      "warmAllocations": 0,
+      "cold": [
+        [
+          0,
+          3,
+          1248
+        ],
+        [
+          1,
+          2,
+          536
+        ]
+      ],
+      "cpuEquivalenceClaim": false
+    },
+    {
+      "name": "foreign_xge3d_scene-static",
+      "warmCallsPerPath": 1000,
+      "warmAllocations": 0,
+      "cold": [
+        [
+          0,
+          3,
+          1248
+        ],
+        [
+          1,
+          2,
+          536
+        ]
+      ],
+      "cpuEquivalenceClaim": false
+    },
+    {
+      "name": "dynamic-shared",
+      "warmCallsPerPath": 1000,
+      "warmAllocations": 0,
+      "cold": [
+        [
+          0,
+          2,
+          1184
+        ],
+        [
+          1,
+          1,
+          472
+        ]
+      ],
+      "cpuEquivalenceClaim": false
+    },
+    {
+      "name": "static-shared",
+      "warmCallsPerPath": 1000,
+      "warmAllocations": 0,
+      "cold": [
+        [
+          0,
+          2,
+          1184
+        ],
+        [
+          1,
+          1,
+          472
+        ]
+      ],
+      "cpuEquivalenceClaim": false
+    }
+  ],
+  "releaseInstalled": false,
+  "shippingDelivery": false,
+  "networkTests": false,
+  "graphicsTests": false,
+  "pendingContracts": [
+    "claimed callback admission during finalization",
+    "owning Engine controller",
+    "stable parent-owned record views"
+  ],
+  "acceptedNotYetImplemented": [
+    "independent model data snapshots with explicit advanced native Clone",
+    "Workflow and associated Graph callback reentry Busy",
+    "fixed C array default zero initialization"
+  ],
+  "limitations": [
+    "CPU Scene foundation only; GPU/model/animation integration remains",
+    "No arbitrary callback-cycle or CPU-equivalence claim",
+    "Final compiler/SDK/IDE/help delivery remains"
+  ],
+  "original2dFixturesRestored": true,
+  "original2dRegressionCommands": 2
+}

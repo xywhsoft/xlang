@@ -1,0 +1,31 @@
+// CPU-only scene: parent/child transforms, names and shared ownership.
+import xge3d
+
+func main(...) as int
+    auto scene=xge3d.createScene()
+    auto noParent=xge3d.Xge3dNode()
+    auto parent=scene.createNode(noParent)
+    auto child=scene.createNode(parent)
+    scene.setName(child,"camera mount")
+
+    auto transform=xge3d.Xge3dTransform()
+    transform.rotation.w=1
+    transform.scale.x=1
+    transform.scale.y=1
+    transform.scale.z=1
+    transform.position.x=10
+    scene.setTransform(parent,transform)
+    transform.position.x=2
+    scene.setTransform(child,transform)
+    assert scene.worldMatrix(child).m[12]==c_float(12)
+    assert scene.childCount(parent)==c_size(1)
+
+    auto status,found=scene.find(noParent,"camera mount")
+    assert status==0 and found.slot==child.slot
+    auto shared=scene.share()
+    scene.close()
+    assert shared.nodeCount==c_size(2)
+    println(shared.name(child) as string)
+    shared.close()
+    return 0
+end
