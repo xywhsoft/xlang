@@ -1,21 +1,6 @@
 #ifndef XL6_FOREIGN_PACK_DECL_H
 #define XL6_FOREIGN_PACK_DECL_H
 
-/* Closed member paths contain identifiers only, with bounded nesting. */
-static inline int xl6ForeignPackPath(const char* path)
-{
-    if(!path || !*path)return 0;
-    size_t depth=0;const char* part=path;
-    for(const char* p=path;;++p)if(*p=='.' || !*p){
-        size_t length=(size_t)(p-part);char name[64];
-        if(!length || length>=sizeof(name) || ++depth>8)return 0;
-        memcpy(name,part,length);name[length]=0;if(!xl6ForeignIdentifier(name))return 0;
-        if(!*p)return 1;
-        part=p+1;
-    }
-}
-static inline size_t xl6ForeignPackParentLength(const char* path)
-{const char* dot=strrchr(path,'.');return dot ? (size_t)(dot-path):0;}
 static inline int xl6ForeignFixedInputTypeValid(const XL6_ForeignFixedInputContract* row)
 {
     if(!row || !memchr(row->pointerCName,0,sizeof(row->pointerCName)))return 0;
@@ -204,8 +189,11 @@ static inline size_t xl6ForeignPhysicalStepCount(const XL6_AstNode* node,size_t 
             count-=pack.parameterCount-1;
         }XL6_ForeignArrayGroupContract group;
         if(xl6ForeignArrayGroupRead(attrs->children[i],&group)){
-            if(group.arrayCount>count)return SIZE_MAX;
-            count-=group.arrayCount;
+            if(!xl6ForeignArrayPackForGroup(node,&group))return SIZE_MAX;
+            if(!group.packPhysicalIndexPlusOne){
+                if(group.arrayCount>count)return SIZE_MAX;
+                count-=group.arrayCount;
+            }
         }XL6_ForeignFixedInputContract nullRow;if(xl6ForeignFixedInputRead(attrs->children[i],&nullRow))++count;
         if(xl6ForeignPackCallbackGroupRead(attrs->children[i],NULL))++count;}
     return count;

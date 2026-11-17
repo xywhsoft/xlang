@@ -1,0 +1,232 @@
+extern "descriptorArraysRemember" @header("test/cases/foreign_descriptor_arrays.h") @no_raise @c_span(1,"const uint8_t*","size_t") func remember(c_int index,bytes value)
+extern "descriptorArraysChecked" @header("test/cases/foreign_descriptor_arrays.h") @no_raise @c_result("integer_min",0) @c_pack(0,"DescriptorArrays",0,7) @c_pack_field(0,"tag",0,"value") @c_array_group(10,1,2,"int",3) @c_array_record(10,"DescriptorPort","iSize","uint32_t") @c_array_field(10,"label",0,"c_string") @c_array_field(10,"number",1,"value") @c_array_pack(10,0,"inputs","inputCount") @c_array_group(11,4,2,"int",6) @c_array_record(11,"DescriptorPort","iSize","uint32_t") @c_array_field(11,"label",0,"c_string") @c_array_field(11,"number",1,"value") @c_array_pack(11,0,"outputs","outputCount") func checkedConsume(c_int tag,array<string> first,array<c_int> firstValues,int firstSize,array<string> second,array<c_int> secondValues,int secondSize) as c_int
+extern "DescriptorOwned*" class Owned @header("test/cases/foreign_descriptor_arrays.h") @lifetime("owned") @policy("descriptorOwnedPolicy") @scope("DescriptorOwnedScope")
+ native point handle
+ extern "xl6ForeignViewCloseV1" @no_raise @c_control(0) @c_result("bool_status") func close()
+end
+extern "descriptorOwnedCreate" @header("test/cases/foreign_descriptor_arrays.h") @no_raise @c_result("owned_view") @factory(1,0,rollback) func createOwned(c_int value) as Owned
+extern "descriptorOwnedDestroy" @header("test/cases/foreign_descriptor_arrays.h") @no_raise func rollback(Owned value)
+extern "descriptorOwnedLive" @header("test/cases/foreign_descriptor_arrays.h") @no_raise func live() as c_int
+extern "descriptorArraysViews" @header("test/cases/foreign_descriptor_arrays.h") @no_raise @c_pack(0,"DescriptorViews",0,3) @c_array_group(14,0,2,"int",2) @c_array_record(14,"DescriptorViewItem") @c_array_field(14,"object",0,"view_raw") @c_array_span_field(14,"data","length",1,"const uint8_t*","uint64_t") @c_array_pack(14,0,"items","count") @c_sync_callback(3,-1,-16) func views(array<Owned?> objects,array<bytes> data,int size,func() as c_int callback) as c_int
+extern "descriptorArraysReport" @header("test/cases/foreign_descriptor_arrays.h") @no_raise func reportHeap(c_int native)
+extern "descriptorArraysNativeHot" @header("test/cases/foreign_descriptor_arrays.h") @no_raise func nativeHot()
+extern "descriptorArraysConsume" @header("test/cases/foreign_descriptor_arrays.h") @no_raise @c_pack(0,"DescriptorArrays",0,7) @c_pack_field(0,"tag",0,"value") @c_array_group(10,1,2,"int",3) @c_array_record(10,"DescriptorPort","iSize","uint32_t") @c_array_field(10,"label",0,"c_string") @c_array_field(10,"number",1,"value") @c_array_pack(10,0,"inputs","inputCount") @c_array_group(11,4,2,"int",6) @c_array_record(11,"DescriptorPort","iSize","uint32_t") @c_array_field(11,"label",0,"c_string") @c_array_field(11,"number",1,"value") @c_array_pack(11,0,"outputs","outputCount") func consume(c_int tag,array<string> first,array<c_int> firstValues,int firstSize,array<string> second,array<c_int> secondValues,int secondSize) as c_int
+extern "descriptorArraysNested" @header("test/cases/foreign_descriptor_arrays.h") @no_raise @c_pack(0,"DescriptorNested",0,4) @c_pack_field(0,"tag",0,"value") @c_pack_record(0,"ports","DescriptorPorts") @c_array_group(12,1,2,"int",3) @c_array_record(12,"DescriptorPort","iSize","uint32_t") @c_array_field(12,"label",0,"c_string") @c_array_field(12,"number",1,"value") @c_array_pack(12,0,"ports.items","ports.count") func nested(c_int tag,array<string> names,array<c_int> values,int size=-1) as c_int
+extern "descriptorArraysMixed" @header("test/cases/foreign_descriptor_arrays.h") @no_raise @c_pack(1,"DescriptorOnly",1,3) @c_array_group(10,1,2,"int",3) @c_array_record(10,"DescriptorPort","iSize","uint32_t") @c_array_field(10,"label",0,"c_string") @c_array_field(10,"number",1,"value") @c_array_pack(10,1,"items","count") @c_array_group(2,4,1,"int",5) @c_array_input(2,0,"const int*","value") func mixed(c_int prefix,array<string> names,array<c_int> values,int size,array<c_int> extras,int extrasSize=-1) as c_int
+extern "DescriptorReceiver*" class Receiver @header("test/cases/foreign_descriptor_arrays.h") @lifetime("caller")
+ native point handle
+ extern "descriptorArraysInspect" @no_raise @c_pack(1,"DescriptorOnly",0,3) @c_array_group(10,0,2,"int",2) @c_array_record(10,"DescriptorPort","iSize","uint32_t") @c_array_field(10,"label",0,"c_string") @c_array_field(10,"number",1,"value") @c_array_pack(10,1,"items","count") func inspect(array<string> names,array<c_int> values,int size) as c_int
+ extern "inspect" @c_field_call @no_raise @c_pack(1,"DescriptorOnly",0,3) @c_array_group(10,0,2,"int",2) @c_array_record(10,"DescriptorPort","iSize","uint32_t") @c_array_field(10,"label",0,"c_string") @c_array_field(10,"number",1,"value") @c_array_pack(10,1,"items","count") func fieldInspect(array<string> names,array<c_int> values,int size) as c_int
+end
+extern "descriptorArraysReceiver" @header("test/cases/foreign_descriptor_arrays.h") @no_raise  func receiver() as Receiver
+extern "descriptorArraysReenter" @header("test/cases/foreign_descriptor_arrays.h") @no_raise @c_pack(0,"DescriptorOnly",0,3) @c_array_group(10,0,2,"int",2) @c_array_record(10,"DescriptorPort","iSize","uint32_t") @c_array_field(10,"label",0,"c_string") @c_array_field(10,"number",1,"value") @c_array_pack(10,0,"items","count") @c_sync_callback(3,-1,-16) func reenter(array<string> names,array<c_int> values,int size,func() as c_int callback) as c_int
+extern "descriptorArraysCalls" @header("test/cases/foreign_descriptor_arrays.h") @no_raise  func calls() as c_int
+extern "descriptorArraysBudget" @header("test/cases/foreign_descriptor_arrays.h") @no_raise func budget(c_int allowance)
+extern "descriptorArraysTriggered" @header("test/cases/foreign_descriptor_arrays.h") @no_raise  func triggered() as c_int
+extern "descriptorArraysMark" @header("test/cases/foreign_descriptor_arrays.h") @no_raise func mark()
+extern "descriptorArraysBalanced" @header("test/cases/foreign_descriptor_arrays.h") @no_raise  func balanced() as c_int
+func oneBudget(array<string> names,array<c_int> values,c_int allowance) as bool
+ int before=calls()
+ bool success=false
+ budget(allowance)
+ try
+  assert consume(c_int(7),names,values,-1,names,values,-1)==c_int(49)
+  success=true
+ catch error
+  budget(c_int(-1))
+  assert calls()==before
+ finally
+  budget(c_int(-1))
+ end
+ return success
+end
+func oneViewBudget(array<Owned?> objects,array<bytes> data,func() as c_int callback,c_int allowance) as bool
+ int before=calls()
+ bool success=false
+ budget(allowance)
+ try
+  assert views(objects,data,-1,callback)==c_int(382)
+  success=true
+ catch error
+  budget(c_int(-1))
+  assert calls()==before
+ finally
+  budget(c_int(-1))
+ end
+ return success
+end
+func main(...) as int
+ array<string> names=["a","xyz"]
+ array<c_int> values=[c_int(8),c_int(9)]
+ assert consume(c_int(7),names,values,-1,names,values,-1)==c_int(49)
+ assert consume(c_int(7),names,values,0,names,values,0)==c_int(7)
+ assert nested(c_int(3),names,values)==c_int(24)
+ assert nested(c_int(3),names,values,99)==c_int(24)
+ assert nested(c_int(3),names,values,1)==c_int(12)
+ assert mixed(c_int(5),names,values,-1,[c_int(2),c_int(3)])==c_int(31)
+ func(c_int,array<string>,array<c_int>,int,array<string>,array<c_int>,int) as c_int stored=consume
+ assert stored(c_int(7),names,values,-1,names,values,-1)==c_int(49)
+ func erased=stored
+ assert erased(c_int(7),names,values,-1,names,values,-1)==c_int(49)
+ Receiver root=receiver()
+ assert root.inspect(names,values,-1)==c_int(121)
+ assert root.fieldInspect(names,values,-1)==c_int(121)
+ func(array<string>,array<c_int>,int) as c_int bound=root.inspect
+ assert bound(names,values,-1)==c_int(121)
+ func(array<string>,array<c_int>,int) as c_int fieldBound=root.fieldInspect
+ assert fieldBound(names,values,-1)==c_int(121)
+ auto callback=func() as c_int
+  bool blocked=false
+  try
+   names[0]="mutated"
+  catch error
+   blocked=true
+  end
+  assert blocked
+  blocked=false
+  try
+   values.clear()
+  catch error
+   blocked=true
+  end
+  assert blocked
+  return c_int(0)
+ end
+ assert reenter(names,values,-1,callback)==c_int(21)
+ int before=calls()
+ bool rejected=false
+ try
+  nested(c_int(3),names,values,-2)
+ catch error
+  rejected=true
+ end
+ assert rejected and calls()==before
+ array<c_int> shortValues=[c_int(8)]
+ rejected=false
+ try
+  nested(c_int(3),names,shortValues)
+ catch error
+  rejected=true
+ end
+ assert rejected and calls()==before
+ assert nested(c_int(3),names,shortValues,99)==c_int(12)
+ names[0]="a\0b"
+ before=calls()
+ rejected=false
+ try
+  consume(c_int(7),names,values,-1,names,values,-1)
+ catch error
+  rejected=true
+ end
+ assert rejected and calls()==before
+ names[0]="a"
+ before=calls()
+ rejected=false
+ try
+  checkedConsume(c_int(-1),names,values,-1,names,values,-1)
+ catch error
+  rejected=true
+ end
+ assert rejected and calls()==before+1
+ names[0]="after error"
+ names[0]="a"
+ assert checkedConsume(c_int(7),names,values,-1,names,values,-1)==c_int(49)
+ budget(c_int(-1))
+ oneBudget(names,values,c_int(-1))
+ int successAt=-1
+ int attempt=0
+ while attempt<32
+  mark()
+  bool success=oneBudget(names,values,c_int(attempt))
+  assert balanced()==c_int(1)
+  if success then
+   successAt=attempt
+   break
+  end
+  attempt+=1
+ end
+ assert successAt>=2
+ int repeat=0
+ while repeat<3
+  attempt=0
+  while attempt<=successAt
+   mark()
+   bool success=oneBudget(names,values,c_int(attempt))
+   assert success==(attempt==successAt) and balanced()==c_int(1)
+   attempt+=1
+  end
+  repeat+=1
+ end
+ mark()
+ int round=0
+ while round<1000
+  assert consume(c_int(7),names,values,-1,names,values,-1)==c_int(49)
+  round+=1
+ end
+ reportHeap(c_int(0))
+ nativeHot()
+ Owned first=createOwned(c_int(10))
+ Owned last=createOwned(c_int(20))
+ array<Owned?> objects=[first,null,last]
+ array<bytes> data=[b"\0\xffz",b"",b""]
+ remember(c_int(0),data[0])
+ remember(c_int(1),data[1])
+ remember(c_int(2),data[2])
+ auto noChange=func() as c_int
+  return c_int(0)
+ end
+ assert views(objects,data,-1,noChange)==c_int(407)
+ // Null remains distinct from a live native object; byte NUL/0xff are exact.
+ data[0]=b"\0\xffa"
+ remember(c_int(0),data[0])
+ assert views(objects,data,-1,noChange)==c_int(382)
+ oneViewBudget(objects,data,noChange,c_int(-1))
+ int viewSuccess=-1
+ attempt=0
+ while attempt<64
+  mark()
+  bool success=oneViewBudget(objects,data,noChange,c_int(attempt))
+  assert balanced()==c_int(1) and live()==c_int(2)
+  if success then
+   viewSuccess=attempt
+   break
+  end
+  attempt+=1
+ end
+ assert viewSuccess>=2
+ repeat=0
+ while repeat<3
+  attempt=0
+  while attempt<=viewSuccess
+   mark()
+   bool success=oneViewBudget(objects,data,noChange,c_int(attempt))
+   assert success==(attempt==viewSuccess) and balanced()==c_int(1) and live()==c_int(2)
+   attempt+=1
+  end
+  repeat+=1
+ end
+ auto releaseWhileActive=func() as c_int
+  first.close()
+  last.close()
+  bool blocked=false
+  try
+   data.clear()
+  catch error
+   blocked=true
+  end
+  assert blocked
+  return c_int(0)
+ end
+ assert views(objects,data,-1,releaseWhileActive)==c_int(382)
+ assert live()==c_int(0)
+ before=calls()
+ rejected=false
+ try
+  views(objects,data,-1,noChange)
+ catch error
+  rejected=true
+ end
+ assert rejected and calls()==before
+ println("DESCRIPTOR_ARRAYS_OK ",successAt," ",viewSuccess)
+ return 0
+end

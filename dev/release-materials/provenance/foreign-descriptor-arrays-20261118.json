@@ -1,0 +1,119 @@
+{
+  "complete": true,
+  "passed": true,
+  "sourceParent": "b1a1f6f705a7dfeb4661a1552a753d5170e9feeb",
+  "shippingDelivery": false,
+  "releaseInstalled": false,
+  "acceptedContract": "typed parallel columns to temporary C records in synchronous descriptor fields",
+  "syntax": "@c_array_pack(groupKey, physicalPackSlot, \"dataField\", \"countField\")",
+  "nativeCallsPerInvocation": 1,
+  "perMethodNativeForwardersAdded": 0,
+  "newRuntimeExportsAdded": 0,
+  "foreignFactBytes": 88,
+  "sparseDestinationBytes": 132,
+  "nestedDestinations": true,
+  "anonymousUnionDestinationAliasesRejected": true,
+  "qualification": {
+    "fullCompilerBuilds": "Windows/Linux O2, complete TCC/XRT/VFS",
+    "languageHeaderGccCommands": 252,
+    "irBuildRunCommands": 8,
+    "uniqueIrMutationsPerPlatform": 286,
+    "mutationsExecutedAcrossPlatformsAndOptimizations": 1144,
+    "additionalActualWorkflowHeaderChecks": 3,
+    "independentlyVerifiedFiles": 37969,
+    "fullFailurePrefixes": [
+      2,
+      2
+    ],
+    "eachPrefixRepeated": 4,
+    "sharedPhysicalUnload": true,
+    "nestedStandaloneCompiler": true
+  },
+  "allocations": {
+    "rounds": 1000,
+    "languageAlloc": 2000,
+    "languageFree": 2000,
+    "languageRealloc": 0,
+    "nativeAlloc": 0,
+    "nativeFree": 0,
+    "nativeRealloc": 0,
+    "rowBytes": 24,
+    "xrtOnly": true,
+    "cpuEquivalenceClaim": false
+  },
+  "costs": [
+    "one zero-initialized C record array per nonempty group",
+    "O(n) field writes and type checks; terminated text scans",
+    "one backing read pin per column and additional resource scope carriers",
+    "no string/byte content copies; no added native producer call"
+  ],
+  "overallZeroBridgeOverheadClaim": false,
+  "upstream": {
+    "nativeHead": "d8b2914242b0582422fe47d7d87a3f6400fa9ca3",
+    "qualifiedXrtRevision": "804cc769de3030118c2b46ef7af69543d1b82d9d",
+    "observedXrtHead": "89868f5af076ed49e3d2a7c0063f2c6c5ad33925",
+    "newXrtChanges": "MQTT extension and documentation only; XGE-used core unchanged",
+    "runtimeSnapshotNotRelabeled": true
+  },
+  "preservation": {
+    "originalUnrelatedXlangPaths": 1085,
+    "nativeUnrelatedPaths": 13
+  },
+  "verification": [
+    {
+      "path": "F:\\xlang-validation\\xge-full-20261110\\descriptor-array-verified-win-r1.json",
+      "sha256": "5a0451bd02bcf5c0df984d683dfdafd28fda11538d8b469f1d2ab90b3572d268",
+      "files": 18222,
+      "commands": 137,
+      "mutationsPerOptimization": {
+        "O0": 286,
+        "O2": 286
+      }
+    },
+    {
+      "path": "F:\\xlang-validation\\xge-full-20261110\\descriptor-array-verified-linux-r1.json",
+      "sha256": "02cce0506f3f69a48e273c1a63c0684f54c336af8e45ce273981a2d922cfc667",
+      "files": 19747,
+      "commands": 134,
+      "mutationsPerOptimization": {
+        "O0": 286,
+        "O2": 286
+      }
+    }
+  ],
+  "actualWorkflowHeaderProof": {
+    "path": "F:\\xlang-validation\\xge-full-20261110\\workflow-descriptor-abi-development-r1\\results.json",
+    "sha256": "ccc1c3d8afc425c4fb8993d62401b417b06bd8dc34f28a877a650ae906a7035a",
+    "noNativeExecution": true
+  },
+  "sources": {
+    "src/cgen/xl6_ir_cgen_foreign_array.c": "f05101a450ec7af7c92cc36f25c22a0336a8b5b09af8ccb2355ff5887a8c1e56",
+    "src/cgen/xl6_ir_cgen_foreign_pack.c": "d2986d57e0d3756670c7a1db6d0ab725352fefdd37eda4f33304d0908eaf50ee",
+    "src/ir/xl6_ir.c": "d22414766dfbf805cfd41819037379a1b2de7c1e5cb670d2dd74e5e19d6ddecd",
+    "src/ir/xl6_ir_foreign_array.c": "894667b00bd1e3856627adbdc8fff8e8f79347b575e73b1ae21d9fc45e863414",
+    "src/ir/xl6_ir_foreign_pack.c": "195e8299765e69c7d53ea03ae26138421d171747026ceca1cb9a39c080ec3d56",
+    "src/sem/xl6_sem_foreign_array.c": "4d34132fa0cc077c8cfa76533b6215a9e5ff3fe8cd9a3ca1cab3860fad7e9883",
+    "src/sem/xl6_sem_foreign_pack.c": "4ff719ec27a29005521977ce172fc4c9efa93f148ab194c62cc31f68c01a4421",
+    "src/type/xl6_foreign_array_contract.h": "0fed569bd8487e7912ab408083398f6862256f87c5d63b2c0315c2c2433066ce",
+    "src/type/xl6_foreign_array_decl.h": "a1917954c2ab3c7ebcbf10a60bb6454f16ef565303ccfe9b2b4f4916507f2861",
+    "src/type/xl6_foreign_call_contract.h": "2a5f670118c996de6eee1add7984bd5db68ce75fc9f9f154a2b4510c609f6e57",
+    "src/type/xl6_foreign_decl.h": "ef1954b05ae829dd5bc1317aff466ce2921435d955bea79765431619462aa6e6",
+    "src/type/xl6_foreign_pack_decl.h": "080b7e12d4afef5634c6fb2bc153a933614e39a9d401049fa245cc5e57983f8a",
+    "docs/foreign-descriptor-arrays.md": "9b8c09adf16ccaf04ed303f78681925197f57d208aa6fa5cb33bbd4290e57e5c",
+    "tools/check_foreign_descriptor_arrays.py": "f933e92e258df730179aee9a6ee1160dd6d20b18fc7817d888e467da6830bedc",
+    "test/cases/foreign_descriptor_arrays.c": "313e82dedc13ea2d80431dd495748a4c30648f236579ff8da06e968767d18a34",
+    "test/cases/foreign_descriptor_arrays.h": "2724b3c6f1198742756f3d22e76af2a06ed7d153a9b50e2d43dee77b96091bb4",
+    "test/cases/foreign_descriptor_arrays.xl": "d27567e56495261807aede38c691644f648666eeb2fcfd5f52e537c09046c6e8",
+    "test/cases/foreign_descriptor_arrays_ir.c": "343bb644b481d1ca0ccd156b837409f299ee8d5f1e4eadaa099cc85cf050a006",
+    "test/cases/foreign_descriptor_arrays_nested.h": "cac6cbd6c9d583074d5927f2dd81c8e2362dfda479688704b69d4163dd1dbf3b",
+    "test/cases/foreign_descriptor_arrays_nested.xl": "57639714e0cca0af160ae665936a76e8643ee58294caa51bff9fc108b88441b7",
+    "docs/foreign-array-projections.md": "d08a518915c21c18afa6550b568642f421f6d6344de768d9c8720b323a06b076",
+    "docs/xge3-xui3-full-coverage-plan.md": "ad0e371d0889db9bd91c5614d4ee02c93d317beb2f9e81d61393febd162af90c"
+  },
+  "remaining": [
+    "Workflow Shared configuration/schema storage and variable results",
+    "Workflow retained callback output publication and ownership",
+    "other pending engine/callback/view lifetime rules and remaining subsystem mapping",
+    "final matched runtime/SDK/compiler/IDE/help delivery"
+  ]
+}

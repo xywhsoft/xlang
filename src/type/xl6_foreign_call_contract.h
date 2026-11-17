@@ -97,6 +97,7 @@ static inline int xl6ForeignValueOutputBitsValid(uint8 mode)
 #define XL6_FOREIGN_INPUT_SPAN_PREFIXES_PRESENT 2048u
 #define XL6_FOREIGN_INPUT_DATA_SNAPSHOTS_PRESENT 4096u
 #define XL6_FOREIGN_RESULT_DATA_SNAPSHOTS_PRESENT 8192u
+#define XL6_FOREIGN_INPUT_ARRAY_PACKS_PRESENT 16384u
 static inline uint8 xl6ForeignInputCallbackCount(uint16 facts)
 {return (uint8)(facts&XL6_FOREIGN_INPUT_CALLBACK_COUNT_MASK);}
 static inline int xl6ForeignInputHasRegions(uint16 facts)
@@ -105,6 +106,8 @@ static inline int xl6ForeignInputHasPacks(uint16 facts)
 {return (facts&XL6_FOREIGN_INPUT_PACKS_PRESENT)!=0;}
 static inline int xl6ForeignInputHasArrayGroups(uint16 facts)
 {return (facts&XL6_FOREIGN_INPUT_ARRAY_GROUPS_PRESENT)!=0;}
+static inline int xl6ForeignInputHasArrayPacks(uint16 facts)
+{return (facts&XL6_FOREIGN_INPUT_ARRAY_PACKS_PRESENT)!=0;}
 static inline int xl6ForeignInputHasFixedInputs(uint16 facts)
 {return (facts&XL6_FOREIGN_INPUT_FIXED_PRESENT)!=0;}
 static inline int xl6ForeignInputHasSpanPrefixes(uint16 facts)
@@ -116,7 +119,8 @@ static inline int xl6ForeignResultHasDataSnapshots(uint16 facts)
 static inline int xl6ForeignHasDataSnapshots(uint16 facts)
 {return xl6ForeignInputHasDataSnapshots(facts) || xl6ForeignResultHasDataSnapshots(facts);}
 static inline int xl6ForeignInputMappingsValid(uint16 facts)
-{return !(facts&~(XL6_FOREIGN_INPUT_CALLBACK_COUNT_MASK|XL6_FOREIGN_INPUT_REGIONS_PRESENT|XL6_FOREIGN_INPUT_PACKS_PRESENT|XL6_FOREIGN_INPUT_ARRAY_GROUPS_PRESENT|XL6_FOREIGN_INPUT_FIXED_PRESENT|XL6_FOREIGN_INPUT_SPAN_PREFIXES_PRESENT|XL6_FOREIGN_INPUT_DATA_SNAPSHOTS_PRESENT|XL6_FOREIGN_RESULT_DATA_SNAPSHOTS_PRESENT)) && xl6ForeignInputCallbackCount(facts)<=64;}
+{return !(facts&~(XL6_FOREIGN_INPUT_CALLBACK_COUNT_MASK|XL6_FOREIGN_INPUT_REGIONS_PRESENT|XL6_FOREIGN_INPUT_PACKS_PRESENT|XL6_FOREIGN_INPUT_ARRAY_GROUPS_PRESENT|XL6_FOREIGN_INPUT_FIXED_PRESENT|XL6_FOREIGN_INPUT_SPAN_PREFIXES_PRESENT|XL6_FOREIGN_INPUT_DATA_SNAPSHOTS_PRESENT|XL6_FOREIGN_RESULT_DATA_SNAPSHOTS_PRESENT|XL6_FOREIGN_INPUT_ARRAY_PACKS_PRESENT)) && xl6ForeignInputCallbackCount(facts)<=64 && (!xl6ForeignInputHasArrayPacks(facts) ||
+    (xl6ForeignInputHasPacks(facts) && xl6ForeignInputHasArrayGroups(facts)));}
 static inline int xl6ForeignInputMappingsEmpty(uint16 facts)
 {return xl6ForeignInputMappingsValid(facts) && !facts;}
 static inline int xl6ForeignInputMappingsSet(size_t callbacks,int regions,int packs,uint16* output)
@@ -181,6 +185,7 @@ static inline int xl6ForeignCallFactsEqual(const XL6_ForeignCallFacts* a,const X
         xl6ForeignInputHasRegions(a->inputMappingFacts)==xl6ForeignInputHasRegions(b->inputMappingFacts) &&
         xl6ForeignInputHasPacks(a->inputMappingFacts)==xl6ForeignInputHasPacks(b->inputMappingFacts) &&
         xl6ForeignInputHasArrayGroups(a->inputMappingFacts)==xl6ForeignInputHasArrayGroups(b->inputMappingFacts) &&
+        xl6ForeignInputHasArrayPacks(a->inputMappingFacts)==xl6ForeignInputHasArrayPacks(b->inputMappingFacts) &&
         xl6ForeignInputHasFixedInputs(a->inputMappingFacts)==xl6ForeignInputHasFixedInputs(b->inputMappingFacts) &&
         xl6ForeignInputHasSpanPrefixes(a->inputMappingFacts)==xl6ForeignInputHasSpanPrefixes(b->inputMappingFacts) &&
         xl6ForeignInputHasDataSnapshots(a->inputMappingFacts)==xl6ForeignInputHasDataSnapshots(b->inputMappingFacts) &&

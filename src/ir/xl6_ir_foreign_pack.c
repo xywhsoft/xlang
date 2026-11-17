@@ -29,7 +29,8 @@ static const char* xl6IrPackScalarCName(const XL6_IrType* type)
 }
 static int xl6IrPackArraysValid(const XL6_IrModule* m)
 {
-    return m && m->foreignPackCount<=m->foreignPackCapacity && (!m->foreignPackCount || m->foreignPacks) &&
+    return m && m->foreignArrayGroupCount<=m->foreignArrayGroupCapacity && (!m->foreignArrayGroupCount || m->foreignArrayGroups) &&
+        m->foreignPackCount<=m->foreignPackCapacity && (!m->foreignPackCount || m->foreignPacks) &&
         m->foreignPackFieldCount<=m->foreignPackFieldCapacity && (!m->foreignPackFieldCount || m->foreignPackFields) &&
         m->foreignFixedInputCount<=m->foreignFixedInputCapacity && (!m->foreignFixedInputCount || m->foreignFixedInputs) &&
         (!m->foreignFixedInputCount || (m->foreignFixedInputCount-1)/64<m->nodeCount) &&
@@ -131,6 +132,7 @@ size_t xl6IrForeignPhysicalStepCount(const XL6_IrModule* m,const XL6_IrCallTarge
     if(m->foreignArrayGroupCount>m->foreignArrayGroupCapacity || (m->foreignArrayGroupCount && !m->foreignArrayGroups))return SIZE_MAX;
     for(size_t i=0;i<m->foreignArrayGroupCount;++i){const XL6_ForeignArrayGroupContract* row=&m->foreignArrayGroups[i];
         if(row->declaration!=t->declaration)continue;
+        if(row->packPhysicalIndexPlusOne)continue; /* Enclosing pack already consumes these inputs. */
         if(!row->arrayCount || row->arrayCount>count)return SIZE_MAX;
         count-=row->arrayCount;
     }
@@ -366,6 +368,37 @@ static int xl6IrVerifyPacks(const XL6_IrModule* m,XL6_DiagList* diags)
             if(old->physicalIndex==pack->physicalIndex || (old->firstParameter<pack->firstParameter+pack->parameterCount && pack->firstParameter<old->firstParameter+old->parameterCount))goto invalid;
         }
         uint64 used=0,textData=0,textSize=0,spanData=0,spanCount=0,callbacks=0,callbackUsers=0,ownedCallbacks=0;size_t fields=0,parents=0;
+        uint64 embeddedInputs=0;
+        for(size_t g=0;g<m->foreignArrayGroupCount;++g){const XL6_ForeignArrayGroupContract* array=&m->foreignArrayGroups[g];
+            if(array->declaration!=pack->declaration || array->packPhysicalIndexPlusOne!=pack->physicalIndex+1)continue;
+            if(array->firstParameter<pack->firstParameter || array->sizeParameter>=64 || array->sizeParameter<array->firstParameter ||
+                array->sizeParameter-pack->firstParameter>=pack->parameterCount || !array->arrayCount || array->arrayCount>63 ||
+                array->sizeParameter!=array->firstParameter+array->arrayCount ||
+                !memchr(array->packDataField,0,sizeof(array->packDataField)) || !memchr(array->packCountField,0,sizeof(array->packCountField)) ||
+                !xl6ForeignPackPath(array->packDataField) || !xl6ForeignPackPath(array->packCountField) ||
+                xl6ForeignPackPathsOverlap(array->packDataField,array->packCountField))goto invalid;
+            uint64 bits=array->arrayCount==63 ? UINT64_MAX:((UINT64_C(1)<<(array->arrayCount+1))-1)<<array->firstParameter;
+            if(embeddedInputs&bits)goto invalid;
+            embeddedInputs|=bits;used|=bits;fields+=2;
+            const char* paths[2]={array->packDataField,array->packCountField};
+            for(size_t d=0;d<2;++d){size_t parentLength=xl6ForeignPackParentLength(paths[d]),witnesses=0;
+                if(pack->callbackOwnerPhysicalIndexPlusOne && xl6ForeignPackPathsOverlap(paths[d],pack->callbackUserField))goto invalid;
+                for(size_t f=0;f<m->foreignPackFieldCount;++f){const XL6_ForeignPackFieldContract* field=&m->foreignPackFields[f];
+                    if(field->declaration!=pack->declaration || field->packPhysicalIndex!=pack->physicalIndex)continue;
+                    if(!memchr(field->field,0,sizeof(field->field)))goto invalid;
+                    if(field->kind==XL6_FOREIGN_PACK_FIELD_RECORD && strlen(field->field)<strlen(paths[d]) &&
+                        !strncmp(field->field,paths[d],strlen(field->field)) && paths[d][strlen(field->field)]=='.'){
+                        witnesses+=strlen(field->field)==parentLength;continue;}
+                    if(xl6ForeignPackPathsOverlap(paths[d],field->field))goto invalid;
+                }
+                if(parentLength ? witnesses!=1:witnesses!=0)goto invalid;
+                for(size_t j=0;j<g;++j){const XL6_ForeignArrayGroupContract* old=&m->foreignArrayGroups[j];
+                    if(old->declaration!=pack->declaration || old->packPhysicalIndexPlusOne!=pack->physicalIndex+1)continue;
+                    if(!memchr(old->packDataField,0,sizeof(old->packDataField)) || !memchr(old->packCountField,0,sizeof(old->packCountField)) ||
+                        xl6ForeignPackPathsOverlap(paths[d],old->packDataField) || xl6ForeignPackPathsOverlap(paths[d],old->packCountField))goto invalid;
+                }
+            }
+        }
         size_t parent=pack->callbackOwnerPhysicalIndexPlusOne ? xl6ForeignPackParentLength(pack->callbackUserField):0;
         for(size_t f=0;f<m->foreignPackFieldCount;++f){const XL6_ForeignPackFieldContract* field=&m->foreignPackFields[f];
             if(field->declaration!=pack->declaration || field->packPhysicalIndex!=pack->physicalIndex)continue;
@@ -377,7 +410,7 @@ static int xl6IrVerifyPacks(const XL6_IrModule* m,XL6_DiagList* diags)
                     !strncmp(field->field,pack->callbackUserField,parent))++parents;
             }
             if(field->kind==XL6_FOREIGN_PACK_FIELD_SIZEOF || field->kind==XL6_FOREIGN_PACK_FIELD_RECORD)continue;
-            if(field->parameter>=64)goto invalid;
+            if(field->parameter>=64 || (embeddedInputs&(UINT64_C(1)<<field->parameter)))goto invalid;
             uint64 bit=UINT64_C(1)<<field->parameter;used|=bit;
             uint64* paired=field->kind==XL6_FOREIGN_PACK_FIELD_TEXT_DATA ? &textData:field->kind==XL6_FOREIGN_PACK_FIELD_TEXT_SIZE ? &textSize:
                 field->kind==XL6_FOREIGN_PACK_FIELD_SPAN_DATA ? &spanData:field->kind==XL6_FOREIGN_PACK_FIELD_SPAN_COUNT ? &spanCount:
@@ -399,6 +432,7 @@ static int xl6IrVerifyPacks(const XL6_IrModule* m,XL6_DiagList* diags)
     }
     for(size_t n=0;n<m->nodeCount;++n){size_t packs=0,fields=0;for(size_t i=0;i<m->foreignPackCount;++i)packs+=m->foreignPacks[i].declaration==n+1;
         for(size_t i=0;i<m->foreignPackFieldCount;++i)fields+=m->foreignPackFields[i].declaration==n+1;
+        for(size_t g=0;g<m->foreignArrayGroupCount;++g)fields+=m->foreignArrayGroups[g].declaration==n+1 && m->foreignArrayGroups[g].packPhysicalIndexPlusOne!=0;
         if((packs!=0)!=xl6ForeignInputHasPacks(m->nodes[n].foreignCall.inputMappingFacts) || (packs!=0)!=(fields!=0))goto invalid;
         size_t nulls=0;for(size_t i=0;i<m->foreignFixedInputCount;++i)nulls+=m->foreignFixedInputs[i].declaration==n+1;
         if((nulls!=0)!=xl6ForeignInputHasFixedInputs(m->nodes[n].foreignCall.inputMappingFacts))goto invalid;

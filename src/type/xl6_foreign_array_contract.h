@@ -8,6 +8,10 @@ typedef struct XL6_ForeignArrayGroupContract {
     uint32 declaration,physicalIndex,firstParameter,arrayCount,sizeParameter;
     XL6_ForeignSpanCountAbi countAbi;
     char recordCName[64],header[256],sizeField[64],sizeCName[24];
+    /* An embedded projection keeps its group key for columns, but contributes
+     * no independent C argument. The enclosing pack owns its logical inputs. */
+    uint32 packPhysicalIndexPlusOne;
+    char packDataField[64],packCountField[64];
 } XL6_ForeignArrayGroupContract;
 typedef enum XL6_ForeignArrayElementKind {
     XL6_FOREIGN_ARRAY_ELEMENT_INVALID=0,

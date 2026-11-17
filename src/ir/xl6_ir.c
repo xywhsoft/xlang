@@ -4483,6 +4483,7 @@ static XL6_IrNodeId xl6IrBuildAstNode(
             if(!xl6ForeignArrayGroupRead(declaration,&row) || !xl6IrGrow((void**)&module->foreignArrayGroups,&module->foreignArrayGroupCapacity,
                 module->foreignArrayGroupCount,sizeof(*module->foreignArrayGroups))){*ok=0;return 0;}
             row.declaration=id;
+            if(!xl6ForeignArrayPackForGroup(source,&row)){*ok=0;return 0;}
             for(size_t a=0;a<foreignAttributes->childCount;++a){uint32 physical;char name[64];
                 if(xl6ForeignArrayRecordRead(foreignAttributes->children[a],&physical,name,sizeof(name)) && physical==row.physicalIndex){
                     strcpy(row.recordCName,name);xl6ForeignArrayRecordSizeRead(foreignAttributes->children[a],&row);}}
@@ -4495,7 +4496,7 @@ static XL6_IrNodeId xl6IrBuildAstNode(
                 module->foreignArrayInputCount,sizeof(*module->foreignArrayInputs))){*ok=0;return 0;}
             row.declaration=id;module->foreignArrayInputs[module->foreignArrayInputCount++]=row;continue;
         }
-        if(declaration && declaration->text && !strcmp(declaration->text,"c_array_record"))continue;
+        if(declaration && declaration->text && (!strcmp(declaration->text,"c_array_record") || !strcmp(declaration->text,"c_array_pack")))continue;
         if(declaration && declaration->text && (!strcmp(declaration->text,"c_array_field") || !strcmp(declaration->text,"c_array_span_field"))){
             XL6_ForeignArrayFieldContract row;
             if(!xl6ForeignArrayFieldRead(declaration,&row) || !xl6IrGrow((void**)&module->foreignArrayFields,&module->foreignArrayFieldCapacity,
@@ -54712,8 +54713,8 @@ void xl6IrDumpModuleJson(XL6_Output* out, const XL6_IrModule* module)
     }
     xl6OutputPuts("  ],\n  \"foreignArrayGroups\": [\n",out);
     for(i=0;i<module->foreignArrayGroupCount;++i){const XL6_ForeignArrayGroupContract* row=&module->foreignArrayGroups[i];
-        xl6OutputPrintf(out,"    {\"declaration\":%u,\"physicalIndex\":%u,\"firstParameter\":%u,\"arrayCount\":%u,\"sizeParameter\":%u,\"countAbi\":%u,\"recordCName\":\"%s\",\"header\":\"%s\",\"sizeField\":\"%s\",\"sizeCName\":\"%s\"}%s\n",
-            row->declaration,row->physicalIndex,row->firstParameter,row->arrayCount,row->sizeParameter,(unsigned)row->countAbi,row->recordCName,row->header,row->sizeField,row->sizeCName,i+1==module->foreignArrayGroupCount ? "":",");
+        xl6OutputPrintf(out,"    {\"declaration\":%u,\"physicalIndex\":%u,\"firstParameter\":%u,\"arrayCount\":%u,\"sizeParameter\":%u,\"countAbi\":%u,\"recordCName\":\"%s\",\"header\":\"%s\",\"sizeField\":\"%s\",\"sizeCName\":\"%s\",\"packPhysicalIndexPlusOne\":%u,\"packDataField\":\"%s\",\"packCountField\":\"%s\"}%s\n",
+            row->declaration,row->physicalIndex,row->firstParameter,row->arrayCount,row->sizeParameter,(unsigned)row->countAbi,row->recordCName,row->header,row->sizeField,row->sizeCName,row->packPhysicalIndexPlusOne,row->packDataField,row->packCountField,i+1==module->foreignArrayGroupCount ? "":",");
     }
     xl6OutputPuts("  ],\n  \"foreignArrayInputs\": [\n",out);
     for(i=0;i<module->foreignArrayInputCount;++i){const XL6_ForeignArrayInputContract* row=&module->foreignArrayInputs[i];

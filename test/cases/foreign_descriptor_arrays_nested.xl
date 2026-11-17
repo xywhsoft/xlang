@@ -1,0 +1,29 @@
+import xlang
+func main(...) as int
+ auto root=env.get("XLANG_DESCRIPTOR_ROOT")
+ auto context=xlang.Context()
+ if root!=null then
+  assert context.setWorkDir(root)
+ else
+  return 2
+ end
+ auto temporary=env.get("XLANG_DESCRIPTOR_TEMP")
+ if temporary!=null then
+  assert context.setTempDir(temporary)
+ end
+ string source=r"""
+extern "nestedArrayConsume" @header("test/cases/foreign_descriptor_arrays_nested.h") @no_raise @c_pack(0,"NestedArrayDesc",0,6) @c_array_group(10,0,2,"int",2) @c_array_record(10,"NestedArrayPort") @c_array_field(10,"name",0,"c_string") @c_array_field(10,"value",1,"value") @c_array_pack(10,0,"inputs","inputCount") @c_array_group(11,3,2,"int",5) @c_array_record(11,"NestedArrayPort") @c_array_field(11,"name",0,"c_string") @c_array_field(11,"value",1,"value") @c_array_pack(11,0,"outputs","outputCount") func consume(array<string> inputs,array<c_int> inputValues,int inputSize,array<string> outputs,array<c_int> outputValues,int outputSize) as c_int
+func main(...) as int
+ array<string> names=["a","xyz"]
+ array<c_int> values=[c_int(8),c_int(9)]
+ assert consume(names,values,-1,names,values,-1)==c_int(42)
+ assert consume(names,values,0,names,values,0)==c_int(0)
+ return 0
+end
+"""
+ assert context.run(source),context.lastError
+ assert not context.run("int broken=missingDescriptorArraySymbol")
+ assert context.run(source),context.lastError
+ println("DESCRIPTOR_ARRAYS_NESTED_OK")
+ return 0
+end

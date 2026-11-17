@@ -101,6 +101,12 @@ static int xl6IrCgenForeignPacksBegin(XL6_Output* out,const XL6_IrModule* module
             }
             xl6OutputPuts(";\n",out);
         }
+        for(size_t g=0;g<module->foreignArrayGroupCount;++g){const XL6_ForeignArrayGroupContract* group=&module->foreignArrayGroups[g];
+            if(group->declaration!=pack->declaration || group->packPhysicalIndexPlusOne!=pack->physicalIndex+1)continue;
+            xl6OutputPrintf(out,"    if (native_packs_ok) { native_pack_%u.%s=native_array_record_%u; native_pack_%u.%s=(%s)native_array_count_%u; }\n",
+                pack->physicalIndex,group->packDataField,group->physicalIndex,pack->physicalIndex,group->packCountField,
+                xl6ForeignSpanCountCName(group->countAbi),group->physicalIndex);
+        }
         if(pack->callbackOwnerPhysicalIndexPlusOne)
             xl6OutputPrintf(out,"    if (native_packs_ok) native_pack_%u.%s=native_callback_group_%u;\n",
                 pack->physicalIndex,pack->callbackUserField,pack->physicalIndex);

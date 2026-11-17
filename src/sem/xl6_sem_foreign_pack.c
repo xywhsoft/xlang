@@ -62,7 +62,37 @@ static int xl6SemForeignPacks(XL6_SemContext* ctx,XL6_AstNode* node,const XL6_As
             if(xl6ForeignPackRead(attrs->children[b],&previous) && previous.physicalIndex==pack.physicalIndex)goto invalid;}
         uint64 used=0,textData=0,textSize=0,spanData=0,spanCount=0,callbacks=0,callbackUsers=0,ownedCallbacks=0;
         char groupOwner[64]={0};
-        size_t fields=0;
+        size_t fields=0;uint64 embeddedInputs=0;
+        for(size_t g=0;g<attrs->childCount;++g){XL6_ForeignArrayGroupContract array;
+            if(!xl6ForeignArrayGroupRead(attrs->children[g],&array))continue;
+            if(!xl6ForeignArrayPackForGroup(node,&array))goto invalid;
+            if(array.packPhysicalIndexPlusOne!=pack.physicalIndex+1)continue;
+            if(pack.firstParameter>array.firstParameter || array.sizeParameter-pack.firstParameter>=pack.parameterCount ||
+                array.sizeParameter>=64 || (pack.callbackOwnerPhysicalIndexPlusOne &&
+                (xl6ForeignPackPathsOverlap(array.packDataField,pack.callbackUserField) ||
+                 xl6ForeignPackPathsOverlap(array.packCountField,pack.callbackUserField))))goto invalid;
+            uint64 inputs=array.arrayCount==63 ? UINT64_MAX:((UINT64_C(1)<<(array.arrayCount+1))-1)<<array.firstParameter;
+            if(embeddedInputs&inputs)goto invalid;
+            embeddedInputs|=inputs;used|=inputs;fields+=2;fieldCount+=2;
+            const char* paths[2]={array.packDataField,array.packCountField};
+            for(size_t d=0;d<2;++d){size_t parent=xl6ForeignPackParentLength(paths[d]),witnesses=0;
+                for(size_t f=0;f<attrs->childCount;++f){XL6_ForeignPackFieldContract field;
+                    if(!xl6ForeignPackFieldRead(attrs->children[f],&field) || field.packPhysicalIndex!=pack.physicalIndex)continue;
+                    if(field.kind==XL6_FOREIGN_PACK_FIELD_RECORD && strlen(field.field)<strlen(paths[d]) &&
+                        !strncmp(field.field,paths[d],strlen(field.field)) && paths[d][strlen(field.field)]=='.'){
+                        witnesses+=strlen(field.field)==parent;continue;}
+                    if(xl6ForeignPackPathsOverlap(field.field,paths[d]))goto invalid;
+                }
+                if(parent ? witnesses!=1:witnesses!=0)goto invalid;
+            }
+            for(size_t prior=0;prior<g;++prior){XL6_ForeignArrayGroupContract previous;
+                if(!xl6ForeignArrayGroupRead(attrs->children[prior],&previous))continue;
+                if(!xl6ForeignArrayPackForGroup(node,&previous))goto invalid;
+                if(previous.packPhysicalIndexPlusOne==array.packPhysicalIndexPlusOne &&
+                    (xl6ForeignPackPathsOverlap(previous.packDataField,array.packDataField) || xl6ForeignPackPathsOverlap(previous.packDataField,array.packCountField) ||
+                     xl6ForeignPackPathsOverlap(previous.packCountField,array.packDataField) || xl6ForeignPackPathsOverlap(previous.packCountField,array.packCountField)))goto invalid;
+            }
+        }
         for(size_t f=0;f<attrs->childCount;++f){
             XL6_ForeignPackFieldContract field;if(!xl6ForeignPackFieldRead(attrs->children[f],&field) || field.packPhysicalIndex!=pack.physicalIndex)continue;
             ++fields;++fieldCount;
@@ -75,7 +105,7 @@ static int xl6SemForeignPacks(XL6_SemContext* ctx,XL6_AstNode* node,const XL6_As
                     witness.kind==XL6_FOREIGN_PACK_FIELD_RECORD && strlen(witness.field)==parent && !strncmp(witness.field,field.field,parent))++parents;}
             if(parent ? parents!=1:parents!=0)goto invalid;
             if(field.kind==XL6_FOREIGN_PACK_FIELD_SIZEOF || field.kind==XL6_FOREIGN_PACK_FIELD_RECORD)continue;
-            size_t p=field.parameter;if(p<pack.firstParameter || p-pack.firstParameter>=pack.parameterCount)goto invalid;
+            size_t p=field.parameter;if(p<pack.firstParameter || p-pack.firstParameter>=pack.parameterCount || (embeddedInputs&(UINT64_C(1)<<p)))goto invalid;
             const XL6_AstNode* type=xl6SemResolveAliasType(ctx,params->children[p]->children[0]);
             const XL6_AstNode* inner=type && xl6SemTypeIsNullable(type) ? xl6SemResolveAliasType(ctx,xl6SemNullableInnerType(type)):type;
             used|=UINT64_C(1)<<p;

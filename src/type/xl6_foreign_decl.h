@@ -325,6 +325,23 @@ static inline int xl6ForeignMultiOutputSlotsValid(const XL6_ForeignCallFacts* f,
     }
     return 1;
 }
+/* Closed member paths contain identifiers only, with bounded nesting. */
+static inline int xl6ForeignPackPath(const char* path)
+{
+    if(!path || !*path)return 0;
+    size_t depth=0;const char* part=path;
+    for(const char* p=path;;++p)if(*p=='.' || !*p){
+        size_t length=(size_t)(p-part);char name[64];
+        if(!length || length>=sizeof(name) || ++depth>8)return 0;
+        memcpy(name,part,length);name[length]=0;if(!xl6ForeignIdentifier(name))return 0;
+        if(!*p)return 1;
+        part=p+1;
+    }
+}
+static inline size_t xl6ForeignPackParentLength(const char* path)
+{const char* dot=strrchr(path,'.');return dot ? (size_t)(dot-path):0;}
+static inline int xl6ForeignPackPathsOverlap(const char* a,const char* b)
+{size_t na=strlen(a),nb=strlen(b);return !strcmp(a,b) || (na<nb && !strncmp(a,b,na) && b[na]=='.') || (nb<na && !strncmp(a,b,nb) && a[nb]=='.');}
 #include "src/type/xl6_foreign_array_decl.h"
 #include "src/type/xl6_foreign_pack_decl.h"
 
@@ -367,7 +384,7 @@ static inline int xl6ForeignFunctionRead(const XL6_AstNode* node,
     XL6_ForeignCallFacts* output)
 {
     XL6_ForeignCallFacts facts = {0};int countedField=0,retainedResult=0,voidFactory=0,outputStatus=0,fieldCall=0;uint64 callbackSpans=0,callbackParameters=0,outputSizes=0,outputViews=0,regions=0,regionObservers=0,packs=0,packText=0,packCstrings=0,nulls=0,spanLimits=0;size_t callbackSpanCount=0,packFields=0;
-    uint64 recordFields=0,recordRetains=0,arrayGroups=0,arrayRecords=0,callbackGroups=0,callbackGroupOwners=0,snapshots=0,resultSnapshots=0;size_t arrayInputs=0,arrayFields=0;
+    uint64 recordFields=0,recordRetains=0,arrayGroups=0,arrayRecords=0,arrayPacks=0,arrayPackOwners=0,callbackGroups=0,callbackGroupOwners=0,snapshots=0,resultSnapshots=0;size_t arrayInputs=0,arrayFields=0;
     const XL6_AstNode* attributes = xl6ForeignFunctionAttributes(node);
     for (size_t i = 0; attributes && i < attributes->childCount; ++i) {
         const XL6_AstNode* attr = attributes->children[i];
@@ -381,6 +398,11 @@ static inline int xl6ForeignFunctionRead(const XL6_AstNode* node,
             uint32 p;
             if(!xl6ForeignDataSnapshotRead(attr,&p) || (snapshots&(UINT64_C(1)<<p)))return 0;
             snapshots|=UINT64_C(1)<<p;continue;
+        }
+        if(attr && attr->text && !strcmp(attr->text,"c_array_pack")){
+            uint32 key,physical;
+            if(!xl6ForeignArrayPackRead(attr,&key,&physical,NULL,0,NULL,0) || (arrayPacks&(UINT64_C(1)<<key)))return 0;
+            arrayPacks|=UINT64_C(1)<<key;arrayPackOwners|=UINT64_C(1)<<physical;continue;
         }
         if(attr && attr->text && !strcmp(attr->text,"c_array_group")){
             XL6_ForeignArrayGroupContract row;
@@ -640,7 +662,7 @@ static inline int xl6ForeignFunctionRead(const XL6_AstNode* node,
         else if(facts.borrowedViewResult==XL6_FOREIGN_VIEW_RESULT_BYTES)facts.borrowedViewResult=XL6_FOREIGN_VIEW_RESULT_BYTES_FIELD;
         else return 0;
     }
-    if((packFields!=0)!=(packs!=0) || (packText&facts.textViews) || (packCstrings&facts.terminatedStrings))return 0;
+    if(((packFields!=0 || arrayPacks!=0)!=(packs!=0)) || (packText&facts.textViews) || (packCstrings&facts.terminatedStrings))return 0;
     facts.textViews|=packText;facts.terminatedStrings|=packCstrings;
     if (((facts.physicalPairs|facts.retainedCallbacks) & (facts.terminatedStrings|facts.textViews|facts.bytesViews|facts.constAggregateAddresses|facts.staticCallbackAddresses)) ||
         (facts.terminatedStrings & (facts.textViews | facts.bytesViews | facts.constAggregateAddresses | facts.staticCallbackAddresses)) ||
@@ -655,10 +677,11 @@ static inline int xl6ForeignFunctionRead(const XL6_AstNode* node,
     if((regionObservers&~regions) || (regions && ((node->flags&XL6_AST_FLAG_FOREIGN_FIELD) || facts.receiverDereference)) ||
         (packs && (regions || (node->flags&XL6_AST_FLAG_FOREIGN_FIELD) || facts.receiverDereference)) ||
         !xl6ForeignInputMappingsSet(callbackSpanCount,regions!=0,packs!=0,&facts.inputMappingFacts))return 0;
-    if((callbackGroups&~packs) || (callbackGroupOwners&(packs|nulls|regions|arrayGroups)) ||
-        (arrayRecords&~arrayGroups) || (!arrayGroups && (arrayInputs || arrayFields)) ||
+    if((callbackGroups&~packs) || (callbackGroupOwners&(packs|nulls|regions|(arrayGroups&~arrayPacks))) ||
+        (arrayRecords&~arrayGroups) || (arrayPacks&~arrayRecords) || (arrayPackOwners&~packs) || (!arrayGroups && (arrayInputs || arrayFields || arrayPacks)) ||
         (arrayGroups && (regions || (node->flags&XL6_AST_FLAG_FOREIGN_FIELD) || facts.receiverDereference)))return 0;
     if(arrayGroups)facts.inputMappingFacts|=XL6_FOREIGN_INPUT_ARRAY_GROUPS_PRESENT;
+    if(arrayPacks)facts.inputMappingFacts|=XL6_FOREIGN_INPUT_ARRAY_PACKS_PRESENT;
     if(nulls)facts.inputMappingFacts|=XL6_FOREIGN_INPUT_FIXED_PRESENT;
     if(snapshots){
         facts.inputMappingFacts|=XL6_FOREIGN_INPUT_DATA_SNAPSHOTS_PRESENT;

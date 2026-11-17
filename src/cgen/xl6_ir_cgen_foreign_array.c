@@ -3,6 +3,38 @@
 static const char* xl6IrCgenNativeSlotTypeExpr(XL6_IrNativeSlotAbi);
 static const char* xl6IrCgenArrayLengthMax(const char* ctype)
 {return !strcmp(ctype,"int") ? "INT_MAX":!strcmp(ctype,"uint32_t") ? "UINT32_MAX":!strcmp(ctype,"uint64_t") ? "UINT64_MAX":"SIZE_MAX";}
+static void xl6IrCgenArrayPackDisjoint(XL6_Output* out,const char* record,const char* a,const char* b)
+{
+    xl6OutputPrintf(out,"XLIR_NATIVE_ASSERT((offsetof(%s,%s)+sizeof(((%s*)0)->%s)<=offsetof(%s,%s)) || "
+        "(offsetof(%s,%s)+sizeof(((%s*)0)->%s)<=offsetof(%s,%s)), \"native descriptor Array fields disjoint\");\n",
+        record,a,record,a,record,b,record,b,record,b,record,a);
+}
+static int xl6IrCgenArrayPackProof(XL6_Output* out,const XL6_IrModule* m,const XL6_IrCallTarget* t,
+    const XL6_ForeignArrayGroupContract* group)
+{
+    if(!group->packPhysicalIndexPlusOne)return 1;
+    const XL6_ForeignPackContract* pack=xl6IrForeignPackGet(m,t,group->packPhysicalIndexPlusOne-1);
+    if(!pack || !group->recordCName[0])return 0;
+    xl6OutputPrintf(out,"XLIR_NATIVE_ASSERT(XLIR_NATIVE_IS_TYPE(((%s*)0)->%s,const %s*), \"native descriptor Array pointer ABI\");\n"
+        "XLIR_NATIVE_ASSERT(XLIR_NATIVE_IS_TYPE(((%s*)0)->%s,%s), \"native descriptor Array count ABI\");\n",
+        pack->recordCName,group->packDataField,group->recordCName,
+        pack->recordCName,group->packCountField,xl6ForeignSpanCountCName(group->countAbi));
+    xl6IrCgenArrayPackDisjoint(out,pack->recordCName,group->packDataField,group->packCountField);
+    const char* paths[2]={group->packDataField,group->packCountField};
+    for(size_t d=0;d<2;++d){
+        for(size_t f=0;f<m->foreignPackFieldCount;++f){const XL6_ForeignPackFieldContract* field=&m->foreignPackFields[f];
+            if(field->declaration==t->declaration && field->packPhysicalIndex==pack->physicalIndex && field->kind!=XL6_FOREIGN_PACK_FIELD_RECORD)
+                xl6IrCgenArrayPackDisjoint(out,pack->recordCName,paths[d],field->field);
+        }
+        if(pack->callbackOwnerPhysicalIndexPlusOne)xl6IrCgenArrayPackDisjoint(out,pack->recordCName,paths[d],pack->callbackUserField);
+        for(size_t g=0;g<m->foreignArrayGroupCount;++g){const XL6_ForeignArrayGroupContract* other=&m->foreignArrayGroups[g];
+            if(other==group || other->declaration!=t->declaration || other->packPhysicalIndexPlusOne!=group->packPhysicalIndexPlusOne)continue;
+            xl6IrCgenArrayPackDisjoint(out,pack->recordCName,paths[d],other->packDataField);
+            xl6IrCgenArrayPackDisjoint(out,pack->recordCName,paths[d],other->packCountField);
+        }
+    }
+    return !xl6OutputHasFailed(out);
+}
 static int xl6IrCgenArrayProof(XL6_Output* out,const XL6_IrModule* m,const XL6_IrCallTarget* t)
 {
     if(!xl6IrForeignArrayGroupsMatch(m,t))return 0;
@@ -19,6 +51,7 @@ static int xl6IrCgenArrayProof(XL6_Output* out,const XL6_IrModule* m,const XL6_I
             "XLIR_NATIVE_ASSERT(XLIR_NATIVE_IS_TYPE(((%s*)0)->%s,%s), \"native Array sizeof field ABI\");\n"
             "XLIR_NATIVE_ASSERT(sizeof(%s)<=%s, \"native Array sizeof field range\");\n",
             group->recordCName,group->sizeField,group->sizeCName,group->recordCName,xl6IrCgenArrayLengthMax(group->sizeCName));
+        if(!xl6IrCgenArrayPackProof(out,m,t,group))return 0;
         if(group->countAbi==XL6_FOREIGN_SPAN_COUNT_U64)xl6OutputPuts("XLIR_NATIVE_ASSERT(sizeof(size_t)<=sizeof(uint64_t), \"native Array uint64 count range\");\n",out);
         for(size_t c=0;c<group->arrayCount;++c){XL6_ForeignArrayInputContract col;const XL6_ForeignArrayFieldContract* field;
             if(!xl6IrForeignArrayColumn(m,group,c,&col,&field))return 0;
@@ -40,7 +73,7 @@ static int xl6IrCgenArrayProof(XL6_Output* out,const XL6_IrModule* m,const XL6_I
 }
 static int xl6IrCgenArrayArguments(XL6_Output* out,const XL6_IrModule* m,const XL6_IrCallTarget* t,size_t physical)
 {
-    const XL6_ForeignArrayGroupContract* group=xl6IrForeignArrayGroupGet(m,t,physical);if(!group)return 0;
+    const XL6_ForeignArrayGroupContract* group=xl6IrForeignArrayGroupGet(m,t,physical);if(!group || group->packPhysicalIndexPlusOne)return 0;
     if(group->recordCName[0])xl6OutputPrintf(out,"native_array_record_%u",group->physicalIndex);
     else for(size_t c=0;c<group->arrayCount;++c){XL6_ForeignArrayInputContract col;
         if(!xl6IrForeignArrayColumn(m,group,c,&col,NULL))return 0;

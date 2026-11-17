@@ -118,3 +118,14 @@ C11/C++11/C++17 headers, pointer identity, callback read pins, checked cleanup,
 allocation budgets and declaration/header rejection cases. Document has its
 own source-patch and native custom-allocator gates; see
 [Document source patches](xui-document-source-patches.md).
+
+## Record arrays in descriptor fields
+
+`@c_array_pack(groupKey, packSlot, "dataField", "countField")` now embeds a
+record-array group into a synchronous descriptor. Several groups can share
+one pack, including bounded nested record fields; no additional C arguments
+are emitted. Source pins, element scopes and reverse cleanup are unchanged.
+Native headers prove exact const-record/count fields and disjoint offsets.
+The conversion still uses O(n) temporary records. See
+[descriptor-field Arrays](foreign-descriptor-arrays.md) for the full contract,
+measured allocation cost and complete O2 JIT/AOT/shared/nested acceptance.

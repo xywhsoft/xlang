@@ -39,10 +39,23 @@ static int xl6IrArrayGroupExpected(const XL6_IrModule* m,const XL6_ForeignArrayG
         (row->sizeField[0] ? (!row->recordCName[0] || !xl6ForeignIdentifier(row->sizeField) || !xl6ForeignArrayLengthSpelling(row->sizeCName)):row->sizeCName[0]!=0))return 0;
     const XL6_IrType* size=xl6IrTypeGet(&m->types,xl6IrRegionInputType(m,node,params,receiver,row->sizeParameter));
     if(!size || size->kind!=XL6_IR_TYPE_BUILTIN || size->cAbi!=XL6_IR_C_ABI_I64 || size->ownershipAbi!=XL6_IR_OWNERSHIP_ABI_TRIVIAL)return 0;
+    if(row->packPhysicalIndexPlusOne>64 ||
+        !memchr(row->packDataField,0,sizeof(row->packDataField)) || !memchr(row->packCountField,0,sizeof(row->packCountField)))return 0;
+    if(row->packPhysicalIndexPlusOne ? (!row->recordCName[0] || !xl6ForeignInputHasArrayPacks(node->foreignCall.inputMappingFacts) ||
+        !xl6ForeignInputHasPacks(node->foreignCall.inputMappingFacts) || !xl6ForeignPackPath(row->packDataField) ||
+        !xl6ForeignPackPath(row->packCountField) || xl6ForeignPackPathsOverlap(row->packDataField,row->packCountField)) :
+        (row->packDataField[0] || row->packCountField[0]))return 0;
+    size_t owners=0;
     for(size_t i=0;i<m->foreignPackCount;++i){const XL6_ForeignPackContract* pack=&m->foreignPacks[i];
-        if(pack->declaration==row->declaration && (pack->physicalIndex==row->physicalIndex ||
-            pack->firstParameter>params->childCount+receiver || pack->parameterCount>params->childCount+receiver-pack->firstParameter ||
-            (pack->parameterCount && pack->firstParameter<=row->sizeParameter && row->firstParameter<pack->firstParameter+pack->parameterCount)))return 0;}
+        if(pack->declaration!=row->declaration)continue;
+        if(pack->firstParameter>params->childCount+receiver || pack->parameterCount>params->childCount+receiver-pack->firstParameter)return 0;
+        int overlap=pack->parameterCount && pack->firstParameter<=row->sizeParameter && row->firstParameter<pack->firstParameter+pack->parameterCount;
+        if(row->packPhysicalIndexPlusOne && pack->physicalIndex+1==row->packPhysicalIndexPlusOne){
+            if(pack->firstParameter>row->firstParameter || row->sizeParameter-pack->firstParameter>=pack->parameterCount)return 0;
+            ++owners;
+        }else if(overlap || (!row->packPhysicalIndexPlusOne && pack->physicalIndex==row->physicalIndex))return 0;
+    }
+    if(row->packPhysicalIndexPlusOne && owners!=1)return 0;
     uint64 mask=row->arrayCount==63 ? UINT64_MAX:((UINT64_C(1)<<(row->arrayCount+1))-1)<<(row->firstParameter-receiver);
     if(mask&(node->foreignCall.constAggregateAddresses|node->foreignCall.staticCallbackAddresses|node->foreignCall.textViews|
         node->foreignCall.bytesViews|node->foreignCall.terminatedStrings|node->foreignCall.physicalPairs|node->foreignCall.retainedCallbacks))return 0;
@@ -176,8 +189,9 @@ static int xl6IrVerifyArrayGroups(const XL6_IrModule* m,XL6_DiagList* diags)
             for(size_t j=0;j<at;++j){const XL6_ForeignArrayFieldContract* old=&m->foreignArrayFields[j];
                 if(old->declaration==decl && old->groupPhysicalIndex==slot && xl6ForeignArrayFieldNamesOverlap(old,row))goto invalid;}}
     }
-    for(size_t n=0;n<m->nodeCount;++n){size_t groups=0;
-        for(size_t g=0;g<m->foreignArrayGroupCount;++g)groups+=m->foreignArrayGroups[g].declaration==n+1;
+    for(size_t n=0;n<m->nodeCount;++n){size_t groups=0,embedded=0;
+        for(size_t g=0;g<m->foreignArrayGroupCount;++g)if(m->foreignArrayGroups[g].declaration==n+1){++groups;embedded+=m->foreignArrayGroups[g].packPhysicalIndexPlusOne!=0;}
+        if((embedded!=0)!=xl6ForeignInputHasArrayPacks(m->nodes[n].foreignCall.inputMappingFacts))goto invalid;
         if((groups!=0)!=xl6ForeignInputHasArrayGroups(m->nodes[n].foreignCall.inputMappingFacts))goto invalid;
         if(groups){const XL6_IrNode* params;size_t receiver,outputs;uint32 slots[64];
             if(!xl6IrRegionSignature(m,(uint32)n+1,&params,&receiver,slots,&outputs))goto invalid;

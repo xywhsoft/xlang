@@ -32,10 +32,19 @@ static int xl6SemForeignArrayGroups(XL6_SemContext* ctx,XL6_AstNode* node,const 
         xl6ForeignInputHasRegions(facts->inputMappingFacts))goto invalid;
     for(size_t a=0;attrs && a<attrs->childCount;++a){XL6_ForeignArrayGroupContract group;
         if(!xl6ForeignArrayGroupRead(attrs->children[a],&group))continue;
-        ++groups;if(group.sizeParameter>=count)goto invalid;
+        ++groups;if(group.sizeParameter>=count || !xl6ForeignArrayPackForGroup(node,&group))goto invalid;
+        size_t packOwners=0;
         for(size_t r=0;r<attrs->childCount;++r){XL6_ForeignPackContract pack;
-            if(xl6ForeignPackRead(attrs->children[r],&pack) && (pack.physicalIndex==group.physicalIndex ||
-                (pack.parameterCount && pack.firstParameter<=group.sizeParameter && group.firstParameter<pack.firstParameter+pack.parameterCount)))goto invalid;}
+            if(!xl6ForeignPackRead(attrs->children[r],&pack))continue;
+            if(pack.firstParameter>count || pack.parameterCount>count-pack.firstParameter)goto invalid;
+            if(!group.packPhysicalIndexPlusOne && pack.physicalIndex==group.physicalIndex)goto invalid;
+            int overlap=pack.firstParameter<=group.sizeParameter && group.firstParameter<pack.firstParameter+pack.parameterCount;
+            if(group.packPhysicalIndexPlusOne && pack.physicalIndex+1==group.packPhysicalIndexPlusOne){
+                if(pack.firstParameter>group.firstParameter || group.sizeParameter-pack.firstParameter>=pack.parameterCount)goto invalid;
+                ++packOwners;
+            }else if(overlap)goto invalid;
+        }
+        if(group.packPhysicalIndexPlusOne && packOwners!=1)goto invalid;
         for(size_t p=group.firstParameter;p<=group.sizeParameter;++p){
             if(p>=64 || (consumed&(UINT64_C(1)<<p)) || !params->children[p] ||
                 params->children[p]->childCount<1 || params->children[p]->childCount>2)goto invalid;
@@ -47,7 +56,7 @@ static int xl6SemForeignArrayGroups(XL6_SemContext* ctx,XL6_AstNode* node,const 
         for(size_t r=0;r<attrs->childCount;++r){uint32 slot;char name[64];
             if(xl6ForeignArrayRecordRead(attrs->children[r],&slot,name,sizeof(name)) && slot==group.physicalIndex){
                 ++records;strcpy(record,name);xl6ForeignArrayRecordSizeRead(attrs->children[r],&group);}}
-        if(records>1)goto invalid;
+        if(records>1 || (group.packPhysicalIndexPlusOne && records!=1))goto invalid;
         for(size_t column=0;column<group.arrayCount;++column){
             size_t p=group.firstParameter+column;
             const XL6_AstNode* element=xl6SemForeignArrayElement(ctx,params->children[p]->children[0]);size_t matches=0;

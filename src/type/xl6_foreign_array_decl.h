@@ -70,6 +70,41 @@ static inline int xl6ForeignArrayInputRead(const XL6_AstNode* attr,XL6_ForeignAr
     if(output)*output=row;
     return 1;
 }
+/* Projection IDs remain unique within a declaration. A destination changes
+ * where the prepared record pointer/count are written, not the column IDs. */
+static inline int xl6ForeignArrayPackRead(const XL6_AstNode* attr,uint32* group,
+    uint32* physical,char* data,size_t dataCapacity,char* count,size_t countCapacity)
+{
+    int32 key,slot;char dataName[64],countName[64];
+    if(!attr || !attr->text || strcmp(attr->text,"c_array_pack") || attr->childCount!=4 ||
+        !xl6ForeignDecimalInt(attr->children[0],&key) || key<0 || key>=64 ||
+        !xl6ForeignDecimalInt(attr->children[1],&slot) || slot<0 || slot>=64 ||
+        !xl6ForeignQuotedText(attr->children[2],dataName,sizeof(dataName)) || !xl6ForeignPackPath(dataName) ||
+        !xl6ForeignQuotedText(attr->children[3],countName,sizeof(countName)) || !xl6ForeignPackPath(countName) ||
+        xl6ForeignPackPathsOverlap(dataName,countName))return 0;
+    if((data && strlen(dataName)>=dataCapacity) || (count && strlen(countName)>=countCapacity))return 0;
+    if(group)*group=(uint32)key;
+    if(physical)*physical=(uint32)slot;
+    if(data)strcpy(data,dataName);
+    if(count)strcpy(count,countName);
+    return 1;
+}
+static inline int xl6ForeignArrayPackForGroup(const XL6_AstNode* node,XL6_ForeignArrayGroupContract* group)
+{
+    const XL6_AstNode* attrs=xl6ForeignFunctionAttributes(node);size_t found=0;
+    if(!group)return 0;
+    group->packPhysicalIndexPlusOne=0;group->packDataField[0]=group->packCountField[0]=0;
+    for(size_t i=0;attrs && i<attrs->childCount;++i){const XL6_AstNode* attr=attrs->children[i];
+        if(!attr || !attr->text || strcmp(attr->text,"c_array_pack"))continue;
+        uint32 key,physical;char data[64],count[64];
+        if(!xl6ForeignArrayPackRead(attr,&key,&physical,data,sizeof(data),count,sizeof(count)))return 0;
+        if(key!=group->physicalIndex)continue;
+        if(found++)return 0;
+        group->packPhysicalIndexPlusOne=physical+1;
+        strcpy(group->packDataField,data);strcpy(group->packCountField,count);
+    }
+    return 1;
+}
 static inline int xl6ForeignArrayRecordRead(const XL6_AstNode* attr,uint32* physical,char* name,size_t capacity)
 {
     int32 slot;
@@ -120,7 +155,7 @@ static inline int xl6ForeignArrayForParameter(const XL6_AstNode* node,size_t par
     const XL6_AstNode* attrs=xl6ForeignFunctionAttributes(node);size_t matches=0;XL6_ForeignArrayGroupContract found={0};
     for(size_t a=0;attrs && a<attrs->childCount;++a){XL6_ForeignArrayGroupContract row;
         if(xl6ForeignArrayGroupRead(attrs->children[a],&row) && parameter>=row.firstParameter && parameter<=row.sizeParameter){found=row;++matches;}}
-    if(matches!=1)return 0;
+    if(matches!=1 || !xl6ForeignArrayPackForGroup(node,&found))return 0;
     if(output)*output=found;
     return 1;
 }
