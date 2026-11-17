@@ -105,5 +105,9 @@ xvalue* xl6PersistenceSnapshotNativeV1(const xvalue* source,const XL6_Persistenc
     const XL6_ValueGraphPlanV1* native)
 {
     if (!planValid(plan)) { xrtSetErrorKind(XERR_ARGUMENT); return NULL; }
-    return xl6ValueDataProjectStrictNativeV1(source,projectObject,(ptr)plan,plan->sequences,plan->sequenceCount,native);
+    /* Native owned var results can represent logical null with a C NULL.
+     * Use the immutable process null singleton; it allocates nothing and
+     * still passes through the ordinary strict plan/provider validation. */
+    return xl6ValueDataProjectStrictNativeV1(source ? source:xrtValueNull(),projectObject,(ptr)plan,
+        plan->sequences,plan->sequenceCount,native);
 }

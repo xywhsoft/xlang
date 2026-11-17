@@ -11,7 +11,7 @@ static int xl6SemForeignHasRetainedOutputs(const XL6_AstNode* node)
     return 0;
 }
 /* Compare physical attributes as an unordered multiset. Data snapshots are
- * logical input admissions; each declaration keeps its independently checked
+ * logical admissions; each declaration keeps its independently checked
  * rows/effects while the native pointer signature stays identical. */
 static int xl6SemForeignAttributeEqual(const XL6_AstNode* a,const XL6_AstNode* b)
 {
@@ -24,12 +24,12 @@ static int xl6SemForeignAttributesEqual(const XL6_AstNode* a,const XL6_AstNode* 
 {
     a=xl6ForeignFunctionAttributes(a);b=xl6ForeignFunctionAttributes(b);
     size_t ac=0,bc=0;
-    for(size_t i=0;a && i<a->childCount;++i)ac+=!xl6ForeignDataSnapshotRead(a->children[i],NULL);
-    for(size_t i=0;b && i<b->childCount;++i)bc+=!xl6ForeignDataSnapshotRead(b->children[i],NULL);
+    for(size_t i=0;a && i<a->childCount;++i)ac+=!(xl6ForeignDataSnapshotRead(a->children[i],NULL) || xl6ForeignResultDataSnapshotRead(a->children[i],NULL));
+    for(size_t i=0;b && i<b->childCount;++i)bc+=!(xl6ForeignDataSnapshotRead(b->children[i],NULL) || xl6ForeignResultDataSnapshotRead(b->children[i],NULL));
     if(ac!=bc)return 0;
     if(!ac)return 1;
     for(size_t i=0;i<a->childCount;++i){
-        if(xl6ForeignDataSnapshotRead(a->children[i],NULL))continue;
+        if(xl6ForeignDataSnapshotRead(a->children[i],NULL) || xl6ForeignResultDataSnapshotRead(a->children[i],NULL))continue;
         size_t left=0,right=0;
         for(size_t j=0;j<a->childCount;++j)left+=xl6SemForeignAttributeEqual(a->children[i],a->children[j]);
         for(size_t j=0;j<b->childCount;++j)right+=xl6SemForeignAttributeEqual(a->children[i],b->children[j]);

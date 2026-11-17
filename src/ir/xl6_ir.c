@@ -4599,12 +4599,14 @@ static XL6_IrNodeId xl6IrBuildAstNode(
                 &module->foreignValueCapacity,module->foreignValueCount,sizeof(*module->foreignValues))){*ok=0;return 0;}
             row.declaration=id;module->foreignValues[module->foreignValueCount++]=row;continue;
         }
-        if(declaration && declaration->text && !strcmp(declaration->text,"c_data_snapshot")){
-            uint32 parameter;
-            if(!xl6ForeignDataSnapshotRead(declaration,&parameter) ||
+        if(declaration && declaration->text && (!strcmp(declaration->text,"c_data_snapshot") ||
+            !strcmp(declaration->text,"c_data_snapshot_result"))){
+            uint32 parameter;int result=!strcmp(declaration->text,"c_data_snapshot_result");
+            if(!(result ? xl6ForeignResultDataSnapshotRead(declaration,&parameter):xl6ForeignDataSnapshotRead(declaration,&parameter)) ||
                 !xl6IrGrow((void**)&module->foreignDataSnapshots,&module->foreignDataSnapshotCapacity,
                     module->foreignDataSnapshotCount,sizeof(*module->foreignDataSnapshots))){*ok=0;return 0;}
-            if(source->kind==XL6_AST_NATIVE_EXTERN_FUNC && !(source->flags&XL6_AST_FLAG_STATIC))++parameter;
+            if(result)parameter|=XL6_FOREIGN_DATA_SNAPSHOT_RESULT;
+            else if(source->kind==XL6_AST_NATIVE_EXTERN_FUNC && !(source->flags&XL6_AST_FLAG_STATIC))++parameter;
             module->foreignDataSnapshots[module->foreignDataSnapshotCount++]=
                 (XL6_ForeignDataSnapshotContract){id,parameter,0};continue;
         }
@@ -23455,7 +23457,7 @@ int xl6IrForeignCallAdmissionMayRaise(const XL6_IrModule* module,const XL6_IrCal
     const XL6_IrNode* declaration=xl6IrNodeGet(module,target->declaration);
     if(declaration && (xl6ForeignInputHasPacks(declaration->foreignCall.inputMappingFacts) ||
         xl6ForeignInputHasArrayGroups(declaration->foreignCall.inputMappingFacts) ||
-        xl6ForeignInputHasDataSnapshots(declaration->foreignCall.inputMappingFacts)))return 1;
+        xl6ForeignHasDataSnapshots(declaration->foreignCall.inputMappingFacts)))return 1;
     if(target->foreignOperationAbi==XL6_IR_FOREIGN_OPERATION_FIELD_CALL)return 1;
     if(target->resultConversionAbi==XL6_IR_CALL_RESULT_CONVERSION_BORROWED_VALUE_COPY ||
         target->resultConversionAbi==XL6_IR_CALL_RESULT_CONVERSION_NATIVE_VIEW_ADMIT ||
@@ -54786,8 +54788,9 @@ void xl6IrDumpModuleJson(XL6_Output* out, const XL6_IrModule* module)
     xl6OutputPuts("  ],\n  \"foreignDataSnapshots\": [\n",out);
     for(i=0;i<module->foreignDataSnapshotCount;++i){
         const XL6_ForeignDataSnapshotContract* row=&module->foreignDataSnapshots[i];
-        xl6OutputPrintf(out,"    {\"declaration\":%u,\"parameter\":%u,\"logicalType\":%u}%s\n",
-            row->declaration,row->parameter,row->logicalType,i+1==module->foreignDataSnapshotCount ? "" : ",");
+        xl6OutputPrintf(out,"    {\"declaration\":%u,\"%s\":%u,\"logicalType\":%u}%s\n",
+            row->declaration,(row->parameter&XL6_FOREIGN_DATA_SNAPSHOT_RESULT) ? "result":"parameter",
+            row->parameter&~XL6_FOREIGN_DATA_SNAPSHOT_RESULT,row->logicalType,i+1==module->foreignDataSnapshotCount ? "" : ",");
     }
     xl6OutputPuts("  ],\n  \"foreignFieldCalls\": [\n",out);
     for(i=0;i<module->foreignFieldCallCount;++i){

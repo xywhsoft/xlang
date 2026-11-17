@@ -9250,7 +9250,7 @@ static int xl6SemExternCDeclsCompatible(XL6_SemContext* ctx, const XL6_AstNode* 
             xl6ForeignValueOutputIsRecord(left.valueOutput) || xl6ForeignValueOutputIsRecord(right.valueOutput) ||
             xl6SemForeignHasRetainedOutputs(a) || xl6SemForeignHasRetainedOutputs(b) ||
             xl6ForeignInputHasPacks(left.inputMappingFacts) || xl6ForeignInputHasPacks(right.inputMappingFacts) ||
-            xl6ForeignInputHasDataSnapshots(left.inputMappingFacts) || xl6ForeignInputHasDataSnapshots(right.inputMappingFacts) ||
+            xl6ForeignHasDataSnapshots(left.inputMappingFacts) || xl6ForeignHasDataSnapshots(right.inputMappingFacts) ||
             xl6ForeignInputHasFixedInputs(left.inputMappingFacts) || xl6ForeignInputHasFixedInputs(right.inputMappingFacts) ||
             xl6ForeignInputHasRegions(left.inputMappingFacts) || xl6ForeignInputHasRegions(right.inputMappingFacts)) &&
             (!xl6ForeignCallFactsPhysicalEqual(left,right) || !xl6SemForeignAttributesEqual(a,b) ||

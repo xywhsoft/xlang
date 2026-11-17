@@ -770,6 +770,7 @@ static int xl6IrCgenEmitWitnessNativeCall(XL6_Output* out, const XL6_IrModule* m
     if (views) xl6IrCgenForeignViewsEnd(out, target, scope);
     if(arrays)xl6IrCgenArraysEnd(out,module,target,scope);
     if (!xl6IrCgenNativeCallValueEnd(out, module, &valuePlan, result, scope)) return 0;
+    if (!xl6IrCgenResultDataSnapshots(out,module,target,result,scope)) return 0;
     return !xl6OutputHasFailed(out);
 }
 
@@ -1257,6 +1258,10 @@ static int xl6IrCgenEmitDirectCall(
     if(arraysPrepared)xl6IrCgenArraysEnd(out,module,target,nativeScope);
     if (!xl6IrCgenNativeCallValueEnd(out,module,&nativeValue,nativeResult,nativeScope)) return 0;
     if (textCount != 0) xl6OutputPuts("    }\n", out);
+    {
+        char place[40];snprintf(place,sizeof(place),"v%u",(unsigned)instruction->result);
+        if(!xl6IrCgenResultDataSnapshots(out,module,target,place,nativeScope))return 0;
+    }
     if ( errorPhysicalAbi == XL6_IR_CALL_ERROR_PHYSICAL_FOREIGN_SCOPE ) {
         int owned = 0;
         for (argument = 0; argument < target->parameterCount; ++argument)

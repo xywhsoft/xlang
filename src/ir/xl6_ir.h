@@ -8149,6 +8149,7 @@ static inline int xl6IrForeignViewBorrowPhysical(XL6_IrCallParameterPhysicalAbi 
 const XL6_ForeignPointerQualifierContract* xl6IrForeignPointerQualifierGet(const XL6_IrModule*,const XL6_IrCallTarget*,size_t);
 int xl6IrForeignPointerQualifierMatches(const XL6_IrModule*,const XL6_IrCallTarget*,size_t);
 const XL6_ForeignDataSnapshotContract* xl6IrForeignDataSnapshotGet(const XL6_IrModule*,const XL6_IrCallTarget*,size_t);
+const XL6_ForeignDataSnapshotContract* xl6IrForeignResultDataSnapshotGet(const XL6_IrModule*,const XL6_IrCallTarget*,size_t);
 uint32 xl6IrForeignFunctionHeaderIndex(const XL6_IrModule*,XL6_IrNodeId);
 const XL6_ForeignFunctionHeaderContract* xl6IrForeignFunctionHeaderGet(const XL6_IrModule*,const XL6_IrCallTarget*);
 const XL6_ForeignValueContract* xl6IrForeignValueGet(const XL6_IrModule*,const XL6_IrCallTarget*,size_t);

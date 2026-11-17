@@ -77,6 +77,14 @@ static inline int xl6ForeignDataSnapshotParameter(const XL6_AstNode* node,size_t
     }
     return 0;
 }
+static inline int xl6ForeignResultDataSnapshotRead(const XL6_AstNode* attr,uint32* ordinal)
+{
+    int32 index;
+    if(!attr || !attr->text || strcmp(attr->text,"c_data_snapshot_result") || attr->childCount!=1 ||
+        !xl6ForeignDecimalInt(attr->children[0],&index) || index<0 || index>=64)return 0;
+    if(ordinal)*ordinal=(uint32)index;
+    return 1;
+}
 static inline int xl6ForeignOutputSizeRead(const XL6_AstNode* attr,XL6_ForeignOutputSizeContract* output)
 {
     int32 index;XL6_ForeignOutputSizeContract row={0};
@@ -359,11 +367,16 @@ static inline int xl6ForeignFunctionRead(const XL6_AstNode* node,
     XL6_ForeignCallFacts* output)
 {
     XL6_ForeignCallFacts facts = {0};int countedField=0,retainedResult=0,voidFactory=0,outputStatus=0,fieldCall=0;uint64 callbackSpans=0,callbackParameters=0,outputSizes=0,outputViews=0,regions=0,regionObservers=0,packs=0,packText=0,packCstrings=0,nulls=0,spanLimits=0;size_t callbackSpanCount=0,packFields=0;
-    uint64 recordFields=0,recordRetains=0,arrayGroups=0,arrayRecords=0,callbackGroups=0,callbackGroupOwners=0,snapshots=0;size_t arrayInputs=0,arrayFields=0;
+    uint64 recordFields=0,recordRetains=0,arrayGroups=0,arrayRecords=0,callbackGroups=0,callbackGroupOwners=0,snapshots=0,resultSnapshots=0;size_t arrayInputs=0,arrayFields=0;
     const XL6_AstNode* attributes = xl6ForeignFunctionAttributes(node);
     for (size_t i = 0; attributes && i < attributes->childCount; ++i) {
         const XL6_AstNode* attr = attributes->children[i];
         int32 index;
+        if(attr && attr->text && !strcmp(attr->text,"c_data_snapshot_result")){
+            uint32 ordinal;
+            if(!xl6ForeignResultDataSnapshotRead(attr,&ordinal) || (resultSnapshots&(UINT64_C(1)<<ordinal)))return 0;
+            resultSnapshots|=UINT64_C(1)<<ordinal;continue;
+        }
         if(attr && attr->text && !strcmp(attr->text,"c_data_snapshot")){
             uint32 p;
             if(!xl6ForeignDataSnapshotRead(attr,&p) || (snapshots&(UINT64_C(1)<<p)))return 0;
@@ -650,6 +663,10 @@ static inline int xl6ForeignFunctionRead(const XL6_AstNode* node,
     if(snapshots){
         facts.inputMappingFacts|=XL6_FOREIGN_INPUT_DATA_SNAPSHOTS_PRESENT;
         for(uint64 bits=snapshots;bits;bits&=bits-1)++facts.dataSnapshotCount;
+    }
+    if(resultSnapshots){
+        facts.inputMappingFacts|=XL6_FOREIGN_RESULT_DATA_SNAPSHOTS_PRESENT;
+        for(uint64 bits=resultSnapshots;bits;bits&=bits-1)++facts.dataSnapshotCount;
     }
     if(spanLimits){
         if((spanLimits&(facts.physicalPairs|facts.retainedCallbacks|facts.terminatedStrings|facts.textViews|

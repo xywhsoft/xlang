@@ -1,0 +1,153 @@
+extern "result_store" @header("test/cases/foreign_result_snapshot.h") @no_raise func store(var value)
+extern "result_get" @header("test/cases/foreign_result_snapshot.h") @no_raise @c_data_snapshot_result(0) func read() as var
+extern "result_get" @header("test/cases/foreign_result_snapshot.h") @no_raise func readShared() as var
+extern "result_move" @header("test/cases/foreign_result_snapshot.h") @no_raise @c_data_snapshot_result(0) func take() as var
+extern "result_echo" @header("test/cases/foreign_result_snapshot.h") @no_raise @c_data_snapshot(0) @c_data_snapshot_result(0) func echo(var value) as var
+extern "result_pair" @header("test/cases/foreign_result_snapshot.h") @no_raise @c_outputs(0,1) @c_status(0) @c_output_view(0,"owned_value") @c_output_view(1,"owned_value") @c_data_snapshot_result(0) @c_data_snapshot_result(1) func pair() as (var,var)
+extern "result_mixed" @header("test/cases/foreign_result_snapshot.h") @no_raise @c_outputs(0,1,2) @c_status(0) @c_output_view(0,"owned_value") @c_output_view(1,"cstring") @c_output_view(2,"owned_value") @c_data_snapshot_result(0) @c_data_snapshot_result(2) func mixed(c_int fail=0) as (var,string,var)
+extern "ResultReceiver*" class Receiver @header("test/cases/foreign_result_snapshot.h") @lifetime("caller")
+    native point handle
+    extern "result_receiver_get" @no_raise @c_data_snapshot_result(0) func read() as var
+    extern "read" @c_field_call @no_raise @c_data_snapshot_result(0) func fieldRead() as var
+    extern "result_receiver_output" @no_raise @c_output(1,0) @c_output_view(1,"owned_value") @c_data_snapshot_result(0) get value() as var
+end
+extern "result_receiver" @no_raise func receiver() as Receiver
+extern "result_calls" @no_raise func calls() as c_int
+extern "result_same" @no_raise func same(var value) as c_int
+extern "result_opaque" @header("test/cases/foreign_result_snapshot.h") func opaque(c_int failDrop=0) as var
+extern "result_opaque_live" @no_raise func opaqueLive() as c_int
+extern "result_drops" @no_raise func drops() as c_int
+extern "result_clear" @no_raise func clear()
+extern "result_budget" @no_raise func budget(c_int allowance)
+extern "result_triggered" @no_raise func triggered() as c_int
+extern "result_mark" @no_raise func mark()
+extern "result_balanced" @no_raise func balanced() as c_int
+
+int getterCalls=0
+class Base
+    derive json
+    string inherited="base"
+    private string hidden="private"
+end
+class Data extends Base
+    derive json
+    string title @json("wire_title")="public"
+    string visible @persist(skip)="visible"
+    private Buffer resource=Buffer("private resource")
+    get computed() as string
+        getterCalls+=1
+        return "must not execute"
+    end
+end
+class DropFailure
+    int n=7
+    private var resource=opaque(c_int(1))
+end
+func sweep(c_int mode) as int
+    int failures=0
+    for allowance in range(257)
+        bool caught=false
+        mark()
+        budget(c_int(allowance))
+        try
+            if mode==c_int(0) then
+                var value=read()
+                assert value.title=="changed"
+            elseif mode==c_int(1) then
+                auto a,b=pair()
+                assert a.title=="changed" and b.title=="changed"
+            else
+                auto a,text,b=mixed()
+                assert a.title=="changed" and b.title=="changed" and text=="borrowed"
+            end
+        catch failure
+            caught=true
+        end
+        bool hit=triggered()!=c_int(0)
+        budget(c_int(-1))
+        assert caught==hit and balanced()==c_int(1)
+        if not hit then
+            assert allowance==failures
+            return failures
+        end
+        failures+=1
+    end
+    assert false
+    return -1
+end
+func main(...) as int
+    // A raw native NULL is logical null, including when reused as an input.
+    assert read()==null and echo(readShared())==null
+    auto data=Data()
+    store(data)
+    var copied=read()
+    assert copied.title=="public" and copied.inherited=="base" and copied.visible=="visible"
+    assert copied.hidden==null and copied.resource==null and copied.computed==null and copied.wire_title==null
+    assert same(copied)==c_int(0) and same(readShared())==c_int(1) and getterCalls==0
+    data.title="changed"
+    assert copied.title=="public"
+    int before=int(calls())
+    auto a,b=pair()
+    assert int(calls())==before+1
+    a.title="separate result"
+    assert b.title=="changed"
+    assert echo(data).title=="changed"
+    func() as var stored=read
+    func erased=read
+    assert stored().title=="changed" and erased().title=="changed"
+    assert receiver().read().title=="changed" and receiver().fieldRead().title=="changed"
+    assert receiver().value.title=="changed"
+    func() as var bound=receiver().read
+    func() as var field=receiver().fieldRead
+    assert bound().title=="changed" and field().title=="changed"
+    budget(c_int(-1))
+    int scalarFailures=sweep(c_int(0))
+    int pairFailures=sweep(c_int(1))
+    int mixedFailures=sweep(c_int(2))
+    assert scalarFailures>0 and pairFailures>scalarFailures and mixedFailures>pairFailures
+    assert sweep(c_int(0))==scalarFailures and sweep(c_int(1))==pairFailures and sweep(c_int(2))==mixedFailures
+    bool refused=false
+    mark()
+    try
+        mixed(c_int(1))
+    catch failure
+        refused=true
+    end
+    assert refused and balanced()==c_int(1) and same(readShared())==c_int(1)
+    list<int> sparse=list[2:7,42:9]
+    set<int> unique=set{7,9}
+    array<int> values=[7,9]
+    assert echo(sparse)[0]==7 and echo(unique)[0]==7 and echo(values)[1]==9
+    assert echo("a\0b")=="a\0b" and echo(b"\0\xff")==b"\0\xff"
+    var child={"n":7}
+    store([child,child])
+    var sharedChildren=read()
+    sharedChildren[0].n=11
+    assert sharedChildren[1].n==11 and child.n==7
+    clear()
+    store(opaque())
+    refused=false
+    try
+        pair()
+    catch failure
+        refused=true
+    end
+    assert refused and opaqueLive()==c_int(1)
+    clear()
+    assert opaqueLive()==c_int(0)
+    // Projecting public data succeeds; retiring the original private handle fails.
+    int oldDrops=int(drops())
+    mark()
+    store(DropFailure())
+    assert opaqueLive()==c_int(1)
+    refused=false
+    try
+        take()
+    catch failure
+        refused=true
+    end
+    assert refused and opaqueLive()==c_int(0) and int(drops())==oldDrops+1 and balanced()==c_int(1)
+    assert read()==null and copied.title=="public" and getterCalls==0
+    println("FOREIGN_RESULT_SNAPSHOT_OK",scalarFailures,pairFailures,mixedFailures)
+    return 0
+end

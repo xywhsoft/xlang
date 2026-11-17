@@ -24,9 +24,9 @@ static int xl6IrCgenEmitPersistenceProjectPlans(
     for(size_t t=0;t<module->callTargetCount;++t){
         const XL6_IrCallTarget* target=&module->callTargets[t];
         if(target->reachability==XL6_IR_REACHABILITY_UNREACHABLE)continue;
-        for(size_t a=0;a<target->parameterCount;++a){
-            const XL6_ForeignDataSnapshotContract* row=xl6IrForeignDataSnapshotGet(module,target,a);
-            if(row)graphProviders|=xl6IrValueGraphProvidersForType(module,row->logicalType);
+        for(size_t a=0;a<module->foreignDataSnapshotCount;++a){
+            const XL6_ForeignDataSnapshotContract* row=&module->foreignDataSnapshots[a];
+            if(row->declaration==target->declaration)graphProviders|=xl6IrValueGraphProvidersForType(module,row->logicalType);
         }
     }
     for (s=0;s<module->instructionCount;++s)

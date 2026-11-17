@@ -1,0 +1,153 @@
+{
+  "complete": true,
+  "passed": true,
+  "shippingDelivery": false,
+  "releaseInstalled": false,
+  "sourceParent": "670bf55b201a8f4d84183044f3772ccfc9c91bac",
+  "acceptedContract": "strict PUBLIC snapshot of already-owned logical var results, with source preservation and complete-carrier rollback",
+  "syntax": "@c_data_snapshot_result(logicalOrdinal)",
+  "nativeCallsPerInvocation": 1,
+  "publicStoredFieldsOnly": true,
+  "gettersExecuted": false,
+  "opaqueCloneFallback": false,
+  "nullUsesImmutableSingleton": true,
+  "fullCompilerBuilds": "Windows and Linux O2 with complete TCC/XRT/VFS regeneration",
+  "directions": "direct owned xvalue* and owned_value output views, including mixed tuples; direct/stored/erased/bound/field/getter calls",
+  "metadata": {
+    "foreignFactBytes": 88,
+    "sparseRowBytes": 12,
+    "logicalResultTag": "0x80000000",
+    "resultPresenceBit": 8192
+  },
+  "qualification": {
+    "languageHeaderGccCommands": 164,
+    "irBuildRunCommands": 4,
+    "irMutations": 310,
+    "verifiedFiles": 33462,
+    "failurePrefixes": [
+      8,
+      16,
+      19
+    ],
+    "repeatedBalancedPrefixes": true,
+    "rejectedDeclarations": 22,
+    "physicalSharedUnload": true,
+    "ordinaryInputOutputRegressions": true
+  },
+  "adaptationCosts": [
+    "one strict graph traversal per marked result",
+    "PUBLIC schema and native-provider validation",
+    "container allocations and owned cleanup",
+    "original owners kept through staging; whole carrier discarded on any failure"
+  ],
+  "perMethodNativeForwardersAdded": 0,
+  "newRuntimeExportsAdded": 0,
+  "overallZeroBridgeOverheadClaim": false,
+  "sources": {
+    "src/type/xl6_foreign_call_contract.h": "744804cdb92cc004688fbae5a66fe00c022ea0027c9040a91f577bcbb2e6ed5f",
+    "src/type/xl6_foreign_decl.h": "9efbb78273063ebfb738fd3febbc925fbddd220b354cf75c65dda554be3b2fd0",
+    "src/sem/xl6_sem_foreign_snapshot.c": "d9ccf616b6a0c6ed98e688398b187227b940fc75af7baaabef4f07e33c10fe8a",
+    "src/sem/xl6_sem.c": "646df0de033c636ff67ec1495a5c716ada3d8546f268e05404b953cc0bf19b8b",
+    "src/sem/xl6_sem_foreign_compat.c": "425f922d047289898f0d35111877fe429b3fe862d7430ad0e028fa941f062c0d",
+    "src/ir/xl6_ir_foreign_snapshot.c": "8862b70b9ed1ed6471e89bab86dd7b76ec1cb7b2f22c6aebcea5dcf42b2aa9ad",
+    "src/ir/xl6_ir.c": "3bf956ae4537bd78b7f956dcb0c7d4494e997b1b62a09bc51b4632e49b85cb07",
+    "src/ir/xl6_ir.h": "1cd93ac1de368345ed7fe8b0f0d225b6e12876d2a9966ebbafa479b032c22434",
+    "src/cgen/xl6_ir_cgen_foreign_snapshot.c": "aa0ceecf224a648c000ff90fb07feeb31fa1f294dba358d7a1620619cb3a52cd",
+    "src/cgen/xl6_ir_cgen_type_call.c": "17d9ac4025a471b622b964d806d005692a7c8ac631fa7c216b4a158566ac8bc0",
+    "src/cgen/xl6_ir_cgen_persistence_project.c": "031e914a5bfa20f8d8028911c984d399b27ab0f43af6026d8e56ed82f3a31da1",
+    "src/cgen/xl6_ir_cgen_native_dependencies.c": "99c5d778361394a6c1eeaebbc24ea958cc17464995bbb83a19f8ea29a75d1f4d",
+    "src/runtime/xl6_persistence_project.c": "ff604e83766948ff2ca4343c5f9f789a0fe9c023c575649534045d87919d2d81",
+    "test/cases/foreign_result_snapshot.xl": "968f2c421bd6386455c4ea221412f2e1e5368d7f37c8606de9234aacab76cfa2",
+    "test/cases/foreign_result_snapshot.c": "27bdbdc7788bff259089e308e3d8e06fe3e242b4315958320d9c1e3d7c594372",
+    "test/cases/foreign_result_snapshot.h": "bbf6290b86261b7684fcd55ced5e4ec152155ad0bac05e8409729f0047aa9c38",
+    "test/cases/foreign_result_snapshot_ir.c": "c1b66cdc9f9c80463bda2ba91729fcaa2f34085706cd4c3c816c68db8749a5a4",
+    "tools/check_foreign_result_snapshot.py": "4ba0a3790fdd0f65a71a87e119377ddc83b788303545975086052c4039fb92c5",
+    "docs/foreign-result-snapshot.md": "3e5032ef94faea39a856d7b3a70819d8e84a24e216f7f2926b1183e4db18e579"
+  },
+  "platforms": {
+    "win": {
+      "path": "F:\\xlang-validation\\xge-full-20261110\\result-snapshot-verified-win-r1.json",
+      "sha256": "cfc9430fcaae3f2d540651dc0d0afb74ba51e99b35155bade990f8b2dffd12e5",
+      "verifiedFiles": 15952,
+      "commands": 84,
+      "compilerBuild": {
+        "path": "F:\\xlang-validation\\xge-full-20261110\\compiler-result-snapshot-win-full-r1\\build.json",
+        "sha256": "490a633b518d49ef4f9c101b9b0552ca554bab6f191f873fea0fcb2baf3ea25a"
+      },
+      "compilerSourceFreeze": {
+        "path": "F:\\xlang-validation\\xge-full-20261110\\compiler-result-snapshot-win-full-r1\\freeze.json",
+        "sha256": "e57aafc519e5914a22b09bb301d1d777af3a16d11cffe235c2791ec986cb3e86"
+      },
+      "gates": {
+        "result-snapshot-result-win-r2": {
+          "path": "F:\\xlang-validation\\xge-full-20261110\\result-snapshot-result-win-r2\\results.json",
+          "sha256": "ac1185dc16ebd67c7d8f9839b9a10ccf20c5fad8d96a0d304feedc07bc01642f",
+          "commands": 28
+        },
+        "result-snapshot-input-regression-win-r2": {
+          "path": "F:\\xlang-validation\\xge-full-20261110\\result-snapshot-input-regression-win-r2\\results.json",
+          "sha256": "f815e0447573ba554fd6bc78dd3416b7eefdf3a8e5891d1e3c87804d8b7cbbe2",
+          "commands": 27
+        },
+        "result-snapshot-output-regression-win-r2": {
+          "path": "F:\\xlang-validation\\xge-full-20261110\\result-snapshot-output-regression-win-r2\\results.json",
+          "sha256": "f6d3124d47502edda50552fca9b612867bfa94786e387d960ae607029353f03a",
+          "commands": 27
+        },
+        "result-snapshot-ir-win-r1": {
+          "path": "F:\\xlang-validation\\xge-full-20261110\\result-snapshot-ir-win-r1\\results.json",
+          "sha256": "6b584f7b582e02c3c75555e57095ddb03744c960a833d0c62cc2cd99c9865552",
+          "commands": 2
+        }
+      },
+      "irMutations": 155,
+      "windowsIrUsesFrozenSourceProbe": true
+    },
+    "linux": {
+      "path": "\\\\wsl.localhost\\Ubuntu\\var\\tmp\\xlang-validation\\xge-full-20261110\\result-snapshot-verified-linux-r1.json",
+      "sha256": "7efa7ea51f0c518dfad58f5a3107b1cbc8d064784509d99790b4e4cbe00b3528",
+      "verifiedFiles": 17510,
+      "commands": 84,
+      "compilerBuild": {
+        "path": "/var/tmp/xlang-validation/xge-full-20261110/compiler-result-snapshot-linux-full-r1/build.json",
+        "sha256": "6a4d566a0e4f952461b20d67c0c9cb273c8c469ecb791100d228752465b6e490"
+      },
+      "compilerSourceFreeze": {
+        "path": "/var/tmp/xlang-validation/xge-full-20261110/compiler-result-snapshot-linux-full-r1/freeze.json",
+        "sha256": "a95fcef3e0e89fec7ed56d96694f2c3e387d9659a91e36a623320ec76bcb21f4"
+      },
+      "gates": {
+        "result-snapshot-result-linux-r2": {
+          "path": "/var/tmp/xlang-validation/xge-full-20261110/result-snapshot-result-linux-r2/results.json",
+          "sha256": "74d53fd001f47c66ff02dda7fb67559913bcd04c6f21879f63ac0b4ae5e1df55",
+          "commands": 28
+        },
+        "result-snapshot-input-regression-linux-r2": {
+          "path": "/var/tmp/xlang-validation/xge-full-20261110/result-snapshot-input-regression-linux-r2/results.json",
+          "sha256": "a26a413d3298fc8760eb5faeb9537de04f97a5019186cfe579216c59d47b93ce",
+          "commands": 27
+        },
+        "result-snapshot-output-regression-linux-r2": {
+          "path": "/var/tmp/xlang-validation/xge-full-20261110/result-snapshot-output-regression-linux-r2/results.json",
+          "sha256": "165c3c1bc56331c14559e60f456842d670872ed74657201411198e61dda5dab0",
+          "commands": 27
+        },
+        "result-snapshot-ir-linux-r1": {
+          "path": "/var/tmp/xlang-validation/xge-full-20261110/result-snapshot-ir-linux-r1/results.json",
+          "sha256": "674e4494402c56a0a601c8ea9d70b5aa5a147b4e24efab9d8582e468a22699ec",
+          "commands": 2
+        }
+      },
+      "irMutations": 155,
+      "windowsIrUsesFrozenSourceProbe": false
+    }
+  },
+  "remaining": [
+    "FlowGraph default read qualification and separate commit",
+    "Workflow and remaining XGE/XUI/Document contracts",
+    "final matched SDK/compiler/IDE/help installation"
+  ],
+  "externalEarlyEvidence": "F:\\xlang-validation\\xge-full-20261110\\result-snapshot-development-win-r2\\results.json",
+  "supersededQaBootstrapFailures": "result-snapshot-full-runner-{win,linux}-r1: omitted runtime_layout.py in isolated harness; corrected r2 gates passed",
+  "networkSecurityTestsRun": false
+}
