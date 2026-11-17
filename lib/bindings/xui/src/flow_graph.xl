@@ -1,5 +1,4 @@
-// Each view owns one native reference. Default setters snapshot public data once.
-// Reads are explicitly Clone/Shared until the result-snapshot contract is qualified.
+// Each view owns one native reference. Default reads/writes snapshot public data.
 // Text in returned tuples is snapshotted before the native call scope ends.
 export extern "xui_flow_graph" class FlowGraph @header("xge3_runtime.h") @lifetime("owned") @policy("xl6Xui3FlowGraphPolicy") @domain("xl6Xui3OwnershipDomainV1")
  native point handle
@@ -25,6 +24,7 @@ export extern "xui_flow_graph" class FlowGraph @header("xge3_runtime.h") @lifeti
  extern "xuiFlowGraphSetNodeRunState" @no_raise @c_cstr(0) @c_cstr(2) @c_result("status",0) func setNodeRunState(string id,c_int state,string preview)
  extern "xuiFlowGraphSetNodeRunState" @no_raise @c_cstr(0) @c_null(3,"const char*") @c_result("status",0) func setNodeRunState(string id,c_int state)
  extern "xuiFlowGraphSetNodeConfigShared" @no_raise @c_cstr(0) @c_data_snapshot(1) @c_result("status",0) func setNodeConfig(string id,var config)
+ extern "xuiFlowGraphGetNodeConfigShared" @no_raise @c_cstr(0) @c_output(2,0) @c_output_view(2,"owned_value") @c_data_snapshot_result(0) func getNodeConfig(string id) as var
  extern "xuiFlowGraphGetNodeConfig" @no_raise @c_cstr(0) @c_output(2,0) @c_output_view(2,"owned_value") func getNodeConfigClone(string id) as var
  extern "xuiFlowGraphCommandSetNodeConfigShared" @no_raise @c_cstr(0) @c_data_snapshot(1) @c_result("status",0) func commandSetNodeConfig(string id,var config)
  // Advanced operations retain the native Clone or identity-sharing semantics.

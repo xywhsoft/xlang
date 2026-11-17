@@ -1,0 +1,199 @@
+{
+  "complete": true,
+  "passed": true,
+  "sourceParent": "d459a32422d173fd505d1cbc02161152c97cdcfc",
+  "genericResultContractCommit": "d459a32422d173fd505d1cbc02161152c97cdcfc",
+  "shippingDelivery": false,
+  "releaseInstalled": false,
+  "pushPerformed": false,
+  "publicDeclarations": 74,
+  "uniqueNativeFunctions": 68,
+  "defaultRead": {
+    "name": "FlowGraph.getNodeConfig",
+    "native": "xuiFlowGraphGetNodeConfigShared",
+    "conversion": "@c_data_snapshot_result(0)",
+    "nativeCallsPerRead": 1,
+    "independentPublicData": true,
+    "preProjectionDeepClone": false,
+    "gettersExecuted": false
+  },
+  "advancedCloneAndSharedRetained": true,
+  "qualification": {
+    "logicalLanguageExampleChecks": 102,
+    "sourceChecks": 819,
+    "independentlyRecheckedFiles": 33556,
+    "readAllocationFailurePrefix": 5,
+    "existingWriteFailurePrefixes": [
+      11,
+      27
+    ],
+    "jit": true,
+    "hostedAndStaticExecutables": true,
+    "sharedRetirementAndPhysicalUnload": true,
+    "c11AndCppHeaders": true,
+    "normalWindowsPeStackBytes": 1048576,
+    "environmentReplayCommands": 3
+  },
+  "sources": {
+    "lib/bindings/xui/src/flow_graph.xl": "e45771d27b1d6ca4a02d3724531c30fcf5cca527133f2440ed65d083c4188a8d",
+    "test/cases/foreign_xui_flow_graph_snapshot.xl": "016737499f69da495f5a52814d725f960ba02d80f6cd7b0d5bcfd3ba48bff8b2",
+    "lib/bindings/xui/examples/flow_model.xl": "27240793cccf33e6190884f3b3aa8e1e3260b3722729965c860f1a4e17a930af",
+    "tools/check_foreign_xui_flow_graph.py": "9d4df36578c6abc47dd29da121be692bb524a9d14f460cd5b82e9c7ba1e3ad39",
+    "docs/xui-flow-graph.md": "2fa166adf1382bb6c200161b87ad052e232305bfcc8c97f2dd197552f5d125c4",
+    "docs/xge3-xui3-full-coverage-plan.md": "b31a38679f926c6b7dbd39b2377b278ef4e4c4db5adf7a2afb9bf6c7ce694e13"
+  },
+  "platforms": {
+    "win": {
+      "path": "F:\\xlang-validation\\xge-full-20261110\\graph-result-verified-win-r1.json",
+      "sha256": "c294479135b12e753ebfab18aab7982b4d178537100e061a6812399ef4a28e9a",
+      "verifiedFiles": 16012,
+      "qualifiedLogicalCommands": 51,
+      "sourceChecks": 409,
+      "compilerBuild": {
+        "path": "F:\\xlang-validation\\xge-full-20261110\\compiler-result-snapshot-win-full-r1\\build.json",
+        "sha256": "490a633b518d49ef4f9c101b9b0552ca554bab6f191f873fea0fcb2baf3ea25a"
+      },
+      "compilerSourceFreeze": {
+        "path": "F:\\xlang-validation\\xge-full-20261110\\compiler-result-snapshot-win-full-r1\\freeze.json",
+        "sha256": "e57aafc519e5914a22b09bb301d1d777af3a16d11cffe235c2791ec986cb3e86"
+      },
+      "sourceFreeze": {
+        "path": "F:\\xlang-validation\\xge-full-20261110\\graph-result-binding-freeze-win-r2.json",
+        "sha256": "a13f1b5951668cae7fe71a4564e8f29c7d1499363d839259ffea9071ff9afd1f"
+      },
+      "gates": {
+        "graph-result-behavior-win-r1": {
+          "path": "F:\\xlang-validation\\xge-full-20261110\\graph-result-behavior-win-r1\\results.json",
+          "sha256": "76346e76e72a58137eee98ff5cd8c3c0bfd784ba6dd165395e682e0e098bdd3a",
+          "commands": 18
+        },
+        "graph-result-oom-win-r1": {
+          "path": "F:\\xlang-validation\\xge-full-20261110\\graph-result-oom-win-r1\\results.json",
+          "sha256": "52bc409aedc2d8614d46907004a8a3fb1b1ac6ec000ee1c38b0f925d407bea4f",
+          "commands": 13
+        },
+        "graph-result-snapshot-win-r1": {
+          "path": "F:\\xlang-validation\\xge-full-20261110\\graph-result-snapshot-win-r1\\results.json",
+          "sha256": "dcc06eada001e230b414658b3741339c15a6bfb3b577fa0f6d0c2374f1938fae",
+          "commands": 13
+        },
+        "graph-result-examples-win-r1": {
+          "path": "F:\\xlang-validation\\xge-full-20261110\\graph-result-examples-win-r1\\results.json",
+          "sha256": "9415cafde0bc9eb8818fc6c11bcb1eea0470b18f60ade161d0adac4a54f389b1",
+          "commands": 7
+        }
+      },
+      "storage": {
+        "path": "F:\\xlang-validation\\xge-full-20261110\\graph-result-storage-win-r1\\results.json",
+        "sha256": "5d8b255aac1d706b26c56d9dcae295d42a8308744bb408e74924c932e9fddff3"
+      }
+    },
+    "linux": {
+      "path": "F:\\xlang-validation\\xge-full-20261110\\linux-writable-recovery-r1\\graph-result-verified-linux-r3.json",
+      "sha256": "81fba8bfba0b0f1bd75f663c4622a00160f6dc78071b23dfec585ad45c935e76",
+      "verifiedFiles": 17544,
+      "qualifiedLogicalCommands": 51,
+      "sourceChecks": 410,
+      "compilerBuild": {
+        "path": "/var/tmp/xlang-validation/xge-full-20261110/compiler-result-snapshot-linux-full-r1/build.json",
+        "sha256": "6a4d566a0e4f952461b20d67c0c9cb273c8c469ecb791100d228752465b6e490"
+      },
+      "compilerSourceFreeze": {
+        "path": "/var/tmp/xlang-validation/xge-full-20261110/compiler-result-snapshot-linux-full-r1/freeze.json",
+        "sha256": "a95fcef3e0e89fec7ed56d96694f2c3e387d9659a91e36a623320ec76bcb21f4"
+      },
+      "sourceFreeze": {
+        "path": "/var/tmp/xlang-validation/xge-full-20261110/graph-result-binding-freeze-linux-r2.json",
+        "sha256": "e6478170d87561a33a097fc14acfcd38c975f6804afadfedec88984bb41f4dd7"
+      },
+      "gates": {
+        "graph-result-behavior-linux-r1": {
+          "path": "/var/tmp/xlang-validation/xge-full-20261110/graph-result-behavior-linux-r1/results.json",
+          "sha256": "9d65ff16053b5597f2969513664d7701bc93f1922a3e21ad74aa10e3eec8e896",
+          "commands": 18
+        },
+        "graph-result-oom-linux-r1": {
+          "path": "/mnt/f/xlang-validation/xge-full-20261110/linux-writable-recovery-r1/graph-result-oom-linux-r1/results.json",
+          "sha256": "a705096484e4546c3ebf592525232d078b7d2b4de65bad484a8dc993cd5e6405",
+          "commands": 13
+        },
+        "graph-result-snapshot-linux-r2": {
+          "path": "/mnt/f/xlang-validation/xge-full-20261110/linux-writable-recovery-r1/graph-result-snapshot-linux-r2/results.json",
+          "sha256": "8a893762dc6bfd75caf3c46d8aa8219e5d80b127b0d5fcf35d6889c995e3c2cf",
+          "commands": 13
+        },
+        "graph-result-examples-linux-r1": {
+          "path": "/var/tmp/xlang-validation/xge-full-20261110/graph-result-examples-linux-r1/results.json",
+          "sha256": "1e2d434dd460117692643d06517a04e1f9ad68f614c121ed597cdcb98960180f",
+          "commands": 7
+        }
+      },
+      "storage": {
+        "path": "/var/tmp/xlang-validation/xge-full-20261110/graph-result-storage-linux-r1/results.json",
+        "sha256": "f345858a06f32e1c70296eb3b373684d28f06fec1eec9633624d1f9dba6e614c"
+      }
+    }
+  },
+  "environmentRecovery": {
+    "reason": "E backing drive filled and ext4 entered emergency read-only during final behavior outputs",
+    "ubuntuMovedTo": "F:\\WSL\\Ubuntu-main",
+    "sourceVhdRemains": false,
+    "windowsSourceDriveFreedBytes": 262079078400,
+    "writeProbePassed": true,
+    "frozenCompilerInputsRechecked": 15825,
+    "postMoveReport": {
+      "path": "F:\\xlang-validation\\xge-full-20261110\\ubuntu-post-move-verification-20261118-r1\\results.json",
+      "sha256": "0a3d1f4a5416b223699789fd91d47c4248ff57354d519cd6ef581f96baed93d4"
+    },
+    "targetedReplay": {
+      "path": "F:\\xlang-validation\\xge-full-20261110\\linux-writable-recovery-r1\\behavior-static-shared-recheck-linux-r1\\results.json",
+      "sha256": "c465f1f34a289cabe1cccc03997da7f23d71a3be324d3cbb20aa6c302cbedbeb",
+      "steps": 3,
+      "damagedOriginalsPreserved": true,
+      "recoveredEvidence": {
+        "/var/tmp/xlang-validation/xge-full-20261110/graph-result-behavior-linux-r1/static-shared-run.log": {
+          "originalExpectedSha256": "d46ac80e1b0031aee0328e563971f7cc40755c40497738ae8704c1e5650f56f3",
+          "preservedDamagedSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "replacement": "/mnt/f/xlang-validation/xge-full-20261110/linux-writable-recovery-r1/behavior-static-shared-recheck-linux-r1/static-shared-run.log",
+          "replacementSha256": "d46ac80e1b0031aee0328e563971f7cc40755c40497738ae8704c1e5650f56f3"
+        },
+        "/var/tmp/xlang-validation/xge-full-20261110/graph-result-behavior-linux-r1/static-shared-imports.log": {
+          "originalExpectedSha256": "31b8f39ca7381f2ce3a42011c8ca37041cead042878a68e507fc84c82ea7f429",
+          "preservedDamagedSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "replacement": "/mnt/f/xlang-validation/xge-full-20261110/linux-writable-recovery-r1/behavior-static-shared-recheck-linux-r1/static-shared-imports.log",
+          "replacementSha256": "67e4ff55f3082cb8dff102769c451554fd7e26268dbe4d7ac629a564ee21f524"
+        },
+        "/var/tmp/xlang-validation/xge-full-20261110/graph-result-behavior-linux-r1/static.so": {
+          "originalExpectedSha256": "6b02352c1a9064ea038ae27cdf69cdbace56c7f71b87248dfb85d46c6acaf94a",
+          "preservedDamagedSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "replacement": "/mnt/f/xlang-validation/xge-full-20261110/linux-writable-recovery-r1/behavior-static-shared-recheck-linux-r1/static.so",
+          "replacementSha256": "6b02352c1a9064ea038ae27cdf69cdbace56c7f71b87248dfb85d46c6acaf94a"
+        }
+      },
+      "rebuiltSharedImageMatchesOriginallyRecordedSha256": true
+    },
+    "interruptedResultCaseRerunInFreshDirectory": true
+  },
+  "performance": {
+    "perMethodCForwardersAdded": 0,
+    "strictTraversalsPerDefaultRead": 1,
+    "costs": [
+      "native shared reference and checked resource/call admission",
+      "one strict PUBLIC graph traversal with schema/provider validation",
+      "container allocations and owned original/result cleanup"
+    ],
+    "zeroTotalBridgeOverheadClaim": false
+  },
+  "remaining": [
+    "Workflow including approved descriptor record arrays",
+    "advanced model cycles and real widget integration",
+    "three pending lifecycle/Engine/immutable view policy choices",
+    "remaining ecosystem coverage and final matched SDK/compiler/IDE/help installation"
+  ],
+  "descriptorRecordArrays": {
+    "approved": true,
+    "rootSourceImplemented": false,
+    "isolatedPrototype": "F:\\xlang-validation\\xge-full-20261110\\descriptor-pack-array-development-win-r1\\progress-r1.json"
+  },
+  "networkSecurityTestsRun": false
+}

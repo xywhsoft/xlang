@@ -105,6 +105,7 @@ def main():
     if win:
         for path in native.glob('*.dll'):
             shutil.copy2(path, out / path.name)
+        env['PATH'] = os.pathsep.join((str(out),str(native),str(compiler.parent),env.get('PATH','')))
     else:
         env['LD_LIBRARY_PATH'] = ':'.join((str(out), str(native),
                                           str(compiler.parent), env.get('LD_LIBRARY_PATH', '')))

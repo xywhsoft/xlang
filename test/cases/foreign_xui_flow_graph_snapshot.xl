@@ -62,6 +62,17 @@ func main(...) as int
     assert result["title"]=="public" and result["inherited"]=="base"
     assert result["secret"]==null and result["hidden"]==null and result["computed"]==null
     assert getterCalls==0
+    var independent=graph.getNodeConfig("a")
+    independent["title"]="local edit"
+    assert graph.getNodeConfig("a")["title"]=="public" and result["title"]=="public"
+    // Advanced Shared storage still gets strict public projection on default read.
+    graph.setNodeConfigShared("a",fields)
+    independent=graph.getNodeConfig("a")
+    assert independent["title"]=="changed" and independent["inherited"]=="base"
+    assert independent["hidden"]==null and independent["secret"]==null and getterCalls==0
+    fields.title="later"
+    assert independent["title"]=="changed" and graph.getNodeConfig("a")["title"]=="later"
+    graph.setNodeConfig("a",{"title":"public"})
     bool refused=false
     try
         graph.setNodeConfig("a",graph)
@@ -69,6 +80,23 @@ func main(...) as int
         refused=true
     end
     assert refused and graph.getNodeConfigShared("a")["title"]=="public"
+    // Read allocation failure leaves the native stored owner intact.
+    int readFailures=0
+    for allowance in range(256)
+        bool failed=false
+        budget(c_int(allowance))
+        try
+            var snapshot=graph.getNodeConfig("a")
+        catch Error
+            failed=true
+        end
+        bool hit=triggered()!=0
+        resetBudget()
+        assert failed==hit and graph.getNodeConfigShared("a")["title"]=="public"
+        if not hit then break end
+        readFailures+=1
+    end
+    assert readFailures>0
     graph.close()
     assert result["title"]=="public"
     int ordinary=sweep(false)
@@ -78,6 +106,7 @@ func main(...) as int
     assert sweep(false)==ordinary and sweep(true)==history
     assert liveCount()==before
     println("XUI_FLOW_SNAPSHOT_PREFIXES=",ordinary,",",history)
+    println("XUI_FLOW_RESULT_SNAPSHOT_PREFIX=",readFailures)
     println("XUI_FLOW_SNAPSHOT_OK")
     return 0
 end
