@@ -516,6 +516,7 @@ export extern "const xui_message_list_event_t*" class CallbackConstMessageListEv
  extern "iModifiers" @c_field get iModifiers() as c_uint
  extern "fX" @c_field get fX() as c_float
  extern "fY" @c_field get fY() as c_float
+ extern "pNode" @c_field @c_result("scope_view",0) get node() as CallbackConstMessageNode?
 end
 
 export typedef MessageListEventProc = func(Widget,CallbackConstMessageListEvent)

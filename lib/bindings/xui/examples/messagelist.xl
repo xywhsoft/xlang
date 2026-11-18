@@ -1,6 +1,7 @@
 // 两条聊天消息对应两个 addNode 调用。
 import xui
 from "./_window.xl" import Window
+from xui import CallbackConstMessageNode
 
 Window.show("Message list / structured nodes", func(xui.Context ui, xui.Widget root)
  auto messages = ui.messageListNative()
@@ -8,4 +9,16 @@ Window.show("Message list / structured nodes", func(xui.Context ui, xui.Widget r
  messages.addNode("m1", "Hello from xlang", sender = "Alice", time = "12:00")
  messages.addNode("m2", "Native XUI message rendering", sender = "Bob", time = "12:01")
  messages.appendNodeText("m2", " - appended text")
+
+ auto selection = ui.labelNative()
+ Window.place(root, selection, 24, 360, 640, 32)
+ selection.setText("Click a message")
+ messages.setEvent(func(xui.Widget sender, xui.CallbackConstMessageListEvent event)
+  if event.iEvent != xui.XUI_MESSAGE_EVENT_SELECT then return end
+  auto selected = event.node
+  if selected != null then
+   auto node = selected as CallbackConstMessageNode
+   selection.setText(node.sender + ": " + node.text)
+  end
+ end)
 end)

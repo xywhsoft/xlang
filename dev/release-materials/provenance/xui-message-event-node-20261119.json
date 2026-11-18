@@ -1,0 +1,182 @@
+{
+  "complete": true,
+  "passed": true,
+  "releaseInstalled": false,
+  "sourceParent": "e6bb381edd31b79bc61445c10693632c06ff976f",
+  "nativeCommit": "385e4d421c808ff07feacf791b94abdaa206e6d0",
+  "xrtCommit": "804cc769de3030118c2b46ef7af69543d1b82d9d",
+  "sourceHashes": {
+    "lib/bindings/xui/src/managed.xl": "5b70b925178d472fdf43ed9664cbf1634d01328ff6d2e1ecb14a2730a4fa0aad",
+    "lib/bindings/xui/examples/messagelist.xl": "42efdbfaf5a93a72a7fc3b6cc85ca24194c4ae6c1eb2775e7b45c892255841a0",
+    "docs/xge3-xui3-api-map-storage.json": "5ad3baba493bafd5d122de56cd040e77ceba1fe0f9e9f162bb1773ae1c61b5ca",
+    "tools/xui_managed_contracts.py": "8468e510dacd2ffbaddd8f59720d94555548f4441ff7ddef24388661f0fe70cf",
+    "test/cases/foreign_xui_message_event_node.xl": "1a1534b8e32557fe8b61167ebb4f6e34c99c9eedf1625f2bd805e471b7bec0ba",
+    "docs/xui-message-renderer.md": "ac36f5bbc393b01012a2ea687aa1909e7be0eecd1e5a4e739a1d3a1ce50a0429"
+  },
+  "seen": [
+    "Native node field pointers stay valid across nested events, body replacement, title replacement, clear, and widget destruction.",
+    "The native dispatch keeps the already allocated text buffers until the oldest scope that observes them returns. It creates neither a copy of the text nor a heap allocation to retain it.",
+    "The compiler emits native event registration and a scoped read of pNode. A null node stays null, stored views expire, and explicitly read strings remain usable.",
+    "String field copies report allocation failure and the next read can succeed. Renderer regressions exercise its scoped views and failure contracts."
+  ],
+  "evidence": {
+    "win": {
+      "sdk": {
+        "path": "F:\\xlang-validation\\xge-full-20261110\\message-node-scope-sdk-win-r1\\results.json",
+        "sha256": "63df9fb63f65903f88b1595beac95435c6f64374d89207b149db49a2b55e1060"
+      },
+      "native": {
+        "path": "F:\\xlang-validation\\xge-full-20261110\\message-node-scope-native-win-r1\\results.json",
+        "sha256": "60e7c5f631ebac47451f45464bdb32ea8944d5fb3ebc411d76e1a6de3045fa7c",
+        "checks": 24
+      },
+      "packages": {
+        "path": "F:\\xlang-validation\\xge-full-20261110\\message-node-scope-packages-win-r1\\results.json",
+        "sha256": "0a4a7b0caa27e0f2e678d2e3eb3ae08583fdff9adbc6b90abe8c38b0929f540f",
+        "checks": 6,
+        "storageReview": {
+          "path": "F:\\xlang-validation\\xge-full-20261110\\message-node-scope-packages-win-r1\\source-review\\results.json",
+          "sha256": "a630020f8e8ed4898bef245e481c8959ce9afe1612cff4c8d187039ad53a4912"
+        }
+      },
+      "language": {
+        "path": "F:\\xlang-validation\\xge-full-20261110\\message-node-scope-language-win-r3\\results.json",
+        "sha256": "c9fd73b34b2269ce0a315bf3a8d1c04fb02994ae635729aa133a37926683e7a1",
+        "checks": 25,
+        "renderHeapCounts": {
+          "host-jit": {
+            "0": [
+              150,
+              150,
+              0
+            ],
+            "1": [
+              150,
+              150,
+              0
+            ]
+          },
+          "host-run": {
+            "0": [
+              150,
+              150,
+              0
+            ],
+            "1": [
+              150,
+              150,
+              0
+            ]
+          },
+          "static-run": {
+            "0": [
+              150,
+              150,
+              0
+            ],
+            "1": [
+              150,
+              150,
+              0
+            ]
+          },
+          "shared-run": {
+            "0": [
+              150,
+              150,
+              0
+            ],
+            "1": [
+              150,
+              150,
+              0
+            ]
+          }
+        }
+      }
+    },
+    "linux": {
+      "sdk": {
+        "path": "\\\\wsl.localhost\\Ubuntu\\var\\tmp\\xlang-validation\\xge-full-20261110\\message-node-scope-sdk-linux-r1\\results.json",
+        "sha256": "f8fe65d4ca38648ab428fa4220e8267815369ab6e485b9cba71d6762e95cd2d2"
+      },
+      "native": {
+        "path": "\\\\wsl.localhost\\Ubuntu\\var\\tmp\\xlang-validation\\xge-full-20261110\\message-node-scope-native-linux-r1\\results.json",
+        "sha256": "65f202ad958c7dae4ed308d2b68364c4456bd5409727c61ec21580afba338979",
+        "checks": 24
+      },
+      "packages": {
+        "path": "\\\\wsl.localhost\\Ubuntu\\var\\tmp\\xlang-validation\\xge-full-20261110\\message-node-scope-packages-linux-r1\\results.json",
+        "sha256": "80b918bb7ed8d1f53fa9473ea6940aa0370531c9731557e5c5b1a197f71ec8a1",
+        "checks": 6,
+        "storageReview": {
+          "path": "\\\\wsl.localhost\\Ubuntu\\var\\tmp\\xlang-validation\\xge-full-20261110\\message-node-scope-packages-linux-r1\\source-review\\results.json",
+          "sha256": "9a2d4110a7b82ef5ee384dd0ae560c670f2130752cca002a25f94d44bee97abb"
+        }
+      },
+      "language": {
+        "path": "\\\\wsl.localhost\\Ubuntu\\var\\tmp\\xlang-validation\\xge-full-20261110\\message-node-scope-language-linux-r3\\results.json",
+        "sha256": "f4d8d5908371c38b5bedfde9e1897b2f16afd5af7fce92e151a44b1eaad5201d",
+        "checks": 25,
+        "renderHeapCounts": {
+          "host-jit": {
+            "0": [
+              150,
+              150,
+              0
+            ],
+            "1": [
+              150,
+              150,
+              0
+            ]
+          },
+          "host-run": {
+            "0": [
+              150,
+              150,
+              0
+            ],
+            "1": [
+              150,
+              150,
+              0
+            ]
+          },
+          "static-run": {
+            "0": [
+              150,
+              150,
+              0
+            ],
+            "1": [
+              150,
+              150,
+              0
+            ]
+          },
+          "shared-run": {
+            "0": [
+              150,
+              150,
+              0
+            ],
+            "1": [
+              150,
+              150,
+              0
+            ]
+          }
+        }
+      }
+    }
+  },
+  "softwareOpenGL": {
+    "path": "\\\\wsl.localhost\\Ubuntu\\var\\tmp\\xlang-validation\\xge-full-20261110\\message-node-scope-lesson-linux-r2\\results.json",
+    "sha256": "a6b674371055e9b55ec281dae89362999f003d202f3a37e4d109353ea2ebcec0",
+    "size": [
+      800,
+      600
+    ]
+  }
+}

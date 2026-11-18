@@ -1,0 +1,90 @@
+import xui
+from xui import CallbackConstMessageNode
+
+extern "messageRendererProxy" @header("test/cases/foreign_xui_message_renderer.h") @no_raise @c_result("owned_view") @factory(0,0,dropProxy) func cpuProxy() as xui.Proxy
+extern "xuiProxyReleaseChecked" @header("xge3_runtime.h") @no_raise @c_result("status",0) func dropProxy(xui.Proxy value)
+extern "fixtureRenderFont" @no_raise @c_result("owned_view") @factory(1,0,dropFont) func cpuFont(xui.Proxy proxy) as xui.Font
+extern "xuiFontReleaseChecked" @no_raise @c_result("status",0) func dropFont(xui.Font value)
+extern "fixtureRenderBalanced" @no_raise func balanced() as c_int
+extern "fixtureRenderBudget" @no_raise func budget(c_int allowance)
+
+func main(...) as int
+    auto proxy = cpuProxy()
+    auto font = cpuFont(proxy)
+    auto ui = xui.create(proxy, xui.XUI_SYSTEM_FONT_DISABLED)
+    ui.setDefaultFont(font)
+    auto root = ui.widget()
+    xui.Rect bounds
+    bounds.fW = 640
+    bounds.fH = 480
+    assert root.setRect(bounds) == 0 and ui.setRootWidget(root) == 0
+    auto messages = ui.messageListNative()
+    bounds.fW = 420
+    bounds.fH = 280
+    assert messages.setRect(bounds) == 0 and root.addChild(messages) == 0
+    ui.inputViewport(640, 480)
+    messages.addNode("first", "Original body", sender = "Alice", time = "12:00", parentId = "parent", title = "Original title")
+    assert ui.layout() == 0 and ui.update(0.016) == 0
+
+    xui.CallbackConstMessageNode? saved = null
+    string keptText = ""
+    int hoverNodes = 0
+    int emptyHovers = 0
+    bool selected = false
+    messages.setEvent(func(xui.Widget sender, xui.CallbackConstMessageListEvent event)
+        auto result = event.node
+        if event.iEvent == xui.XUI_MESSAGE_EVENT_HOVER then
+            if result == null then
+                emptyHovers += 1
+            else
+                hoverNodes += 1
+            end
+        elseif event.iEvent == xui.XUI_MESSAGE_EVENT_SELECT then
+            auto node = result as CallbackConstMessageNode
+            assert event.iIndex == 0 and node.id == "first"
+            messages.updateNodeText("first", "Replacement body")
+            messages.setNodeTitle("first", "Replacement title")
+            assert messages.clear() == 0
+
+            bool failed = false
+            budget(0)
+            try
+                auto unused = node.text
+            catch error
+                failed = true
+            finally
+                budget(-1)
+            end
+            assert failed, "copying node text reports allocation failure"
+            assert node.id == "first" and node.sender == "Alice" and node.time == "12:00"
+            assert node.parentId == "parent" and node.title == "Original title"
+            keptText = node.text
+            saved = node
+            selected = true
+        end
+    end)
+
+    auto point = messages.getNodeRect(0)
+    c_int x = point.fX + 16
+    c_int y = point.fY + 12
+    assert ui.inputPointerMove(x, y, 0) == 0 and ui.dispatchPendingEvents() == 0
+    assert ui.inputPointerMove(x, 250, 0) == 0 and ui.dispatchPendingEvents() == 0
+    assert hoverNodes == 1 and emptyHovers == 1
+    assert ui.inputPointerDown(x, y, c_int(xui.XUI_POINTER_BUTTON_LEFT), c_uint(xui.XUI_POINTER_BUTTON_LEFT)) == 0
+    assert ui.dispatchPendingEvents() == 0 and selected and keptText == "Original body"
+    bool expired = false
+    try
+        auto invalid = (saved as CallbackConstMessageNode).text
+    catch StateError
+        expired = true
+    end
+    assert expired and keptText == "Original body"
+    saved = null
+    messages.setEvent(null)
+    ui.close()
+    font.close()
+    proxy.close()
+    assert balanced() == 1
+    println("XUI_MESSAGE_EVENT_NODE_OK")
+    return 0
+end

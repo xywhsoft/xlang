@@ -563,6 +563,18 @@ VIEWS = {'CallbackConstAccessibilityEvent': 'export extern "const xui_accessibil
                     ' extern "xuiGetLanguage" @no_raise func getLanguage() as c_int\n'
                     ' extern "xuiRequestClose" @no_raise @c_result("status",0) func requestClose()\n'
                     'end',
+ 'CallbackConstMessageListEvent': 'export extern "const xui_message_list_event_t*" class CallbackConstMessageListEvent @header("xge3_runtime.h") @lifetime("callback")\n'
+                                  ' native point handle\n'
+                                  ' extern "iSize" @c_field get iSize() as c_uint\n'
+                                  ' extern "iEvent" @c_field get iEvent() as c_int\n'
+                                  ' extern "iIndex" @c_field get iIndex() as c_int\n'
+                                  ' extern "iNodeType" @c_field get iNodeType() as c_int\n'
+                                  ' extern "iButton" @c_field get iButton() as c_int\n'
+                                  ' extern "iModifiers" @c_field get iModifiers() as c_uint\n'
+                                  ' extern "fX" @c_field get fX() as c_float\n'
+                                  ' extern "fY" @c_field get fY() as c_float\n'
+                                  ' extern "pNode" @c_field @c_result("scope_view",0) get node() as CallbackConstMessageNode?\n'
+                                  'end',
  'CallbackConstMessageNode': 'export extern "const xui_message_node_t*" class CallbackConstMessageNode '
                             '@header("xge3_runtime.h") @lifetime("callback")\n'
                             ' native point handle\n'
