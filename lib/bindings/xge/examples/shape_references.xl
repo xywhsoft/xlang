@@ -1,0 +1,22 @@
+// A hit keeps its own reference after the scene and original shape close.
+import xge
+from xge import Shape
+
+func main(...) as int
+    auto scene = xge.createShapeScene()
+    auto rectangle = xge.createShape()
+    rectangle.id(7)
+    rectangle.appendRect(0,0,20,10,0,0,1)
+    rectangle.fillColor(0xFFFFFFFF)
+    scene.add(rectangle)
+
+    auto selected = scene.hitTest(5,5) as Shape
+    scene.close()
+    rectangle.close()
+    try
+        println("Selected shape",selected.idGet())
+    finally
+        selected.close()
+    end
+    return 0
+end

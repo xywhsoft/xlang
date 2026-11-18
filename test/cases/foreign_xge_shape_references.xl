@@ -1,0 +1,136 @@
+import xge
+from xge import Shape, ShapeScene
+
+extern "shapeReferencesHeapBegin" @header("test/cases/foreign_xge_shape_references.h") @no_raise func heapBegin()
+extern "shapeReferencesHeapEnd" @header("test/cases/foreign_xge_shape_references.h") @no_raise func heapEnd(c_int mode)
+extern "shapeReferencesHeapBudget" @header("test/cases/foreign_xge_shape_references.h") @no_raise func heapBudget(c_int allowance)
+extern "shapeReferencesAllocationFailed" @header("test/cases/foreign_xge_shape_references.h") @no_raise func allocationFailed() as bool
+extern "shapeReferencesNativeHot" @header("test/cases/foreign_xge_shape_references.h") @no_raise func nativeHot(xge.ShapeScene scene)
+
+func verifyBorrowedFailures(xge.ShapeScene scene,xge.Shape shape)
+    c_int count = shape.refCountGet()
+    heapBegin()
+    int failures = 0
+    for allowance in range(16)
+        heapBudget(c_int(allowance))
+        bool failed = false
+        try
+            auto kind,child,nested = scene.childAt(0)
+            assert kind == xge.XGE_SHAPE_EX_SCENE_CHILD_SHAPE and nested == null
+            auto retained = child as Shape
+            retained.close()
+        catch error
+            failed = true
+        end
+        bool triggered = allocationFailed()
+        heapBudget(-1)
+        assert shape.refCountGet() == count
+        if not triggered then
+            assert not failed
+            break
+        end
+        assert failed
+        failures += 1
+    end
+    assert failures > 0 and failures < 16
+    heapEnd(2)
+end
+
+func verifyMasksAndClips(xge.Shape shape,xge.ShapeScene scene)
+    auto target = xge.createShape()
+    target.id(77)
+    auto shapeClipTarget = xge.createShape()
+    shapeClipTarget.id(78)
+    auto sceneClipTarget = xge.createShape()
+    sceneClipTarget.id(79)
+    auto targetScene = xge.createShapeScene()
+    targetScene.id(88)
+    shape.maskShapeSet(target,xge.XGE_SHAPE_EX_MASK_ALPHA)
+    scene.maskSceneSet(targetScene,xge.XGE_SHAPE_EX_MASK_LUMA)
+    shape.clipShapeAddEx(shapeClipTarget,xge.XGE_SHAPE_EX_CLIP_SUBTRACT)
+    scene.clipShapeAddEx(sceneClipTarget,xge.XGE_SHAPE_EX_CLIP_INTERSECT)
+    auto method,kind,borrowedShape,emptyScene = shape.maskInfo()
+    assert method == xge.XGE_SHAPE_EX_MASK_ALPHA and kind == xge.XGE_SHAPE_EX_MASK_TARGET_SHAPE and emptyScene == null
+    auto otherMethod,otherKind,emptyShape,borrowedScene = scene.maskInfo()
+    assert otherMethod == xge.XGE_SHAPE_EX_MASK_LUMA and otherKind == xge.XGE_SHAPE_EX_MASK_TARGET_SCENE and emptyShape == null
+    auto clip,mode = shape.clipShapeAt(0)
+    auto sceneClip,sceneMode = scene.clipShapeAt(0)
+    assert mode == xge.XGE_SHAPE_EX_CLIP_SUBTRACT and sceneMode == xge.XGE_SHAPE_EX_CLIP_INTERSECT
+    shape.maskClear()
+    scene.maskClear()
+    shape.clipClear()
+    scene.clipClear()
+    targetScene.close()
+    target.close()
+    shapeClipTarget.close()
+    sceneClipTarget.close()
+    auto maskShape = borrowedShape as Shape
+    auto maskScene = borrowedScene as ShapeScene
+    assert clip.idGet() == 78 and sceneClip.idGet() == 79 and maskShape.idGet() == 77
+    assert maskScene.idGet() == 88
+    maskScene.close()
+    maskShape.close()
+    sceneClip.close()
+    clip.close()
+    auto unsetMethod,unsetKind,noShape,noScene = shape.maskInfo()
+    assert unsetMethod == xge.XGE_SHAPE_EX_MASK_NONE and unsetKind == xge.XGE_SHAPE_EX_MASK_TARGET_NONE
+    assert noShape == null and noScene == null
+end
+
+func main(...) as int
+    auto shape = xge.createShape()
+    shape.id(42)
+    shape.appendRect(0,0,10,10,0,0,1)
+    shape.fillColor(0xFFFFFFFF)
+    auto inner = xge.createShapeScene()
+    inner.id(100)
+    auto outer = xge.createShapeScene()
+    outer.id(200)
+    assert shape.parentScene() == null and inner.parentScene() == null
+    inner.add(shape)
+    outer.addScene(inner)
+    auto parent = shape.parentScene() as ShapeScene
+    auto grandparent = inner.parentScene() as ShapeScene
+    assert parent.idGet() == 100 and grandparent.idGet() == 200
+    auto kind,emptyShape,childScene = outer.childAt(0)
+    assert kind == xge.XGE_SHAPE_EX_SCENE_CHILD_SCENE and emptyShape == null
+    auto retainedChildScene = childScene as ShapeScene
+    assert retainedChildScene.idGet() == 100
+    bool rejected = false
+    try
+        outer.shapeAt(0)
+    catch error
+        rejected = true
+    end
+    assert rejected
+
+    verifyBorrowedFailures(inner,shape)
+    heapBegin()
+    for index in range(1000)
+        auto child = inner.shapeAt(0)
+        assert child.idGet() == 42
+        child.close()
+    end
+    heapEnd(0)
+    nativeHot(inner)
+    assert outer.hitTest(20,20) == null
+    auto hit = outer.hitTest(5,5) as Shape
+    auto translated = xge.shapeExMatrixTranslate(30,40)
+    auto transformed = outer.hitTestEx(35,45,0.25,translated) as Shape
+    verifyMasksAndClips(shape,inner)
+    outer.removeScene(inner)
+    inner.remove(shape)
+    assert shape.parentScene() == null and inner.parentScene() == null
+    shape.close()
+    inner.close()
+    outer.close()
+    assert hit.idGet() == 42 and transformed.idGet() == 42
+    assert parent.idGet() == 100 and grandparent.idGet() == 200
+    hit.close()
+    transformed.close()
+    parent.close()
+    grandparent.close()
+    retainedChildScene.close()
+    println("XGE_SHAPE_REFERENCES_LANGUAGE_OK")
+    return 0
+end

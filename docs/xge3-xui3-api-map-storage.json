@@ -4,6 +4,146 @@
   "sourceRoot": "D:\\GIT\\xge",
   "runtimeAcceptance": false,
   "entries": {
+    "xgeShapeExParentGet": {
+      "bindingFile": "lib\\bindings\\xge\\src\\shapes.xl",
+      "declaration": "extern \"xgeShapeExParentGet\" @no_raise @c_output_retain(1,retainShapeScene,\"zero\",rollbackShapeScene) @c_output(1,0) func parentScene() as ShapeScene?",
+      "storage": "borrowed-synchronous-output",
+      "sourceFile": "src/xge/render/xge_shape_ex.c",
+      "line": 9776,
+      "functionSha256": "22c4fa99c306e6c8c40185d919bc81cf9650881917a7040e2564fbac61649642",
+      "dependencies": [
+        {
+          "sourceFile": "src/xge/render/xge_shape_ex.c",
+          "lfSha256": "32a2f898859ab7eff62483565522498c5b09c0c9ab7055f3a7060381f972a30e"
+        }
+      ]
+    },
+    "xgeShapeExMaskGet": {
+      "bindingFile": "lib\\bindings\\xge\\src\\shapes.xl",
+      "declaration": "extern \"xgeShapeExMaskGet\" @no_raise @c_output_retain(3,retainShape,\"zero\",rollbackShape) @c_output_retain(4,retainShapeScene,\"zero\",rollbackShapeScene) @c_outputs(1,2,3,4) @c_status(0) func maskInfo() as (c_int,c_int,Shape?,ShapeScene?)",
+      "storage": "borrowed-synchronous-output",
+      "sourceFile": "src/xge/render/xge_shape_ex.c",
+      "line": 12207,
+      "functionSha256": "6568906190cb0db64ee2e38e814bdd7b7a323710f2d70e18503bb621e891eee2",
+      "dependencies": [
+        {
+          "sourceFile": "src/xge/render/xge_shape_ex.c",
+          "lfSha256": "32a2f898859ab7eff62483565522498c5b09c0c9ab7055f3a7060381f972a30e"
+        }
+      ]
+    },
+    "xgeShapeExClipShapeGetAtEx": {
+      "bindingFile": "lib\\bindings\\xge\\src\\shapes.xl",
+      "declaration": "extern \"xgeShapeExClipShapeGetAtEx\" @no_raise @c_output_retain(2,retainShape,\"zero\",rollbackShape) @c_outputs(2,3) @c_status(0) func clipShapeAt(c_int index) as (Shape,c_int)",
+      "storage": "borrowed-synchronous-output",
+      "sourceFile": "src/xge/render/xge_shape_ex.c",
+      "line": 13582,
+      "functionSha256": "f386b38032cee0562593ba77ce055b17cc68da3b5b82bced35507cfac3374bd8",
+      "dependencies": [
+        {
+          "sourceFile": "src/xge/render/xge_shape_ex.c",
+          "lfSha256": "32a2f898859ab7eff62483565522498c5b09c0c9ab7055f3a7060381f972a30e"
+        }
+      ]
+    },
+    "xgeShapeExSceneParentGet": {
+      "bindingFile": "lib\\bindings\\xge\\src\\shapes.xl",
+      "declaration": "extern \"xgeShapeExSceneParentGet\" @no_raise @c_output_retain(1,retainShapeScene,\"zero\",rollbackShapeScene) @c_output(1,0) func parentScene() as ShapeScene?",
+      "storage": "borrowed-synchronous-output",
+      "sourceFile": "src/xge/render/xge_shape_ex.c",
+      "line": 16516,
+      "functionSha256": "213b26d618882a9df7f4a8f3ef073a8672ca066d6ff9d3371a7575b7e40b9f15",
+      "dependencies": [
+        {
+          "sourceFile": "src/xge/render/xge_shape_ex.c",
+          "lfSha256": "32a2f898859ab7eff62483565522498c5b09c0c9ab7055f3a7060381f972a30e"
+        }
+      ]
+    },
+    "xgeShapeExSceneGetAt": {
+      "bindingFile": "lib\\bindings\\xge\\src\\shapes.xl",
+      "declaration": "extern \"xgeShapeExSceneGetAt\" @no_raise @c_output_retain(2,retainShape,\"zero\",rollbackShape) @c_output(2,0) func shapeAt(c_int index) as Shape",
+      "storage": "borrowed-synchronous-output",
+      "sourceFile": "src/xge/render/xge_shape_ex.c",
+      "line": 16871,
+      "functionSha256": "683794057d2405967242ef59d7ddeadb379157e220e51a8e5fdad965d114ffe3",
+      "dependencies": [
+        {
+          "sourceFile": "src/xge/render/xge_shape_ex.c",
+          "lfSha256": "32a2f898859ab7eff62483565522498c5b09c0c9ab7055f3a7060381f972a30e"
+        }
+      ]
+    },
+    "xgeShapeExSceneChildGetAt": {
+      "bindingFile": "lib\\bindings\\xge\\src\\shapes.xl",
+      "declaration": "extern \"xgeShapeExSceneChildGetAt\" @no_raise @c_output_record(2,\"xge_shape_ex_scene_child_t\",\"borrowed\") @c_status(0) @c_output_field(0,\"iType\") @c_output_field(1,\"pShape\",\"retain\",retainShape,\"zero\",rollbackShape) @c_output_field(2,\"pScene\",\"retain\",retainShapeScene,\"zero\",rollbackShapeScene) func childAt(c_int index) as (c_int,Shape?,ShapeScene?)",
+      "storage": "borrowed-synchronous-output",
+      "sourceFile": "src/xge/render/xge_shape_ex.c",
+      "line": 16885,
+      "functionSha256": "517600bf00eabd88f90048deaf63170f99db0db4cdceecbe2ba5a8d2560fbae9",
+      "dependencies": [
+        {
+          "sourceFile": "src/xge/render/xge_shape_ex.c",
+          "lfSha256": "32a2f898859ab7eff62483565522498c5b09c0c9ab7055f3a7060381f972a30e"
+        }
+      ]
+    },
+    "xgeShapeExSceneMaskGet": {
+      "bindingFile": "lib\\bindings\\xge\\src\\shapes.xl",
+      "declaration": "extern \"xgeShapeExSceneMaskGet\" @no_raise @c_output_retain(3,retainShape,\"zero\",rollbackShape) @c_output_retain(4,retainShapeScene,\"zero\",rollbackShapeScene) @c_outputs(1,2,3,4) @c_status(0) func maskInfo() as (c_int,c_int,Shape?,ShapeScene?)",
+      "storage": "borrowed-synchronous-output",
+      "sourceFile": "src/xge/render/xge_shape_ex.c",
+      "line": 17128,
+      "functionSha256": "9fa2388cf26380297e13f5cfdd7f0bf5bf33679de6038937c64e4e4573afe657",
+      "dependencies": [
+        {
+          "sourceFile": "src/xge/render/xge_shape_ex.c",
+          "lfSha256": "32a2f898859ab7eff62483565522498c5b09c0c9ab7055f3a7060381f972a30e"
+        }
+      ]
+    },
+    "xgeShapeExSceneClipShapeGetAtEx": {
+      "bindingFile": "lib\\bindings\\xge\\src\\shapes.xl",
+      "declaration": "extern \"xgeShapeExSceneClipShapeGetAtEx\" @no_raise @c_output_retain(2,retainShape,\"zero\",rollbackShape) @c_outputs(2,3) @c_status(0) func clipShapeAt(c_int index) as (Shape,c_int)",
+      "storage": "borrowed-synchronous-output",
+      "sourceFile": "src/xge/render/xge_shape_ex.c",
+      "line": 17201,
+      "functionSha256": "16dd4f66ca6032b685de36c0644b3fb2e8e82eb664915aaa58a348faae2a0e8c",
+      "dependencies": [
+        {
+          "sourceFile": "src/xge/render/xge_shape_ex.c",
+          "lfSha256": "32a2f898859ab7eff62483565522498c5b09c0c9ab7055f3a7060381f972a30e"
+        }
+      ]
+    },
+    "xgeShapeExSceneHitTest": {
+      "bindingFile": "lib\\bindings\\xge\\src\\shapes.xl",
+      "declaration": "extern \"xgeShapeExSceneHitTest\" @no_raise @c_output_retain(4,retainShape,\"zero\",rollbackShape) @c_output(4,0) func hitTest(c_float x,c_float y,c_float tolerance=0.25) as Shape?",
+      "storage": "borrowed-synchronous-output",
+      "sourceFile": "src/xge/render/xge_shape_ex.c",
+      "line": 17817,
+      "functionSha256": "99f0e65dadb12d7896e4e0c229ac0b8aa00beb35c85651b6585a28f9171d8918",
+      "dependencies": [
+        {
+          "sourceFile": "src/xge/render/xge_shape_ex.c",
+          "lfSha256": "32a2f898859ab7eff62483565522498c5b09c0c9ab7055f3a7060381f972a30e"
+        }
+      ]
+    },
+    "xgeShapeExSceneHitTestEx": {
+      "bindingFile": "lib\\bindings\\xge\\src\\shapes.xl",
+      "declaration": "extern \"xgeShapeExSceneHitTestEx\" @no_raise @c_ref(3) @c_output_retain(5,retainShape,\"zero\",rollbackShape) @c_output(5,0) func hitTestEx(c_float x,c_float y,c_float tolerance,ShapeExMatrix parent) as Shape?",
+      "storage": "borrowed-synchronous-output",
+      "sourceFile": "src/xge/render/xge_shape_ex.c",
+      "line": 17822,
+      "functionSha256": "ac16d5730dac4bb8ecf06df35ae2e5788cda9d8fdc818a9d9a64f0bf7c224e27",
+      "dependencies": [
+        {
+          "sourceFile": "src/xge/render/xge_shape_ex.c",
+          "lfSha256": "32a2f898859ab7eff62483565522498c5b09c0c9ab7055f3a7060381f972a30e"
+        }
+      ]
+    },
     "xuiCodeEditApplyCompletionItems": {
       "bindingFile": "lib\\bindings\\xui\\src\\managed.xl",
       "declaration": "extern \"xuiCodeEditApplyCompletionItems\" @no_raise @c_array_group(3,2,11,\"int\",13) @c_array_record(3,\"xui_code_completion_item_t\",\"iSize\",\"uint32_t\") @c_array_field(3,\"sLabel\",0,\"c_string\") @c_array_field(3,\"sInsertText\",1,\"c_string\") @c_array_field(3,\"sDetail\",2,\"c_string\") @c_array_field(3,\"sDocumentation\",3,\"c_string\") @c_array_field(3,\"iKind\",4,\"value\") @c_array_field(3,\"iSortOrder\",5,\"value\") @c_array_field(3,\"iUserData\",6,\"value\") @c_array_field(3,\"sFilterText\",7,\"c_string\") @c_array_field(3,\"sSortText\",8,\"c_string\") @c_array_field(3,\"sCommitCharacters\",9,\"c_string\") @c_array_field(3,\"iFlags\",10,\"value\") @c_result(\"status\",0) func applyCompletionItems(c_uint version,c_int offset,array<string> labels,array<string?> insertTexts,array<string?> details,array<string?> documentation,array<c_int> kinds,array<c_int> sortOrders,array<c_uintptr> userData,array<string?> filterTexts,array<string?> sortTexts,array<string?> commitCharacters,array<c_uint> flags,int size=-1)",

@@ -651,7 +651,7 @@ def generate(root,data):
             debug_manifest=dict(optional_manifest,name='xgeDebug',requiresNativeFeatures=['XGE_HAS_DEBUGMODE'])
             write_binding_manifest(debug/'xlang.package.json',debug_manifest)
             for extension in (optional,debug):(extension/'src/bootstrap.xl').write_text('// Normal module import executes the shared native initializer once.\nimport "xge"\n',encoding='utf8')
-            object_mapping=generate_xge_objects(root,header,records,types,primitive,param,reserved,reviewed_span,fixed_outputs)
+            object_mapping=generate_xge_objects(root,header,records,types,primitive,param,reserved,reviewed_span,fixed_outputs,storage)
             mapped.update(object_mapping)
         if package=='xui':
             managed,mapping=generate_xui(root,header,records,types,primitive,param,reserved,reviewed_span)
@@ -797,7 +797,56 @@ def shape_snapshot_bindings():
     return extra,lines+owners,mapped
 
 
-def generate_xge_objects(root,header,records,types,primitive,param,reserved,reviewed_span,fixed_outputs):
+def shape_retained_bindings(header):
+    physical = {
+        'xgeShapeExAddRef': 'int xgeShapeExAddRef(xge_shape_ex pShape)',
+        'xgeShapeExDestroy': 'void xgeShapeExDestroy(xge_shape_ex pShape)',
+        'xgeShapeExSceneAddRef': 'int xgeShapeExSceneAddRef(xge_shape_ex_scene pScene)',
+        'xgeShapeExSceneDestroy': 'void xgeShapeExSceneDestroy(xge_shape_ex_scene pScene)',
+        'xgeShapeExParentGet': 'int xgeShapeExParentGet(xge_shape_ex pShape, xge_shape_ex_scene* ppParentScene)',
+        'xgeShapeExMaskGet': 'int xgeShapeExMaskGet(xge_shape_ex pShape, int* pMethod, int* pTargetType, xge_shape_ex* ppTargetShape, xge_shape_ex_scene* ppTargetScene)',
+        'xgeShapeExClipShapeGetAtEx': 'int xgeShapeExClipShapeGetAtEx(xge_shape_ex pShape, int iIndex, xge_shape_ex* ppClipShape, int* pMode)',
+        'xgeShapeExSceneParentGet': 'int xgeShapeExSceneParentGet(xge_shape_ex_scene pScene, xge_shape_ex_scene* ppParentScene)',
+        'xgeShapeExSceneGetAt': 'int xgeShapeExSceneGetAt(xge_shape_ex_scene pScene, int iIndex, xge_shape_ex* ppShape)',
+        'xgeShapeExSceneChildGetAt': 'int xgeShapeExSceneChildGetAt(xge_shape_ex_scene pScene, int iIndex, xge_shape_ex_scene_child_t* pChild)',
+        'xgeShapeExSceneMaskGet': 'int xgeShapeExSceneMaskGet(xge_shape_ex_scene pScene, int* pMethod, int* pTargetType, xge_shape_ex* ppTargetShape, xge_shape_ex_scene* ppTargetScene)',
+        'xgeShapeExSceneClipShapeGetAtEx': 'int xgeShapeExSceneClipShapeGetAtEx(xge_shape_ex_scene pScene, int iIndex, xge_shape_ex* ppClipShape, int* pMode)',
+        'xgeShapeExSceneHitTest': 'int xgeShapeExSceneHitTest(xge_shape_ex_scene pScene, float fX, float fY, float fTolerance, xge_shape_ex* ppShape)',
+        'xgeShapeExSceneHitTestEx': 'int xgeShapeExSceneHitTestEx(xge_shape_ex_scene pScene, float fX, float fY, float fTolerance, const xge_shape_ex_matrix_t* pParentMatrix, xge_shape_ex* ppShape)',
+    }
+    signatures = {f['name']: f['declaration'] for f in header['functions']}
+    for name, expected in physical.items():
+        if signatures.get(name) != expected:
+            raise ValueError('retained Shape declaration changed: ' + name)
+    return {
+        'Shape': [
+            ('xgeShapeExParentGet',
+             'extern "xgeShapeExParentGet" @no_raise @c_output_retain(1,retainShapeScene,"zero",rollbackShapeScene) @c_output(1,0) func parentScene() as ShapeScene?'),
+            ('xgeShapeExMaskGet',
+             'extern "xgeShapeExMaskGet" @no_raise @c_output_retain(3,retainShape,"zero",rollbackShape) @c_output_retain(4,retainShapeScene,"zero",rollbackShapeScene) @c_outputs(1,2,3,4) @c_status(0) func maskInfo() as (c_int,c_int,Shape?,ShapeScene?)'),
+            ('xgeShapeExClipShapeGetAtEx',
+             'extern "xgeShapeExClipShapeGetAtEx" @no_raise @c_output_retain(2,retainShape,"zero",rollbackShape) @c_outputs(2,3) @c_status(0) func clipShapeAt(c_int index) as (Shape,c_int)'),
+        ],
+        'ShapeScene': [
+            ('xgeShapeExSceneParentGet',
+             'extern "xgeShapeExSceneParentGet" @no_raise @c_output_retain(1,retainShapeScene,"zero",rollbackShapeScene) @c_output(1,0) func parentScene() as ShapeScene?'),
+            ('xgeShapeExSceneGetAt',
+             'extern "xgeShapeExSceneGetAt" @no_raise @c_output_retain(2,retainShape,"zero",rollbackShape) @c_output(2,0) func shapeAt(c_int index) as Shape'),
+            ('xgeShapeExSceneChildGetAt',
+             'extern "xgeShapeExSceneChildGetAt" @no_raise @c_output_record(2,"xge_shape_ex_scene_child_t","borrowed") @c_status(0) @c_output_field(0,"iType") @c_output_field(1,"pShape","retain",retainShape,"zero",rollbackShape) @c_output_field(2,"pScene","retain",retainShapeScene,"zero",rollbackShapeScene) func childAt(c_int index) as (c_int,Shape?,ShapeScene?)'),
+            ('xgeShapeExSceneMaskGet',
+             'extern "xgeShapeExSceneMaskGet" @no_raise @c_output_retain(3,retainShape,"zero",rollbackShape) @c_output_retain(4,retainShapeScene,"zero",rollbackShapeScene) @c_outputs(1,2,3,4) @c_status(0) func maskInfo() as (c_int,c_int,Shape?,ShapeScene?)'),
+            ('xgeShapeExSceneClipShapeGetAtEx',
+             'extern "xgeShapeExSceneClipShapeGetAtEx" @no_raise @c_output_retain(2,retainShape,"zero",rollbackShape) @c_outputs(2,3) @c_status(0) func clipShapeAt(c_int index) as (Shape,c_int)'),
+            ('xgeShapeExSceneHitTest',
+             'extern "xgeShapeExSceneHitTest" @no_raise @c_output_retain(4,retainShape,"zero",rollbackShape) @c_output(4,0) func hitTest(c_float x,c_float y,c_float tolerance=0.25) as Shape?'),
+            ('xgeShapeExSceneHitTestEx',
+             'extern "xgeShapeExSceneHitTestEx" @no_raise @c_ref(3) @c_output_retain(5,retainShape,"zero",rollbackShape) @c_output(5,0) func hitTestEx(c_float x,c_float y,c_float tolerance,ShapeExMatrix parent) as Shape?'),
+        ],
+    }
+
+
+def generate_xge_objects(root,header,records,types,primitive,param,reserved,reviewed_span,fixed_outputs,storage):
     families={'xge_shape_ex':('Shape','xl6Xge3ShapePolicy','xgeShapeEx','xgeShapeExDestroy'),
               'xge_shape_ex_scene':('ShapeScene','xl6Xge3ShapeScenePolicy','xgeShapeExScene','xgeShapeExSceneDestroy'),
               'xge_shape_ex_path_measure':('PathMeasure','xl6Xge3PathMeasurePolicy','xgeShapeExPathMeasure','xgeShapeExPathMeasureDestroy')}
@@ -863,11 +912,31 @@ def generate_xge_objects(root,header,records,types,primitive,param,reserved,revi
             methods[owner[0]].extend(shape_extra.get(f['name'],()))
             mapped[f['name']]='xge.'+owner[0]+'.'+name
         except ValueError:continue
+    retain_helpers={'Shape':'xgeShapeExAddRef','ShapeScene':'xgeShapeExSceneAddRef'}
+    native_root=Path(header['header']).parents[1]
+    for owner, declarations in shape_retained_bindings(header).items():
+        for native, declaration in declarations:
+            review=storage.get(native,{})
+            if review.get('storage')!='borrowed-synchronous-output' or review.get('declaration')!=declaration:
+                raise ValueError('retained Shape output requires a matching storage review: '+native)
+            matching,reason=storage_review_match(native_root,review,native)
+            if not matching:
+                raise ValueError('retained Shape output storage review changed: '+native+' ('+str(reason)+')')
+            # Child records may be eligible for generic value output on some
+            # headers. Only the reviewed reference-receiving form is public.
+            methods[owner]=[line for line in methods[owner] if not line.startswith(' extern "'+native+'" ')]
+            methods[owner].append(' '+declaration)
+            method=re.search(r'\bfunc (\w+)\(',declaration).group(1)
+            mapped[native]='xge.'+owner+'.'+method
     lines=['// Native-only shape graphs: own one exact native reference, no language callback slots.']
     for native,(name,policy,prefix,destroy) in families.items():
         lines+=['export extern "'+native+'" class '+name+' @header("xge3_runtime.h") @lifetime("owned") @policy("'+policy+'")',' native point handle',*methods[name],
                 ' extern "xl6ForeignViewCloseV1" @no_raise @c_control(0) @c_result("bool_status") func close()','end',
                 'extern "'+destroy+'" @no_raise func rollback'+name+'('+name+' value)']
+        if name in retain_helpers:
+            helper=retain_helpers[name]
+            lines.append(f'extern "{helper}" @no_raise func retain{name}({name} value) as c_int')
+            mapped[helper]='xge.retain'+name
         if name in ('Shape','ShapeScene'):
             cname=prefix+'Create';public='create'+name
             lines+=['export extern "'+cname+'" @no_raise @c_result("owned_view") @factory(0,0,rollback'+name+') func '+public+'() as '+name];mapped[cname]='xge.'+public

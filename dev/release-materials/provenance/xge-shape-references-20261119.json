@@ -1,0 +1,259 @@
+{
+  "complete": true,
+  "passed": true,
+  "releaseInstalled": false,
+  "sourceParent": "f57427ff782d10f88e4d5857e981973047728adf",
+  "nativeCommit": "5fd62e8a335f642ef681e09eee2392a61eba1651",
+  "nativeSdkReused": true,
+  "xrtCommit": "804cc769de3030118c2b46ef7af69543d1b82d9d",
+  "sourceHashes": {
+    "lib/bindings/xge/src/shapes.xl": "be4d766436b682af5e38a925dea7f8189d0982bdd522796f0ff639212c11bade",
+    "lib/bindings/xge/examples/shape_references.xl": "31d7169298109592398fdd78b8cfb1675f3199e4467af5a534ba7c7ffe1c1d69",
+    "lib/bindings/xge/examples/README.md": "cc5a8b2b3cecd9d96231887ea52519f190efbaa810e4a8a7abcf2af3c53b5746",
+    "docs/xge3-shape-references.md": "efd80c0bf6a98ad8e7072a8f13ae639584789569ef588fd6b177ee32dfb5387f",
+    "docs/xge3-xui3-api-map-storage.json": "8181789400df32f5f4e27289afa75e737a22bbcf2061289e9969ef79b8a16389",
+    "tools/check_xge3_bindings.py": "5152e08ce87b6426d7200e32103741740657ff8f3072acf21237fe9b4cbbc0ca",
+    "test/cases/foreign_xge_shape_references.xl": "5edc2a38bc36868fa9d0f508502846f55ff43d5384bfff37af38a739767f239b",
+    "test/cases/foreign_xge_shape_references.c": "89b45ef7116ce60347fd9519fd8d511aa0c443f1629a14680ff65a848e9de75c",
+    "test/cases/foreign_xge_shape_references.h": "857831ecaefa00ea523fe7a09a4d7f837e2dd086d9569ed7b9b2afc44568097f"
+  },
+  "behavior": [
+    "Shape and ShapeScene query parents, mask targets and clip shapes. ShapeScene also queries typed children and hit results.",
+    "The receiver of a nonnull result owns one native reference. Graph removal, clip or mask clearing, and closing a different view leave the result alive.",
+    "Invalid indices and a wrong child kind for shapeAt report checked errors. Missing parents, empty masks and successful misses return null as appropriate.",
+    "All calls use the existing single-thread mutable graph contract. An actual language worker is refused when reading the scene, querying a retained child parent, or closing the retained child.",
+    "Workload is 1000 acquisitions, ID reads, and releases using equivalent XGE calls. Direct C uses no XRT allocation.",
+    "The compiler reserves control storage before native query entry, then retains the returned native objects within the call. Injected allocation failures leave the original refcount and heap unchanged. No shape or graph data is copied.",
+    "Generated declarations require current native signatures, storage implementation review and byte-equivalent regenerated shape source."
+  ],
+  "evidence": {
+    "win": {
+      "sdk": {
+        "path": "F:\\xlang-validation\\xge-full-20261110\\code-assist-sdk-win-r1\\results.json",
+        "sha256": "647978363164ca003bc09cd8c613c695903fe566fc30b0fd22d426f8ceb2ccc0",
+        "shapeSourceSha256": "32a2f898859ab7eff62483565522498c5b09c0c9ab7055f3a7060381f972a30e"
+      },
+      "packages": {
+        "path": "F:\\xlang-validation\\xge-full-20261110\\shape-reference-packages-win-r4\\results.json",
+        "sha256": "8973ab640fc790d19e2ba66008c041a001c776fe48e9f9be97bed2f6a91de072",
+        "steps": 6,
+        "storageReview": {
+          "path": "F:\\xlang-validation\\xge-full-20261110\\shape-reference-packages-win-r4\\source-review\\results.json",
+          "sha256": "14cc36e35ced3a798e6fa78f1f3e9aef155525b34d4685693980ba91cbcfa93a"
+        },
+        "storageChecks": 456,
+        "retainedSymbols": [
+          "xgeShapeExParentGet",
+          "xgeShapeExMaskGet",
+          "xgeShapeExClipShapeGetAtEx",
+          "xgeShapeExSceneParentGet",
+          "xgeShapeExSceneGetAt",
+          "xgeShapeExSceneChildGetAt",
+          "xgeShapeExSceneMaskGet",
+          "xgeShapeExSceneClipShapeGetAtEx",
+          "xgeShapeExSceneHitTest",
+          "xgeShapeExSceneHitTestEx"
+        ]
+      },
+      "negative": {
+        "path": "F:\\xlang-validation\\xge-full-20261110\\shape-reference-negative-win-r1\\results.json",
+        "sha256": "b772e963a6db3a6f07efc224c65b4f0bca472aec25b0c5d4ec2701833e9ab581",
+        "steps": 3
+      },
+      "language": {
+        "path": "F:\\xlang-validation\\xge-full-20261110\\shape-reference-language-win-r4\\results.json",
+        "sha256": "4295c6fae5c883690c2214f947ea2bee235870325184140407c3860d964b69ab",
+        "steps": 17,
+        "heapCounts": {
+          "host-jit": {
+            "2": [
+              10,
+              10,
+              0
+            ],
+            "0": [
+              2000,
+              2000,
+              0
+            ],
+            "1": [
+              0,
+              0,
+              0
+            ]
+          },
+          "host-run": {
+            "2": [
+              10,
+              10,
+              0
+            ],
+            "0": [
+              2000,
+              2000,
+              0
+            ],
+            "1": [
+              0,
+              0,
+              0
+            ]
+          },
+          "static-run": {
+            "2": [
+              10,
+              10,
+              0
+            ],
+            "0": [
+              2000,
+              2000,
+              0
+            ],
+            "1": [
+              0,
+              0,
+              0
+            ]
+          },
+          "shared-run": {
+            "2": [
+              3,
+              3,
+              0
+            ],
+            "0": [
+              1000,
+              1000,
+              0
+            ],
+            "1": [
+              0,
+              0,
+              0
+            ]
+          }
+        }
+      },
+      "thread": {
+        "path": "F:\\xlang-validation\\xge-full-20261110\\shape-reference-thread-win-r1\\results.json",
+        "sha256": "066a50524936d366ef6818ddaebc19b008414ed6615047bf9564953cc4006832",
+        "cases": 3
+      }
+    },
+    "linux": {
+      "sdk": {
+        "path": "\\\\wsl.localhost\\Ubuntu\\var\\tmp\\xlang-validation\\xge-full-20261110\\code-assist-sdk-linux-r1\\results.json",
+        "sha256": "f292dc1227b9d6908cfb0f5b53b2384dc6840fbbd81016b2cf353f1f0d7cde05",
+        "shapeSourceSha256": "32a2f898859ab7eff62483565522498c5b09c0c9ab7055f3a7060381f972a30e"
+      },
+      "packages": {
+        "path": "\\\\wsl.localhost\\Ubuntu\\var\\tmp\\xlang-validation\\xge-full-20261110\\shape-reference-packages-linux-r4\\results.json",
+        "sha256": "0ba2c70452a83b617a059b20a16442d929b7c8f4c3ede40df57fec9609f373a6",
+        "steps": 6,
+        "storageReview": {
+          "path": "\\\\wsl.localhost\\Ubuntu\\var\\tmp\\xlang-validation\\xge-full-20261110\\shape-reference-packages-linux-r4\\source-review\\results.json",
+          "sha256": "352f8f17a18aaba43b456ee853d7a4f9eb5fb92272b1fc653aed93e2e3489b81"
+        },
+        "storageChecks": 457,
+        "retainedSymbols": [
+          "xgeShapeExParentGet",
+          "xgeShapeExMaskGet",
+          "xgeShapeExClipShapeGetAtEx",
+          "xgeShapeExSceneParentGet",
+          "xgeShapeExSceneGetAt",
+          "xgeShapeExSceneChildGetAt",
+          "xgeShapeExSceneMaskGet",
+          "xgeShapeExSceneClipShapeGetAtEx",
+          "xgeShapeExSceneHitTest",
+          "xgeShapeExSceneHitTestEx"
+        ]
+      },
+      "negative": {
+        "path": "\\\\wsl.localhost\\Ubuntu\\var\\tmp\\xlang-validation\\xge-full-20261110\\shape-reference-negative-linux-r1\\results.json",
+        "sha256": "aa6912bca15b8b63a81fb651f65d08880dc2ab304574a6959621f7d6a32de790",
+        "steps": 3
+      },
+      "language": {
+        "path": "\\\\wsl.localhost\\Ubuntu\\var\\tmp\\xlang-validation\\xge-full-20261110\\shape-reference-language-linux-r4\\results.json",
+        "sha256": "c93d6506e1746565c16cb8a92c4dc7cc7b982eb8096b8e48a25c21977f02987b",
+        "steps": 17,
+        "heapCounts": {
+          "host-jit": {
+            "2": [
+              10,
+              10,
+              0
+            ],
+            "0": [
+              2000,
+              2000,
+              0
+            ],
+            "1": [
+              0,
+              0,
+              0
+            ]
+          },
+          "host-run": {
+            "2": [
+              10,
+              10,
+              0
+            ],
+            "0": [
+              2000,
+              2000,
+              0
+            ],
+            "1": [
+              0,
+              0,
+              0
+            ]
+          },
+          "static-run": {
+            "2": [
+              10,
+              10,
+              0
+            ],
+            "0": [
+              2000,
+              2000,
+              0
+            ],
+            "1": [
+              0,
+              0,
+              0
+            ]
+          },
+          "shared-run": {
+            "2": [
+              3,
+              3,
+              0
+            ],
+            "0": [
+              1000,
+              1000,
+              0
+            ],
+            "1": [
+              0,
+              0,
+              0
+            ]
+          }
+        }
+      },
+      "thread": {
+        "path": "\\\\wsl.localhost\\Ubuntu\\var\\tmp\\xlang-validation\\xge-full-20261110\\shape-reference-thread-linux-r1\\results.json",
+        "sha256": "d4052baf9dbcf767e484a811c526d0148bb03943ba6f78ecfb36e79c1f20deb3",
+        "cases": 3
+      }
+    }
+  }
+}
