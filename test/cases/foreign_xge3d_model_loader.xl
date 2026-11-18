@@ -1,0 +1,117 @@
+import xge
+import xge3d
+from xge import ResourcePath, ResourceOutput
+from xge3d import ModelLoader3D, Xge3dRequest, Xge3dRequestInfo
+
+func waitFor(ModelLoader3D loader, Xge3dRequest request, c_int wanted) as Xge3dRequestInfo
+    int attempt = 0
+    while attempt < 2500
+        auto info = loader.status(request)
+        if info.state == wanted or info.state == xge.XGE3D_REQUEST_FAILED then
+            return info
+        end
+        time.sleep(2)
+        attempt += 1
+    end
+    return loader.status(request)
+end
+
+func main(...) as int
+    xge.init(64, 64, "Managed 3D loader")
+    auto path = "model-triangle.gltf"
+    auto payload = file.readBytes(path)
+    xge.addResourceProvider("memorymodel", func(ResourcePath uri, ResourceOutput output) as c_int
+        assert uri.text == "memorymodel://triangle.gltf"
+        output.set(payload)
+        return xge.XGE_OK
+    end)
+
+    xge3d.Xge3dLoaderDesc desc
+    desc.flags = c_uint(xge.XGE3D_LOADER_RESOURCE_PROVIDERS)
+    auto loader = xge3d.createModelLoader(desc)
+    auto budget = xge3d.createDecodeBudget(uint64(1))
+    loader.setDecodeBudget(budget)
+    auto denied = loader.request(path)
+    auto failure = waitFor(loader, denied, xge.XGE3D_REQUEST_FAILED)
+    assert failure.state == xge.XGE3D_REQUEST_FAILED and failure.result == xge.XGE_ERROR_OUT_OF_MEMORY
+    assert budget.info().live_bytes == uint64(0)
+    loader.release(denied)
+    budget.setLimit(uint64(1024 * 1024))
+
+    auto cancelled = loader.request(path)
+    assert waitFor(loader, cancelled, xge.XGE3D_REQUEST_CPU_READY).state == xge.XGE3D_REQUEST_CPU_READY
+    loader.cancel(cancelled)
+    loader.cancel(cancelled)
+    assert loader.status(cancelled).state == xge.XGE3D_REQUEST_CANCELLED
+    loader.release(cancelled)
+    auto missing = loader.request("missing-model.gltf")
+    assert waitFor(loader, missing, xge.XGE3D_REQUEST_FAILED).result == xge.XGE_ERROR_FILE_NOT_FOUND
+    loader.release(missing)
+
+    auto request = loader.request("memorymodel://triangle.gltf")
+    assert waitFor(loader, request, xge.XGE3D_REQUEST_CPU_READY).state == xge.XGE3D_REQUEST_CPU_READY
+    assert loader.memoryInfo(request).source_bytes > uint64(0)
+    xge.resourceProviderClear()
+    bool rejected = false
+    try
+        auto early = loader.take(request)
+        early.close()
+    catch Error
+        rejected = true
+    end
+    assert rejected
+    bool stale = false
+    try
+        loader.status(cancelled)
+    catch Error
+        stale = true
+    end
+    assert stale
+
+    xge.run(func() as c_int
+        assert xge.begin() == 0
+        xge3d.Xge3dUploadBudget upload
+        upload.bytes = uint64(64)
+        assert loader.pump(upload).operations == c_uint(0)
+        upload.operations = c_uint(1)
+        int step = 0
+        while step < 100
+            auto update = loader.pump(upload)
+            assert update.operations <= c_uint(1) and update.upload_bytes <= uint64(64)
+            if loader.status(request).state == xge.XGE3D_REQUEST_READY then
+                break
+            end
+            step += 1
+        end
+        assert loader.status(request).state == xge.XGE3D_REQUEST_READY
+        auto model = loader.take(request)
+        loader.close()
+        assert model.info().primitive_count == 1
+
+        auto scene = xge3d.createScene()
+        scene.instantiate(model)
+        model.close()
+        auto renderer = xge3d.createRenderer()
+        auto target = xge3d.createRenderTarget(32, 32)
+        auto camera = xge3d.orthographicCamera(c_float(2), c_float(2), c_float(0.1), c_float(10))
+        c_float[4] clear
+        clear[3] = c_float(1)
+        assert renderer.renderTo(scene, camera, target, clear).triangles == uint64(1)
+        auto pixels = Buffer()
+        assert pixels.resize(32 * 32 * 4)
+        target.readPixels(pixels)
+        assert pixels.byteAt((16 * 32 + 16) * 4) > 220
+        target.close()
+        renderer.close()
+        scene.close()
+        assert xge.nativeEnd() == 0
+        return c_int(1)
+    end)
+    xge.setFrameCallback(null)
+    assert budget.info().live_bytes == uint64(0)
+    budget.close()
+    assert xge.graphicsResourceCount() == uint64(0)
+    xge.unit()
+    println("MODEL_LOADER3D_LANGUAGE_GPU_OK")
+    return 0
+end

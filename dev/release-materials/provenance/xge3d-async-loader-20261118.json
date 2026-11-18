@@ -1,0 +1,131 @@
+{
+  "date": "2026-11-18",
+  "scope": "Managed asynchronous 3D model loader",
+  "complete": true,
+  "passed": true,
+  "xlangParent": "4edd1834c1397b34d9e1a41b6b06d71ca15eb012",
+  "xgeParent": "849c4068f9b9d671adc34f3dd1da5d0245c03883",
+  "xrtCommit": "804cc769de3030118c2b46ef7af69543d1b82d9d",
+  "evidence": {
+    "win": {
+      "sdk": {
+        "path": "F:\\xlang-validation\\xge-full-20261110\\async3d-sdk-win-r2\\results.json",
+        "sha256": "a7b7295059b343bbe3b5e50926aa576117dd282719ebf1ba4809b78ba9c94131"
+      },
+      "native": {
+        "path": "F:\\xlang-validation\\xge-full-20261110\\async3d-native-win-r3\\results.json",
+        "sha256": "f8fa9ea2bddd735b4ebd885bb640deb5e573eed92b1cadb64ac81f4aa6a7bbea"
+      },
+      "packages": {
+        "path": "F:\\xlang-validation\\xge-full-20261110\\async3d-packages-win-r4\\results.json",
+        "sha256": "d84e0e7d17885f0b73a4a764a522ec31280f4691fb4b6f9c5a9686e5631285bd"
+      },
+      "language": {
+        "path": "F:\\xlang-validation\\xge-full-20261110\\async3d-language-win-r5\\results.json",
+        "sha256": "80985d93a2eb666718c2eaa73f515d59e806d6e5aecfa1c29fb747ff8af7796d"
+      },
+      "legacy": {
+        "path": "F:\\xlang-validation\\xge-full-20261110\\async3d-raw-win-r3\\results.json",
+        "sha256": "257e33201012a7d4f18546dd39121150219cafa159fe6a8d7bc8eebcdfc6567a"
+      },
+      "polling": {
+        "path": "F:\\xlang-validation\\xge-full-20261110\\async3d-perf-win-r2\\results.json",
+        "sha256": "c34e8ccefd4c508c69103f7bf3fd27ab3d3fe3c21cb0161dbdf0f69360104c50"
+      }
+    },
+    "linux": {
+      "sdk": {
+        "path": "\\\\wsl.localhost\\Ubuntu\\var\\tmp\\xlang-validation\\xge-full-20261110\\async3d-sdk-linux-r2\\results.json",
+        "sha256": "b3e1c9205c5819f2fb502eb4b42100e0ae149a0dd9e2300ba4aa64a4ef116ab8"
+      },
+      "native": {
+        "path": "\\\\wsl.localhost\\Ubuntu\\var\\tmp\\xlang-validation\\xge-full-20261110\\async3d-native-linux-r3\\results.json",
+        "sha256": "3b58765dd0738a7a68d500a9e687f9d83fb3ab7797b08d0f1f79aef51266e226"
+      },
+      "packages": {
+        "path": "\\\\wsl.localhost\\Ubuntu\\var\\tmp\\xlang-validation\\xge-full-20261110\\async3d-packages-linux-r4\\results.json",
+        "sha256": "f1fe92a7aeae9212021c9ad8dc048f5c196bf105973492524d3704d76fa12976"
+      },
+      "language": {
+        "path": "\\\\wsl.localhost\\Ubuntu\\var\\tmp\\xlang-validation\\xge-full-20261110\\async3d-language-linux-r5\\results.json",
+        "sha256": "943c062710e6584c184ffcfcc6f6292d5dad76e0da5efa3229d1635c79c4de63"
+      },
+      "legacy": {
+        "path": "\\\\wsl.localhost\\Ubuntu\\var\\tmp\\xlang-validation\\xge-full-20261110\\async3d-raw-linux-r4\\results.json",
+        "sha256": "b7b17cd3ede7ff2126d5b4b32cd99ebc35d6a3df7eacfcde88bc58f7cb9bac5c"
+      },
+      "polling": {
+        "path": "\\\\wsl.localhost\\Ubuntu\\var\\tmp\\xlang-validation\\xge-full-20261110\\async3d-perf-linux-r2\\results.json",
+        "sha256": "814ee6b4c618153577c5aaa8faef06f0c44f465e2559d46ef2eba6ef401fa3f4"
+      }
+    }
+  },
+  "nativeSources": {
+    "include/xge.h": "933149a0d07fa39b98bcc1f22a7a04fe498125e915c929131ae84c72ac0098ad",
+    "src/xge/3d/xge3d_internal.h": "77ef1fa617ed0ec4604b8177c47ab147d88f3847e3fb0fb3e131c8ad0df3e0a6",
+    "src/xge/3d/xge3d_async.c": "ca4cc6584a8becb26edc12f7e4551c3a0f7bdc84929f8a42c0494c950e8f5191",
+    "src/xge/3d/xge3d_model.c": "53807ce671192ee8c1692ffbeafe679dbc4c7d3d4b998df8cd97e32936ebd0bc",
+    "tests/xge/test_3d_loader_owned.c": "8a1d266fae5396c0cf1cfb8fd2483149197641e7d7dcd37e0d28f871e92ac8bf"
+  },
+  "languageSources": {
+    "tools/check_xge3_bindings.py": "bb4ba3fdfd35ffc8c54553ddb7efab3f33d7410ad577ffe14c3835a718b1bfad",
+    "lib/bindings/xge/three_d/xlang.package.json": "5e98b4bd30911834cb4a562149d888b2cbf70c0be82694b37451fe4f6f91f98a",
+    "lib/bindings/xge/three_d/examples/model_async.xl": "0a215f67d6d45948cf1c4e25d5dbb363e07a31504f2d873832367fe475e5768c",
+    "lib/bindings/xge/three_d/examples/README.md": "7f535133a06885ef8eaf5f9a4bba35fd3717968d49313fd3e6f35383afb71636",
+    "lib/bindings/xge/three_d/include/xge3d_renderer.h": "861f52773d5edb933b9b13d344b5f1ccf15071ad36bc8f39088fb15ebafc4588",
+    "lib/bindings/xge/three_d/src/model_loader.xl": "018a6ec070ea74c85f524934bc0c351977d78ec63463e33c4780c0afeb9fa0fc",
+    "lib/bindings/xge/three_d/src/records.xl": "8ea8b659381f615127ad37b668d9178562f66cd640d222239c3019d490cc2ed1",
+    "test/cases/foreign_xge3d_model_loader.xl": "42aa98393afef49914aaa300e5dac306e70c7a80cce1d2ce2efd0fa45ec9a22d",
+    "docs/xge3-model.md": "ad310d37825958fd78b0d71542061438fae984b925619ae5810740885449f2ab"
+  },
+  "fixtureAsset": "5c874086740e45bc2413edb3d43a5704f456a6492f2edd0adc1b5b2772349525",
+  "runtimeModes": [
+    "Windows and Linux host JIT",
+    "host linked executable",
+    "static executable",
+    "static DLL/DSO"
+  ],
+  "checks": [
+    "native hosted and static with O0 and O2",
+    "wrong creator thread with unconsumed checked release",
+    "worker detaches legacy provider source before publication",
+    "registered language provider on worker",
+    "request cancellation and stale handles",
+    "decode quota rejection",
+    "fault-injected native loader construction",
+    "exact GPU budget and pixels after transferring model and closing loader"
+  ],
+  "performance": {
+    "warmIterationsPerPlatform": 1024,
+    "allocationComparison": [
+      "alloc",
+      "free",
+      "realloc"
+    ],
+    "language": [
+      0,
+      0,
+      0
+    ],
+    "C": [
+      0,
+      0,
+      0
+    ],
+    "cpuTimeEquivalenceClaim": false,
+    "coldPath": [
+      "worker construction",
+      "URI copy",
+      "managed object admission",
+      "native model asset promotion"
+    ]
+  },
+  "legacyRawFixtureNotes": [
+    "clear expected XRT slot range diagnostic in harness after deliberately querying stale handles",
+    "Linux uses libGL dlsym to access the same OpenGL calls as the Windows fixture"
+  ],
+  "networkTests": false,
+  "releaseInstalled": false,
+  "next": "Private staged node publication and remaining 3D families",
+  "xgeCommit": "e350a57a40c19850ebc637eed8f716db37a5f1f8"
+}

@@ -500,7 +500,10 @@ def generate(root,data):
                 name=' '.join(t['names'])
                 if name in SCALARS:return SCALARS[name]
                 if name in records:return records[name]
-                if name in types and types[name]['kind']=='enum':return 'c_int'
+                if name in types and types[name]['kind']=='enum':
+                    # This nonnegative enum is unsigned in the supported native
+                    # SDK profiles. The emitted record asserts the C field type.
+                    return 'c_uint' if name=='xge3d_request_state_t' else 'c_int'
                 raise ValueError(name)
             raise ValueError(t['kind'])
         def field(t):

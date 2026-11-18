@@ -43,3 +43,37 @@ as a C string. Injecting failure at all 38 allocation points of that
 load returned checked errors with the graphics owner count intact.
 
 [Model example](../lib/bindings/xge/three_d/examples/model.xl)
+
+## Asynchronous loading
+
+`xge3d.createModelLoader()` creates an owning loader with one CPU worker.
+Submit a URI with `request()`, inspect its current state with `status()`
+and call `pump(uploadBudget)` on the graphics thread to make GPU progress.
+The upload budget sets hard byte and operation limits. The time limit is
+soft and checked between graphics calls. Zero operations pause GPU work.
+Once the request is ready, `take()` consumes its handle and transfers an
+independent `Model3D`. Failed jobs expose their native error in `status()`.
+
+Use `setDecodeBudget()` while the loader is empty. The worker charges
+decoding and retained data to that budget. `memoryInfo(request)` is
+available from CPU-ready through ready. Default input accepts local files
+and `file://` URIs. To use registered providers, set
+`XGE3D_LOADER_RESOURCE_PROVIDERS` in the descriptor. Those callbacks run
+on the CPU worker, so their capture and any dependencies must be safe on
+that thread. Legacy provider buffers with a custom release callback are
+copied and released on the worker before decoding.
+
+`cancel()` immediately prevents publication. Keep pumping to release
+partially uploaded GPU resources. `release()` also invalidates the request
+handle. Closing the loader cancels remaining jobs and joins the worker,
+which can wait for a file or provider read in progress. Close from the
+creating thread. Engine shutdown reports Busy while the loader or its
+transferred graphics resources remain live.
+
+In 1,024 warm iterations on Windows and Linux, checking a CPU-ready
+request and pumping with a zero budget caused zero XRT allocations,
+frees or reallocations, matching the handwritten C loop. This measures
+the polling path. Creating a loader starts a worker, submission copies
+its URI, and taking a model establishes ownership of its native assets.
+
+[Asynchronous model example](../lib/bindings/xge/three_d/examples/model_async.xl)

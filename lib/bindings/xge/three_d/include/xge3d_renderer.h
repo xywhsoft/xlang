@@ -28,6 +28,10 @@ XL6_XGE3D_CHECKED_OWNER(xl6Xge3dEnvironmentPolicy,xge3d_environment,"xge3d.envir
 XL6_XGE3D_CHECKED_OWNER(xl6Xge3dModelPolicy,xge3d_model,"xge3d.model",xge3dModelReleaseOwnerChecked)
 #define xl6Xge3dModelPolicy (*xl6Xge3dModelPolicyGet())
 #endif
+#if XGE3D_ENABLE_ASYNC
+XL6_XGE3D_CHECKED_OWNER(xl6Xge3dModelLoaderPolicy,xge3d_loader,"xge3d.model.loader",xge3dLoaderReleaseOwnerChecked)
+#define xl6Xge3dModelLoaderPolicy (*xl6Xge3dModelLoaderPolicyGet())
+#endif
 #undef XL6_XGE3D_CHECKED_OWNER
 #define xl6Xge3dRendererPolicy (*xl6Xge3dRendererPolicyGet())
 #define xl6Xge3dTexturePolicy (*xl6Xge3dTexturePolicyGet())

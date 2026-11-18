@@ -40,6 +40,10 @@ ignore visibility. Query filters select node query layers and can include
 hidden ancestors. Geometry creation remains a separate resource API; the
 controlled acceptance fixture supplies a CPU triangle to test positive hits.
 
+`model_async.xl` submits a local glTF and gives each frame its own GPU
+upload budget. A ready request transfers one model. A failed request reports
+the native status and is released.
+
 `destroyStep` immediately retires the entire subtree logically, including when
 `budget.nodes` is zero. Its return value is zero until all nodes are physically
 removed, then one. Continue with the original root handle while incomplete;

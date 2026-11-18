@@ -1,0 +1,36 @@
+import xge
+import xge3d
+
+xge.init(480, 320, "异步加载 glTF 模型")
+auto loader = xge3d.createModelLoader()
+auto request = loader.request("assets/model-triangle.gltf")
+xge3d.Xge3dUploadBudget upload
+upload.bytes = uint64(64 * 1024)
+upload.operations = c_uint(8)
+upload.microseconds = uint64(2000)
+
+xge.run(func() as c_int
+    assert xge.begin() == 0
+    loader.pump(upload)
+    auto state = loader.status(request)
+    if state.state == xge.XGE3D_REQUEST_FAILED then
+        println("模型加载失败", state.result)
+        loader.release(request)
+        assert xge.nativeEnd() == 0
+        return c_int(1)
+    end
+
+    if state.state == xge.XGE3D_REQUEST_READY then
+        auto model = loader.take(request)
+        println("异步模型图元数", model.info().primitive_count)
+        model.close()
+        assert xge.nativeEnd() == 0
+        return c_int(1)
+    end
+
+    assert xge.nativeEnd() == 0
+    return c_int(0)
+end)
+xge.setFrameCallback(null)
+loader.close()
+xge.unit()

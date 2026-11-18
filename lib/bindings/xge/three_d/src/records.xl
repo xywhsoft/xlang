@@ -194,7 +194,7 @@ export extern "xge3d_request_t" struct Xge3dRequest @header("xge3_runtime.h")
 end
 
 export extern "xge3d_request_info_t" struct Xge3dRequestInfo @header("xge3_runtime.h")
- c_int state
+ c_uint state
  c_int result
  c_int pending_cleanup
  uint64 uploaded_bytes
