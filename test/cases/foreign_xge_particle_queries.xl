@@ -1,0 +1,99 @@
+import xge
+
+extern "fixtureParticleQueriesBegin" @header("test/cases/foreign_xge_particle_queries.h") @no_raise func heapBegin()
+extern "fixtureParticleQueriesEnd" @header("test/cases/foreign_xge_particle_queries.h") @no_raise func heapEnd(c_int mode)
+extern "fixtureParticleQueriesNative" @header("test/cases/foreign_xge_particle_queries.h") @no_raise func nativeHot(xge.ParticleWorld world,uint64 effect)
+
+func vector(c_float x, c_float y) as xge.Vec2
+    xge.Vec2 value
+    value.fX = x
+    value.fY = y
+    return value
+end
+
+func main(...) as int
+    auto start = vector(0, 2)
+    auto finish = vector(0, -2)
+    auto normal = vector(0, 2)
+    auto planeHit, plane = xge.particleSweepPlane(start, finish, c_float(0.5), normal, 0)
+    assert planeHit and plane.fFraction == c_float(0.375)
+    assert plane.tNormal.fY == c_float(1) and plane.tPosition.fY == c_float(0.5)
+    auto missed, contact = xge.particleSweepPlane(start, start, 0, normal, 0)
+    assert not missed and contact.fFraction == c_float(0)
+
+    xge.Rect rect
+    rect.fW = c_float(8)
+    rect.fH = c_float(8)
+    auto left = vector(-4, 2)
+    auto right = vector(4, 2)
+    auto rectHit, box = xge.particleSweepRect(left, right, c_float(0.5), rect)
+    assert rectHit and box.fFraction == c_float(0.4375) and box.tNormal.fX == c_float(-1)
+    auto inside, exitPoint = xge.particleSweepRect(vector(2, 2), right, 0, rect)
+    assert inside and exitPoint.fFraction == c_float(0) and exitPoint.tPosition.fX == c_float(0)
+    bool invalid = false
+    try
+        xge.particleSweepPlane(start, finish, 0, vector(0, 0), 0)
+    catch Error
+        invalid = true
+    end
+    assert invalid
+
+    auto emitter = xge.particleEmitterInit()
+    emitter.bAutomatic = 0
+    emitter.iMaxParticles = 8
+    array<xge.ParticleEmitter> emitters = [emitter]
+    auto definition = xge.createParticleDefinition(emitters)
+    auto world = xge.createParticleWorld(2, 8, 2, 8, 8)
+    auto effect = world.play(definition)
+    assert world.state(effect) == xge.XGE_PARTICLE_PLAYING
+    world.pause(effect)
+    assert world.state(effect) == xge.XGE_PARTICLE_PAUSED
+    world.pause(effect, 0)
+    auto empty, none = world.pollEvent()
+    assert not empty and none.iEffect == uint64(0)
+
+    heapBegin()
+    try
+        for i in range(1000)
+            assert world.state(effect) == xge.XGE_PARTICLE_PLAYING
+            auto available, event = world.pollEvent()
+            assert not available
+            auto sweptPlane, planeContact = xge.particleSweepPlane(start, finish, c_float(0.5), normal, 0)
+            auto sweptRect, rectContact = xge.particleSweepRect(left, right, c_float(0.5), rect)
+            assert sweptPlane and planeContact.fFraction == c_float(0.375)
+            assert sweptRect and rectContact.fFraction == c_float(0.4375)
+        end
+    finally
+        heapEnd(0)
+    end
+    nativeHot(world,effect)
+
+    assert world.emit(effect, 0, 2) == 2
+    auto hasFirst, first = world.pollEvent()
+    assert hasFirst and first.iEffect == effect and first.iType == xge.XGE_PARTICLE_EVENT_BIRTH
+    assert world.emit(effect, 0, 1) == 1
+    auto hasSecond, second = world.pollEvent()
+    auto hasThird, third = world.pollEvent()
+    assert hasSecond and hasThird and second.iParticle == first.iParticle + uint64(1)
+    assert third.iParticle == second.iParticle + uint64(1)
+
+    world.stop(effect, 1)
+    assert world.state(effect) == xge.XGE_PARTICLE_DRAINING
+    world.update(0.015625)
+    assert world.state(effect) == xge.XGE_PARTICLE_FINISHED
+    auto hasEnd, finished = world.pollEvent()
+    assert hasEnd and finished.iEffect == effect and finished.iType == xge.XGE_PARTICLE_EVENT_FINISHED
+    world.release(effect)
+    bool rejected = false
+    try
+        world.state(effect)
+    catch Error
+        rejected = true
+    end
+    assert rejected
+    world.close()
+    definition.close()
+    assert first.iEffect == effect and third.iType == xge.XGE_PARTICLE_EVENT_BIRTH
+    println("PARTICLE_QUERIES_LANGUAGE_OK")
+    return 0
+end

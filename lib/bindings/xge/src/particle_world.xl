@@ -47,11 +47,14 @@ export extern "xge_particle_world" class ParticleWorld @header("xge3_particle_wo
  extern "xgeParticleSetTransform" @no_raise @c_ref(1) @c_result("status",0) func setTransform(uint64 effect,ParticleTransform value)
  extern "xgeParticleSetParameters" @no_raise @c_ref(1) @c_result("status",0) func setParameters(uint64 effect,ParticleParameters value)
  extern "xgeParticleSetVisible" @no_raise @c_result("status",0) func setVisible(uint64 effect,c_int visible=1)
+ extern "xgeParticleState" @no_raise @c_result("integer_min",0) func state(uint64 effect) as c_int
  extern "xgeParticleBounds" @no_raise @c_output(2,0) func bounds(uint64 effect) as Rect
  extern "xgeParticleEmit" @no_raise @c_output(4,0) func emit(uint64 effect,c_int emitter,c_uint count) as c_uint
  extern "xgeParticleUpdate" @no_raise @c_result("status",0) func update(c_double seconds)
  extern "xgeParticlePrewarm" @no_raise @c_result("status",0) func prewarm(uint64 effect,c_float seconds)
  extern "xgeParticleStats" @no_raise func stats() as ParticleStats
+ // A false result means no event. Polling consumes one queued event on success.
+ extern "xgeParticleWorldPollEvent" @no_raise @c_outputs(1,2) @c_status(0) func pollEvent() as (bool,ParticleEvent)
  // Return 0 to stop visiting, nonzero to continue. Failed language callbacks
  // return 0 through the generic checked bridge and deliver their first error.
  extern "xgeParticleVisit" @no_raise @c_sync_callback(0,-1,0) @c_result("status",0) func visit(ParticleVisitor visitor)

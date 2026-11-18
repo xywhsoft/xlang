@@ -1,0 +1,97 @@
+{
+  "complete": true,
+  "passed": true,
+  "releaseInstalled": false,
+  "nativeCommit": "923c05605be7ba6edf351357a60b1be5b35cbb90",
+  "sourceHashes": {
+    "docs/xge3-particle-world.md": "3cf8ce889523c102885243bd43776caeb3722f9591c3174824f0039436291ed2",
+    "docs/xge3-xui3-api-map-storage.json": "791f5e82e27d07fb703ee1e043d07934336cc3a840b26da37053c260d6f259ad",
+    "lib/bindings/xge/examples/particle_world.xl": "c9965599a6ef01996eb4a4b065420a823bc3c72ffb6eef8d293262fdf34e14ca",
+    "lib/bindings/xge/src/particle_values.xl": "66a5bf2ef9f72e4db7eb7cff9f867903a6927e303dacc84866236619424d2174",
+    "lib/bindings/xge/src/particle_world.xl": "0d30a2d43ced0aeeb9630a453ad83c228766247e73038e94ce2062196476167f",
+    "test/cases/foreign_xge_particle_queries.c": "6c9f1e2c2276bb8513bb75be1e6e62b4ab4448a2f36eb16c33fe216e36c0310e",
+    "test/cases/foreign_xge_particle_queries.h": "070627f370ba42170f29b0ccf80cfd687fd4dad299ea17263a6cc0cc578c5520",
+    "test/cases/foreign_xge_particle_queries.xl": "92e57b061c53ff118369905bc1ba13439d52a6a2bd4c6916c8847f4a08de88c8"
+  },
+  "nativeHashes": {
+    "include/xge.h": "99fdf98f2cf1142cbe55b4b9b5a2f8deccd28bcbdda588382a1d20f051239e78",
+    "src/xge/particle/xge_particle.c": "88cca2f2e1917d8db357965ac94cbd7296ff0b40e652c73a0286bfa4d937b602",
+    "tests/xge/test_particle_queries.c": "031b162a73af5ed1acbed65d423589e01dba5a8a8fcdd7dccbf2759350760387"
+  },
+  "nativeBuildObjectCounts": {
+    "win": {
+      "host": 164,
+      "static": 166
+    },
+    "linux": {
+      "host": 164,
+      "static": 166
+    }
+  },
+  "scope": "ParticleWorld state and FIFO events, checked plane and rectangle sweeps, CPU simulation example",
+  "cases": [
+    "No event and no contact return false. Native payload buffers remain unchanged on empty, miss or invalid input.",
+    "Event wraparound preserves FIFO order across old and new native poll entry points.",
+    "A foreign thread cannot consume an event or change native output storage.",
+    "Released effect IDs report a checked error. Stop enters Draining and the next step produces Finished.",
+    "Checked and legacy contact values match. Invalid radius, normal, extent or offset fail checked.",
+    "Prior owned world, callback lifetime, prewarm, failure and allocation regressions pass."
+  ],
+  "heapComparison": {
+    "iterations": 1000,
+    "allocationBudgetPerMode": 0,
+    "languageAndCCounts": [
+      0,
+      0,
+      0
+    ],
+    "workload": "In each iteration: state, empty poll, plane hit, rectangle hit on the same prepared inputs.",
+    "costs": "Fixed POD output packing and copies, world scope checks, and native checked status/failure admission remain."
+  },
+  "evidence": {
+    "win": {
+      "sdk": {
+        "path": "F:\\xlang-validation\\xge-full-20261110\\particle-queries-sdk-win-r1\\results.json",
+        "sha256": "29b00271151c3887a9d0ec6f8f7a93380fa6377a38493b6b0eaa78810310dde8"
+      },
+      "native": {
+        "path": "F:\\xlang-validation\\xge-full-20261110\\particle-queries-native-win-r2\\results.json",
+        "sha256": "26302cbfe44dc5e364e8bddbb2df2ec4a81251a16a117f1991aa99def2bedc5a"
+      },
+      "packages": {
+        "path": "F:\\xlang-validation\\xge-full-20261110\\particle-queries-packages-win-r2\\results.json",
+        "sha256": "0ebc489d387f484a51fa4e299da4bd47830105eb75cde1d7cb6934f574a64d50"
+      },
+      "sourceReview": {
+        "path": "F:\\xlang-validation\\xge-full-20261110\\particle-queries-packages-win-r2\\source-review\\results.json",
+        "sha256": "3b8d2559bf8d2cb38345132b1229f90ab2d3a68d36f3b97ff96bee8ab1aa09e3"
+      },
+      "language": {
+        "path": "F:\\xlang-validation\\xge-full-20261110\\particle-queries-language-win-r2\\results.json",
+        "sha256": "90c76ead4700a7534585fb258f18d24d28d30207ca018b0c9c600cf32121538a"
+      }
+    },
+    "linux": {
+      "sdk": {
+        "path": "\\\\wsl.localhost\\Ubuntu\\var\\tmp\\xlang-validation\\xge-full-20261110\\particle-queries-sdk-linux-r1\\results.json",
+        "sha256": "2430cf5d07f14c37648369d2eb7bcaa4c19527679b2a3dd5492a2f3dcff0ede1"
+      },
+      "native": {
+        "path": "\\\\wsl.localhost\\Ubuntu\\var\\tmp\\xlang-validation\\xge-full-20261110\\particle-queries-native-linux-r2\\results.json",
+        "sha256": "97f97b3ac075beab1e1ab09e86b7f6a1015634b73de1314f9c637a581fa23c53"
+      },
+      "packages": {
+        "path": "\\\\wsl.localhost\\Ubuntu\\var\\tmp\\xlang-validation\\xge-full-20261110\\particle-queries-packages-linux-r2\\results.json",
+        "sha256": "ca3fe51f3e52586f728a05e3f3cd616d0eef8e63746e9f88aef569390ddeebd9"
+      },
+      "sourceReview": {
+        "path": "\\\\wsl.localhost\\Ubuntu\\var\\tmp\\xlang-validation\\xge-full-20261110\\particle-queries-packages-linux-r2\\source-review\\results.json",
+        "sha256": "c29f7d794b547aeb7e656219276f2e054c5be471d1cb20de1e0214588e3f3d41"
+      },
+      "language": {
+        "path": "\\\\wsl.localhost\\Ubuntu\\var\\tmp\\xlang-validation\\xge-full-20261110\\particle-queries-language-linux-r2\\results.json",
+        "sha256": "ab57dc5ebf1e525e84eb4046b93722631cd0620f1f1be0dcea569e4e9e36e847"
+      }
+    }
+  }
+}

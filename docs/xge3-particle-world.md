@@ -13,9 +13,11 @@ or second simulation implementation is involved.
 | `play(definition)` / `play(definition,options)` | `xgeParticlePlay`; default NULL or stack const-reference options; effect ID output |
 | `release`, `restart`, `pause`, `stop` | Same native effect mutation functions |
 | `setTransform`, `setParameters`, `setVisible` | Same native functions; POD values projected by const reference |
+| `state(effect)` | `xgeParticleState` returns a nonnegative effect state or a checked error |
 | `bounds(effect)` / `emit(effect,emitter,count)` | Checked native output: independent Rect / emitted count |
 | `update(seconds)` / `prewarm(effect,seconds)` | Checked native simulation status |
 | `stats()` | Native `ParticleStats` value; native error checked before publication |
+| `pollEvent()` | `xgeParticleWorldPollEvent` removes at most one event and returns `(available, event)` |
 | `visit(visitor)` | Synchronous native visitor; 0 stops, nonzero continues |
 | `onCollision(callback)` / `onCollision()` | Direct owned native registration / clear |
 
@@ -24,6 +26,19 @@ events, 4096 spawns per step, 64 substeps and a 1/120-second step. Time is in
 seconds, not the platform deadline ABI's milliseconds. Emitter indices are
 zero-based. Use `particleEmitterInit()` and `particlePlayInit()` for native
 defaults; zero POD constructors do not supply those defaults.
+
+`pollEvent()` reads the world queue in FIFO order. When `available` is false,
+ignore the zero-initialized event. Copied events remain readable after the
+world closes. `state(effect)` returns `XGE_PARTICLE_PLAYING`, `PAUSED`,
+`DRAINING` or `FINISHED`. A missing or released effect raises a checked error.
+
+Use `particleSweepPlane()` or `particleSweepRect()` to find the first contact
+along a segment. Both return `(hit, contact)`. Read `contact` when `hit` is
+true. The record gives the particle center, outward normal and fraction of
+the segment. Invalid arguments raise a checked error. The queries use the same
+geometry as the existing C collision functions. The [particle world example](../lib/bindings/xge/examples/particle_world.xl)
+uses the plane sweep inside a collision callback and drains the event queue
+after updating.
 
 ## Lifetimes and failure
 

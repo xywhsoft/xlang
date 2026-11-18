@@ -78,6 +78,10 @@ export extern "xge_particle_event_t" struct ParticleEvent @header("xge3_runtime.
  Vec2 tVelocity
 end
 
+// Read the contact only when the first result is true.
+export extern "xgeParticleSweepPlane" @header("xge3_runtime.h") @no_raise @nonblocking @c_outputs(5,6) @c_status(0) func particleSweepPlane(Vec2 start,Vec2 finish,c_float radius,Vec2 normal,c_float offset) as (bool,ParticleHit)
+export extern "xgeParticleSweepRect" @header("xge3_runtime.h") @no_raise @nonblocking @c_outputs(4,5) @c_status(0) func particleSweepRect(Vec2 start,Vec2 finish,c_float radius,Rect target) as (bool,ParticleHit)
+
 // Eval preserves the native fallback contract, including invalid/empty curves.
 export extern "xgeParticleCurveEval" @header("xge3_runtime.h") @pure @no_raise @nonblocking @c_ref(0) func particleCurveEval(ParticleCurve curve,c_float time,c_float fallback) as c_float
 export extern "xgeParticleGradientEval" @header("xge3_runtime.h") @pure @no_raise @nonblocking @c_ref(0) func particleGradientEval(ParticleGradient gradient,c_float time,c_uint fallback) as c_uint

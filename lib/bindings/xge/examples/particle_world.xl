@@ -6,24 +6,37 @@ func main(...) as int
  emitter.bAutomatic=0
  emitter.fRate=c_float(0)
  emitter.iMaxParticles=4
+ emitter.fDirection=c_float(0)
+ emitter.fSpread=c_float(0)
+ emitter.tSpeed.fMin=c_float(64)
+ emitter.tSpeed.fMax=c_float(64)
  emitter.iCollision=xge.XGE_PARTICLE_COLLISION_KILL
  array<xge.ParticleEmitter> emitters=[emitter]
  auto definition=xge.createParticleDefinition(emitters)
  auto world=xge.createParticleWorld(4,16,8,8,8,c_float(0.015625))
  try
   auto effect=world.play(definition)
+  xge.Vec2 normal
+  normal.fX=c_float(-1) // Particles can move as far as x = 0.5.
   world.onCollision(func(xge.Vec2 start,xge.Vec2 finish,c_float radius,xge.ParticleHitOutput hit) as c_int
-   hit.position=finish
-   auto normal=xge.Vec2()
-   normal.fY=c_float(-1)
-   hit.normal=normal
-   hit.fraction=c_float(0.5)
+   auto collided,contact=xge.particleSweepPlane(start,finish,radius,normal,c_float(-0.5))
+   if not collided then return c_int(0) end
+   hit.position=contact.tPosition
+   hit.normal=contact.tNormal
+   hit.fraction=contact.fFraction
    return c_int(1)
   end)
   assert world.emit(effect,0,1)==1
   world.update(0.015625)
   auto stats=world.stats()
   assert stats.iCollisions==1 and stats.iLiveParticles==0
+  while true
+   auto available,event=world.pollEvent()
+   if not available then break end
+   if event.iType==xge.XGE_PARTICLE_EVENT_COLLISION
+    println("Collision at x =",event.tPosition.fX)
+   end
+  end
   println("Collision removed the particle")
  finally
   world.close()
