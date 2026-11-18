@@ -1,0 +1,170 @@
+import xui
+
+extern "stateHeapBegin" @header("test/cases/foreign_xui_timeline_message_state.h") @no_raise func heapBegin()
+extern "stateHeapEnd" @no_raise func heapEnd(c_int mode)
+extern "stateBudget" @no_raise func budget(c_int allowance)
+extern "stateAllocationFailed" @no_raise func allocationFailed() as bool
+extern "stateNativeTimelineRead" @no_raise func nativeTimelineRead(xui.TimeLineView view,c_int layer,c_int span)
+extern "stateNativeMessageRead" @no_raise func nativeMessageRead(xui.MessageList view)
+
+func timelineState(xui.Context ui)
+    auto view = ui.timeLineViewNative()
+    assert view.setFrameCount(32) == 0
+    auto layer = view.addLayer("Motion")
+    auto other = view.addLayer("Background")
+    view.setLayerHeight(layer, 29)
+    view.setLayerColor(layer, c_uint(0xFF012345))
+    view.setFrame(layer, 4, xui.XUI_TIMELINE_FRAME_KEY)
+    auto span = view.addSpan(layer, 4, 12, xui.XUI_TIMELINE_SPAN_CUSTOM, "Pan")
+    view.setSpanCustomType(span, "camera")
+    view.setSpanColor(span, c_uint(0xFF023456))
+    auto layerId, name, visible, locked, selected, height, color = view.getLayer(layer)
+    assert layerId >= 0 and name == "Motion" and visible == 1 and locked == 0
+    assert (selected == 0 or selected == 1) and height == 29 and color == c_uint(0xFF012345)
+    auto owner, frame, frameType = view.getFrame(layer, 4)
+    assert owner == layer and frame == 4 and frameType == xui.XUI_TIMELINE_FRAME_KEY
+    auto emptyLayer, emptyFrame, emptyType = view.getFrame(layer, 5)
+    assert emptyLayer == layer and emptyFrame == 5 and emptyType == xui.XUI_TIMELINE_FRAME_EMPTY
+    auto spanLayer, spanId, start, stop, spanType, customType, label, spanColor = view.getSpan(span)
+    assert spanLayer == layer and spanId == span and start == 4 and stop == 12
+    assert spanType == xui.XUI_TIMELINE_SPAN_CUSTOM and customType == "camera" and label == "Pan" and spanColor == c_uint(0xFF023456)
+
+    heapBegin()
+    for index in range(1000)
+        auto id, title, _, _, _, _, _ = view.getLayer(layer)
+        auto _, number, kind = view.getFrame(layer, 4)
+        auto _, key, _, _, _, _, caption, _ = view.getSpan(span)
+        assert id == layerId and number == 4 and kind == frameType and key == span
+    end
+    heapEnd(0)
+    heapBegin()
+    nativeTimelineRead(view, layer, span)
+    heapEnd(1)
+
+    bool invalid = false
+    try
+        view.getFrame(layer, 32)
+    catch error
+        invalid = true
+    end
+    assert invalid
+    for allowance in range(2)
+        bool caught = false
+        bool injected = false
+        heapBegin()
+        budget(c_int(allowance))
+        try
+            spanLayer, spanId, start, stop, spanType, customType, label, spanColor = view.getSpan(span)
+        catch error
+            caught = true
+        finally
+            injected = allocationFailed()
+            budget(-1)
+        end
+        assert caught and injected and spanLayer == layer and spanId == span and label == "Pan" and customType == "camera"
+        heapEnd(4)
+    end
+    view.moveLayer(layer, other)
+    auto movedId, movedName, _, _, _, _, _ = view.getLayer(other)
+    assert movedId == layerId and movedName == name
+    view.setLayerName(other, "Updated")
+    view.removeSpan(span)
+    view.close()
+    assert name == "Motion" and label == "Pan" and customType == "camera"
+end
+
+func loadMessages(xui.MessageList view, string first, int size=-1)
+    view.setNodes(["hello", "review"], [first, "Checked"], ["Ada", "Tool"], ["12:01", "12:02"],
+        [null, "hello"], [null, "Note"], [xui.XUI_MESSAGE_NODE_SELF, xui.XUI_MESSAGE_NODE_AUXILIARY],
+        [0, xui.XUI_MESSAGE_NODE_FLAG_COLLAPSIBLE], [0, xui.XUI_MESSAGE_AUXILIARY_TOOL], size)
+end
+
+func messageState(xui.Context ui)
+    auto view = ui.messageListNative()
+    view.setAutoScroll(0)
+    loadMessages(view, "Hello", 1)
+    assert view.getNodeCount() == 1
+    loadMessages(view, "Hello")
+    view.setSelected(1)
+    auto id, text, sender, time, parent, title, kind, flags, auxiliary = view.getNode(1)
+    assert id == "review" and text == "Checked" and sender == "Tool" and time == "12:02"
+    assert parent == "hello" and title == "Note" and kind == xui.XUI_MESSAGE_NODE_AUXILIARY
+    assert flags == xui.XUI_MESSAGE_NODE_FLAG_COLLAPSIBLE and auxiliary == xui.XUI_MESSAGE_AUXILIARY_TOOL
+    auto _, _, _, _, emptyParent, emptyTitle, _, _, _ = view.getNode(0)
+    assert emptyParent == "" and emptyTitle == ""
+
+    heapBegin()
+    for index in range(1000)
+        auto messageId, _, _, _, parentId, _, nodeType, _, _ = view.getNode(1)
+        assert nodeType == kind
+    end
+    heapEnd(2)
+    heapBegin()
+    nativeMessageRead(view)
+    heapEnd(3)
+
+    for allowance in range(6)
+        bool rejected = false
+        bool injected = false
+        heapBegin()
+        budget(c_int(allowance))
+        try
+            id, text, sender, time, parent, title, kind, flags, auxiliary = view.getNode(1)
+        catch error
+            rejected = true
+        finally
+            injected = allocationFailed()
+            budget(-1)
+        end
+        assert rejected and injected and id == "review" and text == "Checked" and title == "Note"
+        heapEnd(5)
+    end
+    bool rejected = false
+    try
+        view.getNode(2)
+    catch error
+        rejected = true
+    end
+    assert rejected
+
+    array<string> replacementIds = ["new"]
+    array<string?> replacementText = ["Changed"]
+    array<string?> empty = [null]
+    array<c_int> zeros = [0]
+    // With input columns prepared, injection reaches both the projection and native preparation.
+    for allowance in range(4)
+        bool injected = false
+        rejected = false
+        heapBegin()
+        budget(c_int(allowance))
+        try
+            view.setNodes(replacementIds, replacementText, empty, empty, empty, empty, zeros, zeros, zeros)
+        catch error
+            rejected = true
+        finally
+            injected = allocationFailed()
+            budget(-1)
+        end
+        assert rejected and injected and view.getSelected() == 1 and view.getNodeCount() == 2
+        heapEnd(6)
+    end
+    loadMessages(view, "Changed")
+    auto _, newText, _, _, _, _, _, _, _ = view.getNode(0)
+    assert newText == "Changed"
+    view.close()
+    assert id == "review" and title == "Note" and text == "Checked"
+end
+
+func main(...) as int
+    auto proxy = xui.createProxy()
+    auto ui = xui.create(proxy, xui.XUI_SYSTEM_FONT_DISABLED)
+    try
+        timelineState(ui)
+        messageState(ui)
+    finally
+        ui.close()
+        proxy.close()
+    end
+    println("XUI_TIMELINE_MESSAGE_STATE_OK")
+    return 0
+end

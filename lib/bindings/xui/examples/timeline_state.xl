@@ -1,0 +1,17 @@
+import xui
+
+auto proxy = xui.createProxy()
+auto ui = xui.create(proxy, xui.XUI_SYSTEM_FONT_DISABLED)
+try
+    auto timeline = ui.timeLineViewNative()
+    assert timeline.setFrameCount(24) == 0
+    auto layer = timeline.addLayer("Animation")
+    timeline.setFrame(layer, 4, xui.XUI_TIMELINE_FRAME_KEY)
+    auto span = timeline.addSpan(layer, 4, 12, xui.XUI_TIMELINE_SPAN_MOTION, "Move")
+
+    auto _, _, first, last, _, _, label, _ = timeline.getSpan(span)
+    println(label, first, last)
+finally
+    ui.close()
+    proxy.close()
+end

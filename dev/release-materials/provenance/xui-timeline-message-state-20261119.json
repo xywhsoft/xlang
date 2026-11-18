@@ -1,0 +1,823 @@
+{
+  "complete": true,
+  "passed": true,
+  "releaseInstalled": false,
+  "realGpuTests": false,
+  "sourceParent": "1498d80db206ab6fca11396d1708c7db0292a33d",
+  "nativeCommit": "d2c1567a84148e1a0d240e4a5dcb00ead6315896",
+  "xrtCommit": "804cc769de3030118c2b46ef7af69543d1b82d9d",
+  "sourceHashes": {
+    "tools/check_xge3_bindings.py": "6e8fe382d47ab70159d35370a66648d5f9e8488de4852b888533cba8497f55bb",
+    "tools/xui_managed_contracts.py": "9e31c193d2961ed5f4d5ad4042c7ac121e5edcac69a3cf91ecbe72113d965dce",
+    "docs/xge3-xui3-api-map-storage.json": "7e7ee2837155d83b127e7f26e9e031479450617360a618503443e4dc8cc42fe8",
+    "lib/bindings/xui/src/managed.xl": "74ab5b032861493c0bf547913a90a013a7ef91e2b84eec99e8a9862ecae4208e",
+    "docs/xui-timeline-message-state.md": "c4a85009cee828e1bae9fdca9e70cbdade20efa06b30e8d39730f5cf7da79154",
+    "docs/xui-timeline-queries.md": "4a10fda7a14bbc8c96d9926061649c26e966b7fbc9cefaa61eca52cc1ef9753d",
+    "lib/bindings/xui/examples/README.md": "82f0f62acdc49d6ab2bcd046ab0e0d92dc4476b638654528666094fe865a5010",
+    "lib/bindings/xui/examples/timeline_state.xl": "9003ad03a35ed00afc7356559e1178b044f1fcfa80c5356d498d9ae1345298b5",
+    "lib/bindings/xui/examples/message_nodes.xl": "d117e686a7b342ddd9baf772d5c200e6b770427f153b5564f47aabe4a2bf7c8c",
+    "test/cases/foreign_xui_timeline_message_state.xl": "4f151ab2f938a87b7979a4e9639681de868fbd89daf432bacd42bede8b75bcbb",
+    "test/cases/foreign_xui_timeline_message_state.c": "a6e45f1ab6c69e6c12b538a6f52468b7feb3f5b420f1802f53d6594f901180ec",
+    "test/cases/foreign_xui_timeline_message_state.h": "e13859bcd6c10bc453c76a4d61dd0cf7406f7d76784238c7d014e3813483463d"
+  },
+  "behavior": [
+    "TimeLineView exposes layer, frame and span snapshots and directly sets the frame type. A valid unoccupied frame returns EMPTY. A stable layer ID follows its layer during reorder.",
+    "MessageList projects nine typed columns to a native record array for bulk replacement. The snapshot preserves auxiliary fields and owns its text across widget mutation or close. Existing node attachments are governed by native whole-list replacement.",
+    "C user pointer storage remains native. Language exports only data and sets no arbitrary user pointer.",
+    "In 1000 warmed layer/frame/span rounds, the language makes 3000 balanced XRT allocations for nonempty text snapshots. The C counterpart uses borrowed text and makes zero allocations. Frame snapshots carry only scalars.",
+    "In 1000 warmed reads of one full auxiliary message, the language makes 6000 balanced XRT allocations for six text fields. The C counterpart uses borrowed text and makes zero allocations.",
+    "The tests inject early write failures after preparing the input columns and fail each text allocation prefix of the span and message snapshots. The last result and live heap are preserved. CPU timings and real-GPU rendering are outside this gate."
+  ],
+  "evidence": {
+    "win": {
+      "sdk": {
+        "path": "F:\\xlang-validation\\xge-full-20261110\\timeline-message-sdk-win-r1\\results.json",
+        "sha256": "de3499f3e54b62a2bcb4ee464d6f1c0d01ad717a0e747cde611aafac14686dd5",
+        "steps": 2
+      },
+      "thread": {
+        "path": "F:\\xlang-validation\\xge-full-20261110\\timeline-message-thread-win-r1\\results.json",
+        "sha256": "44f79b090cf45ac6568ab10a1a66c97d171c5f03e54bc5db9bbc573b9ae9c1a8",
+        "refusedCalls": 3
+      },
+      "initialNativeRuns": [
+        {
+          "path": "F:\\xlang-validation\\xge-full-20261110\\timeline-message-native-win-r1\\results.json",
+          "sha256": "79948c9af89fcd4d3d09e9955b83cd800f1f9f3dfcc1e02fc834819bf1be9a31"
+        },
+        {
+          "path": "F:\\xlang-validation\\xge-full-20261110\\timeline-message-native-win-r2\\results.json",
+          "sha256": "b2ef225ed6e774a9355d830a5c4f0277c5d196e6da88fb5bb321b58d88dfb5a5"
+        }
+      ],
+      "native": {
+        "path": "F:\\xlang-validation\\xge-full-20261110\\timeline-message-native-win-r3\\results.json",
+        "sha256": "02bb6929d24d3566a0d0fd448f3cfe1ab496b9b09028b135b8305750eacb152e",
+        "steps": 24
+      },
+      "packages": {
+        "path": "F:\\xlang-validation\\xge-full-20261110\\timeline-message-packages-win-r2\\results.json",
+        "sha256": "400095ddc16d55c1b02a79bb7a7edd3ec740a6ebc58b85bb1f335a7184e104d0",
+        "steps": 6,
+        "storageReview": {
+          "path": "F:\\xlang-validation\\xge-full-20261110\\timeline-message-packages-win-r2\\source-review\\results.json",
+          "sha256": "5bc561d84119198ef4c92e8a7dfa8adbd8b28e823567109cb1fa936846e730fa"
+        }
+      },
+      "language": {
+        "path": "F:\\xlang-validation\\xge-full-20261110\\timeline-message-language-win-r2\\results.json",
+        "sha256": "d4c5a870d9671611669e4d7cd3660c7f7bd40bdef76bc1a8502499ea0a273935",
+        "steps": 20,
+        "counts": {
+          "host-jit": {
+            "timeline": [
+              3000,
+              3000,
+              0
+            ],
+            "nativeTimeline": [
+              0,
+              0,
+              0
+            ],
+            "message": [
+              6000,
+              6000,
+              0
+            ],
+            "nativeMessage": [
+              0,
+              0,
+              0
+            ],
+            "spanFailures": [
+              [
+                4,
+                4,
+                0
+              ],
+              [
+                5,
+                5,
+                0
+              ]
+            ],
+            "messageFailures": [
+              [
+                6,
+                6,
+                0
+              ],
+              [
+                7,
+                7,
+                0
+              ],
+              [
+                8,
+                8,
+                0
+              ],
+              [
+                9,
+                9,
+                0
+              ],
+              [
+                10,
+                10,
+                0
+              ],
+              [
+                11,
+                11,
+                0
+              ]
+            ],
+            "bulkFailures": [
+              [
+                0,
+                0,
+                0
+              ],
+              [
+                1,
+                1,
+                0
+              ],
+              [
+                2,
+                2,
+                0
+              ],
+              [
+                3,
+                3,
+                0
+              ]
+            ]
+          },
+          "host-run": {
+            "timeline": [
+              3000,
+              3000,
+              0
+            ],
+            "nativeTimeline": [
+              0,
+              0,
+              0
+            ],
+            "message": [
+              6000,
+              6000,
+              0
+            ],
+            "nativeMessage": [
+              0,
+              0,
+              0
+            ],
+            "spanFailures": [
+              [
+                4,
+                4,
+                0
+              ],
+              [
+                5,
+                5,
+                0
+              ]
+            ],
+            "messageFailures": [
+              [
+                6,
+                6,
+                0
+              ],
+              [
+                7,
+                7,
+                0
+              ],
+              [
+                8,
+                8,
+                0
+              ],
+              [
+                9,
+                9,
+                0
+              ],
+              [
+                10,
+                10,
+                0
+              ],
+              [
+                11,
+                11,
+                0
+              ]
+            ],
+            "bulkFailures": [
+              [
+                0,
+                0,
+                0
+              ],
+              [
+                1,
+                1,
+                0
+              ],
+              [
+                2,
+                2,
+                0
+              ],
+              [
+                3,
+                3,
+                0
+              ]
+            ]
+          },
+          "static-run": {
+            "timeline": [
+              3000,
+              3000,
+              0
+            ],
+            "nativeTimeline": [
+              0,
+              0,
+              0
+            ],
+            "message": [
+              6000,
+              6000,
+              0
+            ],
+            "nativeMessage": [
+              0,
+              0,
+              0
+            ],
+            "spanFailures": [
+              [
+                4,
+                4,
+                0
+              ],
+              [
+                5,
+                5,
+                0
+              ]
+            ],
+            "messageFailures": [
+              [
+                6,
+                6,
+                0
+              ],
+              [
+                7,
+                7,
+                0
+              ],
+              [
+                8,
+                8,
+                0
+              ],
+              [
+                9,
+                9,
+                0
+              ],
+              [
+                10,
+                10,
+                0
+              ],
+              [
+                11,
+                11,
+                0
+              ]
+            ],
+            "bulkFailures": [
+              [
+                0,
+                0,
+                0
+              ],
+              [
+                1,
+                1,
+                0
+              ],
+              [
+                2,
+                2,
+                0
+              ],
+              [
+                3,
+                3,
+                0
+              ]
+            ]
+          },
+          "shared-run": {
+            "timeline": [
+              3000,
+              3000,
+              0
+            ],
+            "nativeTimeline": [
+              0,
+              0,
+              0
+            ],
+            "message": [
+              6000,
+              6000,
+              0
+            ],
+            "nativeMessage": [
+              0,
+              0,
+              0
+            ],
+            "spanFailures": [
+              [
+                4,
+                4,
+                0
+              ],
+              [
+                5,
+                5,
+                0
+              ]
+            ],
+            "messageFailures": [
+              [
+                6,
+                6,
+                0
+              ],
+              [
+                7,
+                7,
+                0
+              ],
+              [
+                8,
+                8,
+                0
+              ],
+              [
+                9,
+                9,
+                0
+              ],
+              [
+                10,
+                10,
+                0
+              ],
+              [
+                11,
+                11,
+                0
+              ]
+            ],
+            "bulkFailures": [
+              [
+                0,
+                0,
+                0
+              ],
+              [
+                1,
+                1,
+                0
+              ],
+              [
+                2,
+                2,
+                0
+              ],
+              [
+                3,
+                3,
+                0
+              ]
+            ]
+          }
+        }
+      }
+    },
+    "linux": {
+      "sdk": {
+        "path": "\\\\wsl.localhost\\Ubuntu\\var\\tmp\\xlang-validation\\xge-full-20261110\\timeline-message-sdk-linux-r1\\results.json",
+        "sha256": "3be20fd0ab361d54f14fce871468dacb0d1561a02a284b19c425038a928215a2",
+        "steps": 2
+      },
+      "thread": {
+        "path": "\\\\wsl.localhost\\Ubuntu\\var\\tmp\\xlang-validation\\xge-full-20261110\\timeline-message-thread-linux-r1\\results.json",
+        "sha256": "d4a891b5dd27fad4953d3c90de203add6f6efab0b6e4d0fed16b1bb0f007fca3",
+        "refusedCalls": 3
+      },
+      "initialNativeRuns": [
+        {
+          "path": "\\\\wsl.localhost\\Ubuntu\\var\\tmp\\xlang-validation\\xge-full-20261110\\timeline-message-native-linux-r1\\results.json",
+          "sha256": "9f5ae26b86f4793454940e895ef3f63d666dda15c859152d8289b9c87029ef2e"
+        },
+        {
+          "path": "\\\\wsl.localhost\\Ubuntu\\var\\tmp\\xlang-validation\\xge-full-20261110\\timeline-message-native-linux-r2\\results.json",
+          "sha256": "f374581771075ffb68ba43b2cdf5fe2551076feffddfc30b1eed2c3f79e44c31"
+        }
+      ],
+      "native": {
+        "path": "\\\\wsl.localhost\\Ubuntu\\var\\tmp\\xlang-validation\\xge-full-20261110\\timeline-message-native-linux-r3\\results.json",
+        "sha256": "bb9fa479e9b8e5cb5dc61404d76af0ecde11cadb0a401b79581edce8e1f5da74",
+        "steps": 24
+      },
+      "packages": {
+        "path": "\\\\wsl.localhost\\Ubuntu\\var\\tmp\\xlang-validation\\xge-full-20261110\\timeline-message-packages-linux-r2\\results.json",
+        "sha256": "05f381d8bd7f4fe1457367dbd3d5c5fb7780c59f659efc3c2dbd4076e979616b",
+        "steps": 6,
+        "storageReview": {
+          "path": "\\\\wsl.localhost\\Ubuntu\\var\\tmp\\xlang-validation\\xge-full-20261110\\timeline-message-packages-linux-r2\\source-review\\results.json",
+          "sha256": "8b0e711ea3f09e6224581454df3a28242e1c34179101025ff6560ef6be566fcd"
+        }
+      },
+      "language": {
+        "path": "\\\\wsl.localhost\\Ubuntu\\var\\tmp\\xlang-validation\\xge-full-20261110\\timeline-message-language-linux-r2\\results.json",
+        "sha256": "bbbc07384ef90bec20eb8f00dae29a1e8395e608a82d178c30609044e970fbdd",
+        "steps": 20,
+        "counts": {
+          "host-jit": {
+            "timeline": [
+              3000,
+              3000,
+              0
+            ],
+            "nativeTimeline": [
+              0,
+              0,
+              0
+            ],
+            "message": [
+              6000,
+              6000,
+              0
+            ],
+            "nativeMessage": [
+              0,
+              0,
+              0
+            ],
+            "spanFailures": [
+              [
+                4,
+                4,
+                0
+              ],
+              [
+                5,
+                5,
+                0
+              ]
+            ],
+            "messageFailures": [
+              [
+                6,
+                6,
+                0
+              ],
+              [
+                7,
+                7,
+                0
+              ],
+              [
+                8,
+                8,
+                0
+              ],
+              [
+                9,
+                9,
+                0
+              ],
+              [
+                10,
+                10,
+                0
+              ],
+              [
+                11,
+                11,
+                0
+              ]
+            ],
+            "bulkFailures": [
+              [
+                0,
+                0,
+                0
+              ],
+              [
+                1,
+                1,
+                0
+              ],
+              [
+                2,
+                2,
+                0
+              ],
+              [
+                3,
+                3,
+                0
+              ]
+            ]
+          },
+          "host-run": {
+            "timeline": [
+              3000,
+              3000,
+              0
+            ],
+            "nativeTimeline": [
+              0,
+              0,
+              0
+            ],
+            "message": [
+              6000,
+              6000,
+              0
+            ],
+            "nativeMessage": [
+              0,
+              0,
+              0
+            ],
+            "spanFailures": [
+              [
+                4,
+                4,
+                0
+              ],
+              [
+                5,
+                5,
+                0
+              ]
+            ],
+            "messageFailures": [
+              [
+                6,
+                6,
+                0
+              ],
+              [
+                7,
+                7,
+                0
+              ],
+              [
+                8,
+                8,
+                0
+              ],
+              [
+                9,
+                9,
+                0
+              ],
+              [
+                10,
+                10,
+                0
+              ],
+              [
+                11,
+                11,
+                0
+              ]
+            ],
+            "bulkFailures": [
+              [
+                0,
+                0,
+                0
+              ],
+              [
+                1,
+                1,
+                0
+              ],
+              [
+                2,
+                2,
+                0
+              ],
+              [
+                3,
+                3,
+                0
+              ]
+            ]
+          },
+          "static-run": {
+            "timeline": [
+              3000,
+              3000,
+              0
+            ],
+            "nativeTimeline": [
+              0,
+              0,
+              0
+            ],
+            "message": [
+              6000,
+              6000,
+              0
+            ],
+            "nativeMessage": [
+              0,
+              0,
+              0
+            ],
+            "spanFailures": [
+              [
+                4,
+                4,
+                0
+              ],
+              [
+                5,
+                5,
+                0
+              ]
+            ],
+            "messageFailures": [
+              [
+                6,
+                6,
+                0
+              ],
+              [
+                7,
+                7,
+                0
+              ],
+              [
+                8,
+                8,
+                0
+              ],
+              [
+                9,
+                9,
+                0
+              ],
+              [
+                10,
+                10,
+                0
+              ],
+              [
+                11,
+                11,
+                0
+              ]
+            ],
+            "bulkFailures": [
+              [
+                0,
+                0,
+                0
+              ],
+              [
+                1,
+                1,
+                0
+              ],
+              [
+                2,
+                2,
+                0
+              ],
+              [
+                3,
+                3,
+                0
+              ]
+            ]
+          },
+          "shared-run": {
+            "timeline": [
+              3000,
+              3000,
+              0
+            ],
+            "nativeTimeline": [
+              0,
+              0,
+              0
+            ],
+            "message": [
+              6000,
+              6000,
+              0
+            ],
+            "nativeMessage": [
+              0,
+              0,
+              0
+            ],
+            "spanFailures": [
+              [
+                4,
+                4,
+                0
+              ],
+              [
+                5,
+                5,
+                0
+              ]
+            ],
+            "messageFailures": [
+              [
+                6,
+                6,
+                0
+              ],
+              [
+                7,
+                7,
+                0
+              ],
+              [
+                8,
+                8,
+                0
+              ],
+              [
+                9,
+                9,
+                0
+              ],
+              [
+                10,
+                10,
+                0
+              ],
+              [
+                11,
+                11,
+                0
+              ]
+            ],
+            "bulkFailures": [
+              [
+                0,
+                0,
+                0
+              ],
+              [
+                1,
+                1,
+                0
+              ],
+              [
+                2,
+                2,
+                0
+              ],
+              [
+                3,
+                3,
+                0
+              ]
+            ]
+          }
+        }
+      }
+    }
+  }
+}

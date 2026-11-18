@@ -990,11 +990,16 @@ def generate_xui(root,header,records,types,primitive,param,reserved,reviewed_spa
     validate_managed(root,header,native_function_sha)
     native_root=Path(header['header']).parents[1]
     for name,kind in [('xuiComboBoxSetItemData','native-copy-or-synchronous-read'),
-                      ('xuiComboBoxGetItemDescriptor','borrowed-synchronous-output')]:
+                      ('xuiComboBoxGetItemDescriptor','borrowed-synchronous-output'),
+                      ('xuiMessageListSetNodes','native-copy-or-synchronous-read'),
+                      ('xuiMessageListGetNodeDescriptor','borrowed-synchronous-output'),
+                      ('xuiTimeLineViewGetLayerDescriptor','borrowed-synchronous-output'),
+                      ('xuiTimeLineViewGetFrame','borrowed-synchronous-output'),
+                      ('xuiTimeLineViewGetSpanDescriptor','borrowed-synchronous-output')]:
         review=storage.get(name,{})
         matching,reason=storage_review_match(native_root,review,name)
-        if review.get('storage')!=kind or not matching:
-            raise ValueError(f'ComboBox item storage review is stale for {name}: {reason or kind}')
+        if not matching or review.get('storage')!=kind:
+            raise ValueError(f'XUI storage review is stale for {name}: {reason or kind}')
     # A resource-shaped C argument is not itself an owning storage proof.
     # These publishers/consumers have separately reviewed native owning slots
     # or synchronous use; do not broaden this list by matching a type name.

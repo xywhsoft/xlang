@@ -400,6 +400,33 @@ METHODS = {'xl6Xui3CopyToClipboard': ['int xl6Xui3CopyToClipboard(xui_context,xu
                                    'iEventType,uint64 iNodeId)']]}
 
 METHODS.update({
+    'xuiMessageListSetNodes': ['int xuiMessageListSetNodes(xui_widget pWidget, const xui_message_node_t* pNodes, int iCount)',
+        'MessageList', ['extern "xuiMessageListSetNodes" @no_raise @c_array_group(1,0,9,"int",9) @c_array_record(1,"xui_message_node_t","iSize","uint32_t") '
+        '@c_array_field(1,"sId",0,"c_string") @c_array_field(1,"sText",1,"c_string") @c_array_field(1,"sSender",2,"c_string") '
+        '@c_array_field(1,"sTime",3,"c_string") @c_array_field(1,"sParentId",4,"c_string") @c_array_field(1,"sTitle",5,"c_string") '
+        '@c_array_field(1,"iType",6,"value") @c_array_field(1,"iFlags",7,"value") @c_array_field(1,"iAuxiliaryKind",8,"value") @c_result("status",0) '
+        'func setNodes(array<string> ids,array<string?> texts,array<string?> senders,array<string?> times,array<string?> parentIds,array<string?> titles,array<c_int> types,array<c_int> flags,array<c_int> auxiliaryKinds,int size=-1)']],
+    'xuiMessageListGetNodeDescriptor': ['int xuiMessageListGetNodeDescriptor(xui_widget pWidget, int iIndex, xui_message_node_t* pNode)',
+        'MessageList', ['extern "xuiMessageListGetNodeDescriptor" @no_raise @c_output_record(2,"xui_message_node_t","borrowed") @c_status(0) '
+        '@c_output_field(0,"sId","cstring") @c_output_field(1,"sText","cstring") @c_output_field(2,"sSender","cstring") '
+        '@c_output_field(3,"sTime","cstring") @c_output_field(4,"sParentId","cstring") @c_output_field(5,"sTitle","cstring") '
+        '@c_output_field(6,"iType") @c_output_field(7,"iFlags") @c_output_field(8,"iAuxiliaryKind") '
+        'func getNode(c_int index) as (string,string,string,string,string,string,c_int,c_int,c_int)']],
+    'xuiTimeLineViewGetLayerDescriptor': ['int xuiTimeLineViewGetLayerDescriptor(xui_widget pWidget, int iLayer, xui_timeline_layer_desc_t* pLayer)',
+        'TimeLineView', ['extern "xuiTimeLineViewGetLayerDescriptor" @no_raise @c_output_record(2,"xui_timeline_layer_desc_t","borrowed") @c_status(0) '
+        '@c_output_field(0,"iId") @c_output_field(1,"sName","cstring") @c_output_field(2,"bVisible") @c_output_field(3,"bLocked") '
+        '@c_output_field(4,"bSelected") @c_output_field(5,"fHeight") @c_output_field(6,"iColor") '
+        'func getLayer(c_int layer) as (c_int,string,c_int,c_int,c_int,c_float,c_uint)']],
+    'xuiTimeLineViewSetFrame': ['int xuiTimeLineViewSetFrame(xui_widget pWidget, int iLayer, int iFrame, int iType, void* pUser)',
+        'TimeLineView', ['extern "xuiTimeLineViewSetFrame" @no_raise @c_null(4,"void*") @c_result("status",0) func setFrame(c_int layer,c_int frame,c_int type)']],
+    'xuiTimeLineViewGetFrame': ['int xuiTimeLineViewGetFrame(xui_widget pWidget, int iLayer, int iFrame, xui_timeline_frame_t* pFrame)',
+        'TimeLineView', ['extern "xuiTimeLineViewGetFrame" @no_raise @c_output_record(3,"xui_timeline_frame_t","borrowed") @c_status(0) '
+        '@c_output_field(0,"iLayer") @c_output_field(1,"iFrame") @c_output_field(2,"iType") func getFrame(c_int layer,c_int frame) as (c_int,c_int,c_int)']],
+    'xuiTimeLineViewGetSpanDescriptor': ['int xuiTimeLineViewGetSpanDescriptor(xui_widget pWidget, int iSpanId, xui_timeline_span_desc_t* pSpan)',
+        'TimeLineView', ['extern "xuiTimeLineViewGetSpanDescriptor" @no_raise @c_output_record(2,"xui_timeline_span_desc_t","borrowed") @c_status(0) '
+        '@c_output_field(0,"iLayer") @c_output_field(1,"iId") @c_output_field(2,"iStartFrame") @c_output_field(3,"iEndFrame") '
+        '@c_output_field(4,"iType") @c_output_field(5,"sCustomType","cstring") @c_output_field(6,"sLabel","cstring") @c_output_field(7,"iColor") '
+        'func getSpan(c_int id) as (c_int,c_int,c_int,c_int,c_int,string,string,c_uint)']],
     'xuiComboBoxSetItemData': ['int xuiComboBoxSetItemData(xui_widget pWidget, const xui_combobox_item_t* pItems, int iCount)',
         'ComboBox', ['extern "xuiComboBoxSetItemData" @no_raise @c_array_group(1,0,5,"int",5) @c_array_record(1,"xui_combobox_item_t") '
         '@c_array_field(1,"sText",0,"c_string") @c_array_field(1,"iValue",1,"value") @c_array_field(1,"bEnabled",2,"value") '

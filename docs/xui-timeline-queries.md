@@ -52,7 +52,6 @@ native geometry/layer/span/selection searches remain work. Native hit testing
 is not a constant-time claim. Setup, formatting and GUI rendering are outside
 the measured loop; equal heap counts do not establish CPU equivalence.
 
-No native implementation or compiler rule changed. This reuses qualified O2
-compiler and SDK cohorts. Pointer-bearing layer/frame/span records, arbitrary
-user data, render callbacks and the final ecosystem delivery retain their
-separate integration status.
+The hit and offset binding reuses qualified O2 compiler and SDK cohorts.
+Layer, frame, and span snapshots are documented in
+[Timeline and MessageList state](xui-timeline-message-state.md).

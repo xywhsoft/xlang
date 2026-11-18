@@ -1,0 +1,16 @@
+import xui
+
+auto proxy = xui.createProxy()
+auto ui = xui.create(proxy, xui.XUI_SYSTEM_FONT_DISABLED)
+try
+    auto messages = ui.messageListNative()
+    // 同一列下标对应同一条消息。第二条是第一条消息的辅助节点。
+    messages.setNodes(["hello", "review"], ["Hello", "Checked"], [null, null], [null, null],
+        [null, "hello"], [null, "Note"], [xui.XUI_MESSAGE_NODE_SELF, xui.XUI_MESSAGE_NODE_AUXILIARY],
+        [0, xui.XUI_MESSAGE_NODE_FLAG_COLLAPSIBLE], [0, xui.XUI_MESSAGE_AUXILIARY_TOOL])
+    auto id, _, _, _, _, title, _, _, _ = messages.getNode(1)
+    println(id, title)
+finally
+    ui.close()
+    proxy.close()
+end
