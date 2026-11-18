@@ -1,0 +1,186 @@
+{
+  "complete": true,
+  "passed": true,
+  "releaseInstalled": false,
+  "gpuTests": false,
+  "sourceParent": "20af4fefa5bf2f09f7851ec76788e4236eba0ce1",
+  "nativeSdkReused": true,
+  "nativeCommit": "3e4139d9fee99e1b074c926427827a1d35b67307",
+  "xrtCommit": "804cc769de3030118c2b46ef7af69543d1b82d9d",
+  "sourceHashes": {
+    "tools/xui_managed_contracts.py": "3456e2ae1bb4a4e5d8e69a915174fd48f5a09c3d156da6bea93eef3b1f9b8066",
+    "lib/bindings/xui/src/managed.xl": "65325cfe63b890af187276a45da3972f441112cd1e67236459af37c726513806",
+    "docs/xui-inventory-queries.md": "1176caf2c50537ea1e08e15c9291a9c778ade8ae962445a1d5840fb5d0c24230",
+    "lib/bindings/xui/examples/README.md": "88a8bdf61e49ae74473d79e73d05805a1d570182e1c5e3ae449dc752e1367640",
+    "lib/bindings/xui/examples/inventory_snapshot.xl": "4a08b9ee56ce9485e76310d6f7206feb48eb34eee23c47809a62ab06b4826d1f",
+    "test/cases/foreign_xui_inventory_value.xl": "cd5d8ea9ab5e417036ad91b887700542da32aa8f4c129390fc03112187395c28",
+    "test/cases/foreign_xui_inventory_value.c": "18c0c214112d23f19f56eab57b7852f62cfa005b731c993359aacd10ada43bff",
+    "test/cases/foreign_xui_inventory_value.h": "05aca61818a21ef9cf1cc94ba9e3ba43a2db207c8586754c01ebab40c5fb8c3b"
+  },
+  "behavior": [
+    "InventoryGrid.toValue calls the native producer directly once and adopts its single owned xvalue* result as var, without an intermediate text buffer or deep copy.",
+    "XUI produces independent layout, color, interaction, gamepad and slot data. Resource fields contribute metadata. A previously exported tree survives mutation of the grid and close of its context.",
+    "Allocation failure at each measured prefix is checked, preserves the previous language result, and restores the tracked heap counters. Invalidated widget access fails checked.",
+    "Allocation counts compare 50 warmed two-slot exports with the same native API and equivalent release in C. Native tree construction allocates. Adoption adds no measured allocations or reallocations in the comparison."
+  ],
+  "evidence": {
+    "win": {
+      "sdk": {
+        "path": "F:\\xlang-validation\\xge-full-20261110\\shape-traversal-sdk-win-r1\\results.json",
+        "sha256": "9a0416481a8e86be9faa8057f0e3e0158a184efe04c7630a1052ac6d4a48a956"
+      },
+      "nativeProducerSha256": "b8ac70f1a63a19a55aa20e559acd1168160cd3c5506fcf094b73aaf54babd18f",
+      "workflowVariableJit": {
+        "path": "F:\\xlang-validation\\xge-full-20261110\\workflow-variable-inventory-sdk-win-r1\\results.json",
+        "sha256": "94eea177d7e669ed3463b2c9c2f8153b1993f93d1608f23bfc330104e65ad171"
+      },
+      "packages": {
+        "path": "F:\\xlang-validation\\xge-full-20261110\\inventory-value-packages-win-r2\\results.json",
+        "sha256": "fd88a906c188fdda93d81445ebee9e5ee25df3418087e91c271af9ca2a9f9ce0",
+        "steps": 6,
+        "storageReview": {
+          "path": "F:\\xlang-validation\\xge-full-20261110\\inventory-value-packages-win-r2\\source-review\\results.json",
+          "sha256": "48535c2b0cb9907a637025dea3bd77633ee7c872dd2610666f234838241f7f17"
+        }
+      },
+      "language": {
+        "path": "F:\\xlang-validation\\xge-full-20261110\\inventory-value-language-win-r2\\results.json",
+        "sha256": "0ea019d6f0b39663129629d19a5094a7d9ea44a7c348e0edb4b0ef3aa405565d",
+        "steps": 17,
+        "counts": {
+          "host-jit": {
+            "language": [
+              11300,
+              11300,
+              0
+            ],
+            "native": [
+              11300,
+              11300,
+              0
+            ],
+            "failurePrefixes": 226
+          },
+          "host-run": {
+            "language": [
+              11300,
+              11300,
+              0
+            ],
+            "native": [
+              11300,
+              11300,
+              0
+            ],
+            "failurePrefixes": 226
+          },
+          "static-run": {
+            "language": [
+              11300,
+              11300,
+              0
+            ],
+            "native": [
+              11300,
+              11300,
+              0
+            ],
+            "failurePrefixes": 226
+          },
+          "shared-run": {
+            "language": [
+              11300,
+              11300,
+              0
+            ],
+            "native": [
+              11300,
+              11300,
+              0
+            ],
+            "failurePrefixes": 226
+          }
+        }
+      }
+    },
+    "linux": {
+      "sdk": {
+        "path": "\\\\wsl.localhost\\Ubuntu\\var\\tmp\\xlang-validation\\xge-full-20261110\\shape-traversal-sdk-linux-r1\\results.json",
+        "sha256": "42cb1d4e966cde965812838f20ce039852f11e09c108e8d77ca2c2569473b7af"
+      },
+      "nativeProducerSha256": "b8ac70f1a63a19a55aa20e559acd1168160cd3c5506fcf094b73aaf54babd18f",
+      "workflowVariableJit": {
+        "path": "\\\\wsl.localhost\\Ubuntu\\var\\tmp\\xlang-validation\\xge-full-20261110\\workflow-variable-inventory-sdk-linux-r1\\results.json",
+        "sha256": "c918bde90274c3fc66a406ff195fad0b7a459b8d824b510e9806e62b2eab02b6"
+      },
+      "packages": {
+        "path": "\\\\wsl.localhost\\Ubuntu\\var\\tmp\\xlang-validation\\xge-full-20261110\\inventory-value-packages-linux-r2\\results.json",
+        "sha256": "a818a0fb9c44483937ee205552393860872939792cbcfa0e5a97e819027b221e",
+        "steps": 6,
+        "storageReview": {
+          "path": "\\\\wsl.localhost\\Ubuntu\\var\\tmp\\xlang-validation\\xge-full-20261110\\inventory-value-packages-linux-r2\\source-review\\results.json",
+          "sha256": "38c007dc68bd649b6d327809214b0926cd9b53303bd5321ddf8eb3c83a72dd87"
+        }
+      },
+      "language": {
+        "path": "\\\\wsl.localhost\\Ubuntu\\var\\tmp\\xlang-validation\\xge-full-20261110\\inventory-value-language-linux-r2\\results.json",
+        "sha256": "71c1c5ee30e64d99fd984192c632b32792a49a16fbf2ec0b950965bd4d87db5b",
+        "steps": 17,
+        "counts": {
+          "host-jit": {
+            "language": [
+              11300,
+              11300,
+              0
+            ],
+            "native": [
+              11300,
+              11300,
+              0
+            ],
+            "failurePrefixes": 226
+          },
+          "host-run": {
+            "language": [
+              11300,
+              11300,
+              0
+            ],
+            "native": [
+              11300,
+              11300,
+              0
+            ],
+            "failurePrefixes": 226
+          },
+          "static-run": {
+            "language": [
+              11300,
+              11300,
+              0
+            ],
+            "native": [
+              11300,
+              11300,
+              0
+            ],
+            "failurePrefixes": 226
+          },
+          "shared-run": {
+            "language": [
+              11300,
+              11300,
+              0
+            ],
+            "native": [
+              11300,
+              11300,
+              0
+            ],
+            "failurePrefixes": 226
+          }
+        }
+      }
+    }
+  }
+}

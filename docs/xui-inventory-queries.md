@@ -1,5 +1,12 @@
 # Inventory hit and visible-range queries
 
+`InventoryGrid.toValue()` returns an independent snapshot in the native
+`xui.inventorygrid.v1` format. It includes the layout, colors, interaction
+state, gamepad settings and slot metadata. Icons and animations contribute
+metadata only. The result remains valid after the widget or context closes.
+Native export failures are checked. The binding adopts the native value tree
+directly, with no second serialization or deep copy.
+
 `InventoryGrid.hitTest(worldX,worldY)` calls `xuiInventoryGridHitTest` once and
 returns a copied `InventoryHit`. Its input coordinates are in world space.
 The returned `fX`, `fY` and `tRect` are local to the InventoryGrid. To inspect a

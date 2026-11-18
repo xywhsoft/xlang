@@ -25,6 +25,8 @@
 
 [table_columns.xl](table_columns.xl) 设置数值列的类型、对齐和宽度范围，然后输出原生表格限制后的宽度。
 
+[inventory_snapshot.xl](inventory_snapshot.xl) 在不打开窗口的情况下导出物品栏数据，关闭控件后仍能读取快照。
+
 [tree_nodes.xl](tree_nodes.xl) 批量设置父节点和子节点，展开父节点后读取子节点的名称与深度。
 
 [code_assist.xl](code_assist.xl) 读取编辑器的补全位置并打开签名帮助。

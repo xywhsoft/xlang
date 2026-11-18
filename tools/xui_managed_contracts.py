@@ -201,6 +201,10 @@ METHODS = {'xl6Xui3CopyToClipboard': ['int xl6Xui3CopyToClipboard(xui_context,xu
                              'InventoryGrid',
                              ['extern "xuiInventoryGridHitTest" @no_raise @c_output(3,0) func hitTest(c_float worldX,c_float worldY) as '
                               'InventoryHit']],
+ 'xuiInventoryGridToXValue': ['int xuiInventoryGridToXValue(xui_widget pWidget, xvalue** ppValue)',
+                             'InventoryGrid',
+                             ['extern "xuiInventoryGridToXValue" @no_raise @c_output(1,0) @c_output_view(1,"owned_value") func '
+                              'toValue() as var']],
  'xuiLanguageSetText': ['int xuiLanguageSetText(xui_context pContext, xui_language pLanguage, int iTextId, const char* sText)',
                         'Context',
                         ['extern "xuiLanguageSetText" @no_raise @c_cstr(2) @c_result("status",0) func setLanguageText(Language '

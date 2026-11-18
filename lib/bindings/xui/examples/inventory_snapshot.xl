@@ -1,0 +1,12 @@
+import xui
+
+auto proxy = xui.createProxy()
+auto ui = xui.create(proxy, xui.XUI_SYSTEM_FONT_DISABLED)
+auto grid = ui.inventoryGridNative()
+assert grid.setSlotCount(3) == 0
+
+// 快照独立拥有数据，关闭界面后仍然可以读取。
+var snapshot = grid.toValue()
+ui.close()
+proxy.close()
+println("Saved slots", snapshot.state.slotCount as int)

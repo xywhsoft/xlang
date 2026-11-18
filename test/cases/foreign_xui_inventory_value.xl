@@ -1,0 +1,90 @@
+import xui
+
+extern "inventoryValueHeapBegin" @header("test/cases/foreign_xui_inventory_value.h") @no_raise func heapBegin()
+extern "inventoryValueHeapBalanced" @no_raise func heapBalanced() as bool
+extern "inventoryValueHeapReport" @no_raise func heapReport(c_int mode)
+extern "inventoryValueBudget" @no_raise func budget(c_int allowance)
+extern "inventoryValueFailureTriggered" @no_raise func failureTriggered() as bool
+extern "inventoryValueNativeLoop" @no_raise func nativeLoop(xui.InventoryGrid grid,c_int count)
+
+func readAndRelease(xui.InventoryGrid grid)
+    var snapshot = grid.toValue()
+end
+
+func checkRollback(xui.InventoryGrid grid)
+    var previous = 17
+    int failures = 0
+    bool complete = false
+    for allowance in range(2048)
+        var output = previous
+        bool rejected = false
+        bool injected = false
+        heapBegin()
+        budget(c_int(allowance))
+        try
+            output = grid.toValue()
+        catch error
+            rejected = true
+        finally
+            injected = failureTriggered()
+            budget(-1)
+        end
+        if not rejected then
+            assert not injected
+            assert output.format == "xui.inventorygrid.v1"
+            output = previous
+            complete = true
+        else
+            assert injected and output == previous
+            failures += 1
+        end
+        assert heapBalanced()
+        if complete then break end
+    end
+    assert complete and failures > 10
+    println("XUI_INVENTORY_VALUE_FAILURE_PREFIXES", failures)
+end
+
+func main(...) as int
+    auto proxy = xui.createProxy()
+    auto ui = xui.create(proxy,xui.XUI_SYSTEM_FONT_DISABLED)
+    auto grid = ui.inventoryGridNative()
+    assert grid.setSlotCount(3) == 0
+    var first = grid.toValue()
+    assert first.kind == "xui.inventorygrid" and first.version == 1
+    assert first.format == "xui.inventorygrid.v1" and first.state.slotCount == 3
+    assert first.slots[0].index == 0 and first.slots[2].index == 2
+
+    first.state.slotCount = 99
+    assert grid.getSlotCount() == 3
+    assert grid.setSlotCount(0) == 0
+    var empty = grid.toValue()
+    assert empty.state.slotCount == 0 and first.state.slotCount == 99
+    assert first.slots[2].index == 2
+
+    assert grid.setSlotCount(2) == 0
+    heapBegin()
+    readAndRelease(grid)
+    nativeLoop(grid,1)
+    heapBegin()
+    for repeat in range(50)
+        readAndRelease(grid)
+    end
+    heapReport(0)
+    heapBegin()
+    nativeLoop(grid,50)
+    heapReport(1)
+    checkRollback(grid)
+
+    ui.close()
+    proxy.close()
+    bool rejected = false
+    try
+        empty = grid.toValue()
+    catch StateError
+        rejected = true
+    end
+    assert rejected and empty.state.slotCount == 0 and first.slots[2].index == 2
+    println("XUI_INVENTORY_VALUE_OK")
+    return 0
+end
