@@ -1,0 +1,32 @@
+{
+  "complete": true,
+  "passed": true,
+  "compilerSource": {
+    "src/ir/xl6_ir_foreign_native_sequence.c": "bda43be626e0fee731374fa9703cc4cff7e04ff3c74bc3638a81473e0dc89aac",
+    "src/sem/xl6_sem_native_sequence.c": "56f3368578e29aafb224efae64e318cfd075410cdf7592049d59637405826223",
+    "docs/foreign-native-record-projection.md": "07d67974bf2db034a9d9063719385932900ed3f0738e153fdb82bc75ee675a44",
+    "tools/check_native_sequence_projection.py": "46befc23699b5dbb7189388f8457669735413c8cb82b089eeba8408a5a59a718",
+    "test/cases/native_sequence_projection.c": "715afd156d968b6588a97e8f02d8d5c8246ebb2834df14a04497d03e440385ae",
+    "test/cases/native_sequence_projection.h": "8eb9678409254f02dd6cd0ffbc0c483a057a445d6eda4ab0e864b6d498089789",
+    "test/cases/native_sequence_projection.xl": "ccc1bfe353301797fb42d163ee7c95179f4f914e864dfe795666a7975bd59957"
+  },
+  "sourceParent": "1e14c9e0dafa4de7773e0a602aa5a1fc6f0b8d61",
+  "evidence": {
+    "win": {
+      "build": "F:\\xlang-validation\\xge-full-20261110\\compiler-native-sequence-i64-win-full-r1\\build.json",
+      "buildSha256": "9a174f6f1458e0d43227368f0ef776d3da77530387a8b8abf3eae389b47cc5ad",
+      "gate": "F:\\xlang-validation\\xge-full-20261110\\native-sequence-i64-qualification-win-r1\\results.json",
+      "gateSha256": "67d6c331c32684f170d078fbbc3f1f97e06d5799faa6a309c4ad6545e36e3b26",
+      "steps": 44
+    },
+    "linux": {
+      "build": "\\\\wsl.localhost\\Ubuntu\\var\\tmp\\xlang-validation\\xge-full-20261110\\compiler-native-sequence-i64-linux-full-r1\\build.json",
+      "buildSha256": "e1aa67bcb1406d33f69070bcd9a31e0037b6f078276b20cf91af474c480a5f2b",
+      "gate": "\\\\wsl.localhost\\Ubuntu\\var\\tmp\\xlang-validation\\xge-full-20261110\\native-sequence-i64-qualification-linux-r1\\results.json",
+      "gateSha256": "5e2f05630efcff86f05e15fe2bbdb67c1f7a1b64bfee99599899f2a447a177e1",
+      "steps": 43
+    }
+  },
+  "arrayCopies": 0,
+  "releaseInstalled": false
+}

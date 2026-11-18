@@ -4,7 +4,11 @@ static int xl6IrForeignOwnershipHelperMatches(const XL6_IrModule*,XL6_SymbolId,X
 int xl6IrNativeSequencePod(const XL6_IrModule* m,XL6_IrTypeId id,size_t depth)
 {
  const XL6_IrType* t=xl6IrTypeGet(&m->types,id);if(!t || depth>16 || t->ownershipAbi!=XL6_IR_OWNERSHIP_ABI_TRIVIAL)return 0;
- if(t->kind==XL6_IR_TYPE_BUILTIN && !t->paramCount && t->cAbi>=XL6_IR_C_ABI_C_CHAR && t->cAbi<=XL6_IR_C_ABI_C_WCHAR)return 1;
+ if(t->kind==XL6_IR_TYPE_BUILTIN && !t->paramCount){
+  if(t->cAbi>=XL6_IR_C_ABI_C_CHAR && t->cAbi<=XL6_IR_C_ABI_C_WCHAR)return 1;
+  return (t->cAbi==XL6_IR_C_ABI_I64 && t->abiId==xl6TypeAbiIdText("xrt.int64")) ||
+         (t->cAbi==XL6_IR_C_ABI_U64 && t->abiId==xl6TypeAbiIdText("xrt.uint64"));
+ }
  if(t->kind!=XL6_IR_TYPE_C_RECORD || t->cAbi!=XL6_IR_C_ABI_C_RECORD || !t->foreignHeader || !t->cName[0])return 0;
  const XL6_IrAggregateLayout* layout=xl6IrUnionLayoutGet(m,id);
  if(!layout || layout->firstField>m->aggregateFieldCount || layout->fieldCount>m->aggregateFieldCount-layout->firstField || (layout->fieldCount && !m->aggregateFields))return 0;

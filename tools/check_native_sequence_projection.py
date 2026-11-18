@@ -80,6 +80,7 @@ def main():
   'duplicate-marker':source.replace('@c_projection()','@c_projection() @c_projection()',1),
   'marker-arguments':source.replace('@c_projection()','@c_projection(1)',1),
   'nested-pointer':source.replace(' c_int count',' point privatePointer\n c_int count',1),
+  'normalized-narrow-integer':source.replace(' uint64 serial',' uint32 serial'),
   'readonly-nested-write':source.replace('auto first=rows[0]','rows[0].inner.count=c_int(77)\n auto first=rows[0]'),
   'native-nullable-value':source+'\nextern "forbidden" @header("test/cases/native_sequence_projection.h") @no_raise func forbidden(Row? input)\n',
   'exact-embedding':source+'\nextern "NativeExact" struct Exact @header("test/cases/native_sequence_projection.h")\n Inner child\nend\n',
@@ -97,7 +98,8 @@ end
  }
  for name,text in sem.items():
   assert text!=source;path=cases/(name+'.xl');path.write_text(text);run(name,[compiler,'cgen',path,'--emit',cases/(name+'.c')],False)
- for name,text in [('exact-record',source.replace(' @c_projection()','')),('wrong-field-type',source.replace('@c_name("actualValue")','@c_name("secret")'))]:
+ for name,text in [('exact-record',source.replace(' @c_projection()','')),('wrong-field-type',source.replace('@c_name("actualValue")','@c_name("secret")')),
+     ('wrong-i64-signedness',source.replace(' uint64 serial',' int64 serial'))]:
   path=cases/(name+'.xl');path.write_text(text);bad=cases/(name+'.h')
   run(name+'-emit',[compiler,'cgen',path,'--emit',cases/(name+'.c'),'--emit-header',bad])
   run(name+'-proof',[cc,'-std=c11',*flags,'-fsyntax-only','-x','c',bad],False)

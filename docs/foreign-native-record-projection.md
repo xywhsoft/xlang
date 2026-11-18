@@ -20,7 +20,10 @@ the whole native record or the backing array. The ordinary sequence lifetime,
 creator-thread and no-suspension contracts continue to apply.
 
 Declared fields can be exact C numeric/boolean scalars or recursively declared
-scalar-only C records. `@c_name` can select the corresponding native member.
+scalar-only C records. `int` and `int64` map to `int64_t`, and `uint64`
+maps to `uint64_t`. Use the corresponding `c_*` types for narrower fields
+because xlang's narrow integers use a normalized 64-bit execution value.
+`@c_name` can select the corresponding native member.
 Pointers, callbacks, owning references, nullable fields and mutable native
 storage are excluded. The C header must prove the exact native type of every
 declared field. Nested projections keep their own native backing identity;
@@ -66,3 +69,10 @@ successes, always releasing native owners back to baseline. Evidence and exact
 source/product hashes are in
 `dev/release-materials/provenance/native-record-projection-20261111.json`.
 These isolated qualifications do not install or publish a release/IDE bundle.
+
+Exact 64-bit integer support also passes full O2 compiler builds on Windows
+and Linux. The fixture reads `UINT64_MAX` from both a scalar sequence and a
+record, and reads `INT64_MIN` from a record. The source check rejects
+normalized narrow integers and the C header check rejects signedness
+mismatches. The gate records 44 Windows and 43 Linux checks in
+`dev/release-materials/provenance/foreign-native-sequence-i64-20261118.json`.

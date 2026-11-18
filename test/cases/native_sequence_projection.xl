@@ -6,6 +6,8 @@ extern "NativeProjectionRow" struct Row @header("test/cases/native_sequence_proj
  c_int value @c_name("actualValue")
  Inner inner
  c_ulonglong ordinal
+ uint64 serial
+ int64 position
 end
 extern "NativeProjectionPacked" struct Packed @header("test/cases/native_sequence_projection.h") @c_projection()
  c_int value
@@ -15,6 +17,7 @@ extern "NativeProjectionOwner*" class Owner @header("test/cases/native_sequence_
  native point handle
  extern "nativeProjectionRows" @no_raise @c_const(0) @c_owned_sequence(1,2,0,"size_t",0) @c_retain(retain,"positive",release) func rows() as NativeSequence<Row>
  extern "nativeProjectionPacked" @no_raise @c_const(0) @c_owned_sequence(1,2,0,"size_t",0) @c_retain(retain,"positive",release) func packed() as NativeSequence<Packed>
+ extern "nativeProjectionSerials" @no_raise @c_const(0) @c_owned_sequence(1,2,0,"size_t",0) @c_retain(retain,"positive",release) func serials() as NativeSequence<uint64>
  extern "xl6ForeignViewCloseV1" @no_raise @c_control(0) @c_result("bool_status") func close()
 end
 extern "nativeProjectionRetain" @header("test/cases/native_sequence_projection.h") @no_raise @c_const(0) func retain(Owner value) as c_int
@@ -45,6 +48,8 @@ func check()
  for index,row in rows
   assert int(row.value)==10+index and int(row.inner.count)==20+index
   assert row.ordinal==c_ulonglong(30+index)
+  assert row.serial==uint64(18446744073709551615)-uint64(index)
+  assert row.position==-9223372036854775808+index
   total+=int(row.value)
  end
  assert total==21 and tail[0].value==c_int(11)
@@ -53,9 +58,19 @@ func check()
   assert item.value==c_int(40+index) and item.weight==c_double(2.5+float(index))
  end
 end
+func checkExactScalar()
+ auto owner=create()
+ auto serials=owner.serials()
+ owner.close()
+ assert live()==1 and serials.length==2
+ for index,serial in serials
+  assert serial==uint64(18446744073709551615)-uint64(index)
+ end
+end
 func main(...) as int
  assert live()==c_int(0)
  check()
+ checkExactScalar()
  assert live()==c_int(0)
  int failures=0
  int successes=0

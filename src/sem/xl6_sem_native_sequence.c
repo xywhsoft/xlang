@@ -26,6 +26,9 @@ static int xl6SemNativeSequencePod(XL6_SemContext* ctx,const XL6_AstNode* type,s
 {
  type=xl6SemResolveAliasType(ctx,type);
  if(!type || depth>16 || xl6SemTypeIsNullable(type) || !type->text || type->childCount)return 0;
+ /* These language integers already use the exact int64_t/uint64_t ABI.
+  * Bounded 8/16/32-bit language integers instead use a normalized i64. */
+ if(xl6TextEquals(type->text,"int") || xl6TextEquals(type->text,"int64") || xl6TextEquals(type->text,"uint64"))return 1;
  if(!strncmp(type->text,"c_",2) && (xl6SemIsIntegerTypeName(type->text) || xl6TextEquals(type->text,"c_float") || xl6TextEquals(type->text,"c_double") || xl6TextEquals(type->text,"c_bool")))return 1;
  const XL6_AstNode* record=xl6SemFindTypeDecl(ctx,type->text);
  if(!record || record->kind!=XL6_AST_C_RECORD || !record->childCount || !xl6ForeignRecordRead(record,NULL,NULL))return 0;

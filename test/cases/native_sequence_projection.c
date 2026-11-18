@@ -1,7 +1,12 @@
 #include "native_sequence_projection.h"
 #include <xrt_decl.h>
 #include <limits.h>
-struct NativeProjectionOwner { int references; NativeProjectionRow rows[2]; NativeProjectionPacked packed[2]; };
+struct NativeProjectionOwner {
+ int references;
+ NativeProjectionRow rows[2];
+ NativeProjectionPacked packed[2];
+ uint64_t serials[2];
+};
 static int live,privateAnchor;
 static void privateCallback(void) { ++privateAnchor; }
 int nativeProjectionCreate(NativeProjectionOwner** out)
@@ -10,8 +15,13 @@ int nativeProjectionCreate(NativeProjectionOwner** out)
  *out=NULL;NativeProjectionOwner* owner=xrtCalloc(1,sizeof(*owner));if(!owner)return -2;
  owner->references=1;
  for(int i=0;i<2;++i){
-  owner->rows[i]=(NativeProjectionRow){&privateAnchor,10+i,{&privateAnchor,20+i,0.5+i},(unsigned long long)(30+i),privateCallback};
+  owner->rows[i]=(NativeProjectionRow){
+   .secret=&privateAnchor, .actualValue=10+i, .inner={&privateAnchor,20+i,0.5+i},
+   .ordinal=(unsigned long long)(30+i), .serial=UINT64_MAX-(uint64_t)i,
+   .position=INT64_MIN+i, .callback=privateCallback
+  };
   owner->packed[i]=(NativeProjectionPacked){40+i,&privateAnchor,2.5+i};
+  owner->serials[i]=UINT64_MAX-(uint64_t)i;
  }
  ++live;*out=owner;return 0;
 }
@@ -46,4 +56,11 @@ int nativeProjectionPacked(const NativeProjectionOwner* owner,const NativeProjec
  if(count)*count=0;
  if(!owner || owner->references<=0 || !data || !count)return -1;
  *data=owner->packed;*count=2;return 0;
+}
+int nativeProjectionSerials(const NativeProjectionOwner* owner,const uint64_t** data,size_t* count)
+{
+ if(!owner || owner->references<=0 || !data || !count)return -1;
+ *data=owner->serials;
+ *count=2;
+ return 0;
 }

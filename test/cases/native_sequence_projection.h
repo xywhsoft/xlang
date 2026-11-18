@@ -2,9 +2,18 @@
 #define TEST_NATIVE_SEQUENCE_PROJECTION_H
 #include <stddef.h>
 #include <stdbool.h>
+#include <stdint.h>
 #include "src/runtime/xl6_foreign_view_abi.h"
 typedef struct NativeProjectionInner { const void* secret; int count; double weight; } NativeProjectionInner;
-typedef struct NativeProjectionRow { void* secret; int actualValue; NativeProjectionInner inner; unsigned long long ordinal; void(*callback)(void); } NativeProjectionRow;
+typedef struct NativeProjectionRow {
+    void* secret;
+    int actualValue;
+    NativeProjectionInner inner;
+    unsigned long long ordinal;
+    uint64_t serial;
+    int64_t position;
+    void(*callback)(void);
+} NativeProjectionRow;
 #pragma pack(push,1)
 typedef struct NativeProjectionPacked { int value; const void* secret; double weight; } NativeProjectionPacked;
 #pragma pack(pop)
@@ -14,6 +23,7 @@ int nativeProjectionRetain(const NativeProjectionOwner*);
 void nativeProjectionRelease(NativeProjectionOwner*);
 int nativeProjectionRows(const NativeProjectionOwner*,const NativeProjectionRow**,size_t*);
 int nativeProjectionPacked(const NativeProjectionOwner*,const NativeProjectionPacked**,size_t*);
+int nativeProjectionSerials(const NativeProjectionOwner*,const uint64_t**,size_t*);
 int nativeProjectionLive(void);
 int nativeProjectionFailAfter(int);
 int nativeProjectionFailClear(void);
