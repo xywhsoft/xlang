@@ -1,0 +1,141 @@
+{
+  "date": "2026-11-18",
+  "scope": "Owned XRT scene node data snapshots",
+  "complete": true,
+  "passed": true,
+  "xgeCommit": "7b6d1d7fec99237758d796c8ecf89ee794fdf7eb",
+  "xgeParent": "15ac36f3571dcf0638a7b2e138ae448c813e07c9",
+  "xlangParent": "a765e3916c882f5a704908e390fec64a907c6c95",
+  "xrtCommit": "804cc769de3030118c2b46ef7af69543d1b82d9d",
+  "nativeSources": {
+    "include/xge.h": "aed1a3714c99e3abbab369eaf7f24d50ead88e8468753a3f4a164fa209cdecf2",
+    "src/xge/3d/xge3d_internal.h": "4df257493484e0e221e6e19f20e8cc0f83f4967dcf02b609e2e53a63c50fa13b",
+    "src/xge/3d/xge3d_scene.c": "efb3a00574860ebe246fe2f09e0d72f30c0db004d42f6a3da16258bf7e114eec",
+    "src/xge/3d/xge3d_nodes.c": "67484b07896b3348a52ed0be1e11727fa2476dd40f6d666aadb945ca9c4b11d1",
+    "tests/xge/test_3d_node_user_value.c": "d7a6122393811546c2ef9d52d1ddf192d8a8035b59cc16be336a8c8d039cfbdd"
+  },
+  "languageSources": {
+    "docs/xge3-xui3-api-map-storage.json": "be132db2f019800a6ac89d52b28f67f08bcec79800447d7daf9e77118ce2a80f",
+    "lib/bindings/xge/three_d/examples/node_user_data.xl": "4a17f6a1e8870baa7638eafe62b156a759025b5bd9fcb1f3376986c89966abe8",
+    "lib/bindings/xge/three_d/examples/README.md": "48fefdd790fb2872495cff64a864f756916adff51ba74504ad98a27d6aa9f63d",
+    "lib/bindings/xge/three_d/src/scene.xl": "de708c651369c7dd0dec16a2c629e646f0c455ad369598ffd83a0bd0cc537b13",
+    "test/cases/foreign_xge3d_node_user_data.xl": "9d9850a9926778b097dd04b000af56674118a331f46a33cfb4baa1c885008af8",
+    "docs/xge3-model.md": "67645f32b417d3677716f0ae39beba43b047e1f013f97aefaf8ab9f47f9ebbc4"
+  },
+  "fixtures": {
+    "tests/xge/test_3d_node_user_value.c": "d7a6122393811546c2ef9d52d1ddf192d8a8035b59cc16be336a8c8d039cfbdd",
+    "tests/xge/test_3d_spatial.c": "f16bb749d2ca57672f269bd18ccb39c3f037ed580cdda8ffb17874c1bc5cda96"
+  },
+  "evidence": {
+    "win": {
+      "sdk": {
+        "path": "F:\\xlang-validation\\xge-full-20261110\\node-user-value3d-sdk-win-r1\\results.json",
+        "sha256": "c89aaa0e74108157454252ff55e1f348920fda9483bd9817914ab5dc85b9bbd0"
+      },
+      "native": {
+        "path": "F:\\xlang-validation\\xge-full-20261110\\node-user-value3d-native-win-r4\\results.json",
+        "sha256": "d4a9575007a7445da478056be8b0de2bc18b0d50d5aab4b91620d9b636748af2"
+      },
+      "package": {
+        "path": "F:\\xlang-validation\\xge-full-20261110\\node-user-value3d-packages-win-r1\\results.json",
+        "sha256": "6914782c24fdd184eecf14ee632654a08dbfe13540ef5a29de8cc0942feee739"
+      },
+      "sourceReview": {
+        "path": "F:\\xlang-validation\\xge-full-20261110\\node-user-value3d-packages-win-r1\\source-review\\results.json",
+        "sha256": "8fd548f1eba5776de126fbf28b8cb39eda71a76326c99fca82c4163b793402aa"
+      },
+      "packageSeal": {
+        "path": "F:\\xlang-validation\\xge-full-20261110\\node-user-value3d-packages-win-r1\\packages\\stage-report.json",
+        "sha256": "b24faeae1bec37985c206abcbb2cf24cb6c80d00f8de7aa36256b2ad987d96df"
+      },
+      "language": {
+        "path": "F:\\xlang-validation\\xge-full-20261110\\node-user-value3d-language-win-r1\\results.json",
+        "sha256": "bd9080ce88f7f759c40aa30ff494a60a088407b9e712652e19d9fa8a1e766f69"
+      },
+      "performance": {
+        "path": "F:\\xlang-validation\\xge-full-20261110\\node-user-value3d-perf-win-r1\\results.json",
+        "sha256": "0c34563f16e998ff59488096d0347dc3da917809f844be7096387fc9f79eac83"
+      },
+      "compiler": {
+        "path": "F:\\xlang-validation\\xge-full-20261110\\compiler-native-sequence-fixed-record-win-full-r2\\build.json",
+        "sha256": "5b6e7afe29909931548adb96f01f2f8dd386932d6876a7f55c3b70c25126b05c"
+      }
+    },
+    "linux": {
+      "sdk": {
+        "path": "\\\\wsl.localhost\\Ubuntu\\var\\tmp\\xlang-validation\\xge-full-20261110\\node-user-value3d-sdk-linux-r1\\results.json",
+        "sha256": "353839c445620486bf39933ba5033a51b14706fcbaec1eb1510e9a8e24e982d2"
+      },
+      "native": {
+        "path": "\\\\wsl.localhost\\Ubuntu\\var\\tmp\\xlang-validation\\xge-full-20261110\\node-user-value3d-native-linux-r4\\results.json",
+        "sha256": "376eaad04a9fc94278fdf76c618863e1aefa1f30fa7c9d99f32767884136b521"
+      },
+      "package": {
+        "path": "\\\\wsl.localhost\\Ubuntu\\var\\tmp\\xlang-validation\\xge-full-20261110\\node-user-value3d-packages-linux-r1\\results.json",
+        "sha256": "56d22bdda3e17bfe518a3512bfcdb235fa2ecb41f5f3d1857c27e46227f0142e"
+      },
+      "sourceReview": {
+        "path": "\\\\wsl.localhost\\Ubuntu\\var\\tmp\\xlang-validation\\xge-full-20261110\\node-user-value3d-packages-linux-r1\\source-review\\results.json",
+        "sha256": "547ea60e3a6c38ac292babb5ab309fb3e63b4d3113088dd0b6cab1e26f79114b"
+      },
+      "packageSeal": {
+        "path": "\\\\wsl.localhost\\Ubuntu\\var\\tmp\\xlang-validation\\xge-full-20261110\\node-user-value3d-packages-linux-r1\\packages\\stage-report.json",
+        "sha256": "d8917a0ae217ba97dcd4934adaa1fb865762ef2db08d406391fd68d1c198349a"
+      },
+      "language": {
+        "path": "\\\\wsl.localhost\\Ubuntu\\var\\tmp\\xlang-validation\\xge-full-20261110\\node-user-value3d-language-linux-r1\\results.json",
+        "sha256": "d1f6b47cb32c1be34a773b2afa27c2e9f31c3cff1e5fed0658889373c184528a"
+      },
+      "performance": {
+        "path": "\\\\wsl.localhost\\Ubuntu\\var\\tmp\\xlang-validation\\xge-full-20261110\\node-user-value3d-perf-linux-r1\\results.json",
+        "sha256": "bae6366ad94d4851fd7d46b87f419b0b85bb2b8ae5b6a78f554f92d6a1a2c6a2"
+      },
+      "compiler": {
+        "path": "\\\\wsl.localhost\\Ubuntu\\var\\tmp\\xlang-validation\\xge-full-20261110\\compiler-native-sequence-fixed-record-linux-full-r2\\build.json",
+        "sha256": "996fd94fd7b3619c406d5dbad3b22b04915ed3888f7a629463231bf760429e4e"
+      }
+    }
+  },
+  "checks": [
+    "Sparse scene ownership traces cover attachments including logically retired nodes",
+    "Five first-write OOM prefixes, rollback of replacement and reads, balanced heap and errors",
+    "Plain C data checks, borrowed pointer compatibility, public fields without getters",
+    "Independent caller and result data, clone flag preservation and snapshot sharing",
+    "Wrong-thread Busy, controlled mutation under a caller-owned freeze and stepped deletion",
+    "Windows and Linux JIT, hosted and static executables and unloadable static shared modules"
+  ],
+  "performance": {
+    "iterationsPerPlatform": 128,
+    "inputKeys": 1,
+    "countsBothPlatforms": {
+      "languageWrite": [
+        1024,
+        1024,
+        0
+      ],
+      "languageRead": [
+        512,
+        512,
+        0
+      ],
+      "cWrite": [
+        512,
+        512,
+        0
+      ],
+      "cRead": [
+        512,
+        512,
+        0
+      ]
+    },
+    "countsOrder": [
+      "allocations",
+      "frees",
+      "reallocations"
+    ],
+    "cpuTimeEquivalenceClaim": false
+  },
+  "releaseInstalled": false,
+  "networkTests": false
+}

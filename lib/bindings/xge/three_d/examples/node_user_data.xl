@@ -1,0 +1,12 @@
+import xge
+import xge3d
+
+auto scene = xge3d.createScene()
+auto node = scene.createNode(xge3d.Xge3dNode())
+scene.setUserData(node, {"label": "入口"})
+auto copy = scene.cloneNode(node, xge3d.Xge3dNode(), c_uint(xge.XGE3D_CLONE_USER_DATA))
+
+scene.destroyNode(node)
+auto data = scene.userData(copy)
+scene.close()
+println("节点标签", data.label)

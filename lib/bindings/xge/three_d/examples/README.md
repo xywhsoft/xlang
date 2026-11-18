@@ -10,6 +10,7 @@ context, window, model file or network service.
 | `look_at.xl` | Aims a perspective camera with global coordinates near 10^12 and computes a centre ray along positive X. |
 | `mesh_geometry.xl` | Reads the mesh's original vertices and indices after closing the graphics engine. |
 | `billboard_batch.xl` | Reuses the same CPU geometry with a red texture on one row and a white fallback on the other. |
+| `node_user_data.xl` | Attaches data to a scene node and reads its snapshot after cloning and closing the scene. |
 | `ray_queries.xl` | Tests a ray against a box, sphere and fixed-array triangle; a short ray returns NOT_FOUND with cleared output. |
 | `particles.xl` | Emits into an eight-particle CPU capacity, reports four dropped particles, then drains to zero. Requires `XGE3D_ENABLE_PARTICLES=1`. |
 | `scene_hierarchy.xl` | Combines parent/child transforms, looks up a named node and keeps a shared scene usable after closing its first view. |

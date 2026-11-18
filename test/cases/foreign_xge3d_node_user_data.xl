@@ -1,0 +1,63 @@
+import xge
+import xge3d
+
+int getterCalls = 0
+class Metadata
+    derive json
+    string label = "root"
+    private string privateLabel = "hidden"
+    get calculated() as string
+        getterCalls += 1
+        return "calculated"
+    end
+end
+
+func main(...) as int
+    auto scene = xge3d.createScene()
+    auto node = scene.createNode(xge3d.Xge3dNode())
+    auto child = scene.createNode(node)
+    assert scene.userData(node) == null
+
+    auto source = Metadata()
+    scene.setUserData(node, source)
+    scene.setUserData(child, {"label": "child"})
+    source.label = "changed"
+    var saved = scene.userData(node)
+    assert saved.label == "root"
+    assert saved.privateLabel == null and saved.calculated == null and getterCalls == 0
+    saved.label = "only this result"
+    assert scene.userData(node).label == "root"
+
+    bool rejected = false
+    try
+        scene.setUserData(node, scene)
+    catch Error
+        rejected = true
+    end
+    assert rejected and scene.userData(node).label == "root"
+
+    auto clean = scene.cloneNode(node)
+    assert scene.userData(clean) == null
+    auto clone = scene.cloneNode(node, xge3d.Xge3dNode(), c_uint(xge.XGE3D_CLONE_USER_DATA))
+    assert scene.userData(clone).label == "root"
+    assert scene.userData(scene.childAt(clone, c_size(0))).label == "child"
+    scene.setUserData(clone, null)
+    assert scene.userData(clone) == null and scene.userData(node).label == "root"
+
+    auto budget = xge3d.Xge3dWorkBudget()
+    assert scene.destroyStep(node, budget) == c_int(0)
+    rejected = false
+    try
+        scene.userData(child)
+    catch Error
+        rejected = true
+    end
+    assert rejected
+    budget.nodes = c_size(1)
+    assert scene.destroyStep(node, budget) == c_int(0)
+    assert scene.destroyStep(node, budget) == c_int(1)
+    scene.close()
+    assert saved.label == "only this result"
+    println("XGE3D_NODE_USER_DATA_OK")
+    return 0
+end

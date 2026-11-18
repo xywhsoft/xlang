@@ -322,3 +322,30 @@ choice, or using the equivalent direct C calls, used no XRT heap
 operations after warm-up. The counts cover submission, before rendering.
 
 [Custom billboard example](../lib/bindings/xge/three_d/examples/billboard_batch.xl)
+
+## Scene node data
+
+`scene.setUserData(node, value)` stores an independent data snapshot.
+It includes public stored fields of supported classes. Passing null
+clears the attachment. Handles, pointers and cycles produce checked
+errors. A failed write keeps the previous attachment.
+
+`scene.userData(node)` returns an independent `var` or null. The returned
+data stays valid after deleting the node or closing the scene. An
+ordinary clone starts with no attachment. `XGE3D_CLONE_USER_DATA` keeps
+the attachment on the clone through a reference to the private snapshot.
+Replacing or clearing either node's data leaves the other node's
+attachment intact.
+
+The native API keeps the borrowed C pointer slot and the owned XRT value
+slot separate. Managed scenes trace all occupied value slots, including
+slots awaiting physical destruction after a budgeted delete. The native
+setter copies plain XRT data. The language setter first projects the
+input to public data, then calls that same setter.
+
+For 128 warmed operations on a one-key object, writing from xlang took
+eight XRT allocations and frees per operation. Writing plain data directly
+from C took four. Reading a private snapshot took four on both paths.
+These counts were identical on Windows and Linux.
+
+[Scene node data example](../lib/bindings/xge/three_d/examples/node_user_data.xl)
