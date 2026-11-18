@@ -1274,6 +1274,7 @@ def generate_xui(root,header,records,types,primitive,param,reserved,reviewed_spa
     classes['CodeEdit']=[v for v in classes['CodeEdit'] if 'extern "xuiCodeEditSetTheme"' not in v]
     classes['CodeEdit'].append(' extern "xuiCodeEditSetTheme" @no_raise @c_result("status",0) func setTheme(CodeTheme theme)')
     mapped['xuiCodeEditSetTheme']='xui.CodeEdit.setTheme'
+    reviewed_span(next(f for f in functions if f['name']=='xuiTerminalGetLinkAt'),'char*','int')
     extend_managed(context,classes,free,callback_declarations,mapped)
     lines=['// Managed owner graph and direct native methods. Generated; no per-method C wrappers.']
     for c,n in sorted(raw.items()):lines+=['// Explicit C-interop-only descriptor pointer; this does not own the pointed-to data.','export extern "'+c+'" class '+n+' @header("xge3_runtime.h") @lifetime("caller")',' native point handle','end']

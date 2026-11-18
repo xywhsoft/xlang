@@ -1,0 +1,26 @@
+// Search saved terminal output without starting a child process.
+import xge
+import xui
+
+func main(...) as int
+    xge.init(32,32,"Terminal search",c_int(xge.XGE_INIT_OFFSCREEN),xge.XGE_RUN_MANUAL)
+    auto proxy = xui.createProxy()
+    auto ui = xui.create(proxy,xui.XUI_SYSTEM_FONT_DISABLED)
+    try
+        auto terminal = ui.terminalNative()
+        terminal.resize(36,4)
+        assert terminal.writeText("build: ok\n测试: ok") == 0
+        assert terminal.flush() == 0
+        auto found,line,column = terminal.findText("ok")
+        assert found == 1
+        println("First match",line,column)
+        auto next,nextLine,nextColumn = terminal.findNext("ok")
+        assert next == 1
+        println("Next match",nextLine,nextColumn)
+    finally
+        ui.close()
+        proxy.close()
+        xge.unit()
+    end
+    return 0
+end

@@ -13,3 +13,9 @@ auto mode = terminal.getNewlineMode()
 这些是 `xui.Terminal` 的直接原生声明，映射到 `xuiTerminalSetNewlineMode` / `xuiTerminalGetNewlineMode`。无效模式会 checked 报错。切换前会处理已排队输出，原有输出按原模式解析；如果在输出回调中重入切换或关闭控件，会返回 checked 状态，不递归解析队列或访问已退役对象。
 
 模式在 Clear、RIS、resize 和主备用屏切换后保留。它只改变 LF 的光标动作，输入字节、原始日志、CR、自动折行及 `ESC D` 保持各自语义。IDE 的运行面板使用普通管道，显式选择 TEXT，不修改程序的 `print` / `println` 或原始日志。
+
+## 搜索与链接
+
+`findText`、`findNext` 和 `findPrevious` 返回 `(found, line, column)`。`found` 为 `1` 表示命中，为 `0` 表示未命中。行从缓冲区开头计数，列按显示单元格计数。导航会回卷，终端中只有一个匹配时会再次定位到它。无效正则或分配失败会抛出 checked 错误，并保留之前的搜索结果。`getFindMatch()` 还返回匹配宽度，当前没有匹配时 `line` 为 `-1`。
+
+`linkAt(line, column, output)` 查询指定位置的链接，将 URL 写入调用方的 `Buffer`，并返回 `(urlBytes, startColumn, width)`。`urlBytes` 为完整 URL 的字节数，不含结尾 NUL，为 `0` 表示没有链接。完整接收需要将缓冲区长度设为至少 `urlBytes + 1`，空间不足时写入可容纳的前缀和 NUL。查询不会打开链接。

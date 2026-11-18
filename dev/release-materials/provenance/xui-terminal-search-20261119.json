@@ -1,0 +1,79 @@
+{
+  "complete": true,
+  "passed": true,
+  "releaseInstalled": false,
+  "sourceParent": "4317a06eae8ede1cd783a9787b1b2320325434ac",
+  "nativeCommit": "471d4894a624ad9c5b8faa9270d48ca5e517b3fd",
+  "nativeParent": "594aebca2d9eb006a48a4f8b88a0847815b0fd1f",
+  "xrtCommit": "804cc769de3030118c2b46ef7af69543d1b82d9d",
+  "sourceHashes": {
+    "lib/bindings/xui/src/managed.xl": "88ca78c253a73efb2c5ec332a280834a699f52f8749e325111f241a8e0ebbaab",
+    "lib/bindings/xui/examples/terminal_search.xl": "bc2410bec17e054b6f2baa7e00c5b7badbed22fddf67ff3476a652dccc207453",
+    "lib/bindings/xui/examples/README.md": "45983b593c8e2681cefcc0bcf2b9d5e24909257c41f2c121a5bd9f3bc2c3b49c",
+    "test/cases/foreign_xge3_terminal_search.xl": "f894943c1395ee59a4b209a22823a6dc708a336eecf72ad7f4695aff08a101f6",
+    "test/cases/foreign_xge3_terminal_search.c": "fae94e103509b45ae7c9dc68043aafc8c1b0aa21bfb32aabf205c0291cbf1ad9",
+    "test/cases/foreign_xge3_terminal_search.h": "3b868875d7650d6e76538920ff65d06bd7699a88024f5fac466c3bbad6f3abb3",
+    "docs/xge3-xui3-api-map-storage.json": "3f9954f54891bd20426313ac798a2784cd7c5b3181d5d213badfe2d1fe131053",
+    "docs/xge-terminal-newline.md": "2bbaacd3c6afdf678826a4a3b7e977b220882b18a2347191cd29dfed53e7eef4",
+    "tools/xui_managed_contracts.py": "20d0aab40e961f2e9b912d1f66daf9c104464f8364d9937ab14afe95dc24a73f",
+    "tools/check_xge3_bindings.py": "3051f1457460a9e87cb8b82d4da10af6ecf61c7d43030712bad7bab8b79d8902"
+  },
+  "nativeHashes": {
+    "src/xui/controls/xui_terminal.c": "87ba9dbd7bb361f0f2c4827455ddf631fceb37eb26ca9245d569e3620b237999",
+    "tests/xui/xui_terminal_parser_test.c": "bbf3beb7c95614adb48d6ea9aff6231e1d22b3730ade68da12eb217c5ca5aa81"
+  },
+  "behavior": [
+    "Forward and reverse navigation wraps within the starting row and preserves a sole result.",
+    "Navigation advances past a zero-width match at the end of a short row.",
+    "Invalid regular expressions and exhausted allocation budgets preserve the active match and do not write output coordinates.",
+    "Native synthetic sessions accept initial and subsequent resize notifications on both platforms.",
+    "OSC 8 link queries report UTF-8 byte length and display columns and terminate writes within the caller buffer.",
+    "The same XRT allocator counts no operations during 1,000 warmed current-match queries per language and direct C path. This measure excludes searching and opening links."
+  ],
+  "evidence": {
+    "win": {
+      "sdk": {
+        "path": "F:\\xlang-validation\\xge-full-20261110\\terminal-search-sdk-win-r2\\results.json",
+        "sha256": "d390db49a84f970b5241f729a355dc34202a8dbb0310bf43e289c4b03f620430",
+        "steps": 2
+      },
+      "packages": {
+        "path": "F:\\xlang-validation\\xge-full-20261110\\terminal-search-packages-win-r4\\results.json",
+        "sha256": "5fb40b9e15461edc68c8a7569fc523612f92c2a91add1f54ee96afff3945c969",
+        "steps": 6
+      },
+      "native": {
+        "path": "F:\\xlang-validation\\xge-full-20261110\\terminal-search-parser-win-r3\\results.json",
+        "sha256": "13f9596ad04d6e56ef575b18107c03fd61ac5fbbd137c598a959b4433260b4e3",
+        "steps": 6
+      },
+      "language": {
+        "path": "F:\\xlang-validation\\xge-full-20261110\\terminal-search-language-win-r4\\results.json",
+        "sha256": "2cc68d7fd5478f3eb41d6a351755285b22e8814fddbe98981ca792d79316a04a",
+        "steps": 17
+      }
+    },
+    "linux": {
+      "sdk": {
+        "path": "\\\\wsl.localhost\\Ubuntu\\var\\tmp\\xlang-validation\\xge-full-20261110\\terminal-search-sdk-linux-r2\\results.json",
+        "sha256": "110efaa95e5f8d05765fe7c277137fc6193b8b87adc7dee848f45032a732483f",
+        "steps": 2
+      },
+      "packages": {
+        "path": "\\\\wsl.localhost\\Ubuntu\\var\\tmp\\xlang-validation\\xge-full-20261110\\terminal-search-packages-linux-r4\\results.json",
+        "sha256": "b300bec5e499587ac4744355beab1c6cd8e09e4681acaf79f9fa62ac9b7f71e1",
+        "steps": 6
+      },
+      "native": {
+        "path": "\\\\wsl.localhost\\Ubuntu\\var\\tmp\\xlang-validation\\xge-full-20261110\\terminal-search-parser-linux-r3\\results.json",
+        "sha256": "edb4b64615bc42a7ccd36337893508781e92495f4c11e6973429eab401a94756",
+        "steps": 8
+      },
+      "language": {
+        "path": "\\\\wsl.localhost\\Ubuntu\\var\\tmp\\xlang-validation\\xge-full-20261110\\terminal-search-language-linux-r4\\results.json",
+        "sha256": "59581970dc19b3f614878c4531b30a7196b7245b77b432a72dd054ca3109ec20",
+        "steps": 17
+      }
+    }
+  }
+}

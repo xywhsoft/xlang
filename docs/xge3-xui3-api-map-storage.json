@@ -390,7 +390,7 @@
       "declaration": "extern \"xuiTerminalWrite\" @no_raise @c_span(0,\"const void*\",\"int\") func write(bytes pData) as c_int",
       "storage": "native-copy-or-synchronous-read",
       "sourceFile": "src/xui/controls/xui_terminal.c",
-      "line": 6614,
+      "line": 6643,
       "functionSha256": "2ad7e8c5fcf515b165e5b6adf5e66ba5c0588cfcbe53d7b7332d9c048ccdb8f4",
       "helperEvidence": {
         "sourceFile": "src/xui/controls/xui_terminal.c",
@@ -404,7 +404,7 @@
       "declaration": "extern \"xuiTerminalGetSelectionText\" @no_raise @c_span(0,\"char*\",\"int\") func getSelectionText(Buffer sBuffer) as c_int",
       "storage": "bounded-synchronous-output",
       "sourceFile": "src/xui/controls/xui_terminal.c",
-      "line": 7262,
+      "line": 7323,
       "functionSha256": "7b507876147dd1b040d1355a90f3eb9c92f5bbe906d3f1ac346ad68efcfe1f0c"
     },
     "xuiTerminalSerializeText": {
@@ -412,8 +412,22 @@
       "declaration": "extern \"xuiTerminalSerializeText\" @no_raise @c_span(0,\"char*\",\"int\") func serializeText(Buffer sBuffer) as c_int",
       "storage": "bounded-synchronous-output",
       "sourceFile": "src/xui/controls/xui_terminal.c",
-      "line": 7294,
+      "line": 7355,
       "functionSha256": "8b3a419559075179b866c0ae6b7d075b703e9f3db77cf43b1ef61a9fa014a9ed"
+    },
+    "xuiTerminalGetLinkAt": {
+      "bindingFile": "lib\\bindings\\xui\\src\\managed.xl",
+      "declaration": "extern \"xuiTerminalGetLinkAt\" @no_raise @c_span(2,\"char*\",\"int\") @c_outputs(-1,5,6) @c_result(\"integer_min\",0) func linkAt(c_int line,c_int column,Buffer output) as (c_int,c_int,c_int)",
+      "storage": "bounded-synchronous-output",
+      "sourceFile": "src/xui/controls/xui_terminal.c",
+      "line": 7423,
+      "functionSha256": "e7b57b02a8e867850b38be3b2bfdf602de6339c777d426d1468b8f80e45e768e",
+      "helperEvidence": {
+        "sourceFile": "src/xui/controls/xui_terminal.c",
+        "line": 7436,
+        "marker": "iCapacity - 1",
+        "reason": "copies at most capacity minus one byte, terminates within the span, and returns the full URL byte count"
+      }
     },
     "xuiTabsSetEnabledItems": {
       "bindingFile": "lib\\bindings\\xui\\src\\managed.xl",

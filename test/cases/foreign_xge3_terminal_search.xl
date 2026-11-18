@@ -1,0 +1,99 @@
+import xge
+import xui
+
+extern "terminalSearchHeapBegin" @header("test/cases/foreign_xge3_terminal_search.h") @no_raise func heapBegin()
+extern "terminalSearchHeapEnd" @header("test/cases/foreign_xge3_terminal_search.h") @no_raise func heapEnd(c_int mode)
+extern "terminalSearchNativeHot" @header("test/cases/foreign_xge3_terminal_search.h") @no_raise func nativeHot(xui.Terminal terminal)
+extern "terminalSearchNativeOom" @header("test/cases/foreign_xge3_terminal_search.h") @no_raise func nativeOom(xui.Terminal terminal)
+
+func verifySearch(xui.Terminal terminal)
+    terminal.resize(36,3)
+    assert terminal.writeText("中 foo gap foo\r\nplain") == 0
+    assert terminal.flush() == 0
+    auto first,line,column = terminal.findText("foo")
+    assert first == 1 and line == 0 and column == 3
+    auto next,nextLine,nextColumn = terminal.findNext("foo")
+    assert next == 1 and nextLine == 0 and nextColumn == 11
+    auto wrapped,wrappedLine,wrappedColumn = terminal.findNext("foo")
+    assert wrapped == 1 and wrappedLine == 0 and wrappedColumn == 3, "same row wraps"
+    auto prev,prevLine,prevColumn = terminal.findPrevious("foo")
+    assert prev == 1 and prevLine == 0 and prevColumn == 11, "same row wraps in reverse"
+
+    bool rejected = false
+    try
+        terminal.findText("[",c_uint(xui.XUI_TERMINAL_SEARCH_REGEX))
+    catch error
+        rejected = true
+    end
+    assert rejected
+    auto found,keptLine,keptColumn,keptLength = terminal.getFindMatch()
+    assert found == 1 and keptLine == 0 and keptColumn == 11 and keptLength == 3
+    auto current,currentLine,currentColumn = terminal.findText("foo",c_uint(xui.XUI_TERMINAL_SEARCH_WHOLE_WORD))
+    assert current == 1 and currentLine == 0 and currentColumn == 3
+
+    heapBegin()
+    try
+        for i in range(1000)
+            auto currentMatch,row,cell,width = terminal.getFindMatch()
+            assert currentMatch == 1 and row == 0 and cell == 3 and width == 3
+        end
+    finally
+        heapEnd(0)
+    end
+    nativeHot(terminal)
+    nativeOom(terminal)
+
+    auto wide,wideLine,wideColumn = terminal.findText("中",c_uint(xui.XUI_TERMINAL_SEARCH_REGEX))
+    auto wideFound,moreLine,moreColumn,width = terminal.getFindMatch()
+    assert wide == 1 and wideLine == 0 and wideColumn == 0
+    assert wideFound == 1 and moreLine == 0 and moreColumn == 0 and width == 2
+    auto absent,unusedLine,unusedColumn = terminal.findText("FOO",c_uint(xui.XUI_TERMINAL_SEARCH_CASE_SENSITIVE))
+    assert absent == 0 and unusedLine == 0 and unusedColumn == 0
+    auto cleared,clearedLine,clearedColumn,clearedLength = terminal.getFindMatch()
+    assert cleared == 0 and clearedLine == -1 and clearedColumn == 0 and clearedLength == 0
+end
+
+func verifyLink(xui.Terminal terminal)
+    terminal.clear()
+    terminal.clearScrollback()
+    assert terminal.writeText("\u001b]8;;file:///offline/test\u0007文档\u001b]8;;\u0007") == 0
+    assert terminal.flush() == 0
+    auto tiny = Buffer()
+    assert tiny.resize(4)
+    auto required,start,width = terminal.linkAt(0,1,tiny)
+    assert required == 20 and start == 0 and width == 4
+    assert tiny.toBytes() == b"fil\0"
+    auto full = Buffer()
+    assert full.resize(21)
+    auto delivered,offset,columns = terminal.linkAt(0,3,full)
+    assert delivered == required and offset == 0 and columns == 4
+    assert full.toBytes() == b"file:///offline/test\0"
+    auto absent,ignoredOffset,ignoredWidth = terminal.linkAt(0,15,full)
+    assert absent == 0 and ignoredOffset == 0 and ignoredWidth == 0
+    assert full.toBytes()[0] == 0
+end
+
+func main(...) as int
+    xge.init(32,32,"Terminal search qualification",c_int(xge.XGE_INIT_OFFSCREEN),xge.XGE_RUN_MANUAL)
+    auto proxy = xui.createProxy()
+    auto ui = xui.create(proxy,xui.XUI_SYSTEM_FONT_DISABLED)
+    try
+        auto terminal = ui.terminalNative()
+        verifySearch(terminal)
+        verifyLink(terminal)
+        ui.close()
+        bool closed = false
+        try
+            terminal.getFindMatch()
+        catch StateError
+            closed = true
+        end
+        assert closed
+    finally
+        ui.close()
+        proxy.close()
+        xge.unit()
+    end
+    println("TERMINAL_SEARCH_LANGUAGE_OK")
+    return 0
+end

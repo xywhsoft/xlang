@@ -299,6 +299,27 @@ METHODS = {'xl6Xui3CopyToClipboard': ['int xl6Xui3CopyToClipboard(xui_context,xu
  'xuiTerminalGetCell': ['int xuiTerminalGetCell(xui_widget pWidget, int iColumn, int iRow, xui_terminal_cell_t* pCell)',
                         'Terminal',
                         ['extern "xuiTerminalGetCell" @no_raise @c_output(3,0) func getCell(c_int column,c_int row) as TerminalCell']],
+ 'xuiTerminalFindText': ['int xuiTerminalFindText(xui_widget pWidget, const char* sText, uint32_t iFlags, int* pLine, int* pColumn)',
+                         'Terminal',
+                         ['extern "xuiTerminalFindText" @no_raise @c_cstr(0) @c_outputs(-1,3,4) @c_result("integer_min",0) '
+                          'func findText(string text,c_uint flags=0) as (c_int,c_int,c_int)']],
+ 'xuiTerminalFindNext': ['int xuiTerminalFindNext(xui_widget pWidget, const char* sText, uint32_t iFlags, int* pLine, int* pColumn)',
+                         'Terminal',
+                         ['extern "xuiTerminalFindNext" @no_raise @c_cstr(0) @c_outputs(-1,3,4) @c_result("integer_min",0) '
+                          'func findNext(string text,c_uint flags=0) as (c_int,c_int,c_int)']],
+ 'xuiTerminalFindPrev': ['int xuiTerminalFindPrev(xui_widget pWidget, const char* sText, uint32_t iFlags, int* pLine, int* pColumn)',
+                         'Terminal',
+                         ['extern "xuiTerminalFindPrev" @no_raise @c_cstr(0) @c_outputs(-1,3,4) @c_result("integer_min",0) '
+                          'func findPrevious(string text,c_uint flags=0) as (c_int,c_int,c_int)']],
+ 'xuiTerminalGetFindMatch': ['int xuiTerminalGetFindMatch(xui_widget pWidget, int* pLine, int* pColumn, int* pLength)',
+                             'Terminal',
+                             ['extern "xuiTerminalGetFindMatch" @no_raise @c_outputs(-1,1,2,3) @c_result("integer_min",0) '
+                              'func getFindMatch() as (c_int,c_int,c_int,c_int)']],
+ 'xuiTerminalGetLinkAt': ['int xuiTerminalGetLinkAt(xui_widget pWidget, int iLine, int iColumn, char* sBuffer, int iCapacity, '
+                         'int* pStartColumn, int* pLength)',
+                         'Terminal',
+                         ['extern "xuiTerminalGetLinkAt" @no_raise @c_span(2,"char*","int") @c_outputs(-1,5,6) '
+                          '@c_result("integer_min",0) func linkAt(c_int line,c_int column,Buffer output) as (c_int,c_int,c_int)']],
  'xuiTextEditFindNext': ['int xuiTextEditFindNext(xui_widget pWidget, const xui_find_options_t* pOptions)',
                          'TextEdit',
                          ['extern "xuiTextEditFindNext" @no_raise @c_pack(1,"xui_find_options_t",0,6) @c_pack_size(1,"iSize","uint32_t") '
