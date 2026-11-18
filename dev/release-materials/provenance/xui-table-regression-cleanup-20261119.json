@@ -1,0 +1,35 @@
+{
+  "complete": true,
+  "passed": true,
+  "releaseInstalled": false,
+  "nativeCommit": "fe60f2587cbc95c409462b49e514d8f9f11de068",
+  "validatedSdkRevision": "e04ef16678cf018790a498db2e5e09279d98fb89",
+  "tableColumns": {
+    "path": "D:\\GIT\\x-lang\\dev\\release-materials\\provenance\\xui-table-columns-20261119.json",
+    "sha256": "bd210886ca8215712c4b3e687daef0b3c0152dd81c45a23d4cdc300d26d05611"
+  },
+  "sourceHashes": {
+    "tests/xui/xui_table_view_test.c": "9857ec56f6cd731e832aa1d887c7ad8f6dcff074d985f52b139ca47921a7f7ea",
+    "tests/xui/xui_table_grid_test.c": "c2b60ba98a5ffbf6d250f3925f46a6f36088cc71f593b78ca63384c63108eaf9"
+  },
+  "finding": "The caller-owned mock drawing target was not released in either legacy table fixture. The fix retires it after context destruction.",
+  "baselineLiveAllocations": 1,
+  "baselineRequestedBytes": 764,
+  "postFixLiveDelta": 0,
+  "attribution": {
+    "path": "F:\\xlang-validation\\xge-full-20261110\\table-columns-legacy-linux-gdb-r2.log",
+    "sha256": "12ab2d3bef2ff66dc758e2f8e600f1fd4e8f8e3015f2d12b5f84be2c03c77b47"
+  },
+  "evidence": {
+    "win": {
+      "path": "F:\\xlang-validation\\xge-full-20261110\\table-columns-native-cleanup-win-r1\\results.json",
+      "sha256": "507667cc80a52d00940350472bab3494ef4b2464679c2bd9bc360cce3f1bb842",
+      "steps": 9
+    },
+    "linux": {
+      "path": "\\\\wsl.localhost\\Ubuntu\\var\\tmp\\xlang-validation\\xge-full-20261110\\table-columns-native-cleanup-linux-r1\\results.json",
+      "sha256": "3908867000806a43f0d3f48c83835353fc6ab6411199526271b4695f5b2254fc",
+      "steps": 9
+    }
+  }
+}
