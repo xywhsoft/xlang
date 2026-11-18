@@ -260,3 +260,23 @@ progress. Close the token on the creator thread. Closing it before completion
 leaves the final owner responsible for synchronous cleanup.
 
 [Model retirement example](../lib/bindings/xge/three_d/examples/model_retirement.xl)
+
+## Camera orientation
+
+`viewLookAt()` takes an eye and target relative to the scene origin.
+`viewLookAtGlobal()` accepts a double-precision origin, eye and target.
+It subtracts the origin before checking range and converting to floats.
+Assign either result to `camera.view` to preserve the projection and clip
+planes. `screenRay()` uses the resulting view and projection together,
+and returns a ray in the scene's origin-relative coordinates.
+
+Coincident eye and target, a parallel up direction and unrepresentable
+coordinates produce checked errors. A failed call leaves the previous
+camera value intact. Each binding calls the native matrix producer once.
+
+On Windows and Linux, 1,024 iterations constructing both views produced
+zero XRT heap allocations, reallocations or frees in xlang and handwritten
+C. The xlang API returns a 64-byte C matrix value for assignment to the
+camera. The C comparison writes directly into the camera's view field.
+
+[Camera example](../lib/bindings/xge/three_d/examples/look_at.xl)

@@ -1,0 +1,2 @@
+export extern "xge3dViewLookAt" @header("xge3_runtime.h") @no_raise @c_output(3,0) func viewLookAt(Xge3dVec3 eye, Xge3dVec3 target, Xge3dVec3 up) as Xge3dMat4
+export extern "xge3dViewLookAtGlobal" @header("xge3_runtime.h") @no_raise @c_output(4,0) func viewLookAtGlobal(Xge3dDvec3 origin, Xge3dDvec3 eye, Xge3dDvec3 target, Xge3dVec3 up) as Xge3dMat4

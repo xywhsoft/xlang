@@ -11,6 +11,7 @@
       "src/bootstrap.xl",
       "src/records.xl",
       "src/functions.xl",
+      "src/camera.xl",
       "src/decode_budget.xl",
       "src/particles.xl",
       "src/mesh.xl",

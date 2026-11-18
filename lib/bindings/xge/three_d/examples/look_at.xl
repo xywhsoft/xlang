@@ -1,0 +1,17 @@
+import xge3d
+
+// 相机和目标都在大世界坐标中，相机位于场景原点右侧 0.25 个单位。
+auto origin = xge3d.Xge3dDvec3()
+origin.x = c_double(1e12)
+auto eye = origin
+eye.x += c_double(0.25)
+auto target = eye
+target.x += c_double(2)
+auto up = xge3d.Xge3dVec3()
+up.y = c_float(1)
+
+auto camera = xge3d.perspectiveCamera(c_float(1), c_float(1.5), c_float(0.1), c_float(100))
+camera.view = xge3d.viewLookAtGlobal(origin, eye, target, up)
+auto ray = xge3d.screenRay(camera, c_float(400), c_float(300), c_float(800), c_float(600))
+assert ray.direction.x > c_float(0.99999)
+println("中心射线朝 +X，相对原点的射线起点 X =", ray.origin.x)

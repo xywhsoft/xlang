@@ -1,0 +1,63 @@
+import xge3d
+
+func main(...) as int
+    auto up = xge3d.Xge3dVec3()
+    up.y = c_float(1)
+    auto eye = xge3d.Xge3dVec3()
+    eye.x = c_float(0.25)
+    eye.y = c_float(1.5)
+    eye.z = c_float(3)
+    auto target = eye
+    target.x = c_float(2.25)
+    auto localView = xge3d.viewLookAt(eye, target, up)
+
+    auto origin = xge3d.Xge3dDvec3()
+    origin.x = c_double(1e12)
+    origin.y = c_double(-1e12)
+    origin.z = c_double(1e12)
+    auto globalEye = origin
+    globalEye.x += c_double(0.25)
+    globalEye.y += c_double(1.5)
+    globalEye.z += c_double(3)
+    auto globalTarget = globalEye
+    globalTarget.x += c_double(2)
+    auto globalView = xge3d.viewLookAtGlobal(origin, globalEye, globalTarget, up)
+
+    auto camera = xge3d.perspectiveCamera(c_float(1), c_float(1.5), c_float(0.1), c_float(100))
+    auto original = camera
+    camera.view = globalView
+    for i in range(16)
+        assert localView.m[i] == globalView.m[i]
+        assert camera.projection.m[i] == original.projection.m[i]
+    end
+    assert camera.near_z == original.near_z and camera.far_z == original.far_z
+    auto ray = xge3d.screenRay(camera, c_float(400), c_float(300), c_float(800), c_float(600))
+    assert ray.direction.x > c_float(0.99999) and ray.direction.x < c_float(1.00001)
+    assert ray.direction.y > c_float(-0.00001) and ray.direction.y < c_float(0.00001)
+    assert ray.direction.z > c_float(-0.00001) and ray.direction.z < c_float(0.00001)
+    assert ray.origin.x > c_float(0.34999) and ray.origin.x < c_float(0.35001)
+    assert ray.origin.y > c_float(1.49999) and ray.origin.y < c_float(1.50001)
+    assert ray.origin.z > c_float(2.99999) and ray.origin.z < c_float(3.00001)
+
+    bool rejected = false
+    try
+        camera.view = xge3d.viewLookAt(eye, eye, up)
+    catch Error
+        rejected = true
+    end
+    assert rejected
+    rejected = false
+    auto farEye = globalEye
+    farEye.x = c_double(1e300)
+    try
+        camera.view = xge3d.viewLookAtGlobal(origin, farEye, globalTarget, up)
+    catch Error
+        rejected = true
+    end
+    assert rejected
+    for i in range(16)
+        assert camera.view.m[i] == globalView.m[i]
+    end
+    println("CAMERA_VIEW3D_LANGUAGE_OK")
+    return 0
+end

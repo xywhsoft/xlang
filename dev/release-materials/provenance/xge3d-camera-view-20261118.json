@@ -1,0 +1,113 @@
+{
+  "date": "2026-11-18",
+  "scope": "Checked local and global 3D camera view generation",
+  "complete": true,
+  "passed": true,
+  "xgeParent": "38152f6021bda25e9e7fa8de67ef9b31d9611355",
+  "xlangParent": "9b08eda519616f56c05ea1871cc9679871ee3767",
+  "xrtCommit": "804cc769de3030118c2b46ef7af69543d1b82d9d",
+  "nativeSources": {
+    "include/xge.h": "409a8d74af0b70f75f1b1731f079f46bebe5f1e132eae2be48a11c550a84138e",
+    "src/xge/3d/xge3d_scene.c": "8086e6dda97d08e4f12e83b0e1f699d53a9b4586b0577c2d65c1b392324002b3",
+    "tests/xge/test_3d_view_look_at.c": "e9dc27ad3dce865936998e86519f9700044b2d17a1979ac9097db7bc3e3cbea7"
+  },
+  "languageSources": {
+    "docs/xge3-xui3-api-map-storage.json": "e50be720748d9284c7cab58beac9eefead98d44f491a281fcf125979d6d51833",
+    "lib/bindings/xge/three_d/xlang.package.json": "c1e79c104341e8fbb88c9d96797a1a7e7482337ae8e21f7c03fff5f9d58113bd",
+    "lib/bindings/xge/three_d/examples/look_at.xl": "df00114bc2cdc3ba15f56b7b593d7cc7f653e5137971b4f56e96349a79e06f68",
+    "lib/bindings/xge/three_d/src/camera.xl": "9e4d1513d226c978c9ff068c01dd3d119c200be813e2daa20b1f0534751dc371",
+    "test/cases/foreign_xge3d_camera_view.xl": "ab30d4d6ac691d3702cd462196299dfbf9e64699edfce22f193b370cdf8a8767",
+    "docs/xge3-model.md": "abb80d8ac55fb703b5d71f7e6b3d2967789c292ecd5cf322f02fa7e315222b00",
+    "lib/bindings/xge/three_d/examples/README.md": "ea11293dfc4db19b8f18fd86ee88822cf34a572fe6884f1b0c206a04498606a9"
+  },
+  "evidence": {
+    "win": {
+      "sdk": {
+        "path": "F:\\xlang-validation\\xge-full-20261110\\camera3d-sdk-win-r2\\results.json",
+        "sha256": "b53722251d6dfc77008a772ace35589d1c6bbf9aef5fd3c8192fe2556a0089f1"
+      },
+      "native": {
+        "path": "F:\\xlang-validation\\xge-full-20261110\\camera3d-native-win-r2\\results.json",
+        "sha256": "0d73919167eb39fbde6ebd3e03d0275e69598ce9784777cb1bf220b149e331ad"
+      },
+      "packages": {
+        "path": "F:\\xlang-validation\\xge-full-20261110\\camera3d-packages-win-r2\\results.json",
+        "sha256": "cb730bbb569a35d70e91990a4a7846f7cc6babc0e2525f9b83905a6fd04ae103"
+      },
+      "sourceReview": {
+        "path": "F:\\xlang-validation\\xge-full-20261110\\camera3d-packages-win-r2\\source-review\\results.json",
+        "sha256": "5fdad6c3d9a512fe0eefd8251180700827739b6e426164432d49cc67c5030ba0"
+      },
+      "packageSeal": {
+        "path": "F:\\xlang-validation\\xge-full-20261110\\camera3d-packages-win-r2\\packages\\stage-report.json",
+        "sha256": "dddf2487566dbfd54b3c0cc0b93ed54e7cfacb96c8d9bd457b6202adcda46b5e"
+      },
+      "language": {
+        "path": "F:\\xlang-validation\\xge-full-20261110\\camera3d-language-win-r2\\results.json",
+        "sha256": "e0c9f9923e8966d17006fa1c8b49fe285a7abbc555b59f8891e56966610c7610"
+      },
+      "performance": {
+        "path": "F:\\xlang-validation\\xge-full-20261110\\camera3d-perf-win-r2\\results.json",
+        "sha256": "b8b49d8a9fe2b32d2ba058d78cf688b450c561b685da02b9a140eb7f68acf02d"
+      }
+    },
+    "linux": {
+      "sdk": {
+        "path": "\\\\wsl.localhost\\Ubuntu\\var\\tmp\\xlang-validation\\xge-full-20261110\\camera3d-sdk-linux-r2\\results.json",
+        "sha256": "d55ffd02cacac88e4d3dcc087e9c8e410052eaf49ea8836eaa75033d93a83210"
+      },
+      "native": {
+        "path": "\\\\wsl.localhost\\Ubuntu\\var\\tmp\\xlang-validation\\xge-full-20261110\\camera3d-native-linux-r2\\results.json",
+        "sha256": "e86a04521af343ace5ba76c849990595a14828d4359e7020410208b3187fb44a"
+      },
+      "packages": {
+        "path": "\\\\wsl.localhost\\Ubuntu\\var\\tmp\\xlang-validation\\xge-full-20261110\\camera3d-packages-linux-r2\\results.json",
+        "sha256": "6d19fec42afd6861b60cea62c195ccb5e6139111844407474aa0f4a3a7d74a68"
+      },
+      "sourceReview": {
+        "path": "\\\\wsl.localhost\\Ubuntu\\var\\tmp\\xlang-validation\\xge-full-20261110\\camera3d-packages-linux-r2\\source-review\\results.json",
+        "sha256": "21d0c886bfde9b9e17f8991af376b8bcbc74913b55afb92c784cf81903ae68e3"
+      },
+      "packageSeal": {
+        "path": "\\\\wsl.localhost\\Ubuntu\\var\\tmp\\xlang-validation\\xge-full-20261110\\camera3d-packages-linux-r2\\packages\\stage-report.json",
+        "sha256": "a07d574569caa1f0c8e75a95584042466fb6aee7c04fddef2d73a654b04f8886"
+      },
+      "language": {
+        "path": "\\\\wsl.localhost\\Ubuntu\\var\\tmp\\xlang-validation\\xge-full-20261110\\camera3d-language-linux-r2\\results.json",
+        "sha256": "82fc39c0651653751ef2decd7ec43fe16b8974028df6a74f68321763f805f6c0"
+      },
+      "performance": {
+        "path": "\\\\wsl.localhost\\Ubuntu\\var\\tmp\\xlang-validation\\xge-full-20261110\\camera3d-perf-linux-r2\\results.json",
+        "sha256": "648c9bf41fe85ac8a4999a954f231c1508cd1fab1a2b2f5dddbcfa9e59cdcfa8"
+      }
+    }
+  },
+  "checks": [
+    "Windows and Linux hosted JIT, hosted and static AOT executables, and static shared modules",
+    "Managed native tests at O0/O2 and raw spatial regression on hosted and static SDKs",
+    "Two bitwise equal view generation paths, existing projection preserved and centre ray along positive X",
+    "Sub-unit offsets near a 10^12 world origin and single-precision range verified before narrowing",
+    "Null, degenerate, non-finite and overflow inputs leave the output intact"
+  ],
+  "performance": {
+    "iterationsPerPlatform": 1024,
+    "workload": "construct and apply both local and global views",
+    "xrtOperations": {
+      "language": [
+        0,
+        0,
+        0
+      ],
+      "C": [
+        0,
+        0,
+        0
+      ]
+    },
+    "languageMatrixResultBytes": 64,
+    "cpuTimeEquivalenceClaim": false
+  },
+  "releaseInstalled": false,
+  "networkTests": false,
+  "xgeCommit": "880eb7b85593748a4de77ca3630fcf9d2e43d7c2"
+}
