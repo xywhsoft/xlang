@@ -1,0 +1,49 @@
+import xge
+
+func main(...) as int
+    auto shape = xge.createShape()
+    assert shape.exportSvgPath() == ""
+    assert shape.exportSvgPathBytes() == b""
+    shape.appendSvgPath("M1.5 2.25 Q3 4 5.5 6 C2 3 4 5 6 7 L1.5 6 Z")
+    string text = shape.exportSvgPath()
+    bytes encoded = shape.exportSvgPathBytes()
+    assert text == "M1.5 2.25 Q3 4 5.5 6 C2 3 4 5 6 7 L1.5 6 Z"
+    assert encoded == b"M1.5 2.25 Q3 4 5.5 6 C2 3 4 5 6 7 L1.5 6 Z"
+
+    auto output = Buffer()
+    assert output.resize(encoded.length + 1)
+    assert shape.getSvgPathData(output) == c_int(encoded.length + 1)
+    bool short = false
+    try
+        auto tiny = Buffer()
+        assert tiny.resize(3)
+        shape.getSvgPathData(tiny)
+    catch error
+        assert error.code == int(xge.XGE_ERROR_BUFFER_TOO_SMALL)
+        short = true
+    end
+    assert short
+
+    bool malformed = false
+    try
+        shape.appendSvgPath("M1e400 3")
+    catch error
+        assert error.code == int(xge.XGE_ERROR_INVALID_ARGUMENT)
+        malformed = true
+    end
+    assert malformed and shape.exportSvgPath() == text
+    shape.reset()
+    shape.close()
+
+    auto copy = xge.createShape()
+    copy.appendSvgPath(text)
+    auto snapshot = copy.capturePath()
+    auto points = snapshot.points()
+    snapshot.close()
+    copy.close()
+    assert points.length == 7 and points[0].fX == c_float(1.5)
+    assert points[2].fX == c_float(5.5) and points[6].fY == c_float(6)
+    assert encoded == b"M1.5 2.25 Q3 4 5.5 6 C2 3 4 5 6 7 L1.5 6 Z"
+    println("SHAPE_SVG_PATH_EXPORT_LANGUAGE_OK")
+    return 0
+end

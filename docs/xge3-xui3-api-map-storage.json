@@ -100,7 +100,7 @@
       "dependencies": [
         {
           "sourceFile": "include/xge.h",
-          "sha256": "4648bba9a917dee66c5b499def9fc7e6e0d260903d3b055103747a117d536495"
+          "sha256": "30b396b36e5e0d5c71603615a9f7302308103b1868c4a3c33cfab9e55b9b140b"
         },
         {
           "sourceFile": "src/xge/render/xge_render.c",
@@ -200,8 +200,8 @@
       "declaration": "extern \"xgeShapeExGetSvgPathData\" @no_raise @c_span(0,\"char*\",\"int\") @c_output(3,0) func getSvgPathData(Buffer sBuffer) as c_int",
       "storage": "bounded-synchronous-output",
       "sourceFile": "src/xge/render/xge_shape_ex.c",
-      "line": 11098,
-      "functionSha256": "d2da4a0d18cb93e1961cf606a391e9e992831d10f8eaf23fb20795240b9e8f0d"
+      "line": 11189,
+      "functionSha256": "f60ca56f86e9619e74acaabb3f2f862a92dff593e255e39b42b8402d93b36caf"
     },
     "xgeShapeExFillLinearGradient": {
       "bindingFile": "lib\\bindings\\xge\\src\\shapes.xl",
@@ -555,7 +555,7 @@
       "dependencies": [
         {
           "sourceFile": "include/xge.h",
-          "sha256": "4648bba9a917dee66c5b499def9fc7e6e0d260903d3b055103747a117d536495"
+          "sha256": "30b396b36e5e0d5c71603615a9f7302308103b1868c4a3c33cfab9e55b9b140b"
         },
         {
           "sourceFile": "src/xge/core/xge_debug.c",
@@ -855,11 +855,11 @@
       "dependencies": [
         {
           "sourceFile": "include/xge.h",
-          "sha256": "4648bba9a917dee66c5b499def9fc7e6e0d260903d3b055103747a117d536495"
+          "sha256": "30b396b36e5e0d5c71603615a9f7302308103b1868c4a3c33cfab9e55b9b140b"
         },
         {
           "sourceFile": "src/xge/render/xge_shape_ex.c",
-          "sha256": "f9a58081c629c4f50f36d1ab27a830cb63967f282f7e2f84da1658ed26f3806c"
+          "sha256": "32a2f898859ab7eff62483565522498c5b09c0c9ab7055f3a7060381f972a30e"
         }
       ],
       "note": "Exactly four contiguous corners written synchronously through RectToOBB; failure may leave temporary output partial/zero but checked language result is not published. Pointer syntax alone does not encode cardinality. Existing qualified language result remains Vec2[4]."
@@ -875,11 +875,11 @@
       "dependencies": [
         {
           "sourceFile": "include/xge.h",
-          "sha256": "4648bba9a917dee66c5b499def9fc7e6e0d260903d3b055103747a117d536495"
+          "sha256": "30b396b36e5e0d5c71603615a9f7302308103b1868c4a3c33cfab9e55b9b140b"
         },
         {
           "sourceFile": "src/xge/render/xge_shape_ex.c",
-          "sha256": "f9a58081c629c4f50f36d1ab27a830cb63967f282f7e2f84da1658ed26f3806c"
+          "sha256": "32a2f898859ab7eff62483565522498c5b09c0c9ab7055f3a7060381f972a30e"
         }
       ],
       "note": "Exactly four contiguous corners written synchronously through RectToOBB; failure may leave temporary output partial/zero but checked language result is not published. Pointer syntax alone does not encode cardinality. Existing qualified language result remains Vec2[4]."

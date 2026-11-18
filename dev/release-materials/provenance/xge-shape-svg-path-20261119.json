@@ -1,0 +1,212 @@
+{
+  "complete": true,
+  "passed": true,
+  "releaseInstalled": false,
+  "nativeCommit": "810e0a9929a376641d3bc8dedd3f6b3019eccfb2",
+  "compilerOptimization": "O2",
+  "scope": "Owned SVG path output, locale-independent numeric round trips and Buffer compatibility",
+  "sourceHashes": {
+    "docs/xge3-xui3-api-map-storage.json": "5fc316881dffcfbd2b4b843a5e28eadfaef10f2e36fc3d1dff7a4a4ba8c18935",
+    "docs/xge3-xui3-api-map.md": "5c15899d70b0eb02742f1b8c8012743ab7e48f26228004e3c7013e953e11ba36",
+    "tools/check_xge3_bindings.py": "fce40f460044944e0ee5edb6abc53fe6e0d2c8466db670abe74faec24ddde252",
+    "lib/bindings/xge/examples/shape_svg_path.xl": "fe64e0ef7c0e523125d4681b9e6facea899b5e67736f7bc07d8e8e5981326e9d",
+    "lib/bindings/xge/src/shapes.xl": "81146a97843b572e1562be28f5d21b5ec8813e7cc001b00885e6e50b91fbfd92",
+    "test/cases/foreign_xge_shape_svg_path.xl": "7284d18f33c324f2e299f11c285e2bc93b5512301b8040f497a2f61dc927ba42"
+  },
+  "nativeHashes": {
+    "include/xge.h": "30b396b36e5e0d5c71603615a9f7302308103b1868c4a3c33cfab9e55b9b140b",
+    "src/xge/render/xge_shape_ex.c": "32a2f898859ab7eff62483565522498c5b09c0c9ab7055f3a7060381f972a30e",
+    "tests/xge/test_shape_svg_path_export.c": "6e61ca5fba9dc06b3df28b7b6a231a746b8bdb55c48aec592454a39c1fdceed6"
+  },
+  "storageProof": {
+    "path": "F:\\xlang-validation\\xge-full-20261110\\shape-path-export-storage-proof-r3.json",
+    "sha256": "9be80ef25f2014aa2ca2226bfabf35742a1c60c45d6b42d01b74fe45332ff6a9"
+  },
+  "behavior": [
+    "Owned text and bytes are independent of the shape and adopt the exact native XRT allocation.",
+    "Decimal-comma locale tests reproduce old parsing and formatting failures and verify the new round trip.",
+    "Maximum finite floats, minimum subnormals, negative zero, empty data, exact and short buffers and OOM are covered.",
+    "The native parser preserves both checked first-command failure and valid-prefix recovery.",
+    "The Windows numeric path avoids MinGW process-exit hooks and was tested by unloading the static DLL and exiting the host."
+  ],
+  "results": {
+    "languageStepsPerPlatform": 11,
+    "nativeSteps": {
+      "win": 12,
+      "linux": 13
+    },
+    "regressionStepsPerPlatform": 2,
+    "cAndCppHeaderStepsPerPlatform": 3,
+    "languageAllocationPrefixes": {
+      "text": 1,
+      "bytes": 2
+    },
+    "warmedIterations": 128,
+    "xrtAllocFreeReallocCounts": {
+      "languageText": [
+        128,
+        128,
+        0
+      ],
+      "languageBytes": [
+        256,
+        256,
+        0
+      ],
+      "nativeExport": [
+        128,
+        128,
+        0
+      ]
+    },
+    "bufferComparison": {
+      "workload": "256 writes of a 512-point shape with decimal point locale and preallocated output",
+      "unit": "seconds",
+      "samples": {
+        "win": {
+          "old": [
+            0.069,
+            0.052,
+            0.068
+          ],
+          "new": [
+            0.096,
+            0.088,
+            0.098
+          ],
+          "medianSeconds": {
+            "old": 0.068,
+            "new": 0.096
+          }
+        },
+        "linux": {
+          "old": [
+            0.027761,
+            0.028523,
+            0.029318
+          ],
+          "new": [
+            0.037249,
+            0.036922,
+            0.037473
+          ],
+          "medianSeconds": {
+            "old": 0.028523,
+            "new": 0.037249
+          }
+        }
+      }
+    },
+    "costs": "Native export formats twice to allocate exactly once. Text adoption scans UTF-8 and adds no XRT allocation or payload copy. Bytes adds one XRT ownership-shell allocation per result. The old and new Buffer timing is an observed sample, not a rendering or owned-export throughput claim."
+  },
+  "evidence": {
+    "win": {
+      "nativeSdk": {
+        "path": "F:\\xlang-validation\\xge-full-20261110\\shape-path-export-sdk-win-r4\\results.json",
+        "sha256": "f614d8caf3591d89316e533b0271142490a0cf7c3b650e0eb9e0e5312055f34c"
+      },
+      "fullNativeBaseline": {
+        "path": "F:\\xlang-validation\\xge-full-20261110\\shape-path-export-sdk-win-r1\\results.json",
+        "sha256": "094af8f7f21a110442627d3aa94b8e7015755de5c30fd0497f19a0c89c502070"
+      },
+      "native": {
+        "path": "F:\\xlang-validation\\xge-full-20261110\\shape-path-export-native-win-r5\\results.json",
+        "sha256": "a13598ae4369759440d910a0b7b05a78736864b4c97f31b8f0936fa4931e2ed5"
+      },
+      "oldBuffer": {
+        "path": "F:\\xlang-validation\\xge-full-20261110\\shape-path-export-buffer-win-old-r2\\results.json",
+        "sha256": "48133330c48572a92c6a78d421506bd213e2f11051125c49a0e2efd76e8b31ae"
+      },
+      "newBuffer": {
+        "path": "F:\\xlang-validation\\xge-full-20261110\\shape-path-export-buffer-win-new-r4\\results.json",
+        "sha256": "6e630d3f1b0ce1e87da9086945265ee73063a3b7248fd93259edf197663a3ca0"
+      },
+      "package": {
+        "path": "F:\\xlang-validation\\xge-full-20261110\\shape-path-export-packages-win-r4\\results.json",
+        "sha256": "899e90ee96e1595ff9eddc555c179261e9456464394d88eaf31c6e8ca0f357fc"
+      },
+      "storageReview": {
+        "path": "F:\\xlang-validation\\xge-full-20261110\\shape-path-export-packages-win-r4\\source-review\\results.json",
+        "sha256": "30ca365ed4346913fdfd8ef2f5ccf9b736add1c3eb53c31cb63adff8d783d7de"
+      },
+      "packageSeal": {
+        "path": "F:\\xlang-validation\\xge-full-20261110\\shape-path-export-packages-win-r4\\packages\\stage-report.json",
+        "sha256": "e9d137a9d3139d23818a42ede5077d11c7a0fab5ccf372a0b582a4f9ec84fe60"
+      },
+      "compiler": {
+        "path": "F:\\xlang-validation\\xge-full-20261110\\compiler-native-sequence-fixed-record-win-full-r2\\build.json",
+        "sha256": "5b6e7afe29909931548adb96f01f2f8dd386932d6876a7f55c3b70c25126b05c"
+      },
+      "language": {
+        "path": "F:\\xlang-validation\\xge-full-20261110\\shape-path-export-language-win-r4\\results.json",
+        "sha256": "5367852711e973970dd59de5b3c50c71d6b005642265630ba7ab60e387c9152c"
+      },
+      "regression": {
+        "path": "F:\\xlang-validation\\xge-full-20261110\\shape-path-export-regression-win-r2\\results.json",
+        "sha256": "da26eebef394c2afd32e75c14b4c935855e2aece9f76a4bf80e1f266c275c8b6"
+      },
+      "allocations": {
+        "path": "F:\\xlang-validation\\xge-full-20261110\\shape-path-export-perf-win-r3\\results.json",
+        "sha256": "34751713389fe220a424225e1b4d12aa5bc0163213fef1c8b34b385714b05369"
+      },
+      "header": {
+        "path": "F:\\xlang-validation\\xge-full-20261110\\shape-path-export-header-win-r3\\results.json",
+        "sha256": "83815ab9bcd6e5c87947e598b22c07fc62de1e59f4d98c9da0f9e3184347c5b7"
+      }
+    },
+    "linux": {
+      "nativeSdk": {
+        "path": "\\\\wsl.localhost\\Ubuntu\\var\\tmp\\xlang-validation\\xge-full-20261110\\shape-path-export-sdk-linux-r4\\results.json",
+        "sha256": "85e91937c66e8413615b7affbc59e2b5b0879edfc2f79d4b7dbfd80d55e6b1ea"
+      },
+      "fullNativeBaseline": {
+        "path": "\\\\wsl.localhost\\Ubuntu\\var\\tmp\\xlang-validation\\xge-full-20261110\\shape-path-export-sdk-linux-r1\\results.json",
+        "sha256": "690908b5ca894ae7a8dc204e90fc11842713e3efbd974782538ae411874475aa"
+      },
+      "native": {
+        "path": "\\\\wsl.localhost\\Ubuntu\\var\\tmp\\xlang-validation\\xge-full-20261110\\shape-path-export-native-linux-r5\\results.json",
+        "sha256": "1a96e0235396735ced13f51d7b61a11695fbb91dc5905d3ec45e11b784c786b6"
+      },
+      "oldBuffer": {
+        "path": "\\\\wsl.localhost\\Ubuntu\\var\\tmp\\xlang-validation\\xge-full-20261110\\shape-path-export-buffer-linux-old-r2\\results.json",
+        "sha256": "00ba69fedf28abb28747003e20636253bff9823671871cdaf51b1aba2b2e31b7"
+      },
+      "newBuffer": {
+        "path": "\\\\wsl.localhost\\Ubuntu\\var\\tmp\\xlang-validation\\xge-full-20261110\\shape-path-export-buffer-linux-new-r4\\results.json",
+        "sha256": "4ddd5bea0c40bf14194cd4b2962f3bd329f23602c8de6e2bf65114d9e2a1d383"
+      },
+      "package": {
+        "path": "\\\\wsl.localhost\\Ubuntu\\var\\tmp\\xlang-validation\\xge-full-20261110\\shape-path-export-packages-linux-r4\\results.json",
+        "sha256": "ee5bb53e79acbdd85fa97ed0d88609eda9eb952f670e813d5509adb29327398c"
+      },
+      "storageReview": {
+        "path": "\\\\wsl.localhost\\Ubuntu\\var\\tmp\\xlang-validation\\xge-full-20261110\\shape-path-export-packages-linux-r4\\source-review\\results.json",
+        "sha256": "cb19eddd2212ee1cc378ee4821ebea234e6317e36b3ac7d97685c135bc257bfb"
+      },
+      "packageSeal": {
+        "path": "\\\\wsl.localhost\\Ubuntu\\var\\tmp\\xlang-validation\\xge-full-20261110\\shape-path-export-packages-linux-r4\\packages\\stage-report.json",
+        "sha256": "34aa5d6a0735c8b0ce527ff1208b2f413c070adb49330c6191064c1b1d41b636"
+      },
+      "compiler": {
+        "path": "\\\\wsl.localhost\\Ubuntu\\var\\tmp\\xlang-validation\\xge-full-20261110\\compiler-native-sequence-fixed-record-linux-full-r2\\build.json",
+        "sha256": "996fd94fd7b3619c406d5dbad3b22b04915ed3888f7a629463231bf760429e4e"
+      },
+      "language": {
+        "path": "\\\\wsl.localhost\\Ubuntu\\var\\tmp\\xlang-validation\\xge-full-20261110\\shape-path-export-language-linux-r4\\results.json",
+        "sha256": "a103004ccb1ce9230fd05b9b155b4402c59cf4fcf58a3507f35a14e7aa7ed1f5"
+      },
+      "regression": {
+        "path": "\\\\wsl.localhost\\Ubuntu\\var\\tmp\\xlang-validation\\xge-full-20261110\\shape-path-export-regression-linux-r2\\results.json",
+        "sha256": "5cd2f2810a6980e1b28cf66d5b25f4c7a5f30c83b89fd070af3510f274d55c7c"
+      },
+      "allocations": {
+        "path": "\\\\wsl.localhost\\Ubuntu\\var\\tmp\\xlang-validation\\xge-full-20261110\\shape-path-export-perf-linux-r3\\results.json",
+        "sha256": "7e842294fea9ae53851e7e34d225a75d08c2d025dbfd65d22a7a3d57d0f2cf12"
+      },
+      "header": {
+        "path": "\\\\wsl.localhost\\Ubuntu\\var\\tmp\\xlang-validation\\xge-full-20261110\\shape-path-export-header-linux-r3\\results.json",
+        "sha256": "2ca199b857b98ecc897d4dd29c575495ddf36b013e6f2fdb6b5c1ddfb3e260a3"
+      }
+    }
+  }
+}

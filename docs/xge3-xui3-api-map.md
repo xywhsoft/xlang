@@ -113,6 +113,16 @@ original shape or snapshot handle closes. The path, gradient and dash setters
 accept typed arrays alongside their existing Buffer forms. Typed arguments use
 the compiler's checked element-count projection. [Shape snapshot example](../lib/bindings/xge/examples/shape_snapshots.xl)
 
+`Shape.exportSvgPath()` and `exportSvgPathBytes()` return the local SVG
+path data as independent text or bytes. Both transfer the XRT allocation
+from a single native call. The native serializer sizes and fills the same
+exact allocation, formatting coordinates with an ASCII decimal point and
+round-trip precision, including the largest finite float. Text admission validates
+UTF-8. `getSvgPathData(Buffer)` retains the existing caller-buffer contract.
+Ordinary coordinates use the grouped CRT formatter in decimal-point locales.
+XRT handles coordinates in other locales and the float boundary values.
+[SVG path example](../lib/bindings/xge/examples/shape_svg_path.xl)
+
 The [storage review ledger](xge3-xui3-api-map-storage.json) records reviewed
 consumer bodies and their hashes. `--existing-bindings` annotates current
 source without regenerating library declarations; a missing or changed body

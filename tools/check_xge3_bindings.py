@@ -797,9 +797,15 @@ def generate_xge_objects(root,header,records,types,primitive,param,reserved,revi
               'xge_shape_ex_path_measure':('PathMeasure','xl6Xge3PathMeasurePolicy','xgeShapeExPathMeasure','xgeShapeExPathMeasureDestroy')}
     mapped={};methods={n:[] for n,_,_,_ in families.values()};factories=[]
     shape_extra,snapshot_lines,snapshot_targets=shape_snapshot_bindings()
+    export='xgeShapeExExportSvgPathData'
+    shape_extra['xgeShapeExGetSvgPathData']=[
+        f' extern "{export}" @no_raise @c_output_{kind}(1,2,"char*","size_t","xrt",0) '
+        f'func {name}() as {result}'
+        for kind,name,result in (('text','exportSvgPath','string'),('bytes','exportSvgPathBytes','bytes'))
+    ]
     known={f['name'] for f in header['functions']}
-    if not set(snapshot_targets) <= known:
-        raise ValueError('Shape snapshot declarations require a matching native header')
+    if not set(snapshot_targets).union({export}) <= known:
+        raise ValueError('Shape snapshot and export declarations require a matching native header')
     def family(t):
         if t['kind']=='named' and len(t['names'])==1:return families.get(t['names'][0])
         return None
@@ -863,6 +869,7 @@ def generate_xge_objects(root,header,records,types,primitive,param,reserved,revi
     mapped['xgeShapeExPathMeasureCreate']='xge.measurePath'
     lines+=snapshot_lines
     mapped.update(snapshot_targets)
+    mapped[export]='xge.Shape.exportSvgPath'
     (root/'lib/bindings/xge/src/shapes.xl').write_text('\n'.join(lines)+'\n',encoding='utf8')
     return mapped
 
