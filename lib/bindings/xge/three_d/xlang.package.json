@@ -17,6 +17,7 @@
       "src/material.xl",
       "src/environment.xl",
       "src/model.xl",
+      "src/animation.xl",
       "src/model_loader.xl",
       "src/scene.xl",
       "src/renderer.xl"

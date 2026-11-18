@@ -106,3 +106,40 @@ and seven in C per iteration. The two extra allocations hold the
 language builder view.
 
 [Incremental model example](../lib/bindings/xge/three_d/examples/model_instance.xl)
+
+## Animation and skinning
+
+Use `model.clip(index)` for a clip in a loaded model, or `xge3d.loadClip()`
+for a separate motion file. A clip owns its source model. `clip.info()`
+returns the optional name, duration in seconds, track count and source node
+count. An optional decode budget also covers the retained track storage.
+
+`scene.animator(root)` retains the scene and its instantiated model.
+`play()` keeps the clip alive, including clips still needed by a crossfade.
+Animation uses the creator thread. If the instance is removed, `update()`
+reports a checked error. Release the animator and any surviving clips
+before shutting down the engine.
+
+Playback supports eight layers, fades, global and per-layer pause,
+override and additive blending, queued events and root motion.
+`playMapped()` accepts an optional target-node mask and explicit source
+and target indices. Native code copies the mask and bindings. Default
+playback matches clips from another model by unique node names. Use
+`bone()` for a socket node and `pose()` / `setPose()` to inspect or
+override the current pose. `nextEvent()` returns `XGE_ERROR_NOT_FOUND`
+when the queue is empty.
+
+`bindSkin()` accepts an ordered joint array and optional inverse bind
+matrices. Leaving the matrices empty selects identity. `skinMatrix()`
+reads an individual matrix, and `skinPaletteBytes()` takes an independent
+copy of the consecutive native matrices. `prepareSkin()` preuploads a
+palette within the supplied GPU budget. `renderer.debugSkeleton()`
+draws the current joint hierarchy.
+
+Across 1,024 warm update and playback-query iterations per platform,
+xlang and handwritten C performed zero XRT heap operations. Replacing
+an unmasked clip used two native allocations per call in both versions.
+Explicit mask, binding and joint arrays incur temporary projection
+storage before the native copy.
+
+[Animation example](../lib/bindings/xge/three_d/examples/animation.xl)

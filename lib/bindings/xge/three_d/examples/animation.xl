@@ -1,0 +1,19 @@
+import xge3d
+
+auto rig = xge3d.loadModel("assets/animation-rig.gltf")
+auto motion = xge3d.loadClip("assets/animation-motion.gltf")
+auto scene = xge3d.createScene()
+auto root = scene.instantiate(rig)
+rig.close()
+
+auto animator = scene.animator(root)
+animator.play(0, motion, loop=0)
+motion.close() // 动画层已持有剪辑。
+
+animator.update(c_float(0.5))
+auto status, tip = animator.bone("Tip")
+assert status == 0
+println("Tip 世界坐标 X", scene.worldMatrix(tip).m[12])
+
+animator.close()
+scene.close()

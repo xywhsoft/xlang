@@ -47,6 +47,9 @@ the native status and is released.
 `model_instance.xl` builds one unit of scene work per frame and
 publishes only after the instance is complete.
 
+`animation.xl` plays a separate motion clip on a model and reads a bone
+position after updating the pose. Both fixtures are included in `assets/`.
+
 `destroyStep` immediately retires the entire subtree logically, including when
 `budget.nodes` is zero. Its return value is zero until all nodes are physically
 removed, then one. Continue with the original root handle while incomplete;

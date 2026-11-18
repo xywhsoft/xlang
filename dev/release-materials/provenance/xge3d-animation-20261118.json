@@ -1,0 +1,117 @@
+{
+  "date": "2026-11-18",
+  "scope": "Managed 3D animation clips, playback and skin bindings",
+  "complete": true,
+  "passed": true,
+  "xgeParent": "6b8b5ae4dbdd22c0540d55e73f11902d6409b1bb",
+  "xlangParent": "353ec71d2052263440905efda26a1e98ae9eea90",
+  "xrtCommit": "804cc769de3030118c2b46ef7af69543d1b82d9d",
+  "nativeSources": {
+    "include/xge.h": "697dee3ed69f63ace2cc9661ac0215331a1bb24c696461c87ac0a369b0c57ab0",
+    "src/xge/3d/xge3d_internal.h": "bc020766dfd21e47f3095826f3078bdc39c3a6182fd56ca98664e779f165bc59",
+    "src/xge/3d/xge3d_model.c": "8fdba513f57a7c61fdea19a688b203cce0faa9dfb9ae72af0d5267fc50c61750",
+    "src/xge/3d/xge3d_animation.c": "a92ce24b1426e9081b456e6a9d377652510656a7017a655a400f88d2687d941f",
+    "src/xge/3d/xge3d_playback.inc": "6f363ffb7c1742fe037b4c59cad7e0363d630ec9c27c738ed4b93395f573a367",
+    "src/xge/3d/xge3d_skin.c": "4e5413d25432cf566694356603bdb54ff876e64217d8e3a742389abac6e1fbf8",
+    "tests/xge/test_3d_animation_owned.c": "9136c636b30cc66a5aeb3f4d3888462f6d5a4227052cc8e0fee0a145707185ee"
+  },
+  "languageSources": {
+    "lib/bindings/xge/three_d/xlang.package.json": "7902e526f55cf7de15f6d2a7cfbf90e29808c0e0dc37fa5dd2206d684ec2a924",
+    "lib/bindings/xge/three_d/examples/animation.xl": "092f2a34792b2cd8a760064550bc70046246ba8987b586c9b2257a107266a391",
+    "lib/bindings/xge/three_d/include/xge3d_renderer.h": "70d92a93431c1e4f2d2e034f71f3d5a084dafe4c8bf105cffd4b24f0b8bead62",
+    "lib/bindings/xge/three_d/src/animation.xl": "3a5e796fff68c2110ad88a342fe49165404cfa2550e8008a9d4658a95e9a67a2",
+    "lib/bindings/xge/three_d/src/model.xl": "f12c94afec13c63ea8cad785996efbbd884d5c8a294de298d3749898c85899b2",
+    "lib/bindings/xge/three_d/src/renderer.xl": "e149fa8c8d648ea57b923e69c19fd7787de286898bcb4f760d5723d8b81695a0",
+    "lib/bindings/xge/three_d/src/scene.xl": "eb6017c63f3536578f809a31f1ccea562623eec59417d389e801f5814daf139a",
+    "lib/bindings/xge/three_d/examples/assets/animation-motion.gltf": "ededbcd6deee3366917b7532d1ab9f633bfac052b259b95c2e54e273d24f6795",
+    "lib/bindings/xge/three_d/examples/assets/animation-rig.gltf": "7b88841a56e22a1d249c9ee5017728d0f5e47052eb0750f1f77e396f54d94f97",
+    "test/cases/foreign_xge3d_animation_owned.xl": "ed3e1a1c00f2e85fa259b491d3a7bfa2a95a33cb32d2949ff5c8e01f7b1a57ec",
+    "docs/xge3-model.md": "daf21ec374c4c3b8664df02950519b5147259915772a2b61ac837c027658be25",
+    "lib/bindings/xge/three_d/examples/README.md": "25011b3c78072d5a29638024594866be6680edbc5c816ee1b13e225c7a46cd29"
+  },
+  "evidence": {
+    "win": {
+      "fullSdk": {
+        "path": "F:\\xlang-validation\\xge-full-20261110\\animation3d-sdk-win-r1\\results.json",
+        "sha256": "4fc0dc93cb209cc968c38932e0d76ca2508a8aef9e35191b5c69716393b90ccc"
+      },
+      "sdk": {
+        "path": "F:\\xlang-validation\\xge-full-20261110\\animation3d-sdk-win-r2\\results.json",
+        "sha256": "05d31acd22339ca51753722641d59c566154fde450562ef55c9ff3171149269e"
+      },
+      "native": {
+        "path": "F:\\xlang-validation\\xge-full-20261110\\animation3d-native-win-r2\\results.json",
+        "sha256": "1553698daac163a3fd6ab72e027b87646af232786b3173a7c86eb93779e9b69c"
+      },
+      "packages": {
+        "path": "F:\\xlang-validation\\xge-full-20261110\\animation3d-packages-win-r3\\results.json",
+        "sha256": "459d75175a1253bba3ef325531fe3bbd6f92eef31f5b992288450c1b57848afd"
+      },
+      "language": {
+        "path": "F:\\xlang-validation\\xge-full-20261110\\animation3d-language-win-r3\\results.json",
+        "sha256": "ba451d5b7dd36c064b1fef4c5ba3bd808a19986a81c2971b43b1ff094a301cc9"
+      },
+      "performance": {
+        "path": "F:\\xlang-validation\\xge-full-20261110\\animation3d-perf-win-r2\\results.json",
+        "sha256": "bc1600b35fc433ae2c987db4e23b6963de5e44cbd894e8fa5f13e94507d03176"
+      }
+    },
+    "linux": {
+      "fullSdk": {
+        "path": "\\\\wsl.localhost\\Ubuntu\\var\\tmp\\xlang-validation\\xge-full-20261110\\animation3d-sdk-linux-r1\\results.json",
+        "sha256": "44fe8b355f1cc59db4ac07bdfd51aa79a361dae9962298827da274a2e3b1d4c6"
+      },
+      "sdk": {
+        "path": "\\\\wsl.localhost\\Ubuntu\\var\\tmp\\xlang-validation\\xge-full-20261110\\animation3d-sdk-linux-r2\\results.json",
+        "sha256": "87067429acf6a58b9a5f677e0ee7179887a87a66a428ad49605d676d60f53d8f"
+      },
+      "native": {
+        "path": "\\\\wsl.localhost\\Ubuntu\\var\\tmp\\xlang-validation\\xge-full-20261110\\animation3d-native-linux-r2\\results.json",
+        "sha256": "71997004e11ea9b6b29354a6028d83feefaee4c9b0176985203fde82e22a5919"
+      },
+      "packages": {
+        "path": "\\\\wsl.localhost\\Ubuntu\\var\\tmp\\xlang-validation\\xge-full-20261110\\animation3d-packages-linux-r3\\results.json",
+        "sha256": "405eee7f41f026e3c89ec6148be362f37a841cdccdbfe72c5050f14e333ffb8e"
+      },
+      "language": {
+        "path": "\\\\wsl.localhost\\Ubuntu\\var\\tmp\\xlang-validation\\xge-full-20261110\\animation3d-language-linux-r3\\results.json",
+        "sha256": "348c0859a7365b2b4f15f1ec61010302c8fb181c461d72bde470a563ce472cbc"
+      },
+      "performance": {
+        "path": "\\\\wsl.localhost\\Ubuntu\\var\\tmp\\xlang-validation\\xge-full-20261110\\animation3d-perf-linux-r2\\results.json",
+        "sha256": "615ed8e06bc6b1b6c4186eb607e046420a7bd40cd77bb13e1c64b38857fdbdb1"
+      }
+    }
+  },
+  "checks": [
+    "Windows and Linux hosted JIT and AOT, static executable and shared module",
+    "managed native host and static gates at O0/O2; legacy playback and existing model, loader and staged instance regressions",
+    "creator-thread rejection without consuming owners and animator/clip keepalive after original owners close",
+    "four clip allocation failure points and quota rejection",
+    "retargeting, mask, events, fades, additive/override, pose, root motion and stale model root",
+    "skin joint/inverse bind validation, owned palette snapshot, budgeted upload and offscreen pixel readback"
+  ],
+  "performance": {
+    "warmIterationsPerPlatform": 1024,
+    "allocationsWarmPerLoop": {
+      "xlang": 0,
+      "C": 0
+    },
+    "replaceIterationsPerPlatform": 64,
+    "allocationsPerReplace": {
+      "xlang": 2,
+      "C": 2
+    },
+    "costs": [
+      "clip info copies optional strings",
+      "array options copy native scratch records and masks",
+      "single palette snapshot copy into xrtMalloc storage",
+      "managed owner views at construction"
+    ],
+    "cpuTimeEquivalenceClaim": false
+  },
+  "releaseInstalled": false,
+  "networkTests": false,
+  "next": "Terrain ownership and scene collision queries",
+  "xgeCommit": "6f66e936e38af837f84f80ec182b4895bdeb8647"
+}

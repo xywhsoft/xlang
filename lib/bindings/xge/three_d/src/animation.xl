@@ -1,0 +1,34 @@
+export extern "xge3d_clip*" class AnimationClip @header("xge3d_renderer.h") @lifetime("owned") @policy("xl6Xge3dClipPolicy")
+ native point handle
+ extern "xge3dClipShareOwned" @no_raise @c_result("owned_view") @factory(1,0,releaseAnimationClip) func share() as AnimationClip
+ extern "xge3dClipInfoChecked" @no_raise @c_const(0) @c_output_record(1,"xge3d_clip_info_t","borrowed") @c_status(0) @c_output_field(0,"name","cstring") @c_output_field(1,"duration") @c_output_field(2,"track_count") @c_output_field(3,"node_count") func info() as (string?,c_float,c_size,c_size)
+ extern "xge3dClipNodeNameChecked" @no_raise @c_const(0) @c_output(2,0) @c_output_view(2,"cstring") func nodeName(c_size index) as string?
+ extern "xge3dClipMemoryInfo" @no_raise @c_const(0) @c_output(1,0) @c_output_size(1,"size") func memoryInfo() as Xge3dAssetMemory
+ extern "xl6ForeignViewCloseV1" @no_raise @c_control(0) @c_result("bool_status") func close()
+end
+
+extern "xge3dClipReleaseChecked" @header("xge3d_renderer.h") @no_raise @c_result("status",0) func releaseAnimationClip(AnimationClip value)
+export extern "xge3dClipLoadOwned" @header("xge3d_renderer.h") @no_raise @c_cstr(0) @c_result("owned_view") @factory(3,0,releaseAnimationClip) func loadClip(string uri,c_size index=0,DecodeBudget? budget=null) as AnimationClip
+
+export extern "xge3d_animator*" class Animator @header("xge3d_renderer.h") @lifetime("owned") @policy("xl6Xge3dAnimatorPolicy")
+ native point handle
+ extern "xge3dAnimatorPlay" @no_raise @c_pack(3,"xge3d_animation_layer_t",2,4) @c_pack_field(3,"time",2,"value") @c_pack_field(3,"speed",3,"value") @c_pack_field(3,"weight",4,"value") @c_pack_field(3,"loop",5,"value") @c_result("status",0) func play(c_int layer,AnimationClip? clip,c_float time=0,c_float speed=1,c_float weight=1,c_int loop=1,c_float fade=0)
+ extern "xge3dAnimatorPlayArrays" @no_raise @c_pack(3,"xge3d_animation_options_t",2,4) @c_pack_field(3,"time",2,"value") @c_pack_field(3,"speed",3,"value") @c_pack_field(3,"weight",4,"value") @c_pack_field(3,"loop",5,"value") @c_array_group(5,7,1,"size_t",8) @c_array_input(5,0,"const float*","value") @c_array_group(7,9,1,"size_t",10) @c_array_input(7,0,"const xge3d_bone_binding_t*","value") @c_result("status",0) func playMapped(c_int layer,AnimationClip? clip,c_float time=0,c_float speed=1,c_float weight=1,c_int loop=1,c_float fade=0,array<c_float> mask=[],int maskSize=-1,array<Xge3dBoneBinding> bindings=[],int bindingSize=-1)
+ extern "xge3dAnimatorSetLayerWeight" @no_raise @c_result("status",0) func setLayerWeight(c_int layer,c_float weight)
+ extern "xge3dAnimatorFadeLayer" @no_raise @c_result("status",0) func fadeLayer(c_int layer,c_float weight,c_float seconds)
+ extern "xge3dAnimatorSetPaused" @no_raise @c_result("status",0) func setPaused(c_int paused)
+ extern "xge3dAnimatorSetLayerPaused" @no_raise @c_result("status",0) func setLayerPaused(c_int layer,c_int paused)
+ extern "xge3dAnimatorSetLayerMode" @no_raise @c_result("status",0) func setLayerMode(c_int layer,c_int mode)
+ extern "xge3dAnimatorGetPlayback" @no_raise @c_const(0) @c_output(2,0) @c_output_size(2,"size") func playback(c_int layer) as Xge3dPlaybackInfo
+ extern "xge3dAnimatorUpdate" @no_raise @c_result("status",0) func update(c_float delta)
+ extern "xge3dAnimatorSetEvents" @no_raise @c_array_group(2,1,1,"size_t",2) @c_array_input(2,0,"const xge3d_animation_event_t*","value") @c_result("status",0) func setEvents(c_int layer,array<Xge3dAnimationEvent> events,int size=-1)
+ extern "xge3dAnimatorNextEvent" @no_raise @c_outputs(-1,1) func nextEvent() as (c_int,Xge3dAnimationEvent)
+ extern "xge3dAnimatorSetRootMotion" @no_raise @c_result("status",0) func setRootMotion(c_size sourceNode,c_uint flags)
+ extern "xge3dAnimatorTakeRootMotion" @no_raise @c_output(1,0) func takeRootMotion() as Xge3dRootMotion
+ extern "xge3dAnimatorBoneNode" @no_raise @c_cstr(0) @c_outputs(-1,2) func bone(string name) as (c_int,Xge3dNode)
+ extern "xge3dAnimatorGetPose" @no_raise @c_output(2,0) func pose(c_size sourceNode) as Xge3dTransform
+ extern "xge3dAnimatorSetPose" @no_raise @c_ref(1) @c_result("status",0) func setPose(c_size sourceNode,Xge3dTransform pose)
+ extern "xl6ForeignViewCloseV1" @no_raise @c_control(0) @c_result("bool_status") func close()
+end
+
+extern "xge3dAnimatorReleaseChecked" @header("xge3d_renderer.h") @no_raise @c_result("status",0) func releaseAnimator(Animator value)

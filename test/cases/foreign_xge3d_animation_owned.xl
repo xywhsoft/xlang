@@ -1,0 +1,155 @@
+import xge
+import xge3d
+
+func main(...) as int
+    xge.init(64, 64, "Managed 3D animation")
+    auto rig = xge3d.loadModel("animation-rig.gltf")
+    auto file = xge3d.loadModel("animation-motion.gltf")
+    auto clip = file.clip()
+    file.close()
+    auto clipShare = clip.share()
+    clip.close()
+    auto name, duration, tracks, nodes = clipShare.info()
+    assert (name as string) == "linear" and duration == c_float(1)
+    assert tracks == c_size(1) and nodes == c_size(2)
+    assert (clipShare.nodeName(c_size(1)) as string) == "Tip"
+    assert clipShare.nodeName(c_size(2)) == null
+    assert clipShare.memoryInfo().source_bytes > uint64(0)
+
+    auto quota = xge3d.createDecodeBudget(uint64(1))
+    bool outOfMemory = false
+    try
+        auto failed = xge3d.loadClip("animation-motion.gltf", budget=quota)
+        failed.close()
+    catch Error
+        outOfMemory = true
+    end
+    assert outOfMemory and quota.info().live_bytes == uint64(0)
+    quota.setLimit(uint64(1024 * 1024))
+    auto second = xge3d.loadClip("animation-motion.gltf", budget=quota)
+
+    auto scene = xge3d.createScene()
+    auto root = scene.instantiate(rig)
+    rig.close()
+    auto animator = scene.animator(root)
+    auto readScene = scene.share()
+    scene.close()
+
+    auto mapping = xge3d.Xge3dBoneBinding()
+    mapping.source = c_size(1)
+    mapping.target = c_size(3)
+    animator.playMapped(0, clipShare, loop=0, mask=[c_float(1), c_float(1), c_float(1), c_float(1)], bindings=[mapping])
+    clipShare.close()
+    auto mark = xge3d.Xge3dAnimationEvent()
+    mark.id = c_uint(17)
+    mark.time = c_float(0.25)
+    animator.setEvents(0, [mark])
+    animator.setRootMotion(c_size(3), c_uint(xge.XGE3D_ROOT_X))
+    animator.update(c_float(0.5))
+    assert animator.playback(0).time == c_float(0.5)
+    assert animator.takeRootMotion().translation.x == c_float(1)
+    assert animator.takeRootMotion().translation.x == c_float(0)
+    auto status, event = animator.nextEvent()
+    assert status == xge.XGE_OK and event.id == c_uint(17) and event.layer == c_int(0)
+    auto empty, ignored = animator.nextEvent()
+    assert empty == xge.XGE_ERROR_NOT_FOUND and ignored.id == c_uint(0)
+
+    auto meshStatus, meshNode = animator.bone("SkinMesh")
+    auto rootStatus, jointRoot = animator.bone("Root")
+    auto tipStatus, jointTip = animator.bone("Tip")
+    assert meshStatus == 0 and rootStatus == 0 and tipStatus == 0
+    auto original = readScene.skinPaletteBytes(meshNode)
+    assert Buffer(original).len() == 128
+    auto matrix = readScene.skinMatrix(meshNode, c_size(0))
+    assert matrix.m[15] == c_float(1)
+    readScene.bindSkin(meshNode, [jointRoot, jointTip])
+    auto inverse = xge3d.Xge3dMat4()
+    inverse.m[0] = c_float(1)
+    inverse.m[5] = c_float(1)
+    inverse.m[10] = c_float(1)
+    inverse.m[15] = c_float(1)
+    bool invalidBind = false
+    try
+        readScene.bindSkin(meshNode, [jointRoot, jointTip], inverseBind=[inverse])
+    catch Error
+        invalidBind = true
+    end
+    assert invalidBind and Buffer(readScene.skinPaletteBytes(meshNode)).len() == 128
+    readScene.clearSkin(meshNode)
+    readScene.bindSkin(meshNode, [jointRoot, jointTip], inverseBind=[inverse, inverse])
+    assert Buffer(original).len() == 128
+
+    animator.setRootMotion(c_size(3), c_uint(0))
+    animator.play(0, second, fade=c_float(0.25))
+    second.close()
+    assert animator.playback(0).transitioning == c_int(1)
+    animator.setLayerPaused(0, 1)
+    animator.update(c_float(0.125))
+    assert animator.playback(0).time == c_float(0)
+    animator.setLayerPaused(0, 0)
+    animator.update(c_float(0.25))
+    assert animator.playback(0).transitioning == c_int(0)
+    animator.setLayerMode(0, xge.XGE3D_ANIMATION_ADDITIVE)
+    animator.setLayerWeight(0, c_float(0.75))
+    animator.fadeLayer(0, c_float(0.5), c_float(0))
+    assert animator.playback(0).weight == c_float(0.5)
+    auto pose = animator.pose(c_size(3))
+    pose.position.y = c_float(0.125)
+    animator.setPose(c_size(3), pose)
+    assert animator.pose(c_size(3)).position.y == c_float(0.125)
+    auto placement = xge3d.Xge3dTransform()
+    placement.rotation.w = c_float(1)
+    placement.scale.x = c_float(1)
+    placement.scale.y = c_float(1)
+    placement.scale.z = c_float(1)
+    placement.position.z = c_float(-3)
+    readScene.setTransform(root, placement)
+
+    xge.run(func() as c_int
+        assert xge.begin() == 0
+        auto renderer = xge3d.createRenderer()
+        auto upload = xge3d.Xge3dUploadBudget()
+        upload.bytes = uint64(128)
+        upload.operations = c_uint(1)
+        assert readScene.prepareSkin(meshNode, upload).completed == c_uint(1)
+        c_float[4] color
+        color[0] = c_float(1)
+        color[3] = c_float(1)
+        renderer.debugSkeleton(readScene, meshNode, color)
+        auto target = xge3d.createRenderTarget(32, 32)
+        auto camera = xge3d.orthographicCamera(c_float(6), c_float(4), c_float(0.1), c_float(10))
+        color[0] = c_float(0)
+        assert renderer.renderTo(readScene, camera, target, color).triangles == uint64(2)
+        auto pixels = Buffer()
+        assert pixels.resize(32 * 32 * 4)
+        target.readPixels(pixels)
+        int shaded = 0
+        for pixel in range(32 * 32)
+            if pixels.byteAt(pixel * 4 + 1) > 100 then
+                shaded += 1
+            end
+        end
+        assert shaded > 0
+        target.close()
+        renderer.close()
+        assert xge.nativeEnd() == 0
+        return c_int(1)
+    end)
+    xge.setFrameCallback(null)
+    readScene.destroyNode(root)
+    bool stale = false
+    try
+        animator.update(c_float(0))
+    catch Error
+        stale = true
+    end
+    assert stale
+    readScene.close()
+    animator.close()
+    assert quota.info().live_bytes == uint64(0)
+    quota.close()
+    assert xge.graphicsResourceCount() == uint64(0)
+    xge.unit()
+    println("ANIMATION3D_LANGUAGE_GPU_OK")
+    return 0
+end

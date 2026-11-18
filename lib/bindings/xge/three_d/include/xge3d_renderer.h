@@ -34,6 +34,12 @@ XL6_XGE3D_CHECKED_OWNER(xl6Xge3dInstanceBuilderPolicy,xge3d_instance_builder,"xg
 XL6_XGE3D_CHECKED_OWNER(xl6Xge3dModelLoaderPolicy,xge3d_loader,"xge3d.model.loader",xge3dLoaderReleaseOwnerChecked)
 #define xl6Xge3dModelLoaderPolicy (*xl6Xge3dModelLoaderPolicyGet())
 #endif
+#if XGE3D_ENABLE_ANIMATION
+XL6_XGE3D_CHECKED_OWNER(xl6Xge3dClipPolicy,xge3d_clip,"xge3d.animation.clip",xge3dClipReleaseOwnerChecked)
+XL6_XGE3D_CHECKED_OWNER(xl6Xge3dAnimatorPolicy,xge3d_animator,"xge3d.animation.animator",xge3dAnimatorReleaseOwnerChecked)
+#define xl6Xge3dClipPolicy (*xl6Xge3dClipPolicyGet())
+#define xl6Xge3dAnimatorPolicy (*xl6Xge3dAnimatorPolicyGet())
+#endif
 #undef XL6_XGE3D_CHECKED_OWNER
 #define xl6Xge3dRendererPolicy (*xl6Xge3dRendererPolicyGet())
 #define xl6Xge3dTexturePolicy (*xl6Xge3dTexturePolicyGet())
