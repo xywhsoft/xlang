@@ -13,6 +13,7 @@
       "src/functions.xl",
       "src/decode_budget.xl",
       "src/particles.xl",
+      "src/mesh.xl",
       "src/scene.xl",
       "src/renderer.xl"
     ],

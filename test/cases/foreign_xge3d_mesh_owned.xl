@@ -1,0 +1,93 @@
+import xge
+import xge3d
+from xge3d import Mesh3D
+
+func vertex(float x,float y) as xge3d.Xge3dVertex
+ auto value=xge3d.Xge3dVertex()
+ value.position.x=c_float(x)
+ value.position.y=c_float(y)
+ value.position.z=c_float(-2)
+ value.normal.z=c_float(1)
+ return value
+end
+
+func main(...) as int
+ xge.init(64,64,"Managed 3D mesh")
+ array<xge3d.Xge3dVertex> vertices=[vertex(-0.8,-0.8),vertex(0.8,-0.8),vertex(0,0.8)]
+ array<c_ushort> indices=[c_ushort(0),c_ushort(1),c_ushort(2)]
+ array<c_uint> indices32=[c_uint(0),c_uint(1),c_uint(2)]
+ auto mesh=xge3d.createMesh(vertices,indices=indices)
+ auto lod=xge3d.createMesh32(vertices,-1,indices32)
+ auto scene=xge3d.createScene()
+ auto node=scene.createNode(xge3d.Xge3dNode())
+ assert scene.mesh(node)==null
+ scene.setMesh(node,mesh)
+ scene.setLods(node,[lod],[c_float(3)])
+ lod.close()
+ auto alias=scene.mesh(node) as Mesh3D
+ auto other=alias.share()
+ assert other.info().vertices==uint64(3) and other.info().indices==uint64(3)
+ assert other.vertexAt(2).position.y==c_float(0.8)
+ assert other.indexAt(2)==c_uint(2)
+ assert other.bounds().min.x==c_float(-0.8)
+ other.close()
+ mesh.close()
+
+ xge.run(func() as c_int
+  assert xge.begin()==0
+  auto budget=xge3d.Xge3dUploadBudget()
+  budget.operations=c_uint(1)
+  budget.bytes=uint64(8)
+  auto first=alias.prepare(budget)
+  assert first.operations==c_uint(1) and first.completed==c_uint(0)
+  budget.operations=c_uint(4)
+  budget.bytes=uint64(1024)
+  assert alias.prepare(budget).completed==c_uint(1)
+  auto oldBytes=alias.info().cpu_payload_bytes
+  bool rejected=false
+  try
+   alias.update32(vertices,-1,[c_uint(0),c_uint(1),c_uint(3)])
+  catch Error
+   rejected=true
+  end
+  assert rejected and alias.info().cpu_payload_bytes==oldBytes
+  alias.update(vertices)
+  assert alias.info().indices==uint64(0)
+  alias.update32(vertices,-1,indices32)
+  assert alias.info().cpu_payload_bytes==oldBytes+uint64(6)
+
+  auto renderer=xge3d.createRenderer()
+  auto target=xge3d.createRenderTarget(32,32)
+  auto camera=xge3d.orthographicCamera(c_float(2),c_float(2),c_float(0.1),c_float(10))
+  c_float[4] clear
+  clear[3]=c_float(1)
+  assert renderer.renderTo(scene,camera,target,clear).triangles==1
+  auto pixels=Buffer()
+  assert pixels.resize(32*32*4)
+  target.readPixels(pixels)
+  int center=(16*32+16)*4
+  assert pixels.byteAt(center)+pixels.byteAt(center+1)+pixels.byteAt(center+2)>0
+  target.close()
+  renderer.close()
+  assert xge.nativeEnd()==0
+  return c_int(1)
+ end)
+ xge.setFrameCallback(null)
+ bool busy=false
+ try
+  xge.unit()
+ catch Error
+  busy=true
+ end
+ assert busy
+ scene.setMesh(node)
+ assert scene.mesh(node)==null
+ scene.close()
+ assert alias.info().references==c_uint(1)
+ assert alias.info().gpu_payload_bytes==uint64(0)
+ assert alias.indexAt(1)==c_uint(1)
+ alias.close()
+ xge.unit()
+ println("MESH3D_LANGUAGE_GPU_OK")
+ return 0
+end

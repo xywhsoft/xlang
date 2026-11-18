@@ -1,0 +1,17 @@
+// Mesh and Scene owners share native geometry without duplicating its storage.
+export extern "xge3d_mesh*" class Mesh3D @header("xge3d_renderer.h") @lifetime("owned") @policy("xl6Xge3dMeshPolicy")
+ native point handle
+ extern "xge3dMeshShareOwned" @no_raise @c_result("owned_view") @factory(1,0,releaseMesh3D) func share() as Mesh3D
+ extern "xge3dMeshResourceInfo" @no_raise @c_const(0) @c_output(1,0) @c_output_size(1,"size") func info() as Xge3dResourceInfo
+ extern "xge3dMeshGetBounds" @no_raise @c_const(0) @c_output(1,0) func bounds() as Xge3dAabb
+ extern "xge3dMeshVertexAt" @no_raise @c_const(0) @c_output(2,0) func vertexAt(c_size index) as Xge3dVertex
+ extern "xge3dMeshIndexAt" @no_raise @c_const(0) @c_output(2,0) func indexAt(c_size index) as c_uint
+ extern "xge3dMeshPrepare" @no_raise @c_ref(0) @c_output(2,0) func prepare(Xge3dUploadBudget budget) as Xge3dUploadStats
+ extern "xge3dMeshUpdateU16" @no_raise @c_array_group(1,0,1,"size_t",1) @c_array_input(1,0,"const xge3d_vertex_t*","value") @c_array_group(3,2,1,"size_t",3) @c_array_input(3,0,"const uint16_t*","value") @c_result("status",0) func update(array<Xge3dVertex> vertices,int vertexSize=-1,array<c_ushort> indices=[],int indexSize=-1)
+ extern "xge3dMeshUpdateU32" @no_raise @c_array_group(1,0,1,"size_t",1) @c_array_input(1,0,"const xge3d_vertex_t*","value") @c_array_group(3,2,1,"size_t",3) @c_array_input(3,0,"const uint32_t*","value") @c_result("status",0) func update32(array<Xge3dVertex> vertices,int vertexSize,array<c_uint> indices,int indexSize=-1)
+ extern "xl6ForeignViewCloseV1" @no_raise @c_control(0) @c_result("bool_status") func close()
+end
+
+extern "xge3dMeshReleaseChecked" @header("xge3d_renderer.h") @no_raise @c_result("status",0) func releaseMesh3D(Mesh3D value)
+export extern "xge3dMeshCreateOwned" @header("xge3d_renderer.h") @no_raise @c_array_group(0,0,1,"size_t",1) @c_array_input(0,0,"const xge3d_vertex_t*","value") @c_array_group(2,2,1,"size_t",3) @c_array_input(2,0,"const uint16_t*","value") @c_result("owned_view") @factory(4,0,releaseMesh3D) func createMesh(array<Xge3dVertex> vertices,int vertexSize=-1,array<c_ushort> indices=[],int indexSize=-1) as Mesh3D
+export extern "xge3dMeshCreateU32Owned" @header("xge3d_renderer.h") @no_raise @c_array_group(0,0,1,"size_t",1) @c_array_input(0,0,"const xge3d_vertex_t*","value") @c_array_group(2,2,1,"size_t",3) @c_array_input(2,0,"const uint32_t*","value") @c_result("owned_view") @factory(4,0,releaseMesh3D) func createMesh32(array<Xge3dVertex> vertices,int vertexSize,array<c_uint> indices,int indexSize=-1) as Mesh3D

@@ -1,0 +1,133 @@
+{
+  "complete": true,
+  "passed": true,
+  "releaseInstalled": false,
+  "title": "Owned 3D meshes and attachments",
+  "nativeCommit": "b9d3ba438b964db2dfa2fbcabb9fe20ce72aa30f",
+  "compilerCommit": "07f3767fd47892ed5b83fe9fde9034fea2f01a37",
+  "nativeSourceHashes": {
+    "include/xge.h": "4a424cdbc2bd277225c7dc54bf589cd1eed528319b5a9d94d345f90e502bec39",
+    "src/xge/3d/xge3d_internal.h": "2c29b501b89b8aab7c9c8fed9728f1d21e6afa3173b516b374d6fc8eedff1c6a",
+    "src/xge/3d/xge3d_render.c": "ba3d374b762ee5e6a3195d2dd7061d227ad788257cdb2ea04187df29950d6030",
+    "src/xge/3d/xge3d_spatial.c": "9c4888b0bf336b955146a4181ac47697131421aecbfedf08da2b8255c2cac3a0",
+    "tests/xge/test_3d_mesh_owned.c": "4afb28936d749d67440019b8323a7aeffcdc25b6223d46c460fa3d955615c0bd"
+  },
+  "sourceHashes": {
+    "lib/bindings/xge/three_d/xlang.package.json": "6676a36df26747a1b1eacf599127c1a2a875fcdaaeb27634a20e0a64f761dadd",
+    "lib/bindings/xge/three_d/examples/mesh.xl": "e95387980dca71ce90bffbfbe13711dc9a1e9059e925f4e61b2ef483c58010d5",
+    "lib/bindings/xge/three_d/include/xge3d_renderer.h": "a7f5fa76dd25141b49870725a1ba113b7263a6c33a9e957594dfd2b554cca716",
+    "lib/bindings/xge/three_d/src/mesh.xl": "cc4874487aeb9c1c233c39e453636d8528c08fd0118c15a65af26cf8165b899a",
+    "lib/bindings/xge/three_d/src/scene.xl": "a86e7069b6af4e2d9532ea0945eae6cdfc57f20f2078e4ff54ab3298e2fc33b7",
+    "test/cases/foreign_xge3d_mesh_owned.xl": "1a58ca2e4b9127b567ef0d2d3ad61a42e29f03b8bd9ab1fc81305075b8227a8b",
+    "docs/xge3-mesh.md": "d9dbfc8ee566347d17743530d399229e84530bc2efcfbe68c8cb8105d6403d9b",
+    "lib/bindings/xge/three_d/README.md": "b56c4300bc41336ab2185b94b5e399b2297f61eb3500cf3009c91bd11a3d97aa"
+  },
+  "evidence": {
+    "win": {
+      "sdk": {
+        "path": "F:\\xlang-validation\\xge-full-20261110\\mesh3d-sdk-win-r1\\results.json",
+        "sha256": "5e36909097869dc3789edb27d2fcc15af8399c0329c6997e709236d844214a50"
+      },
+      "native": {
+        "path": "F:\\xlang-validation\\xge-full-20261110\\mesh3d-native-win-r2\\results.json",
+        "sha256": "ce02e454a45e7c025a9ccd13bbcd075a2bb71ddd177cb16b55ff0d52e6f0a405"
+      },
+      "package": {
+        "path": "F:\\xlang-validation\\xge-full-20261110\\mesh3d-packages-win-r1\\results.json",
+        "sha256": "ea52c0c00332c2c995b32771a45108db1210483f956fe7d5fc7fe84ca3374f91"
+      },
+      "language": {
+        "path": "F:\\xlang-validation\\xge-full-20261110\\mesh3d-language-win-r1\\results.json",
+        "sha256": "5cccfb764749a8ed795445057748daa55f08ccaa630d82c25cb72a64a3d23a8e"
+      },
+      "sdkSteps": 2,
+      "nativeSteps": 24,
+      "packageSteps": 4,
+      "languageSteps": 11,
+      "heapAndRollback": {
+        "path": "F:\\xlang-validation\\xge-full-20261110\\mesh3d-heap-win-r2\\results.json",
+        "sha256": "1c93da2eece6c32121735a6cd5e34f3d92a311fae5c2fa89a0e849fc4ebf12cd",
+        "iterations": 64,
+        "counts": {
+          "language-create": [
+            384,
+            384,
+            0
+          ],
+          "language-at": [
+            0,
+            0,
+            0
+          ],
+          "native-create": [
+            192,
+            192,
+            0
+          ],
+          "native-at": [
+            0,
+            0,
+            0
+          ]
+        },
+        "oom": [
+          6,
+          4
+        ]
+      }
+    },
+    "linux": {
+      "sdk": {
+        "path": "\\\\wsl.localhost\\Ubuntu\\var\\tmp\\xlang-validation\\xge-full-20261110\\mesh3d-sdk-linux-r1\\results.json",
+        "sha256": "fa74ad8c3a53601593e84c35e4ae65252e728b0a84f5a8b2e5c4112a0479cd38"
+      },
+      "native": {
+        "path": "\\\\wsl.localhost\\Ubuntu\\var\\tmp\\xlang-validation\\xge-full-20261110\\mesh3d-native-linux-r2\\results.json",
+        "sha256": "36274433367e8e464b7f00d0aeb8e1eae024e2997d21fc3aed60e162caf8239d"
+      },
+      "package": {
+        "path": "\\\\wsl.localhost\\Ubuntu\\var\\tmp\\xlang-validation\\xge-full-20261110\\mesh3d-packages-linux-r1\\results.json",
+        "sha256": "5650289211c3fea924c03e42cfb3c6c2f09185f8fb16cf24568fcad90e513a66"
+      },
+      "language": {
+        "path": "\\\\wsl.localhost\\Ubuntu\\var\\tmp\\xlang-validation\\xge-full-20261110\\mesh3d-language-linux-r1\\results.json",
+        "sha256": "189c3290201f3d63c799ed79c4d9f1c363ed62968a8fc44758d3ba66f0b85edb"
+      },
+      "sdkSteps": 2,
+      "nativeSteps": 24,
+      "packageSteps": 4,
+      "languageSteps": 11,
+      "heapAndRollback": {
+        "path": "\\\\wsl.localhost\\Ubuntu\\var\\tmp\\xlang-validation\\xge-full-20261110\\mesh3d-heap-linux-r2\\results.json",
+        "sha256": "fe430c82e2c36c0482d307aff4985b0aa9d0143b56d17d6945cefb7eff497551",
+        "iterations": 64,
+        "counts": {
+          "language-create": [
+            384,
+            384,
+            0
+          ],
+          "language-at": [
+            0,
+            0,
+            0
+          ],
+          "native-create": [
+            192,
+            192,
+            0
+          ],
+          "native-at": [
+            0,
+            0,
+            0
+          ]
+        },
+        "oom": [
+          6,
+          4
+        ]
+      }
+    }
+  }
+}

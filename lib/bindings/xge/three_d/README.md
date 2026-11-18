@@ -65,3 +65,9 @@ Pass separate geometry and nullable texture arrays for a mixed-texture queue.
 [debug_draw.xl](examples/debug_draw.xl) draws a persistent debug line and
 prints the last frame's CPU time. The renderer also exposes
 [options, profiling, warmup and configured post-processing](../../../../docs/xge3-renderer-diagnostics.md).
+
+## 3D mesh example
+
+[Render a triangle](examples/mesh.xl) from three vertices and attach it to a
+scene node. The [mesh guide](../../../../docs/xge3-mesh.md) covers indexed
+geometry, updates, level-of-detail attachments and ownership.
