@@ -1,0 +1,258 @@
+{
+  "complete": true,
+  "passed": true,
+  "releaseInstalled": false,
+  "sourceParent": "c3c18499e1c4aee83c96cda343432d409477953c",
+  "nativeCommit": "5fd62e8a335f642ef681e09eee2392a61eba1651",
+  "nativeParent": "5da1a55a40525becfd8c7dfbc0ad94ab66767b8b",
+  "xrtCommit": "804cc769de3030118c2b46ef7af69543d1b82d9d",
+  "sourceHashes": {
+    "lib/bindings/xui/src/managed.xl": "21cdd0f7efb72989103626c3c98d6675557e1b5c9383f2d632e41778bf618f86",
+    "lib/bindings/xui/examples/code_assist.xl": "3647b27694b3498669e96ef3ea984becaf5a02d6a0b9f6e407ae495fbf6e32a5",
+    "lib/bindings/xui/examples/README.md": "bc946407f8cd624e8621d75c8ef398ea0dd6846b49f74eec60c9ba9e70a70566",
+    "docs/xui-code-assist.md": "2b9d2923799cd1811d8d54f927fb6882ed21f327d4093fc2dbf0982e827bb89f",
+    "docs/xge3-xui3-api-map-storage.json": "e6539226aa7f21df90a619e8533db30fc6a74fb048a2b95c0a88ef5ec4466c6a",
+    "tools/xui_managed_contracts.py": "a25079234ecadc716c8303886388128f905a70081a7a171c38b15e2e61fa0be4",
+    "test/cases/foreign_xui_code_assist.xl": "b04d81d12f3496b2465dda373c1b6db00d0da67180f15d6b69048cbcf8323616",
+    "test/cases/foreign_xui_code_assist.c": "3090cd5400f7c8f09780406f14c317d3e374730b6a6a2470ef14cba80d83f753",
+    "test/cases/foreign_xui_code_assist.h": "be705bae24578deb80669cd378bdafc46031b1c15824dd7533c1e18b79d99f20"
+  },
+  "nativeValidatedSourceHashes": {
+    "include/xui.h": "c7e42bfb46cc5776068dcff2b679c0c76660a4f694afd1daebd346ae6d536753",
+    "src/xui/code/xui_code_edit.c": "3ff6169f54ea22a9dd6eb7b697e5871b0f54f13c971bc0ee964f2268aa1420a5",
+    "tests/xui/xui_code_completion_position_test.c": "fc8275f01b91f0d0a44ad6dc4a703347194c4d55c9104f4a9a661add042da3bb"
+  },
+  "behavior": [
+    "CodeEdit exposes a single checked read of the document revision and collapsed UTF-8 caret.",
+    "The request and result use the native caret validation, including stale version rejection and prefix filtering.",
+    "Completion metadata and signature parameters project typed columns and are used by the native popup.",
+    "The native input scopes and the typed placeholder overload share the original status and storage contracts.",
+    "Batch edit ranges are validated before mutation. Native status is surfaced and already-applied replacements may survive a later failure.",
+    "One thousand warmed request position queries allocate nothing in either direct C or generated language calls.",
+    "Native records are prepared before entry. An injected completion projection allocation failure preserves the previous popup and live allocations.The legacy native CodeEdit fixture passes functionally on both SDK revisions and retains the same one 160-byte live allocation in each linkage mode. The focused completion-position fixture returns to its heap baseline."
+  ],
+  "evidence": {
+    "win": {
+      "sdk": {
+        "path": "F:\\xlang-validation\\xge-full-20261110\\code-assist-sdk-win-r1\\results.json",
+        "sha256": "647978363164ca003bc09cd8c613c695903fe566fc30b0fd22d426f8ceb2ccc0",
+        "steps": 2
+      },
+      "packages": {
+        "path": "F:\\xlang-validation\\xge-full-20261110\\code-assist-packages-win-r2\\results.json",
+        "sha256": "9607b0aa58c68f44f190485a4a31eab926cfbbed4552ae15cf2ccfcc3af7cce5",
+        "steps": 6,
+        "storageReview": {
+          "path": "F:\\xlang-validation\\xge-full-20261110\\code-assist-packages-win-r2\\source-review\\results.json",
+          "sha256": "3506036914479fdfb459ac472d97b65a087a038373caf92015646e444e455aad"
+        },
+        "storageChecks": 456
+      },
+      "native": {
+        "path": "F:\\xlang-validation\\xge-full-20261110\\code-assist-native-win-r1\\results.json",
+        "sha256": "97baea614ae6298cc3d1524dd4fc44f91f93fdade09a3b838972b52b488541d6",
+        "steps": 12
+      },
+      "language": {
+        "path": "F:\\xlang-validation\\xge-full-20261110\\code-assist-language-win-r2\\results.json",
+        "sha256": "788afa82d1b5b991ddabe864e3343128a7ec6ca7b8bc1b29e89c8f4c26eb4c17",
+        "steps": 17,
+        "heapCounts": {
+          "host-jit": {
+            "0": [
+              0,
+              0,
+              0
+            ],
+            "1": [
+              0,
+              0,
+              0
+            ],
+            "2": [
+              0,
+              0,
+              0
+            ]
+          },
+          "host-run": {
+            "0": [
+              0,
+              0,
+              0
+            ],
+            "1": [
+              0,
+              0,
+              0
+            ],
+            "2": [
+              0,
+              0,
+              0
+            ]
+          },
+          "static-run": {
+            "0": [
+              0,
+              0,
+              0
+            ],
+            "1": [
+              0,
+              0,
+              0
+            ],
+            "2": [
+              0,
+              0,
+              0
+            ]
+          },
+          "shared-run": {
+            "0": [
+              0,
+              0,
+              0
+            ],
+            "1": [
+              0,
+              0,
+              0
+            ],
+            "2": [
+              0,
+              0,
+              0
+            ]
+          }
+        }
+      },
+      "legacyCurrent": {
+        "path": "F:\\xlang-validation\\xge-full-20261110\\code-assist-legacy-win-current-r2\\results.json",
+        "sha256": "4a0fc98d96964478c969c8cec25c1290174c2840a65739a08ad16c566e2c802c",
+        "steps": 6,
+        "remainingAllocations": 1,
+        "remainingBytes": 160
+      },
+      "legacyPrevious": {
+        "path": "F:\\xlang-validation\\xge-full-20261110\\code-assist-legacy-win-previous-r2\\results.json",
+        "sha256": "b43e8e8b448e1151e27b2897abd5295dc1977c7fa3310a55df88c48f7963ac01",
+        "steps": 6,
+        "remainingAllocations": 1,
+        "remainingBytes": 160
+      }
+    },
+    "linux": {
+      "sdk": {
+        "path": "\\\\wsl.localhost\\Ubuntu\\var\\tmp\\xlang-validation\\xge-full-20261110\\code-assist-sdk-linux-r1\\results.json",
+        "sha256": "f292dc1227b9d6908cfb0f5b53b2384dc6840fbbd81016b2cf353f1f0d7cde05",
+        "steps": 2
+      },
+      "packages": {
+        "path": "\\\\wsl.localhost\\Ubuntu\\var\\tmp\\xlang-validation\\xge-full-20261110\\code-assist-packages-linux-r2\\results.json",
+        "sha256": "bf51f121e5eb7a14240607c5a486ba4f0fbb93275303c9f530dce14331a4d3b9",
+        "steps": 6,
+        "storageReview": {
+          "path": "\\\\wsl.localhost\\Ubuntu\\var\\tmp\\xlang-validation\\xge-full-20261110\\code-assist-packages-linux-r2\\source-review\\results.json",
+          "sha256": "1c19ea275606a4e80ff0979a6b6eb8f46270606628ac02ad98730b71a37ea33a"
+        },
+        "storageChecks": 457
+      },
+      "native": {
+        "path": "\\\\wsl.localhost\\Ubuntu\\var\\tmp\\xlang-validation\\xge-full-20261110\\code-assist-native-linux-r1\\results.json",
+        "sha256": "05b2aa4498f68331336e6f7c178934ada4827def3a034b9e5ab22040c7cc3373",
+        "steps": 12
+      },
+      "language": {
+        "path": "\\\\wsl.localhost\\Ubuntu\\var\\tmp\\xlang-validation\\xge-full-20261110\\code-assist-language-linux-r2\\results.json",
+        "sha256": "92fecfaa0cae7d23f76f2722bd44a5aa9033402341767fbf5c877a814b38fc7f",
+        "steps": 17,
+        "heapCounts": {
+          "host-jit": {
+            "0": [
+              0,
+              0,
+              0
+            ],
+            "1": [
+              0,
+              0,
+              0
+            ],
+            "2": [
+              0,
+              0,
+              0
+            ]
+          },
+          "host-run": {
+            "0": [
+              0,
+              0,
+              0
+            ],
+            "1": [
+              0,
+              0,
+              0
+            ],
+            "2": [
+              0,
+              0,
+              0
+            ]
+          },
+          "static-run": {
+            "0": [
+              0,
+              0,
+              0
+            ],
+            "1": [
+              0,
+              0,
+              0
+            ],
+            "2": [
+              0,
+              0,
+              0
+            ]
+          },
+          "shared-run": {
+            "0": [
+              0,
+              0,
+              0
+            ],
+            "1": [
+              0,
+              0,
+              0
+            ],
+            "2": [
+              0,
+              0,
+              0
+            ]
+          }
+        }
+      },
+      "legacyCurrent": {
+        "path": "\\\\wsl.localhost\\Ubuntu\\var\\tmp\\xlang-validation\\xge-full-20261110\\code-assist-legacy-linux-current-r2\\results.json",
+        "sha256": "ab683af2c02f64f2bab25451b4e4b3496e96bf2f740923c9ce871032e1b96f5b",
+        "steps": 6,
+        "remainingAllocations": 1,
+        "remainingBytes": 160
+      },
+      "legacyPrevious": {
+        "path": "\\\\wsl.localhost\\Ubuntu\\var\\tmp\\xlang-validation\\xge-full-20261110\\code-assist-legacy-linux-previous-r2\\results.json",
+        "sha256": "f94d9cffa166a9c17e6933fad7af7ed83557904d18689eff38daf391c967ba9f",
+        "steps": 6,
+        "remainingAllocations": 1,
+        "remainingBytes": 160
+      }
+    }
+  }
+}

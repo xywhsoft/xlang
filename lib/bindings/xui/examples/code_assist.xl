@@ -1,0 +1,32 @@
+// Read the position a language service can use and open its signature help.
+import xge
+import xui
+
+func main(...) as int
+    xge.init(320,160,"Code assistance",c_int(xge.XGE_INIT_OFFSCREEN),xge.XGE_RUN_MANUAL)
+    auto proxy = xui.createProxy()
+    auto ui = xui.create(proxy,xui.XUI_SYSTEM_FONT_DISABLED)
+    auto font = proxy.loadSystemFont(14)
+    try
+        ui.setDefaultFont(font)
+        auto editor = ui.codeEditNative()
+        xui.Rect bounds
+        bounds.fW = 320
+        bounds.fH = 160
+        editor.setRect(bounds)
+        ui.setRootWidget(editor)
+        ui.setViewportSize(320,160)
+        ui.layout()
+
+        auto version,caret = editor.getCompletionPosition()
+        println("Completion position",version,caret)
+        editor.showSignatureHelp("sum(a, b)","Add two numbers")
+        assert editor.isSignatureHelpOpen() == 1
+    finally
+        ui.close()
+        font.close()
+        proxy.close()
+        xge.unit()
+    end
+    return 0
+end

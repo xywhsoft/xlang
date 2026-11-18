@@ -2265,6 +2265,8 @@ export extern "xui_widget_t*" class CodeEdit @header("xge3_runtime.h") @lifetime
 
  extern "xuiCodeEditGetTextView" @no_raise @c_output(1,0) @c_output_view(1,"text") func getText() as string?
 
+ extern "xuiCodeEditApplyTextEdits" @no_raise @c_array_group(1,0,2,"int",2) @c_array_record(1,"xui_code_text_edit_t","iSize","uint32_t") @c_array_field(1,"tRange",0,"value") @c_array_field(1,"sText",1,"c_string") func applyTextEdits(array<CodeRange> ranges,array<string> replacements,int size=-1,c_int selectionAnchor=-1,c_int selectionCaret=-1) as c_int
+
  extern "xuiCodeEditSetInlineCompletion" @no_raise @c_cstr(1) func setInlineCompletion(c_int iOffset,string sText) as c_int
 
  extern "xuiCodeEditClearInlineCompletion" @no_raise func clearInlineCompletion() as c_int
@@ -2276,6 +2278,8 @@ export extern "xui_widget_t*" class CodeEdit @header("xge3_runtime.h") @lifetime
  extern "xuiCodeEditAcceptInlineCompletion" @no_raise func acceptInlineCompletion() as c_int
 
  extern "xuiCodeEditClearVirtualText" @no_raise func clearVirtualText(c_int iKind) as c_int
+
+ extern "xuiCodeEditGetCompletionPosition" @no_raise @c_outputs(1,2) @c_status(0) func getCompletionPosition() as (c_uint,c_int)
 
  extern "xuiCodeEditShowCompletion" @no_raise func showCompletion() as c_int
 
@@ -2289,15 +2293,21 @@ export extern "xui_widget_t*" class CodeEdit @header("xge3_runtime.h") @lifetime
 
  extern "xuiCodeEditGetCompletionPopupWidget" @no_raise @c_result("owner_view",0) func getCompletionPopupWidget() as Widget?
 
+ extern "xuiCodeEditApplyCompletionItems" @no_raise @c_array_group(3,2,11,"int",13) @c_array_record(3,"xui_code_completion_item_t","iSize","uint32_t") @c_array_field(3,"sLabel",0,"c_string") @c_array_field(3,"sInsertText",1,"c_string") @c_array_field(3,"sDetail",2,"c_string") @c_array_field(3,"sDocumentation",3,"c_string") @c_array_field(3,"iKind",4,"value") @c_array_field(3,"iSortOrder",5,"value") @c_array_field(3,"iUserData",6,"value") @c_array_field(3,"sFilterText",7,"c_string") @c_array_field(3,"sSortText",8,"c_string") @c_array_field(3,"sCommitCharacters",9,"c_string") @c_array_field(3,"iFlags",10,"value") @c_result("status",0) func applyCompletionItems(c_uint version,c_int offset,array<string> labels,array<string?> insertTexts,array<string?> details,array<string?> documentation,array<c_int> kinds,array<c_int> sortOrders,array<c_uintptr> userData,array<string?> filterTexts,array<string?> sortTexts,array<string?> commitCharacters,array<c_uint> flags,int size=-1)
+
  extern "xuiCodeEditSetCompletionOptions" @no_raise @c_result("status",0) func setCompletionOptions(c_int bAutoShow,c_int iMinPrefix,c_int iMaxItems,c_float fDelay)
 
  extern "xuiCodeEditGetCompletionOptions" @no_raise @c_outputs(1,2,3,4) @c_status(0) func getCompletionOptions() as (c_int,c_int,c_int,c_float)
+
+ extern "xuiCodeEditShowSignatureHelp" @no_raise @c_pack(1,"xui_code_signature_help_t",0,8) @c_pack_size(1,"iSize","uint32_t") @c_pack_field(1,"sLabel",0,"c_string") @c_pack_field(1,"sDocumentation",1,"c_string") @c_pack_field(1,"iActiveParameter",2,"value") @c_pack_field(1,"iUserData",7,"value") @c_array_group(10,3,3,"int",6) @c_array_record(10,"xui_code_signature_parameter_t","iSize","uint32_t") @c_array_field(10,"sLabel",0,"c_string") @c_array_field(10,"sDocumentation",1,"c_string") @c_array_field(10,"tLabelRange",2,"value") @c_array_pack(10,1,"pParameters","iParameterCount") @c_result("status",0) func showSignatureHelp(string label,string? documentation=null,c_int activeParameter=-1,array<string?> parameterLabels=[],array<string?> parameterDocumentation=[],array<CodeRange> parameterRanges=[],int size=-1,c_uintptr userData=0)
 
  extern "xuiCodeEditRequestSignatureHelp" @no_raise func requestSignatureHelp() as c_int
 
  extern "xuiCodeEditCloseSignatureHelp" @no_raise @c_result("status",0) func closeSignatureHelp()
 
  extern "xuiCodeEditIsSignatureHelpOpen" @no_raise func isSignatureHelpOpen() as c_int
+
+ extern "xuiCodeEditShowHint" @no_raise @c_pack(1,"xui_code_hover_t",0,4) @c_pack_size(1,"iSize","uint32_t") @c_pack_field(1,"tRange",0,"value") @c_pack_field(1,"sText",1,"c_string") @c_pack_field(1,"sContentType",2,"c_string") @c_pack_field(1,"iUserData",3,"value") @c_result("status",0) func showHint(CodeRange range,string text,string? contentType=null,c_uintptr userData=0)
 
  extern "xuiCodeEditCloseHint" @no_raise @c_result("status",0) func closeHint()
 
@@ -2308,6 +2318,8 @@ export extern "xui_widget_t*" class CodeEdit @header("xge3_runtime.h") @lifetime
  extern "xuiCodeEditHitTestText" @no_raise @c_output(3,0) func hitTestText(c_float fContextX,c_float fContextY) as CodeEditTextHit
 
  extern "xuiCodeEditSetPlaceholders" @no_raise @c_span(0,"const xui_code_placeholder_t*","int") func setPlaceholders(Buffer pPlaceholders,c_int iActiveIndex) as c_int
+
+ extern "xuiCodeEditSetPlaceholders" @no_raise @c_array_group(1,0,1,"int",1) @c_array_input(1,0,"const xui_code_placeholder_t*","value") func setPlaceholders(array<CodePlaceholder> placeholders,int size=-1,c_int activeIndex=0) as c_int
 
  extern "xuiCodeEditClearPlaceholders" @no_raise @c_result("status",0) func clearPlaceholders()
 

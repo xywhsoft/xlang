@@ -1,0 +1,148 @@
+import xge
+import xui
+
+extern "codeAssistHeapBegin" @header("test/cases/foreign_xui_code_assist.h") @no_raise func heapBegin()
+extern "codeAssistHeapEnd" @header("test/cases/foreign_xui_code_assist.h") @no_raise func heapEnd(c_int mode)
+extern "codeAssistHeapBudget" @header("test/cases/foreign_xui_code_assist.h") @no_raise func heapBudget(c_int allowance)
+extern "codeAssistNativeHot" @header("test/cases/foreign_xui_code_assist.h") @no_raise func nativeHot(xui.CodeEdit editor,c_uint version,c_int offset)
+
+func rangeAt(c_int start,c_int endOffset) as xui.CodeRange
+    xui.CodeRange selected
+    selected.iStart = start
+    selected.iEnd = endOffset
+    return selected
+end
+
+func setSelection(xui.CodeEdit editor,c_int start,c_int endOffset)
+    xui.CodePlaceholder placeholder
+    placeholder.iIndex = 1
+    placeholder.tRange = rangeAt(start,endOffset)
+    assert editor.setPlaceholders([placeholder],-1,1) == 0
+end
+
+func verifyEdits(xui.CodeEdit editor)
+    assert editor.setText("left and right") == 0
+    assert editor.applyTextEdits([rangeAt(0,4),rangeAt(9,14)],["a","b"],-1,1,1) == 0
+    assert (editor.getText() ?? "") == "a and b"
+    auto version,offset = editor.getCompletionPosition()
+    assert offset == 1
+    assert editor.applyTextEdits([rangeAt(2,5),rangeAt(4,7)],["one","two"]) != 0
+    assert (editor.getText() ?? "") == "a and b"
+    bool rejected = false
+    try
+        editor.applyTextEdits([rangeAt(0,1)],["bad\0value"])
+    catch error
+        rejected = true
+    end
+    assert rejected and (editor.getText() ?? "") == "a and b"
+end
+
+func verifyCompletion(xui.CodeEdit editor)
+    assert editor.setText("中😀 su") == 0
+    setSelection(editor,8,10)
+    bool selectionRejected = false
+    try
+        editor.getCompletionPosition()
+    catch error
+        selectionRejected = true
+    end
+    assert selectionRejected
+    setSelection(editor,10,10)
+    auto version,offset = editor.getCompletionPosition()
+    assert offset == 10
+
+    heapBegin()
+    for index in range(1000)
+        auto observed,caret = editor.getCompletionPosition()
+        assert observed == version and caret == offset
+    end
+    heapEnd(0)
+    nativeHot(editor,version,offset)
+
+    array<string> labels = ["sum","subtract","other"]
+    array<string?> insertTexts = ["sum(value)",null,null]
+    array<string?> details = ["number",null,null]
+    array<string?> docs = ["Add two numbers",null,null]
+    array<string?> filters = ["sum",null,null]
+    array<string?> sortTexts = ["a",null,null]
+    array<string?> commitCharacters = ["(",null,null]
+    array<c_int> kinds = [1,0,0]
+    array<c_int> orders = [0,0,0]
+    array<c_uintptr> data = [7,0,0]
+    array<c_uint> flags = [0,0,0]
+    editor.applyCompletionItems(version,offset,labels,insertTexts,details,docs,kinds,orders,data,filters,sortTexts,commitCharacters,flags)
+    assert editor.isCompletionOpen() == 1 and editor.getCompletionCount() == 2
+    bool failed = false
+    heapBegin()
+    heapBudget(0)
+    try
+        editor.applyCompletionItems(version,offset,labels,insertTexts,details,docs,kinds,orders,data,filters,sortTexts,commitCharacters,flags)
+    catch error
+        failed = true
+    finally
+        heapBudget(-1)
+    end
+    assert failed and editor.isCompletionOpen() == 1 and editor.getCompletionCount() == 2
+    heapEnd(2)
+    editor.applyCompletionItems(version,offset,labels,insertTexts,details,docs,kinds,orders,data,filters,sortTexts,commitCharacters,flags,1)
+    assert editor.getCompletionCount() == 1
+    editor.cancelCompletion()
+
+    assert editor.setText("中😀 sa") == 0
+    setSelection(editor,10,10)
+    bool staleRejected = false
+    try
+        editor.applyCompletionItems(version,offset,labels,insertTexts,details,docs,kinds,orders,data,filters,sortTexts,commitCharacters,flags)
+    catch error
+        staleRejected = true
+    end
+    assert staleRejected and editor.isCompletionOpen() == 0
+end
+
+func verifyHelp(xui.CodeEdit editor)
+    array<string?> labels = ["a","b"]
+    array<string?> docs = [null,"Second number"]
+    editor.showSignatureHelp("sum(a, b)","Add two numbers",1,labels,docs,[rangeAt(4,5),rangeAt(7,8)])
+    assert editor.isSignatureHelpOpen() == 1
+    editor.closeSignatureHelp()
+    assert editor.isSignatureHelpOpen() == 0
+    bool badParameter = false
+    try
+        editor.showSignatureHelp("sum(a, b)",null,2,labels,docs,[rangeAt(4,5),rangeAt(7,8)])
+    catch error
+        badParameter = true
+    end
+    assert badParameter and editor.isSignatureHelpOpen() == 0
+    editor.showHint(rangeAt(8,10),"Completion prefix","text/plain")
+    assert editor.isHintOpen() == 1
+    editor.closeHint()
+    assert editor.isHintOpen() == 0
+end
+
+func main(...) as int
+    xge.init(320,200,"CodeEdit assistance qualification",c_int(xge.XGE_INIT_OFFSCREEN),xge.XGE_RUN_MANUAL)
+    auto proxy = xui.createProxy()
+    auto ui = xui.create(proxy,xui.XUI_SYSTEM_FONT_DISABLED)
+    auto font = proxy.loadSystemFont(14)
+    try
+        ui.setDefaultFont(font)
+        auto editor = ui.codeEditNative()
+        xui.Rect bounds
+        bounds.fW = 320
+        bounds.fH = 200
+        editor.setRect(bounds)
+        ui.setRootWidget(editor)
+        ui.setViewportSize(320,200)
+        ui.layout()
+        verifyEdits(editor)
+        verifyCompletion(editor)
+        verifyHelp(editor)
+    finally
+        ui.close()
+        font.close()
+        proxy.close()
+        xge.unit()
+    end
+    println("XUI_CODE_ASSIST_LANGUAGE_OK")
+    return 0
+end
