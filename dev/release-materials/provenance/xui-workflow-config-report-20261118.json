@@ -1,0 +1,142 @@
+{
+  "complete": true,
+  "passed": true,
+  "title": "xui-workflow-config-report-20261118",
+  "sourceHashes": {
+    "docs/xui-workflow-model.md": "539cf269fee66961e977f61bb7dbe81356627748feb95be2b46243585fe0a7a9",
+    "lib/bindings/xui/src/workflow.xl": "cc379ce54493bb2aadcb27ca4c4dc229c65189130b82db340835228dd9dca167",
+    "test/cases/foreign_xui_workflow_config_report.xl": "16827ddc58fc3d47cb1d7e494591b7159e6a458eeee32eb527dc48bb08975ede"
+  },
+  "nativeCommit": "45c67c82cd0e8e786d17e6d5e50746c54affa12f",
+  "matchedSdkNativeCommit": "458880ed7668d9f1ed4e45ec40e0e3e9d7b5bf20",
+  "releaseInstalled": false,
+  "evidence": {
+    "win": {
+      "nativeBuild": {
+        "path": "F:\\xlang-validation\\xge-full-20261110\\workflow-report-document-ops-sdk-win-r1\\results.json",
+        "sha256": "217ebde2ad8094b6090f25af4913a244cd66894ad54401285ccd06c8b9bb2069",
+        "steps": 2
+      },
+      "nativeSource": {
+        "path": "F:\\xlang-validation\\xge-full-20261110\\workflow-config-report-source-win-r1\\results.json",
+        "sha256": "4c172e0020d67ce368af26aa0db58e801175abdca1d30c260b67c10afa063309",
+        "steps": 24
+      },
+      "nativeSdk": {
+        "path": "F:\\xlang-validation\\xge-full-20261110\\workflow-report-document-ops-real-sdk-win-r1\\qualified\\results.json",
+        "sha256": "b5ec46af6ec86b204f3f3b081a980ae32ed550cb501a01c733f1571e6263d5bb",
+        "steps": 72
+      },
+      "package": {
+        "path": "F:\\xlang-validation\\xge-full-20261110\\workflow-config-report-packages-win-r1\\results.json",
+        "sha256": "2a4a1d5af942917ba95926578a8a63aec3be75f497bef2991adffd056ceb0570",
+        "steps": 4
+      },
+      "language": {
+        "path": "F:\\xlang-validation\\xge-full-20261110\\workflow-config-report-qualification-win-r2\\results.json",
+        "sha256": "13a8388561bdca924107c75fb7bc237a1f7efac274667ec27e2a6de1d784660b",
+        "steps": 10
+      },
+      "programs": [
+        {
+          "path": "F:\\xlang-validation\\xge-full-20261110\\workflow-config-report-qualification-win-r2\\host.exe",
+          "sha256": "15378e9b469374b25e043bee5bee0ee121cd73dea1745d67ad553e04068be410",
+          "imports": [
+            "msvcrt.dll",
+            "xge3_host.dll",
+            "kernel32.dll",
+            "SHELL32.dll",
+            "ucrtbase.dll"
+          ]
+        },
+        {
+          "path": "F:\\xlang-validation\\xge-full-20261110\\workflow-config-report-qualification-win-r2\\static.exe",
+          "sha256": "201ea57be19145f7c43cc92ef399dfdd553d0725bd44bc58db56b97ae1cd0e28",
+          "imports": [
+            "msvcrt.dll",
+            "kernel32.dll",
+            "ole32.dll",
+            "SHELL32.dll"
+          ]
+        },
+        {
+          "path": "F:\\xlang-validation\\xge-full-20261110\\workflow-config-report-qualification-win-r2\\workflow.dll",
+          "sha256": "2fbe0f6f6a9b1aba44a7309b74dd62357357c21e55d4bf5f83a4c33add9282c9",
+          "imports": [
+            "msvcrt.dll",
+            "kernel32.dll",
+            "ole32.dll"
+          ]
+        }
+      ]
+    },
+    "linux": {
+      "nativeBuild": {
+        "path": "\\\\wsl.localhost\\Ubuntu\\var\\tmp\\xlang-validation\\xge-full-20261110\\workflow-report-document-ops-sdk-linux-r1\\results.json",
+        "sha256": "a972c2b605a29c7a501726660e1da70cfbd290a2b1f2401197cde8d64d85c4a7",
+        "steps": 2
+      },
+      "nativeSource": {
+        "path": "\\\\wsl.localhost\\Ubuntu\\var\\tmp\\xlang-validation\\xge-full-20261110\\workflow-config-report-source-linux-r1\\results.json",
+        "sha256": "c12c6a028d95a19486e28f10ace4aa91e5b417817534f20fdc6b424eaf9c134f",
+        "steps": 24
+      },
+      "nativeSdk": {
+        "path": "\\\\wsl.localhost\\Ubuntu\\var\\tmp\\xlang-validation\\xge-full-20261110\\workflow-report-document-ops-real-sdk-linux-r1\\qualified\\results.json",
+        "sha256": "63b1f0f9e1f689699bbff8b405c53ce523966853443bd2bee28f332ab9765860",
+        "steps": 72
+      },
+      "package": {
+        "path": "\\\\wsl.localhost\\Ubuntu\\var\\tmp\\xlang-validation\\xge-full-20261110\\workflow-config-report-packages-linux-r1\\results.json",
+        "sha256": "e3325e9b9ddc524ef1447024a7f8bb956a4f76c3512581719dc62362c5253bc0",
+        "steps": 4
+      },
+      "language": {
+        "path": "\\\\wsl.localhost\\Ubuntu\\var\\tmp\\xlang-validation\\xge-full-20261110\\workflow-config-report-qualification-linux-r2\\results.json",
+        "sha256": "c7471fd548b466b332a60c1657476a9a40f69e1f79dbfeb9b702adf373e996b4",
+        "steps": 10
+      },
+      "programs": [
+        {
+          "path": "/var/tmp/xlang-validation/xge-full-20261110/workflow-config-report-qualification-linux-r2/host",
+          "sha256": "c58b297c7cc8c4c21bdc6a315fce6d5fd5a02686cc0abfc7b103b656796d0c49",
+          "imports": [
+            "libm.so.6",
+            "libmvec.so.1",
+            "libxge3_host.so",
+            "libc.so.6",
+            "ld-linux-x86-64.so.2"
+          ]
+        },
+        {
+          "path": "/var/tmp/xlang-validation/xge-full-20261110/workflow-config-report-qualification-linux-r2/static",
+          "sha256": "bf084b598e140ba701772f7e93a7e5f4d902860dff2011df2fc08a05812b1822",
+          "imports": [
+            "libm.so.6",
+            "libmvec.so.1",
+            "libX11.so.6",
+            "libXi.so.6",
+            "libXcursor.so.1",
+            "libGL.so.1",
+            "libc.so.6",
+            "ld-linux-x86-64.so.2"
+          ]
+        },
+        {
+          "path": "/var/tmp/xlang-validation/xge-full-20261110/workflow-config-report-qualification-linux-r2/workflow.so",
+          "sha256": "f24a35c33990c8bdcbfc36a0279b5d64b841ed5b9cc1e13a569b0776d6edf8bc",
+          "imports": [
+            "libm.so.6",
+            "libmvec.so.1",
+            "libX11.so.6",
+            "libXi.so.6",
+            "libXcursor.so.1",
+            "libGL.so.1",
+            "libc.so.6",
+            "ld-linux-x86-64.so.2"
+          ]
+        }
+      ]
+    }
+  }
+}

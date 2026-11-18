@@ -1,0 +1,33 @@
+import xui
+
+func workflowReport()
+ auto workflow=xui.createWorkflow()
+ var schema=xui.createWorkflowSchema()
+ xui.addWorkflowSchemaField(schema,"quantity","Quantity",xui.XUI_WORKFLOW_CONFIG_FIELD_INT,1,0,null,1,10)
+ xui.addWorkflowSchemaField(schema,"label","Label",xui.XUI_WORKFLOW_CONFIG_FIELD_STRING,1)
+ array<string> ids=[]
+ array<string?> labels=[]
+ array<c_int> settings=[]
+ workflow.registerNodeType("order",1,"Order",null,null,null,
+    ids,labels,labels,settings,settings,settings,settings,settings,0,
+    ids,labels,labels,settings,settings,settings,settings,settings,0,schema)
+ var report=workflow.validateConfigReport("order",{"quantity":5})
+ var absent=workflow.validateConfigReport("order")
+ var valid=workflow.validateConfigReport("order",{"quantity":10,"label":"valid"})
+ assert workflow.validateConfig("order",{"quantity":5})==2
+ assert absent[0].code=="required"
+ int count=0
+ for issue in valid
+  count+=1
+ end
+ assert count==0
+ workflow.close()
+ assert report[0].path=="quantity" and report[0].code=="range.min"
+ assert report[1].path=="label" and report[1].code=="required"
+end
+
+func main(...) as int
+ workflowReport()
+ println("WORKFLOW_CONFIG_REPORT_OK")
+ return 0
+end

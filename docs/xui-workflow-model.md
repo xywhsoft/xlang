@@ -92,3 +92,10 @@ with XRT wire values. For example, a configuration returned by
 `getNodeConfigShared()` can be stored as an explicitly shared variable default.
 The `Clone` methods follow the original XRT deep-copy paths.
 `saveXsonFileClone()` and `loadXsonFile()` use the native XSON file format.
+
+`validateConfig()` returns the number of configuration issues.
+`validateConfigReport(type, config)` returns all issues in schema order.
+Each record contains `path`, `code`, and `message`. The report owns its
+data and remains readable after closing the Workflow. Omit `config` to
+check which required fields are missing. An allocation failure rejects
+the entire report.
