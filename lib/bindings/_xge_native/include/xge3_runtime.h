@@ -68,6 +68,7 @@ const XL6_ForeignViewDescriptorV1* xl6Xui3DocumentPolicyGet(void);
 const XL6_ForeignViewDescriptorV1* xl6Xui3DocumentSnapshotPolicyGet(void);
 const XL6_ForeignViewDescriptorV1* xl6Xui3DocumentChangeSetPolicyGet(void);
 const XL6_ForeignViewDescriptorV1* xl6Xui3DocumentMatchesPolicyGet(void);
+const XL6_ForeignViewDescriptorV1* xl6Xui3DocumentRangeRectsPolicyGet(void);
 const XL6_ForeignViewDescriptorV1* xl6Xui3DocumentMarkdownLossesPolicyGet(void);
 const XL6_ForeignViewDescriptorV1* xl6Xui3DocumentPreparePolicyGet(void);
 const XL6_ForeignViewDescriptorV1* xl6Xui3DocumentFragmentPolicyGet(void);
@@ -125,6 +126,7 @@ const XL6_ForeignViewDescriptorV1* xl6Xge3AudioClipPolicyGet(void);
 #define xl6Xui3DocumentSnapshotPolicy (*xl6Xui3DocumentSnapshotPolicyGet())
 #define xl6Xui3DocumentChangeSetPolicy (*xl6Xui3DocumentChangeSetPolicyGet())
 #define xl6Xui3DocumentMatchesPolicy (*xl6Xui3DocumentMatchesPolicyGet())
+#define xl6Xui3DocumentRangeRectsPolicy (*xl6Xui3DocumentRangeRectsPolicyGet())
 #define xl6Xui3DocumentMarkdownLossesPolicy (*xl6Xui3DocumentMarkdownLossesPolicyGet())
 #define xl6Xui3DocumentPreparePolicy (*xl6Xui3DocumentPreparePolicyGet())
 #define xl6Xui3DocumentFragmentPolicy (*xl6Xui3DocumentFragmentPolicyGet())

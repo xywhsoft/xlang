@@ -1,0 +1,25 @@
+import xui
+
+auto proxy = xui.createProxy()
+auto context = xui.create(proxy)
+auto document = xui.createDocument(c_uint(xui.XUI_DOCUMENT_MARKDOWN))
+document.loadMarkdown("The layout engine computes this selection before drawing.")
+auto snapshot = document.snapshot()
+auto matches = snapshot.find(c_uint(xui.XUI_DOC_SEMANTIC), "this selection")
+
+auto renderer = xui.createDocumentRenderer(context)
+renderer.setSnapshot(snapshot, null)
+renderer.layout(c_double(120), c_double(0), c_double(200))
+auto geometry = renderer.collectRangeRects(matches.ranges()[0])
+
+for rectangle in geometry.entries()
+ println("Selection rectangle:", rectangle.x, rectangle.y, rectangle.width, rectangle.height)
+end
+
+geometry.close()
+renderer.close()
+matches.close()
+snapshot.close()
+document.close()
+context.close()
+proxy.close()

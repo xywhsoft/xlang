@@ -19,7 +19,7 @@ def reachable(packages):
   call=foreign_method_declaration(line)
   if not call:continue
   native,kind,name,parameters=call
-  if not (native.startswith(('xuiDocumentRenderer','xuiDocumentView','xuiDocumentEditor','xuiDocumentWebProvider','xuiDocumentHtmlInteraction','xuiDocumentImageResource','xuiDocumentFontOutput')) or (owner=='MessageList' and ('Document' in native or native=='xuiMessageListAddNode')) or (owner and owner.startswith('CallbackDocument'))):continue
+  if not (native.startswith(('xuiDocumentRenderer','xuiDocumentView','xuiDocumentEditor','xuiDocumentWebProvider','xuiDocumentHtmlInteraction','xuiDocumentImageResource','xuiDocumentFontOutput','xuiDocumentRangeRects')) or (owner=='MessageList' and ('Document' in native or native=='xuiMessageListAddNode')) or (owner and owner.startswith('CallbackDocument'))):continue
   if not owner and not line.startswith('export extern'):continue
   params=([owner+' receiver'] if owner else []);args=[];locals=[]
   for i,p in enumerate(split(parameters)):

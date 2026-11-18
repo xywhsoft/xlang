@@ -54,10 +54,14 @@ def owner(name):
  return None,None
 for f in h['functions']:
  name=f['name'];cl,prefix=owner(name);ps=f['type']['parameters']
+ if name.startswith('xuiDocumentRangeRects'):
+  reasons[name]='Native reference policy for the immutable selection geometry result';continue
  if not cl:reasons[name]='Explicit callback-output helper or legacy void-userdata provider adapter';continue
  if any(x in name for x in ('Create','LifetimeWatch','TraceOwnership','OwnershipBusy','Release','RequestClose','GetContext','GetType')) or name.endswith('Owned') or name.endswith('SetOpenLink') or name.endswith('SetInvalidate'):
   reasons[name]='Native lifetime/registration infrastructure; explicit typed declaration follows where safe';continue
- if name=='xuiDocumentRendererGetRangeRects':reasons[name]='Caller rectangle output array/capacity needs a checked typed writable output-array contract; never one record plus arbitrary capacity';continue
+ if name=='xuiDocumentRendererGetRangeRects':reasons[name]='Caller-supplied rectangle buffer; DocumentRenderer.collectRangeRects returns an owned result';continue
+ if name=='xuiDocumentRendererCollectRangeRects':
+  add(cl,name,'collectRangeRects','DocumentRange range',['@c_ref(0)','@c_result("owned_view")','@factory(2,0,rollbackDocumentRangeRects)'],'DocumentRangeRects');continue
  if name in ('xuiDocumentHtmlInteractionGetWindow','xuiDocumentHtmlInteractionGetWebView','xuiDocumentEditorGetMenuWidget','xuiDocumentEditorGetFindWindow'):
   add(cl,name,name[len(prefix):][3:4].lower()+name[len(prefix):][4:],'',['@c_result("owner_view",0)'],'Widget?');continue
  if name=='xuiDocumentImageResourcePoll':add(cl,name,'poll','',['@c_null(1,"xui_resource*")'],'c_int');continue
@@ -162,6 +166,18 @@ status('MessageList','xuiMessageListSetNodeDocument','clearDocument','string mes
 status('MessageList','xuiMessageListSetNodeDocumentTableSelection','clearDocumentTableSelection','string messageId',['@c_cstr(0)','@c_null(2,"const xui_doc_table_selection_t*")'])
 
 output=prefixLines[:]
+output+=['export extern "struct xui_doc_range_rects_t*" class DocumentRangeRects @header("xge3_runtime.h") @lifetime("owned") @policy("xl6Xui3DocumentRangeRectsPolicy") @domain("xl6Xui3DocumentModelDomainV1")',
+ ' native point handle',
+ decl('xuiDocumentRangeRectsShareOwned','share','',['@c_result("owned_view")','@factory(1,0,rollbackDocumentRangeRects)'],'DocumentRangeRects'),
+ decl('xuiDocumentRangeRectsGetEntries','entries','',['@c_owned_sequence(1,2,0,"size_t",0)','@c_retain(retainDocumentRangeRects,"zero",rollbackDocumentRangeRects)'],'NativeSequence<DocumentRect>'),
+ ' extern "xl6ForeignViewCloseV1" @no_raise @c_control(0) @c_result("bool_status") func close()',
+ 'end',
+ 'extern "xuiDocumentRangeRectsReleaseChecked" @header("xge3_runtime.h") @no_raise @c_result("status",0) func rollbackDocumentRangeRects(DocumentRangeRects value)',
+ 'extern "xuiDocumentRangeRectsAddRef" @header("xge3_runtime.h") @no_raise func retainDocumentRangeRects(DocumentRangeRects value) as c_int',
+ '']
+for name,logical in [('xuiDocumentRangeRectsShareOwned','DocumentRangeRects.share'),
+                     ('xuiDocumentRangeRectsGetEntries','DocumentRangeRects.entries')]:
+ mapped[name]=[logical];reasons.pop(name,None)
 for cl in ('DocumentRenderer','DocumentView','DocumentEditor','DocumentWebProvider','DocumentHtmlInteraction','DocumentImageRequest'):
  if cl=='DocumentRenderer':physical='struct xui_document_renderer_t*';attributes='@lifetime("owned") @policy("xl6Xui3DocumentRendererPolicy") @domain("xl6Xui3OwnershipDomainV1")';base='';close=' extern "xl6ForeignViewCloseV1" @no_raise @c_control(0) @c_result("bool_status") func close()';release='xuiDocumentRendererReleaseChecked'
  elif cl in ('DocumentView','DocumentEditor'):physical='xui_widget_t*';attributes='@lifetime("owner") @owner(Context) @policy("xl6Xui3WidgetPolicy") @watch("xui_lifetime_link_t")';base=' extends '+('Widget' if cl=='DocumentView' else 'DocumentView');close='';release='xuiWidgetDestroyChecked'

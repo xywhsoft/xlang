@@ -1,5 +1,16 @@
 # XGE / XUI / Document 全量接入
 
+2026-11-18 当前。Workflow 变量读取已采用[借用值字段拥有化](foreign-borrowed-value-record.md)。
+`getVariable()` 对保活后的值执行一次 public 存储数据投影，`getVariableShared()`
+保留原值引用。输出字段转换失败时整组回滚。动态端口和验证回调、运行状态、变量 ID、
+XSON 导入导出、配置验证报告也已接入[模型接口](xui-workflow-model.md)。
+
+Document 的[变更、查找和转换报告](xge3-xui3-document-api-map.md)及
+[选区几何](xge3-xui3-document-ui-api-map.md)已接入拥有式只读序列。语言直接读取
+原生结果数组。搜索、转换和布局仍需要建立结果存储，扩容会复制已累计的元素。
+两端分别验证 JIT、宿主及静态 AOT 和可卸载的共享模块。这些记录对应匹配的隔离 SDK。
+最终运行树、IDE 和帮助目录的配套交付仍待验收。
+
 2026-11-17 当前：[3D Scene 基础 OOP](xge3-scene-hierarchy.md) 与
 [查询、节点外观及分步销毁](xge3-scene-controls.md) 已补齐。后者复用 Native497／
 XRT4641 的匹配完整O2 SDK，两端各39步运行／构建验收和399／400项源审查通过。

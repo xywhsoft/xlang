@@ -1,14 +1,15 @@
 # Document UI direct declarations
 
-Authority is the frozen `include/xui_document_ui.h` from final Model Native
-source r5/r6, SHA `e343a8600039805be3c5e481fe1d15dbcd426490ce2ad2b5dca65f78b6574bb2`.
-The machine-readable adjacent JSON lists every one of its 165 functions,
-logical mappings or individual C-interoperability/lifecycle reasons. The
+The adjacent JSON pins the current `include/xui_document_ui.h` and lists its
+172 API functions with their logical mappings or C interoperability and
+lifecycle reasons. The initial qualification used the frozen Model Native
+source r5/r6, SHA `e343a8600039805be3c5e481fe1d15dbcd426490ce2ad2b5dca65f78b6574bb2`. The
 additional MessageList `addNode` maps `xuiMessageListAddNode` from `xui.h`;
 `xui_message_list.c:940-970` validates and copies each supplied string before
 publication. No caller userdata is supplied.
 
-The declarations cover six classes: unique owned DocumentRenderer;
+The declarations cover seven classes, including the independently owned
+`DocumentRangeRects` selection result, unique owned DocumentRenderer,
 Context-owned Widget subtypes DocumentView and DocumentEditor; and the
 Context-owned composite HtmlInteraction, WebProvider and ImageRequest.
 MessageList's Document methods remain in its existing class. Eleven exact
@@ -46,9 +47,13 @@ watch once. The old policy is retained as a failing negative, and the corrected
 policy plus original script pass O0/O2 on both platforms.
 
 Lifecycle/metadata accessors feed private policies; raw callback setters are
-replaced by their Owned variants. `GetRangeRects` remains explicit C because
-it writes a caller array: it is never mapped as one POD record plus arbitrary
-capacity. The two old WebObject adapter functions erase their provider as
+replaced by their Owned variants. `DocumentRenderer.collectRangeRects(range)`
+runs one layout query and owns the complete result. Its `entries()` sequence
+retains the result and reads the rectangle array in place. The geometry stays
+readable after the renderer, context and snapshot close. The result buffer
+may grow while the query runs. The original `GetRangeRects` C entry accepts
+a caller buffer and still reports the total count. The two WebObject adapter
+functions erase their provider as
 `void*`, so they remain explicit C; use typed Owned Renderer callbacks instead.
 FontOutput Init is native fresh-storage infrastructure, not a resettable
 language method. Typed NULL aliases expose these Native branches through the

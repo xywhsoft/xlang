@@ -475,6 +475,11 @@ XUI_DOCUMENT_MODEL_POLICY(Document,xuiDocument,"xui.document")
 XUI_DOCUMENT_MODEL_POLICY(DocumentSnapshot,xuiDocumentSnapshot,"xui.documentSnapshot")
 XUI_DOCUMENT_MODEL_POLICY(DocumentChangeSet,xuiDocumentChangeSet,"xui.documentChangeSet")
 XUI_DOCUMENT_MODEL_POLICY(DocumentMatches,xuiDocumentMatches,"xui.documentMatches")
+#if XUI_ENABLE_DOCUMENT_VIEW
+XUI_DOCUMENT_MODEL_POLICY(DocumentRangeRects,xuiDocumentRangeRects,"xui.documentRangeRects")
+#else
+const XL6_ForeignViewDescriptorV1* xl6Xui3DocumentRangeRectsPolicyGet(void){return NULL;}
+#endif
 XUI_DOCUMENT_MODEL_POLICY(DocumentMarkdownLosses,xuiDocumentMarkdownLosses,"xui.documentMarkdownLosses")
 XUI_DOCUMENT_MODEL_POLICY(DocumentPrepare,xuiDocumentPrepare,"xui.documentPrepare")
 XUI_DOCUMENT_MODEL_POLICY(DocumentFragment,xuiDocumentFragment,"xui.documentFragment")
@@ -514,6 +519,7 @@ XUI_DOCUMENT_MODEL_DISABLED(Document)
 XUI_DOCUMENT_MODEL_DISABLED(DocumentSnapshot)
 XUI_DOCUMENT_MODEL_DISABLED(DocumentChangeSet)
 XUI_DOCUMENT_MODEL_DISABLED(DocumentMatches)
+XUI_DOCUMENT_MODEL_DISABLED(DocumentRangeRects)
 XUI_DOCUMENT_MODEL_DISABLED(DocumentMarkdownLosses)
 XUI_DOCUMENT_MODEL_DISABLED(DocumentPrepare)
 XUI_DOCUMENT_MODEL_DISABLED(DocumentFragment)

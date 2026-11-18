@@ -15,6 +15,9 @@
 [document_queries.xl](document_queries.xl) 演示从文档快照查找文字，
 并检查当前内容转成 CommonMark 时会丢失的标记。
 
+[document_selection_geometry.xl](document_selection_geometry.xl) 在不打开窗口的情况下
+计算并输出一段跨行选区的矩形。
+
 [dock_queries.xl](dock_queries.xl) 不创建图形窗口，演示两个窗口的窗格拆分，
 以及使用局部坐标查询拖放目标。
 

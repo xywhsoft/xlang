@@ -1,0 +1,51 @@
+import xui
+
+func main(...) as int
+ auto proxy = xui.createProxy()
+ auto context = xui.create(proxy)
+ auto document = xui.createDocument()
+ auto edit = document.beginTransaction()
+ for index in range(20)
+  auto paragraph = edit.insertNode(xui.XUI_DOCUMENT_ROOT, xui.XUI_DOCUMENT_APPEND, c_uint(xui.XUI_DOC_PARAGRAPH))
+  edit.insertNode(paragraph, xui.XUI_DOCUMENT_APPEND, c_uint(xui.XUI_DOC_TEXT), text="hello")
+ end
+ auto change = edit.commit()
+ change.close()
+ edit.close()
+ auto snapshot = document.snapshot()
+ auto matches = snapshot.find(c_uint(xui.XUI_DOC_SEMANTIC), "hello")
+ auto ranges = matches.ranges()
+ auto renderer = xui.createDocumentRenderer(context)
+ renderer.setSnapshot(snapshot, null)
+ renderer.layout(c_double(300), c_double(0), c_double(100))
+ xui.DocumentRange selection
+ selection.tAnchor = ranges[0].tAnchor
+ selection.tCaret = ranges[19].tCaret
+ auto geometry = renderer.collectRangeRects(selection)
+ auto entries = geometry.entries()
+ assert entries.length == 20
+ auto shared = geometry.share()
+ geometry.close()
+ assert shared.entries().length == 20
+ shared.close()
+ selection.tCaret = selection.tAnchor
+ auto empty = renderer.collectRangeRects(selection)
+ assert empty.entries().length == 0
+ empty.close()
+ renderer.close()
+ matches.close()
+ snapshot.close()
+ document.close()
+ context.close()
+ proxy.close()
+
+ c_double lastY = -1.0
+ for rectangle in entries
+  assert rectangle.width > c_double(0)
+  assert rectangle.height > c_double(0)
+  assert rectangle.y > lastY
+  lastY = rectangle.y
+ end
+ println("DOCUMENT_RANGE_RECTS_OK")
+ return 0
+end
