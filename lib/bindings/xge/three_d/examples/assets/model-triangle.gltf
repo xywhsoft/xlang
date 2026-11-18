@@ -1,0 +1,22 @@
+{
+  "asset": { "version": "2.0" },
+  "extensionsUsed": ["KHR_materials_unlit"],
+  "scene": 0,
+  "scenes": [{ "nodes": [0] }],
+  "nodes": [{ "name": "Triangle", "mesh": 0 }, { "name": "Outside the selected scene" }],
+  "meshes": [{ "primitives": [{ "attributes": { "POSITION": 0 }, "material": 0 }] }],
+  "materials": [{
+    "name": "Red",
+    "pbrMetallicRoughness": { "baseColorFactor": [1, 0, 0, 1], "metallicFactor": 0 },
+    "extensions": { "KHR_materials_unlit": {} }
+  }],
+  "accessors": [{
+    "bufferView": 0, "componentType": 5126, "count": 3, "type": "VEC3",
+    "min": [-0.8, -0.8, -3], "max": [0.8, 0.8, -3]
+  }],
+  "bufferViews": [{ "buffer": 0, "byteLength": 36 }],
+  "buffers": [{
+    "uri": "data:application/octet-stream;base64,zcxMv83MTL8AAEDAzcxMP83MTL8AAEDAAAAAAM3MTD8AAEDA",
+    "byteLength": 36
+  }]
+}

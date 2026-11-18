@@ -80,3 +80,8 @@ texture updates, shader hooks and resource ownership.
 [Render a sky cube](examples/environment.xl) with a configurable frame.
 The [environment guide](../../../../docs/xge3-environment.md) covers cube
 face order, precomputed IBL, shadow settings and linear fog.
+
+[Load and render a glTF model](examples/model.xl). Run the example from the
+`examples` directory so it can find its bundled asset. The
+[model guide](../../../../docs/xge3-model.md) describes resource loading,
+decode budgets and the lifetime of scene instances.

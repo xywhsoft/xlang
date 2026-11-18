@@ -1,0 +1,173 @@
+{
+  "complete": true,
+  "passed": true,
+  "releaseInstalled": false,
+  "title": "Owned 3D model loading and scene instances",
+  "nativeCommit": "849c4068f9b9d671adc34f3dd1da5d0245c03883",
+  "vendorFixCommit": "8ff89a0e054f2134cca3e66ebc47010005ee529d",
+  "compilerCommit": "07f3767fd47892ed5b83fe9fde9034fea2f01a37",
+  "nativeSourceHashes": {
+    "include/xge.h": "0ed3b7efce86db8d9443506f2021d96c5c3d68bac9b721a544edf099a9632162",
+    "src/xge/3d/xge3d_model.c": "62554c3322afc4d1b304fe341723868533e7dce590782f32eb85b18919d881b3",
+    "src/xge/3d/xge3d_instance.inc": "269c1d5b202df4bb42d4ffbc807966d12e6b4de8d0bee311a72a15232ddc61c8",
+    "extlibs/cgltf/cgltf.h": "6969133f34cb23c9f8bb588bf9acc0990955537f2e5302849602ff7d3dab0dfd",
+    "extlibs/cgltf/SOURCE.json": "49697a220dbf33781416aae8e0e86d81cdeac8679b1a8961c9959edf11f3052e",
+    "tests/xge/test_3d_model_owned.c": "a1c9f0bdbfb9a5b79dea0207e90b25b097371cb680d89613c1d254857d54fdbe",
+    "tests/xge/test_cgltf_oom.c": "e8bf565369665b6c635cf9f42319a5653e6d2382e46502fa783c3c5375d7a363"
+  },
+  "sourceHashes": {
+    "lib/bindings/xge/three_d/xlang.package.json": "c5ade2a584a3c4cc906e2ea67a69aa155379c93bc384292305377176614a0390",
+    "lib/bindings/xge/three_d/examples/model.xl": "8d54dcf560cbd2fe586916c05da4e999e1335b6878de248bfece987cb81e95cf",
+    "lib/bindings/xge/three_d/include/xge3d_renderer.h": "088a0edcda641048bd591b4f872776931468d36c1f11920996c2e685c9b14114",
+    "lib/bindings/xge/three_d/src/model.xl": "e930d665781bc009aebceb6cb7c48c69b639906b3fe7d3c447db56ce8fd969a9",
+    "lib/bindings/xge/three_d/src/scene.xl": "155188e6696d3a6ac1127c2df9e7542096444e929118c643c7fbb4b4805fb453",
+    "lib/bindings/xge/three_d/examples/assets/model-triangle.gltf": "5c874086740e45bc2413edb3d43a5704f456a6492f2edd0adc1b5b2772349525",
+    "test/cases/foreign_xge3d_model_owned.xl": "aca6290a878ca1a93a815a841831c1d33567aaea706db4303a2bff04ac5a518c",
+    "docs/xge3-model.md": "a772d2a44a98481d217b39700a221d5fe2247e3fa7229c3fb192fe79ac041687",
+    "lib/bindings/xge/three_d/README.md": "1b3453381c0e79eb854047f46517ac42c5d01d20fbf59224ea3bf9c21ab831b1"
+  },
+  "evidence": {
+    "win": {
+      "fullSDK": {
+        "path": "F:\\xlang-validation\\xge-full-20261110\\model3d-sdk-win-r1\\results.json",
+        "sha256": "921c9a1dc4a1bfdcf805fde8b5ad89829bf4221593c204cdfdfaf45318f6a837"
+      },
+      "finalSDK": {
+        "path": "F:\\xlang-validation\\xge-full-20261110\\model3d-sdk-win-r2\\results.json",
+        "sha256": "6783246056c08673bd9dfe6f9db47d41d6578f33a0844979be1cded7aeabfd34"
+      },
+      "native": {
+        "path": "F:\\xlang-validation\\xge-full-20261110\\model3d-native-win-r2\\results.json",
+        "sha256": "dba05000cdd8259aa5548b7ad41f19d80997c1fb205af5f616049670340b8cb3"
+      },
+      "package": {
+        "path": "F:\\xlang-validation\\xge-full-20261110\\model3d-packages-win-r2\\results.json",
+        "sha256": "7e2efb48eb224f95c209944f1d17471e8b240c3880783822f96536e47925db3b"
+      },
+      "language": {
+        "path": "F:\\xlang-validation\\xge-full-20261110\\model3d-language-win-r2\\results.json",
+        "sha256": "1fd29b02ee8e27a74b61daacc76b9cdd1202480f531552362bf947f338ced911"
+      },
+      "vendorOOM": {
+        "path": "F:\\xlang-validation\\xge-full-20261110\\model3d-cgltf-win-r2\\results.json",
+        "sha256": "dfe21728df6d8385f6de7eeb33f93f424204f66dcb817db43d2262c92e0e870d"
+      },
+      "nativeSteps": 42,
+      "packageSteps": 4,
+      "languageSteps": 11,
+      "extra": {
+        "path": "F:\\xlang-validation\\xge-full-20261110\\model3d-extra-win-r3\\results.json",
+        "sha256": "46447dce085dd92043d8008799b0742d1b9f4cd168f0b7259454815544d8e52a",
+        "steps": 1,
+        "iterations": 64,
+        "counts": {
+          "language-load": [
+            2432,
+            2432,
+            0
+          ],
+          "language-info": [
+            0,
+            0,
+            0
+          ],
+          "language-instance": [
+            384,
+            384,
+            0
+          ],
+          "native-load": [
+            2240,
+            2240,
+            0
+          ],
+          "native-info": [
+            0,
+            0,
+            0
+          ],
+          "native-instance": [
+            384,
+            384,
+            0
+          ]
+        },
+        "oom": [
+          38,
+          2
+        ]
+      }
+    },
+    "linux": {
+      "fullSDK": {
+        "path": "\\\\wsl.localhost\\Ubuntu\\var\\tmp\\xlang-validation\\xge-full-20261110\\model3d-sdk-linux-r1\\results.json",
+        "sha256": "c290fb31f381519112b22cbe932c51f23416571a4a112071c9aeb1316226f8ae"
+      },
+      "finalSDK": {
+        "path": "\\\\wsl.localhost\\Ubuntu\\var\\tmp\\xlang-validation\\xge-full-20261110\\model3d-sdk-linux-r2\\results.json",
+        "sha256": "f5758c419c2438b9ff43df8b3be37e862459cc8fe2783d5732e3cdcd1d12dc10"
+      },
+      "native": {
+        "path": "\\\\wsl.localhost\\Ubuntu\\var\\tmp\\xlang-validation\\xge-full-20261110\\model3d-native-linux-r2\\results.json",
+        "sha256": "076f5f6803a018bca0bc9d9840806f18342fd6b57a1991fa41c4e493cb4af2d0"
+      },
+      "package": {
+        "path": "\\\\wsl.localhost\\Ubuntu\\var\\tmp\\xlang-validation\\xge-full-20261110\\model3d-packages-linux-r2\\results.json",
+        "sha256": "c98eacdc91cb1f477cbd8f0163687f7453e11113a78d554188449324a64b5ec9"
+      },
+      "language": {
+        "path": "\\\\wsl.localhost\\Ubuntu\\var\\tmp\\xlang-validation\\xge-full-20261110\\model3d-language-linux-r2\\results.json",
+        "sha256": "5b89a5cc3b61e9b2326478805a1ec0aa2f4f39a43362a198755b1cff99280e1a"
+      },
+      "vendorOOM": {
+        "path": "\\\\wsl.localhost\\Ubuntu\\var\\tmp\\xlang-validation\\xge-full-20261110\\model3d-cgltf-linux-r2\\results.json",
+        "sha256": "fa2989e95f3bf31c87d8057e8211bd5b31e05b2e6899ae51d6b7dea3bcd9f58a"
+      },
+      "nativeSteps": 42,
+      "packageSteps": 4,
+      "languageSteps": 11,
+      "extra": {
+        "path": "\\\\wsl.localhost\\Ubuntu\\var\\tmp\\xlang-validation\\xge-full-20261110\\model3d-extra-linux-r3\\results.json",
+        "sha256": "78c01c04278a656e73af78d926dd8555fedb855c6be3f76f28d6e9438575e54a",
+        "steps": 1,
+        "iterations": 64,
+        "counts": {
+          "language-load": [
+            2432,
+            2432,
+            0
+          ],
+          "language-info": [
+            0,
+            0,
+            0
+          ],
+          "language-instance": [
+            384,
+            384,
+            0
+          ],
+          "native-load": [
+            2240,
+            2240,
+            0
+          ],
+          "native-info": [
+            0,
+            0,
+            0
+          ],
+          "native-instance": [
+            384,
+            384,
+            0
+          ]
+        },
+        "oom": [
+          38,
+          2
+        ]
+      }
+    }
+  }
+}

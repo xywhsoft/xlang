@@ -16,6 +16,7 @@
       "src/mesh.xl",
       "src/material.xl",
       "src/environment.xl",
+      "src/model.xl",
       "src/scene.xl",
       "src/renderer.xl"
     ],

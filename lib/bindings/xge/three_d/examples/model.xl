@@ -1,0 +1,26 @@
+import xge
+import xge3d
+
+xge.init(480, 320, "加载 glTF 模型")
+auto budget = xge3d.createDecodeBudget(uint64(1024 * 1024))
+auto model = xge3d.loadModel("assets/model-triangle.gltf", budget)
+auto scene = xge3d.createScene()
+scene.instantiate(model)
+model.close() // 场景持有实例及其模型资源。
+
+xge.run(func() as c_int
+    assert xge.begin() == 0
+    auto renderer = xge3d.createRenderer()
+    auto camera = xge3d.orthographicCamera(c_float(3), c_float(2), c_float(0.1), c_float(10))
+    c_float[4] clear
+    clear[3] = c_float(1)
+    auto frame = renderer.render(scene, camera, clear)
+    println("模型绘制三角形数", frame.triangles)
+    renderer.close()
+    assert xge.nativeEnd() == 0
+    return c_int(1)
+end)
+xge.setFrameCallback(null)
+scene.close()
+budget.close()
+xge.unit()

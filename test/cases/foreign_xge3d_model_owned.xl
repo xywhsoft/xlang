@@ -1,0 +1,79 @@
+import xge
+import xge3d
+from xge3d import Material3D
+
+func main(...) as int
+ xge.init(64,64,"Managed 3D model")
+ auto path="model-triangle.gltf"
+ auto data=file.readBytes(path)
+ auto fileModel=xge3d.loadModel(path)
+ assert fileModel.info().primitive_count==1
+ fileModel.close()
+
+ auto quota=xge3d.createDecodeBudget(uint64(1))
+ bool denied=false
+ try
+  auto impossible=xge3d.loadModel(data,budget=quota)
+  impossible.close()
+ catch Error
+  denied=true
+ end
+ assert denied and quota.info().live_bytes==uint64(0) and quota.info().rejections>uint64(0)
+ quota.setLimit(uint64(1024*1024))
+ auto model=xge3d.loadModel(Buffer(data),baseUri=path,budget=quota)
+ auto shared=model.share()
+ model.close()
+ assert shared.info().node_count==2 and shared.info().material_count==1
+ assert (shared.nodeName(0) as string)=="Triangle" and shared.nodeName(10)==null
+ assert shared.resourceInfo().vertices==uint64(3)
+ assert shared.skinJointNode(0,0)>shared.info().node_count
+ assert shared.memoryInfo().source_bytes>uint64(0)
+ auto surface=shared.material(0) as Material3D
+ assert surface.params().unlit==c_int(1)
+ surface.close()
+ assert shared.material(7)==null
+
+ auto scene=xge3d.createScene()
+ auto root=scene.instantiate(shared)
+ auto status,child=scene.instanceNode(root,0)
+ auto missing,unused=scene.instanceNode(root,1)
+ assert status==xge.XGE_OK and missing==xge.XGE_ERROR_NOT_FOUND and unused.slot==uint64(0)
+ shared.close()
+ scene.setParent(child,xge3d.Xge3dNode())
+ scene.destroyNode(root)
+ assert scene.nodeCount==1
+ xge.run(func() as c_int
+  assert xge.begin()==0
+  auto renderer=xge3d.createRenderer()
+  auto target=xge3d.createRenderTarget(32,32)
+  auto camera=xge3d.orthographicCamera(c_float(2),c_float(2),c_float(0.1),c_float(10))
+  c_float[4] clear
+  clear[3]=c_float(1)
+  assert renderer.renderTo(scene,camera,target,clear).triangles==uint64(1)
+  auto pixels=Buffer()
+  assert pixels.resize(32*32*4)
+  target.readPixels(pixels)
+  int center=(16*32+16)*4
+  assert pixels.byteAt(center)>220 and pixels.byteAt(center+1)<16 and pixels.byteAt(center+2)<16
+  target.close()
+  renderer.close()
+  assert xge.nativeEnd()==0
+  return c_int(1)
+ end)
+ xge.setFrameCallback(null)
+ assert xge.graphicsResourceCount()==uint64(2)
+ bool busy=false
+ try
+  xge.unit()
+ catch Error
+  busy=true
+ end
+ assert busy and quota.info().live_bytes>uint64(0)
+ scene.close()
+ assert quota.info().live_bytes==uint64(0)
+ quota.close()
+ assert xge.graphicsResourceCount()==uint64(0)
+ xge.unit()
+ println("MODEL3D_LANGUAGE_GPU_OK")
+ return 0
+end

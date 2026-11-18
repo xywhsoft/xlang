@@ -24,6 +24,10 @@ XL6_XGE3D_CHECKED_OWNER(xl6Xge3dMeshPolicy,xge3d_mesh,"xge3d.mesh",xge3dMeshRele
 XL6_XGE3D_CHECKED_OWNER(xl6Xge3dMaterialPolicy,xge3d_material,"xge3d.material",xge3dMaterialReleaseOwnerChecked)
 XL6_XGE3D_CHECKED_OWNER(xl6Xge3dShaderPolicy,xge3d_shader,"xge3d.shader",xge3dShaderReleaseOwnerChecked)
 XL6_XGE3D_CHECKED_OWNER(xl6Xge3dEnvironmentPolicy,xge3d_environment,"xge3d.environment",xge3dEnvironmentReleaseOwnerChecked)
+#if XGE3D_ENABLE_MODEL
+XL6_XGE3D_CHECKED_OWNER(xl6Xge3dModelPolicy,xge3d_model,"xge3d.model",xge3dModelReleaseOwnerChecked)
+#define xl6Xge3dModelPolicy (*xl6Xge3dModelPolicyGet())
+#endif
 #undef XL6_XGE3D_CHECKED_OWNER
 #define xl6Xge3dRendererPolicy (*xl6Xge3dRendererPolicyGet())
 #define xl6Xge3dTexturePolicy (*xl6Xge3dTexturePolicyGet())
