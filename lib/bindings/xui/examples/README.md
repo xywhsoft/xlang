@@ -165,6 +165,7 @@ WebView 范例只加载源码中的本地 HTML。它需要启用 WebView2 的 Wi
 | [context_graph.xl](context_graph.xl) | 子控件数 1，以及按钮文字 |
 | [manager_lifetime.xl](manager_lifetime.xl) | 消息框标题和正文；不打开弹窗 |
 | [document_model.xl](document_model.xl) | 从文档快照读出 Hello, xlang |
+| [document_node_attributes.xl](document_node_attributes.xl) | 插入带字体、字号和语言的文字节点，再从快照读出这些属性 |
 | [document_ui_headless.xl](document_ui_headless.xl) | 只读状态 1，以及文档身份比较 true |
 | [data_object.xl](data_object.xl) | 二进制长度 3，以及十六进制 610062 |
 | [code_document.xl](code_document.xl) | 创建文本模型、合并两次编辑为一个撤销步骤，并观察变更回调、撤销和重做。 |

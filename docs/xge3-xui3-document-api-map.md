@@ -1,6 +1,6 @@
 # Default Document model bindings
 
-The authoritative machine map is [xge3-xui3-document-api-map.json](xge3-xui3-document-api-map.json). It pins `xui_document.h`, all 233 functions, 26 pointer-free C records and 255 language constants. The allocator marker is compiler/provider ABI metadata. The map distinguishes declarations from compiled or executed paths. The default package declares 168 native business entries, nine resource `close` controls and callback-view methods. No per-method C forwarding functions are added.
+The authoritative machine map is [xge3-xui3-document-api-map.json](xge3-xui3-document-api-map.json). It pins `xui_document.h`, all 237 functions, 27 pointer-free C records and 255 language constants. The allocator marker is compiler/provider ABI metadata. The map distinguishes declarations from compiled or executed paths. The default package declares 172 native business entries, nine resource `close` controls and callback-view methods.
 
 The classes are `Document`, `DocumentSnapshot`, `DocumentChangeSet`, `DocumentPrepare`, `DocumentFragment`, `DocumentSourceIndex`, `DocumentMatches`, `DocumentMarkdownLosses` and `DocumentTransaction`. The first eight share actual native references; `share()` calls the native status/output factory once and reserves its language owner before that call. The transaction has one unique owner. `commit()` and `abort()` end its writer but do not consume its shell; `close()` releases that owner. Default-provenance Owned factories are required. Raw custom-allocator objects cannot be promoted to managed roots.
 
@@ -33,16 +33,30 @@ Capability boundaries and available safe paths:
 | `SnapshotAnalyzeMarkdownConversion`, `SnapshotFind`, `SnapshotFindEx` | `collectMarkdownLosses()`, `find()` and `findIn()` return immutable result owners with all entries from one analysis or search. `findIn()` restricts the search to a range. The original C functions retain their caller-supplied buffer API. |
 | `PrepareSource`, `PrepareContinueSource` | Now mapped by `prepareSource` / `continueSource` and `Bytes` variants. Parallel start/end/text columns form size-prefixed records with exact byte lengths and scoped backing pins. See [source-patch qualification](xui-document-source-patches.md). |
 | `FragmentSerialize`, `FragmentExportHtml`, `SnapshotCopyRange`, `SnapshotCopyTableMatrix`, `SnapshotCopyPlainText`, `DocumentSerialize`, `DocumentExportHtml` | Direct owned bytes outputs; HTML/plain/range/matrix also have UTF-8 string outputs. The actual resident-XRT allocation is transferred with its explicit byte count. The matched SDK allocator marker is required. Native `DocumentFreeBuffer` stays internal to language cleanup. |
-| Node-info resource/info/title/link strings; nested attributes language | `nodeTextInfo()` copies the five nullable metadata strings. `copyText`/`copySource` and the Read methods expose counted content. The nested attributes record remains available through its C ABI. |
+| Node-info resource/info/title/link strings and attributes | `nodeTextInfo()` copies the five nullable metadata strings. `nodeAttributes()` returns the POD attributes, font family and optional language. `copyText`/`copySource` and the Read methods expose counted content. |
 | Change-info `pOperations` | `DocumentChangeSet.operations()` returns an immutable `NativeSequence<DocumentOperation>` with its own native reference. It reads the existing array in place and keeps it available after the original change-set view closes. |
 | Link-info URI/title strings | `linkInfo()` copies nullable URI and title with the existing output-record string contract. `linkState()` only reads the flags. |
 | Custom allocator callbacks and user data | Must outlive every document-derived native allocation and may run across native threads. Default Owned factories leave these NULL. |
 | Raw `Create`/import/Deserialize and Retain/Release/ownership metadata | The safe package uses actual Owned factories, independent `share`, checked controls and private policies. Legacy raw promotion is forbidden. |
-| `setAttributesColumns` fixed `sFontFamily[64]` | All 13 scalar fields and nullable language are packed; family is zeroed as part of whole-value replacement. Use range `setTextStyle` with `DocumentTextStyle` for fixed font-family bytes. |
-| `insertNode` attributes/extension pointer | The descriptor uses default-zero attributes and copies its counted text/string fields. Subsequent style and `setExtensionPayload(bytes)` methods cover safe changes. Opaque payload pointers are not exposed. |
+| Whole node attributes | `setNodeAttributes()` replaces all 13 scalar fields, the font family and language. `setAttributesColumns()` retains its earlier behavior of clearing the font family. |
+| Styled and extension nodes | `insertNodeWithAttributes()` submits the complete style, counted node text and optional binary extension payload in a single native transaction operation. `insertNode()` supplies default attributes. |
 | Source-index constructor cancellation callback inside the descriptor | The ordinary constructor configures its working-memory limit. A nested raw callback/userdata pair is not synthesized. |
 
 The machine map records every omitted function and pointer-bearing record field separately. The table is an interoperability boundary, not a promise that these native operations have been implemented as language conveniences.
+
+`nodeAttributes()` reads the stored style on a transaction or snapshot.
+Its font family and language are independent strings and remain usable after
+closing the owner. The language tag is normalized to lowercase by the
+Document model. A font family uses at most 63 UTF-8 bytes and cannot
+contain an embedded NUL. An empty family is returned as an empty string.
+An inherited language is returned as null. Use `setNodeAttributes()`
+with the returned values to replace the whole style.
+
+The warmed query was measured on Windows and Linux with both strings
+present. Each language call allocated twice for the owned text. The raw
+C query borrowed the same strings and allocated zero times. The native
+setter and styled insert use the document allocator and follow the existing
+transaction failure rules. [Node attributes example](../lib/bindings/xui/examples/document_node_attributes.xl)
 
 Owned export additions pass source-compiler JIT, a readable example, independent
 dynamic/static artifacts on Windows/Linux and public C/C++ header checks. Their

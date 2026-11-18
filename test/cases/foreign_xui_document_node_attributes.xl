@@ -1,0 +1,69 @@
+import xui
+
+func main(...) as int
+    auto document = xui.createDocument()
+    auto edit = document.beginTransaction()
+    uint64 root = xui.XUI_DOCUMENT_ROOT
+    uint64 append = xui.XUI_DOCUMENT_APPEND
+    auto paragraph = edit.insertNode(root, append, c_uint(xui.XUI_DOC_PARAGRAPH))
+    auto attributes = xui.DocumentNodeAttributes()
+    attributes.iMarks = c_uint(xui.XUI_DOC_BOLD)
+    attributes.iTextColor = c_uint(0xEE4422FF)
+    attributes.fFontSize = c_float(18)
+    auto text = edit.insertNodeWithAttributes(paragraph, append, attributes, "示例字体", "zh-Hans",
+        c_uint(xui.XUI_DOC_TEXT), text = "hello")
+    auto observed, font, locale = edit.nodeAttributes(text)
+    assert font == "示例字体" and (locale as string) == "zh-hans"
+    assert observed.iMarks == attributes.iMarks and observed.iTextColor == attributes.iTextColor
+    assert observed.fFontSize == c_float(18) and observed.iRowSpan == c_uint(1)
+
+    bool rejected = false
+    try
+        edit.setNodeAttributes(text, observed, "A\0B", "zh-Hans")
+    catch Error
+        rejected = true
+    end
+    assert rejected
+    rejected = false
+    try
+        edit.setNodeAttributes(text, observed, "0123456789012345678901234567890123456789012345678901234567890123")
+    catch Error
+        rejected = true
+    end
+    assert rejected
+    auto unchanged, unchangedFont, unchangedLocale = edit.nodeAttributes(text)
+    assert unchangedFont == font and unchangedLocale == locale
+
+    auto payload = codec.hexDecode("00FF00")
+    auto extension = edit.insertNodeWithAttributes(root, append, xui.DocumentNodeAttributes(), "", null,
+        c_uint(xui.XUI_DOC_EXTENSION), resource = "test.node", info = "binary",
+        extensionPayload = payload, extensionVersion = 7, extensionRequired = 1)
+    auto changes = edit.commit()
+    changes.close()
+    edit.close()
+    auto old = document.snapshot()
+    auto oldAttributes, oldFont, oldLocale = old.nodeAttributes(text)
+    auto buffer = Buffer()
+    assert buffer.resize(3)
+    assert old.copyExtensionPayload(extension, buffer) == uint64(3) and buffer.toBytes() == payload
+    auto kind, id, parent, children, textBytes, sourceStart, sourceEnd, exact, syntaxStart, syntaxEnd, segments, payloadBytes, version, required = old.nodeInfo(extension)
+    assert payloadBytes == uint64(3) and version == c_uint(7) and required == c_int(1)
+    auto extensionAttributes, extensionFont, extensionLocale = old.nodeAttributes(extension)
+    assert extensionFont == "" and extensionLocale == null
+
+    auto update = document.beginTransaction()
+    update.setNodeAttributes(text, oldAttributes, "Next", "und")
+    auto committed = update.commit()
+    committed.close()
+    update.close()
+    auto current = document.snapshot()
+    auto currentAttributes, currentFont, currentLocale = current.nodeAttributes(text)
+    assert currentFont == "Next" and (currentLocale as string) == "und"
+    assert currentAttributes.iMarks == oldAttributes.iMarks
+    old.close()
+    current.close()
+    document.close()
+    assert oldFont == "示例字体" and (oldLocale as string) == "zh-hans"
+    println("DOCUMENT_NODE_ATTRIBUTES_LANGUAGE_OK")
+    return 0
+end

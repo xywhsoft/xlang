@@ -1,0 +1,19 @@
+import xui
+
+auto document = xui.createDocument()
+auto edit = document.beginTransaction()
+auto paragraph = edit.insertNode(xui.XUI_DOCUMENT_ROOT, xui.XUI_DOCUMENT_APPEND, c_uint(xui.XUI_DOC_PARAGRAPH))
+auto style = xui.DocumentNodeAttributes()
+style.iMarks = c_uint(xui.XUI_DOC_BOLD)
+style.fFontSize = c_float(18)
+auto text = edit.insertNodeWithAttributes(paragraph, xui.XUI_DOCUMENT_APPEND, style,
+    "示例字体", "zh-Hans", c_uint(xui.XUI_DOC_TEXT), text = "有样式的文字")
+auto changes = edit.commit()
+changes.close()
+edit.close()
+
+auto snapshot = document.snapshot()
+auto storedStyle, font, language = snapshot.nodeAttributes(text)
+snapshot.close()
+document.close()
+println("节点字体", font, "字号", storedStyle.fFontSize, "语言", language)

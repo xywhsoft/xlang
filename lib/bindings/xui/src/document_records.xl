@@ -186,6 +186,22 @@ export extern "xui_doc_source_index_info_t" struct DocumentSourceIndexInfo @head
  uint64 iBindingCount
 end
 
+export extern "xui_doc_node_attributes_t" struct DocumentNodeAttributes @header("xge3_runtime.h")
+ c_uint iMarks
+ c_uint iFlags
+ c_uint iHeadingLevel
+ c_uint iAlignment
+ c_uint iRowSpan
+ c_uint iColumnSpan
+ uint64 iListStart
+ c_uint iTextColor
+ c_uint iBackgroundColor
+ c_float fFontSize
+ c_float fWidth
+ c_float fHeight
+ c_float fParagraphSpacing
+end
+
 export extern "xui_doc_text_style_t" struct DocumentTextStyle @header("xge3_runtime.h")
  c_uint iSize
  c_uint iExplicitFields

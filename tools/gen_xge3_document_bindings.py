@@ -41,7 +41,7 @@ while pending:
   if ln=='DocumentTxnDesc':ln='DocumentTransactionDesc'
   records[n]=ln;recordLines+=['export extern "'+n+'" struct '+ln+' @header("xge3_runtime.h")',*fields,'end',''];del pending[n];changed=True
  if not changed:break
-assert len(records)==26,(len(records),pending.keys())
+assert len(records)==27,(len(records),pending.keys())
 known={'UINT64_MAX':(1<<64)-1};constantRows=[]
 for enum in h['enums']:
  v=-1
@@ -219,6 +219,57 @@ attrs=['@no_raise','@c_result("status",0)','@c_pack(2,"xui_doc_attributes_t",1,1
 classes['DocumentTransaction'].append(' extern "xuiDocumentTxnSetAttributes" '+' '.join(attrs)+' func setAttributesColumns(uint64 node,'+','.join(p for _,p in fields)+')')
 mapped['xuiDocumentTxnSetAttributes']='DocumentTransaction.setAttributesColumns';reasons.pop('xuiDocumentTxnSetAttributes',None)
 
+for native_name, class_name in [
+    ('xuiDocumentSnapshotGetNodeAttributes', 'DocumentSnapshot'),
+    ('xuiDocumentTxnGetNodeAttributes', 'DocumentTransaction'),
+]:
+    classes[class_name].append(
+        ' extern "' + native_name + '" @no_raise '
+        '@c_output_record(2,"xui_doc_node_attributes_view_t","borrowed") @c_status(0) '
+        '@c_output_field(0,"tValues") @c_output_field(1,"sFontFamily","cstring") '
+        '@c_output_field(2,"sLanguage","cstring") '
+        'func nodeAttributes(uint64 node) as (DocumentNodeAttributes,string,string?)'
+    )
+    mapped[native_name] = class_name + '.nodeAttributes'
+    reasons.pop(native_name, None)
+
+def node_attribute_pack(slot, first):
+    return (
+        f'@c_pack({slot},"xui_doc_node_attributes_view_t",{first},3) '
+        f'@c_pack_field({slot},"tValues",{first},"value") '
+        f'@c_pack_field({slot},"sFontFamily",{first+1},"text_data") '
+        f'@c_pack_field({slot},"iFontFamilyBytes",{first+1},"text_size","size_t") '
+        f'@c_pack_field({slot},"sLanguage",{first+2},"c_string")'
+    )
+
+classes['DocumentTransaction'].append(
+    ' extern "xuiDocumentTxnSetNodeAttributes" @no_raise ' + node_attribute_pack(2, 1) +
+    ' @c_result("status",0) func setNodeAttributes(uint64 node,DocumentNodeAttributes attributes,'
+    'string fontFamily="",string? language=null)'
+)
+mapped['xuiDocumentTxnSetNodeAttributes'] = 'DocumentTransaction.setNodeAttributes'
+reasons.pop('xuiDocumentTxnSetNodeAttributes', None)
+
+classes['DocumentTransaction'].append(
+    ' extern "xuiDocumentTxnInsertNodeWithAttributes" @no_raise ' + node_attribute_pack(3, 2) +
+    ' @c_pack(4,"xui_doc_node_desc_t",5,10) @c_pack_size(4,"iSize","uint32_t")'
+    ' @c_pack_field(4,"iKind",5,"value") @c_pack_field(4,"sText",6,"text_data")'
+    ' @c_pack_field(4,"iTextBytes",6,"text_size","size_t")'
+    ' @c_pack_field(4,"sResource",7,"c_string") @c_pack_field(4,"sInfo",8,"c_string")'
+    ' @c_pack_field(4,"sTitle",9,"c_string") @c_pack_field(4,"sLinkTarget",10,"c_string")'
+    ' @c_pack_field(4,"sLinkTitle",11,"c_string")'
+    ' @c_span(12,"const void*","uint64_t") @c_pack_field(4,"pExtensionPayload",12,"span_data")'
+    ' @c_pack_field(4,"iExtensionPayloadBytes",12,"span_count")'
+    ' @c_pack_field(4,"iExtensionVersion",13,"value") @c_pack_field(4,"bExtensionRequired",14,"value")'
+    ' @c_output(5,0) func insertNodeWithAttributes(uint64 parent,uint64 childIndex,'
+    'DocumentNodeAttributes attributes,string fontFamily,string? language,c_uint kind,'
+    'string text="",string? resource=null,string? info=null,string? title=null,'
+    'string? linkTarget=null,string? linkTitle=null,bytes extensionPayload=b"",'
+    'c_uint extensionVersion=0,c_int extensionRequired=0) as uint64'
+)
+mapped['xuiDocumentTxnInsertNodeWithAttributes'] = 'DocumentTransaction.insertNodeWithAttributes'
+reasons.pop('xuiDocumentTxnInsertNodeWithAttributes', None)
+
 # Exact int-result retained notification; independent callback epochs.
 classes['Document'].append(' extern "xuiDocumentSubscribeOwned" @no_raise @c_owned_callback(0,0,"xui_callback_owner_t",-16) @c_output(4,0) func subscribe(DocumentChangeProc callback) as uint64')
 mapped['xuiDocumentSubscribeOwned']='Document.subscribe';reasons.pop('xuiDocumentSubscribeOwned',None)
@@ -277,11 +328,12 @@ for entry in report['entries']:
   entry['reason']='Owned resident-XRT export; ordinary paired byte/text declarations consume exact length. FreeBuffer remains internal to language cleanup.'if entry['native']!='xuiDocumentFreeBuffer'else'Resident-XRT release is handled by language value cleanup; no public raw output pointer.'
  if name in replacements:entry['reason']=replacements[name]
 report['fields']={
- 'xui_doc_node_info_t':dict(projectedPOD=['iKind','iId','iParentId','iChildCount','iTextBytes','iSourceStart','iSourceEnd','bSourceExact','iSyntaxStart','iSyntaxEnd','iSourceSegmentCount','iExtensionPayloadBytes','iExtensionVersion','bExtensionRequired'],projectedText=['sResource','sInfo','sTitle','sLinkTarget','sLinkTitle'],notProjected=dict(tAttributes='Contains nested borrowed sLanguage plus fixed font-family bytes; not a direct output-record member projection.'),safeTextAlternative='copyText/readText and copySource/readSource write into scoped Buffer storage.'),
+ 'xui_doc_node_info_t':dict(projectedPOD=['iKind','iId','iParentId','iChildCount','iTextBytes','iSourceStart','iSourceEnd','bSourceExact','iSyntaxStart','iSyntaxEnd','iSourceSegmentCount','iExtensionPayloadBytes','iExtensionVersion','bExtensionRequired'],projectedText=['sResource','sInfo','sTitle','sLinkTarget','sLinkTitle'],nodeAttributes='The dedicated nodeAttributes method returns the numerical attributes plus owned font-family and optional language strings.',safeTextAlternative='copyText/readText and copySource/readSource write into scoped Buffer storage.'),
  'xui_doc_change_info_t':dict(projectedPOD=['iFlags','iBeforeRevision','iAfterRevision','iOrigin','iInputGeneration','iOperationCount','bUndo','iDomain'],readonlyOperations='DocumentChangeSet.operations returns a NativeSequence that owns a reference to the change set.',notProjected=dict(pOperations='The raw field stays private. The dedicated operations getter returns the same contiguous POD array.')),
  'xui_doc_link_info_t':dict(projectedPOD=['bLinked','bMixed'],projectedText=['sUri','sTitle'],notProjected={}),
- 'xui_doc_attributes_t':dict(input='setAttributesColumns packs 13 scalar fields and nullable language; replaces the complete attributes value.',notProjected=dict(sFontFamily='Fixed char[64] is zeroed by this basic pack. Use range setTextStyle with a real DocumentTextStyle POD for a font family.')),
- 'xui_doc_node_desc_t':dict(input='insertNode packs kind, counted text, resource/info/title/link fields; Native copies them before return.',notProjected=dict(tAttributes='Zero-initialized default attributes; adjust the inserted node with transaction methods.',pExtensionPayload='Use setExtensionPayload with checked bytes; no opaque pointer field.')),
+ 'xui_doc_attributes_t':dict(input='setNodeAttributes uses DocumentNodeAttributes, a counted font family and nullable language. setAttributesColumns remains the compatibility form with an empty font family.'),
+ 'xui_doc_node_attributes_view_t':dict(projectedPOD=['tValues'],projectedText=['sFontFamily','sLanguage'],input='The exact text/byte count of the font family is packed without C-string truncation. Native applies its UTF-8, length and schema limits.'),
+ 'xui_doc_node_desc_t':dict(input='insertNode uses default attributes. insertNodeWithAttributes also packs the separate attributes view and the exact bytes, version and required flag of an optional extension payload. Native admits and copies all inputs in one insertion.'),
  'xui_doc_image_desc_t':dict(input='insertImage/updateImage pack all public fields with counted alt text and nullable NUL strings.'),
  'xui_doc_source_index_desc_t':dict(input='createSourceIndex packs default allocator settings and maxWorkingBytes.',notProjected=dict(onCancel='Callback nested inside a packed descriptor is not synthesized as a persistent raw callback.',pCancelUser='No user pointer exposed.')),
  'xui_doc_desc_t':dict(input='Owned constructors pack size and all eight ordinary settings.',notProjected=dict(onAlloc='Custom allocator callback lifetime is C-only.',onFree='Must be paired with allocator, outlives all handles.',pAllocatorUser='No raw userdata exposed.')),
@@ -291,6 +343,7 @@ report['externalTypeAuthority']=dict(header=ui['header'],sha256=ui['sha256'])
 report['costs']['ownedExports']='Text adopts the actual resident-XRT allocation after one UTF-8 scan; bytes adds its ordinary owning value carrier. No payload copy or strlen.'
 report['costs']['sourcePatchInputs']='One zero-initialized O(n) native record array plus column read pins and checked field writes. No text copy or NUL scan in the projection; native source processing retains its own documented copies. Default empty array arguments may allocate ordinary input containers.'
 report['costs']['queryResults']='Search and loss collection build one native result per query. Geometric growth can copy its native backing while unpublished. NativeSequence takes a real reference and reads the final immutable backing directly without an array copy.'
+report['costs']['nodeAttributes']='Native translates the exact POD fields and copies the counted font family to inline storage. Language query copies the font family and optional language within the native result scope. The original document transaction performs its usual validation, allocations and COW.'
 previous=r/'docs/xge3-xui3-document-api-map.json'
 if previous.is_file():
  old=json.loads(previous.read_text(encoding='utf-8'))
