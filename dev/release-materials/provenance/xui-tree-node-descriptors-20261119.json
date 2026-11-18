@@ -1,0 +1,132 @@
+{
+  "complete": true,
+  "passed": true,
+  "releaseInstalled": false,
+  "sourceParent": "1775369d01adc01245bfe9c115693867b87764c4",
+  "nativeCommit": "5da1a55a40525becfd8c7dfbc0ad94ab66767b8b",
+  "nativeParent": "fe60f2587cbc95c409462b49e514d8f9f11de068",
+  "xrtCommit": "804cc769de3030118c2b46ef7af69543d1b82d9d",
+  "sourceHashes": {
+    "lib/bindings/xui/src/tree_nodes.xl": "739a358322d697f0fbb7dc12cf4ebc875b6086c3a62eab3cfdb211f73fc073c2",
+    "lib/bindings/xui/src/managed.xl": "67d8884dbf06d05c04f6ab14117f9bc9ca7b09c752c1b5cdf4f3e2fb69b1f711",
+    "lib/bindings/xui/xlang.package.json": "ea5f1b1276700f5efff616218119dbf7af9b669208c9b6662603cc250638e5c2",
+    "lib/bindings/xui/examples/tree_nodes.xl": "7307aaa31ec165541fa9497720030da2ddd36ce2020ea98acbbaae41614855f3",
+    "lib/bindings/xui/examples/README.md": "38253a3f54b27eca7cb9a5b3692ce861d70aec576fbde0ea2119a3b657e3cd05",
+    "docs/xui-tree-nodes.md": "00649b606de02fc303a9bff4d025cf67f3568dc75fd75c0922ea08b0dcbcfd79",
+    "docs/xge3-xui3-api-map-storage.json": "39d8ae71cba60f4bd791fb79acb135cff2e97238fd1ab1149b7b6ee777ced48d",
+    "tools/xui_managed_contracts.py": "57c24c0385666323b9366e4d5be6362775c3ca045e3934e2527214d35ee2f65a",
+    "tools/check_xge3_bindings.py": "a2b013ea6d3b3fbb07598ef6f4a707a99fb3bf8243b9c5abed3794a57bc5f97e",
+    "tools/check_xge3_storage_reviews.py": "78660874fab7b2e0314176d909284a65b9548e12472890547e76fc5438b56efc",
+    "test/cases/foreign_xui_tree_descriptors.xl": "cef081dee2fcd22728d7a11551c383833fc5fb014c71698b45f678cfa91729ec",
+    "test/cases/foreign_xui_tree_descriptors.c": "e3d74e301a7ad6b1a406fc88600e0cadb60e86b76e59e21e95dab8e71e3db2bf",
+    "test/cases/foreign_xui_tree_descriptors.h": "c12bec81409740056f9148c8e1b7954ef73875eb2a0e8a03f15c23ebac1e36dc"
+  },
+  "nativeValidatedSourceHashes": {
+    "include/xui.h": "852e4cb61845e7edb1b149b5bf448b3b11c5a5b7a81a1aba5fbf098f52e6aa54",
+    "src/xui/controls/xui_tree_view.c": "7466834573677b3f5cd45cbb340e1ae1a83c98bde697d8d3877e153c63390aa6",
+    "tests/xui/xui_tree_node_descriptors_test.c": "1057a5c74381154b8833c5bac6adfb6f9d920271e9f610a534246aa4db341eb5"
+  },
+  "nativeGitSourceHashes": {
+    "include/xui.h": "852e4cb61845e7edb1b149b5bf448b3b11c5a5b7a81a1aba5fbf098f52e6aa54",
+    "src/xui/controls/xui_tree_view.c": "e0bd63dff2b31f4576418555c2eebf4dc3c1326fd5368e708080ed0d3da238ca",
+    "tests/xui/xui_tree_node_descriptors_test.c": "1057a5c74381154b8833c5bac6adfb6f9d920271e9f610a534246aa4db341eb5"
+  },
+  "refreshCosts": {
+    "nodes": 128,
+    "previous": {
+      "transferredTexts": 0,
+      "allocations": 546,
+      "frees": 546,
+      "reallocations": 18
+    },
+    "current": {
+      "transferredTexts": 128,
+      "allocations": 273,
+      "frees": 273,
+      "reallocations": 9
+    }
+  },
+  "behavior": [
+    "A parent-first columnar language input projects to one native record array and one native call. Native TreeView owns its text.",
+    "Node, ID, and visible-row queries return a scalar state and language-owned string. Hidden descendants report resolved depth.",
+    "Ten injected native allocation failures preserve the displayed tree, selected ID and baseline live allocation counts.",
+    "A failed language text copy leaves both tuple destination values unchanged. Its two checked-error allocations are balanced.",
+    "One thousand warmed nonempty text queries perform one balanced allocation each. Direct C returns borrowed text with no allocation.",
+    "The 16-case legacy adapter lifetime suite passes using dynamic host and static archives on both targets.",
+    "New native implementation pins use SHA-256 of LF-normalized source bytes. Existing byte-exact pins keep the original validation rule."
+  ],
+  "evidence": {
+    "win": {
+      "sdk": {
+        "path": "F:\\xlang-validation\\xge-full-20261110\\tree-node-descriptors-sdk-win-r1\\results.json",
+        "sha256": "e773732a416d08b224bfe55df245f5ece243220b8923274934833757c7b6eaea",
+        "steps": 2
+      },
+      "packages": {
+        "path": "F:\\xlang-validation\\xge-full-20261110\\tree-node-descriptors-packages-win-r2\\results.json",
+        "sha256": "6b7dbef37c98937659319cdcc4d98c30badd63e52aad144fb8a877931a0a9059",
+        "steps": 6,
+        "storageReview": {
+          "path": "F:\\xlang-validation\\xge-full-20261110\\tree-node-descriptors-packages-win-r2\\source-review\\results.json",
+          "sha256": "6fb05e3efe091db0763148e2d8233b2edc404f5bac26bf7683a71d33e64e03e1"
+        }
+      },
+      "native": {
+        "path": "F:\\xlang-validation\\xge-full-20261110\\tree-node-descriptors-native-win-r1\\results.json",
+        "sha256": "7673a5e827f4371b80d869c8c3e17550286ab57807e117914240ed627b168c23",
+        "steps": 18
+      },
+      "baseline": {
+        "path": "F:\\xlang-validation\\xge-full-20261110\\tree-node-descriptors-native-baseline-win-r1\\results.json",
+        "sha256": "141c5510fe7468dd6f1e4c920591a25087e2614bc13f828d7b847d3a2ed37f44",
+        "steps": 3
+      },
+      "language": {
+        "path": "F:\\xlang-validation\\xge-full-20261110\\tree-node-descriptors-language-win-r2\\results.json",
+        "sha256": "066b2eada4d1d8e761707e9e5db1fc3bd72da7f1affae7beaed0512a8ca59a02",
+        "steps": 17
+      },
+      "workflow": {
+        "path": "F:\\xlang-validation\\xge-full-20261110\\tree-node-descriptors-workflow-win-r1\\results.json",
+        "sha256": "3870ef018788d8700278e0a54feb5c7d1aac764aa3cc0fd646170d68bb4b1dbd",
+        "steps": 1
+      }
+    },
+    "linux": {
+      "sdk": {
+        "path": "\\\\wsl.localhost\\Ubuntu\\var\\tmp\\xlang-validation\\xge-full-20261110\\tree-node-descriptors-sdk-linux-r1\\results.json",
+        "sha256": "b5fc66b883bb72be5ed19cee8f7b84f580d0a09e14b78048ff4a873d6bafa96e",
+        "steps": 2
+      },
+      "packages": {
+        "path": "\\\\wsl.localhost\\Ubuntu\\var\\tmp\\xlang-validation\\xge-full-20261110\\tree-node-descriptors-packages-linux-r2\\results.json",
+        "sha256": "d56785492217ecd16bcf46290cbaa9ed713eac69588e9f688b78f1eebac8b861",
+        "steps": 6,
+        "storageReview": {
+          "path": "\\\\wsl.localhost\\Ubuntu\\var\\tmp\\xlang-validation\\xge-full-20261110\\tree-node-descriptors-packages-linux-r2\\source-review\\results.json",
+          "sha256": "8645bf129733241a390058074322cea9e2878a72a2c6190c9e8d04a0fe9e1705"
+        }
+      },
+      "native": {
+        "path": "\\\\wsl.localhost\\Ubuntu\\var\\tmp\\xlang-validation\\xge-full-20261110\\tree-node-descriptors-native-linux-r1\\results.json",
+        "sha256": "9bf36e106063934c8d3ef37cf10affa697a39d6b7bfa50b6ac8408c9b7a8fcf9",
+        "steps": 18
+      },
+      "baseline": {
+        "path": "\\\\wsl.localhost\\Ubuntu\\var\\tmp\\xlang-validation\\xge-full-20261110\\tree-node-descriptors-native-baseline-linux-r1\\results.json",
+        "sha256": "09cc38029a9a8ad66c8a9b9846f9dab74c623acf53d25cf024ec39228b029ea4",
+        "steps": 3
+      },
+      "language": {
+        "path": "\\\\wsl.localhost\\Ubuntu\\var\\tmp\\xlang-validation\\xge-full-20261110\\tree-node-descriptors-language-linux-r2\\results.json",
+        "sha256": "0877de2634c9c679a7c4caf14faea297232f66cf0fd3f69cc46fac571284db84",
+        "steps": 17
+      },
+      "workflow": {
+        "path": "\\\\wsl.localhost\\Ubuntu\\var\\tmp\\xlang-validation\\xge-full-20261110\\tree-node-descriptors-workflow-linux-r1\\results.json",
+        "sha256": "5bce8ff1c8d6c893bdf6809253df0217359762347d83416cd602abd838e8d5af",
+        "steps": 1
+      }
+    }
+  }
+}

@@ -25,6 +25,8 @@
 
 [table_columns.xl](table_columns.xl) 设置数值列的类型、对齐和宽度范围，然后输出原生表格限制后的宽度。
 
+[tree_nodes.xl](tree_nodes.xl) 批量设置父节点和子节点，展开父节点后读取子节点的名称与深度。
+
 先运行 [button.xl](button.xl)，然后按“标签 → 输入 → 事件 → 布局”的顺序学习。每个文件都是独立程序，打开源码就能按顺序看到界面是如何组成的。
 
 在发布目录 `release/win_x64` 中运行：

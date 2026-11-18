@@ -1,0 +1,11 @@
+export extern "xui_tree_node_state_t" struct TreeNodeState @header("xge3_runtime.h")
+ c_int iId
+ c_int iParent
+ c_int iDepth
+ c_int bExpanded
+ c_int bEnabled
+ c_int bHasChildren
+ c_int bIconReserved
+ c_int bCheckReserved
+ c_int bChecked
+end

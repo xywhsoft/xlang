@@ -4633,6 +4633,14 @@ export extern "xui_widget_t*" class TreeView @header("xge3_runtime.h") @lifetime
 
  extern "xuiTreeViewAddNode" @no_raise @c_cstr(2) func addNode(c_int iId,c_int iParentId,string sText) as c_int
 
+ extern "xuiTreeViewSetNodeDescriptors" @no_raise @c_array_group(1,0,2,"int",2) @c_array_record(1,"xui_tree_node_desc_t") @c_array_field(1,"tState",0,"value") @c_array_field(1,"sText",1,"c_string") @c_result("status",0) func setNodes(array<TreeNodeState> states,array<string?> texts,int size=-1)
+
+ extern "xuiTreeViewGetNodeDescriptor" @no_raise @c_output_record(2,"xui_tree_node_desc_t","borrowed") @c_status(0) @c_output_field(0,"tState") @c_output_field(1,"sText","cstring") func getNode(c_int index) as (TreeNodeState,string)
+
+ extern "xuiTreeViewGetNodeDescriptorById" @no_raise @c_output_record(2,"xui_tree_node_desc_t","borrowed") @c_status(0) @c_output_field(0,"tState") @c_output_field(1,"sText","cstring") func getNodeById(c_int id) as (TreeNodeState,string)
+
+ extern "xuiTreeViewGetVisibleNodeDescriptor" @no_raise @c_output_record(2,"xui_tree_node_desc_t","borrowed") @c_status(0) @c_output_field(0,"tState") @c_output_field(1,"sText","cstring") func getVisibleNode(c_int index) as (TreeNodeState,string)
+
  extern "xuiTreeViewGetNodeCount" @no_raise func getNodeCount() as c_int
 
  extern "xuiTreeViewFindNode" @no_raise func findNode(c_int iNodeId) as c_int

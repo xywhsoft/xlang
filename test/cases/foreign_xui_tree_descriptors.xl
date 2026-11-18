@@ -1,0 +1,103 @@
+import xge
+import xui
+
+extern "treeDescriptorsHeapBegin" @header("test/cases/foreign_xui_tree_descriptors.h") @no_raise func heapBegin()
+extern "treeDescriptorsHeapEnd" @header("test/cases/foreign_xui_tree_descriptors.h") @no_raise func heapEnd(c_int mode)
+extern "treeDescriptorsHeapBudget" @header("test/cases/foreign_xui_tree_descriptors.h") @no_raise func budget(c_int allowance)
+extern "treeDescriptorsNativeHot" @header("test/cases/foreign_xui_tree_descriptors.h") @no_raise func nativeHot(xui.TreeView tree)
+
+func verifySnapshotRollback(xui.TreeView tree)
+    auto kept,text = tree.getNodeById(12)
+    bool failed = false
+    heapBegin()
+    budget(0)
+    try
+        kept,text = tree.getNodeById(11)
+    catch error
+        failed = true
+    finally
+        budget(-1)
+    end
+    assert failed and kept.iId == 12 and text == ""
+    heapEnd(2)
+end
+
+func verifyTree(xui.Context ui)
+    auto tree = ui.treeViewNative()
+    xui.TreeNodeState root
+    root.iId = 10
+    root.iParent = -1
+    root.iDepth = 370
+    root.bEnabled = 1
+    xui.TreeNodeState child
+    child.iId = 11
+    child.iParent = 10
+    child.bExpanded = 1
+    child.bEnabled = 1
+    child.bIconReserved = 1
+    xui.TreeNodeState leaf
+    leaf.iId = 12
+    leaf.iParent = 11
+    leaf.bCheckReserved = 1
+    leaf.bChecked = 1
+
+    array<string?> titles = ["Root","Child",null]
+    tree.setNodes([root,child,leaf],titles,2)
+    assert tree.getNodeCount() == 2
+    tree.setNodes([root,child,leaf],titles)
+    assert tree.getNodeCount() == 3 and tree.getVisibleCount() == 1
+    auto visible,rootText = tree.getVisibleNode(0)
+    assert visible.iId == 10 and visible.iDepth == 0 and visible.bHasChildren == 1 and rootText == "Root"
+    auto hidden,hiddenText = tree.getNodeById(12)
+    assert hidden.iDepth == 2 and hidden.bChecked == 1 and hidden.bCheckReserved == 1
+    assert hidden.bEnabled == 0 and hiddenText == ""
+    bool notVisible = false
+    try
+        tree.getVisibleNode(1)
+    catch error
+        notVisible = true
+    end
+    assert notVisible
+    assert tree.setNodeExpanded(10,1) == 0
+    assert tree.getVisibleCount() == 3
+    auto childNode,childText = tree.getNode(1)
+    assert childNode.iId == 11 and childNode.bIconReserved == 1 and childText == "Child"
+    assert tree.setSelected(11) == 0
+
+    leaf.iParent = 99
+    bool badParent = false
+    try
+        tree.setNodes([root,child,leaf],titles)
+    catch error
+        badParent = true
+    end
+    assert badParent and tree.getSelected() == 11 and tree.getVisibleCount() == 3
+
+    heapBegin()
+    for i in range(1000)
+        auto state,title = tree.getNodeById(11)
+        assert state.iDepth == 1
+    end
+    heapEnd(0)
+    nativeHot(tree)
+    verifySnapshotRollback(tree)
+    tree.clear()
+    tree.close()
+    assert childText == "Child" and childNode.iId == 11
+    assert rootText == "Root" and visible.iId == 10
+end
+
+func main(...) as int
+    xge.init(32,32,"Tree node qualification",c_int(xge.XGE_INIT_OFFSCREEN),xge.XGE_RUN_MANUAL)
+    auto proxy = xui.createProxy()
+    auto ui = xui.create(proxy,xui.XUI_SYSTEM_FONT_DISABLED)
+    try
+        verifyTree(ui)
+    finally
+        ui.close()
+        proxy.close()
+        xge.unit()
+    end
+    println("XUI_TREE_DESCRIPTORS_LANGUAGE_OK")
+    return 0
+end

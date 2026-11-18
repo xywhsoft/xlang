@@ -594,6 +594,17 @@ METHODS.update({
         'TableView', ['extern "xuiTableViewGetSortColumn" @no_raise @c_outputs(-1,1) @c_result("integer_min",-1) func getSortColumn() as (c_int,c_int)']],
 })
 
+METHODS.update({
+    'xuiTreeViewSetNodeDescriptors': ['int xuiTreeViewSetNodeDescriptors(xui_widget pWidget, const xui_tree_node_desc_t* pNodes, int iCount)',
+        'TreeView', ['extern "xuiTreeViewSetNodeDescriptors" @no_raise @c_array_group(1,0,2,"int",2) @c_array_record(1,"xui_tree_node_desc_t") @c_array_field(1,"tState",0,"value") @c_array_field(1,"sText",1,"c_string") @c_result("status",0) func setNodes(array<TreeNodeState> states,array<string?> texts,int size=-1)']],
+    'xuiTreeViewGetNodeDescriptor': ['int xuiTreeViewGetNodeDescriptor(xui_widget pWidget, int iIndex, xui_tree_node_desc_t* pNode)',
+        'TreeView', ['extern "xuiTreeViewGetNodeDescriptor" @no_raise @c_output_record(2,"xui_tree_node_desc_t","borrowed") @c_status(0) @c_output_field(0,"tState") @c_output_field(1,"sText","cstring") func getNode(c_int index) as (TreeNodeState,string)']],
+    'xuiTreeViewGetNodeDescriptorById': ['int xuiTreeViewGetNodeDescriptorById(xui_widget pWidget, int iNodeId, xui_tree_node_desc_t* pNode)',
+        'TreeView', ['extern "xuiTreeViewGetNodeDescriptorById" @no_raise @c_output_record(2,"xui_tree_node_desc_t","borrowed") @c_status(0) @c_output_field(0,"tState") @c_output_field(1,"sText","cstring") func getNodeById(c_int id) as (TreeNodeState,string)']],
+    'xuiTreeViewGetVisibleNodeDescriptor': ['int xuiTreeViewGetVisibleNodeDescriptor(xui_widget pWidget, int iVisible, xui_tree_node_desc_t* pNode)',
+        'TreeView', ['extern "xuiTreeViewGetVisibleNodeDescriptor" @no_raise @c_output_record(2,"xui_tree_node_desc_t","borrowed") @c_status(0) @c_output_field(0,"tState") @c_output_field(1,"sText","cstring") func getVisibleNode(c_int index) as (TreeNodeState,string)']],
+})
+
 VIEW_FUNCTIONS = {'xuiGetLanguage': 'int xuiGetLanguage(xui_context pContext)', 'xuiRequestClose': 'int xuiRequestClose(xui_context pContext)'}
 
 INLINE_FUNCTIONS = {'xuiEventDragData': 'f9bd130d67726da8ae4ca0fa029089b33cb1ed0de3d9918fec59bee9d0ba219c'}

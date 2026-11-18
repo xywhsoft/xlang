@@ -95,7 +95,7 @@ def native_function_sha(text,name):
         i+=1
     return hashlib.sha256(text[m.start():i].encode()).hexdigest() if depth==0 else None
 def storage_review_match(native_root,review,helper=None):
-    """Check an explicit review and its optional, byte-exact implementation pins.
+    """Check an explicit review and its optional implementation pins.
 
     These witnesses detect change; they do not infer a non-escape contract or
     certify ABI/runtime behavior. Legacy reviews retain their body-only scope.
@@ -128,13 +128,19 @@ def storage_review_match(native_root,review,helper=None):
             if not isinstance(dependencies,list) or not dependencies:
                 raise ValueError('empty or invalid dependencies')
             for dependency in dependencies:
-                if not isinstance(dependency,dict) or set(dependency)!={'sourceFile','sha256'}:
+                if not isinstance(dependency,dict) or set(dependency) not in ({'sourceFile','sha256'},{'sourceFile','lfSha256'}):
                     raise ValueError('invalid dependency record')
                 path=source(dependency['sourceFile'])
                 if path in seen:raise ValueError('duplicate dependency: '+dependency['sourceFile'])
                 seen.add(path)
-                if not digest(dependency['sha256']):raise ValueError('invalid dependency digest')
-                if hashlib.sha256(path.read_bytes()).hexdigest()!=dependency['sha256']:
+                source_bytes=path.read_bytes()
+                if 'lfSha256' in dependency:
+                    expected=dependency['lfSha256']
+                    source_bytes=source_bytes.replace(b'\r\n',b'\n')
+                else:
+                    expected=dependency['sha256']
+                if not digest(expected):raise ValueError('invalid dependency digest')
+                if hashlib.sha256(source_bytes).hexdigest()!=expected:
                     raise ValueError('native dependency changed: '+dependency['sourceFile'])
         return True,None
     except (OSError,ValueError,UnicodeError) as error:

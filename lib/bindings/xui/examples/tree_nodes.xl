@@ -1,0 +1,32 @@
+// Load a root and child together, then read the child after expanding the root.
+import xge
+import xui
+
+func main(...) as int
+    xge.init(32,32,"Tree nodes",c_int(xge.XGE_INIT_OFFSCREEN),xge.XGE_RUN_MANUAL)
+    auto proxy = xui.createProxy()
+    auto ui = xui.create(proxy,xui.XUI_SYSTEM_FONT_DISABLED)
+    try
+        auto tree = ui.treeViewNative()
+        xui.TreeNodeState project
+        project.iId = 1
+        project.iParent = -1
+        project.bEnabled = 1
+        xui.TreeNodeState source
+        source.iId = 2
+        source.iParent = 1
+        source.bEnabled = 1
+
+        array<string?> names = ["Project","main.xl"]
+        tree.setNodes([project,source],names)
+        assert tree.getVisibleCount() == 1
+        assert tree.setNodeExpanded(1,1) == 0
+        auto node,name = tree.getVisibleNode(1)
+        println(name,"depth",node.iDepth)
+    finally
+        ui.close()
+        proxy.close()
+        xge.unit()
+    end
+    return 0
+end

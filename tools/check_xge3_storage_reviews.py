@@ -77,6 +77,14 @@ def main():
         original=dependency.read_bytes();dependency.write_bytes(original+b'/* changed dependency, unchanged entry */\n')
         check('unchanged-body-changed-dependency-rejected',lambda:rejected(review,'native dependency changed'))
         dependency.write_bytes(original)
+        lf=original.replace(b'\r\n',b'\n')
+        lf_review=dict(review,dependencies=[dict(sourceFile='src/helper.inl',lfSha256=hashlib.sha256(lf).hexdigest())])
+        for ending in (b'\n',b'\r\n'):
+            dependency.write_bytes(lf.replace(b'\n',ending))
+            check('lf-dependency-'+ending.hex(),lambda:require(storage_review_match(fixture,lf_review)==(True,None)))
+        dependency.write_bytes(lf+b'/* changed */\n')
+        check('lf-dependency-rejects-content-change',lambda:rejected(lf_review,'native dependency changed'))
+        dependency.write_bytes(original)
         # Test actual annotation, not only the fingerprint helper. A stale
         # prior result must not survive a later non-strict reinspection.
         mini=out/'mini';folder=mini/'lib/bindings/xui';folder.mkdir(parents=True);(mini/'docs').mkdir()
