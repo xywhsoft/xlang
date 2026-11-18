@@ -23,6 +23,16 @@ export extern "xge3d_billboard_geometry_t" struct BillboardGeometry @header("xge
  c_int depth_test
 end
 
+// Immutable CPU geometry can be submitted to several renderers.
+export extern "xge3d_billboard_batch*" class BillboardBatch @header("xge3d_renderer.h") @lifetime("owned") @policy("xl6Xge3dBillboardBatchPolicy")
+ native point handle
+ extern "xge3dBillboardBatchGetGeometry" @no_raise @c_const(0) @c_owned_sequence(1,2,0,"size_t",0) @c_retain(retainBillboards,"zero",freeBillboards) func geometry() as NativeSequence<BillboardGeometry>
+ extern "xl6ForeignViewCloseV1" @no_raise @c_control(0) @c_result("bool_status") func close()
+end
+extern "xge3dBillboardBatchAddRef" @header("xge3d_renderer.h") @no_raise func retainBillboards(BillboardBatch value) as c_int
+extern "xge3dBillboardBatchFree" @header("xge3d_renderer.h") @no_raise func freeBillboards(BillboardBatch value)
+export extern "xge3dBillboardBatchCreate" @header("xge3d_renderer.h") @no_raise @c_array_group(0,0,1,"size_t",1) @c_array_input(0,0,"const xge3d_billboard_geometry_t*","value") @c_result("owned_view") @factory(2,0,freeBillboards) func createBillboardBatch(array<BillboardGeometry> geometry,int size=-1) as BillboardBatch
+
 export extern "xge3d_texture*" class Texture3D @header("xge3d_renderer.h") @lifetime("owned") @policy("xl6Xge3dTexturePolicy")
  native point handle
  extern "xge3dTextureShareOwned" @no_raise @c_result("owned_view") @factory(1,0,rollbackTexture3D) func share() as Texture3D
@@ -46,6 +56,7 @@ export extern "xge3d_renderer*" class Renderer @header("xge3d_renderer.h") @life
  native point handle
  extern "xge3dRendererMaxJoints" @no_raise @c_const(0) get maxJoints() as c_size
  extern "xge3dBillboardsSetBatch" @no_raise @c_const(1) @c_result("status",0) func setBillboards(BillboardBatch batch,Texture3D? texture=null)
+ extern "xge3dBillboardsSetTexturedBatch" @no_raise @c_const(1) @c_array_group(2,1,1,"size_t",2) @c_array_input(2,0,"xge3d_texture* const*","view_raw") @c_result("status",0) func setBillboards(BillboardBatch batch,array<Texture3D?> textures,int size=-1)
  extern "xge3dBillboardsSetGeometry" @no_raise @c_array_group(1,0,1,"size_t",1) @c_array_input(1,0,"const xge3d_billboard_geometry_t*","value") @c_result("status",0) func setBillboards(array<BillboardGeometry> geometry,int size=-1,Texture3D? texture=null)
  extern "xge3dBillboardsSetTexturedGeometry" @no_raise @c_array_group(1,0,2,"size_t",2) @c_array_input(1,0,"const xge3d_billboard_geometry_t*","value") @c_array_input(1,1,"xge3d_texture* const*","view_raw") @c_result("status",0) func setBillboards(array<BillboardGeometry> geometry,array<Texture3D?> textures,int size=-1)
  extern "xge3dRenderFrame" @no_raise @c_ref(1) @c_ref(2) @c_output(6,0) func render(Scene scene,Xge3dCamera camera,c_float[4] clearColor,c_uint clearFlags=3,c_float exposure=0) as Xge3dRenderStats

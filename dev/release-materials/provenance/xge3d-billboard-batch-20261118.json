@@ -1,0 +1,163 @@
+{
+  "date": "2026-11-18",
+  "scope": "Reusable CPU billboard batches and mixed texture submission",
+  "complete": true,
+  "passed": true,
+  "xgeCommit": "15ac36f3571dcf0638a7b2e138ae448c813e07c9",
+  "xgeParent": "fbfb1f92d457174e87485e8de1a98d7eb7ac8cd6",
+  "xlangParent": "601e5e166ae15b151b0195cfb5221fa3ed572762",
+  "xrtCommit": "804cc769de3030118c2b46ef7af69543d1b82d9d",
+  "nativeSources": {
+    "include/xge.h": "22bb3ceaefce7b9af22c1cf70ec6ac2a4c15995f71fe4baadd82b5d2602182e2",
+    "src/xge/3d/xge3d_internal.h": "5dbcf6ddb3921e29c5cfeda1e9b7575a7ec8a27afc8eaaaa439b1df3e0ce00a9",
+    "src/xge/3d/xge3d_draw.inc": "3bd0dc491e0a38c225f58d95ad20c3c07cd138a0e09b577cc9c9d05b38d3cd7e",
+    "src/xge/3d/xge3d_particles.c": "2ed8dda72437ec7b5199f9fc11faf8bfe7f4e169ec26977a6101d0e09928b138",
+    "tests/xge/test_3d_target_billboards_owned.c": "f7d30417030f95d7fc7b99e8ae9d2021e3e9ea5207dcbfd4d28fe40bad9bf030"
+  },
+  "languageSources": {
+    "docs/xge3-xui3-api-map-storage.json": "7259697d982775b1842437907f6c763ef66717125bfd3605d767c769fa36317c",
+    "lib/bindings/xge/three_d/examples/billboard_batch.xl": "ee70c76b3c4a621803fea737b843fb4b9b9b35321495d505c2706cac617e11d8",
+    "lib/bindings/xge/three_d/examples/README.md": "a73b799c56e421f982a01bb831d631a216611b29212bc42abc6ee077cb9a16c0",
+    "lib/bindings/xge/three_d/include/xge3d_particles.h": "11a79f73157de4f004766b10e3b52bb35c31c01a8d9fae2d94cc49420ea69716",
+    "lib/bindings/xge/three_d/include/xge3d_renderer.h": "92a07456767901fb8f3ce4153cda8989f39482753bdf07eb18c1756b40a75611",
+    "lib/bindings/xge/three_d/src/particles.xl": "107decccd9ddf1a7dcc141ea06c4ff0f80030210b7769774baa521304ecf376f",
+    "lib/bindings/xge/three_d/src/renderer.xl": "443fb355fb5b92dca813fd006cf0c10d30c3159734ee5473176aedd9ca36acff",
+    "test/cases/foreign_xge3d_target_billboards.xl": "57f9c79a2f742af1fe3482b6c5789498d22d84db72e52ef991f3ac191794e320",
+    "docs/xge3-model.md": "20c499a58c31ded1751a7b063569c26c27622927404fab8decc17c5d4c22cfe7"
+  },
+  "fixtures": {
+    "tests/xge/test_3d_target_billboards_owned.c": "f7d30417030f95d7fc7b99e8ae9d2021e3e9ea5207dcbfd4d28fe40bad9bf030",
+    "tests/xge/test_3d_particle_billboards_owned.c": "7f527c20c3625d97fc88a4f2e7db5e5fce1110aa80eb430bb50e514823360db1",
+    "test/cases/foreign_xge3d_billboards.xl": "8eb012dba238e32fbe09039320764820dca05b6e6b88c87e0f551ea0bf46b725"
+  },
+  "evidence": {
+    "win": {
+      "sdk": {
+        "path": "F:\\xlang-validation\\xge-full-20261110\\billboard-batch3d-sdk-win-r1\\results.json",
+        "sha256": "9fae549a28d1e46c4922fedb67835088f44b8a6a343f41d25c07eb95a2d0043e"
+      },
+      "native": {
+        "path": "F:\\xlang-validation\\xge-full-20261110\\billboard-batch3d-native-win-r2\\results.json",
+        "sha256": "6c0b2edd595e1741e86750a9257be8e50de1b83c62ecc03c515054cd65ba22b8"
+      },
+      "feature": {
+        "path": "F:\\xlang-validation\\xge-full-20261110\\billboard-batch3d-features-win-r1\\results.json",
+        "sha256": "fb9a5eb47b5b6d4b4ccb52b58e1b23b334481d03ed262a118996e207d6244789"
+      },
+      "package": {
+        "path": "F:\\xlang-validation\\xge-full-20261110\\billboard-batch3d-packages-win-r1\\results.json",
+        "sha256": "70622ce13e03edf1948a7110cea5adc62a2b0c4fb89be67e8ca97fed68a2ee1f"
+      },
+      "sourceReview": {
+        "path": "F:\\xlang-validation\\xge-full-20261110\\billboard-batch3d-packages-win-r1\\source-review\\results.json",
+        "sha256": "4d439498fc2045500cc118e44174525baadd910541e387af6bd0384b7aa6217c"
+      },
+      "packageSeal": {
+        "path": "F:\\xlang-validation\\xge-full-20261110\\billboard-batch3d-packages-win-r1\\packages\\stage-report.json",
+        "sha256": "6e502316ae47f985956ecbd2701092e9fbffaa8be810fe7ed0bfa0faa94b032c"
+      },
+      "language": {
+        "path": "F:\\xlang-validation\\xge-full-20261110\\billboard-batch3d-language-win-r1\\results.json",
+        "sha256": "f7b7b67a915461e8c9d59e4f0f4803e1eb163d382268583dc275fa72cdc9c0c4"
+      },
+      "performance": {
+        "path": "F:\\xlang-validation\\xge-full-20261110\\billboard-batch3d-perf-win-r1\\results.json",
+        "sha256": "21711acd45540355e49ccf0ebbaa43d0eb9d45e6fdf55cf162dcdcd7603e0841"
+      },
+      "compiler": {
+        "path": "F:\\xlang-validation\\xge-full-20261110\\compiler-native-sequence-fixed-record-win-full-r2\\build.json",
+        "sha256": "5b6e7afe29909931548adb96f01f2f8dd386932d6876a7f55c3b70c25126b05c"
+      }
+    },
+    "linux": {
+      "sdk": {
+        "path": "\\\\wsl.localhost\\Ubuntu\\var\\tmp\\xlang-validation\\xge-full-20261110\\billboard-batch3d-sdk-linux-r1\\results.json",
+        "sha256": "be9041f9c4da37f058bb85eda863212624f9bb7125c6cf01d3e244972edee793"
+      },
+      "native": {
+        "path": "\\\\wsl.localhost\\Ubuntu\\var\\tmp\\xlang-validation\\xge-full-20261110\\billboard-batch3d-native-linux-r2\\results.json",
+        "sha256": "b49cdfb6188ab8883fb08f96cd24df6cc81cbeea52ebe818bdfc85c3be4d09fd"
+      },
+      "feature": {
+        "path": "\\\\wsl.localhost\\Ubuntu\\var\\tmp\\xlang-validation\\xge-full-20261110\\billboard-batch3d-features-linux-r1\\results.json",
+        "sha256": "1def7473a4a4d3f16e6a0fd48fac7904b9cb215a190c778d6bfb0ef1f7f8b766"
+      },
+      "package": {
+        "path": "\\\\wsl.localhost\\Ubuntu\\var\\tmp\\xlang-validation\\xge-full-20261110\\billboard-batch3d-packages-linux-r1\\results.json",
+        "sha256": "2d4c804b275be4ce3943f362fa7f6a2a42139d85633a4e258f13af45701eb951"
+      },
+      "sourceReview": {
+        "path": "\\\\wsl.localhost\\Ubuntu\\var\\tmp\\xlang-validation\\xge-full-20261110\\billboard-batch3d-packages-linux-r1\\source-review\\results.json",
+        "sha256": "a7cdfee9f52ba1b44bf1ac1f5c943f2df5c8615602620f3940f21bc25ecda016"
+      },
+      "packageSeal": {
+        "path": "\\\\wsl.localhost\\Ubuntu\\var\\tmp\\xlang-validation\\xge-full-20261110\\billboard-batch3d-packages-linux-r1\\packages\\stage-report.json",
+        "sha256": "82848e59266ac3bf7c30b8b883c6591d8f407ba28914b711e0f3c0aa447ab6f3"
+      },
+      "language": {
+        "path": "\\\\wsl.localhost\\Ubuntu\\var\\tmp\\xlang-validation\\xge-full-20261110\\billboard-batch3d-language-linux-r1\\results.json",
+        "sha256": "3f654649231539538be002a97677716fdac47ad99dc1138e99933cf01bbf4dea"
+      },
+      "performance": {
+        "path": "\\\\wsl.localhost\\Ubuntu\\var\\tmp\\xlang-validation\\xge-full-20261110\\billboard-batch3d-perf-linux-r1\\results.json",
+        "sha256": "3e7aa027f2cf2c107b89474d54cc1c0012a15c866755f6939704d7c93a9c805d"
+      },
+      "compiler": {
+        "path": "\\\\wsl.localhost\\Ubuntu\\var\\tmp\\xlang-validation\\xge-full-20261110\\compiler-native-sequence-fixed-record-linux-full-r2\\build.json",
+        "sha256": "996fd94fd7b3619c406d5dbad3b22b04915ed3888f7a629463231bf760429e4e"
+      }
+    }
+  },
+  "checks": [
+    "Immutable copied CPU geometry, per-row retained texture and null color fallback",
+    "Real render target pixel equality across legacy native rows and new batch submission",
+    "Wrong-size, OOM and invalid descriptor preserve prior renderer queue",
+    "An empty batch clears the persistent renderer queue",
+    "Direct feature compilation emits billboard batch symbols independently of particle support",
+    "Windows and Linux JIT, hosted and static executables and unloadable static shared modules"
+  ],
+  "performance": {
+    "iterationsPerPlatform": 256,
+    "rowsPerSubmission": 3,
+    "countsBothPlatforms": {
+      "languageMono": [
+        0,
+        0,
+        0
+      ],
+      "languageMixed": [
+        512,
+        512,
+        0
+      ],
+      "languageArrays": [
+        768,
+        768,
+        0
+      ],
+      "cMono": [
+        0,
+        0,
+        0
+      ],
+      "cMixed": [
+        0,
+        0,
+        0
+      ],
+      "cArrays": [
+        0,
+        0,
+        0
+      ]
+    },
+    "countsOrder": [
+      "allocations",
+      "frees",
+      "reallocations"
+    ],
+    "cpuTimeEquivalenceClaim": false
+  },
+  "releaseInstalled": false,
+  "networkTests": false
+}

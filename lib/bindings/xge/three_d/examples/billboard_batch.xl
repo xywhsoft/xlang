@@ -1,0 +1,33 @@
+import xge
+import xge3d
+
+auto left = xge3d.billboardDefault()
+left.position.x = c_float(-0.75)
+left.position.z = c_float(-2)
+auto right = left
+right.position.x = c_float(0.75)
+auto batch = xge3d.createBillboardBatch([left, right])
+
+xge.init(480, 320, "两张公告板")
+xge.run(func() as c_int
+    assert xge.begin() == 0
+    auto scene = xge3d.createScene()
+    auto renderer = xge3d.createRenderer()
+    auto red = xge3d.createTexture(c_int(1), c_int(1), codec.hexDecode("FF0000FF"))
+    array<xge3d.Texture3D?> textures = [red, null]
+    renderer.setBillboards(batch, textures) // 左边使用红色纹理，右边为白色。
+    red.close() // 渲染器持有队列引用。
+
+    auto camera = xge3d.orthographicCamera(c_float(4), c_float(3), c_float(0.1), c_float(10))
+    c_float[4] background
+    background[3] = c_float(1)
+    auto stats = renderer.render(scene, camera, background)
+    println("公告板三角形数", stats.triangles)
+    renderer.close()
+    scene.close()
+    assert xge.nativeEnd() == 0
+    return c_int(1)
+end)
+xge.setFrameCallback(null)
+xge.unit()
+batch.close()

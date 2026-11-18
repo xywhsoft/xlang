@@ -300,3 +300,25 @@ vertices used no XRT heap allocations, reallocations or frees in either
 case.
 
 [Read-only mesh example](../lib/bindings/xge/three_d/examples/mesh_geometry.xl)
+
+## Reusable billboard batches
+
+`createBillboardBatch(geometry)` validates and copies up to 65,536 rows
+into an immutable CPU batch. It can be used before graphics initialization.
+Read its rows through `batch.geometry()` or submit the batch with one
+texture for all rows or a texture array. The selected texture count must
+match the batch row count. A null texture uses white.
+
+The renderer retains the textures and copies the commands on successful
+submission. A failed submission leaves the existing commands intact. An
+empty batch clears the queue. Custom batches skip repeated geometry
+validation. Mixed textures still require projecting and pinning each
+selected texture for the native call.
+
+In 256 warmed submissions of three rows on Windows and Linux, xlang used
+two XRT allocations and two frees per mixed-texture batch. Submitting
+both arrays used three of each. Submitting a batch with a single texture
+choice, or using the equivalent direct C calls, used no XRT heap
+operations after warm-up. The counts cover submission, before rendering.
+
+[Custom billboard example](../lib/bindings/xge/three_d/examples/billboard_batch.xl)

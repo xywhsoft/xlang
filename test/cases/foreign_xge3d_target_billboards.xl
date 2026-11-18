@@ -33,6 +33,11 @@ func main(...) as int
   array<xge3d.BillboardGeometry> geometry=[quad(-1),quad(0),quad(1)]
   array<xge3d.Texture3D?> textures=[red,green,null]
   renderer.setBillboards(geometry,textures)
+  auto batch=xge3d.createBillboardBatch(geometry)
+  auto saved=batch.geometry()
+  geometry[0]=quad(4)
+  assert saved[0].position.x==c_float(-1)
+  renderer.setBillboards(batch,textures)
   bool feedback=false
   try
    renderer.renderTo(scene,camera,source,clear)
@@ -46,18 +51,20 @@ func main(...) as int
   bool mismatch=false
   try
    array<xge3d.Texture3D?> tooShort=[null]
-   renderer.setBillboards(geometry,tooShort)
+   renderer.setBillboards(batch,tooShort)
   catch error
    mismatch=true
   end
   assert mismatch
   bool stale=false
   try
-   renderer.setBillboards(geometry,textures)
+   renderer.setBillboards(batch,textures)
   catch error
    stale=true
   end
   assert stale
+  batch.close()
+  assert saved[0].position.x==c_float(-1)
   auto stats=renderer.renderTo(scene,camera,target,clear)
   assert stats.triangles==uint64(6)
   auto pixels=Buffer()
@@ -74,6 +81,12 @@ func main(...) as int
    shortRead=true
   end
   assert shortRead and shortBuffer.hex()=="a1b2c3d4"
+
+  auto empty=xge3d.createBillboardBatch([])
+  array<xge3d.Texture3D?> noTextures=[]
+  renderer.setBillboards(empty,noTextures)
+  empty.close()
+  assert renderer.renderTo(scene,camera,target,clear).triangles==uint64(0)
 
   renderer.close()
   target.close()

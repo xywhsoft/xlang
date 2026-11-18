@@ -1,6 +1,11 @@
 #ifndef XL6_XGE3D_RENDERER_H
 #define XL6_XGE3D_RENDERER_H
 #include <xge3_checked_graphics.h>
+#if XGE3D_ENABLE_BILLBOARD
+#include <xge3_render_resources.h>
+XL6_XGE_NATIVE_POLICY(xl6Xge3dBillboardBatchPolicy,"xge3d.billboardBatch",xge3d_billboard_batch,xge3dBillboardBatchFree)
+#define xl6Xge3dBillboardBatchPolicy (*xl6Xge3dBillboardBatchPolicyGet())
+#endif
 
 /* Native resources retain their graphics lifetime until final release.
  * The language policy forwards native consumption and checked status. */

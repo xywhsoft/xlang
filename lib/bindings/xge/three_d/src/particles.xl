@@ -1,12 +1,4 @@
-// Bounded CPU simulation and immutable, texture-independent snapshots.
-export extern "xge3d_billboard_batch*" class BillboardBatch @header("xge3d_particles.h") @lifetime("owned") @policy("xl6Xge3dBillboardBatchPolicy")
- native point handle
- extern "xge3dBillboardBatchGetGeometry" @no_raise @c_const(0) @c_owned_sequence(1,2,0,"size_t",0) @c_retain(retainBillboards,"zero",freeBillboards) func geometry() as NativeSequence<BillboardGeometry>
- extern "xl6ForeignViewCloseV1" @no_raise @c_control(0) @c_result("bool_status") func close()
-end
-extern "xge3dBillboardBatchAddRef" @header("xge3d_particles.h") @no_raise func retainBillboards(BillboardBatch value) as c_int
-extern "xge3dBillboardBatchFree" @header("xge3d_particles.h") @no_raise func freeBillboards(BillboardBatch value)
-
+// Bounded CPU simulation.
 export extern "xge3d_particles*" class Particles @header("xge3d_particles.h") @lifetime("owned") @policy("xl6Xge3dParticlesPolicy")
  native point handle
  extern "xge3dParticlesSetPosition" @no_raise @c_result("status",0) func setPosition(Xge3dVec3 position)
