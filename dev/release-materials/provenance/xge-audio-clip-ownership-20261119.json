@@ -1,0 +1,187 @@
+{
+  "complete": true,
+  "passed": true,
+  "releaseInstalled": false,
+  "publicClipApi": false,
+  "physicalAudioDevice": false,
+  "sourceParent": "7b7bbc219b1361a1d543b9cd4fd9e1e767d5932a",
+  "nativeCommit": "6e0993c533d18fe99140000253439f934ae4141f",
+  "descriptorCommit": "dca3af4d2bb43068f3a416e156ea018133bafbf3",
+  "xrtCommit": "804cc769de3030118c2b46ef7af69543d1b82d9d",
+  "behavior": [
+    "Decode snapshots the descriptor before calling user cancellation.",
+    "Native workers retain and read one immutable PCM span. One thousand native share/read/free rounds allow zero allocations.",
+    "The exact two-frame same-rate trim outputs both frames followed by silence. A 4 kHz source still resamples for the 8 kHz mixer.",
+    "The private xlang fixture composes a scoped callback, owning clip/voice factories and an independently retained typed sequence.",
+    "Typed PCM iteration allows zero allocations. The tested sequence and voice allocation prefixes roll back without retaining heap or audio owners.",
+    "The production SDK is tested for CPU decoding. The frame/mixer probes use only a private SDK with matched features."
+  ],
+  "evidence": {
+    "win": {
+      "sdk": {
+        "path": "F:\\xlang-validation\\xge-full-20261110\\audio-clip-rate-sdk-win-r1\\results.json",
+        "sha256": "5b23f1e69cd77f854f12c4280a50d96d66283d5d2aafd3ca37ff92f87fe62f81",
+        "steps": 2
+      },
+      "packages": {
+        "path": "F:\\xlang-validation\\xge-full-20261110\\audio-clip-rate-packages-win-r1\\results.json",
+        "sha256": "873ce52c1073782d9a0f17ec0758f30e12b873f850769683d8c2ec9fd1fb02fe",
+        "steps": 6
+      },
+      "native": {
+        "path": "F:\\xlang-validation\\xge-full-20261110\\audio-clip-rate-native-win-r1\\native-clip\\results.json",
+        "sha256": "813ebc0f5704a41fb06498de115ac595c1fea3b94aaa44fd5c04f60f571e99a3",
+        "steps": 16
+      },
+      "oldDescriptor": {
+        "path": "F:\\xlang-validation\\xge-full-20261110\\audio-clip-rate-native-win-r1\\old-descriptor-control\\host-O2-oom-run.log",
+        "sha256": "3783f269cda3c6612a6fbddbb54021580214656be039672bfa9e139a4d78645c"
+      },
+      "nativeMix": {
+        "path": "F:\\xlang-validation\\xge-full-20261110\\audio-clip-rate-c-mix-win-r1\\results.json",
+        "sha256": "63e25accbd4e1eb8bbbea805fd62a08d68b220718b3f40f736df37e415d4926d",
+        "steps": 2
+      },
+      "decode": {
+        "path": "F:\\xlang-validation\\xge-full-20261110\\audio-clip-rate-production-win-r1\\results.json",
+        "sha256": "b592daece068f4da6a6531cd4bf8f9771fb2da861ce38681ef55ebf90242f45a",
+        "steps": 8
+      },
+      "playback": {
+        "path": "F:\\xlang-validation\\xge-full-20261110\\audio-clip-rate-playback-win-r2\\results.json",
+        "sha256": "02795dab78fee15bce91a3baaeebe88e052e8505ac54145c424f45f68053c763",
+        "steps": 9,
+        "allocationPrefixes": {
+          "jit": [
+            {
+              "failed": 4,
+              "succeeded": 28
+            },
+            {
+              "failed": 5,
+              "succeeded": 27
+            }
+          ],
+          "dynamic": [
+            {
+              "failed": 4,
+              "succeeded": 28
+            },
+            {
+              "failed": 5,
+              "succeeded": 27
+            }
+          ],
+          "static": [
+            {
+              "failed": 4,
+              "succeeded": 28
+            },
+            {
+              "failed": 5,
+              "succeeded": 27
+            }
+          ]
+        }
+      },
+      "playbackSetup": {
+        "path": "F:\\xlang-validation\\xge-full-20261110\\audio-clip-rate-playback-win-r2\\private\\test-variant.json",
+        "sha256": "828d4b2b8129d00ff5f2af01968447e1e2cfb6a92b21b276d909945f49e38f27",
+        "steps": 4
+      },
+      "audioRegression": {
+        "path": "F:\\xlang-validation\\xge-full-20261110\\audio-clip-rate-regressions-win-r2\\results.json",
+        "sha256": "d70d27d3c9cd5b31e3053a297d1c403e8e1c5559c3b865f3bc04e6c0d7eb5a3c",
+        "steps": 24
+      }
+    },
+    "linux": {
+      "sdk": {
+        "path": "\\\\wsl.localhost\\Ubuntu\\var\\tmp\\xlang-validation\\xge-full-20261110\\audio-clip-rate-sdk-linux-r1\\results.json",
+        "sha256": "60ffc910cb716292d91d5cc91539476530a1b1c4c131fb2e288c0fa8482dc533",
+        "steps": 2
+      },
+      "packages": {
+        "path": "\\\\wsl.localhost\\Ubuntu\\var\\tmp\\xlang-validation\\xge-full-20261110\\audio-clip-rate-packages-linux-r1\\results.json",
+        "sha256": "179636f0e54387e731aa39fe365a6210dbe8b41d44a88270251dedceda01b74a",
+        "steps": 6
+      },
+      "native": {
+        "path": "\\\\wsl.localhost\\Ubuntu\\var\\tmp\\xlang-validation\\xge-full-20261110\\audio-clip-rate-native-linux-r1\\native-clip\\results.json",
+        "sha256": "4183c8218ff153bde2f49d8ace275b3ec54edc59b75d41addce7639f9def81a2",
+        "steps": 16
+      },
+      "oldDescriptor": {
+        "path": "\\\\wsl.localhost\\Ubuntu\\var\\tmp\\xlang-validation\\xge-full-20261110\\audio-clip-rate-native-linux-r1\\old-descriptor-control\\host-O2-oom-run.log",
+        "sha256": "0524d236170000c36a74664ce76516bf0352bb2cfbebeef28a71497d2d92da80"
+      },
+      "nativeMix": {
+        "path": "\\\\wsl.localhost\\Ubuntu\\var\\tmp\\xlang-validation\\xge-full-20261110\\audio-clip-rate-c-mix-linux-r1\\results.json",
+        "sha256": "57088d7102ab5f2cbaed6a94aa3a51c1a6ce81cb1610a47a22c3a1326b1e170f",
+        "steps": 2
+      },
+      "decode": {
+        "path": "\\\\wsl.localhost\\Ubuntu\\var\\tmp\\xlang-validation\\xge-full-20261110\\audio-clip-rate-production-linux-r1\\results.json",
+        "sha256": "901d7b1dc61aea9f1ff80d90c86a84501ec259c065700139ebaae395185aac44",
+        "steps": 8
+      },
+      "playback": {
+        "path": "\\\\wsl.localhost\\Ubuntu\\var\\tmp\\xlang-validation\\xge-full-20261110\\audio-clip-rate-playback-linux-r2\\results.json",
+        "sha256": "910f78751c7e4a6139f93891ddd68ced89511cdb07c3d9a3d81ad02e6a9d749a",
+        "steps": 9,
+        "allocationPrefixes": {
+          "jit": [
+            {
+              "failed": 4,
+              "succeeded": 28
+            },
+            {
+              "failed": 5,
+              "succeeded": 27
+            }
+          ],
+          "dynamic": [
+            {
+              "failed": 4,
+              "succeeded": 28
+            },
+            {
+              "failed": 5,
+              "succeeded": 27
+            }
+          ],
+          "static": [
+            {
+              "failed": 4,
+              "succeeded": 28
+            },
+            {
+              "failed": 5,
+              "succeeded": 27
+            }
+          ]
+        }
+      },
+      "playbackSetup": {
+        "path": "\\\\wsl.localhost\\Ubuntu\\var\\tmp\\xlang-validation\\xge-full-20261110\\audio-clip-rate-playback-linux-r2\\private\\test-variant.json",
+        "sha256": "c28d1d5d16d3df6f7c970fd01ab4bd13a6a7105e727e70f17922660c0d1fa919",
+        "steps": 4
+      },
+      "audioRegression": {
+        "path": "\\\\wsl.localhost\\Ubuntu\\var\\tmp\\xlang-validation\\xge-full-20261110\\audio-clip-rate-regressions-linux-r2\\results.json",
+        "sha256": "3e6120e431b3d0c730364f01913e339521bfd08093112e61d45b3b709cb24086",
+        "steps": 24
+      }
+    }
+  },
+  "sourceHashes": {
+    "test/cases/foreign_xge3_audio_clip_playback.xl": "efda2a3a60aab19a18f83e8dc6070f49e79c3449f2e9842e1c63ebc82a474611",
+    "test/cases/foreign_xge3_audio_resources.h": "274b124313df5b50efcb7c31ba90d8c44d76819b2a8afb55ec87e569382221a8",
+    "test/support/xge3_audio_headless.inc": "0805aaff28e39541e2224b94f72f896862febcf4c5e35a532edc065a9fcb85e0",
+    "docs/xge3-xui3-api-map-storage.json": "28d1d64ba70830d1ec3bd516bbdce35cecb9d283545e6c74da49ee9db39dd3bd"
+  },
+  "oldUnityMixerObservation": {
+    "path": "F:\\xlang-validation\\xge-full-20261110\\audio-clip-playback-observe-r1\\old-unity-mixer-win-r1.log",
+    "sha256": "9a674af38c33dced836cf0a528e4bc62deae05086f351f1effe707b8acb09d9d"
+  }
+}

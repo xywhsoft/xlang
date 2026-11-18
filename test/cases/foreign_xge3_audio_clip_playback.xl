@@ -1,0 +1,136 @@
+// Private creator-thread view for validating declaration composition and PCM.
+import xge
+
+typedef Poll = func() as c_int
+extern "xge_audio_clip*" class Clip @header("xge3_runtime.h") @lifetime("owned") @policy("xl6Xge3AudioClipPolicy")
+    native point handle
+    extern "xgeAudioClipInfo" @no_raise @c_const(0) func info() as xge.AudioClipInfo
+    extern "xgeAudioClipShareOwned" @no_raise @c_result("owned_view") @factory(1,0,releaseClip) func share() as Clip
+    extern "xgeAudioClipGetSamples" @no_raise @c_const(0) @c_owned_sequence(1,2,0,"size_t",0) @c_retain(retainClip,"zero",releaseClip) func samples() as NativeSequence<c_float>
+    extern "xl6ForeignViewCloseV1" @no_raise @c_control(0) @c_result("bool_status") func close()
+end
+extern "xgeAudioClipFree" @no_raise func releaseClip(Clip clip)
+extern "xgeAudioClipAddRef" @no_raise func retainClip(Clip clip) as c_int
+extern "xgeSoundFree" @no_raise func releaseVoice(xge.Sound sound)
+extern "xgeAudioClipDecodeMemory" @header("xge3_runtime.h") @no_raise @c_result("owned_view") @factory(1,0,releaseClip) @c_span(0,"const void*","size_t") @c_sync_callback(2,-1,-19) @c_pack(0,"xge_audio_clip_decode_t",0,3) @c_pack_field(0,"data",0,"span_data") @c_pack_field(0,"bytes",0,"span_count") @c_pack_field(0,"max_decoded_bytes",1,"value") @c_pack_field(0,"cancelled",2,"callback") @c_pack_field(0,"user",2,"callback_user") func decodeClip(bytes data,uint64 limit=0,Poll? cancelled=null) as Clip
+extern "xgeSoundCreateFromClipOwned" @header("xge3_runtime.h") @no_raise @c_result("owned_view") @factory(0,0,releaseVoice) @c_pack(1,"xge_sound_clip_desc_t",0,5) @c_pack_field(1,"clip",0,"view_raw") @c_pack_field(1,"first_frame",1,"value") @c_pack_field(1,"frame_count",2,"value") @c_pack_field(1,"spatial",3,"value") @c_pack_field(1,"group",4,"view_raw") func createVoice(Clip clip,uint64 first=0,uint64 count=0,c_int spatial=0,xge.AudioGroup? group=null) as xge.Sound
+
+extern "fixtureXgeAudioBegin" @header("test/cases/foreign_xge3_audio_resources.h") @no_raise @c_result("status",0) func beginAudio()
+extern "fixtureXgeAudioReadFrame" @header("test/cases/foreign_xge3_audio_resources.h") @no_raise @c_status(0) @c_outputs(0,1) func readFrame() as (c_float,c_float)
+extern "fixtureXgeAudioOwners" @header("test/cases/foreign_xge3_audio_resources.h") @no_raise func owners() as uint64
+extern "fixtureXgeAudioHeap" @header("test/cases/foreign_xge3_audio_resources.h") @no_raise @c_outputs(0,1) func heap() as (c_size,c_size)
+extern "xrtMemDebugEnabled" @header("xrt_decl.h") @no_raise func debugEnabled() as bool
+extern "xrtMemDebugFailAfter" @header("xrt_decl.h") @no_raise func failAfter(uint64 budget) as bool
+extern "xrtMemDebugFailClear" @header("xrt_decl.h") @no_raise func failClear()
+extern "xrtMemDebugFailTriggered" @header("xrt_decl.h") @no_raise func failTriggered() as bool
+
+func assertFrame(c_float expectedLeft,c_float expectedRight)
+    auto left,right = readFrame()
+    assert left > expectedLeft-c_float(0.00001) and left < expectedLeft+c_float(0.00001)
+    assert right > expectedRight-c_float(0.00001) and right < expectedRight+c_float(0.00001)
+end
+
+func checkRateConversion()
+    // Same samples at 4 kHz, played by the 8 kHz mixer.
+    bytes wave = b"RIFFD\0\0\0WAVEfmt \x10\0\0\0\x01\0\x02\0\xa0\x0f\0\0\x80\x3e\0\0\x04\0\x10\0data\x20\0\0\0\0\xc0\0\xc8\0\xd0\0\xd8\0\xe0\0\xe8\0\xf0\0\xf8\0\0\0\x08\0\x10\0\x18\0\x20\0\x28\0\x30\0\x38"
+    auto clip = decodeClip(wave,64)
+    assert clip.info().sample_rate == c_uint(4000)
+    auto voice = createVoice(clip)
+    clip.close()
+    voice.play()
+    int audible = 0
+    for index in range(32)
+        auto left,right = readFrame()
+        if left != c_float(0) or right != c_float(0) then
+            audible += 1
+        end
+    end
+    // Directly playing the source at the wrong rate would emit only 8 frames.
+    assert audible > 8 and voice.isPlaying() == c_int(0)
+    voice.close()
+end
+
+func checkAllocationPrefixes(func() perform)
+    perform()
+    assert failAfter(uint64(0))
+    try
+        perform()
+    catch Error
+    end
+    failClear()
+    int failed = 0
+    for budget in range(32)
+        auto count0,bytes0 = heap()
+        assert failAfter(uint64(budget))
+        try
+            perform()
+        catch Error
+            failed += 1
+        end
+        failClear()
+        auto count1,bytes1 = heap()
+        assert count0 == count1 and bytes0 == bytes1 and owners() == uint64(0)
+    end
+    assert failed > 0 and failed < 32
+    println("CLIP_ALLOCATION_PREFIXES",failed,32-failed)
+end
+
+func main(...) as int
+    assert debugEnabled()
+    // Eight 8 kHz stereo frames with samples from -8/16 to 7/16.
+    bytes wave = b"RIFFD\0\0\0WAVEfmt \x10\0\0\0\x01\0\x02\0\x40\x1f\0\0\x00\x7d\0\0\x04\0\x10\0data\x20\0\0\0\0\xc0\0\xc8\0\xd0\0\xd8\0\xe0\0\xe8\0\xf0\0\xf8\0\0\0\x08\0\x10\0\x18\0\x20\0\x28\0\x30\0\x38"
+    assert wave.length == 76
+    auto clip = decodeClip(wave,64)
+    auto info = clip.info()
+    assert info.frames == uint64(8) and info.channels == c_uint(2) and info.bytes == uint64(64)
+    auto shared = clip.share()
+    auto samples = clip.samples()
+    clip.close()
+    assert samples.length == 16 and shared.info().sample_rate == c_uint(8000)
+    c_float total = c_float(0)
+    assert failAfter(uint64(0))
+    for sample in samples
+        total += sample
+    end
+    assert not failTriggered()
+    failClear()
+    assert total == c_float(-0.5) and samples[4] == c_float(-0.25)
+
+    xge.init(4,4,"Trimmed clip qualification",0,xge.XGE_RUN_MANUAL)
+    beginAudio()
+    try
+        checkAllocationPrefixes(func()
+            auto pcm = shared.samples()
+            assert pcm.length == 16
+        end)
+        checkAllocationPrefixes(func()
+            auto voice = createVoice(shared,2,2)
+            voice.close()
+        end)
+        bool rejected = false
+        try
+            createVoice(shared,7,2)
+        catch error
+            assert error.code == int(xge.XGE_ERROR_INVALID_ARGUMENT)
+            rejected = true
+        end
+        assert rejected
+        auto group = xge.createAudioGroup()
+        auto voice = createVoice(shared,2,2,group=group)
+        shared.close()
+        group.close()
+        voice.play()
+        assertFrame(c_float(-0.25),c_float(-0.1875))
+        assertFrame(c_float(-0.125),c_float(-0.0625))
+        assertFrame(c_float(0),c_float(0))
+        voice.close()
+        checkRateConversion()
+        assert owners() == uint64(0) and samples[15] == c_float(0.4375)
+    finally
+        failClear()
+        xge.audioUnit()
+        xge.unit()
+    end
+    println("AUDIO_CLIP_OWNED_PCM_AND_TRIMMED_PLAYBACK_OK")
+    return 0
+end

@@ -23,7 +23,7 @@ The fallback surface is qualified below. Owning SoundLoad is qualified through t
 
 | Area | Confirmed source contract / remaining work |
 | --- | --- |
-| Immutable clip | Native decode/info/atomic retain/free and exact PCM span exist. The optional-shrink diagnostic bug and typed span were fixed in `4d0c686d` / `88a61edc`. A general cross-thread resource/sequence policy decision is pending; do not silently pick a provisional public policy. |
+| Immutable clip | Native decode, metadata, exact PCM span and atomic shared ownership are qualified. A general cross-thread resource and sequence policy for the public xlang API is pending. |
 | Decode input | `xge_audio_clip_decode_t` packs data, byte count, output limit and synchronous cancellation callback/user fields. The [generic paired callback projection](foreign-packed-callbacks.md) now composes sealed `c_pack` with existing scoped callbacks and exact C signature proofs. The real CPU decoder is tested through a private Clip fixture; this does not publish a provisional AudioClip thread policy or complete playback ownership. |
 | Engine lifetime | Native `29e6e561` adds audio-specific parent reservations, including in-flight constructors. AudioUnitChecked and global Unit reject live audio without teardown. These reservations are separate from graphics-context owners. |
 | Group lifetime | Each voice now retains the private group backend. Free clears the public group handle; the last voice releases the actual mixer node and parent reservation. No language keep-alive field substitutes for native ownership. |
@@ -127,6 +127,25 @@ allowed allocations. Allocation failure sweeps confirmed that the original
 view keeps playing-capable state and all partial results are released.
 The public example also builds against both production SDK variants.
 See [playback share acceptance](../dev/release-materials/provenance/xge-audio-playback-share-20261119.json).
+
+### Immutable PCM and trimmed clip playback
+
+The native decoder snapshots its descriptor before the first cancellation
+callback. The encoded bytes stay borrowed until the call returns. The decoded
+clip owns the interleaved PCM and shares it through atomic references.
+`xgeAudioClipShareOwned` and the checked sample span use the same PCM address.
+
+The private language fixture validates direct declarations for memory decode,
+owned sharing, a retained `NativeSequence<c_float>`, and a Sound created from a
+frame range. The sequence and voice keep their own references after the
+original view closes. Iteration does not copy the PCM array and the tested
+loop performs no allocations. Failure during creation rolls back the result.
+
+Windows and Linux replay the exact two-frame trim in the real miniaudio CPU
+mixer, including the last frame and silence after it. For nonspatial voices
+and mixer groups, the equal-rate path skips the unused pitch resampler.
+The test also covers a 4 kHz source played by an 8 kHz mixer.
+See [clip acceptance](../dev/release-materials/provenance/xge-audio-clip-ownership-20261119.json).
 
 ## Sound fallback: language qualification
 

@@ -11,6 +11,7 @@ extern "C" {
 XGE_API int fixtureXgeAudioBegin(void);
 XGE_API int fixtureXgeAudioMix(void);
 XGE_API uint64_t fixtureXgeAudioOwners(void);
+XGE_API int fixtureXgeAudioReadFrame(float* left, float* right);
 #ifdef __cplusplus
 }
 #endif

@@ -59,3 +59,14 @@ XGE_API int fixtureXgeAudioMix(void)
 
 XGE_API uint64_t fixtureXgeAudioOwners(void)
 { return __xgeAudioOwnerCount(&g_xgeGraphicsLifetime); }
+
+XGE_API int fixtureXgeAudioReadFrame(float* left, float* right)
+{
+    if (!g_xge.bAudioInitialized || !left || !right) return XGE_ERROR_INVALID_STATE;
+    float frame[2] = {0};
+    ma_result result = ma_engine_read_pcm_frames((ma_engine*)g_xge.pAudioEngine, frame, 1, NULL);
+    if (result != MA_SUCCESS) return XGE_ERROR_AUDIO_FAILED;
+    *left = frame[0];
+    *right = frame[1];
+    return XGE_OK;
+}
