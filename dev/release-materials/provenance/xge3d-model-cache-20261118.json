@@ -1,0 +1,117 @@
+{
+  "date": "2026-11-18",
+  "scope": "Managed creator-thread 3D model cache and shared immutable model assets",
+  "complete": true,
+  "passed": true,
+  "xgeParent": "b5579837fbbf578b0d7328f91625531e7b128700",
+  "xlangParent": "6a831aa12e58deaa3385379ce4656c36ce3300c3",
+  "xrtCommit": "804cc769de3030118c2b46ef7af69543d1b82d9d",
+  "nativeSources": {
+    "include/xge.h": "3c4dd8b76c9bcf7ddf6a14d44fd3b68a6db1dfec1f02ece30488b168d826aafd",
+    "src/xge/3d/xge3d_internal.h": "2a7bf4ee9475a8a4da30504532a700ad69a0fe91fb8e63771985bc45fd4b47a0",
+    "src/xge/3d/xge3d_material.c": "d42a782ee59f74569b1232c102f70032236caa37130ec43a66d0c3f78a3180ac",
+    "src/xge/3d/xge3d_custom.inc": "5acfe11dae3009d672c57f2ab75870a08205654e99e632b2c459dca5ca6b891c",
+    "src/xge/3d/xge3d_model.c": "5c4cea6113429c9cfa9328f6b5446abc177db2f8b814b58ff5b3e0de4894f691",
+    "src/xge/3d/xge3d_cache.c": "33557b3c5208139049789108262683fdb6b12b9323702925d8f4b979b8ce5e81",
+    "tests/xge/test_3d_cache_owned.c": "bc64a071287a94028c5d84ec2972205620221a1b370f0125c00f1e9b12c2047d"
+  },
+  "languageSources": {
+    "lib/bindings/xge/three_d/xlang.package.json": "7156fe836f5afbe11b487733592c65af0211d0ce80b960fb8690a22f7ab2d158",
+    "lib/bindings/xge/three_d/examples/model_cache.xl": "f303ef6765c13b13fd72929f8248f395664483d9882abeac0721d80fde6f43e3",
+    "lib/bindings/xge/three_d/include/xge3d_renderer.h": "0a2dc6e343e0866dfbaa0c1c07391c6dd6e52befa8de0c99a1aa0646a21ee204",
+    "lib/bindings/xge/three_d/src/model_cache.xl": "d53c6a98f62d895acdb9e4b7759b14a0c8e17e703fdf39a1f8f234db4b44e117",
+    "test/cases/foreign_xge3d_model_cache.xl": "7bac5d93b3c4dffa57ac3cca93217e99457ec22b82414b1925212539918be004",
+    "docs/xge3-model.md": "54466d39523c30908228362190122e02f2d8cf62c2e509f4b0573a68c4576924",
+    "lib/bindings/xge/three_d/examples/README.md": "310a72b778b3c6748c8580c2c9c0270fc254460dfffec7a721d7934852cfcbe9"
+  },
+  "evidence": {
+    "win": {
+      "sdk": {
+        "path": "F:\\xlang-validation\\xge-full-20261110\\cache3d-sdk-win-r1\\results.json",
+        "sha256": "067992da61f5f4e7a7691e577bff17256d78d45a3df4a22e9f31ae01d02c7c8c"
+      },
+      "native": {
+        "path": "F:\\xlang-validation\\xge-full-20261110\\cache3d-native-win-r4\\results.json",
+        "sha256": "bc84addc9b2cd2bf47e8d3d4dc34505716efd4335560b3cec9dbfb14d8558faf"
+      },
+      "packages": {
+        "path": "F:\\xlang-validation\\xge-full-20261110\\cache3d-packages-win-r2\\results.json",
+        "sha256": "63a2f2f86935676531f73ce065d843f1a7452d0ce9e4eeca77cf2a9b92d1bf78"
+      },
+      "language": {
+        "path": "F:\\xlang-validation\\xge-full-20261110\\cache3d-language-win-r2\\results.json",
+        "sha256": "c58e6bce252357d46d3ce9552cb4ca99af5c426b9c6b1b197f5e1db702f35730"
+      },
+      "performance": {
+        "path": "F:\\xlang-validation\\xge-full-20261110\\cache3d-perf-win-r2\\results.json",
+        "sha256": "e7b3ef29e5966f543d384f578ee15c5c5edb368d1da8635f32020146013cd8d7"
+      }
+    },
+    "linux": {
+      "sdk": {
+        "path": "\\\\wsl.localhost\\Ubuntu\\var\\tmp\\xlang-validation\\xge-full-20261110\\cache3d-sdk-linux-r1\\results.json",
+        "sha256": "edea163ee6246910c5f3c14813c4676310c2f74728a2829854cce8d3b33339e6"
+      },
+      "native": {
+        "path": "\\\\wsl.localhost\\Ubuntu\\var\\tmp\\xlang-validation\\xge-full-20261110\\cache3d-native-linux-r4\\results.json",
+        "sha256": "057ab2f49b874d9cff0f5e6da29151b1b5d219794242a5cc9cee39a47e8fce19"
+      },
+      "packages": {
+        "path": "\\\\wsl.localhost\\Ubuntu\\var\\tmp\\xlang-validation\\xge-full-20261110\\cache3d-packages-linux-r2\\results.json",
+        "sha256": "d3312121b7c4a2c887c61124bc1f7eef2593ece48d65ec58fc402d56d6cfabdc"
+      },
+      "language": {
+        "path": "\\\\wsl.localhost\\Ubuntu\\var\\tmp\\xlang-validation\\xge-full-20261110\\cache3d-language-linux-r2\\results.json",
+        "sha256": "ba788129cd67907d71a5610b9e84135e7c937e3c1a914b867c209fc53de2b366"
+      },
+      "performance": {
+        "path": "\\\\wsl.localhost\\Ubuntu\\var\\tmp\\xlang-validation\\xge-full-20261110\\cache3d-perf-linux-r2\\results.json",
+        "sha256": "2388cab3fb1a28eb2c8e7c03dc7e730b73295de681c32a53ca6498d276c7f064"
+      }
+    }
+  },
+  "checks": [
+    "Windows and Linux hosted JIT and AOT, static executable and shared module",
+    "managed GPU cache checks at O0/O2 for hosted and static SDK, plus raw cache regression",
+    "local path normalization and cache hits, quota retention, soft budgets and pinned references",
+    "request coalescing and independent cancellation, stale handle, checked engine Busy and wrong thread",
+    "managed model, material and texture remain valid after cache closes; shared assets reject mutation",
+    "constructor allocation failure leaves no graphics owner and all leases retire"
+  ],
+  "performance": {
+    "iterationsPerPlatform": 128,
+    "workload": "warm load, checked info, release",
+    "xrtOperations": {
+      "win": {
+        "language": [
+          1024,
+          1024,
+          0
+        ],
+        "C": [
+          640,
+          640,
+          0
+        ]
+      },
+      "linux": {
+        "language": [
+          768,
+          768,
+          0
+        ],
+        "C": [
+          384,
+          384,
+          0
+        ]
+      }
+    },
+    "extraXrtAllocationsPerIteration": 3,
+    "cpuTimeEquivalenceClaim": false
+  },
+  "releaseInstalled": false,
+  "networkTests": false,
+  "next": "Declarative scene loading and managed model retirement",
+  "xgeCommit": "6032957eed57c0dc6afdf9510135509ec8f726ae"
+}

@@ -1,0 +1,73 @@
+import xge
+import xge3d
+from xge3d import Material3D
+
+func main(...) as int
+    xge.init(64, 64, "Model cache")
+    auto quota = xge3d.createDecodeBudget(uint64(8 * 1024 * 1024))
+    auto cache = xge3d.createModelCache(2, 4, 1, 0, quota)
+    quota.close()
+    auto discarded = cache.request("model-triangle.gltf")
+    auto requested = cache.request("./model-triangle.gltf")
+    assert cache.stats().coalesced == uint64(1)
+    cache.cancel(discarded)
+    assert cache.status(discarded).state == xge.XGE3D_REQUEST_CANCELLED
+    cache.release(discarded)
+
+    int frames = 0
+    xge.run(func() as c_int
+        assert xge.begin() == 0
+        xge3d.Xge3dUploadBudget budget
+        budget.bytes = uint64(4096)
+        budget.operations = c_uint(4)
+        cache.pump(budget)
+        auto state = cache.status(requested)
+        assert state.state != xge.XGE3D_REQUEST_FAILED
+        if state.state != xge.XGE3D_REQUEST_READY then
+            frames += 1
+            assert frames < 6000
+            time.sleep(1)
+            assert xge.nativeEnd() == 0
+            return c_int(0)
+        end
+
+        auto first = cache.take(requested)
+        auto second = cache.load("./model-triangle.gltf")
+        assert cache.stats().hits == uint64(1)
+        assert cache.stats().over_budget == c_int(1)
+        first.close()
+        cache.clear()
+        assert cache.stats().models == c_size(1)
+        auto material = second.material(c_size(0)) as Material3D
+        bool frozen = false
+        try
+            material.setParams(material.params())
+        catch Error
+            frozen = true
+        end
+        assert frozen
+        material.close()
+
+        auto scene = xge3d.createScene()
+        scene.instantiate(second)
+        cache.close()
+        assert second.info().primitive_count == c_size(1)
+        second.close()
+        auto renderer = xge3d.createRenderer()
+        auto target = xge3d.createRenderTarget(16, 16)
+        auto camera = xge3d.orthographicCamera(c_float(3), c_float(3), c_float(0.1), c_float(10))
+        c_float[4] clear
+        clear[3] = c_float(1)
+        assert renderer.renderTo(scene, camera, target, clear).triangles == uint64(1)
+        target.close()
+        renderer.close()
+        scene.close()
+        assert xge.nativeEnd() == 0
+        return c_int(1)
+    end)
+    xge.setFrameCallback(null)
+    assert xge.graphicsResourceCount() == uint64(0)
+    xge.unit()
+    println("CACHE3D_LANGUAGE_OK")
+    return 0
+end

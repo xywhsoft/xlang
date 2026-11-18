@@ -44,6 +44,9 @@ controlled acceptance fixture supplies a CPU triangle to test positive hits.
 upload budget. A ready request transfers one model. A failed request reports
 the native status and is released.
 
+`model_cache.xl` loads two spellings of the same local glTF path. It prints
+one cache hit and reads the second model reference after closing the cache.
+
 `model_instance.xl` builds one unit of scene work per frame and
 publishes only after the instance is complete.
 

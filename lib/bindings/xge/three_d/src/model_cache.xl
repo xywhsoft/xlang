@@ -1,0 +1,17 @@
+export extern "xge3d_cache*" class ModelCache3D @header("xge3d_renderer.h") @lifetime("owned") @policy("xl6Xge3dModelCachePolicy")
+ native point handle
+ extern "xge3dCacheLoad" @no_raise @c_cstr(0) @c_result("owned_view") @factory(2,0,releaseModel3D) func load(string uri) as Model3D
+ extern "xge3dCacheTrim" @no_raise @c_result("status",0) func trim()
+ extern "xge3dCacheClear" @no_raise @c_result("status",0) func clear()
+ extern "xge3dCacheStats" @no_raise @c_output(1,0) @c_output_size(1,"size") func stats() as Xge3dCacheStats
+ extern "xge3dCacheRequest" @no_raise @c_cstr(0) @c_output(2,0) func request(string uri) as Xge3dCacheRequest
+ extern "xge3dCacheStatus" @no_raise @c_output(2,0) func status(Xge3dCacheRequest request) as Xge3dRequestInfo
+ extern "xge3dCacheCancel" @no_raise @c_result("status",0) func cancel(Xge3dCacheRequest request)
+ extern "xge3dCacheRelease" @no_raise @c_result("status",0) func release(Xge3dCacheRequest request)
+ extern "xge3dCacheTake" @no_raise @c_result("owned_view") @factory(2,0,releaseModel3D) func take(Xge3dCacheRequest request) as Model3D
+ extern "xge3dCachePump" @no_raise @c_ref(0) @c_output(2,0) func pump(Xge3dUploadBudget budget) as Xge3dUploadStats
+ extern "xl6ForeignViewCloseV1" @no_raise @c_control(0) @c_result("bool_status") func close()
+end
+
+extern "xge3dCacheFree" @header("xge3d_renderer.h") @no_raise @c_result("status",0) func releaseModelCache3D(ModelCache3D value)
+export extern "xge3dCacheCreateOwned" @header("xge3d_renderer.h") @no_raise @c_pack(0,"xge3d_cache_desc_t",0,6) @c_pack_size(0,"size","uint32_t") @c_pack_field(0,"max_models",0,"value") @c_pack_field(0,"max_requests",1,"value") @c_pack_field(0,"cpu_bytes",2,"value") @c_pack_field(0,"gpu_bytes",3,"value") @c_pack_field(0,"decode_budget",4,"view_raw") @c_pack_field(0,"flags",5,"value") @c_result("owned_view") @factory(1,0,releaseModelCache3D) func createModelCache(c_size maxModels=0,c_size maxRequests=0,uint64 cpuBytes=0,uint64 gpuBytes=0,DecodeBudget? decodeBudget=null,c_uint flags=0) as ModelCache3D

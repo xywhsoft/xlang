@@ -183,3 +183,35 @@ height grid, and query buffer creation or capacity growth allocates storage.
 
 [Terrain example](../lib/bindings/xge/three_d/examples/terrain.xl) ·
 [Collision example](../lib/bindings/xge/three_d/examples/collision.xl)
+
+## Local and provider model caching
+
+`createModelCache()` creates an explicit cache bound to its creating thread.
+Local paths use absolute lexical keys. Resource providers use exact URI keys
+when enabled. The cache retains an optional decode quota, so the caller can
+close its original quota view after creating the cache.
+
+`load()` returns an owned reference to a cached model. `request()` creates
+an individual subscription and coalesces active jobs for the same key.
+Call `pump()` with a native upload budget and use `status()` to observe
+progress. `take()` consumes a ready subscription and returns the model.
+`cancel()` affects the specified subscription and stops the shared job when
+its last subscriber cancels. Use `release()` for subscriptions you do not
+take, including failed or cancelled ones.
+
+The cache retains its own model references. `trim()` evicts unused entries
+to reach the soft limits. `clear()` evicts all unused entries. Live model
+owners and subscriptions can keep the cache above its targets. A model
+reference obtained by `load()` or `take()` remains valid after cache closure.
+The cache publishes immutable shared materials, geometry and textures.
+Assign an independently created material to a scene node to customize an
+instance. Closing a cache with outstanding work cancels it and joins the
+worker, which can wait for an in-flight provider call.
+
+In 128 warm iterations of `load()`, `info()` and `close()`, xlang incurred
+three more XRT allocations and frees per iteration than equivalent C.
+The Windows counts were 8 versus 5 per iteration and the Linux counts
+were 6 versus 3. Both paths normalize the path and retain the same
+cached model on a hit. The measurement counts heap operations.
+
+[Model cache example](../lib/bindings/xge/three_d/examples/model_cache.xl)

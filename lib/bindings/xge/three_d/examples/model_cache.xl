@@ -1,0 +1,12 @@
+import xge3d
+
+auto cache = xge3d.createModelCache(8)
+auto first = cache.load("assets/model-triangle.gltf")
+auto second = cache.load("assets/./model-triangle.gltf")
+println("缓存命中", cache.stats().hits)
+
+first.close()
+cache.close()
+// 第二次加载取得了独立的引用，缓存关闭后仍可使用。
+println("保留的模型图元数", second.info().primitive_count)
+second.close()
