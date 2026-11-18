@@ -10,6 +10,10 @@ ui=inv.header_inventory(native/'include/xui.h');external_types={t['name']for t i
 assert 'xui_callback_owner_t'in external_types
 h=inv.header_inventory(native/'include/xui_document.h',external_types=external_types);assert not h['parseErrors'];types={t['name']:t['type'] for t in h['types']};records={};primitive=dict(inv.SCALARS,xui_doc_node_id='uint64')
 models={'xui_document':('Document','xui_document_t','xuiDocument','Document'), 'xui_document_snapshot':('DocumentSnapshot','xui_doc_snapshot_t','xuiDocumentSnapshot','DocumentSnapshot'),'xui_document_change_set':('DocumentChangeSet','xui_doc_change_set_t','xuiDocumentChangeSet','DocumentChangeSet'),'xui_document_prepare':('DocumentPrepare','xui_doc_prepare_t','xuiDocumentPrepare','DocumentPrepare'),'xui_document_fragment':('DocumentFragment','xui_doc_fragment_t','xuiDocumentFragment','DocumentFragment'),'xui_document_source_index':('DocumentSourceIndex','xui_doc_source_index_t','xuiDocumentSourceIndex','DocumentSourceIndex'),'xui_document_transaction':('DocumentTransaction','xui_doc_transaction_t','xuiDocumentTxn','DocumentTxn')}
+models.update({
+ 'xui_document_matches':('DocumentMatches','xui_doc_matches_t','xuiDocumentMatches','DocumentMatches'),
+ 'xui_document_markdown_losses':('DocumentMarkdownLosses','xui_doc_markdown_losses_t','xuiDocumentMarkdownLosses','DocumentMarkdownLosses'),
+})
 reserved=set(re.findall(r'\{"([A-Za-z_]\w*)", XL6_KW_', (r/'src/lexer/xl6_lexer_gen.c').read_text(encoding='utf-8')))
 def named(t):return ' '.join(t.get('names',[])) if t.get('kind')=='named' else None
 def value(t,seen=()):
@@ -178,6 +182,21 @@ for nativeName,cl,mn,ct,params,fields in [
 classes['DocumentChangeSet'].append(' extern "xuiDocumentChangeSetGetOperations" @no_raise @c_owned_sequence(1,2,0,"size_t",0) @c_retain(retainDocumentChangeSet,"zero",rollbackDocumentChangeSet) func operations() as NativeSequence<DocumentOperation>')
 functions.append('extern "xuiDocumentChangeSetAddRef" @header("xge3_runtime.h") @no_raise func retainDocumentChangeSet(DocumentChangeSet value) as c_int')
 mapped['xuiDocumentChangeSetGetOperations']='DocumentChangeSet.operations';reasons.pop('xuiDocumentChangeSetGetOperations',None)
+for nativeName,cl,methodName,record in [
+ ('xuiDocumentMatchesGetRanges','DocumentMatches','ranges','DocumentRange'),
+ ('xuiDocumentMarkdownLossesGetEntries','DocumentMarkdownLosses','entries','DocumentMarkdownLoss')]:
+ prefix=nativeName[:nativeName.rindex('Get')]
+ classes[cl].append(' extern "'+nativeName+'" @no_raise @c_owned_sequence(1,2,0,"size_t",0) @c_retain(retain'+cl+',"zero",rollback'+cl+') func '+methodName+'() as NativeSequence<'+record+'>')
+ functions.append('extern "'+prefix+'AddRef" @header("xge3_runtime.h") @no_raise func retain'+cl+'('+cl+' value) as c_int')
+ mapped[nativeName]=cl+'.'+methodName
+ reasons.pop(nativeName,None)
+find='xuiDocumentSnapshotFindOwned'
+classes['DocumentSnapshot']=[line for line in classes['DocumentSnapshot'] if 'extern "'+find+'"' not in line]
+findAttrs='@no_raise @c_span(1,"const char*","uint64_t") @c_result("owned_view") @factory(6,0,rollbackDocumentMatches)'
+classes['DocumentSnapshot'].append(' extern "'+find+'" '+findAttrs+' @c_null(5,"const xui_doc_range_t*") func find(c_uint domain,string pattern,c_uint flags=0) as DocumentMatches')
+classes['DocumentSnapshot'].append(' extern "'+find+'" '+findAttrs+' @c_ref(3) func findIn(c_uint domain,string pattern,c_uint flags,DocumentRange scope) as DocumentMatches')
+mapped[find]='DocumentSnapshot.find / DocumentSnapshot.findIn'
+reasons.pop(find,None)
 # Simple node/image descriptors copy all named inputs before returning. Native attributes default to zero.
 for nativeName,mn,slot,outSlot,params,fields,outputs in [
  ('xuiDocumentTxnInsertNode','insertNode',3,[4],'uint64 parent,uint64 childIndex,c_uint kind,string text="",string? resource=null,string? info=null,string? title=null,string? linkTarget=null,string? linkTitle=null', [('iKind',2,'value'),('sText',3,'text_data'),('iTextBytes',3,'text_size'),('sResource',4,'c_string'),('sInfo',5,'c_string'),('sTitle',6,'c_string'),('sLinkTarget',7,'c_string'),('sLinkTitle',8,'c_string')], ['uint64']),
@@ -236,12 +255,12 @@ src=r/'lib/bindings/xui/src'
 for name,text in [('document_records.xl','\n'.join(recordLines)+'\n'),('document.xl','\n'.join(lines))]:
  if args.check:assert (src/name).read_text(encoding='utf-8')==text,'generated declarations differ: '+name
  else:(src/name).write_text(text,encoding='utf-8',newline='\n')
-report=dict(scope='Default-provenance Model A direct declaration coverage; declarations are not ABI/runtime qualification',authority=h['header'],authoritySha256=h['sha256'],roots={k:dict(logical=v[0],cName='struct '+v[1]+'*',policy='xl6Xui3'+v[3]+'Policy') for k,v in models.items()},records=records,pointerBearingRecords=list(pending),entries=[dict(native=f['name'],declaration=f['declaration'],line=f['line'],logical=mapped.get(f['name']),state='declared-needs-ABI' if f['name'] in mapped else 'explicit-C-interoperability',reason=reasons.get(f['name'])) for f in h['functions']],counts=dict(publicFunctions=len(h['functions']),declared=len(mapped),ownedRoots=7,pointerFreeRecords=len(records),constants=len(constantRows)))
+report=dict(scope='Default-provenance Model A direct declaration coverage; declarations are not ABI/runtime qualification',authority=h['header'],authoritySha256=h['sha256'],roots={k:dict(logical=v[0],cName='struct '+v[1]+'*',policy='xl6Xui3'+v[3]+'Policy') for k,v in models.items()},records=records,pointerBearingRecords=list(pending),entries=[dict(native=f['name'],declaration=f['declaration'],line=f['line'],logical=mapped.get(f['name']),state='declared-needs-ABI' if f['name'] in mapped else 'explicit-C-interoperability',reason=reasons.get(f['name'])) for f in h['functions']],counts=dict(publicFunctions=len(h['functions']),declared=len(mapped),ownedRoots=len(models),pointerFreeRecords=len(records),constants=len(constantRows)))
 
 replacements={
- 'xuiDocumentSnapshotAnalyzeMarkdownConversion':'Writable caller output array; a single POD plus arbitrary capacity is unsafe. A checked typed-array output contract is not declared.',
- 'xuiDocumentSnapshotFind':'Writable matches array plus capacity; nullable scope and complete array capacity must be represented together, not a single output record.',
- 'xuiDocumentSnapshotFindEx':'Writable matches array plus capacity; same boundary as Find, with native regex flags.',
+ 'xuiDocumentSnapshotAnalyzeMarkdownConversion':'Legacy caller-owned result buffer. DocumentSnapshot.collectMarkdownLosses returns all entries in an immutable owned report.',
+ 'xuiDocumentSnapshotFind':'Legacy caller-owned match buffer. DocumentSnapshot.find and findIn use literal search when flags are zero.',
+ 'xuiDocumentSnapshotFindEx':'Legacy caller-owned match buffer. DocumentSnapshot.find and findIn support the same flags and domain.',
  'xuiDocumentCreate':'Legacy raw/custom-allocator provenance; createDocument maps CreateOwned with default allocator only.',
  'xuiDocumentOpenFile':'Legacy raw/custom-allocator provenance; openDocument maps OpenFileOwned with default allocator only.',
  'xuiDocumentDeserialize':'Legacy raw/custom-allocator provenance; deserializeDocument maps DeserializeOwned with default allocator only.',
@@ -271,6 +290,7 @@ report['costs']=dict(nativeForwardingFunctions=0,descriptorPacks='Stack initiali
 report['externalTypeAuthority']=dict(header=ui['header'],sha256=ui['sha256'])
 report['costs']['ownedExports']='Text adopts the actual resident-XRT allocation after one UTF-8 scan; bytes adds its ordinary owning value carrier. No payload copy or strlen.'
 report['costs']['sourcePatchInputs']='One zero-initialized O(n) native record array plus column read pins and checked field writes. No text copy or NUL scan in the projection; native source processing retains its own documented copies. Default empty array arguments may allocate ordinary input containers.'
+report['costs']['queryResults']='Search and loss collection build one native result per query. Geometric growth can copy its native backing while unpublished. NativeSequence takes a real reference and reads the final immutable backing directly without an array copy.'
 previous=r/'docs/xge3-xui3-document-api-map.json'
 if previous.is_file():
  old=json.loads(previous.read_text(encoding='utf-8'))

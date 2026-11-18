@@ -67,6 +67,8 @@ const XL6_OwnershipDomainV1* xl6Xui3DocumentModelDomainV1Get(void);
 const XL6_ForeignViewDescriptorV1* xl6Xui3DocumentPolicyGet(void);
 const XL6_ForeignViewDescriptorV1* xl6Xui3DocumentSnapshotPolicyGet(void);
 const XL6_ForeignViewDescriptorV1* xl6Xui3DocumentChangeSetPolicyGet(void);
+const XL6_ForeignViewDescriptorV1* xl6Xui3DocumentMatchesPolicyGet(void);
+const XL6_ForeignViewDescriptorV1* xl6Xui3DocumentMarkdownLossesPolicyGet(void);
 const XL6_ForeignViewDescriptorV1* xl6Xui3DocumentPreparePolicyGet(void);
 const XL6_ForeignViewDescriptorV1* xl6Xui3DocumentFragmentPolicyGet(void);
 const XL6_ForeignViewDescriptorV1* xl6Xui3DocumentSourceIndexPolicyGet(void);
@@ -122,6 +124,8 @@ const XL6_ForeignViewDescriptorV1* xl6Xge3AudioClipPolicyGet(void);
 #define xl6Xui3DocumentPolicy (*xl6Xui3DocumentPolicyGet())
 #define xl6Xui3DocumentSnapshotPolicy (*xl6Xui3DocumentSnapshotPolicyGet())
 #define xl6Xui3DocumentChangeSetPolicy (*xl6Xui3DocumentChangeSetPolicyGet())
+#define xl6Xui3DocumentMatchesPolicy (*xl6Xui3DocumentMatchesPolicyGet())
+#define xl6Xui3DocumentMarkdownLossesPolicy (*xl6Xui3DocumentMarkdownLossesPolicyGet())
 #define xl6Xui3DocumentPreparePolicy (*xl6Xui3DocumentPreparePolicyGet())
 #define xl6Xui3DocumentFragmentPolicy (*xl6Xui3DocumentFragmentPolicyGet())
 #define xl6Xui3DocumentSourceIndexPolicy (*xl6Xui3DocumentSourceIndexPolicyGet())

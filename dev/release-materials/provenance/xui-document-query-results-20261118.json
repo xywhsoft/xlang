@@ -1,0 +1,133 @@
+{
+  "complete": true,
+  "passed": true,
+  "releaseInstalled": false,
+  "nativeCommit": "3877f80e5cbe99fa32c20d1726b41a4adce3de18",
+  "compilerCommit": "07f3767fd47892ed5b83fe9fde9034fea2f01a37",
+  "sourceHashes": {
+    "lib/bindings/xui/src/document.xl": "dd7396bc34d505dcb8f34853a1b288bf58c17cd45404319847dfb6bed0595bbd",
+    "docs/xge3-xui3-document-api-map.json": "5ff9fbf46b86afe5edb966743e2de1c3700e724d141afb1e72c6ba273396fc1c",
+    "tools/gen_xge3_document_bindings.py": "d1a93897535e0220416e8216688d0775b49cbc42e5fdb403e87dcabe09045f42",
+    "lib/bindings/_xge_native/include/xge3_runtime.h": "82b6e0480d92a928c495330b80256a69201406f249382321452bd29bf727049a",
+    "lib/bindings/_xge_native/src/runtime.c": "7cee0f8a18a1882cf5d170bbea39cf0fcf15ac87074c81bec311f81033b9576e",
+    "test/cases/foreign_xui_document_query_results.xl": "f2ed87fc80a68c90c70fe60eb709a4b8243bc1ad37b30f53f86a1e0c8ff8096a",
+    "lib/bindings/xui/examples/document_queries.xl": "d79f4cfc609141620c7bd72c9f60f1d722ec0e53edd5707b9294af592030eb9d",
+    "docs/xge3-xui3-document-api-map.md": "99f9e167391895bcd63f91fcf99d3dd2366e233dec254db6996c6317e0ec9397",
+    "lib/bindings/xui/examples/README.md": "2e8b7ad97672f3b6b8454e60f56c48464e212d0ba7248256aca39d0573e37e78"
+  },
+  "evidence": {
+    "win": {
+      "native": {
+        "sdk": "F:\\xlang-validation\\xge-full-20261110\\document-query-results-sdk-win-r1\\results.json",
+        "sdkSha256": "33dbde8ea3c25c5cea90e3e0e59ac6bd54d983a972512eee75df6774cc7fb85a",
+        "test": "F:\\xlang-validation\\xge-full-20261110\\document-query-results-real-sdk-win-r3\\qualified\\results.json",
+        "testSha256": "ba1e39dff2d3b41fa34f6ac88468de4aafee9e1c694f81ee0e2b93e51e6f3748",
+        "steps": 96,
+        "oomSearch": 8,
+        "oomLossScan": 4
+      },
+      "language": {
+        "path": "F:\\xlang-validation\\xge-full-20261110\\document-query-results-qualification-win-r2\\results.json",
+        "sha256": "69d717907525ed276906fa889d6bba188223b3f45b6db8437492ed7a63060773",
+        "steps": 11
+      },
+      "package": {
+        "path": "F:\\xlang-validation\\xge-full-20261110\\document-query-results-packages-win-r1\\results.json",
+        "sha256": "8528abe990bdf4307d085c8e0d58de235b73c5523efc93d52675d1c7034fa029",
+        "steps": 4
+      },
+      "programs": [
+        {
+          "path": "F:\\xlang-validation\\xge-full-20261110\\document-query-results-qualification-win-r2\\host.exe",
+          "sha256": "c2c9f15086b5f3792fa5098f33471383ddd075c439a94374681d935d3f4f914f",
+          "imports": [
+            "msvcrt.dll",
+            "xge3_host.dll",
+            "kernel32.dll",
+            "SHELL32.dll",
+            "ucrtbase.dll"
+          ]
+        },
+        {
+          "path": "F:\\xlang-validation\\xge-full-20261110\\document-query-results-qualification-win-r2\\static.exe",
+          "sha256": "68613fc0cd43a07f255d1a3f75915525513a70f0c96f91dfb4bfc1fd778dd49f",
+          "imports": [
+            "msvcrt.dll",
+            "kernel32.dll",
+            "SHELL32.dll"
+          ]
+        },
+        {
+          "path": "F:\\xlang-validation\\xge-full-20261110\\document-query-results-qualification-win-r2\\workflow.dll",
+          "sha256": "88515e835ed77fd42ce22e7d643beb5c41a66d858983b28424cbaf8d39bc6b9b",
+          "imports": [
+            "msvcrt.dll",
+            "kernel32.dll"
+          ]
+        }
+      ]
+    },
+    "linux": {
+      "native": {
+        "sdk": "\\\\wsl.localhost\\Ubuntu\\var\\tmp\\xlang-validation\\xge-full-20261110\\document-query-results-sdk-linux-r1\\results.json",
+        "sdkSha256": "46e085b68ee089afc1e6ef78f292c601b99febf4ffab2cb0a12105ea3832610f",
+        "test": "\\\\wsl.localhost\\Ubuntu\\var\\tmp\\xlang-validation\\xge-full-20261110\\document-query-results-real-sdk-linux-r3\\qualified\\results.json",
+        "testSha256": "61ccab83a37fc4528ce4999d8c21af51b131ec6baba3d8744fc3c7fb814d1091",
+        "steps": 96,
+        "oomSearch": 8,
+        "oomLossScan": 4
+      },
+      "language": {
+        "path": "\\\\wsl.localhost\\Ubuntu\\var\\tmp\\xlang-validation\\xge-full-20261110\\document-query-results-qualification-linux-r2\\results.json",
+        "sha256": "1b66107c1da84c4ce5b79b0138b54ee0f2a796fed6933581f59614aac2d5a725",
+        "steps": 11
+      },
+      "package": {
+        "path": "\\\\wsl.localhost\\Ubuntu\\var\\tmp\\xlang-validation\\xge-full-20261110\\document-query-results-packages-linux-r1\\results.json",
+        "sha256": "b283099e1fd8cf70845d089ab68011452db24f5ceea41851f24003a7e81375c3",
+        "steps": 4
+      },
+      "programs": [
+        {
+          "path": "/var/tmp/xlang-validation/xge-full-20261110/document-query-results-qualification-linux-r2/host",
+          "sha256": "4959ce04099ec3e53ad69190a4b21e2fae9f8121e83034ff2135040086c8a036",
+          "imports": [
+            "libm.so.6",
+            "libmvec.so.1",
+            "libxge3_host.so",
+            "libc.so.6",
+            "ld-linux-x86-64.so.2"
+          ]
+        },
+        {
+          "path": "/var/tmp/xlang-validation/xge-full-20261110/document-query-results-qualification-linux-r2/static",
+          "sha256": "ed5333b92ecbca0f2c942b61b5b0c03f595eec4585a0fdd09cc05460182dc876",
+          "imports": [
+            "libm.so.6",
+            "libmvec.so.1",
+            "libX11.so.6",
+            "libXi.so.6",
+            "libXcursor.so.1",
+            "libGL.so.1",
+            "libc.so.6",
+            "ld-linux-x86-64.so.2"
+          ]
+        },
+        {
+          "path": "/var/tmp/xlang-validation/xge-full-20261110/document-query-results-qualification-linux-r2/workflow.so",
+          "sha256": "72ea30a8355441910170ebf45d4c58500f17b22b0fd1b28e7e7d43bd346449be",
+          "imports": [
+            "libm.so.6",
+            "libmvec.so.1",
+            "libX11.so.6",
+            "libXi.so.6",
+            "libXcursor.so.1",
+            "libGL.so.1",
+            "libc.so.6",
+            "ld-linux-x86-64.so.2"
+          ]
+        }
+      ]
+    }
+  }
+}

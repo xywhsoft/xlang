@@ -1,0 +1,25 @@
+import xui
+
+func main(...) as int
+ auto document=xui.createDocument()
+ auto edit=document.beginTransaction()
+ auto paragraph=edit.insertNode(xui.XUI_DOCUMENT_ROOT,xui.XUI_DOCUMENT_APPEND,c_uint(xui.XUI_DOC_PARAGRAPH))
+ auto text=edit.insertNode(paragraph,xui.XUI_DOCUMENT_APPEND,c_uint(xui.XUI_DOC_TEXT),text="Hello, xlang!")
+ edit.setAttributesColumns(text,marks=c_uint(xui.XUI_DOC_HIGHLIGHT))
+ auto change=edit.commit()
+ change.close()
+ edit.close()
+
+ auto snapshot=document.snapshot()
+ auto matches=snapshot.find(c_uint(xui.XUI_DOC_SEMANTIC),"xlang")
+ for foundRange in matches.ranges()
+  println(snapshot.range(foundRange))
+ end
+ auto losses=snapshot.collectMarkdownLosses(c_uint(xui.XUI_MD_COMMONMARK))
+ println("CommonMark conversion losses:", losses.entries().length)
+ losses.close()
+ matches.close()
+ snapshot.close()
+ document.close()
+ return 0
+end

@@ -1,8 +1,8 @@
 # Default Document model bindings
 
-The authoritative machine map is [xge3-xui3-document-api-map.json](xge3-xui3-document-api-map.json). It pins `xui_document.h`, all 219 functions, 26 pointer-free C records and 255 language constants. The allocator marker is compiler/provider ABI metadata. The map distinguishes declarations from compiled or executed paths. The default package declares 162 native business entries, seven resource `close` controls and callback-view methods. No per-method C forwarding functions are added.
+The authoritative machine map is [xge3-xui3-document-api-map.json](xge3-xui3-document-api-map.json). It pins `xui_document.h`, all 233 functions, 26 pointer-free C records and 255 language constants. The allocator marker is compiler/provider ABI metadata. The map distinguishes declarations from compiled or executed paths. The default package declares 168 native business entries, nine resource `close` controls and callback-view methods. No per-method C forwarding functions are added.
 
-The classes are `Document`, `DocumentSnapshot`, `DocumentChangeSet`, `DocumentPrepare`, `DocumentFragment`, `DocumentSourceIndex` and `DocumentTransaction`. The first six share actual native references; `share()` calls the native status/output factory once and reserves its language owner before that call. The transaction has one unique owner. `commit()` and `abort()` end its writer but do not consume its shell; `close()` releases that owner. Default-provenance Owned factories are required. Raw custom-allocator objects cannot be promoted to managed roots.
+The classes are `Document`, `DocumentSnapshot`, `DocumentChangeSet`, `DocumentPrepare`, `DocumentFragment`, `DocumentSourceIndex`, `DocumentMatches`, `DocumentMarkdownLosses` and `DocumentTransaction`. The first eight share actual native references; `share()` calls the native status/output factory once and reserves its language owner before that call. The transaction has one unique owner. `commit()` and `abort()` end its writer but do not consume its shell; `close()` releases that owner. Default-provenance Owned factories are required. Raw custom-allocator objects cannot be promoted to managed roots.
 
 `createDocument()` packs ordinary settings into one native stack descriptor, leaving custom allocator callbacks NULL. `openDocument` and `deserializeDocument` use their native Owned variants. To preserve native parameter-group order, the latter exposes configuration arguments before its final named `data` argument. `prepareStreamSource(null, utf8="...")` starts a candidate; use `continueStreamSource(previous,"...")` to continue it. The latter supplies the required NULL descriptor and inherits the first options; passing previous through the packed start entry is rejected by native code. See [streaming qualification](xui-document-streaming.md). Run may execute on a worker according to the native contract; publication and live Document/Transaction operations belong to their creator thread. The native immutable snapshot/index APIs support their documented native thread contracts. The current safe ForeignView declarations still enforce their existing creator-thread admission; this binding does not claim cross-thread language-handle access.
 
@@ -19,14 +19,21 @@ still require `xuiDocumentFreeBuffer`; the binding does not adopt them with
 
 `copyText`, `copySource`, `copyExtensionPayload`, and `Read` methods write directly into initialized `Buffer` storage. The buffer's logical byte length is the capacity supplied to native code and stays unchanged on success or failure. Text Copy methods require the reported byte length plus one terminator byte. Binary Read and extension methods follow their exact native byte limits. Explicit decoding or `Buffer.text(size)` turns copied text into an independent language string. Native status and UTF-8 validation remain authoritative.
 
+`DocumentMatches.ranges()` and `DocumentMarkdownLosses.entries()` expose
+`NativeSequence` views. Each sequence retains the result and directly reads
+its contiguous records. Closing the result or the snapshot leaves retained
+sequences readable. Ranges still carry the original document revision.
+The search and analysis allocate their result storage and may copy accumulated
+records as capacity grows. Sequence publication does not copy those records.
+
 Capability boundaries and available safe paths:
 
 | Native functions/fields | Boundary and available safe path |
 |---|---|
-| `SnapshotAnalyzeMarkdownConversion`, `SnapshotFind`, `SnapshotFindEx` | Caller output arrays plus capacity. A single result record would be unsafe when capacity exceeds one; no writable typed-array output declaration is fabricated. |
+| `SnapshotAnalyzeMarkdownConversion`, `SnapshotFind`, `SnapshotFindEx` | `collectMarkdownLosses()`, `find()` and `findIn()` return immutable result owners with all entries from one analysis or search. `findIn()` restricts the search to a range. The original C functions retain their caller-supplied buffer API. |
 | `PrepareSource`, `PrepareContinueSource` | Now mapped by `prepareSource` / `continueSource` and `Bytes` variants. Parallel start/end/text columns form size-prefixed records with exact byte lengths and scoped backing pins. See [source-patch qualification](xui-document-source-patches.md). |
 | `FragmentSerialize`, `FragmentExportHtml`, `SnapshotCopyRange`, `SnapshotCopyTableMatrix`, `SnapshotCopyPlainText`, `DocumentSerialize`, `DocumentExportHtml` | Direct owned bytes outputs; HTML/plain/range/matrix also have UTF-8 string outputs. The actual resident-XRT allocation is transferred with its explicit byte count. The matched SDK allocator marker is required. Native `DocumentFreeBuffer` stays internal to language cleanup. |
-| Node-info resource/info/title/link strings; nested attributes language | Borrowed pointers require explicit output-record text conversion, which this contract does not declare. No pointer is disguised as POD. Copy/Read methods expose node text/source safely; pointer metadata remains C-only. |
+| Node-info resource/info/title/link strings; nested attributes language | `nodeTextInfo()` copies the five nullable metadata strings. `copyText`/`copySource` and the Read methods expose counted content. The nested attributes record remains available through its C ABI. |
 | Change-info `pOperations` | `DocumentChangeSet.operations()` returns an immutable `NativeSequence<DocumentOperation>` with its own native reference. It reads the existing array in place and keeps it available after the original change-set view closes. |
 | Link-info URI/title strings | `linkInfo()` copies nullable URI and title with the existing output-record string contract. `linkState()` only reads the flags. |
 | Custom allocator callbacks and user data | Must outlive every document-derived native allocation and may run across native threads. Default Owned factories leave these NULL. |

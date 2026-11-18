@@ -1,0 +1,53 @@
+import xui
+
+func main(...) as int
+ auto document=xui.createDocument()
+ auto edit=document.beginTransaction()
+ uint64 first=0
+ for index in range(20)
+  auto paragraph=edit.insertNode(uint64(1),xui.XUI_DOCUMENT_APPEND,c_uint(2))
+  auto text=edit.insertNode(paragraph,xui.XUI_DOCUMENT_APPEND,c_uint(4),text="needle")
+  edit.setAttributesColumns(text,marks=c_uint(xui.XUI_DOC_HIGHLIGHT))
+  if index==0 then
+   first=text
+  end
+ end
+ auto change=edit.commit()
+ edit.close()
+ change.close()
+ auto snapshot=document.snapshot()
+ c_uint domain=c_uint(xui.XUI_DOC_SEMANTIC)
+ auto matches=snapshot.find(domain,"needle")
+ auto ranges=matches.ranges()
+ assert ranges.length==20 and ranges[0].tAnchor.iNodeId==first
+ auto scoped=snapshot.findIn(domain,"NEEDLE",c_uint(xui.XUI_DOC_FIND_IGNORE_CASE),ranges[0])
+ auto scopedRanges=scoped.ranges()
+ assert scopedRanges.length==1 and scopedRanges[0].tAnchor.iNodeId==first
+ scoped.close()
+ auto empty=snapshot.find(domain,"missing")
+ auto emptyRanges=empty.ranges()
+ assert emptyRanges.length==0
+ empty.close()
+
+ auto report=snapshot.collectMarkdownLosses(c_uint(xui.XUI_MD_COMMONMARK))
+ auto entries=report.entries()
+ assert entries.length==20 and entries[0].iNodeId==first
+ auto share=matches.share()
+ matches.close()
+ assert share.ranges().length==20
+ share.close()
+ report.close()
+ snapshot.close()
+ document.close()
+
+ int seen=0
+ for index,entry in entries
+  assert entry.iNodeId==ranges[index].tAnchor.iNodeId
+  assert (entry.iReasons & c_uint(xui.XUI_DOC_MD_LOSS_MARK))!=0
+  assert ranges[index].tCaret.iOffset==uint64(6)
+  seen+=1
+ end
+ assert seen==20
+ println("DOCUMENT_QUERY_RESULTS_OK")
+ return 0
+end

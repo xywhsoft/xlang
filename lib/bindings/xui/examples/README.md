@@ -12,6 +12,9 @@
 [document_streaming.xl](document_streaming.xl) 演示分块预备、续接、解析和发布；
 需要包含 `continueStreamSource` 的匹配源包。它不创建窗口，不隐式启动工作线程。
 
+[document_queries.xl](document_queries.xl) 演示从文档快照查找文字，
+并检查当前内容转成 CommonMark 时会丢失的标记。
+
 [dock_queries.xl](dock_queries.xl) 不创建图形窗口，演示两个窗口的窗格拆分，
 以及使用局部坐标查询拖放目标。
 
