@@ -6,17 +6,20 @@ func main(...) as int
  auto drawing=cache.load("data/vector.svg")
  cache.close() // The document keeps its own native reference.
 
- auto width,height=drawing.getSize()
- auto bounds=drawing.getBounds(c_float(0.25))
+ auto shared=drawing.share()
+ drawing.close() // The shared view still owns the same document.
+
+ auto width,height=shared.getSize()
+ auto bounds=shared.getBounds(c_float(0.25))
  assert width==c_float(64) and height==c_float(32)
  assert bounds.fW>c_float(0) and bounds.fH>c_float(0)
  println("Canvas:",width,height,"Content:",bounds.fW,bounds.fH)
 
- auto copy=drawing.clone()
+ auto copy=shared.clone()
  copy.setSize(c_float(128),c_float(64))
- auto originalWidth,originalHeight=drawing.getSize()
+ auto originalWidth,originalHeight=shared.getSize()
  assert originalWidth==c_float(64) and originalHeight==c_float(32)
  copy.close()
- drawing.close()
+ shared.close()
  return 0
 end

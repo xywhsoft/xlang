@@ -1,0 +1,224 @@
+{
+  "complete": true,
+  "passed": true,
+  "releaseInstalled": false,
+  "nativeCommit": "4746767cf4bdc68d84764dbf056f5f33f1bb22d5",
+  "sourceHashes": {
+    "docs/xge3-svg-integration.md": "6ebecf3faafa566237242ceaa099eb8a0644ba94ea2ff79fb499a3a33acc4edf",
+    "docs/xge3-xui3-api-map-storage.json": "e9fc71edb3916a2191d399dd7f60d1b882ad7f41f6d68ba16b5c942b915998c9",
+    "tools/check_xge3_svg.py": "57e14909860cbb8b22f7763a865b56ccb69ec2f2ad1b86fed8ce1e261eaf4cb7",
+    "lib/bindings/xge/examples/svg_documents.xl": "345557e516cd79bf38d77b2bb4c5a694fd070bd14e5f6e86451df6db84dce7c2",
+    "lib/bindings/xge/src/svg.xl": "2997f18cfa93a18823a603fbd61f966679fd902fb4f85814098624f2bc7a6738",
+    "test/cases/foreign_xge3_svg_oom.xl": "6f6c84e2f2fc6cc5416742c806db8d481ad95d8f508279d903e1df07585604c1",
+    "test/cases/foreign_xge_svg_document_numeric.xl": "b91e6087ac6655e8a279a09f88c45788f3f08188949fa3da4acc555592127fba"
+  },
+  "nativeHashes": {
+    "include/xge.h": "a018c743f3929e7104a752b1ab70ab1855dd2071b865931cd4b530250f753299",
+    "src/xge/render/xge_svg.c": "1a839fa6d520e27c5e1c661e51d75d1abb65226a6e0c08ab874d615d39e1c27a",
+    "tests/xge/test_svg_document_numeric.c": "6583ef39bd00cb61e780e35583b5d5ec915ab22fe91144fb157b50834502232f"
+  },
+  "nativeBuildObjectCounts": {
+    "win": {
+      "host": 164,
+      "static": 166
+    },
+    "linux": {
+      "host": 164,
+      "static": 166
+    }
+  },
+  "baselineWindowsUnload": {
+    "probe": {
+      "path": "F:\\xlang-validation\\xge-full-20261110\\svg-numeric-unload-before-win-r1\\results.json",
+      "sha256": "b10c7e4d973e03c7e053055cc6eabc2671a13e4050d93f49ffd84100e1fb5f53"
+    },
+    "stack": {
+      "path": "F:\\xlang-validation\\xge-full-20261110\\svg-numeric-unload-before-win-r1\\unload-stack.log",
+      "sha256": "c5d7b1369e18f0475f308a4d6b04c4057946b21b56a6930c5dd54035afc0bcc7"
+    }
+  },
+  "numericAcceptance": "Size, view box, geometry, decimal styles, finite overflow, and permissive NaN miter limit with a decimal-comma locale",
+  "windowsDllExit": "Actual static script DLL built, invoked, retired, unloaded and host process exited successfully",
+  "nativeShare": "1000 native share/release pairs succeeded with zero heap allocation budget. Language view admission and lifetime tracking still apply.",
+  "oomPrefixes": {
+    "win": {
+      "jit": [
+        {
+          "kind": 0,
+          "failed": 26,
+          "passed": 70
+        },
+        {
+          "kind": 1,
+          "failed": 28,
+          "passed": 68
+        },
+        {
+          "kind": 2,
+          "failed": 17,
+          "passed": 79
+        }
+      ],
+      "static": [
+        {
+          "kind": 0,
+          "failed": 26,
+          "passed": 70
+        },
+        {
+          "kind": 1,
+          "failed": 28,
+          "passed": 68
+        },
+        {
+          "kind": 2,
+          "failed": 17,
+          "passed": 79
+        }
+      ]
+    },
+    "linux": {
+      "jit": [
+        {
+          "kind": 0,
+          "failed": 26,
+          "passed": 70
+        },
+        {
+          "kind": 1,
+          "failed": 28,
+          "passed": 68
+        },
+        {
+          "kind": 2,
+          "failed": 17,
+          "passed": 79
+        }
+      ],
+      "static": [
+        {
+          "kind": 0,
+          "failed": 26,
+          "passed": 70
+        },
+        {
+          "kind": 1,
+          "failed": 28,
+          "passed": 68
+        },
+        {
+          "kind": 2,
+          "failed": 17,
+          "passed": 79
+        }
+      ]
+    }
+  },
+  "timing": {
+    "workload": "512 reloads of one small SVG in the C locale; observed process clock samples",
+    "samples": {
+      "win": {
+        "before": {
+          "seconds": [
+            0.031,
+            0.036,
+            0.03
+          ],
+          "medianSeconds": 0.031
+        },
+        "after": {
+          "seconds": [
+            0.043,
+            0.023,
+            0.034
+          ],
+          "medianSeconds": 0.034
+        }
+      },
+      "linux": {
+        "before": {
+          "seconds": [
+            0.024276,
+            0.023183,
+            0.037289
+          ],
+          "medianSeconds": 0.024276
+        },
+        "after": {
+          "seconds": [
+            0.024535,
+            0.023169,
+            0.026487
+          ],
+          "medianSeconds": 0.024535
+        }
+      }
+    }
+  },
+  "evidence": {
+    "win": {
+      "sdk": {
+        "path": "F:\\xlang-validation\\xge-full-20261110\\svg-document-numeric-sdk-win-r1\\results.json",
+        "sha256": "0212660b40e1afcac27bd62d4faa7255742790259592458fb302ed5904e3ade6"
+      },
+      "native": {
+        "path": "F:\\xlang-validation\\xge-full-20261110\\svg-document-numeric-native-win-r1\\results.json",
+        "sha256": "5983e1e1f41ba3d5a8553a156b82d2632fd6721c32a98e910776939532a1aefe"
+      },
+      "nativeBefore": {
+        "path": "F:\\xlang-validation\\xge-full-20261110\\svg-document-numeric-native-win-r0\\results.json",
+        "sha256": "f6ab7422668795b36eb9d872247d447afcadea82d8b81dd4825492084fb16c8e"
+      },
+      "packages": {
+        "path": "F:\\xlang-validation\\xge-full-20261110\\svg-document-numeric-packages-win-r2\\results.json",
+        "sha256": "e3413c7ef4e1d6a825b210bf7965ef5eb6e145255c03ab3c03eac1bcfcea3466"
+      },
+      "sourceReview": {
+        "path": "F:\\xlang-validation\\xge-full-20261110\\svg-document-numeric-packages-win-r2\\source-review\\results.json",
+        "sha256": "6a5cd2fdedf488a8063eaa3229b95d38e20ac5198224a69e541b28eeaf691b5c"
+      },
+      "language": {
+        "path": "F:\\xlang-validation\\xge-full-20261110\\svg-document-numeric-language-win-r2\\results.json",
+        "sha256": "a2e04a62f6556578237addc06f25aaabad42baefab7afba85f37014b84a35fb2"
+      },
+      "regressions": {
+        "path": "F:\\xlang-validation\\xge-full-20261110\\svg-document-regressions-win-r2\\qualified\\results.json",
+        "sha256": "893abced6b16142f90af95225f4c4747b3bb7f86d7ee6427eb927227deebb2ce"
+      }
+    },
+    "linux": {
+      "sdk": {
+        "path": "\\\\wsl.localhost\\Ubuntu\\var\\tmp\\xlang-validation\\xge-full-20261110\\svg-document-numeric-sdk-linux-r1\\results.json",
+        "sha256": "e761afd34c83344cc01a8bd169504f7c481f50829b1af64c1ee6bf230c985967"
+      },
+      "native": {
+        "path": "\\\\wsl.localhost\\Ubuntu\\var\\tmp\\xlang-validation\\xge-full-20261110\\svg-document-numeric-native-linux-r1\\results.json",
+        "sha256": "7bedc168899a51bb1bbfe1ecb77e9db339bfdf988f9c2339c21a443da7395fa8"
+      },
+      "nativeBefore": {
+        "path": "\\\\wsl.localhost\\Ubuntu\\var\\tmp\\xlang-validation\\xge-full-20261110\\svg-document-numeric-native-linux-r0\\results.json",
+        "sha256": "c5ff5af91e96c92ace575dc285ff8ed0e4eff4634d0e3c59e329e4c86dfa32bb"
+      },
+      "packages": {
+        "path": "\\\\wsl.localhost\\Ubuntu\\var\\tmp\\xlang-validation\\xge-full-20261110\\svg-document-numeric-packages-linux-r2\\results.json",
+        "sha256": "28c325a71848a07448ef01fadae8700fe8892c0e1c35f4aa4471a31c8e3f8fa7"
+      },
+      "sourceReview": {
+        "path": "\\\\wsl.localhost\\Ubuntu\\var\\tmp\\xlang-validation\\xge-full-20261110\\svg-document-numeric-packages-linux-r2\\source-review\\results.json",
+        "sha256": "84155970e1c027f75b950d4821483496bede24e6e5af6023036968233606a9b5"
+      },
+      "language": {
+        "path": "\\\\wsl.localhost\\Ubuntu\\var\\tmp\\xlang-validation\\xge-full-20261110\\svg-document-numeric-language-linux-r2\\results.json",
+        "sha256": "73573da3e3aba8d9ebdf85ba1eae7efbf2488c55f75197b0cf7b4b2e07b41a30"
+      },
+      "regressions": {
+        "path": "\\\\wsl.localhost\\Ubuntu\\var\\tmp\\xlang-validation\\xge-full-20261110\\svg-document-regressions-linux-r2\\qualified\\results.json",
+        "sha256": "e23dada8b23c69afddaa2e96e87cff96a9a103565c7997712b2be9f1a49ee802"
+      },
+      "graphics": {
+        "path": "\\\\wsl.localhost\\Ubuntu\\var\\tmp\\xlang-validation\\xge-full-20261110\\svg-document-gpu-linux-r1\\results.json",
+        "sha256": "5ba427611a3a2af92880f20e691390242cc45265f2c5ec4b45e497e88f451c32"
+      }
+    }
+  }
+}

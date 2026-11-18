@@ -25,7 +25,8 @@ def main():
     windows=os.name=='nt';sha=lambda v:hashlib.sha256(Path(v).read_bytes()).hexdigest()
     cc,cpp,objdump=[Path(shutil.which(v)).resolve() for v in ('gcc','g++','objdump')]
     cases=[root/'test/cases'/(name+'.xl') for name in
-        ('foreign_xge3_svg','foreign_xge3_svg_invalid','foreign_xge3_svg_oom','foreign_xge3_svg_callbacks')]
+        ('foreign_xge3_svg','foreign_xge3_svg_invalid','foreign_xge3_svg_oom','foreign_xge3_svg_callbacks',
+         'foreign_xge_svg_document_numeric')]
     example=root/'lib/bindings/xge/examples/svg_documents.xl';cases.append(example)
     if a.graphics:cases.append(root/'test/cases/foreign_xge3_svg_gpu.xl')
     files=[Path(__file__).resolve(),Path(__file__).with_name('foreign_compiler_cohort.py'),
@@ -46,7 +47,12 @@ def main():
     def run(name,args,packages=None,cwd=None):
         env={k:v for k,v in os.environ.items() if not k.startswith('XL6_')}
         env.pop('XLANG_PACKAGE_PATH',None)
-        if packages:env['XLANG_PACKAGE_PATH']=str(packages)
+        if packages:
+            env['XLANG_PACKAGE_PATH']=str(packages)
+            if not windows:
+                native_dir=packages/'_xge_native/native'
+                env['LD_LIBRARY_PATH']=os.pathsep.join(
+                    path for path in (str(native_dir),env.get('LD_LIBRARY_PATH')) if path)
         if not windows:
             env.update(EGL_PLATFORM='surfaceless',LIBGL_ALWAYS_SOFTWARE='1')
             env.pop('DISPLAY',None);env.pop('WAYLAND_DISPLAY',None)
@@ -77,9 +83,10 @@ def main():
             if name=='foreign_xge3_svg':assert b'SVG scalar/tuple hot calls: zero XRT heap operations' in data
             if name=='foreign_xge3_svg_oom':
                 counts=re.findall(rb'SVG language prefixes: (\d+) (\d+) (\d+)',data)
-                assert len(counts)==2 and {int(k) for k,_,_ in counts}=={0,1}
+                assert len(counts)==3 and {int(k) for k,_,_ in counts}=={0,1,2}
                 assert all(int(f)>0 and int(s)>0 and int(f)+int(s)==96 for _,f,s in counts)
                 report.setdefault('oomPrefixes',{})[kind]=[dict(kind=int(k),failed=int(f),passed=int(s))for k,f,s in counts]
+            if name=='foreign_xge_svg_document_numeric':assert b'SVG_DOCUMENT_NUMERIC_LANGUAGE_OK' in data
             if name=='foreign_xge3_svg_gpu':assert b'SVG RGBA/stride/direct draw and owned Texture close passed' in data
         if windows:
             data=run(name+'-imports',[objdump,'-p',binary]);imports=re.findall(rb'DLL Name:\s*(\S+)',data)
@@ -135,7 +142,7 @@ int main(int argc,char** argv){assert(argc==2);
     executable=out/('shared-host.exe'if windows else'shared-host')
     run('shared-host-build',[cpp,'-std=c++17','-Wall','-Wextra','-Werror','-DXL_STATIC_EMBED',
         '-I'+str(root),'-I'+str(sdk),*publicIncludes,host,*([]if windows else['-ldl']),'-o',executable])
-    run('shared-host-run',[executable,library],cwd=out)
+    run('shared-host-run',[executable,library],dynamic,cwd=out)
     inputs.update((str(v),sha(v))for v in (librarySource,host))
     report.update(passed=True,inputsUnchanged=all(sha(v)==h for v,h in inputs.items()))
     assert report['inputsUnchanged'];save()

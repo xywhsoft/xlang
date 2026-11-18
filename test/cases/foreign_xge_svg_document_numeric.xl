@@ -1,0 +1,37 @@
+import xge
+
+func main(...) as int
+    auto drawing = xge.createSvg()
+    drawing.loadMemory("<svg width='3.25e1' height='16.25' viewBox='0,0,32.5,16.25'><rect x='.5' y='1.25' width='20.5' height='8.25'/></svg>")
+    auto alias = drawing.share()
+    assert drawing.refCountGet() == c_int(2)
+    auto independent = drawing.clone()
+
+    auto width, height = alias.getSize()
+    auto viewport = alias.getViewBox()
+    auto bounds = alias.getBounds(c_float(0.125))
+    assert width == c_float(32.5) and height == c_float(16.25)
+    assert viewport.fW == width and viewport.fH == height
+    assert bounds.fX == c_float(0.5) and bounds.fY == c_float(1.25)
+    assert bounds.fW == c_float(20.5) and bounds.fH == c_float(8.25)
+
+    drawing.setSize(c_float(12.5), c_float(8.25))
+    drawing.close()
+    auto sharedWidth, sharedHeight = alias.getSize()
+    auto clonedWidth, clonedHeight = independent.getSize()
+    assert sharedWidth == c_float(12.5) and sharedHeight == c_float(8.25)
+    assert clonedWidth == width and clonedHeight == height
+    assert alias.refCountGet() == c_int(1)
+
+    bool closed = false
+    try
+        drawing.share()
+    catch error
+        closed = true
+    end
+    assert closed
+    independent.close()
+    alias.close()
+    println("SVG_DOCUMENT_NUMERIC_LANGUAGE_OK")
+    return 0
+end

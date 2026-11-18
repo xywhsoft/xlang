@@ -100,7 +100,7 @@
       "dependencies": [
         {
           "sourceFile": "include/xge.h",
-          "sha256": "30b396b36e5e0d5c71603615a9f7302308103b1868c4a3c33cfab9e55b9b140b"
+          "sha256": "a018c743f3929e7104a752b1ab70ab1855dd2071b865931cd4b530250f753299"
         },
         {
           "sourceFile": "src/xge/render/xge_render.c",
@@ -555,7 +555,7 @@
       "dependencies": [
         {
           "sourceFile": "include/xge.h",
-          "sha256": "30b396b36e5e0d5c71603615a9f7302308103b1868c4a3c33cfab9e55b9b140b"
+          "sha256": "a018c743f3929e7104a752b1ab70ab1855dd2071b865931cd4b530250f753299"
         },
         {
           "sourceFile": "src/xge/core/xge_debug.c",
@@ -855,7 +855,7 @@
       "dependencies": [
         {
           "sourceFile": "include/xge.h",
-          "sha256": "30b396b36e5e0d5c71603615a9f7302308103b1868c4a3c33cfab9e55b9b140b"
+          "sha256": "a018c743f3929e7104a752b1ab70ab1855dd2071b865931cd4b530250f753299"
         },
         {
           "sourceFile": "src/xge/render/xge_shape_ex.c",
@@ -875,7 +875,7 @@
       "dependencies": [
         {
           "sourceFile": "include/xge.h",
-          "sha256": "30b396b36e5e0d5c71603615a9f7302308103b1868c4a3c33cfab9e55b9b140b"
+          "sha256": "a018c743f3929e7104a752b1ab70ab1855dd2071b865931cd4b530250f753299"
         },
         {
           "sourceFile": "src/xge/render/xge_shape_ex.c",

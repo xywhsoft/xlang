@@ -12,11 +12,15 @@ func attempt(int kind,int budget) as bool
  string source="<svg width='16' height='16'><rect width='8' height='8'/></svg>"
  prefixBegin(c_int(budget))
  try
-  if kind==0
+  if kind==0 or kind==2
    first=xge.createSvg()
    auto drawing=first as Svg
    drawing.loadMemory(source)
-   second=drawing.clone()
+   if kind==0
+    second=drawing.clone()
+   else
+    second=drawing.share()
+   end
   else
    cache=xge.createSvgCache()
    auto current=cache as SvgCache
@@ -55,10 +59,11 @@ func main(...) as int
  try
   bool warmDocument=attempt(0,-1)
   bool warmCache=attempt(1,-1)
-  println("SVG warm results:",warmDocument,warmCache)
+  bool warmShare=attempt(2,-1)
+  println("SVG warm results:",warmDocument,warmCache,warmShare)
   console.flush()
-  assert warmDocument and warmCache
-  for kind in range(2)
+  assert warmDocument and warmCache and warmShare
+  for kind in range(3)
    int failed=0
    int passed=0
    for budget in range(96)

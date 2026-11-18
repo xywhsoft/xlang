@@ -369,3 +369,23 @@ initializer proposal awaits a decision. This batch does not alter that rule or
 the separately pending non-destructible node-view runtime contract. SvgPaint,
 traversal and remaining full-ecosystem work are not complete. Matched final
 release/IDE/help delivery remains open; these candidates are not installed.
+
+## Shared documents and numeric parsing
+
+`Svg.share()` returns an independently owned view of the same mutable SVG
+document. Changes through either view are visible through the other. Closing
+one view releases its reference; the remaining view stays usable on the same
+creator thread. Use `clone()` when edits need to stay independent.
+
+SVG document numbers use an ASCII decimal point even when the process locale
+uses a comma. The parser uses the resident XRT decimal implementation without
+changing the process locale. In a Windows DLL with statically linked XGE,
+loading SVG can now safely be followed by checked module retirement, DLL unload
+and normal host exit. Previously the MinGW number converter registered a
+process-exit callback in the DLL.
+
+The share declaration calls one native retain entry. Native sharing needs no
+heap allocation or document copy. The language still admits the returned view
+and tracks its lifetime. The permissive filter and stroke paths keep their
+NaN/infinity handling and parse finite values through double before narrowing
+to float. They use SVG decimal syntax for finite values.
