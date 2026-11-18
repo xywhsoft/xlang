@@ -1,0 +1,105 @@
+import xge
+import xge3d
+from xge3d import ModelInstanceBuilder, Xge3dWorkBudget
+
+func finish(ModelInstanceBuilder builder, Xge3dWorkBudget work)
+    for index in range(64)
+        if builder.step(work) == c_int(1) then
+            return
+        end
+    end
+    assert false
+end
+
+func main(...) as int
+    xge.init(64, 64, "Managed model instance")
+    auto model = xge3d.loadModel("model-triangle.gltf")
+    auto scene = xge3d.createScene()
+    auto none = xge3d.Xge3dNode()
+    auto parent = scene.createNode(none)
+    auto builder = scene.beginInstantiate(model, parent)
+    auto cancelled = scene.beginInstantiate(model)
+    auto doomedParent = scene.createNode(none)
+    auto stale = scene.beginInstantiate(model, doomedParent)
+    scene.destroyNode(doomedParent)
+    auto replacement = scene.createNode(none)
+    model.close()
+    auto readScene = scene.share()
+    scene.close()
+
+    Xge3dWorkBudget work
+    work.nodes = c_size(0)
+    assert builder.step(work) == c_int(0)
+    bool premature = false
+    try
+        builder.take()
+    catch Error
+        premature = true
+    end
+    assert premature
+
+    work.nodes = c_size(1)
+    assert cancelled.step(work) == c_int(0)
+    cancelled.close()
+    finish(stale, work)
+    bool parentRejected = false
+    try
+        stale.take()
+    catch Error
+        parentRejected = true
+    end
+    assert parentRejected
+    stale.close()
+    assert readScene.childCount(replacement) == c_size(0)
+
+    auto ray = xge3d.Xge3dRay()
+    ray.direction.z = c_float(-1)
+    auto filter = xge3d.Xge3dQueryFilter()
+    filter.layers = c_uint(0xffffffff)
+    filter.include_hidden = c_int(1)
+    for index in range(64)
+        auto done = builder.step(work)
+        assert readScene.nodeCount == c_size(2)
+        assert readScene.nodeAt(c_size(2)).slot == uint64(0)
+        assert readScene.childCount(parent) == c_size(0)
+        auto status, hidden = readScene.find(none, "Triangle")
+        assert status == xge.XGE_ERROR_NOT_FOUND and hidden.slot == uint64(0)
+        auto hitStatus, hit = readScene.raycast(ray, c_float(10), filter)
+        assert hitStatus == xge.XGE_ERROR_NOT_FOUND and hit.node.slot == uint64(0)
+        if done == c_int(1) then
+            break
+        end
+    end
+    auto root = builder.take()
+    builder.close()
+    assert readScene.nodeCount == c_size(4)
+    assert readScene.parent(root).slot == parent.slot
+    auto sourceStatus, triangle = readScene.instanceNode(root, c_size(0))
+    assert sourceStatus == xge.XGE_OK and (readScene.name(triangle) as string) == "Triangle"
+    auto hitStatus, hit = readScene.raycast(ray, c_float(10), filter)
+    assert hitStatus == xge.XGE_OK and hit.node.slot == triangle.slot
+
+    xge.run(func() as c_int
+        assert xge.begin() == 0
+        auto renderer = xge3d.createRenderer()
+        auto target = xge3d.createRenderTarget(32, 32)
+        auto camera = xge3d.orthographicCamera(c_float(2), c_float(2), c_float(0.1), c_float(10))
+        c_float[4] clear
+        clear[3] = c_float(1)
+        assert renderer.renderTo(readScene, camera, target, clear).triangles == uint64(1)
+        auto pixels = Buffer()
+        assert pixels.resize(32 * 32 * 4)
+        target.readPixels(pixels)
+        assert pixels.byteAt((16 * 32 + 16) * 4) > 220
+        target.close()
+        renderer.close()
+        assert xge.nativeEnd() == 0
+        return c_int(1)
+    end)
+    xge.setFrameCallback(null)
+    readScene.close()
+    assert xge.graphicsResourceCount() == uint64(0)
+    xge.unit()
+    println("MODEL_INSTANCE3D_LANGUAGE_GPU_OK")
+    return 0
+end

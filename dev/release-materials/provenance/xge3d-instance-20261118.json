@@ -1,0 +1,119 @@
+{
+  "date": "2026-11-18",
+  "scope": "Managed, isolated 3D model instance staging and atomic publication",
+  "complete": true,
+  "passed": true,
+  "xgeParent": "e350a57a40c19850ebc637eed8f716db37a5f1f8",
+  "xlangParent": "91cd9dea8796d55adf51fb65c78956da248966b1",
+  "xrtCommit": "804cc769de3030118c2b46ef7af69543d1b82d9d",
+  "nativeSources": {
+    "include/xge.h": "dfcaf379635474e9e049491e3e244a99822cd4ae2f50b7ab1a9621585f787c58",
+    "src/xge/3d/xge3d_internal.h": "91a4d9e3f9f8b5d811334d7a887e2f4eea11e119cd50a844226ddcfd54911c91",
+    "src/xge/3d/xge3d_scene.c": "d489c6e9dc5d575f9852e70f5cee4f583cbf4173e5f3f4f14155ec0c1804ff9c",
+    "src/xge/3d/xge3d_instance.inc": "50d1dc56855868f7dd621056c88e7f51d1b93837a9c013bdb22ddd0fd095c192",
+    "src/xge/3d/xge3d_skin.c": "30753b3544f72a53e665fb3c34e4b1712af77a39052196d5e5230af9a37b3e04",
+    "tests/xge/test_3d_instance_owned.c": "2b94523b90bfbc003228f8255971b5eee8f9b80439da553f6b1f2d858f690bf2",
+    "tests/xge/test_3d_foundation.c": "df8a73f7905e92daa642dd06cf22ac6ee2867be209903b6360bfaac434a451c5"
+  },
+  "languageSources": {
+    "lib/bindings/xge/three_d/examples/model_instance.xl": "9236120f73c235aa8abb90c86d7787720e2664188f51a2ab5af458ef9b5cd75c",
+    "lib/bindings/xge/three_d/include/xge3d_renderer.h": "447a53ae7463d41ce4fa89ec1010befc229cdde440d8c51748630e77e60e6833",
+    "lib/bindings/xge/three_d/src/model.xl": "7601518e20cbde4547c9f6101daf4df33c263bc5a56c3295edd14a23eb4a651c",
+    "lib/bindings/xge/three_d/src/scene.xl": "5b8033eeae1e636764de89284103c91924a37a075e4d24f9492a9a2911cf947f",
+    "test/cases/foreign_xge3d_instance_owned.xl": "7e59781609a48e7503df79597fa57008d66beb946bac44a950c1a375c09a3eb6",
+    "docs/xge3-model.md": "976f7599e23ac4838254c74f07961016c41a6d01235e7b6c249d95dd4bd252c5",
+    "lib/bindings/xge/three_d/examples/README.md": "28144698590c7d448cde7d36f6fcdc4428ccc5735f513061e94b8fbf1668e1c8"
+  },
+  "exampleAssetSha256": "5c874086740e45bc2413edb3d43a5704f456a6492f2edd0adc1b5b2772349525",
+  "evidence": {
+    "win": {
+      "seedSdk": {
+        "path": "F:\\xlang-validation\\xge-full-20261110\\instance3d-sdk-win-r1\\results.json",
+        "sha256": "1a381d887d9aed94cd3fb6cfe6f67585eadc6f9f500cf347e61ac29403cf81c4"
+      },
+      "sdk": {
+        "path": "F:\\xlang-validation\\xge-full-20261110\\instance3d-sdk-win-r4\\results.json",
+        "sha256": "760f5f234a1bd7637eb5f609607573122cae8fa6d44abeab56d4e0fe42822f7f"
+      },
+      "native": {
+        "path": "F:\\xlang-validation\\xge-full-20261110\\instance3d-native-win-r3\\results.json",
+        "sha256": "9e94c5ede6d76bd5f8aa1c470c6f25f24fa7d263529bb62557f1c01a3f7c47a5"
+      },
+      "packages": {
+        "path": "F:\\xlang-validation\\xge-full-20261110\\instance3d-packages-win-r4\\results.json",
+        "sha256": "a96b0e4bb71d940f829ba894404483e39481c814d2a710463072dd49c3a9dd00"
+      },
+      "language": {
+        "path": "F:\\xlang-validation\\xge-full-20261110\\instance3d-language-win-r5\\results.json",
+        "sha256": "8c976b41fb520c0532b62906f32c4389376d63a62a56636d319ca09d01a7c31a"
+      },
+      "performance": {
+        "path": "F:\\xlang-validation\\xge-full-20261110\\instance3d-perf-win-r3\\results.json",
+        "sha256": "f9321e0e286be855540f73598240296a8276588eb346c8f40255558887eb7ad9"
+      }
+    },
+    "linux": {
+      "seedSdk": {
+        "path": "\\\\wsl.localhost\\Ubuntu\\var\\tmp\\xlang-validation\\xge-full-20261110\\instance3d-sdk-linux-r1\\results.json",
+        "sha256": "7382c5ec45a9b0d633e32bde291d2459a09fe2af9b3958f90473422cfc4eb12e"
+      },
+      "sdk": {
+        "path": "\\\\wsl.localhost\\Ubuntu\\var\\tmp\\xlang-validation\\xge-full-20261110\\instance3d-sdk-linux-r4\\results.json",
+        "sha256": "299806214c3383e8e2ccdab4d9ea23ff17d6cbd7831bdca477ae4264c1cb9f0d"
+      },
+      "native": {
+        "path": "\\\\wsl.localhost\\Ubuntu\\var\\tmp\\xlang-validation\\xge-full-20261110\\instance3d-native-linux-r3\\results.json",
+        "sha256": "b5f43d40a1f18d867ec8035eb263d9af95005ac0a1269ef7dd70d7ceb7f1fcdb"
+      },
+      "packages": {
+        "path": "\\\\wsl.localhost\\Ubuntu\\var\\tmp\\xlang-validation\\xge-full-20261110\\instance3d-packages-linux-r4\\results.json",
+        "sha256": "2584a4246c55e956ea01301b403ffd5221e28d28726a9ea4866e72235f9357cf"
+      },
+      "language": {
+        "path": "\\\\wsl.localhost\\Ubuntu\\var\\tmp\\xlang-validation\\xge-full-20261110\\instance3d-language-linux-r5\\results.json",
+        "sha256": "df108a42a585eb836cb5cc0a9402fbad278e2a166a4431ffe851c2ef833947e5"
+      },
+      "performance": {
+        "path": "\\\\wsl.localhost\\Ubuntu\\var\\tmp\\xlang-validation\\xge-full-20261110\\instance3d-perf-linux-r3\\results.json",
+        "sha256": "68da0ef41a00c4d7006710e31a1aefbb8554a9bfbfd21ffd280111c02150ac0a"
+      }
+    }
+  },
+  "skinCleanupReproductionBeforeFix": {
+    "path": "F:\\xlang-validation\\xge-full-20261110\\instance3d-skin-before-win-r1\\run.log",
+    "sha256": "588ea2e023ded9aa248772b40741e096d93b78ebca0e30f8d5bfb695b717c818"
+  },
+  "checks": [
+    "Windows and Linux hosted JIT and AOT, static executable and shared module",
+    "native hosted and static, optimized and unoptimized",
+    "invisible to enumeration, parent links, name lookup and include-hidden raycast before publication",
+    "scene and model independently retained; wrong-thread releases leave the builder live",
+    "interleaved builders, parent generation rejection, zero-budget pause, OOM publication retry",
+    "eight native construction/step allocation failures per exercised fixture",
+    "skinned stage cancellation and published subtree removal leave no stale-slot error"
+  ],
+  "performance": {
+    "pausedIterationsPerPlatform": 1024,
+    "allocationsPausedPerLoop": {
+      "xlang": 0,
+      "C": 0
+    },
+    "buildIterationsPerPlatform": 64,
+    "allocationsPerBuild": {
+      "xlang": 9,
+      "C": 7
+    },
+    "cost": [
+      "one native stage pointer per scene node",
+      "stage pointer list and model source-index map",
+      "linear pointer publication and dense index updates",
+      "two xlang view allocations per builder"
+    ],
+    "noGeometryCopy": true,
+    "cpuTimeEquivalenceClaim": false
+  },
+  "releaseInstalled": false,
+  "networkTests": false,
+  "next": "Managed 3D animation clips, animator and skin operations",
+  "xgeCommit": "6b8b5ae4dbdd22c0540d55e73f11902d6409b1bb"
+}

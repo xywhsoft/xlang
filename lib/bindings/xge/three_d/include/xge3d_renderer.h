@@ -26,7 +26,9 @@ XL6_XGE3D_CHECKED_OWNER(xl6Xge3dShaderPolicy,xge3d_shader,"xge3d.shader",xge3dSh
 XL6_XGE3D_CHECKED_OWNER(xl6Xge3dEnvironmentPolicy,xge3d_environment,"xge3d.environment",xge3dEnvironmentReleaseOwnerChecked)
 #if XGE3D_ENABLE_MODEL
 XL6_XGE3D_CHECKED_OWNER(xl6Xge3dModelPolicy,xge3d_model,"xge3d.model",xge3dModelReleaseOwnerChecked)
+XL6_XGE3D_CHECKED_OWNER(xl6Xge3dInstanceBuilderPolicy,xge3d_instance_builder,"xge3d.model.instance-builder",xge3dModelInstanceReleaseOwnerChecked)
 #define xl6Xge3dModelPolicy (*xl6Xge3dModelPolicyGet())
+#define xl6Xge3dInstanceBuilderPolicy (*xl6Xge3dInstanceBuilderPolicyGet())
 #endif
 #if XGE3D_ENABLE_ASYNC
 XL6_XGE3D_CHECKED_OWNER(xl6Xge3dModelLoaderPolicy,xge3d_loader,"xge3d.model.loader",xge3dLoaderReleaseOwnerChecked)

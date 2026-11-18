@@ -77,3 +77,32 @@ the polling path. Creating a loader starts a worker, submission copies
 its URI, and taking a model establishes ownership of its native assets.
 
 [Asynchronous model example](../lib/bindings/xge/three_d/examples/model_async.xl)
+
+## Incremental instantiation
+
+`scene.beginInstantiate(model, parent)` retains the scene and model on
+the creating thread. Call `step(workBudget)` until it returns 1. A zero
+node budget pauses the work. The time limit is soft and checked between
+node, primitive, hierarchy and skin operations.
+
+Before `take()`, the stage is absent from scene enumeration, parent
+children, queries and rendering. A successful `take()` returns the
+root. If the destination parent was deleted, publication fails. If
+allocation for publication fails, the fully built stage remains
+available for retry. `close()` discards any unpublished stage and
+releases both owners. Keep a scene reference to use the returned node.
+
+Each native node has one pointer for tracking stage membership. The
+builder keeps a temporary pointer list and a source-index map.
+Publication appends the node pointers to the scene, updates the dense
+indices and invalidates the spatial index. It is linear in the number
+of published nodes and does not copy mesh or texture data. The synchronous
+`instantiate()` path continues to write directly into the scene.
+
+On Windows and Linux, 1,024 paused calls performed zero XRT heap
+operations in both xlang and C. Creating, stepping, publishing and then
+removing the example instance took nine XRT allocations in xlang
+and seven in C per iteration. The two extra allocations hold the
+language builder view.
+
+[Incremental model example](../lib/bindings/xge/three_d/examples/model_instance.xl)

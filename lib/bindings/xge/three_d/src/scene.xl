@@ -32,6 +32,7 @@ export extern "xge3d_scene*" class Scene @header("xge3d_scene.h") @lifetime("own
  extern "xge3dNodeSetMaterialTree" @no_raise @c_result("status",0) func setMaterialTree(Xge3dNode root,Material3D? material=null)
  extern "xge3dNodeGetMaterialOwned" @no_raise @c_result("owned_view") @factory(2,0,releaseMaterial3D) func material(Xge3dNode node) as Material3D?
  extern "xge3dModelInstantiate" @no_raise @c_output(3,0) func instantiate(Model3D model,Xge3dNode parent=Xge3dNode()) as Xge3dNode
+ extern "xge3dModelInstanceBeginOwned" @no_raise @c_result("owned_view") @factory(3,0,releaseModelInstanceBuilder) func beginInstantiate(Model3D model,Xge3dNode parent=Xge3dNode()) as ModelInstanceBuilder
  extern "xge3dModelInstanceNode" @no_raise @c_outputs(-1,3) func instanceNode(Xge3dNode root,c_size sourceIndex) as (c_int,Xge3dNode)
  extern "xge3dNodeSetLods" @no_raise @c_array_group(2,1,2,"size_t",3) @c_array_record(2,"xge3d_lod_t") @c_array_field(2,"mesh",0,"view_raw") @c_array_field(2,"min_distance",1,"value") @c_result("status",0) func setLods(Xge3dNode node,array<Mesh3D> meshes,array<c_float> minDistances,int size=-1)
  extern "xge3dNodeSetLayers" @no_raise @c_result("status",0) func setLayers(Xge3dNode node,c_uint render,c_uint query,c_uint shadow)

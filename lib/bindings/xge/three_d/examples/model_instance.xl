@@ -1,0 +1,31 @@
+import xge
+import xge3d
+
+xge.init(480, 320, "分步创建 glTF 场景实例")
+auto model = xge3d.loadModel("assets/model-triangle.gltf")
+auto scene = xge3d.createScene()
+auto builder = scene.beginInstantiate(model)
+model.close() // 构建器已持有自己的模型引用。
+
+xge3d.Xge3dWorkBudget work
+work.nodes = c_size(1)
+work.microseconds = uint64(1000)
+
+xge.run(func() as c_int
+    assert xge.begin() == 0
+    if builder.step(work) == c_int(0) then
+        assert xge.nativeEnd() == 0
+        return c_int(0)
+    end
+
+    auto root = builder.take()
+    auto status, triangle = scene.instanceNode(root, c_size(0))
+    assert status == xge.XGE_OK
+    println("已发布实例", scene.name(triangle) as string)
+    assert xge.nativeEnd() == 0
+    return c_int(1)
+end)
+xge.setFrameCallback(null)
+builder.close()
+scene.close()
+xge.unit()

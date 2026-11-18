@@ -44,6 +44,9 @@ controlled acceptance fixture supplies a CPU triangle to test positive hits.
 upload budget. A ready request transfers one model. A failed request reports
 the native status and is released.
 
+`model_instance.xl` builds one unit of scene work per frame and
+publishes only after the instance is complete.
+
 `destroyStep` immediately retires the entire subtree logically, including when
 `budget.nodes` is zero. Its return value is zero until all nodes are physically
 removed, then one. Continue with the original root handle while incomplete;
