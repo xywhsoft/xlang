@@ -1,0 +1,155 @@
+{
+  "complete": true,
+  "passed": true,
+  "releaseInstalled": false,
+  "title": "Owned 3D environments and configurable frames",
+  "nativeCommit": "12248e87fa7e0a7d33ef9b6019f0ac91012abf41",
+  "compilerCommit": "07f3767fd47892ed5b83fe9fde9034fea2f01a37",
+  "nativeSourceHashes": {
+    "include/xge.h": "9570b8318780ee326b682e15624298a947f2463aecd1f9a10a2e167d16d1166c",
+    "src/xge/3d/xge3d_internal.h": "a913ece66c9f09d539dd441bf4dd0efe364459400ed2dfec80d96ad6682c60a2",
+    "src/xge/3d/xge3d_environment.c": "08bf0bd570ddfe640602e0946857c044d7313d64aab004c3f5884c893c91ddba",
+    "src/xge/3d/xge3d_ibl.c": "d3fd39ad693f92e5dd4f4d599439368c9839bf74f1a9cff5c64c2e44a9af43c5",
+    "src/xge/3d/xge3d_material.c": "6ad3a8a6f268d2d1e26811472c92abb22c356ba5ca3a712bffa43a410a29cbca",
+    "src/xge/3d/xge3d_render.c": "633287f6ffb54556249a6dcc7f79bfd05fdcb5c691c257477846ac0aaa5d33f3",
+    "tests/xge/test_3d_environment_owned.c": "100ce84e4cc0a7b492eb49250d38c64849487116c3094eebeff5c8d5148abe81"
+  },
+  "sourceHashes": {
+    "lib/bindings/xge/three_d/xlang.package.json": "66d8de5a748751515d214b022d3556c57923209d81c280d95d1dc3a0af152fe7",
+    "lib/bindings/xge/three_d/examples/environment.xl": "507916407c986a33f69fa423ca9e823a50f24e52e3ee2b4c9d494078ffc46b82",
+    "lib/bindings/xge/three_d/include/xge3d_renderer.h": "70281e1a8538f851553fac3943f0f5a8a901aa42fedaa4a7fab045a0dcb74e2e",
+    "lib/bindings/xge/three_d/src/environment.xl": "1c24fe80208b4b37807d74b2f3790e788b97d13a6e3b31c2d1c342e82459a618",
+    "lib/bindings/xge/three_d/src/renderer.xl": "9abd6418bbeaf3f316458a0dc9a1c03dce93d417a081d4623fed59737225515e",
+    "test/cases/foreign_xge3d_environment_owned.xl": "2de3b67506fc2b170568f4585fdc3e07e7b730ff130ee4c9ffeb35bf116818b5",
+    "docs/xge3-environment.md": "56a0ba83163c4d120ebb640cd69c70a1cf3b12adfa2c2ea46d41c057cabf064b",
+    "lib/bindings/xge/three_d/README.md": "55a9a11b269bef9497fe896a511d27a9ab810fe0c1c3c487af2cb39e06004fb4"
+  },
+  "evidence": {
+    "win": {
+      "sdk": {
+        "path": "F:\\xlang-validation\\xge-full-20261110\\environment3d-sdk-win-r1\\results.json",
+        "sha256": "ff9dabea757f10b0cc00685bd395a371d0816031a61a62f7fae3d69a1dab958a"
+      },
+      "native": {
+        "path": "F:\\xlang-validation\\xge-full-20261110\\environment3d-native-win-r1\\results.json",
+        "sha256": "67567304f5152655107024ac1f6011f6e4aa0feacdb559f62a13f1cb893858ba"
+      },
+      "package": {
+        "path": "F:\\xlang-validation\\xge-full-20261110\\environment3d-packages-win-r2\\results.json",
+        "sha256": "1bedd0f92c0e4b93fa29c34857fc3d322e6ed22d1508f6d4494248376c0bc070"
+      },
+      "language": {
+        "path": "F:\\xlang-validation\\xge-full-20261110\\environment3d-language-win-r2\\results.json",
+        "sha256": "ff736217f79be281697bddd7aff07d3702d710c5dbe8afb41525c5257b1b534b"
+      },
+      "nativeSteps": 36,
+      "packageSteps": 4,
+      "languageSteps": 11,
+      "extra": {
+        "path": "F:\\xlang-validation\\xge-full-20261110\\environment3d-extra-win-r1\\results.json",
+        "sha256": "d2eaaf73b9600288ef1960843c84247c817dfcab016e29010c6cacf667847fff",
+        "steps": 10,
+        "iterations": 64,
+        "counts": {
+          "language-packed": [
+            256,
+            256,
+            0
+          ],
+          "language-images": [
+            384,
+            384,
+            0
+          ],
+          "native-packed": [
+            128,
+            128,
+            0
+          ],
+          "native-images": [
+            128,
+            128,
+            0
+          ],
+          "language-frame": [
+            0,
+            0,
+            0
+          ],
+          "native-frame": [
+            0,
+            0,
+            0
+          ]
+        },
+        "oom": [
+          4,
+          4
+        ]
+      }
+    },
+    "linux": {
+      "sdk": {
+        "path": "\\\\wsl.localhost\\Ubuntu\\var\\tmp\\xlang-validation\\xge-full-20261110\\environment3d-sdk-linux-r1\\results.json",
+        "sha256": "a68e4ac3d01a84847e7dfe77e3370ffeb58e6fb4efc0920c9a1babb3690f9365"
+      },
+      "native": {
+        "path": "\\\\wsl.localhost\\Ubuntu\\var\\tmp\\xlang-validation\\xge-full-20261110\\environment3d-native-linux-r1\\results.json",
+        "sha256": "89280d4793499adb205b401a8c7d4d459ac3a41c7a4d040d3256416f554503da"
+      },
+      "package": {
+        "path": "\\\\wsl.localhost\\Ubuntu\\var\\tmp\\xlang-validation\\xge-full-20261110\\environment3d-packages-linux-r2\\results.json",
+        "sha256": "9c5435139ce6a29f0a27c35667d0f189ad81577dee477f1caf810b7b38757440"
+      },
+      "language": {
+        "path": "\\\\wsl.localhost\\Ubuntu\\var\\tmp\\xlang-validation\\xge-full-20261110\\environment3d-language-linux-r2\\results.json",
+        "sha256": "0d4365153311f5659001fc83253fbd6ea37190daed2772588f65e96ba753eff8"
+      },
+      "nativeSteps": 36,
+      "packageSteps": 4,
+      "languageSteps": 11,
+      "extra": {
+        "path": "\\\\wsl.localhost\\Ubuntu\\var\\tmp\\xlang-validation\\xge-full-20261110\\environment3d-extra-linux-r1\\results.json",
+        "sha256": "8af1978939fb71ed37e5037b763f3182b3b34dd0ecbf4b2a0aa800d2cba7be5a",
+        "steps": 10,
+        "iterations": 64,
+        "counts": {
+          "language-packed": [
+            256,
+            256,
+            0
+          ],
+          "language-images": [
+            384,
+            384,
+            0
+          ],
+          "native-packed": [
+            128,
+            128,
+            0
+          ],
+          "native-images": [
+            128,
+            128,
+            0
+          ],
+          "language-frame": [
+            0,
+            0,
+            0
+          ],
+          "native-frame": [
+            0,
+            0,
+            0
+          ]
+        },
+        "oom": [
+          4,
+          4
+        ]
+      }
+    }
+  }
+}

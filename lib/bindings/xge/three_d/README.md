@@ -76,3 +76,7 @@ geometry, updates, level-of-detail attachments and ownership.
 holds its material and how that material holds a texture. The
 [material guide](../../../../docs/xge3-material.md) covers map coordinates,
 texture updates, shader hooks and resource ownership.
+
+[Render a sky cube](examples/environment.xl) with a configurable frame.
+The [environment guide](../../../../docs/xge3-environment.md) covers cube
+face order, precomputed IBL, shadow settings and linear fog.

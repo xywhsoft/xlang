@@ -23,6 +23,7 @@ XL6_XGE3D_CHECKED_OWNER(xl6Xge3dTargetPolicy,xge3d_target,"xge3d.target",xge3dTa
 XL6_XGE3D_CHECKED_OWNER(xl6Xge3dMeshPolicy,xge3d_mesh,"xge3d.mesh",xge3dMeshReleaseOwnerChecked)
 XL6_XGE3D_CHECKED_OWNER(xl6Xge3dMaterialPolicy,xge3d_material,"xge3d.material",xge3dMaterialReleaseOwnerChecked)
 XL6_XGE3D_CHECKED_OWNER(xl6Xge3dShaderPolicy,xge3d_shader,"xge3d.shader",xge3dShaderReleaseOwnerChecked)
+XL6_XGE3D_CHECKED_OWNER(xl6Xge3dEnvironmentPolicy,xge3d_environment,"xge3d.environment",xge3dEnvironmentReleaseOwnerChecked)
 #undef XL6_XGE3D_CHECKED_OWNER
 #define xl6Xge3dRendererPolicy (*xl6Xge3dRendererPolicyGet())
 #define xl6Xge3dTexturePolicy (*xl6Xge3dTexturePolicyGet())
@@ -30,4 +31,5 @@ XL6_XGE3D_CHECKED_OWNER(xl6Xge3dShaderPolicy,xge3d_shader,"xge3d.shader",xge3dSh
 #define xl6Xge3dMeshPolicy (*xl6Xge3dMeshPolicyGet())
 #define xl6Xge3dMaterialPolicy (*xl6Xge3dMaterialPolicyGet())
 #define xl6Xge3dShaderPolicy (*xl6Xge3dShaderPolicyGet())
+#define xl6Xge3dEnvironmentPolicy (*xl6Xge3dEnvironmentPolicyGet())
 #endif

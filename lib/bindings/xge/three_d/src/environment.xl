@@ -1,0 +1,30 @@
+from xge import Image
+
+export extern "xge3d_frame_options_t" struct FrameOptions @header("xge3d_renderer.h")
+ c_float clear_color[4]
+ c_uint clear_flags
+ c_float exposure
+ c_float ibl_intensity
+ c_int disable_culling
+ c_int disable_instancing
+ c_int enable_shadows
+ c_int enable_fog
+ Xge3dShadowSettings shadows
+ Xge3dFogSettings fog
+end
+
+export extern "xge3d_environment*" class Environment3D @header("xge3d_renderer.h") @lifetime("owned") @policy("xl6Xge3dEnvironmentPolicy")
+ native point handle
+ extern "xge3dEnvironmentShareOwned" @no_raise @c_result("owned_view") @factory(1,0,releaseEnvironment3D) func share() as Environment3D
+ extern "xge3dEnvironmentSetIBLImages" @no_raise @c_array_group(1,0,1,"size_t",1) @c_array_input(1,0,"xge_image_t* const*","view_raw") @c_array_group(3,2,1,"size_t",3) @c_array_input(3,0,"xge_image_t* const*","view_raw") @c_const(5) @c_result("status",0) func setIBLImages(array<Image> irradiance,int irradianceSize,array<Image> prefiltered,int prefilteredSize,Image brdf)
+ extern "xge3dEnvironmentSetIBLRGBA" @no_raise @c_span(1,"const void*","size_t") @c_span(3,"const void*","size_t") @c_span(6,"const void*","size_t") @c_result("status",0) func setIBL(c_int irradianceEdge,bytes irradiance,c_int prefilteredEdge,bytes prefiltered,c_int brdfWidth,c_int brdfHeight,bytes brdf)
+ extern "xge3dEnvironmentSetIBLRGBA" @no_raise @c_span(1,"const void*","size_t") @c_span(3,"const void*","size_t") @c_span(6,"const void*","size_t") @c_result("status",0) func setIBL(c_int irradianceEdge,Buffer irradiance,c_int prefilteredEdge,Buffer prefiltered,c_int brdfWidth,c_int brdfHeight,Buffer brdf)
+ extern "xge3dEnvironmentClearIBL" @no_raise @c_result("status",0) func clearIBL()
+ extern "xl6ForeignViewCloseV1" @no_raise @c_control(0) @c_result("bool_status") func close()
+end
+
+extern "xge3dEnvironmentReleaseChecked" @header("xge3d_renderer.h") @no_raise @c_result("status",0) func releaseEnvironment3D(Environment3D value)
+export extern "xge3dEnvironmentCreateImagesOwned" @header("xge3d_renderer.h") @no_raise @c_array_group(0,0,1,"size_t",1) @c_array_input(0,0,"xge_image_t* const*","view_raw") @c_result("owned_view") @factory(3,0,releaseEnvironment3D) func createEnvironment(array<Image> faces,int size=-1,c_int srgb=1) as Environment3D
+export extern "xge3dEnvironmentCreateRGBAOwned" @header("xge3d_renderer.h") @no_raise @c_span(1,"const void*","size_t") @c_result("owned_view") @factory(4,0,releaseEnvironment3D) func createEnvironment(c_int edge,bytes rgba,c_int srgb=1) as Environment3D
+export extern "xge3dEnvironmentCreateRGBAOwned" @header("xge3d_renderer.h") @no_raise @c_span(1,"const void*","size_t") @c_result("owned_view") @factory(4,0,releaseEnvironment3D) func createEnvironment(c_int edge,Buffer rgba,c_int srgb=1) as Environment3D
+export extern "xge3dFrameOptionsDefault" @header("xge3d_renderer.h") @no_raise func frameOptionsDefault() as FrameOptions

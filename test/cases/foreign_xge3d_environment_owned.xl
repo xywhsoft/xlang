@@ -1,0 +1,127 @@
+import xge
+import xge3d
+from xge import Image
+
+func vertex(float x,float y) as xge3d.Xge3dVertex
+ auto value=xge3d.Xge3dVertex()
+ value.position.x=c_float(x)
+ value.position.y=c_float(y)
+ value.position.z=c_float(-3)
+ value.normal.z=c_float(1)
+ return value
+end
+
+func cube(bytes pixel) as bytes
+ auto packed=Buffer()
+ for face in range(6)
+  packed.append(pixel)
+ end
+ return packed.toBytes()
+end
+
+func main(...) as int
+ xge.init(64,64,"Managed 3D environment")
+ bytes blue=b"\0\0\xFF\xFF"
+ bytes red=b"\xFF\0\0\xFF"
+ bytes black=b"\0\0\0\xFF"
+ auto sky=xge.loadImage(xge.encodeImagePng(1,1,blue),c_uint(2))
+ auto lightMap=xge.loadImage(xge.encodeImagePng(1,1,red),c_uint(2))
+ auto brdf=xge.loadImage(xge.encodeImagePng(1,1,black),c_uint(2))
+ array<Image> skyFaces=[sky,sky,sky,sky,sky,sky]
+ array<Image> diffuseFaces=[lightMap,lightMap,lightMap,lightMap,lightMap,lightMap]
+ array<Image> reflectionFaces=[brdf,brdf,brdf,brdf,brdf,brdf]
+ auto imageEnvironment=xge3d.createEnvironment(skyFaces)
+ imageEnvironment.setIBLImages(diffuseFaces,-1,reflectionFaces,-1,brdf)
+ brdf.close()
+ lightMap.close()
+ sky.close()
+ auto packed=xge3d.createEnvironment(1,Buffer(cube(blue)))
+ packed.setIBL(1,cube(red),1,cube(black),1,1,black)
+ packed.setIBL(1,Buffer(cube(red)),1,Buffer(cube(black)),1,1,Buffer(black))
+ bool rejected=false
+ try
+  packed.setIBL(1,cube(blue),2,cube(black),1,1,black)
+ catch Error
+  rejected=true
+ end
+ assert rejected
+ auto environment=packed.share()
+ packed.close()
+
+ auto scene=xge3d.createScene()
+ auto node=scene.createNode(xge3d.Xge3dNode())
+ auto mesh=xge3d.createMesh([vertex(-0.8,-0.8),vertex(0.8,-0.8),vertex(0,0.8)])
+ auto surface=xge3d.materialDefault()
+ surface.metallic=c_float(0)
+ auto material=xge3d.createMaterial(surface)
+ scene.setMesh(node,mesh)
+ scene.setMaterial(node,material)
+ mesh.close()
+ material.close()
+ xge.run(func() as c_int
+  assert xge.begin()==0
+  auto renderer=xge3d.createRenderer()
+  auto target=xge3d.createRenderTarget(64,64)
+  auto camera=xge3d.orthographicCamera(c_float(2),c_float(2),c_float(0.1),c_float(10))
+  auto options=xge3d.frameOptionsDefault()
+  options.clear_color[3]=c_float(1)
+  options.ibl_intensity=c_float(1)
+  auto pixels=Buffer()
+  assert pixels.resize(64*64*4)
+  int center=(32*64+32)*4
+  renderer.renderFrame(scene,camera,options,target,imageEnvironment)
+  target.readPixels(pixels)
+  assert pixels.byteAt(2)>220 and pixels.byteAt(center)>220 and pixels.byteAt(center+1)<32
+  auto rendered=renderer.renderFrame(scene,camera,options,target,environment)
+  assert rendered.triangles>=1 and rendered.upload_bytes>uint64(0)
+  target.readPixels(pixels)
+  assert pixels.byteAt(2)>220 and pixels.byteAt(center)>220 and pixels.byteAt(center+2)<32
+
+  options.enable_fog=c_int(1)
+  options.fog.color.x=c_float(0)
+  options.fog.color.y=c_float(1)
+  options.fog.color.z=c_float(0)
+  options.fog.start=c_float(0.5)
+  options.fog.endValue=c_float(1)
+  options.enable_shadows=c_int(1)
+  options.shadows.resolution=c_int(64)
+  options.shadows.cascades=c_int(1)
+  options.disable_culling=c_int(1)
+  options.disable_instancing=c_int(1)
+  auto light=xge3d.threeDLightDefault(xge.XGE3D_LIGHT_DIRECTIONAL)
+  light.casts_shadow=c_int(1)
+  scene.setLight(scene.createNode(xge3d.Xge3dNode()),light)
+  auto fogged=renderer.renderFrame(scene,camera,options,target,environment)
+  assert fogged.shadow_maps==c_uint(1) and fogged.instanced_draw_calls==c_uint(0)
+  target.readPixels(pixels)
+  assert pixels.byteAt(2)>220 and pixels.byteAt(center)<32 and pixels.byteAt(center+1)>220
+  environment.clearIBL()
+  bool missingIBL=false
+  try
+   renderer.renderFrame(scene,camera,options,target,environment)
+  catch Error
+   missingIBL=true
+  end
+  assert missingIBL
+  target.close()
+  renderer.close()
+  assert xge.nativeEnd()==0
+  return c_int(1)
+ end)
+ xge.setFrameCallback(null)
+ scene.close()
+ imageEnvironment.close()
+ assert xge.graphicsResourceCount()==uint64(1)
+ bool busy=false
+ try
+  xge.unit()
+ catch Error
+  busy=true
+ end
+ assert busy
+ environment.close()
+ assert xge.graphicsResourceCount()==uint64(0)
+ xge.unit()
+ println("ENVIRONMENT3D_LANGUAGE_GPU_OK")
+ return 0
+end
