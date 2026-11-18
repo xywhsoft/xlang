@@ -16,6 +16,7 @@
       "src/assets.xl",
       "src/icons.xl",
       "src/cell.xl",
+      "src/table_columns.xl",
       "src/proxy.xl",
       "src/draw.xl",
       "src/painter.xl",

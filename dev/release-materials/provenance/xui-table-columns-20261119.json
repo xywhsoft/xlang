@@ -1,0 +1,107 @@
+{
+  "complete": true,
+  "passed": true,
+  "releaseInstalled": false,
+  "sourceParent": "44c5fcb0de483a82b14fffe1d94e5ddf646b03d4",
+  "nativeCommit": "e04ef16678cf018790a498db2e5e09279d98fb89",
+  "nativeParent": "df513720d6732d674cab4dbb0ef5647c365d22a3",
+  "xrtCommit": "804cc769de3030118c2b46ef7af69543d1b82d9d",
+  "sourceHashes": {
+    "lib/bindings/xui/src/table_columns.xl": "d1d48d49ee8851690d4fa40981be0d5b91ac62c515a7642e80e853b7e78009d4",
+    "lib/bindings/xui/src/managed.xl": "8f57ffc3cdb8ea3f6de3d446a887827eef930a3dc031e9f0d4074b898b59f08d",
+    "lib/bindings/xui/xlang.package.json": "3781461c7d1e7e1e3ee34f08b70712500fd3a2a0ed026eb80c1ef9eba2de947a",
+    "lib/bindings/xui/examples/table_columns.xl": "c59643e18760676ad227157709ce543be7dbc42ab7786f4c93f7f873c760c86d",
+    "lib/bindings/xui/examples/README.md": "05a0ef4473eacb793585e631217e9a70a1e0c3b35989e23f727667f10d6210e8",
+    "docs/xui-table-columns.md": "3dce60d9b21060d1e345cf029b3706794af321724bc323b84f4cca0e1807e77e",
+    "docs/xge3-xui3-api-map-storage.json": "fb72d0b66593a8a9e0eaec1c3d6d6145fbc22668e9b114e52c409634e4135333",
+    "tools/xui_managed_contracts.py": "0fc691e3ee298372af48a0a1c2d8df59c6e4ee0d62e0efd2ad4585fa9777263f",
+    "test/cases/foreign_xui_table_columns.xl": "5cad76b8b87108ea2e7c4b91fb49788616856cef94af45076ca4ee20353622f3",
+    "test/cases/foreign_xui_table_columns.c": "940a0595e2e3645f10bc305bb5918e5a1b0b655b6c8f7814c82945366cdc1b7c",
+    "test/cases/foreign_xui_table_columns.h": "bdcceefe982cef4633cdb75994aa1cef4c256f316bb361b6bf149ad8e67a7333"
+  },
+  "nativeHashes": {
+    "include/xui.h": "22d2f38b42b3cfb8723c97f461ab12421c7de899928f26ed54c8471f8453ef2e",
+    "src/xui/core/xui_internal.h": "ab568f690327c117edd32cc2851b9291c18c33a1178d2580009f71fb06f1db1b",
+    "src/xui/controls/xui_table_view.c": "872de5f039236a95f4ddc6d607c2e513dd2d8f167c8de15371b2d2dc70abc99d",
+    "src/xui/controls/xui_table_grid.c": "7947fbd68fc4e3d78831831d680403400d226df943ea7854842ac678f4c6504c",
+    "tests/xui/xui_table_column_descriptors_test.c": "6b626f19aa61a4686c37d31ef0c90e9eedef5baed1c211ac94f80b2325823734"
+  },
+  "behavior": [
+    "TableView and TableGrid configure scalar settings, nullable IDs and titles through native owned columns.",
+    "Native column snapshots preserve resolved values and geometry. Language text owns an independent result across replacement and destruction.",
+    "Both output failure prefixes preserve all previous tuple assignments and balance XRT live allocations.",
+    "One thousand warmed getters for null ID/title allocate nothing, as do direct C borrowed getters. Two nonempty text fields add two balanced XRT allocations per language getter.",
+    "Legacy header sorting, table event dispatch and grid editing pass their functional control. The legacy fixtures finish with the same 1 live XRT allocation of 764 requested bytes on the preceding and current SDKs.",
+    "Each expanded native column is 128 bytes on the tested x64 configurations. Array projection and a 64-entry native stack staging area are cold setting costs."
+  ],
+  "evidence": {
+    "win": {
+      "sdk": {
+        "path": "F:\\xlang-validation\\xge-full-20261110\\table-columns-sdk-win-r1\\results.json",
+        "sha256": "5c7dcccf1165bb1c3185fbbeb8da2249459380f67b2e83e0365a769688b24a23",
+        "steps": 2
+      },
+      "packages": {
+        "path": "F:\\xlang-validation\\xge-full-20261110\\table-columns-packages-win-r2\\results.json",
+        "sha256": "c6cb52f2a8cb0a5c7b8332f538d2c32c885ebb10d1ed73bbd2f669a3c5f886e1",
+        "steps": 6
+      },
+      "native": {
+        "path": "F:\\xlang-validation\\xge-full-20261110\\table-columns-native-win-r3\\results.json",
+        "sha256": "cb6d3ddeb9d3fdb41c62db2ccee2953f951ff5ab4f6a805d4c97d3efeb80b627",
+        "steps": 12
+      },
+      "legacyCurrent": {
+        "path": "F:\\xlang-validation\\xge-full-20261110\\table-columns-legacy-win-current-r1\\results.json",
+        "sha256": "8bca4e6b2bd8ffa6a50c3994733f4717a5a19c7a18abd9f22fd9e51833405c11",
+        "steps": 9
+      },
+      "legacyPrevious": {
+        "path": "F:\\xlang-validation\\xge-full-20261110\\table-columns-legacy-win-previous-r1\\results.json",
+        "sha256": "7e8ab261e7b1d7f9802cab1ef7f6aacc131379ca4a4e547addfb360a38a08337",
+        "steps": 9
+      },
+      "language": {
+        "path": "F:\\xlang-validation\\xge-full-20261110\\table-columns-language-win-r2\\results.json",
+        "sha256": "675bb7ef7018415edc1da2253ef1c431bd996cd81ab60b105ef8565c39142118",
+        "steps": 17
+      }
+    },
+    "linux": {
+      "sdk": {
+        "path": "\\\\wsl.localhost\\Ubuntu\\var\\tmp\\xlang-validation\\xge-full-20261110\\table-columns-sdk-linux-r1\\results.json",
+        "sha256": "c8294b231c7f2b8d8b20a6479c32637efb5078345a5fd9ecab78252809ac655e",
+        "steps": 2
+      },
+      "packages": {
+        "path": "\\\\wsl.localhost\\Ubuntu\\var\\tmp\\xlang-validation\\xge-full-20261110\\table-columns-packages-linux-r2\\results.json",
+        "sha256": "2b286895f6603cbc2cef60b31f4d0de3811774d98f5441390efc1fa61b2bb6c8",
+        "steps": 6
+      },
+      "native": {
+        "path": "\\\\wsl.localhost\\Ubuntu\\var\\tmp\\xlang-validation\\xge-full-20261110\\table-columns-native-linux-r3\\results.json",
+        "sha256": "15ec86ba1e0101c579e3660393729d6f8143373d1a15bd0996e9f4cb056112f1",
+        "steps": 12
+      },
+      "legacyCurrent": {
+        "path": "\\\\wsl.localhost\\Ubuntu\\var\\tmp\\xlang-validation\\xge-full-20261110\\table-columns-legacy-linux-current-r1\\results.json",
+        "sha256": "736d2a84713ce1c44119b4979cb2eb781cb677d97ab69827cf1679ddff095a78",
+        "steps": 9
+      },
+      "legacyPrevious": {
+        "path": "\\\\wsl.localhost\\Ubuntu\\var\\tmp\\xlang-validation\\xge-full-20261110\\table-columns-legacy-linux-previous-r1\\results.json",
+        "sha256": "98cd9868b4ce3c0f9e2821f3deb92f1f743acbcd9332a99553abacdc1de38633",
+        "steps": 9
+      },
+      "language": {
+        "path": "\\\\wsl.localhost\\Ubuntu\\var\\tmp\\xlang-validation\\xge-full-20261110\\table-columns-language-linux-r2\\results.json",
+        "sha256": "9a9990cf3fd37f84c89b2d1ad9389fccba1eb2c3f3e48879adfec30a663bfb83",
+        "steps": 17
+      }
+    }
+  },
+  "documentationOutputSpelling": {
+    "staged": "ccb71a75cd5f3f4ebd553f3738f409cb3e6052835173e2a8cf597165b37eba9b",
+    "committed": "3dce60d9b21060d1e345cf029b3706794af321724bc323b84f4cca0e1807e77e"
+  }
+}

@@ -1,0 +1,118 @@
+import xge
+import xui
+
+extern "tableColumnsBegin" @header("test/cases/foreign_xui_table_columns.h") @no_raise func heapBegin()
+extern "tableColumnsEnd" @header("test/cases/foreign_xui_table_columns.h") @no_raise func heapEnd(c_int mode)
+extern "tableColumnsBudget" @header("test/cases/foreign_xui_table_columns.h") @no_raise func budget(c_int allowance)
+extern "tableColumnsNativeHot" @header("test/cases/foreign_xui_table_columns.h") @no_raise func nativeHot(xui.TableView table)
+
+func verifySnapshotRollback(xui.TableView table)
+    auto old,oldId,oldTitle,oldRect = table.getColumn(2)
+    heapBegin()
+    for allowance in range(0,2)
+        bool failed = false
+        budget(c_int(allowance))
+        try
+            old,oldId,oldTitle,oldRect = table.getColumn(0)
+        catch error
+            failed = true
+        finally
+            budget(-1)
+        end
+        assert failed and old.iId == 23 and oldId == null and oldTitle == null
+    end
+    heapEnd(3)
+end
+
+func verifyColumns(xui.Context ui)
+    xui.TableColumnSettings price
+    price.iId = 21
+    price.fWidth = 120
+    price.fMinWidth = 80
+    price.fMaxWidth = 160
+    price.iType = xui.XUI_TABLE_CELL_TYPE_INT
+    price.iAlign = xui.XUI_TEXT_ALIGN_RIGHT
+    price.bVisible = 1
+    price.bVisibleSet = 1
+    price.bResizable = 0
+    price.bResizableSet = 1
+    price.bHasStyle = 1
+    price.iBackgroundColor = c_uint(0x123456ff)
+    price.iTextColor = c_uint(0xfedcbaff)
+    price.iGridColor = c_uint(0x234567ff)
+    xui.TableColumnSettings hidden
+    hidden.iId = 22
+    hidden.fWidth = 70
+    hidden.bVisibleSet = 1
+    xui.TableColumnSettings unnamed
+    unnamed.iId = 23
+    unnamed.fWidth = 64
+
+    array<xui.TableColumnSettings> settings = [price,hidden,unnamed]
+    array<string?> ids = ["price",null,null]
+    array<string?> titles = ["Price","",null]
+    auto table = ui.tableViewNative()
+    auto grid = ui.tableGridNative()
+    table.setColumnsDetailed(settings,ids,titles)
+    grid.setColumnsDetailed(settings,ids,titles,2)
+    assert table.getColumnCount() == 3
+
+    auto sorted,descending = table.getSortColumn()
+    assert sorted == -1 and descending == 0
+    auto column,id,title,rect = table.getColumn(0)
+    assert column.iId == 21 and (id as string) == "price" and (title as string) == "Price"
+    assert column.fWidth == 120 and column.fMinWidth == 80 and column.fMaxWidth == 160
+    assert column.bVisible == 1 and column.bVisibleSet == 1 and column.bResizable == 0 and column.bResizableSet == 1
+    assert column.iAlign == xui.XUI_TEXT_ALIGN_RIGHT and column.iType == xui.XUI_TABLE_CELL_TYPE_INT
+    assert column.bHasStyle == 1 and column.iBackgroundColor == price.iBackgroundColor
+    assert column.iTextColor == price.iTextColor and column.iGridColor == price.iGridColor
+    auto gridColumn,gridId,gridTitle,gridRect = grid.getColumn(0)
+    assert gridColumn.iId == column.iId and gridColumn.fMaxWidth == 160 and (gridTitle as string) == "Price" and (gridId as string) == "price"
+    auto invisible,noId,emptyTitle,hiddenRect = grid.getColumn(1)
+    assert invisible.bVisible == 0 and invisible.bResizable == 1 and noId == null and (emptyTitle as string) == ""
+    auto plain,plainId,plainTitle,plainRect = table.getColumn(2)
+    assert plain.bVisible == 1 and plain.bResizable == 1 and plainId == null and plainTitle == null
+
+    bool missing = false
+    try
+        grid.getColumn(2)
+    catch error
+        missing = true
+    end
+    assert missing
+
+    heapBegin()
+    for i in range(1000)
+        auto unnamedColumn,unusedId,unusedTitle,unusedRect = table.getColumn(2)
+        assert unnamedColumn.iId == 23 and unusedId == null and unusedTitle == null
+    end
+    heapEnd(0)
+    heapBegin()
+    for i in range(1000)
+        auto pricedColumn,ownedId,ownedTitle,ownedRect = table.getColumn(0)
+        assert pricedColumn.iId == 21 and ownedId != null and ownedTitle != null
+    end
+    heapEnd(1)
+    nativeHot(table)
+    verifySnapshotRollback(table)
+
+    table.setColumns(["Replacement"],[90])
+    grid.close()
+    table.close()
+    assert (id as string) == "price" and (title as string) == "Price" and (gridId as string) == "price" and (gridTitle as string) == "Price"
+end
+
+func main(...) as int
+    xge.init(32,32,"Table column qualification",c_int(xge.XGE_INIT_OFFSCREEN),xge.XGE_RUN_MANUAL)
+    auto proxy = xui.createProxy()
+    auto ui = xui.create(proxy,xui.XUI_SYSTEM_FONT_DISABLED)
+    try
+        verifyColumns(ui)
+    finally
+        ui.close()
+        proxy.close()
+        xge.unit()
+    end
+    println("XUI_TABLE_COLUMNS_LANGUAGE_OK")
+    return 0
+end
