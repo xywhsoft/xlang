@@ -1,0 +1,124 @@
+import xge
+
+extern "fixtureParticleRenderBegin" @header("test/cases/foreign_xge_particle_renderer.h") @no_raise func heapBegin()
+extern "fixtureParticleRenderEnd" @header("test/cases/foreign_xge_particle_renderer.h") @no_raise func heapEnd(c_int mode)
+extern "fixtureParticleRenderNative" @header("test/cases/foreign_xge_particle_renderer.h") @no_raise func nativeHot(xge.ParticleRenderer renderer,xge.ParticleWorld world)
+
+func center(xge.RenderTarget target, Buffer pixels, int red, int green, int blue)
+    target.readPixels(pixels)
+    auto data = pixels.toBytes()
+    int index = (16 * 32 + 16) * 4
+    assert data[index] == red and data[index + 1] == green and data[index + 2] == blue
+    assert data[index + 3] == 255
+end
+
+func exercise(xge.ParticleRenderer renderer)
+    auto emitter = xge.particleEmitterInit()
+    emitter.bAutomatic = 0
+    emitter.bScreenSpace = 1
+    emitter.tSize.fMin = c_float(8)
+    emitter.tSize.fMax = c_float(8)
+    array<xge.ParticleEmitter> emitters = [emitter]
+    auto definition = xge.createParticleDefinition(emitters)
+    auto world = xge.createParticleWorld(2,16,8,8,8)
+    auto start = xge.particlePlayInit()
+    start.tTransform.tPosition.fX = c_float(16)
+    start.tTransform.tPosition.fY = c_float(16)
+    auto effect = world.play(definition,start)
+    assert world.emit(effect,0,2) == 2
+
+    auto red = xge.createTexture(1,1,Buffer.fromHex("ff0000ff"))
+    renderer.bind(definition,0,red)
+    red.close()
+    auto target = xge.createRenderTarget(32,32)
+    auto pass = xge.createPass(target,c_uint(xge.XGE_PASS_CLEAR_COLOR),xge.colorRGBA(0,0,0,255))
+    auto pixels = Buffer()
+    assert pixels.resize(32 * 32 * 4)
+
+    pass.begin()
+    renderer.render(world)
+    heapBegin()
+    try
+        for i in range(100)
+            renderer.render(world)
+        end
+    finally
+        heapEnd(0)
+    end
+    nativeHot(renderer,world)
+    pass.finish()
+    center(target,pixels,255,0,0)
+
+    xge.Rect outside
+    outside.fX = c_float(1000)
+    outside.fY = c_float(1000)
+    outside.fW = c_float(8)
+    outside.fH = c_float(8)
+    pass.begin()
+    renderer.render(world,outside)
+    pass.finish()
+    center(target,pixels,0,0,0)
+    assert world.stats().iLiveParticles == c_uint(2)
+
+    auto shader = xge.createShader("#version 330 core\nlayout(location=0) in vec4 aPos; uniform vec2 uResolution; void main(){vec2 p=aPos.xy/uResolution*2.-1.;gl_Position=vec4(p.x,-p.y,0.,1.);}",
+        "#version 330 core\nout vec4 FragColor; void main(){FragColor=vec4(0.,1.,0.,1.);}")
+    auto material = xge.createMaterial()
+    material.setShader(shader)
+    auto auxiliary = xge.createTexture(1,1,Buffer.fromHex("0000ffff"))
+    material.setTexture2(auxiliary)
+    renderer.bind(definition,0,null,material)
+    material.setShader(null)
+    material.close()
+    shader.close()
+    auxiliary.close()
+    pass.begin()
+    renderer.render(world)
+    pass.finish()
+    center(target,pixels,0,255,0)
+    renderer.unbind(definition)
+
+    auto small = xge.createParticleRenderer(1,1)
+    pass.begin()
+    bool rejected = false
+    try
+        small.render(world)
+    catch Error
+        rejected = true
+    end
+    pass.finish()
+    assert rejected
+    center(target,pixels,0,0,0)
+    small.close()
+    pass.close()
+    target.close()
+    world.close()
+    definition.close()
+end
+
+func main(...) as int
+    xge.init(32,32,"Particle renderer qualification")
+    auto renderer = xge.createParticleRenderer(8,4)
+    try
+        xge.run(func() as c_int
+            assert xge.begin() == 0
+            exercise(renderer)
+            assert xge.nativeEnd() == 0
+            return c_int(1)
+        end)
+        assert xge.graphicsResourceCount() == uint64(1)
+        bool busy = false
+        try
+            xge.unit()
+        catch Error
+            busy = true
+        end
+        assert busy
+    finally
+        xge.setFrameCallback(null)
+        renderer.close()
+        assert xge.graphicsResourceCount() == uint64(0)
+        xge.unit()
+    end
+    println("PARTICLE_RENDERER_LANGUAGE_OK")
+    return 0
+end

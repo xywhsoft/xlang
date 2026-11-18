@@ -1,0 +1,104 @@
+{
+  "complete": true,
+  "passed": true,
+  "releaseInstalled": false,
+  "nativeCommit": "b471e75d37271070370de1766684140d46b3fada",
+  "sourceHashes": {
+    "docs/xge3-particle-world.md": "be64c2f9284215b02526d57d1f7b7160d8e24e286382a690fe01d08a0fca4a48",
+    "docs/xge3-xui3-api-map-storage.json": "083afc3dff2f7f834a5fd5379ee9b0e55119905801d504efc0c198d77d317d68",
+    "lib/bindings/xge/xlang.package.json": "24b8db4949405ce2785e82816bd89cbec5e1173b6e35ff5fa88e0004dab2e0be",
+    "lib/bindings/xge/examples/particle_renderer.xl": "1c5a558dcc7b8dedae91a55ac0996113e44f1ec5b0d5135e3e457e778536cfb5",
+    "lib/bindings/xge/include/xge3_particle_renderer.h": "531a77c3e544d8688a1242bb21d9e447432adecef3ad17ffb9e7cd60cb4071ff",
+    "lib/bindings/xge/src/particle_renderer.xl": "d2dfe570c55575d56eaf4746e82766469642380ed008d1bbc8202fcf12366822",
+    "test/cases/foreign_xge_particle_renderer.c": "75f392c23abbfb7dffcf7cb0a2bd176c0702c68367539fa3acb7ef7a60535b73",
+    "test/cases/foreign_xge_particle_renderer.h": "91e2d2c0463a3478e16ad6f25af86df4abbbf31f444b3d3c0068b1090ab68099",
+    "test/cases/foreign_xge_particle_renderer.xl": "e90dc6e7c652b0232d1d63ad4eab952e72ea615294a0a2f09db591d3035f7720"
+  },
+  "nativeHashes": {
+    "include/xge.h": "7f15d0b17cb5186da8c8a3890d8e462c773b852515c94a9541412c8888945414",
+    "src/xge/particle/xge_particle.c": "b31639bc21ac9d2b049b8860fbc862aaf2826eba199abf1a7f43bac944f6f801",
+    "src/xge/particle/xge_particle_render.c": "2a68df48a75c347590f209043fe3c7bad1ffc7e89888f338f9a561d2d41d6fda",
+    "tests/xge/test_particle_renderer_owned.c": "2bef10cc1262342359d1ed700e9694f20a463201a4e189f060988c3f0b5eb58e"
+  },
+  "nativeBuildObjectCounts": {
+    "win": {
+      "host": 164,
+      "static": 166
+    },
+    "linux": {
+      "host": 164,
+      "static": 166
+    }
+  },
+  "scope": "Owned 2D ParticleRenderer, retained texture/material binding, culling and actual graphics frames",
+  "cases": [
+    "The renderer reserves the graphics runtime. Engine shutdown returns Busy until the renderer is closed.",
+    "A foreign thread cannot bind or consume the owned renderer.",
+    "Raw caller-owned texture and shader storage is rejected by managed renderers.",
+    "Eight renderer construction and twelve binding allocation budgets check exact heap balance after cleanup.",
+    "Real frame tests verify retention after texture, material, shader and auxiliary texture views are closed.",
+    "Native legacy regressions retain alpha, painter order, batching, culling and atlas frame coverage.",
+    "Dynamic/static/JIT and a physically unloaded shared module execute the same particle pixel checks."
+  ],
+  "heapComparison": {
+    "iterations": 100,
+    "allocationBudgetPerMode": 0,
+    "languageAndCCounts": [
+      0,
+      0,
+      0
+    ],
+    "workload": "The same two particles and one prepared texture binding, drawn into an existing active pass.",
+    "costs": "The native sort, draw, resource reservation, references and checked call scopes remain. Cold allocation and CPU timing equivalence are outside this measurement."
+  },
+  "graphics": {
+    "win": "desktop OpenGL",
+    "linux": "Xvfb with software OpenGL"
+  },
+  "evidence": {
+    "win": {
+      "sdk": {
+        "path": "F:\\xlang-validation\\xge-full-20261110\\particle-renderer-sdk-win-r2\\results.json",
+        "sha256": "ba1408b88dc0a69293948f07f4170f27d36cc73b8884ec7252c9bda82f49a9f4"
+      },
+      "native": {
+        "path": "F:\\xlang-validation\\xge-full-20261110\\particle-renderer-native-win-r2\\results.json",
+        "sha256": "a9ec9d4e00f558f64c35b44d6b2c1c9f4123f5ebca197b5cb19fe60776d0d3fc"
+      },
+      "packages": {
+        "path": "F:\\xlang-validation\\xge-full-20261110\\particle-renderer-packages-win-r1\\results.json",
+        "sha256": "7200ae2722c72e1ff411b522335425af65d874244352ec88e4ad3ee29376dc05"
+      },
+      "sourceReview": {
+        "path": "F:\\xlang-validation\\xge-full-20261110\\particle-renderer-packages-win-r1\\source-review\\results.json",
+        "sha256": "8024ea9fe99ba6e89d3d8696a59212ad954650c3a29e517b8862db73207c53e8"
+      },
+      "language": {
+        "path": "F:\\xlang-validation\\xge-full-20261110\\particle-renderer-language-win-r1\\results.json",
+        "sha256": "cb13d8df5146e09f6cd4c4fa6654dabac7864480a1d9d9418474227bf0d3b81c"
+      }
+    },
+    "linux": {
+      "sdk": {
+        "path": "\\\\wsl.localhost\\Ubuntu\\var\\tmp\\xlang-validation\\xge-full-20261110\\particle-renderer-sdk-linux-r2\\results.json",
+        "sha256": "0948851c943dde40cbc815a7b02b57ec64488a5d07b3150d2132b934a799ebd8"
+      },
+      "native": {
+        "path": "\\\\wsl.localhost\\Ubuntu\\var\\tmp\\xlang-validation\\xge-full-20261110\\particle-renderer-native-linux-r2\\results.json",
+        "sha256": "0bf9e0833233178465a8e923e7589889f3d88954574d5c2876b20c745b81427d"
+      },
+      "packages": {
+        "path": "\\\\wsl.localhost\\Ubuntu\\var\\tmp\\xlang-validation\\xge-full-20261110\\particle-renderer-packages-linux-r1\\results.json",
+        "sha256": "9269821b9f75b8f64574f6bad9b79817268bf3c7e1154fc113052c6cc986196f"
+      },
+      "sourceReview": {
+        "path": "\\\\wsl.localhost\\Ubuntu\\var\\tmp\\xlang-validation\\xge-full-20261110\\particle-renderer-packages-linux-r1\\source-review\\results.json",
+        "sha256": "95e6f4aff344829dec1243755f72df68b79d718f9b7e5cc75b22e85b57532a37"
+      },
+      "language": {
+        "path": "\\\\wsl.localhost\\Ubuntu\\var\\tmp\\xlang-validation\\xge-full-20261110\\particle-renderer-language-linux-r1\\results.json",
+        "sha256": "bdd2973d256468605ee71dedc378b3261d4c093df62ab739515cb25f056372b5"
+      }
+    }
+  }
+}

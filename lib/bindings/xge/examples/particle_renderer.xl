@@ -1,0 +1,40 @@
+// Draw a short burst of colored particles in a desktop window.
+import xge
+
+func main(...) as int
+    auto emitter = xge.particleEmitterInit()
+    emitter.bAutomatic = 0
+    emitter.fSpread = c_float(6.283185)
+    emitter.iColorMin = xge.colorRGBA(250, 120, 35, 255)
+    emitter.iColorMax = xge.colorRGBA(255, 240, 100, 255)
+
+    array<xge.ParticleEmitter> emitters = [emitter]
+    auto definition = xge.createParticleDefinition(emitters)
+    auto world = xge.createParticleWorld()
+    xge.init(320, 200, "Particle burst")
+    auto renderer = xge.createParticleRenderer(128, 64)
+    try
+        auto start = xge.particlePlayInit()
+        start.tTransform.tPosition.fX = c_float(160)
+        start.tTransform.tPosition.fY = c_float(100)
+        auto effect = world.play(definition, start)
+        world.emit(effect, 0, 100)
+        xge.run(func() as c_int
+            world.update(1.0 / 60.0)
+            assert xge.begin() == 0
+            xge.clear(xge.colorRGBA(20, 24, 36, 255))
+            renderer.render(world)
+            assert xge.nativeEnd() == 0
+            if world.state(effect) == xge.XGE_PARTICLE_FINISHED then return c_int(1) end
+            return c_int(0)
+        end)
+    finally
+        xge.setFrameCallback(null)
+        renderer.close()
+        xge.unit()
+        world.close()
+        definition.close()
+    end
+    println("Particle burst complete")
+    return 0
+end

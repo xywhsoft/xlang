@@ -40,6 +40,32 @@ geometry as the existing C collision functions. The [particle world example](../
 uses the plane sweep inside a collision callback and drains the event queue
 after updating.
 
+## Rendering
+
+Create a `ParticleRenderer` with `xge.createParticleRenderer(capacity,
+batchCapacity)`. `capacity` limits the visible particles collected in one
+draw. `batchCapacity` limits the particles in each native sprite batch.
+`render(world)` draws without a culling rectangle. `render(world, viewport)`
+culls by the supplied rectangle in particle coordinates. It does not change
+simulation visibility or advance the world. Capacity exhaustion is reported
+before drawing particles from that call.
+
+`bind(definition, emitter, texture, material)` installs a drawing binding for
+one emitter. The renderer holds the definition and texture, and copies the
+material's color and pipeline settings while retaining its shader and textures.
+The caller can then close those views. Use `unbind(definition)` to clear the
+bindings for an entire definition. An unbound emitter uses the native white
+texture tinted by the particle color.
+
+The renderer belongs to its creating thread and keeps one graphics lifetime
+reservation from creation to `close()`. The white texture and sprite storage
+are prepared at the first draw. Close the renderer before shutting down the
+engine. With a live renderer the checked shutdown reports Busy, so it can be
+retried after closing. The current native renderer requires the graphics
+thread and reports Unsupported in render-thread mode.
+
+[Particle burst example](../lib/bindings/xge/examples/particle_renderer.xl)
+
 ## Lifetimes and failure
 
 World methods require the creating thread. `share()` does not copy particle

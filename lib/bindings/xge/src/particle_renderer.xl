@@ -1,0 +1,12 @@
+// The renderer holds native references to its bound definitions and resources.
+export extern "xge_particle_renderer" class ParticleRenderer @header("xge3_particle_renderer.h") @lifetime("owned") @policy("xl6Xge3ParticleRendererPolicy")
+ native point handle
+ extern "xgeParticleRendererBind" @no_raise @c_const(4) @c_result("status",0) func bind(ParticleDefinition definition,c_int emitter,Texture? texture=null,Material? material=null)
+ extern "xgeParticleRendererUnbind" @no_raise @c_result("status",0) func unbind(ParticleDefinition definition)
+ extern "xgeParticleRender" @no_raise @c_null(2,"const xge_rect_t*") @c_result("status",0) func render(ParticleWorld world)
+ extern "xgeParticleRender" @no_raise @c_ref(1) @c_result("status",0) func render(ParticleWorld world,Rect viewport)
+ extern "xl6ForeignViewCloseV1" @no_raise @c_control(0) @c_result("bool_status") func close()
+end
+
+extern "xgeParticleRendererFreeChecked" @header("xge3_particle_renderer.h") @no_raise @c_result("status",0) func freeParticleRenderer(ParticleRenderer value)
+export extern "xgeParticleRendererCreateOwned" @header("xge3_particle_renderer.h") @no_raise @c_result("owned_view") @factory(0,0,freeParticleRenderer) func createParticleRenderer(c_uint capacity=32768,c_uint batchCapacity=1024) as ParticleRenderer

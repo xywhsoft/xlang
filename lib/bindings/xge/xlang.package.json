@@ -13,6 +13,7 @@
       "src/particle_values.xl",
       "src/particle_definition.xl",
       "src/particle_world.xl",
+      "src/particle_renderer.xl",
       "src/constants.xl",
       "src/functions.xl",
       "src/resources.xl",
