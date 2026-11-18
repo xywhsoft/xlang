@@ -1,7 +1,7 @@
 {
   "scope": "Default-provenance Model A direct declaration coverage; declarations are not ABI/runtime qualification",
-  "authority": "F:\\xlang-validation\\xge-full-20261110\\native-provider-owned-win-source-r2\\include\\xui_document.h",
-  "authoritySha256": "b163fa5448dc811926c28edf9001319b10148b07407882b72ecbacee14a02a38",
+  "authority": "F:\\xlang-validation\\xge-full-20261110\\workflow-report-document-ops-sdk-win-r1\\source\\include\\xui_document.h",
+  "authoritySha256": "8cf3ab3413b5d57f179edd584beac398a6d23e68877e79711c64a1d666a237df",
   "roots": {
     "xui_document": {
       "logical": "Document",
@@ -1728,9 +1728,17 @@
       "reason": null
     },
     {
+      "native": "xuiDocumentChangeSetGetOperations",
+      "declaration": "int xuiDocumentChangeSetGetOperations(xui_document_change_set change, const xui_doc_operation_t** operations, size_t* count)",
+      "line": 1446,
+      "logical": "DocumentChangeSet.operations",
+      "state": "declared-needs-ABI",
+      "reason": null
+    },
+    {
       "native": "xuiDocumentMapPosition",
       "declaration": "int xuiDocumentMapPosition(xui_document_change_set change, const xui_doc_position_t* before, xui_doc_position_t* after, int* mapping)",
-      "line": 1446,
+      "line": 1450,
       "logical": "DocumentChangeSet.mapPosition",
       "state": "declared-needs-ABI",
       "reason": null
@@ -1738,7 +1746,7 @@
     {
       "native": "xuiDocumentSourceToPosition",
       "declaration": "int xuiDocumentSourceToPosition(xui_document_snapshot snapshot, uint64_t source_offset, xui_doc_position_t* out, int* mapping)",
-      "line": 1448,
+      "line": 1452,
       "logical": "DocumentSnapshot.sourceToPosition",
       "state": "declared-needs-ABI",
       "reason": null
@@ -1746,7 +1754,7 @@
     {
       "native": "xuiDocumentSourceToPositionEx",
       "declaration": "int xuiDocumentSourceToPositionEx(xui_document_snapshot snapshot, uint64_t source_offset, uint32_t affinity, xui_doc_position_t* out, int* mapping)",
-      "line": 1450,
+      "line": 1454,
       "logical": "DocumentSnapshot.sourceToPositionEx",
       "state": "declared-needs-ABI",
       "reason": null
@@ -1754,7 +1762,7 @@
     {
       "native": "xuiDocumentPositionToSource",
       "declaration": "int xuiDocumentPositionToSource(xui_document_snapshot snapshot, const xui_doc_position_t* position, uint64_t* out, int* mapping)",
-      "line": 1452,
+      "line": 1456,
       "logical": "DocumentSnapshot.positionToSource",
       "state": "declared-needs-ABI",
       "reason": null
@@ -1762,7 +1770,7 @@
     {
       "native": "xuiDocumentSnapshotComparePositions",
       "declaration": "int xuiDocumentSnapshotComparePositions(xui_document_snapshot snapshot, const xui_doc_position_t* a, const xui_doc_position_t* b, int* order)",
-      "line": 1454,
+      "line": 1458,
       "logical": "DocumentSnapshot.comparePositions",
       "state": "declared-needs-ABI",
       "reason": null
@@ -1770,7 +1778,7 @@
     {
       "native": "xuiDocumentSnapshotCopyPlainText",
       "declaration": "int xuiDocumentSnapshotCopyPlainText(xui_document_snapshot snapshot, char** out, uint64_t* bytes)",
-      "line": 1456,
+      "line": 1460,
       "logical": "DocumentSnapshot.plainText",
       "state": "declared-needs-ABI",
       "reason": null
@@ -1778,7 +1786,7 @@
     {
       "native": "xuiDocumentLoadMarkdown",
       "declaration": "int xuiDocumentLoadMarkdown(xui_document document, const char* utf8, uint64_t bytes)",
-      "line": 1459,
+      "line": 1463,
       "logical": "Document.loadMarkdown",
       "state": "declared-needs-ABI",
       "reason": null
@@ -1786,7 +1794,7 @@
     {
       "native": "xuiDocumentSerialize",
       "declaration": "int xuiDocumentSerialize(xui_document_snapshot snapshot, char** out, uint64_t* bytes)",
-      "line": 1461,
+      "line": 1465,
       "logical": "DocumentSnapshot.serialize",
       "state": "declared-needs-ABI",
       "reason": null
@@ -1794,7 +1802,7 @@
     {
       "native": "xuiDocumentDeserialize",
       "declaration": "int xuiDocumentDeserialize(const xui_doc_desc_t* desc, const char* data, uint64_t bytes, xui_document* out)",
-      "line": 1463,
+      "line": 1467,
       "logical": null,
       "state": "explicit-C-interoperability",
       "reason": "Legacy raw/custom-allocator provenance; deserializeDocument maps DeserializeOwned with default allocator only."
@@ -1802,7 +1810,7 @@
     {
       "native": "xuiDocumentDeserializeOwned",
       "declaration": "int xuiDocumentDeserializeOwned(const xui_doc_desc_t* desc, const char* data, uint64_t bytes, xui_document* out)",
-      "line": 1464,
+      "line": 1468,
       "logical": "deserializeDocument",
       "state": "declared-needs-ABI",
       "reason": null
@@ -1810,7 +1818,7 @@
     {
       "native": "xuiDocumentExportHtml",
       "declaration": "int xuiDocumentExportHtml(xui_document_snapshot snapshot, char** out, uint64_t* bytes)",
-      "line": 1466,
+      "line": 1470,
       "logical": "DocumentSnapshot.exportHtml",
       "state": "declared-needs-ABI",
       "reason": null
@@ -1818,15 +1826,15 @@
     {
       "native": "xuiDocumentFreeBuffer",
       "declaration": "void xuiDocumentFreeBuffer(void* buffer)",
-      "line": 1468,
+      "line": 1472,
       "logical": null,
       "state": "explicit-C-interoperability",
       "reason": "Paired only with Native libc/default-allocator output buffers. xrtFree/take_cstr are incompatible."
     }
   ],
   "counts": {
-    "publicFunctions": 218,
-    "declared": 161,
+    "publicFunctions": 219,
+    "declared": 162,
     "ownedRoots": 7,
     "pointerFreeRecords": 26,
     "constants": 255
@@ -1872,8 +1880,9 @@
         "bUndo",
         "iDomain"
       ],
+      "readonlyOperations": "DocumentChangeSet.operations returns a NativeSequence that owns a reference to the change set.",
       "notProjected": {
-        "pOperations": "Borrowed counted POD array; no implicit raw pointer exposure. NativeSequence currently requires distinct data/count output slots."
+        "pOperations": "The raw field stays private. The dedicated operations getter returns the same contiguous POD array."
       }
     },
     "xui_doc_link_info_t": {
@@ -1937,8 +1946,8 @@
     "sourcePatchInputs": "One zero-initialized O(n) native record array plus column read pins and checked field writes. No text copy or NUL scan in the projection; native source processing retains its own documented copies. Default empty array arguments may allocate ordinary input containers."
   },
   "externalTypeAuthority": {
-    "header": "F:\\xlang-validation\\xge-full-20261110\\native-provider-owned-win-source-r2\\include\\xui.h",
-    "sha256": "827b97a8b44e72ac9337986f98e0ead6c32a8d0cf122473d77d571e28ab5501d"
+    "header": "F:\\xlang-validation\\xge-full-20261110\\workflow-report-document-ops-sdk-win-r1\\source\\include\\xui.h",
+    "sha256": "241651b80db6258c67249c5ee88e6c8b3e4316f0ade1bc6f603add1ef7fc658d"
   },
   "previousQualification": {
     "scope": "C11/C++11/C++17 exact Native ABI, 255 constants, 26 PODs and separate actual seven-model CPU script; no GUI/filesystem/network/shipping qualification",

@@ -175,6 +175,9 @@ for nativeName,cl,mn,ct,params,fields in [
  returns=['string?' if field.startswith('s') else 'c_int' for field in fields]
  classes[cl].append(' extern "'+nativeName+'" '+' '.join(attrs)+' func '+mn+'('+params+') as ('+','.join(returns)+')')
  mapped[nativeName]+=' / '+cl+'.'+mn
+classes['DocumentChangeSet'].append(' extern "xuiDocumentChangeSetGetOperations" @no_raise @c_owned_sequence(1,2,0,"size_t",0) @c_retain(retainDocumentChangeSet,"zero",rollbackDocumentChangeSet) func operations() as NativeSequence<DocumentOperation>')
+functions.append('extern "xuiDocumentChangeSetAddRef" @header("xge3_runtime.h") @no_raise func retainDocumentChangeSet(DocumentChangeSet value) as c_int')
+mapped['xuiDocumentChangeSetGetOperations']='DocumentChangeSet.operations';reasons.pop('xuiDocumentChangeSetGetOperations',None)
 # Simple node/image descriptors copy all named inputs before returning. Native attributes default to zero.
 for nativeName,mn,slot,outSlot,params,fields,outputs in [
  ('xuiDocumentTxnInsertNode','insertNode',3,[4],'uint64 parent,uint64 childIndex,c_uint kind,string text="",string? resource=null,string? info=null,string? title=null,string? linkTarget=null,string? linkTitle=null', [('iKind',2,'value'),('sText',3,'text_data'),('iTextBytes',3,'text_size'),('sResource',4,'c_string'),('sInfo',5,'c_string'),('sTitle',6,'c_string'),('sLinkTarget',7,'c_string'),('sLinkTitle',8,'c_string')], ['uint64']),
@@ -256,7 +259,7 @@ for entry in report['entries']:
  if name in replacements:entry['reason']=replacements[name]
 report['fields']={
  'xui_doc_node_info_t':dict(projectedPOD=['iKind','iId','iParentId','iChildCount','iTextBytes','iSourceStart','iSourceEnd','bSourceExact','iSyntaxStart','iSyntaxEnd','iSourceSegmentCount','iExtensionPayloadBytes','iExtensionVersion','bExtensionRequired'],projectedText=['sResource','sInfo','sTitle','sLinkTarget','sLinkTitle'],notProjected=dict(tAttributes='Contains nested borrowed sLanguage plus fixed font-family bytes; not a direct output-record member projection.'),safeTextAlternative='copyText/readText and copySource/readSource write into scoped Buffer storage.'),
- 'xui_doc_change_info_t':dict(projectedPOD=['iFlags','iBeforeRevision','iAfterRevision','iOrigin','iInputGeneration','iOperationCount','bUndo','iDomain'],notProjected=dict(pOperations='Borrowed counted POD array; no implicit raw pointer exposure. NativeSequence currently requires distinct data/count output slots.')),
+ 'xui_doc_change_info_t':dict(projectedPOD=['iFlags','iBeforeRevision','iAfterRevision','iOrigin','iInputGeneration','iOperationCount','bUndo','iDomain'],readonlyOperations='DocumentChangeSet.operations returns a NativeSequence that owns a reference to the change set.',notProjected=dict(pOperations='The raw field stays private. The dedicated operations getter returns the same contiguous POD array.')),
  'xui_doc_link_info_t':dict(projectedPOD=['bLinked','bMixed'],projectedText=['sUri','sTitle'],notProjected={}),
  'xui_doc_attributes_t':dict(input='setAttributesColumns packs 13 scalar fields and nullable language; replaces the complete attributes value.',notProjected=dict(sFontFamily='Fixed char[64] is zeroed by this basic pack. Use range setTextStyle with a real DocumentTextStyle POD for a font family.')),
  'xui_doc_node_desc_t':dict(input='insertNode packs kind, counted text, resource/info/title/link fields; Native copies them before return.',notProjected=dict(tAttributes='Zero-initialized default attributes; adjust the inserted node with transaction methods.',pExtensionPayload='Use setExtensionPayload with checked bytes; no opaque pointer field.')),

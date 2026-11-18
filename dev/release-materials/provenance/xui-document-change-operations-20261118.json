@@ -1,0 +1,119 @@
+{
+  "complete": true,
+  "passed": true,
+  "releaseInstalled": false,
+  "nativeCommit": "458880ed7668d9f1ed4e45ec40e0e3e9d7b5bf20",
+  "compilerCommit": "07f3767fd47892ed5b83fe9fde9034fea2f01a37",
+  "sourceHashes": {
+    "lib/bindings/xui/src/document.xl": "d8cba2ab6a6a9cc2fa9797ad1a64038d29717aacb271eb1e1c76c9f4743805f8",
+    "test/cases/foreign_xui_workflow_report_document_operations.xl": "b6f67272d200a35c4cb05281cba6c537a7ea86dab75c7d1c0e895966ff8bf162",
+    "docs/xge3-xui3-document-api-map.json": "948a447ec6df31cc7e8f47d422d30527c8f0a54b79e4f4d77c6c98bc5a6ef034",
+    "tools/gen_xge3_document_bindings.py": "7aec2c2ca706edc26afef08c1d395b6029aa1f68eddd1e6a723830652b95cfea",
+    "docs/xge3-xui3-document-api-map.md": "6301fc63149ee40dae12e91401f7786fc35a44f87895e8b26a9b153539473cac"
+  },
+  "evidence": {
+    "win": {
+      "path": "F:\\xlang-validation\\xge-full-20261110\\workflow-report-document-ops-qualification-win-r1\\results.json",
+      "sha256": "ac2b2d10479b2703e5be73d35a8bc02ef51c722a6b83cda65076e49d0feaa10b",
+      "steps": 10,
+      "package": {
+        "path": "F:\\xlang-validation\\xge-full-20261110\\workflow-report-document-ops-packages-win-r1\\results.json",
+        "sha256": "57fdb0a5bb4e5ec41a66bb87d2257e232efa56215d9c79e68d9f0cf9fa2bf8db",
+        "steps": null
+      },
+      "native": {
+        "path": "F:\\xlang-validation\\xge-full-20261110\\workflow-report-document-ops-real-sdk-win-r1\\qualified\\results.json",
+        "sha256": "b5ec46af6ec86b204f3f3b081a980ae32ed550cb501a01c733f1571e6263d5bb",
+        "steps": 12
+      },
+      "programs": [
+        {
+          "path": "F:\\xlang-validation\\xge-full-20261110\\workflow-report-document-ops-qualification-win-r1\\host.exe",
+          "sha256": "aa05986f80563ec015788f888b174c7dbc719015eee03846928a0dc34ac34f1e",
+          "imports": [
+            "msvcrt.dll",
+            "xge3_host.dll",
+            "kernel32.dll",
+            "SHELL32.dll",
+            "ucrtbase.dll"
+          ]
+        },
+        {
+          "path": "F:\\xlang-validation\\xge-full-20261110\\workflow-report-document-ops-qualification-win-r1\\static.exe",
+          "sha256": "ce647370abede4b80f00eedde343c9351cbe6c6e933785b24bff08687ebd3039",
+          "imports": [
+            "msvcrt.dll",
+            "kernel32.dll",
+            "ole32.dll",
+            "SHELL32.dll"
+          ]
+        },
+        {
+          "path": "F:\\xlang-validation\\xge-full-20261110\\workflow-report-document-ops-qualification-win-r1\\workflow.dll",
+          "sha256": "c3a4a8153297fb8368f28c5ffc4282bed2ed4da533a762642e174e75e5c346b9",
+          "imports": [
+            "msvcrt.dll",
+            "kernel32.dll",
+            "ole32.dll"
+          ]
+        }
+      ]
+    },
+    "linux": {
+      "path": "\\\\wsl.localhost\\Ubuntu\\var\\tmp\\xlang-validation\\xge-full-20261110\\workflow-report-document-ops-qualification-linux-r1\\results.json",
+      "sha256": "e0f8b6085caba4cf6f6db0f55126767eacf6255d578592045b63b9e15bac8d62",
+      "steps": 10,
+      "package": {
+        "path": "\\\\wsl.localhost\\Ubuntu\\var\\tmp\\xlang-validation\\xge-full-20261110\\workflow-report-document-ops-packages-linux-r1\\results.json",
+        "sha256": "0a559b5c4b89033c25ca49b92bd0e63f27031f1dbf5bc8afed7e8da9ff6a80a1",
+        "steps": null
+      },
+      "native": {
+        "path": "\\\\wsl.localhost\\Ubuntu\\var\\tmp\\xlang-validation\\xge-full-20261110\\workflow-report-document-ops-real-sdk-linux-r1\\qualified\\results.json",
+        "sha256": "63b1f0f9e1f689699bbff8b405c53ce523966853443bd2bee28f332ab9765860",
+        "steps": 12
+      },
+      "programs": [
+        {
+          "path": "/var/tmp/xlang-validation/xge-full-20261110/workflow-report-document-ops-qualification-linux-r1/host",
+          "sha256": "4ad2725e7b89db328a516fd7ac0e0702f7ae9e9730a477219bf162de3f58196f",
+          "imports": [
+            "libm.so.6",
+            "libmvec.so.1",
+            "libxge3_host.so",
+            "libc.so.6",
+            "ld-linux-x86-64.so.2"
+          ]
+        },
+        {
+          "path": "/var/tmp/xlang-validation/xge-full-20261110/workflow-report-document-ops-qualification-linux-r1/static",
+          "sha256": "60693b0e8a481f23a5dff308ef8c0f584a329eecc7414fe2162df7319c70c527",
+          "imports": [
+            "libm.so.6",
+            "libmvec.so.1",
+            "libX11.so.6",
+            "libXi.so.6",
+            "libXcursor.so.1",
+            "libGL.so.1",
+            "libc.so.6",
+            "ld-linux-x86-64.so.2"
+          ]
+        },
+        {
+          "path": "/var/tmp/xlang-validation/xge-full-20261110/workflow-report-document-ops-qualification-linux-r1/workflow.so",
+          "sha256": "068f1f921414a9ad1f64261f43402c39d6c3248def84e790c5e1e1c6687f1082",
+          "imports": [
+            "libm.so.6",
+            "libmvec.so.1",
+            "libX11.so.6",
+            "libXi.so.6",
+            "libXcursor.so.1",
+            "libGL.so.1",
+            "libc.so.6",
+            "ld-linux-x86-64.so.2"
+          ]
+        }
+      ]
+    }
+  }
+}

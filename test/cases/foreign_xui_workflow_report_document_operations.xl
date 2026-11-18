@@ -1,0 +1,59 @@
+import xui
+
+func workflowReport()
+ auto workflow=xui.createWorkflow()
+ var schema=xui.createWorkflowSchema()
+ xui.addWorkflowSchemaField(schema,"quantity","Quantity",xui.XUI_WORKFLOW_CONFIG_FIELD_INT,1,0,null,1,10)
+ xui.addWorkflowSchemaField(schema,"label","Label",xui.XUI_WORKFLOW_CONFIG_FIELD_STRING,1)
+ array<string> ids=[]
+ array<string?> labels=[]
+ array<c_int> settings=[]
+ workflow.registerNodeType("order",1,"Order",null,null,null,
+    ids,labels,labels,settings,settings,settings,settings,settings,0,
+    ids,labels,labels,settings,settings,settings,settings,settings,0,schema)
+ var report=workflow.validateConfigReport("order",{"quantity":5})
+ var absent=workflow.validateConfigReport("order")
+ var valid=workflow.validateConfigReport("order",{"quantity":10,"label":"valid"})
+ assert workflow.validateConfig("order",{"quantity":5})==2
+ assert absent[0].code=="required"
+ int count=0
+ for issue in valid
+  count+=1
+ end
+ assert count==0
+ workflow.close()
+ assert report[0].path=="quantity" and report[0].code=="range.min"
+ assert report[1].path=="label" and report[1].code=="required"
+end
+
+func documentOperations()
+ auto document=xui.createDocument()
+ auto edit=document.beginTransaction()
+ uint64 paragraph=edit.insertNode(uint64(1),xui.XUI_DOCUMENT_APPEND,c_uint(2))
+ uint64 text=edit.insertNode(paragraph,xui.XUI_DOCUMENT_APPEND,c_uint(4),text="hello")
+ auto changes=edit.commit()
+ auto operations=changes.operations()
+ auto flags,before,after,origin,generation,total,undo,domain=changes.info()
+ assert operations.length==int(total) and after>before and total>uint64(0)
+ auto first=operations[0]
+ changes.close()
+ edit.close()
+ document.close()
+ assert operations[0].iKind==first.iKind and operations[0].iNodeId==first.iNodeId
+ int seen=0
+ bool found=false
+ for operation in operations
+  seen+=1
+  if operation.iNodeId==text then
+   found=true
+  end
+ end
+ assert seen==operations.length and found
+end
+
+func main(...) as int
+ workflowReport()
+ documentOperations()
+ println("WORKFLOW_REPORT_DOCUMENT_OPERATIONS_OK")
+ return 0
+end
