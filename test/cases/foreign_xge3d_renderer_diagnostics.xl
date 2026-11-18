@@ -1,0 +1,122 @@
+import xge
+import xge3d
+
+func greenPixels(Buffer pixels) as int
+ int count=0
+ for index in range(pixels.len() / 4)
+  int offset=index*4
+  if pixels.byteAt(offset+1)>200 and pixels.byteAt(offset)<20 and pixels.byteAt(offset+2)<20 then
+   count+=1
+  end
+ end
+ return count
+end
+
+func main(...) as int
+ xge.init(128,64,"3D renderer diagnostics")
+ xge.run(func() as c_int
+  assert xge.begin()==0
+  auto renderer=xge3d.createRenderer()
+  auto scene=xge3d.createScene()
+  auto target=xge3d.createRenderTarget(c_int(64),c_int(32))
+  auto camera=xge3d.orthographicCamera(c_float(4),c_float(2),c_float(0.1),c_float(10))
+  auto options=xge3d.threeDRendererOptionsDefault()
+  options.profiling=c_int(1)
+  renderer.setOptions(options)
+  auto invalidOptions=options
+  invalidOptions.max_lights=c_uint(0)
+  bool invalid=false
+  try
+   renderer.setOptions(invalidOptions)
+  catch error
+   invalid=true
+  end
+  assert invalid
+  auto budget=xge3d.Xge3dUploadBudget()
+  assert renderer.prepare(c_int(64),budget).completed==c_uint(0)
+  budget.bytes=uint64(1024*1024)
+  budget.operations=c_uint(1)
+  auto prepared=renderer.prepare(c_int(64),budget)
+  assert prepared.operations==c_uint(1) and prepared.completed==c_uint(1)
+  assert renderer.prepare(c_int(64),budget).operations==c_uint(0)
+
+  c_float[4] black
+  black[3]=c_float(1)
+  c_float[4] green
+  green[1]=c_float(1)
+  green[3]=c_float(1)
+  auto fromPoint=xge3d.Xge3dVec3()
+  auto toPoint=xge3d.Xge3dVec3()
+  fromPoint.x=c_float(-1)
+  toPoint.x=c_float(1)
+  fromPoint.z=c_float(-2)
+  toPoint.z=c_float(-2)
+  renderer.debugLine(fromPoint,toPoint,green,c_int(0))
+  bool invalidDepth=false
+  try
+   renderer.debugLine(fromPoint,toPoint,green,c_int(2))
+  catch error
+   invalidDepth=true
+  end
+  assert invalidDepth
+  auto transform=xge3d.Xge3dTransform()
+  transform.rotation.w=c_float(1)
+  transform.scale.x=c_float(1)
+  transform.scale.y=c_float(1)
+  transform.scale.z=c_float(1)
+  transform.position.z=c_float(-2)
+  auto world=xge3d.transformMatrix(transform)
+  auto box=xge3d.Xge3dAabb()
+  box.min.x=c_float(-0.25)
+  box.min.y=c_float(-0.25)
+  box.max.x=c_float(0.25)
+  box.max.y=c_float(0.25)
+  renderer.debugBox(box,world,green,c_int(0))
+  renderer.debugAxes(world,c_float(0.3),c_int(0))
+  auto stats=renderer.renderTo(scene,camera,target,black)
+  assert stats.draw_calls>c_uint(0)
+  auto pixels=Buffer()
+  assert pixels.resize(64*32*4)
+  target.readPixels(pixels)
+  assert greenPixels(pixels)>20
+  renderer.clearDebug()
+  renderer.renderTo(scene,camera,target,black)
+  target.readPixels(pixels)
+  assert greenPixels(pixels)==0
+  auto profile=renderer.profile()
+  assert profile.size>c_uint(0) and profile.total_cpu_us>=profile.submit_cpu_us
+
+  renderer.setAntialiasing(xge.XGE3D_AA_FXAA)
+  renderer.setColor(xge3d.threeDColorDefault())
+  renderer.setHeightFog(xge3d.threeDHeightFogDefault())
+  auto bloom=xge3d.threeDBloomDefault()
+  renderer.setBloom(bloom)
+  assert renderer.bloomInfo().levels==c_uint(0)
+  bool mustClear=false
+  try
+   renderer.renderTo(scene,camera,target,black,c_uint(2))
+  catch error
+   mustClear=true
+  end
+  assert mustClear
+  renderer.renderTo(scene,camera,target,black)
+  auto bloomInfo=renderer.bloomInfo()
+  assert bloomInfo.levels>c_uint(0) and bloomInfo.storage_bytes>uint64(0)
+  renderer.resetBloom()
+  assert renderer.bloomInfo().storage_bytes==uint64(0)
+  renderer.resetHeightFog()
+  renderer.resetColor()
+  renderer.setAntialiasing(xge.XGE3D_AA_NONE)
+  renderer.resetOptions()
+  renderer.close()
+  target.close()
+  scene.close()
+  assert xge.nativeEnd()==0
+  return c_int(1)
+ end)
+ xge.setFrameCallback(null)
+ assert xge.graphicsResourceCount()==uint64(0)
+ xge.unit()
+ println("RENDERER3D_DIAGNOSTICS_OK")
+ return 0
+end

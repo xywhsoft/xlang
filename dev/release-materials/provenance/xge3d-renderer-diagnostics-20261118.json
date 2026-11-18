@@ -1,0 +1,161 @@
+{
+  "complete": true,
+  "passed": true,
+  "releaseInstalled": false,
+  "title": "3D renderer diagnostics and post-processing controls",
+  "nativeCommit": "f1f27a405c61989df14e96e782e5c8ebae702263",
+  "compilerCommit": "07f3767fd47892ed5b83fe9fde9034fea2f01a37",
+  "sourceHashes": {
+    "lib/bindings/xge/three_d/src/renderer.xl": "6f0b607a2d0dc99ddb8ff3f46aeafe3637b64c27932d3551cf4207c063406903",
+    "test/cases/foreign_xge3d_renderer_diagnostics.xl": "44f9451126e7fb855bb6846f924231e905d2846b3e44515d9d05ea542e1bcfc2",
+    "lib/bindings/xge/three_d/examples/debug_draw.xl": "5f933e1539d4972a86bf57fea080ac3c37dd7a9939bdc2072e02c00c4c2bb6c1",
+    "lib/bindings/xge/three_d/README.md": "dc968efe3321752aa07c652e39dc34cc63ff4a0cc056245583a6840676b4e281",
+    "docs/xge3-renderer-diagnostics.md": "3c46b84d3bf96235c9df9ab0128be54b3d77fd182355e8a6cba64bd39f003a17"
+  },
+  "evidence": {
+    "win": {
+      "package": {
+        "path": "F:\\xlang-validation\\xge-full-20261110\\renderer3d-diagnostics-packages-win-r2\\results.json",
+        "sha256": "6eec2bc3a8f28915161494bbefbc6ac4006d26c58172538cb3a12a9769e6c822"
+      },
+      "qualification": {
+        "path": "F:\\xlang-validation\\xge-full-20261110\\renderer3d-diagnostics-language-win-r2\\results.json",
+        "sha256": "bcfe947fb362ccb2bcc544ac10123b931545f3ecff4cd8996046c1fc53574b18"
+      },
+      "languageSteps": 11,
+      "packageSteps": 4,
+      "programs": [
+        {
+          "path": "F:\\xlang-validation\\xge-full-20261110\\renderer3d-diagnostics-language-win-r2\\host.exe",
+          "sha256": "9b4e9bb690047f278f70d98401d47df08e1f5409a7c1a8fb1efb2de6234ad232",
+          "imports": [
+            "xge3_host.dll",
+            "msvcrt.dll",
+            "kernel32.dll",
+            "SHELL32.dll",
+            "Ole32.dll",
+            "ucrtbase.dll"
+          ]
+        },
+        {
+          "path": "F:\\xlang-validation\\xge-full-20261110\\renderer3d-diagnostics-language-win-r2\\static.exe",
+          "sha256": "dd1e418be01f52e3dd8802ec884730c217e16183bfc99facbb1bee9711ca6b6c",
+          "imports": [
+            "msvcrt.dll",
+            "kernel32.dll",
+            "USER32.dll",
+            "GDI32.dll",
+            "ole32.dll",
+            "OLEAUT32.dll",
+            "SHELL32.dll",
+            "IMM32.dll"
+          ]
+        },
+        {
+          "path": "F:\\xlang-validation\\xge-full-20261110\\renderer3d-diagnostics-language-win-r2\\workflow.dll",
+          "sha256": "055ac18f62a6fdbfbafabf166eea10492326b408b99bd8a4d567be0bff3ee599",
+          "imports": [
+            "msvcrt.dll",
+            "kernel32.dll",
+            "user32.dll",
+            "gdi32.dll",
+            "ole32.dll",
+            "OLEAUT32.dll",
+            "USER32.dll",
+            "SHELL32.dll",
+            "IMM32.dll"
+          ]
+        }
+      ],
+      "warmProfile": {
+        "path": "F:\\xlang-validation\\xge-full-20261110\\renderer3d-diagnostics-heap-win-r5\\results.json",
+        "sha256": "c88b049b1954599667fb0062e3e12a75083c47a03fca4a9c718e8f8a7cadb62a",
+        "mode": "host-JIT",
+        "iterations": 64,
+        "counts": {
+          "language": [
+            0,
+            0,
+            0
+          ],
+          "native": [
+            0,
+            0,
+            0
+          ]
+        }
+      }
+    },
+    "linux": {
+      "package": {
+        "path": "\\\\wsl.localhost\\Ubuntu\\var\\tmp\\xlang-validation\\xge-full-20261110\\renderer3d-diagnostics-packages-linux-r2\\results.json",
+        "sha256": "8faed3cfbc7c2c18bf401cf0ee46e95ebca8307c0de1abcf37efa19be69c519f"
+      },
+      "qualification": {
+        "path": "\\\\wsl.localhost\\Ubuntu\\var\\tmp\\xlang-validation\\xge-full-20261110\\renderer3d-diagnostics-language-linux-r2\\results.json",
+        "sha256": "615e0a4e98cb903b3d02e32b944955cb178fe8b96e6e1a56afbc4fe39893d1c9"
+      },
+      "languageSteps": 11,
+      "packageSteps": 4,
+      "programs": [
+        {
+          "path": "/var/tmp/xlang-validation/xge-full-20261110/renderer3d-diagnostics-language-linux-r2/host",
+          "sha256": "f5620363cadf8eec7a8c85ba1ca7e45df39f3a8f6dcd338fc6a53306d7fede56",
+          "imports": [
+            "libm.so.6",
+            "libmvec.so.1",
+            "libxge3_host.so",
+            "libc.so.6",
+            "ld-linux-x86-64.so.2"
+          ]
+        },
+        {
+          "path": "/var/tmp/xlang-validation/xge-full-20261110/renderer3d-diagnostics-language-linux-r2/static",
+          "sha256": "6aaef35d38438a6a2ee3015c5668bc7ad5f400bbd6ba1a9bccf1bf899640413c",
+          "imports": [
+            "libm.so.6",
+            "libmvec.so.1",
+            "libX11.so.6",
+            "libXi.so.6",
+            "libXcursor.so.1",
+            "libGL.so.1",
+            "libc.so.6",
+            "ld-linux-x86-64.so.2"
+          ]
+        },
+        {
+          "path": "/var/tmp/xlang-validation/xge-full-20261110/renderer3d-diagnostics-language-linux-r2/workflow.so",
+          "sha256": "c2eaff092be27a4a95a189df76f61213d7dce98105e2c4de642caa27f50d49a7",
+          "imports": [
+            "libm.so.6",
+            "libmvec.so.1",
+            "libX11.so.6",
+            "libXi.so.6",
+            "libXcursor.so.1",
+            "libGL.so.1",
+            "libc.so.6",
+            "ld-linux-x86-64.so.2"
+          ]
+        }
+      ],
+      "warmProfile": {
+        "path": "\\\\wsl.localhost\\Ubuntu\\var\\tmp\\xlang-validation\\xge-full-20261110\\renderer3d-diagnostics-heap-linux-r5\\results.json",
+        "sha256": "3314a7f1099cd781740872d4bf6d7ee033b43b1010d64d4379875370c0744a39",
+        "mode": "host-JIT",
+        "iterations": 64,
+        "counts": {
+          "language": [
+            0,
+            0,
+            0
+          ],
+          "native": [
+            0,
+            0,
+            0
+          ]
+        }
+      }
+    }
+  }
+}

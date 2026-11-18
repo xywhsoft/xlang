@@ -61,3 +61,7 @@ or cleared. See [billboards.xl](examples/billboards.xl) and
 [offscreen.xl](examples/offscreen.xl) shows how to render to a
 `RenderTarget3D`, read a pixel, and use the target as a billboard texture.
 Pass separate geometry and nullable texture arrays for a mixed-texture queue.
+
+[debug_draw.xl](examples/debug_draw.xl) draws a persistent debug line and
+prints the last frame's CPU time. The renderer also exposes
+[options, profiling, warmup and configured post-processing](../../../../docs/xge3-renderer-diagnostics.md).

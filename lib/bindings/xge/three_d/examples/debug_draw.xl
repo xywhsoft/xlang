@@ -1,0 +1,32 @@
+import xge
+import xge3d
+
+xge.init(480, 320, "3D 调试绘制")
+xge.run(func() as c_int
+    assert xge.begin() == 0
+    auto renderer = xge3d.createRenderer()
+    auto scene = xge3d.createScene()
+    auto camera = xge3d.orthographicCamera(c_float(3), c_float(2), c_float(0.1), c_float(10))
+
+    auto fromPoint = xge3d.Xge3dVec3()
+    auto toPoint = xge3d.Xge3dVec3()
+    fromPoint.x = c_float(-1)
+    toPoint.x = c_float(1)
+    fromPoint.z = c_float(-2)
+    toPoint.z = c_float(-2)
+    c_float[4] lineColor
+    lineColor[1] = c_float(1)
+    lineColor[3] = c_float(1)
+    renderer.debugLine(fromPoint, toPoint, lineColor)
+
+    c_float[4] background
+    background[3] = c_float(1)
+    renderer.render(scene, camera, background)
+    println("调试线已绘制，CPU 渲染微秒数", renderer.profile().total_cpu_us)
+    renderer.close()
+    scene.close()
+    assert xge.nativeEnd() == 0
+    return c_int(1)
+end)
+xge.setFrameCallback(null)
+xge.unit()
