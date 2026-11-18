@@ -47,7 +47,50 @@ work, scope/thread/error checks and bound-call closure costs remain. The
 machine-readable receipt records actual cold allocation/byte counts; no CPU
 equivalence or universal zero-overhead claim is made.
 
-`ParticlesBillboards` still needs safe writable output arrays and owned texture
-integration; submission/rendering and the other 3D scene/GPU families remain
-in the full objective. This CPU simulation batch does not certify them or
-install a final SDK/compiler/IDE release.
+## Billboard snapshots and rendering
+
+`Particles.collectBillboards(blend)` builds an immutable CPU batch from the
+current live particles. The original particle capacity, blend and UV rules
+apply. `BillboardBatch.geometry()` reads position, size, rotation, color, UV,
+blend and depth state directly from the native array. The sequence holds an
+independent reference to that batch.
+
+`Renderer.setBillboards(batch, texture)` replaces the render queue. It also
+accepts an array of numeric `BillboardGeometry` records and an optional
+texture. The native renderer retains the texture references for the submitted
+rows only after each row has passed validation. Submission failure leaves the
+previous queue intact. The renderer accepts up to 65,536 rows, and an empty
+array clears the queue. Use the batch
+overload to pass the original native snapshot without converting a language
+array. The numeric array overload uses the standard checked C array
+projection and copies the selected elements into temporary native storage.
+
+`createTexture` copies counted straight-alpha RGBA8 data and accepts explicit
+sRGB and sampler settings. The renderer and texture keep graphics leases
+through their final native release. Explicit engine shutdown reports Busy
+while a managed lease remains. If a window backend has already ended, the
+driver has reclaimed that context's GPU state. Creator-thread retirement then
+releases CPU state and the lease, and rendering rejects the expired context.
+Language close during a callback can defer physical release to the callback's
+safe point.
+
+`Renderer.render(scene,camera,clearColor)` renders to the active viewport and
+returns native statistics. Its native entry initializes a frame descriptor
+on the stack and uses the existing renderer. The general 3D target, atmosphere
+and multi-texture Billboard submission contracts remain part of the wider
+renderer integration.
+
+Collecting a snapshot traverses the live particles once and uses one native
+allocation for the header and all rows. The sequence adds ownership
+bookkeeping, but no second array allocation or copy. Native submission still
+validates and writes the renderer's own rows and retains textures, matching
+the queue's persistence requirements. Warm native C submission tests cover
+both legacy and batch entry points with allocation failure enabled. In the
+Windows and Linux JIT checks, 64 warm submissions of the same native batch
+recorded zero XRT allocations, frees and reallocations. This excludes cold
+setup and the numeric-array overload. CPU throughput was not measured.
+
+Windows and Linux also passed native pixel comparisons at O0 and O2, strict
+C11 and C++ header checks, JIT, hosted and static AOT, and shared module
+retirement. The native fixture compares actual textured frames and checks
+queue preservation after rejected geometry and allocation failure.

@@ -1,0 +1,212 @@
+{
+  "complete": true,
+  "passed": true,
+  "releaseInstalled": false,
+  "sourceHashes": {
+    "lib/bindings/xge/three_d/xlang.package.json": "30d418c4f5257d899daff1adb04175d55e6fad197acacaad8eaeeca595268e9e",
+    "lib/bindings/xge/three_d/examples/billboards.xl": "7ce43b2c7142192a9522968df5fdb21d029c6d0159aff990b6905b62b64ba478",
+    "lib/bindings/xge/three_d/include/xge3d_particles.h": "995a5e4c6e28061e71491259d069ac56ed8ae777b3337174c4f5d1f213290a1b",
+    "lib/bindings/xge/three_d/include/xge3d_renderer.h": "b47044b073eb4fe1371d81c64bbc066b8ed0b92eec5c0e12f64a61e09417b3bf",
+    "lib/bindings/xge/three_d/src/particles.xl": "3f4796bfca1d80f9fff0aca87143fea40ff3a7a9eab7dbf1d8f9c25df9ff261d",
+    "lib/bindings/xge/three_d/src/renderer.xl": "1e13f6cde1618a1be56bdf3e9a1fd4820de0718ccf37ef19897acd1bc3cd1a89",
+    "test/cases/foreign_xge3d_billboards.xl": "8eb012dba238e32fbe09039320764820dca05b6e6b88c87e0f551ea0bf46b725",
+    "docs/xge3-particles.md": "949c93d2ac05341be6061f4380bed3185787430089572deef60ae40ef4127eda",
+    "lib/bindings/xge/three_d/README.md": "e70c1348f5114d013b1878c6cc91386f726daa5ef7e1298cf7db457d7565df1e"
+  },
+  "evidence": {
+    "win": {
+      "sdk": {
+        "path": "F:\\xlang-validation\\xge-full-20261110\\particle-billboards-sdk-win-r2\\results.json",
+        "sha256": "e2089c283ac29bf415ef4bd50cfa3a90603f0d31ba2388fdde1f5094e9bb4653",
+        "steps": 2
+      },
+      "native": {
+        "path": "F:\\xlang-validation\\xge-full-20261110\\particle-billboards-native-win-r3\\results.json",
+        "sha256": "2c59d4958583e585419ec3f085d3dbb019da29bdefbd06839bc4d779a8127ea7",
+        "steps": 12
+      },
+      "headers": {
+        "path": "F:\\xlang-validation\\xge-full-20261110\\particle-billboards-headers-win-r1\\results.json",
+        "sha256": "a0f4744627038c0c6403bbf66a218f1432e63d000ad39996734c33b4c4743aa7",
+        "steps": 3
+      },
+      "programs": [
+        {
+          "path": "F:\\xlang-validation\\xge-full-20261110\\particle-billboards-native-win-r3\\host-owned-O0.exe",
+          "sha256": "8dd310a8eb542bf1125d2cfbabea03ace431293d880067781e041de4cccbb542"
+        },
+        {
+          "path": "F:\\xlang-validation\\xge-full-20261110\\particle-billboards-native-win-r3\\host-owned-O2.exe",
+          "sha256": "5764e0020d3e638112554a02727656ecde9fca35d26eb1a78f15cfa9406e2c4c"
+        },
+        {
+          "path": "F:\\xlang-validation\\xge-full-20261110\\particle-billboards-native-win-r3\\static-owned-O0.exe",
+          "sha256": "dee9ec9151873a0e22f4688b1cf630f00b3f02ba98fb8e3645f7aefaed114d19"
+        },
+        {
+          "path": "F:\\xlang-validation\\xge-full-20261110\\particle-billboards-native-win-r3\\static-owned-O2.exe",
+          "sha256": "9f3f1c748fd2b3417158fe0127b603e288a0365da53906a79892d33296235955"
+        }
+      ],
+      "language": {
+        "path": "F:\\xlang-validation\\xge-full-20261110\\particle-billboards-language-win-r2\\results.json",
+        "sha256": "8a8bfa516b6f3a074e785627824e67d7abce83fb2a63f7086945f9e6eb98353c",
+        "steps": 11
+      },
+      "package": {
+        "path": "F:\\xlang-validation\\xge-full-20261110\\particle-billboards-packages-win-r2\\results.json",
+        "sha256": "07ab81d9440092f5c08630eb38ecb561727eada1443325fbef68d6f40ff4f8ba",
+        "steps": 4
+      },
+      "executables": [
+        {
+          "path": "F:\\xlang-validation\\xge-full-20261110\\particle-billboards-language-win-r2\\host.exe",
+          "sha256": "2421d9c5b2a2f9d54ddb800a3a853f3e98aa7a5687ea3948383680139141cfd2",
+          "imports": [
+            "xge3_host.dll",
+            "msvcrt.dll",
+            "kernel32.dll",
+            "SHELL32.dll",
+            "Ole32.dll",
+            "ucrtbase.dll"
+          ]
+        },
+        {
+          "path": "F:\\xlang-validation\\xge-full-20261110\\particle-billboards-language-win-r2\\static.exe",
+          "sha256": "fd375354fa343f5b3b8092dec449ec1434334236dc176f27588052453fcabefb",
+          "imports": [
+            "msvcrt.dll",
+            "kernel32.dll",
+            "USER32.dll",
+            "GDI32.dll",
+            "ole32.dll",
+            "OLEAUT32.dll",
+            "SHELL32.dll",
+            "IMM32.dll"
+          ]
+        },
+        {
+          "path": "F:\\xlang-validation\\xge-full-20261110\\particle-billboards-language-win-r2\\workflow.dll",
+          "sha256": "a3ba8a95a41f32ab902c9de111c065532b5743c44ced57a9a220bc02101f238d",
+          "imports": [
+            "msvcrt.dll",
+            "kernel32.dll",
+            "user32.dll",
+            "gdi32.dll",
+            "ole32.dll",
+            "OLEAUT32.dll",
+            "USER32.dll",
+            "SHELL32.dll",
+            "IMM32.dll"
+          ]
+        }
+      ],
+      "heap": {
+        "path": "F:\\xlang-validation\\xge-full-20261110\\particle-billboards-heap-win-r1\\results.json",
+        "sha256": "b1ffd5ac8c4c88c39c582b2423bdd98f8fae6cea103fb55e1da6dde6059c44f0",
+        "counts": [
+          0,
+          0,
+          0
+        ]
+      }
+    },
+    "linux": {
+      "sdk": {
+        "path": "\\\\wsl.localhost\\Ubuntu\\var\\tmp\\xlang-validation\\xge-full-20261110\\particle-billboards-sdk-linux-r2\\results.json",
+        "sha256": "c8e9256b9a3f4d6ed013e9821ddbab7d9f50ed39c12aa3e194087174009b9eaf",
+        "steps": 2
+      },
+      "native": {
+        "path": "\\\\wsl.localhost\\Ubuntu\\var\\tmp\\xlang-validation\\xge-full-20261110\\particle-billboards-native-linux-r3\\results.json",
+        "sha256": "87a1672685df8fb687b641caa968fd3f4bc527826dcc3d1fd5065e1c7fde3a32",
+        "steps": 12
+      },
+      "headers": {
+        "path": "\\\\wsl.localhost\\Ubuntu\\var\\tmp\\xlang-validation\\xge-full-20261110\\particle-billboards-headers-linux-r1\\results.json",
+        "sha256": "47e935c3a8275d880d7d3a779579e97539bb72d8c186bea76fa001e9af99bb41",
+        "steps": 3
+      },
+      "programs": [
+        {
+          "path": "/var/tmp/xlang-validation/xge-full-20261110/particle-billboards-native-linux-r3/host-owned-O0",
+          "sha256": "192d0b2b29e202981eabd68465dcac452f80459c316d7043492a455c9fbe7012"
+        },
+        {
+          "path": "/var/tmp/xlang-validation/xge-full-20261110/particle-billboards-native-linux-r3/host-owned-O2",
+          "sha256": "273d46a0fa024b31ac9043b0a718efaf7af9c2a81006306b1a0fc91b7d61ab5c"
+        },
+        {
+          "path": "/var/tmp/xlang-validation/xge-full-20261110/particle-billboards-native-linux-r3/static-owned-O0",
+          "sha256": "925dcbcc83be61b4c046f30d188275882190d5eb94f21638971dd2b5196adc9a"
+        },
+        {
+          "path": "/var/tmp/xlang-validation/xge-full-20261110/particle-billboards-native-linux-r3/static-owned-O2",
+          "sha256": "0adbc719013acf8fbdb8ca0aaf4ee664568e0e2c7753057b65debac703df2ad0"
+        }
+      ],
+      "language": {
+        "path": "\\\\wsl.localhost\\Ubuntu\\var\\tmp\\xlang-validation\\xge-full-20261110\\particle-billboards-language-linux-r2\\results.json",
+        "sha256": "3f71a0074478536267dfdae37cdcb27334b83859b2d107ad0f722550be1cb304",
+        "steps": 11
+      },
+      "package": {
+        "path": "\\\\wsl.localhost\\Ubuntu\\var\\tmp\\xlang-validation\\xge-full-20261110\\particle-billboards-packages-linux-r2\\results.json",
+        "sha256": "308c288b54afdf3b92f634228a1e74e47fe817a666df641c3a3c464576312941",
+        "steps": 4
+      },
+      "executables": [
+        {
+          "path": "/var/tmp/xlang-validation/xge-full-20261110/particle-billboards-language-linux-r2/host",
+          "sha256": "7de59f35c8216161061ba959233835de0cce97607b3c285362a1bfc3fc13f019",
+          "imports": [
+            "libm.so.6",
+            "libmvec.so.1",
+            "libxge3_host.so",
+            "libc.so.6",
+            "ld-linux-x86-64.so.2"
+          ]
+        },
+        {
+          "path": "/var/tmp/xlang-validation/xge-full-20261110/particle-billboards-language-linux-r2/static",
+          "sha256": "292ab6facd0436970ddb454cd67ba63b0d76f17e341ce1822783fc2715a05e17",
+          "imports": [
+            "libm.so.6",
+            "libmvec.so.1",
+            "libX11.so.6",
+            "libXi.so.6",
+            "libXcursor.so.1",
+            "libGL.so.1",
+            "libc.so.6",
+            "ld-linux-x86-64.so.2"
+          ]
+        },
+        {
+          "path": "/var/tmp/xlang-validation/xge-full-20261110/particle-billboards-language-linux-r2/workflow.so",
+          "sha256": "db05d04c58b2024b2f974f649ec96cb8b45fa7b78bf31cc43bedccf539f9f0c3",
+          "imports": [
+            "libm.so.6",
+            "libmvec.so.1",
+            "libX11.so.6",
+            "libXi.so.6",
+            "libXcursor.so.1",
+            "libGL.so.1",
+            "libc.so.6",
+            "ld-linux-x86-64.so.2"
+          ]
+        }
+      ],
+      "heap": {
+        "path": "\\\\wsl.localhost\\Ubuntu\\var\\tmp\\xlang-validation\\xge-full-20261110\\particle-billboards-heap-linux-r1\\results.json",
+        "sha256": "1d3112be66f265fa15e6629f13072a015030e6860d170d90ada864bb7249e845",
+        "counts": [
+          0,
+          0,
+          0
+        ]
+      }
+    }
+  },
+  "nativeCommit": "974e58294e7e04a9484ffa173ae116a0b7528388",
+  "compilerCommit": "07f3767fd47892ed5b83fe9fde9034fea2f01a37"
+}

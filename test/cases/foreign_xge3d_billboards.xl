@@ -1,0 +1,84 @@
+import xge
+import xge3d
+
+func main(...) as int
+ auto settings=xge3d.threeDParticlesDefault()
+ settings.capacity=c_uint(8)
+ settings.columns=c_int(2)
+ settings.rows=c_int(2)
+ settings.fps=c_float(4)
+ settings.life_min=c_float(0.5)
+ settings.life_max=c_float(0.5)
+ settings.size_start=c_float(0.5)
+ settings.spread=c_float(0)
+ settings.position.z=c_float(-2)
+ auto particles=xge3d.createParticles(settings)
+ auto empty=particles.collectBillboards()
+ assert empty.geometry().length==0
+ empty.close()
+ particles.emit(c_uint(3))
+ particles.update(c_float(0.25),c_int(0))
+ auto batch=particles.collectBillboards(c_int(1))
+ auto rows=batch.geometry()
+ assert rows.length==3 and rows[0].blend==c_int(1)
+ assert rows[0].uv.u==c_float(0.5) and rows[0].uv.height==c_float(0.5)
+ particles.close()
+
+ bool badTexture=false
+ try
+  xge3d.createTexture(c_int(2),c_int(2),codec.hexDecode("FF"))
+ catch error
+  badTexture=true
+ end
+ assert badTexture and xge.graphicsResourceCount()==uint64(0)
+ auto texture=xge3d.createTexture(c_int(1),c_int(1),codec.hexDecode("FFFFFFFF"))
+ assert texture.info().references==c_uint(1)
+ bool busy=false
+ try
+  xge.unit()
+ catch error
+  busy=true
+ end
+ assert busy and xge.graphicsResourceCount()==uint64(1)
+
+ xge.init(128,64,"Billboard verification")
+ xge.run(func() as c_int
+  assert xge.begin()==0
+  auto scene=xge3d.createScene()
+  auto renderer=xge3d.createRenderer()
+  renderer.setBillboards(batch,texture)
+  assert texture.info().references==c_uint(4)
+  texture.close()
+  batch.close()
+  assert rows[1].position.z==c_float(-2)
+  auto camera=xge3d.orthographicCamera(c_float(4),c_float(2),c_float(0.1),c_float(10))
+  c_float[4] background
+  background[3]=c_float(1)
+  auto stats=renderer.render(scene,camera,background)
+  assert stats.triangles==uint64(6)
+  auto billboard=xge3d.billboardDefault()
+  billboard.position.z=c_float(-2)
+  billboard.width=c_float(-1)
+  bool badGeometry=false
+  try
+   renderer.setBillboards([billboard])
+  catch error
+   badGeometry=true
+  end
+  assert badGeometry and renderer.render(scene,camera,background).triangles==uint64(6)
+  billboard.width=c_float(1)
+  renderer.setBillboards([billboard])
+  assert renderer.render(scene,camera,background).triangles==uint64(2)
+  renderer.setBillboards([])
+  assert renderer.render(scene,camera,background).triangles==uint64(0)
+  renderer.close()
+  scene.close()
+  assert xge.nativeEnd()==0
+  return c_int(1)
+ end)
+ xge.setFrameCallback(null)
+ assert xge.graphicsResourceCount()==uint64(0)
+ xge.unit()
+ println("PARTICLE_BILLBOARDS_OK")
+ return 0
+end

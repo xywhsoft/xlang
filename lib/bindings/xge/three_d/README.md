@@ -50,6 +50,10 @@ loops need no heap operation, while creation allocates native storage plus
 language controls. See [particles.xl](examples/particles.xl) and
 [the simulation contract](../../../../docs/xge3-particles.md).
 
-Particles require `XGE3D_ENABLE_PARTICLES=1` in the matching SDK. Billboard
-array output, texture ownership and rendering remain separate unfinished
-integration; the CPU emitter is not a substitute for those APIs.
+Particles require `XGE3D_ENABLE_PARTICLES=1` in the matching SDK.
+`collectBillboards()` produces an independent CPU snapshot whose `geometry()`
+sequence can outlive both the emitter and the batch handle. Submit the batch
+to `Renderer.setBillboards()` and call `render()` with a scene and camera.
+The renderer retains an optional `Texture3D` until that queue is replaced
+or cleared. See [billboards.xl](examples/billboards.xl) and
+[the ownership contract](../../../../docs/xge3-particles.md).
