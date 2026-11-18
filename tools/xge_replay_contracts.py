@@ -70,6 +70,7 @@ REPLACED = {
     'xgeAudioUnit': ('xge.audioUnit', 'xgeAudioUnitChecked'),
     'xgeSvgCacheInvalidate': ('xge.SvgCache.remove', 'xgeSvgCacheRemove'),
     'xgeSvgCacheClear': ('xge.SvgCache.reset', 'xgeSvgCacheReset'),
+    'xge3dMotionDefault': ('xge3d.threeDMotionDefault', 'xge3dMotionDefaultInto'),
 }
 
 SPANS = {'xgeClipboardGetData': ('void*', 'size_t'), 'xgeDebugDumpCaps': ('char*', 'int')}

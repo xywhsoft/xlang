@@ -44,6 +44,7 @@ end
 
 export extern "xge3d_renderer*" class Renderer @header("xge3d_renderer.h") @lifetime("owned") @policy("xl6Xge3dRendererPolicy")
  native point handle
+ extern "xge3dRendererMaxJoints" @no_raise @c_const(0) get maxJoints() as c_size
  extern "xge3dBillboardsSetBatch" @no_raise @c_const(1) @c_result("status",0) func setBillboards(BillboardBatch batch,Texture3D? texture=null)
  extern "xge3dBillboardsSetGeometry" @no_raise @c_array_group(1,0,1,"size_t",1) @c_array_input(1,0,"const xge3d_billboard_geometry_t*","value") @c_result("status",0) func setBillboards(array<BillboardGeometry> geometry,int size=-1,Texture3D? texture=null)
  extern "xge3dBillboardsSetTexturedGeometry" @no_raise @c_array_group(1,0,2,"size_t",2) @c_array_input(1,0,"const xge3d_billboard_geometry_t*","value") @c_array_input(1,1,"xge3d_texture* const*","view_raw") @c_result("status",0) func setBillboards(array<BillboardGeometry> geometry,array<Texture3D?> textures,int size=-1)

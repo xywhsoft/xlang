@@ -1,0 +1,63 @@
+{
+  "date": "2026-11-18",
+  "complete": true,
+  "passed": true,
+  "scope": "Portable motion defaults and renderer skin joint limit",
+  "xgeCommit": "38152f6021bda25e9e7fa8de67ef9b31d9611355",
+  "xlangParent": "4cabc49ed029ff5b8c0dda504a45c4a1ac53b452",
+  "xrtCommit": "804cc769de3030118c2b46ef7af69543d1b82d9d",
+  "sources": {
+    "tools/xge_replay_contracts.py": "d64f7d42c466611d9b63597d325ddff2f258d232d01a13a6584f65fd549d931f",
+    "lib/bindings/xge/three_d/src/collision.xl": "7a99cbec42c80cdcdccdd8758461b40ce18e851cb688a6106d411aac7c7306f2",
+    "lib/bindings/xge/three_d/src/functions.xl": "0e1670b2c8b1f63cde0be09367a9ce8c6929a5cf04c2a00219eee85a4ed008f5",
+    "lib/bindings/xge/three_d/src/renderer.xl": "c22f5742cd104a664ea1ba999b483aff59742961e09518ddc2c9f83645a922b0",
+    "test/cases/foreign_xge3d_abi_capabilities.xl": "f4f08ab35bef8408b41440a8b7cac6596e9a1b5d6c07edbd011e25164af8de3c"
+  },
+  "baselineLinuxJit": {
+    "path": "\\\\wsl.localhost\\Ubuntu\\var\\tmp\\xlang-validation\\xge-full-20261110\\capability3d-baseline-linux-r1\\results.json",
+    "sha256": "98dc4f63563686ba76a8850f45275fa635005d7821603907b09294f74c824000"
+  },
+  "regeneratedDeclarationUnits": {
+    "path": "F:\\xlang-validation\\xge-full-20261110\\capability3d-generate-r2\\comparison.json",
+    "sha256": "a7fc944ce6746b0800ef8a156475b4729ba82a44ce638365e2fe319dba2b1df2"
+  },
+  "generationNative": "Retained XRT804 native SDK with matching pointer-storage dependency hashes",
+  "runtimeSDK": "Current scene-load3d SDK",
+  "evidence": {
+    "win": {
+      "sdk": {
+        "path": "F:\\xlang-validation\\xge-full-20261110\\scene-load3d-sdk-win-r1\\results.json",
+        "sha256": "28d74abc0ceb585bf0106d7168ed8330a98550445c76551a01edb7e4f1a7d00e"
+      },
+      "packages": {
+        "path": "F:\\xlang-validation\\xge-full-20261110\\capability3d-packages-win-r2\\results.json",
+        "sha256": "9c33639821475cc0af9b4d9690de9ddda512a055536ffa6a9643c7645d14adda"
+      },
+      "language": {
+        "path": "F:\\xlang-validation\\xge-full-20261110\\capability3d-language-win-r2\\results.json",
+        "sha256": "d5bfd3dcd3c341a79f1ce2b151fe9f0d25010ff1fafde8336164157c4a7c8ef6"
+      }
+    },
+    "linux": {
+      "sdk": {
+        "path": "\\\\wsl.localhost\\Ubuntu\\var\\tmp\\xlang-validation\\xge-full-20261110\\scene-load3d-sdk-linux-r1\\results.json",
+        "sha256": "272a832e4c8b5edf85fa0e0383a794b3e54958710372ecf547e9fcebfc1fdc6f"
+      },
+      "packages": {
+        "path": "\\\\wsl.localhost\\Ubuntu\\var\\tmp\\xlang-validation\\xge-full-20261110\\capability3d-packages-linux-r2\\results.json",
+        "sha256": "a76bedb28b496dff5f9d6e34b47a2c06183de327fe0aafeea68e37263f74e847"
+      },
+      "language": {
+        "path": "\\\\wsl.localhost\\Ubuntu\\var\\tmp\\xlang-validation\\xge-full-20261110\\capability3d-language-linux-r2\\results.json",
+        "sha256": "710c2a670cacdcaa7e3bdd3851b7aa825ec1c85be6d055746a55ac5a25da1a5f"
+      }
+    }
+  },
+  "checks": [
+    "same motion defaults via modern and compatibility names",
+    "renderer exposes actual device-specific max joints",
+    "Windows and Linux hosted JIT, hosted and static AOT executables, and static shared modules"
+  ],
+  "releaseInstalled": false,
+  "networkTests": false
+}

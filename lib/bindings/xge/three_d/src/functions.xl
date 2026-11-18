@@ -10,7 +10,6 @@ export extern "xge3dAabbIntersects" @header("xge3_runtime.h") @c_ref(0) @c_ref(1
 export extern "xge3dSphereIntersectsAabb" @header("xge3_runtime.h") @c_ref(0) @c_ref(1) func threeDSphereIntersectsAabb(Xge3dSphere sphere,Xge3dAabb box) as c_int
 export extern "xge3dCameraIntersectsAabb" @header("xge3_runtime.h") @c_ref(0) @c_ref(1) func threeDCameraIntersectsAabb(Xge3dCamera camera,Xge3dAabb box) as c_int
 export extern "xge3dRendererOptionsDefault" @header("xge3_runtime.h") func threeDRendererOptionsDefault() as Xge3dRendererOptions
-export extern "xge3dMotionDefault" @header("xge3_runtime.h") func threeDMotionDefault() as Xge3dMotionSettings
 export extern "xge3dParticlesDefault" @header("xge3_runtime.h") func threeDParticlesDefault() as Xge3dParticleDesc
 export extern "xge3dTransformMatrix" @header("xge3_runtime.h") @no_raise @c_ref(0) @c_output(1,0) func transformMatrix(Xge3dTransform transform) as Xge3dMat4
 export extern "xge3dCameraPerspective" @header("xge3_runtime.h") @no_raise @c_output(0,0) func perspectiveCamera(c_float verticalFov,c_float aspect,c_float nearPlane,c_float farPlane) as Xge3dCamera

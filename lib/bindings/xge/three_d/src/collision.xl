@@ -28,3 +28,4 @@ export extern "xge3dShapeSettingsDefault" @header("xge3d_renderer.h") @no_raise 
 export extern "xge3dCollisionFilterDefault" @header("xge3d_renderer.h") @no_raise func collisionFilter() as Xge3dCollisionFilter
 export extern "xge3dQueryFilterDefault" @header("xge3d_renderer.h") @no_raise func queryFilter() as Xge3dQueryFilter
 export extern "xge3dMotionDefaultInto" @header("xge3d_renderer.h") @no_raise @c_output(0) func motionSettings() as Xge3dMotionSettings
+export extern "xge3dMotionDefaultInto" @header("xge3d_renderer.h") @no_raise @c_output(0) func threeDMotionDefault() as Xge3dMotionSettings

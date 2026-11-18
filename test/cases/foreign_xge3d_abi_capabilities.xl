@@ -1,0 +1,25 @@
+import xge
+import xge3d
+
+func main(...) as int
+    auto legacy = xge3d.threeDMotionDefault()
+    auto settings = xge3d.motionSettings()
+    assert legacy.size == settings.size and legacy.iterations == 8
+    assert legacy.margin == settings.margin and legacy.margin > c_float(0)
+    assert legacy.max_recovery == c_float(1)
+
+    xge.init(64, 64, "3D renderer capabilities")
+    xge.run(func() as c_int
+        assert xge.begin() == 0
+        auto renderer = xge3d.createRenderer()
+        assert renderer.maxJoints > c_size(0)
+        renderer.close()
+        assert xge.nativeEnd() == 0
+        return c_int(1)
+    end)
+    xge.setFrameCallback(null)
+    assert xge.graphicsResourceCount() == uint64(0)
+    xge.unit()
+    println("XGE3D_ABI_CAPABILITIES_OK")
+    return 0
+end
