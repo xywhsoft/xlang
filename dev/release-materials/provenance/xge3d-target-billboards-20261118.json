@@ -1,0 +1,250 @@
+{
+  "complete": true,
+  "passed": true,
+  "releaseInstalled": false,
+  "sourceHashes": {
+    "lib/bindings/xge/three_d/examples/offscreen.xl": "f833fa1b3262d7b61910ea0bbb64e9694846f8955ab69ffe240da6f4a2595335",
+    "lib/bindings/xge/three_d/include/xge3d_renderer.h": "ccf74f4b97509071ed84b9ebcab0e0fe09a104a78eb7ff5d165730ea9391e019",
+    "lib/bindings/xge/three_d/src/renderer.xl": "33b79c7ea0609ceb3171c1a4d6e2384278fd140164b098629faa94824ffd4fac",
+    "test/cases/foreign_xge3d_target_billboards.xl": "cba79bfc39f77304f48c19ebe5150cca0586ba745346104d2db4e3a6c0886589",
+    "docs/xge3-particles.md": "7934f742487a104f3849c9f0c2c77c462299a47f99b9c3e1c2f5eb989a9b9ee2",
+    "lib/bindings/xge/three_d/README.md": "b8048cd5ddcda90396cb67eaf248f41b7568b554683949e3dd3a0413ccc41cc7"
+  },
+  "evidence": {
+    "win": {
+      "fullBuild": {
+        "path": "F:\\xlang-validation\\xge-full-20261110\\target3d-sdk-win-r2\\results.json",
+        "sha256": "69c39f92657701ebc3c19cd3771b0316480890e44aec2dc77cdfdf71977e99c5",
+        "steps": 2
+      },
+      "sdk": {
+        "path": "F:\\xlang-validation\\xge-full-20261110\\target3d-sdk-win-r3\\verified.json",
+        "sha256": "1bfaf012238d281940b2a8c25d3fd2abceba32cd16248f2349e3369f95636b71",
+        "steps": 2
+      },
+      "native": {
+        "path": "F:\\xlang-validation\\xge-full-20261110\\target3d-native-win-r2\\results.json",
+        "sha256": "d94d7380f2673680df518e6dda45056a3ba14cae3a5de8f723d24dded08dd29d",
+        "steps": 18
+      },
+      "headers": {
+        "path": "F:\\xlang-validation\\xge-full-20261110\\target3d-headers-win-r1\\results.json",
+        "sha256": "2fd822da5119073b84cbeeb655b4bb0a36213aa4299d617605a5f420caa27694",
+        "steps": 6
+      },
+      "nativePrograms": [
+        {
+          "path": "F:\\xlang-validation\\xge-full-20261110\\target3d-native-win-r2\\host-owned-O0.exe",
+          "sha256": "bda1e024813bf8af619832ee7740b4b19d86ea22bbda3e25e9e162d157f93a18"
+        },
+        {
+          "path": "F:\\xlang-validation\\xge-full-20261110\\target3d-native-win-r2\\host-owned-O2.exe",
+          "sha256": "8f8153212f6390f48c21d2984cd2e1b82ddd776f36f33e4a5328ac654ca154c1"
+        },
+        {
+          "path": "F:\\xlang-validation\\xge-full-20261110\\target3d-native-win-r2\\host-particle-O2.exe",
+          "sha256": "1ff90cf3e6aa209d16062714eab19cdfd45c2b4fae7fb789c2f21fc5384bdc6e"
+        },
+        {
+          "path": "F:\\xlang-validation\\xge-full-20261110\\target3d-native-win-r2\\static-owned-O0.exe",
+          "sha256": "d0f615f5ac9284d036946a9c4bc1b5cf7e31b23e140c304c80ff52a41e171f53"
+        },
+        {
+          "path": "F:\\xlang-validation\\xge-full-20261110\\target3d-native-win-r2\\static-owned-O2.exe",
+          "sha256": "6f12ab471c6866e92815849cd6ccef8471a5c21d3fc1209b0a8f4dc0aeb0c594"
+        },
+        {
+          "path": "F:\\xlang-validation\\xge-full-20261110\\target3d-native-win-r2\\static-particle-O2.exe",
+          "sha256": "d7a42bd5332e68e17643736f98dbc323a19b9ec763e92c3d380c3de7b4cf8210"
+        }
+      ],
+      "language": {
+        "path": "F:\\xlang-validation\\xge-full-20261110\\target3d-language-win-r3\\results.json",
+        "sha256": "c49738e749cf50b210450c3db9b05e72aab6f27ee8c5166a678fab010f026969",
+        "steps": 11
+      },
+      "package": {
+        "path": "F:\\xlang-validation\\xge-full-20261110\\target3d-packages-win-r3\\results.json",
+        "sha256": "0f43ba5f323b8afa79624becf7602beaef14a2bb56cb524a1da8cbf8560c68aa",
+        "steps": 4
+      },
+      "languagePrograms": [
+        {
+          "path": "F:\\xlang-validation\\xge-full-20261110\\target3d-language-win-r3\\host.exe",
+          "sha256": "3adbe3927cd3c58c4977bbbf58a74c745337d761aa5b1fd193117d0a6ed8ca39",
+          "imports": [
+            "xge3_host.dll",
+            "msvcrt.dll",
+            "kernel32.dll",
+            "SHELL32.dll",
+            "Ole32.dll",
+            "ucrtbase.dll"
+          ]
+        },
+        {
+          "path": "F:\\xlang-validation\\xge-full-20261110\\target3d-language-win-r3\\static.exe",
+          "sha256": "e5cd0e5d104a15e287246c88189d4fbeeccc16ae1108504d59ae9e734e12f140",
+          "imports": [
+            "msvcrt.dll",
+            "kernel32.dll",
+            "USER32.dll",
+            "GDI32.dll",
+            "ole32.dll",
+            "OLEAUT32.dll",
+            "SHELL32.dll",
+            "IMM32.dll"
+          ]
+        },
+        {
+          "path": "F:\\xlang-validation\\xge-full-20261110\\target3d-language-win-r3\\workflow.dll",
+          "sha256": "24b1142216105421600a1a19fb273c0cf068275b72555cbfb7bd1a5dbc09f608",
+          "imports": [
+            "msvcrt.dll",
+            "kernel32.dll",
+            "user32.dll",
+            "gdi32.dll",
+            "ole32.dll",
+            "OLEAUT32.dll",
+            "USER32.dll",
+            "SHELL32.dll",
+            "IMM32.dll"
+          ]
+        }
+      ],
+      "warmMixed": {
+        "path": "F:\\xlang-validation\\xge-full-20261110\\target3d-heap-win-r3\\results.json",
+        "sha256": "2c3f4a0298a3fd77fca18d5c235f4c6768eadf8f65202554491492a244305e65",
+        "counts": {
+          "language": [
+            192,
+            192,
+            0
+          ],
+          "native": [
+            0,
+            0,
+            0
+          ]
+        }
+      }
+    },
+    "linux": {
+      "fullBuild": {
+        "path": "\\\\wsl.localhost\\Ubuntu\\var\\tmp\\xlang-validation\\xge-full-20261110\\target3d-sdk-linux-r2\\results.json",
+        "sha256": "146b4df93b076ee22fa1c47f097c29af093d6750441460454c4d89187410bcd2",
+        "steps": 2
+      },
+      "sdk": {
+        "path": "\\\\wsl.localhost\\Ubuntu\\var\\tmp\\xlang-validation\\xge-full-20261110\\target3d-sdk-linux-r3\\verified.json",
+        "sha256": "fe4a3ae972bbcaaf53c9b48bae684cc299f7b1b7c74bf87e271fae8d0e8a51ea",
+        "steps": 2
+      },
+      "native": {
+        "path": "\\\\wsl.localhost\\Ubuntu\\var\\tmp\\xlang-validation\\xge-full-20261110\\target3d-native-linux-r2\\results.json",
+        "sha256": "f45bf8a7e85ef591091eb6c5afe5ed35df153a08b44a98c25afc3c808a7dfbb7",
+        "steps": 18
+      },
+      "headers": {
+        "path": "\\\\wsl.localhost\\Ubuntu\\var\\tmp\\xlang-validation\\xge-full-20261110\\target3d-headers-linux-r1\\results.json",
+        "sha256": "a7bb37de5128afd396939e168bc34f3695a2b80350b2fbfb13ff1e993cb1bcb2",
+        "steps": 6
+      },
+      "nativePrograms": [
+        {
+          "path": "/var/tmp/xlang-validation/xge-full-20261110/target3d-native-linux-r2/host-owned-O0",
+          "sha256": "cff95715169e85c3f1f1227759723de3252c874de57df53072f5f0d2bcd14ac4"
+        },
+        {
+          "path": "/var/tmp/xlang-validation/xge-full-20261110/target3d-native-linux-r2/host-owned-O2",
+          "sha256": "0066404dfb5729837d6fc31c8ba7880ebe1277c7f63ff5a26c4f49aaa855dd83"
+        },
+        {
+          "path": "/var/tmp/xlang-validation/xge-full-20261110/target3d-native-linux-r2/host-particle-O2",
+          "sha256": "4490f02f7a378ea55b4c69de7dcd53bd83f931f71e40619e7c0a5f947c6129d0"
+        },
+        {
+          "path": "/var/tmp/xlang-validation/xge-full-20261110/target3d-native-linux-r2/static-owned-O0",
+          "sha256": "4f4c4ccdb0d8a455efb86525131568f76686c8ad8f25e2595e178b6beacd3477"
+        },
+        {
+          "path": "/var/tmp/xlang-validation/xge-full-20261110/target3d-native-linux-r2/static-owned-O2",
+          "sha256": "a96a3ff905da00b143a4ea92e427c40a26df8c3a75cfe319c17bcd9eb37bbaaf"
+        },
+        {
+          "path": "/var/tmp/xlang-validation/xge-full-20261110/target3d-native-linux-r2/static-particle-O2",
+          "sha256": "80b88d8110c73f50a8773377710a80d9226d1adedcef88dd0317b6027744159b"
+        }
+      ],
+      "language": {
+        "path": "\\\\wsl.localhost\\Ubuntu\\var\\tmp\\xlang-validation\\xge-full-20261110\\target3d-language-linux-r3\\results.json",
+        "sha256": "117ef0c149ddd51ec64da8f4a169070ded5670bb2ee552ab01ae5564d233b787",
+        "steps": 11
+      },
+      "package": {
+        "path": "\\\\wsl.localhost\\Ubuntu\\var\\tmp\\xlang-validation\\xge-full-20261110\\target3d-packages-linux-r3\\results.json",
+        "sha256": "085a08df339ce9079c9c1981d9d72b42815a90e6ed604b03e70d2329174a5507",
+        "steps": 4
+      },
+      "languagePrograms": [
+        {
+          "path": "/var/tmp/xlang-validation/xge-full-20261110/target3d-language-linux-r3/host",
+          "sha256": "cc72d82885e553e948ac633a7fe5509dd4a72b7335e776e19fbac5367a3a69bd",
+          "imports": [
+            "libm.so.6",
+            "libmvec.so.1",
+            "libxge3_host.so",
+            "libc.so.6",
+            "ld-linux-x86-64.so.2"
+          ]
+        },
+        {
+          "path": "/var/tmp/xlang-validation/xge-full-20261110/target3d-language-linux-r3/static",
+          "sha256": "387f22c0c341d2da4048f605aed74b873fc285a3ad2f4a6df839a249bc7ac70a",
+          "imports": [
+            "libm.so.6",
+            "libmvec.so.1",
+            "libX11.so.6",
+            "libXi.so.6",
+            "libXcursor.so.1",
+            "libGL.so.1",
+            "libc.so.6",
+            "ld-linux-x86-64.so.2"
+          ]
+        },
+        {
+          "path": "/var/tmp/xlang-validation/xge-full-20261110/target3d-language-linux-r3/workflow.so",
+          "sha256": "d423d6bd4015c94118bd4c4e144844fe1d518b634d0de586675cec677c4748d5",
+          "imports": [
+            "libm.so.6",
+            "libmvec.so.1",
+            "libX11.so.6",
+            "libXi.so.6",
+            "libXcursor.so.1",
+            "libGL.so.1",
+            "libc.so.6",
+            "ld-linux-x86-64.so.2"
+          ]
+        }
+      ],
+      "warmMixed": {
+        "path": "\\\\wsl.localhost\\Ubuntu\\var\\tmp\\xlang-validation\\xge-full-20261110\\target3d-heap-linux-r3\\results.json",
+        "sha256": "bb99b1b2a82c27725870f6cf3dddfd65b562b1270deed85c1e34e2aded2e6701",
+        "counts": {
+          "language": [
+            192,
+            192,
+            0
+          ],
+          "native": [
+            0,
+            0,
+            0
+          ]
+        }
+      }
+    }
+  },
+  "nativeCommit": "f1f27a405c61989df14e96e782e5c8ebae702263",
+  "compilerCommit": "07f3767fd47892ed5b83fe9fde9034fea2f01a37",
+  "receipt": "dev/release-materials/provenance/xge3d-target-billboards-20261118.json"
+}

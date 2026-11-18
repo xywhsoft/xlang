@@ -29,17 +29,30 @@ export extern "xge3d_texture*" class Texture3D @header("xge3d_renderer.h") @life
  extern "xl6ForeignViewCloseV1" @no_raise @c_control(0) @c_result("bool_status") func close()
 end
 
+export extern "xge3d_target*" class RenderTarget3D @header("xge3d_renderer.h") @lifetime("owned") @policy("xl6Xge3dTargetPolicy")
+ native point handle
+ extern "xge3dTargetSize" @no_raise @c_const(0) @c_outputs(1,2) @c_status(0) func size() as (c_int,c_int)
+ extern "xge3dTargetResize" @no_raise @c_result("status",0) func resize(c_int width,c_int height)
+ extern "xge3dTargetReadPixels" @no_raise @c_span(0,"void*","size_t") @c_result("status",0) func readPixels(Buffer output,c_int stride=0)
+ extern "xge3dTextureFromTargetOwned" @no_raise @c_result("owned_view") @factory(1,0,rollbackTexture3D) func texture() as Texture3D
+ extern "xl6ForeignViewCloseV1" @no_raise @c_control(0) @c_result("bool_status") func close()
+end
+
 export extern "xge3d_renderer*" class Renderer @header("xge3d_renderer.h") @lifetime("owned") @policy("xl6Xge3dRendererPolicy")
  native point handle
  extern "xge3dBillboardsSetBatch" @no_raise @c_const(1) @c_result("status",0) func setBillboards(BillboardBatch batch,Texture3D? texture=null)
  extern "xge3dBillboardsSetGeometry" @no_raise @c_array_group(1,0,1,"size_t",1) @c_array_input(1,0,"const xge3d_billboard_geometry_t*","value") @c_result("status",0) func setBillboards(array<BillboardGeometry> geometry,int size=-1,Texture3D? texture=null)
+ extern "xge3dBillboardsSetTexturedGeometry" @no_raise @c_array_group(1,0,2,"size_t",2) @c_array_input(1,0,"const xge3d_billboard_geometry_t*","value") @c_array_input(1,1,"xge3d_texture* const*","view_raw") @c_result("status",0) func setBillboards(array<BillboardGeometry> geometry,array<Texture3D?> textures,int size=-1)
  extern "xge3dRenderFrame" @no_raise @c_ref(1) @c_ref(2) @c_output(6,0) func render(Scene scene,Xge3dCamera camera,c_float[4] clearColor,c_uint clearFlags=3,c_float exposure=0) as Xge3dRenderStats
+ extern "xge3dRenderFrameTo" @no_raise @c_ref(1) @c_ref(3) @c_output(7,0) func renderTo(Scene scene,Xge3dCamera camera,RenderTarget3D target,c_float[4] clearColor,c_uint clearFlags=3,c_float exposure=0) as Xge3dRenderStats
  extern "xl6ForeignViewCloseV1" @no_raise @c_control(0) @c_result("bool_status") func close()
 end
 
 extern "xge3dTextureReleaseChecked" @header("xge3d_renderer.h") @no_raise @c_result("status",0) func rollbackTexture3D(Texture3D value)
 extern "xge3dRendererReleaseChecked" @header("xge3d_renderer.h") @no_raise @c_result("status",0) func rollbackRenderer(Renderer value)
+extern "xge3dTargetReleaseChecked" @header("xge3d_renderer.h") @no_raise @c_result("status",0) func rollbackTarget3D(RenderTarget3D value)
 export extern "xge3dRendererCreateOwned" @header("xge3d_renderer.h") @no_raise @c_result("owned_view") @factory(0,0,rollbackRenderer) func createRenderer() as Renderer
+export extern "xge3dTargetCreateOwned" @header("xge3d_renderer.h") @no_raise @c_result("owned_view") @factory(2,0,rollbackTarget3D) func createRenderTarget(c_int width,c_int height) as RenderTarget3D
 export extern "xge3dTextureCreateRGBAOwned" @header("xge3d_renderer.h") @no_raise @c_span(2,"const void*","size_t") @c_null(5,"const xge3d_sampler_t*") @c_result("owned_view") @factory(6,0,rollbackTexture3D) func createTexture(c_int width,c_int height,bytes pixels,c_int srgb=1) as Texture3D
 export extern "xge3dTextureCreateRGBAOwned" @header("xge3d_renderer.h") @no_raise @c_span(2,"const void*","size_t") @c_ref(4) @c_result("owned_view") @factory(6,0,rollbackTexture3D) func createTexture(c_int width,c_int height,bytes pixels,c_int srgb,Xge3dSampler sampler) as Texture3D
 export extern "xge3dBillboardGeometryDefault" @header("xge3d_renderer.h") @no_raise func billboardDefault() as BillboardGeometry

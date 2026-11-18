@@ -1,0 +1,89 @@
+import xge
+import xge3d
+
+func quad(float x) as xge3d.BillboardGeometry
+ auto geometry=xge3d.billboardDefault()
+ geometry.position.x=c_float(x)
+ geometry.position.z=c_float(-2)
+ geometry.width=c_float(0.8)
+ geometry.height=c_float(0.8)
+ return geometry
+end
+
+func main(...) as int
+ xge.init(128,64,"3D offscreen verification")
+ xge.run(func() as c_int
+  assert xge.begin()==0
+  auto renderer=xge3d.createRenderer()
+  auto scene=xge3d.createScene()
+  auto camera=xge3d.orthographicCamera(c_float(4),c_float(2),c_float(0.1),c_float(10))
+  auto target=xge3d.createRenderTarget(c_int(64),c_int(32))
+  auto source=xge3d.createRenderTarget(c_int(8),c_int(8))
+  auto green=source.texture()
+  source.resize(c_int(16),c_int(8))
+  auto width,height=source.size()
+  assert width==c_int(16) and height==c_int(8)
+
+  c_float[4] clear
+  clear[1]=c_float(1)
+  clear[3]=c_float(1)
+  renderer.renderTo(scene,camera,source,clear)
+  clear[1]=c_float(0)
+  auto red=xge3d.createTexture(c_int(1),c_int(1),codec.hexDecode("FF0000FF"))
+  array<xge3d.BillboardGeometry> geometry=[quad(-1),quad(0),quad(1)]
+  array<xge3d.Texture3D?> textures=[red,green,null]
+  renderer.setBillboards(geometry,textures)
+  bool feedback=false
+  try
+   renderer.renderTo(scene,camera,source,clear)
+  catch error
+   feedback=true
+  end
+  assert feedback
+  source.close()
+  red.close()
+  green.close()
+  bool mismatch=false
+  try
+   array<xge3d.Texture3D?> tooShort=[null]
+   renderer.setBillboards(geometry,tooShort)
+  catch error
+   mismatch=true
+  end
+  assert mismatch
+  bool stale=false
+  try
+   renderer.setBillboards(geometry,textures)
+  catch error
+   stale=true
+  end
+  assert stale
+  auto stats=renderer.renderTo(scene,camera,target,clear)
+  assert stats.triangles==uint64(6)
+  auto pixels=Buffer()
+  assert pixels.resize(64*32*4)
+  target.readPixels(pixels)
+  assert pixels.byteAt((16*64+16)*4)==255 and pixels.byteAt((16*64+16)*4+1)==0
+  assert pixels.byteAt((16*64+32)*4)==0 and pixels.byteAt((16*64+32)*4+1)==255
+  assert pixels.byteAt((16*64+48)*4)==255 and pixels.byteAt((16*64+48)*4+1)==255
+  auto shortBuffer=Buffer.fromHex("a1b2c3d4")
+  bool shortRead=false
+  try
+   target.readPixels(shortBuffer)
+  catch error
+   shortRead=true
+  end
+  assert shortRead and shortBuffer.hex()=="a1b2c3d4"
+
+  renderer.close()
+  target.close()
+  scene.close()
+  assert xge.nativeEnd()==0
+  return c_int(1)
+ end)
+ xge.setFrameCallback(null)
+ assert xge.graphicsResourceCount()==uint64(0)
+ xge.unit()
+ println("TARGET3D_BILLBOARDS_OK")
+ return 0
+end

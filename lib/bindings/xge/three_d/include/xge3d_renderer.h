@@ -19,7 +19,9 @@ static inline const XL6_ForeignViewDescriptorV1* Name##Get(void) \
 }
 XL6_XGE3D_CHECKED_OWNER(xl6Xge3dRendererPolicy,xge3d_renderer,"xge3d.renderer",xge3dRendererReleaseOwnerChecked)
 XL6_XGE3D_CHECKED_OWNER(xl6Xge3dTexturePolicy,xge3d_texture,"xge3d.texture",xge3dTextureReleaseOwnerChecked)
+XL6_XGE3D_CHECKED_OWNER(xl6Xge3dTargetPolicy,xge3d_target,"xge3d.target",xge3dTargetReleaseOwnerChecked)
 #undef XL6_XGE3D_CHECKED_OWNER
 #define xl6Xge3dRendererPolicy (*xl6Xge3dRendererPolicyGet())
 #define xl6Xge3dTexturePolicy (*xl6Xge3dTexturePolicyGet())
+#define xl6Xge3dTargetPolicy (*xl6Xge3dTargetPolicyGet())
 #endif

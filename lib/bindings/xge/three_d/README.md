@@ -57,3 +57,7 @@ to `Renderer.setBillboards()` and call `render()` with a scene and camera.
 The renderer retains an optional `Texture3D` until that queue is replaced
 or cleared. See [billboards.xl](examples/billboards.xl) and
 [the ownership contract](../../../../docs/xge3-particles.md).
+
+[offscreen.xl](examples/offscreen.xl) shows how to render to a
+`RenderTarget3D`, read a pixel, and use the target as a billboard texture.
+Pass separate geometry and nullable texture arrays for a mixed-texture queue.

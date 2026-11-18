@@ -76,9 +76,8 @@ safe point.
 
 `Renderer.render(scene,camera,clearColor)` renders to the active viewport and
 returns native statistics. Its native entry initializes a frame descriptor
-on the stack and uses the existing renderer. The general 3D target, atmosphere
-and multi-texture Billboard submission contracts remain part of the wider
-renderer integration.
+on the stack and uses the existing renderer. The offscreen and mixed-texture
+paths below share that renderer and persistent queue.
 
 Collecting a snapshot traverses the live particles once and uses one native
 allocation for the header and all rows. The sequence adds ownership
@@ -94,3 +93,39 @@ Windows and Linux also passed native pixel comparisons at O0 and O2, strict
 C11 and C++ header checks, JIT, hosted and static AOT, and shared module
 retirement. The native fixture compares actual textured frames and checks
 queue preservation after rejected geometry and allocation failure.
+
+## Offscreen targets and per-row textures
+
+`createRenderTarget(width,height)` returns a `RenderTarget3D`. Use
+`Renderer.renderTo(scene,camera,target,clearColor)` to draw into it.
+`size()` reports the current dimensions. `resize()` replaces native storage
+only after the new framebuffer is ready. An allocation failure preserves both
+the old target and its views.
+
+`readPixels(buffer,stride=0)` writes top-down RGBA8 into initialized Buffer
+storage. A zero stride selects width times four. A custom stride must leave
+at least that much space per row, with at least stride times height bytes in
+the Buffer. The method preserves row padding and restores the host's GL pack
+buffer, alignment, row length, offsets and read framebuffer. The native
+validation path leaves undersized buffers untouched.
+
+`target.texture()` returns a color view that follows resize and holds a
+reference to the target. A renderer queue can keep that view and its backing
+target alive after both language handles close. The renderer rejects drawing
+to a target sampled by the same draw. Builds with `XGE3D_ENABLE_DYNAMIC=0`
+return checked Unsupported from `texture()`. Target creation, rendering and
+readback remain available in that build.
+
+Pass `array<BillboardGeometry>` and `array<Texture3D?>` to the mixed
+`setBillboards` overload. These columns pair each geometry with its texture,
+with null selecting white. The default size requires equal lengths. An
+explicit size selects a prefix bounded by both lengths. Each accepted
+texture is retained by the native queue, and a rejected submission preserves
+the previous queue. This uses the generic checked array input path.
+
+On Windows and Linux, 64 warm mixed submissions of three rows made 192
+XRT allocations and frees in JIT, with zero reallocations. The corresponding
+native C loop used preallocated arrays and made zero heap operations.
+The three temporary allocations per language call cover numeric records,
+texture pointers and texture ownership scopes. The homogeneous native-batch
+overload keeps the zero-allocation warm path measured above.

@@ -1,0 +1,36 @@
+import xge
+import xge3d
+
+xge.init(480, 320, "3D 离屏渲染")
+xge.run(func() as c_int
+    assert xge.begin() == 0
+    auto scene = xge3d.createScene()
+    auto renderer = xge3d.createRenderer()
+    auto camera = xge3d.orthographicCamera(c_float(3), c_float(2), c_float(0.1), c_float(10))
+    auto target = xge3d.createRenderTarget(c_int(64), c_int(64))
+
+    c_float[4] color
+    color[2] = c_float(1)
+    color[3] = c_float(1)
+    renderer.renderTo(scene, camera, target, color)
+    auto pixels = Buffer()
+    assert pixels.resize(64 * 64 * 4)
+    target.readPixels(pixels)
+    println("离屏图像首个像素的蓝色通道", pixels.byteAt(2))
+
+    auto image = target.texture()
+    auto card = xge3d.billboardDefault()
+    card.position.z = c_float(-2)
+    renderer.setBillboards([card], texture=image)
+    color[2] = c_float(0)
+    renderer.render(scene, camera, color)
+
+    image.close()
+    target.close()
+    renderer.close()
+    scene.close()
+    assert xge.nativeEnd() == 0
+    return c_int(1)
+end)
+xge.setFrameCallback(null)
+xge.unit()
