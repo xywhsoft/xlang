@@ -1,0 +1,49 @@
+{
+  "date": "2026-11-18",
+  "complete": true,
+  "passed": true,
+  "scope": "Debug-enabled hosted and static SDK from the current normal SDK source snapshot",
+  "xge": "38152f6021bda25e9e7fa8de67ef9b31d9611355",
+  "xlangParent": "28577cd61cbdca32a33cb2c9bd293e06b7093121",
+  "xrt": "804cc769de3030118c2b46ef7af69543d1b82d9d",
+  "releaseInstalled": false,
+  "networkTests": false,
+  "evidence": {
+    "win": {
+      "normal": {
+        "path": "F:\\xlang-validation\\xge-full-20261110\\storage3d-staged-win-r1\\results.json",
+        "sha256": "bc694acd14bb047b2e01f6cd44b1e4be192f051b41be94a8de11859bd5c3e5f1"
+      },
+      "build": {
+        "path": "F:\\xlang-validation\\xge-full-20261110\\storage3d-debug-win-r1\\results.json",
+        "sha256": "5dbba58d0296e41fc97325613b3e59a633413387afe81168bfdaf194043fee0a"
+      },
+      "delivery": {
+        "path": "F:\\xlang-validation\\xge-full-20261110\\storage3d-debug-win-r1\\delivery\\results.json",
+        "sha256": "33bf3229fd9deeb6d3564e95c4fb962155adc7ced22660cea37045a91ed14b7c"
+      },
+      "leafCommands": 48
+    },
+    "linux": {
+      "normal": {
+        "path": "\\\\wsl.localhost\\Ubuntu\\var\\tmp\\xlang-validation\\xge-full-20261110\\storage3d-staged-linux-r1\\results.json",
+        "sha256": "a421df1ec58dfe8c2b611b116c484e490f10ac0c4d431006c31f5e2fdadd87b1"
+      },
+      "build": {
+        "path": "\\\\wsl.localhost\\Ubuntu\\var\\tmp\\xlang-validation\\xge-full-20261110\\storage3d-debug-linux-r1\\results.json",
+        "sha256": "ab74eb06da7a3eaeddd2031ed4767544dd3eddd37a976e9377ea41ea9a504cbd"
+      },
+      "delivery": {
+        "path": "\\\\wsl.localhost\\Ubuntu\\var\\tmp\\xlang-validation\\xge-full-20261110\\storage3d-debug-linux-r1\\delivery\\results.json",
+        "sha256": "c2931718f6b17cb0062be9b4d4efb752e2d3f4ef6ae4b1e5b32de0963207ea19"
+      },
+      "leafCommands": 48
+    }
+  },
+  "checks": [
+    "independent full debug hosted and static SDK builds",
+    "cold capability buffer and live renderer statistics qualification",
+    "xlang example JIT, hosted and standalone static AOT with import inspection",
+    "expected rejection in both normal hosted and normal static packages"
+  ]
+}
