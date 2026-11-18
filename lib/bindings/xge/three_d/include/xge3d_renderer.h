@@ -55,8 +55,16 @@ XL6_XGE3D_CHECKED_OWNER(xl6Xge3dModelCachePolicy,xge3d_cache,"xge3d.model.cache"
 #if XGE3D_ENABLE_ANIMATION
 XL6_XGE3D_CHECKED_OWNER(xl6Xge3dClipPolicy,xge3d_clip,"xge3d.animation.clip",xge3dClipReleaseOwnerChecked)
 XL6_XGE3D_CHECKED_OWNER(xl6Xge3dAnimatorPolicy,xge3d_animator,"xge3d.animation.animator",xge3dAnimatorReleaseOwnerChecked)
+static inline int xl6Xge3dReleaseSkinPalette(xge3d_skin_palette* palette,bool* consumed)
+{
+    int status = xge3dSkinPaletteReleaseChecked(palette);
+    *consumed = status == XGE_OK;
+    return status;
+}
+XL6_XGE3D_CHECKED_OWNER(xl6Xge3dSkinPalettePolicy,xge3d_skin_palette,"xge3d.skin.palette",xl6Xge3dReleaseSkinPalette)
 #define xl6Xge3dClipPolicy (*xl6Xge3dClipPolicyGet())
 #define xl6Xge3dAnimatorPolicy (*xl6Xge3dAnimatorPolicyGet())
+#define xl6Xge3dSkinPalettePolicy (*xl6Xge3dSkinPalettePolicyGet())
 #endif
 #if XGE3D_ENABLE_TERRAIN
 XL6_XGE3D_CHECKED_OWNER(xl6Xge3dTerrainPolicy,xge3d_terrain,"xge3d.terrain",xge3dTerrainReleaseOwnerChecked)

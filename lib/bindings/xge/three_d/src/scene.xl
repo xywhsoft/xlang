@@ -42,6 +42,7 @@ export extern "xge3d_scene*" class Scene @header("xge3d_scene.h") @lifetime("own
  extern "xge3dNodeBindSkin" @no_raise @c_null(2,"const xge3d_skin_binding_t*") @c_result("status",0) func clearSkin(Xge3dNode node)
  extern "xge3dNodeSkinMatrixAt" @no_raise @c_output(3,0) func skinMatrix(Xge3dNode node,c_size joint) as Xge3dMat4
  extern "xge3dNodeSkinPaletteBytes" @no_raise @c_output_bytes(2,3,"unsigned char*","uint64_t","xrt",0) func skinPaletteBytes(Xge3dNode node) as bytes
+ extern "xge3dNodeAcquireSkinPalette" @no_raise @c_result("owned_view") @factory(2,0,releaseSkinPalette3D) func skinPalette(Xge3dNode node) as SkinPalette3D
  extern "xge3dNodePrepareSkin" @no_raise @c_ref(1) @c_output(3,0) func prepareSkin(Xge3dNode node,Xge3dUploadBudget budget) as Xge3dUploadStats
  extern "xge3dNodeSetLods" @no_raise @c_array_group(2,1,2,"size_t",3) @c_array_record(2,"xge3d_lod_t") @c_array_field(2,"mesh",0,"view_raw") @c_array_field(2,"min_distance",1,"value") @c_result("status",0) func setLods(Xge3dNode node,array<Mesh3D> meshes,array<c_float> minDistances,int size=-1)
  extern "xge3dNodeSetLayers" @no_raise @c_result("status",0) func setLayers(Xge3dNode node,c_uint render,c_uint query,c_uint shadow)

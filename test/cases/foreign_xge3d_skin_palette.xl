@@ -1,0 +1,73 @@
+import xge
+import xge3d
+
+func main(...) as int
+    xge.init(32, 32, "3D skin palette fixture")
+    auto scene = xge3d.createScene()
+    auto root = xge3d.Xge3dNode()
+    auto meshNode = scene.createNode(root)
+    auto first = scene.createNode(root)
+    auto second = scene.createNode(root)
+    bool noSkin = false
+    try
+        scene.skinPalette(meshNode)
+    catch error
+        assert error.code == int(xge.XGE_ERROR_NOT_FOUND)
+        noSkin = true
+    end
+    assert noSkin
+
+    auto a = xge3d.Xge3dVertex()
+    auto b = xge3d.Xge3dVertex()
+    auto c = xge3d.Xge3dVertex()
+    b.position.x = c_float(1)
+    c.position.y = c_float(1)
+    a.weights[0] = c_float(1)
+    b.weights[0] = c_float(1)
+    c.weights[0] = c_float(1)
+    c.joints[0] = c_ushort(1)
+    auto mesh = xge3d.createMesh([a, b, c])
+    scene.setMesh(meshNode, mesh)
+    mesh.close()
+    scene.bindSkin(meshNode, [first, second])
+
+    auto before = scene.skinPalette(meshNode)
+    auto original = before.matrices()
+    auto secondJoint = original.slice(1)
+    before.close()
+    assert original.length == 2 and secondJoint.length == 1
+    assert original[1].m[12] == scene.skinMatrix(meshNode, c_size(1)).m[12]
+
+    auto pose = xge3d.Xge3dMat4()
+    pose.m[0] = c_float(1)
+    pose.m[5] = c_float(1)
+    pose.m[10] = c_float(1)
+    pose.m[15] = c_float(1)
+    pose.m[12] = c_float(3)
+    scene.setMatrix(second, pose)
+    auto after = scene.skinPalette(meshNode)
+    auto updated = after.matrices()
+    after.close()
+
+    bool busy = false
+    try
+        xge.unit()
+    catch error
+        assert error.code == int(xge.XGE_ERROR_BUSY)
+        busy = true
+    end
+    assert busy
+    scene.destroyNode(meshNode)
+    scene.close()
+    xge.unit()
+
+    assert secondJoint[0].m[12] == c_float(0)
+    assert updated[0].m[12] == c_float(0) and updated[1].m[12] == c_float(3)
+    c_float total = c_float(0)
+    for matrix in updated
+        total += matrix.m[12]
+    end
+    assert total == c_float(3)
+    println("SKIN_PALETTE3D_LANGUAGE_OK")
+    return 0
+end

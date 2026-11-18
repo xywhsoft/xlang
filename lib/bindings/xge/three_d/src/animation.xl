@@ -10,6 +10,15 @@ end
 extern "xge3dClipReleaseChecked" @header("xge3d_renderer.h") @no_raise @c_result("status",0) func releaseAnimationClip(AnimationClip value)
 export extern "xge3dClipLoadOwned" @header("xge3d_renderer.h") @no_raise @c_cstr(0) @c_result("owned_view") @factory(3,0,releaseAnimationClip) func loadClip(string uri,c_size index=0,DecodeBudget? budget=null) as AnimationClip
 
+export extern "xge3d_skin_palette*" class SkinPalette3D @header("xge3d_renderer.h") @lifetime("owned") @policy("xl6Xge3dSkinPalettePolicy")
+ native point handle
+ extern "xge3dSkinPaletteMatrices" @no_raise @c_const(0) @c_owned_sequence(1,2,0,"size_t",0) @c_retain(retainSkinPalette3D,"zero",releaseSkinPalette3D) func matrices() as NativeSequence<Xge3dMat4>
+ extern "xl6ForeignViewCloseV1" @no_raise @c_control(0) @c_result("bool_status") func close()
+end
+
+extern "xge3dSkinPaletteAddRef" @header("xge3d_renderer.h") @no_raise func retainSkinPalette3D(SkinPalette3D value) as c_int
+extern "xge3dSkinPaletteReleaseChecked" @header("xge3d_renderer.h") @no_raise @c_result("status",0) func releaseSkinPalette3D(SkinPalette3D value)
+
 export extern "xge3d_animator*" class Animator @header("xge3d_renderer.h") @lifetime("owned") @policy("xl6Xge3dAnimatorPolicy")
  native point handle
  extern "xge3dAnimatorPlay" @no_raise @c_pack(3,"xge3d_animation_layer_t",2,4) @c_pack_field(3,"time",2,"value") @c_pack_field(3,"speed",3,"value") @c_pack_field(3,"weight",4,"value") @c_pack_field(3,"loop",5,"value") @c_result("status",0) func play(c_int layer,AnimationClip? clip,c_float time=0,c_float speed=1,c_float weight=1,c_int loop=1,c_float fade=0)

@@ -41,6 +41,14 @@ paths. The generic optimization is documented in
 Language thread transfer, model/GPU integration, package DLL initialization and final
 matched delivery are separate remaining work.
 
+For a skinned scene node, `scene.skinPalette(node)` captures the current
+mesh-local matrices in joint order. Acquiring a palette makes one native
+allocation and copies the matrices into independent CPU storage.
+`palette.matrices()` retains that storage and reads the typed records in
+place. A sequence stays readable after its palette, scene and engine close.
+For a single matrix, use `scene.skinMatrix(node, joint)`. See the procedurally
+skinned triangle in [skin_palette.xl](examples/skin_palette.xl).
+
 `createParticles(threeDParticlesDefault())` creates an independent CPU emitter.
 Its `setPosition`, `emit`, `update` and sized `info` methods call the native
 functions directly. Closing it invalidates its language aliases; generic call

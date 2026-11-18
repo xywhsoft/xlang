@@ -1,0 +1,155 @@
+{
+  "complete": true,
+  "passed": true,
+  "releaseInstalled": false,
+  "nativeCommit": "3daeda20ed2cc18a2a366d62ef92e2e7b59fbfc8",
+  "compilerOptimization": "O2",
+  "scope": "Owned mesh-local 3D skin palette and typed immutable traversal",
+  "sourceHashes": {
+    "docs/xge3-xui3-api-map-storage.json": "745a17f670ba8fc81ebe5f9595f407fe3c741299c1fe47835e661ed9feb8166a",
+    "lib/bindings/xge/three_d/README.md": "2eb2e29152faa46296ead7fb837d96130ad5b70f41cce74d65a8454deb414ac8",
+    "lib/bindings/xge/three_d/examples/skin_palette.xl": "16332f935339f9ab17f7b83e66c31007d9b59615273d2932c432484556822311",
+    "lib/bindings/xge/three_d/include/xge3d_renderer.h": "f3915682537c65cf57597e0a0531c376c111356ea61e7d33f9c42996e46e9822",
+    "lib/bindings/xge/three_d/src/animation.xl": "c6b39b9ffd6c460dda00ce498813efb0d19b2ab4d9092d5896d1250f2b82458a",
+    "lib/bindings/xge/three_d/src/scene.xl": "f1fc7d1e0ac2ce1035e0fbe1489179d0ddfa8f45e4ac9016d51ab54a52bcbca3",
+    "test/cases/foreign_xge3d_skin_palette.xl": "3345e09ccc8c062adb7c1aee5e5a25b4caa7873e1445e037c448217608e6e36d"
+  },
+  "nativeHashes": {
+    "include/xge.h": "ef309086c8160410b0c37ebc0fb91d67feecb1d1164b58dc7baa50c85ab5cc58",
+    "src/xge/3d/xge3d_skin.c": "08ec85bc9094747af05d84577a08bba11835deb18542f3250f60585f3a981bf2",
+    "tests/xge/test_3d_skin_palette.c": "ae853a085348d24bf189ad53070b642b116ca10f2a886e8c3e2d2a0456ea839f"
+  },
+  "storageProof": {
+    "path": "F:\\xlang-validation\\xge-full-20261110\\skin-palette3d-storage-review-proof-r2.json",
+    "sha256": "ed7a9d00d45d9243a4a13db19502b480624ea19ada3b81932cb58a651da9a902"
+  },
+  "behavior": [
+    "Palette snapshot uses the current joint order and contains no GPU or scene references.",
+    "Published matrices remain usable after pose updates, node deletion, scene close and checked engine close.",
+    "Retaining GPU resources still makes checked engine close Busy; final CPU-only palette does not.",
+    "The native creator-thread check rejects access, retention and destruction from other threads."
+  ],
+  "results": {
+    "languageStepsPerPlatform": 11,
+    "nativeStepsPerPlatform": 12,
+    "animationRegressionStepsPerPlatform": 6,
+    "cAndCppHeaderStepsPerPlatform": 3,
+    "oomPrefixes": {
+      "snapshot": 3,
+      "sequence": 5
+    },
+    "warmedIterations": 128,
+    "xrtAllocFreeReallocCounts": {
+      "languageAcquire": [
+        1024,
+        1024,
+        0
+      ],
+      "languageTraverse": [
+        0,
+        0,
+        0
+      ],
+      "nativeAcquire": [
+        128,
+        128,
+        0
+      ],
+      "nativeTraverse": [
+        0,
+        0,
+        0
+      ]
+    },
+    "copiedPayloadBytesPerMatrix": 64,
+    "perTraversalCopiesOfBackingArray": 0,
+    "timingCompared": false,
+    "costs": "Snapshot construction copies each matrix once. Language acquisition and projection adds seven measured XRT allocation/free pairs per completed cycle over the equivalent C lifetime contract. Checked admission, independent retention and language bounds checks still apply."
+  },
+  "evidence": {
+    "win": {
+      "nativeSdk": {
+        "path": "F:\\xlang-validation\\xge-full-20261110\\skin-palette3d-sdk-win-r3\\results.json",
+        "sha256": "9ca9b36dabdc92d22690efbd676a2a658c440876bc1a80715a493c91b328258b"
+      },
+      "native": {
+        "path": "F:\\xlang-validation\\xge-full-20261110\\skin-palette3d-native-win-r3\\results.json",
+        "sha256": "740aa10fa935ca6736cd2bb38271a95ebbb3d79782fda6e4a80344861b6eccc7"
+      },
+      "animationRegression": {
+        "path": "F:\\xlang-validation\\xge-full-20261110\\skin-palette3d-animation-regression-win-r1\\results.json",
+        "sha256": "08627dacca26eef26b8783b7450094c10b1042ed80ee4d562737da5e8c9f47f5"
+      },
+      "package": {
+        "path": "F:\\xlang-validation\\xge-full-20261110\\skin-palette3d-packages-win-r4\\results.json",
+        "sha256": "47462cd14afa47112d4c482c484d9575b3738b28b18e919e5eeac8690b5fa178"
+      },
+      "storageReview": {
+        "path": "F:\\xlang-validation\\xge-full-20261110\\skin-palette3d-packages-win-r4\\source-review\\results.json",
+        "sha256": "05f22a9779674ff2d0c6aeeaf5674156f3bf7ecaf6759777e6eb92fd54cd73b8"
+      },
+      "packageSeal": {
+        "path": "F:\\xlang-validation\\xge-full-20261110\\skin-palette3d-packages-win-r4\\packages\\stage-report.json",
+        "sha256": "776821cf5853bc3b06f96dea3157f49bb6b9250d6e46d7acbd63e2b130ebddb2"
+      },
+      "compiler": {
+        "path": "F:\\xlang-validation\\xge-full-20261110\\compiler-native-sequence-fixed-record-win-full-r2\\build.json",
+        "sha256": "5b6e7afe29909931548adb96f01f2f8dd386932d6876a7f55c3b70c25126b05c"
+      },
+      "language": {
+        "path": "F:\\xlang-validation\\xge-full-20261110\\skin-palette3d-language-win-r4\\results.json",
+        "sha256": "cc8aafe52dd9c858ca06c5422f700b41fd7acf952668e994e162439efc32866b"
+      },
+      "allocations": {
+        "path": "F:\\xlang-validation\\xge-full-20261110\\skin-palette3d-perf-win-r2\\results.json",
+        "sha256": "b7eb4a6598da86765761f404a90d5103824983d7bf64364b16e4df2ce2f9bdf1"
+      },
+      "header": {
+        "path": "F:\\xlang-validation\\xge-full-20261110\\skin-palette3d-header-win-r2\\results.json",
+        "sha256": "f0757c6323a43bc6b1a08854acea45a1fd89da672f6bfdc6590eae842e55d36e"
+      }
+    },
+    "linux": {
+      "nativeSdk": {
+        "path": "\\\\wsl.localhost\\Ubuntu\\var\\tmp\\xlang-validation\\xge-full-20261110\\skin-palette3d-sdk-linux-r3\\results.json",
+        "sha256": "cb765ce733c1c39d2e71b0403b98899b758c9900db9e6c25ce004335f1bb34b2"
+      },
+      "native": {
+        "path": "\\\\wsl.localhost\\Ubuntu\\var\\tmp\\xlang-validation\\xge-full-20261110\\skin-palette3d-native-linux-r3\\results.json",
+        "sha256": "f60af50f9d86a67e86c7f0d070d0d8a23e70c8e1e8f9518293a0c03d76ad2e48"
+      },
+      "animationRegression": {
+        "path": "\\\\wsl.localhost\\Ubuntu\\var\\tmp\\xlang-validation\\xge-full-20261110\\skin-palette3d-animation-regression-linux-r1\\results.json",
+        "sha256": "5284676db35ab6180d5b81e448a6b997a270aa64d7e8669eab9fc5bf216c4a33"
+      },
+      "package": {
+        "path": "\\\\wsl.localhost\\Ubuntu\\var\\tmp\\xlang-validation\\xge-full-20261110\\skin-palette3d-packages-linux-r4\\results.json",
+        "sha256": "37cf73fe442fbb9d448a8bfd201d8d51186b9f5aacb6c663ff52a21fd3b36ea3"
+      },
+      "storageReview": {
+        "path": "\\\\wsl.localhost\\Ubuntu\\var\\tmp\\xlang-validation\\xge-full-20261110\\skin-palette3d-packages-linux-r4\\source-review\\results.json",
+        "sha256": "9472b4ef20e585b3c9615752426d5c954d6db29f0954beef596fe4be5d8276ae"
+      },
+      "packageSeal": {
+        "path": "\\\\wsl.localhost\\Ubuntu\\var\\tmp\\xlang-validation\\xge-full-20261110\\skin-palette3d-packages-linux-r4\\packages\\stage-report.json",
+        "sha256": "3f960a900335341fde40981f1cd88f2d48e67f2d8742efc58ed0ac478029cf38"
+      },
+      "compiler": {
+        "path": "\\\\wsl.localhost\\Ubuntu\\var\\tmp\\xlang-validation\\xge-full-20261110\\compiler-native-sequence-fixed-record-linux-full-r2\\build.json",
+        "sha256": "996fd94fd7b3619c406d5dbad3b22b04915ed3888f7a629463231bf760429e4e"
+      },
+      "language": {
+        "path": "\\\\wsl.localhost\\Ubuntu\\var\\tmp\\xlang-validation\\xge-full-20261110\\skin-palette3d-language-linux-r4\\results.json",
+        "sha256": "3cf2466a2fea1dbfd6b039cee3973da5c2e58b79b923bef00f5b10f39723a574"
+      },
+      "allocations": {
+        "path": "\\\\wsl.localhost\\Ubuntu\\var\\tmp\\xlang-validation\\xge-full-20261110\\skin-palette3d-perf-linux-r2\\results.json",
+        "sha256": "c8378827f0d3fc452f5e94f7b7b3a384c4c97fe91996fa4d162007bff7350585"
+      },
+      "header": {
+        "path": "\\\\wsl.localhost\\Ubuntu\\var\\tmp\\xlang-validation\\xge-full-20261110\\skin-palette3d-header-linux-r2\\results.json",
+        "sha256": "556d7151316679b3d1a3d03881e60a8a3fac3256daef910b207eb8f8da405fab"
+      }
+    }
+  }
+}

@@ -1,0 +1,46 @@
+import xge
+import xge3d
+
+xge.init(320, 240, "蒙皮矩阵")
+
+auto scene = xge3d.createScene()
+auto root = xge3d.Xge3dNode()
+auto joint = scene.createNode(root)
+auto body = scene.createNode(root)
+auto a = xge3d.Xge3dVertex()
+auto b = xge3d.Xge3dVertex()
+auto c = xge3d.Xge3dVertex()
+b.position.x = c_float(1)
+c.position.y = c_float(1)
+a.weights[0] = c_float(1)
+b.weights[0] = c_float(1)
+c.weights[0] = c_float(1)
+auto mesh = xge3d.createMesh([a, b, c])
+scene.setMesh(body, mesh)
+mesh.close()
+scene.bindSkin(body, [joint])
+
+auto before = scene.skinPalette(body)
+auto previous = before.matrices()
+before.close()
+
+auto pose = xge3d.Xge3dMat4()
+pose.m[0] = c_float(1)
+pose.m[5] = c_float(1)
+pose.m[10] = c_float(1)
+pose.m[15] = c_float(1)
+pose.m[12] = c_float(2)
+scene.setMatrix(joint, pose)
+auto after = scene.skinPalette(body)
+auto current = after.matrices()
+after.close()
+scene.close()
+xge.unit()
+
+// x 平移位于列主序矩阵的第 12 项。两份快照各自保留采集时的姿态。
+for matrix in previous
+    println("原来的关节 x", matrix.m[12])
+end
+for matrix in current
+    println("移动后的关节 x", matrix.m[12])
+end
