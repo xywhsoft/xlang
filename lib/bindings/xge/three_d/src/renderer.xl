@@ -67,6 +67,7 @@ export extern "xge3d_renderer*" class Renderer @header("xge3d_renderer.h") @life
  extern "xge3dDebugBox" @no_raise @c_ref(0) @c_ref(1) @c_ref(2) @c_result("status",0) func debugBox(Xge3dAabb box,Xge3dMat4 world,c_float[4] color,c_int depthTest=1)
  extern "xge3dDebugAxes" @no_raise @c_ref(0) @c_result("status",0) func debugAxes(Xge3dMat4 world,c_float axisLength,c_int depthTest=1)
  extern "xge3dDebugSkeleton" @no_raise @c_ref(2) @c_result("status",0) func debugSkeleton(Scene scene,Xge3dNode node,c_float[4] color,c_int depthTest=1)
+ extern "xge3dDebugShapeSettings" @no_raise @c_ref(0) @c_ref(2) @c_ref(3) @c_result("status",0) func debugShape(Xge3dShapeSettings shape,Mesh3D? mesh,Xge3dMat4 world,c_float[4] color,c_int depthTest=1)
  extern "xl6ForeignViewCloseV1" @no_raise @c_control(0) @c_result("bool_status") func close()
 end
 

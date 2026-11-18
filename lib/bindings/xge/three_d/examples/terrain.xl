@@ -1,0 +1,17 @@
+import xge
+import xge3d
+
+// 两行、每行两个 U16 高度。每个样本占两个字节。
+auto heights = b"\x00\x00\x02\x00\x00\x00\x02\x00"
+auto options = xge3d.terrainOptions()
+options.width = c_size(2)
+options.depth = c_size(2)
+options.format = xge.XGE3D_HEIGHT_U16
+options.height_scale = c_float(0.5)
+options.lod_count = c_int(1)
+
+auto terrain = xge3d.createTerrain(heights, options)
+auto status, height, normal = terrain.sample(0, c_float(0.5), c_float(0.5))
+assert status == xge.XGE_OK
+println("地形中心高度", height)
+terrain.close()

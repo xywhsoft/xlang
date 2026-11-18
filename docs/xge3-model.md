@@ -143,3 +143,43 @@ Explicit mask, binding and joint arrays incur temporary projection
 storage before the native copy.
 
 [Animation example](../lib/bindings/xge/three_d/examples/animation.xl)
+
+## Terrain and collision
+
+`terrainOptions()` supplies native defaults. Set width, depth and the
+format of the input samples before calling `createTerrain()`. It accepts
+a `bytes` or `Buffer` of native-endian U16 or F32 heights. A zero row
+stride selects tightly packed samples. The constructor checks that the
+last complete row fits before reading and copies the input into native
+terrain storage.
+
+Use `sample()` and `raycast()` in terrain-local coordinates with an explicit
+LOD. `scene.instantiate(terrain)` creates the chunk nodes and assigns their
+LODs. Both an instance and a `chunkMesh()` result can outlive the terrain.
+The generated meshes are immutable so their geometry stays in sync with
+the terrain's height grid.
+
+Use `shapeSettings()` for sphere, box and capsule settings, or pass a
+`Mesh3D` alongside the mesh shape kind to `scene.setCollider()`. The
+scene retains that mesh, and `colliderMesh()` acquires a separate reference.
+Collision uses its own layer mask and optional excluded subtree. Render
+visibility does not affect collision queries. `sweep()` and
+`collisionRaycast()` return the native status and a hit. `moveShape()`
+returns a proposed displacement, recovery, remainder and contact normals.
+The caller applies any resulting movement.
+
+`queryAabb()` and `overlap()` reuse a `createNodeResults()` buffer.
+`contacts()` uses a `createContactResults()` buffer. After a
+`BUFFER_TOO_SMALL` result, `info().written` is the number of accessible
+entries and `info().required` is the capacity needed for all matches.
+With zero capacity the query counts only. The next query or successful
+resize replaces the buffer's entries. `nodeAt()` and `contactAt()` return
+independent value records.
+
+On Windows and Linux, 1,024 iterations of terrain sampling, overlap and
+reading a result from a preallocated buffer performed zero XRT heap
+operations in both xlang and handwritten C. Terrain creation copies the
+height grid, and query buffer creation or capacity growth allocates storage.
+
+[Terrain example](../lib/bindings/xge/three_d/examples/terrain.xl) ·
+[Collision example](../lib/bindings/xge/three_d/examples/collision.xl)

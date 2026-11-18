@@ -40,6 +40,14 @@ XL6_XGE3D_CHECKED_OWNER(xl6Xge3dAnimatorPolicy,xge3d_animator,"xge3d.animation.a
 #define xl6Xge3dClipPolicy (*xl6Xge3dClipPolicyGet())
 #define xl6Xge3dAnimatorPolicy (*xl6Xge3dAnimatorPolicyGet())
 #endif
+#if XGE3D_ENABLE_TERRAIN
+XL6_XGE3D_CHECKED_OWNER(xl6Xge3dTerrainPolicy,xge3d_terrain,"xge3d.terrain",xge3dTerrainReleaseOwnerChecked)
+#define xl6Xge3dTerrainPolicy (*xl6Xge3dTerrainPolicyGet())
+#endif
+#if XGE3D_ENABLE_COLLISION
+XL6_XGE3D_CHECKED_OWNER(xl6Xge3dQueryResultsPolicy,xge3d_query_results,"xge3d.query-results",xge3dQueryResultsRelease)
+#define xl6Xge3dQueryResultsPolicy (*xl6Xge3dQueryResultsPolicyGet())
+#endif
 #undef XL6_XGE3D_CHECKED_OWNER
 #define xl6Xge3dRendererPolicy (*xl6Xge3dRendererPolicyGet())
 #define xl6Xge3dTexturePolicy (*xl6Xge3dTexturePolicyGet())

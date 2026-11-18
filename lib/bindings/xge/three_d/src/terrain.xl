@@ -1,0 +1,28 @@
+export extern "xge3d_terrain_options_t" struct Xge3dTerrainOptions @header("xge3_runtime.h")
+ c_size width
+ c_size depth
+ c_size stride
+ c_int format
+ c_float cell_size
+ c_float height_scale
+ c_float height_offset
+ c_size chunk_cells
+ c_int lod_count
+ c_float lod_distances[3]
+ c_float skirt_depth
+end
+
+export extern "xge3d_terrain*" class Terrain @header("xge3d_renderer.h") @lifetime("owned") @policy("xl6Xge3dTerrainPolicy")
+ native point handle
+ extern "xge3dTerrainInfoChecked" @no_raise @c_const(0) @c_output(1,0) func info() as Xge3dTerrainInfo
+ extern "xge3dTerrainChunkMeshOwned" @no_raise @c_const(0) @c_result("owned_view") @factory(3,0,releaseMesh3D) func chunkMesh(c_size chunk,c_int lod=0) as Mesh3D
+ extern "xge3dTerrainChunkPosition" @no_raise @c_const(0) @c_output(2,0) func chunkPosition(c_size chunk) as Xge3dVec3
+ extern "xge3dTerrainSample" @no_raise @c_const(0) @c_outputs(-1,4,5) func sample(c_int lod,c_float x,c_float z) as (c_int,c_float,Xge3dVec3)
+ extern "xge3dTerrainRaycast" @no_raise @c_const(0) @c_ref(1) @c_outputs(-1,4,5) func raycast(c_int lod,Xge3dRay ray,c_float maxDistance) as (c_int,Xge3dHit,c_size)
+ extern "xl6ForeignViewCloseV1" @no_raise @c_control(0) @c_result("bool_status") func close()
+end
+
+extern "xge3dTerrainReleaseChecked" @header("xge3d_renderer.h") @no_raise @c_result("status",0) func releaseTerrain(Terrain value)
+export extern "xge3dTerrainOptionsDefault" @header("xge3d_renderer.h") @no_raise func terrainOptions() as Xge3dTerrainOptions
+export extern "xge3dTerrainCreateOwned" @header("xge3d_renderer.h") @no_raise @c_span(0,"const void*","size_t") @c_ref(1) @c_result("owned_view") @factory(4,0,releaseTerrain) func createTerrain(bytes heights,Xge3dTerrainOptions options,Material3D? material=null) as Terrain
+export extern "xge3dTerrainCreateOwned" @header("xge3d_renderer.h") @no_raise @c_span(0,"const void*","size_t") @c_ref(1) @c_result("owned_view") @factory(4,0,releaseTerrain) func createTerrain(Buffer heights,Xge3dTerrainOptions options,Material3D? material=null) as Terrain

@@ -1,0 +1,172 @@
+import xge
+import xge3d
+from xge3d import Mesh3D
+
+func identity() as xge3d.Xge3dMat4
+    auto m = xge3d.Xge3dMat4()
+    m.m[0] = c_float(1)
+    m.m[5] = c_float(1)
+    m.m[10] = c_float(1)
+    m.m[15] = c_float(1)
+    return m
+end
+
+func main(...) as int
+    xge.init(64, 64, "Terrain and collision")
+    auto options = xge3d.terrainOptions()
+    options.width = c_size(2)
+    options.depth = c_size(2)
+    options.stride = c_size(6)
+    options.format = xge.XGE3D_HEIGHT_U16
+    options.height_scale = c_float(0.5)
+    options.lod_count = c_int(2)
+    bool truncated = false
+    try
+        auto invalid = xge3d.createTerrain(b"\0\0", options)
+        invalid.close()
+    catch Error
+        truncated = true
+    end
+    assert truncated and xge.graphicsResourceCount() == uint64(0)
+
+    auto source = Buffer(b"\0\0\x02\0xy\0\0\x02\0")
+    auto materialOptions = xge3d.materialDefault()
+    materialOptions.unlit = c_int(1)
+    auto material = xge3d.createMaterial(materialOptions)
+    auto terrain = xge3d.createTerrain(source, options, material)
+    material.close()
+    assert source.clear()
+    assert terrain.info().chunk_count == c_size(1)
+    auto sampled, height, normal = terrain.sample(0, c_float(0.5), c_float(0.5))
+    assert sampled == xge.XGE_OK and height == c_float(0.5) and normal.y > c_float(0)
+    auto outOfBounds, unusedHeight, unusedNormal = terrain.sample(0, c_float(-1), c_float(0))
+    assert outOfBounds == xge.XGE_ERROR_NOT_FOUND
+    auto ray = xge3d.Xge3dRay()
+    ray.origin.x = c_float(0.5)
+    ray.origin.y = c_float(5)
+    ray.origin.z = c_float(0.5)
+    ray.direction.y = c_float(-1)
+    auto hitStatus, hit, chunk = terrain.raycast(0, ray, c_float(10))
+    assert hitStatus == xge.XGE_OK and hit.position.y == c_float(0.5) and chunk == c_size(0)
+    assert terrain.chunkPosition(c_size(0)).x == c_float(0.5)
+
+    auto mesh = terrain.chunkMesh(c_size(0), 1)
+    auto renderScene = xge3d.createScene()
+    auto land = renderScene.instantiate(terrain)
+    terrain.close()
+    auto view = identity()
+    view.m[5] = c_float(0)
+    view.m[6] = c_float(1)
+    view.m[9] = c_float(-1)
+    view.m[10] = c_float(0)
+    view.m[12] = c_float(-0.5)
+    view.m[13] = c_float(0.5)
+    view.m[14] = c_float(-4)
+    renderScene.setMatrix(land, view)
+    assert mesh.info().indices > uint64(0)
+    bool immutable = false
+    try
+        mesh.update([])
+    catch Error
+        immutable = true
+    end
+    assert immutable
+
+    auto scene = xge3d.createScene()
+    auto none = xge3d.Xge3dNode()
+    auto wall = scene.createNode(none)
+    auto solid = xge3d.shapeSettings(xge.XGE3D_SHAPE_BOX)
+    solid.center.x = c_float(2)
+    scene.setCollider(wall, solid)
+    auto twin = scene.cloneNode(wall)
+    auto settingsStatus, settings = scene.collider(wall)
+    assert settingsStatus == xge.XGE_OK and settings.center.x == c_float(2)
+    assert scene.colliderMesh(wall) == null
+    auto meshNode = scene.createNode(none)
+    scene.setCollider(meshNode, xge3d.shapeSettings(xge.XGE3D_SHAPE_MESH), mesh)
+    auto retained = scene.colliderMesh(meshNode) as Mesh3D
+    scene.clearCollider(meshNode)
+    mesh.close()
+    assert retained.info().indices > uint64(0)
+    retained.close()
+
+    auto results = xge3d.createNodeResults(c_size(1))
+    auto contacts = xge3d.createContactResults(c_size(1))
+    auto filter = xge3d.collisionFilter()
+    auto sphere = xge3d.shapeSettings()
+    auto at = identity()
+    at.m[12] = c_float(2)
+    assert scene.overlap(sphere, at, filter, results) == xge.XGE_ERROR_BUFFER_TOO_SMALL
+    assert results.info().written == c_size(1) and results.info().required == c_size(2)
+    assert results.nodeAt(c_size(0)).slot != uint64(0)
+    assert scene.contacts(sphere, at, filter, contacts) == xge.XGE_ERROR_BUFFER_TOO_SMALL
+    assert contacts.contactAt(c_size(0)).depth > c_float(0)
+    results.resize(c_size(0))
+    assert scene.overlap(sphere, at, filter, results) == xge.XGE_OK
+    assert results.info().written == c_size(0) and results.info().required == c_size(2)
+    assert scene.overlap(sphere, at, filter, contacts) == xge.XGE_ERROR_INVALID_ARGUMENT
+    filter.exclude = twin
+    contacts.resize(c_size(2))
+    assert scene.contacts(sphere, at, filter, contacts) == xge.XGE_OK
+    assert contacts.info().written == c_size(1)
+
+    auto movement = xge3d.Xge3dVec3()
+    movement.x = c_float(4)
+    auto swept, impact = scene.sweep(sphere, identity(), movement, filter)
+    assert swept == xge.XGE_OK and impact.node.slot == wall.slot
+    assert impact.distance > c_float(0.99) and impact.distance <= c_float(1.001)
+    auto motion = xge3d.motionSettings()
+    assert motion.iterations == 8 and motion.margin > c_float(0) and motion.max_recovery == c_float(1)
+    auto moved = scene.moveShape(sphere, identity(), movement, filter, motion)
+    assert moved.displacement.x > c_float(0.9) and moved.displacement.x <= c_float(1.001)
+    assert moved.contact_count > 0
+    ray = xge3d.Xge3dRay()
+    ray.direction.x = c_float(1)
+    auto cast, crossing = scene.collisionRaycast(ray, c_float(10), filter)
+    assert cast == xge.XGE_OK and crossing.node.slot == wall.slot
+    assert scene.collisionStats().colliders == c_size(2)
+
+    auto boundsStatus, landBounds = renderScene.bounds(land, 1)
+    assert boundsStatus == xge.XGE_OK
+    results.resize(c_size(2))
+    assert renderScene.queryAabb(landBounds, xge3d.queryFilter(), results) == xge.XGE_OK
+    assert results.info().written == c_size(1)
+    results.close()
+    contacts.close()
+    scene.close()
+
+    xge.run(func() as c_int
+        assert xge.begin() == 0
+        auto renderer = xge3d.createRenderer()
+        auto target = xge3d.createRenderTarget(24, 24)
+        auto camera = xge3d.orthographicCamera(c_float(2), c_float(2), c_float(0.1), c_float(10))
+        c_float[4] color
+        color[0] = c_float(1)
+        color[3] = c_float(1)
+        renderer.debugShape(solid, null, identity(), color)
+        c_float[4] clear
+        clear[3] = c_float(1)
+        assert renderer.renderTo(renderScene, camera, target, clear).triangles >= uint64(2)
+        auto pixels = Buffer()
+        assert pixels.resize(24 * 24 * 4)
+        target.readPixels(pixels)
+        bool sawTerrain = false
+        for i in range(576)
+            if pixels.byteAt(i * 4 + 1) > 0 then
+                sawTerrain = true
+                break
+            end
+        end
+        assert sawTerrain
+        target.close()
+        renderer.close()
+        assert xge.nativeEnd() == 0
+        return c_int(1)
+    end)
+    xge.setFrameCallback(null)
+    renderScene.close()
+    assert xge.graphicsResourceCount() == uint64(0)
+    xge.unit()
+    println("TERRAIN_COLLISION3D_LANGUAGE_GPU_OK")
+    return 0
+end

@@ -19,6 +19,8 @@
       "src/model.xl",
       "src/animation.xl",
       "src/model_loader.xl",
+      "src/terrain.xl",
+      "src/collision.xl",
       "src/scene.xl",
       "src/renderer.xl"
     ],

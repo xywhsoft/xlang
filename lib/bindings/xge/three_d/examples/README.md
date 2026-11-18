@@ -50,6 +50,9 @@ publishes only after the instance is complete.
 `animation.xl` plays a separate motion clip on a model and reads a bone
 position after updating the pose. Both fixtures are included in `assets/`.
 
+`terrain.xl` samples a two-by-two U16 height grid. `collision.xl` sweeps
+a sphere toward a box and prints the distance to first contact.
+
 `destroyStep` immediately retires the entire subtree logically, including when
 `budget.nodes` is zero. Its return value is zero until all nodes are physically
 removed, then one. Continue with the original root handle while incomplete;

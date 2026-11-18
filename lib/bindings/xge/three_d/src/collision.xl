@@ -1,0 +1,30 @@
+export extern "xge3d_shape_settings_t" struct Xge3dShapeSettings @header("xge3_runtime.h")
+ c_int type
+ Xge3dVec3 center
+ Xge3dVec3 half_extents
+ c_float radius
+ c_float half_height
+end
+
+export extern "xge3d_query_results_info_t" struct Xge3dQueryResultsInfo @header("xge3_runtime.h")
+ c_size capacity
+ c_size written
+ c_size required
+end
+
+export extern "xge3d_query_results*" class QueryResults @header("xge3d_renderer.h") @lifetime("owned") @policy("xl6Xge3dQueryResultsPolicy")
+ native point handle
+ extern "xge3dQueryResultsResize" @no_raise @c_result("status",0) func resize(c_size capacity)
+ extern "xge3dQueryResultsInfo" @no_raise @c_const(0) @c_output(1,0) func info() as Xge3dQueryResultsInfo
+ extern "xge3dQueryResultsNodeAt" @no_raise @c_const(0) @c_output(2,0) func nodeAt(c_size index) as Xge3dNode
+ extern "xge3dQueryResultsContactAt" @no_raise @c_const(0) @c_output(2,0) func contactAt(c_size index) as Xge3dContact
+ extern "xl6ForeignViewCloseV1" @no_raise @c_control(0) @c_result("bool_status") func close()
+end
+
+extern "xge3dQueryResultsReleaseChecked" @header("xge3d_renderer.h") @no_raise @c_result("status",0) func releaseQueryResults(QueryResults value)
+export extern "xge3dNodeResultsCreate" @header("xge3d_renderer.h") @no_raise @c_result("owned_view") @factory(1,0,releaseQueryResults) func createNodeResults(c_size capacity) as QueryResults
+export extern "xge3dContactResultsCreate" @header("xge3d_renderer.h") @no_raise @c_result("owned_view") @factory(1,0,releaseQueryResults) func createContactResults(c_size capacity) as QueryResults
+export extern "xge3dShapeSettingsDefault" @header("xge3d_renderer.h") @no_raise func shapeSettings(c_int kind=0) as Xge3dShapeSettings
+export extern "xge3dCollisionFilterDefault" @header("xge3d_renderer.h") @no_raise func collisionFilter() as Xge3dCollisionFilter
+export extern "xge3dQueryFilterDefault" @header("xge3d_renderer.h") @no_raise func queryFilter() as Xge3dQueryFilter
+export extern "xge3dMotionDefaultInto" @header("xge3d_renderer.h") @no_raise @c_output(0) func motionSettings() as Xge3dMotionSettings

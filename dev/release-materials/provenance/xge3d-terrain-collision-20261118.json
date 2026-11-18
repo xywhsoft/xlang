@@ -1,0 +1,105 @@
+{
+  "date": "2026-11-18",
+  "scope": "Managed heightfield terrain, colliders and reusable 3D scene query results",
+  "complete": true,
+  "passed": true,
+  "xgeParent": "6f66e936e38af837f84f80ec182b4895bdeb8647",
+  "xlangParent": "36f543916cfb9ae3cebaa8558813f89290a89e88",
+  "xrtCommit": "804cc769de3030118c2b46ef7af69543d1b82d9d",
+  "nativeSources": {
+    "include/xge.h": "29347e1a441b7af2aa8deff9be300518539e6f680c0fa542629c0e88945e918b",
+    "src/xge/3d/xge3d_terrain.c": "92f244b61ef6efd996c4eb31f8a1ba821d35a35b87edd84a58d9d7d11d151f60",
+    "src/xge/3d/xge3d_collision.c": "199c3b3e84da32985211fab8422131259f838deb05ecfb1f9fe1c396dcdd1acf",
+    "src/xge/3d/xge3d_internal.h": "1bafa7005d68395a5aac4a8d4dddc2669c34eec462bcf01f84b1ad394458c6e6",
+    "src/xge/3d/xge3d_render.c": "a8203810eaf74dbe8ed63ec4f0122b24967b89599deffbcfac67f740deacb1b9",
+    "src/xge/3d/xge3d_draw.inc": "27cec0b080108a6d970b37b28499faff27877d7fd3af72b2a34171ac20aaccff",
+    "src/xge/3d/xge3d_motion.inc": "f6a33c1167bf127e0205370ab53ab2eed06b40ae2db7f6276adcd7f5829fd80d",
+    "tests/xge/test_3d_terrain_collision_owned.c": "b13459a3c51df686564693c094dbeed30a53fc5e489b118493deec4696079df7"
+  },
+  "languageSources": {
+    "lib/bindings/xge/three_d/xlang.package.json": "d9238fcb60a2a4f2d221ca136fe0799415a043c373dc806548bb0b6238b1e760",
+    "lib/bindings/xge/three_d/examples/collision.xl": "86b5df67a0048ed6114af1be75e4f6a6496011240f0c06714f17f0b8a911770b",
+    "lib/bindings/xge/three_d/examples/terrain.xl": "0809e3cd98dd160e5efec578a124942abf691cc63b74226d44df769a35cec8dc",
+    "lib/bindings/xge/three_d/include/xge3d_renderer.h": "c504ef6e824541c3eb3b6a055ec0d9d3722f003e1f0462e2343d88ad281a77f8",
+    "lib/bindings/xge/three_d/src/collision.xl": "0a99a411e23edf91ece5363a3875aa619140a5de656fd87e020b8d0f19436611",
+    "lib/bindings/xge/three_d/src/renderer.xl": "c5181b53d4eef52244e48cd5534b90437996731597b5c157c98bf47a9ae74d38",
+    "lib/bindings/xge/three_d/src/scene.xl": "60af34c15d39183079fed4c8efc83d7d4df2160ebb7f96c56f734923dad7683a",
+    "lib/bindings/xge/three_d/src/terrain.xl": "cbd11f5816981456988a87bae5b0d295e4e0591b4189855c6fcd133660c69db6",
+    "test/cases/foreign_xge3d_terrain_collision.xl": "f80c4ef871f1abba7ef3f01a9c56cb9912ba5ac691e0f73c42dda7083a0a4757",
+    "docs/xge3-model.md": "ec206de7dd32855dfe0b0f3d29a73a88cfbe35dd72cb0c9a38f8a9c90968f2e5",
+    "lib/bindings/xge/three_d/examples/README.md": "eaa7a40f122863c203b8c7ba4d3bad5589344f85450177205b60eef75d6a0552"
+  },
+  "evidence": {
+    "win": {
+      "sdk": {
+        "path": "F:\\xlang-validation\\xge-full-20261110\\spatial3d-sdk-win-r3\\results.json",
+        "sha256": "edad924fae635b3e5281ad57db1ed511c061a7507324ec4203eb9b9a15a9430c"
+      },
+      "native": {
+        "path": "F:\\xlang-validation\\xge-full-20261110\\spatial3d-native-win-r3\\results.json",
+        "sha256": "4fb255bfc91281f518837bb291cf402b10b6ef224dee58413b327beb63b6febc"
+      },
+      "packages": {
+        "path": "F:\\xlang-validation\\xge-full-20261110\\spatial3d-packages-win-r4\\results.json",
+        "sha256": "8c34811601b092ce07bd4003a5e47dd92ee3fb77e1ebf46c4bd03e87dc964827"
+      },
+      "language": {
+        "path": "F:\\xlang-validation\\xge-full-20261110\\spatial3d-language-win-r4\\results.json",
+        "sha256": "16a04dc0ce5329473df8bed5d4e8afd9326168339ff4b2d83836480669119c03"
+      },
+      "performance": {
+        "path": "F:\\xlang-validation\\xge-full-20261110\\spatial3d-perf-win-r2\\results.json",
+        "sha256": "5aa8847bb750d5db2ffdc0fb8765218bee579fb40debb19263f24d5a83cb7dc3"
+      }
+    },
+    "linux": {
+      "sdk": {
+        "path": "\\\\wsl.localhost\\Ubuntu\\var\\tmp\\xlang-validation\\xge-full-20261110\\spatial3d-sdk-linux-r3\\results.json",
+        "sha256": "5fbb8f90c2e426799aab7bf491f2873b7c10b3ae6c946100e19c94d4bf118f10"
+      },
+      "native": {
+        "path": "\\\\wsl.localhost\\Ubuntu\\var\\tmp\\xlang-validation\\xge-full-20261110\\spatial3d-native-linux-r3\\results.json",
+        "sha256": "ebcd9449b8e944ecee1f3dcbd3989aad1a456aab187138942724b76442e37125"
+      },
+      "packages": {
+        "path": "\\\\wsl.localhost\\Ubuntu\\var\\tmp\\xlang-validation\\xge-full-20261110\\spatial3d-packages-linux-r4\\results.json",
+        "sha256": "25ceb4058e990ee7ff64d67c037435cea9488b4ac9b8663fc62604e18fce4490"
+      },
+      "language": {
+        "path": "\\\\wsl.localhost\\Ubuntu\\var\\tmp\\xlang-validation\\xge-full-20261110\\spatial3d-language-linux-r4\\results.json",
+        "sha256": "6c44c08301cc5ca5ebcea86fb32570eea7bff408325dd1b0f0a9248771eb871b"
+      },
+      "performance": {
+        "path": "\\\\wsl.localhost\\Ubuntu\\var\\tmp\\xlang-validation\\xge-full-20261110\\spatial3d-perf-linux-r3\\results.json",
+        "sha256": "76eaa29e3dfdba3932cd81d56504a05ec94aba90d25814bce848657ead0a18ca"
+      }
+    }
+  },
+  "checks": [
+    "Windows and Linux hosted JIT and AOT, static executable and shared module",
+    "managed native host and static gates at O0/O2, with raw terrain, collision and motion regressions",
+    "F32/U16 row stride, short span rejection and independent height-grid storage",
+    "immutable chunk mesh and retained material, terrain instance survives source close",
+    "scene mesh collider ownership, ray/overlap/contact/sweep/movement and checked status",
+    "query output prefixes and required capacity, count-only and resize allocation rollback",
+    "mixed-class motion defaults use an output record across the Linux JIT ABI",
+    "16 terrain creation allocation failures, wrong-thread rejection and offscreen readback"
+  ],
+  "performance": {
+    "iterationsPerPlatform": 1024,
+    "allocationsWarmPerLoop": {
+      "xlang": 0,
+      "C": 0
+    },
+    "costs": [
+      "height samples copied into float storage; vertices and indices built during terrain creation",
+      "query result buffer storage allocated at creation and growth",
+      "typed result records copied into language values"
+    ],
+    "cpuTimeEquivalenceClaim": false
+  },
+  "releaseInstalled": false,
+  "networkTests": false,
+  "next": "Managed 3D asset cache, retirement and declarative scene loading",
+  "xgeCommit": "b5579837fbbf578b0d7328f91625531e7b128700"
+}

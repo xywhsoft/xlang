@@ -1,0 +1,22 @@
+import xge
+import xge3d
+
+auto scene = xge3d.createScene()
+auto obstacle = scene.createNode(xge3d.Xge3dNode())
+auto box = xge3d.shapeSettings(xge.XGE3D_SHAPE_BOX)
+box.center.x = c_float(2)
+scene.setCollider(obstacle, box)
+
+auto sphere = xge3d.shapeSettings(xge.XGE3D_SHAPE_SPHERE)
+auto world = xge3d.Xge3dMat4()
+world.m[0] = c_float(1)
+world.m[5] = c_float(1)
+world.m[10] = c_float(1)
+world.m[15] = c_float(1)
+auto motion = xge3d.Xge3dVec3()
+motion.x = c_float(4)
+
+auto status, hit = scene.sweep(sphere, world, motion, xge3d.collisionFilter())
+assert status == xge.XGE_OK
+println("首次碰撞的移动距离", hit.distance)
+scene.close()

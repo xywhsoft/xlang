@@ -47,6 +47,19 @@ export extern "xge3d_scene*" class Scene @header("xge3d_scene.h") @lifetime("own
  extern "xge3dSceneRaycast" @no_raise @c_ref(0) @c_outputs(-1,3) func raycast(Xge3dRay ray,c_float maxDistance) as (c_int,Xge3dHit)
  extern "xge3dSceneRaycastEx" @no_raise @c_ref(0) @c_ref(2) @c_outputs(-1,4) func raycast(Xge3dRay ray,c_float maxDistance,Xge3dQueryFilter filter) as (c_int,Xge3dHit)
  extern "xge3dScenePrepareSpatial" @no_raise @c_result("status",0) func prepareSpatial()
+ extern "xge3dNodeClone" @no_raise @c_output(4,0) func cloneNode(Xge3dNode root,Xge3dNode parent=Xge3dNode(),c_uint flags=0) as Xge3dNode
+ extern "xge3dTerrainInstantiate" @no_raise @c_output(3,0) func instantiate(Terrain terrain,Xge3dNode parent=Xge3dNode()) as Xge3dNode
+ extern "xge3dNodeSetColliderSettings" @no_raise @c_ref(1) @c_result("status",0) func setCollider(Xge3dNode node,Xge3dShapeSettings shape,Mesh3D? mesh=null)
+ extern "xge3dNodeSetCollider" @no_raise @c_null(2,"const xge3d_shape_t*") @c_result("status",0) func clearCollider(Xge3dNode node)
+ extern "xge3dNodeColliderSettings" @no_raise @c_outputs(-1,2) func collider(Xge3dNode node) as (c_int,Xge3dShapeSettings)
+ extern "xge3dNodeColliderMeshOwned" @no_raise @c_result("owned_view") @factory(2,0,releaseMesh3D) func colliderMesh(Xge3dNode node) as Mesh3D?
+ extern "xge3dSceneCollisionStats" @no_raise @c_output(1,0) func collisionStats() as Xge3dCollisionStats
+ extern "xge3dSceneQueryAabbInto" @no_raise @c_ref(0) @c_ref(1) func queryAabb(Xge3dAabb box,Xge3dQueryFilter filter,QueryResults results) as c_int
+ extern "xge3dSceneOverlapInto" @no_raise @c_ref(0) @c_ref(1) @c_ref(2) func overlap(Xge3dShapeSettings shape,Xge3dMat4 world,Xge3dCollisionFilter filter,QueryResults results) as c_int
+ extern "xge3dSceneContactInto" @no_raise @c_ref(0) @c_ref(1) @c_ref(2) func contacts(Xge3dShapeSettings shape,Xge3dMat4 world,Xge3dCollisionFilter filter,QueryResults results) as c_int
+ extern "xge3dSceneSweepSettings" @no_raise @c_ref(0) @c_ref(1) @c_ref(3) @c_outputs(-1,5) func sweep(Xge3dShapeSettings shape,Xge3dMat4 world,Xge3dVec3 movement,Xge3dCollisionFilter filter) as (c_int,Xge3dCollisionHit)
+ extern "xge3dSceneCollisionRaycast" @no_raise @c_ref(0) @c_ref(2) @c_outputs(-1,4) func collisionRaycast(Xge3dRay ray,c_float maxDistance,Xge3dCollisionFilter filter) as (c_int,Xge3dCollisionHit)
+ extern "xge3dSceneMoveSettings" @no_raise @c_ref(0) @c_ref(1) @c_ref(3) @c_ref(4) @c_output(6,0) @c_output_size(6,"size") func moveShape(Xge3dShapeSettings shape,Xge3dMat4 world,Xge3dVec3 movement,Xge3dCollisionFilter filter,Xge3dMotionSettings options) as Xge3dMotionResult
  extern "xge3dNodeSetLight" @no_raise @c_ref(1) @c_result("status",0) func setLight(Xge3dNode node,Xge3dLightDesc light)
  extern "xge3dNodeSetLight" @no_raise @c_null(2,"const xge3d_light_desc_t*") @c_result("status",0) func clearLight(Xge3dNode node)
  extern "xge3dNodeSetShadowFlags" @no_raise @c_result("status",0) func setShadowFlags(Xge3dNode node,c_uint flags)
