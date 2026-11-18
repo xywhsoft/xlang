@@ -4,6 +4,20 @@
   "sourceRoot": "D:\\GIT\\xge",
   "runtimeAcceptance": false,
   "entries": {
+    "xuiMessageListSetNodeRendererOwned": {
+      "bindingFile": "lib\\bindings\\xui\\src\\managed.xl",
+      "declaration": "extern \"xuiMessageListSetNodeRendererOwned\" @no_raise @c_owned_callback(0,0,\"xui_callback_owner_t\",-16) @c_result(\"status\",0) func setNodeRenderer(MessageNodeRenderProc? renderer)",
+      "storage": "owned-callback",
+      "sourceFile": "src/xui/controls/xui_message_list.c",
+      "line": 4444,
+      "functionSha256": "90065133b2ee2f2aafc21e6fd5cc792207787567f095f65cd29969c4da8a953e",
+      "dependencies": [
+        {
+          "sourceFile": "src/xui/controls/xui_message_list.c",
+          "lfSha256": "dfc8717fb0d904b4553405e9e4afb6bd2018f4bce0b8e000990fe9daae545902"
+        }
+      ]
+    },
     "xuiMessageListSetNodes": {
       "bindingFile": "lib\\bindings\\xui\\src\\managed.xl",
       "declaration": "extern \"xuiMessageListSetNodes\" @no_raise @c_array_group(1,0,9,\"int\",9) @c_array_record(1,\"xui_message_node_t\",\"iSize\",\"uint32_t\") @c_array_field(1,\"sId\",0,\"c_string\") @c_array_field(1,\"sText\",1,\"c_string\") @c_array_field(1,\"sSender\",2,\"c_string\") @c_array_field(1,\"sTime\",3,\"c_string\") @c_array_field(1,\"sParentId\",4,\"c_string\") @c_array_field(1,\"sTitle\",5,\"c_string\") @c_array_field(1,\"iType\",6,\"value\") @c_array_field(1,\"iFlags\",7,\"value\") @c_array_field(1,\"iAuxiliaryKind\",8,\"value\") @c_result(\"status\",0) func setNodes(array<string> ids,array<string?> texts,array<string?> senders,array<string?> times,array<string?> parentIds,array<string?> titles,array<c_int> types,array<c_int> flags,array<c_int> auxiliaryKinds,int size=-1)",

@@ -1,0 +1,201 @@
+import xui
+from xui import CallbackConstMessageNode, CallbackDrawContext, CallbackWidget
+
+extern "messageRendererProxy" @header("test/cases/foreign_xui_message_renderer.h") @no_raise @c_result("owned_view") @factory(0,0,dropProxy) func cpuProxy() as xui.Proxy
+extern "xuiProxyReleaseChecked" @header("xge3_runtime.h") @no_raise @c_result("status",0) func dropProxy(xui.Proxy value)
+extern "fixtureRenderFont" @no_raise @c_result("owned_view") @factory(1,0,dropFont) func cpuFont(xui.Proxy proxy) as xui.Font
+extern "xuiFontReleaseChecked" @no_raise @c_result("status",0) func dropFont(xui.Font value)
+extern "fixtureRenderSurface" @no_raise @c_result("owned_view") @factory(1,0,dropSurface) func cpuSurface(xui.Proxy proxy) as xui.Surface
+extern "xuiSurfaceReleaseChecked" @no_raise @c_result("status",0) func dropSurface(xui.Surface value)
+extern "fixtureRenderBalanced" @no_raise func balanced() as c_int
+extern "fixtureRenderSawText" @no_raise @c_cstr(0) func sawText(string text) as c_int
+extern "fixtureRenderResetText" @no_raise func resetText()
+extern "fixtureRenderBudget" @no_raise func budget(c_int allowance)
+extern "messageRendererFillCount" @no_raise func fillCount() as c_int
+extern "messageRendererInstallNative" @no_raise @c_result("status",0) func installNative(xui.MessageList messages)
+extern "messageRendererHeapBegin" @no_raise func heapBegin()
+extern "messageRendererHeapEnd" @no_raise func heapEnd(c_int mode)
+
+const c_uint COLOR = 0x3B82F6FF
+
+func refresh(xui.Context ui, xui.MessageList view, xui.Surface target)
+    assert view.invalidate(c_uint(xui.XUI_WIDGET_DIRTY_CACHE)) == 0, "invalidate message cache"
+    assert ui.invalidateAll() == 0, "invalidate composition"
+    ui.render(target)
+end
+
+func verifyCallback(xui.Context ui, xui.Proxy proxy, xui.MessageList view, xui.Surface target)
+    array<int> mode = [0]
+    int messagesDrawn = 0
+    xui.CallbackConstMessageNode? savedNode = null
+    xui.CallbackDrawContext? savedDraw = null
+    xui.CallbackWidget? savedSender = null
+    string keptText = ""
+    view.setNodeRenderer(func(xui.CallbackWidget sender, c_int index, xui.CallbackConstMessageNode node, xui.CallbackDrawContext draw, xui.Rect bounds, c_int state) as c_int
+        messagesDrawn += 1
+        assert sender.rect().fW == 420 and bounds.fW > 0 and index == 0, "renderer geometry"
+        assert node.id == "bubble" and node.kind == xui.XUI_MESSAGE_NODE_SYSTEM, "renderer node identity"
+        if mode[0] == 0 then return 0 end
+        if mode[0] == 2 then
+            assert false, "bubble renderer failure"
+        elseif mode[0] == 3 then
+            return -8
+        elseif mode[0] == 4 then
+            view.setNodeRenderer(null)
+        end
+        if mode[0] == 1 then
+            bool busy = false
+            try
+                view.updateNodeText("bubble", "mutation")
+            catch error
+                busy = error.code == -17
+            end
+            assert busy, "message update must be busy during rendering"
+        end
+        savedNode = node
+        savedDraw = draw
+        savedSender = sender
+        keptText = node.text
+        proxy.fillRect(draw, bounds, COLOR)
+        return 1
+    end)
+
+    refresh(ui, view, target)
+    assert messagesDrawn == 1 and sawText("Bubble body") == 1 and fillCount() == 0, "default renderer fallback"
+    resetText()
+    mode[0] = 1
+    refresh(ui, view, target)
+    auto fallbackPaints = sawText("Bubble body")
+    auto customFills = fillCount()
+    assert messagesDrawn == 2 and customFills == 1 and fallbackPaints == 0, f"custom paint calls={messagesDrawn}, fills={int(customFills)}, fallback={int(fallbackPaints)}"
+    assert keptText == "Bubble body", "readable copied message text"
+
+    int expired = 0
+    try
+        auto invalid = (savedNode as CallbackConstMessageNode).kind
+    catch StateError
+        expired += 1
+    end
+    try
+        auto invalid = (savedSender as CallbackWidget).rect()
+    catch StateError
+        expired += 1
+    end
+    try
+        auto bounds = xui.Rect()
+        proxy.fillRect(savedDraw as CallbackDrawContext, bounds, COLOR)
+    catch StateError
+        expired += 1
+    end
+    assert expired == 3 and fillCount() == 1, "callback views expire without drawing"
+    savedNode = null
+    savedDraw = null
+    savedSender = null
+
+    mode[0] = 2
+    bool threw = false
+    try
+        refresh(ui, view, target)
+    catch AssertionError
+        threw = true
+    end
+    assert threw, "render delivers original callback error"
+    mode[0] = 3
+    bool status = false
+    try
+        refresh(ui, view, target)
+    catch error
+        status = error.code == -8
+    end
+    assert status, "render delivers negative callback status"
+
+    mode[0] = 4
+    refresh(ui, view, target)
+    int finalCalls = messagesDrawn
+    resetText()
+    refresh(ui, view, target)
+    assert messagesDrawn == finalCalls and sawText("Bubble body") == 1, "self-unregister restores fallback"
+    assert keptText == "Bubble body", "callback text survives unregister"
+end
+
+func verifyRegistration(xui.Context ui, xui.MessageList view, xui.Surface target)
+    int calls = 0
+    bool wrong = false
+    view.setNodeRenderer(func(xui.CallbackWidget w, c_int i, xui.CallbackConstMessageNode n, xui.CallbackDrawContext d, xui.Rect r, c_int s) as c_int
+        calls += 1
+        return 0
+    end)
+    auto alternative = func(xui.CallbackWidget w, c_int i, xui.CallbackConstMessageNode n, xui.CallbackDrawContext d, xui.Rect r, c_int s) as c_int
+        wrong = true
+        return 0
+    end
+    bool rejected = false
+    budget(0)
+    try
+        view.setNodeRenderer(alternative)
+    catch error
+        rejected = true
+    finally
+        budget(-1)
+    end
+    refresh(ui, view, target)
+    assert rejected and calls == 1 and not wrong, "failed registration keeps previous callback"
+    view.setNodeRenderer(null)
+end
+
+func compareWarmRender(xui.Context ui, xui.Proxy proxy, xui.MessageList view, xui.Surface target)
+    view.setNodeRenderer(func(xui.CallbackWidget w, c_int i, xui.CallbackConstMessageNode node, xui.CallbackDrawContext draw, xui.Rect bounds, c_int state) as c_int
+        if node.kind != xui.XUI_MESSAGE_NODE_SYSTEM then return 0 end
+        proxy.fillRect(draw, bounds, COLOR)
+        return 1
+    end)
+    refresh(ui, view, target)
+    auto fills = fillCount()
+    heapBegin()
+    for index in range(50)
+        refresh(ui, view, target)
+    end
+    heapEnd(0)
+    assert fillCount()-fills == 50, "language renders all measured frames"
+    installNative(view)
+    refresh(ui, view, target)
+    fills = fillCount()
+    heapBegin()
+    for index in range(50)
+        refresh(ui, view, target)
+    end
+    heapEnd(1)
+    assert fillCount()-fills == 50, "C renders all measured frames"
+    view.setNodeRenderer(null)
+end
+
+func main(...) as int
+    auto proxy = cpuProxy()
+    auto font = cpuFont(proxy)
+    auto target = cpuSurface(proxy)
+    auto ui = xui.create(proxy, xui.XUI_SYSTEM_FONT_DISABLED)
+    ui.setDefaultFont(font)
+    auto root = ui.widget()
+    auto area = xui.Rect()
+    area.fW = 640
+    area.fH = 480
+    assert root.setRect(area) == 0 and ui.setRootWidget(root) == 0, "set composition root"
+    auto messages = ui.messageListNative()
+    xui.Rect viewport
+    viewport.fW = 420
+    viewport.fH = 280
+    assert messages.setRect(viewport) == 0 and root.addChild(messages) == 0, "place message list"
+    ui.inputViewport(640, 480)
+    messages.addNode("bubble", "Bubble body", type = xui.XUI_MESSAGE_NODE_SYSTEM)
+    assert ui.layout() == 0 and ui.update(0.016) == 0, "prepare message layout"
+    verifyCallback(ui, proxy, messages, target)
+    verifyRegistration(ui, messages, target)
+    compareWarmRender(ui, proxy, messages, target)
+    ui.close()
+    target.close()
+    font.close()
+    proxy.close()
+    assert balanced() == 1, "close owned CPU resources"
+    println("XUI_MESSAGE_RENDERER_OK")
+    return 0
+end

@@ -31,6 +31,8 @@
 
 [timeline_state.xl](timeline_state.xl) 设置一个关键帧并读取区间快照。[message_nodes.xl](message_nodes.xl) 批量加载消息，再读取辅助节点。
 
+[message_renderer.xl](message_renderer.xl) 为系统消息使用自绘色块，并保留普通消息的默认绘制。
+
 [tree_nodes.xl](tree_nodes.xl) 批量设置父节点和子节点，展开父节点后读取子节点的名称与深度。
 
 [code_assist.xl](code_assist.xl) 读取编辑器的补全位置并打开签名帮助。

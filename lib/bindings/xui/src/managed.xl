@@ -520,6 +520,21 @@ end
 
 export typedef MessageListEventProc = func(Widget,CallbackConstMessageListEvent)
 
+export extern "const xui_message_node_t*" class CallbackConstMessageNode @header("xge3_runtime.h") @lifetime("callback")
+ native point handle
+ extern "sId" @c_field @c_result("cstring") get id() as string
+ extern "sText" @c_field @c_result("cstring") get text() as string
+ extern "sSender" @c_field @c_result("cstring") get sender() as string
+ extern "sTime" @c_field @c_result("cstring") get time() as string
+ extern "sParentId" @c_field @c_result("cstring") get parentId() as string
+ extern "sTitle" @c_field @c_result("cstring") get title() as string
+ extern "iType" @c_field get kind() as c_int
+ extern "iFlags" @c_field get flags() as c_int
+ extern "iAuxiliaryKind" @c_field get auxiliaryKind() as c_int
+end
+
+export typedef MessageNodeRenderProc = func(CallbackWidget,c_int,CallbackConstMessageNode,CallbackDrawContext,Rect,c_int) as c_int
+
 export typedef TreeViewSelectProc = func(Widget,c_int)
 
 export typedef TreeViewContextProc = func(Widget,c_int,c_int,c_float,c_float) as c_int
@@ -4542,6 +4557,8 @@ end
 export extern "xui_widget_t*" class MessageList @header("xge3_runtime.h") @lifetime("owner") @owner(Context) @policy("xl6Xui3WidgetPolicy") @watch("xui_lifetime_link_t") extends Widget
 
  extern "xuiMessageListSetEventOwned" @no_raise @c_owned_callback(0,0,"xui_callback_owner_t",0) @c_result("status",0) func setEvent(MessageListEventProc? onEvent)
+
+ extern "xuiMessageListSetNodeRendererOwned" @no_raise @c_owned_callback(0,0,"xui_callback_owner_t",-16) @c_result("status",0) func setNodeRenderer(MessageNodeRenderProc? renderer)
 
  extern "xuiMessageListUpdateNodeText" @no_raise @c_cstr(0) @c_cstr(1) @c_result("status",0) func updateNodeText(string sId,string sText)
 

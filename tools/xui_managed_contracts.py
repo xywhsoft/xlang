@@ -400,6 +400,10 @@ METHODS = {'xl6Xui3CopyToClipboard': ['int xl6Xui3CopyToClipboard(xui_context,xu
                                    'iEventType,uint64 iNodeId)']]}
 
 METHODS.update({
+    'xuiMessageListSetNodeRendererOwned': [
+        'int xuiMessageListSetNodeRendererOwned(xui_widget pWidget, xui_message_list_node_renderer_proc onRender, void* pUser, const xui_callback_owner_t* pOwner)',
+        'MessageList', ['extern "xuiMessageListSetNodeRendererOwned" @no_raise @c_owned_callback(0,0,"xui_callback_owner_t",-16) '
+        '@c_result("status",0) func setNodeRenderer(MessageNodeRenderProc? renderer)']],
     'xuiMessageListSetNodes': ['int xuiMessageListSetNodes(xui_widget pWidget, const xui_message_node_t* pNodes, int iCount)',
         'MessageList', ['extern "xuiMessageListSetNodes" @no_raise @c_array_group(1,0,9,"int",9) @c_array_record(1,"xui_message_node_t","iSize","uint32_t") '
         '@c_array_field(1,"sId",0,"c_string") @c_array_field(1,"sText",1,"c_string") @c_array_field(1,"sSender",2,"c_string") '
@@ -491,6 +495,10 @@ CALLBACKS = {'xui_accessibility_event_proc': ('typedef void (*xui_accessibility_
                                  'export typedef RadioGroupChangeProc = func(Widget,Widget?,c_int)')}
 
 CALLBACKS.update({
+    'xui_message_list_node_renderer_proc': (
+        'typedef int (*xui_message_list_node_renderer_proc)(xui_widget_t* pWidget, int iIndex, const xui_message_node_t* pNode, '
+        'xui_draw_context_t* pDraw, xui_rect_t tRect, int iState, void* pUser);',
+        'export typedef MessageNodeRenderProc = func(CallbackWidget,c_int,CallbackConstMessageNode,CallbackDrawContext,Rect,c_int) as c_int'),
     'xui_webview_event_proc': (
         'typedef void (*xui_webview_event_proc)(xui_widget pWidget, int iEvent, int32_t iNativeError, void* pUser);',
         'export typedef WebViewEventProc = func(Widget,c_int,c_int)'),
@@ -554,7 +562,20 @@ VIEWS = {'CallbackConstAccessibilityEvent': 'export extern "const xui_accessibil
                     ' native point handle\n'
                     ' extern "xuiGetLanguage" @no_raise func getLanguage() as c_int\n'
                     ' extern "xuiRequestClose" @no_raise @c_result("status",0) func requestClose()\n'
-                    'end'}
+                    'end',
+ 'CallbackConstMessageNode': 'export extern "const xui_message_node_t*" class CallbackConstMessageNode '
+                            '@header("xge3_runtime.h") @lifetime("callback")\n'
+                            ' native point handle\n'
+                            ' extern "sId" @c_field @c_result("cstring") get id() as string\n'
+                            ' extern "sText" @c_field @c_result("cstring") get text() as string\n'
+                            ' extern "sSender" @c_field @c_result("cstring") get sender() as string\n'
+                            ' extern "sTime" @c_field @c_result("cstring") get time() as string\n'
+                            ' extern "sParentId" @c_field @c_result("cstring") get parentId() as string\n'
+                            ' extern "sTitle" @c_field @c_result("cstring") get title() as string\n'
+                            ' extern "iType" @c_field get kind() as c_int\n'
+                            ' extern "iFlags" @c_field get flags() as c_int\n'
+                            ' extern "iAuxiliaryKind" @c_field get auxiliaryKind() as c_int\n'
+                            'end'}
 
 RECORDS = {'xui_accessibility_event_t': 'typedef struct xui_accessibility_event_t { uint32_t iSize; int iType; uint64_t iNodeId; uint32_t iRevision; '
                               '} xui_accessibility_event_t;',

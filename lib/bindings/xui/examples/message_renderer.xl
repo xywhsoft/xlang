@@ -1,0 +1,15 @@
+import xui
+from "./_window.xl" import Window
+
+Window.showWithProxy("消息气泡自绘", func(xui.Context ui, xui.Widget root, xui.Proxy proxy)
+    auto messages = ui.messageListNative()
+    Window.place(root, messages, 24, 24, 520, 240)
+    messages.addNode("normal", "这条消息使用默认样式。")
+    messages.addNode("system", "系统消息", type = xui.XUI_MESSAGE_NODE_SYSTEM)
+
+    messages.setNodeRenderer(func(xui.CallbackWidget sender, c_int index, xui.CallbackConstMessageNode node, xui.CallbackDrawContext draw, xui.Rect bounds, c_int state) as c_int
+        if node.kind != xui.XUI_MESSAGE_NODE_SYSTEM then return 0 end
+        proxy.fillRect(draw, bounds, c_uint(0x3B82F6FF))
+        return 1
+    end)
+end)

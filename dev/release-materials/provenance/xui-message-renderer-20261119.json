@@ -1,0 +1,187 @@
+{
+  "complete": true,
+  "passed": true,
+  "releaseInstalled": false,
+  "nativeSdkReused": true,
+  "sourceParent": "db0d7e79fde638f7663accd9ca34df5f8d71b119",
+  "nativeCommit": "d2c1567a84148e1a0d240e4a5dcb00ead6315896",
+  "xrtCommit": "804cc769de3030118c2b46ef7af69543d1b82d9d",
+  "sourceHashes": {
+    "tools/check_xge3_bindings.py": "1e6922cd852c251338627899c3e6bfec6f79fdb4fb7c77cc8f04ea759d47af5a",
+    "tools/xui_managed_contracts.py": "f40eab8c1ef7270b5319bc71a123be30fa44036c2f1f9390d27c731c078a2683",
+    "docs/xge3-xui3-api-map-storage.json": "e212047eed9a32eb12ff2de6c25b46449f1c18d4e87ed8410167f750c77d8fbb",
+    "lib/bindings/xui/src/managed.xl": "c3fdf1c8ab129fbd908519e38fbc540762c6b785b08f81cd939ccad8a2253227",
+    "docs/xui-message-renderer.md": "721a64d6ecadbd1104b7633d6fb58b28f0688ae31d1a2b34783a4e7080531279",
+    "lib/bindings/xui/examples/README.md": "bafc257043e412b9939ee85796711e1eb1d1b3a593cc4c94d602fd4d4da18817",
+    "lib/bindings/xui/examples/message_renderer.xl": "876240fdca5fba01e37512bcc2fc0af600d09b7be0f2353372560f4c3812536a",
+    "test/cases/foreign_xui_message_renderer.xl": "4a0a2e22cc2a4132ef53542c502ac8f9ffeec60098bc0fa5799b1316dc9ab7be",
+    "test/cases/foreign_xui_message_renderer.c": "a0d7d8532e5afb24a2cdc4d303160964a012a108ce07179ef26b69e7c47d6bfa",
+    "test/cases/foreign_xui_message_renderer.h": "06c6f03060afcb74b58020907d6b4574f7ca4aac5dc062415a73a8b0c9f74927"
+  },
+  "supportHashes": {
+    "test/cases/foreign_xui_render_backend.c": "2311913d1190e99b9c2ccb942ed0e2c95c519fcec9abe3be16517b4566ca183c",
+    "test/cases/foreign_xui_render_backend.h": "aefc892e64fff9903097d511843303050ad532038638e51f6a92ade14ce1b995",
+    "test/cases/foreign_xui_render_adapters.inc": "b54a15b0295c93a59be72b93acacfb1eefd335a7ec28d6290b18be213770711e",
+    "tests/xui/xui_test_proxy.c": "740c86aee90b1373324909c74d3ae6c9f446b0c52c84c3ea84cea141c53bdc48",
+    "tests/xui/xui_test_proxy.h": "b42cd48cd68966d969575f717ade56f357dacbcabce746730c9bfb275dd0a80a",
+    "lib/bindings/xui/examples/_window.xl": "4155fcb065b971481133f6498a496b1d2e17100267de22aa50144155563c1657"
+  },
+  "behavior": [
+    "MessageList installs the language closure directly through the native owned renderer slot. Zero falls back, positive completes custom painting, negative status and language exception propagate checked.",
+    "The native renderer path holds the callback while invoking it. Self-unregister works; failing registration preserves the previous closure.",
+    "A node is exposed as a read-only callback view together with callback-only sender and draw views. Saved views fail once the invocation ends. Explicit text copies survive unregistration.",
+    "Reentrant message text modification fails with Busy during paint. Event callback node text is a separate native lifetime contract and is not exposed by this change.",
+    "The 50-frame warm comparison uses the same CPU renderer and native paint command, reads only node type and omits saved views and text snapshots. Both C and xlang show 150 allocations, 150 frees and zero reallocations for the complete warmed render loop. No CPU latency claim is made."
+  ],
+  "evidence": {
+    "win": {
+      "sdk": {
+        "path": "F:\\xlang-validation\\xge-full-20261110\\timeline-message-sdk-win-r1\\results.json",
+        "sha256": "de3499f3e54b62a2bcb4ee464d6f1c0d01ad717a0e747cde611aafac14686dd5"
+      },
+      "packages": {
+        "path": "F:\\xlang-validation\\xge-full-20261110\\message-renderer-packages-win-r2\\results.json",
+        "sha256": "7460ca2915615b913d1099d38dd1dac2985bb391e05279e87c55c465036cbde0",
+        "steps": 6,
+        "storageReview": {
+          "path": "F:\\xlang-validation\\xge-full-20261110\\message-renderer-packages-win-r2\\source-review\\results.json",
+          "sha256": "c6b5dd194ac72642cd12d63c34e50e3818a92cf058aaf7a98e45fefffb37659f"
+        }
+      },
+      "language": {
+        "path": "F:\\xlang-validation\\xge-full-20261110\\message-renderer-language-win-r2\\results.json",
+        "sha256": "ff3ecf6e1781a5fbd8050946cbb4a6c3728b400ea8ef07233f011d25d5559071",
+        "steps": 17,
+        "heapCounts": {
+          "host-jit": {
+            "0": [
+              150,
+              150,
+              0
+            ],
+            "1": [
+              150,
+              150,
+              0
+            ]
+          },
+          "host-run": {
+            "0": [
+              150,
+              150,
+              0
+            ],
+            "1": [
+              150,
+              150,
+              0
+            ]
+          },
+          "static-run": {
+            "0": [
+              150,
+              150,
+              0
+            ],
+            "1": [
+              150,
+              150,
+              0
+            ]
+          },
+          "shared-run": {
+            "0": [
+              150,
+              150,
+              0
+            ],
+            "1": [
+              150,
+              150,
+              0
+            ]
+          }
+        }
+      }
+    },
+    "linux": {
+      "sdk": {
+        "path": "\\\\wsl.localhost\\Ubuntu\\var\\tmp\\xlang-validation\\xge-full-20261110\\timeline-message-sdk-linux-r1\\results.json",
+        "sha256": "3be20fd0ab361d54f14fce871468dacb0d1561a02a284b19c425038a928215a2"
+      },
+      "packages": {
+        "path": "\\\\wsl.localhost\\Ubuntu\\var\\tmp\\xlang-validation\\xge-full-20261110\\message-renderer-packages-linux-r2\\results.json",
+        "sha256": "a605220460c6d6359d2480d6e2611f74ff2b91f50b04faf651b37576bebd4f7a",
+        "steps": 6,
+        "storageReview": {
+          "path": "\\\\wsl.localhost\\Ubuntu\\var\\tmp\\xlang-validation\\xge-full-20261110\\message-renderer-packages-linux-r2\\source-review\\results.json",
+          "sha256": "ad0e10718e93d5327dfcdd627944f14315716f5c051d91e32551fdf5adb0e4c6"
+        }
+      },
+      "language": {
+        "path": "\\\\wsl.localhost\\Ubuntu\\var\\tmp\\xlang-validation\\xge-full-20261110\\message-renderer-language-linux-r2\\results.json",
+        "sha256": "f8c227f8d910e75f51b9eded101ebd23171abda24bb19742552af2e56fa1b590",
+        "steps": 17,
+        "heapCounts": {
+          "host-jit": {
+            "0": [
+              150,
+              150,
+              0
+            ],
+            "1": [
+              150,
+              150,
+              0
+            ]
+          },
+          "host-run": {
+            "0": [
+              150,
+              150,
+              0
+            ],
+            "1": [
+              150,
+              150,
+              0
+            ]
+          },
+          "static-run": {
+            "0": [
+              150,
+              150,
+              0
+            ],
+            "1": [
+              150,
+              150,
+              0
+            ]
+          },
+          "shared-run": {
+            "0": [
+              150,
+              150,
+              0
+            ],
+            "1": [
+              150,
+              150,
+              0
+            ]
+          }
+        }
+      }
+    }
+  },
+  "softwareOpenGL": {
+    "path": "\\\\wsl.localhost\\Ubuntu\\var\\tmp\\xlang-validation\\xge-full-20261110\\message-renderer-example-llvmpipe-linux-r1\\results.json",
+    "sha256": "5702a8a828cf3bab9789dab43260e9b38eca5f21acf38d0dd7b6b2e1790dc4fb",
+    "size": [
+      800,
+      600
+    ],
+    "accentPixels": 12480
+  }
+}

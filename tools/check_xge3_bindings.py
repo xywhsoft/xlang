@@ -993,6 +993,7 @@ def generate_xui(root,header,records,types,primitive,param,reserved,reviewed_spa
                       ('xuiComboBoxGetItemDescriptor','borrowed-synchronous-output'),
                       ('xuiMessageListSetNodes','native-copy-or-synchronous-read'),
                       ('xuiMessageListGetNodeDescriptor','borrowed-synchronous-output'),
+                      ('xuiMessageListSetNodeRendererOwned','owned-callback'),
                       ('xuiTimeLineViewGetLayerDescriptor','borrowed-synchronous-output'),
                       ('xuiTimeLineViewGetFrame','borrowed-synchronous-output'),
                       ('xuiTimeLineViewGetSpanDescriptor','borrowed-synchronous-output')]:
