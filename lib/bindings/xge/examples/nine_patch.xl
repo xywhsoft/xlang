@@ -1,0 +1,48 @@
+// Compare stretching (left) and tiling (right) with one texture.
+import xge
+
+func main(...) as int
+    xge.init(320,180,"Nine-patch panels")
+    string stripe = "ffff00ffff0000ff0000ffff00ff00ff"
+    auto texture = xge.createTexture(4,4,Buffer.fromHex(stripe + stripe + stripe + stripe))
+    auto sampler = texture.sampler
+    sampler.iMinFilter = xge.XGE_FILTER_NEAREST
+    sampler.iMagFilter = xge.XGE_FILTER_NEAREST
+    texture.setSampler(sampler)
+
+    auto stretch = xge.ninePatchStyleDefault()
+    // Keep one source pixel on each edge and resize the center.
+    stretch.fX1 = c_float(0.25)
+    stretch.fY1 = c_float(0.25)
+    stretch.fX2 = c_float(0.75)
+    stretch.fY2 = c_float(0.75)
+    auto tile = stretch
+    tile.iMode = xge.XGE_NINE_PATCH_TILE
+
+    xge.Rect left
+    left.fX = c_float(24)
+    left.fY = c_float(36)
+    left.fW = c_float(122)
+    left.fH = c_float(108)
+    auto right = left
+    right.fX = c_float(174)
+    int frames = 0
+    try
+        xge.run(func() as c_int
+            assert xge.begin() == 0
+            xge.clear(xge.colorRGBA(24,28,36,255))
+            texture.drawNinePatch(stretch,left)
+            texture.drawNinePatch(tile,right)
+            assert xge.nativeEnd() == 0
+            frames += 1
+            if frames == 90 then return c_int(1) end
+            return c_int(0)
+        end)
+    finally
+        xge.setFrameCallback(null)
+        texture.close()
+        xge.unit()
+    end
+    println("Nine-patch panels rendered")
+    return 0
+end

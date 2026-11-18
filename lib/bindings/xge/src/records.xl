@@ -25,6 +25,16 @@ export extern "xge_rect_t" struct Rect @header("xge3_runtime.h")
  c_float fH
 end
 
+export extern "xge_nine_patch_style_t" struct NinePatchStyle @header("xge3_runtime.h")
+ Rect tSource
+ c_float fX1
+ c_float fY1
+ c_float fX2
+ c_float fY2
+ c_uint iColor
+ c_int iMode
+end
+
 export extern "xge_point_i_t" struct PointI @header("xge3_runtime.h")
  c_int iX
  c_int iY

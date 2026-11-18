@@ -33,6 +33,7 @@ export extern "xge_texture_t*" class Texture @header("xge3_runtime.h") @lifetime
  extern "iHeight" @c_field get height() as c_int
  extern "xgeDraw" func draw(c_float x,c_float y)
  extern "xgeDrawPx" func drawPx(c_int x,c_int y)
+ extern "xgeTextureDrawNinePatch" @no_raise @c_ref(0) @c_result("status",0) func drawNinePatch(NinePatchStyle style,Rect destination,c_uint flags=0)
  extern "xgeTextureUploadQueue" @no_raise @c_result("status",0) func queueUpload()
  extern "xgeTextureUVTransform" @c_const(0) func uvTransform() as TextureUvTransform
  extern "xgeTextureMapUV" @c_const(0) func mapUV(Vec2 uv) as Vec2
@@ -91,6 +92,7 @@ export extern "xgeMaterialInit" @no_raise @c_result("owned_view") @factory(0,fre
 extern "xgeMaterialFree" @no_raise func freeMaterial(Material value)
 // The native owned factories reserve the engine obligation before allocation.
 // Defaults match XGE: RGBA creation is lossless; image decoding premultiplies.
+export extern "xgeNinePatchStyleDefault" @header("xge3_runtime.h") @no_raise func ninePatchStyleDefault() as NinePatchStyle
 export extern "xgeTextureCreateRGBAExOwned" @no_raise @c_span(2,"const void*","size_t") @c_result("owned_view") @factory(0,0,freeTexture) func createTexture(c_int width,c_int height,Buffer? pixels=null,c_uint flags=0) as Texture
 export extern "xgeTextureCreateRGBAExOwned" @no_raise @c_span(2,"const void*","size_t") @c_result("owned_view") @factory(0,0,freeTexture) func createTexture(c_int width,c_int height,bytes pixels,c_uint flags=0) as Texture
 export extern "xgeTextureCreateFromImageOwned" @no_raise @c_const(0) @c_result("owned_view") @factory(0,0,freeTexture) func createTexture(Image image,c_uint flags=0) as Texture

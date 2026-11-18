@@ -1,0 +1,76 @@
+{
+  "complete": true,
+  "passed": true,
+  "releaseInstalled": false,
+  "sourceParent": "9d3137430e17a8962f3ce24ced2a09b88e86886a",
+  "nativeCommit": "594aebca2d9eb006a48a4f8b88a0847815b0fd1f",
+  "xrtCommit": "804cc769de3030118c2b46ef7af69543d1b82d9d",
+  "behavior": [
+    "The reusable C value contains only the crop, normalized cuts, color and mode. The binding generates no forwarding function.",
+    "New and legacy pixel results agree for stretch, tile and tint. The native queue fixture also verifies scaled-down borders and an explicit crop.",
+    "After the tile cap, the current row and all lower rows receive full coverage. An old SDK control reproduced a black pixel in that area.",
+    "The queue retains textures until draw or queue disposal. Invalid parameters and wrong-thread calls do not publish commands.",
+    "An upload enqueue failure publishes no command. A later queue capacity failure preserves the successfully queued prefix and its references.",
+    "Within reserved queue capacity, the measured 20 direct calls on each side perform zero XRT heap operations. Tests exclude the initial command and GPU submission."
+  ],
+  "evidence": {
+    "win": {
+      "sdk": {
+        "path": "F:\\xlang-validation\\xge-full-20261110\\nine-patch-sdk-win-r2\\results.json",
+        "sha256": "397516f23c2acb9213c6bb04920b13dfdf2dbbc38d6860880dcbac57abb45ed4",
+        "steps": 2
+      },
+      "packages": {
+        "path": "F:\\xlang-validation\\xge-full-20261110\\nine-patch-packages-win-r2\\results.json",
+        "sha256": "5ced71fa1c89fd007b9d0c6350a3aa2ba16f49b774688559e5964057c2b3d141",
+        "steps": 6
+      },
+      "native": {
+        "path": "F:\\xlang-validation\\xge-full-20261110\\nine-patch-native-win-r3\\results.json",
+        "sha256": "d668434e42ace56aeb1f2f266e1a8455285f185034857a65eecbb3490aaeb67d",
+        "steps": 4
+      },
+      "language": {
+        "path": "F:\\xlang-validation\\xge-full-20261110\\nine-patch-language-win-r2\\results.json",
+        "sha256": "7e8eb57ee84c023ee4a51a560a64c359f17afd86bb4a7ca61a1313a294aa2731",
+        "steps": 17
+      }
+    },
+    "linux": {
+      "sdk": {
+        "path": "\\\\wsl.localhost\\Ubuntu\\var\\tmp\\xlang-validation\\xge-full-20261110\\nine-patch-sdk-linux-r2\\results.json",
+        "sha256": "e3bd847072b2498164699e7b0420a3196a9fb2dffcdb8f39d29dd40332ed78e5",
+        "steps": 2
+      },
+      "packages": {
+        "path": "\\\\wsl.localhost\\Ubuntu\\var\\tmp\\xlang-validation\\xge-full-20261110\\nine-patch-packages-linux-r2\\results.json",
+        "sha256": "82913865c8600a81133485a334c44d80d1dd92a953d3bf76a67f4c359f02ef26",
+        "steps": 6
+      },
+      "native": {
+        "path": "\\\\wsl.localhost\\Ubuntu\\var\\tmp\\xlang-validation\\xge-full-20261110\\nine-patch-native-linux-r3\\results.json",
+        "sha256": "c5c0947ef596558d1ee671cdcd14479109b678a4f9cd6d63637ed689a1d39f50",
+        "steps": 4
+      },
+      "language": {
+        "path": "\\\\wsl.localhost\\Ubuntu\\var\\tmp\\xlang-validation\\xge-full-20261110\\nine-patch-language-linux-r2\\results.json",
+        "sha256": "c4ec24050551b45ba0d0c2555dac6debfcd8d9d5ff618aa5693e05101df5a31f",
+        "steps": 17
+      }
+    }
+  },
+  "sourceHashes": {
+    "lib/bindings/xge/src/records.xl": "9d81cfc0be8178c38053ed6c2ccd3ce9b8532ea15f7a9b0b0e6ea82dc06486c1",
+    "lib/bindings/xge/src/resources.xl": "cadc88fab044a063c250990a3a8c0892f373308f24219022700bfa491c0ce46c",
+    "lib/bindings/xge/examples/nine_patch.xl": "9c51fb3f577e293e5fa1bfcc800eee7239646bd5e2f727b1abd5f4a3b004c817",
+    "test/cases/foreign_xge_nine_patch.xl": "730b092a74f885b888745e7fc06d95db395a7749ebfa0792ab0b5c8fe7602c0b",
+    "test/cases/foreign_xge_nine_patch.h": "20e0df062527181dbe21dcf99a3813afe5626c70c7410654801e254a67825d2a",
+    "test/cases/foreign_xge_nine_patch.c": "ad40729cd9c091f505712ceb7bfeb2b6444b754f70d1a0c185896481a9e07fc1",
+    "docs/xge3-xui3-api-map-storage.json": "e04e14727b094d4c68a844d68bb4a420b452fcf73968909340ec9be34ae079ca"
+  },
+  "nativeTestSha256": "9e559a631cf4c42e39b86906219aee85823dded1d8b2e87238218acb3f8533ce",
+  "oldTileCapControl": {
+    "path": "F:\\xlang-validation\\xge-full-20261110\\nine-patch-tile-cap-control-r1\\windows-r1.log",
+    "sha256": "edeab2d948fe99304273fdbfc09d31cac9ad785aa9fb900f59f963d3836eb5fc"
+  }
+}

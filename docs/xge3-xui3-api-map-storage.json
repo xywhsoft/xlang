@@ -95,16 +95,16 @@
       "declaration": "export extern \"xgeClipboardGetData\" @header(\"xge3_runtime.h\") @c_cstr(0) @c_span(1,\"void*\",\"size_t\") func clipboardGetData(string sFormat,Buffer pData) as c_int",
       "storage": "bounded-synchronous-output",
       "sourceFile": "src/xge/render/xge_render.c",
-      "line": 1540,
+      "line": 1625,
       "functionSha256": "ed6c10adfb867213ef8d529bb97cd5b664c66207952ef39622e77e828a709775",
       "dependencies": [
         {
           "sourceFile": "include/xge.h",
-          "sha256": "899c0cea6e0c2389d57c0072893df1d8ede98633d578db3edbfc9e956409a92e"
+          "sha256": "6f0bd147dda3edb28e1d68e88999e52b939c452fb2afc0e26ee1d71733c00263"
         },
         {
           "sourceFile": "src/xge/render/xge_render.c",
-          "sha256": "ee82351a3d6da5e1bc01fdd2ac60bb38802dd76b5339a2b70b70642780db77c1"
+          "sha256": "667eab2b7a6dee1c90f2ca02d1e582b6662a4eb57d942b8b8fed2ff6a5b22787"
         }
       ],
       "note": "Re-reviewed current Win32 UTF-8/binary/HTML/DIB-PNG and X11 format branches plus fallback. Destination is consumed synchronously; all copies use min(capacity,available bytes). Backend-owned clipboard/cache storage is independent of destination. Query/full-size integer return is preserved even for partial writes; caller decides resizing. This storage review does not certify live platform clipboard behavior. No system clipboard contents were read or changed for this gate."
@@ -555,7 +555,7 @@
       "dependencies": [
         {
           "sourceFile": "include/xge.h",
-          "sha256": "899c0cea6e0c2389d57c0072893df1d8ede98633d578db3edbfc9e956409a92e"
+          "sha256": "6f0bd147dda3edb28e1d68e88999e52b939c452fb2afc0e26ee1d71733c00263"
         },
         {
           "sourceFile": "src/xge/core/xge_debug.c",
@@ -736,11 +736,11 @@
         },
         {
           "sourceFile": "src/xge/core/xge_command.c",
-          "sha256": "9cf78c9b904ae4671b88da64d8dc5878001da0dd833f8bcc0f5ece588e7ddc6a"
+          "sha256": "a7b2a1ca4b20f501dc935b53de63b84e546e8ec54da70eaa13fee3d28b21b921"
         },
         {
           "sourceFile": "src/xge/render/xge_render.c",
-          "sha256": "ee82351a3d6da5e1bc01fdd2ac60bb38802dd76b5339a2b70b70642780db77c1"
+          "sha256": "667eab2b7a6dee1c90f2ca02d1e582b6662a4eb57d942b8b8fed2ff6a5b22787"
         }
       ]
     },
@@ -834,11 +834,11 @@
         },
         {
           "sourceFile": "src/xge/core/xge_command.c",
-          "sha256": "9cf78c9b904ae4671b88da64d8dc5878001da0dd833f8bcc0f5ece588e7ddc6a"
+          "sha256": "a7b2a1ca4b20f501dc935b53de63b84e546e8ec54da70eaa13fee3d28b21b921"
         },
         {
           "sourceFile": "src/xge/render/xge_render.c",
-          "sha256": "ee82351a3d6da5e1bc01fdd2ac60bb38802dd76b5339a2b70b70642780db77c1"
+          "sha256": "667eab2b7a6dee1c90f2ca02d1e582b6662a4eb57d942b8b8fed2ff6a5b22787"
         }
       ]
     }
@@ -855,7 +855,7 @@
       "dependencies": [
         {
           "sourceFile": "include/xge.h",
-          "sha256": "899c0cea6e0c2389d57c0072893df1d8ede98633d578db3edbfc9e956409a92e"
+          "sha256": "6f0bd147dda3edb28e1d68e88999e52b939c452fb2afc0e26ee1d71733c00263"
         },
         {
           "sourceFile": "src/xge/render/xge_shape_ex.c",
@@ -875,7 +875,7 @@
       "dependencies": [
         {
           "sourceFile": "include/xge.h",
-          "sha256": "899c0cea6e0c2389d57c0072893df1d8ede98633d578db3edbfc9e956409a92e"
+          "sha256": "6f0bd147dda3edb28e1d68e88999e52b939c452fb2afc0e26ee1d71733c00263"
         },
         {
           "sourceFile": "src/xge/render/xge_shape_ex.c",

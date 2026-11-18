@@ -1,0 +1,127 @@
+import xge
+
+extern "fixtureNinePatchLegacy" @header("test/cases/foreign_xge_nine_patch.h") @no_raise @c_ref(1) func legacy(xge.Texture texture,xge.NinePatchStyle style,xge.Rect dst)
+extern "fixtureNinePatchHeapBegin" @header("test/cases/foreign_xge_nine_patch.h") @no_raise func heapBegin()
+extern "fixtureNinePatchHeapEnd" @header("test/cases/foreign_xge_nine_patch.h") @no_raise func heapEnd(c_int mode)
+extern "fixtureNinePatchNativeHot" @header("test/cases/foreign_xge_nine_patch.h") @no_raise @c_ref(1) func nativeHot(xge.Texture texture,xge.NinePatchStyle style,xge.Rect dst)
+
+func pixel(bytes pixels,int x,int y,int r,int g,int b)
+    int at = (y * 16 + x) * 4
+    assert pixels[at] == r and pixels[at + 1] == g and pixels[at + 2] == b and pixels[at + 3] == 255
+end
+
+func drawAndCompare(xge.Texture texture,xge.RenderTarget target,xge.Pass pass,Buffer bytesOut,xge.NinePatchStyle style,xge.Rect dst) as bytes
+    pass.begin()
+    legacy(texture,style,dst)
+    pass.finish()
+    target.readPixels(bytesOut)
+    auto reference = bytesOut.toBytes()
+    pass.begin()
+    texture.drawNinePatch(style,dst,c_uint(xge.XGE_DRAW_SCREEN_SPACE))
+    pass.finish()
+    target.readPixels(bytesOut)
+    auto actual = bytesOut.toBytes()
+    assert actual == reference
+    return actual
+end
+
+func exercise()
+    string stripe = "ffff00ffff0000ff0000ffff00ff00ff"
+    auto texture = xge.createTexture(4,4,Buffer.fromHex(stripe + stripe + stripe + stripe))
+    auto sampler = texture.sampler
+    sampler.iMinFilter = xge.XGE_FILTER_NEAREST
+    sampler.iMagFilter = xge.XGE_FILTER_NEAREST
+    texture.setSampler(sampler)
+    auto target = xge.createRenderTarget(16,16)
+    auto pass = xge.createPass(target,c_uint(xge.XGE_PASS_CLEAR_COLOR),xge.colorRGBA(0,0,0,255))
+    auto bytesOut = Buffer()
+    assert bytesOut.resize(16 * 16 * 4)
+
+    auto style = xge.ninePatchStyleDefault()
+    assert style.iMode == xge.XGE_NINE_PATCH_STRETCH and style.iColor == xge.colorRGBA(255,255,255,255)
+    style.fX1 = c_float(0.25)
+    style.fY1 = c_float(0.25)
+    style.fX2 = c_float(0.75)
+    style.fY2 = c_float(0.75)
+    xge.Rect dst
+    dst.fX = c_float(2)
+    dst.fY = c_float(3)
+    dst.fW = c_float(12)
+    dst.fH = c_float(10)
+
+    auto stretch = drawAndCompare(texture,target,pass,bytesOut,style,dst)
+    pixel(stretch,0,8,0,0,0)
+    pixel(stretch,2,8,255,255,0)
+    pixel(stretch,4,8,255,0,0)
+    pixel(stretch,13,8,0,255,0)
+    style.iMode = xge.XGE_NINE_PATCH_TILE
+    auto tile = drawAndCompare(texture,target,pass,bytesOut,style,dst)
+    pixel(tile,2,8,255,255,0)
+    pixel(tile,3,8,255,0,0)
+    pixel(tile,4,8,0,0,255)
+    pixel(tile,13,8,0,255,0)
+    style.iColor = xge.colorRGBA(255,0,255,255)
+    auto tinted = drawAndCompare(texture,target,pass,bytesOut,style,dst)
+    pixel(tinted,2,8,255,0,0)
+    pixel(tinted,4,8,0,0,255)
+
+    // Exhaust the tile budget halfway across a row. The rows below it
+    // still cover the left edge of the destination.
+    auto tiny = xge.ninePatchStyleDefault()
+    tiny.iMode = xge.XGE_NINE_PATCH_TILE
+    tiny.tSource.fW = c_float(0.03125)
+    tiny.tSource.fH = c_float(0.03125)
+    xge.Rect large
+    large.fW = c_float(15)
+    large.fH = c_float(16)
+    auto capped = drawAndCompare(texture,target,pass,bytesOut,tiny,large)
+    pixel(capped,0,8,255,255,0)
+    pixel(capped,14,8,255,255,0)
+
+    style.iMode = c_int(-1)
+    bool rejected = false
+    try
+        texture.drawNinePatch(style,dst)
+    catch error
+        assert error.code == int(xge.XGE_ERROR_INVALID_ARGUMENT)
+        rejected = true
+    end
+    assert rejected
+
+    auto plain = xge.ninePatchStyleDefault()
+    pass.begin()
+    texture.drawNinePatch(plain,dst,c_uint(xge.XGE_DRAW_SCREEN_SPACE))
+    heapBegin()
+    try
+        for i in range(20)
+            texture.drawNinePatch(plain,dst,c_uint(xge.XGE_DRAW_SCREEN_SPACE))
+        end
+    finally
+        heapEnd(0)
+    end
+    nativeHot(texture,plain,dst)
+    texture.close()
+    pass.finish()
+    target.readPixels(bytesOut)
+    pixel(bytesOut.toBytes(),3,8,255,255,0)
+    pass.close()
+    target.close()
+end
+
+func main(...) as int
+    xge.init(16,16,"Nine-patch qualification")
+    try
+        xge.run(func() as c_int
+            assert xge.begin() == 0
+            exercise()
+            assert xge.nativeEnd() == 0
+            return c_int(1)
+        end)
+        assert xge.graphicsResourceCount() == uint64(0)
+    finally
+        xge.setFrameCallback(null)
+        xge.unit()
+    end
+    println("NINE_PATCH_LANGUAGE_OK")
+    return 0
+end
