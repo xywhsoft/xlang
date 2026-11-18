@@ -1,0 +1,44 @@
+{
+  "complete": true,
+  "passed": true,
+  "releaseInstalled": false,
+  "sourceParent": "ed1d386bbf1910cf9bd0c92996d5fdd2ffae71bc",
+  "nativeCommit": "810e0a9929a376641d3bc8dedd3f6b3019eccfb2",
+  "contractCommit": "f9cc8a731a8e4bdf441a05cd884ac0507244f9b1",
+  "bindingCommit": "c7cd08c90fd1dcfe17efe82a8ce9a2679549518d",
+  "sourceHashes": {
+    "test/cases/foreign_xui_workflow_variable_ownership.xl": "15bbf4c1f748dbc2ee3e9422c5f3c6b8b75528b588802187f76732e2d4950ca1"
+  },
+  "behavior": [
+    "Snapshot contains stored public fields, without invoking getters.",
+    "The retained value and its independent snapshot remain valid after closing the model.",
+    "Null metadata and an empty string are distinct, with an invalid native index reported as a checked error.",
+    "The compiler fixture exercises each allocation failure prefix and verifies whole-tuple cleanup."
+  ],
+  "evidence": {
+    "win": {
+      "workflow": {
+        "path": "F:\\xlang-validation\\xge-full-20261110\\workflow-variable-current-win-r3\\results.json",
+        "sha256": "5d3ffc919003588d2a2a26e802a2831fa1d62a565de18fef626b44a033ee032d"
+      },
+      "compiler": {
+        "path": "F:\\xlang-validation\\xge-full-20261110\\borrowed-value-current-win-r1\\results.json",
+        "sha256": "c015ec9ebb724e4f887829e1c5fccaa0f0359693f6c812f45c722815c61ebdb5"
+      },
+      "workflowSteps": 10,
+      "compilerSteps": 26
+    },
+    "linux": {
+      "workflow": {
+        "path": "\\\\wsl.localhost\\Ubuntu\\var\\tmp\\xlang-validation\\xge-full-20261110\\workflow-variable-current-linux-r3\\results.json",
+        "sha256": "5c5de40ff45c9f65c415e0e6d5fecb1d93d149680739152ead40df0e7478c67a"
+      },
+      "compiler": {
+        "path": "\\\\wsl.localhost\\Ubuntu\\var\\tmp\\xlang-validation\\xge-full-20261110\\borrowed-value-current-linux-r1\\results.json",
+        "sha256": "de7f599f34dc1b74f9018b37c7f9e1152c43451ab6079b930f0a37aa80e2d1b0"
+      },
+      "workflowSteps": 10,
+      "compilerSteps": 26
+    }
+  }
+}

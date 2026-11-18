@@ -1,0 +1,48 @@
+import xui
+
+int getterCalls = 0
+
+class Payload
+    derive json
+    string title = "original"
+    private string internalName = "internal"
+
+    get computed() as string
+        getterCalls += 1
+        return title
+    end
+end
+
+func main(...) as int
+    auto workflow = xui.createWorkflow()
+    auto source = Payload()
+    auto sample = workflow.addVariableShared("sample", "", "data", null, source)
+    auto empty = workflow.addVariable("empty")
+
+    auto id, title, kind, scope, snapshot = workflow.getVariable(sample)
+    auto sharedId, sharedTitle, sharedKind, sharedScope, retained = workflow.getVariableShared(sample)
+    auto emptyId, emptyTitle, emptyKind, emptyScope, unset = workflow.getVariable(empty)
+    assert id == "sample" and sharedId == id and emptyId == "empty"
+    assert (title as string) == "" and (sharedTitle as string) == ""
+    assert (kind as string) == "data" and (sharedKind as string) == "data"
+    assert scope == null and sharedScope == null
+    assert emptyTitle == null and emptyKind == null and emptyScope == null and unset == null
+    assert not ("internalName" in snapshot) and not ("computed" in snapshot)
+
+    bool rejected = false
+    try
+        workflow.getVariable(c_int(-1))
+    catch error
+        rejected = true
+    end
+    assert rejected
+
+    snapshot.title = "snapshot only"
+    assert source.title == "original" and retained.title == "original"
+    workflow.close()
+    source.title = "changed"
+    assert snapshot.title == "snapshot only" and retained.title == "changed"
+    assert getterCalls == 0
+    println("WORKFLOW_VARIABLE_OWNERSHIP_OK")
+    return 0
+end
