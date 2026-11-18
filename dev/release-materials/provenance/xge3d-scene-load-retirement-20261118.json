@@ -1,0 +1,118 @@
+{
+  "date": "2026-11-18",
+  "scope": "Managed declarative 3D scene construction and budgeted model retirement",
+  "complete": true,
+  "passed": true,
+  "xgeParent": "6032957eed57c0dc6afdf9510135509ec8f726ae",
+  "xlangParent": "6208ff895b5431013a5fe98dbea90c11b5e22cb1",
+  "xrtCommit": "804cc769de3030118c2b46ef7af69543d1b82d9d",
+  "nativeSources": {
+    "include/xge.h": "1d488754324fc186b14c5d00d195a6d69006aba389dba759552011a46e75c3f8",
+    "src/xge/3d/xge3d_nodes.c": "18bce24f5c50bdc286318ae384b40d23605862b26b6811332312af83aa50131a",
+    "src/xge/3d/xge3d_model.c": "f643f9fd304836689e11c34523143acabe3c1ba8181f43a2e9b885ebb825abc7",
+    "src/xge/3d/xge3d_internal.h": "7b8c1b067cae785f4da41b857d6afc4baf02c1b5a00a437ff5a42b5f05008ea6",
+    "src/xge/3d/xge3d_cache.c": "2a1741cbf530acf98cb2453a11644fe35116e14737139532bddc0c64fb906f59",
+    "tests/xge/test_3d_scene_load_owned.c": "276b37743475aa62b6d6f199feff790e15c3741f0ecfd9cd22228bd5c4140ede",
+    "tests/xge/test_3d_foundation_gpu.c": "90ef1bda1351dd04fdbbfc8ad25b331a926e3b7667524ab7e3f1183321eba0ee"
+  },
+  "languageSources": {
+    "lib/bindings/xge/three_d/examples/model_retirement.xl": "fbaaa62b298fbba562770100a8554a5491543c289bb0dc651f6b80e678722cf9",
+    "lib/bindings/xge/three_d/examples/scene_load.xl": "565af6a49a00db54028700d5a801d0228cede6df44f170fd141db2d4c0128987",
+    "lib/bindings/xge/three_d/include/xge3d_renderer.h": "00f85fd39878ee576fa69762009f8e5c73da44b75abf0dd0521f97f7f5766e48",
+    "lib/bindings/xge/three_d/src/model.xl": "70dc5d592ff418496182bea5da97175b96c61e033815bebbdb345af34c26350b",
+    "lib/bindings/xge/three_d/src/scene.xl": "77b6ad831b3d5ebd660a3bdae0045a119a43b56bb0ebb5fc79941348a5a2b9ae",
+    "test/cases/foreign_xge3d_scene_load_retire.xl": "1283cb0720da6b2371fe357612df8b88ea6777b304d50d038b0574f02da5ee9c",
+    "docs/xge3-model.md": "8eb8d5e06de50f2e5680ed9b4e69ae899f6e0dc0bd2ce1f85e8b87620b1ccdfb",
+    "lib/bindings/xge/three_d/examples/README.md": "c1f5cdcd6e908c048794e58a36f8eba21b0aad6f727be178b756eec32837f9bf"
+  },
+  "evidence": {
+    "win": {
+      "sdk": {
+        "path": "F:\\xlang-validation\\xge-full-20261110\\scene-load3d-sdk-win-r1\\results.json",
+        "sha256": "28d74abc0ceb585bf0106d7168ed8330a98550445c76551a01edb7e4f1a7d00e"
+      },
+      "native": {
+        "path": "F:\\xlang-validation\\xge-full-20261110\\scene-load3d-native-win-r3\\results.json",
+        "sha256": "ba25728cd96270b2458acb6c29abfc7a1ed173103da496ba1db5f8cbaa2ecc32"
+      },
+      "packages": {
+        "path": "F:\\xlang-validation\\xge-full-20261110\\scene-load3d-packages-win-r4\\results.json",
+        "sha256": "e3a53960c8c64bb2ac9f2de1f1dd19221c5244f711680dc6f4102e37205ae7ff"
+      },
+      "language": {
+        "path": "F:\\xlang-validation\\xge-full-20261110\\scene-load3d-language-win-r4\\results.json",
+        "sha256": "d4161d036bf263cc5da52b0388a38a346086320d25f58c43007fa616af42f705"
+      },
+      "performance": {
+        "path": "F:\\xlang-validation\\xge-full-20261110\\scene-load3d-perf-win-r4\\results.json",
+        "sha256": "85cccef71529624aebd7ac23645501f8d7401896a80c0899ea1f41a11322a3cf"
+      }
+    },
+    "linux": {
+      "sdk": {
+        "path": "\\\\wsl.localhost\\Ubuntu\\var\\tmp\\xlang-validation\\xge-full-20261110\\scene-load3d-sdk-linux-r1\\results.json",
+        "sha256": "272a832e4c8b5edf85fa0e0383a794b3e54958710372ecf547e9fcebfc1fdc6f"
+      },
+      "native": {
+        "path": "\\\\wsl.localhost\\Ubuntu\\var\\tmp\\xlang-validation\\xge-full-20261110\\scene-load3d-native-linux-r3\\results.json",
+        "sha256": "0d2a10aca5e56693225a7dd38221c27cfd8053d9cd7f1b49b37aae8af0436516"
+      },
+      "packages": {
+        "path": "\\\\wsl.localhost\\Ubuntu\\var\\tmp\\xlang-validation\\xge-full-20261110\\scene-load3d-packages-linux-r4\\results.json",
+        "sha256": "abb227d2332691a2182d5517711b901acd5567f09282a0527f9cb183428700a3"
+      },
+      "language": {
+        "path": "\\\\wsl.localhost\\Ubuntu\\var\\tmp\\xlang-validation\\xge-full-20261110\\scene-load3d-language-linux-r4\\results.json",
+        "sha256": "11ed247a32f60a936e5331e2eb9a6e2c553cd4104c134e5530bf89ddd5fc19b2"
+      },
+      "performance": {
+        "path": "\\\\wsl.localhost\\Ubuntu\\var\\tmp\\xlang-validation\\xge-full-20261110\\scene-load3d-perf-linux-r4\\results.json",
+        "sha256": "0098330523468818bec602a0d4aa2013fbe3efeac73fcabf3d8135ca88b31ff9"
+      }
+    }
+  },
+  "checks": [
+    "Windows and Linux hosted JIT, hosted and static AOT executables, and static shared modules",
+    "managed native O0/O2, raw hierarchy regression and raw GPU foundation on hosted/static SDKs",
+    "column validation, preloaded and cache-backed assets, invalid/missing input rollback and seven OOM prefixes",
+    "scene keeps model owners after original views and cache close",
+    "real offscreen model upload, Busy with additional owners, token OOM rollback and wrong-thread rejection",
+    "zero operation budget and one-operation steps, then exact complete retirement"
+  ],
+  "performance": {
+    "iterationsPerPlatform": 128,
+    "workload": "warm two named node rows, no assets, load and destroy",
+    "xrtOperations": {
+      "win": {
+        "language": [
+          1792,
+          1792,
+          0
+        ],
+        "C": [
+          896,
+          896,
+          0
+        ]
+      },
+      "linux": {
+        "language": [
+          1792,
+          1792,
+          0
+        ],
+        "C": [
+          896,
+          896,
+          0
+        ]
+      }
+    },
+    "extraXrtAllocationsPerIteration": 7,
+    "cpuTimeEquivalenceClaim": false
+  },
+  "releaseInstalled": false,
+  "networkTests": false,
+  "next": "Audit remaining exact and alternate XGE 3D capabilities and delivery",
+  "xgeCommit": "38152f6021bda25e9e7fa8de67ef9b31d9611355"
+}

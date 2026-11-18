@@ -1,0 +1,101 @@
+import xge
+import xge3d
+from xge3d import Mesh3D, Material3D, Model3D
+
+func checkLoad()
+    auto scene = xge3d.createScene()
+    auto cache = xge3d.createModelCache()
+    auto anchor = scene.createNode(xge3d.Xge3dNode())
+    auto model = xge3d.loadModel("model-triangle.gltf")
+    auto identity = xge3d.sceneNodeTransform()
+    array<string?> names = ["group", "已加载模型"]
+    array<c_size> parents = [xge3d.sceneRootParent(), c_size(0)]
+    array<xge3d.Xge3dTransform> transforms = [identity, identity]
+    array<Mesh3D?> meshes = [null, null]
+    array<Material3D?> materials = [null, null]
+    array<c_uint> flags = [c_uint(0), c_uint(xge.XGE3D_SCENE_NODE_HIDDEN)]
+    array<Model3D?> resolved = [null, model]
+    array<string?> missing = ["scene-fixture-missing.gltf", null]
+    bool rejected = false
+    try
+        scene.loadColumns(anchor, names, parents, transforms, meshes, materials, flags, missing, -1, resolved, -1, cache)
+    catch Error
+        rejected = true
+    end
+    assert rejected and scene.nodeCount == c_size(1)
+    assert scene.childCount(anchor) == c_size(0)
+
+    array<string?> files = ["model-triangle.gltf", null]
+    auto root = scene.loadColumns(anchor, names, parents, transforms, meshes, materials, flags, files, -1, resolved, -1, cache)
+    assert scene.parent(root).slot == anchor.slot
+    assert cache.stats().models == c_size(1)
+    model.close()
+    cache.close()
+    auto status, child = scene.find(root, "已加载模型")
+    assert status == 0
+    auto mappedStatus, source = scene.instanceNode(child, c_size(0))
+    assert mappedStatus == 0 and source.slot != uint64(0)
+    scene.destroyNode(root)
+    assert scene.nodeCount == c_size(1)
+    scene.close()
+end
+
+func main(...) as int
+    xge.init(64, 64, "Scene loading and model retirement")
+    checkLoad()
+    xge.run(func() as c_int
+        assert xge.begin() == 0
+        auto model = xge3d.loadModel("model-triangle.gltf")
+        auto scene = xge3d.createScene()
+        auto root = scene.instantiate(model)
+        auto transform = xge3d.sceneNodeTransform()
+        transform.position.z = c_float(-2)
+        scene.setTransform(root, transform)
+        auto renderer = xge3d.createRenderer()
+        auto target = xge3d.createRenderTarget(16, 16)
+        auto camera = xge3d.orthographicCamera(c_float(3), c_float(3), c_float(0.1), c_float(10))
+        c_float[4] clear
+        clear[3] = c_float(1)
+        assert renderer.renderTo(scene, camera, target, clear).triangles == uint64(1)
+        assert model.resourceInfo().gpu_payload_bytes > uint64(0)
+
+        bool busy = false
+        try
+            auto invalid = model.beginRetirement()
+            invalid.close()
+        catch Error
+            busy = true
+        end
+        assert busy and model.info().primitive_count == c_size(1)
+        scene.destroyNode(root)
+        auto retire = model.beginRetirement()
+        model.close()
+        auto budget = xge3d.Xge3dReleaseBudget()
+        assert retire.step(budget) == 0 and retire.info().operations == c_size(0)
+        budget.operations = c_size(1)
+        auto total = retire.info().total_operations
+        c_size previous = c_size(0)
+        c_int done = 0
+        for i in range(int(total) + 1)
+            if done != 0 then
+                break
+            end
+            done = retire.step(budget)
+            auto now = retire.info().operations
+            assert now >= previous and now - previous <= c_size(1)
+            previous = now
+        end
+        assert done != 0 and previous == total
+        retire.close()
+        target.close()
+        renderer.close()
+        scene.close()
+        assert xge.nativeEnd() == 0
+        return c_int(1)
+    end)
+    xge.setFrameCallback(null)
+    assert xge.graphicsResourceCount() == uint64(0)
+    xge.unit()
+    println("SCENE_LOAD_RETIRE3D_LANGUAGE_OK")
+    return 0
+end

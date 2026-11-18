@@ -47,6 +47,10 @@ the native status and is released.
 `model_cache.xl` loads two spellings of the same local glTF path. It prints
 one cache hit and reads the second model reference after closing the cache.
 
+`scene_load.xl` loads a glTF under a named group and finds its named node.
+`model_retirement.xl` releases one model resource per frame and displays
+cumulative progress until the retirement is complete.
+
 `model_instance.xl` builds one unit of scene work per frame and
 publishes only after the instance is complete.
 

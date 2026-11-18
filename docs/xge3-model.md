@@ -215,3 +215,48 @@ were 6 versus 3. Both paths normalize the path and retain the same
 cached model on a hit. The measurement counts heap operations.
 
 [Model cache example](../lib/bindings/xge/three_d/examples/model_cache.xl)
+
+## Declarative scene loading
+
+`Scene.loadColumns()` loads a hierarchy from typed columns. Parent indices
+must point to an earlier row. `sceneRootParent()` places a row immediately
+under the returned group root, and `sceneNodeTransform()` supplies identity.
+Nullable names, meshes, materials and model URIs allow plain grouping rows.
+The hidden flag controls initial visibility.
+
+A row may name a model URI or use a preloaded `Model3D` in the optional
+resolved-model column. The latter lets the application apply its own lookup
+or loading policy. Passing a model cache shares URI results with the
+application's other loads. Without a cache, URIs use the managed loader.
+The resulting scene retains its assets independently of these inputs.
+
+Resolution completes before node construction. If resolution or construction
+fails, the call leaves no partial hierarchy. Successful cache fills may remain
+available after a later row fails. The compiler projects one native record
+array for the row data, with read pins and per-element resource scopes. An
+explicit resolved-model column adds a temporary native pointer array and
+resource scopes. Native node names are copied into the scene.
+
+On both Windows and Linux, 128 warm iterations that loaded and destroyed
+a two-row hierarchy used 14 XRT allocations and frees per xlang iteration
+and 7 in equivalent C. The rows had names and transforms, with empty asset
+columns. The measurement counts heap operations for the entire loop.
+
+[Scene loading example](../lib/bindings/xge/three_d/examples/scene_load.xl)
+
+## Model retirement
+
+Call `model.beginRetirement()` on the graphics thread while its context is
+active. Additional native model references, such as a live scene instance or
+cache entry, cause a checked Busy error. Once retirement begins, the token
+holds its own reference and ordinary model queries fail. Close the original
+view so the token can release the final model reference.
+
+Call `step()` with the operation count and optional soft microsecond budget
+until it returns 1. A zero operation count only checks progress. Begin checks
+the model's uploaded mesh and texture contexts before it allocates a token.
+Each step works on the original graphics context. `info()` reports cumulative
+progress. Close the token on the creator thread. Closing it before completion
+leaves the final owner responsible for synchronous cleanup.
+
+[Model retirement example](../lib/bindings/xge/three_d/examples/model_retirement.xl)

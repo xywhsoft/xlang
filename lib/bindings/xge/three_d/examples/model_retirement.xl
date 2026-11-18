@@ -1,0 +1,27 @@
+import xge
+import xge3d
+from xge3d import ModelRetirement
+
+xge.init(320, 240, "分帧回收模型")
+auto model = xge3d.loadModel("assets/model-triangle.gltf")
+ModelRetirement? retirement = null
+
+xge.run(func() as c_int
+    assert xge.begin() == 0
+    if retirement == null then
+        retirement = model.beginRetirement()
+        model.close()
+    end
+    auto cursor = retirement as ModelRetirement
+    auto budget = xge3d.Xge3dReleaseBudget()
+    budget.operations = c_size(1)
+    auto done = cursor.step(budget)
+    println("已回收操作数", cursor.info().operations)
+    if done != 0 then
+        cursor.close()
+    end
+    assert xge.nativeEnd() == 0
+    return done
+end)
+xge.setFrameCallback(null)
+xge.unit()

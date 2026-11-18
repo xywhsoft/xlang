@@ -1,0 +1,23 @@
+import xge3d
+from xge3d import Mesh3D, Material3D
+
+auto scene = xge3d.createScene()
+auto cache = xge3d.createModelCache()
+auto identity = xge3d.sceneNodeTransform()
+auto placed = xge3d.sceneNodeTransform()
+placed.position.z = c_float(-2)
+
+array<string?> names = ["场景", "三角形"]
+// 第二行的父节点是第 0 行。
+array<c_size> parents = [xge3d.sceneRootParent(), c_size(0)]
+array<Mesh3D?> meshes = [null, null]
+array<Material3D?> materials = [null, null]
+array<c_uint> flags = [c_uint(0), c_uint(0)]
+array<string?> files = [null, "assets/model-triangle.gltf"]
+auto root = scene.loadColumns(xge3d.Xge3dNode(), names, parents, [identity, placed], meshes, materials, flags, files, -1, [], -1, cache)
+cache.close()
+
+auto status, triangle = scene.find(root, "三角形")
+assert status == 0
+println("模型节点", scene.name(triangle))
+scene.close()
