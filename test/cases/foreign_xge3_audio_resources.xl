@@ -25,6 +25,12 @@ func checkSound(string path)
  sound.stop()
  assert sound.isPlaying()==c_int(0)
  auto alias=sound
+ auto count0,bytes0=heap()
+ auto shared=sound.share()
+ auto count1,bytes1=heap()
+ println("Language playback share: ",count1-count0," allocations / ",bytes1-bytes0," bytes")
+ shared.play()
+ assert sound.isPlaying()!=c_int(0)
  sound.close()
  bool refused=false
  try
@@ -32,7 +38,18 @@ func checkSound(string path)
  catch Error error
   refused=true
  end
- assert refused and owners()==uint64(0)
+ assert refused and owners()==uint64(1)
+ mix()
+ assert shared.isPlaying()!=c_int(0)
+ bool busy=false
+ try
+  xge.audioUnit()
+ catch Error error
+  busy=true
+ end
+ assert busy
+ shared.close()
+ assert owners()==uint64(0)
 end
 
 func checkMusic(string path)
@@ -45,11 +62,13 @@ func checkMusic(string path)
  mix()
  music.pause()
  assert music.isPlaying()==c_int(0)
- music.resume()
- mix()
- music.stop()
- assert music.isPlaying()==c_int(0)
+ auto shared=music.share()
  music.close()
+ shared.resume()
+ mix()
+ shared.stop()
+ assert shared.isPlaying()==c_int(0)
+ shared.close()
  assert owners()==uint64(0)
 end
 
@@ -64,8 +83,10 @@ func checkStream(string path)
  mix()
  stream.pause()
  assert stream.isPlaying()==c_int(0)
- stream.resume()
+ auto shared=stream.share()
+ shared.resume()
  mix()
+ shared.close()
  stream.stop()
  assert stream.isPlaying()==c_int(0)
  stream.close()

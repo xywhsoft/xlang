@@ -15,9 +15,11 @@ try
  auto sound=load.take()
  load.close()
  // The Sound owns its data independently of the request.
- sound.play()
- time.sleep(300)
+ auto playback=sound.share()
  sound.close()
+ playback.play()
+ time.sleep(300)
+ playback.close()
 finally
  xge.audioUnit()
  xge.unit()

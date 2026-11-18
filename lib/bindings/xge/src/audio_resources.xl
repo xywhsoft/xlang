@@ -12,6 +12,7 @@ end
 // produce stable native records; the native final release also frees the record.
 export extern "xge_sound" class Sound @header("xge3_audio_resources.h") @lifetime("owned") @policy("xl6Xge3SoundPolicy")
  native point handle
+ extern "xgeSoundShareOwned" @no_raise @c_result("owned_view") @factory(1,0,freeSound) func share() as Sound
  extern "xgeSoundPlay" @no_raise @c_result("status",0) func play()
  extern "xgeSoundStop" @no_raise @c_result("status",0) func stop()
  extern "xgeSoundPause" @no_raise @c_result("status",0) func pause()
@@ -25,6 +26,7 @@ export extern "xge_sound" class Sound @header("xge3_audio_resources.h") @lifetim
 end
 export extern "xge_music" class Music @header("xge3_audio_resources.h") @lifetime("owned") @policy("xl6Xge3MusicPolicy")
  native point handle
+ extern "xgeMusicShareOwned" @no_raise @c_result("owned_view") @factory(1,0,freeMusic) func share() as Music
  extern "xgeMusicPlay" @no_raise @c_result("status",0) func play()
  extern "xgeMusicStop" @no_raise @c_result("status",0) func stop()
  extern "xgeMusicPause" @no_raise @c_result("status",0) func pause()
@@ -37,6 +39,7 @@ export extern "xge_music" class Music @header("xge3_audio_resources.h") @lifetim
 end
 export extern "xge_stream" class AudioStream @header("xge3_audio_resources.h") @lifetime("owned") @policy("xl6Xge3AudioStreamPolicy")
  native point handle
+ extern "xgeStreamShareOwned" @no_raise @c_result("owned_view") @factory(1,0,freeAudioStream) func share() as AudioStream
  extern "xgeStreamPlay" @no_raise @c_result("status",0) func play()
  extern "xgeStreamStop" @no_raise @c_result("status",0) func stop()
  extern "xgeStreamPause" @no_raise @c_result("status",0) func pause()

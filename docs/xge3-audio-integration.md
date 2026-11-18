@@ -107,6 +107,27 @@ automatic module-global code residency and final
 current-mainline SDK/compiler/IDE/help delivery remain unfinished. The private
 setup fixture and explicitly drained worker references do not replace them.
 
+### Sharing a playback resource
+
+`Sound.share()`, `Music.share()` and `AudioStream.share()` acquire an independent
+reference to the same playback state on the engine creator thread. Volume,
+position and the playback cursor belong to that shared state. Closing one view
+leaves the others usable. The audio engine stays Busy until the last reference
+to the playback resource is released. Load again to create another voice with
+its own cursor.
+
+Each binding emits one typed native retain call. XGE reuses the existing
+playback record and PCM data. xlang allocates a managed view for the returned
+reference and uses the matching native release if delivery fails.
+
+The Windows and Linux tests ran JIT, dynamic AOT and static AOT with a real
+miniaudio CPU mixer. All modes measured two retained allocations totaling 528
+bytes for a language `Sound.share()`. The native shares succeeded with zero
+allowed allocations. Allocation failure sweeps confirmed that the original
+view keeps playing-capable state and all partial results are released.
+The public example also builds against both production SDK variants.
+See [playback share acceptance](../dev/release-materials/provenance/xge-audio-playback-share-20261119.json).
+
 ## Sound fallback: language qualification
 
 `soundFallbackSet(path)` now reports native status through the checked contract;

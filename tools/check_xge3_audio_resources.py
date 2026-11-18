@@ -105,6 +105,11 @@ def main():
                 assert all(int(n)>0 and int(s)>0 and int(n)+int(s)==64 for k,n,s in budgets)
                 report.setdefault('allocationPrefixes', {})[name] = {
                     k.decode(): dict(failures=int(n), successes=int(s)) for k,n,s in budgets}
+                budgets = re.findall(rb'Playback share budgets\s+(\d+)\s*:\s*(\d+)\s+failures /\s*(\d+)\s+successes', result.stdout)
+                assert len(budgets)==3 and {int(k) for k,n,s in budgets}==set(range(3))
+                assert all(int(n)>0 and int(s)>0 and int(n)+int(s)==32 for k,n,s in budgets)
+                report.setdefault('playbackSharePrefixes', {})[name] = {
+                    k.decode(): dict(failures=int(n), successes=int(s)) for k,n,s in budgets}
             elif '_threads-' in name:
                 assert b'Audio creator-thread calls and four deferred final releases passed' in result.stdout
             else:
@@ -113,6 +118,10 @@ def main():
                 assert set(costs)=={'Native','Language'} and costs['Language']['allocations']>=costs['Native']['allocations']
                 assert b'Audio direct factories, methods, real PCM, parent ownership and close passed' in result.stdout
                 report.setdefault('retainedCosts', {})[name] = costs
+                shared = re.search(rb'Language playback share:\s*(\d+)\s+allocations /\s*(\d+)\s+bytes', result.stdout)
+                assert shared
+                report.setdefault('playbackShareCosts', {})[name] = dict(
+                    allocations=int(shared[1]), bytes=int(shared[2]))
             save()
         return result
     include = ['--inc-path', root, '--inc-path', sdk]
@@ -142,6 +151,7 @@ def main():
             methods += ['xge'+kind+method for kind in ('Sound','Music','Stream') for method in
                         ('Play','Stop','Pause','Resume','SetLoop','SetVolume','Fade','IsPlaying')]
             methods += ['xgeSoundSetPosition','xgeStreamSetPosition']
+            methods += ['xge'+kind+'ShareOwned' for kind in ('Sound','Music','Stream')]
         for symbol in methods:
             assert re.search(r'\b'+symbol+r'\(', generated), symbol
             assert not re.search(r'\b(?:int|void)\s+'+symbol+r'\s*\([^;]*\)\s*\{', generated), symbol

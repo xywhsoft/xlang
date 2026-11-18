@@ -1,0 +1,188 @@
+{
+  "complete": true,
+  "passed": true,
+  "releaseInstalled": false,
+  "sourceParent": "3cbb6679cca50ad095d9b8ee43f6924c5bcfcfb9",
+  "nativeCommit": "84a7d5b3b89d685fd9d8e1ab72d6c1608497b65c",
+  "xrtCommit": "804cc769de3030118c2b46ef7af69543d1b82d9d",
+  "physicalAudioDevice": false,
+  "behavior": [
+    "Sound, Music and AudioStream shares own independent references to one playback record and playback cursor.",
+    "Native sharing rejects the wrong thread, borrowed in-place storage and refcount overflow before acquiring any reference.",
+    "After closing the original or a share the remaining view stays usable. Audio shutdown stays Busy until the last playback view is released.",
+    "The generated C directly calls each typed ownership factory. Native PCM is not copied.",
+    "The private SDK adds no-device real miniaudio setup and test exports; host/static feature defines match the production SDK."
+  ],
+  "evidence": {
+    "win": {
+      "build": {
+        "path": "F:\\xlang-validation\\xge-full-20261110\\audio-playback-share-sdk-win-r1\\results.json",
+        "sha256": "2335f8068ee82d2ca96d77fcdbe8a7978f6a69ca77aa29d5fce7734cbb95d6ac",
+        "steps": 2
+      },
+      "packages": {
+        "path": "F:\\xlang-validation\\xge-full-20261110\\audio-playback-share-packages-win-r1\\results.json",
+        "sha256": "a2f75e667d8b5caa8a78bcf4014a51c45922b1f372cd2c41d9834bb46f05eb86",
+        "steps": 6
+      },
+      "native": {
+        "path": "F:\\xlang-validation\\xge-full-20261110\\audio-playback-share-native-win-r1\\native\\results.json",
+        "sha256": "c7dfe7b1295102de519f469f6683b7c1dbae62536ba5ab6c03b41720fdece0b3",
+        "steps": 4
+      },
+      "variant": {
+        "path": "F:\\xlang-validation\\xge-full-20261110\\audio-playback-share-matched-win-r3\\test-variant.json",
+        "sha256": "5bc29c789ff4f11b16409a63c111cead0b7fa148dde75fc0ab369ddada6f1c41",
+        "steps": 4
+      },
+      "language": {
+        "path": "F:\\xlang-validation\\xge-full-20261110\\audio-playback-share-exercise-win-r3\\results.json",
+        "sha256": "1c0151cc702465cdf85654f29d718657c70b362a607d3399cbd63f253530bb52",
+        "steps": 24
+      },
+      "allocationPrefixes": {
+        "foreign_xge3_audio_resources_oom-jit": {
+          "0": {
+            "failures": 1,
+            "successes": 31
+          },
+          "1": {
+            "failures": 1,
+            "successes": 31
+          },
+          "2": {
+            "failures": 1,
+            "successes": 31
+          }
+        },
+        "foreign_xge3_audio_resources_oom-dynamic-run": {
+          "0": {
+            "failures": 1,
+            "successes": 31
+          },
+          "1": {
+            "failures": 1,
+            "successes": 31
+          },
+          "2": {
+            "failures": 1,
+            "successes": 31
+          }
+        },
+        "foreign_xge3_audio_resources_oom-static-run": {
+          "0": {
+            "failures": 1,
+            "successes": 31
+          },
+          "1": {
+            "failures": 1,
+            "successes": 31
+          },
+          "2": {
+            "failures": 1,
+            "successes": 31
+          }
+        }
+      },
+      "example": {
+        "path": "F:\\xlang-validation\\xge-full-20261110\\audio-playback-share-example-win-r1\\lane.json",
+        "sha256": "25c39d39039b0f42be4f84eaebd2307605bf7d53d15c6e3b429abeed5b86007a",
+        "steps": 2
+      }
+    },
+    "linux": {
+      "build": {
+        "path": "\\\\wsl.localhost\\Ubuntu\\var\\tmp\\xlang-validation\\xge-full-20261110\\audio-playback-share-sdk-linux-r1\\results.json",
+        "sha256": "6fae5ce706e4c954503b9c2d30ca822f0e656cdeec710b8737362e3ca5f2f7ed",
+        "steps": 2
+      },
+      "packages": {
+        "path": "\\\\wsl.localhost\\Ubuntu\\var\\tmp\\xlang-validation\\xge-full-20261110\\audio-playback-share-packages-linux-r1\\results.json",
+        "sha256": "80abae3fab7874aea287c564fdf9c93b1c1785e37fe0e4b9c2f48f630540758f",
+        "steps": 6
+      },
+      "native": {
+        "path": "\\\\wsl.localhost\\Ubuntu\\var\\tmp\\xlang-validation\\xge-full-20261110\\audio-playback-share-native-linux-r1\\native\\results.json",
+        "sha256": "3ac443ac64171affc1f104b4af7e21c66d09e33e1eb9dbc082b76e8a24a43d60",
+        "steps": 4
+      },
+      "variant": {
+        "path": "\\\\wsl.localhost\\Ubuntu\\var\\tmp\\xlang-validation\\xge-full-20261110\\audio-playback-share-matched-linux-r3\\test-variant.json",
+        "sha256": "8176c1d84a64cbaf42d295cd8af5acf6f7f335fadb46039d59667012efe498b3",
+        "steps": 4
+      },
+      "language": {
+        "path": "\\\\wsl.localhost\\Ubuntu\\var\\tmp\\xlang-validation\\xge-full-20261110\\audio-playback-share-exercise-linux-r3\\results.json",
+        "sha256": "4276027c018477a81e0690c31d660d1309fd7c4b46ac508efc2a01b1039ab151",
+        "steps": 24
+      },
+      "allocationPrefixes": {
+        "foreign_xge3_audio_resources_oom-jit": {
+          "0": {
+            "failures": 1,
+            "successes": 31
+          },
+          "1": {
+            "failures": 1,
+            "successes": 31
+          },
+          "2": {
+            "failures": 1,
+            "successes": 31
+          }
+        },
+        "foreign_xge3_audio_resources_oom-dynamic-run": {
+          "0": {
+            "failures": 1,
+            "successes": 31
+          },
+          "1": {
+            "failures": 1,
+            "successes": 31
+          },
+          "2": {
+            "failures": 1,
+            "successes": 31
+          }
+        },
+        "foreign_xge3_audio_resources_oom-static-run": {
+          "0": {
+            "failures": 1,
+            "successes": 31
+          },
+          "1": {
+            "failures": 1,
+            "successes": 31
+          },
+          "2": {
+            "failures": 1,
+            "successes": 31
+          }
+        }
+      },
+      "example": {
+        "path": "\\\\wsl.localhost\\Ubuntu\\var\\tmp\\xlang-validation\\xge-full-20261110\\audio-playback-share-example-linux-r1\\lane.json",
+        "sha256": "0a590c2b4d41af2879b1c730cc54370dd17a01989213dc25464961ac061d5222",
+        "steps": 2
+      }
+    }
+  },
+  "sourceHashes": {
+    "lib/bindings/xge/src/audio_resources.xl": "f59ed5a2e600c8d1cca727e4cafd567b72e4bc1d0aa5a5398be59f69561f7332",
+    "lib/bindings/xge/examples/sound_loading.xl": "08d567e66264efb8e23eb0fd5eda625aa3c5f6e9ed4470eac88fddf3a137420d",
+    "test/cases/foreign_xge3_audio_resources.xl": "e4e94c8f300dd4f9f2308afc094c99e6568b3374f28a7c7e1bef374ba11618a9",
+    "test/cases/foreign_xge3_audio_resources_oom.xl": "c27c004bab8f6ddf5700b1b3715a9908536d83fa683f1550fa825ab52cf2ccb8",
+    "tools/build_xge3_audio_test_sdk.py": "5802667b3ba4848dafbcc01581a078cc9212dc31aff015f625f179318ca96df5",
+    "tools/check_xge3_audio_resources.py": "500323cdda3fd2c2d9e180f8496dbb8b08073154a3310261c71ada0277c7a385"
+  },
+  "playbackShareRetainedCosts": {
+    "native": {
+      "allocations": 0,
+      "bytes": 0
+    },
+    "xlangSound": {
+      "allocations": 2,
+      "bytes": 528
+    }
+  }
+}

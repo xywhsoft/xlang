@@ -57,11 +57,15 @@ def main():
         print(name, result.returncode, flush=True)
         assert not result.returncode, out/(name+'.log')
     save()
+    host_defines = json.loads((host / 'build-report.json').read_text())['defines']
+    static_defines = json.loads((static / 'build-report.json').read_text())['defines']
     run('host', [sys.executable, '-B', source/'tools/build/build.py', 'default', out/'host',
                  '--host-xrt', '--relink-from', host, '--relink-source', parent,
-                 '--recompile-source', 'single/xge.c'])
+                 '--recompile-source', 'single/xge.c',
+                 *(arg for define in host_defines for arg in ('--define', define))])
     run('static', [sys.executable, '-B', source/'tools/build/static.py', '--root', source,
-                   '--out', out/'static', '--reuse-build', static])
+                   '--out', out/'static', '--reuse-build', static,
+                   *(arg for define in static_defines for arg in ('--define', define))])
     for variant in ('host', 'static'):
         script = 'stage_xge3_packages.py' if variant == 'host' else 'stage_xge3_static_packages.py'
         run('stage-'+variant, [sys.executable, '-B', root/'tools'/script, '--root', root,

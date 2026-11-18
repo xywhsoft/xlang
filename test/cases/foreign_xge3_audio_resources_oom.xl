@@ -21,6 +21,63 @@ func createAndClose(int kind,string path)
   stream.close()
  end
 end
+func checkShareBudget(int kind,func() shareAndClose)
+ // Allocate the error path before comparing the steady-state live heap.
+ assert failAfter(uint64(0))
+ try
+  shareAndClose()
+ catch Error error
+ end
+ failClear()
+ int failed=0
+ int succeeded=0
+ for budget in range(32)
+  auto count0,bytes0=heap()
+  assert failAfter(uint64(budget))
+  try
+   shareAndClose()
+   succeeded+=1
+  catch Error error
+   failed+=1
+  end
+  failClear()
+  auto count1,bytes1=heap()
+  assert count0==count1 and bytes0==bytes1
+  assert owners()==uint64(1)
+ end
+ assert failed>0 and succeeded>0
+ println("Playback share budgets ",kind,": ",failed," failures / ",succeeded," successes")
+end
+
+func checkPlaybackShares(string path)
+ auto sound=xge.loadSound(path)
+ checkShareBudget(0,func()
+  auto shared=sound.share()
+  shared.close()
+ end)
+ sound.play()
+ sound.close()
+ assert owners()==uint64(0)
+
+ auto music=xge.loadMusic(path)
+ checkShareBudget(1,func()
+  auto shared=music.share()
+  shared.close()
+ end)
+ music.play()
+ music.close()
+ assert owners()==uint64(0)
+
+ auto stream=xge.openAudioStream(path)
+ checkShareBudget(2,func()
+  auto shared=stream.share()
+  shared.close()
+ end)
+ stream.play()
+ stream.close()
+ assert owners()==uint64(0)
+end
+
 func main(...) as int
  assert debugEnabled()
  xge.init(4,4,"Audio language allocation prefixes",0,xge.XGE_RUN_MANUAL)
@@ -58,6 +115,7 @@ func main(...) as int
    assert failed>0 and succeeded>0
    println("Audio language budgets ",kind,": ",failed," failures / ",succeeded," successes")
   end
+  checkPlaybackShares(path)
  finally
   failClear()
   xge.audioUnit()
