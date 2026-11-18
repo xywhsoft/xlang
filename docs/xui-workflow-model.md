@@ -78,3 +78,17 @@ The copied preview distinguishes an empty string from null and can outlive
 the model. `writeVariableId(buffer)` writes a NUL-terminated identifier in
 a caller-sized Buffer. A 16-byte writable Buffer fits every supported ID.
 An insufficient Buffer raises a checked error without advancing the sequence.
+
+`toValue()` exports the XSON model as independent data. The native producer
+builds one envelope and retains its configuration and variable defaults
+until the language takes a whole-result snapshot. Repeated payload references
+stay shared within that snapshot. `loadValue()` takes one input snapshot,
+then the native loader retains its payloads. Invalid input leaves the existing
+graph and variables intact. A successful load keeps all existing graph views
+and the registered node types.
+
+`toValueShared()` and `loadValueShared()` are for callers working directly
+with XRT wire values. For example, a configuration returned by
+`getNodeConfigShared()` can be stored as an explicitly shared variable default.
+The `Clone` methods follow the original XRT deep-copy paths.
+`saveXsonFileClone()` and `loadXsonFile()` use the native XSON file format.

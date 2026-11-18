@@ -1,0 +1,65 @@
+import xui
+
+func register(xui.Workflow workflow)
+ array<string> ids=[]
+ array<string?> labels=[]
+ array<c_int> settings=[]
+ workflow.registerNodeType("task",1,"Task",null,null,null,
+    ids,labels,labels,settings,settings,settings,settings,settings,0,
+    ids,labels,labels,settings,settings,settings,settings,settings,0,null)
+end
+
+func main(...) as int
+ auto original=xui.createWorkflow()
+ register(original)
+ original.addNode("task","source")
+ original.setNodeConfig("source",{"total":3})
+ var config=original.getNodeConfigShared("source")
+ original.addVariableShared("state",null,null,null,config)
+
+ var isolated=original.toValue()
+ var isolatedConfig=isolated.nodes[0].config
+ var isolatedDefault=isolated.variables[0]["default"]
+ isolatedConfig.total=4
+ assert config.total==3 and isolatedDefault.total==4
+ var shared=original.toValueShared()
+ var sharedConfig=shared.nodes[0].config
+ sharedConfig.total=5
+ assert config.total==5
+ var cloned=original.toValueClone()
+ var clonedConfig=cloned.nodes[0].config
+ clonedConfig.total=6
+ assert config.total==5
+
+ auto loaded=xui.createWorkflow()
+ register(loaded)
+ auto graph=loaded.graph()
+ loaded.loadValue(isolated)
+ assert loaded.getNodeConfig("source").total==4 and graph.nodeCount==1
+ isolatedConfig.total=7
+ assert loaded.getNodeConfig("source").total==4
+ bool rejected=false
+ try
+  loaded.loadValue({"nodes":[]})
+ catch Error
+  rejected=true
+ end
+ assert rejected and graph.nodeCount==1 and loaded.getNodeConfig("source").total==4
+ loaded.loadValueShared(shared)
+ config.total=8
+ assert loaded.getNodeConfig("source").total==8
+ loaded.loadValueClone(shared)
+ config.total=9
+ assert loaded.getNodeConfig("source").total==8
+
+ string filePath=env.get("XLANG_WORKFLOW_XSON_TEST_PATH") as string
+ original.saveXsonFileClone(filePath)
+ loaded.loadXsonFile(filePath)
+ assert loaded.getNodeConfig("source").total==9 and loaded.variableCount==1
+ original.close()
+ loaded.close()
+ graph.close()
+ assert sharedConfig.total==9
+ println("WORKFLOW_XSON_OK")
+ return 0
+end
