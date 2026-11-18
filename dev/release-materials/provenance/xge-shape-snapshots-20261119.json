@@ -1,0 +1,157 @@
+{
+  "complete": true,
+  "passed": true,
+  "releaseInstalled": false,
+  "nativeCommit": "7375b2398ef48f2f9a0c621758f5fac098c2d5cb",
+  "compilerOptimization": "O2",
+  "scope": "2D Shape path, gradient and dash snapshots and typed synchronous input",
+  "sourceHashes": {
+    "docs/xge3-xui3-api-map-storage.json": "824dc68a8d5eede1dc1622f0fe8bbc98e15f1d9a24a3035ac85c581717efbd82",
+    "docs/xge3-xui3-api-map.md": "60e3023cf2f4ddb2e8243d34f96b4dd1f04a423a047ec08e2a99b6d60976e1c9",
+    "tools/check_xge3_bindings.py": "070e8d456edb304f89b11c96e03f2413578baceb8357a309c65668b7cb55c3b3",
+    "lib/bindings/xge/examples/shape_snapshots.xl": "99c788d4005c588b8b51f153bcdbed81a95e2e238b521db63e15f7e1fa89b80c",
+    "lib/bindings/xge/include/xge3_shape_snapshot.h": "c35478137ec6d1b12359f1ba3d0e9ba001adf82383d68bc4971382d699ae9050",
+    "lib/bindings/xge/src/records.xl": "9e70c19ec8c8cbd97ed49a9a2e3094d9355ae1a599c4f956d76426703e370ee6",
+    "lib/bindings/xge/src/shapes.xl": "335320236aa1ab642cd7854225ac21564d732a76992567e86bc6b8c619bc70d4",
+    "test/cases/foreign_xge_shape_snapshots.xl": "195c731fc64c57e775fd1d28984beeecdc972329ae5b794ad15e5babec1c8b65"
+  },
+  "nativeHashes": {
+    "include/xge.h": "4648bba9a917dee66c5b499def9fc7e6e0d260903d3b055103747a117d536495",
+    "src/xge/render/xge_shape_ex.c": "f9a58081c629c4f50f36d1ab27a830cb63967f282f7e2f84da1658ed26f3806c",
+    "tests/xge/test_shape_snapshots.c": "7aa749e1fb64462da98f43105abc11b55f94819af619ad24258e8b6bddcfcd37"
+  },
+  "storageProof": {
+    "path": "F:\\xlang-validation\\xge-full-20261110\\shape-snapshot-storage-proof-r1.json",
+    "sha256": "94a3c8f99051e966020da0b060daf943e5e2494a92af3b6a3be53abd0b49d07f"
+  },
+  "sourceHeaderHashes": {
+    "include/xge.h": "4648bba9a917dee66c5b499def9fc7e6e0d260903d3b055103747a117d536495",
+    "include/xui.h": "fd1554b670085da2f5ff79940fa2d338add12496a3e87f7b301bdeb166b41b6f"
+  },
+  "behavior": [
+    "Path command and point arrays, original gradient stops and stored dash values retain independent storage.",
+    "Shape reset/destruction and closing a snapshot do not invalidate its retained sequences.",
+    "Capture and sequence access are creator-thread scoped, with no GPU dependencies.",
+    "Dash replacement preserves previous data on allocation failure and accepts an aliased borrowed C pattern.",
+    "Existing Buffer calls remain available alongside the typed input overloads."
+  ],
+  "results": {
+    "languageStepsPerPlatform": 11,
+    "nativeStepsPerPlatform": 12,
+    "baselineStepsPerPlatform": 6,
+    "cAndCppHeaderStepsPerPlatform": 3,
+    "languageAllocationPrefixes": 29,
+    "iterations": 128,
+    "xrtAllocFreeReallocCounts": {
+      "languageAcquire": [
+        3712,
+        3712,
+        0
+      ],
+      "languageTraverse": [
+        0,
+        0,
+        0
+      ],
+      "nativeAcquire": [
+        384,
+        384,
+        0
+      ],
+      "nativeTraverse": [
+        0,
+        0,
+        0
+      ]
+    },
+    "perTraversalCopiesOfBackingArrays": 0,
+    "timingCompared": false,
+    "costs": "Each native snapshot uses one allocation and copies its selected native payload once. Each measured cycle captures a path, fill gradient and dash and projects four retained typed sequences. Language acquisition/project/close adds 26 XRT allocation/free pairs to the three native pairs. Warm traversal adds no XRT allocation; scope checks and retained owners still apply."
+  },
+  "evidence": {
+    "win": {
+      "nativeSdk": {
+        "path": "F:\\xlang-validation\\xge-full-20261110\\shape-snapshot-sdk-win-r1\\results.json",
+        "sha256": "2e911002321cfd3206bf1041b4162433ea82af926eaa1790d179510663c37151"
+      },
+      "native": {
+        "path": "F:\\xlang-validation\\xge-full-20261110\\shape-snapshot-native-win-r2\\results.json",
+        "sha256": "dde944573249db8568b4e2219ebe7e37cf819588bdd352ae68de3685e3ab5058"
+      },
+      "dashFailureBaseline": {
+        "path": "F:\\xlang-validation\\xge-full-20261110\\shape-snapshot-dash-baseline-win-r1\\results.json",
+        "sha256": "b603fd6bbdcf30294a922d7614b3897a2e57a9087b9f10c1a7d5dffab54a049e"
+      },
+      "package": {
+        "path": "F:\\xlang-validation\\xge-full-20261110\\shape-snapshot-packages-win-r4\\results.json",
+        "sha256": "7c25a15faf96eb8479732195651f4326695b7c81d041be1e3d1871e4e6b40ff2"
+      },
+      "storageReview": {
+        "path": "F:\\xlang-validation\\xge-full-20261110\\shape-snapshot-packages-win-r4\\source-review\\results.json",
+        "sha256": "eec4c30ef505d1d605c9fa5d3d428c9cf8d7ce8ec7025e122e8c7082ef10c976"
+      },
+      "packageSeal": {
+        "path": "F:\\xlang-validation\\xge-full-20261110\\shape-snapshot-packages-win-r4\\packages\\stage-report.json",
+        "sha256": "42f5cbfd50f3b25d4a8ed03c8be0ddbd3e111bde24d0cda08669daec0d094439"
+      },
+      "compiler": {
+        "path": "F:\\xlang-validation\\xge-full-20261110\\compiler-native-sequence-fixed-record-win-full-r2\\build.json",
+        "sha256": "5b6e7afe29909931548adb96f01f2f8dd386932d6876a7f55c3b70c25126b05c"
+      },
+      "language": {
+        "path": "F:\\xlang-validation\\xge-full-20261110\\shape-snapshot-language-win-r4\\results.json",
+        "sha256": "d6c112ac654ecd73db7eded39d9947bf4e498a6aa6ca8dd6bd570ff57192ebfd"
+      },
+      "allocations": {
+        "path": "F:\\xlang-validation\\xge-full-20261110\\shape-snapshot-perf-win-r2\\results.json",
+        "sha256": "45fc6694e47c9abf8bc85366dd6c69570d2cfb695f2fe183f707c74b80fec6c4"
+      },
+      "header": {
+        "path": "F:\\xlang-validation\\xge-full-20261110\\shape-snapshot-header-win-r1\\results.json",
+        "sha256": "96bbe067c586883e762154971b860d0364d4a569c6dd389a526b7d0e684f43b0"
+      }
+    },
+    "linux": {
+      "nativeSdk": {
+        "path": "\\\\wsl.localhost\\Ubuntu\\var\\tmp\\xlang-validation\\xge-full-20261110\\shape-snapshot-sdk-linux-r1\\results.json",
+        "sha256": "302e8dc022a7c47716893d3b2d3227e7e145fe7c0ebac9e882c5d497f49f7722"
+      },
+      "native": {
+        "path": "\\\\wsl.localhost\\Ubuntu\\var\\tmp\\xlang-validation\\xge-full-20261110\\shape-snapshot-native-linux-r2\\results.json",
+        "sha256": "9c5679ad0a94a076db28d79a0958b4207968694fe72a54add5de408f6a859f95"
+      },
+      "dashFailureBaseline": {
+        "path": "\\\\wsl.localhost\\Ubuntu\\var\\tmp\\xlang-validation\\xge-full-20261110\\shape-snapshot-dash-baseline-linux-r1\\results.json",
+        "sha256": "1b9655e39f002931def65bf9363d8206402dcfeb5093b2e01aa90d3b69879676"
+      },
+      "package": {
+        "path": "\\\\wsl.localhost\\Ubuntu\\var\\tmp\\xlang-validation\\xge-full-20261110\\shape-snapshot-packages-linux-r4\\results.json",
+        "sha256": "e69fe66377a5a1564a598d4a8843a7685bef65e330b766e8f6bbe82b3744545d"
+      },
+      "storageReview": {
+        "path": "\\\\wsl.localhost\\Ubuntu\\var\\tmp\\xlang-validation\\xge-full-20261110\\shape-snapshot-packages-linux-r4\\source-review\\results.json",
+        "sha256": "ce4d5ab081aca77fa459a1db56f899af195e99ba0b39a2b2a61640f27cea7f0e"
+      },
+      "packageSeal": {
+        "path": "\\\\wsl.localhost\\Ubuntu\\var\\tmp\\xlang-validation\\xge-full-20261110\\shape-snapshot-packages-linux-r4\\packages\\stage-report.json",
+        "sha256": "c58dacc5906d2480d74db722cc1f5c233e6ac71eaf1ab3657bf12e4e3b6f6c43"
+      },
+      "compiler": {
+        "path": "\\\\wsl.localhost\\Ubuntu\\var\\tmp\\xlang-validation\\xge-full-20261110\\compiler-native-sequence-fixed-record-linux-full-r2\\build.json",
+        "sha256": "996fd94fd7b3619c406d5dbad3b22b04915ed3888f7a629463231bf760429e4e"
+      },
+      "language": {
+        "path": "\\\\wsl.localhost\\Ubuntu\\var\\tmp\\xlang-validation\\xge-full-20261110\\shape-snapshot-language-linux-r4\\results.json",
+        "sha256": "4581964c3109a8280d6d62f889cd52d4e5115ba33fc91c21203b1836b95fc66a"
+      },
+      "allocations": {
+        "path": "\\\\wsl.localhost\\Ubuntu\\var\\tmp\\xlang-validation\\xge-full-20261110\\shape-snapshot-perf-linux-r2\\results.json",
+        "sha256": "b49d69bc540bd7bf8690eebe6d568142197cb8ec8d58891b69aec8b861aea275"
+      },
+      "header": {
+        "path": "\\\\wsl.localhost\\Ubuntu\\var\\tmp\\xlang-validation\\xge-full-20261110\\shape-snapshot-header-linux-r1\\results.json",
+        "sha256": "95affa75aa2fbbe7ab087d90c8717fb0add787667dab018bd1462c648a85e2f6"
+      }
+    }
+  }
+}

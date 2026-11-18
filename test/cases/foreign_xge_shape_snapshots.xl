@@ -1,0 +1,102 @@
+import xge
+
+func main(...) as int
+    auto shape = xge.createShape()
+    auto emptyPath = shape.capturePath()
+    assert emptyPath.commands().length == 0 and emptyPath.points().length == 0
+    emptyPath.close()
+    auto emptyDash = shape.captureStrokeDash()
+    assert emptyDash.pattern().length == 0 and emptyDash.offset() == c_float(0)
+    emptyDash.close()
+    bool solid = false
+    try
+        shape.captureFillGradient()
+    catch error
+        assert error.code == int(xge.XGE_ERROR_NOT_FOUND)
+        solid = true
+    end
+    assert solid
+
+    auto start = xge.Vec2()
+    start.fX = c_float(1)
+    start.fY = c_float(2)
+    auto line = xge.Vec2()
+    line.fX = c_float(3)
+    line.fY = c_float(4)
+    auto control = xge.Vec2()
+    control.fX = c_float(5)
+    control.fY = c_float(6)
+    auto endPoint = xge.Vec2()
+    endPoint.fX = c_float(7)
+    endPoint.fY = c_float(8)
+    shape.appendPath(b"\x01\x02\x04\x00", [start,line,control,endPoint])
+    auto path = shape.capturePath()
+    auto commands = path.commands()
+    auto points = path.points()
+    path.close()
+
+    auto red = xge.ShapeExColorStop()
+    red.fOffset = c_float(0.75)
+    red.iColor = c_uint(0xff0000ff)
+    auto green = xge.ShapeExColorStop()
+    green.fOffset = c_float(-0.25)
+    green.iColor = c_uint(0x00ff00ff)
+    shape.fillLinearGradient(0,0,10,20,xge.XGE_SHAPE_EX_GRADIENT_USER_SPACE,[red,green])
+    shape.fillGradientSpread(xge.XGE_SHAPE_EX_GRADIENT_SPREAD_REFLECT)
+    auto transform = xge.ShapeExMatrix()
+    transform.fA = c_float(1)
+    transform.fD = c_float(1)
+    transform.fE = c_float(11)
+    shape.fillGradientTransformSet(transform)
+    auto fill = shape.captureFillGradient()
+    auto fillInfo = fill.info()
+    auto fillStops = fill.stops()
+    fill.close()
+
+    shape.strokeRadialGradientEx(4,5,9,6,7,2,xge.XGE_SHAPE_EX_GRADIENT_OBJECT_BOUNDING_BOX,[red,green])
+    shape.strokeDash([c_float(3),c_float(-2),c_float(5)],offset=c_float(1.5))
+    auto stroke = shape.captureStrokeGradient()
+    auto strokeInfo = stroke.info()
+    auto strokeStops = stroke.stops()
+    stroke.close()
+    auto dash = shape.captureStrokeDash()
+    auto dashOffset = dash.offset()
+    auto pattern = dash.pattern()
+    dash.close()
+    shape.reset()
+    shape.close()
+
+    assert commands.length == 4 and points.length == 4
+    assert commands[0] == c_uchar(xge.XGE_SHAPE_EX_CMD_MOVE_TO)
+    assert commands[3] == c_uchar(xge.XGE_SHAPE_EX_CMD_CLOSE)
+    assert points[2].fX == c_float(5) and points[3].fY == c_float(8)
+    assert fillInfo.iType == xge.XGE_SHAPE_EX_PAINT_LINEAR_GRADIENT
+    assert fillInfo.iSpread == xge.XGE_SHAPE_EX_GRADIENT_SPREAD_REFLECT
+    assert fillInfo.tTransform.fE == c_float(11) and fillInfo.fX2 == c_float(10)
+    assert fillStops[0].iColor == red.iColor and fillStops[1].fOffset == green.fOffset
+    assert strokeInfo.iType == xge.XGE_SHAPE_EX_PAINT_RADIAL_GRADIENT
+    assert strokeInfo.fRadius == c_float(9) and strokeInfo.fFocalRadius == c_float(2)
+    assert strokeStops.length == 2 and dashOffset == c_float(1.5)
+    assert pattern.length == 3 and pattern[1] == c_float(0)
+    c_float sum = c_float(0)
+    for length in pattern
+        sum += length
+    end
+    assert sum == c_float(8)
+
+    auto scratch = xge.createShape()
+    scratch.appendPolyline([start,line])
+    scratch.appendPolygon([start,control,endPoint])
+    auto lines = scratch.capturePath()
+    assert lines.commands().length == 6
+    lines.close()
+    scratch.fillRadialGradient(0,0,4,0,0,xge.XGE_SHAPE_EX_GRADIENT_USER_SPACE,[red,green])
+    scratch.fillRadialGradientEx(0,0,4,0,0,1,xge.XGE_SHAPE_EX_GRADIENT_USER_SPACE,[red,green])
+    scratch.strokeLinearGradient(0,0,3,4,xge.XGE_SHAPE_EX_GRADIENT_USER_SPACE,[red,green])
+    scratch.strokeRadialGradient(0,0,4,0,0,xge.XGE_SHAPE_EX_GRADIENT_USER_SPACE,[red,green])
+    array<c_float> noDashes = []
+    scratch.strokeDash(noDashes)
+    scratch.close()
+    println("SHAPE_SNAPSHOTS_LANGUAGE_OK")
+    return 0
+end

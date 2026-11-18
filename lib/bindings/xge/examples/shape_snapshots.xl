@@ -1,0 +1,31 @@
+import xge
+
+auto shape = xge.createShape()
+shape.appendSvgPath("M 10 20 L 60 20 L 60 50 Z")
+
+auto blue = xge.ShapeExColorStop()
+blue.fOffset = c_float(0)
+blue.iColor = c_uint(0x2266ffff)
+auto orange = xge.ShapeExColorStop()
+orange.fOffset = c_float(1)
+orange.iColor = c_uint(0xff6600ff)
+shape.fillLinearGradient(10,20,60,20,xge.XGE_SHAPE_EX_GRADIENT_USER_SPACE,[blue,orange])
+shape.strokeDash([c_float(4),c_float(2)])
+
+auto path = shape.capturePath()
+auto points = path.points()
+path.close()
+auto gradient = shape.captureFillGradient()
+auto stops = gradient.stops()
+gradient.close()
+auto dash = shape.captureStrokeDash()
+auto pattern = dash.pattern()
+dash.close()
+shape.close()
+
+// The sequences retain the captured data independently of the shape.
+println("Path points:", points.length)
+for point in points
+    println(point.fX, point.fY)
+end
+println("Gradient stops:", stops.length, "Dash segments:", pattern.length)

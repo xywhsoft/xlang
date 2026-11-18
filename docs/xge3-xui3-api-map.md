@@ -101,6 +101,18 @@ views still expire when the callback returns.
 
 ## Storage review and costs
 
+`Shape.capturePath()` copies the current commands and points into one owned
+snapshot. `captureFillGradient()` and `captureStrokeGradient()` capture
+the gradient geometry and original color stops. Solid paint reports
+`XGE_ERROR_NOT_FOUND`. `captureStrokeDash()` captures the stored dash
+lengths and offset, including an empty pattern.
+
+The typed sequences retain their own references and traverse the captured
+arrays in place. They remain readable on the creating thread after the
+original shape or snapshot handle closes. The path, gradient and dash setters
+accept typed arrays alongside their existing Buffer forms. Typed arguments use
+the compiler's checked element-count projection. [Shape snapshot example](../lib/bindings/xge/examples/shape_snapshots.xl)
+
 The [storage review ledger](xge3-xui3-api-map-storage.json) records reviewed
 consumer bodies and their hashes. `--existing-bindings` annotates current
 source without regenerating library declarations; a missing or changed body

@@ -228,6 +228,21 @@ export extern "xge_shape_ex_color_stop_t" struct ShapeExColorStop @header("xge3_
  c_uint iColor
 end
 
+export extern "xge_shape_gradient_info_t" struct ShapeGradientInfo @header("xge3_runtime.h")
+ c_int iType
+ c_int iUnits
+ c_int iSpread
+ c_float fX1
+ c_float fY1
+ c_float fX2
+ c_float fY2
+ c_float fRadius
+ c_float fFocalX
+ c_float fFocalY
+ c_float fFocalRadius
+ ShapeExMatrix tTransform
+end
+
 export extern "xge_shape_ex_scene_effect_t" struct ShapeExSceneEffect @header("xge3_runtime.h")
  c_int iType
  c_uint iColor

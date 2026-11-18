@@ -727,11 +727,79 @@ def annotate_existing_bindings(root,data,strict_storage=False,generated=False):
     data['existingBindingAnnotation']=dict(declarationOnly=True,abiAccepted=False,runtimeAccepted=False,sourceFilesModified=False,inputsUnchanged=unchanged,generatorWroteSourcesBeforeAnnotation=generated,sourceSha256=pins)
 
 
+def shape_snapshot_bindings():
+    extra={}
+    records=[
+        ('AppendPolyline','appendPolyline','','Vec2','xge_vec2_t',0,1,'points'),
+        ('AppendPolygon','appendPolygon','','Vec2','xge_vec2_t',0,1,'points'),
+        ('AppendPath','appendPath','bytes commands,','Vec2','xge_vec2_t',1,3,'points'),
+        ('StrokeDash','strokeDash','','c_float','float',0,1,'pattern'),
+    ]
+    storage=[
+        ('LinearGradient','c_float fX1,c_float fY1,c_float fX2,c_float fY2,c_int iUnits,',5),
+        ('RadialGradient','c_float fCX,c_float fCY,c_float fRadius,c_float fFX,c_float fFY,c_int iUnits,',6),
+        ('RadialGradientEx','c_float fCX,c_float fCY,c_float fRadius,c_float fFX,c_float fFY,c_float fFocalRadius,c_int iUnits,',7),
+    ]
+    for native_prefix,public_prefix in (('Fill','fill'),('Stroke','stroke')):
+        for suffix,args,count in storage:
+            records.append((native_prefix+suffix,public_prefix+suffix,args,
+                            'ShapeExColorStop','xge_shape_ex_color_stop_t',count,count+1,'stops'))
+    for suffix,name,prefix,item,c_item,first,physical,arg in records:
+        native='xgeShapeEx'+suffix
+        span='@c_span(0,"const uint8_t*","int") ' if suffix=='AppendPath' else ''
+        tail=',c_float offset=0' if suffix=='StrokeDash' else ''
+        limit=first+1
+        extra[native]=[f' extern "{native}" @no_raise {span}'
+                       f'@c_array_group({physical},{first},1,"int",{limit}) '
+                       f'@c_array_input({physical},0,"const {c_item}*","value") '
+                       f'@c_result("status",0) func {name}({prefix}array<{item}> {arg},int size=-1{tail})']
+    mapped={}
+    for after,name,kind in (('AppendSvgPath','Path','Path'),('FillRadialGradientEx','FillGradient','Gradient'),
+                            ('StrokeRadialGradientEx','StrokeGradient','Gradient'),('StrokeDash','StrokeDash','Dash')):
+        native='xgeShapeExCapture'+name
+        extra.setdefault('xgeShapeEx'+after,[]).append(
+            f' extern "{native}" @no_raise @c_result("owned_view") @factory(1,0,releaseShape{kind}Snapshot) '
+            f'func capture{name}() as Shape{kind}Snapshot')
+        mapped[native]='xge.Shape.capture'+name
+    hdr='@header("xge3_shape_snapshot.h")'
+    lines=['']
+    owners=[]
+    for kind,info,sequences in (
+        ('Path',None,(('Commands','c_uchar'),('Points','Vec2'))),
+        ('Gradient',('Info','ShapeGradientInfo'),(('Stops','ShapeExColorStop'),)),
+        ('Dash',('Offset','c_float'),(('Pattern','c_float'),)),
+    ):
+        name='Shape'+kind+'Snapshot'
+        native='xge'+name
+        lines += [f'export extern "xge_shape_{kind.lower()}_snapshot*" class {name} {hdr} '
+                  f'@lifetime("owned") @policy("xl6Xge3{name}Policy")',' native point handle']
+        if info:
+            suffix,result=info
+            lines += [f' extern "{native}{suffix}" @no_raise @c_const(0) @c_output(1,0) '
+                      f'func {suffix.lower()}() as {result}']
+            mapped[native+suffix]='xge.'+name+'.'+suffix.lower()
+        for suffix,item in sequences:
+            lines += [f' extern "{native}{suffix}" @no_raise @c_const(0) @c_owned_sequence(1,2,0,"size_t",0) '
+                      f'@c_retain(retain{name},"zero",release{name}) func {suffix.lower()}() as NativeSequence<{item}>']
+            mapped[native+suffix]='xge.'+name+'.'+suffix.lower()
+        lines += [' extern "xl6ForeignViewCloseV1" @no_raise @c_control(0) @c_result("bool_status") func close()',
+                  'end','']
+        owners += [f'extern "{native}AddRef" {hdr} @no_raise func retain{name}({name} value) as c_int',
+                   f'extern "{native}ReleaseChecked" {hdr} @no_raise @c_result("status",0) func release{name}({name} value)']
+        mapped[native+'AddRef']='xge.retain'+name
+        mapped[native+'ReleaseChecked']='xge.release'+name
+    return extra,lines+owners,mapped
+
+
 def generate_xge_objects(root,header,records,types,primitive,param,reserved,reviewed_span,fixed_outputs):
     families={'xge_shape_ex':('Shape','xl6Xge3ShapePolicy','xgeShapeEx','xgeShapeExDestroy'),
               'xge_shape_ex_scene':('ShapeScene','xl6Xge3ShapeScenePolicy','xgeShapeExScene','xgeShapeExSceneDestroy'),
               'xge_shape_ex_path_measure':('PathMeasure','xl6Xge3PathMeasurePolicy','xgeShapeExPathMeasure','xgeShapeExPathMeasureDestroy')}
     mapped={};methods={n:[] for n,_,_,_ in families.values()};factories=[]
+    shape_extra,snapshot_lines,snapshot_targets=shape_snapshot_bindings()
+    known={f['name'] for f in header['functions']}
+    if not set(snapshot_targets) <= known:
+        raise ValueError('Shape snapshot declarations require a matching native header')
     def family(t):
         if t['kind']=='named' and len(t['names'])==1:return families.get(t['names'][0])
         return None
@@ -780,6 +848,7 @@ def generate_xge_objects(root,header,records,types,primitive,param,reserved,revi
             if name=='close':name='closePath'
             if not name or name in reserved:name='native'+name[:1].upper()+name[1:]
             methods[owner[0]].append(' extern "'+f['name']+'" @no_raise '+ ' '.join(attrs)+' func '+name+'('+','.join(params)+')'+(' as '+result if result else ''))
+            methods[owner[0]].extend(shape_extra.get(f['name'],()))
             mapped[f['name']]='xge.'+owner[0]+'.'+name
         except ValueError:continue
     lines=['// Native-only shape graphs: own one exact native reference, no language callback slots.']
@@ -792,6 +861,8 @@ def generate_xge_objects(root,header,records,types,primitive,param,reserved,revi
             lines+=['export extern "'+cname+'" @no_raise @c_result("owned_view") @factory(0,0,rollback'+name+') func '+public+'() as '+name];mapped[cname]='xge.'+public
     lines+=['export extern "xgeShapeExPathMeasureCreate" @no_raise @c_ref(1) @c_result("owned_view") @factory(0,0,rollbackPathMeasure) func measurePath(Shape shape,ShapeExMatrix matrix,c_float tolerance) as PathMeasure']
     mapped['xgeShapeExPathMeasureCreate']='xge.measurePath'
+    lines+=snapshot_lines
+    mapped.update(snapshot_targets)
     (root/'lib/bindings/xge/src/shapes.xl').write_text('\n'.join(lines)+'\n',encoding='utf8')
     return mapped
 

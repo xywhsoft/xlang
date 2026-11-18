@@ -100,7 +100,7 @@
       "dependencies": [
         {
           "sourceFile": "include/xge.h",
-          "sha256": "ef309086c8160410b0c37ebc0fb91d67feecb1d1164b58dc7baa50c85ab5cc58"
+          "sha256": "4648bba9a917dee66c5b499def9fc7e6e0d260903d3b055103747a117d536495"
         },
         {
           "sourceFile": "src/xge/render/xge_render.c",
@@ -293,10 +293,10 @@
       "storage": "native-copy-or-synchronous-read",
       "sourceFile": "src/xge/render/xge_shape_ex.c",
       "line": 11669,
-      "functionSha256": "47ecddf083f8c6500229e00979f4b4f79aaef3c344493b5ca24c420612b55a76",
+      "functionSha256": "9ba4e9f9efe6317d836f5612ca4dedabf8f9a1c1464259d803e567b3ff13f898",
       "helperEvidence": {
         "sourceFile": "src/xge/render/xge_shape_ex.c",
-        "line": 11699,
+        "line": 11691,
         "marker": "pCopy[i] = pDashPattern[i]",
         "reason": "allocates pCopy and copies values; owns pCopy"
       }
@@ -555,7 +555,7 @@
       "dependencies": [
         {
           "sourceFile": "include/xge.h",
-          "sha256": "ef309086c8160410b0c37ebc0fb91d67feecb1d1164b58dc7baa50c85ab5cc58"
+          "sha256": "4648bba9a917dee66c5b499def9fc7e6e0d260903d3b055103747a117d536495"
         },
         {
           "sourceFile": "src/xge/core/xge_debug.c",
@@ -688,7 +688,7 @@
       "dependencies": [
         {
           "sourceFile": "include/xui.h",
-          "sha256": "241651b80db6258c67249c5ee88e6c8b3e4316f0ade1bc6f603add1ef7fc658d"
+          "sha256": "fd1554b670085da2f5ff79940fa2d338add12496a3e87f7b301bdeb166b41b6f"
         },
         {
           "sourceFile": "src/xui/core/xui_proxy_xge.c",
@@ -786,7 +786,7 @@
       "dependencies": [
         {
           "sourceFile": "include/xui.h",
-          "sha256": "241651b80db6258c67249c5ee88e6c8b3e4316f0ade1bc6f603add1ef7fc658d"
+          "sha256": "fd1554b670085da2f5ff79940fa2d338add12496a3e87f7b301bdeb166b41b6f"
         },
         {
           "sourceFile": "src/xui/core/xui_proxy_xge.c",
@@ -855,11 +855,11 @@
       "dependencies": [
         {
           "sourceFile": "include/xge.h",
-          "sha256": "ef309086c8160410b0c37ebc0fb91d67feecb1d1164b58dc7baa50c85ab5cc58"
+          "sha256": "4648bba9a917dee66c5b499def9fc7e6e0d260903d3b055103747a117d536495"
         },
         {
           "sourceFile": "src/xge/render/xge_shape_ex.c",
-          "sha256": "401f258da07027d2e13c69488b22b0822799fd61bc7db5134b336ef241a43bd1"
+          "sha256": "f9a58081c629c4f50f36d1ab27a830cb63967f282f7e2f84da1658ed26f3806c"
         }
       ],
       "note": "Exactly four contiguous corners written synchronously through RectToOBB; failure may leave temporary output partial/zero but checked language result is not published. Pointer syntax alone does not encode cardinality. Existing qualified language result remains Vec2[4]."
@@ -875,11 +875,11 @@
       "dependencies": [
         {
           "sourceFile": "include/xge.h",
-          "sha256": "ef309086c8160410b0c37ebc0fb91d67feecb1d1164b58dc7baa50c85ab5cc58"
+          "sha256": "4648bba9a917dee66c5b499def9fc7e6e0d260903d3b055103747a117d536495"
         },
         {
           "sourceFile": "src/xge/render/xge_shape_ex.c",
-          "sha256": "401f258da07027d2e13c69488b22b0822799fd61bc7db5134b336ef241a43bd1"
+          "sha256": "f9a58081c629c4f50f36d1ab27a830cb63967f282f7e2f84da1658ed26f3806c"
         }
       ],
       "note": "Exactly four contiguous corners written synchronously through RectToOBB; failure may leave temporary output partial/zero but checked language result is not published. Pointer syntax alone does not encode cardinality. Existing qualified language result remains Vec2[4]."
