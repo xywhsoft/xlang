@@ -26,6 +26,7 @@
       "src/render_resources.xl",
       "src/render_pipeline.xl",
       "src/input_actions.xl",
+      "src/input_events.xl",
       "src/resource_loading.xl",
       "src/scene.xl",
       "src/async_load.xl",

@@ -1,0 +1,32 @@
+// Feed two events to the same queue that delivers live platform input.
+import xge
+
+func main(...) as int
+    xge.init(32,32,"Input events",c_int(xge.XGE_INIT_OFFSCREEN),xge.XGE_RUN_MANUAL)
+    try
+        xge.InputEventInfo composition
+        composition.iType = xge.XGE_EVENT_IME_UPDATE
+        composition.iCursor = 6 // UTF-8 byte offset after the two characters.
+        xge.postInputEvent(composition,"输入")
+
+        xge.InputEventInfo key
+        key.iType = xge.XGE_EVENT_KEY_UP
+        key.iKey = 65 // A
+        xge.postInputEvent(key)
+
+        auto text = Buffer()
+        auto status,head = xge.readInputEvent(text)
+        assert status == xge.XGE_INPUT_READ_NEED_BUFFER
+        assert text.resize(head.iTextSize)
+        auto ready,ime = xge.readInputEvent(text)
+        assert ready == xge.XGE_INPUT_READ_READY
+        println("IME text",encoding.decodeUtf8(text.toBytes()),"cursor",ime.iCursor)
+
+        auto keyReady,up = xge.readInputEvent(text)
+        assert keyReady == xge.XGE_INPUT_READ_READY
+        println("Key up",up.iKey)
+    finally
+        xge.unit()
+    end
+    return 0
+end

@@ -1,0 +1,33 @@
+// The metadata is an independent value. Text remains in the caller's Buffer.
+export extern "xge_input_event_info_t" struct InputEventInfo @header("xge3_runtime.h")
+ c_uint iSize
+ c_int iType
+ c_uint iFlags
+ uint64 iSequence
+ c_double fTime
+ c_int iKey
+ c_int iNativeKey
+ c_int iScanCode
+ c_uint iModifiers
+ uint64 iPointerId
+ c_int iButton
+ c_uint iButtons
+ c_float fX
+ c_float fY
+ c_float fDX
+ c_float fDY
+ c_uint iCodepoint
+ c_int iTextSize
+ c_int iCursor
+ c_int iSelectStart
+ c_int iSelectEnd
+ c_int bReplacementRange
+ c_int iReplacementStart
+ c_int iReplacementEnd
+ c_int iAttribute
+end
+
+export extern "xgeInputEventRead" @header("xge3_runtime.h") @no_raise @c_span(0,"void*","size_t") @c_outputs(-1,0) @c_result("integer_min",0) func readInputEvent(Buffer text) as (c_int,InputEventInfo)
+export extern "xgeInputEventPostData" @header("xge3_runtime.h") @no_raise @c_ref(0) @c_span(1,"const void*","size_t",2) @c_result("status",0) func postInputEvent(InputEventInfo event,bytes text=b"",int size=-1)
+export extern "xgeInputEventPostData" @header("xge3_runtime.h") @no_raise @c_ref(0) @c_span(1,"const void*","size_t",2) @c_result("status",0) func postInputEvent(InputEventInfo event,Buffer text,int size=-1)
+export extern "xgeInputEventPostData" @header("xge3_runtime.h") @no_raise @c_ref(0) @c_span(1,"const void*","size_t",2) @c_result("status",0) func postInputEvent(InputEventInfo event,string text,int size=-1)

@@ -1,0 +1,82 @@
+import xge
+
+extern "inputEventHeapBegin" @header("test/cases/foreign_xge_input_events.h") @no_raise func heapBegin()
+extern "inputEventHeapEnd" @header("test/cases/foreign_xge_input_events.h") @no_raise func heapEnd(c_int mode)
+extern "inputEventNativeHot" @header("test/cases/foreign_xge_input_events.h") @no_raise func nativeHot()
+
+func verifyQueue(Buffer output)
+    xge.InputEventInfo ime
+    ime.iType = xge.XGE_EVENT_IME_UPDATE
+    ime.iTextSize = 999
+    ime.iCursor = 3
+    ime.iSelectStart = 1
+    ime.iSelectEnd = 3
+    ime.bReplacementRange = 1
+    ime.iReplacementStart = 6
+    ime.iReplacementEnd = 9
+    ime.iPointerId = uint64(0x100000003)
+    xge.InputEventInfo key
+    key.iType = xge.XGE_EVENT_KEY_UP
+    key.iKey = 65
+
+    xge.postInputEvent(ime,b"A\0B")
+    xge.postInputEvent(key)
+    assert xge.inputEventPendingCount() == 2
+    auto tiny = Buffer.fromHex("CCCC")
+    auto tooSmall,head = xge.readInputEvent(tiny)
+    assert tooSmall == xge.XGE_INPUT_READ_NEED_BUFFER and head.iTextSize == 3
+    assert xge.inputEventPendingCount() == 2 and tiny.toBytes() == b"\xcc\xcc"
+
+    auto ready,notice = xge.readInputEvent(output)
+    assert ready == xge.XGE_INPUT_READ_READY and notice.iSequence == head.iSequence
+    assert notice.iType == xge.XGE_EVENT_IME_UPDATE and notice.iFlags == c_uint(xge.XGE_INPUT_EVENT_FLAG_SYNTHETIC)
+    assert notice.iTextSize == 3 and notice.iCursor == 3 and notice.iPointerId == ime.iPointerId
+    assert notice.iSelectStart == 1 and notice.iSelectEnd == 3 and notice.bReplacementRange == 1
+    assert notice.iReplacementStart == 6 and notice.iReplacementEnd == 9
+    assert output.toBytes() == b"A\0B\xcc"
+    auto keyReady,up = xge.readInputEvent(Buffer())
+    assert keyReady == xge.XGE_INPUT_READ_READY and up.iKey == 65 and up.iTextSize == 0
+    assert up.iSequence > notice.iSequence
+    auto empty,cleared = xge.readInputEvent(output)
+    assert empty == xge.XGE_INPUT_READ_EMPTY and cleared.iType == 0 and cleared.iTextSize == 0
+    assert output.toBytes() == b"A\0B\xcc"
+
+    xge.postInputEvent(ime,output,3)
+    auto copied,again = xge.readInputEvent(output)
+    assert copied == xge.XGE_INPUT_READ_READY and again.iTextSize == 3 and output.toBytes() == b"A\0B\xcc"
+    xge.postInputEvent(ime,"é\0z",999)
+    auto utf8,exact = xge.readInputEvent(output)
+    assert utf8 == xge.XGE_INPUT_READ_READY and exact.iTextSize == 4 and output.toBytes() == b"\xc3\xa9\0z"
+
+    bool rejected = false
+    try
+        xge.postInputEvent(ime,b"A",-2)
+    catch error
+        rejected = true
+    end
+    assert rejected and xge.inputEventPendingCount() == 0
+
+    bytes input = b"A\0B"
+    heapBegin()
+    try
+        for i in range(1000)
+            xge.postInputEvent(ime,input)
+            auto state,eventInfo = xge.readInputEvent(output)
+            assert state == xge.XGE_INPUT_READ_READY and eventInfo.iTextSize == 3
+        end
+    finally
+        heapEnd(0)
+    end
+    nativeHot()
+end
+
+func main(...) as int
+    xge.init(32,32,"Counted input qualification",c_int(xge.XGE_INIT_OFFSCREEN),xge.XGE_RUN_MANUAL)
+    try
+        verifyQueue(Buffer.fromHex("CCCCCCCC"))
+    finally
+        xge.unit()
+    end
+    println("XGE_INPUT_EVENTS_LANGUAGE_OK")
+    return 0
+end

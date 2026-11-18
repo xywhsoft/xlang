@@ -4,6 +4,40 @@
   "sourceRoot": "D:\\GIT\\xge",
   "runtimeAcceptance": false,
   "entries": {
+    "xgeInputEventRead": {
+      "bindingFile": "lib\\bindings\\xge\\src\\input_events.xl",
+      "declaration": "export extern \"xgeInputEventRead\" @header(\"xge3_runtime.h\") @no_raise @c_span(0,\"void*\",\"size_t\") @c_outputs(-1,0) @c_result(\"integer_min\",0) func readInputEvent(Buffer text) as (c_int,InputEventInfo)",
+      "storage": "bounded-synchronous-output",
+      "sourceFile": "src/xge/input/xge_input.c",
+      "line": 438,
+      "functionSha256": "9411acd264ee59c34e46715bf5ee4d03c25912eb65f1bd758344f14c8038ce33",
+      "helperEvidence": {
+        "sourceFile": "src/xge/input/xge_input.c",
+        "line": 463,
+        "marker": "iBytes > iCapacity",
+        "reason": "writes exactly the counted byte length after a capacity check"
+      }
+    },
+    "xgeInputEventPostData": {
+      "bindingFile": "lib\\bindings\\xge\\src\\input_events.xl",
+      "declaration": "export extern \"xgeInputEventPostData\" @header(\"xge3_runtime.h\") @no_raise @c_ref(0) @c_span(1,\"const void*\",\"size_t\",2) @c_result(\"status\",0) func postInputEvent(InputEventInfo event,bytes text=b\"\",int size=-1)",
+      "storage": "native-copy-or-synchronous-read",
+      "sourceFile": "src/xge/input/xge_input.c",
+      "line": 469,
+      "functionSha256": "0b79d8ebe74dfe510610aec02b31c17efa89447c22ad69b105d1a5c16f68f9ab",
+      "helperEvidence": {
+        "sourceFile": "src/xge/input/xge_input.c",
+        "line": 89,
+        "marker": "memcpy(pItem->sInlineText, sText",
+        "reason": "the queue copies the caller span into its own inline or heap storage before return"
+      },
+      "dependencies": [
+        {
+          "sourceFile": "src/xge/input/xge_input.c",
+          "sha256": "620c2b5115a6aee067d6828ad88fae90bfd705de2f9b4b59688cce32eaad0c69"
+        }
+      ]
+    },
     "xgeGraphicsShaderHeaderGet": {
       "bindingFile": "lib\\bindings\\xge\\src\\functions.xl",
       "declaration": "export extern \"xgeGraphicsShaderHeaderGet\" @header(\"xge3_runtime.h\") @c_span(1,\"char*\",\"int\") func graphicsShaderHeaderGet(c_int iBackend,Buffer sBuffer) as c_int",
@@ -100,7 +134,7 @@
       "dependencies": [
         {
           "sourceFile": "include/xge.h",
-          "sha256": "6f0bd147dda3edb28e1d68e88999e52b939c452fb2afc0e26ee1d71733c00263"
+          "sha256": "055b0dd70f3d2102cc8afeac36d13a4afb897de98f15ab180bea808f525d08f3"
         },
         {
           "sourceFile": "src/xge/render/xge_render.c",
@@ -569,7 +603,7 @@
       "dependencies": [
         {
           "sourceFile": "include/xge.h",
-          "sha256": "6f0bd147dda3edb28e1d68e88999e52b939c452fb2afc0e26ee1d71733c00263"
+          "sha256": "055b0dd70f3d2102cc8afeac36d13a4afb897de98f15ab180bea808f525d08f3"
         },
         {
           "sourceFile": "src/xge/core/xge_debug.c",
@@ -869,7 +903,7 @@
       "dependencies": [
         {
           "sourceFile": "include/xge.h",
-          "sha256": "6f0bd147dda3edb28e1d68e88999e52b939c452fb2afc0e26ee1d71733c00263"
+          "sha256": "055b0dd70f3d2102cc8afeac36d13a4afb897de98f15ab180bea808f525d08f3"
         },
         {
           "sourceFile": "src/xge/render/xge_shape_ex.c",
@@ -889,7 +923,7 @@
       "dependencies": [
         {
           "sourceFile": "include/xge.h",
-          "sha256": "6f0bd147dda3edb28e1d68e88999e52b939c452fb2afc0e26ee1d71733c00263"
+          "sha256": "055b0dd70f3d2102cc8afeac36d13a4afb897de98f15ab180bea808f525d08f3"
         },
         {
           "sourceFile": "src/xge/render/xge_shape_ex.c",

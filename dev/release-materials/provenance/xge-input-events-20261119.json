@@ -1,0 +1,80 @@
+{
+  "complete": true,
+  "passed": true,
+  "releaseInstalled": false,
+  "sourceParent": "1b86f99aefcf5e72f15be98d1d20b1322f766eed",
+  "nativeCommit": "df513720d6732d674cab4dbb0ef5647c365d22a3",
+  "nativeParent": "471d4894a624ad9c5b8faa9270d48ca5e517b3fd",
+  "xrtCommit": "804cc769de3030118c2b46ef7af69543d1b82d9d",
+  "sourceHashes": {
+    "lib/bindings/xge/src/input_events.xl": "4f61fe2f29c5ba5f04a8a301e478c6dea4fd8933c3df372835e803fb410159bc",
+    "lib/bindings/xge/src/constants.xl": "19d103f18ff7ba981760613aa1251c314f9fb43cd6e4fce0324b482aa1aab318",
+    "lib/bindings/xge/xlang.package.json": "6a12df29b5c48e15f5b50af9824613e6024dee5d9388f9a90e9a7184818f917d",
+    "lib/bindings/xge/examples/input_events.xl": "37bf7980dd61d5bf9d9c2f98f6889c84a6d5a102439e5af8d919271a7aab2db7",
+    "lib/bindings/xge/examples/README.md": "402ef3d6c195e58a135d4040f4c196e72f1e645eeb5106598b6c3e3aa2d327d9",
+    "docs/xge3-input-events.md": "414ee088b91c38a3bfb9505f1d4ece8bed8de096c63ab0f58403b399a5622a5e",
+    "docs/xge3-xui3-api-map-storage.json": "193e2d8a24a268768015f6e360270c71df500e94c9e90a3526a3d90358efb4b1",
+    "test/cases/foreign_xge_input_events.xl": "01bfbbc7c47afdcb6c3563e8054713809b81e629c40c0901c6f4d181b96df48a",
+    "test/cases/foreign_xge_input_events.c": "417347d3038939c8d374737f193a824f191dd77fd20cdf51c161376c60cea3f8",
+    "test/cases/foreign_xge_input_events.h": "e07dccd8211936242b892a7f5f12d51829d731ec00e3f5ac5d2c779cf2fa0590"
+  },
+  "nativeHashes": {
+    "include/xge.h": "055b0dd70f3d2102cc8afeac36d13a4afb897de98f15ab180bea808f525d08f3",
+    "src/xge/input/xge_input.c": "620c2b5115a6aee067d6828ad88fae90bfd705de2f9b4b59688cce32eaad0c69",
+    "tests/xge/test_input_event_counted.c": "fd31a6a90a659e00138afc371d07af1aca136819f120937369728ea76f8d9618"
+  },
+  "behavior": [
+    "The read and post declarations call one native entry each, with independent POD metadata and a counted caller span.",
+    "Short output provides the head metadata and preserves the queued event and text buffer. Empty is a separate ordinary result.",
+    "UTF-8 byte offsets, embedded NUL, wide pointer IDs, stable sequence and legacy consumption share one queue.",
+    "Cross-thread or uninitialized calls reject before touching queue or result buffers. Long-payload allocation failure leaves earlier events present.",
+    "One thousand warm short-text post/read pairs perform zero XRT heap allocations, frees or reallocations on each side. Text copies, synchronous buffer admission, metadata copies and native thread checks remain.",
+    "Hardware IME input is outside this synthetic/local test evidence."
+  ],
+  "evidence": {
+    "win": {
+      "sdk": {
+        "path": "F:\\xlang-validation\\xge-full-20261110\\input-events-sdk-win-r1\\results.json",
+        "sha256": "be1a1dbb5eba98c34c8c1bb10f59b00b51d904c9df2ddb2bb1eac00a5db0ae6c",
+        "steps": 2
+      },
+      "packages": {
+        "path": "F:\\xlang-validation\\xge-full-20261110\\input-events-packages-win-r2\\results.json",
+        "sha256": "ce87e4a2bcaa8e9f615a73cd4e65fcf2706295032c9edd8ed169ef628d11949e",
+        "steps": 6
+      },
+      "native": {
+        "path": "F:\\xlang-validation\\xge-full-20261110\\input-events-native-win-r1\\results.json",
+        "sha256": "8b33fc78c7dfbd47c85bf5480ac8ce33ea95c771a056627436022fcb818ba0f4",
+        "steps": 18
+      },
+      "language": {
+        "path": "F:\\xlang-validation\\xge-full-20261110\\input-events-language-win-r2\\results.json",
+        "sha256": "0db1d8f99474c365ab8dc141feb95eb878735ccf07ea7a3243a12226247e15ab",
+        "steps": 17
+      }
+    },
+    "linux": {
+      "sdk": {
+        "path": "\\\\wsl.localhost\\Ubuntu\\var\\tmp\\xlang-validation\\xge-full-20261110\\input-events-sdk-linux-r1\\results.json",
+        "sha256": "d11d4a54c53f1b0353639ea527bdfff4bd5509215e0e3cb34e3e0641033b9d5c",
+        "steps": 2
+      },
+      "packages": {
+        "path": "\\\\wsl.localhost\\Ubuntu\\var\\tmp\\xlang-validation\\xge-full-20261110\\input-events-packages-linux-r2\\results.json",
+        "sha256": "550957b0e8f79a55cd40a263a5c7488700ec4351d9c1e8a5d11fb2e23792bb8f",
+        "steps": 6
+      },
+      "native": {
+        "path": "\\\\wsl.localhost\\Ubuntu\\var\\tmp\\xlang-validation\\xge-full-20261110\\input-events-native-linux-r1\\results.json",
+        "sha256": "053d4119e911a4ba056280a679fc72440df4d73f295087b1daedf031f66a4344",
+        "steps": 18
+      },
+      "language": {
+        "path": "\\\\wsl.localhost\\Ubuntu\\var\\tmp\\xlang-validation\\xge-full-20261110\\input-events-language-linux-r2\\results.json",
+        "sha256": "f0f3bad42da84757d43509b9d88a9a37b6fa66cb0e2e66d44ac52ded5f64a305",
+        "steps": 17
+      }
+    }
+  }
+}
