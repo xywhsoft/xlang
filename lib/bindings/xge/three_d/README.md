@@ -71,3 +71,8 @@ prints the last frame's CPU time. The renderer also exposes
 [Render a triangle](examples/mesh.xl) from three vertices and attach it to a
 scene node. The [mesh guide](../../../../docs/xge3-mesh.md) covers indexed
 geometry, updates, level-of-detail attachments and ownership.
+
+[Render a textured triangle](examples/material.xl) to see how a scene node
+holds its material and how that material holds a texture. The
+[material guide](../../../../docs/xge3-material.md) covers map coordinates,
+texture updates, shader hooks and resource ownership.

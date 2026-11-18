@@ -25,7 +25,11 @@ end
 
 export extern "xge3d_texture*" class Texture3D @header("xge3d_renderer.h") @lifetime("owned") @policy("xl6Xge3dTexturePolicy")
  native point handle
+ extern "xge3dTextureShareOwned" @no_raise @c_result("owned_view") @factory(1,0,rollbackTexture3D) func share() as Texture3D
  extern "xge3dTextureResourceInfo" @no_raise @c_const(0) @c_output(1,0) @c_output_size(1,"size") func info() as Xge3dResourceInfo
+ extern "xge3dTexturePrepare" @no_raise @c_ref(0) @c_output(2,0) func prepare(Xge3dUploadBudget budget) as Xge3dUploadStats
+ extern "xge3dTextureUpdateRGBA" @no_raise @c_span(4,"const void*","size_t") @c_result("status",0) func update(c_int x,c_int y,c_int width,c_int height,bytes pixels,c_int stride=0)
+ extern "xge3dTextureUpdateRGBA" @no_raise @c_span(4,"const void*","size_t") @c_result("status",0) func update(c_int x,c_int y,c_int width,c_int height,Buffer pixels,c_int stride=0)
  extern "xl6ForeignViewCloseV1" @no_raise @c_control(0) @c_result("bool_status") func close()
 end
 

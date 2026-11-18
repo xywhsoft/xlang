@@ -1,0 +1,46 @@
+export extern "xge3d_material_params_t" struct MaterialParams @header("xge3d_renderer.h")
+ c_float base_color[4]
+ c_float metallic
+ c_float roughness
+ c_float emissive[3]
+ c_float normal_scale
+ c_float occlusion_strength
+ c_float alpha_cutoff
+ c_int alpha_mode
+ c_int double_sided
+ c_int unlit
+end
+
+export extern "xge3d_texture_mapping_t" struct TextureMapping @header("xge3d_renderer.h")
+ c_int texcoord
+ c_float offset[2]
+ c_float scale[2]
+ c_float rotation
+end
+
+export extern "xge3d_shader*" class Shader3D @header("xge3d_renderer.h") @lifetime("owned") @policy("xl6Xge3dShaderPolicy")
+ native point handle
+ extern "xge3dShaderShareOwned" @no_raise @c_result("owned_view") @factory(1,0,releaseShader3D) func share() as Shader3D
+ extern "xl6ForeignViewCloseV1" @no_raise @c_control(0) @c_result("bool_status") func close()
+end
+
+export extern "xge3d_material*" class Material3D @header("xge3d_renderer.h") @lifetime("owned") @policy("xl6Xge3dMaterialPolicy")
+ native point handle
+ extern "xge3dMaterialShareOwned" @no_raise @c_result("owned_view") @factory(1,0,releaseMaterial3D) func share() as Material3D
+ extern "xge3dMaterialGetParams" @no_raise @c_const(0) @c_output(1,0) func params() as MaterialParams
+ extern "xge3dMaterialSetParams" @no_raise @c_ref(0) @c_result("status",0) func setParams(MaterialParams params)
+ extern "xge3dMaterialGetMapping" @no_raise @c_const(0) @c_output(2,0) func mapping(c_int slot) as TextureMapping
+ extern "xge3dMaterialMapTextureOwned" @no_raise @c_const(0) @c_result("owned_view") @factory(2,0,rollbackTexture3D) func mapTexture(c_int slot) as Texture3D?
+ extern "xge3dMaterialSetMap" @no_raise @c_ref(2) @c_result("status",0) func setMap(c_int slot,Texture3D? texture,TextureMapping mapping)
+ extern "xge3dMaterialSetMap" @no_raise @c_null(3,"const xge3d_texture_mapping_t*") @c_result("status",0) func setMap(c_int slot,Texture3D? texture=null)
+ extern "xge3dMaterialSetShader" @no_raise @c_ref(1) @c_result("status",0) func setShader(Shader3D? shader,c_float[16] parameters)
+ extern "xl6ForeignViewCloseV1" @no_raise @c_control(0) @c_result("bool_status") func close()
+end
+
+extern "xge3dMaterialReleaseChecked" @header("xge3d_renderer.h") @no_raise @c_result("status",0) func releaseMaterial3D(Material3D value)
+extern "xge3dShaderReleaseChecked" @header("xge3d_renderer.h") @no_raise @c_result("status",0) func releaseShader3D(Shader3D value)
+export extern "xge3dMaterialParamsDefault" @header("xge3d_renderer.h") @no_raise func materialDefault() as MaterialParams
+export extern "xge3dTextureMappingDefault" @header("xge3d_renderer.h") @no_raise func textureMappingDefault() as TextureMapping
+export extern "xge3dMaterialCreateOwned" @header("xge3d_renderer.h") @no_raise @c_null(0,"const xge3d_material_params_t*") @c_result("owned_view") @factory(1,0,releaseMaterial3D) func createMaterial() as Material3D
+export extern "xge3dMaterialCreateOwned" @header("xge3d_renderer.h") @no_raise @c_ref(0) @c_result("owned_view") @factory(1,0,releaseMaterial3D) func createMaterial(MaterialParams params) as Material3D
+export extern "xge3dShaderCreateOwned" @header("xge3d_renderer.h") @no_raise @c_pack(0,"xge3d_shader_desc_t",0,3) @c_pack_size(0,"size","uint32_t") @c_pack_field(0,"vertex",0,"c_string") @c_pack_field(0,"surface",1,"c_string") @c_pack_field(0,"bounds_margin",2,"value") @c_result("owned_view") @factory(1,0,releaseShader3D) func createShader(string? vertex=null,string? surface=null,c_float boundsMargin=0) as Shader3D

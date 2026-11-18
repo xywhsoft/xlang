@@ -1,0 +1,119 @@
+import xge
+import xge3d
+from xge3d import Material3D,Texture3D
+
+func vertex(float x,float y) as xge3d.Xge3dVertex
+ auto value=xge3d.Xge3dVertex()
+ value.position.x=c_float(x)
+ value.position.y=c_float(y)
+ value.position.z=c_float(-2)
+ value.normal.z=c_float(1)
+ return value
+end
+
+func main(...) as int
+ xge.init(64,64,"Managed 3D material")
+ auto params=xge3d.materialDefault()
+ params.unlit=c_int(1)
+ auto material=xge3d.createMaterial(params)
+ auto shared=material.share()
+ params.roughness=c_float(-1)
+ bool rejected=false
+ try
+  shared.setParams(params)
+ catch Error
+  rejected=true
+ end
+ assert rejected and shared.params().roughness==c_float(1)
+ params.roughness=c_float(0.5)
+ shared.setParams(params)
+ assert material.params().roughness==c_float(0.5)
+ shared.close()
+
+ auto texture=xge3d.createTexture(2,2,b"\0\0\0\xFF\0\0\0\xFF\0\0\0\xFF\0\0\0\xFF")
+ auto textureAlias=texture.share()
+ auto mapping=xge3d.textureMappingDefault()
+ mapping.texcoord=c_int(1)
+ assert material.mapTexture(xge.XGE3D_MAP_BASE_COLOR)==null
+ material.setMap(xge.XGE3D_MAP_BASE_COLOR,textureAlias,mapping)
+ assert material.mapping(xge.XGE3D_MAP_BASE_COLOR).texcoord==c_int(1)
+ texture.close()
+ textureAlias.close()
+
+ auto scene=xge3d.createScene()
+ auto root=scene.createNode(xge3d.Xge3dNode())
+ auto node=scene.createNode(root)
+ auto mesh=xge3d.createMesh([vertex(-0.8,-0.8),vertex(0.8,-0.8),vertex(0,0.8)])
+ scene.setMesh(node,mesh)
+ mesh.close()
+ scene.setMaterial(node,material)
+ scene.setMaterial(node)
+ assert scene.material(node)==null
+ scene.setMaterialTree(root,material)
+ auto retained=scene.material(node) as Material3D
+ material.close()
+
+ xge.run(func() as c_int
+  assert xge.begin()==0
+  auto sampled=retained.mapTexture(xge.XGE3D_MAP_BASE_COLOR) as Texture3D
+  auto budget=xge3d.Xge3dUploadBudget()
+  budget.operations=c_uint(8)
+  budget.bytes=uint64(64)
+  assert sampled.prepare(budget).completed==c_uint(1)
+  bool shortRow=false
+  try
+   sampled.update(0,0,2,2,b"\0\xFF\0\xFF")
+  catch Error
+   shortRow=true
+  end
+  assert shortRow
+  auto rows=Buffer(b"\0\xFF\0\xFF\0\xFF\0\xFF....\0\xFF\0\xFF\0\xFF\0\xFF")
+  sampled.update(0,0,2,2,rows,12)
+  sampled.close()
+
+  auto shader=xge3d.createShader(surface="void xge3dSurface(inout vec4 base,inout vec3 emission,vec2 uv){base.rgb=base.gbr*xge3dParams[0].x;}")
+  auto shaderAlias=shader.share()
+  c_float[16] uniforms
+  uniforms[0]=c_float(1)
+  retained.setShader(shaderAlias,uniforms)
+  shaderAlias.close()
+  shader.close()
+
+  auto renderer=xge3d.createRenderer()
+  auto target=xge3d.createRenderTarget(32,32)
+  auto camera=xge3d.orthographicCamera(c_float(2),c_float(2),c_float(0.1),c_float(10))
+  c_float[4] clear
+  clear[3]=c_float(1)
+  renderer.renderTo(scene,camera,target,clear)
+  auto pixels=Buffer()
+  assert pixels.resize(32*32*4)
+  target.readPixels(pixels)
+  int center=(16*32+16)*4
+  assert pixels.byteAt(center)>200 and pixels.byteAt(center+1)<32 and pixels.byteAt(center+2)<32
+  retained.setShader(null,uniforms)
+  renderer.renderTo(scene,camera,target,clear)
+  target.readPixels(pixels)
+  assert pixels.byteAt(center)<32 and pixels.byteAt(center+1)>200 and pixels.byteAt(center+2)<32
+  target.close()
+  renderer.close()
+  assert xge.nativeEnd()==0
+  return c_int(1)
+ end)
+ xge.setFrameCallback(null)
+ scene.close()
+ assert xge.graphicsResourceCount()==uint64(2)
+ bool busy=false
+ try
+  xge.unit()
+ catch Error
+  busy=true
+ end
+ assert busy
+ retained.setMap(xge.XGE3D_MAP_BASE_COLOR)
+ assert xge.graphicsResourceCount()==uint64(1)
+ retained.close()
+ assert xge.graphicsResourceCount()==uint64(0)
+ xge.unit()
+ println("MATERIAL3D_LANGUAGE_GPU_OK")
+ return 0
+end

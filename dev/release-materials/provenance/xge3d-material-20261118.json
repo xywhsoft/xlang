@@ -1,0 +1,144 @@
+{
+  "complete": true,
+  "passed": true,
+  "releaseInstalled": false,
+  "title": "Owned 3D materials, textures and shader hooks",
+  "nativeCommit": "d3745f52e8d6d481fe1a89c80c0a27f694db5f49",
+  "compilerCommit": "07f3767fd47892ed5b83fe9fde9034fea2f01a37",
+  "nativeSourceHashes": {
+    "include/xge.h": "3efd7b1ef6ec90060810092f037dc8d2bccf92ff89be3ae2e2480a0017eabb42",
+    "src/xge/3d/xge3d_internal.h": "598107872792c9d1d61e60fd4c0083af3cc447a380f6ce6d1d002dcc70d95bea",
+    "src/xge/3d/xge3d_material.c": "722f7e969943e63328d4d2bea561f82117c3768285cfdbc299bb8086009c04c2",
+    "src/xge/3d/xge3d_scene.c": "16be585e7003a02096fae6c6b8bc02eaee72ff1ab9bf278b912a528f89994661",
+    "src/xge/3d/xge3d_render.c": "3e59ac547ae830a73c967739e61db7c2edd326e0bf274c48075bffdba1212cf3",
+    "src/xge/3d/xge3d_custom.inc": "20767ce417245cfcdcbaedbc31d8b2cdaa2835e1f386dceb58048666159b21ec",
+    "tests/xge/test_3d_material_owned.c": "21e6d55afd4ba4595d75c352683ac68322b210f956a6d74d0eb41e20c1014977"
+  },
+  "sourceHashes": {
+    "lib/bindings/xge/three_d/xlang.package.json": "ff9612bc185869491381aedc19df3fe9600340c7f7b532c6033c5ccaf48db637",
+    "lib/bindings/xge/three_d/examples/material.xl": "6bcbe8e7a6260c08adb3ee54129c159ca237967788a5d4fa1c511e557c10ca6f",
+    "lib/bindings/xge/three_d/include/xge3d_renderer.h": "37a6eb696116cf9712f967f4bfe6726d89ee3f61a7d52c463152e28d38097989",
+    "lib/bindings/xge/three_d/src/material.xl": "4dd41a7dee8f57388bc52fee692beb7b7cd570109074f0ba80757738c4690179",
+    "lib/bindings/xge/three_d/src/renderer.xl": "647cd67b2c1a0480f1402e2db99aabddf9dcc1169b0714b7683f84edc88af95e",
+    "lib/bindings/xge/three_d/src/scene.xl": "2c3c03225ba3e53741f5411e751469bbb153203edce9542e19a3d6b2c66b7609",
+    "test/cases/foreign_xge3d_material_owned.xl": "bc7bdd068d5c3b7b50d656c4c1e9f6ae873948dffcea230c30fc5eb10c88aee0",
+    "docs/xge3-material.md": "dcc8cf030686b2f8da91cd7119c0e2c3d3092ad06c1416457ef7793d9bc1a8e9",
+    "lib/bindings/xge/three_d/README.md": "caecaf7235ebf028f44d88709d8e333767b12cd6b8c8c2dac534154f7cf9ebf8"
+  },
+  "evidence": {
+    "win": {
+      "fullSDK": {
+        "path": "F:\\xlang-validation\\xge-full-20261110\\material3d-sdk-win-r1\\results.json",
+        "sha256": "a46f79c0b953be1c22c09e3f44ac138fd2b4945907bce26cf41a705da564b3ef"
+      },
+      "finalSDK": {
+        "path": "F:\\xlang-validation\\xge-full-20261110\\material3d-sdk-win-r2\\results.json",
+        "sha256": "bb42530dd53286dd1ce1a05e5a8d5761777c8cae12acbfa35fda9582106683b7"
+      },
+      "native": {
+        "path": "F:\\xlang-validation\\xge-full-20261110\\material3d-native-win-r2\\results.json",
+        "sha256": "4aac94d257177eaefc62436fc6b6d354b0d8a0702686fdb1cdbc3d9b17f7f951"
+      },
+      "package": {
+        "path": "F:\\xlang-validation\\xge-full-20261110\\material3d-packages-win-r2\\results.json",
+        "sha256": "3f6bcf1a51234bb8a51f31754fd8c9d8830d45a8ca246f8e4fcb8c53e024f71f"
+      },
+      "language": {
+        "path": "F:\\xlang-validation\\xge-full-20261110\\material3d-language-win-r2\\results.json",
+        "sha256": "29d27eb79124f0b970b6632a08bdd5df503d4bfecfb3a2c8b7fcf07e17092e0e"
+      },
+      "nativeSteps": 30,
+      "packageSteps": 4,
+      "languageSteps": 11,
+      "extra": {
+        "path": "F:\\xlang-validation\\xge-full-20261110\\material3d-extra-win-r2\\results.json",
+        "sha256": "9b2d0973e6128ca6efae82f993081bd7d0f99f221017cc98f589c8cf78a472fc",
+        "steps": 6,
+        "iterations": 64,
+        "counts": {
+          "language-hot": [
+            0,
+            0,
+            0
+          ],
+          "language-map-owner": [
+            128,
+            128,
+            0
+          ],
+          "native-hot": [
+            0,
+            0,
+            0
+          ],
+          "native-map-owner": [
+            0,
+            0,
+            0
+          ]
+        },
+        "oom": [
+          3,
+          3
+        ]
+      }
+    },
+    "linux": {
+      "fullSDK": {
+        "path": "\\\\wsl.localhost\\Ubuntu\\var\\tmp\\xlang-validation\\xge-full-20261110\\material3d-sdk-linux-r1\\results.json",
+        "sha256": "c0684dbdda44566dba43915ca1773c15e7a0a90db776bbe2fd9c4ba38250f252"
+      },
+      "finalSDK": {
+        "path": "\\\\wsl.localhost\\Ubuntu\\var\\tmp\\xlang-validation\\xge-full-20261110\\material3d-sdk-linux-r2\\results.json",
+        "sha256": "3ff321be9b3d11443757ab3d0a1f0d703b698d4d301a24081968dd289851f12d"
+      },
+      "native": {
+        "path": "\\\\wsl.localhost\\Ubuntu\\var\\tmp\\xlang-validation\\xge-full-20261110\\material3d-native-linux-r2\\results.json",
+        "sha256": "e8306a2efc4ede8ab122a6819083574e2a8094cd10ecbf83f6a72668aaf05f8c"
+      },
+      "package": {
+        "path": "\\\\wsl.localhost\\Ubuntu\\var\\tmp\\xlang-validation\\xge-full-20261110\\material3d-packages-linux-r2\\results.json",
+        "sha256": "0ac236a53444a5f2ba987eca8417e8d122673eda3a5538605e4d5935bfee69d7"
+      },
+      "language": {
+        "path": "\\\\wsl.localhost\\Ubuntu\\var\\tmp\\xlang-validation\\xge-full-20261110\\material3d-language-linux-r2\\results.json",
+        "sha256": "48a2d2e83ebc5c03eafc2ebe8d9f326ca937d0c3e7a2afe3c998733ef9aa805b"
+      },
+      "nativeSteps": 30,
+      "packageSteps": 4,
+      "languageSteps": 11,
+      "extra": {
+        "path": "\\\\wsl.localhost\\Ubuntu\\var\\tmp\\xlang-validation\\xge-full-20261110\\material3d-extra-linux-r2\\results.json",
+        "sha256": "4db6737f574b212c0477dcaee7fd2c562ab617f26f976f0209998bf814cf866b",
+        "steps": 6,
+        "iterations": 64,
+        "counts": {
+          "language-hot": [
+            0,
+            0,
+            0
+          ],
+          "language-map-owner": [
+            128,
+            128,
+            0
+          ],
+          "native-hot": [
+            0,
+            0,
+            0
+          ],
+          "native-map-owner": [
+            0,
+            0,
+            0
+          ]
+        },
+        "oom": [
+          3,
+          3
+        ]
+      }
+    }
+  }
+}
