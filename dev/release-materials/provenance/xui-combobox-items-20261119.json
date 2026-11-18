@@ -1,0 +1,623 @@
+{
+  "complete": true,
+  "passed": true,
+  "releaseInstalled": false,
+  "realGpuTests": false,
+  "sourceParent": "3290da2cf4ea82e2b65a694aeb5e2e41d10dc44a",
+  "nativeCommit": "006b8b4855a3f002589810fa82c7df370abd6956",
+  "xrtCommit": "804cc769de3030118c2b46ef7af69543d1b82d9d",
+  "sourceHashes": {
+    "tools/check_xge3_bindings.py": "9138193bc6fc678aee0bac06ff22402556e15cfaefc8d1a80077ee3f333062e0",
+    "tools/xui_managed_contracts.py": "cdaa14749d0b6b120bb8cdf31595dc91cc29684133840d342448f411826fb441",
+    "docs/xge3-xui3-api-map-storage.json": "b80dc96991081047a97f8639dc10a857e7df70dbe72bfcef06b15677f91449d1",
+    "lib/bindings/xui/src/managed.xl": "c447d2a653a2337a8275a1a614caf4bb6ecfa9b7bcea18d42bd7f9acba468de1",
+    "docs/xui-combobox-items.md": "aaa553cc7f57644e83d9911c67ed3638bc8862143e075b799f00fccfdc841758",
+    "lib/bindings/xui/examples/README.md": "8f7d6457a19d53d4bbe7a4f6b4afd117fb1594208b1eefdd0efc2f745dfc5e93",
+    "lib/bindings/xui/examples/combobox_items.xl": "fe528279abe8cfc7feacc30b9ae41173afc3842c256c42092c9737abba837e5d",
+    "test/cases/foreign_xui_combobox_items.xl": "477257d82591564184f53124a46c4a186e8a3f11869a7b0e6adc960864d3220a",
+    "test/cases/foreign_xui_combobox_items.c": "0300c6cea470d9fe876f2b76b21536f574c0c99ab94e726b810570378728a57d",
+    "test/cases/foreign_xui_combobox_items.h": "8a08bfb52e0bb04c5ddf5ec5c26d1857f1de7ab8e0e04d12cd1c645861e2468d"
+  },
+  "behavior": [
+    "ComboBox.setItemData uses one direct native call and supports text, value, enabled state, separator and icon. Length mismatch with no explicit bound and embedded NUL are checked before calling C.",
+    "ComboBox.getItem copies display text and four scalars. Invalid indices and failed text copies preserve the old tuple. Captured text remains usable after updating or closing the widget.",
+    "XUI keeps the native pUser contract at the C interface. The language record projection leaves pUser NULL.",
+    "In 1000 warmed reads, the language makes one owned-text allocation per item. The C comparison reads borrowed text. In 1000 identical, unchanged three-row writes, the language makes one temporary record allocation per call. C supplies its record array directly and the native equality fast path allocates nothing.",
+    "Accepted writes also keep five sequence read pins during projection, scan text for NUL and traverse the columns. Native changed-item text storage is allocated when needed. Checked state, ownership and scope overhead were not measured in CPU time.",
+    "The native fixture initially passed functional assertions but leaked its mock rendering target. It now frees that target in cleanup, and the qualified native fixtures verify overall XRT heap balance."
+  ],
+  "evidence": {
+    "win": {
+      "sdk": {
+        "path": "F:\\xlang-validation\\xge-full-20261110\\combobox-items-sdk-win-r1\\results.json",
+        "sha256": "4aa180a8505f8fb20be0857414ac26a671124ba9e8400201349d5f8afd086681",
+        "steps": 2
+      },
+      "initialNativeFixture": {
+        "path": "F:\\xlang-validation\\xge-full-20261110\\combobox-items-native-win-r1\\results.json",
+        "sha256": "ae98abc95c801bc22e959d4aacc4aa92f393dc92b17ef19515f5729be241821b"
+      },
+      "native": {
+        "path": "F:\\xlang-validation\\xge-full-20261110\\combobox-items-native-win-r2\\results.json",
+        "sha256": "9e62ceea2d41e4093517a31878fe5dbacfa52ef2f078265f1cdcf4c632c5543e",
+        "steps": 12
+      },
+      "packages": {
+        "path": "F:\\xlang-validation\\xge-full-20261110\\combobox-items-packages-win-r2\\results.json",
+        "sha256": "23033d03c51e817b288e577224aa94b976b3245b584cedb290aad53342327a24",
+        "steps": 6,
+        "storageReview": {
+          "path": "F:\\xlang-validation\\xge-full-20261110\\combobox-items-packages-win-r2\\source-review\\results.json",
+          "sha256": "8a6e27c89ee294edb50f1f3494c4c2c4065c37d3c8b3a72a1126473db02f97d7"
+        }
+      },
+      "language": {
+        "path": "F:\\xlang-validation\\xge-full-20261110\\combobox-items-language-win-r2\\results.json",
+        "sha256": "72bc7794b936b4e91f7c9c476aad42bc483dae93c5a26a263563bd6e82bc29bd",
+        "steps": 17,
+        "counts": {
+          "host-jit": {
+            "languageRead": [
+              1000,
+              1000,
+              0
+            ],
+            "nativeRead": [
+              0,
+              0,
+              0
+            ],
+            "languageWrite": [
+              1000,
+              1000,
+              0
+            ],
+            "nativeWrite": [
+              0,
+              0,
+              0
+            ],
+            "readFailures": [
+              [
+                3,
+                3,
+                0
+              ],
+              [
+                3,
+                3,
+                0
+              ],
+              [
+                2,
+                2,
+                0
+              ]
+            ],
+            "writeFailures": [
+              [
+                2,
+                2,
+                0
+              ],
+              [
+                3,
+                3,
+                0
+              ],
+              [
+                4,
+                4,
+                0
+              ],
+              [
+                5,
+                5,
+                0
+              ],
+              [
+                6,
+                6,
+                0
+              ]
+            ]
+          },
+          "host-run": {
+            "languageRead": [
+              1000,
+              1000,
+              0
+            ],
+            "nativeRead": [
+              0,
+              0,
+              0
+            ],
+            "languageWrite": [
+              1000,
+              1000,
+              0
+            ],
+            "nativeWrite": [
+              0,
+              0,
+              0
+            ],
+            "readFailures": [
+              [
+                3,
+                3,
+                0
+              ],
+              [
+                3,
+                3,
+                0
+              ],
+              [
+                2,
+                2,
+                0
+              ]
+            ],
+            "writeFailures": [
+              [
+                2,
+                2,
+                0
+              ],
+              [
+                3,
+                3,
+                0
+              ],
+              [
+                4,
+                4,
+                0
+              ],
+              [
+                5,
+                5,
+                0
+              ],
+              [
+                6,
+                6,
+                0
+              ]
+            ]
+          },
+          "static-run": {
+            "languageRead": [
+              1000,
+              1000,
+              0
+            ],
+            "nativeRead": [
+              0,
+              0,
+              0
+            ],
+            "languageWrite": [
+              1000,
+              1000,
+              0
+            ],
+            "nativeWrite": [
+              0,
+              0,
+              0
+            ],
+            "readFailures": [
+              [
+                3,
+                3,
+                0
+              ],
+              [
+                3,
+                3,
+                0
+              ],
+              [
+                2,
+                2,
+                0
+              ]
+            ],
+            "writeFailures": [
+              [
+                2,
+                2,
+                0
+              ],
+              [
+                3,
+                3,
+                0
+              ],
+              [
+                4,
+                4,
+                0
+              ],
+              [
+                5,
+                5,
+                0
+              ],
+              [
+                6,
+                6,
+                0
+              ]
+            ]
+          },
+          "shared-run": {
+            "languageRead": [
+              1000,
+              1000,
+              0
+            ],
+            "nativeRead": [
+              0,
+              0,
+              0
+            ],
+            "languageWrite": [
+              1000,
+              1000,
+              0
+            ],
+            "nativeWrite": [
+              0,
+              0,
+              0
+            ],
+            "readFailures": [
+              [
+                3,
+                3,
+                0
+              ],
+              [
+                3,
+                3,
+                0
+              ],
+              [
+                2,
+                2,
+                0
+              ]
+            ],
+            "writeFailures": [
+              [
+                2,
+                2,
+                0
+              ],
+              [
+                3,
+                3,
+                0
+              ],
+              [
+                4,
+                4,
+                0
+              ],
+              [
+                5,
+                5,
+                0
+              ],
+              [
+                6,
+                6,
+                0
+              ]
+            ]
+          }
+        }
+      }
+    },
+    "linux": {
+      "sdk": {
+        "path": "\\\\wsl.localhost\\Ubuntu\\var\\tmp\\xlang-validation\\xge-full-20261110\\combobox-items-sdk-linux-r1\\results.json",
+        "sha256": "08315aebbf32384a4ed1f905d1d3c70099bb8c2765a913c3926c088b226d101f",
+        "steps": 2
+      },
+      "initialNativeFixture": {
+        "path": "\\\\wsl.localhost\\Ubuntu\\var\\tmp\\xlang-validation\\xge-full-20261110\\combobox-items-native-linux-r1\\results.json",
+        "sha256": "69d1dc6b6fb547ef45bad415ec1fcf33b97dd1a68c48fa7067178c0678dcfe11"
+      },
+      "native": {
+        "path": "\\\\wsl.localhost\\Ubuntu\\var\\tmp\\xlang-validation\\xge-full-20261110\\combobox-items-native-linux-r2\\results.json",
+        "sha256": "cd9ef834e20b84396e40a74ac076eb8ceeae4686b75f934bfa21db49245dc050",
+        "steps": 12
+      },
+      "packages": {
+        "path": "\\\\wsl.localhost\\Ubuntu\\var\\tmp\\xlang-validation\\xge-full-20261110\\combobox-items-packages-linux-r2\\results.json",
+        "sha256": "c6d44d570263aa7df1ce3fe1fc8e061b03f5f932388cf34ab49cddf05af03eb3",
+        "steps": 6,
+        "storageReview": {
+          "path": "\\\\wsl.localhost\\Ubuntu\\var\\tmp\\xlang-validation\\xge-full-20261110\\combobox-items-packages-linux-r2\\source-review\\results.json",
+          "sha256": "0cf2b343d0e6a0683962b0687f7d9e8651227de419ecc048987ea0ecb1b8e4be"
+        }
+      },
+      "language": {
+        "path": "\\\\wsl.localhost\\Ubuntu\\var\\tmp\\xlang-validation\\xge-full-20261110\\combobox-items-language-linux-r2\\results.json",
+        "sha256": "3ae27f450b88d0161315054dd208c0b36edbcb787173dd4b00ce844d1b723410",
+        "steps": 17,
+        "counts": {
+          "host-jit": {
+            "languageRead": [
+              1000,
+              1000,
+              0
+            ],
+            "nativeRead": [
+              0,
+              0,
+              0
+            ],
+            "languageWrite": [
+              1000,
+              1000,
+              0
+            ],
+            "nativeWrite": [
+              0,
+              0,
+              0
+            ],
+            "readFailures": [
+              [
+                3,
+                3,
+                0
+              ],
+              [
+                3,
+                3,
+                0
+              ],
+              [
+                2,
+                2,
+                0
+              ]
+            ],
+            "writeFailures": [
+              [
+                2,
+                2,
+                0
+              ],
+              [
+                3,
+                3,
+                0
+              ],
+              [
+                4,
+                4,
+                0
+              ],
+              [
+                5,
+                5,
+                0
+              ],
+              [
+                6,
+                6,
+                0
+              ]
+            ]
+          },
+          "host-run": {
+            "languageRead": [
+              1000,
+              1000,
+              0
+            ],
+            "nativeRead": [
+              0,
+              0,
+              0
+            ],
+            "languageWrite": [
+              1000,
+              1000,
+              0
+            ],
+            "nativeWrite": [
+              0,
+              0,
+              0
+            ],
+            "readFailures": [
+              [
+                3,
+                3,
+                0
+              ],
+              [
+                3,
+                3,
+                0
+              ],
+              [
+                2,
+                2,
+                0
+              ]
+            ],
+            "writeFailures": [
+              [
+                2,
+                2,
+                0
+              ],
+              [
+                3,
+                3,
+                0
+              ],
+              [
+                4,
+                4,
+                0
+              ],
+              [
+                5,
+                5,
+                0
+              ],
+              [
+                6,
+                6,
+                0
+              ]
+            ]
+          },
+          "static-run": {
+            "languageRead": [
+              1000,
+              1000,
+              0
+            ],
+            "nativeRead": [
+              0,
+              0,
+              0
+            ],
+            "languageWrite": [
+              1000,
+              1000,
+              0
+            ],
+            "nativeWrite": [
+              0,
+              0,
+              0
+            ],
+            "readFailures": [
+              [
+                3,
+                3,
+                0
+              ],
+              [
+                3,
+                3,
+                0
+              ],
+              [
+                2,
+                2,
+                0
+              ]
+            ],
+            "writeFailures": [
+              [
+                2,
+                2,
+                0
+              ],
+              [
+                3,
+                3,
+                0
+              ],
+              [
+                4,
+                4,
+                0
+              ],
+              [
+                5,
+                5,
+                0
+              ],
+              [
+                6,
+                6,
+                0
+              ]
+            ]
+          },
+          "shared-run": {
+            "languageRead": [
+              1000,
+              1000,
+              0
+            ],
+            "nativeRead": [
+              0,
+              0,
+              0
+            ],
+            "languageWrite": [
+              1000,
+              1000,
+              0
+            ],
+            "nativeWrite": [
+              0,
+              0,
+              0
+            ],
+            "readFailures": [
+              [
+                3,
+                3,
+                0
+              ],
+              [
+                3,
+                3,
+                0
+              ],
+              [
+                2,
+                2,
+                0
+              ]
+            ],
+            "writeFailures": [
+              [
+                2,
+                2,
+                0
+              ],
+              [
+                3,
+                3,
+                0
+              ],
+              [
+                4,
+                4,
+                0
+              ],
+              [
+                5,
+                5,
+                0
+              ],
+              [
+                6,
+                6,
+                0
+              ]
+            ]
+          }
+        }
+      }
+    }
+  }
+}

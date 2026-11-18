@@ -1,0 +1,136 @@
+import xui
+
+extern "comboItemsHeapBegin" @header("test/cases/foreign_xui_combobox_items.h") @no_raise func heapBegin()
+extern "comboItemsHeapEnd" @no_raise func heapEnd(c_int mode)
+extern "comboItemsSetBudget" @no_raise func budget(c_int allowance)
+extern "comboItemsFailureTriggered" @no_raise func failureTriggered() as bool
+extern "comboItemsNativeRead" @no_raise func nativeRead(xui.ComboBox combo)
+extern "comboItemsNativeWrite" @no_raise func nativeWrite(xui.ComboBox combo)
+
+func verifyReadFailures(xui.ComboBox combo)
+    string text = "keep"
+    c_int value = 4
+    c_int enabled = 5
+    c_int separator = 6
+    c_int icon = 7
+    for index in [-1, 3, 0]
+        bool rejected = false
+        bool injected = false
+        heapBegin()
+        if index == 0 then budget(0) end
+        try
+            text, value, enabled, separator, icon = combo.getItem(c_int(index))
+        catch error
+            rejected = true
+        finally
+            injected = failureTriggered()
+            budget(-1)
+        end
+        assert rejected and injected == (index == 0)
+        assert text == "keep" and value == 4 and enabled == 5 and separator == 6 and icon == 7
+        heapEnd(4)
+    end
+end
+
+func verifyWriteFailures(xui.ComboBox combo, array<c_int> values, array<c_int> enabled, array<c_int> separators, array<c_int> icons)
+    array<string?> newTexts = ["Replacement", "Disabled", null]
+    int rejectedCount = 0
+    for allowance in range(64)
+        bool rejected = false
+        bool injected = false
+        heapBegin()
+        budget(c_int(allowance))
+        try
+            combo.setItemData(newTexts, values, enabled, separators, icons)
+        catch error
+            rejected = true
+        finally
+            injected = failureTriggered()
+            budget(-1)
+        end
+        if not rejected then
+            assert not injected
+            break
+        end
+        assert injected
+        assert combo.getSelected() == 0 and combo.getItemCount() == 3
+        assert (combo.getItemText(0) as string) == "Office"
+        heapEnd(5)
+        rejectedCount += 1
+    end
+    assert rejectedCount > 0 and rejectedCount < 64
+    assert (combo.getItemText(0) as string) == "Replacement"
+    println("XUI_COMBOBOX_WRITE_FAILURE_PREFIXES", rejectedCount)
+end
+
+func main(...) as int
+    auto proxy = xui.createProxy()
+    auto ui = xui.create(proxy, xui.XUI_SYSTEM_FONT_DISABLED)
+    auto combo = ui.comboBoxNative()
+    array<string?> texts = ["Office", "", null]
+    array<c_int> values = [20, 30, 0]
+    array<c_int> enabled = [1, 0, 1]
+    array<c_int> separators = [0, 0, 1]
+    array<c_int> icons = [7, 8, 0]
+    combo.setItemData(texts, values, enabled, separators, icons, 2)
+    assert combo.getItemCount() == 2
+    combo.setItemData(texts, values, enabled, separators, icons)
+    assert combo.getItemCount() == 3
+    assert combo.setSelectedValue(20) == 0 and combo.getSelected() == 0
+    auto title, value, active, divider, icon = combo.getItem(0)
+    auto empty, disabledValue, disabled, disabledDivider, disabledIcon = combo.getItem(1)
+    auto separatorText, separatorValue, separatorEnabled, isSeparator, separatorIcon = combo.getItem(2)
+    assert title == "Office" and value == 20 and active == 1 and divider == 0 and icon == 7
+    assert empty == "" and disabledValue == 30 and disabled == 0 and disabledDivider == 0 and disabledIcon == 8
+    assert separatorText == "" and separatorValue == 0 and separatorEnabled == 0 and isSeparator == 1 and separatorIcon == 0
+    texts[0] = "Input changed"
+    assert (combo.getItemText(0) as string) == "Office"
+    texts[0] = "Office"
+
+    bool badColumns = false
+    try
+        combo.setItemData(["short column"], values, enabled, separators, icons)
+    catch error
+        badColumns = true
+    end
+    bool nulRejected = false
+    try
+        combo.setItemData(["Office", "x\0y", null], values, enabled, separators, icons)
+    catch error
+        nulRejected = true
+    end
+    assert badColumns and nulRejected and combo.getItemCount() == 3 and combo.getSelected() == 0
+
+    heapBegin()
+    for index in range(1000)
+        auto readText, readValue, readEnabled, readSeparator, readIcon = combo.getItem(0)
+        assert readValue == 20 and readIcon == 7
+    end
+    heapEnd(0)
+    heapBegin()
+    nativeRead(combo)
+    heapEnd(1)
+    heapBegin()
+    for index in range(1000)
+        combo.setItemData(texts, values, enabled, separators, icons)
+    end
+    heapEnd(2)
+    heapBegin()
+    nativeWrite(combo)
+    heapEnd(3)
+
+    verifyReadFailures(combo)
+    verifyWriteFailures(combo, values, enabled, separators, icons)
+    combo.close()
+    bool closed = false
+    try
+        combo.getItem(0)
+    catch StateError
+        closed = true
+    end
+    assert closed and title == "Office" and icon == 7 and value == 20
+    ui.close()
+    proxy.close()
+    println("XUI_COMBOBOX_ITEMS_OK")
+    return 0
+end

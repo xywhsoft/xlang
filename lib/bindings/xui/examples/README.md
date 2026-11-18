@@ -27,6 +27,8 @@
 
 [inventory_snapshot.xl](inventory_snapshot.xl) 在不打开窗口的情况下导出物品栏数据，关闭控件后仍能读取快照。
 
+[combobox_items.xl](combobox_items.xl) 使用业务值、禁用状态和分隔线配置下拉选项，并读取当前选项。
+
 [tree_nodes.xl](tree_nodes.xl) 批量设置父节点和子节点，展开父节点后读取子节点的名称与深度。
 
 [code_assist.xl](code_assist.xl) 读取编辑器的补全位置并打开签名帮助。

@@ -4,6 +4,34 @@
   "sourceRoot": "D:\\GIT\\xge",
   "runtimeAcceptance": false,
   "entries": {
+    "xuiComboBoxSetItemData": {
+      "bindingFile": "lib\\bindings\\xui\\src\\managed.xl",
+      "declaration": "extern \"xuiComboBoxSetItemData\" @no_raise @c_array_group(1,0,5,\"int\",5) @c_array_record(1,\"xui_combobox_item_t\") @c_array_field(1,\"sText\",0,\"c_string\") @c_array_field(1,\"iValue\",1,\"value\") @c_array_field(1,\"bEnabled\",2,\"value\") @c_array_field(1,\"bSeparator\",3,\"value\") @c_array_field(1,\"iIcon\",4,\"value\") @c_result(\"status\",0) func setItemData(array<string?> texts,array<c_int> values,array<c_int> enabled,array<c_int> separators,array<c_int> icons,int size=-1)",
+      "storage": "native-copy-or-synchronous-read",
+      "sourceFile": "src/xui/controls/xui_combobox.c",
+      "line": 1915,
+      "functionSha256": "6a5cc8740d4134c9aa257d987665b7206be4389fcdad4801ad772ede02f59224",
+      "dependencies": [
+        {
+          "sourceFile": "src/xui/controls/xui_combobox.c",
+          "lfSha256": "3ce02e8afd09c9dafd018b6c5f3e1a5a247fd52f74c7f2fa06fd64d4c9c76666"
+        }
+      ]
+    },
+    "xuiComboBoxGetItemDescriptor": {
+      "bindingFile": "lib\\bindings\\xui\\src\\managed.xl",
+      "declaration": "extern \"xuiComboBoxGetItemDescriptor\" @no_raise @c_output_record(2,\"xui_combobox_item_t\",\"borrowed\") @c_status(0) @c_output_field(0,\"sText\",\"cstring\") @c_output_field(1,\"iValue\") @c_output_field(2,\"bEnabled\") @c_output_field(3,\"bSeparator\") @c_output_field(4,\"iIcon\") func getItem(c_int index) as (string,c_int,c_int,c_int,c_int)",
+      "storage": "borrowed-synchronous-output",
+      "sourceFile": "src/xui/controls/xui_combobox.c",
+      "line": 1976,
+      "functionSha256": "e695c984c00d3074e247fb55a7540a1111cb564d3288241c16ebb0b7dbf18cba",
+      "dependencies": [
+        {
+          "sourceFile": "src/xui/controls/xui_combobox.c",
+          "lfSha256": "3ce02e8afd09c9dafd018b6c5f3e1a5a247fd52f74c7f2fa06fd64d4c9c76666"
+        }
+      ]
+    },
     "xgeShapeExSceneTraverse": {
       "bindingFile": "lib\\bindings\\xge\\src\\shapes.xl",
       "declaration": "extern \"xgeShapeExSceneTraverse\" @no_raise @c_sync_callback(0,-1,0) @c_result(\"status\",0) func visit(ShapeVisitor visitor)",
@@ -1066,7 +1094,7 @@
       "dependencies": [
         {
           "sourceFile": "include/xui.h",
-          "sha256": "c7e42bfb46cc5776068dcff2b679c0c76660a4f694afd1daebd346ae6d536753"
+          "sha256": "f3fcaefb23e580bcc31c18729d5bb779e2dc4b93193def03406a89b11db84833"
         },
         {
           "sourceFile": "src/xui/core/xui_proxy_xge.c",
@@ -1164,7 +1192,7 @@
       "dependencies": [
         {
           "sourceFile": "include/xui.h",
-          "sha256": "c7e42bfb46cc5776068dcff2b679c0c76660a4f694afd1daebd346ae6d536753"
+          "sha256": "f3fcaefb23e580bcc31c18729d5bb779e2dc4b93193def03406a89b11db84833"
         },
         {
           "sourceFile": "src/xui/core/xui_proxy_xge.c",

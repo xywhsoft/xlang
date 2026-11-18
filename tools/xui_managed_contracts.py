@@ -400,6 +400,15 @@ METHODS = {'xl6Xui3CopyToClipboard': ['int xl6Xui3CopyToClipboard(xui_context,xu
                                    'iEventType,uint64 iNodeId)']]}
 
 METHODS.update({
+    'xuiComboBoxSetItemData': ['int xuiComboBoxSetItemData(xui_widget pWidget, const xui_combobox_item_t* pItems, int iCount)',
+        'ComboBox', ['extern "xuiComboBoxSetItemData" @no_raise @c_array_group(1,0,5,"int",5) @c_array_record(1,"xui_combobox_item_t") '
+        '@c_array_field(1,"sText",0,"c_string") @c_array_field(1,"iValue",1,"value") @c_array_field(1,"bEnabled",2,"value") '
+        '@c_array_field(1,"bSeparator",3,"value") @c_array_field(1,"iIcon",4,"value") @c_result("status",0) '
+        'func setItemData(array<string?> texts,array<c_int> values,array<c_int> enabled,array<c_int> separators,array<c_int> icons,int size=-1)']],
+    'xuiComboBoxGetItemDescriptor': ['int xuiComboBoxGetItemDescriptor(xui_widget pWidget, int iIndex, xui_combobox_item_t* pItem)',
+        'ComboBox', ['extern "xuiComboBoxGetItemDescriptor" @no_raise @c_output_record(2,"xui_combobox_item_t","borrowed") @c_status(0) '
+        '@c_output_field(0,"sText","cstring") @c_output_field(1,"iValue") @c_output_field(2,"bEnabled") @c_output_field(3,"bSeparator") '
+        '@c_output_field(4,"iIcon") func getItem(c_int index) as (string,c_int,c_int,c_int,c_int)']],
     'xuiWorkflowWidgetGetWorkflowOwned': ['int xuiWorkflowWidgetGetWorkflowOwned(xui_widget widget,xui_workflow* output)', "WorkflowWidget", ['extern "xuiWorkflowWidgetGetWorkflowOwned" @no_raise @c_result("owned_view") @factory(1,0,rollbackWorkflow) func getWorkflow() as Workflow']],
     'xuiWorkflowWidgetSetWorkflowShared': ['int xuiWorkflowWidgetSetWorkflowShared(xui_widget widget,xui_workflow workflow)', "WorkflowWidget", ['extern "xuiWorkflowWidgetSetWorkflowShared" @no_raise @c_result("status",0) func setWorkflow(Workflow workflow)']],
     'xuiFlowGraphWidgetGetGraphOwned': [

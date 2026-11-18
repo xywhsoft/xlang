@@ -1,0 +1,16 @@
+import xui
+
+auto proxy = xui.createProxy()
+auto ui = xui.create(proxy, xui.XUI_SYSTEM_FONT_DISABLED)
+try
+    auto choices = ui.comboBoxNative()
+    // 三项分别是可选、不可选和分隔项。
+    choices.setItemData(["Office", "Warehouse", null], [20, 30, 0], [1, 0, 0], [0, 0, 1], [0, 0, 0])
+    assert choices.setSelectedValue(20) == 0
+    auto label, value, enabled, separator, icon = choices.getItem(choices.getSelected())
+    assert enabled == 1 and separator == 0 and icon == 0
+    println("Selected", label, value)
+finally
+    ui.close()
+    proxy.close()
+end

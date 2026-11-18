@@ -654,7 +654,7 @@ def generate(root,data):
             object_mapping=generate_xge_objects(root,header,records,types,primitive,param,reserved,reviewed_span,fixed_outputs,storage)
             mapped.update(object_mapping)
         if package=='xui':
-            managed,mapping=generate_xui(root,header,records,types,primitive,param,reserved,reviewed_span)
+            managed,mapping=generate_xui(root,header,records,types,primitive,param,reserved,reviewed_span,storage)
             mapped.update(mapping)
         header['bindingSummary']=dict(pointerFreeRecords=len(records),numericConstants=sum(isinstance(v,(int,float)) for v in known.values()),textConstants=sum(isinstance(v,str) for v in known.values()),exportedConstants=len(constants),scalarFunctions=len(functions))
         header['bindingTypes']={name:dict(language=(('xge3d.' if name.startswith('xge3d_') else 'xgeDebug.' if name in debug_types else package+'.')+records[name]) if name in records else None,state='direct-value-record' if name in records else 'requires-lifetime-or-layout-contract') for name in types}
@@ -984,10 +984,17 @@ def generate_xge_objects(root,header,records,types,primitive,param,reserved,revi
     return mapped
 
 
-def generate_xui(root,header,records,types,primitive,param,reserved,reviewed_span):
+def generate_xui(root,header,records,types,primitive,param,reserved,reviewed_span,storage):
     src=root/'lib/bindings/xui/src';functions=header['functions'];mapped={};raw={};callbacks={};views={};classes={'Widget':[]};context=[];free=[]
     from xui_managed_contracts import validate as validate_managed,extend as extend_managed,DEFERRED,REPLACED,CALLBACKS as REVIEWED_CALLBACKS
     validate_managed(root,header,native_function_sha)
+    native_root=Path(header['header']).parents[1]
+    for name,kind in [('xuiComboBoxSetItemData','native-copy-or-synchronous-read'),
+                      ('xuiComboBoxGetItemDescriptor','borrowed-synchronous-output')]:
+        review=storage.get(name,{})
+        matching,reason=storage_review_match(native_root,review,name)
+        if review.get('storage')!=kind or not matching:
+            raise ValueError(f'ComboBox item storage review is stale for {name}: {reason or kind}')
     # A resource-shaped C argument is not itself an owning storage proof.
     # These publishers/consumers have separately reviewed native owning slots
     # or synchronous use; do not broaden this list by matching a type name.
