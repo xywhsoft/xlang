@@ -280,3 +280,23 @@ C. The xlang API returns a 64-byte C matrix value for assignment to the
 camera. The C comparison writes directly into the camera's view field.
 
 [Camera example](../lib/bindings/xge/three_d/examples/look_at.xl)
+
+## Read-only mesh geometry
+
+`mesh.geometry()` retains the current CPU geometry. Read all vertex fields
+with `vertices()`, and use `indexBits` to select `indices16()` or `indices32()`.
+For a non-indexed mesh, either index sequence is empty and `indexBits` is 0.
+Requesting the wrong width on an indexed mesh raises a checked error.
+
+Existing sequences keep their original data after mesh updates. They can
+outlive both the geometry handle and the graphics engine on the creator
+thread. The native owner retains the existing buffers without copying
+them. Each vertex read copies one C record by value.
+
+On Windows and Linux, acquiring the geometry and vertex sequence used
+eight XRT allocations in xlang. Acquiring the geometry and vertex pointer
+directly in C used one. After setup, 1,024 traversals of the same three
+vertices used no XRT heap allocations, reallocations or frees in either
+case.
+
+[Read-only mesh example](../lib/bindings/xge/three_d/examples/mesh_geometry.xl)

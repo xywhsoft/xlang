@@ -1,0 +1,24 @@
+import xge
+import xge3d
+
+xge.init(320, 240, "读取三角形网格")
+
+auto a = xge3d.Xge3dVertex()
+auto b = xge3d.Xge3dVertex()
+auto c = xge3d.Xge3dVertex()
+b.position.x = c_float(1)
+c.position.y = c_float(1)
+auto mesh = xge3d.createMesh([a, b, c], -1, [c_ushort(0), c_ushort(1), c_ushort(2)])
+
+auto geometry = mesh.geometry()
+auto vertices = geometry.vertices()
+auto indices = geometry.indices16()
+geometry.close()
+mesh.close()
+xge.unit()
+
+// 序列保留原来的 CPU 数据，可以在引擎关闭后继续读。
+for index in indices
+    auto vertex = vertices[int(index)]
+    println("顶点", int(index), vertex.position.x, vertex.position.y)
+end

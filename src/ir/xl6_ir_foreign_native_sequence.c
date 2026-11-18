@@ -1,9 +1,12 @@
 /* A sealed, independently owned immutable Native POD span output. */
 static int xl6IrNativeArrayGuardDominates(const XL6_IrModule*,const XL6_IrInstruction*,const XL6_IrInstruction*,const XL6_IrBlock*);
 static int xl6IrForeignOwnershipHelperMatches(const XL6_IrModule*,XL6_SymbolId,XL6_IrTypeId,int);
-int xl6IrNativeSequencePod(const XL6_IrModule* m,XL6_IrTypeId id,size_t depth)
+static int xl6IrNativeSequencePodField(const XL6_IrModule* m,XL6_IrTypeId id,size_t depth,bool fixedArrays)
 {
  const XL6_IrType* t=xl6IrTypeGet(&m->types,id);if(!t || depth>16 || t->ownershipAbi!=XL6_IR_OWNERSHIP_ABI_TRIVIAL)return 0;
+ if(t->kind==XL6_IR_TYPE_C_ARRAY)
+  return fixedArrays && depth && xl6IrTypeIsDefaultZeroCArray(t) &&
+   xl6IrNativeSequencePodField(m,t->params[0],depth+1,true);
  if(t->kind==XL6_IR_TYPE_BUILTIN && !t->paramCount){
   if(t->cAbi>=XL6_IR_C_ABI_C_CHAR && t->cAbi<=XL6_IR_C_ABI_C_WCHAR)return 1;
   return (t->cAbi==XL6_IR_C_ABI_I64 && t->abiId==xl6TypeAbiIdText("xrt.int64")) ||
@@ -12,8 +15,14 @@ int xl6IrNativeSequencePod(const XL6_IrModule* m,XL6_IrTypeId id,size_t depth)
  if(t->kind!=XL6_IR_TYPE_C_RECORD || t->cAbi!=XL6_IR_C_ABI_C_RECORD || !t->foreignHeader || !t->cName[0])return 0;
  const XL6_IrAggregateLayout* layout=xl6IrUnionLayoutGet(m,id);
  if(!layout || layout->firstField>m->aggregateFieldCount || layout->fieldCount>m->aggregateFieldCount-layout->firstField || (layout->fieldCount && !m->aggregateFields))return 0;
- for(size_t f=0;f<layout->fieldCount;++f)if(!xl6IrNativeSequencePod(m,m->aggregateFields[layout->firstField+f].type,depth+1))return 0;
+ for(size_t f=0;f<layout->fieldCount;++f)
+  if(!xl6IrNativeSequencePodField(m,m->aggregateFields[layout->firstField+f].type,depth+1,
+     fixedArrays && t->foreignRecordAbi==XL6_IR_FOREIGN_RECORD_EXACT))return 0;
  return 1;
+}
+int xl6IrNativeSequencePod(const XL6_IrModule* m,XL6_IrTypeId id,size_t depth)
+{
+ return xl6IrNativeSequencePodField(m,id,depth,true);
 }
 XL6_IrTypeId xl6IrNativeSequenceElement(const XL6_IrModule* m,XL6_IrTypeId id)
 {

@@ -24030,7 +24030,7 @@ static int xl6SemCheckUnion(XL6_SemContext* ctx, XL6_AstNode* node)
             ok = 0;
         }
         if (node->kind == XL6_AST_C_RECORD) {
-            if(recordProjection && (!field->childCount || !xl6SemNativeSequencePod(ctx,field->children[0],0))){
+            if(recordProjection && (!field->childCount || !xl6SemNativeSequencePodField(ctx,field->children[0],0,false))){
                 xl6SemErrorNode(ctx,field,"projected C records expose only C scalar or recursively scalar record values");ok=0;
             }
             if(!recordProjection && field->childCount && xl6SemProjectedRecordValue(ctx,field->children[0],0)){

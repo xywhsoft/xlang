@@ -1,0 +1,173 @@
+{
+  "date": "2026-11-18",
+  "complete": true,
+  "passed": true,
+  "scope": "Immutable CPU mesh geometry and fixed-array POD records",
+  "xgeCommit": "fbfb1f92d457174e87485e8de1a98d7eb7ac8cd6",
+  "xrtCommit": "804cc769de3030118c2b46ef7af69543d1b82d9d",
+  "xlangParent": "605dd558fb4ac093613299c46c39d02100a676d0",
+  "nativeSources": {
+    "include/xge.h": "484a2b0d03b260b2623cd19dddb6dbfbb37a972e7f91c602c123f046c9e28da0",
+    "src/xge/3d/xge3d_render.c": "dd5b0f7153d26c38a13b870daf5de090d70c46762574e42f3b95289ad1a82de7",
+    "src/xge/3d/xge3d_internal.h": "527f2333fd81dd0f80813f12d3ee6a2768a323001e8603d88c56c99bf5647c37",
+    "tests/xge/test_3d_mesh_geometry.c": "e94b18f5e9f3dbb2fe18e1fdfadaffab084d406869a15775f946ca7a42ad9c29"
+  },
+  "languageSources": {
+    "src/ir/xl6_ir_foreign_native_sequence.c": "ab5b10517cbc61c462202df74aa675a2b5c216d6c97434e117f6e09e822d7b04",
+    "src/sem/xl6_sem.c": "9c3a8e9bb3e7d5e3cd5f4a2a6e6a6e8dd0778d0bf1ee35fdbfa5abf44656623d",
+    "src/sem/xl6_sem_native_sequence.c": "a8393a79f7f3c3eeae49852c7484d6641c1da333eb7e58f6c72362b6afb2b66c",
+    "docs/xge3-xui3-api-map-storage.json": "04eab9b5291c23019b9c1ca3a663f4e76e6c8b665edbcc94c2aa1db5434c305e",
+    "lib/bindings/xge/three_d/examples/mesh_geometry.xl": "470d0cb8058ccdf88bbaaf4036b07c4e196f254258098355f412d6fc2f02ffe1",
+    "lib/bindings/xge/three_d/examples/README.md": "358f6e1af0a5f75d8e16039650fad103f559a21e38b9ddea2ff1e0f247a97021",
+    "lib/bindings/xge/three_d/include/xge3d_renderer.h": "d5a5f81efdc93b00709c2e2848ad158d9f16c9d8a5539174793ddb3f49307b1c",
+    "lib/bindings/xge/three_d/src/mesh.xl": "3ca17e4b92a50a20482a94dd45bb7d8cede38f0596f8c0e2539d32c3fb033a90",
+    "test/cases/foreign_xge3d_mesh_geometry.xl": "35e82f8f8ca4d320e7d2aafecd3531eccb4758955825d95e8d2da67d42ed02bc",
+    "docs/native-sequence.md": "3883de245abcc7e929b82e292965f91f685874ad5bb65825edc498ede12051cb",
+    "docs/xge3-model.md": "acdb776b6e027833c64999b02611a2fca5ea65529a05cef66f47c0d837e90817"
+  },
+  "nativeEvidence": {
+    "win": {
+      "sdk": {
+        "path": "F:\\xlang-validation\\xge-full-20261110\\mesh-geometry3d-sdk-win-r2\\results.json",
+        "sha256": "7c929a1c34bfaed778ab45e94a68b6097be23ada31382f776b0263390d9d15de"
+      },
+      "native": {
+        "path": "F:\\xlang-validation\\xge-full-20261110\\mesh-geometry3d-native-win-r2\\results.json",
+        "sha256": "38c432907b84b4e9fb656ffe08b02efe6ec1436a9dc60ecc0f07fba3b84dc9a0"
+      }
+    },
+    "linux": {
+      "sdk": {
+        "path": "\\\\wsl.localhost\\Ubuntu\\var\\tmp\\xlang-validation\\xge-full-20261110\\mesh-geometry3d-sdk-linux-r2\\results.json",
+        "sha256": "b8b62387973ed4c04a1d07d1b3caaece3041ccf6dec72705db0a9cfe47bf99a9"
+      },
+      "native": {
+        "path": "\\\\wsl.localhost\\Ubuntu\\var\\tmp\\xlang-validation\\xge-full-20261110\\mesh-geometry3d-native-linux-r2\\results.json",
+        "sha256": "8710b6f9928a9ebb3760a3e02f11005e8fad80b467bd816c940ab5c7ebc3c550"
+      }
+    }
+  },
+  "evidence": {
+    "win": {
+      "compiler": {
+        "path": "F:\\xlang-validation\\xge-full-20261110\\compiler-native-sequence-fixed-record-win-full-r2\\build.json",
+        "sha256": "5b6e7afe29909931548adb96f01f2f8dd386932d6876a7f55c3b70c25126b05c"
+      },
+      "compilerFreeze": {
+        "path": "F:\\xlang-validation\\xge-full-20261110\\compiler-native-sequence-fixed-record-win-full-r2\\freeze.json",
+        "sha256": "cae958fc42c2ffa9e7dddc5569e1ab7b333dc624848ef588543676712882a278"
+      },
+      "package": {
+        "path": "F:\\xlang-validation\\xge-full-20261110\\mesh-geometry3d-packages-win-r3\\results.json",
+        "sha256": "329ceb57e3186bdd4db78622fbe25d8c1c79afbb4ecd481e83b26a4de12f22ea"
+      },
+      "sourceReview": {
+        "path": "F:\\xlang-validation\\xge-full-20261110\\mesh-geometry3d-packages-win-r3\\source-review\\results.json",
+        "sha256": "44aeff5c9a0b6823014b8ef6d25ba35f29bf1757681b2bc1b472d96dcd306920"
+      },
+      "packageSeal": {
+        "path": "F:\\xlang-validation\\xge-full-20261110\\mesh-geometry3d-packages-win-r3\\packages\\stage-report.json",
+        "sha256": "66e55e5f227e2c004cc8ffe17a6fc42dcb1ef99afefe1a6863978feb5bf96910"
+      },
+      "syntax": {
+        "path": "F:\\xlang-validation\\xge-full-20261110\\native-sequence-fixed-record-qualification-win-r4\\results.json",
+        "sha256": "ccb8ba3ead056a5c8c95b8a48db408e53bfdcfec398ba62fce694adaa395ed81"
+      },
+      "language": {
+        "path": "F:\\xlang-validation\\xge-full-20261110\\mesh-geometry3d-language-win-r4\\results.json",
+        "sha256": "3aa475ac2fe0464e89bcd77912bb8e365ce6eaa42940a63ebbe5da9f55797d2e"
+      },
+      "performance": {
+        "path": "F:\\xlang-validation\\xge-full-20261110\\mesh-geometry3d-perf-win-r3\\results.json",
+        "sha256": "be4f68a88be2ad6695bcceeff5a538b24d9dbe8613c3a2a394b97cd0e5b2d7fd"
+      }
+    },
+    "linux": {
+      "compiler": {
+        "path": "\\\\wsl.localhost\\Ubuntu\\var\\tmp\\xlang-validation\\xge-full-20261110\\compiler-native-sequence-fixed-record-linux-full-r2\\build.json",
+        "sha256": "996fd94fd7b3619c406d5dbad3b22b04915ed3888f7a629463231bf760429e4e"
+      },
+      "compilerFreeze": {
+        "path": "\\\\wsl.localhost\\Ubuntu\\var\\tmp\\xlang-validation\\xge-full-20261110\\compiler-native-sequence-fixed-record-linux-full-r2\\freeze.json",
+        "sha256": "726f1381cd385ffa9374cc7184cc4fff39032c2271ad0a3e614dc289e5921f15"
+      },
+      "package": {
+        "path": "\\\\wsl.localhost\\Ubuntu\\var\\tmp\\xlang-validation\\xge-full-20261110\\mesh-geometry3d-packages-linux-r3\\results.json",
+        "sha256": "418633bf701de0c743b5f9fa98a6f696c844840f617f047a8361b64d3ec60afa"
+      },
+      "sourceReview": {
+        "path": "\\\\wsl.localhost\\Ubuntu\\var\\tmp\\xlang-validation\\xge-full-20261110\\mesh-geometry3d-packages-linux-r3\\source-review\\results.json",
+        "sha256": "1b5da5e98405b9154a58f3dd2f730f1331e2e280a7637597d22876df7e699e3b"
+      },
+      "packageSeal": {
+        "path": "\\\\wsl.localhost\\Ubuntu\\var\\tmp\\xlang-validation\\xge-full-20261110\\mesh-geometry3d-packages-linux-r3\\packages\\stage-report.json",
+        "sha256": "f497f77c085f4e5c9fcce8725770d710c8827a6f66ade1297b2b319b46f8e23e"
+      },
+      "syntax": {
+        "path": "\\\\wsl.localhost\\Ubuntu\\var\\tmp\\xlang-validation\\xge-full-20261110\\native-sequence-fixed-record-qualification-linux-r4\\results.json",
+        "sha256": "43c1eda98e87f2cef49f7bf97b856aaae2d8c5e46aa74772d3ffe0cd42207cd5"
+      },
+      "language": {
+        "path": "\\\\wsl.localhost\\Ubuntu\\var\\tmp\\xlang-validation\\xge-full-20261110\\mesh-geometry3d-language-linux-r4\\results.json",
+        "sha256": "0674eac68a57cacf4ccbfd8d25c109db889946afddeba979706e99ffd16dea86"
+      },
+      "performance": {
+        "path": "\\\\wsl.localhost\\Ubuntu\\var\\tmp\\xlang-validation\\xge-full-20261110\\mesh-geometry3d-perf-linux-r3\\results.json",
+        "sha256": "34e6720e3f050c258e072e375d0026f6742d0ad33d93e36c46b173cb6bcba699"
+      }
+    }
+  },
+  "releaseInstalled": false,
+  "networkTests": false,
+  "performance": {
+    "repetitions": 1024,
+    "verticesPerTraversal": 3,
+    "xrtHeap": {
+      "win": {
+        "languageSetup": [
+          8,
+          0,
+          0
+        ],
+        "languageRead": [
+          0,
+          0,
+          0
+        ],
+        "cSetup": [
+          1,
+          0,
+          0
+        ],
+        "cRead": [
+          0,
+          0,
+          0
+        ]
+      },
+      "linux": {
+        "languageSetup": [
+          8,
+          0,
+          0
+        ],
+        "languageRead": [
+          0,
+          0,
+          0
+        ],
+        "cSetup": [
+          1,
+          0,
+          0
+        ],
+        "cRead": [
+          0,
+          0,
+          0
+        ]
+      }
+    },
+    "cpuTimeEquivalenceClaim": false
+  }
+}

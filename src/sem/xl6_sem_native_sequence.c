@@ -22,21 +22,34 @@ static const XL6_AstNode* xl6SemNativeSequenceElement(XL6_SemContext* ctx,const 
  const XL6_AstNode* args=xl6SemTypeNodeGenericArgs(type);
  return args && args->childCount==1 ? xl6SemResolveAliasType(ctx,args->children[0]):NULL;
 }
-static int xl6SemNativeSequencePod(XL6_SemContext* ctx,const XL6_AstNode* type,size_t depth)
+static int xl6SemNativeSequencePodField(XL6_SemContext* ctx,const XL6_AstNode* type,size_t depth,bool fixedArrays)
 {
  type=xl6SemResolveAliasType(ctx,type);
- if(!type || depth>16 || xl6SemTypeIsNullable(type) || !type->text || type->childCount)return 0;
+ if(!type || depth>16 || xl6SemTypeIsNullable(type) || !type->text)return 0;
+ if(type->childCount){
+  uint64 extent;
+  const XL6_AstNode* args=xl6SemTypeNodeGenericArgs(type);
+  return fixedArrays && depth && args && args->childCount==1 &&
+   xl6ForeignArrayExtent(type->text,&extent) && extent && extent<=UINT32_MAX &&
+   xl6SemNativeSequencePodField(ctx,args->children[0],depth+1,true);
+ }
  /* These language integers already use the exact int64_t/uint64_t ABI.
   * Bounded 8/16/32-bit language integers instead use a normalized i64. */
  if(xl6TextEquals(type->text,"int") || xl6TextEquals(type->text,"int64") || xl6TextEquals(type->text,"uint64"))return 1;
  if(!strncmp(type->text,"c_",2) && (xl6SemIsIntegerTypeName(type->text) || xl6TextEquals(type->text,"c_float") || xl6TextEquals(type->text,"c_double") || xl6TextEquals(type->text,"c_bool")))return 1;
  const XL6_AstNode* record=xl6SemFindTypeDecl(ctx,type->text);
- if(!record || record->kind!=XL6_AST_C_RECORD || !record->childCount || !xl6ForeignRecordRead(record,NULL,NULL))return 0;
+ XL6_ForeignClassDecl contract={0};
+ if(!record || record->kind!=XL6_AST_C_RECORD || !record->childCount || xl6ForeignRecordRead(record,&contract,NULL)!=1)return 0;
  const XL6_AstNode* fields=record->children[0];
  for(size_t f=0;fields && f<fields->childCount;++f){const XL6_AstNode* field=fields->children[f];
-  if(!field || field->kind!=XL6_AST_FIELD || !field->childCount || !xl6SemNativeSequencePod(ctx,field->children[0],depth+1))return 0;
+  if(!field || field->kind!=XL6_AST_FIELD || !field->childCount ||
+   !xl6SemNativeSequencePodField(ctx,field->children[0],depth+1,fixedArrays && !contract.recordProjection))return 0;
  }
  return fields!=NULL;
+}
+static int xl6SemNativeSequencePod(XL6_SemContext* ctx,const XL6_AstNode* type,size_t depth)
+{
+ return xl6SemNativeSequencePodField(ctx,type,depth,true);
 }
 static int xl6SemNativeSequenceSuspends(const XL6_AstNode* node)
 {

@@ -35,11 +35,13 @@ An async function or generator may suspend before or after the loop. Native
 creator-thread requirements still apply; this feature does not make a GUI
 resource usable from arbitrary worker threads.
 
-The initial element contract accepts full C-domain `c_*` scalars and exact,
-pointer-free C records composed recursively of those scalars. Language integers,
-characters, enums with additional invariants, strings, pointers, nullable elements
-and reference-bearing records are rejected. Ordinary records are copied by value
-when read. Direct NativeSequence elements, including nullable/aliased forms, in
+The element contract accepts full C-domain `c_*` scalars, exact 64-bit `int`,
+`int64` and `uint64`, and pointer-free C records composed recursively of
+these scalars. Exact C records can contain fixed-size C arrays of these
+values. Each fixed array is part of its enclosing record's by-value copy.
+Characters, bounded language integers, enums with additional invariants,
+strings, pointers, nullable elements and reference-bearing records are
+rejected. Direct NativeSequence elements, including nullable/aliased forms, in
 mutable native containers (array/list/dict/set/Stack/queues/maps) are explicitly
 rejected until their separate closed container domains are qualified. Nested
 mutable containers hit the same inner-type check; there is no ANY fallback.

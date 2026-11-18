@@ -1,0 +1,56 @@
+import xge
+import xge3d
+
+func main(...) as int
+    xge.init(32, 32, "3D mesh geometry fixture")
+    auto a = xge3d.Xge3dVertex()
+    auto b = xge3d.Xge3dVertex()
+    auto c = xge3d.Xge3dVertex()
+    a.uv[1] = c_float(0.75)
+    a.joints[2] = c_ushort(7)
+    b.position.x = c_float(2)
+    c.position.y = c_float(3)
+    auto mesh = xge3d.createMesh([a, b, c], -1, [c_ushort(0), c_ushort(1), c_ushort(2)])
+    auto first = mesh.geometry()
+    assert first.indexBits == c_int(16)
+    auto oldVertices = first.vertices()
+    auto oldIndices = first.indices16()
+    bool wrongIndexWidth = false
+    try
+        first.indices32()
+    catch Error
+        wrongIndexWidth = true
+    end
+    assert wrongIndexWidth
+    first.close()
+
+    b.position.x = c_float(9)
+    mesh.update32([a, b, c], -1, [c_uint(2), c_uint(1), c_uint(0)])
+    auto second = mesh.geometry()
+    assert second.indexBits == c_int(32)
+    auto newVertices = second.vertices()
+    auto newIndices = second.indices32()
+    second.close()
+    mesh.update([a, b, c])
+    auto unindexed = mesh.geometry()
+    assert unindexed.indexBits == c_int(0)
+    assert unindexed.indices16().length == 0
+    assert unindexed.indices32().length == 0
+    unindexed.close()
+    mesh.close()
+    xge.unit()
+
+    assert oldVertices.length == 3 and oldIndices.length == 3
+    auto oldFirst = oldVertices[0]
+    assert oldFirst.uv[1] == c_float(0.75) and oldFirst.joints[2] == c_ushort(7)
+    assert oldVertices[1].position.x == c_float(2)
+    assert newVertices[1].position.x == c_float(9)
+    assert oldIndices[0] == c_ushort(0) and newIndices[0] == c_uint(2)
+    c_float xSum = c_float(0)
+    for vertex in oldVertices.slice(1)
+        xSum += vertex.position.x
+    end
+    assert xSum == c_float(2)
+    println("MESH3D_GEOMETRY_LANGUAGE_OK")
+    return 0
+end
