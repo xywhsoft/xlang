@@ -248,6 +248,13 @@ export extern "xge3d_playback_info_t" struct Xge3dPlaybackInfo @header("xge3_run
  c_int stopping
 end
 
+export extern "xge3d_animation_options_t" struct Xge3dAnimationOptions @header("xge3_runtime.h")
+ c_float time
+ c_float speed
+ c_float weight
+ c_int loop
+end
+
 export extern "xge3d_work_budget_t" struct Xge3dWorkBudget @header("xge3_runtime.h")
  c_size nodes
  uint64 microseconds
