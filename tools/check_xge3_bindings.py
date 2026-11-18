@@ -846,6 +846,38 @@ def shape_retained_bindings(header):
     }
 
 
+def shape_traversal_bindings(header, storage):
+    expected = {
+        'xgeShapeExSceneTraverse': 'int xgeShapeExSceneTraverse(xge_shape_ex_scene pScene, xge_shape_ex_scene_visit_proc onPaint, void* pUser)',
+        'xge_shape_ex_scene_visit_proc': 'typedef int (*xge_shape_ex_scene_visit_proc)(const xge_shape_ex_scene_child_t* pPaint, void* pUser);',
+        'xge_shape_ex_scene_child_t': 'typedef struct xge_shape_ex_scene_child_t { int iType; xge_shape_ex pShape; xge_shape_ex_scene pScene; } xge_shape_ex_scene_child_t;',
+    }
+    actual = {row['name']: row['declaration'] for record in ('functions','types') for row in header[record]}
+    for name, declaration in expected.items():
+        if actual.get(name) != declaration:
+            raise ValueError('Shape traversal signature changed: ' + name)
+    name = 'xgeShapeExSceneTraverse'
+    method = 'extern "xgeShapeExSceneTraverse" @no_raise @c_sync_callback(0,-1,0) @c_result("status",0) func visit(ShapeVisitor visitor)'
+    review = storage.get(name,{})
+    if review.get('storage') != 'synchronous-callback' or review.get('declaration') != method:
+        raise ValueError('Shape traversal requires a synchronous callback review')
+    matching, reason = storage_review_match(Path(header['header']).parents[1],review,name)
+    if not matching:
+        raise ValueError('Shape traversal storage review changed: ' + str(reason))
+    return [
+        '// Each callback record is usable only during its callback. Returned shapes and',
+        '// scenes hold their own native references.',
+        'export extern "const xge_shape_ex_scene_child_t*" class ShapeVisit @header("xge3_runtime.h") @lifetime("callback")',
+        ' native point handle',
+        ' extern "iType" @c_field get kind() as c_int',
+        ' extern "pShape" @c_field @c_result("retained_view") @c_retain(retainShape,"zero",rollbackShape) get shape() as Shape?',
+        ' extern "pScene" @c_field @c_result("retained_view") @c_retain(retainShapeScene,"zero",rollbackShapeScene) get scene() as ShapeScene?',
+        'end',
+        'export typedef ShapeVisitor = func(ShapeVisit) as c_int',
+        '',
+    ], method
+
+
 def generate_xge_objects(root,header,records,types,primitive,param,reserved,reviewed_span,fixed_outputs,storage):
     families={'xge_shape_ex':('Shape','xl6Xge3ShapePolicy','xgeShapeEx','xgeShapeExDestroy'),
               'xge_shape_ex_scene':('ShapeScene','xl6Xge3ShapeScenePolicy','xgeShapeExScene','xgeShapeExSceneDestroy'),
@@ -928,7 +960,10 @@ def generate_xge_objects(root,header,records,types,primitive,param,reserved,revi
             methods[owner].append(' '+declaration)
             method=re.search(r'\bfunc (\w+)\(',declaration).group(1)
             mapped[native]='xge.'+owner+'.'+method
-    lines=['// Native-only shape graphs: own one exact native reference, no language callback slots.']
+    lines, traversal=shape_traversal_bindings(header,storage)
+    methods['ShapeScene'].append(' '+traversal)
+    mapped['xgeShapeExSceneTraverse']='xge.ShapeScene.visit'
+    lines.append('// Native-only shape graphs: own one exact native reference, no language callback slots.')
     for native,(name,policy,prefix,destroy) in families.items():
         lines+=['export extern "'+native+'" class '+name+' @header("xge3_runtime.h") @lifetime("owned") @policy("'+policy+'")',' native point handle',*methods[name],
                 ' extern "xl6ForeignViewCloseV1" @no_raise @c_control(0) @c_result("bool_status") func close()','end',

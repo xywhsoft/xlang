@@ -1,0 +1,25 @@
+// Read each shape's ID during a depth-first visit of the scene.
+import xge
+from xge import Shape
+
+func main(...) as int
+    auto scene = xge.createShapeScene()
+    auto rectangle = xge.createShape()
+    try
+        rectangle.id(7)
+        rectangle.appendRect(0,0,20,10,0,0,1)
+        scene.add(rectangle)
+        scene.visit(func(xge.ShapeVisit node) as c_int
+            if node.kind == xge.XGE_SHAPE_EX_SCENE_CHILD_SHAPE then
+                auto shape = node.shape as Shape
+                println("Visited shape",shape.idGet())
+                shape.close()
+            end
+            return 1
+        end)
+    finally
+        scene.close()
+        rectangle.close()
+    end
+    return 0
+end

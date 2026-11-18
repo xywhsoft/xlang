@@ -4,6 +4,20 @@
   "sourceRoot": "D:\\GIT\\xge",
   "runtimeAcceptance": false,
   "entries": {
+    "xgeShapeExSceneTraverse": {
+      "bindingFile": "lib\\bindings\\xge\\src\\shapes.xl",
+      "declaration": "extern \"xgeShapeExSceneTraverse\" @no_raise @c_sync_callback(0,-1,0) @c_result(\"status\",0) func visit(ShapeVisitor visitor)",
+      "storage": "synchronous-callback",
+      "sourceFile": "src/xge/render/xge_shape_ex.c",
+      "line": 16938,
+      "functionSha256": "3b1a1cd037dcae0a2181c06f1fa9e4c7f212ba2efd6e260dcd31079d7b06aac0",
+      "dependencies": [
+        {
+          "sourceFile": "src/xge/render/xge_shape_ex.c",
+          "lfSha256": "6df382f9596b66f0f4c3bd691d14a6c2c9261e348ad4dd413cf3c383986a2f37"
+        }
+      ]
+    },
     "xgeShapeExParentGet": {
       "bindingFile": "lib\\bindings\\xge\\src\\shapes.xl",
       "declaration": "extern \"xgeShapeExParentGet\" @no_raise @c_output_retain(1,retainShapeScene,\"zero\",rollbackShapeScene) @c_output(1,0) func parentScene() as ShapeScene?",
@@ -14,7 +28,7 @@
       "dependencies": [
         {
           "sourceFile": "src/xge/render/xge_shape_ex.c",
-          "lfSha256": "32a2f898859ab7eff62483565522498c5b09c0c9ab7055f3a7060381f972a30e"
+          "lfSha256": "6df382f9596b66f0f4c3bd691d14a6c2c9261e348ad4dd413cf3c383986a2f37"
         }
       ]
     },
@@ -28,7 +42,7 @@
       "dependencies": [
         {
           "sourceFile": "src/xge/render/xge_shape_ex.c",
-          "lfSha256": "32a2f898859ab7eff62483565522498c5b09c0c9ab7055f3a7060381f972a30e"
+          "lfSha256": "6df382f9596b66f0f4c3bd691d14a6c2c9261e348ad4dd413cf3c383986a2f37"
         }
       ]
     },
@@ -42,7 +56,7 @@
       "dependencies": [
         {
           "sourceFile": "src/xge/render/xge_shape_ex.c",
-          "lfSha256": "32a2f898859ab7eff62483565522498c5b09c0c9ab7055f3a7060381f972a30e"
+          "lfSha256": "6df382f9596b66f0f4c3bd691d14a6c2c9261e348ad4dd413cf3c383986a2f37"
         }
       ]
     },
@@ -56,7 +70,7 @@
       "dependencies": [
         {
           "sourceFile": "src/xge/render/xge_shape_ex.c",
-          "lfSha256": "32a2f898859ab7eff62483565522498c5b09c0c9ab7055f3a7060381f972a30e"
+          "lfSha256": "6df382f9596b66f0f4c3bd691d14a6c2c9261e348ad4dd413cf3c383986a2f37"
         }
       ]
     },
@@ -70,7 +84,7 @@
       "dependencies": [
         {
           "sourceFile": "src/xge/render/xge_shape_ex.c",
-          "lfSha256": "32a2f898859ab7eff62483565522498c5b09c0c9ab7055f3a7060381f972a30e"
+          "lfSha256": "6df382f9596b66f0f4c3bd691d14a6c2c9261e348ad4dd413cf3c383986a2f37"
         }
       ]
     },
@@ -84,7 +98,7 @@
       "dependencies": [
         {
           "sourceFile": "src/xge/render/xge_shape_ex.c",
-          "lfSha256": "32a2f898859ab7eff62483565522498c5b09c0c9ab7055f3a7060381f972a30e"
+          "lfSha256": "6df382f9596b66f0f4c3bd691d14a6c2c9261e348ad4dd413cf3c383986a2f37"
         }
       ]
     },
@@ -98,7 +112,7 @@
       "dependencies": [
         {
           "sourceFile": "src/xge/render/xge_shape_ex.c",
-          "lfSha256": "32a2f898859ab7eff62483565522498c5b09c0c9ab7055f3a7060381f972a30e"
+          "lfSha256": "6df382f9596b66f0f4c3bd691d14a6c2c9261e348ad4dd413cf3c383986a2f37"
         }
       ]
     },
@@ -112,7 +126,7 @@
       "dependencies": [
         {
           "sourceFile": "src/xge/render/xge_shape_ex.c",
-          "lfSha256": "32a2f898859ab7eff62483565522498c5b09c0c9ab7055f3a7060381f972a30e"
+          "lfSha256": "6df382f9596b66f0f4c3bd691d14a6c2c9261e348ad4dd413cf3c383986a2f37"
         }
       ]
     },
@@ -126,7 +140,7 @@
       "dependencies": [
         {
           "sourceFile": "src/xge/render/xge_shape_ex.c",
-          "lfSha256": "32a2f898859ab7eff62483565522498c5b09c0c9ab7055f3a7060381f972a30e"
+          "lfSha256": "6df382f9596b66f0f4c3bd691d14a6c2c9261e348ad4dd413cf3c383986a2f37"
         }
       ]
     },
@@ -140,7 +154,7 @@
       "dependencies": [
         {
           "sourceFile": "src/xge/render/xge_shape_ex.c",
-          "lfSha256": "32a2f898859ab7eff62483565522498c5b09c0c9ab7055f3a7060381f972a30e"
+          "lfSha256": "6df382f9596b66f0f4c3bd691d14a6c2c9261e348ad4dd413cf3c383986a2f37"
         }
       ]
     },
@@ -450,7 +464,7 @@
       "dependencies": [
         {
           "sourceFile": "include/xge.h",
-          "sha256": "055b0dd70f3d2102cc8afeac36d13a4afb897de98f15ab180bea808f525d08f3"
+          "sha256": "5cfcf3d4930ecde35de3b36ea06e72aa9ec35a05da55b3fae237d1a4de1535b3"
         },
         {
           "sourceFile": "src/xge/render/xge_render.c",
@@ -919,7 +933,7 @@
       "dependencies": [
         {
           "sourceFile": "include/xge.h",
-          "sha256": "055b0dd70f3d2102cc8afeac36d13a4afb897de98f15ab180bea808f525d08f3"
+          "sha256": "5cfcf3d4930ecde35de3b36ea06e72aa9ec35a05da55b3fae237d1a4de1535b3"
         },
         {
           "sourceFile": "src/xge/core/xge_debug.c",
@@ -1219,11 +1233,11 @@
       "dependencies": [
         {
           "sourceFile": "include/xge.h",
-          "sha256": "055b0dd70f3d2102cc8afeac36d13a4afb897de98f15ab180bea808f525d08f3"
+          "sha256": "5cfcf3d4930ecde35de3b36ea06e72aa9ec35a05da55b3fae237d1a4de1535b3"
         },
         {
           "sourceFile": "src/xge/render/xge_shape_ex.c",
-          "sha256": "32a2f898859ab7eff62483565522498c5b09c0c9ab7055f3a7060381f972a30e"
+          "sha256": "6df382f9596b66f0f4c3bd691d14a6c2c9261e348ad4dd413cf3c383986a2f37"
         }
       ],
       "note": "Exactly four contiguous corners written synchronously through RectToOBB; failure may leave temporary output partial/zero but checked language result is not published. Pointer syntax alone does not encode cardinality. Existing qualified language result remains Vec2[4]."
@@ -1239,11 +1253,11 @@
       "dependencies": [
         {
           "sourceFile": "include/xge.h",
-          "sha256": "055b0dd70f3d2102cc8afeac36d13a4afb897de98f15ab180bea808f525d08f3"
+          "sha256": "5cfcf3d4930ecde35de3b36ea06e72aa9ec35a05da55b3fae237d1a4de1535b3"
         },
         {
           "sourceFile": "src/xge/render/xge_shape_ex.c",
-          "sha256": "32a2f898859ab7eff62483565522498c5b09c0c9ab7055f3a7060381f972a30e"
+          "sha256": "6df382f9596b66f0f4c3bd691d14a6c2c9261e348ad4dd413cf3c383986a2f37"
         }
       ],
       "note": "Exactly four contiguous corners written synchronously through RectToOBB; failure may leave temporary output partial/zero but checked language result is not published. Pointer syntax alone does not encode cardinality. Existing qualified language result remains Vec2[4]."

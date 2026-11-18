@@ -1,0 +1,178 @@
+import xge
+from xge import Shape, ShapeScene, ShapeVisit
+
+extern "shapeTraversalHeapBegin" @header("test/cases/foreign_xge_shape_traversal.h") @no_raise func heapBegin()
+extern "shapeTraversalHeapEnd" @header("test/cases/foreign_xge_shape_traversal.h") @no_raise func heapEnd(c_int mode)
+extern "shapeTraversalHeapBudget" @header("test/cases/foreign_xge_shape_traversal.h") @no_raise func heapBudget(c_int allowance)
+extern "shapeTraversalAllocationFailed" @header("test/cases/foreign_xge_shape_traversal.h") @no_raise func allocationFailed() as bool
+extern "shapeTraversalNativeHot" @header("test/cases/foreign_xge_shape_traversal.h") @no_raise func nativeHot(ShapeScene scene)
+
+func verifyReading(ShapeScene root,ShapeScene inner,ShapeScene other,Shape shape)
+    int visited = 0
+    int rejected = 0
+    ShapeVisit? saved = null
+    Shape? selected = null
+    root.visit(func(xge.ShapeVisit node) as c_int
+        visited += 1
+        if visited == 1 then
+            assert node.kind == xge.XGE_SHAPE_EX_SCENE_CHILD_SCENE and node.shape == null
+            auto alias = node.scene as ShapeScene
+            assert alias.idGet() == 10
+            try
+                alias.removeScene(inner)
+            catch error
+                assert error.code == xge.XGE_ERROR_BUSY
+                rejected += 1
+            end
+            try
+                inner.clear()
+            catch error
+                assert error.code == xge.XGE_ERROR_BUSY
+                rejected += 1
+            end
+            auto independent = xge.createShape()
+            other.add(independent)
+            other.remove(independent)
+            independent.close()
+            int nested = 0
+            inner.visit(func(xge.ShapeVisit child) as c_int
+                assert child.kind == xge.XGE_SHAPE_EX_SCENE_CHILD_SCENE
+                nested += 1
+                return 0
+            end)
+            assert nested == 1
+            alias.close()
+        elseif visited == 2 then
+            auto group = node.scene as ShapeScene
+            assert group.idGet() == 20
+            group.close()
+        else
+            assert visited == 3 and node.kind == xge.XGE_SHAPE_EX_SCENE_CHILD_SHAPE and node.scene == null
+            selected = node.shape
+            saved = node
+        end
+        return 1
+    end)
+    assert visited == 3 and rejected == 2
+    bool expired = false
+    try
+        auto ignored = (saved as ShapeVisit).kind
+    catch StateError
+        expired = true
+    end
+    assert expired
+    auto retained = selected as Shape
+    assert retained.idGet() == 42 and shape.refCountGet() == 3
+    retained.close()
+end
+
+func verifyAllocationFailures(ShapeScene root)
+    auto retainRoot = func(xge.ShapeVisit node) as c_int
+        auto held = node.scene as ShapeScene
+        held.close()
+        return 0
+    end
+    root.visit(retainRoot)
+    int failures = 0
+    c_int references = root.refCountGet()
+    heapBegin()
+    for allowance in range(16)
+        heapBudget(c_int(allowance))
+        bool failed = false
+        try
+            root.visit(retainRoot)
+        catch error
+            failed = true
+        end
+        bool triggered = allocationFailed()
+        heapBudget(-1)
+        assert root.refCountGet() == references
+        if not triggered then
+            assert not failed
+            break
+        end
+        assert failed
+        failures += 1
+    end
+    assert failures > 0 and failures < 16
+    heapEnd(2)
+end
+
+func verifyStopAndErrors(ShapeScene root,ShapeScene inner,Shape shape)
+    int visited = 0
+    root.visit(func(xge.ShapeVisit node) as c_int
+        visited += 1
+        return 0
+    end)
+    assert visited == 1
+    bool caught = false
+    try
+        root.visit(func(xge.ShapeVisit node) as c_int
+            assert false,"shape visitor exception"
+            return 1
+        end)
+    catch AssertionError
+        caught = true
+    end
+    assert caught
+    inner.remove(shape)
+    inner.add(shape)
+end
+
+func verifyCloseDuringVisit()
+    auto root = xge.createShapeScene()
+    auto leaf = xge.createShape()
+    leaf.id(33)
+    root.add(leaf)
+    Shape? retained = null
+    root.visit(func(xge.ShapeVisit node) as c_int
+        if node.kind == xge.XGE_SHAPE_EX_SCENE_CHILD_SCENE then
+            root.close()
+        else
+            retained = node.shape
+        end
+        return 1
+    end)
+    leaf.close()
+    auto kept = retained as Shape
+    assert kept.idGet() == 33
+    kept.close()
+end
+
+func main(...) as int
+    auto root = xge.createShapeScene()
+    root.id(10)
+    auto inner = xge.createShapeScene()
+    inner.id(20)
+    auto other = xge.createShapeScene()
+    auto shape = xge.createShape()
+    shape.id(42)
+    inner.add(shape)
+    root.addScene(inner)
+    verifyReading(root,inner,other,shape)
+    verifyAllocationFailures(root)
+    verifyStopAndErrors(root,inner,shape)
+    int count = 0
+    auto countLeaves = func(xge.ShapeVisit node) as c_int
+        if node.kind == xge.XGE_SHAPE_EX_SCENE_CHILD_SHAPE then
+            count += 1
+        end
+        return 1
+    end
+    root.visit(countLeaves)
+    count = 0
+    heapBegin()
+    for i in range(1000)
+        root.visit(countLeaves)
+    end
+    heapEnd(0)
+    assert count == 1000
+    nativeHot(root)
+    root.close()
+    inner.close()
+    other.close()
+    shape.close()
+    verifyCloseDuringVisit()
+    println("XGE_SHAPE_TRAVERSAL_LANGUAGE_OK")
+    return 0
+end

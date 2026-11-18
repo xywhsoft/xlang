@@ -1,0 +1,247 @@
+{
+  "complete": true,
+  "passed": true,
+  "releaseInstalled": false,
+  "gpuTests": false,
+  "sourceParent": "81ae04a4ac3bfaf2befb5387ba7f669f8480e579",
+  "nativeCommit": "3e4139d9fee99e1b074c926427827a1d35b67307",
+  "xrtCommit": "804cc769de3030118c2b46ef7af69543d1b82d9d",
+  "sourceHashes": {
+    "lib/bindings/xge/src/shapes.xl": "8b8ae7fa84abb64b0003a603ef4be02041f64c7e5ab95adfb34c16504343b939",
+    "lib/bindings/xge/examples/shape_traversal.xl": "87f34fa25d0a24282a73357e3655770c614cee3a0374fbd2b9092409dd52a593",
+    "lib/bindings/xge/examples/README.md": "5ce5d036f9b76cec0f6b39711bcd6c9f9a81ef222f22fa411866ebfc8966c44f",
+    "docs/xge3-shape-traversal.md": "9d1c56828c002a56033458005b22b3214d9bbd8073c6cf18bce4957a67db5f39",
+    "docs/xge3-xui3-api-map-storage.json": "27e5f2735597948d2c984b6889c9449dacdc3a4307d87f253145d8d4225b2903",
+    "tools/check_xge3_bindings.py": "c83c734ffe61a198d91507962d4aefb73536bc2c0ab55677629bed24c1c400d0",
+    "test/cases/foreign_xge_shape_traversal.xl": "630cb82585a5c4eec44e8a6e3d104db804e789b44898b08697e99ab8b5f1d24f",
+    "test/cases/foreign_xge_shape_traversal.c": "533d327a5cd8a16970acd550dfea8a76c60d31baa1c7cf06fb9b37d7b3d0a07d",
+    "test/cases/foreign_xge_shape_traversal.h": "61c8de5bb921fe52f2b3990cf47fd925904a67abadd17b0b2a85fec8ed6ad811"
+  },
+  "behavior": [
+    "A synchronous preorder visit includes its root. Zero stops normally, nonzero continues, and checked callback errors reach the original caller.",
+    "The root keeps its native reference throughout traversal. Changing the child lists currently covered by the traversal returns Busy, including after nested traversal returns. Independent scene edits remain available.",
+    "Traversal checks the same 32-level limit as other native shape operations.",
+    "The callback record expires after the callback. Reading a shape or scene yields a nullable independently retained view, including when the receiver is closed during the callback.",
+    "The measured workload visits the same graph 1000 times using a warmed visitor that only reads the kind. It records zero XRT allocations for language and direct C across all four link modes. The separate injected failure path records balanced allocation and release."
+  ],
+  "evidence": {
+    "win": {
+      "sdk": {
+        "path": "F:\\xlang-validation\\xge-full-20261110\\shape-traversal-sdk-win-r1\\results.json",
+        "sha256": "9a0416481a8e86be9faa8057f0e3e0158a184efe04c7630a1052ac6d4a48a956",
+        "steps": 2
+      },
+      "native": {
+        "path": "F:\\xlang-validation\\xge-full-20261110\\shape-traversal-native-win-r1\\results.json",
+        "sha256": "9ed118405dc179b374f3bffd314405b3b92578914517fd37df64ac9207854d4e",
+        "steps": 12
+      },
+      "packages": {
+        "path": "F:\\xlang-validation\\xge-full-20261110\\shape-traversal-packages-win-r1\\results.json",
+        "sha256": "5a81dfe042520bfa4716fd2e29f058fce7c04da48e7d7fa17ca75e2035c1c36f",
+        "steps": 6,
+        "storageReview": {
+          "path": "F:\\xlang-validation\\xge-full-20261110\\shape-traversal-packages-win-r1\\source-review\\results.json",
+          "sha256": "91632ff1460624ae87b9ded17806454a17bc1e23eca8120288e2dd5ad6cf320b"
+        },
+        "storageChecks": 456,
+        "retainedSymbols": [
+          "xgeShapeExParentGet",
+          "xgeShapeExMaskGet",
+          "xgeShapeExClipShapeGetAtEx",
+          "xgeShapeExSceneParentGet",
+          "xgeShapeExSceneGetAt",
+          "xgeShapeExSceneChildGetAt",
+          "xgeShapeExSceneMaskGet",
+          "xgeShapeExSceneClipShapeGetAtEx",
+          "xgeShapeExSceneHitTest",
+          "xgeShapeExSceneHitTestEx"
+        ]
+      },
+      "language": {
+        "path": "F:\\xlang-validation\\xge-full-20261110\\shape-traversal-language-win-r1\\results.json",
+        "sha256": "2dff73f24951f72a18502a99f06c748371edb97d8738a63c787ae4e94ba2201e",
+        "steps": 17,
+        "heapCounts": {
+          "host-jit": {
+            "2": [
+              1,
+              1,
+              0
+            ],
+            "0": [
+              0,
+              0,
+              0
+            ],
+            "1": [
+              0,
+              0,
+              0
+            ]
+          },
+          "host-run": {
+            "2": [
+              1,
+              1,
+              0
+            ],
+            "0": [
+              0,
+              0,
+              0
+            ],
+            "1": [
+              0,
+              0,
+              0
+            ]
+          },
+          "static-run": {
+            "2": [
+              1,
+              1,
+              0
+            ],
+            "0": [
+              0,
+              0,
+              0
+            ],
+            "1": [
+              0,
+              0,
+              0
+            ]
+          },
+          "shared-run": {
+            "2": [
+              1,
+              1,
+              0
+            ],
+            "0": [
+              0,
+              0,
+              0
+            ],
+            "1": [
+              0,
+              0,
+              0
+            ]
+          }
+        }
+      }
+    },
+    "linux": {
+      "sdk": {
+        "path": "\\\\wsl.localhost\\Ubuntu\\var\\tmp\\xlang-validation\\xge-full-20261110\\shape-traversal-sdk-linux-r1\\results.json",
+        "sha256": "42cb1d4e966cde965812838f20ce039852f11e09c108e8d77ca2c2569473b7af",
+        "steps": 2
+      },
+      "native": {
+        "path": "\\\\wsl.localhost\\Ubuntu\\var\\tmp\\xlang-validation\\xge-full-20261110\\shape-traversal-native-linux-r1\\results.json",
+        "sha256": "974330e9ab290c27c2d6bc2f19e72472161a49a21aef7c413b2a014f5ba92b00",
+        "steps": 12
+      },
+      "packages": {
+        "path": "\\\\wsl.localhost\\Ubuntu\\var\\tmp\\xlang-validation\\xge-full-20261110\\shape-traversal-packages-linux-r1\\results.json",
+        "sha256": "e597a7e780a93d54e17b2a4c5231e6bf9bd4183e3329f7bf61fc723c59217dcb",
+        "steps": 6,
+        "storageReview": {
+          "path": "\\\\wsl.localhost\\Ubuntu\\var\\tmp\\xlang-validation\\xge-full-20261110\\shape-traversal-packages-linux-r1\\source-review\\results.json",
+          "sha256": "491c78afb8added0bad253a520fb2a81e66473e8fcba9f974675e11f63a3e803"
+        },
+        "storageChecks": 457,
+        "retainedSymbols": [
+          "xgeShapeExParentGet",
+          "xgeShapeExMaskGet",
+          "xgeShapeExClipShapeGetAtEx",
+          "xgeShapeExSceneParentGet",
+          "xgeShapeExSceneGetAt",
+          "xgeShapeExSceneChildGetAt",
+          "xgeShapeExSceneMaskGet",
+          "xgeShapeExSceneClipShapeGetAtEx",
+          "xgeShapeExSceneHitTest",
+          "xgeShapeExSceneHitTestEx"
+        ]
+      },
+      "language": {
+        "path": "\\\\wsl.localhost\\Ubuntu\\var\\tmp\\xlang-validation\\xge-full-20261110\\shape-traversal-language-linux-r1\\results.json",
+        "sha256": "3c703182e33669daa577f3c95795c0a2a0fe54cdbe22fcbe732bf8207ec36073",
+        "steps": 17,
+        "heapCounts": {
+          "host-jit": {
+            "2": [
+              1,
+              1,
+              0
+            ],
+            "0": [
+              0,
+              0,
+              0
+            ],
+            "1": [
+              0,
+              0,
+              0
+            ]
+          },
+          "host-run": {
+            "2": [
+              1,
+              1,
+              0
+            ],
+            "0": [
+              0,
+              0,
+              0
+            ],
+            "1": [
+              0,
+              0,
+              0
+            ]
+          },
+          "static-run": {
+            "2": [
+              1,
+              1,
+              0
+            ],
+            "0": [
+              0,
+              0,
+              0
+            ],
+            "1": [
+              0,
+              0,
+              0
+            ]
+          },
+          "shared-run": {
+            "2": [
+              1,
+              1,
+              0
+            ],
+            "0": [
+              0,
+              0,
+              0
+            ],
+            "1": [
+              0,
+              0,
+              0
+            ]
+          }
+        }
+      }
+    }
+  }
+}
