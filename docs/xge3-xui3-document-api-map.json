@@ -1,6 +1,6 @@
 {
   "scope": "Default-provenance Model A direct declaration coverage; declarations are not ABI/runtime qualification",
-  "authority": "F:\\xlang-validation\\xge-full-20261110\\document-node-attributes-header-input-r1\\include\\xui_document.h",
+  "authority": "F:\\xlang-validation\\xge-full-20261110\\document-node-attributes-sdk-win-r1\\source\\include\\xui_document.h",
   "authoritySha256": "ed43d60aa1dedb167aff20177c02478813b0f28bf5083758e288df9f07572693",
   "roots": {
     "xui_document": {
@@ -2070,11 +2070,7 @@
       "input": "insertImage/updateImage pack all public fields with counted alt text and nullable NUL strings."
     },
     "xui_doc_source_index_desc_t": {
-      "input": "createSourceIndex packs default allocator settings and maxWorkingBytes.",
-      "notProjected": {
-        "onCancel": "Callback nested inside a packed descriptor is not synthesized as a persistent raw callback.",
-        "pCancelUser": "No user pointer exposed."
-      }
+      "input": "createSourceIndex packs maxWorkingBytes and projects the optional shouldCancel closure into onCancel and stack-scoped pCancelUser. iReserved is zero."
     },
     "xui_doc_desc_t": {
       "input": "Owned constructors pack size and all eight ordinary settings.",
@@ -2102,10 +2098,11 @@
     "ownedExports": "Text adopts the actual resident-XRT allocation after one UTF-8 scan; bytes adds its ordinary owning value carrier. No payload copy or strlen.",
     "sourcePatchInputs": "One zero-initialized O(n) native record array plus column read pins and checked field writes. No text copy or NUL scan in the projection; native source processing retains its own documented copies. Default empty array arguments may allocate ordinary input containers.",
     "queryResults": "Search and loss collection build one native result per query. Geometric growth can copy its native backing while unpublished. NativeSequence takes a real reference and reads the final immutable backing directly without an array copy.",
-    "nodeAttributes": "Native translates the exact POD fields and copies the counted font family to inline storage. Language query copies the font family and optional language within the native result scope. The original document transaction performs its usual validation, allocations and COW."
+    "nodeAttributes": "Native translates the exact POD fields and copies the counted font family to inline storage. Language query copies the font family and optional language within the native result scope. The original document transaction performs its usual validation, allocations and COW.",
+    "sourceIndexCancellation": "The packed synchronous callback uses a stack thunk context and one closure pin per build. Each native poll enters the checked callback boundary. The native index never retains the closure or its userdata."
   },
   "externalTypeAuthority": {
-    "header": "F:\\xlang-validation\\xge-full-20261110\\document-node-attributes-header-input-r1\\include\\xui.h",
+    "header": "F:\\xlang-validation\\xge-full-20261110\\document-node-attributes-sdk-win-r1\\source\\include\\xui.h",
     "sha256": "241651b80db6258c67249c5ee88e6c8b3e4316f0ade1bc6f603add1ef7fc658d"
   },
   "previousQualification": {

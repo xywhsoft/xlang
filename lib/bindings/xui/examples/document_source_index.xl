@@ -1,0 +1,24 @@
+import xui
+
+auto document=xui.createDocument(profile=c_uint(xui.XUI_DOCUMENT_MARKDOWN))
+document.loadMarkdown("# Hello\n\nA paragraph with **bold** text.\n")
+auto snapshot=document.snapshot()
+
+try
+    // Return a nonzero value when the caller no longer needs the index.
+    auto index=snapshot.createSourceIndex(shouldCancel=func() as c_int
+        return c_int(1)
+    end)
+    index.close()
+catch error
+    assert error.code==int(xui.XUI_DOC_ERROR_CANCELLED), error.message
+    println("Index build cancelled")
+end
+
+// The same snapshot is still available for another attempt.
+auto index=snapshot.createSourceIndex()
+auto info=index.info()
+println("Source bytes:", info.iSourceBytes, "Tokens:", info.iTokenCount)
+index.close()
+snapshot.close()
+document.close()

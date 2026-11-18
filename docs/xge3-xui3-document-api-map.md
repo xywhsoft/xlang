@@ -40,7 +40,7 @@ Capability boundaries and available safe paths:
 | Raw `Create`/import/Deserialize and Retain/Release/ownership metadata | The safe package uses actual Owned factories, independent `share`, checked controls and private policies. Legacy raw promotion is forbidden. |
 | Whole node attributes | `setNodeAttributes()` replaces all 13 scalar fields, the font family and language. `setAttributesColumns()` retains its earlier behavior of clearing the font family. |
 | Styled and extension nodes | `insertNodeWithAttributes()` submits the complete style, counted node text and optional binary extension payload in a single native transaction operation. `insertNode()` supplies default attributes. |
-| Source-index constructor cancellation callback inside the descriptor | The ordinary constructor configures its working-memory limit. A nested raw callback/userdata pair is not synthesized. |
+| Source-index constructor cancellation callback inside the descriptor | `createSourceIndex(maxWorkingBytes=0, shouldCancel=null)` calls the supplied closure on the constructing thread. A nonzero result cancels the build with `XUI_DOC_ERROR_CANCELLED`. A thrown language error cancels the build and is delivered after native cleanup. |
 
 The machine map records every omitted function and pointer-bearing record field separately. The table is an interoperability boundary, not a promise that these native operations have been implemented as language conveniences.
 
@@ -51,6 +51,11 @@ Document model. A font family uses at most 63 UTF-8 bytes and cannot
 contain an embedded NUL. An empty family is returned as an empty string.
 An inherited language is returned as null. Use `setNodeAttributes()`
 with the returned values to replace the whole style.
+
+Source-index cancellation uses a stack callback context. The builder polls
+before starting, periodically during indexing, and before publishing the
+result. It discards a partial index on cancellation. The callback ends with
+the call, and the snapshot can be used to retry. [Source-index example](../lib/bindings/xui/examples/document_source_index.xl)
 
 The warmed query was measured on Windows and Linux with both strings
 present. Each language call allocated twice for the owned text. The raw

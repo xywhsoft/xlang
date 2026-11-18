@@ -1,0 +1,85 @@
+import xui
+
+class PollCount
+    int calls = 0
+end
+
+func checkCancellation(xui.DocumentSnapshot snapshot, int stopAt, bool raiseError)
+    auto count = PollCount()
+    bool rejected = false
+    try
+        auto index = snapshot.createSourceIndex(shouldCancel=func() as c_int
+            count.calls += 1
+            if count.calls == stopAt then
+                if raiseError then
+                    throw Error("source-index poll failed")
+                end
+                return c_int(1)
+            end
+            return c_int(0)
+        end)
+        index.close()
+    catch error
+        if raiseError then
+            assert error.message == "source-index poll failed"
+        else
+            assert error.code == int(xui.XUI_DOC_ERROR_CANCELLED)
+        end
+        rejected = true
+    end
+    assert rejected and count.calls == stopAt
+end
+
+func main(...) as int
+    auto document = xui.createDocument(profile=c_uint(xui.XUI_DOCUMENT_MARKDOWN))
+    string source = ""
+    for i in range(128)
+        source += "# Heading\n\nA paragraph with **bold** text.\n\n"
+    end
+    document.loadMarkdown(source)
+    auto snapshot = document.snapshot()
+    auto baseline = snapshot.createSourceIndex()
+    auto expected = baseline.info()
+    baseline.close()
+
+    auto count = PollCount()
+    auto index = snapshot.createSourceIndex(shouldCancel=func() as c_int
+        count.calls += 1
+        return c_int(0)
+    end)
+    int completedPolls = count.calls
+    assert completedPolls > 2
+    auto observed = index.info()
+    assert observed.iSourceBytes == expected.iSourceBytes
+    assert observed.iRecordCount == expected.iRecordCount
+    assert observed.iTokenCount == expected.iTokenCount
+    assert observed.iBindingCount == expected.iBindingCount
+    index.close()
+    assert count.calls == completedPolls
+
+    checkCancellation(snapshot, 1, false)
+    checkCancellation(snapshot, 2, false)
+    checkCancellation(snapshot, completedPolls, false)
+    checkCancellation(snapshot, 2, true)
+
+    bool limited = false
+    try
+        auto ignored = snapshot.createSourceIndex(maxWorkingBytes=1, shouldCancel=func() as c_int
+            count.calls += 1
+            return c_int(0)
+        end)
+        ignored.close()
+    catch error
+        assert error.code == int(xui.XUI_DOC_ERROR_LIMIT)
+        limited = true
+    end
+    assert limited and count.calls == completedPolls + 1
+
+    auto retry = snapshot.createSourceIndex()
+    assert retry.info().iTokenCount == expected.iTokenCount
+    retry.close()
+    snapshot.close()
+    document.close()
+    println("DOCUMENT_SOURCE_INDEX_CANCEL_LANGUAGE_OK")
+    return 0
+end

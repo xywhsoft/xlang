@@ -1,0 +1,122 @@
+{
+  "complete": true,
+  "passed": true,
+  "releaseInstalled": false,
+  "nativeCommit": "7dd6d0f8042d98237236e0056a5cb102da2ac4c1",
+  "compilerOptimization": "O2",
+  "scope": "Document source-index synchronous cancellation",
+  "sourceHashes": {
+    "docs/xge3-xui3-document-api-map.json": "6401ffcdf69863b767b7cfe203d9415f3d6d42f6bf8d0cb27cdfffee23d1ba99",
+    "docs/xge3-xui3-document-api-map.md": "a49bc11a1fdf657d0b000873c899fdc977a82f539edd618b714d7e5ed715a864",
+    "tools/gen_xge3_document_bindings.py": "bc6e54177cbbd86acd16a4f981ad833bee981bf157a36d19bc4fdd581fc989ae",
+    "lib/bindings/xui/examples/document_source_index.xl": "91aa5f9731e3de078fdfe25708b5052714b1b4f6a88031a5cbcf298778e121b6",
+    "lib/bindings/xui/examples/README.md": "3573cca31800c3911fafdb6ba3bee6ca3df11ee4d591bd68fd9cda418d3c87b4",
+    "lib/bindings/xui/src/document.xl": "fe2ff712fa83bd9a5c5216e52ef956d2887f13b3c212bc0e2e08802c12084741",
+    "test/cases/foreign_xui_document_source_index_cancel.xl": "6763b83e3a5365d7fc4a29e90314de00332bca3459310145addb6056bca11965"
+  },
+  "behavior": [
+    "Original positional budget and omitted budget continue working.",
+    "A nonzero poll returns XUI_DOC_ERROR_CANCELLED. A thrown callback error is preserved.",
+    "Early, intermediate and final cancellation do not publish an index. The snapshot can retry."
+  ],
+  "results": {
+    "languageStepsPerPlatform": 11,
+    "nativeStepsPerPlatform": 6,
+    "nativeAllocationPoints": 106,
+    "nativeCancellationPoints": 168,
+    "languageAllocationPrefixes": 1,
+    "warmedIndexBuilds": 32,
+    "xrtAllocFreeReallocPollCounts": {
+      "language": [
+        32,
+        32,
+        0,
+        74720
+      ],
+      "native": [
+        0,
+        0,
+        0,
+        74720
+      ],
+      "budgetOnly": [
+        64,
+        64,
+        0,
+        0
+      ]
+    },
+    "timingCompared": false,
+    "cost": "With the measured simple callback, managed construction adds one XRT allocation/free pair per build relative to raw C. The budget-only call measured two pairs per build both before and after the change. The callback adds a closure pin per build and checked admission per poll. The counts cover the measured XRT heap only."
+  },
+  "evidence": {
+    "win": {
+      "nativeSdk": {
+        "path": "F:\\xlang-validation\\xge-full-20261110\\document-node-attributes-sdk-win-r1\\results.json",
+        "sha256": "bad4ad821ee84d005c2c356a5a460c4aadc89ffeb64d6dbc710c816733a441f5"
+      },
+      "native": {
+        "path": "F:\\xlang-validation\\xge-full-20261110\\document-source-index-cancel-native-win-r1\\results.json",
+        "sha256": "d9b33a855bd4eadfb274f5407b6ac7eb6671034e8e2c10552329e7e9874092e1"
+      },
+      "package": {
+        "path": "F:\\xlang-validation\\xge-full-20261110\\document-source-index-cancel-packages-win-r3\\results.json",
+        "sha256": "26782eddfcd587ca47265db82089d96a0a359a5b20c21c706b2d2196e658621e"
+      },
+      "storageReview": {
+        "path": "F:\\xlang-validation\\xge-full-20261110\\document-source-index-cancel-packages-win-r3\\source-review\\results.json",
+        "sha256": "757623dd6f2b34da531b6607c025236d7f06b614b346a7c3acc651540e3445d3"
+      },
+      "packageSeal": {
+        "path": "F:\\xlang-validation\\xge-full-20261110\\document-source-index-cancel-packages-win-r3\\packages\\stage-report.json",
+        "sha256": "19ed2eb03c32f46f835ca92ee29a9524b334532dcdd2c4203ce83b4972f9eb61"
+      },
+      "compiler": {
+        "path": "F:\\xlang-validation\\xge-full-20261110\\compiler-native-sequence-fixed-record-win-full-r2\\build.json",
+        "sha256": "5b6e7afe29909931548adb96f01f2f8dd386932d6876a7f55c3b70c25126b05c"
+      },
+      "language": {
+        "path": "F:\\xlang-validation\\xge-full-20261110\\document-source-index-cancel-language-win-r3\\results.json",
+        "sha256": "f29216e3355346beca48224e65be11f6f0b846afb8608e4316e1d9dfc26652eb"
+      },
+      "allocations": {
+        "path": "F:\\xlang-validation\\xge-full-20261110\\document-source-index-cancel-perf-win-r5\\results.json",
+        "sha256": "d8a8f88f32854f207d29297d1041b63cfe1fe82e1e35d9d51bba69155f4e5f1f"
+      }
+    },
+    "linux": {
+      "nativeSdk": {
+        "path": "\\\\wsl.localhost\\Ubuntu\\var\\tmp\\xlang-validation\\xge-full-20261110\\document-node-attributes-sdk-linux-r1\\results.json",
+        "sha256": "0e1bc333fa1bbabd98c6675b1b8f03da5a076089c05bcf4ace31b8495bcf81fd"
+      },
+      "native": {
+        "path": "\\\\wsl.localhost\\Ubuntu\\var\\tmp\\xlang-validation\\xge-full-20261110\\document-source-index-cancel-native-linux-r1\\results.json",
+        "sha256": "f91dfe89e64778f8a7ba29f38391db024e4b42f6b60fa7160f84d4be458c54dd"
+      },
+      "package": {
+        "path": "\\\\wsl.localhost\\Ubuntu\\var\\tmp\\xlang-validation\\xge-full-20261110\\document-source-index-cancel-packages-linux-r3\\results.json",
+        "sha256": "72890a2514bcbbf0f35eaa2bb27d420cb249c0595743a8737dfe1529677c045c"
+      },
+      "storageReview": {
+        "path": "\\\\wsl.localhost\\Ubuntu\\var\\tmp\\xlang-validation\\xge-full-20261110\\document-source-index-cancel-packages-linux-r3\\source-review\\results.json",
+        "sha256": "cfc71c1fbcbe578ad8cebbaf8b32a082212390fc1597a5040ecc5afeec06fc1d"
+      },
+      "packageSeal": {
+        "path": "\\\\wsl.localhost\\Ubuntu\\var\\tmp\\xlang-validation\\xge-full-20261110\\document-source-index-cancel-packages-linux-r3\\packages\\stage-report.json",
+        "sha256": "3f4cba16810ddb73f9b0d8600868536ec3ce32d3e346a6b04fa607e3c68bea54"
+      },
+      "compiler": {
+        "path": "\\\\wsl.localhost\\Ubuntu\\var\\tmp\\xlang-validation\\xge-full-20261110\\compiler-native-sequence-fixed-record-linux-full-r2\\build.json",
+        "sha256": "996fd94fd7b3619c406d5dbad3b22b04915ed3888f7a629463231bf760429e4e"
+      },
+      "language": {
+        "path": "\\\\wsl.localhost\\Ubuntu\\var\\tmp\\xlang-validation\\xge-full-20261110\\document-source-index-cancel-language-linux-r3\\results.json",
+        "sha256": "8edb7a6fd59ac610ebbe8649efdb9c82b20eb13b243c6f5982abc79ff7d12198"
+      },
+      "allocations": {
+        "path": "\\\\wsl.localhost\\Ubuntu\\var\\tmp\\xlang-validation\\xge-full-20261110\\document-source-index-cancel-perf-linux-r5\\results.json",
+        "sha256": "550ecdaf94313fe3b77b2fe5239d88d1bb7e5fa1434135c869b29cc06e573301"
+      }
+    }
+  }
+}

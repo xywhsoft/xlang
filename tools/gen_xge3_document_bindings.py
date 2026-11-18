@@ -129,15 +129,18 @@ for cl,nativeName,mn,slots,params,extra in [
 for i,line in enumerate(classes['Document']):
  if 'extern "xuiDocumentLoadMarkdown"'in line:
   classes['Document'][i:i+1]=[' extern "xuiDocumentLoadMarkdown" @no_raise @c_span(0,"const char*","uint64_t",1) @c_result("status",0) func loadMarkdown('+kind+' utf8,int size=-1)'for kind in('string','bytes','Buffer')];break
-# explicit safe descriptor constructors; callbacks/custom allocators remain zero.
+# Explicit safe descriptor constructors leave custom allocators unset.
 functions.append('export extern "xuiDocumentCreateOwned" @header("xge3_runtime.h") @no_raise @c_result("owned_view") @factory(1,0,rollbackDocument) @c_pack(0,"xui_doc_desc_t",0,8) @c_pack_size(0,"iSize","uint32_t") '+ ' '.join('@c_pack_field(0,"'+field+'",'+str(i)+',"value")' for i,field in enumerate(['iProfile','iMarkdownDialect','iHistoryLimit','iHistoryMaxBytes','bDisableHistory','iMaxTextBytes','iMaxNodes','iMaxSyntaxRecords']))+' func createDocument(c_uint profile=1,c_uint markdownDialect=0,c_uint historyLimit=0,uint64 historyMaxBytes=0,c_int disableHistory=0,uint64 maxTextBytes=0,uint64 maxNodes=0,uint64 maxSyntaxRecords=0) as Document')
 mapped['xuiDocumentCreateOwned']='createDocument';reasons.pop('xuiDocumentCreateOwned',None)
 # Descriptor parameter alternatives are built by one generic stack pack.
-manual=[('xuiDocumentBeginTransaction','Document','beginTransaction','xui_doc_txn_desc_t',1,2,['iDomain','iBaseRevision','iOrigin','iGroup'],'c_uint domain=1,uint64 baseRevision=0,uint64 origin=0,uint64 group=0','DocumentTransaction'),('xuiDocumentSnapshotCreateSourceIndex','DocumentSnapshot','createSourceIndex','xui_doc_source_index_desc_t',1,2,['iMaxWorkingBytes'],'uint64 maxWorkingBytes=0','DocumentSourceIndex')]
+manual=[('xuiDocumentBeginTransaction','Document','beginTransaction','xui_doc_txn_desc_t',1,2,['iDomain','iBaseRevision','iOrigin','iGroup'],'c_uint domain=1,uint64 baseRevision=0,uint64 origin=0,uint64 group=0','DocumentTransaction')]
 for nativeName,cl,mn,ct,slot,output,fields,params,result in manual:
  classes[cl]=[line for line in classes[cl] if not ('extern "'+nativeName+'"' in line)]
  attrs='@no_raise @c_result("owned_view") @factory('+str(output)+',0,rollback'+result+') @c_pack('+str(slot)+',"'+ct+'",0,'+str(len(fields))+') @c_pack_size('+str(slot)+',"iSize","uint32_t") '+' '.join('@c_pack_field('+str(slot)+',"'+field+'",'+str(i)+',"value")' for i,field in enumerate(fields))
  classes[cl].append(' extern "'+nativeName+'" '+attrs+' func '+mn+'('+params+') as '+result);mapped[nativeName]=cl+'.'+mn;reasons.pop(nativeName,None)
+# The source-index builder consumes this callback synchronously and never retains it.
+classes['DocumentSnapshot'].append(' extern "xuiDocumentSnapshotCreateSourceIndex" @no_raise @c_result("owned_view") @factory(2,0,rollbackDocumentSourceIndex) @c_sync_callback(1,-1,1,"first") @c_pack(1,"xui_doc_source_index_desc_t",0,2) @c_pack_size(1,"iSize","uint32_t") @c_pack_field(1,"iMaxWorkingBytes",0,"value") @c_pack_field(1,"onCancel",1,"callback") @c_pack_field(1,"pCancelUser",1,"callback_user") func createSourceIndex(uint64 maxWorkingBytes=0,DocumentSourceIndexCancelProc? shouldCancel=null) as DocumentSourceIndex')
+mapped['xuiDocumentSnapshotCreateSourceIndex']='DocumentSnapshot.createSourceIndex';reasons.pop('xuiDocumentSnapshotCreateSourceIndex',None)
 # Counted source patches keep one column pin for data and its true byte length.
 # Named arguments allow the descriptor defaults before the patch columns.
 for kind,suffix in [('string',''),('bytes','Bytes')]:
@@ -302,6 +305,7 @@ for n in ('xui_document','xui_document_change_set'):
  lines+=['export extern "struct '+tag+'*" class '+cb+' @header("xge3_runtime.h") @lifetime("callback")',' native point handle',' extern "'+prefix+'ShareOwned" @no_raise @c_result("owned_view") @factory(1,0,rollback'+cl+') func share() as '+cl,*[line for line in classes[cl] if any(('func '+mn+'(') in line for mn in (('identity','revision','profile','markdownDialect') if cl=='Document' else ('info',)))],'end','']
 lines+=['export extern "const xui_doc_source_binding_t*" class CallbackDocumentSourceBinding @header("xge3_runtime.h") @lifetime("callback")',' native point handle',' extern "value" @c_deref get value() as DocumentSourceBinding','end','export typedef DocumentSourceBindingProc = func(uint64,CallbackDocumentSourceBinding) as c_int','']
 lines+=['export typedef DocumentChangeProc = func(CallbackDocument,CallbackDocumentChangeSet) as c_int','',*functions,'']
+lines+=['export typedef DocumentSourceIndexCancelProc = func() as c_int','']
 src=r/'lib/bindings/xui/src'
 for name,text in [('document_records.xl','\n'.join(recordLines)+'\n'),('document.xl','\n'.join(lines))]:
  if args.check:assert (src/name).read_text(encoding='utf-8')==text,'generated declarations differ: '+name
@@ -335,7 +339,7 @@ report['fields']={
  'xui_doc_node_attributes_view_t':dict(projectedPOD=['tValues'],projectedText=['sFontFamily','sLanguage'],input='The exact text/byte count of the font family is packed without C-string truncation. Native applies its UTF-8, length and schema limits.'),
  'xui_doc_node_desc_t':dict(input='insertNode uses default attributes. insertNodeWithAttributes also packs the separate attributes view and the exact bytes, version and required flag of an optional extension payload. Native admits and copies all inputs in one insertion.'),
  'xui_doc_image_desc_t':dict(input='insertImage/updateImage pack all public fields with counted alt text and nullable NUL strings.'),
- 'xui_doc_source_index_desc_t':dict(input='createSourceIndex packs default allocator settings and maxWorkingBytes.',notProjected=dict(onCancel='Callback nested inside a packed descriptor is not synthesized as a persistent raw callback.',pCancelUser='No user pointer exposed.')),
+ 'xui_doc_source_index_desc_t':dict(input='createSourceIndex packs maxWorkingBytes and projects the optional shouldCancel closure into onCancel and stack-scoped pCancelUser. iReserved is zero.'),
  'xui_doc_desc_t':dict(input='Owned constructors pack size and all eight ordinary settings.',notProjected=dict(onAlloc='Custom allocator callback lifetime is C-only.',onFree='Must be paired with allocator, outlives all handles.',pAllocatorUser='No raw userdata exposed.')),
  'xui_doc_source_patch_t':dict(input='prepareSource/continueSource and their Bytes variants project parallel start/end/text columns. Each temporary record receives exact sizeof, data pointer and actual byte length; readonly pins retain the original string/bytes backing for the synchronous call. Native copies accepted source text before return.',notProjected=dict(writableOutput='Input-only record projection; no writable language array or raw pointer is exposed.'))}
 report['costs']=dict(nativeForwardingFunctions=0,descriptorPacks='Stack initialization and field assignments; counted inputs are pinned; NUL strings require validation/scans.',owningRoots='One resident control/code lease and real native owner per independent root; share/factories reserve before producer.',POD='Exact native values or stack output-record field copies; no arbitrary pointer projection.',buffers='Scope/pin/length checks; Native Copy performs its documented bytes copy; lengths remain unchanged.',callbacks='Native Owned capture ownership plus checked epoch admission; explicit share acquires a real separate owner.',overallZeroOverheadClaim=False)
@@ -344,6 +348,7 @@ report['costs']['ownedExports']='Text adopts the actual resident-XRT allocation 
 report['costs']['sourcePatchInputs']='One zero-initialized O(n) native record array plus column read pins and checked field writes. No text copy or NUL scan in the projection; native source processing retains its own documented copies. Default empty array arguments may allocate ordinary input containers.'
 report['costs']['queryResults']='Search and loss collection build one native result per query. Geometric growth can copy its native backing while unpublished. NativeSequence takes a real reference and reads the final immutable backing directly without an array copy.'
 report['costs']['nodeAttributes']='Native translates the exact POD fields and copies the counted font family to inline storage. Language query copies the font family and optional language within the native result scope. The original document transaction performs its usual validation, allocations and COW.'
+report['costs']['sourceIndexCancellation']='The packed synchronous callback uses a stack thunk context and one closure pin per build. Each native poll enters the checked callback boundary. The native index never retains the closure or its userdata.'
 previous=r/'docs/xge3-xui3-document-api-map.json'
 if previous.is_file():
  old=json.loads(previous.read_text(encoding='utf-8'))
