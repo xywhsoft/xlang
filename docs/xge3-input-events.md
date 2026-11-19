@@ -26,3 +26,15 @@
 批量输入将语言数组转换为临时连续 C 记录，只调用一次原生函数。非空批次需要一次 XRT 分配，并逐项复制记录。分配失败发生在原生调用前。查询返回值直接来自原生输出，暖态无 XRT 堆分配。
 
 运行 [miniprogram_touch.xl](../lib/bindings/xge/examples/miniprogram_touch.xl) 可在桌面无窗环境验证两个触点和 DPR 坐标换算。微信宿主的 JavaScript 回调接入另行验收。
+
+## 小程序宿主回调
+
+`xge.setMiniProgramBridge(requestFrame, loadResource, audioCommand)` 将三个可选回调作为同一组注册。省略全部参数即可清除。帧调度和音频调用保留宿主的非负结果。音频入口接受 `bytes` 或 `Buffer`，以实际字节数调用原生接口。回调通过 `MiniProgramAudioData.size` 读取长度，通过 `bytes` 取得可独立保存的字节副本。回调结束后，视图会失效。
+
+资源回调接收完整的 `res://` URI，使用 `ResourceOutput.set()` 提交数据。输出会复制实际字节，支持内嵌 NUL。成功交付的资源可以在替换回调或关闭桥接后继续使用。分配或注册失败会保留旧桥接。旧回调释放出错时，已发布的新桥接仍然生效。
+
+受管回调在注册线程运行。帧调度和音频回调期间，底层固定该次调用的回调组。注册时保存拥有引用，查找时使用短锁，锁外调用宿主。音频只读长度时无需复制数据。资源输出和显式读取音频 `bytes` 会分配并复制。使用 `miniProgramUnitChecked()` 收尾，`xge.unit()` 也会清理预初始化注册。
+
+使用预先创建的三字节载荷连续调用 1,000 次，Windows 和 Linux 上的原生 C 与 xlang 循环均未触发 XRT 堆操作。该测量的 xlang 回调只读取长度，不包含首次注册或音频数据复制。
+
+运行 [miniprogram_bridge.xl](../lib/bindings/xge/examples/miniprogram_bridge.xl) 可用本地回调验证帧请求、资源读取和音频指令。现有微信 JavaScript 适配器仍需注册这些回调，并在真实宿主中验收。

@@ -601,7 +601,7 @@ def generate(root,data):
                     line=xge_contracts[f['name']]
                     if f['name']in ARRAYS:reviewed_storage(f,line)
                     name=re.search(r'\bfunc (\w+)\(',line)[1]
-                    functions.append(line);special.add(name)
+                    functions.extend(line.splitlines());special.add(name)
                     mapped[f['name']]=('xge3d.'if f['name'].startswith('xge3d')else'xgeDebug.'if any('XGE_HAS_DEBUGMODE'in c for c in f.get('conditions',[]))else'xge.')+name
                     continue
                 if f['name'] in ('xgeUnit','xgeRequestQuit'):

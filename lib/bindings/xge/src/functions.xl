@@ -58,12 +58,15 @@ export extern "xgeScreenToWorld" @header("xge3_runtime.h") func screenToWorld(Ve
 export extern "xgeResourceProviderClearChecked" @header("xge3_runtime.h") @no_raise @c_result("status",0) func resourceProviderClear()
 export extern "xgeMiniProgramInitSimple" @header("xge3_runtime.h") func miniProgramInitSimple(c_int iWidth,c_int iHeight,c_float fDevicePixelRatio) as c_int
 export extern "xgeMiniProgramUnit" @header("xge3_runtime.h") func miniProgramUnit()
+export extern "xgeMiniProgramUnitChecked" @header("xge3_runtime.h") @no_raise @c_result("status",0) func miniProgramUnitChecked()
 export extern "xgeMiniProgramFrame" @header("xge3_runtime.h") func miniProgramFrame(c_double fTimeSeconds) as c_int
 export extern "xgeMiniProgramResize" @header("xge3_runtime.h") func miniProgramResize(c_int iWidth,c_int iHeight,c_float fDevicePixelRatio) as c_int
 export extern "xgeMiniProgramTouch" @header("xge3_runtime.h") @no_raise @c_array_group(1,1,1,"int",2) @c_array_input(1,0,"const xge_miniprogram_touch_t*","value") func miniProgramTouch(c_int phase,array<MiniprogramTouch> touches,int size=-1) as c_int
 export extern "xgeMiniProgramTouchOne" @header("xge3_runtime.h") func miniProgramTouchOne(c_int iPhase,c_int iId,c_float fX,c_float fY,c_float fForce) as c_int
 export extern "xgeMiniProgramText" @header("xge3_runtime.h") func miniProgramText(c_uint iCodepoint) as c_int
 export extern "xgeMiniProgramRequestFrame" @header("xge3_runtime.h") func miniProgramRequestFrame() as c_int
+export extern "xgeMiniProgramAudioCommand" @header("xge3_runtime.h") @no_raise @c_span(2,"const void*","int") @c_result("integer_min",0) func miniProgramAudioCommand(c_int command,c_int handle,bytes data) as c_int
+export extern "xgeMiniProgramAudioCommand" @header("xge3_runtime.h") @no_raise @c_span(2,"const void*","int") @c_result("integer_min",0) func miniProgramAudioCommand(c_int command,c_int handle,Buffer data) as c_int
 export extern "xgeEGLCapsGet" @header("xge3_runtime.h") @no_raise @c_output(0,0) func eglCapsGet() as EglCaps
 export extern "xgeAsyncThreadingSet" @header("xge3_runtime.h") func asyncThreadingSet(c_int bEnabled) as c_int
 export extern "xgeAsyncThreadingGet" @header("xge3_runtime.h") func asyncThreadingGet() as c_int

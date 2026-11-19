@@ -1,0 +1,114 @@
+{
+  "complete": true,
+  "passed": true,
+  "releaseInstalled": false,
+  "shippingDelivery": false,
+  "sourceParent": "709c83a33dbffbeda7796be2b2e617e74e5fb61f",
+  "nativeCommit": "877190d441d6435555b8ca30b685592cec716a2f",
+  "frozenXrt": "804cc769de3030118c2b46ef7af69543d1b82d9d",
+  "scope": [
+    "Desktop native and xlang host bridge for frame scheduling, res:// and audio. Resource and bridge publication is atomic.",
+    "Retirement preserves admitted callbacks and old resource payloads. The language uses the existing owned callback-group and borrowed byte-view contracts.",
+    "Owned dispatch rejects an unrelated thread. Native tests cover initialization/registration OOM, drop errors, explicit and cold engine Unit and the old C dispatch path.",
+    "The final SDK rebuild uses verified same-profile object reuse from complete O2 builds. WeChat, JavaScript callback registration and actual WASM execution are outside these checks."
+  ],
+  "heapComparison": {
+    "iterations": 1000,
+    "operations": "audio calls with prepared three-byte payload; language callback reads view size",
+    "nativeC": {
+      "allocations": 0,
+      "frees": 0,
+      "reallocations": 0
+    },
+    "xlang": {
+      "allocations": 0,
+      "frees": 0,
+      "reallocations": 0
+    },
+    "note": "Native callback also checks byte contents. No CPU-equivalence claim. Registration, provider output, and explicit bytes copies are excluded."
+  },
+  "sources": {
+    "docs/xge3-input-events.md": "2030efc88b3c0370da6b9f51330ad121cb205e156b9b47f376167a7a2ec48b2b",
+    "docs/xge3-xui3-api-map-storage.json": "fcceb67656d11cc29513b78b71557f101561c244b21e9d563c4bc81fdd107cbd",
+    "lib/bindings/xge/src/functions.xl": "57ea0107e962ff06db165549d7e1f974e87838aa8f3a028f2c9337a00381ba9d",
+    "lib/bindings/xge/src/callbacks.xl": "c6b1f3aa5fa93c273282852a872aaf90d961b608a04cceaab6c8999b454c4a25",
+    "lib/bindings/xge/examples/miniprogram_bridge.xl": "4fa2cb4e34ece0abacb27a09e4b04c7eb0f0345d00f9756369c3ba112486a750",
+    "test/cases/foreign_xge_miniprogram_bridge.xl": "d9348ea0cda95023e3339404ce9b415002481075313544a86e786b9f928b3a4a",
+    "tools/check_xge3_bindings.py": "6fe580706bcc54a0646e33d8c8d53eb52440155b0a4ab4193267e9bbbd5b7799",
+    "tools/xge_replay_contracts.py": "bb642f66d8972f2b2aab0bb5fff9d962663317437271908cbafa56fbe703ae17"
+  },
+  "nativeSources": {
+    "include/xge.h": "894b76e52f30928f650e724b672c104b7a7cbf6dbdf890fdd9f9271ec83af56c",
+    "src/xge/core/xge_core.c": "bfebf88939c6463d29010da7b5bec5053fd6cd67fffda0c376b1796d45ced0bf",
+    "src/xge/core/xge_impl.c": "d4ed925c821c775f3a24ef760d4fe0d950c80340f8c3b03f53613e3a511977ff",
+    "src/xge/platform/xge_miniprogram.c": "8d4b2396943eb23e4c15080e6498508aa9b588ee0cd2270d03f50a3f119400c3",
+    "src/xge/resource/xge_resource.c": "a814df276caa31783cc8a9a57f8fd61c692e85bd4221669155dd648c71b0df01",
+    "tests/xge/xge_resource_owned_test.c": "72b9ef1d3345351a72c85819d0075c70f1347ac55168ea46b43c032bc0778074"
+  },
+  "platforms": {
+    "win": {
+      "completeSdk": {
+        "path": "F:\\xlang-validation\\xge-full-20261110\\miniprogram-bridge-sdk-win-r3\\results.json",
+        "sha256": "f601e5e731ccca26ecb4ca5bc038f57a478310614397c6393b52f1835a5e55e0",
+        "commands": 2
+      },
+      "matchedSdk": {
+        "path": "F:\\xlang-validation\\xge-full-20261110\\miniprogram-bridge-sdk-win-r4\\results.json",
+        "sha256": "56ba790f90a8912b36417392f747abdf13557b73d28e003287c747e25768a841",
+        "commands": 2
+      },
+      "native": {
+        "path": "F:\\xlang-validation\\xge-full-20261110\\miniprogram-bridge-native-tests-win-r5\\results.json",
+        "sha256": "ee8d534e23ce9e12773cfbde6621190c9cd14f6413260f41b3db7e9a8607022e",
+        "commands": 4
+      },
+      "legacy": {
+        "path": "F:\\xlang-validation\\xge-full-20261110\\miniprogram-bridge-legacy-tests-win-r4\\results.json",
+        "sha256": "d8e1f72d40a15e0bc8160bd010963b44f86edd8016435c7ae603b46ccb31fd55",
+        "commands": 2
+      },
+      "packages": {
+        "path": "F:\\xlang-validation\\xge-full-20261110\\miniprogram-bridge-packages-win-r4\\results.json",
+        "sha256": "679943cf6ab83523fb36c028a769382a9b429582fa613ada8c4bc2e4e6e5625a",
+        "commands": 6
+      },
+      "language": {
+        "path": "F:\\xlang-validation\\xge-full-20261110\\miniprogram-bridge-tests-win-r4\\results.json",
+        "sha256": "462d6694294b936da65f51cdff13de61d1c7f656a40688f59daae0841eb87560",
+        "commands": 26
+      }
+    },
+    "linux": {
+      "completeSdk": {
+        "path": "/var/tmp/xlang-validation/xge-full-20261110/miniprogram-bridge-sdk-linux-r3/results.json",
+        "sha256": "3c412fa2037c2defc5ab7acf77c36d3d98ac9303c504b96a662c04f0811d8932",
+        "commands": 2
+      },
+      "matchedSdk": {
+        "path": "/var/tmp/xlang-validation/xge-full-20261110/miniprogram-bridge-sdk-linux-r4/results.json",
+        "sha256": "aafd4b8abf03ec4ea91dbd19403c37ba7d1bc06b65bc1a765300cc0031d3b8f2",
+        "commands": 2
+      },
+      "native": {
+        "path": "/var/tmp/xlang-validation/xge-full-20261110/miniprogram-bridge-native-tests-linux-r5/results.json",
+        "sha256": "cc46ffae014b76fa584ba70d39ebac5eb28ff866f3a8d877a5f04f8aa902080d",
+        "commands": 4
+      },
+      "legacy": {
+        "path": "/var/tmp/xlang-validation/xge-full-20261110/miniprogram-bridge-legacy-tests-linux-r4/results.json",
+        "sha256": "57e4f6567ccb625ca9755735159e733faf6c6ca2182b3746ca1c0a7a07a9061d",
+        "commands": 2
+      },
+      "packages": {
+        "path": "/var/tmp/xlang-validation/xge-full-20261110/miniprogram-bridge-packages-linux-r4/results.json",
+        "sha256": "539ec2f8b5fff52a40b4e59e89ea28706726c05ad0e7efb978525d4918020ab2",
+        "commands": 6
+      },
+      "language": {
+        "path": "/var/tmp/xlang-validation/xge-full-20261110/miniprogram-bridge-tests-linux-r4/results.json",
+        "sha256": "fe7946918d664319b1c3ee53fafd7be1b0e7c62b4a077f7c5793763af9f466c3",
+        "commands": 26
+      }
+    }
+  }
+}

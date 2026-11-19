@@ -1,0 +1,37 @@
+// Run: xl run miniprogram_bridge.xl
+// Uses local host callbacks to demonstrate the bridge without a window.
+import xge
+
+int requested = 0
+int payloadSize = 0
+xge.setMiniProgramBridge(
+    func() as c_int
+        requested += 1
+        return xge.XGE_OK
+    end,
+    func(xge.ResourcePath uri, xge.ResourceOutput output) as c_int
+        if uri.text != "res://greeting" then
+            return xge.XGE_ERROR_FILE_NOT_FOUND
+        end
+        output.set(b"hello")
+        return xge.XGE_OK
+    end,
+    func(c_int command, c_int handle, xge.MiniProgramAudioData data) as c_int
+        payloadSize = int(data.size)
+        return xge.XGE_OK
+    end)
+
+try
+    assert xge.miniProgramInitSimple(160, 120, c_float(1)) == xge.XGE_OK
+    assert xge.miniProgramRequestFrame() == xge.XGE_OK and requested == 1
+    auto greeting = xge.loadResource("res://greeting")
+    try
+        assert greeting.bytes == b"hello"
+    finally
+        greeting.close()
+    end
+    assert xge.miniProgramAudioCommand(1, 0, b"play") == xge.XGE_OK and payloadSize == 4
+    println("Mini-program host bridge example passed")
+finally
+    xge.miniProgramUnitChecked()
+end

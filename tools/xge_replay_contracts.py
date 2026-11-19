@@ -40,6 +40,13 @@ CONTRACTS = {
         'export extern "xgeMiniProgramTouch" @header("xge3_runtime.h") @no_raise @c_array_group(1,1,1,"int",2) '
         '@c_array_input(1,0,"const xge_miniprogram_touch_t*","value") '
         'func miniProgramTouch(c_int phase,array<MiniprogramTouch> touches,int size=-1) as c_int'),
+    'xgeMiniProgramUnitChecked': (
+        'int xgeMiniProgramUnitChecked(void)',
+        'export extern "xgeMiniProgramUnitChecked" @header("xge3_runtime.h") @no_raise @c_result("status",0) func miniProgramUnitChecked()'),
+    'xgeMiniProgramAudioCommand': (
+        'int xgeMiniProgramAudioCommand(int iCommand, int iHandle, const void* pData, int iSize)',
+        'export extern "xgeMiniProgramAudioCommand" @header("xge3_runtime.h") @no_raise @c_span(2,"const void*","int") @c_result("integer_min",0) func miniProgramAudioCommand(c_int command,c_int handle,bytes data) as c_int\n'
+        'export extern "xgeMiniProgramAudioCommand" @header("xge3_runtime.h") @no_raise @c_span(2,"const void*","int") @c_result("integer_min",0) func miniProgramAudioCommand(c_int command,c_int handle,Buffer data) as c_int'),
     'xgeTouchFind': (
         'int xgeTouchFind(uint64_t iId, xge_touch_point_t* pPoint)',
         'export extern "xgeTouchFind" @header("xge3_runtime.h") @no_raise @c_outputs(-1,1) func touchFind(uint64 id) as (c_int,TouchPoint)'),
@@ -81,7 +88,8 @@ REPLACED = {
     'xge3dMotionDefault': ('xge3d.threeDMotionDefault', 'xge3dMotionDefaultInto'),
 }
 
-SPANS = {'xgeClipboardGetData': ('void*', 'size_t'), 'xgeDebugDumpCaps': ('char*', 'int')}
+SPANS = {'xgeClipboardGetData': ('void*', 'size_t'), 'xgeDebugDumpCaps': ('char*', 'int'),
+         'xgeMiniProgramAudioCommand': ('const void*', 'int')}
 ARRAYS = {'xgeMiniProgramTouch'}
 
 def validate(functions):

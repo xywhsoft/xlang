@@ -501,18 +501,24 @@
       "declaration": "export extern \"xgeMiniProgramTouch\" @header(\"xge3_runtime.h\") @no_raise @c_array_group(1,1,1,\"int\",2) @c_array_input(1,0,\"const xge_miniprogram_touch_t*\",\"value\") func miniProgramTouch(c_int phase,array<MiniprogramTouch> touches,int size=-1) as c_int",
       "storage": "native-copy-or-synchronous-read",
       "sourceFile": "src/xge/platform/xge_miniprogram.c",
-      "line": 245,
+      "line": 291,
       "functionSha256": "8f0b3ddf279c59c51ddef4271397a6edd8ed31771d291129e2f2950d84313eb8"
     },
     "xgeMiniProgramAudioCommand": {
       "bindingFile": "lib\\bindings\\xge\\src\\functions.xl",
-      "declaration": "export extern \"xgeMiniProgramAudioCommand\" @header(\"xge3_runtime.h\") @c_span(2,\"const void*\",\"int\") func miniProgramAudioCommand(c_int iCommand,c_int iHandle,bytes pData) as c_int",
-      "storage": "requires-native-backend-nonescape-contract",
+      "declaration": "export extern \"xgeMiniProgramAudioCommand\" @header(\"xge3_runtime.h\") @no_raise @c_span(2,\"const void*\",\"int\") @c_result(\"integer_min\",0) func miniProgramAudioCommand(c_int command,c_int handle,bytes data) as c_int",
+      "storage": "native-copy-or-synchronous-read",
       "sourceFile": "src/xge/platform/xge_miniprogram.c",
-      "line": 412,
-      "functionSha256": "b439a8a223b9eedc21bc46714a563432162e58f4fb6075e2db397ff70602613e",
-      "defaultExport": false,
-      "reason": "Direct custom bridge callback has no documented consume/copy requirement; source alone does not establish non-escape"
+      "line": 452,
+      "functionSha256": "50211738bbd590157db92b93841c16dbad70268a59ec20738149ee343e5b8afe",
+      "defaultExport": true,
+      "reason": "Both callback table ABIs borrow the counted payload for the synchronous invocation. The owned bridge provides a stack xbytesview; A host that retains data must copy it.",
+      "dependencies": [
+        {
+          "sourceFile": "include/xge.h",
+          "sha256": "894b76e52f30928f650e724b672c104b7a7cbf6dbdf890fdd9f9271ec83af56c"
+        }
+      ]
     },
     "xgeFontFallbackSetMemory": {
       "bindingFile": "lib\\bindings\\xge\\src\\functions.xl",
@@ -576,7 +582,7 @@
       "dependencies": [
         {
           "sourceFile": "include/xge.h",
-          "sha256": "750758494b263bf2af3d4806ab76432ad5e479376810bce95fc3694cc851b3e6"
+          "sha256": "894b76e52f30928f650e724b672c104b7a7cbf6dbdf890fdd9f9271ec83af56c"
         },
         {
           "sourceFile": "src/xge/render/xge_render.c",
@@ -1045,7 +1051,7 @@
       "dependencies": [
         {
           "sourceFile": "include/xge.h",
-          "sha256": "750758494b263bf2af3d4806ab76432ad5e479376810bce95fc3694cc851b3e6"
+          "sha256": "894b76e52f30928f650e724b672c104b7a7cbf6dbdf890fdd9f9271ec83af56c"
         },
         {
           "sourceFile": "src/xge/core/xge_debug.c",
@@ -1345,7 +1351,7 @@
       "dependencies": [
         {
           "sourceFile": "include/xge.h",
-          "sha256": "750758494b263bf2af3d4806ab76432ad5e479376810bce95fc3694cc851b3e6"
+          "sha256": "894b76e52f30928f650e724b672c104b7a7cbf6dbdf890fdd9f9271ec83af56c"
         },
         {
           "sourceFile": "src/xge/render/xge_shape_ex.c",
@@ -1365,7 +1371,7 @@
       "dependencies": [
         {
           "sourceFile": "include/xge.h",
-          "sha256": "750758494b263bf2af3d4806ab76432ad5e479376810bce95fc3694cc851b3e6"
+          "sha256": "894b76e52f30928f650e724b672c104b7a7cbf6dbdf890fdd9f9271ec83af56c"
         },
         {
           "sourceFile": "src/xge/render/xge_shape_ex.c",

@@ -1,0 +1,95 @@
+import xge
+from xge import MiniProgramAudioData
+
+extern "touchHeapBegin" @header("test/cases/foreign_xge_miniprogram_touch.h") @no_raise func heapBegin()
+extern "touchHeapEnd" @header("test/cases/foreign_xge_miniprogram_touch.h") @no_raise func heapEnd(c_int allocations)
+extern "touchSetBudget" @header("test/cases/foreign_xge_miniprogram_touch.h") @no_raise func budget(c_int allowance)
+
+func main(...) as int
+    int frames = 0
+    int commands = 0
+    MiniProgramAudioData? saved = null
+    bytes snapshot = b""
+    bytes packet = b"a\0b"
+    auto frame = func() as c_int
+        frames += 1
+        return 7
+    end
+    auto load = func(xge.ResourcePath uri, xge.ResourceOutput output) as c_int
+        assert uri.text == "res://bytes"
+        output.set(packet)
+        return xge.XGE_OK
+    end
+    auto audio = func(c_int command, c_int handle, xge.MiniProgramAudioData data) as c_int
+        assert command == 3 and handle == 9 and data.size == 3
+        snapshot = data.bytes
+        saved = data
+        commands += 1
+        return 11
+    end
+    xge.setMiniProgramBridge(frame, load, audio)
+    try
+        assert xge.miniProgramInitSimple(80, 60, c_float(2)) == xge.XGE_OK
+        auto resource = xge.loadResource("res://bytes")
+        try
+            assert xge.miniProgramRequestFrame() == 7 and frames == 1
+            assert xge.miniProgramAudioCommand(3, 9, packet) == 11
+            auto buffer = Buffer(packet)
+            assert xge.miniProgramAudioCommand(3, 9, buffer) == 11
+            assert snapshot == packet and resource.bytes == packet and commands == 2
+            bool rejected = false
+            try
+                auto stale = (saved as MiniProgramAudioData).size
+            catch StateError
+                rejected = true
+            end
+            assert rejected
+            budget(0)
+            rejected = false
+            try
+                xge.setMiniProgramBridge(frame, load, audio)
+            catch Error
+                rejected = true
+            finally
+                budget(-1)
+            end
+            assert rejected and xge.miniProgramRequestFrame() == 7 and frames == 2
+            xge.setMiniProgramBridge(audioCommand=func(c_int command, c_int handle, xge.MiniProgramAudioData data) as c_int
+                throw "host audio failure"
+            end)
+            rejected = false
+            try
+                xge.miniProgramAudioCommand(3, 9, packet)
+            catch error
+                rejected = error.message == "host audio failure"
+            end
+            assert rejected
+            int observed = 0
+            xge.setMiniProgramBridge(audioCommand=func(c_int command, c_int handle, xge.MiniProgramAudioData data) as c_int
+                observed += int(data.size)
+                return 11
+            end)
+            heapBegin()
+            for i in range(1000)
+                assert xge.miniProgramAudioCommand(3, 9, packet) == 11
+            end
+            heapEnd(0)
+            assert observed == 3000
+            xge.setMiniProgramBridge()
+            assert xge.miniProgramRequestFrame() == xge.XGE_ERROR_UNSUPPORTED
+            xge.setMiniProgramBridge(requestFrame=func() as c_int
+                xge.miniProgramUnitChecked()
+                return 13
+            end)
+            assert xge.miniProgramRequestFrame() == 13
+            assert xge.miniProgramRequestFrame() == xge.XGE_ERROR_UNSUPPORTED
+            assert snapshot == packet and resource.bytes == packet
+        finally
+            resource.close()
+        end
+    finally
+        xge.miniProgramUnitChecked()
+    end
+    println("XGE_MINIPROGRAM_BRIDGE_OK")
+    return 0
+end
