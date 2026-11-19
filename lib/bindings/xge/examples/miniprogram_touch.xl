@@ -1,0 +1,29 @@
+// Run: xl run miniprogram_touch.xl
+// Simulates two touch points in host coordinates without opening a window.
+import xge
+
+xge.init(160, 120, "Touch input", 0, xge.XGE_RUN_MANUAL)
+try
+    assert xge.miniProgramInitSimple(160, 120, c_float(2)) == xge.XGE_OK
+    try
+        xge.MiniprogramTouch left
+        left.iId = uint64(21)
+        left.fX = c_float(10)
+        left.fY = c_float(15)
+        xge.MiniprogramTouch right
+        right.iId = uint64(22)
+        right.fX = c_float(50)
+        right.fY = c_float(35)
+        array<xge.MiniprogramTouch> touches = [left, right]
+
+        assert xge.miniProgramTouch(xge.XGE_TOUCH_BEGIN, touches) == xge.XGE_OK
+        auto status, point = xge.touchFind(right.iId)
+        assert status == xge.XGE_OK
+        println("Right touch in framebuffer pixels: ", point.fX, ", ", point.fY)
+        assert xge.miniProgramTouch(xge.XGE_TOUCH_END, touches) == xge.XGE_OK
+    finally
+        xge.miniProgramUnit()
+    end
+finally
+    xge.unit()
+end

@@ -35,6 +35,14 @@ CONTRACTS = {
     'xgeGamepadSetState': (
         'int xgeGamepadSetState(int iGamepad, const xge_gamepad_state_t* pState)',
         'export extern "xgeGamepadSetState" @header("xge3_runtime.h") @no_raise @c_ref(1) @c_result("status",0) func gamepadSetState(c_int iGamepad,GamepadState state)'),
+    'xgeMiniProgramTouch': (
+        'int xgeMiniProgramTouch(int iPhase, const xge_miniprogram_touch_t* pTouches, int iCount)',
+        'export extern "xgeMiniProgramTouch" @header("xge3_runtime.h") @no_raise @c_array_group(1,1,1,"int",2) '
+        '@c_array_input(1,0,"const xge_miniprogram_touch_t*","value") '
+        'func miniProgramTouch(c_int phase,array<MiniprogramTouch> touches,int size=-1) as c_int'),
+    'xgeTouchFind': (
+        'int xgeTouchFind(uint64_t iId, xge_touch_point_t* pPoint)',
+        'export extern "xgeTouchFind" @header("xge3_runtime.h") @no_raise @c_outputs(-1,1) func touchFind(uint64 id) as (c_int,TouchPoint)'),
     'xge3dTransformMatrix': (
         'int xge3dTransformMatrix(const xge3d_transform_t *transform, xge3d_mat4_t *out)',
         'export extern "xge3dTransformMatrix" @header("xge3_runtime.h") @no_raise @c_ref(0) @c_output(1,0) func transformMatrix(Xge3dTransform transform) as Xge3dMat4'),
@@ -74,6 +82,7 @@ REPLACED = {
 }
 
 SPANS = {'xgeClipboardGetData': ('void*', 'size_t'), 'xgeDebugDumpCaps': ('char*', 'int')}
+ARRAYS = {'xgeMiniProgramTouch'}
 
 def validate(functions):
     for name,(native,_) in CONTRACTS.items():

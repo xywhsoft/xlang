@@ -15,3 +15,14 @@
 两个入口均直接声明原生 API。元数据按 C 值复制。读取把文本复制到既有 `Buffer`，没有文本扫描、结果对象分配或追加 NUL。长文本仍由队列分配和释放，队列扩容和语言调用的类型、状态及 Buffer 检查也有成本。
 
 运行 [input_events.xl](../lib/bindings/xge/examples/input_events.xl) 可观察缓冲不足、重试和先后顺序。示例使用合成事件，不需要窗口或输入设备。
+
+## 小程序触摸
+
+在宿主事件线程调用 `xge.miniProgramTouch(phase, array<MiniprogramTouch>, size=-1)`。
+`size` 按触点记录计数。默认使用整个数组，非负值限制处理的前缀，其他负数抛出可捕获的范围错误。单批最多 `XGE_TOUCH_MAX` 个触点。空批次沿用原生的静止点更新规则。无效阶段在修改触点、投递输入或通知场景前返回 `XGE_ERROR_INVALID_ARGUMENT`。
+
+`xge.touchFind(id)` 按 64 位触点 ID 返回 `(status, TouchPoint)`。触点已结束或不存在时返回 `XGE_ERROR_FILE_NOT_FOUND`，其余情况下按原生状态码判断结果。成功的 `TouchPoint` 是独立值，位置与位移使用 framebuffer 像素。
+
+批量输入将语言数组转换为临时连续 C 记录，只调用一次原生函数。非空批次需要一次 XRT 分配，并逐项复制记录。分配失败发生在原生调用前。查询返回值直接来自原生输出，暖态无 XRT 堆分配。
+
+运行 [miniprogram_touch.xl](../lib/bindings/xge/examples/miniprogram_touch.xl) 可在桌面无窗环境验证两个触点和 DPR 坐标换算。微信宿主的 JavaScript 回调接入另行验收。

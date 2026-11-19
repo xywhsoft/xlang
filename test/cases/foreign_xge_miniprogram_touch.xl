@@ -1,0 +1,108 @@
+import xge
+
+extern "touchHeapBegin" @header("test/cases/foreign_xge_miniprogram_touch.h") @no_raise func heapBegin()
+extern "touchHeapEnd" @header("test/cases/foreign_xge_miniprogram_touch.h") @no_raise func heapEnd(c_int allocations)
+extern "touchSetBudget" @header("test/cases/foreign_xge_miniprogram_touch.h") @no_raise func budget(c_int allowance)
+extern "touchNativeHot" @header("test/cases/foreign_xge_miniprogram_touch.h") @no_raise func nativeHot()
+
+func checkTouches()
+    xge.MiniprogramTouch first
+    first.iId = uint64(0x10000002A)
+    first.fX = c_float(11)
+    first.fY = c_float(17)
+    first.fForce = c_float(1)
+    xge.MiniprogramTouch second
+    second.iId = uint64(7)
+    second.fX = c_float(23)
+    second.fY = c_float(29)
+    second.fForce = c_float(1)
+    array<xge.MiniprogramTouch> touches = [first, second]
+    array<xge.MiniprogramTouch> empty = []
+    auto buffer = Buffer()
+
+    assert xge.miniProgramTouch(xge.XGE_TOUCH_BEGIN, touches, 1) == xge.XGE_OK
+    assert xge.touchGetCount() == 1
+    auto ready, event = xge.readInputEvent(buffer)
+    assert ready == xge.XGE_INPUT_READ_READY and event.iType == xge.XGE_EVENT_TOUCH_BEGIN
+    assert event.iPointerId == first.iId and event.fX == 22 and event.fY == 34
+    auto found, point = xge.touchFind(first.iId)
+    assert found == xge.XGE_OK and point.iId == first.iId and point.bChanged == 1
+    auto missing, missingPoint = xge.touchFind(second.iId)
+    assert missing == xge.XGE_ERROR_FILE_NOT_FOUND and missingPoint.iId == 0
+
+    assert xge.miniProgramTouch(xge.XGE_TOUCH_STATIONARY, touches) == xge.XGE_ERROR_INVALID_ARGUMENT
+    auto stillThere, unchanged = xge.touchFind(first.iId)
+    assert stillThere == xge.XGE_OK and unchanged.iPhase == xge.XGE_TOUCH_BEGIN and unchanged.bChanged == 1
+    assert xge.touchGetCount() == 1 and xge.inputEventPendingCount() == 0
+
+    assert xge.miniProgramTouch(xge.XGE_TOUCH_MOVE, empty) == xge.XGE_OK
+    auto stationaryStatus, stationary = xge.touchFind(first.iId)
+    assert stationaryStatus == xge.XGE_OK and stationary.iPhase == xge.XGE_TOUCH_STATIONARY
+    assert stationary.fX == 22 and stationary.fY == 34 and stationary.bChanged == 0
+
+    bool rejected = false
+    try
+        xge.miniProgramTouch(xge.XGE_TOUCH_MOVE, touches, -2)
+    catch error
+        rejected = true
+    end
+    assert rejected and xge.inputEventPendingCount() == 0
+
+    rejected = false
+    budget(0)
+    try
+        xge.miniProgramTouch(xge.XGE_TOUCH_BEGIN, touches)
+    catch error
+        rejected = true
+    finally
+        budget(-1)
+    end
+    assert rejected and xge.touchGetCount() == 1 and xge.inputEventPendingCount() == 0
+
+    assert xge.miniProgramTouch(xge.XGE_TOUCH_BEGIN, touches, 99) == xge.XGE_OK
+    assert xge.touchGetCount() == 2
+    auto firstReady, firstEvent = xge.readInputEvent(buffer)
+    auto secondReady, secondEvent = xge.readInputEvent(buffer)
+    assert firstReady == xge.XGE_INPUT_READ_READY and secondReady == xge.XGE_INPUT_READ_READY
+    assert firstEvent.iPointerId == first.iId and secondEvent.iPointerId == second.iId
+    assert secondEvent.fX == 46 and secondEvent.fY == 58
+
+    heapBegin()
+    for i in range(1000)
+        auto status, position = xge.touchFind(first.iId)
+        assert status == xge.XGE_OK and position.fX == 22
+    end
+    heapEnd(0)
+
+    heapBegin()
+    for i in range(1000)
+        assert xge.miniProgramTouch(xge.XGE_TOUCH_MOVE, touches) == xge.XGE_OK
+        auto statusA, movedA = xge.readInputEvent(buffer)
+        auto statusB, movedB = xge.readInputEvent(buffer)
+        assert statusA == xge.XGE_INPUT_READ_READY and statusB == xge.XGE_INPUT_READ_READY
+        assert movedA.iPointerId == first.iId and movedB.iPointerId == second.iId
+    end
+    heapEnd(1000)
+    nativeHot()
+
+    assert xge.miniProgramTouch(xge.XGE_TOUCH_CANCEL, touches) == xge.XGE_OK
+    auto cancelledStatus, cancelled = xge.touchFind(first.iId)
+    assert cancelledStatus == xge.XGE_ERROR_FILE_NOT_FOUND and cancelled.iId == 0
+    assert stationary.fX == 22 and stationary.iPhase == xge.XGE_TOUCH_STATIONARY
+end
+
+func main(...) as int
+    xge.init(80, 60, "Touch input", 0, xge.XGE_RUN_MANUAL)
+    try
+        assert xge.miniProgramInitSimple(80, 60, c_float(2)) == xge.XGE_OK
+        try
+            checkTouches()
+        finally
+            xge.miniProgramUnit()
+        end
+    finally
+        xge.unit()
+    end
+    println("XGE_MINIPROGRAM_TOUCH_OK")
+    return 0
+end

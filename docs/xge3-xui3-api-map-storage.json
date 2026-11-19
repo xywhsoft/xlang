@@ -498,11 +498,11 @@
     },
     "xgeMiniProgramTouch": {
       "bindingFile": "lib\\bindings\\xge\\src\\functions.xl",
-      "declaration": "export extern \"xgeMiniProgramTouch\" @header(\"xge3_runtime.h\") @c_span(1,\"const xge_miniprogram_touch_t*\",\"int\") func miniProgramTouch(c_int iPhase,Buffer pTouches) as c_int",
+      "declaration": "export extern \"xgeMiniProgramTouch\" @header(\"xge3_runtime.h\") @no_raise @c_array_group(1,1,1,\"int\",2) @c_array_input(1,0,\"const xge_miniprogram_touch_t*\",\"value\") func miniProgramTouch(c_int phase,array<MiniprogramTouch> touches,int size=-1) as c_int",
       "storage": "native-copy-or-synchronous-read",
       "sourceFile": "src/xge/platform/xge_miniprogram.c",
-      "line": 277,
-      "functionSha256": "c99776a57a364d26243f8e82296edacbc4a691d99a10a6c664a7c364688b6651"
+      "line": 245,
+      "functionSha256": "8f0b3ddf279c59c51ddef4271397a6edd8ed31771d291129e2f2950d84313eb8"
     },
     "xgeMiniProgramAudioCommand": {
       "bindingFile": "lib\\bindings\\xge\\src\\functions.xl",
@@ -576,7 +576,7 @@
       "dependencies": [
         {
           "sourceFile": "include/xge.h",
-          "sha256": "5cfcf3d4930ecde35de3b36ea06e72aa9ec35a05da55b3fae237d1a4de1535b3"
+          "sha256": "750758494b263bf2af3d4806ab76432ad5e479376810bce95fc3694cc851b3e6"
         },
         {
           "sourceFile": "src/xge/render/xge_render.c",
@@ -1045,7 +1045,7 @@
       "dependencies": [
         {
           "sourceFile": "include/xge.h",
-          "sha256": "5cfcf3d4930ecde35de3b36ea06e72aa9ec35a05da55b3fae237d1a4de1535b3"
+          "sha256": "750758494b263bf2af3d4806ab76432ad5e479376810bce95fc3694cc851b3e6"
         },
         {
           "sourceFile": "src/xge/core/xge_debug.c",
@@ -1345,7 +1345,7 @@
       "dependencies": [
         {
           "sourceFile": "include/xge.h",
-          "sha256": "5cfcf3d4930ecde35de3b36ea06e72aa9ec35a05da55b3fae237d1a4de1535b3"
+          "sha256": "750758494b263bf2af3d4806ab76432ad5e479376810bce95fc3694cc851b3e6"
         },
         {
           "sourceFile": "src/xge/render/xge_shape_ex.c",
@@ -1365,7 +1365,7 @@
       "dependencies": [
         {
           "sourceFile": "include/xge.h",
-          "sha256": "5cfcf3d4930ecde35de3b36ea06e72aa9ec35a05da55b3fae237d1a4de1535b3"
+          "sha256": "750758494b263bf2af3d4806ab76432ad5e479376810bce95fc3694cc851b3e6"
         },
         {
           "sourceFile": "src/xge/render/xge_shape_ex.c",

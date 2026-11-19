@@ -21,6 +21,7 @@ $env:XLANG_PACKAGE_PATH = "$runtime\extlibs"
 | `shape_references.xl` | Native Shape feature; no device. A hit result still reports ID 7 after the scene and original shape close. | Closes all three managed references. |
 | `shape_traversal.xl` | Native Shape feature; no device. A depth-first visitor prints `Visited shape 7`. | Closes the retained result, scene and original shape. |
 | `input_events.xl` | No window or device. Posts an IME update and a key-up event, then prints their text and key in queue order. | Calls checked `unit()` after consuming the events. |
+| `miniprogram_touch.xl` | Simulates two touch points at DPR 2 and prints the second point in framebuffer pixels (100, 70). | No window or device. Ends both touches and closes the host and engine. |
 | `gui_shapes.xl` | Interactive desktop and working 2D graphics backend. Opens the native default window and draws a rectangle/circle until the user closes it. `begin`/`nativeEnd` must succeed. | Clears the persistent frame callback, then checked engine shutdown. |
 | `offscreen_pass.xl` | A working desktop graphics backend. Creates a 2x2 texture target, clears through a Pass, prints its RGBA bytes and exits after one frame. | Closes Pass and target, then clears the callback and calls checked `unit()`. |
 | `nine_patch.xl` | A working desktop graphics backend. Draws a stretched panel on the left and a tiled panel on the right from the same texture, then exits. | Clears the frame callback and closes the texture before checked `unit()`. |

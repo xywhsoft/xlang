@@ -475,17 +475,16 @@ def generate(root,data):
     # signatures are plain pointers: never infer a one-element output or infer
     # cardinality from parameter spelling. Missing/stale evidence is fatal.
     native_functions={f['name']:f for h in data['headers']for f in h['functions']}
-    from xge_replay_contracts import validate as validate_xge_contracts,REPLACED,SPANS
+    from xge_replay_contracts import validate as validate_xge_contracts,REPLACED,SPANS,ARRAYS
     xge_contracts=validate_xge_contracts(native_functions)
     fixed_outputs={}
     for name in('xgeShapeExGetOBB','xgeShapeExSceneGetOBB'):
         if name not in native_functions:raise ValueError('missing reviewed fixed output API: '+name)
         fixed_outputs[name,2]=reviewed_fixed_output_count(Path(data['headers'][0]['header']).parents[1],native_functions[name],storage_inventory.get('fixedOutputEntries',{}).get(name),2,'xge_vec2_t',4)
-    def reviewed_span(f,pointer,count):
-        # A matching C shape proves ABI, never non-escape. New signatures must
-        # receive an explicit native storage review before an implicit span.
+    def reviewed_storage(f,shape):
+        # A matching C shape proves ABI, never non-escape. Counted storage
+        # requires an explicit review of how native code consumes it.
         review=storage.get(f['name'],{})
-        shape='"'+pointer+'","'+count+'"'
         if review.get('storage') not in ('native-copy-or-synchronous-read','bounded-synchronous-output') or shape not in review.get('declaration',''):
             f.update(state='requires-pointer-storage-review',reason='Counted native pointer lacks a matching reviewed non-escape contract')
             raise ValueError('unreviewed pointer storage')
@@ -496,6 +495,8 @@ def generate(root,data):
             raise ValueError('native pointer storage review is stale')
         f['storageContract']=dict(inventory=str(storage_path.relative_to(root)).replace('\\','/'),storage=review['storage'],sourceFile=review['sourceFile'],functionSha256=review['functionSha256'])
         if 'dependencies' in review:f['storageContract']['dependencies']=review['dependencies']
+    def reviewed_span(f,pointer,count):
+        reviewed_storage(f,'"'+pointer+'","'+count+'"')
     for header in data['headers']:
         package=Path(header['header']).stem;folder=root/'lib/bindings'/package;src=folder/'src';src.mkdir(parents=True,exist_ok=True)
         authored_records,authored_functions=authored_binding_index(folder)
@@ -597,7 +598,9 @@ def generate(root,data):
                     f.update(state='declared-in-authored-module',bindingSource=authored_functions[f['name']]);continue
                 if f['name']in xge_contracts:
                     if f['name']in SPANS:reviewed_span(f,*SPANS[f['name']])
-                    line=xge_contracts[f['name']];name=re.search(r'\bfunc (\w+)\(',line)[1]
+                    line=xge_contracts[f['name']]
+                    if f['name']in ARRAYS:reviewed_storage(f,line)
+                    name=re.search(r'\bfunc (\w+)\(',line)[1]
                     functions.append(line);special.add(name)
                     mapped[f['name']]=('xge3d.'if f['name'].startswith('xge3d')else'xgeDebug.'if any('XGE_HAS_DEBUGMODE'in c for c in f.get('conditions',[]))else'xge.')+name
                     continue

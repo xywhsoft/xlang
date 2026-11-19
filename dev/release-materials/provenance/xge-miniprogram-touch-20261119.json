@@ -1,0 +1,95 @@
+{
+  "complete": true,
+  "passed": true,
+  "releaseInstalled": false,
+  "shippingDelivery": false,
+  "xlangParent": "f6b02e087b80c76d436207792d3197e0468fc908",
+  "nativeCommit": "a618fbb7b7d0b737bbcfc93d890f47e4ddf3be6d",
+  "frozenXrt": "804cc769de3030118c2b46ef7af69543d1b82d9d",
+  "scope": "Mini-program host input model exercised on desktop without a window. No JavaScript host bridge qualification.",
+  "sources": {
+    "docs/xge3-input-events.md": "6dcbbd3c15ce2f2b7f789f52f7f76f5fe5ac3130d05998b40b8bf5ffb802aa68",
+    "docs/xge3-xui3-api-map-storage.json": "a0862d416b267a026e759823aef8aa6256805ceb70c11025fd1ef0ab041a610f",
+    "lib/bindings/xge/src/functions.xl": "cd39a1c3b128210f50cbdeae4bfb98a8b68223a35861835f0d6faef8007c9b31",
+    "lib/bindings/xge/examples/README.md": "49d07b8a5ff15bb29f5495dfabfd41aee4df651b7ad33da42714be52c36a2028",
+    "lib/bindings/xge/examples/miniprogram_touch.xl": "ee3e63ceb38348ef32db359e5d8b8e2977a71bff86665d813f01c2c608592e14",
+    "test/cases/foreign_xge_miniprogram_touch.xl": "f4d910ca2847894e32708c0208fd7460687fde79dd4402ddf8c2f868b6692cdc",
+    "test/cases/foreign_xge_miniprogram_touch.h": "c7356cd5e4ecc7aa5c8c0758135be3184f17ff81136a71b4680824d43131ae1e",
+    "test/cases/foreign_xge_miniprogram_touch_native.c": "6c09980e06cc3c9bed767017d5773f31259fbadaec7890522003f7e8c532a8cf",
+    "tools/check_xge3_bindings.py": "074a1edea3615ffaa50f859c38634a8c053213c63659da714f124565251f64b8",
+    "tools/xge_replay_contracts.py": "5061738227c57ce849d98bff5fb56d652f4e9b7a5536df9e94ce07da90efae8d"
+  },
+  "nativeSources": {
+    "include/xge.h": "750758494b263bf2af3d4806ab76432ad5e479376810bce95fc3694cc851b3e6",
+    "src/xge/platform/xge_miniprogram.c": "429fa1fd42c5e0c657297414a3f5325481e08a1b4a2ba5e67d3f84ba6b7f0af9",
+    "tests/xge/test_native_input_coordinates.c": "e339ce370406c12568e6ae088448d4c48868bc91c18a83fa5cad3013819386e9",
+    "tests/xge/build_native_input_coordinates_test.bat": "006415b1df50202c85b5619aaedf7921d17e234064c9ec3d6a3911aaa9b65283"
+  },
+  "workload": {
+    "iterations": 1000,
+    "touchRecords": 2,
+    "compares": "Warmed xlang and direct C paths using the same engine and configured touch IDs and DPR.",
+    "touchFindAllocations": {
+      "c": 0,
+      "xlang": 0
+    },
+    "moveAndDrainAllocations": {
+      "c": 0,
+      "xlang": 1000
+    },
+    "freesMatchAllocations": true,
+    "reallocations": 0
+  },
+  "platforms": {
+    "win": {
+      "nativeSdk": {
+        "path": "F:\\xlang-validation\\xge-full-20261110\\miniprogram-touch-sdk-win-r1\\results.json",
+        "sha256": "f6bf41bcb7e779bfa3f3d4a1b605dfb86a4e06543167b028ca400ea2b5bb0b65",
+        "commands": 2
+      },
+      "nativeInputCoordinates": {
+        "path": "F:\\xlang-validation\\xge-full-20261110\\miniprogram-touch-native-tests-win-r2\\results.json",
+        "sha256": "1e6bdb5a82ed8796d7ddde4e50e44823ba1d1eef69cdaab4b338ac48d3dafde1",
+        "commands": 2
+      },
+      "sourceReviewChecks": 663,
+      "packageReplay": {
+        "path": "F:\\xlang-validation\\xge-full-20261110\\miniprogram-touch-packages-win-r2\\results.json",
+        "sha256": "f42c89ffaa9d9b245593b84d51da950f72b185c28d4f6a0f4d0c446c55554abe",
+        "commands": 6
+      },
+      "languageAndExample": {
+        "path": "F:\\xlang-validation\\xge-full-20261110\\miniprogram-touch-tests-win-r3\\results.json",
+        "sha256": "c85dd35ef032224c735274e9c65b33d7d79040026f7f0a7600b1e4cbb8a01ebb",
+        "commands": 15
+      },
+      "normalWindowsNativeTestEntry": {
+        "path": "F:\\xlang-validation\\xge-full-20261110\\miniprogram-touch-native-batch-win-r1.log",
+        "sha256": "3ea5ca61ff317ab9e13b557b3ed67de1137f3b0ce3378b4891193ee98ecdbeda"
+      }
+    },
+    "linux": {
+      "nativeSdk": {
+        "path": "/var/tmp/xlang-validation/xge-full-20261110/miniprogram-touch-sdk-linux-r1/results.json",
+        "sha256": "fd6b22b23be5cd028326b081bab4ead448ce08107ff7c9e1530eb80edf83bddc",
+        "commands": 2
+      },
+      "nativeInputCoordinates": {
+        "path": "/var/tmp/xlang-validation/xge-full-20261110/miniprogram-touch-native-tests-linux-r1/results.json",
+        "sha256": "e31c71615a67cb9bc4165b76426fb0cf47fe0b1ee6ed05273915479ddfa07f96",
+        "commands": 2
+      },
+      "sourceReviewChecks": 664,
+      "packageReplay": {
+        "path": "/var/tmp/xlang-validation/xge-full-20261110/miniprogram-touch-packages-linux-r2/results.json",
+        "sha256": "02a462021178ccda96dae0ec50cccca736fed40b1d6f01042c47f858d04d739d",
+        "commands": 6
+      },
+      "languageAndExample": {
+        "path": "/var/tmp/xlang-validation/xge-full-20261110/miniprogram-touch-tests-linux-r3/results.json",
+        "sha256": "fa66f84509045e960408a87f838eb69f9d0a413ed9273cb7c62aab7496ecd028",
+        "commands": 15
+      }
+    }
+  }
+}
