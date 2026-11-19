@@ -22,4 +22,12 @@ Window.show("CodeEdit diagnostics",func(xui.Context ui,xui.Widget root)
  auto location,severity,code,message,source,id=editor.getDiagnostic(0)
  assert location.iStart==9 and location.iEnd==20 and id==1
  println(code," ",message)
+
+ // Moving onto a marker reports the message. Leaving passes null.
+ editor.setDiagnosticHover(func(xui.CallbackWidget widget,xui.CallbackConstCodeDiagnosticHit? hit)
+  if hit != null then
+   auto diagnostic=hit.details()
+   println(diagnostic.message)
+  end
+ end)
 end)

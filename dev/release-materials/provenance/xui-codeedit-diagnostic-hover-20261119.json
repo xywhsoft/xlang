@@ -1,0 +1,170 @@
+{
+  "complete": true,
+  "passed": true,
+  "releaseInstalled": false,
+  "sourceParent": "8bd00866670298f32073bd64a72f9dc48db776bb",
+  "nativeCommit": "a7a7e4adc8af3caee3abb9039db502eccefa9f6c",
+  "frozenXrt": "804cc769de3030118c2b46ef7af69543d1b82d9d",
+  "sourceHashesLf": {
+    "lib/bindings/xui/src/managed.xl": "661f475a5f8af2c6655d6fe08d1a4273ce7162272d00af097393ac9c2cba651a",
+    "lib/bindings/xui/examples/code_diagnostics.xl": "ebab8f858b6ebe6da4128538e50c7c9dafb63bbd20f1aa1636eb88521bebff56",
+    "tools/xui_managed_contracts.py": "903194c231cd73e3da683a5f6479269f2ef3d3e4a5cb7404fa7bf73789b2b8ba",
+    "docs/xge3-xui3-api-map-storage.json": "25798f14ff2e29809bf1de878e5a9c774bca8d7fcd2a1ed1ebbedc9268373e54",
+    "test/cases/foreign_xui_codeedit_diagnostic_hover.xl": "738253b9b8ce3758405cbf477291de72e600acb0daf5b86fb29d811b0d63b6a0",
+    "docs/xui-codeedit-diagnostics.md": "de8e3c3027f06e17afd4084d01dc36f04ccd4ddac4aabb0ee51b0fc54bc6bde3"
+  },
+  "nativeHashesLf": {
+    "include/xui.h": "b8042d0cc4f2cdd389213e346af30bc2299886f93f2ea2ed1d457e712513542d",
+    "src/xui/code/xui_code_edit.c": "b49663433a909c2865d018e49ce46e087516c3e1d6fb6f803381f1a0240e09b0",
+    "src/xui/code/xui_code_annotation.c": "2e6978911f99dc7a9adbcfe3eae5bf94fb40235d9623ac3944e4d649f817666a",
+    "src/xui/code/xui_code_diagnostics_internal.h": "e43bd231ace16f3fe2a77def5a5972f07b9f9d2346d056115b8e588aec35b3ca",
+    "tests/xui/xui_code_edit_diagnostics_test.c": "6a06a217d6af1049b877d0e39f183f9257556436312aa9b2fcbdbd310f1ba070"
+  },
+  "validation": {
+    "native": [
+      "wrapped hit and duplicate suppression",
+      "replacement inside the callback preserves the original text",
+      "nested registration supersedes outer replacement",
+      "deferred widget destruction",
+      "registration allocation rollback",
+      "legacy pointer callback"
+    ],
+    "language": [
+      "scoped hit and details views",
+      "expired view access raises StateError",
+      "persistent string snapshot",
+      "reentrant publication and replacement",
+      "original callback error reaches the setter",
+      "direct C declaration emission",
+      "JIT and both standalone AOT linkages",
+      "updated example"
+    ],
+    "overhead": "One shared immutable text buffer per non-empty text batch. Hover retains the existing buffer and callback owner. Reading a non-null string field produces an independent copy. End-to-end hover latency was not measured.",
+    "networkTests": false
+  },
+  "evidence": {
+    "win": {
+      "sdk": {
+        "path": "F:\\xlang-validation\\xge-full-20261110\\codeedit-hover-sdk-win-r1\\results.json",
+        "sha256": "3db2600d03a188d4a5aec88a50257709b5ad2529477c884a92926765ac78ef9b",
+        "checks": 2
+      },
+      "packages": {
+        "path": "F:\\xlang-validation\\xge-full-20261110\\codeedit-hover-packages-win-r3\\results.json",
+        "sha256": "98f32f4fc84286816f310c4cc6c00ecd7b702864b936da65b608aca74b803869",
+        "checks": 6
+      },
+      "native": {
+        "path": "F:\\xlang-validation\\xge-full-20261110\\codeedit-hover-native-tests-win-r1\\results.json",
+        "sha256": "0fe48221fb0326d4e46d05c72a046389e952f0999dfd51a295b28882ff072e7a",
+        "checks": 8
+      },
+      "language": {
+        "path": "F:\\xlang-validation\\xge-full-20261110\\codeedit-hover-xlang-win-r3\\results.json",
+        "sha256": "4d448e9b245c67b40aae72f750d86257c388b74dd32571eddf245731c303444e",
+        "checks": 12,
+        "programs": {
+          "dynamic.exe": {
+            "sha256": "751b03f2aaf0cddb646a4de3ec6b006dd5a65b01308fa67078cf6b3444585350",
+            "imports": [
+              "xge3_host.dll",
+              "msvcrt.dll",
+              "kernel32.dll",
+              "SHELL32.dll",
+              "Ole32.dll",
+              "ucrtbase.dll"
+            ]
+          },
+          "static.exe": {
+            "sha256": "3c63272573681e76278097d4e98a64c6a8eeb9a398d3dbd1f28d3eee6559e6ea",
+            "imports": [
+              "msvcrt.dll",
+              "kernel32.dll",
+              "USER32.dll",
+              "GDI32.dll",
+              "ole32.dll",
+              "OLEAUT32.dll",
+              "SHELL32.dll",
+              "IMM32.dll",
+              "DWrite.dll"
+            ]
+          },
+          "lesson.exe": {
+            "sha256": "8df5cff69ffd9959b1cfcdf7a2a6c27785ed01e4751c27a2cf5ebe574a5b5113",
+            "imports": [
+              "msvcrt.dll",
+              "kernel32.dll",
+              "USER32.dll",
+              "GDI32.dll",
+              "ole32.dll",
+              "OLEAUT32.dll",
+              "SHELL32.dll",
+              "IMM32.dll",
+              "DWrite.dll"
+            ]
+          }
+        }
+      }
+    },
+    "linux": {
+      "sdk": {
+        "path": "\\\\wsl.localhost\\Ubuntu\\var\\tmp\\xlang-validation\\xge-full-20261110\\codeedit-hover-sdk-linux-r1\\results.json",
+        "sha256": "092ccc59678a7ca7868f1210cf8df921a581e9d536e638df63fdfd9e93973e80",
+        "checks": 2
+      },
+      "packages": {
+        "path": "\\\\wsl.localhost\\Ubuntu\\var\\tmp\\xlang-validation\\xge-full-20261110\\codeedit-hover-packages-linux-r3\\results.json",
+        "sha256": "32a4f89d6f7f13b278aa9b73eecfc957126a33a72f858b8725e5361bd0471612",
+        "checks": 6
+      },
+      "native": {
+        "path": "\\\\wsl.localhost\\Ubuntu\\var\\tmp\\xlang-validation\\xge-full-20261110\\codeedit-hover-native-tests-linux-r1\\results.json",
+        "sha256": "64a8ff5afa29486f55a0eb9a9be3826361274e821d74096b20d8eb36049b6dfa",
+        "checks": 8
+      },
+      "language": {
+        "path": "\\\\wsl.localhost\\Ubuntu\\var\\tmp\\xlang-validation\\xge-full-20261110\\codeedit-hover-xlang-linux-r3\\results.json",
+        "sha256": "25fd5c124ae05e83558d39cefde52100f59f4d72f0176f7bd50a8d07afd4e0f3",
+        "checks": 12,
+        "programs": {
+          "dynamic": {
+            "sha256": "1773f7321cd7217f5a8b7ca06424e960c856237ffc4594522b14ea6a709cc345",
+            "imports": [
+              "libm.so.6",
+              "libmvec.so.1",
+              "libxge3_host.so",
+              "libc.so.6",
+              "ld-linux-x86-64.so.2"
+            ]
+          },
+          "static": {
+            "sha256": "ad62841ab19003524cd4ddeb9b186a50b017f60fc840b33fc5844f1731943cce",
+            "imports": [
+              "libm.so.6",
+              "libmvec.so.1",
+              "libX11.so.6",
+              "libXi.so.6",
+              "libXcursor.so.1",
+              "libGL.so.1",
+              "libc.so.6",
+              "ld-linux-x86-64.so.2"
+            ]
+          },
+          "lesson": {
+            "sha256": "153694b91b5740dafa225c8a53bd8a30aa4b5d51745425d2f7d7804f32fafe7c",
+            "imports": [
+              "libm.so.6",
+              "libmvec.so.1",
+              "libX11.so.6",
+              "libXi.so.6",
+              "libXcursor.so.1",
+              "libGL.so.1",
+              "libc.so.6",
+              "ld-linux-x86-64.so.2"
+            ]
+          }
+        }
+      }
+    }
+  }
+}

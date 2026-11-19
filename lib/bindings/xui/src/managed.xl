@@ -2466,6 +2466,25 @@ export extern "xui_widget_t*" class Chart @header("xge3_runtime.h") @lifetime("o
 
 end
 
+export typedef CodeDiagnosticHoverProc = func(CallbackWidget,CallbackConstCodeDiagnosticHit?)
+
+export extern "const xui_code_diagnostic_hit_t*" class CallbackConstCodeDiagnosticHit @header("xge3_runtime.h") @lifetime("callback")
+ native point handle
+ extern "iIndex" @c_field get index() as c_int
+ extern "tRect" @c_field get rect() as Rect
+ extern "xuiCodeDiagnosticHitDetails" @no_raise @c_result("scope_view",0) func details() as CallbackCodeDiagnostic
+end
+
+export extern "const xui_code_diagnostic_t*" class CallbackCodeDiagnostic @header("xge3_runtime.h") @lifetime("callback")
+ native point handle
+ extern "tRange" @c_field get range() as CodeRange
+ extern "iSeverity" @c_field get severity() as c_int
+ extern "sCode" @c_field @c_result("cstring") get code() as string?
+ extern "sMessage" @c_field @c_result("cstring") get message() as string?
+ extern "sSource" @c_field @c_result("cstring") get source() as string?
+ extern "iUserData" @c_field get userData() as c_uintptr
+end
+
 export extern "xui_widget_t*" class CodeEdit @header("xge3_runtime.h") @lifetime("owner") @owner(Context) @policy("xl6Xui3WidgetPolicy") @watch("xui_lifetime_link_t") extends Widget
 
  extern "xuiCodeEditSetTheme" @no_raise @c_result("status",0) func setTheme(CodeTheme theme)
@@ -2556,6 +2575,7 @@ export extern "xui_widget_t*" class CodeEdit @header("xge3_runtime.h") @lifetime
 
  // An ordinary miss returns index -1. The strings are independent snapshots.
  extern "xuiCodeEditFindDiagnostic" @no_raise @c_output_record(3,"xui_code_diagnostic_hit_t","borrowed") @c_status(0) @c_output_field(0,"iIndex") @c_output_field(1,"tRect") @c_output_field(2,"tDiagnostic.tRange") @c_output_field(3,"tDiagnostic.iSeverity") @c_output_field(4,"tDiagnostic.sCode","cstring") @c_output_field(5,"tDiagnostic.sMessage","cstring") @c_output_field(6,"tDiagnostic.sSource","cstring") @c_output_field(7,"tDiagnostic.iUserData") func hitTestDiagnostic(c_float contextX,c_float contextY) as (c_int,Rect,CodeRange,c_int,string?,string?,string?,c_uintptr)
+ extern "xuiCodeEditSetDiagnosticHoverOwned" @no_raise @c_owned_callback(0,0,"xui_callback_owner_t",0) @c_result("status",0) func setDiagnosticHover(CodeDiagnosticHoverProc? callback)
 
  extern "xuiCodeEditSetPlaceholders" @no_raise @c_span(0,"const xui_code_placeholder_t*","int") func setPlaceholders(Buffer pPlaceholders,c_int iActiveIndex) as c_int
 

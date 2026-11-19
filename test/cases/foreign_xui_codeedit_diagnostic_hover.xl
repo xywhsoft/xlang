@@ -1,0 +1,117 @@
+import xge
+import xui
+from xui import CallbackConstCodeDiagnosticHit,CallbackCodeDiagnostic
+
+func move(xui.Context context,c_int x,c_int y)
+ assert context.inputPointerMove(x,y,0)==xui.XUI_OK
+ assert context.dispatchPendingEvents()==xui.XUI_OK
+end
+
+func exercise(xui.Context context,xui.CodeEdit editor)
+ assert editor.setText("alpha beta\n")==xui.XUI_OK
+ xui.CodeRange marker
+ marker.iStart=0
+ marker.iEnd=5
+ array<xui.CodeRange> ranges=[marker]
+ array<c_int> severities=[c_int(xui.XUI_CODE_DIAGNOSTIC_ERROR)]
+ array<string?> codes=[""]
+ array<string?> messages=["initial"]
+ array<string?> sources=[null]
+ array<c_uintptr> ids=[c_uintptr(7)]
+ auto version=editor.documentVersion()
+ editor.applyDiagnostics(version,ranges,severities,codes,messages,sources,ids)
+ assert context.layout()==xui.XUI_OK
+ auto position=editor.getOffsetRect(0)
+ c_int x=c_int(position.fX+1)
+ c_int y=c_int(position.fY+1)
+
+ xui.CallbackConstCodeDiagnosticHit? savedHit=null
+ xui.CallbackCodeDiagnostic? savedDetail=null
+ string? savedMessage=null
+ int enters=0
+ int leaves=0
+ int replacementEnters=0
+ auto replacement=func(xui.CallbackWidget widget,xui.CallbackConstCodeDiagnosticHit? hit)
+  if hit!=null then
+   assert (hit.details().message ?? "")=="updated"
+   replacementEnters+=1
+  end
+ end
+ editor.setDiagnosticHover(func(xui.CallbackWidget widget,xui.CallbackConstCodeDiagnosticHit? hit)
+  if hit==null then
+   leaves+=1
+   editor.setDiagnosticHover(replacement)
+   throw RuntimeError "diagnostic leave failure"
+  end
+  enters+=1
+  assert hit.index==0 and hit.rect.fY==position.fY
+  auto detail=hit.details()
+  assert detail.range.iStart==0 and detail.range.iEnd==5 and detail.userData==7
+  assert detail.severity==xui.XUI_CODE_DIAGNOSTIC_ERROR
+  assert (detail.code ?? "missing")=="" and detail.source==null
+
+  // Old text is stable through the reentrant replacement.
+  array<string?> updated=["updated"]
+  editor.applyDiagnostics(version,ranges,severities,codes,updated,sources,ids)
+  savedMessage=detail.message
+  savedHit=hit
+  savedDetail=detail
+ end)
+ move(context,x,y)
+ assert enters==1 and leaves==0 and (savedMessage ?? "")=="initial"
+ int expired=0
+ try
+  auto index=(savedHit as CallbackConstCodeDiagnosticHit).index
+ catch StateError
+  expired+=1
+ end
+ try
+  auto message=(savedDetail as CallbackCodeDiagnostic).message
+ catch StateError
+  expired+=1
+ end
+ assert expired==2
+
+ // A nested update from the old handler wins even if that handler throws.
+ bool caught=false
+ try
+  editor.setDiagnosticHover(null)
+ catch RuntimeError failure
+  caught=failure.message=="diagnostic leave failure"
+ end
+ assert caught and leaves==1 and replacementEnters==0
+ move(context,x+1,y)
+ move(context,x,y)
+ assert replacementEnters==1
+ editor.setDiagnosticHover(null)
+ move(context,x+1,y)
+ assert replacementEnters==1 and (savedMessage ?? "")=="initial"
+end
+
+func main(...) as int
+ auto fontPath=env.get("XUI_EXAMPLE_FONT")
+ assert fontPath!=null
+ xge.init(128,140,"CodeEdit diagnostic hover qualification",c_int(xge.XGE_INIT_OFFSCREEN))
+ xge.run(func() as c_int
+  auto proxy=xui.createProxy()
+  auto context=xui.create(proxy,xui.XUI_SYSTEM_FONT_DISABLED)
+  auto font=proxy.loadFont(fontPath as string,c_float(16),c_uint(xui.XUI_FONT_FORMAT_TTF))
+  context.setDefaultFont(font)
+  auto editor=context.codeEditNative()
+  xui.Rect bounds
+  bounds.fW=116
+  bounds.fH=128
+  assert editor.setRect(bounds)==xui.XUI_OK and context.setRootWidget(editor)==xui.XUI_OK
+  context.setViewportSize(116,128)
+  assert editor.setDefaultMargins(0,0,0,0)==xui.XUI_OK
+  exercise(context,editor)
+  context.close()
+  font.close()
+  proxy.close()
+  return c_int(1)
+ end)
+ xge.setFrameCallback(null)
+ xge.unit()
+ println("XUI_CODEEDIT_DIAGNOSTIC_HOVER_OK")
+ return 0
+end

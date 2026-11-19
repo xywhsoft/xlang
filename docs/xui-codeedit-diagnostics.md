@@ -22,7 +22,28 @@ Windows 每次空查询的中位耗时为原生 C 73 ns、xlang 3.57 µs，Linux
 每个中位数来自七轮各 100,000 次调用，范围是空诊断集和结果投影。xlang 路径仍执行接收对象
 检查、错误检查及多返回值交付。
 
+## 诊断悬停
+
+`setDiagnosticHover(callback)` 安装由编辑器持有的处理器，传 `null` 清除。
+指针进入诊断范围时交付命中视图，离开时交付 `null`。同一诊断和矩形不重复
+通知。发布新版本的诊断后，下一次指针移动会重新判断命中。
+
+`hit.index` 和 `hit.rect` 按值读取。`hit.details()` 返回当前回调内有效的只读
+诊断视图。命中和详情视图在回调结束后访问会抛出 `StateError`。可以保留按值
+读取的范围、等级和业务 ID，以及 `code`、`message`、`source` 的独立字符串快照。
+回调里发布或清空诊断，当前回调仍能读取原来的命中和文本。
+
+替换处理器时先安装新处理器，再向旧处理器发送离开通知。旧处理器可以再次注册，
+最后一次注册生效。离开通知的异常会由 `setDiagnosticHover` 交付，已安装的处理器
+继续生效。指针事件回调的失败沿用 XUI 的事件派发错误处理。
+
+原生诊断文本每批存入一个共享缓冲区。悬停期间只保活这块缓冲区，处理器沿用控件
+的回调所有权和活动作用域。语言入口直接调用 XUI，投影回调视图并检查有效期，
+读取非空文本时复制对应字符串。这条路径的端到端延迟尚未单独计时。
+
 运行 [CodeEdit 诊断范例](../lib/bindings/xui/examples/code_diagnostics.xl)
-可看到未知名称下的诊断标记。程序同时读取并打印 `E01` 和 `Unknown name`。
+可看到未知名称下的诊断标记，移动到标记上会打印诊断消息。
+程序启动时读取并打印 `E01` 和 `Unknown name`。
 范例使用 XUI 的共用窗口入口，字体和图形准备同其他窗口范例。
-[验收记录](../dev/release-materials/provenance/xui-codeedit-diagnostics-20261119.json)。
+[诊断发布与查询验收](../dev/release-materials/provenance/xui-codeedit-diagnostics-20261119.json)。
+[诊断悬停验收](../dev/release-materials/provenance/xui-codeedit-diagnostic-hover-20261119.json)。

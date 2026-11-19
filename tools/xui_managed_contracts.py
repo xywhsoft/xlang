@@ -810,6 +810,36 @@ TYPE_SHAPES.update({
     'xui_code_diagnostic_hit_t': '96bfdb7fed7bc83de249a36f510e812d52cc571ded0ca3c1517f2cd72a387b71',
 })
 
+METHODS['xuiCodeEditSetDiagnosticHoverOwned'] = [
+    'int xuiCodeEditSetDiagnosticHoverOwned(xui_widget pWidget, xui_code_diagnostic_hover_proc onHover, void* pUser, const xui_callback_owner_t* pOwner)', 'CodeEdit',
+    ['extern "xuiCodeEditSetDiagnosticHoverOwned" @no_raise @c_owned_callback(0,0,"xui_callback_owner_t",0) @c_result("status",0) func setDiagnosticHover(CodeDiagnosticHoverProc? callback)'],
+]
+CALLBACKS['xui_code_diagnostic_hover_proc'] = (
+    'typedef void (*xui_code_diagnostic_hover_proc)(xui_widget_t* pWidget, const xui_code_diagnostic_hit_t* pHit, void* pUser);',
+    'export typedef CodeDiagnosticHoverProc = func(CallbackWidget,CallbackConstCodeDiagnosticHit?)',
+)
+VIEWS.update({
+    'CallbackConstCodeDiagnosticHit': """
+export extern "const xui_code_diagnostic_hit_t*" class CallbackConstCodeDiagnosticHit @header("xge3_runtime.h") @lifetime("callback")
+ native point handle
+ extern "iIndex" @c_field get index() as c_int
+ extern "tRect" @c_field get rect() as Rect
+ extern "xuiCodeDiagnosticHitDetails" @no_raise @c_result("scope_view",0) func details() as CallbackCodeDiagnostic
+end
+""".strip(),
+    'CallbackCodeDiagnostic': """
+export extern "const xui_code_diagnostic_t*" class CallbackCodeDiagnostic @header("xge3_runtime.h") @lifetime("callback")
+ native point handle
+ extern "tRange" @c_field get range() as CodeRange
+ extern "iSeverity" @c_field get severity() as c_int
+ extern "sCode" @c_field @c_result("cstring") get code() as string?
+ extern "sMessage" @c_field @c_result("cstring") get message() as string?
+ extern "sSource" @c_field @c_result("cstring") get source() as string?
+ extern "iUserData" @c_field get userData() as c_uintptr
+end
+""".strip(),
+})
+
 # Typed style rules and scoped snapshots of nested property records.
 METHODS.update({
     'xuiStyleSetNamed': ['int xuiStyleSetNamed(xui_context pContext, const xui_style_desc_t* pStyle)', 'Context',
@@ -910,6 +940,8 @@ VIEW_FUNCTIONS.update({
 
 INLINE_FUNCTIONS = {'xuiEventDragData': 'f9bd130d67726da8ae4ca0fa029089b33cb1ed0de3d9918fec59bee9d0ba219c'}
 
+INLINE_FUNCTIONS['xuiCodeDiagnosticHitDetails'] = '35a47617b74dfa170459596fcc0eed87afadf2a46645e14f72320e900755c192'
+
 # Owned WebView Close events are qualified independently of browser startup.
 # Platform/browser readiness and successful zoom remain runtime prerequisites.
 DEFERRED = {}
@@ -919,6 +951,7 @@ DEFERRED = {}
 REPLACED = {
     'xuiEditGetText': ('xui.Widget.editGetText','xuiEditGetTextView'),
     'xuiCodeEditGetText': ('xui.CodeEdit.getText','xuiCodeEditGetTextView'),
+    'xuiCodeEditSetDiagnosticHover': ('xui.CodeEdit.setDiagnosticHover','xuiCodeEditSetDiagnosticHoverOwned'),
 }
 
 
@@ -974,6 +1007,7 @@ def extend(context,classes,free,callback_declarations,mapped):
     free.append('extern "xuiWidgetUnregisterType" @no_raise @c_result("status",0) func rollbackWidgetType(WidgetType value)')
     mapped.update(xuiWidgetTypeGetName='xui.WidgetType.getName',xuiWidgetTypeGetParent='xui.WidgetType.getParent',
                   xuiWidgetUnregisterType='xui.WidgetType.unregister')
+    mapped['xuiCodeDiagnosticHitDetails']='xui.CallbackConstCodeDiagnosticHit.details'
     mapped.update(xuiEventDragData='xui.CallbackConstEvent.dragData',xuiRequestClose='xui.CallbackContext.requestClose')
 
 
