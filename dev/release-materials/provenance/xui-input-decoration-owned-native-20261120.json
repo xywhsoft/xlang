@@ -1,0 +1,78 @@
+{
+  "nativeComplete": true,
+  "languageComplete": false,
+  "releaseInstalled": false,
+  "nativeCommit": "66e4f8e8b1ade7a0e584c9d26d80735c14c12f86",
+  "nativeSourcesSha256Lf": {
+    "include/xui.h": "7e5d3175a397208e3c501ac11667209ae9e800938436d011e75c5b34b15c0e68",
+    "src/xui/core/xui_input_widget.c": "a9f42ae05fb37fa56036d396468a2acda096b2ddbd062bcded738e325378a494",
+    "tests/xui/xui_owned_input_decoration_test.c": "10c9f59fb165a271c3000824f062153453992713c481ef94dea980233f219095"
+  },
+  "nativeAssertions": [
+    "The Input traces independent Surface and callback-owner edges.",
+    "Foreign proxy, Hold failure and the first three allocation failures exchange no decoration or native ownership.",
+    "Replacing a decoration preserves its observed identity and retires its previous fields.",
+    "Custom paint runs through the native cache render callback and rejects reentrant mutation.",
+    "Click self-removal invalidates the live view and holds the closure until the callback returns.",
+    "The last Surface reference is finalized on remove or widget close."
+  ],
+  "languagePrerequisite": {
+    "finding": "A packed callback group currently materializes an owner even if every callback is null. The native decoration accepts a null or empty owner in that case.",
+    "compatibilityControl": "The existing foreign_pack_owned_callback test requires the old all-null group to remain an owning installation.",
+    "sourceCandidateQualified": false
+  },
+  "evidence": {
+    "win": {
+      "sdk": {
+        "path": "F:\\xlang-validation\\xge-full-20261110\\input-decoration-owned-sdk-win-r1\\results.json",
+        "sha256": "b5af7464adcda5c62c02097f8d6b1d2e757a0ade6869740390ba00bafe313703",
+        "checks": 2,
+        "passed": true
+      },
+      "native": {
+        "path": "F:\\xlang-validation\\xge-full-20261110\\input-decoration-owned-native-tests-win-r2\\results.json",
+        "sha256": "3285adccb3558e7407d3a17a359a5934939f53f2cd9113d6ec49c694f0e21f6e",
+        "checks": 4,
+        "passed": true
+      },
+      "priorInputCallbackRegression": {
+        "path": "F:\\xlang-validation\\xge-full-20261110\\input-decoration-owned-regression-win-r1\\results.json",
+        "sha256": "d2eb78837e1ec341252e9b6fda6c3d7d4c97feec1915376bcccf4891e737d378",
+        "checks": 4,
+        "passed": true
+      },
+      "emptyCallbackLanguageProbe": {
+        "path": "F:\\xlang-validation\\xge-full-20261110\\input-decoration-owned-language-tests-win-r5\\results.json",
+        "sha256": "dcafe40c51fd5fe8c621d019429832aed535d33c7ae32ff9aa9d275b06f737fa",
+        "checks": 2,
+        "passed": false
+      }
+    },
+    "linux": {
+      "sdk": {
+        "path": "\\\\wsl.localhost\\Ubuntu\\var\\tmp\\xlang-validation\\xge-full-20261110\\input-decoration-owned-sdk-linux-r1\\results.json",
+        "sha256": "ef2524b8d284967926c329164a178c04161bf458cb21408f6bb600a4d8e11fa3",
+        "checks": 2,
+        "passed": true
+      },
+      "native": {
+        "path": "\\\\wsl.localhost\\Ubuntu\\var\\tmp\\xlang-validation\\xge-full-20261110\\input-decoration-owned-native-tests-linux-r2\\results.json",
+        "sha256": "a1acea07cf69c01c15484d04e26fc845a9f2dbe74faa4931ac2d6ac10ff17b24",
+        "checks": 4,
+        "passed": true
+      },
+      "priorInputCallbackRegression": {
+        "path": "\\\\wsl.localhost\\Ubuntu\\var\\tmp\\xlang-validation\\xge-full-20261110\\input-decoration-owned-regression-linux-r1\\results.json",
+        "sha256": "0d187507b0b6079b8fe19b9f93d65d3e05e9202a07b397d9e370d6f40de0b38d",
+        "checks": 4,
+        "passed": true
+      },
+      "emptyCallbackLanguageProbe": {
+        "path": "\\\\wsl.localhost\\Ubuntu\\var\\tmp\\xlang-validation\\xge-full-20261110\\input-decoration-owned-language-tests-linux-r5\\results.json",
+        "sha256": "12c6a10aeec60014aee2b0baf405e3b2656581e49c7b483caa381ed96474749e",
+        "checks": 2,
+        "passed": false
+      }
+    }
+  }
+}
