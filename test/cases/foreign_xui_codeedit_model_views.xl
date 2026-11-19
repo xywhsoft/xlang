@@ -1,0 +1,122 @@
+import xui
+
+extern "fixtureDiagnosticBudget" @header("test/cases/foreign_xui_codeedit_diagnostics_heap.h") @no_raise func budget(c_int allowance)
+extern "fixtureDiagnosticHeapBegin" @no_raise func heapBegin()
+extern "fixtureDiagnosticHeapUnchanged" @no_raise func heapUnchanged() as c_int
+
+func exercise(xui.Context context,xui.CodeEdit editor)
+ auto other=context.codeEditNative()
+ auto document=editor.document()
+ auto selection=editor.selection()
+ auto otherDocument=other.document()
+ auto otherSelection=other.selection()
+ document.setText("a中bc")
+ otherDocument.setText("other")
+
+ selection.setRange(document,1,3)
+ auto start,finish=selection.getRange()
+ assert start==1 and finish==1
+ selection.setRange(document,1,4)
+ selection.add(selection.getState())
+ assert selection.getCount()==2 and selection.getAt(1).iCaretOffset==4
+
+ bool mismatched=false
+ try
+  selection.setRange(otherDocument,0,5)
+ catch Error failure
+  mismatched=failure.code==xui.XUI_ERROR_INVALID_ARGUMENT
+ end
+ assert mismatched and selection.getState().iCaretOffset==4
+ mismatched=false
+ try
+  document.insertSelectedText(otherSelection,"rejected")
+ catch Error failure
+  mismatched=failure.code==xui.XUI_ERROR_INVALID_ARGUMENT
+ end
+ assert mismatched and document.getText()=="a中bc" and otherDocument.getText()=="other"
+
+ auto snapshot=document.getText()
+ document.insertSelectedText(selection,"X")
+ assert document.getText()=="aXbc" and snapshot=="a中bc"
+ selection.selectAll(document)
+ document.delete(1,4)
+ assert document.getText()=="a" and selection.getState().iCaretOffset==1
+
+ int changes=0
+ editor.setDocumentChangeCallback(func(xui.CallbackCodeDocument changed,xui.CodeRange range,c_uint version)
+  assert changed.getText()=="updated"
+  changes+=1
+ end)
+ auto alias=editor.document()
+ document.close()
+ bool expired=false
+ try
+  alias.getLength()
+ catch Error failure
+  expired=true
+ end
+ assert expired
+ assert editor.setText("updated")==xui.XUI_OK and changes==1
+ editor.setDocumentChangeCallback(null)
+ selection.close()
+ assert (editor.getText() as string)=="updated"
+
+ budget(0)
+ bool failed=false
+ try
+  editor.document()
+ catch Error failure
+  failed=true
+ finally
+  budget(-1)
+ end
+ assert failed
+ auto currentDocument=editor.document()
+ auto currentSelection=editor.selection()
+ assert currentDocument.getText()=="updated"
+ heapBegin()
+ for i in range(1000)
+  assert editor.document().getLength()==7
+  assert editor.selection().getCount()==1
+ end
+ assert heapUnchanged()!=0
+
+ editor.close()
+ expired=false
+ try
+  currentDocument.getLength()
+ catch Error failure
+  expired=true
+ end
+ assert expired
+ expired=false
+ try
+  currentSelection.getCount()
+ catch Error failure
+  expired=true
+ end
+ assert expired and otherDocument.getText()=="other"
+end
+
+func orphaned(xui.Proxy proxy) as xui.CodeEditDocument
+ auto context=xui.create(proxy,xui.XUI_SYSTEM_FONT_DISABLED)
+ auto editor=context.codeEditNative()
+ auto document=editor.document()
+ document.setText("owned by the editor")
+ return document
+end
+
+func main(...) as int
+ auto proxy=xui.createProxy()
+ auto context=xui.create(proxy,xui.XUI_SYSTEM_FONT_DISABLED)
+ auto editor=context.codeEditNative()
+ assert context.setRootWidget(editor)==xui.XUI_OK
+ exercise(context,editor)
+ context.close()
+ auto retained=orphaned(proxy)
+ assert retained.getText()=="owned by the editor"
+ retained.close()
+ proxy.close()
+ println("XUI_CODEEDIT_MODEL_VIEWS_OK")
+ return 0
+end

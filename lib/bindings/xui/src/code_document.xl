@@ -1,11 +1,3 @@
-// The callback argument is valid for this invocation; getText copies counted
-// source before the native writer's scope leaves. Store the string, not a view.
-export extern "xui_code_document_t*" class CallbackCodeDocument @header("xge3_runtime.h") @lifetime("callback")
- native point handle
- extern "xuiCodeDocumentGetTextView" @no_raise @c_output(1,0) @c_output_view(1,"text") func getText() as string
-end
-export typedef CodeDocumentChangeProc = func(CallbackCodeDocument,CodeRange,c_uint)
-
 // Independent unique owner. CodeEdit's internal document is not another root.
 export extern "xui_code_document_t*" class CodeDocument @header("xge3_runtime.h") @lifetime("owned") @policy("xl6Xui3CodeDocumentPolicy") @watch("xui_lifetime_link_t") @scope("xui_code_document_scope_t") @domain("xl6Xui3OwnershipDomainV1")
  native point handle
@@ -56,3 +48,51 @@ export extern "xui_code_document_t*" class CodeDocument @header("xge3_runtime.h"
 end
 extern "xuiCodeDocumentDestroyChecked" @header("xge3_runtime.h") @no_raise @c_result("status",0) func rollbackCodeDocument(CodeDocument document)
 export extern "xuiCodeDocumentCreate" @header("xge3_runtime.h") @no_raise @c_result("owned_view") @factory(0,0,rollbackCodeDocument) func createCodeDocument() as CodeDocument
+
+// Observed view of the editor-owned document. Change callbacks belong to CodeEdit.
+export extern "xui_code_document_t*" class CodeEditDocument @header("xge3_runtime.h") @lifetime("owner") @owner(Context) @policy("xl6Xui3CodeEditDocumentViewPolicy") @watch("xui_lifetime_link_t")
+ native point handle
+ extern "xuiCodeDocumentSetTextLength" @no_raise @c_span(0,"const char*","int") @c_result("status",0) func setText(string text)
+ extern "xuiCodeDocumentGetTextView" @no_raise @c_output(1,0) @c_output_view(1,"text") func getText() as string
+ extern "xuiCodeDocumentGetLength" @no_raise func getLength() as c_int
+ extern "xuiCodeDocumentGetLineCount" @no_raise func getLineCount() as c_int
+ extern "xuiCodeDocumentGetVersion" @no_raise func getVersion() as c_uint
+ extern "xuiCodeDocumentGetChangeVersion" @no_raise func getChangeVersion() as c_uint
+ extern "xuiCodeDocumentGetDirty" @no_raise func getDirty() as c_int
+ extern "xuiCodeDocumentSetDirty" @no_raise @c_result("status",0) func setDirty(c_int dirty)
+ extern "xuiCodeDocumentCanUndo" @no_raise func canUndo() as c_int
+ extern "xuiCodeDocumentCanRedo" @no_raise func canRedo() as c_int
+ extern "xuiCodeDocumentUndo" @no_raise @c_result("status",0) func undo()
+ extern "xuiCodeDocumentRedo" @no_raise @c_result("status",0) func redo()
+ extern "xuiCodeDocumentBeginEdit" @no_raise @c_result("status",0) func beginEdit()
+ extern "xuiCodeDocumentEndEdit" @no_raise @c_result("status",0) func endEdit()
+ extern "xuiCodeDocumentInsert" @no_raise @c_cstr(1) @c_result("status",0) func insert(c_int offset,string text)
+ extern "xuiCodeDocumentDelete" @no_raise @c_result("status",0) func delete(c_int start,c_int endOffset)
+ extern "xuiCodeDocumentReplace" @no_raise @c_cstr(2) @c_result("status",0) func replace(c_int start,c_int endOffset,string text)
+ extern "xuiCodeDocumentGetLineRange" @no_raise @c_outputs(2,3) @c_status(0) func getLineRange(c_int line) as (c_int,c_int)
+ extern "xuiCodeDocumentOffsetToLineColumn" @no_raise @c_outputs(2,3) @c_status(0) func offsetToLineColumn(c_int offset) as (c_int,c_int)
+ extern "xuiCodeDocumentLineColumnToOffset" @no_raise @c_output(3,0) func lineColumnToOffset(c_int line,c_int column) as c_int
+ extern "xuiCodeDocumentGetByte" @no_raise @c_output(2,0) func getByte(c_int offset) as c_char
+ extern "xuiCodeDocumentCopyRange" @no_raise @c_span(2,"char*","int") @c_output(5,0) func copyRange(c_int start,c_int endOffset,Buffer output) as c_int
+ extern "xuiCodeDocumentGetLastEditRange" @no_raise @c_output(1,0) func getLastEditRange() as CodeRange
+ extern "xuiCodeDocumentGetLastError" @no_raise @c_result("cstring") func getLastError() as string?
+ extern "xuiCodeDocumentLoadTextFile" @no_raise @c_cstr(0) @c_result("status",0) func loadTextFile(string path,c_int charset)
+ extern "xuiCodeDocumentSaveTextFile" @no_raise @c_cstr(0) @c_result("status",0) func saveTextFile(string path,c_int charset)
+ // Composite editing commands use the native selection model and undo groups.
+ // A callback error may follow committed text; it does not imply rollback.
+ extern "xuiCodeEditingInsertText" @no_raise @c_cstr(1) @c_result("status",0) func insertSelectedText(CodeEditSelection selection,string text,c_int readonly=0)
+ extern "xuiCodeEditingDeleteBackward" @no_raise @c_result("status",0) func deleteBackward(CodeEditSelection selection,c_int readonly=0)
+ extern "xuiCodeEditingDeleteForward" @no_raise @c_result("status",0) func deleteForward(CodeEditSelection selection,c_int readonly=0)
+ extern "xuiCodeEditingDeleteWordBackward" @no_raise @c_result("status",0) func deleteWordBackward(CodeEditSelection selection,c_int readonly=0)
+ extern "xuiCodeEditingDeleteWordForward" @no_raise @c_result("status",0) func deleteWordForward(CodeEditSelection selection,c_int readonly=0)
+ extern "xuiCodeEditingIndentSelection" @no_raise @c_cstr(1) @c_result("status",0) func indent(CodeEditSelection selection,string indent="\t",c_int readonly=0)
+ extern "xuiCodeEditingOutdentSelection" @no_raise @c_result("status",0) func outdent(CodeEditSelection selection,c_int columns=4,c_int readonly=0)
+ extern "xuiCodeEditingToggleLineComment" @no_raise @c_cstr(1) @c_result("status",0) func toggleLineComment(CodeEditSelection selection,string marker="//",c_int readonly=0)
+ // Full-document replacements preserve native undo grouping and counted text.
+ // A callback error can follow committed edits; failed counts are not assigned.
+ extern "xuiCodeSearchReplaceAllPlain" @no_raise @c_cstr(0) @c_cstr(1) @c_output(4,0) func replaceAllPlain(string pattern,string replacement,c_uint flags=0) as c_int
+ extern "xuiCodeSearchReplaceAllRegex" @no_raise @c_cstr(0) @c_cstr(1) @c_output(4,0) @c_span(3,"char*","int") func replaceAllRegex(string pattern,string replacement,c_uint flags=0,Buffer? error=null) as c_int
+ extern "xuiCodeSearchMarkAllPlain" @no_raise @c_cstr(1) @c_output(5,0) func markAllPlain(CodeAnnotationStore annotations,string pattern,c_uint flags=0,c_int indicator=0) as c_int
+ extern "xuiCodeSearchMarkAllRegex" @no_raise @c_cstr(1) @c_output(5,0) @c_span(4,"char*","int") func markAllRegex(CodeAnnotationStore annotations,string pattern,c_uint flags=0,c_int indicator=0,Buffer? error=null) as c_int
+ extern "xl6ForeignViewCloseV1" @no_raise @c_control(0) @c_result("bool_status") func close()
+end

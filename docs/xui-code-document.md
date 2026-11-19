@@ -20,9 +20,21 @@ See [the short console lesson](../lib/bindings/xui/examples/code_document.xl).
 | loadTextFile / saveTextFile | local XRT file API, explicit charset |
 | setChangeCallback | typed native owned callback slot, nullable clear |
 
-The native editor still owns its internal document. Its pointer must not be
-turned into a second unique root; this batch does not publish that unsafe
-conversion. `CallbackCodeDocument` is an invocation-period view with a counted
+`CodeEdit.document()` and `CodeEdit.selection()` return observed views over the
+models used by the widget. Each view retains the managed Context. Closing the
+editor invalidates both views immediately. Closing a view detaches its
+observation, invalidates aliases to that view, and leaves the editor alive.
+The editor can issue a fresh view once detachment completes. If the view is
+closed from a native callback, detachment can wait until that callback returns.
+
+Selection commands that take a document require the document from the same
+editor. Offsets are UTF-8 byte positions. The native selection model clamps
+grapheme boundaries and invalidates the editor's rendering after a mutation.
+Document edits update the live editor. For change notifications that outlive
+a particular document view, register on `CodeEdit.setDocumentChangeCallback`.
+See [the editor models lesson](../lib/bindings/xui/examples/code_edit_models.xl).
+
+`CallbackCodeDocument` is an invocation-period view with a counted
 `getText()` snapshot. Saved views reject later access. A callback also receives
 the native `CodeRange` value and version. Keep the copied text or capture the
 actual owned root for longer-lived work.
@@ -48,7 +60,7 @@ exception does not mean rollback. `saveTextFile` permits autosave inside a chang
 callback by pinning lifetime without taking a second writer role. It uses the
 ordinary local file API, not a virtual filesystem provider. Native text
 normalization and history rules remain in effect. Worker batches, transferable
-payloads, internal-document views and explicit partial-commit outcomes still
+payloads and explicit partial-commit outcomes still
 need their own safe contracts and acceptance.
 
 The exact O2 native SDK and unchanged full compiler pass 48 Windows/Linux

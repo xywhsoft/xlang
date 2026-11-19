@@ -191,6 +191,7 @@ WebView 范例只加载源码中的本地 HTML。它需要启用 WebView2 的 Wi
 | [data_object.xl](data_object.xl) | 二进制长度 3，以及十六进制 610062 |
 | [code_document.xl](code_document.xl) | 创建文本模型、合并两次编辑为一个撤销步骤，并观察变更回调、撤销和重做。 |
 | [code_models.xl](code_models.xl) | 选中 xlang 一词，输出字节范围 6—11；设置关键字样式，输出颜色已保存 true。 |
+| [code_edit_models.xl](code_edit_models.xl) | 写入编辑器正在显示的文档，选中“你好”，并输出选区的字节范围。 |
 | [code_editing.xl](code_editing.xl) | 替换选中的 world、缩进、撤销并切换行注释；使用原生选区和撤销组。 |
 | [workflow_callbacks.xl](workflow_callbacks.xl) | 根据配置添加预览端口，并打印端口名称。 |
 

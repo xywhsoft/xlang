@@ -868,6 +868,21 @@ TYPE_SHAPES.update({
     'xui_code_token_style_proc': 'ee01ae5abf574ec1b8beeec018dbdafeeed6c6cecff259d62df254ee1f243511',
 })
 
+METHODS.update({
+    'xuiCodeEditGetDocument': ['xui_code_document xuiCodeEditGetDocument(xui_widget pWidget)', 'CodeEdit', ['extern "xuiCodeEditGetDocument" @no_raise @c_result("owner_view",0) func document() as CodeEditDocument']],
+    'xuiCodeEditGetSelection': ['xui_code_selection_model xuiCodeEditGetSelection(xui_widget pWidget)', 'CodeEdit', ['extern "xuiCodeEditGetSelection" @no_raise @c_result("owner_view",0) func selection() as CodeEditSelection']],
+    'xuiCodeEditSetDocumentChangeCallbackOwned': ['int xuiCodeEditSetDocumentChangeCallbackOwned(xui_widget pWidget, xui_code_document_change_proc onChange, void* pUser, const xui_callback_owner_t* pOwner)', 'CodeEdit', ['extern "xuiCodeEditSetDocumentChangeCallbackOwned" @no_raise @c_owned_callback(0,0,"xui_callback_owner_t",0) @c_result("status",0) func setDocumentChangeCallback(CodeDocumentChangeProc? callback)']],
+})
+CALLBACKS['xui_code_document_change_proc'] = (
+    'typedef void (*xui_code_document_change_proc)(xui_code_document_t* pDocument, xui_code_range_t tRange, uint32_t iVersion, void* pUser);',
+    'export typedef CodeDocumentChangeProc = func(CallbackCodeDocument,CodeRange,c_uint)',
+)
+VIEWS['CallbackCodeDocument'] = """
+export extern "xui_code_document_t*" class CallbackCodeDocument @header("xge3_runtime.h") @lifetime("callback")
+ native point handle
+ extern "xuiCodeDocumentGetTextView" @no_raise @c_output(1,0) @c_output_view(1,"text") func getText() as string
+end
+""".strip()
 METHODS['xuiCodeEditSetInputHandlerOwned'] = [
     'int xuiCodeEditSetInputHandlerOwned(xui_widget pWidget, xui_code_input_owned_proc onInput, void* pUser, const xui_callback_owner_t* pOwner)',
     'CodeEdit', ['extern "xuiCodeEditSetInputHandlerOwned" @no_raise @c_owned_callback(0,0,"xui_callback_owner_t",-16) @c_result("status",0) func setInputHandler(CodeInputHandler? handler)'],

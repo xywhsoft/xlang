@@ -2523,7 +2523,20 @@ end
 
 export typedef CodeInputHandler = func(CallbackWidget,CallbackConstCodeInputEvent,CallbackCodeInputResponse) as c_int
 
+export typedef CodeDocumentChangeProc = func(CallbackCodeDocument,CodeRange,c_uint)
+
+export extern "xui_code_document_t*" class CallbackCodeDocument @header("xge3_runtime.h") @lifetime("callback")
+ native point handle
+ extern "xuiCodeDocumentGetTextView" @no_raise @c_output(1,0) @c_output_view(1,"text") func getText() as string
+end
+
 export extern "xui_widget_t*" class CodeEdit @header("xge3_runtime.h") @lifetime("owner") @owner(Context) @policy("xl6Xui3WidgetPolicy") @watch("xui_lifetime_link_t") extends Widget
+
+ extern "xuiCodeEditGetDocument" @no_raise @c_result("owner_view",0) func document() as CodeEditDocument
+
+ extern "xuiCodeEditGetSelection" @no_raise @c_result("owner_view",0) func selection() as CodeEditSelection
+
+ extern "xuiCodeEditSetDocumentChangeCallbackOwned" @no_raise @c_owned_callback(0,0,"xui_callback_owner_t",0) @c_result("status",0) func setDocumentChangeCallback(CodeDocumentChangeProc? callback)
 
  extern "xuiCodeEditSetTheme" @no_raise @c_result("status",0) func setTheme(CodeTheme theme)
 
