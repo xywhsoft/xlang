@@ -1,0 +1,99 @@
+{
+  "complete": true,
+  "passed": true,
+  "releaseInstalled": false,
+  "sourceParent": "cb831ee0442022aba41a87337126c0521f8795c9",
+  "nativeCommit": "bd00bd732245822fa0a29b1d7d032201b9d1e296",
+  "frozenXrt": "804cc769de3030118c2b46ef7af69543d1b82d9d",
+  "qualification": {
+    "descriptorAbiChanged": false,
+    "newRuntimeExports": 0,
+    "warmIterations": 1000,
+    "testedAllocationBudgets": 12,
+    "standaloneSvgFixture": true,
+    "publicSvgPaintIntegrated": false
+  },
+  "sourceHashes": {
+    "src/runtime/xl6_foreign_view.c": "bf829b20914178956a53f4c642c4d36d2670cb03a90ee7355102a372a1376f6f",
+    "src/runtime/xl6_foreign_view.h": "b92555b78fc8a16a2564182cb77e414ed9489a2a6a1d4f46003aecefbac726cf",
+    "docs/foreign-declarations.md": "333c48d739677b945e24a43629097de743f65605ad540dbe503f4a19921100f8",
+    "docs/xge3-svg-integration.md": "bb660ee44b9b35d21a2328e97e6ed90b20ff491b635561b18a6cd625956adbde",
+    "test/cases/foreign_view_observer.c": "ac9b728ec77929932b5a530295890143986d8cbefed7d3965207870dff05ffc9"
+  },
+  "evidence": {
+    "win": {
+      "compiler": {
+        "path": "F:\\xlang-validation\\xge-full-20261110\\compiler-observed-child-win-r1\\build.json",
+        "sha256": "be078c7c34bcb11c024b8f64e9082e8bd42849f71e5d14e65d37970429c44712",
+        "checks": 0
+      },
+      "sdk": {
+        "path": "F:\\xlang-validation\\xge-full-20261110\\observed-child-compiler-sdk-win-r1\\results.json",
+        "sha256": "8c16742e649beb3c60bcd1dbd217f72882c6d8ef5f8ee4e3d4efdba2be36c9e9",
+        "checks": 0
+      },
+      "native": {
+        "path": "F:\\xlang-validation\\xge-full-20261110\\observed-child-native-win-r3\\results.json",
+        "sha256": "2b23b7d7c45e439f077925def3feea0fc1665c9aaee59de9b262355a6d0125b7",
+        "checks": 4
+      },
+      "xuiRegression": {
+        "path": "F:\\xlang-validation\\xge-full-20261110\\observed-child-xui-regression-win-r1\\results.json",
+        "sha256": "94b4fbc5ea83efc8c391eac79533ff1e306178a2eba61f38ca967f96670e6900",
+        "checks": 15
+      },
+      "observedSvgFixture": {
+        "path": "F:\\xlang-validation\\xge-full-20261110\\real-observed-svg-win-r2\\results.json",
+        "sha256": "7aa12e4274e30a74ba2e417c7f634f7dd5b9630acdd2f62c504a43755aa476c2",
+        "checks": 10
+      },
+      "compatibility": {
+        "foreign_thread_neutral_leaf": {
+          "path": "F:\\xlang-validation\\xge-full-20261110\\observed-child-compat-win-r2\\foreign_thread_neutral_leaf.log",
+          "sha256": "91054debbfec298dfcd4bf4e163887e091ed25e484f27f2efe1e8a9a7d0f6248"
+        },
+        "foreign_view_code_continuation": {
+          "path": "F:\\xlang-validation\\xge-full-20261110\\observed-child-compat-win-r2\\foreign_view_code_continuation.log",
+          "sha256": "4683372aaddbe99b62f4ca464b2e05631f579f81bce449974956c0e6a76d2128"
+        }
+      }
+    },
+    "linux": {
+      "compiler": {
+        "path": "\\\\wsl.localhost\\Ubuntu\\var\\tmp\\xlang-validation\\xge-full-20261110\\compiler-observed-child-linux-r1\\build.json",
+        "sha256": "f9863279fded351cef7c42aff51903036c516b676ed170225c2e092a3c496616",
+        "checks": 0
+      },
+      "sdk": {
+        "path": "\\\\wsl.localhost\\Ubuntu\\var\\tmp\\xlang-validation\\xge-full-20261110\\observed-child-compiler-sdk-linux-r1\\results.json",
+        "sha256": "de3dbf032c0b187cd47da9086042e06a6c5792c1642f787fecb9113164826376",
+        "checks": 0
+      },
+      "native": {
+        "path": "\\\\wsl.localhost\\Ubuntu\\var\\tmp\\xlang-validation\\xge-full-20261110\\observed-child-native-linux-r3\\results.json",
+        "sha256": "17d7a9601035ac08c8031ad12ad01fc759da5df4f1afd02fbf2d35d13001265a",
+        "checks": 4
+      },
+      "xuiRegression": {
+        "path": "\\\\wsl.localhost\\Ubuntu\\var\\tmp\\xlang-validation\\xge-full-20261110\\observed-child-xui-regression-linux-r1\\results.json",
+        "sha256": "e413e08a516ef3d59a738a6618a92a795db13f22aeefc167c4d65baabc93f7fc",
+        "checks": 15
+      },
+      "observedSvgFixture": {
+        "path": "\\\\wsl.localhost\\Ubuntu\\var\\tmp\\xlang-validation\\xge-full-20261110\\real-observed-svg-linux-r2\\results.json",
+        "sha256": "51fc7d27583dd84d2c568e768319cc3229baa24460cd6df6fb6d8f8a1fb82714",
+        "checks": 10
+      },
+      "compatibility": {
+        "foreign_thread_neutral_leaf": {
+          "path": "\\\\wsl.localhost\\Ubuntu\\var\\tmp\\xlang-validation\\xge-full-20261110\\observed-child-compat-linux-r2\\foreign_thread_neutral_leaf.log",
+          "sha256": "949c14e6e7d2b54d34d4436da8b06944c81c5f8c539979e7200507e0876dca91"
+        },
+        "foreign_view_code_continuation": {
+          "path": "\\\\wsl.localhost\\Ubuntu\\var\\tmp\\xlang-validation\\xge-full-20261110\\observed-child-compat-linux-r2\\foreign_view_code_continuation.log",
+          "sha256": "189182200d479e55cf4257a2d259cef93effe531c7ed59e4f5b33209a11f02c1"
+        }
+      }
+    }
+  }
+}

@@ -27,7 +27,10 @@ struct xl6_foreign_error_result;
  * Destroy returns true only after consuming the native owner. Failure that
  * leaves a native owner retains its observation for checked retry; a consumed
  * owner must already have delivered invalidation, even on failure. It never unwinds
- * across C. CallEnd and Destroy can run native/language user code; no mutation
+ * across C. A watched child may omit Destroy when its parent exclusively
+ * controls the payload. The observer detaches on close or loss of the last
+ * language reference, on the creator thread. A reacquisition in the same
+ * active scope can keep a pending observer live. CallEnd and Destroy can run native/language user code; no mutation
  * scope, collector Freeze or queue lock may enclose them.
  *
  * TraceRaw describes ALL actual refcounted owning slots in a root's uniquely

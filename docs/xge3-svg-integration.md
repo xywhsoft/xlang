@@ -389,3 +389,18 @@ heap allocation or document copy. The language still admits the returned view
 and tracks its lifetime. The permissive filter and stroke paths keep their
 NaN/infinity handling and parse finite values through double before narrowing
 to float. They use SVG decimal syntax for finite values.
+
+## Observed paint lifetime
+
+The resident foreign-view runtime accepts a watched child policy with no
+independent destructor. Closing that child or releasing its last language
+reference detaches the watcher. The document owns the paint.
+Each child keeps its document's language owner alive. Clear and reload
+invalidate every watcher attached to the previous contents. Closing one
+language owner of a shared document detaches that owner's watchers.
+
+The acceptance fixture uses the actual XGE SVG watcher and direct
+declarations for paint lookup. It verifies close, clear, reload, and
+independent owners of a shared document. The fixture's document call scope
+temporarily retains a native document reference. Public `SvgPaint`
+methods and their production scope still need integration.

@@ -72,6 +72,8 @@ static bool viewThreadAdmits(const XL6_ForeignView* root)
 { return !root->thread || root->thread==xrtThreadCurrentId(); }
 static bool viewThreadNeutral(const XL6_ForeignViewDescriptorV1* d)
 { return d && (d->flags&XL6_FOREIGN_VIEW_THREAD_NEUTRAL_LEAF)!=0; }
+static bool viewObservationOnly(const XL6_ForeignView* view)
+{ return !view->descriptor.Destroy; }
 static bool viewHold(const void* raw)
 {
     XL6_ForeignView* view=(XL6_ForeignView*)raw;
@@ -118,6 +120,22 @@ static void viewInvalidate(void* raw)
     xrtClearError(); xrtSetErrorTake(prior);
     /* No record/code release while the native notifier remains on stack. */
 }
+static void viewStopObserving(XL6_ForeignView* view)
+{
+    if (!view->raw) return;
+    if (view->watched) view->descriptor.Unwatch(view->watchStorage);
+    viewInvalidate(view);
+}
+static void viewOwnerConsumed(XL6_ForeignView* view)
+{
+    if (!view->owner) {
+        /* Consuming this owner's reference can leave a shared payload alive.
+         * Its other owners keep observing it, but this directory must retire. */
+        for (XL6_ForeignView* child=view->children;child;child=child->next)
+            if (viewObservationOnly(child)) viewStopObserving(child);
+    }
+    if (!view->watched) viewInvalidate(view);
+}
 static bool viewAlignment(size_t bytes,size_t alignment)
 {
     return alignment && !(alignment&(alignment-1)) && alignment<=_Alignof(max_align_t) &&
@@ -126,7 +144,7 @@ static bool viewAlignment(size_t bytes,size_t alignment)
 static bool viewDescriptorValid(const XL6_ForeignViewDescriptorV1* d,bool root)
 {
     if (!d || d->size!=sizeof(*d) || d->abiTag!=XL6_FOREIGN_VIEW_V1_TAG ||
-        !d->family || !*d->family || !d->Destroy || !!d->Watch!=!!d->Unwatch ||
+        !d->family || !*d->family || (!d->Destroy && (root || d->DestroyUnadopted)) || !!d->Watch!=!!d->Unwatch ||
         (d->flags&~(XL6_FOREIGN_VIEW_DEFER_ACTIVE_DESTROY|XL6_FOREIGN_VIEW_RELIABLE_OWNED_WATCH|XL6_FOREIGN_VIEW_DESTROY_OWNS_NATIVE_SCOPE|XL6_FOREIGN_VIEW_DESTROY_REPORTS_FAILURE|XL6_FOREIGN_VIEW_CONTINUABLE_FINALIZE|XL6_FOREIGN_VIEW_THREAD_NEUTRAL_LEAF)) ||
         (viewThreadNeutral(d) && (!root || d->flags!=XL6_FOREIGN_VIEW_THREAD_NEUTRAL_LEAF ||
           d->Watch || d->CallBegin || d->TraceRaw || d->Busy || d->RequestClose)) ||
@@ -317,6 +335,8 @@ XL6_ForeignView* xl6ForeignViewRetainV1(XL6_ForeignView* view)
         }
         viewLockLeave();
     }
+    if (ok && viewObservationOnly(view) &&
+        xrtAtomic64FetchAdd(&view->external,1,XMEMORY_RELAXED)==UINT64_MAX) abort();
     viewMutationEnd(&mutation);
     if(!ok)xrtSetErrorKind(range ? XERR_RANGE:XERR_STATE);
     return ok ? view:NULL;
@@ -334,7 +354,9 @@ XL6_ForeignView* xl6ForeignViewBorrowChildV1(const void* identity,XL6_ForeignVie
     }
     XL6_ForeignView* const* found=xrtMapConstGet(&root->directory,viewKey(&raw));
     if (found) {
-        if (strcmp((*found)->descriptor.family,d->family)) { xrtSetErrorKind(XERR_TYPE); return NULL; }
+        if (strcmp((*found)->descriptor.family,d->family) || viewObservationOnly(*found)!=!d->Destroy) {
+            xrtSetErrorKind(XERR_TYPE); return NULL;
+        }
         return xl6ForeignViewRetainV1(*found);
     }
     XL6_ForeignView* view=viewAllocate(raw,d,codeOwner,false);
@@ -362,6 +384,7 @@ XL6_ForeignView* xl6ForeignViewBorrowChildV1(const void* identity,XL6_ForeignVie
     view->next=root->children; view->previous=&root->children;
     if (view->next) view->next->previous=&view->next;
     root->children=view;
+    if (viewObservationOnly(view)) xrtAtomic64Store(&view->external,1,XMEMORY_RELAXED);
     uint64 external=xrtAtomic64FetchAdd(&root->external,1,XMEMORY_RELAXED);
     if (external==UINT64_MAX) abort();
     viewLockEnter(); ++viewCount; viewLockLeave();
@@ -444,6 +467,12 @@ bool xl6ForeignViewReleaseV1(XL6_ForeignView* view)
     xrtownershipscope mutation={0}; viewMutationBegin(&mutation);
     uint64 external=xrtAtomic64FetchSub(&root->external,1,XMEMORY_ACQ_REL);
     if (!external) abort();
+    if (viewObservationOnly(view)) {
+        uint64 aliases=xrtAtomic64FetchSub(&view->external,1,XMEMORY_ACQ_REL);
+        if (!aliases) abort();
+        if (aliases==1 && xrtAtomic32Load(&view->nativeLive,XMEMORY_ACQUIRE))
+            viewEnqueue(view,VIEW_AUTO_CLOSE);
+    }
     bool request=external==1 && xrtAtomic32Load(&root->nativeLive,XMEMORY_ACQUIRE);
     if(request){
         if(root->descriptor.RequestClose && !root->unadopted && !xrtAtomic32Load(&root->closing,XMEMORY_ACQUIRE))
@@ -634,12 +663,12 @@ static bool viewCloseBody(XL6_ForeignView* view)
      * logical close now; native physical free still waits for its last End.
      * Resources opting into deferred active close retain their true native
      * owner in the queue until idle, as do resources without native scopes. */
-    if (view->raw && root->descriptor.CallBegin &&
+    if (view->raw && !viewObservationOnly(view) && root->descriptor.CallBegin &&
         !(view->descriptor.flags&XL6_FOREIGN_VIEW_DEFER_ACTIVE_DESTROY) &&
         xrtAtomic32Load(&root->active,XMEMORY_ACQUIRE)) {
         xl6_error_scope errors={0}; if (!xl6ErrorScopeBegin(&errors)) abort();
         bool destroyed=view->descriptor.Destroy(view->raw);
-        if(destroyed && !view->watched)viewInvalidate(view);
+        if(destroyed)viewOwnerConsumed(view);
         if ((!destroyed && !(view->descriptor.flags&XL6_FOREIGN_VIEW_DESTROY_REPORTS_FAILURE)) || xrtGetError())
             xl6ErrorScopeCaptureFailure(&errors);
         return viewPublish(xl6ErrorScopeEnd(&errors));
@@ -689,6 +718,14 @@ static bool viewDestroyNative(XL6_ForeignView* view,bool autoOnly,bool* cancelle
     if (!view->thread) return viewDestroyThreadNeutral(view);
     XL6_ForeignView* root=viewRoot(view);
     if (!view->raw) return true;
+    if (viewObservationOnly(view)) {
+        if (autoOnly && xrtAtomic64Load(&view->external,XMEMORY_ACQUIRE)) {
+            *cancelled=true;
+            return true;
+        }
+        viewStopObserving(view);
+        return true;
+    }
     if (!root->raw || xrtAtomic32Load(&root->active,XMEMORY_ACQUIRE)) {
         xrtSetErrorKind(XERR_STATE); return false;
     }
@@ -712,7 +749,7 @@ static bool viewDestroyNative(XL6_ForeignView* view,bool autoOnly,bool* cancelle
     if (!begun || xrtGetError()) xl6ErrorScopeCaptureFailure(&errors);
     if (begun) {
         bool ok=unadopted ? view->descriptor.DestroyUnadopted(view->raw):view->descriptor.Destroy(view->raw);
-        if (ok && !view->watched) viewInvalidate(view);
+        if (ok) viewOwnerConsumed(view);
         bool independent=ownScope || (view->descriptor.flags&XL6_FOREIGN_VIEW_DESTROY_REPORTS_FAILURE);
         if ((!ok && (!independent || unadopted)) || xrtGetError())xl6ErrorScopeCaptureFailure(&errors);
         if (!unadopted && !ownScope && d->CallEnd && (!d->CallEnd(root->closeStorage) || xrtGetError()))

@@ -1105,6 +1105,20 @@ admission remain fallible. A failed producer may leave the pointer unspecified:
 generated code checks the outcome before observing or admitting that pointer.
 The owner/native call scope stays active through admission and failure cleanup.
 
+A child whose native lifetime is entirely controlled by the parent may
+omit `Destroy` in its native view policy. Its policy still supplies
+`Watch` and `Unwatch`. Language references to the child retain the
+root. Closing the child invalidates its language aliases and detaches
+the watcher. Releasing the last child reference automatically detaches
+the watcher at the next safe creator-thread boundary. An in-scope
+lookup can reuse the observer while that automatic detach is pending.
+The child payload remains under native ownership.
+
+A creator-thread root can have shared native owners. Consuming one
+root's native reference detaches its own observers even if other
+owners keep the payload alive. The native library must still notify
+all remaining watchers before invalidating or freeing the child.
+
 The existing sparse output mapping and owner-view result ABI describe this
 combination; no new runtime carrier or per-method forwarding body is introduced.
 Cold exposure can allocate an observed view/control record. A repeated exposure
