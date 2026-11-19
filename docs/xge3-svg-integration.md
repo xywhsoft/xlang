@@ -441,3 +441,10 @@ example. See the [package regression](../dev/release-materials/provenance/xge-sv
 
 The packages that include ShapeScene mask composition passed the same 17
 checks per platform. See the [ShapeScene package regression](../dev/release-materials/provenance/xge-svg-observed-shape-mask-20261120.json).
+
+Reload preserves current views when argument validation or the language string
+copy fails before native content is cleared. After native content is cleared,
+a parser allocation failure leaves old views expired across all document
+shares. A successful retry creates current views while old ones stay expired.
+The [failed-reload regression](../dev/release-materials/provenance/xge-svg-observed-reload-20261120.json)
+checks these boundaries on Windows and Linux through JIT and both AOT link modes.

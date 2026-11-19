@@ -252,10 +252,54 @@ func checkSharedGeneration()
     peer.close()
 end
 
+func reloadAllocationFails(xge.Svg document, c_int budget) as bool
+    prefixBegin(budget)
+    try
+        document.loadMemory(svgXml)
+    catch Error
+        return bool(failTriggered())
+    finally
+        prefixEnd()
+    end
+    return false
+end
+
+func checkFailedReloadGeneration()
+    auto document = xge.createSvg()
+    document.loadMemory(svgXml)
+    auto peer = document.share()
+    auto picture = document.getPicture()
+    auto tile = peer.getPaintByName("tile")
+    auto id = tile.getId()
+
+    bool rejected = false
+    try
+        peer.loadMemory(svgXml, 0)
+    catch Error
+        rejected = true
+    end
+    assert rejected, "A zero-length reload must be rejected"
+    assert picture.getChildCount() == 1 and tile.getId() == id, "Argument rejection must preserve old views"
+
+    // The string argument is copied before native entry. The next allocation
+    // is the parser's input buffer, after it has cleared the previous contents.
+    assert reloadAllocationFails(peer, 0), "The argument copy must report allocation failure"
+    assert picture.getChildCount() == 1 and tile.getId() == id, "Failure before native entry must preserve old views"
+    assert reloadAllocationFails(peer, 1), "The parser must report allocation failure"
+    assert expired(picture) and expired(tile), "Allocation failure after clearing must expire old views"
+
+    document.loadMemory(svgXml)
+    assert peer.getPaintById(id).getName() == "tile", "Either share must see the retried reload"
+    assert expired(picture) and expired(tile), "Reload retry must not revive expired views"
+    document.close()
+    peer.close()
+end
+
 func main(...) as int
     assert debugEnabled() or enableDebug(true)
     checkLifecycle()
     checkSharedGeneration()
+    checkFailedReloadGeneration()
     int failures = 0
     for i in range(12)
         if checkCold(c_int(i)) then failures += 1 end

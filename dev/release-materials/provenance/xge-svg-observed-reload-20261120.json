@@ -1,0 +1,63 @@
+{
+  "complete": true,
+  "passed": true,
+  "releaseInstalled": false,
+  "sourceParent": "999e1b738004d09fbc76b16a0955d84973716e0c",
+  "nativeCommit": "e99aeb6c9b3d29d7dc9d1b1f0c851cdebbcb2270",
+  "testedSourcesSha256Lf": {
+    "test/cases/foreign_xge_svg_paint.xl": "1833f2bff4ab9748ae49229ffa55fb380d7d93ecbabc14732b574ae54f4c33cb",
+    "test/cases/foreign_xge3_svg.c": "e738d59fb7c267d5277c92a8bb3e93f27c0e307cb456f2987d2268264843e2c2",
+    "test/cases/foreign_xge3_svg.h": "eea241158ceb69dc19ceeaad2f69601997ef6c29cde0240d646d9ddf4be8f9bc",
+    "lib/bindings/xge/examples/svg_paint.xl": "e342fe7c05441f1cf974d39a701ca136acb2e4f2397386fde46b3f38da6fea52",
+    "lib/bindings/xge/src/svg.xl": "13251bb353b5f48e2aec2106b5e416ab82d3cbd3e759a037710c88ea3c32d8bb",
+    "src/runtime/xl6_foreign_view.c": "0afe2f9c4d4b8632f377576f3e5416139f4b3ac8cf3235c0950666f6cac2f72c"
+  },
+  "nativeSvgSourceSha256Lf": "1a839fa6d520e27c5e1c661e51d75d1abb65226a6e0c08ab874d615d39e1c27a",
+  "checks": [
+    "Native zero-length rejection preserves views held through both language owners.",
+    "Failure while copying the language string argument preserves both views.",
+    "Failure after clearing native content expires the picture and tile across both owners.",
+    "A successful reload through the other owner publishes current views without reviving old ones.",
+    "Generated C uses checked persistent child admission and direct native calls."
+  ],
+  "evidence": {
+    "win": {
+      "validation": {
+        "path": "F:\\xlang-validation\\xge-full-20261110\\svg-observed-reload-win-r2\\results.json",
+        "sha256": "d29e83947770986fa9224a7596b5815153852d966ef182285fc096d49f02dc8b"
+      },
+      "packages": {
+        "path": "F:\\xlang-validation\\xge-full-20261110\\input-history-notification-packages-win-r1\\results.json",
+        "sha256": "37457a1d80d83a8ac0e72d7f1bc8004536421877defa0a75bf83bb77c5747194"
+      },
+      "sdk": {
+        "path": "F:\\xlang-validation\\xge-full-20261110\\input-history-notification-sdk-win-r1\\results.json",
+        "sha256": "e929bf66e7d440eb8a800b305faa3a9d97d7e5f67ae99ff67f1610217ae36f5a"
+      },
+      "compiler": {
+        "path": "F:\\xlang-validation\\xge-full-20261110\\inline-cstring-compiler-sdk-win-r1\\results.json",
+        "sha256": "740c7f6074c8c605521c1047de1c552576a8051f39ea2075641537041cfda361"
+      },
+      "checks": 17
+    },
+    "linux": {
+      "validation": {
+        "path": "\\\\wsl.localhost\\Ubuntu\\var\\tmp\\xlang-validation\\xge-full-20261110\\svg-observed-reload-linux-r2\\results.json",
+        "sha256": "b6d7ee93273ead8f6a358901a9d4a81c0afec397cb94ad69b92225928bf712c1"
+      },
+      "packages": {
+        "path": "\\\\wsl.localhost\\Ubuntu\\var\\tmp\\xlang-validation\\xge-full-20261110\\input-history-notification-packages-linux-r1\\results.json",
+        "sha256": "749428597c95aff839e62668be511a736ae5881162d3357668819b17335171fc"
+      },
+      "sdk": {
+        "path": "\\\\wsl.localhost\\Ubuntu\\var\\tmp\\xlang-validation\\xge-full-20261110\\input-history-notification-sdk-linux-r1\\results.json",
+        "sha256": "10768e8f1c15f9b9ec2f4c0d75b08fe19fe86aa806feba450f01faf151cbc5fa"
+      },
+      "compiler": {
+        "path": "\\\\wsl.localhost\\Ubuntu\\var\\tmp\\xlang-validation\\xge-full-20261110\\inline-cstring-compiler-sdk-linux-r1\\results.json",
+        "sha256": "19252f8a7944cb40005889f117b606621c05431aed4ddd640bd1d27ae666b964"
+      },
+      "checks": 17
+    }
+  }
+}
