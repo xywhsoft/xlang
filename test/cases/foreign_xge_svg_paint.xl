@@ -27,6 +27,11 @@ func independentPaint() as SvgPaint
     return document.getPaintByName("tile")
 end
 
+func markPaint(xge.Svg document)
+    auto paint = document.getPaintByName("tile")
+    paint.setOpacity(0.5)
+end
+
 func checkPaintStyle(SvgPaint paint)
     auto initial = paint.getTransform()
     paint.translate(4, 2)
@@ -88,7 +93,10 @@ func checkLifecycle()
     auto document = xge.createSvg()
     document.loadMemory(svgXml)
     assert document.refCountGet() == 1
+    markPaint(document)
     auto tile = document.getPaintByName("tile")
+    assert tile.getOpacity() == 0.5, "Releasing the last view must leave the native paint intact"
+    tile.setOpacity(1)
     auto name = tile.getName()
     auto id = tile.getId()
     assert name == "tile" and tile.getType() == xge.XGE_SVG_PAINT_SHAPE

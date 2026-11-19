@@ -1,0 +1,191 @@
+{
+  "complete": true,
+  "passed": true,
+  "releaseInstalled": false,
+  "sourceParent": "afe7f72b3c496089f70035fba050b340d50bf0d5",
+  "nativeCommit": "3e4133002d0961f886fb6449fee4e0b58a7c9c31",
+  "frozenXrt": "804cc769de3030118c2b46ef7af69543d1b82d9d",
+  "sourceHashesLf": {
+    "test/cases/foreign_xge_svg_paint.xl": "e2dcf5fbae0f0a3f440ec6a2493d4c9a52f9e2359e8101318ec98fdb2dbbe7a5",
+    "docs/xge3-svg-integration.md": "45e03384bd7d5c6355d206320379cae2ee28976496b92a4af0349ee6eb707394",
+    "src/runtime/xl6_foreign_view.c": "0afe2f9c4d4b8632f377576f3e5416139f4b3ac8cf3235c0950666f6cac2f72c",
+    "lib/bindings/xge/src/svg.xl": "13251bb353b5f48e2aec2106b5e416ab82d3cbd3e759a037710c88ea3c32d8bb",
+    "lib/bindings/xge/examples/svg_paint.xl": "e342fe7c05441f1cf974d39a701ca136acb2e4f2397386fde46b3f38da6fea52",
+    "test/cases/foreign_xge3_svg.c": "e738d59fb7c267d5277c92a8bb3e93f27c0e307cb456f2987d2268264843e2c2",
+    "test/cases/foreign_xge3_svg.h": "eea241158ceb69dc19ceeaad2f69601997ef6c29cde0240d646d9ddf4be8f9bc"
+  },
+  "changedSourceFiles": [
+    "test/cases/foreign_xge_svg_paint.xl",
+    "docs/xge3-svg-integration.md"
+  ],
+  "nativeSvgSourceSha256Lf": "1a839fa6d520e27c5e1c661e51d75d1abb65226a6e0c08ab874d615d39e1c27a",
+  "observedChildCommit": "14fc37ca8e2ecdd8fbaba99c017e5d941ecc9967",
+  "publicSvgPaintCommit": "0eab8a36212129c4fd17670639f0988e264a34e6",
+  "lifetimeChecks": [
+    "Dropping the last language child view retains the native paint and its edited opacity.",
+    "Closing an alias group leaves independent document shares intact. Clearing and reloading then invalidate the old paints.",
+    "A child keeps the document alive after the root variable leaves scope. Cross-thread use and expired callback views are rejected.",
+    "Warm paint lookup makes no XRT heap operations. Cold admission OOM leaves the document reusable; heap usage reconciles."
+  ],
+  "evidence": {
+    "win": {
+      "sdk": {
+        "path": "F:\\xlang-validation\\xge-full-20261110\\codeedit-command-sdk-win-r1\\results.json",
+        "sha256": "b7839b75892d57315e1efbaf59a01c409d5391f18d83ac11980c8a19e17c07ac",
+        "checks": 2
+      },
+      "packages": {
+        "path": "F:\\xlang-validation\\xge-full-20261110\\codeedit-command-packages-win-r1\\results.json",
+        "sha256": "ca03488b45e3ffd8ffd4c1e7a3d4027981b33cd43fe4c271b290ac156c018913",
+        "checks": 6,
+        "directory": "F:\\xlang-validation\\xge-full-20261110\\codeedit-command-packages-win-r1\\packages"
+      },
+      "compiler": {
+        "path": "F:\\xlang-validation\\xge-full-20261110\\inline-cstring-compiler-sdk-win-r1\\results.json",
+        "sha256": "740c7f6074c8c605521c1047de1c552576a8051f39ea2075641537041cfda361"
+      },
+      "language": {
+        "path": "F:\\xlang-validation\\xge-full-20261110\\svg-observed-current-win-r2\\results.json",
+        "sha256": "610ad3c02b02103216aadf2a752d49231b4c407b302b88c56ec2f625bfd5bca1",
+        "checks": 17,
+        "programs": [
+          {
+            "path": "F:\\xlang-validation\\xge-full-20261110\\svg-observed-current-win-r2\\host.exe",
+            "sha256": "cb56d335c1217b4af4431e6cece476340e2119b05caf12d6d9a5ab610dbc3bd6",
+            "imports": [
+              "xge3_host.dll",
+              "msvcrt.dll",
+              "kernel32.dll",
+              "SHELL32.dll",
+              "ws2_32.dll",
+              "IPHLPAPI.dll",
+              "ucrtbase.dll"
+            ]
+          },
+          {
+            "path": "F:\\xlang-validation\\xge-full-20261110\\svg-observed-current-win-r2\\static.exe",
+            "sha256": "93441e834f73e2c1799f08f697abf99f3f32366ab1fad40610a8d0e94f507f93",
+            "imports": [
+              "msvcrt.dll",
+              "kernel32.dll",
+              "USER32.dll",
+              "ole32.dll",
+              "OLEAUT32.dll",
+              "SHELL32.dll",
+              "GDI32.dll",
+              "IMM32.dll"
+            ]
+          },
+          {
+            "path": "F:\\xlang-validation\\xge-full-20261110\\svg-observed-current-win-r2\\spatial.dll",
+            "sha256": "bb18ed13195c371de969d90aa35683c87f68f57b7592d915baf10a57f1df19bc",
+            "imports": [
+              "msvcrt.dll",
+              "kernel32.dll",
+              "user32.dll",
+              "ole32.dll",
+              "OLEAUT32.dll",
+              "SHELL32.dll",
+              "gdi32.dll",
+              "USER32.dll",
+              "IMM32.dll"
+            ]
+          },
+          {
+            "path": "F:\\xlang-validation\\xge-full-20261110\\svg-observed-current-win-r2\\lesson.exe",
+            "sha256": "ca3ad0491fb5ac741507f9fa7e7fcf85f0c15691484b584cd1193f39f56d7e8a",
+            "imports": [
+              "msvcrt.dll",
+              "kernel32.dll",
+              "USER32.dll",
+              "ole32.dll",
+              "OLEAUT32.dll",
+              "SHELL32.dll",
+              "GDI32.dll",
+              "IMM32.dll"
+            ]
+          }
+        ],
+        "checkedSharedModuleRetirement": true
+      }
+    },
+    "linux": {
+      "sdk": {
+        "path": "\\\\wsl.localhost\\Ubuntu\\var\\tmp\\xlang-validation\\xge-full-20261110\\codeedit-command-sdk-linux-r1\\results.json",
+        "sha256": "485dfd6451d75a5524356220a54ede6ea5d62a821649b6c1546f6209adf4c3e2",
+        "checks": 2
+      },
+      "packages": {
+        "path": "\\\\wsl.localhost\\Ubuntu\\var\\tmp\\xlang-validation\\xge-full-20261110\\codeedit-command-packages-linux-r1\\results.json",
+        "sha256": "ad96517509953d55856229f8d147d6ccb7ca4493212703edfd611daf89ab549d",
+        "checks": 6,
+        "directory": "/var/tmp/xlang-validation/xge-full-20261110/codeedit-command-packages-linux-r1/packages"
+      },
+      "compiler": {
+        "path": "\\\\wsl.localhost\\Ubuntu\\var\\tmp\\xlang-validation\\xge-full-20261110\\inline-cstring-compiler-sdk-linux-r1\\results.json",
+        "sha256": "19252f8a7944cb40005889f117b606621c05431aed4ddd640bd1d27ae666b964"
+      },
+      "language": {
+        "path": "\\\\wsl.localhost\\Ubuntu\\var\\tmp\\xlang-validation\\xge-full-20261110\\svg-observed-current-linux-r2\\results.json",
+        "sha256": "2f32a6fd07aa10b60c4726bca19fe7885ce53aaac0dc4cfee9f2f319ce8782e6",
+        "checks": 17,
+        "programs": [
+          {
+            "path": "/var/tmp/xlang-validation/xge-full-20261110/svg-observed-current-linux-r2/host",
+            "sha256": "294326bdbb3f0bfddaaf7b692ff671e95a625720150ac862976f0ddaf8a0eab5",
+            "imports": [
+              "libm.so.6",
+              "libmvec.so.1",
+              "libxge3_host.so",
+              "libc.so.6",
+              "ld-linux-x86-64.so.2"
+            ]
+          },
+          {
+            "path": "/var/tmp/xlang-validation/xge-full-20261110/svg-observed-current-linux-r2/static",
+            "sha256": "52def15e58b2a9e1f4a3f5d79d5f2e82c92c9570363847433e40f4624ccbcbbe",
+            "imports": [
+              "libm.so.6",
+              "libmvec.so.1",
+              "libX11.so.6",
+              "libXi.so.6",
+              "libXcursor.so.1",
+              "libGL.so.1",
+              "libc.so.6",
+              "ld-linux-x86-64.so.2"
+            ]
+          },
+          {
+            "path": "/var/tmp/xlang-validation/xge-full-20261110/svg-observed-current-linux-r2/spatial.so",
+            "sha256": "7b99785c4645f94d1d90578a2beda9b4955f84e20715240c30b7f988cd027669",
+            "imports": [
+              "libm.so.6",
+              "libmvec.so.1",
+              "libX11.so.6",
+              "libXi.so.6",
+              "libXcursor.so.1",
+              "libGL.so.1",
+              "libc.so.6",
+              "ld-linux-x86-64.so.2"
+            ]
+          },
+          {
+            "path": "/var/tmp/xlang-validation/xge-full-20261110/svg-observed-current-linux-r2/lesson",
+            "sha256": "d0752e07fd5a89d7aa7f4dc9fb595c3463bb4bd14a5b69414fb6960d0ee66308",
+            "imports": [
+              "libm.so.6",
+              "libmvec.so.1",
+              "libX11.so.6",
+              "libXi.so.6",
+              "libXcursor.so.1",
+              "libGL.so.1",
+              "libc.so.6",
+              "ld-linux-x86-64.so.2"
+            ]
+          }
+        ],
+        "checkedSharedModuleRetirement": true
+      }
+    }
+  }
+}

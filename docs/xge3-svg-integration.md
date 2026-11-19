@@ -426,3 +426,6 @@ See the [SVG paint example](../lib/bindings/xge/examples/svg_paint.xl).
 The observed-paint recheck passed 20 steps each on Windows and Linux,
 including JIT, dynamic and static AOT, and checked shared-library retirement.
 See the [acceptance record](../dev/release-materials/provenance/xge-miniprogram-js-20261119.json).
+The lifetime regression also releases the last language view by leaving its
+scope, then finds the same native paint and verifies that its opacity survives.
+See the [lifetime recheck](../dev/release-materials/provenance/xge-svg-observed-lifetime-20261120.json).
