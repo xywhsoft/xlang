@@ -63,6 +63,9 @@ static bool backingBusy(const void* raw)
 static const XL6_ForeignViewDescriptorV1 backingPolicy={sizeof(backingPolicy),XL6_FOREIGN_VIEW_V1_TAG,
     "xl6.native-sequence.backing.v1",0,1,NULL,NULL,backingDestroy,0,1,NULL,NULL,backingTrace,backingBusy,
     XL6_FOREIGN_VIEW_DESTROY_REPORTS_FAILURE|XL6_FOREIGN_VIEW_CONTINUABLE_FINALIZE,backingDestroy,NULL};
+static const XL6_ForeignViewDescriptorV1 sharedBackingPolicy={sizeof(sharedBackingPolicy),XL6_FOREIGN_VIEW_V1_TAG,
+    "xl6.native-sequence.backing.v1",0,1,NULL,NULL,backingDestroy,0,1,NULL,NULL,NULL,NULL,
+    XL6_FOREIGN_VIEW_THREAD_NEUTRAL_LEAF,backingDestroy,NULL};
 
 static void releaseFailure(xl6_error_result failure)
 {
@@ -130,12 +133,18 @@ bool xl6NativeSequenceResultReserveV1(XL6_NativeSequenceResultV1* result,const X
         (native->CallBegin && !(native->flags&XL6_FOREIGN_VIEW_DESTROY_OWNS_NATIVE_SCOPE))){
         xrtSetErrorKind(XERR_ARGUMENT);return false;
     }
+    bool shared=(native->flags&XL6_FOREIGN_VIEW_THREAD_NEUTRAL_LEAF)!=0;
+    if(shared && (domain || native->flags!=XL6_FOREIGN_VIEW_THREAD_NEUTRAL_LEAF ||
+       native->CallBegin || native->CallEnd || native->callBytes || native->TraceRaw || native->Busy || native->RequestClose)){
+        xrtSetErrorKind(XERR_ARGUMENT);return false;
+    }
+    const XL6_ForeignViewDescriptorV1* policy=shared ? &sharedBackingPolicy : &backingPolicy;
     xl6_error_scope errors={0};if(!xl6ErrorScopeBegin(&errors))return false;
     NativeBacking* backing=xrtCalloc(1,sizeof(*backing));NativeRange* range=NULL;xvalue* value=NULL;
     if(backing){backing->policy=native;backing->sequence=schema->sequenceIdentity;range=xrtCalloc(1,sizeof(*range));}
     if(range){range->schema=*schema;value=wrap(range);range=NULL;}
     if(!value || !backing)xl6ErrorScopeCaptureFailure(&errors);
-    if(value && !errors.failed && !xl6ForeignResultProbeReserveRootV1(&result->owner,&backingPolicy,domain,code,0,1,XL6_FOREIGN_RESULT_RECORD_UNADOPTED))
+    if(value && !errors.failed && !xl6ForeignResultProbeReserveRootV1(&result->owner,policy,domain,code,0,1,XL6_FOREIGN_RESULT_RECORD_UNADOPTED))
         xl6ErrorScopeCaptureFailure(&errors);
     if(!errors.failed && !xl6ForeignResultProbeOwnRecordV1(&result->owner,backing))xl6ErrorScopeCaptureFailure(&errors);
     if(errors.failed){

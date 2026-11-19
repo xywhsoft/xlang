@@ -1,0 +1,32 @@
+{
+  "complete": true,
+  "passed": true,
+  "sourceParent": "4f84b86466b87edfcdebd8751459cb3a026c8ed0",
+  "releaseInstalled": false,
+  "scope": "Runtime overlay, using the previously qualified compiler runtime for unchanged dependencies.",
+  "sourceHashes": {
+    "src/runtime/xl6_foreign_view.h": "9a8fe46d30edc420ba18f644b47cdee4afde9ef1f480957ab5038c4603f3410a",
+    "src/runtime/xl6_foreign_view.c": "be1c1e86d35a63922b0b16989301e001d4f125bab4b382d28dda6fafc2618aec",
+    "src/runtime/xl6_native_sequence.c": "30daefcd7747f3235064e1fd83216c4ad2fe0328d68b9abbeeec67416045ff3d",
+    "test/cases/foreign_thread_neutral_leaf.c": "7e6d10bb65ceee3853882ac9951cf64a3cd3996154e915b27cd5f2f5aa447fa1"
+  },
+  "behavior": [
+    "The creating worker can exit before the first call on another thread.",
+    "An active reader retains the payload across logical close. New reads are rejected.",
+    "Two workers can compete to close while the destructor is active; the payload is consumed exactly once.",
+    "A failed destructor can be retried on a different worker. An unclosed leaf can also retire on a worker final release.",
+    "Existing creator-affine code continuation, deferred retirement and typed NativeSequence result/rollback checks still pass."
+  ],
+  "evidence": {
+    "win": {
+      "path": "F:\\xlang-validation\\xge-full-20261110\\thread-neutral-leaf-qualified-win-r1\\results.json",
+      "sha256": "842325de4e851de5d84909da7d2ccb1a8931df8d531dc4d1491fc56055cfc518",
+      "checks": 12
+    },
+    "linux": {
+      "path": "\\\\wsl.localhost\\Ubuntu\\var\\tmp\\xlang-validation\\xge-full-20261110\\thread-neutral-leaf-qualified-linux-r1\\results.json",
+      "sha256": "b9aa961f1d56857d0bc940b98b3f4053d83507040b2bf7b82a20cd0440f6a607",
+      "checks": 12
+    }
+  }
+}

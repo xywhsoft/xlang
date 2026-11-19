@@ -89,6 +89,12 @@ typedef struct XL6_ForeignViewDescriptorV1 {
  * consumption and may make durable progress while retaining that owner.
  * Only a continuation-aware plan may invoke it as a graph finalizer. */
 #define XL6_FOREIGN_VIEW_CONTINUABLE_FINALIZE UINT64_C(16)
+/* An owning leaf with thread-neutral methods and destruction. The payload
+ * has no language/native ownership edges, external invalidation, or native
+ * scopes, and can be destroyed on any thread after the last admitted call.
+ * Destroy and optional DestroyUnadopted must not invoke user code or require
+ * the creating thread. Individual call/result tokens remain thread-local. */
+#define XL6_FOREIGN_VIEW_THREAD_NEUTRAL_LEAF UINT64_C(32)
 
 /* Stable compiler-owned storage; never copy a live call or callback scope.
  * nativeStorage is a separately typed C record emitted from the declaration,
