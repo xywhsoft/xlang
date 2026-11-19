@@ -719,15 +719,32 @@ const XL6_ForeignViewDescriptorV1* xl6Xui3CodeThemePolicyGet(void)
 const XL6_ForeignViewDescriptorV1* xl6Xui3CodeSelectionPolicyGet(void){return NULL;}
 const XL6_ForeignViewDescriptorV1* xl6Xui3CodeThemePolicyGet(void){return NULL;}
 #endif
-/* Scope members are native borrowed editors. XGE removes destroyed editors
- * and detaches all remaining members when the scope closes. No language
- * callback is installed here, so this independent root has no owning edges. */
-static bool destroy_find_scope(void* raw){xuiCodeFindScopeDestroy(raw);return true;}
+/* The find scope borrows its editors and owns its activation callback. */
+#if XUI_ENABLE_CODE_EDIT
+static bool watch_find_scope(void* raw,void* storage,void(*invalidate)(void*),void* user)
+{int status=xuiCodeFindScopeLifetimeWatch(raw,storage,invalidate,user);if(status!=XUI_OK)report_resource_failure(status,"xuiCodeFindScopeLifetimeWatch");return status==XUI_OK;}
+static bool begin_find_scope(void* raw,void* storage)
+{int status=xuiCodeFindScopeCallBegin(raw,storage);if(status!=XUI_OK)report_resource_failure(status,"xuiCodeFindScopeCallBegin");return status==XUI_OK;}
+static bool end_find_scope(void* storage)
+{int status=xuiCodeFindScopeCallEnd(storage);if(status!=XUI_OK)report_resource_failure(status,"xuiCodeFindScopeCallEnd");return status==XUI_OK;}
+static bool destroy_find_scope(void* raw)
+{bool consumed=false;int status=xuiCodeFindScopeDestroyOwnerChecked(raw,&consumed);report_resource_failure(status,"xuiCodeFindScopeDestroyOwnerChecked");return consumed;}
+static bool trace_find_scope(const void* raw,XL6_ModuleOwnershipVisit visit,void* user)
+{return xuiCodeFindScopeTraceOwnership((xui_code_find_scope)raw,visit,user);}
+static bool busy_find_scope(const void* raw)
+{return xuiCodeFindScopeOwnershipBusy((xui_code_find_scope)raw);}
 const XL6_ForeignViewDescriptorV1* xl6Xui3CodeFindScopePolicyGet(void)
 {
     static const XL6_ForeignViewDescriptorV1 value={sizeof(value),XL6_FOREIGN_VIEW_V1_TAG,"xui.codeFindScope",
-        0,1,NULL,NULL,destroy_find_scope,0,1,NULL,NULL,NULL,NULL,0,NULL,NULL};return &value;
+        sizeof(xui_lifetime_link_t),_Alignof(xui_lifetime_link_t),watch_find_scope,unwatch,destroy_find_scope,
+        sizeof(xui_code_find_scope_call_t),_Alignof(xui_code_find_scope_call_t),begin_find_scope,end_find_scope,
+        trace_find_scope,busy_find_scope,XL6_FOREIGN_VIEW_RELIABLE_OWNED_WATCH|
+        XL6_FOREIGN_VIEW_DESTROY_OWNS_NATIVE_SCOPE|XL6_FOREIGN_VIEW_DESTROY_REPORTS_FAILURE,NULL,NULL};
+    return &value;
 }
+#else
+const XL6_ForeignViewDescriptorV1* xl6Xui3CodeFindScopePolicyGet(void){return NULL;}
+#endif
 const XL6_ForeignViewDescriptorV1* xl6Xui3PathPolicyGet(void)
 {
     static const XL6_ForeignViewDescriptorV1 value={sizeof(value),XL6_FOREIGN_VIEW_V1_TAG,"xui.path",

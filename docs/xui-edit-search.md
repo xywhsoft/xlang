@@ -30,6 +30,22 @@ strings in xlang. The C comparison reads inline previews with no XRT heap
 operations. The xlang path also scans the bounded preview, copies its bytes,
 and enters checked native scopes.
 
+`CodeFindScope.setActivate(callback)` observes activation from both scoped
+navigation and `activateResult`. The callback returns `XUI_OK` on success.
+Use `setActivate(null)` to remove it. The scope, editor and match arguments
+are callback-time views. Save the returned preview string or offset values
+when they are needed later. A replacement applies to subsequent activations,
+and a callback can request scope closure while reading the current match.
+An exception reaches the checked activation or Context dispatch call that
+invoked the callback. Register and invoke it on the thread that created
+the scope.
+
+The native activation keeps one result record on the stack while it updates
+focus. The callback has an owned registration reference and one temporary
+dispatch reference. Preview access scans within the fixed UTF-8 buffer and
+copies the text into a language string. Reading the offsets and line number
+does not copy the preview.
+
 CodeEdit exposes findAll, findNext, findPrevious, replaceCurrent, replaceAll,
 replaceAllPlain and replaceAllRegex. TextEdit exposes findNext, findPrevious,
 replaceCurrent and replaceAll. Each declaration calls the original native

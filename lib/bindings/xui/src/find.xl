@@ -2,9 +2,23 @@
 export extern "xui_widget_t*" class NativeWidgetPointer @header("xge3_runtime.h") @lifetime("caller")
  native point handle
 end
-// Independent native scope. Editors remain owned by their Context; XGE removes
-// them on native destruction and detaches them when this scope closes.
-export extern "xui_code_find_scope_t*" class CodeFindScope @header("xge3_runtime.h") @lifetime("owned") @policy("xl6Xui3CodeFindScopePolicy")
+// Arguments are borrowed for this invocation only.
+export extern "xui_code_find_scope_t*" class CallbackCodeFindScope @header("xge3_runtime.h") @lifetime("callback")
+ native point handle
+ extern "xuiCodeFindScopeGetResultCount" @no_raise func resultCount() as c_int
+end
+export extern "const xui_code_find_result_t*" class CallbackCodeFindResult @header("xge3_runtime.h") @lifetime("callback")
+ native point handle
+ extern "iStart" @c_field get start() as c_int
+ extern "iEnd" @c_field get finish() as c_int
+ extern "iLine" @c_field get line() as c_int
+ extern "iColumn" @c_field get column() as c_int
+ extern "xuiCodeFindResultGetPreviewView" @no_raise @c_output(1,0) @c_output_view(1,"text") get preview() as string
+end
+export typedef CodeFindActivateProc = func(CallbackCodeFindScope,CallbackWidget,CallbackCodeFindResult) as c_int
+
+// Independent, creator-thread scope. Editors remain owned by their Context.
+export extern "xui_code_find_scope_t*" class CodeFindScope @header("xge3_runtime.h") @lifetime("owned") @policy("xl6Xui3CodeFindScopePolicy") @watch("xui_lifetime_link_t") @scope("xui_code_find_scope_call_t") @domain("xl6Xui3OwnershipDomainV1")
  native point handle
  extern "xuiCodeFindScopeClearEditors" @no_raise @c_result("status",0) func clearEditors()
  extern "xuiCodeFindScopeAddEditor" @no_raise @c_result("status",0) func addEditor(CodeEdit editor)
@@ -25,6 +39,7 @@ export extern "xui_code_find_scope_t*" class CodeFindScope @header("xge3_runtime
  extern "xuiCodeFindScopeSetActiveEditor" @no_raise @c_result("status",0) func setActiveEditor(CodeEdit? editor)
  extern "xuiCodeFindScopeFindNext" @no_raise @c_result("status",0) func findNext(c_int previous=0)
  extern "xuiCodeFindScopeRefresh" @no_raise @c_result("status",0) func refresh()
+ extern "xuiCodeFindScopeSetActivateOwned" @no_raise @c_owned_callback(0,0,"xui_callback_owner_t",-16) @c_result("status",0) func setActivate(CodeFindActivateProc? callback)
  extern "xuiCodeFindScopeActivateResult" @no_raise @c_result("status",0) func activateResult(c_int index)
  extern "xuiCodeFindScopeGetResultCount" @no_raise func resultCount() as c_int
  extern "xuiCodeFindScopeGetResult" @no_raise @c_output_record(2,"xui_code_find_result_t","borrowed") @c_status(0) @c_output_field(0,"iStart") @c_output_field(1,"iEnd") @c_output_field(2,"iLine") @c_output_field(3,"iColumn") @c_output_field(4,"sPreview","cstring") func getResult(c_int index) as (c_int,c_int,c_int,c_int,string)
@@ -33,4 +48,4 @@ export extern "xui_code_find_scope_t*" class CodeFindScope @header("xge3_runtime
  extern "xl6ForeignViewCloseV1" @no_raise @c_control(0) @c_result("bool_status") func close()
 end
 export extern "xuiCodeFindScopeCreate" @header("xge3_runtime.h") @no_raise @c_result("owned_view") @factory(0,0,rollbackCodeFindScope) func createCodeFindScope() as CodeFindScope
-extern "xuiCodeFindScopeDestroy" @header("xge3_runtime.h") @no_raise func rollbackCodeFindScope(CodeFindScope scope)
+extern "xuiCodeFindScopeDestroyChecked" @header("xge3_runtime.h") @no_raise @c_result("status",0) func rollbackCodeFindScope(CodeFindScope scope)

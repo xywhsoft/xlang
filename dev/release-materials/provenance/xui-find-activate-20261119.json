@@ -1,0 +1,102 @@
+{
+  "complete": true,
+  "passed": true,
+  "releaseInstalled": false,
+  "shippingDelivery": false,
+  "sourceParent": "b4f107befcb97f3ac8b2892656356af209d456cc",
+  "nativeCommit": "e242ba519e816bf5bb64ef69065c93da81d82f01",
+  "frozenXrt": "804cc769de3030118c2b46ef7af69543d1b82d9d",
+  "scope": [
+    "Managed, creator-thread CodeFindScope activation callback with a traced owned reference, dispatch pin, and a bounded preview view.",
+    "Replacement and clear during activation, stable callback-time results, checked callback failures, and deferred destruction.",
+    "The normal raw C activation callback remains available. Scope members are borrowed editors owned by their Context."
+  ],
+  "sources": {
+    "docs/xge3-xui3-api-map-storage.json": "01e091d6f5452bbae3a74f947cd6aded43a7f24d10f2669be9742e8edb9894f6",
+    "docs/xui-edit-search.md": "8dab5b4f5cace927540d30b782dbba412f6eb19491c64e79d7c5284cf47bb755",
+    "lib/bindings/_xge_native/src/runtime.c": "e59a458a5c390e32fae6a23a7befb165888d89eef6f952ff8f3b7d7eedaabedf",
+    "lib/bindings/xui/src/find.xl": "f8e6e8a64da732d588954f2cceb3009c9ba455c33262ff0f424b48082ea095e9",
+    "lib/bindings/xui/examples/shared_find.xl": "5082324e60d311d90fe88698ee414f09099832b2e7a7dc9abe2179e46e4e7349",
+    "test/cases/foreign_xui_find_activate.xl": "aae25449dece36f135171257668b4d769eb5fea6c081d21784e60ca60e0d33cf"
+  },
+  "nativeSources": {
+    "include/xui.h": "77a76a7d1ed15a0ea5e8d03e6b85e815bf59d0036199c4cdc0a6803d6b021d7f",
+    "src/xui/code/xui_code_edit.c": "9257bb28203c9fa4c36acd8fa5f74e238da813e7b032709483c66d71d47fe516",
+    "src/xui/code/xui_code_find_window.inc": "47e22a0358ad1ea1e7cbd81ce05b2d383a5df7dc5f2b15ac08185242f0c542c3",
+    "tests/xui/xui_code_find_session_test.c": "8b5cb734899baccbd058d34d7411ab861631facdfa110f7e8a79d48a2eb591be"
+  },
+  "platforms": {
+    "win": {
+      "sdk": {
+        "path": "F:\\xlang-validation\\xge-full-20261110\\find-activate-sdk-win-r5\\results.json",
+        "sha256": "03f95e2167d28a9665cb29ac981b9258d5add492806cff517231a400feb58900",
+        "commands": 2
+      },
+      "native": {
+        "path": "F:\\xlang-validation\\xge-full-20261110\\find-activate-native-tests-win-r5\\results.json",
+        "sha256": "b6c4abc28a924a48b060934ad17fec97c35c98e12f1fc6bfb03d4680dcf2d2e2",
+        "commands": 4
+      },
+      "packages": {
+        "path": "F:\\xlang-validation\\xge-full-20261110\\find-activate-packages-win-r7\\results.json",
+        "sha256": "b415db0ec30d45d182d897f1005b8c3811945a0a3bc346e43c082026a25c3d29",
+        "commands": 6
+      },
+      "replayedPackage": {
+        "path": "F:\\xlang-validation\\xge-full-20261110\\find-activate-packages-win-r6\\results.json",
+        "sha256": "4aabe1b486252aa4122780ce56e116122604b481adfcf344b15bd59e21472aca",
+        "differingFiles": [
+          "host/xui/examples/shared_find.xl",
+          "stage-report.json",
+          "static/xui/examples/shared_find.xl"
+        ]
+      },
+      "language": {
+        "path": "F:\\xlang-validation\\xge-full-20261110\\find-activate-tests-win-r7\\results.json",
+        "sha256": "57901fb73e947c2e26c37e073e6d316ce2f9c110eefb0487e99009f15c519de6",
+        "commands": 33
+      },
+      "examples": {
+        "path": "F:\\xlang-validation\\xge-full-20261110\\find-activate-examples-win-r7\\results.json",
+        "sha256": "e01f5987296b5e4ba6c073b00f99285265e86ca2863a18cff466221507b0a1f1",
+        "commands": 4
+      }
+    },
+    "linux": {
+      "sdk": {
+        "path": "/var/tmp/xlang-validation/xge-full-20261110/find-activate-sdk-linux-r5/results.json",
+        "sha256": "d0b185d0f4756d13dd3a3d270b1d79eae3fccccc9b65308470c1086ebc58107b",
+        "commands": 2
+      },
+      "native": {
+        "path": "/var/tmp/xlang-validation/xge-full-20261110/find-activate-native-tests-linux-r5/results.json",
+        "sha256": "c8bf05720ba1ee8dd053d1490093d1abadcf73537c8b240671e5d4d7e342c43a",
+        "commands": 4
+      },
+      "packages": {
+        "path": "/var/tmp/xlang-validation/xge-full-20261110/find-activate-packages-linux-r7/results.json",
+        "sha256": "1f4a090d9f7bce8141cf045550c3ca4216157ab3e78556ba788f7eee987697b4",
+        "commands": 6
+      },
+      "replayedPackage": {
+        "path": "\\\\wsl.localhost\\Ubuntu\\var\\tmp\\xlang-validation\\xge-full-20261110\\find-activate-packages-linux-r6\\results.json",
+        "sha256": "4018142e9f28bba94f5ae00de72c35b2926566bec65138372e7a00894f642781",
+        "differingFiles": [
+          "host/xui/examples/shared_find.xl",
+          "stage-report.json",
+          "static/xui/examples/shared_find.xl"
+        ]
+      },
+      "language": {
+        "path": "/var/tmp/xlang-validation/xge-full-20261110/find-activate-tests-linux-r7/results.json",
+        "sha256": "f4d50f3b011cddbad1f420b5cf4ca84884c3eb49946c225c43d0c71f8021022a",
+        "commands": 33
+      },
+      "examples": {
+        "path": "/var/tmp/xlang-validation/xge-full-20261110/find-activate-examples-linux-r7/results.json",
+        "sha256": "355ded002fc8e3b0dcb01e531c0d6a3e3d6a135f886ea76e36975383af9a9dd0",
+        "commands": 4
+      }
+    }
+  }
+}

@@ -1,0 +1,106 @@
+import xui
+from xui import CallbackCodeFindResult
+
+extern "fixtureRenderProxy" @header("test/cases/foreign_xui_render_backend.h") @no_raise @c_result("owned_view") @factory(0,0,dropProxy) func cpuProxy() as xui.Proxy
+extern "fixtureRenderFont" @header("test/cases/foreign_xui_render_backend.h") @no_raise @c_result("owned_view") @factory(1,0,dropFont) func cpuFont(xui.Proxy proxy) as xui.Font
+extern "xuiProxyReleaseChecked" @header("xge3_runtime.h") @no_raise @c_result("status",0) func dropProxy(xui.Proxy value)
+extern "xuiFontReleaseChecked" @header("xge3_runtime.h") @no_raise @c_result("status",0) func dropFont(xui.Font value)
+extern "fixtureRenderBudget" @header("test/cases/foreign_xui_render_backend.h") @no_raise func budget(c_int allowance)
+extern "fixtureRenderBalanced" @header("test/cases/foreign_xui_render_backend.h") @no_raise func balanced() as c_int
+
+func exerciseFind(xui.Context context)
+    auto root = context.widget()
+    auto editor = context.codeEditNative()
+    assert context.setRootWidget(root) == xui.XUI_OK
+    assert root.addChild(editor) == xui.XUI_OK
+    context.setViewportSize(800,600)
+    editor.setText("你 alpha")
+    auto scope = xui.createCodeFindScope()
+    try
+        scope.addEditor(editor)
+        assert scope.findAll("alpha") == 1
+        CallbackCodeFindResult? saved = null
+        string preview = ""
+        int calls = 0
+        int replacementCalls = 0
+        auto replacement = func(xui.CallbackCodeFindScope source,xui.CallbackWidget target,xui.CallbackCodeFindResult result) as c_int
+            replacementCalls += 1
+            return xui.XUI_OK
+        end
+        scope.setActivate(func(xui.CallbackCodeFindScope source,xui.CallbackWidget target,xui.CallbackCodeFindResult result) as c_int
+            assert source.resultCount() == 1 and result.start == 4 and result.finish == 9
+            assert result.line == 0 and result.column == 2
+            calls += 1
+            saved = result
+            preview = result.preview
+            scope.setActivate(replacement)
+            return xui.XUI_OK
+        end)
+        bool rejected = false
+        budget(0)
+        try
+            scope.setActivate(replacement)
+        catch Error
+            rejected = true
+        finally
+            budget(-1)
+        end
+        assert rejected
+        scope.activateResult(0)
+        assert calls == 1 and replacementCalls == 0 and preview == "你 alpha"
+        rejected = false
+        try
+            auto invalid = (saved as CallbackCodeFindResult).start
+        catch StateError
+            rejected = true
+        end
+        assert rejected
+        scope.activateResult(0)
+        assert calls == 1 and replacementCalls == 1
+        scope.setActivate(func(xui.CallbackCodeFindScope source,xui.CallbackWidget target,xui.CallbackCodeFindResult result) as c_int
+            throw "find activation failed"
+        end)
+        rejected = false
+        try
+            scope.activateResult(0)
+        catch error
+            rejected = error.message == "find activation failed"
+        end
+        assert rejected
+        scope.setActivate(null)
+        scope.activateResult(0)
+        scope.setActivate(func(xui.CallbackCodeFindScope source,xui.CallbackWidget target,xui.CallbackCodeFindResult result) as c_int
+            scope.close()
+            assert result.finish == 9
+            return xui.XUI_OK
+        end)
+        scope.activateResult(0)
+        rejected = false
+        try
+            scope.resultCount()
+        catch StateError
+            rejected = true
+        end
+        auto text = editor.getText() ?? ""
+        assert rejected and text == "你 alpha"
+    finally
+        scope.close()
+    end
+end
+
+func main(...) as int
+    auto proxy = cpuProxy()
+    auto font = cpuFont(proxy)
+    auto context = xui.create(proxy,xui.XUI_SYSTEM_FONT_DISABLED)
+    try
+        context.setDefaultFont(font)
+        exerciseFind(context)
+    finally
+        context.close()
+        font.close()
+        proxy.close()
+    end
+    assert balanced() == 1
+    println("XUI_FIND_ACTIVATE_OK")
+    return 0
+end

@@ -21,6 +21,13 @@ try
     auto name = search.resultEditorName(c_int(index)) ?? ""
     println(name, " ", line + 1, ":", column + 1, " [", start, ", ", finish, ") ", preview)
    end
+   search.setActivate(func(xui.CallbackCodeFindScope source, xui.CallbackWidget editor, xui.CallbackCodeFindResult result) as c_int
+    println("Selected line", result.line + 1, ":", result.preview)
+    return xui.XUI_OK
+   end)
+   if count > 0 then
+    search.activateResult(0)
+   end
    auto firstMatchEditor = search.getResultEditor(ui, 0)
    if firstMatchEditor != null then
     auto editor = firstMatchEditor as CodeEdit
