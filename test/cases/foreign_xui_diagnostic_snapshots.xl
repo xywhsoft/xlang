@@ -1,0 +1,138 @@
+import xui
+
+extern "fixtureRenderProxy" @header("test/cases/foreign_xui_flow_canvas.h") @no_raise @c_result("owned_view") @factory(0,0,dropProxy) func cpuProxy() as xui.Proxy
+extern "xuiProxyReleaseChecked" @header("xge3_runtime.h") @no_raise @c_result("status",0) func dropProxy(xui.Proxy proxy)
+extern "fixtureRenderBalanced" @no_raise func balanced() as c_int
+extern "fixtureFlowCanvasBudget" @no_raise func budget(c_int allowance)
+extern "fixtureFlowCanvasReset" @no_raise func reset()
+extern "xrtMemDebugFailTriggered" @header("xrt_decl.h") @no_raise func failedAllocation() as c_bool
+
+func main(...) as int
+    auto proxy = cpuProxy()
+    auto ui = xui.create(proxy, xui.XUI_SYSTEM_FONT_DISABLED)
+    auto root = ui.widget()
+    xui.Rect bounds
+    bounds.fW = 640
+    bounds.fH = 480
+    assert root.setRect(bounds) == 0 and ui.setRootWidget(root) == 0, "root setup"
+    ui.inputViewport(640, 480)
+
+    auto leaf = ui.buttonNative()
+    bounds.fX = 11
+    bounds.fY = 23
+    bounds.fW = 150
+    bounds.fH = 40
+    assert leaf.setRect(bounds) == 0 and root.addChild(leaf) == 0, "button setup"
+    assert leaf.setFocusable(1) == 0, "button focusability"
+    leaf.setTabStop(1)
+    leaf.setDragEnabled(1)
+    leaf.setDropEnabled(1)
+    leaf.setLayer(xui.XUI_LAYER_DEBUG, 13)
+    leaf.setStateId(77)
+
+    auto dock = ui.dockPanelNative()
+    bounds.fY = 90
+    bounds.fW = 420
+    bounds.fH = 300
+    assert dock.setRect(bounds) == 0 and root.addChild(dock) == 0, "DockPanel setup"
+    auto id = dock.addWindow("Inspector", ui.labelNative())
+    auto _, _, hidden, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _ = dock.getWindowInfo(id)
+    assert hidden == xui.XUI_DOCK_PANEL_WINDOW_HIDDEN, "new dock window is hidden"
+    dock.setWindowMinSize(id, 113.5, 61.25)
+    dock.setWindowFlags(id, 0, 1)
+    dock.setWindowMovable(id, 0)
+    dock.setWindowResizable(id, 0)
+    auto expectedPane = dock.dockWindow(id, xui.XUI_DOCK_PANEL_REGION_DOCUMENT, xui.XUI_DOCK_PANEL_SIDE_FILL)
+    assert ui.layout() == 0 and ui.buildRenderTree() == 0, "layout and render-tree build"
+
+    auto depth, children, visible, enabled, focusable, tabStop, _, hitVisible, drag, drop, _, layer, z, _, _, _, local, world, _ = leaf.debugInfo()
+    assert depth == 1 and children == 0 and visible == 1 and enabled == 1, "button hierarchy and visibility"
+    assert focusable == 1 and tabStop == 1 and hitVisible == 1 and drag == 1 and drop == 1, "button input options"
+    assert layer == xui.XUI_LAYER_DEBUG and z == 13, "button layer and z-index"
+    assert local.fX == 11 and local.fY == 23 and world.fW == 150 and world.fH == 40, "button geometry"
+    c_uint cacheDirty = c_uint(xui.XUI_WIDGET_DIRTY_CACHE)
+    assert leaf.invalidate(cacheDirty) == 0, "button cache invalidation"
+    auto _, _, _, _, _, _, _, _, _, _, _, _, _, dirty, _, _, _, _, _ = leaf.debugInfo()
+    auto _, childCount, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, subtreeDirty = root.debugInfo()
+    assert childCount == 2, "root child count"
+    assert (dirty & cacheDirty) != 0 and (subtreeDirty & cacheDirty) != 0, "dirty flags propagate to the parent"
+
+    auto window, pane, state, region, _, _, _, closable, dockable, movable, resizable, edges, minWidth, minHeight, _, dockRect, client, tab, _ = dock.getWindowInfo(id)
+    assert window == id and pane == expectedPane and state == xui.XUI_DOCK_PANEL_WINDOW_DOCKED, "DockPanel window ID, pane ID and state"
+    assert region == xui.XUI_DOCK_PANEL_REGION_DOCUMENT and closable == 0 and dockable == 1 and movable == 0 and resizable == 0, "DockPanel window flags"
+    assert edges == dock.getWindowResizeEdges(id) and minWidth == 113.5 and minHeight == 61.25, "DockPanel dimensions and edges"
+    assert dockRect.fW > 0 and client.fW > 0 and tab.fW == 0, "a single docked window has no tab rectangle"
+
+    assert ui.getRenderNodeCount() > 0, "render tree contains visible nodes"
+    bool coldFailed = false
+    bool injected = false
+    xui.Rect previous
+    previous.fW = -17
+    budget(0)
+    try
+        previous, _, _, _, _, _, _ = ui.getRenderNode(0)
+    catch Error
+        coldFailed = true
+    finally
+        injected = bool(failedAllocation())
+        reset()
+    end
+    assert coldFailed and injected and previous.fW == -17, "cold render indexing rolls back on allocation failure"
+
+    int found = -1
+    for index in range(int(ui.getRenderNodeCount()))
+        auto nodeWorld, paint, renderLayer, renderZ, stateId, _, _ = ui.getRenderNode(c_int(index))
+        if stateId == 77 then
+            assert nodeWorld.fX == world.fX and nodeWorld.fY == world.fY and paint.fW > 0, "render-node geometry"
+            assert renderLayer == layer and renderZ == z, "render-node layer and z-index"
+            found = index
+        end
+    end
+    assert found >= 0, "render tree contains the expected button"
+
+    bool invalidRender = false
+    bool invalidDock = false
+    try
+        auto _, _, _, _, _, _, _ = ui.getRenderNode(-1)
+    catch Error
+        invalidRender = true
+    end
+    try
+        auto _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _ = dock.getWindowInfo(-1)
+    catch Error
+        invalidDock = true
+    end
+    assert invalidRender and invalidDock, "invalid indexes and IDs are checked errors"
+
+    budget(0)
+    try
+        for round in range(1000)
+            auto _, _, _, _, nodeId, _, _ = ui.getRenderNode(c_int(found))
+            auto widgetDepth, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _ = leaf.debugInfo()
+            auto windowId, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _ = dock.getWindowInfo(id)
+            assert nodeId == 77 and widgetDepth == 1 and windowId == id, "stable warmed snapshots"
+        end
+        assert not failedAllocation(), "warmed snapshots make no XRT heap allocations"
+    finally
+        reset()
+    end
+
+    auto peer = dock.addWindow("Log", ui.labelNative())
+    assert dock.dockWindowToPane(peer, expectedPane) == 0 and ui.layout() == 0, "show two tabs in the same pane"
+    auto _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, populatedTab, _ = dock.getWindowInfo(id)
+    assert populatedTab.fW > 0, "the tab rectangle appears with multiple windows"
+
+    leaf.close()
+    bool expired = false
+    try
+        auto _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _ = leaf.debugInfo()
+    catch StateError
+        expired = true
+    end
+    assert expired and world.fW == 150, "the view expires and the snapshot survives"
+    ui.close()
+    proxy.close()
+    assert balanced() == 1, "CPU proxy resources are balanced"
+    println("XUI_DIAGNOSTIC_SNAPSHOTS_OK")
+    return 0
+end

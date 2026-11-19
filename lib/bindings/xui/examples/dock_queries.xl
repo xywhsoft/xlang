@@ -18,6 +18,18 @@ try
  ui.layout()
 
  println("Tool pane: ",toolsPane)
+ // Read the window state and layout from one native snapshot.
+ auto _, pane, state, _, _, _, _, _, _, _, _, _, _, _, _, windowRect, _, tabRect, _ = dock.getWindowInfo(tools)
+ println("Window state: ",state,", pane: ",pane,", width: ",windowRect.fW,", tab width: ",tabRect.fW)
+
+ auto depth, children, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _ = dock.debugInfo()
+ println("Dock widget depth: ",depth,", children: ",children)
+ assert ui.buildRenderTree()==0
+ if ui.getRenderNodeCount()>0 then
+  auto _, paint, layer, _, _, _, _ = ui.getRenderNode(0)
+  println("First render node layer: ",layer,", paint width: ",paint.fW)
+ end
+
  // Coordinates are local to the DockPanel; bValid distinguishes a miss.
  auto target=dock.findDropTarget(tools,1,250)
  println("Drop target: ",target.bValid,"; pane: ",target.iPane)

@@ -1,0 +1,49 @@
+{
+  "complete": true,
+  "passed": true,
+  "releaseInstalled": false,
+  "sourceParent": "7e214efcc3f15dd6919a9c89050e865599e780cf",
+  "nativeCommit": "bd00bd732245822fa0a29b1d7d032201b9d1e296",
+  "xrtCommit": "804cc769de3030118c2b46ef7af69543d1b82d9d",
+  "sourceHashes": {
+    "tools/xui_managed_contracts.py": "4b3b0f31bd42b920773ba714385523fdbafb418dbf2ac2755fcd7449d6cc8391",
+    "lib/bindings/xui/src/managed.xl": "c1b1a05f93f88dbea7dea792214001fd96329f9742ede9c007445ed92d8d9147",
+    "lib/bindings/xui/examples/dock_queries.xl": "5d3050f7ecbeb7ef15b1457e32f23eb5ca9a0b15bfc175b65ca5985c9680c50d",
+    "lib/bindings/xui/examples/README.md": "71d36e597bbd272b0862df7a83a3e4b0e48796b02dc31132a4ce5cc9e479a21c",
+    "test/cases/foreign_xui_diagnostic_snapshots.xl": "e1680595a7bf52f7090f9f4c29b0f39d2fcd02e2cb888fcfb76fcaef115ab3b7"
+  },
+  "evidence": {
+    "win": {
+      "package": {
+        "path": "F:\\xlang-validation\\xge-full-20261110\\xui-diagnostics-packages-win-r2\\results.json",
+        "sha256": "2b431901ab137e26e6025aee40207be929c6a2af2410d985d4633c49eb818d49"
+      },
+      "language": {
+        "path": "F:\\xlang-validation\\xge-full-20261110\\xui-diagnostics-language-win-r3\\results.json",
+        "sha256": "37c04fb08de2fcc171b9ee261ddf24af22d1a59c33280b40a41d856a4e416d42"
+      },
+      "packageSteps": 6,
+      "languageSteps": 14
+    },
+    "linux": {
+      "package": {
+        "path": "\\\\wsl.localhost\\Ubuntu\\var\\tmp\\xlang-validation\\xge-full-20261110\\xui-diagnostics-packages-linux-r2\\results.json",
+        "sha256": "05ac6637ff96af78b77d88e9d158912f4f8764b0c0300db9f3b29a47b7aab70a"
+      },
+      "language": {
+        "path": "\\\\wsl.localhost\\Ubuntu\\var\\tmp\\xlang-validation\\xge-full-20261110\\xui-diagnostics-language-linux-r3\\results.json",
+        "sha256": "2767457980df75137084b6d5856009b5fe4e05f0d413a639b3669cd77ef4ae21"
+      },
+      "packageSteps": 6,
+      "languageSteps": 14
+    }
+  },
+  "coverage": [
+    "Widget state, hierarchy, geometry and dirty propagation; render-tree geometry and flags; Dock state and rectangles.",
+    "Checked invalid indexes and IDs, checked expiry, and independent saved rectangles.",
+    "Cold render-node indexing reports injected OOM, leaves the destination intact and succeeds on retry.",
+    "1000 prepared queries of each producer with no attempted XRT allocation.",
+    "JIT, dynamic and static AOT on Windows and Linux, C11/C++11/C++17 headers and inspected imports.",
+    "The updated Dock console example runs on both platforms."
+  ]
+}

@@ -442,6 +442,30 @@ METHODS.update({
         '@c_output_field(4,"iIcon") func getItem(c_int index) as (string,c_int,c_int,c_int,c_int)']],
     'xuiWorkflowWidgetGetWorkflowOwned': ['int xuiWorkflowWidgetGetWorkflowOwned(xui_widget widget,xui_workflow* output)', "WorkflowWidget", ['extern "xuiWorkflowWidgetGetWorkflowOwned" @no_raise @c_result("owned_view") @factory(1,0,rollbackWorkflow) func getWorkflow() as Workflow']],
     'xuiWorkflowWidgetSetWorkflowShared': ['int xuiWorkflowWidgetSetWorkflowShared(xui_widget widget,xui_workflow workflow)', "WorkflowWidget", ['extern "xuiWorkflowWidgetSetWorkflowShared" @no_raise @c_result("status",0) func setWorkflow(Workflow workflow)']],
+    'xuiGetRenderNode': [
+        'int xuiGetRenderNode(xui_context pContext, int iIndex, xui_render_node_t* pNode)', 'Context',
+        ['extern "xuiGetRenderNode" @no_raise @c_output_record(2,"xui_render_node_t","borrowed") @c_output_size(2,"iSize") @c_status(0) '
+         '@c_output_field(0,"tWorldRect") @c_output_field(1,"tPaintRect") @c_output_field(2,"iLayer") @c_output_field(3,"iZIndex") '
+         '@c_output_field(4,"iStateId") @c_output_field(5,"iCachePolicy") @c_output_field(6,"iFlags") '
+         'func getRenderNode(c_int index) as (Rect,Rect,c_int,c_int,c_uint,c_int,c_uint)']],
+    'xuiDebugWidgetInspect': [
+        'int xuiDebugWidgetInspect(xui_widget pWidget, xui_debug_widget_info_t* pInfo)', 'Widget',
+        ['extern "xuiDebugWidgetInspect" @no_raise @c_output_record(1,"xui_debug_widget_info_t","borrowed") @c_output_size(1,"iSize") @c_status(0) '
+         '@c_output_field(0,"iDepth") @c_output_field(1,"iChildCount") @c_output_field(2,"bVisible") @c_output_field(3,"bEnabled") '
+         '@c_output_field(4,"bFocusable") @c_output_field(5,"bTabStop") @c_output_field(6,"bFocusScope") @c_output_field(7,"bHitTestVisible") '
+         '@c_output_field(8,"bDragEnabled") @c_output_field(9,"bDropEnabled") @c_output_field(10,"iImeMode") @c_output_field(11,"iLayer") '
+         '@c_output_field(12,"iZIndex") @c_output_field(13,"iDirtyFlags") @c_output_field(14,"iEventMask") @c_output_field(15,"iSubtreeEventMask") '
+         '@c_output_field(16,"tRect") @c_output_field(17,"tWorldRect") @c_output_field(18,"iSubtreeDirtyFlags") '
+         'func debugInfo() as (c_int,c_int,c_int,c_int,c_int,c_int,c_int,c_int,c_int,c_int,c_int,c_int,c_int,c_uint,uint64,uint64,Rect,Rect,c_uint)']],
+    'xuiDockPanelGetWindowInfo': [
+        'int xuiDockPanelGetWindowInfo(xui_widget pWidget, int iWindow, xui_dock_window_info_t* pInfo)', 'DockPanel',
+        ['extern "xuiDockPanelGetWindowInfo" @no_raise @c_output_record(2,"xui_dock_window_info_t","borrowed") @c_output_size(2,"iSize") @c_status(0) '
+         '@c_output_field(0,"iWindow") @c_output_field(1,"iPane") @c_output_field(2,"iState") @c_output_field(3,"iRegion") '
+         '@c_output_field(4,"iLastRegion") @c_output_field(5,"iLastSide") @c_output_field(6,"iLastTabIndex") @c_output_field(7,"bClosable") '
+         '@c_output_field(8,"bDockable") @c_output_field(9,"bMovable") @c_output_field(10,"bResizable") @c_output_field(11,"iResizeEdges") '
+         '@c_output_field(12,"fMinWidth") @c_output_field(13,"fMinHeight") @c_output_field(14,"tIconSrc") @c_output_field(15,"tRect") '
+         '@c_output_field(16,"tClientRect") @c_output_field(17,"tTabRect") @c_output_field(18,"tAutoHideRect") '
+         'func getWindowInfo(c_int window) as (c_int,c_int,c_int,c_int,c_int,c_int,c_int,c_int,c_int,c_int,c_int,c_uint,c_float,c_float,Rect,Rect,Rect,Rect,Rect)']],
     'xuiFlowGraphWidgetGetGraphOwned': [
         'int xuiFlowGraphWidgetGetGraphOwned(xui_widget widget,xui_flow_graph* output)',
         'FlowGraphWidget',
