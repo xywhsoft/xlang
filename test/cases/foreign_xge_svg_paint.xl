@@ -1,0 +1,238 @@
+import xge
+from xge import Shape, ShapeScene, SvgPaint, SvgPaintVisit
+
+extern "xrtMemDebugEnable" @header("xrt_decl.h") @no_raise func enableDebug(c_bool enabled) as c_bool
+extern "xrtMemDebugEnabled" @header("xrt_decl.h") @no_raise func debugEnabled() as c_bool
+extern "fixtureSvgPrefixBegin" @header("test/cases/foreign_xge3_svg.h") @no_raise func prefixBegin(c_int allowance)
+extern "fixtureSvgPrefixEnd" @header("test/cases/foreign_xge3_svg.h") @no_raise func prefixEnd()
+extern "fixtureSvgHeapEqual" @header("test/cases/foreign_xge3_svg.h") @no_raise func heapEqual()
+extern "fixtureSvgHotBegin" @header("test/cases/foreign_xge3_svg.h") @no_raise func hotBegin()
+extern "fixtureSvgHotEnd" @header("test/cases/foreign_xge3_svg.h") @no_raise func hotEnd()
+extern "xrtMemDebugFailTriggered" @header("xrt_decl.h") @no_raise func failTriggered() as c_bool
+
+const string svgXml = "<svg xmlns='http://www.w3.org/2000/svg' width='20' height='10'><g id='group'><rect id='tile' width='20' height='10'/></g></svg>"
+
+func expired(SvgPaint paint) as bool
+    try
+        paint.getId()
+    catch StateError
+        return true
+    end
+    return false
+end
+
+func independentPaint() as SvgPaint
+    auto document = xge.createSvg()
+    document.loadMemory(svgXml)
+    return document.getPaintByName("tile")
+end
+
+func checkPaintStyle(SvgPaint paint)
+    auto initial = paint.getTransform()
+    paint.translate(4, 2)
+    assert paint.getTransform().fE == initial.fE + 4
+    paint.scale(2, 2)
+    paint.rotate(0.2)
+    paint.resetTransform()
+    paint.setTransform(initial)
+    assert paint.getTransform().fE == initial.fE
+    paint.setOpacity(0.5)
+    assert paint.getOpacity() > 0.49 and paint.getOpacity() < 0.51
+    paint.setOpacity(1)
+    paint.setVisible(0)
+    assert paint.getVisible() == 0
+    paint.setVisible(1)
+    paint.setBlend(xge.XGE_BLEND_MULTIPLY)
+    assert paint.getBlend() == xge.XGE_BLEND_MULTIPLY
+end
+
+func checkShapeLifetime(SvgPaint paint) as Shape
+    auto actual = paint.getShape()
+    assert actual.getBounds(0.25).fW == 20
+    auto mask = xge.createShape()
+    mask.appendRect(0, 0, 12, 8, 0, 0, 1)
+    paint.setMask(mask, xge.XGE_SHAPE_EX_MASK_ALPHA)
+    auto method, kind, keptMask, unusedScene = paint.getMask()
+    assert method == xge.XGE_SHAPE_EX_MASK_ALPHA and kind == xge.XGE_SHAPE_EX_MASK_TARGET_SHAPE
+    assert keptMask != null and unusedScene == null
+    mask.close()
+    paint.clearMask()
+    assert (keptMask as Shape).getBounds(0.25).fW == 12
+
+    auto scene = xge.createShapeScene()
+    scene.add(keptMask as Shape)
+    paint.setMask(scene, xge.XGE_SHAPE_EX_MASK_ALPHA)
+    auto _, sceneKind, unusedShape, keptScene = paint.getMask()
+    assert sceneKind == xge.XGE_SHAPE_EX_MASK_TARGET_SCENE and unusedShape == null and keptScene != null
+    scene.close()
+    paint.clearMask()
+    assert (keptScene as ShapeScene).getBounds(0.25).fW == 12
+    (keptScene as ShapeScene).close()
+
+    paint.setClipShape(keptMask as Shape)
+    assert paint.getClipShapeCount() == 1
+    auto clip = paint.getClipShape(0)
+    auto withMode, mode = paint.getClipShapeWithMode(0)
+    auto _, isRect = paint.getClipRect()
+    assert mode == xge.XGE_SHAPE_EX_CLIP_INTERSECT and (isRect == 0 or isRect == 1)
+    paint.clearClip()
+    assert paint.getClipShapeCount() == 0 and clip.getBounds(0.25).fW == 12
+    assert withMode.getBounds(0.25).fW == 12
+    clip.close()
+    withMode.close()
+    (keptMask as Shape).close()
+    return actual
+end
+
+func checkLifecycle()
+    auto document = xge.createSvg()
+    document.loadMemory(svgXml)
+    assert document.refCountGet() == 1
+    auto tile = document.getPaintByName("tile")
+    auto name = tile.getName()
+    auto id = tile.getId()
+    assert name == "tile" and tile.getType() == xge.XGE_SVG_PAINT_SHAPE
+    assert tile.getDocument().refCountGet() == 1
+    bool notFound = false
+    try
+        document.getPaintByName("missing")
+    catch Error
+        notFound = true
+    end
+    assert notFound
+    auto picture = document.getPicture()
+    assert picture.getParent() == null and picture.getChildCount() == 1
+    auto group = tile.getParent()
+    assert group != null and (group as SvgPaint).getChild(0).getId() == id
+    auto bounds = tile.getBounds()
+    assert bounds.fW == 20 and bounds.fH == 10 and tile.intersects(bounds) != 0
+    auto corners = tile.getOBB()
+    assert corners[0].fX != corners[2].fX
+
+    int matchingNodes = 0
+    picture.visit(func(SvgPaintVisit item) as c_int
+        if item.getId() == id then
+            assert item.getName() == "tile" and item.getType() == xge.XGE_SVG_PAINT_SHAPE
+            assert item.getBounds().fW == 20
+            matchingNodes += 1
+        end
+        return c_int(1)
+    end)
+    assert matchingNodes == 1
+
+    int visits = 0
+    int busy = 0
+    SvgPaintVisit? saved = null
+    picture.visit(func(SvgPaintVisit item) as c_int
+        visits += 1
+        saved = item
+        try
+            document.clear()
+        catch Error
+            busy += 1
+        end
+        try
+            document.loadMemory(svgXml)
+        catch Error
+            busy += 1
+        end
+        return c_int(0)
+    end)
+    assert visits == 1 and busy == 2
+    bool checked = false
+    try
+        (saved as SvgPaintVisit).getId()
+    catch StateError
+        checked = true
+    end
+    assert checked
+    checked = false
+    try
+        picture.visit(func(SvgPaintVisit item) as c_int
+            throw "SVG visitor failure"
+        end)
+    catch Error error
+        checked = error.message == "SVG visitor failure"
+    end
+    assert checked
+
+    hotBegin()
+    for i in range(1000)
+        auto again = document.getPaintById(id)
+        assert again.getId() == id
+    end
+    hotEnd()
+
+    checkPaintStyle(tile)
+    auto keptShape = checkShapeLifetime(tile)
+    auto peer = document.share()
+    assert document.refCountGet() == 2 and peer.refCountGet() == 2
+    auto alias = document.getPaintById(id)
+    auto peerTile = peer.getPaintById(id)
+    tile.close()
+    assert expired(alias) and peerTile.getId() == id
+    auto reopened = document.getPaintById(id)
+    document.close()
+    assert expired(reopened) and peer.refCountGet() == 1 and peerTile.getId() == id
+    peer.loadMemory(svgXml)
+    assert expired(peerTile)
+    auto afterReload = peer.getPaintById(id)
+    peer.clear()
+    assert expired(afterReload) and keptShape.getBounds(0.25).fW == 20
+    assert name == "tile"
+    keptShape.close()
+    peer.close()
+
+    auto keptPaint = independentPaint()
+    assert keptPaint.getName() == "tile" and keptPaint.getDocument().refCountGet() == 1
+    auto worker = thread(func() as int
+        return expired(keptPaint) ? 0 : 1
+    end)
+    assert worker.waitTimeout(30000) and worker.exitCode() == 0
+    keptPaint.close()
+
+    auto closing = xge.createSvg()
+    closing.loadMemory(svgXml)
+    auto visited = closing.getPaintByName("tile")
+    visited.visit(func(SvgPaintVisit item) as c_int
+        closing.close()
+        assert item.getId() == id
+        return c_int(0)
+    end)
+    assert expired(visited)
+end
+
+func checkCold(c_int allowance) as bool
+    auto document = xge.createSvg()
+    document.loadMemory(svgXml)
+    bool failed = false
+    prefixBegin(allowance)
+    try
+        auto paint = document.getPaintByName("tile")
+        paint.close()
+    catch Error
+        failed = bool(failTriggered())
+        assert failed
+    finally
+        prefixEnd()
+    end
+    auto paint = document.getPaintByName("tile")
+    assert paint.getName() == "tile"
+    document.close()
+    return failed
+end
+
+func main(...) as int
+    assert debugEnabled() or enableDebug(true)
+    checkLifecycle()
+    int failures = 0
+    for i in range(12)
+        if checkCold(c_int(i)) then failures += 1 end
+    end
+    assert failures >= 2 and failures < 12
+    prefixBegin(-1)
+    checkLifecycle()
+    heapEqual()
+    println("XGE_SVG_PAINT_OK")
+    return 0
+end

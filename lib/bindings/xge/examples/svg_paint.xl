@@ -1,0 +1,20 @@
+// Find, edit, and visit SVG nodes without opening a window.
+import xge
+from xge import SvgPaintVisit
+
+auto document = xge.createSvg()
+try
+    document.loadMemory("<svg width='40' height='24'><rect id='tile' x='4' y='6' width='20' height='12'/></svg>")
+    auto tile = document.getPaintByName("tile")
+    tile.translate(8, 0)
+    auto bounds = tile.getBounds()
+    println(tile.getName(), " is at x=", bounds.fX, " with width ", bounds.fW)
+
+    auto picture = document.getPicture()
+    picture.visit(func(SvgPaintVisit node) as c_int
+        println("SVG node type: ", node.getType())
+        return c_int(1)
+    end)
+finally
+    document.close()
+end

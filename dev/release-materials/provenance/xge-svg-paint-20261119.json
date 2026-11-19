@@ -1,0 +1,170 @@
+{
+  "complete": true,
+  "passed": true,
+  "releaseInstalled": false,
+  "sourceParent": "ba47ebdd3874cae4eceb0f4696904e5f5794ecd7",
+  "nativeCommit": "bd00bd732245822fa0a29b1d7d032201b9d1e296",
+  "frozenXrt": "804cc769de3030118c2b46ef7af69543d1b82d9d",
+  "languageOperations": [
+    "xgeSvgPaintGetById",
+    "xgeSvgPaintGetByName",
+    "xgeSvgPaintGetPicture",
+    "xgeSvgPaintIdGet",
+    "xgeSvgPaintNameGet",
+    "xgeSvgPaintTypeGet",
+    "xgeSvgPaintTransformSet",
+    "xgeSvgPaintTransformIdentity",
+    "xgeSvgPaintTransformGet",
+    "xgeSvgPaintTransformTranslate",
+    "xgeSvgPaintTransformScale",
+    "xgeSvgPaintTransformRotate",
+    "xgeSvgPaintOpacitySet",
+    "xgeSvgPaintOpacityGet",
+    "xgeSvgPaintVisibleSet",
+    "xgeSvgPaintVisibleGet",
+    "xgeSvgPaintBlendSet",
+    "xgeSvgPaintBlendGet",
+    "xgeSvgPaintMaskShapeSet",
+    "xgeSvgPaintMaskSceneSet",
+    "xgeSvgPaintMaskClear",
+    "xgeSvgPaintMaskGet",
+    "xgeSvgPaintClipShapeSet",
+    "xgeSvgPaintClipClear",
+    "xgeSvgPaintClipRectGet",
+    "xgeSvgPaintClipShapeGetCount",
+    "xgeSvgPaintClipShapeGetAt",
+    "xgeSvgPaintClipShapeGetAtEx",
+    "xgeSvgPaintShapeGet",
+    "xgeSvgPaintOwnerGet",
+    "xgeSvgPaintParentGet",
+    "xgeSvgPaintChildGetCount",
+    "xgeSvgPaintChildGetAt",
+    "xgeSvgPaintTraverse",
+    "xgeSvgPaintGetBounds",
+    "xgeSvgPaintGetOBB",
+    "xgeSvgPaintIntersects"
+  ],
+  "providerLifetimeOperations": [
+    "xgeSvgPaintLifetimeWatch",
+    "xgeSvgPaintLifetimeUnwatch"
+  ],
+  "timingWorkload": "Seven static-AOT comparisons using xrtTimer. Each sample performs 500001 find-by-id plus ID reads on equivalent in-memory SVG documents.",
+  "timing": {
+    "win": {
+      "iterations": 500001,
+      "seconds": [
+        [
+          0.004403600003570318,
+          1.6984777000034228
+        ],
+        [
+          0.004401399986818433,
+          1.7477560000261292
+        ],
+        [
+          0.005595900001935661,
+          1.75520510005299
+        ],
+        [
+          0.004770500003360212,
+          1.668693199986592
+        ],
+        [
+          0.004406799911521375,
+          1.6828549000201747
+        ],
+        [
+          0.0043963000643998384,
+          1.74012460000813
+        ],
+        [
+          0.0048448999878019094,
+          1.7179736000252888
+        ]
+      ],
+      "medianNativeNanosecondsPerPair": 8.81358219587836,
+      "medianManagedNanosecondsPerPair": 3435.9403281699215
+    },
+    "linux": {
+      "iterations": 500001,
+      "seconds": [
+        [
+          0.004376899999897432,
+          0.5620343939999657
+        ],
+        [
+          0.004305800000111049,
+          0.5692078950000905
+        ],
+        [
+          0.004308399999899848,
+          0.5559288939998623
+        ],
+        [
+          0.004319099999975151,
+          0.5563317940000161
+        ],
+        [
+          0.004305299999941781,
+          0.5650584950003577
+        ],
+        [
+          0.004308200000195939,
+          0.5566440940001485
+        ],
+        [
+          0.004796199999873352,
+          0.5555882950002342
+        ]
+      ],
+      "medianNativeNanosecondsPerPair": 8.616782766234163,
+      "medianManagedNanosecondsPerPair": 1113.2859614283739
+    }
+  },
+  "warmLookupXrtHeapOperations": 0,
+  "temporaryWatchPerBorrowedOutput": true,
+  "sourceHashes": {
+    "lib/bindings/_xge_native/include/xge3_runtime.h": "8dca663632edd3fefc26cca907976238bc2a319eb4acca20b0b8fe2869b6c917",
+    "lib/bindings/_xge_native/src/runtime.c": "61c35b83cab590bf28ce133f96f6d5084339b84e1f3098cac653f28166457c8e",
+    "lib/bindings/xge/src/svg.xl": "13251bb353b5f48e2aec2106b5e416ab82d3cbd3e759a037710c88ea3c32d8bb",
+    "lib/bindings/xge/examples/svg_paint.xl": "e342fe7c05441f1cf974d39a701ca136acb2e4f2397386fde46b3f38da6fea52",
+    "test/cases/foreign_xge_svg_paint.xl": "b89c2c484709a274e380fc72503a6a5fbe0914e8c67091ca96b148db255cde32",
+    "docs/xge3-svg-integration.md": "f6973aad756b9e51e4f726786e5756a217f41e670c5cd81bf69503a9b84e5bcd"
+  },
+  "evidence": {
+    "win": {
+      "packages": {
+        "path": "F:\\xlang-validation\\xge-full-20261110\\svg-public-paint-packages-win-r2\\results.json",
+        "sha256": "fab98ac7ad1351d2ea3ae07fd62f162a952959687e50b3fcb312106a818dfd31",
+        "checks": 6
+      },
+      "modes": {
+        "path": "F:\\xlang-validation\\xge-full-20261110\\svg-public-paint-qualification-win-r2\\results.json",
+        "sha256": "2c0227db91429048838a66786932f6fbe593bb5ae004ac4d768e3402a0e901b5",
+        "checks": 19
+      },
+      "regression": {
+        "path": "F:\\xlang-validation\\xge-full-20261110\\svg-public-paint-regression-win-r1\\results.json",
+        "sha256": "a0136e566f06317af12a3938465a32dede532b6cee35c766b9c9737f594d9b4e",
+        "checks": 2
+      }
+    },
+    "linux": {
+      "packages": {
+        "path": "\\\\wsl.localhost\\Ubuntu\\var\\tmp\\xlang-validation\\xge-full-20261110\\svg-public-paint-packages-linux-r2\\results.json",
+        "sha256": "ee8a1ef31ceecd932ed21621d97b7d6cef99af1905562e35a8a39f9f191d7f4e",
+        "checks": 6
+      },
+      "modes": {
+        "path": "\\\\wsl.localhost\\Ubuntu\\var\\tmp\\xlang-validation\\xge-full-20261110\\svg-public-paint-qualification-linux-r2\\results.json",
+        "sha256": "c842abdfe530383c83985ec773cbfabab595296a8a4240d0f9f777e8b9085bf6",
+        "checks": 19
+      },
+      "regression": {
+        "path": "\\\\wsl.localhost\\Ubuntu\\var\\tmp\\xlang-validation\\xge-full-20261110\\svg-public-paint-regression-linux-r1\\results.json",
+        "sha256": "f15c7a84f77a651f25a3af0bfa3e942d8749d6db4873a4cb1b548996f238e794",
+        "checks": 2
+      }
+    }
+  }
+}

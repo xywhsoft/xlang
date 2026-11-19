@@ -97,7 +97,9 @@ const XL6_ForeignViewDescriptorV1* xl6Xge3MaterialPolicyGet(void);
 const XL6_ForeignViewDescriptorV1* xl6Xge3ShapePolicyGet(void);
 const XL6_ForeignViewDescriptorV1* xl6Xge3ShapeScenePolicyGet(void);
 const XL6_ForeignViewDescriptorV1* xl6Xge3PathMeasurePolicyGet(void);
+typedef struct xl6_xge3_svg_call_t { xge_svg document; } xl6_xge3_svg_call_t;
 const XL6_ForeignViewDescriptorV1* xl6Xge3SvgPolicyGet(void);
+const XL6_ForeignViewDescriptorV1* xl6Xge3SvgPaintPolicyGet(void);
 const XL6_ForeignViewDescriptorV1* xl6Xge3SvgCachePolicyGet(void);
 const XL6_ForeignViewDescriptorV1* xl6Xge3AudioClipPolicyGet(void);
 #ifdef __cplusplus
@@ -157,6 +159,7 @@ const XL6_ForeignViewDescriptorV1* xl6Xge3AudioClipPolicyGet(void);
 #define xl6Xge3ShapeScenePolicy (*xl6Xge3ShapeScenePolicyGet())
 #define xl6Xge3PathMeasurePolicy (*xl6Xge3PathMeasurePolicyGet())
 #define xl6Xge3SvgPolicy (*xl6Xge3SvgPolicyGet())
+#define xl6Xge3SvgPaintPolicy (*xl6Xge3SvgPaintPolicyGet())
 #define xl6Xge3SvgCachePolicy (*xl6Xge3SvgCachePolicyGet())
 #define xl6Xge3AudioClipPolicy (*xl6Xge3AudioClipPolicyGet())
 #endif

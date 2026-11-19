@@ -399,8 +399,30 @@ Each child keeps its document's language owner alive. Clear and reload
 invalidate every watcher attached to the previous contents. Closing one
 language owner of a shared document detaches that owner's watchers.
 
-The acceptance fixture uses the actual XGE SVG watcher and direct
-declarations for paint lookup. It verifies close, clear, reload, and
-independent owners of a shared document. The fixture's document call scope
-temporarily retains a native document reference. Public `SvgPaint`
-methods and their production scope still need integration.
+`Svg.getPicture()`, `getPaintById()`, and `getPaintByName()` return
+`SvgPaint` views. Use them to query the parent and children, take geometry
+snapshots, set the transform, opacity, visibility or blend mode, and control
+the mask and clip. The native lookup and name getters report a checked error
+for a missing entry. `getDocument()` returns the same language document
+owner. Use `share()` when a separate native owner is needed. Mask, clip
+and shape getters retain the returned Shape or ShapeScene independently.
+
+`SvgPaint.visit()` walks the native tree synchronously. Return nonzero to
+continue and zero to stop. Each `SvgPaintVisit` expires after its callback.
+Its ID, string name and geometry snapshots may be kept. An exception in a
+visitor reaches the caller. Clear and reload raise a checked Busy error
+during traversal. Explicit close during traversal defers the native release
+until the active call ends.
+
+The production scope uses the owner's existing native reference, leaving
+`refCountGet()` unchanged. The first managed lookup allocates a view
+and may grow its identity directory. It attaches the watcher before a
+host code-lease callback can reenter and replace the document's contents.
+A repeat lookup of a live view adds reference and scope bookkeeping.
+The current generated code also attaches and detaches a temporary
+watch for each borrowed pointer output.
+Returning a name scans and copies its terminating C string. Shape and
+scene results take actual native references. Each bound operation calls
+the selected XGE function directly.
+
+See the [SVG paint example](../lib/bindings/xge/examples/svg_paint.xl).

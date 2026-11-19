@@ -735,10 +735,52 @@ RESOURCE_POLICY(xl6Xge3MaterialPolicyGet,"xge.material",destroy_material,destroy
 #if XGE_ENABLE_SVG
 static bool destroy_svg(void* raw){xgeSvgDestroy(raw);return true;}
 static bool destroy_svg_cache(void* raw){xgeSvgCacheDestroy(raw);return true;}
-RESOURCE_POLICY(xl6Xge3SvgPolicyGet,"xge.svg",destroy_svg,NULL)
+/* The active language call already pins the owned native reference. Keep its
+ * physical release deferred until this scope ends, including reentrant close. */
+static bool begin_svg(void* raw,void* storage)
+{
+    xl6_xge3_svg_call_t* call=storage;
+    if (!raw || call->document) return false;
+    call->document=raw;
+    return true;
+}
+static bool end_svg(void* storage)
+{
+    xl6_xge3_svg_call_t* call=storage;
+    if (!call->document) return false;
+    call->document=NULL;
+    return true;
+}
+static bool watch_svg_paint(void* raw,void* storage,void (*notify)(void*),void* user)
+{
+    int status=xgeSvgPaintLifetimeWatch(raw,storage,notify,user);
+    if (status==XGE_OK) return true;
+    xl6ForeignStatusFailureV1(status,"xgeSvgPaintLifetimeWatch");
+    return false;
+}
+static void unwatch_svg_paint(void* storage){xgeSvgPaintLifetimeUnwatch(storage);}
+const XL6_ForeignViewDescriptorV1* xl6Xge3SvgPolicyGet(void)
+{
+    static const XL6_ForeignViewDescriptorV1 value={
+        sizeof(value),XL6_FOREIGN_VIEW_V1_TAG,"xge.svg",0,1,NULL,NULL,destroy_svg,
+        sizeof(xl6_xge3_svg_call_t),_Alignof(xl6_xge3_svg_call_t),begin_svg,end_svg,
+        NULL,NULL,XL6_FOREIGN_VIEW_DEFER_ACTIVE_DESTROY,NULL,NULL
+    };
+    return &value;
+}
+const XL6_ForeignViewDescriptorV1* xl6Xge3SvgPaintPolicyGet(void)
+{
+    static const XL6_ForeignViewDescriptorV1 value={
+        sizeof(value),XL6_FOREIGN_VIEW_V1_TAG,"xge.svg.paint",
+        sizeof(xge_svg_paint_watch_t),_Alignof(xge_svg_paint_watch_t),watch_svg_paint,unwatch_svg_paint,
+        NULL,0,1,NULL,NULL,NULL,NULL,0,NULL,NULL
+    };
+    return &value;
+}
 RESOURCE_POLICY(xl6Xge3SvgCachePolicyGet,"xge.svg_cache",destroy_svg_cache,NULL)
 #else
 const XL6_ForeignViewDescriptorV1* xl6Xge3SvgPolicyGet(void){return NULL;}
+const XL6_ForeignViewDescriptorV1* xl6Xge3SvgPaintPolicyGet(void){return NULL;}
 const XL6_ForeignViewDescriptorV1* xl6Xge3SvgCachePolicyGet(void){return NULL;}
 #endif
 #if XGE_ENABLE_SHAPE_EX
