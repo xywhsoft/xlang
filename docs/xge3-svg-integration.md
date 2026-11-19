@@ -419,8 +419,8 @@ The production scope uses the owner's existing native reference, leaving
 and may grow its identity directory. It attaches the watcher before a
 host code-lease callback can reenter and replace the document's contents.
 A repeat lookup of a live view adds reference and scope bookkeeping.
-The current generated code also attaches and detaches a temporary
-watch for each borrowed pointer output.
+Generated code uses the persistent watcher for borrowed paint results.
+A repeat lookup performs no watch attachment or detachment.
 Returning a name scans and copies its terminating C string. Shape and
 scene results take actual native references. Each bound operation calls
 the selected XGE function directly.

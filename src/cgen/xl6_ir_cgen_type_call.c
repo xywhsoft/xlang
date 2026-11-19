@@ -641,7 +641,7 @@ static int xl6IrCgenEmitWitnessNativeCall(XL6_Output* out, const XL6_IrModule* m
     if(packs<0)return 0;
     int fieldCallee=xl6IrCgenNativeFieldCallBegin(out,module,target,NULL,scope,NULL);
     if(fieldCallee<0)return 0;
-    int probe = xl6IrCgenFactoryProbeBegin(out, module, target, scope);
+    XL6_IrCgenResultProbe probe = xl6IrCgenFactoryProbeBegin(out, module, target, scope);
     const XL6_IrNode* declaration = xl6IrNodeGet(module, target->declaration);
     int factoryOutput=declaration->foreignCall.outputIndexPlusOne && !declaration->foreignCall.valueOutput;
     int storagePrepared=0;
@@ -757,7 +757,7 @@ static int xl6IrCgenEmitWitnessNativeCall(XL6_Output* out, const XL6_IrModule* m
     for (size_t p = 1; p < target->parameterCount; ++p)
         if (target->parameterAbis[p] == XL6_IR_PARAMETER_ABI_OWNED)
             xl6OutputPrintf(out, "    a%lu = (%s){0};\n", (unsigned long)(p - 1), xl6IrCgenType(module, target->parameterTypes[p]));
-    if (probe) xl6IrCgenFactoryProbeEnd(out, scope);
+    if (probe) xl6IrCgenFactoryProbeEnd(out, scope, probe);
     if(fieldCallee)xl6OutputPuts("    } }\n",out);
     if(packs)xl6IrCgenForeignPacksEnd(out);
     if(snapshots)xl6IrCgenDataSnapshotsEnd(out,module,target,scope);
@@ -1096,7 +1096,7 @@ static int xl6IrCgenEmitDirectCall(
     if(packsPrepared<0)return 0;
     int fieldCallee=xl6IrCgenNativeFieldCallBegin(out,module,target,module->operands+instruction->firstOperand,nativeScope,diags);
     if(fieldCallee<0)return 0;
-    int probePrepared=xl6IrCgenFactoryProbeBegin(out,module,target,nativeScope);
+    XL6_IrCgenResultProbe probePrepared=xl6IrCgenFactoryProbeBegin(out,module,target,nativeScope);
     const XL6_IrNode* foreignDeclaration=xl6IrNodeGet(module,target->declaration);
     int factoryOutput=foreignDeclaration->foreignCall.outputIndexPlusOne && !foreignDeclaration->foreignCall.valueOutput;
     int storagePrepared=0;
@@ -1244,7 +1244,7 @@ static int xl6IrCgenEmitDirectCall(
         xl6IrCgenEmitOwnedStringAdmission(out,module,target,place,
             errorPhysicalAbi==XL6_IR_CALL_ERROR_PHYSICAL_FOREIGN_SCOPE ? failed : NULL);
     }
-    if(probePrepared)xl6IrCgenFactoryProbeEnd(out,nativeScope);
+    if(probePrepared)xl6IrCgenFactoryProbeEnd(out,nativeScope,probePrepared);
     if(fieldCallee)xl6OutputPuts("    } }\n",out);
     if(packsPrepared)xl6IrCgenForeignPacksEnd(out);
     if(snapshotsPrepared)xl6IrCgenDataSnapshotsEnd(out,module,target,nativeScope);

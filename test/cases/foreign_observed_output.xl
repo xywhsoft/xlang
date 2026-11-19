@@ -1,0 +1,103 @@
+extern "ManagedRoot*" class Root @header("test/cases/foreign_borrowed_output.h") @lifetime("owned") @policy("managedRootPolicy") @watch("ManagedWatch") @scope("ManagedScope")
+    native point handle
+    extern "borrowed_seed" @no_raise @c_result("status",0) func seed()
+    extern "borrowed_status" @no_raise @c_output(2,0) @c_result("owner_view",0) func query(c_int mode=0) as Child
+    extern "borrowed_optional" @no_raise @c_output(2,0) @c_result("owner_view",0) func optional(c_int mode=0) as Child?
+    extern "borrowed_get" @no_raise @c_output(1,0) @c_result("owner_view",0) get first() as Child
+    extern "borrowed_void" @no_raise @c_output(1) @c_result("owner_view",0) func readVoid() as Child
+    extern "xl6ForeignViewCloseV1" @no_raise @c_control(0) @c_result("bool_status") func close()
+end
+
+extern "ManagedChild*" class Child @header("test/cases/foreign_borrowed_output.h") @lifetime("owner") @owner(Root) @policy("observedChildPolicy") @watch("ManagedWatchArray")
+    native point handle
+    extern "managed_child_read" @no_raise get value() as c_int
+    extern "xl6ForeignViewCloseV1" @no_raise @c_control(0) @c_result("bool_status") func close()
+end
+
+extern "BorrowedReader*" class Reader @header("test/cases/foreign_borrowed_output.h") @lifetime("caller")
+    native point handle
+    extern "read" @c_field_call @no_raise @c_output(2,0) @c_result("owner_view",1) func read(Root root) as Child
+end
+
+extern "managed_root_create" @header("test/cases/foreign_borrowed_output.h") @no_raise @factory(1,0,rollbackRoot) @c_result("owned_view") func create(c_int mode=0) as Root
+extern "managed_root_destroy" @header("test/cases/foreign_borrowed_output.h") @no_raise func rollbackRoot(Root root)
+extern "borrowed_free" @header("test/cases/foreign_borrowed_output.h") @no_raise @c_output(2,0) @c_result("owner_view",1) func freeQuery(c_int mode,Root root) as Child
+extern "borrowed_reader" @header("test/cases/foreign_borrowed_output.h") @no_raise func reader() as Reader
+extern "borrowed_calls" @header("test/cases/foreign_borrowed_output.h") @no_raise func calls() as c_uint
+extern "borrowed_watches" @header("test/cases/foreign_borrowed_output.h") @no_raise func watches() as c_uint
+extern "borrowed_unwatches" @header("test/cases/foreign_borrowed_output.h") @no_raise func unwatches() as c_uint
+extern "managed_roots_live" @header("test/cases/foreign_borrowed_output.h") @no_raise func roots() as c_int
+extern "managed_children_live" @header("test/cases/foreign_borrowed_output.h") @no_raise func children() as c_int
+extern "managed_counter_begin" @header("test/cases/foreign_borrowed_output.h") @no_raise func countersBegin()
+extern "managed_counter_end" @header("test/cases/foreign_borrowed_output.h") @no_raise func countersEnd()
+extern "borrowed_fail_after" @header("test/cases/foreign_borrowed_output.h") @no_raise func failAfter(c_int count)
+extern "managed_reset_failure" @header("test/cases/foreign_borrowed_output.h") @no_raise func resetFailure()
+
+protocol Query
+    func query(c_int mode) as Child
+end
+
+func checkColdFailure()
+    auto root = create()
+    root.seed()
+    auto observed = watches()
+    bool failed = false
+    failAfter(0)
+    try
+        root.query()
+    catch Error
+        failed = true
+    finally
+        resetFailure()
+    end
+    assert failed and watches() == observed and children() == 1
+    root.close()
+end
+
+func main(...) as int
+    checkColdFailure()
+    auto root = create()
+    root.seed()
+    auto startWatches = watches()
+    auto startUnwatches = unwatches()
+    auto kept = root.query()
+    assert kept.value == 17 and watches() == startWatches + c_uint(1)
+    assert unwatches() == startUnwatches
+    assert root.optional(2) == null
+    bool failed = false
+    try
+        kept = root.query(1)
+    catch Error error
+        failed = error.code == -17 and error.operation == "borrowed_status"
+    end
+    assert failed and kept.value == 17
+
+    func(c_int) as Child bound = root.query
+    func(c_int,Root) as Child freeValue = freeQuery
+    Query through = root
+    auto source = reader()
+    func(Root) as Child fieldBound = source.read
+    auto before = calls()
+    countersBegin()
+    for i in range(200)
+        assert root.query().value == 17
+        assert root.first.value == 17
+        assert root.readVoid().value == 17
+        assert bound(0).value == 17
+        assert through.query(0).value == 17
+        assert freeValue(0,root).value == 17
+        assert fieldBound(root).value == 17
+    end
+    countersEnd()
+    assert calls() == before + c_uint(1400)
+    assert watches() == startWatches + c_uint(1) and unwatches() == startUnwatches
+
+    kept.close()
+    assert children() == 1 and unwatches() == startUnwatches + c_uint(1)
+    auto replacement = root.query()
+    assert replacement.value == 17 and watches() == startWatches + c_uint(2)
+    root.close()
+    assert roots() == 0 and children() == 0
+    println("OBSERVED_OUTPUT_NO_TEMPORARY_WATCH_OK")
+    return 0
+end

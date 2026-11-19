@@ -2,7 +2,7 @@
 #include "foreign_borrowed_output.h"
 #undef NDEBUG
 #include <assert.h>
-static unsigned queryCalls,watchCalls,destroyCalls;
+static unsigned queryCalls,watchCalls,unwatchCalls,destroyCalls;
 static bool guardedWatch(void* raw,void* storage,void(*notify)(void*),void* user)
 {
     /* A status failure may leave an unspecified output. A bounded assertion
@@ -11,9 +11,14 @@ static bool guardedWatch(void* raw,void* storage,void(*notify)(void*),void* user
     return childWatch(raw,storage,notify,user);
 }
 static bool guardedDestroy(void* raw){++destroyCalls;return destroyChild(raw);}
+static void countUnwatch(void* storage){++unwatchCalls;unwatch(storage);}
 const XL6_ForeignViewDescriptorV1 borrowedChildPolicy={
     sizeof(borrowedChildPolicy),XL6_FOREIGN_VIEW_V1_TAG,"borrowed.output.child",
     sizeof(ManagedWatch),_Alignof(ManagedWatch),guardedWatch,unwatch,guardedDestroy,
+    0,1,NULL,NULL,NULL,NULL,0,NULL,NULL};
+const XL6_ForeignViewDescriptorV1 observedChildPolicy={
+    sizeof(observedChildPolicy),XL6_FOREIGN_VIEW_V1_TAG,"borrowed.output.observed",
+    sizeof(ManagedWatch),_Alignof(ManagedWatch),guardedWatch,countUnwatch,NULL,
     0,1,NULL,NULL,NULL,NULL,0,NULL,NULL};
 int borrowed_seed(ManagedRoot* root)
 {ManagedChild* child=NULL;return managed_child_create(root,0,&child);}
@@ -35,6 +40,7 @@ int borrowed_span(ManagedRoot* root,const uint8_t* data,int count,ManagedChild**
 void borrowed_child_destroy(ManagedChild* child){++destroyCalls;managed_child_destroy(child);}
 unsigned borrowed_calls(void){return queryCalls;}
 unsigned borrowed_watches(void){return watchCalls;}
+unsigned borrowed_unwatches(void){return unwatchCalls;}
 unsigned borrowed_destroys(void){return destroyCalls;}
 void borrowed_fail_after(int count){(void)xrtMemDebugFailAfter(count);}
 static int readChild(BorrowedReader* reader,ManagedRoot* root,ManagedChild** out)

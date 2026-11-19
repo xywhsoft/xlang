@@ -1121,6 +1121,12 @@ lease admission rejects the result. If the host publishes the same
 child reentrantly, admission reuses that view and removes its temporary
 observer.
 
+For a borrowed pointer output, generated code checks the observation-only
+policy against the typed watch storage. The first admission installs its
+persistent watcher. Repeated admissions reuse it. A policy with native
+destruction continues to use the temporary probe. Owning results and
+constructors with explicit rollback keep their existing probe paths.
+
 A creator-thread root can have shared native owners. Consuming one
 root's native reference detaches its own observers even if other
 owners keep the payload alive. The native library must still notify

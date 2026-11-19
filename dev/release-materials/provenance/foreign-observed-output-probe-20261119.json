@@ -1,0 +1,230 @@
+{
+  "complete": true,
+  "passed": true,
+  "releaseInstalled": false,
+  "sourceParent": "0eab8a36212129c4fd17670639f0988e264a34e6",
+  "nativeCommit": "bd00bd732245822fa0a29b1d7d032201b9d1e296",
+  "frozenXrt": "804cc769de3030118c2b46ef7af69543d1b82d9d",
+  "checkedObservationOnlyColdWatches": 1,
+  "checkedObservationOnlyWarmCalls": 1400,
+  "checkedObservationOnlyWarmWatches": 0,
+  "checkedObservationOnlyWarmUnwatches": 0,
+  "checkedLegacyWarmCalls": 1000,
+  "checkedLegacyWarmWatches": 1000,
+  "watchArrayCheckedInBothModes": true,
+  "newRuntimeExports": 0,
+  "irAbiChanged": false,
+  "timingWorkload": "Seven static AOT samples before and after, 500001 find-by-id plus ID reads each. Native C and managed lookups use the same SVG content, engine and xrtTimer.",
+  "timing": {
+    "win": {
+      "iterations": 500001,
+      "seconds": [
+        [
+          0.004405400017276406,
+          1.5403937000082806
+        ],
+        [
+          0.004485100042074919,
+          1.6681237999582663
+        ],
+        [
+          0.009963200078345835,
+          1.5115384999662638
+        ],
+        [
+          0.005789100076071918,
+          1.4973752000369132
+        ],
+        [
+          0.0044241000432521105,
+          1.45888080005534
+        ],
+        [
+          0.0044148999731987715,
+          1.4799643999431282
+        ],
+        [
+          0.004397400072775781,
+          1.4830328000243753
+        ]
+      ],
+      "medianNativeNanosecondsPerPair": 8.84818239013944,
+      "medianManagedNanosecondsPerPair": 2994.744410585005,
+      "baselineSeconds": [
+        [
+          0.004430600092746317,
+          1.6890894999960437
+        ],
+        [
+          0.0045053999638184905,
+          1.6886020000092685
+        ],
+        [
+          0.004396599950268865,
+          1.8197516999207437
+        ],
+        [
+          0.004696300020441413,
+          1.725018800003454
+        ],
+        [
+          0.004412899957969785,
+          1.7687959999311715
+        ],
+        [
+          0.008982000057585537,
+          1.728076500003226
+        ],
+        [
+          0.004396700067445636,
+          1.7516708000330254
+        ]
+      ],
+      "baselineNativeNanosecondsPerPair": 8.861182463127708,
+      "baselineManagedNanosecondsPerPair": 3456.1460877142767
+    },
+    "linux": {
+      "iterations": 500001,
+      "seconds": [
+        [
+          0.007806600000094477,
+          0.4901109020001968
+        ],
+        [
+          0.0043138000000908505,
+          0.4842119029999594
+        ],
+        [
+          0.004304099999899336,
+          0.5174522020001859
+        ],
+        [
+          0.0043408999999883235,
+          0.4846370029999889
+        ],
+        [
+          0.0043436999999357795,
+          0.5101273020000008
+        ],
+        [
+          0.004815299999791023,
+          0.48551200300016717
+        ],
+        [
+          0.0043086000000585045,
+          0.4991422020002574
+        ]
+      ],
+      "medianNativeNanosecondsPerPair": 8.681782636411373,
+      "medianManagedNanosecondsPerPair": 980.2198435607065,
+      "baselineSeconds": [
+        [
+          0.004343000000062602,
+          0.5656906029998936
+        ],
+        [
+          0.004312099999879138,
+          0.5679886030002308
+        ],
+        [
+          0.004321099999742728,
+          0.581053602999873
+        ],
+        [
+          0.004707500000222353,
+          0.5675769029999174
+        ],
+        [
+          0.004304900000079215,
+          0.6286335040003905
+        ],
+        [
+          0.004441300000053161,
+          0.5708043030003864
+        ],
+        [
+          0.004309299999931682,
+          0.578835202999926
+        ]
+      ],
+      "baselineNativeNanosecondsPerPair": 8.642182715120025,
+      "baselineManagedNanosecondsPerPair": 1141.6063227881273
+    }
+  },
+  "sourceHashes": {
+    "src/cgen/xl6_ir_cgen_foreign_view.c": "64bcbd0e9fdd858c198f9aa985b8d18983852cdea4aa06c100c129aded99dc34",
+    "src/cgen/xl6_ir_cgen_type_call.c": "e6bf7a8b2dad3fba267a3e199b3b4796333a650f708f81a35a0a84339a0d925a",
+    "test/cases/foreign_borrowed_output.h": "dfa7639f01a5f7fecab022b4a6695eae7c8f96e3f8c7d4466f6cd8b4807e43a2",
+    "test/cases/foreign_borrowed_output_native.c": "b770cb7c0610bb29aeaa86fbf97572ba843b6dd152380ad12637082b41985d2e",
+    "test/cases/foreign_borrowed_output.xl": "562fd8417387d904ee0d5cc5f651414e960822c0921498f9caa5330ac10e0eb4",
+    "test/cases/foreign_observed_output.xl": "e8342fb23eced27c963106bc8debb827203d066e3a7b4ef5c18cb23e996862f9",
+    "docs/foreign-declarations.md": "825868ae3e8bf9bedcea73b480893baeb6b737712ddb1a5e2ddb0f5d625b0bbc",
+    "docs/xge3-svg-integration.md": "867048f4b7a90cfba941bad94785b3bf1739b9eeb365d2311fe6380b8b84cd07"
+  },
+  "evidence": {
+    "win": {
+      "compiler": {
+        "path": "F:\\xlang-validation\\xge-full-20261110\\compiler-foreign-observed-probe-win-r2\\build.json",
+        "sha256": "0063869b2f6cadcce0eff4be8553901ad50babbb209867ba717dfd206f72501f",
+        "checks": 0
+      },
+      "sdk": {
+        "path": "F:\\xlang-validation\\xge-full-20261110\\foreign-observed-probe-compiler-sdk-win-r2\\results.json",
+        "sha256": "183b3410006a912763699391b7894490a6f84c88787984d24e0bf1b5e05f7dd0",
+        "checks": 0
+      },
+      "contract": {
+        "path": "F:\\xlang-validation\\xge-full-20261110\\foreign-observed-probe-checks-win-r3\\results.json",
+        "sha256": "31ed26dcb06cc41d40418709c16d5adebe254eaf8e03e62055c00ddb2660d6b4",
+        "checks": 12
+      },
+      "svg": {
+        "path": "F:\\xlang-validation\\xge-full-20261110\\svg-observed-probe-qualification-win-r2\\results.json",
+        "sha256": "7fd76a9baa543f28de4120b81b7545d413962040e00bdeee171ce7b7f82015f9",
+        "checks": 20
+      },
+      "borrowedOutputRegression": {
+        "path": "F:\\xlang-validation\\xge-full-20261110\\foreign-observed-probe-output-regression-win-r1\\results.json",
+        "sha256": "1098e9b124476164643aad369de9f2ee7356029a9b3f05b90f3df2965c394498",
+        "checks": 37
+      },
+      "packages": {
+        "path": "F:\\xlang-validation\\xge-full-20261110\\svg-public-paint-packages-win-r2\\results.json",
+        "sha256": "fab98ac7ad1351d2ea3ae07fd62f162a952959687e50b3fcb312106a818dfd31",
+        "checks": 6
+      }
+    },
+    "linux": {
+      "compiler": {
+        "path": "\\\\wsl.localhost\\Ubuntu\\var\\tmp\\xlang-validation\\xge-full-20261110\\compiler-foreign-observed-probe-linux-r2\\build.json",
+        "sha256": "1711ab48d9a89e18eef6fd37239441efa168ad4418033850693c5ec9693d34d2",
+        "checks": 0
+      },
+      "sdk": {
+        "path": "\\\\wsl.localhost\\Ubuntu\\var\\tmp\\xlang-validation\\xge-full-20261110\\foreign-observed-probe-compiler-sdk-linux-r2\\results.json",
+        "sha256": "cd9383b5e1c74041bfdc2ff0e3c93bb93dcbe609225129a7f7545d8b6c8b2f0b",
+        "checks": 0
+      },
+      "contract": {
+        "path": "\\\\wsl.localhost\\Ubuntu\\var\\tmp\\xlang-validation\\xge-full-20261110\\foreign-observed-probe-checks-linux-r3\\results.json",
+        "sha256": "d576e0f301f6781fdd563b51047330b89424abe7622b5ae650b3dfcd754daedc",
+        "checks": 12
+      },
+      "svg": {
+        "path": "\\\\wsl.localhost\\Ubuntu\\var\\tmp\\xlang-validation\\xge-full-20261110\\svg-observed-probe-qualification-linux-r2\\results.json",
+        "sha256": "5f2c7d4975f35a357b80fc4cdbd93062f86edabdbe13fef2b10b76cfe62a5879",
+        "checks": 20
+      },
+      "borrowedOutputRegression": {
+        "path": "\\\\wsl.localhost\\Ubuntu\\var\\tmp\\xlang-validation\\xge-full-20261110\\foreign-observed-probe-output-regression-linux-r1\\results.json",
+        "sha256": "6f5ede2b88735b50663623be0722176fd3717481296e2f4221461c22ef34aeea",
+        "checks": 37
+      },
+      "packages": {
+        "path": "\\\\wsl.localhost\\Ubuntu\\var\\tmp\\xlang-validation\\xge-full-20261110\\svg-public-paint-packages-linux-r2\\results.json",
+        "sha256": "ee8a1ef31ceecd932ed21621d97b7d6cef99af1905562e35a8a39f9f191d7f4e",
+        "checks": 6
+      }
+    }
+  }
+}

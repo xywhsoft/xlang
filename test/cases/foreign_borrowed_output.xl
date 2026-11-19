@@ -9,7 +9,7 @@ extern "ManagedRoot*" class Root @header("test/cases/foreign_borrowed_output.h")
  extern "managed_child_create" @no_raise @factory(2,0,rollbackChild) @c_result("owner_view",0) func construct(c_int mode=0) as Child
  extern "xl6ForeignViewCloseV1" @no_raise @c_control(0) @c_result("bool_status") func close()
 end
-extern "ManagedChild*" class Child @header("test/cases/foreign_borrowed_output.h") @lifetime("owner") @owner(Root) @policy("borrowedChildPolicy") @watch("ManagedWatch")
+extern "ManagedChild*" class Child @header("test/cases/foreign_borrowed_output.h") @lifetime("owner") @owner(Root) @policy("borrowedChildPolicy") @watch("ManagedWatchArray")
  native point handle
  extern "managed_child_read" @no_raise get value() as c_int
  extern "borrowed_owner" @no_raise @c_output(1,0) @c_result("owner_view",0) func owner() as Root
@@ -125,6 +125,7 @@ func main(...) as int
  check(through.query(0))
  check(fieldBound(root))
  auto before=calls()
+ auto beforeHotWatches=watches()
  countersBegin()
  for i in range(200)
   check(root.query())
@@ -135,6 +136,7 @@ func main(...) as int
  end
  countersEnd()
  assert calls()==before+c_uint(1000) and destroys()==destroyBefore
+ assert watches()==beforeHotWatches+c_uint(1000)
  failed=false
  try
   auto invalid=root.construct(1)
