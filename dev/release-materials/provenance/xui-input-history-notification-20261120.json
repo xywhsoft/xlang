@@ -1,0 +1,140 @@
+{
+  "complete": true,
+  "passed": true,
+  "releaseInstalled": false,
+  "sourceParent": "cba6e935ec521799531b9692531dd9dd6db8eec8",
+  "nativeCommit": "e99aeb6c9b3d29d7dc9d1b1f0c851cdebbcb2270",
+  "nativeSourcesSha256Lf": {
+    "src/xui/core/xui_input_widget.c": "72626eeb71c2ded79a39f0c00fba7b848f950719e6f8532300187ad57f6180ce",
+    "tests/xui/xui_input_widget_lifetime_test.c": "e0345ae3162c5e081e3fa80367246b03fb3d0ad5853de147cf21ba7b15a3243c"
+  },
+  "languageSourcesSha256Lf": {
+    "test/cases/foreign_xui_input_history.xl": "a78ae0a755830c5e23f2aef08887268fa75f65cbbc4fceea53bc2d9d2b1833a3",
+    "docs/xge3-xui3-api-map-storage.json": "580c547ed4792aed99ff226a92a6776f5ecd24a141dbe9f3643bbe8ac8b7eb38"
+  },
+  "baseline": "The same expanded fixture reports 11 passes and three history-status failures on both prior host builds, at O0 and O2.",
+  "verified": [
+    "Undo and redo publish text and history before change notification.",
+    "Same-Input history reentry stays Busy during the notification.",
+    "Widget and Context close requested by the notification keep a completed history operation successful.",
+    "The original diagnostic from a throwing notification survives widget retirement.",
+    "The closed managed Input view expires and the enclosing Context remains usable.",
+    "The matching typed compiler emits direct native Input and Widget calls."
+  ],
+  "evidence": {
+    "win": {
+      "sdk": {
+        "path": "F:\\xlang-validation\\xge-full-20261110\\input-history-notification-sdk-win-r1\\results.json",
+        "sha256": "e929bf66e7d440eb8a800b305faa3a9d97d7e5f67ae99ff67f1610217ae36f5a",
+        "checks": 2
+      },
+      "baseline": {
+        "path": "F:\\xlang-validation\\xge-full-20261110\\input-history-notification-baseline-win-r1\\results.json",
+        "sha256": "a64fef5a2163b1dcc2cff86a54ad8ec64de4193ed64bd7a3901d3050ce6ac7fa",
+        "checks": 4
+      },
+      "native": {
+        "path": "F:\\xlang-validation\\xge-full-20261110\\input-history-notification-native-tests-win-r1\\results.json",
+        "sha256": "534363b25a537178da147456a1f2ff3985a1778ac7f5a90b9b76a40099668528",
+        "checks": 4
+      },
+      "nativeStatic": {
+        "path": "F:\\xlang-validation\\xge-full-20261110\\input-history-notification-native-static-win-r2\\results.json",
+        "sha256": "f00a9f05da386b7e4e4854713fe3ef0c57dd2ced24aca8e77ce8d2ca8378e6e7",
+        "checks": 4
+      },
+      "packages": {
+        "path": "F:\\xlang-validation\\xge-full-20261110\\input-history-notification-packages-win-r1\\results.json",
+        "sha256": "37457a1d80d83a8ac0e72d7f1bc8004536421877defa0a75bf83bb77c5747194",
+        "checks": 6
+      },
+      "language": {
+        "path": "F:\\xlang-validation\\xge-full-20261110\\input-history-notification-language-tests-win-r1\\results.json",
+        "sha256": "cdd6faa084949a5dfa996fff38a19ddd5d6aec6313a1067d3eb5a5950b0a7168",
+        "checks": 6
+      },
+      "dynamicArtifact": {
+        "binary": "F:\\xlang-validation\\xge-full-20261110\\input-history-notification-language-tests-win-r1\\host.exe",
+        "sha256": "401004ca968be6aa2e31c4fa894e089df40a6870b94af1afa259139c309439ea",
+        "imports": [
+          "msvcrt.dll",
+          "xge3_host.dll",
+          "kernel32.dll",
+          "SHELL32.dll",
+          "ws2_32.dll",
+          "IPHLPAPI.dll",
+          "ucrtbase.dll"
+        ]
+      },
+      "staticArtifact": {
+        "binary": "F:\\xlang-validation\\xge-full-20261110\\input-history-notification-language-tests-win-r1\\static.exe",
+        "sha256": "0d777dfcc826d74b94aefa7f6909fc46cf4b493cf040013c925b6fc7a58051cc",
+        "imports": [
+          "msvcrt.dll",
+          "kernel32.dll",
+          "USER32.dll",
+          "OLEAUT32.dll",
+          "ole32.dll",
+          "SHELL32.dll"
+        ]
+      }
+    },
+    "linux": {
+      "sdk": {
+        "path": "\\\\wsl.localhost\\Ubuntu\\var\\tmp\\xlang-validation\\xge-full-20261110\\input-history-notification-sdk-linux-r1\\results.json",
+        "sha256": "10768e8f1c15f9b9ec2f4c0d75b08fe19fe86aa806feba450f01faf151cbc5fa",
+        "checks": 2
+      },
+      "baseline": {
+        "path": "\\\\wsl.localhost\\Ubuntu\\var\\tmp\\xlang-validation\\xge-full-20261110\\input-history-notification-baseline-linux-r1\\results.json",
+        "sha256": "1ff298b21b1fcb78bb52a4e5fac6aa6a43489d64b6656c368a96927bec45b06a",
+        "checks": 4
+      },
+      "native": {
+        "path": "\\\\wsl.localhost\\Ubuntu\\var\\tmp\\xlang-validation\\xge-full-20261110\\input-history-notification-native-tests-linux-r1\\results.json",
+        "sha256": "53126a9ac5991596bc540fc4a2922430de3bbc957303441dc281a62f911aebda",
+        "checks": 4
+      },
+      "nativeStatic": {
+        "path": "\\\\wsl.localhost\\Ubuntu\\var\\tmp\\xlang-validation\\xge-full-20261110\\input-history-notification-native-static-linux-r2\\results.json",
+        "sha256": "c4718c15f8fbb91b4ec5688028af3bfbbacbb40e39759b3fc9e6d1d94fbe13e0",
+        "checks": 4
+      },
+      "packages": {
+        "path": "\\\\wsl.localhost\\Ubuntu\\var\\tmp\\xlang-validation\\xge-full-20261110\\input-history-notification-packages-linux-r1\\results.json",
+        "sha256": "749428597c95aff839e62668be511a736ae5881162d3357668819b17335171fc",
+        "checks": 6
+      },
+      "language": {
+        "path": "\\\\wsl.localhost\\Ubuntu\\var\\tmp\\xlang-validation\\xge-full-20261110\\input-history-notification-language-tests-linux-r1\\results.json",
+        "sha256": "ecdbd1f90b34aa1fa2d61acb095e845805fcb8246fb2d20943b0d3b0bd52ad45",
+        "checks": 6
+      },
+      "dynamicArtifact": {
+        "binary": "\\\\wsl.localhost\\Ubuntu\\var\\tmp\\xlang-validation\\xge-full-20261110\\input-history-notification-language-tests-linux-r1\\host",
+        "sha256": "c7cf34c20ec2f68bd3f137d7be28771b292b40f4420537e294deaf2f54a407af",
+        "imports": [
+          "libm.so.6",
+          "libmvec.so.1",
+          "libxge3_host.so",
+          "libc.so.6",
+          "ld-linux-x86-64.so.2"
+        ]
+      },
+      "staticArtifact": {
+        "binary": "\\\\wsl.localhost\\Ubuntu\\var\\tmp\\xlang-validation\\xge-full-20261110\\input-history-notification-language-tests-linux-r1\\static",
+        "sha256": "6d398f31678cadf75d0a0775e2ce6416b73c223541ca39492eb5416784d7f42d",
+        "imports": [
+          "libm.so.6",
+          "libmvec.so.1",
+          "libX11.so.6",
+          "libXi.so.6",
+          "libXcursor.so.1",
+          "libGL.so.1",
+          "libc.so.6",
+          "ld-linux-x86-64.so.2"
+        ]
+      }
+    }
+  }
+}

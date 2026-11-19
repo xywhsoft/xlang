@@ -1,0 +1,67 @@
+import xui
+
+extern "fixtureInputProxy" @header("test/cases/foreign_xui_input_extended.h") @no_raise @c_result("owned_view") @factory(0,0,dropProxy) func cpuProxy() as xui.Proxy
+extern "xuiProxyReleaseChecked" @header("xge3_runtime.h") @no_raise @c_result("status",0) func dropProxy(xui.Proxy value)
+extern "fixtureLayoutFont" @no_raise @c_result("owned_view") @factory(1,0,dropFont) func cpuFont(xui.Proxy proxy) as xui.Font
+extern "xuiFontReleaseChecked" @header("xge3_runtime.h") @no_raise @c_result("status",0) func dropFont(xui.Font value)
+extern "fixtureInputCleanupCheck" @no_raise func checkCleanup()
+
+func checkHistory(xui.Proxy proxy,xui.Font font,bool redo,bool reportError)
+ auto ui=xui.create(proxy,xui.XUI_SYSTEM_FONT_DISABLED)
+ ui.setDefaultFont(font)
+ auto root=ui.widget()
+ auto input=ui.inputNative()
+ assert ui.setRootWidget(root)==0 and root.addChild(input)==0 and ui.setFocusWidget(input)==0
+ assert ui.inputTextEx(0x55)!=0 and input.canUndo()!=0
+ if redo then
+  input.undo()
+  assert input.canRedo()!=0
+ end
+
+ int calls=0
+ string committed=""
+ input.setChange(func(xui.Widget sender,xui.CString text)
+  committed=input.getText() as string
+  calls+=1
+  sender.close()
+  if reportError then
+   throw "history notification failed"
+  end
+ end)
+
+ bool complained=false
+ try
+  if redo then
+   input.redo()
+  else
+   input.undo()
+  end
+ catch Error failure
+  complained=true
+  assert failure.message=="history notification failed", "history preserves the callback error"
+ end
+ assert complained==reportError and calls==1, "return status follows the completed history operation"
+ assert committed==(redo ? "U" : ""), "notification sees committed text"
+ assert root.getChildCount()==0 and ui.update(0)==0, "closed Input is detached"
+ bool expired=false
+ try
+  auto unused=input.getText()
+ catch StateError
+  expired=true
+ end
+ assert expired, "managed Input view expires after close"
+ ui.close()
+end
+
+func main(...) as int
+ auto proxy=cpuProxy()
+ auto font=cpuFont(proxy)
+ checkHistory(proxy,font,false,false)
+ checkHistory(proxy,font,true,false)
+ checkHistory(proxy,font,true,true)
+ font.close()
+ proxy.close()
+ checkCleanup()
+ print("XUI_INPUT_HISTORY_OK")
+ return 0
+end
