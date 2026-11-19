@@ -11,6 +11,19 @@ call `resultEditorName(index)` or `activateResult(index)` on the same scope.
 The example [shared_find.xl](../lib/bindings/xui/examples/shared_find.xl) shows
 how to read and display results across documents.
 
+Use `getResultEditor(context, index)` or `getEditor(context, index)` to open a
+managed view of an existing editor. `getActiveEditor(context)` and
+`getFindWindow(context)` use the same contract. A missing result returns `null`.
+Passing another live Context for a present widget raises a checked error.
+The view belongs to the Context that owns the widget. Closing the scope
+destroys its find window, while its editor views remain valid until their
+editor or Context is closed.
+
+The first managed lookup can allocate a widget view. Failure leaves the native
+widget in its Context and allows retry. In 1,000 prepared rounds, each of the
+four getters reused its existing view without XRT heap operations. The language
+path still checks status, enters the owning Context and retains the view.
+
 Each accessor makes one native call. On the prepared two-document fixture,
 1,000 local and 1,000 scoped result reads allocate and free 2,000 preview
 strings in xlang. The C comparison reads inline previews with no XRT heap

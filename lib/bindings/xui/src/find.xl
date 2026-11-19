@@ -13,8 +13,12 @@ export extern "xui_code_find_scope_t*" class CodeFindScope @header("xge3_runtime
  extern "xuiCodeFindScopeRemoveEditor" @no_raise @c_result("status",0) func removeEditor(CodeEdit editor)
  extern "xuiCodeFindScopeGetEditorCount" @no_raise func editorCount() as c_int
  extern "xuiCodeFindScopeGetEditorName" @no_raise @c_result("cstring") func editorName(c_int index) as string?
- // Native identity only, never a new independently owned Widget. Use the
- // original editor's getFindWindow() for a checked Context-owned window view.
+ // The Context supplied here owns the returned native widget.
+ extern "xuiCodeFindScopeGetEditorChecked" @no_raise @c_output(3,0) @c_result("owner_view",1) func getEditor(Context context,c_int index) as CodeEdit?
+ extern "xuiCodeFindScopeGetActiveEditorChecked" @no_raise @c_output(2,0) @c_result("owner_view",1) func getActiveEditor(Context context) as CodeEdit?
+ extern "xuiCodeFindScopeGetFindWindowChecked" @no_raise @c_output(2,0) @c_result("owner_view",1) func getFindWindow(Context context) as Window?
+ extern "xuiCodeFindScopeGetResultEditorChecked" @no_raise @c_output(3,0) @c_result("owner_view",1) func getResultEditor(Context context,c_int index) as CodeEdit?
+ // Explicit C interop identity access.
  extern "xuiCodeFindScopeGetEditor" @no_raise func getEditorNative(c_int index) as NativeWidgetPointer?
  extern "xuiCodeFindScopeGetActiveEditor" @no_raise func getActiveEditorNative() as NativeWidgetPointer?
  extern "xuiCodeFindScopeGetFindWindow" @no_raise func getFindWindowNative() as NativeWidgetPointer?

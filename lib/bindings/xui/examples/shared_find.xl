@@ -1,6 +1,7 @@
 // Run: xl run shared_find.xl
 // Searches two documents without creating a graphics window.
 import xui
+from xui import CodeEdit
 
 auto proxy = xui.createProxy()
 try
@@ -19,6 +20,13 @@ try
     auto start, finish, line, column, preview = search.getResult(c_int(index))
     auto name = search.resultEditorName(c_int(index)) ?? ""
     println(name, " ", line + 1, ":", column + 1, " [", start, ", ", finish, ") ", preview)
+   end
+   auto firstMatchEditor = search.getResultEditor(ui, 0)
+   if firstMatchEditor != null then
+    auto editor = firstMatchEditor as CodeEdit
+    editor.setText("updated first document")
+    assert search.getResultEditor(ui, 0) == null
+    println("Editing a document clears the old results.")
    end
   finally
    search.close()

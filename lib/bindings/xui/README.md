@@ -312,10 +312,11 @@ CodeEdit instances with `addEditorNamed`, select the current target with
 `setActiveEditor`, and use `findAll`, `findNext` and `refresh`. The editors share
 one native find/replace window; the Context still owns every editor and window.
 Closing a scope detaches its editors, and native editor/Context destruction
-removes entries automatically. No language activation callback is registered;
-results can be inspected and explicitly activated. Native identity getters end
-in `Native` and return an opaque C-interop identity, not a new Widget owner.
-Use the original editor's `getFindWindow()` for a checked Context-owned view.
+removes entries automatically. Results can be inspected and explicitly
+activated. `getEditor`, `getActiveEditor`, `getResultEditor` and `getFindWindow`
+take the owning `Context` and return checked optional widget views. Editor
+references remain usable after scope closure while their Context is open.
+Native identity getters end in `Native` and return opaque C-interop identities.
 See `examples/shared_find.xl` for a minimal headless search.
 
 `create(proxy, systemFontPolicy, size=0)` uses the sized native owned-Context

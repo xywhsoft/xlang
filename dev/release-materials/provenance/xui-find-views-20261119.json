@@ -1,0 +1,101 @@
+{
+  "complete": true,
+  "passed": true,
+  "releaseInstalled": false,
+  "shippingDelivery": false,
+  "sourceParent": "4aaa8f1fd04d10a7a8b8558a77aaaf3d00055f62",
+  "nativeCommit": "29439e5b9cc9d4f3cd7f1603430ba1e7ddde2534",
+  "frozenXrt": "804cc769de3030118c2b46ef7af69543d1b82d9d",
+  "scope": [
+    "CodeFindScope editor, active editor, result editor and window queries admit watched children of an explicit Context.",
+    "Native getters reject a foreign context for a present child and clear the output. An absent widget is a successful nullable result.",
+    "The UI thread fixture exercises a cold output admission failure with the native window still open and retrievable. It checks editor-first, Context-first and scope-first cleanup.",
+    "The matched SDK retains the existing single-Context membership rule and uses direct C calls. The scope activation callback and final distribution stay open."
+  ],
+  "workload": {
+    "iterations": 1000,
+    "lookupsPerIteration": 4,
+    "xlang": {
+      "allocations": 0,
+      "frees": 0,
+      "reallocations": 0
+    },
+    "nativeC": {
+      "allocations": 0,
+      "frees": 0,
+      "reallocations": 0
+    },
+    "conditions": "Prepared Context, editor, find scope and window. The language loop holds existing views and runs with XRT allocation budget zero."
+  },
+  "sources": {
+    "docs/xge3-xui3-api-map-storage.json": "6efbc924579ae8716bc7186ad43af3eb418d1e2fb3d97fb0c6aaa0b433f314ba",
+    "docs/xui-edit-search.md": "edd7fb4ad5bbb7ac45c609dc3f3b63d044d97236e57021e55ad52fc12e2f94e6",
+    "lib/bindings/xui/README.md": "1d5a3b34022c87759f774d00327a90d4ab829820efd9660e93f92bccb5275ce6",
+    "lib/bindings/xui/src/find.xl": "87a101f4cb496cc0675ca33851691c797f5c65bbdb2cc550d40057459b3f72e9",
+    "lib/bindings/xui/examples/shared_find.xl": "53cb4bb8bfb693c303c6f44716c039206822304cd0d7ea38a5b3a7d8acc49100",
+    "test/cases/foreign_xui_find_views.h": "fc0999276d39514d01f507d6773bc2fce756bed828c9249be27ecedc3fa8fb1c",
+    "test/cases/foreign_xui_find_views.xl": "e61cb1f920be8a06e1442056730943330e937ca731665927be6ae992397d96ac",
+    "test/cases/foreign_xui_find_views_native.c": "0a17245d1893557d60dfd26119cc31736bccee5c50b110e8641db89c843d5d32"
+  },
+  "nativeSources": {
+    "include/xui.h": "5861e12192a3c6e6f5373c169e0ac58a9c0a32a675c9d07db944e1248582f616",
+    "src/xui/code/xui_code_edit.c": "f022774068e1d466684a5cac53c61b0d2c391dd012e695c5e1160c31ff55befa",
+    "tests/xui/xui_code_find_session_test.c": "5f90450ac84dd5fb52822b88fdc152cda950b5eadda2cfd15e7e2ea7a75d6c55"
+  },
+  "platforms": {
+    "win": {
+      "matchedCompilerSdk": {
+        "path": "F:\\xlang-validation\\xge-full-20261110\\inline-cstring-compiler-sdk-win-r1\\results.json",
+        "sha256": "740c7f6074c8c605521c1047de1c552576a8051f39ea2075641537041cfda361"
+      },
+      "nativeSdk": {
+        "path": "F:\\xlang-validation\\xge-full-20261110\\find-views-sdk-win-r1\\results.json",
+        "sha256": "42db398d7dabf7d1d4b65d1498e8d5ac492595c78be0c74c45ecb315bf17d7f0",
+        "commands": 2
+      },
+      "nativeFindSession": {
+        "path": "F:\\xlang-validation\\xge-full-20261110\\find-views-native-tests-win-r1\\results.json",
+        "sha256": "0325f63260e32e13bf896d543002454c0fb9b2947a0de2780e0bb1e2c548be9b",
+        "commands": 4
+      },
+      "packageReplay": {
+        "path": "F:\\xlang-validation\\xge-full-20261110\\find-views-packages-win-r2\\results.json",
+        "sha256": "f12767ec84a878bdc82e41af808e16b0ca00c2194a807d1f36841f971b249dbc",
+        "sourceReviewChecks": 668,
+        "commands": 6
+      },
+      "languageAndExample": {
+        "path": "F:\\xlang-validation\\xge-full-20261110\\find-views-tests-win-r2\\results.json",
+        "sha256": "5990d5d7ebf082972f9c40dd39cf46c8a346250f03eb9913db85a4f6a9b07e47",
+        "commands": 26
+      }
+    },
+    "linux": {
+      "matchedCompilerSdk": {
+        "path": "/var/tmp/xlang-validation/xge-full-20261110/inline-cstring-compiler-sdk-linux-r1/results.json",
+        "sha256": "19252f8a7944cb40005889f117b606621c05431aed4ddd640bd1d27ae666b964"
+      },
+      "nativeSdk": {
+        "path": "/var/tmp/xlang-validation/xge-full-20261110/find-views-sdk-linux-r1/results.json",
+        "sha256": "fe9fae48de7a339146fdf9a92e834bee54bb070ce7881bbfe6438e78e46c8c5f",
+        "commands": 2
+      },
+      "nativeFindSession": {
+        "path": "/var/tmp/xlang-validation/xge-full-20261110/find-views-native-tests-linux-r1/results.json",
+        "sha256": "893085ee0c43c1a40198540588df50bdffc86b5bbb2a4c37fbcac71468e6899d",
+        "commands": 4
+      },
+      "packageReplay": {
+        "path": "/var/tmp/xlang-validation/xge-full-20261110/find-views-packages-linux-r2/results.json",
+        "sha256": "e12e6b5bc229bd8589d84dd0f654a7901572521e419643ea605db79209596693",
+        "sourceReviewChecks": 669,
+        "commands": 6
+      },
+      "languageAndExample": {
+        "path": "/var/tmp/xlang-validation/xge-full-20261110/find-views-tests-linux-r2/results.json",
+        "sha256": "2037d9854812e60dbb1746a24c1a83e64ce879129f7b4176efe10d09c6e9fb8a",
+        "commands": 26
+      }
+    }
+  }
+}
