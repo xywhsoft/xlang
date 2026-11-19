@@ -448,3 +448,6 @@ a parser allocation failure leaves old views expired across all document
 shares. A successful retry creates current views while old ones stay expired.
 The [failed-reload regression](../dev/release-materials/provenance/xge-svg-observed-reload-20261120.json)
 checks these boundaries on Windows and Linux through JIT and both AOT link modes.
+The [ListView package regression](../dev/release-materials/provenance/xge-svg-observed-listview-packages-20261120.json)
+repeats the lifetime checks with the matched XGE and XUI packages that include
+the managed ListView row and activation callbacks.
