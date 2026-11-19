@@ -83,7 +83,8 @@ for f in h['functions']:
   add(cl,name,'collectRangeRects','DocumentRange range',['@c_ref(0)','@c_result("owned_view")','@factory(2,0,rollbackDocumentRangeRects)'],'DocumentRangeRects');continue
  if name in ('xuiDocumentHtmlInteractionGetWindow','xuiDocumentHtmlInteractionGetWebView','xuiDocumentEditorGetMenuWidget','xuiDocumentEditorGetFindWindow'):
   add(cl,name,name[len(prefix):][3:4].lower()+name[len(prefix):][4:],'',['@c_result("owner_view",0)'],'Widget?');continue
- if name=='xuiDocumentImageResourcePoll':add(cl,name,'poll','',['@c_null(1,"xui_resource*")'],'c_int');continue
+ if name=='xuiDocumentImageResourcePollStatus':add(cl,name,'poll','',[],'c_int');continue
+ if name=='xuiDocumentImageResourcePoll':add(cl,name,'pollResource','',['@c_output(1,0)','@c_result("owner_view",0)'],'Resource?');continue
  if name=='xuiDocumentImageResourceCancel':status(cl,name,'cancel');continue
  if name in ('xuiDocumentImageResourceLoadMemory','xuiDocumentImageResourceLoadFile','xuiDocumentImageResourceGetAsyncStats'):
   reasons[name]='Context global operation is added explicitly below';continue
@@ -226,5 +227,5 @@ for f in h['functions']:
   elif name=='xuiDocumentRendererGetRangeRects':state='explicit-C'
   elif any(x in name for x in ('Release','LifetimeWatch','TraceOwnership','OwnershipBusy')):reason='Cold private resource policy/watch/graph contract; language close does not expose a second consuming native owner'
  rows.append(dict(native=name,declaration=f['declaration'],line=f['line'],logical=mapped.get(name,[]),status=state,reason=reason))
-api=dict(scope=__doc__,authority=h['header'],authoritySha256=h['sha256'],functions=rows,records=newRecords,constants=constants,notes=['No per-method C forwarding wrapper','Descriptors are synchronous zeroed stack records; Native copies/pins/retains remain real costs','Browser/image APIs are declaration/ABI only, no external I/O execution','Supported NULL branches use exact same-symbol physical aliases; Renderer active-position and View ordinary selection reject NULL and have no invented clear method'])
+api=dict(scope=__doc__,authority=h['header'],authoritySha256=h['sha256'],functions=rows,records=newRecords,constants=constants,notes=['No per-method C forwarding wrapper','Descriptors are synchronous zeroed stack records; Native copies/pins/retains remain real costs','Async image polling exposes a native status-only path and an optional Context-owned resource output on success','Supported NULL branches use exact same-symbol physical aliases; Renderer active-position and View ordinary selection reject NULL and have no invented clear method'])
 (root/'docs/xge3-xui3-document-ui-api-map.json').write_text(json.dumps(api,indent=2)+'\n');print('Document UI',len(mapped),'functions /',len(h['functions']),'Native,',len(newRecords),'POD records')

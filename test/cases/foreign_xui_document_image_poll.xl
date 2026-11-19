@@ -1,0 +1,98 @@
+import xui
+from xui import Context, DocumentImageRequest, Proxy, Resource, Surface
+
+extern "fixtureRenderProxy" @header("test/cases/foreign_xui_render_backend.h") @no_raise @c_result("owned_view") @factory(0,0,dropProxy) func cpuProxy() as Proxy
+extern "fixtureRenderBalanced" @no_raise func balanced() as c_int
+extern "fixtureRenderBudget" @no_raise func budget(c_int allowance)
+extern "fixtureRenderHeapBegin" @no_raise func heapBegin()
+extern "fixtureRenderHeapResult" @no_raise func heapEnd(c_int native)
+extern "xuiProxyReleaseChecked" @header("xge3_runtime.h") @no_raise @c_result("status",0) func dropProxy(Proxy value)
+
+func waitForImage(DocumentImageRequest request) as c_int
+    for attempt in range(5000)
+        auto status = request.poll()
+        if status != xui.XUI_DOC_ERROR_BUSY then return status end
+        time.sleep(1)
+    end
+    throw RuntimeError "image decode timed out"
+end
+
+func checkImage(Context ui,bytes data)
+    auto request = xui.loadDocumentImageMemoryAsync(ui,"image",data)
+    assert waitForImage(request) == 0
+
+    // Failing to make the language view must leave the published image intact.
+    bool failed = false
+    budget(0)
+    try
+        request.pollResource()
+    catch Error
+        failed = true
+    finally
+        budget(-1)
+    end
+    assert failed
+
+    auto resource = request.pollResource() as Resource
+    assert resource.name == "image" and resource.kind == xui.XUI_RESOURCE_SURFACE
+    auto generation = resource.generation
+
+    heapBegin()
+    for iteration in range(1000)
+        request.pollResource()
+    end
+    heapEnd(0)
+
+    xui.loadDocumentImageMemory(ui,"image",data)
+    assert request.poll() == 0 and request.pollResource() == null
+    auto replacement = ui.findResource("image") as Resource
+    assert replacement.generation != generation
+    bool expired = false
+    try
+        assert resource.name != ""
+    catch StateError
+        expired = true
+    end
+    assert expired
+
+    auto second = xui.loadDocumentImageMemoryAsync(ui,"copy",data)
+    assert waitForImage(second) == 0
+    auto copy = second.pollResource() as Resource
+    auto surface = copy.surface() as Surface
+    second.close()
+    assert copy.name == "copy"
+    copy.remove()
+    surface.close()
+    request.close()
+    replacement.remove()
+end
+
+func checkFailedDecode(Context ui)
+    auto request = xui.loadDocumentImageMemoryAsync(ui,"bad",b"invalid image")
+    assert waitForImage(request) == xui.XUI_DOC_ERROR_FORMAT
+    bool checked = false
+    try
+        request.pollResource()
+    catch Error error
+        checked = error.code == int(xui.XUI_DOC_ERROR_FORMAT)
+    end
+    assert checked and ui.findResource("bad") == null
+    request.close()
+end
+
+func main(...) as int
+    auto proxy = cpuProxy()
+    auto ui = xui.create(proxy,xui.XUI_SYSTEM_FONT_DISABLED)
+    string input = env.get("XUI_TEST_IMAGE") as string
+    checkImage(ui,file.readBytes(input))
+    checkFailedDecode(ui)
+    auto fileRequest = xui.loadDocumentImageFileAsync(ui,"file",input)
+    assert waitForImage(fileRequest) == 0
+    assert (fileRequest.pollResource() as Resource).name == "file"
+    fileRequest.close()
+    ui.close()
+    proxy.close()
+    assert balanced() != 0
+    println("XUI_DOCUMENT_IMAGE_POLL_OK")
+    return 0
+end

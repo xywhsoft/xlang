@@ -190,7 +190,8 @@ extern "xuiDocumentHtmlInteractionReleaseChecked" @no_raise @header("xge3_runtim
 
 export extern "struct xui_doc_image_request_t*" class DocumentImageRequest @header("xge3_runtime.h") @lifetime("owner") @owner(Context) @policy("xl6Xui3DocumentImageRequestPolicy") @watch("xui_lifetime_link_t")
  native point handle
- extern "xuiDocumentImageResourcePoll" @no_raise @c_null(1,"xui_resource*") func poll() as c_int
+ extern "xuiDocumentImageResourcePoll" @no_raise @c_output(1,0) @c_result("owner_view",0) func pollResource() as Resource?
+ extern "xuiDocumentImageResourcePollStatus" @no_raise func poll() as c_int
  extern "xuiDocumentImageResourceCancel" @no_raise @c_result("status",0) func cancel()
  extern "xuiDocumentImageResourceGetContext" @no_raise @c_result("owner_view",0) func context() as Context?
  extern "xuiDocumentImageResourceReleaseChecked" @no_raise @c_result("status",0) func close()

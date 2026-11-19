@@ -1,0 +1,25 @@
+import xui
+from xui import Resource, Surface, Widget
+from "./_window.xl" import Window
+
+Window.show("Document / async image", func(xui.Context ui,Widget root)
+    auto image = ui.imageNative()
+    image.setMode(xui.XUI_IMAGE_FIT)
+    Window.place(root,image,24,24,192,192)
+
+    // 解码在后台进行，每帧查询一次状态。
+    auto request = xui.loadDocumentImageFileAsync(ui,"lesson-icon",Window.asset("icon_file.png"))
+    root.setUpdateCallback(func(Widget sender,c_float elapsed) as c_int
+        auto status = request.poll()
+        if status == xui.XUI_DOC_ERROR_BUSY then return 0 end
+        sender.setUpdateCallback(null)
+        assert status == 0
+
+        auto resource = request.pollResource() as Resource
+        auto surface = resource.surface() as Surface
+        image.setSurface(surface)
+        surface.close()
+        request.close()
+        return 0
+    end)
+end)

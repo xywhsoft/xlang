@@ -1,7 +1,7 @@
 # Document UI direct declarations
 
 The adjacent JSON pins the current `include/xui_document_ui.h` and lists its
-172 API functions with their logical mappings or C interoperability and
+173 API functions with their logical mappings or C interoperability and
 lifecycle reasons. The initial qualification used the frozen Model Native
 source r5/r6, SHA `e343a8600039805be3c5e481fe1d15dbcd426490ce2ad2b5dca65f78b6574bb2`. The
 additional MessageList `addNode` maps `xuiMessageListAddNode` from `xui.h`;
@@ -33,6 +33,22 @@ Context's WidgetType registry views. The first call can register the type.
 `DocumentEditor` inherits `DocumentView`. Use `widget.isType(type)` to test
 inheritance. Closing the Context expires either type view.
 See the [headless example](../lib/bindings/xui/examples/document_ui_headless.xl).
+
+`DocumentImageRequest.poll()` pumps completed image work and returns the native
+status. `pollResource()` performs one poll and returns a Context-owned
+`Resource?` on success. Other statuses raise a checked error from this method.
+Successful tickets return `null` if their published generation has since been
+removed or replaced. Closing the ticket leaves the published image in the
+Context registry. `resource.surface()` retains a separate Surface reference.
+The two declarations share the same native poll implementation. The status
+path skips registry lookup. The resource path resolves the current generation
+after the native cleanup tail, then admits the watched resource view.
+See the [async image example](../lib/bindings/xui/examples/document_image_async.xl).
+On Windows and Linux, 1,000 repeated polls of the same completed request
+recorded no XRT heap allocations, frees or reallocations in either the xlang
+getter or handwritten C. The first managed exposure may allocate its watch
+record. Repeated exposure still checks thread, owner and resource lifetime.
+See the [image poll acceptance record](../dev/release-materials/provenance/xui-document-image-poll-20261120.json).
 
 Current independent Windows/Linux acceptance uses the frozen R38 successor
 plus 46-frontend nested-pack/NULL overlay, inherited from real full R37.
