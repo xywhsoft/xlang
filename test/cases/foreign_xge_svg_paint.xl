@@ -230,9 +230,32 @@ func checkCold(c_int allowance) as bool
     return failed
 end
 
+func checkSharedGeneration()
+    auto document = xge.createSvg()
+    document.loadMemory(svgXml)
+    auto peer = document.share()
+    auto picture = document.getPicture()
+    auto group = document.getPaintByName("group")
+    auto peerTile = peer.getPaintByName("tile")
+    assert group.getChild(0).getId() == peerTile.getId()
+
+    peer.loadMemory(svgXml)
+    assert expired(picture) and expired(group) and expired(peerTile)
+    auto reloadedPicture = document.getPicture()
+    auto reloadedTile = peer.getPaintByName("tile")
+    assert reloadedPicture.getChildCount() == 1 and reloadedTile.getName() == "tile"
+    assert expired(picture), "Reacquiring the picture must not revive the old view"
+
+    document.clear()
+    assert expired(reloadedPicture) and expired(reloadedTile)
+    document.close()
+    peer.close()
+end
+
 func main(...) as int
     assert debugEnabled() or enableDebug(true)
     checkLifecycle()
+    checkSharedGeneration()
     int failures = 0
     for i in range(12)
         if checkCold(c_int(i)) then failures += 1 end
@@ -240,6 +263,7 @@ func main(...) as int
     assert failures >= 2 and failures < 12
     prefixBegin(-1)
     checkLifecycle()
+    checkSharedGeneration()
     heapEqual()
     println("XGE_SVG_PAINT_OK")
     return 0

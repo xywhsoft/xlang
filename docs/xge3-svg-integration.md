@@ -429,3 +429,8 @@ See the [acceptance record](../dev/release-materials/provenance/xge-miniprogram-
 The lifetime regression also releases the last language view by leaving its
 scope, then finds the same native paint and verifies that its opacity survives.
 See the [lifetime recheck](../dev/release-materials/provenance/xge-svg-observed-lifetime-20261120.json).
+
+Reload and clear also invalidate paint views held by other live shares of the
+same document. Getting the picture again after reload returns a current view.
+The previous picture view stays invalid even when the native address is reused.
+See the [shared-document regression](../dev/release-materials/provenance/xge-svg-shared-generation-20261120.json).
