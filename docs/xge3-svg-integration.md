@@ -1,10 +1,9 @@
-# SVG integration: native prerequisite batches
+# SVG integration
 
-At native prerequisite revision `5c4c30b4`, the authoritative `XGE_ENABLE_SVG`
-block has 68 public functions.
-Only the two legacy cache namespace declarations are present in the xlang
-package; there is no complete safe Svg/SvgPaint API. This ledger does not mark
-that family complete or qualify a release installation.
+xlang provides [owned documents and caches](#owned-documents-and-explicit-caches)
+and [observed paint views](#observed-paint-lifetime). The prerequisite sections
+record the earlier stages of that integration. The starting revision `5c4c30b4`
+had 68 public SVG functions in XGE and two legacy cache declarations in xlang.
 
 ## Native lifetime prerequisite
 
@@ -98,9 +97,9 @@ Both native builds had succeeded; no rebuild/source change was needed for the
 inventory correction. Native/source material remains external. No release/IDE
 was installed, and no complete language SVG/renderer/lifetime gate is claimed.
 
-## Remaining public surface
+## Public surface checklist from the native prerequisite stage
 
-| Native capability | Language design / acceptance still required |
+| Native capability | Language design and acceptance at that stage |
 | --- | --- |
 | Create/Destroy/AddRef/RefCount/Clear/Clone | Owning Svg with the existing checked view/code lifetime protocol; no per-method business wrappers. |
 | Load/LoadMemory/LoadCached/CacheInvalidate/CacheClear | Exact input lengths/path validation and checked errors. The native explicit cache is ready; bind the approved creator-thread SvgCache object and preserve independent document owners. The old native global cache must not silently become cross-thread language views. |
@@ -279,10 +278,10 @@ receivers. A warm 4,000-native-call loop changes no XRT heap counters. Metadata
 sizes remain 88-byte facts and 696-byte sparse rows. Complete O2/Linux/embedded
 acceptance remains for the integrated cohort; no release/IDE files are changed.
 
-Explicit creator-thread `SvgCache` remains the approved public model. A separate
-root-owned, non-independently-destructible node-view lifecycle proposal is still
-pending confirmation. The old resident runtime rejects it before attaching a
-native observer. That proposal is not implemented by the span changes above.
+Explicit creator-thread `SvgCache` remains the approved public model. At this
+span qualification, the older runtime rejected a node view with no independent
+destructor before attaching an observer. The [observed paint lifetime](#observed-paint-lifetime)
+section records the later runtime support and validation.
 
 ## Shared fallback Face prerequisite qualified
 
@@ -434,3 +433,8 @@ Reload and clear also invalidate paint views held by other live shares of the
 same document. Getting the picture again after reload returns a current view.
 The previous picture view stays invalid even when the native address is reused.
 See the [shared-document regression](../dev/release-materials/provenance/xge-svg-shared-generation-20261120.json).
+
+A follow-up using the XGE/XUI packages that include CodeEdit token snapshots
+passed 17 checks per platform on Windows and Linux. The checks include JIT,
+dynamic and static AOT, shared-module retirement, public headers and the paint
+example. See the [package regression](../dev/release-materials/provenance/xge-svg-observed-matched-packages-20261120.json).
