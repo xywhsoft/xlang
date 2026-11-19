@@ -72,3 +72,38 @@ comparison and the matched release/IDE delivery remain in the long task.
 
 `lib/bindings/xge/examples/texture_pixels.xl` is a short CPU-only example:
 create two pixels, change one, read and assert the resulting bytes, then close.
+
+## Textured quads
+
+`Texture.drawQuad(vertices, flags=0)` draws a triangle strip through
+`xgeDrawQuad3D`. `vertices` is exactly `Vertex[4]`. Use the order top-left,
+top-right, bottom-left, bottom-right for a rectangular quad. Each vertex
+supplies its position, depth, W, UV and color. With the default flags, XGE
+projects the positions through the current camera. `XGE_DRAW_SCREEN_SPACE`
+uses screen coordinates. Set a custom camera after `Pass.begin()` because
+starting a pass installs the target's default camera.
+
+Use an uploaded texture on the graphics thread during rendering. This is an
+immediate draw. Call `xge.flush()` first if previously queued draws must appear
+under the quad. The method preserves the native draw flags and the managed
+Texture's checked lifetime. [The textured quad example](../lib/bindings/xge/examples/textured_quad.xl)
+draws into a 2×2 target and prints its RGBA bytes.
+
+Generated C calls `xgeDrawQuad3D` once, with the address of the inline array
+in its value temporary. Passing the array from a local variable copies four
+C records, 112 bytes on the qualified x64 targets. The resource and error
+guards still execute. After warming the renderer, 1,000 draws with XRT
+allocation failure armed completed with zero XRT heap operations in both
+the handwritten C and xlang loops. The measurements time draw submission in
+the same process and render pass. They do not measure GPU completion.
+
+| Platform | C median per draw | xlang median per draw |
+| --- | ---: | ---: |
+| Windows | 1.39 µs | 3.01 µs |
+| Linux with Xvfb and software OpenGL | 2.24 µs | 2.94 µs |
+
+The GPU regression checks exact screen-space pixels, projection of an 8×8 quad
+to its center 4×4 area and rejection of a closed Texture. It runs with JIT,
+dynamic AOT and static AOT on Windows and Linux. The compiler also rejects
+three-vertex, five-vertex, dynamic and incompatible-record arrays.
+[Acceptance record](../dev/release-materials/provenance/xge-textured-quad-20261119.json).

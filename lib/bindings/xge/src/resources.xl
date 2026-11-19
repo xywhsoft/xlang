@@ -33,6 +33,7 @@ export extern "xge_texture_t*" class Texture @header("xge3_runtime.h") @lifetime
  extern "iHeight" @c_field get height() as c_int
  extern "xgeDraw" func draw(c_float x,c_float y)
  extern "xgeDrawPx" func drawPx(c_int x,c_int y)
+ extern "xgeDrawQuad3D" @c_ref(0) func drawQuad(Vertex[4] vertices,c_uint flags=0)
  extern "xgeTextureDrawNinePatch" @no_raise @c_ref(0) @c_result("status",0) func drawNinePatch(NinePatchStyle style,Rect destination,c_uint flags=0)
  extern "xgeTextureUploadQueue" @no_raise @c_result("status",0) func queueUpload()
  extern "xgeTextureUVTransform" @c_const(0) func uvTransform() as TextureUvTransform

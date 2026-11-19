@@ -18,6 +18,37 @@ func area(float width,float height) as xge.Rect
  rect.fH=c_float(height)
  return rect
 end
+func checkPerspectiveQuad(xge.Texture texture,c_uint color)
+ auto target=xge.createRenderTarget(8,8)
+ auto pass=xge.createPass(target,c_uint(xge.XGE_PASS_CLEAR_COLOR),xge.colorRGBA(0,0,0,255))
+ xge.Vertex[4] vertices
+ vertices[0]=vertexAt(0,0,color)
+ vertices[1]=vertexAt(8,0,color)
+ vertices[2]=vertexAt(0,8,color)
+ vertices[3]=vertexAt(8,8,color)
+ for i in range(4)
+  vertices[i].fZ=c_float(0.5)
+ end
+ pass.begin()
+ auto camera=xge.cameraPerspective(8,8,90,0.1,100)
+ camera.fPerspectiveDistance=c_float(0.5)
+ xge.cameraSet(camera)
+ texture.drawQuad(vertices)
+ pass.finish()
+ auto pixels=Buffer()
+ assert pixels.resize(8*8*4)
+ target.readPixels(pixels)
+ auto rgba=pixels.toBytes()
+ for y in range(8)
+  for x in range(8)
+   int i=(y*8+x)*4
+   bool center=x>=2 and x<6 and y>=2 and y<6
+   assert rgba[i]==(center ? 80:0) and rgba[i+1]==(center ? 90:0) and rgba[i+2]==(center ? 100:0) and rgba[i+3]==255
+  end
+ end
+ pass.close()
+ target.close()
+end
 func main(...) as int
  auto preloaded=xge.createTexture(1,1,Buffer.fromHex("ffffffff"))
  xge.init(128,96,"xlang bounded render pipeline")
@@ -52,6 +83,30 @@ func main(...) as int
   target.readPixels(pixels)
   assert pixels.hex()=="505a64ff505a64ff505a64ff505a64ff"
   mesh.close()
+  auto quadTexture=xge.createTexture(1,1,Buffer.fromHex("ffffffff"))
+  xge.Vertex[4] quad
+  quad[0]=vertexAt(0,0,solid)
+  quad[1]=vertexAt(2,0,solid)
+  quad[2]=vertexAt(0,2,solid)
+  quad[3]=vertexAt(2,2,solid)
+  quad[1].fU=c_float(1)
+  quad[2].fV=c_float(1)
+  quad[3].fU=c_float(1)
+  quad[3].fV=c_float(1)
+  pass.begin()
+  quadTexture.drawQuad(quad,c_uint(xge.XGE_DRAW_SCREEN_SPACE))
+  pass.finish()
+  target.readPixels(pixels)
+  assert pixels.hex()=="505a64ff505a64ff505a64ff505a64ff"
+  checkPerspectiveQuad(quadTexture,solid)
+  quadTexture.close()
+  bool quadClosed=false
+  try
+   quadTexture.drawQuad(quad)
+  catch StateError
+   quadClosed=true
+  end
+  assert quadClosed
   auto sprites=xge.createSpriteBatch(white,1,c_uint(xge.XGE_DRAW_SCREEN_SPACE))
   pass.begin()
   sprites.add(white,area(1,1),area(2,2),solid)

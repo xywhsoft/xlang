@@ -1,0 +1,82 @@
+{
+  "complete": true,
+  "passed": true,
+  "releaseInstalled": false,
+  "sourceParent": "07363c797ce0d49fa225f62a411dee93db05f801",
+  "nativeCommit": "35c3892a2939c7faa75fcf995337f021c5bf78ee",
+  "frozenXrt": "804cc769de3030118c2b46ef7af69543d1b82d9d",
+  "declaration": "Texture.drawQuad(Vertex[4], flags=0) -> xgeDrawQuad3D",
+  "sourceHashesLf": {
+    "lib/bindings/xge/src/resources.xl": "7031009b7b1d107629127ccfc909ca87afda1996f67d88eaf0f30afba617897d",
+    "lib/bindings/xge/examples/textured_quad.xl": "a4b85ebee28f1511cc7b6268caf18ba8d7ba8659e6b6bf60224b2e2e4e106843",
+    "lib/bindings/xge/examples/README.md": "bee2508ef003af96375bc3c0c0c409c743bfe0f615f8975cba80607d6a3c7fcf",
+    "test/cases/foreign_xge3_render_pipeline_gpu.xl": "9dd6192a50e49b8e1699c6f43fb70bb5f9c6f85262827a6dcf77f23de4a9d930"
+  },
+  "validation": {
+    "screenPixels": "Exact RGBA in a 2x2 render target.",
+    "perspectivePixels": "Exact 8x8 framebuffer with color only in the center 4x4 area.",
+    "closedTexture": "StateError on subsequent draw.",
+    "invalidTypes": [
+      "Vertex[3]",
+      "Vertex[5]",
+      "array<Vertex>",
+      "ShapeVertex[4]"
+    ],
+    "sample": "Exact blue RGBA readback through JIT and static AOT.",
+    "bounds": "Windows desktop OpenGL and Linux Xvfb software OpenGL.",
+    "networkTests": false
+  },
+  "costs": {
+    "arrayTemporaryBytesX64": 112,
+    "wrapperCallsPerDraw": 0,
+    "nativeCallsPerDraw": 1,
+    "guard": "Existing foreign resource-call admission and checked error scope.",
+    "warmCountUnderAllocationBudgetZero": 1000,
+    "warmAllocations": 0,
+    "warmFrees": 0,
+    "warmReallocs": 0,
+    "sampleCount": 7,
+    "drawsPerSample": 4000,
+    "timing": "C and xlang loops issue the same native draw in one static AOT image and active render pass. Medians measure submission, with no GPU completion fence."
+  },
+  "evidence": {
+    "win": {
+      "packages": {
+        "path": "F:\\xlang-validation\\xge-full-20261110\\quad-binding-packages-win-r2\\results.json",
+        "sha256": "7b81d219fe37dc8b0cdb935d227adf76e57acdf9b7d04eccc05f1b6bd08bb169",
+        "checks": 6
+      },
+      "tests": {
+        "path": "F:\\xlang-validation\\xge-full-20261110\\quad-binding-tests-win-r4\\results.json",
+        "sha256": "69a2d2269c0477fc353241ab98f16e26d4c4e00877c9eb448511f76faa6d5241",
+        "checks": 15
+      },
+      "measurement": {
+        "path": "F:\\xlang-validation\\xge-full-20261110\\quad-binding-measure-win-r1\\results.json",
+        "sha256": "f30b77601997c7fd08a71d79f8aa6173afa41368ddfb366a8e1b7a37ba6df093",
+        "checks": 3,
+        "nativeMedianMicroseconds": 1.3941499928478152,
+        "managedMedianMicroseconds": 3.013525012647733
+      }
+    },
+    "linux": {
+      "packages": {
+        "path": "\\\\wsl.localhost\\Ubuntu\\var\\tmp\\xlang-validation\\xge-full-20261110\\quad-binding-packages-linux-r2\\results.json",
+        "sha256": "2c28113bbd3b06493ca13ae396e5addd72bbe07dfa094acac613ed9a4fe950b3",
+        "checks": 6
+      },
+      "tests": {
+        "path": "\\\\wsl.localhost\\Ubuntu\\var\\tmp\\xlang-validation\\xge-full-20261110\\quad-binding-tests-linux-r4\\results.json",
+        "sha256": "4e88ad1b58579e9d6f3ff4dbeecc755a48e1914cd305815afd226a1356364c36",
+        "checks": 15
+      },
+      "measurement": {
+        "path": "\\\\wsl.localhost\\Ubuntu\\var\\tmp\\xlang-validation\\xge-full-20261110\\quad-binding-measure-linux-r1\\results.json",
+        "sha256": "53d1e04b0e01e4eef12f73cf8caa849145c0f3ffe6fc4dda2261fcbaa51b374e",
+        "checks": 3,
+        "nativeMedianMicroseconds": 2.2424250000767643,
+        "managedMedianMicroseconds": 2.9358500000853383
+      }
+    }
+  }
+}

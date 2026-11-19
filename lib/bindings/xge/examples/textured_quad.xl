@@ -1,0 +1,51 @@
+// Draw a textured triangle strip with four independently placed vertices.
+import xge
+
+func corner(c_float x,c_float y,c_float u,c_float v) as xge.Vertex
+ xge.Vertex point
+ point.fX=x
+ point.fY=y
+ point.fW=c_float(1)
+ point.fU=u
+ point.fV=v
+ point.iColor=xge.colorRGBA(255,255,255,255)
+ return point
+end
+
+func main(...) as int
+ xge.init(96,64,"Textured quad")
+ try
+  xge.run(func() as c_int
+   auto texture=xge.createTexture(1,1,Buffer.fromHex("4080ffff"))
+   auto target=xge.createRenderTarget(2,2)
+   auto pass=xge.createPass(target)
+   try
+    // The native triangle strip orders corners top-left, top-right,
+    // bottom-left, bottom-right. This example uses screen coordinates.
+    xge.Vertex[4] vertices
+    vertices[0]=corner(0,0,0,0)
+    vertices[1]=corner(2,0,1,0)
+    vertices[2]=corner(0,2,0,1)
+    vertices[3]=corner(2,2,1,1)
+    pass.begin()
+    texture.drawQuad(vertices,c_uint(xge.XGE_DRAW_SCREEN_SPACE))
+    pass.finish()
+
+    auto pixels=Buffer()
+    assert pixels.resize(16)
+    target.readPixels(pixels)
+    assert pixels.hex()=="4080ffff4080ffff4080ffff4080ffff"
+    println("Quad pixels:",pixels.hex())
+   finally
+    pass.close()
+    target.close()
+    texture.close()
+   end
+   return c_int(1)
+  end)
+ finally
+  xge.setFrameCallback(null)
+  xge.unit()
+ end
+ return 0
+end
