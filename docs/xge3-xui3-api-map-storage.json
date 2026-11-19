@@ -275,12 +275,12 @@
       "declaration": "extern \"xuiCodeEditApplyCompletionItems\" @no_raise @c_array_group(3,2,11,\"int\",13) @c_array_record(3,\"xui_code_completion_item_t\",\"iSize\",\"uint32_t\") @c_array_field(3,\"sLabel\",0,\"c_string\") @c_array_field(3,\"sInsertText\",1,\"c_string\") @c_array_field(3,\"sDetail\",2,\"c_string\") @c_array_field(3,\"sDocumentation\",3,\"c_string\") @c_array_field(3,\"iKind\",4,\"value\") @c_array_field(3,\"iSortOrder\",5,\"value\") @c_array_field(3,\"iUserData\",6,\"value\") @c_array_field(3,\"sFilterText\",7,\"c_string\") @c_array_field(3,\"sSortText\",8,\"c_string\") @c_array_field(3,\"sCommitCharacters\",9,\"c_string\") @c_array_field(3,\"iFlags\",10,\"value\") @c_result(\"status\",0) func applyCompletionItems(c_uint version,c_int offset,array<string> labels,array<string?> insertTexts,array<string?> details,array<string?> documentation,array<c_int> kinds,array<c_int> sortOrders,array<c_uintptr> userData,array<string?> filterTexts,array<string?> sortTexts,array<string?> commitCharacters,array<c_uint> flags,int size=-1)",
       "storage": "native-copy-or-synchronous-read",
       "sourceFile": "src/xui/code/xui_code_edit.c",
-      "line": 7930,
+      "line": 7962,
       "functionSha256": "c54f8e2c490f698533a18a072fe09fcd80fd0a798e24d49693d90563d2102e5f",
       "dependencies": [
         {
           "sourceFile": "src/xui/code/xui_code_edit.c",
-          "lfSha256": "004132441b669890c4d94ef9dc2f30dc829e3c58c9d385b5bd0f632d8e3da7e0"
+          "lfSha256": "57c9011fa2f4c549c7724ad5247fcbdbb2e55052b38ced297c8127487107f9e0"
         }
       ]
     },
@@ -289,12 +289,12 @@
       "declaration": "extern \"xuiCodeEditShowSignatureHelp\" @no_raise @c_pack(1,\"xui_code_signature_help_t\",0,8) @c_pack_size(1,\"iSize\",\"uint32_t\") @c_pack_field(1,\"sLabel\",0,\"c_string\") @c_pack_field(1,\"sDocumentation\",1,\"c_string\") @c_pack_field(1,\"iActiveParameter\",2,\"value\") @c_pack_field(1,\"iUserData\",7,\"value\") @c_array_group(10,3,3,\"int\",6) @c_array_record(10,\"xui_code_signature_parameter_t\",\"iSize\",\"uint32_t\") @c_array_field(10,\"sLabel\",0,\"c_string\") @c_array_field(10,\"sDocumentation\",1,\"c_string\") @c_array_field(10,\"tLabelRange\",2,\"value\") @c_array_pack(10,1,\"pParameters\",\"iParameterCount\") @c_result(\"status\",0) func showSignatureHelp(string label,string? documentation=null,c_int activeParameter=-1,array<string?> parameterLabels=[],array<string?> parameterDocumentation=[],array<CodeRange> parameterRanges=[],int size=-1,c_uintptr userData=0)",
       "storage": "native-copy-or-synchronous-read",
       "sourceFile": "src/xui/code/xui_code_edit.c",
-      "line": 8236,
+      "line": 8268,
       "functionSha256": "a9b602f4ef11432dc88d2c24ea82568ea3726c4d5e79ab95923365ae96b4e57d",
       "dependencies": [
         {
           "sourceFile": "src/xui/code/xui_code_edit.c",
-          "lfSha256": "004132441b669890c4d94ef9dc2f30dc829e3c58c9d385b5bd0f632d8e3da7e0"
+          "lfSha256": "57c9011fa2f4c549c7724ad5247fcbdbb2e55052b38ced297c8127487107f9e0"
         }
       ]
     },
@@ -303,12 +303,12 @@
       "declaration": "extern \"xuiCodeEditShowHint\" @no_raise @c_pack(1,\"xui_code_hover_t\",0,4) @c_pack_size(1,\"iSize\",\"uint32_t\") @c_pack_field(1,\"tRange\",0,\"value\") @c_pack_field(1,\"sText\",1,\"c_string\") @c_pack_field(1,\"sContentType\",2,\"c_string\") @c_pack_field(1,\"iUserData\",3,\"value\") @c_result(\"status\",0) func showHint(CodeRange range,string text,string? contentType=null,c_uintptr userData=0)",
       "storage": "native-copy-or-synchronous-read",
       "sourceFile": "src/xui/code/xui_code_edit.c",
-      "line": 8327,
+      "line": 8359,
       "functionSha256": "1f210cf6a12212fce872323c44bbdd4f093833bc39d2389a3e663f958555c742",
       "dependencies": [
         {
           "sourceFile": "src/xui/code/xui_code_edit.c",
-          "lfSha256": "004132441b669890c4d94ef9dc2f30dc829e3c58c9d385b5bd0f632d8e3da7e0"
+          "lfSha256": "57c9011fa2f4c549c7724ad5247fcbdbb2e55052b38ced297c8127487107f9e0"
         }
       ]
     },
@@ -322,7 +322,7 @@
       "dependencies": [
         {
           "sourceFile": "src/xui/code/xui_code_edit.c",
-          "lfSha256": "004132441b669890c4d94ef9dc2f30dc829e3c58c9d385b5bd0f632d8e3da7e0"
+          "lfSha256": "57c9011fa2f4c549c7724ad5247fcbdbb2e55052b38ced297c8127487107f9e0"
         }
       ]
     },
@@ -331,12 +331,12 @@
       "declaration": "extern \"xuiCodeEditApplyTextEdits\" @no_raise @c_array_group(1,0,2,\"int\",2) @c_array_record(1,\"xui_code_text_edit_t\",\"iSize\",\"uint32_t\") @c_array_field(1,\"tRange\",0,\"value\") @c_array_field(1,\"sText\",1,\"c_string\") func applyTextEdits(array<CodeRange> ranges,array<string> replacements,int size=-1,c_int selectionAnchor=-1,c_int selectionCaret=-1) as c_int",
       "storage": "native-copy-or-synchronous-read",
       "sourceFile": "src/xui/code/xui_code_edit.c",
-      "line": 7748,
+      "line": 7780,
       "functionSha256": "d79b7e58113c07a0dc5f5ce1d0f9cc49c45c7b56aa8d85264e6f8ca5cb82b3aa",
       "dependencies": [
         {
           "sourceFile": "src/xui/code/xui_code_edit.c",
-          "lfSha256": "004132441b669890c4d94ef9dc2f30dc829e3c58c9d385b5bd0f632d8e3da7e0"
+          "lfSha256": "57c9011fa2f4c549c7724ad5247fcbdbb2e55052b38ced297c8127487107f9e0"
         }
       ]
     },
@@ -856,7 +856,7 @@
       "declaration": "extern \"xuiCodeEditSetTextLength\" @no_raise @c_span(0,\"const char*\",\"int\") func setTextLength(string sText) as c_int",
       "storage": "native-copy-or-synchronous-read",
       "sourceFile": "src/xui/code/xui_code_edit.c",
-      "line": 7442,
+      "line": 7450,
       "functionSha256": "3d199b2a36fd5b150946cae8bc42dad5de31c5b3fbdbb7d9ddc038b6f2d20a07",
       "helperEvidence": {
         "sourceFile": "src/xui/code/xui_code_document.c",
@@ -870,7 +870,7 @@
       "declaration": "extern \"xuiCodeEditSetPlaceholders\" @no_raise @c_span(0,\"const xui_code_placeholder_t*\",\"int\") func setPlaceholders(Buffer pPlaceholders,c_int iActiveIndex) as c_int",
       "storage": "native-copy-or-synchronous-read",
       "sourceFile": "src/xui/code/xui_code_edit.c",
-      "line": 8103,
+      "line": 8135,
       "functionSha256": "ad02c47fc165320800642eec47434ed92c8093b2026b14b0ebf1825ab881a582"
     },
     "xuiInventoryGridExportXSON": {
@@ -1198,7 +1198,7 @@
       "dependencies": [
         {
           "sourceFile": "include/xui.h",
-          "lfSha256": "6bd4124095f0c3e2bc7d1f03708ae201df8f2254fd2267d2f0ee882a2f77b52e"
+          "lfSha256": "154e2ce5d180c7bfc5c929bdd8f2ec7dd29645e943ad0fd9828ff760ffb9b36c"
         },
         {
           "sourceFile": "src/xui/core/xui_proxy_xge.c",
@@ -1296,7 +1296,7 @@
       "dependencies": [
         {
           "sourceFile": "include/xui.h",
-          "lfSha256": "6bd4124095f0c3e2bc7d1f03708ae201df8f2254fd2267d2f0ee882a2f77b52e"
+          "lfSha256": "154e2ce5d180c7bfc5c929bdd8f2ec7dd29645e943ad0fd9828ff760ffb9b36c"
         },
         {
           "sourceFile": "src/xui/core/xui_proxy_xge.c",

@@ -1,0 +1,21 @@
+import xui
+from "./_window.xl" import Window
+
+Window.show("CodeEdit completion provider",func(xui.Context ui,xui.Widget root)
+ auto editor=ui.codeEditNative()
+ Window.place(root,editor,24,24,560,160)
+ editor.setCompletionOptions(1,2,8,0.15)
+
+ editor.setCompletionProvider(func(xui.CallbackWidget widget,c_int offset,xui.CodeCompletionReply reply) as c_int
+  if reply.prefix()=="pr" then
+   reply.add("print",insertText="print()",detail="Display a value")
+   reply.add("println",insertText="println()",detail="Display a line")
+  end
+  return xui.XUI_OK
+ end)
+
+ assert editor.setText("pr")==xui.XUI_OK
+ editor.selection().setRange(editor.document(),2,2)
+ assert editor.showCompletion()==xui.XUI_OK
+ println("Choose print or println")
+end)

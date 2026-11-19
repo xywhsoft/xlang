@@ -1,0 +1,154 @@
+import xge
+import xui
+from xui import CodeCompletionReply,CodeHoverReply,CodeSignatureReply
+
+extern "fixtureDiagnosticBudget" @header("test/cases/foreign_xui_codeedit_diagnostics_heap.h") @no_raise func budget(c_int allowance)
+extern "fixtureProviderEnter" @header("test/cases/foreign_xui_codeedit_provider_dispatch.h") @no_raise @c_result("status",0) func enter(xui.Context context,xui.CodeEdit editor)
+
+func rangeAt(c_int start,c_int finish) as xui.CodeRange
+ xui.CodeRange result
+ result.iStart=start
+ result.iEnd=finish
+ return result
+end
+
+func exercise(xui.Context context,xui.CodeEdit editor)
+ assert editor.setText("pr")==xui.XUI_OK
+ auto document=editor.document()
+ auto selection=editor.selection()
+ selection.setRange(document,2,2)
+ editor.setCompletionOptions(0,2,4,0.15)
+
+ CodeCompletionReply? savedCompletion=null
+ CodeHoverReply? savedHover=null
+ CodeSignatureReply? savedSignature=null
+ int completed=0
+ editor.setCompletionProvider(func(xui.CallbackWidget widget,c_int offset,CodeCompletionReply reply) as c_int
+  assert offset==2 and reply.prefix()=="pr" and reply.remaining()==4
+  auto word=reply.prefix()+"int"
+  reply.add(word,detail="One",sortOrder=0)
+  array<string?> optional=[null]
+  reply.appendItems(["println"],optional,optional,optional,[c_int(0)],[c_int(1)],[c_uintptr(0)],
+    optional,optional,optional,[c_uint(0)])
+  assert reply.remaining()==2
+  savedCompletion=reply
+  completed+=1
+  return xui.XUI_OK
+ end)
+ assert editor.showCompletion()==xui.XUI_OK and editor.getCompletionCount()==2 and completed==1
+ enter(context,editor)
+ assert document.getText()=="print" and editor.isCompletionOpen()==0
+
+ editor.setHoverProvider(func(xui.CallbackWidget widget,c_int offset,CodeHoverReply reply) as c_int
+  assert offset==5
+  bool rejected=false
+  reply.set(rangeAt(0,5),"Help for "+document.getText(),"text/plain")
+  try
+   reply.set(rangeAt(5,0),"invalid")
+  catch Error failure
+   rejected=failure.code==xui.XUI_ERROR_INVALID_ARGUMENT
+  end
+  assert rejected
+  savedHover=reply
+  return xui.XUI_OK
+ end)
+ editor.requestHoverHint()
+ assert editor.isHintOpen()==1
+ editor.closeHint()
+
+ editor.setSignatureProvider(func(xui.CallbackWidget widget,c_int offset,CodeSignatureReply reply) as c_int
+  assert offset==5
+  auto label=document.getText()+"(value)"
+  reply.set(label,"Display a value",0,["value"],[null],[rangeAt(6,11)])
+  savedSignature=reply
+  return xui.XUI_OK
+ end)
+ assert editor.requestSignatureHelp()==xui.XUI_OK and editor.isSignatureHelpOpen()==1
+ editor.closeSignatureHelp()
+
+ int expired=0
+ try
+  (savedCompletion as CodeCompletionReply).remaining()
+ catch StateError
+  expired+=1
+ end
+ try
+  (savedHover as CodeHoverReply).set(rangeAt(0,5),"too late")
+ catch StateError
+  expired+=1
+ end
+ try
+  (savedSignature as CodeSignatureReply).set("too late")
+ catch StateError
+  expired+=1
+ end
+ assert expired==3
+
+ bool outOfMemory=false
+ budget(0)
+ try
+  editor.requestHoverHint()
+ catch Error
+  outOfMemory=true
+ finally
+  budget(-1)
+ end
+ assert outOfMemory and editor.isHintOpen()==0
+ editor.requestHoverHint()
+ editor.closeHint()
+
+ editor.setHoverProvider(func(xui.CallbackWidget widget,c_int offset,CodeHoverReply reply) as c_int
+  reply.set(rangeAt(0,5),"stale")
+  document.setText("different")
+  return xui.XUI_OK
+ end)
+ bool stale=false
+ try
+  editor.requestHoverHint()
+ catch Error failure
+  stale=failure.code==xui.XUI_ERROR_INVALID_STATE
+ end
+ assert stale and editor.isHintOpen()==0 and document.getText()=="different"
+
+ editor.setHoverProvider(func(xui.CallbackWidget widget,c_int offset,CodeHoverReply reply) as c_int
+  reply.set(rangeAt(0,2),"discard this")
+  throw RuntimeError "provider source failure"
+ end)
+ bool primary=false
+ try
+  editor.requestHoverHint(0)
+ catch RuntimeError failure
+  primary=failure.message=="provider source failure"
+ end
+ assert primary and editor.isHintOpen()==0
+ editor.setHoverProvider(null)
+ editor.setSignatureProvider(null)
+ editor.setCompletionProvider(null)
+end
+
+func main(...) as int
+ auto fontPath=env.get("XUI_EXAMPLE_FONT")
+ assert fontPath!=null
+ xge.init(320,200,"CodeEdit provider qualification",c_int(xge.XGE_INIT_OFFSCREEN),xge.XGE_RUN_MANUAL)
+ auto proxy=xui.createProxy()
+ auto context=xui.create(proxy,xui.XUI_SYSTEM_FONT_DISABLED)
+ auto font=proxy.loadFont(fontPath as string,c_float(16),c_uint(xui.XUI_FONT_FORMAT_TTF))
+ try
+  context.setDefaultFont(font)
+  auto editor=context.codeEditNative()
+  xui.Rect bounds
+  bounds.fW=320
+  bounds.fH=200
+  assert editor.setRect(bounds)==xui.XUI_OK and context.setRootWidget(editor)==xui.XUI_OK
+  context.setViewportSize(320,200)
+  assert context.layout()==xui.XUI_OK
+  exercise(context,editor)
+ finally
+  context.close()
+  font.close()
+  proxy.close()
+  xge.unit()
+ end
+ println("XUI_CODEEDIT_PROVIDER_REPLY_OK")
+ return 0
+end

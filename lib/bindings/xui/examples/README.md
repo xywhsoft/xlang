@@ -193,6 +193,7 @@ WebView 范例只加载源码中的本地 HTML。它需要启用 WebView2 的 Wi
 | [code_models.xl](code_models.xl) | 选中 xlang 一词，输出字节范围 6—11；设置关键字样式，输出颜色已保存 true。 |
 | [code_edit_models.xl](code_edit_models.xl) | 写入编辑器正在显示的文档，选中“你好”，并输出选区的字节范围。 |
 | [code_edit_margin.xl](code_edit_margin.xl) | 给编辑器添加自定义边栏，点击第一行旁的色块可切换颜色。 |
+| [code_providers.xl](code_providers.xl) | 注册补全提供器，显示两个候选，并把选中的候选插入编辑器。 |
 | [code_editing.xl](code_editing.xl) | 替换选中的 world、缩进、撤销并切换行注释；使用原生选区和撤销组。 |
 | [workflow_callbacks.xl](workflow_callbacks.xl) | 根据配置添加预览端口，并打印端口名称。 |
 

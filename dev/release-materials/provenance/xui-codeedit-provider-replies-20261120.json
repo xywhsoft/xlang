@@ -1,0 +1,262 @@
+{
+  "complete": true,
+  "passed": true,
+  "releaseInstalled": false,
+  "sourceParent": "8d75deea6f668643518d03d4886a1d46028dab12",
+  "nativeCommit": "7177460976d16cb17106c805f41019b44459d884",
+  "frozenXrt": "804cc769de3030118c2b46ef7af69543d1b82d9d",
+  "sourceHashesLf": {
+    "docs/xge3-xui3-api-map-storage.json": "a20617f9a6960b82102c488bcfc2d608fb0f91cfa32bb5aa772d23bdac761360",
+    "lib/bindings/xui/src/managed.xl": "210611ee60eeff2c715d0d8bd6625ba35e57e4f29b5c761106f0ce8616d0d06d",
+    "lib/bindings/xui/examples/README.md": "f1c17488f6879b87fde07e0b80dd21648d447c6bcc3960cd1ca45ffcf6327df0",
+    "lib/bindings/xui/examples/code_providers.xl": "7b22898e776b4cd55a2190b9ed3bac90b55115626cc2f52338d62be0e14c4d31",
+    "tools/xui_managed_contracts.py": "6672fd4139a3a1ac9adcfed7b5a458850ebc28a9e40d6ecab6a3ca9f0a79503a",
+    "docs/xui-code-assist.md": "a95cf2247eca3ef22fcd5a656854bd00d099e5cc8373159ffbf954a3c9560949",
+    "test/cases/foreign_xui_codeedit_provider_reply.xl": "08859ba521345e6da6f623bd6497f5463e1f10a01891d181fb65cc679f6a32c7",
+    "test/cases/foreign_xui_codeedit_provider_dispatch.c": "2fe06ebaf6aa2785f90d93f05b7d34c52c503efe51ee5c7f38e324583dccc276",
+    "test/cases/foreign_xui_codeedit_provider_dispatch.h": "8c29c409413adf1f948b23890ef00a0e7121c0384c2a10a753a629cd45ab270a"
+  },
+  "nativeHashesLf": {
+    "include/xui.h": "154e2ce5d180c7bfc5c929bdd8f2ec7dd29645e943ad0fd9828ff760ffb9b36c",
+    "src/xui/code/xui_code_provider.c": "56f9cfd98b6162966ec3a129a392d26203abf58cd9d3eb0dcbc8a17358632c90",
+    "src/xui/code/xui_code_provider_owned.inl": "081a254bf178b024975e26ef1f1b60337cf9be047eb485c20728dfbc3fe5b924",
+    "src/xui/code/xui_code_provider_lifetime.inl": "62525ac95f0a566a140caddfb2e4fad71008e4ba39eb58c903cfc072a8e642dc",
+    "src/xui/code/xui_code_edit.c": "57c9011fa2f4c549c7724ad5247fcbdbb2e55052b38ced297c8127487107f9e0",
+    "src/xui/code/xui_code_provider_reply.inl": "5d06d6f31dcc68ac1ed3d98be2ec9c55da93814a8c7e44befd8880c9187eee22",
+    "tests/xui/xui_code_provider_owned_test.c": "b0b25b80c280bf024d22c7ce176fe26b82c32e4ad66daf80f7065d15d5265624"
+  },
+  "validation": {
+    "native": [
+      "Provider replies copy callback-local strings and signature arrays before the callback returns.",
+      "Caller-scope borrow requirement, nested requests, retained results after a failed replacement, capacity validation.",
+      "Allocation failure rolls back publication. A callback diagnostic discards staged reply data. Both native test suites reconcile heap usage.",
+      "Existing native raw and owned callback roles, graph, restore/reentry and consumer OOM checks reran. Public scope size is unchanged."
+    ],
+    "language": [
+      "Two candidates published through single and bulk paths. A direct native Enter event commits the selected item regardless of OS focus.",
+      "Hover and signature providers drive the actual editor popups. All three saved reply views reject accesses after return.",
+      "Out-of-memory and primary language exception propagate with no popup publication; an edit inside a provider rejects stale output.",
+      "Generated direct C call targets, Windows/Linux JIT and dynamic/static AOT, import audit, example and earlier direct language service regression."
+    ],
+    "measurement": "Same static AOT binary and CPU Proxy, seven rotated samples of 1000 show/close-hover requests per variant. All use the same byte range and two non-empty fixed strings. Variants are legacy C with borrowed text, native C with owned reply, and xlang with the same owned-reply method. Includes language request/close overhead shared by all variants. Warmup and callback registration are outside the timed region.",
+    "networkTests": false
+  },
+  "sizesBytesX64": {
+    "nativeProviderBefore": 176,
+    "nativeProvider": 184,
+    "nativeOwnedSlotBefore": 56,
+    "nativeOwnedSlot": 64,
+    "publicNativeScopeBefore": 136,
+    "publicNativeScope": 136
+  },
+  "timing": {
+    "win": {
+      "legacyCMedianNsPerRequest": 14262.2999847,
+      "ownedCMedianNsPerRequest": 14866.0000414,
+      "ownedXlangMedianNsPerRequest": 20351.7000191,
+      "requestsPerSample": 1000,
+      "samplesPerMode": 7,
+      "xrtHeapAllocFreeReallocPerSample": {
+        "legacy": [
+          [
+            0,
+            0,
+            0
+          ]
+        ],
+        "native": [
+          [
+            1000,
+            1000,
+            0
+          ]
+        ],
+        "managed": [
+          [
+            3000,
+            3000,
+            0
+          ]
+        ]
+      }
+    },
+    "linux": {
+      "legacyCMedianNsPerRequest": 10588.9,
+      "ownedCMedianNsPerRequest": 10802.6,
+      "ownedXlangMedianNsPerRequest": 12828.1,
+      "requestsPerSample": 1000,
+      "samplesPerMode": 7,
+      "xrtHeapAllocFreeReallocPerSample": {
+        "legacy": [
+          [
+            0,
+            0,
+            0
+          ]
+        ],
+        "native": [
+          [
+            1000,
+            1000,
+            0
+          ]
+        ],
+        "managed": [
+          [
+            3000,
+            3000,
+            0
+          ]
+        ]
+      }
+    }
+  },
+  "evidence": {
+    "win": {
+      "sdk": {
+        "path": "F:\\xlang-validation\\xge-full-20261110\\codeedit-provider-reply-sdk-win-r1\\results.json",
+        "sha256": "f4cfaa3b1dbd86799ff610776083db71fd47ce21357f4a3f86d35d9ba73e760c",
+        "checks": 2
+      },
+      "packages": {
+        "path": "F:\\xlang-validation\\xge-full-20261110\\codeedit-provider-reply-packages-win-r1\\results.json",
+        "sha256": "8f377e344749f7ce0b48c5758e6e7b68e503673759975a12255ce7d17c3bc431",
+        "checks": 6,
+        "directory": "F:\\xlang-validation\\xge-full-20261110\\codeedit-provider-reply-packages-win-r1\\packages"
+      },
+      "native": {
+        "path": "F:\\xlang-validation\\xge-full-20261110\\codeedit-provider-reply-native-tests-win-r1\\results.json",
+        "sha256": "66bc99688c3f78a71c3b4dc11362ccb4411460a80e65ea4a936e92feb01859b6",
+        "checks": 8
+      },
+      "language": {
+        "path": "F:\\xlang-validation\\xge-full-20261110\\codeedit-provider-reply-xlang-win-r2\\results.json",
+        "sha256": "7eb961b7b1c772c2c8cbf5ba118edb3d563de93e45fa3b304023b43dc5008302",
+        "checks": 12,
+        "programs": {
+          "dynamic.exe": {
+            "sha256": "99fbbf5ed25045e1d8d93fefa0cbb3416906bd077702a25962e8bbb1d1cfba43",
+            "imports": [
+              "xge3_host.dll",
+              "msvcrt.dll",
+              "kernel32.dll",
+              "SHELL32.dll",
+              "ws2_32.dll",
+              "IPHLPAPI.dll",
+              "ucrtbase.dll"
+            ]
+          },
+          "static.exe": {
+            "sha256": "8632652a8b22e8a91e93ccada7fb320c76163ec20affe32564779a516736e2a0",
+            "imports": [
+              "msvcrt.dll",
+              "kernel32.dll",
+              "USER32.dll",
+              "ole32.dll",
+              "OLEAUT32.dll",
+              "SHELL32.dll",
+              "GDI32.dll",
+              "IMM32.dll",
+              "DWrite.dll"
+            ]
+          },
+          "lesson.exe": {
+            "sha256": "2808e398d94c0a8a94c28d0ddf6fe80916ea1e7249a7636eb510c291cee19c6a",
+            "imports": [
+              "msvcrt.dll",
+              "kernel32.dll",
+              "USER32.dll",
+              "GDI32.dll",
+              "ole32.dll",
+              "OLEAUT32.dll",
+              "SHELL32.dll",
+              "IMM32.dll",
+              "DWrite.dll"
+            ]
+          }
+        }
+      },
+      "measurement": {
+        "path": "F:\\xlang-validation\\xge-full-20261110\\codeedit-provider-reply-measure-win-r1\\results.json",
+        "sha256": "91c6c5e7d1006522b2a585d214a60994eacebcb6357542e5e33261f31363a96a",
+        "checks": 3
+      },
+      "regression": {
+        "path": "F:\\xlang-validation\\xge-full-20261110\\codeedit-provider-reply-regression-win-r1\\results.json",
+        "sha256": "e2635b220218e8f95dcd30356fb2656f025df693f3fd6b85393b01830827baaf",
+        "checks": 2
+      }
+    },
+    "linux": {
+      "sdk": {
+        "path": "\\\\wsl.localhost\\Ubuntu\\var\\tmp\\xlang-validation\\xge-full-20261110\\codeedit-provider-reply-sdk-linux-r1\\results.json",
+        "sha256": "f572c4f83ad6f77586f8956c64cc0ad31bcd76dac5d9981a03c47844fb5d28b0",
+        "checks": 2
+      },
+      "packages": {
+        "path": "\\\\wsl.localhost\\Ubuntu\\var\\tmp\\xlang-validation\\xge-full-20261110\\codeedit-provider-reply-packages-linux-r1\\results.json",
+        "sha256": "2681186f0111549c472e6e0637c4a2f0fcafe26ef93b86703387f0c9619803d8",
+        "checks": 6,
+        "directory": "/var/tmp/xlang-validation/xge-full-20261110/codeedit-provider-reply-packages-linux-r1/packages"
+      },
+      "native": {
+        "path": "\\\\wsl.localhost\\Ubuntu\\var\\tmp\\xlang-validation\\xge-full-20261110\\codeedit-provider-reply-native-tests-linux-r1\\results.json",
+        "sha256": "2582ae5ba429154d38abb4fad3c4dfe85fb6a100f7237bc355475028da6c1d32",
+        "checks": 8
+      },
+      "language": {
+        "path": "\\\\wsl.localhost\\Ubuntu\\var\\tmp\\xlang-validation\\xge-full-20261110\\codeedit-provider-reply-xlang-linux-r2\\results.json",
+        "sha256": "9f6531adbdbc644e0ab661a2c3f825c262a8f2c3e2779fe3a4f03481d00e3246",
+        "checks": 12,
+        "programs": {
+          "dynamic": {
+            "sha256": "1c9d8b4eb02f08bf7bc1260ae5a98541091ca562d9084365427ad236b75ad28d",
+            "imports": [
+              "libm.so.6",
+              "libmvec.so.1",
+              "libxge3_host.so",
+              "libc.so.6",
+              "ld-linux-x86-64.so.2"
+            ]
+          },
+          "static": {
+            "sha256": "78fdd86a4737a2ffbbc1da306862d8d5e2f0ac64863ff9e16a51220afcf5c99c",
+            "imports": [
+              "libm.so.6",
+              "libmvec.so.1",
+              "libX11.so.6",
+              "libXi.so.6",
+              "libXcursor.so.1",
+              "libGL.so.1",
+              "libc.so.6",
+              "ld-linux-x86-64.so.2"
+            ]
+          },
+          "lesson": {
+            "sha256": "60fd90ce9a81e463d8f80b36b128de2e072f86bb9a2c34672a4602bed4b945e1",
+            "imports": [
+              "libm.so.6",
+              "libmvec.so.1",
+              "libX11.so.6",
+              "libXi.so.6",
+              "libXcursor.so.1",
+              "libGL.so.1",
+              "libc.so.6",
+              "ld-linux-x86-64.so.2"
+            ]
+          }
+        }
+      },
+      "measurement": {
+        "path": "\\\\wsl.localhost\\Ubuntu\\var\\tmp\\xlang-validation\\xge-full-20261110\\codeedit-provider-reply-measure-linux-r1\\results.json",
+        "sha256": "6f19fc28d23533a671caea6746aab419fea31aae79871952fa40610758e57842",
+        "checks": 3
+      },
+      "regression": {
+        "path": "\\\\wsl.localhost\\Ubuntu\\var\\tmp\\xlang-validation\\xge-full-20261110\\codeedit-provider-reply-regression-linux-r1\\results.json",
+        "sha256": "23c58fc625e1984a064a92c0a34449dfaa9440e9fcf059d4d19c4017e3f09d4c",
+        "checks": 2
+      }
+    }
+  }
+}

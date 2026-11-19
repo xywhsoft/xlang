@@ -886,6 +886,45 @@ CALLBACKS['xui_code_margin_event_proc'] = (
     'typedef int (*xui_code_margin_event_proc)(xui_widget_t* pWidget, int iMarginId, int iLine, int iEvent, xui_rect_t tRect, void* pUser);',
     'export typedef CodeMarginEventProc = func(CallbackWidget,c_int,c_int,c_int,Rect) as c_int',
 )
+METHODS.update({
+    'xuiCodeEditSetCompletionProviderOwned': ['int xuiCodeEditSetCompletionProviderOwned(xui_widget pWidget, xui_code_completion_reply_proc callback, void* user, const xui_callback_owner_t* owner)', 'CodeEdit', ['extern "xuiCodeEditSetCompletionProviderOwned" @no_raise @c_owned_callback(0,0,"xui_callback_owner_t",-16) @c_result("status",0) func setCompletionProvider(CodeCompletionProvider? callback)']],
+    'xuiCodeEditSetHoverProviderOwned': ['int xuiCodeEditSetHoverProviderOwned(xui_widget pWidget, xui_code_hover_reply_proc callback, void* user, const xui_callback_owner_t* owner)', 'CodeEdit', ['extern "xuiCodeEditSetHoverProviderOwned" @no_raise @c_owned_callback(0,0,"xui_callback_owner_t",-16) @c_result("status",0) func setHoverProvider(CodeHoverProvider? callback)']],
+    'xuiCodeEditSetSignatureProviderOwned': ['int xuiCodeEditSetSignatureProviderOwned(xui_widget pWidget, xui_code_signature_reply_proc callback, void* user, const xui_callback_owner_t* owner)', 'CodeEdit', ['extern "xuiCodeEditSetSignatureProviderOwned" @no_raise @c_owned_callback(0,0,"xui_callback_owner_t",-16) @c_result("status",0) func setSignatureProvider(CodeSignatureProvider? callback)']],
+    'xuiCodeEditRequestHoverHint': ['int xuiCodeEditRequestHoverHint(xui_widget pWidget, int offset)', 'CodeEdit', ['extern "xuiCodeEditRequestHoverHint" @no_raise @c_result("status",0) func requestHoverHint(c_int offset=-1)']],
+})
+CALLBACKS['xui_code_completion_reply_proc'] = (
+    'typedef int (*xui_code_completion_reply_proc)(xui_widget_t* pWidget, int iOffset, xui_code_completion_reply_t* pReply, void* pUser);',
+    'export typedef CodeCompletionProvider = func(CallbackWidget,c_int,CodeCompletionReply) as c_int',
+)
+CALLBACKS['xui_code_hover_reply_proc'] = (
+    'typedef int (*xui_code_hover_reply_proc)(xui_widget_t* pWidget, int iOffset, xui_code_hover_reply_t* pReply, void* pUser);',
+    'export typedef CodeHoverProvider = func(CallbackWidget,c_int,CodeHoverReply) as c_int',
+)
+CALLBACKS['xui_code_signature_reply_proc'] = (
+    'typedef int (*xui_code_signature_reply_proc)(xui_widget_t* pWidget, int iOffset, xui_code_signature_reply_t* pReply, void* pUser);',
+    'export typedef CodeSignatureProvider = func(CallbackWidget,c_int,CodeSignatureReply) as c_int',
+)
+VIEWS['CodeCompletionReply'] = """
+export extern "xui_code_completion_reply_t*" class CodeCompletionReply @header("xge3_runtime.h") @lifetime("callback")
+ native point handle
+ extern "xuiCodeCompletionReplyGetPrefix" @no_raise @c_const(0) @c_result("cstring") func prefix() as string
+ extern "xuiCodeCompletionReplyGetRemaining" @no_raise @c_const(0) func remaining() as c_int
+ extern "xuiCodeCompletionReplyAppendItem" @no_raise @c_pack(1,"xui_code_completion_item_t",0,11) @c_pack_size(1,"iSize","uint32_t") @c_pack_field(1,"sLabel",0,"c_string") @c_pack_field(1,"sInsertText",1,"c_string") @c_pack_field(1,"sDetail",2,"c_string") @c_pack_field(1,"sDocumentation",3,"c_string") @c_pack_field(1,"iKind",4,"value") @c_pack_field(1,"iSortOrder",5,"value") @c_pack_field(1,"iUserData",6,"value") @c_pack_field(1,"sFilterText",7,"c_string") @c_pack_field(1,"sSortText",8,"c_string") @c_pack_field(1,"sCommitCharacters",9,"c_string") @c_pack_field(1,"iFlags",10,"value") @c_result("status",0) func add(string label,string? insertText=null,string? detail=null,string? documentation=null,c_int kind=0,c_int sortOrder=0,c_uintptr userData=0,string? filterText=null,string? sortText=null,string? commitCharacters=null,c_uint flags=0)
+ extern "xuiCodeCompletionReplyAppendItems" @no_raise @c_array_group(1,0,11,"int",11) @c_array_record(1,"xui_code_completion_item_t","iSize","uint32_t") @c_array_field(1,"sLabel",0,"c_string") @c_array_field(1,"sInsertText",1,"c_string") @c_array_field(1,"sDetail",2,"c_string") @c_array_field(1,"sDocumentation",3,"c_string") @c_array_field(1,"iKind",4,"value") @c_array_field(1,"iSortOrder",5,"value") @c_array_field(1,"iUserData",6,"value") @c_array_field(1,"sFilterText",7,"c_string") @c_array_field(1,"sSortText",8,"c_string") @c_array_field(1,"sCommitCharacters",9,"c_string") @c_array_field(1,"iFlags",10,"value") @c_result("status",0) func appendItems(array<string> labels,array<string?> insertTexts,array<string?> details,array<string?> documentation,array<c_int> kinds,array<c_int> sortOrders,array<c_uintptr> userData,array<string?> filterTexts,array<string?> sortTexts,array<string?> commitCharacters,array<c_uint> flags,int size=-1)
+end
+""".strip()
+VIEWS['CodeHoverReply'] = """
+export extern "xui_code_hover_reply_t*" class CodeHoverReply @header("xge3_runtime.h") @lifetime("callback")
+ native point handle
+ extern "xuiCodeHoverReplySet" @no_raise @c_pack(1,"xui_code_hover_t",0,4) @c_pack_size(1,"iSize","uint32_t") @c_pack_field(1,"tRange",0,"value") @c_pack_field(1,"sText",1,"c_string") @c_pack_field(1,"sContentType",2,"c_string") @c_pack_field(1,"iUserData",3,"value") @c_result("status",0) func set(CodeRange range,string text,string? contentType=null,c_uintptr userData=0)
+end
+""".strip()
+VIEWS['CodeSignatureReply'] = """
+export extern "xui_code_signature_reply_t*" class CodeSignatureReply @header("xge3_runtime.h") @lifetime("callback")
+ native point handle
+ extern "xuiCodeSignatureReplySet" @no_raise @c_pack(1,"xui_code_signature_help_t",0,8) @c_pack_size(1,"iSize","uint32_t") @c_pack_field(1,"sLabel",0,"c_string") @c_pack_field(1,"sDocumentation",1,"c_string") @c_pack_field(1,"iActiveParameter",2,"value") @c_pack_field(1,"iUserData",7,"value") @c_array_group(10,3,3,"int",6) @c_array_record(10,"xui_code_signature_parameter_t","iSize","uint32_t") @c_array_field(10,"sLabel",0,"c_string") @c_array_field(10,"sDocumentation",1,"c_string") @c_array_field(10,"tLabelRange",2,"value") @c_array_pack(10,1,"pParameters","iParameterCount") @c_result("status",0) func set(string label,string? documentation=null,c_int activeParameter=-1,array<string?> parameterLabels=[],array<string?> parameterDocumentation=[],array<CodeRange> parameterRanges=[],int size=-1,c_uintptr userData=0)
+end
+""".strip()
 CALLBACKS['xui_code_document_change_proc'] = (
     'typedef void (*xui_code_document_change_proc)(xui_code_document_t* pDocument, xui_code_range_t tRange, uint32_t iVersion, void* pUser);',
     'export typedef CodeDocumentChangeProc = func(CallbackCodeDocument,CodeRange,c_uint)',
