@@ -38,3 +38,28 @@
 
 [同步补全示例](../lib/bindings/xui/examples/code_providers.xl) 注册两个候选，
 可用键盘或鼠标选择。
+
+## 自定义命令
+
+`editor.commandMap()` 返回编辑器正在使用的键位表。可直接绑定、解除绑定、
+查询键位或恢复默认键位。关闭视图会解绑观察者。关闭编辑器会使视图失效。
+自定义命令 ID 从 `XUI_CODE_COMMAND_USER_BASE` 开始。
+
+`setCommandProvider()` 注册执行回调。用 `handled.value = 1` 表示已处理，
+返回 `XUI_ERROR_UNSUPPORTED` 则交给原生编辑器。`setCommandEnabledProvider()`
+注册启用检查。用 `enabled.value = 0` 禁用命令，返回
+`XUI_ERROR_UNSUPPORTED` 沿用默认状态。启用检查适用于快捷键、命令事件、
+直接执行和内置菜单。对编辑器执行同一启用检查期间的重入会收到 Busy。
+
+`queryCommandEnabled()` 返回 `(hasDecision, enabled)`。第一项为 false
+时由原生编辑器决定。`executeCommand()` 返回是否处理，回调异常会交给调用者。
+`Context.dispatchCommand()` 将命令放入事件队列，事件循环会分发它。
+现有查找、补全和粘贴等专用路径继续交给编辑器处理。xlang 命令回调接收命令
+ID 和回调期输出，旧的任意指针参数由 C 互操保留。
+
+[快捷键范例](../lib/bindings/xui/examples/code_editor_commands.xl) 将 Ctrl+F2
+绑定到自定义命令。
+
+静态 AOT 基准中，启用检查和执行回调都使用 xlang 时，每次命令的中位耗时为
+Windows 10.45 μs、Linux 4.52 μs。相同的 C 回调分别为 3.53 μs、2.03 μs。
+预热后的计时区间内三组均未发生 XRT 堆操作。见[验收记录](../dev/release-materials/provenance/xui-codeedit-command-provider-20261120.json)。

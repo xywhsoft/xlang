@@ -11,3 +11,15 @@ export extern "xui_code_command_map" class CodeCommandMap @header("xui3_code_com
 end
 extern "xuiCodeCommandMapDestroy" @header("xui3_code_command_map.h") @no_raise func rollbackCodeCommandMap(CodeCommandMap map)
 export extern "xuiCodeCommandMapCreate" @header("xui3_code_command_map.h") @no_raise @c_result("owned_view") @factory(0,0,rollbackCodeCommandMap) func createCodeCommandMap() as CodeCommandMap
+
+// The editor owns this live map. Closing the view leaves its bindings in use.
+export extern "xui_code_command_map" class CodeEditCommandMap @header("xge3_runtime.h") @lifetime("owner") @owner(Context) @policy("xl6Xui3CodeEditCommandMapPolicy") @watch("xui_lifetime_link_t")
+ native point handle
+ extern "xuiCodeCommandMapLoadDefaults" @no_raise @c_result("status",0) func loadDefaults()
+ extern "xuiCodeCommandMapBind" @no_raise @c_result("status",0) func bind(c_int key,c_uint modifiers,c_int command)
+ extern "xuiCodeCommandMapUnbind" @no_raise @c_result("status",0) func unbind(c_int key,c_uint modifiers)
+ extern "xuiCodeCommandMapFind" @no_raise @c_output(3,0) func find(c_int key,c_uint modifiers) as c_int
+ extern "xuiCodeCommandMapGetCount" @no_raise func getCount() as c_int
+ extern "xuiCodeCommandMapGetBinding" @no_raise @c_output(2,0) func getBinding(c_int index) as CodeKeyBinding
+ extern "xl6ForeignViewCloseV1" @no_raise @c_control(0) @c_result("bool_status") func close()
+end

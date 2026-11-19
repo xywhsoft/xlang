@@ -1,0 +1,254 @@
+{
+  "complete": true,
+  "passed": true,
+  "releaseInstalled": false,
+  "sourceParent": "893ee56374f9af180afa9bd9b1b88dd5d1051bc5",
+  "nativeCommit": "3e4133002d0961f886fb6449fee4e0b58a7c9c31",
+  "frozenXrt": "804cc769de3030118c2b46ef7af69543d1b82d9d",
+  "sourceHashesLf": {
+    "docs/xge3-xui3-api-map-storage.json": "910ec26d20c7048e1e55d6fefad488aac23b82216c9daeaab892d2175f3d8571",
+    "lib/bindings/_xge_native/include/xge3_runtime.h": "e789c1ffe17e22b15be27cc04dc46045ffbe00b8dc6a8c62f70fe8841165d2b1",
+    "lib/bindings/_xge_native/src/runtime.c": "d119fc90cd997fdf2ee425a43d7934ba707dd7997bda8b3501591c456f203406",
+    "lib/bindings/xui/examples/README.md": "bdb3afa699a028b2a768b1d512cfef16bf444079306bbf6f73c4a659fa0ee3ef",
+    "lib/bindings/xui/examples/code_editor_commands.xl": "1416b823a634f768e69a6a97121e20a9c52ce7ae4d26246694ad2cf06cb6e295",
+    "lib/bindings/xui/src/code_command_map.xl": "04df8acb094263987d6f69bdae62c16df1651ea5080b1f8e53c465b88ef92eb1",
+    "lib/bindings/xui/src/managed.xl": "253b808ee8b9df56ae586e04c3c962bd5b9db1606be4a4bd4a73ee3357975a30",
+    "tools/xui_managed_contracts.py": "5ce348ef104b75a71c6d8c076df2b961f90a2959d8e53802de82aef8e547e9ad",
+    "test/cases/foreign_xui_codeedit_command_dispatch.c": "e1a44ec9e082e39c4f16e9252ed155687bf019aa86641d3140fd2960884f8b28",
+    "test/cases/foreign_xui_codeedit_command_dispatch.h": "074fae31404bf223c1f4b43f8844e1e49a7c64976ca97cb735821b6ccd709040",
+    "test/cases/foreign_xui_codeedit_command_provider.xl": "5e3f85be1260af19fd22ffc089292f209d0505cef13ab4d6f3b4897c54445feb",
+    "docs/xui-code-assist.md": "20d8988de90eae2aa695990214067766ba2fc21f038efcbe5a33fd2b69c1200b"
+  },
+  "nativeHashesLf": {
+    "include/xui.h": "c6104b48a2dab21b48f3bf0977b3637596b59b83c7879761990497b1fff73d5f",
+    "src/xui/code/xui_code_command.c": "707cc28d1ed2277ec75190254314796e99e19c3b273775b3782156b31525dc8c",
+    "src/xui/code/xui_code_provider.c": "a50ae589511571772bc9798220d346cb54ead1091568e3b7d4d4d5a01d8b5e20",
+    "src/xui/code/xui_code_provider_owned.inl": "60c143556ce7667785e677efdfd47d7e44d36bdc0159f51e339ac7c23b79f1d9",
+    "src/xui/code/xui_code_provider_internal.h": "2e9dbfdbc81d97ae6cbd5c45cc2c4bc47726a6832f9dd12b00fb54df0a580fae",
+    "src/xui/code/xui_code_edit.c": "01741135b078b843882383d70c22cc3645d9ac82dc784de09b300e7f028213ba",
+    "src/xui/code/xui_code_command_internal.h": "0a3ade04250745c2d730ddf06dccc70d3664700343ced4cfc458020d0d3b783b",
+    "tests/xui/xui_code_provider_owned_test.c": "1e16d137e7d410ea1786868059472d94835a1927d7aecefadf62834e291c03c0"
+  },
+  "validation": [
+    "Shortcut, queued command event and direct dispatch share the native guard and command hooks.",
+    "Guard recursion reports Busy. Disabled commands do not execute; unsupported providers leave native defaults available.",
+    "Editor close during menu guard and callback diagnostics retain their native/language lifetime contracts.",
+    "Live key map updates survive close of the observed view. Failed reset keeps existing bindings; editor close invalidates remaining views.",
+    "JIT, dynamic and static AOT, direct C call targets, AOT import audits and the bounded GUI example."
+  ],
+  "timingScope": "Seven rotated samples of 5000 direct dispatches in one static-AOT program. Each uses a CPU Proxy and the same editor method. C action only, C guard/action and xlang guard/action are compared. Registration and warm-up are outside the timed region.",
+  "timing": {
+    "win": {
+      "commandsPerSample": 5000,
+      "samplesPerMode": 7,
+      "medianNanosecondsPerDispatch": {
+        "unguarded": 2971.1999930399998,
+        "native": 3527.20001246,
+        "managed": 10447.51999434
+      },
+      "heapAllocFreeReallocPerSample": {
+        "unguarded": [
+          [
+            0,
+            0,
+            0
+          ]
+        ],
+        "native": [
+          [
+            0,
+            0,
+            0
+          ]
+        ],
+        "managed": [
+          [
+            0,
+            0,
+            0
+          ]
+        ]
+      }
+    },
+    "linux": {
+      "commandsPerSample": 5000,
+      "samplesPerMode": 7,
+      "medianNanosecondsPerDispatch": {
+        "unguarded": 1730.6801999980003,
+        "native": 2031.34,
+        "managed": 4523.3202
+      },
+      "heapAllocFreeReallocPerSample": {
+        "unguarded": [
+          [
+            0,
+            0,
+            0
+          ]
+        ],
+        "native": [
+          [
+            0,
+            0,
+            0
+          ]
+        ],
+        "managed": [
+          [
+            0,
+            0,
+            0
+          ]
+        ]
+      }
+    }
+  },
+  "evidence": {
+    "win": {
+      "sdk": {
+        "path": "F:\\xlang-validation\\xge-full-20261110\\codeedit-command-sdk-win-r1\\results.json",
+        "sha256": "b7839b75892d57315e1efbaf59a01c409d5391f18d83ac11980c8a19e17c07ac",
+        "checks": 2
+      },
+      "packages": {
+        "path": "F:\\xlang-validation\\xge-full-20261110\\codeedit-command-packages-win-r1\\results.json",
+        "sha256": "ca03488b45e3ffd8ffd4c1e7a3d4027981b33cd43fe4c271b290ac156c018913",
+        "checks": 6,
+        "directory": "F:\\xlang-validation\\xge-full-20261110\\codeedit-command-packages-win-r1\\packages"
+      },
+      "compiler": {
+        "path": "F:\\xlang-validation\\xge-full-20261110\\inline-cstring-compiler-sdk-win-r1\\results.json",
+        "sha256": "740c7f6074c8c605521c1047de1c552576a8051f39ea2075641537041cfda361",
+        "buildReportSha256": "c6298f0cbdf9af6e9e7950878c0e13da00955cf470af7f8e3a7d9c73a5577df2"
+      },
+      "language": {
+        "path": "F:\\xlang-validation\\xge-full-20261110\\codeedit-command-xlang-win-r4\\results.json",
+        "sha256": "993dbcc234fda9009c440b38a258e8b761aa062a710b339eb736ae51dc671d5f",
+        "checks": 12,
+        "programs": {
+          "dynamic.exe": {
+            "sha256": "70d0b3a9f3b8647f11ab56603f7b765a48e244d93f59b6e4ec30f676ab17fcb8",
+            "imports": [
+              "msvcrt.dll",
+              "xge3_host.dll",
+              "kernel32.dll",
+              "SHELL32.dll",
+              "ws2_32.dll",
+              "IPHLPAPI.dll",
+              "ucrtbase.dll"
+            ]
+          },
+          "static.exe": {
+            "sha256": "5cfd6b3b5b0187732b8751d446f8d9d1db073d6ef161feb3b67edbaf2d800ae7",
+            "imports": [
+              "msvcrt.dll",
+              "kernel32.dll",
+              "USER32.dll",
+              "ole32.dll",
+              "OLEAUT32.dll",
+              "SHELL32.dll",
+              "GDI32.dll",
+              "IMM32.dll",
+              "DWrite.dll"
+            ]
+          },
+          "lesson.exe": {
+            "sha256": "3a454aee4327968787856ac3f00e4c7219415cbe62977786594d307f5cf410e7",
+            "imports": [
+              "msvcrt.dll",
+              "kernel32.dll",
+              "USER32.dll",
+              "GDI32.dll",
+              "ole32.dll",
+              "OLEAUT32.dll",
+              "SHELL32.dll",
+              "IMM32.dll",
+              "DWrite.dll"
+            ]
+          }
+        }
+      },
+      "native": {
+        "path": "F:\\xlang-validation\\xge-full-20261110\\codeedit-command-native-tests-win-r1\\results.json",
+        "sha256": "760c4cb0ef05a8ff6e1ba3a24bb6f0387c4863b6e7cd69de591a6f03b3eb0cc6",
+        "checks": 8
+      },
+      "measurement": {
+        "path": "F:\\xlang-validation\\xge-full-20261110\\codeedit-command-measure-win-r1\\results.json",
+        "sha256": "146b403cd0a3ab8ac90bf04d1a336747f802c10c39c6ec4a7ffca16a3930549c",
+        "checks": 3
+      }
+    },
+    "linux": {
+      "sdk": {
+        "path": "\\\\wsl.localhost\\Ubuntu\\var\\tmp\\xlang-validation\\xge-full-20261110\\codeedit-command-sdk-linux-r1\\results.json",
+        "sha256": "485dfd6451d75a5524356220a54ede6ea5d62a821649b6c1546f6209adf4c3e2",
+        "checks": 2
+      },
+      "packages": {
+        "path": "\\\\wsl.localhost\\Ubuntu\\var\\tmp\\xlang-validation\\xge-full-20261110\\codeedit-command-packages-linux-r1\\results.json",
+        "sha256": "ad96517509953d55856229f8d147d6ccb7ca4493212703edfd611daf89ab549d",
+        "checks": 6,
+        "directory": "/var/tmp/xlang-validation/xge-full-20261110/codeedit-command-packages-linux-r1/packages"
+      },
+      "compiler": {
+        "path": "\\\\wsl.localhost\\Ubuntu\\var\\tmp\\xlang-validation\\xge-full-20261110\\inline-cstring-compiler-sdk-linux-r1\\results.json",
+        "sha256": "19252f8a7944cb40005889f117b606621c05431aed4ddd640bd1d27ae666b964",
+        "buildReportSha256": "b3a5cd35d92852dc5780f6fec1d795426c76b3521f59088752f0f97862b98284"
+      },
+      "language": {
+        "path": "\\\\wsl.localhost\\Ubuntu\\var\\tmp\\xlang-validation\\xge-full-20261110\\codeedit-command-xlang-linux-r4\\results.json",
+        "sha256": "890719c79232b3c9d4b5305a07b407bfd3b3f1e770def065e4de5097ac7dc3e6",
+        "checks": 12,
+        "programs": {
+          "dynamic": {
+            "sha256": "777af4ac8bb41b7addb7f44d98ff408570e59bd87d9d0dfe4743e87058672193",
+            "imports": [
+              "libm.so.6",
+              "libmvec.so.1",
+              "libxge3_host.so",
+              "libc.so.6",
+              "ld-linux-x86-64.so.2"
+            ]
+          },
+          "static": {
+            "sha256": "94acb4bc192250c55cc74f83f3e15f08733f915271887256c5a8788ab4d64cf1",
+            "imports": [
+              "libm.so.6",
+              "libmvec.so.1",
+              "libX11.so.6",
+              "libXi.so.6",
+              "libXcursor.so.1",
+              "libGL.so.1",
+              "libc.so.6",
+              "ld-linux-x86-64.so.2"
+            ]
+          },
+          "lesson": {
+            "sha256": "9c2bef8bbef0fc339e9893aea3edfe747bc0c1732a7931d8c43063566938c73f",
+            "imports": [
+              "libm.so.6",
+              "libmvec.so.1",
+              "libX11.so.6",
+              "libXi.so.6",
+              "libXcursor.so.1",
+              "libGL.so.1",
+              "libc.so.6",
+              "ld-linux-x86-64.so.2"
+            ]
+          }
+        }
+      },
+      "native": {
+        "path": "\\\\wsl.localhost\\Ubuntu\\var\\tmp\\xlang-validation\\xge-full-20261110\\codeedit-command-native-tests-linux-r1\\results.json",
+        "sha256": "e1684679386a6e1107ce885b36820205cf90a75cff1c98850fb467e79e3fa5ec",
+        "checks": 8
+      },
+      "measurement": {
+        "path": "\\\\wsl.localhost\\Ubuntu\\var\\tmp\\xlang-validation\\xge-full-20261110\\codeedit-command-measure-linux-r1\\results.json",
+        "sha256": "a1b63b9cc1e83e7b56dc0d8113fe773ae872f16af924483e1235ae10e55605c6",
+        "checks": 3
+      }
+    }
+  }
+}

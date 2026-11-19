@@ -925,6 +925,17 @@ export extern "xui_code_signature_reply_t*" class CodeSignatureReply @header("xg
  extern "xuiCodeSignatureReplySet" @no_raise @c_pack(1,"xui_code_signature_help_t",0,8) @c_pack_size(1,"iSize","uint32_t") @c_pack_field(1,"sLabel",0,"c_string") @c_pack_field(1,"sDocumentation",1,"c_string") @c_pack_field(1,"iActiveParameter",2,"value") @c_pack_field(1,"iUserData",7,"value") @c_array_group(10,3,3,"int",6) @c_array_record(10,"xui_code_signature_parameter_t","iSize","uint32_t") @c_array_field(10,"sLabel",0,"c_string") @c_array_field(10,"sDocumentation",1,"c_string") @c_array_field(10,"tLabelRange",2,"value") @c_array_pack(10,1,"pParameters","iParameterCount") @c_result("status",0) func set(string label,string? documentation=null,c_int activeParameter=-1,array<string?> parameterLabels=[],array<string?> parameterDocumentation=[],array<CodeRange> parameterRanges=[],int size=-1,c_uintptr userData=0)
 end
 """.strip()
+METHODS.update({
+    'xuiCodeEditGetCommandMap': ['xui_code_command_map xuiCodeEditGetCommandMap(xui_widget pWidget)', 'CodeEdit', ['extern "xuiCodeEditGetCommandMap" @no_raise @c_result("owner_view",0) func commandMap() as CodeEditCommandMap']],
+    'xuiCodeEditQueryCommandEnabled': ['int xuiCodeEditQueryCommandEnabled(xui_widget widget, int command, bool* hasDecision, bool* enabled)', 'CodeEdit', ['extern "xuiCodeEditQueryCommandEnabled" @no_raise @c_outputs(2,3) @c_status(0) func queryCommandEnabled(c_int command) as (bool,bool)']],
+    'xuiCodeEditExecuteCommand': ['int xuiCodeEditExecuteCommand(xui_widget widget, int command, bool* handled)', 'CodeEdit', ['extern "xuiCodeEditExecuteCommand" @no_raise @c_output(2,0) func executeCommand(c_int command) as bool']],
+    'xuiCodeEditSetCommandProviderOwned': ['int xuiCodeEditSetCommandProviderOwned(xui_widget widget, xui_code_editor_command_proc callback, void* user, const xui_callback_owner_t* owner)', 'CodeEdit', ['extern "xuiCodeEditSetCommandProviderOwned" @no_raise @c_owned_callback(0,0,"xui_callback_owner_t",-16) @c_result("status",0) func setCommandProvider(CodeEditorCommand? callback)']],
+    'xuiCodeEditSetCommandEnabledProviderOwned': ['int xuiCodeEditSetCommandEnabledProviderOwned(xui_widget widget, xui_code_editor_command_proc callback, void* user, const xui_callback_owner_t* owner)', 'CodeEdit', ['extern "xuiCodeEditSetCommandEnabledProviderOwned" @no_raise @c_owned_callback(0,0,"xui_callback_owner_t",-16) @c_result("status",0) func setCommandEnabledProvider(CodeEditorCommand? callback)']],
+})
+CALLBACKS['xui_code_editor_command_proc'] = (
+    'typedef int (*xui_code_editor_command_proc)(xui_widget_t* pWidget, int iCommand, int* pResult, void* pUser);',
+    'export typedef CodeEditorCommand = func(CallbackWidget,c_int,CallbackInt) as c_int',
+)
 CALLBACKS['xui_code_document_change_proc'] = (
     'typedef void (*xui_code_document_change_proc)(xui_code_document_t* pDocument, xui_code_range_t tRange, uint32_t iVersion, void* pUser);',
     'export typedef CodeDocumentChangeProc = func(CallbackCodeDocument,CodeRange,c_uint)',

@@ -2550,6 +2550,8 @@ export extern "xui_code_signature_reply_t*" class CodeSignatureReply @header("xg
  extern "xuiCodeSignatureReplySet" @no_raise @c_pack(1,"xui_code_signature_help_t",0,8) @c_pack_size(1,"iSize","uint32_t") @c_pack_field(1,"sLabel",0,"c_string") @c_pack_field(1,"sDocumentation",1,"c_string") @c_pack_field(1,"iActiveParameter",2,"value") @c_pack_field(1,"iUserData",7,"value") @c_array_group(10,3,3,"int",6) @c_array_record(10,"xui_code_signature_parameter_t","iSize","uint32_t") @c_array_field(10,"sLabel",0,"c_string") @c_array_field(10,"sDocumentation",1,"c_string") @c_array_field(10,"tLabelRange",2,"value") @c_array_pack(10,1,"pParameters","iParameterCount") @c_result("status",0) func set(string label,string? documentation=null,c_int activeParameter=-1,array<string?> parameterLabels=[],array<string?> parameterDocumentation=[],array<CodeRange> parameterRanges=[],int size=-1,c_uintptr userData=0)
 end
 
+export typedef CodeEditorCommand = func(CallbackWidget,c_int,CallbackInt) as c_int
+
 export typedef CodeDocumentChangeProc = func(CallbackCodeDocument,CodeRange,c_uint)
 
 export extern "xui_code_document_t*" class CallbackCodeDocument @header("xge3_runtime.h") @lifetime("callback")
@@ -2572,6 +2574,16 @@ export extern "xui_widget_t*" class CodeEdit @header("xge3_runtime.h") @lifetime
  extern "xuiCodeEditSetSignatureProviderOwned" @no_raise @c_owned_callback(0,0,"xui_callback_owner_t",-16) @c_result("status",0) func setSignatureProvider(CodeSignatureProvider? callback)
 
  extern "xuiCodeEditRequestHoverHint" @no_raise @c_result("status",0) func requestHoverHint(c_int offset=-1)
+
+ extern "xuiCodeEditGetCommandMap" @no_raise @c_result("owner_view",0) func commandMap() as CodeEditCommandMap
+
+ extern "xuiCodeEditQueryCommandEnabled" @no_raise @c_outputs(2,3) @c_status(0) func queryCommandEnabled(c_int command) as (bool,bool)
+
+ extern "xuiCodeEditExecuteCommand" @no_raise @c_output(2,0) func executeCommand(c_int command) as bool
+
+ extern "xuiCodeEditSetCommandProviderOwned" @no_raise @c_owned_callback(0,0,"xui_callback_owner_t",-16) @c_result("status",0) func setCommandProvider(CodeEditorCommand? callback)
+
+ extern "xuiCodeEditSetCommandEnabledProviderOwned" @no_raise @c_owned_callback(0,0,"xui_callback_owner_t",-16) @c_result("status",0) func setCommandEnabledProvider(CodeEditorCommand? callback)
 
  extern "xuiCodeEditGetDocument" @no_raise @c_result("owner_view",0) func document() as CodeEditDocument
 

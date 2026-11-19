@@ -1,0 +1,24 @@
+import xui
+from "./_window.xl" import Window
+
+Window.show("CodeEdit custom command",func(xui.Context ui,xui.Widget root)
+ auto editor=ui.codeEditNative()
+ Window.place(root,editor,24,24,560,160)
+ assert editor.setText("Click here, then press Ctrl+F2.\n")==xui.XUI_OK
+
+ c_int insertNote=xui.XUI_CODE_COMMAND_USER_BASE
+ auto document=editor.document()
+ editor.commandMap().bind(xui.XUI_KEY_F2,c_uint(xui.XUI_MOD_CTRL),insertNote)
+ editor.setCommandProvider(func(xui.CallbackWidget widget,c_int command,xui.CallbackInt handled) as c_int
+  if command!=insertNote then return xui.XUI_ERROR_UNSUPPORTED end
+  document.insert(document.getLength(),"Command received.\n")
+  handled.value=1
+  return xui.XUI_OK
+ end)
+ editor.setCommandEnabledProvider(func(xui.CallbackWidget widget,c_int command,xui.CallbackInt enabled) as c_int
+  if command!=insertNote then return xui.XUI_ERROR_UNSUPPORTED end
+  enabled.value=1
+  return xui.XUI_OK
+ end)
+ println("Ctrl+F2 appends a note")
+end)
