@@ -1,0 +1,56 @@
+{
+  "complete": true,
+  "passed": true,
+  "releaseInstalled": false,
+  "sourceParent": "14fc37ca8e2ecdd8fbaba99c017e5d941ecc9967",
+  "frozenXrt": "804cc769de3030118c2b46ef7af69543d1b82d9d",
+  "descriptorAbiChanged": false,
+  "newExports": 0,
+  "scenarios": [
+    "invalidate during acquire",
+    "publish same child during acquire",
+    "invalidate during release",
+    "close canonical view during release"
+  ],
+  "sourceHashes": {
+    "src/runtime/xl6_foreign_view.c": "11c92d7d518a22cfc9d0a211f7bf416efaf40e66b14887e535822baacb5c5ac3",
+    "test/cases/foreign_view_observer.c": "7adef74f44691b8810e1c6a877bbea9be96618824f90daccf45017eeb8e6b0d9",
+    "docs/foreign-declarations.md": "15c9fa8a6ce2102d41a280a6762593312c21f1bcbf9103adb5319cd998804c0f"
+  },
+  "evidence": {
+    "win": {
+      "compiler": {
+        "path": "F:\\xlang-validation\\xge-full-20261110\\compiler-svg-guarded-admission-win-r2\\build.json",
+        "sha256": "00e6bc00f08520bdead261d977ea23b7eabda18ac43ca94c9c3e7960e3bc05d8",
+        "checks": 0
+      },
+      "sdk": {
+        "path": "F:\\xlang-validation\\xge-full-20261110\\svg-guarded-admission-compiler-sdk-win-r2\\results.json",
+        "sha256": "0fc7015130643e5f10190d71a6228496311be71716eda01be8c1db9be69eef84",
+        "checks": 0
+      },
+      "native": {
+        "path": "F:\\xlang-validation\\xge-full-20261110\\svg-guarded-admission-native-win-r2\\results.json",
+        "sha256": "3d8e370beca055f9876fb91c3dafd3d5aa372b369e205c386b744a573779cb25",
+        "checks": 4
+      }
+    },
+    "linux": {
+      "compiler": {
+        "path": "\\\\wsl.localhost\\Ubuntu\\var\\tmp\\xlang-validation\\xge-full-20261110\\compiler-svg-guarded-admission-linux-r2\\build.json",
+        "sha256": "063a691b24b8c3126f950cfb58fb6057f247b81b4230bdcffd3182ec7cdb42f3",
+        "checks": 0
+      },
+      "sdk": {
+        "path": "\\\\wsl.localhost\\Ubuntu\\var\\tmp\\xlang-validation\\xge-full-20261110\\svg-guarded-admission-compiler-sdk-linux-r2\\results.json",
+        "sha256": "b78b860fcab639fd487e760d4f03ec0c55d3a0823d3a462bb80ac13dd2dc65a7",
+        "checks": 0
+      },
+      "native": {
+        "path": "\\\\wsl.localhost\\Ubuntu\\var\\tmp\\xlang-validation\\xge-full-20261110\\svg-guarded-admission-native-linux-r2\\results.json",
+        "sha256": "d6b73592e0408fe1098cc71c5576257b0fa4132b74bc9b4d681d9ab82f7b9866",
+        "checks": 4
+      }
+    }
+  }
+}

@@ -1114,6 +1114,13 @@ the watcher at the next safe creator-thread boundary. An in-scope
 lookup can reuse the observer while that automatic detach is pending.
 The child payload remains under native ownership.
 
+For an observation-only child the native producer keeps its result live
+until the watcher can be attached. The runtime attaches the watcher
+before it asks the host to lease the view's code. Invalidation during
+lease admission rejects the result. If the host publishes the same
+child reentrantly, admission reuses that view and removes its temporary
+observer.
+
 A creator-thread root can have shared native owners. Consuming one
 root's native reference detaches its own observers even if other
 owners keep the payload alive. The native library must still notify

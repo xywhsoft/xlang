@@ -94,17 +94,22 @@ static const XL6_ForeignViewDescriptorV1 observerPolicy={
     .watchBytes=sizeof(Watch),.watchAlignment=_Alignof(Watch),.Watch=watch,.Unwatch=unwatch,.callAlignment=1
 };
 
-static XL6_ForeignView* getChild(XL6_ForeignView* owner)
+static XL6_ForeignView* getChildWithLease(XL6_ForeignView* owner,const XL6_CodeOwner* code)
 {
     Scope native={0};
     XL6_ForeignViewCallV1 call={0};
     assert(xl6ForeignViewCallBeginV1(owner,&call,&native,sizeof(native)));
-    XL6_ForeignView* child=xl6ForeignViewBorrowChildV1(call.raw,owner,&observerPolicy,NULL);
+    XL6_ForeignView* child=xl6ForeignViewBorrowChildV1(call.raw,owner,&observerPolicy,code);
     /* Failed admission leaves the surrounding native scope closable. */
     xerror* failure=xrtTakeError();
     assert(xl6ForeignViewCallEndV1(&call));
     xrtSetErrorTake(failure);
     return child;
+}
+
+static XL6_ForeignView* getChild(XL6_ForeignView* owner)
+{
+    return getChildWithLease(owner,NULL);
 }
 
 static void checkExpired(XL6_ForeignView* child)
@@ -204,15 +209,82 @@ static void checkAllocation(void)
     assert(consumed==previousConsumed+12);
 }
 
+typedef enum { ReplaceOnAcquire, PublishOnAcquire, ReplaceOnRelease, CloseOnRelease } Reentry;
+typedef struct {
+    Parent* parent;
+    XL6_ForeignView* owner;
+    XL6_ForeignView* nested;
+    Reentry action;
+    unsigned acquires;
+    unsigned releases;
+} LeaseHost;
+
+static int acquireChildCode(void* raw)
+{
+    LeaseHost* host=raw;
+    assert(++host->acquires==1 && host->parent->watches);
+    if (host->action==ReplaceOnAcquire) replaceNode(host->parent,91);
+    else {
+        host->nested=getChild(host->owner);
+        assert(host->nested && host->parent->watches->next);
+    }
+    return 1;
+}
+
+static void releaseChildCode(void* raw)
+{
+    LeaseHost* host=raw;
+    assert(++host->releases==1);
+    if (host->action==ReplaceOnRelease) {
+        assert(host->parent->watches && !host->parent->watches->next);
+        replaceNode(host->parent,92);
+    }
+    if (host->action==CloseOnRelease) {
+        assert(host->parent->watches && !host->parent->watches->next);
+        assert(xl6ForeignViewCloseV1(host->nested));
+    }
+}
+
+static void checkReentry(Reentry action)
+{
+    Parent parent={.owners=1,.value=42};
+    LeaseHost host={.parent=&parent,.action=action};
+    host.owner=xl6ForeignViewCreateRootV1(&parent,&ownerPolicy,NULL);
+    assert(host.owner);
+    XL6_CodeOwner code={sizeof(code),&host,acquireChildCode,releaseChildCode};
+    XL6_ForeignView* child=getChildWithLease(host.owner,&code);
+    assert(host.acquires==1 && host.releases==1);
+    if (action==PublishOnAcquire) {
+        assert(child==host.nested && parent.watches && !parent.watches->next);
+    } else {
+        assert(!child && xrtGetError() && !parent.watches);
+        xrtClearError();
+        if (host.nested) checkExpired(host.nested);
+        child=getChild(host.owner);
+        assert(child && parent.watches);
+    }
+    assert(xl6ForeignViewReleaseV1(host.nested));
+    assert(xl6ForeignViewReleaseV1(child) && !parent.watches);
+    assert(xl6ForeignViewReleaseV1(host.owner) && !parent.owners);
+}
+
+static void checkLifetimes(void)
+{
+    checkOwnership();
+    checkAllocation();
+    checkReentry(ReplaceOnAcquire);
+    checkReentry(PublishOnAcquire);
+    checkReentry(ReplaceOnRelease);
+    checkReentry(CloseOnRelease);
+}
+
 int main(void)
 {
     assert(xrtMemDebugEnabled() || xrtMemDebugEnable(true));
-    checkOwnership();
-    checkAllocation();
+    checkLifetimes();
     xmemdebugsnapshot before,after;
     xrtMemDebugSnapshot(&before);
-    checkOwnership();
-    checkAllocation();
+    checkLifetimes();
     xrtMemDebugSnapshot(&after);
     assert(attached==detached);
     assert(before.LiveCount==after.LiveCount && before.LiveBytes==after.LiveBytes);
