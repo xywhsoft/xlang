@@ -442,6 +442,9 @@ METHODS.update({
         '@c_output_field(4,"iIcon") func getItem(c_int index) as (string,c_int,c_int,c_int,c_int)']],
     'xuiWorkflowWidgetGetWorkflowOwned': ['int xuiWorkflowWidgetGetWorkflowOwned(xui_widget widget,xui_workflow* output)', "WorkflowWidget", ['extern "xuiWorkflowWidgetGetWorkflowOwned" @no_raise @c_result("owned_view") @factory(1,0,rollbackWorkflow) func getWorkflow() as Workflow']],
     'xuiWorkflowWidgetSetWorkflowShared': ['int xuiWorkflowWidgetSetWorkflowShared(xui_widget widget,xui_workflow workflow)', "WorkflowWidget", ['extern "xuiWorkflowWidgetSetWorkflowShared" @no_raise @c_result("status",0) func setWorkflow(Workflow workflow)']],
+    'xuiDebugEventTrace': [
+        'int xuiDebugEventTrace(xui_context pContext, const xui_event_t* pEvent, char* sBuffer, int iCapacity)', 'Context',
+        ['extern "xuiDebugEventTrace" @no_raise @c_span(1,"char*","int") @c_result("status",0) func debugEventTrace(CallbackConstEvent event,Buffer output)']],
     'xuiGetRenderNode': [
         'int xuiGetRenderNode(xui_context pContext, int iIndex, xui_render_node_t* pNode)', 'Context',
         ['extern "xuiGetRenderNode" @no_raise @c_output_record(2,"xui_render_node_t","borrowed") @c_output_size(2,"iSize") @c_status(0) '
@@ -567,6 +570,10 @@ VIEWS = {'CallbackConstAccessibilityEvent': 'export extern "const xui_accessibil
  'CallbackConstEvent': 'export extern "const xui_event_t*" class CallbackConstEvent @header("xge3_runtime.h") @lifetime("callback")\n'
                        ' native point handle\n'
                        ' extern "xuiEventDragData" @no_raise @c_result("scope_view",0) func dragData() as CallbackDragData?\n'
+                       ' extern "pTarget" @c_field @c_result("scope_view",0) get target() as CallbackWidget?\n'
+                       ' extern "pCurrentTarget" @c_field @c_result("scope_view",0) get currentTarget() as CallbackWidget?\n'
+                       ' extern "pRelated" @c_field @c_result("scope_view",0) get related() as CallbackWidget?\n'
+                       ' extern "sCommand" @c_field @c_result("cstring") get commandName() as string?\n'
                        ' extern "iSize" @c_field get iSize() as c_uint\n'
                        ' extern "iType" @c_field get iType() as c_int\n'
                        ' extern "iPhase" @c_field get iPhase() as c_int\n'

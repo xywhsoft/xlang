@@ -1,0 +1,68 @@
+{
+  "complete": true,
+  "passed": true,
+  "releaseInstalled": false,
+  "sourceParent": "060e503540456c02ae39b9391b09336554a7ab9f",
+  "nativeCommit": "bd00bd732245822fa0a29b1d7d032201b9d1e296",
+  "qualification": {
+    "directTraceNativeCalls": 1,
+    "warmIterations": 128,
+    "scopeExpiryChecks": 3,
+    "nullableCommandText": true,
+    "zeroAllocationWarmTrace": true,
+    "commandNameAllocationFailureChecked": true
+  },
+  "sourceHashes": {
+    "lib/bindings/xui/src/managed.xl": "c80922ad2825d22852cd305b82543cd7c88cbc464870d0dc593f2bb9990b0361",
+    "lib/bindings/xui/examples/event_diagnostics.xl": "93edfc26e78bd3cc5bb9920a5b790fdb5323d8c86f29334ee8883db824105f47",
+    "tools/xui_managed_contracts.py": "54c761d300e05a4089fac54704708ddffbaeb4dadc72d66a10502b8aca9ca23d",
+    "test/cases/foreign_xui_event_diagnostics.xl": "6ebc7f790d663e917187b02d350f7680b4336257002a4741a5daa06170b54b66",
+    "docs/xui-widget-diagnostics.md": "517c0c92250907fe9a6229e12e9a6ac6f2b03461a4cd56ff3ba7caaa1d664ebb"
+  },
+  "evidence": {
+    "win": {
+      "packages": {
+        "path": "F:\\xlang-validation\\xge-full-20261110\\xui-event-diagnostics-packages-win-r2\\results.json",
+        "sha256": "b67ca1d5bf415171f47ec4b1da9ecbd89f19295d06aa7d4dea48b51f301fe571",
+        "checks": 6
+      },
+      "tests": {
+        "path": "F:\\xlang-validation\\xge-full-20261110\\xui-event-diagnostics-tests-win-r4\\results.json",
+        "sha256": "6365a7922b804cc7628d2d6ea9766b970783862da7fbf19b4dfb62510b42c0b2",
+        "checks": 15
+      },
+      "shared": {
+        "path": "F:\\xlang-validation\\xge-full-20261110\\xui-event-diagnostics-shared-win-r1\\results.json",
+        "sha256": "1aa292ce609e004c79fe07420cd1cf51d527c4c61a2dae0b0b4659da46e4a9f3",
+        "checks": 2
+      },
+      "workflow": {
+        "path": "F:\\xlang-validation\\xge-full-20261110\\workflow-variable-current-win-r4\\results.json",
+        "sha256": "be318f343db0a5e8aed4f68ea8c87bdd769234107306bac9ce35e1de80148904",
+        "checks": 10
+      }
+    },
+    "linux": {
+      "packages": {
+        "path": "\\\\wsl.localhost\\Ubuntu\\var\\tmp\\xlang-validation\\xge-full-20261110\\xui-event-diagnostics-packages-linux-r2\\results.json",
+        "sha256": "71c6b4bd723473f3ebcf664354f40e8e466a0a43843cd541a3c00018c6b297c3",
+        "checks": 6
+      },
+      "tests": {
+        "path": "\\\\wsl.localhost\\Ubuntu\\var\\tmp\\xlang-validation\\xge-full-20261110\\xui-event-diagnostics-tests-linux-r4\\results.json",
+        "sha256": "999f68a28efa1c0bd8d496d573397561fbce7cb5ac1055dfe9987dab15df4dd6",
+        "checks": 15
+      },
+      "shared": {
+        "path": "\\\\wsl.localhost\\Ubuntu\\var\\tmp\\xlang-validation\\xge-full-20261110\\xui-event-diagnostics-shared-linux-r1\\results.json",
+        "sha256": "e4ab579ae4d4db2d17a39ffdd709f8389730224e4b15188d806a164225baadbb",
+        "checks": 2
+      },
+      "workflow": {
+        "path": "\\\\wsl.localhost\\Ubuntu\\var\\tmp\\xlang-validation\\xge-full-20261110\\workflow-variable-current-linux-r4\\results.json",
+        "sha256": "598b2a10b41432dd24b0ba845826301592d2184a24ea66d28592cbcaeb11b810",
+        "checks": 10
+      }
+    }
+  }
+}

@@ -1,0 +1,27 @@
+// Inspect a routed command without opening a window.
+import xui
+
+auto proxy = xui.createProxy()
+auto ui = xui.create(proxy, xui.XUI_SYSTEM_FONT_DISABLED)
+try
+    auto root = ui.widget()
+    ui.setRootWidget(root)
+    Buffer trace = Buffer()
+    assert trace.resize(512)
+
+    root.setEventHandler(xui.XUI_EVENT_COMMAND, func(xui.Widget sender, xui.CallbackConstEvent event) as c_int
+        // The event is valid here. The caller owns the trace buffer.
+        ui.debugEventTrace(event, trace)
+        return c_int(0)
+    end)
+    ui.dispatchCommand(root, 1, "example.refresh")
+    ui.dispatchPendingEvents()
+    root.setEventHandler(xui.XUI_EVENT_COMMAND, null)
+
+    auto endOfTrace = trace.indexOf(Buffer(b"\0"))
+    assert endOfTrace > 0
+    println(trace.text(endOfTrace))
+finally
+    ui.close()
+    proxy.close()
+end

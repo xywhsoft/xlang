@@ -1,0 +1,120 @@
+import xui
+from xui import CallbackConstEvent,CallbackWidget
+
+extern "fixtureRenderProxy" @header("test/cases/foreign_xui_flow_canvas.h") @no_raise @c_result("owned_view") @factory(0,0,dropProxy) func cpuProxy() as xui.Proxy
+extern "xuiProxyReleaseChecked" @header("xge3_runtime.h") @no_raise @c_result("status",0) func dropProxy(xui.Proxy proxy)
+extern "fixtureRenderBalanced" @no_raise func balanced() as c_int
+extern "fixtureFlowCanvasBudget" @no_raise func budget(c_int allowance)
+extern "fixtureFlowCanvasReset" @no_raise func reset()
+extern "xrtMemDebugFailTriggered" @header("xrt_decl.h") @no_raise func failedAllocation() as c_bool
+
+func main(...) as int
+    auto proxy = cpuProxy()
+    auto ui = xui.create(proxy, xui.XUI_SYSTEM_FONT_DISABLED)
+    auto root = ui.widget()
+    auto left = ui.widget()
+    auto right = ui.widget()
+    xui.Rect bounds
+    bounds.fW = 160
+    bounds.fH = 60
+    assert root.setRect(bounds) == 0 and ui.setRootWidget(root) == 0
+    bounds.fW = 60
+    assert left.setRect(bounds) == 0 and root.addChild(left) == 0
+    bounds.fX = 80
+    assert right.setRect(bounds) == 0 and root.addChild(right) == 0
+    ui.inputViewport(160, 60)
+    assert ui.layout() == 0
+
+    Buffer trace = Buffer()
+    assert trace.resize(512)
+    Buffer tiny = Buffer(b"x")
+    Buffer empty = Buffer()
+    xui.CallbackConstEvent? savedEvent = null
+    xui.CallbackWidget? savedTarget = null
+    xui.CallbackWidget? savedRelated = null
+    string? savedName = null
+    int commands = 0
+    int enterCount = 0
+    right.setEventHandler(xui.XUI_EVENT_POINTER_ENTER, func(xui.Widget sender, xui.CallbackConstEvent event) as c_int
+        if event.iPhase != xui.XUI_EVENT_PHASE_TARGET then return c_int(0) end
+        assert event.commandName == null and event.related != null
+        assert (event.related as CallbackWidget).rect().fX == 0
+        savedRelated = event.related
+        enterCount += 1
+        return c_int(0)
+    end)
+    left.setEventHandler(xui.XUI_EVENT_COMMAND, func(xui.Widget sender, xui.CallbackConstEvent event) as c_int
+        if event.iPhase != xui.XUI_EVENT_PHASE_TARGET then return c_int(0) end
+        if event.iCommand == 2 then
+            assert (event.commandName as string) == ""
+            commands += 1
+            return c_int(0)
+        end
+        assert event.related == null
+        savedEvent = event
+        bool copyFailed = false
+        budget(0)
+        try
+            for i in range(128)
+                assert (event.target as CallbackWidget).rect().fW == 60
+                assert (event.currentTarget as CallbackWidget).rect().fX == 0
+                ui.debugEventTrace(event, trace)
+            end
+            assert not failedAllocation()
+            savedName = event.commandName
+        catch Error
+            copyFailed = true
+        finally
+            auto triggered = bool(failedAllocation())
+            reset()
+            assert triggered and copyFailed
+        end
+        savedTarget = event.target
+        savedName = event.commandName
+        ui.debugEventTrace(event, tiny)
+        assert tiny[0] == 0
+        bool rejected = false
+        try
+            ui.debugEventTrace(event, empty)
+        catch Error
+            rejected = true
+        end
+        assert rejected
+        commands += 1
+        return c_int(0)
+    end)
+
+    ui.dispatchCommand(left, 1, "panel.诊断")
+    ui.dispatchCommand(left, 2, "")
+    assert ui.dispatchPendingEvents() == 0 and commands == 2
+    assert (savedName as string) == "panel.诊断"
+    assert trace.text(11) == "event type="
+    assert ui.inputPointerMove(5, 5, 0) == 0 and ui.dispatchPendingEvents() == 0
+    assert ui.inputPointerMove(87, 5, 0) == 0 and ui.dispatchPendingEvents() == 0
+    assert enterCount == 1 and savedRelated != null
+
+    int expired = 0
+    try
+        ui.debugEventTrace(savedEvent as CallbackConstEvent, trace)
+    catch StateError
+        expired += 1
+    end
+    try
+        auto invalid = (savedTarget as CallbackWidget).rect()
+    catch StateError
+        expired += 1
+    end
+    try
+        auto invalid = (savedRelated as CallbackWidget).rect()
+    catch StateError
+        expired += 1
+    end
+    assert expired == 3
+    left.setEventHandler(xui.XUI_EVENT_COMMAND, null)
+    right.setEventHandler(xui.XUI_EVENT_POINTER_ENTER, null)
+    ui.close()
+    proxy.close()
+    assert balanced() == 1
+    println("XUI_EVENT_DIAGNOSTICS_OK")
+    return 0
+end

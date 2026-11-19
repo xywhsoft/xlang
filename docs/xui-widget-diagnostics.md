@@ -31,3 +31,22 @@ Each query directly calls its XUI function once. The first render-node read
 after a tree change can rebuild the native index and allocate. Value
 projection uses stack records and still performs the normal checked call and
 lifetime checks. See the [console example](../lib/bindings/xui/examples/dock_queries.xl).
+
+## Routed event diagnostics
+
+`CallbackConstEvent.target`, `currentTarget`, and `related` are nullable
+widget views scoped to the callback. In a routed event the target identifies
+where it started, and the current target identifies the widget handling the
+current phase. The related widget depends on the event type. All three views
+expire when the callback returns. `commandName` returns an independent
+nullable string and preserves the distinction between null and an empty name.
+
+`Context.debugEventTrace(event, output)` writes a diagnostic line into a
+caller-owned Buffer. Resize the Buffer to set its writable length before
+calling. XUI terminates the text with NUL, clipping it to fit. The Buffer's
+length stays unchanged. An empty Buffer or expired event raises a checked
+error. Use the event with the Context that delivered it.
+
+The trace makes one native call and writes into the supplied Buffer. Widget
+views reuse the callback scope. Copying the command name reads and allocates
+its UTF-8 text when nonempty. See the [event diagnostics example](../lib/bindings/xui/examples/event_diagnostics.xl).
