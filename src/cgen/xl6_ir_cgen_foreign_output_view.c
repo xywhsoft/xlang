@@ -65,6 +65,13 @@ static void xl6IrCgenOutputAddress(XL6_Output* out,const XL6_IrModule* module,
     if(field)xl6OutputPrintf(out,".e%lu",(unsigned long)ordinal);
     if(array)xl6OutputPuts(".Elements",out);
 }
+/* Taking the address preserves the array extent in both C and C++ proofs. */
+static void xl6IrCgenInlineCStringTest(XL6_Output* out,const char* field)
+{
+    xl6OutputPrintf(out,"(XLIR_NATIVE_IS_TYPE(&(%s),char (*)[sizeof(%s)]) || "
+        "XLIR_NATIVE_IS_TYPE(&(%s),const char (*)[sizeof(%s)]))",field,field,field,field);
+}
+
 static int xl6IrCgenOutputRecordProof(XL6_Output* out,const XL6_IrModule* module,
     const XL6_IrCallTarget* target)
 {
@@ -94,12 +101,38 @@ static int xl6IrCgenOutputRecordProof(XL6_Output* out,const XL6_IrModule* module
         const XL6_ForeignOutputViewContract* view=xl6IrForeignOutputViewGet(module,target,o);
         const XL6_IrType* type=field ? xl6IrTypeGet(&module->types,field->logicalType):NULL;
         if(!field || !type)return 0;
-        const char* physical=view ? (view->conversion==XL6_FOREIGN_OUTPUT_CONVERSION_CSTRING ? "const char*":
-            view->conversion==XL6_FOREIGN_OUTPUT_CONVERSION_BORROWED_VALUE ? "xvalue*":type->cName):xl6IrCgenType(module,field->logicalType);
+        if(view && view->conversion==XL6_FOREIGN_OUTPUT_CONVERSION_CSTRING){
+            char member[256];snprintf(member,sizeof(member),"((%s*)0)->%s",record->recordCName,field->field);
+            xl6OutputPrintf(out,"XLIR_NATIVE_ASSERT(XLIR_NATIVE_IS_TYPE(%s,const char*) || ",member);
+            xl6IrCgenInlineCStringTest(out,member);
+            xl6OutputPuts(", \"borrowed output record C-string field type\");\n",out);
+            continue;
+        }
+        const char* physical=view ? (view->conversion==XL6_FOREIGN_OUTPUT_CONVERSION_BORROWED_VALUE ? "xvalue*":type->cName):
+            xl6IrCgenType(module,field->logicalType);
         xl6OutputPrintf(out,"XLIR_NATIVE_ASSERT(XLIR_NATIVE_IS_TYPE(((%s*)0)->%s,%s), \"borrowed output record field type\");\n",
             record->recordCName,field->field,physical);
     }
     return !xl6OutputHasFailed(out);
+}
+
+static void xl6IrCgenOutputRecordCString(XL6_Output* out,const XL6_IrModule* module,
+    XL6_IrTypeId type,const char* raw,const char* admitted,const char* scope)
+{
+    xl6OutputPrintf(out,"    { const char* text = %s;\n    if (",raw);
+    xl6IrCgenInlineCStringTest(out,raw);
+    xl6OutputPrintf(out,") {\n"
+        "        if (!%s.failed && !xrtGetError()) {\n"
+        "            const char* end = (const char*)memchr(text,0,sizeof(%s));\n"
+        "            if (!end) { xrtSetErrorKind(XERR_VALUE); xl6ErrorScopeCaptureFailure(&%s); }\n"
+        "            else {\n"
+        "                %s = xlir_string_from_utf8(text,(size_t)(end - text));\n"
+        "                if (!%s.Data) xl6ErrorScopeCaptureFailure(&%s);\n"
+        "            }\n"
+        "        }\n"
+        "    } else {\n",scope,raw,scope,admitted,admitted,scope);
+    xl6IrCgenEmitBorrowedOwnedAdmission(out,module,type,XL6_IR_CALL_RESULT_C_ABI_CHAR_POINTER,admitted,"text",scope);
+    xl6OutputPuts("    }\n    }\n",out);
 }
 static int xl6IrCgenOutputRawDeclare(XL6_Output* out,const XL6_IrModule* module,
     const XL6_IrCallTarget* target,const char* raw)
@@ -270,6 +303,8 @@ static int xl6IrCgenOutputValuesAdmit(XL6_Output* out,const XL6_IrModule* module
             xl6OutputPuts("    {\n",out);
             xl6IrCgenRetainedViewAdmission(out,module,row->logicalType,&retain,admitted,raw,scope,probe);
             xl6OutputPuts("    }\n",out);
+        }else if(record && row && row->conversion==XL6_FOREIGN_OUTPUT_CONVERSION_CSTRING){
+            xl6IrCgenOutputRecordCString(out,module,row->logicalType,raw,admitted,scope);
         }else if(row)xl6IrCgenEmitBorrowedOwnedAdmission(out,module,row->logicalType,
             row->conversion==XL6_FOREIGN_OUTPUT_CONVERSION_TEXT ? XL6_IR_CALL_RESULT_C_ABI_TEXT_VIEW:
             row->conversion==XL6_FOREIGN_OUTPUT_CONVERSION_BYTES ? XL6_IR_CALL_RESULT_C_ABI_BYTES_VIEW:XL6_IR_CALL_RESULT_C_ABI_CHAR_POINTER,

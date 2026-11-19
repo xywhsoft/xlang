@@ -2581,6 +2581,8 @@ export extern "xui_widget_t*" class CodeEdit @header("xge3_runtime.h") @lifetime
 
  extern "xuiCodeEditGetFindResultCount" @no_raise func getFindResultCount() as c_int
 
+ extern "xuiCodeEditGetFindResult" @no_raise @c_output_record(2,"xui_code_find_result_t","borrowed") @c_status(0) @c_output_field(0,"iStart") @c_output_field(1,"iEnd") @c_output_field(2,"iLine") @c_output_field(3,"iColumn") @c_output_field(4,"sPreview","cstring") func getFindResult(c_int index) as (c_int,c_int,c_int,c_int,string)
+
  extern "xuiCodeEditSetReadonly" @no_raise @c_result("status",0) func setReadonly(c_int bReadonly)
 
  extern "xuiCodeEditIsReadonly" @no_raise func isReadonly() as c_int

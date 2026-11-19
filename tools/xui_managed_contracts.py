@@ -57,6 +57,12 @@ METHODS = {'xuiResourceFind': ['xui_resource xuiResourceFind(xui_context pContex
                          '@c_pack_field(1,"iStartOffset",2,"value") @c_pack_field(1,"iRangeStart",3,"value") '
                          '@c_pack_field(1,"iRangeEnd",4,"value") @c_pack_field(1,"iMaxResults",5,"value") func findAll(string query,c_uint '
                          'flags=0,c_int start=-1,c_int rangeStart=0,c_int rangeEnd=-1,c_int maxResults=0) as c_int']],
+ 'xuiCodeEditGetFindResult': ['int xuiCodeEditGetFindResult(xui_widget pWidget, int iIndex, xui_code_find_result_t* pResult)',
+                             'CodeEdit',
+                             ['extern "xuiCodeEditGetFindResult" @no_raise @c_output_record(2,"xui_code_find_result_t","borrowed") '
+                              '@c_status(0) @c_output_field(0,"iStart") @c_output_field(1,"iEnd") @c_output_field(2,"iLine") '
+                              '@c_output_field(3,"iColumn") @c_output_field(4,"sPreview","cstring") '
+                              'func getFindResult(c_int index) as (c_int,c_int,c_int,c_int,string)']],
  'xuiCodeEditFindNext': ['int xuiCodeEditFindNext(xui_widget pWidget, const xui_find_options_t* pOptions)',
                          'CodeEdit',
                          ['extern "xuiCodeEditFindNext" @no_raise @c_pack(1,"xui_find_options_t",0,6) @c_pack_size(1,"iSize","uint32_t") '
@@ -678,6 +684,7 @@ RECORDS = {'xui_accessibility_event_t': 'typedef struct xui_accessibility_event_
                          '(*onDrop)(const void*); } xui_callback_owner_t;',
  'xui_context_desc_t': 'typedef struct xui_context_desc_t { uint32_t iSize; int iSystemFontPolicy; float fSystemFontSize; uint32_t iFlags; '
                        '} xui_context_desc_t;',
+ 'xui_code_find_result_t': 'typedef struct xui_code_find_result_t xui_code_find_result_t;',
  'xui_dock_drop_info_t': 'typedef struct xui_dock_drop_info_t xui_dock_drop_info_t;',
  'xui_error_info_t': 'typedef struct xui_error_info_t { uint32_t iSize; int iCode; int iStage; int bRecoverable; xui_widget pWidget; '
                      'xui_rect_t tRect; const char* sOperation; const char* sMessage; } xui_error_info_t;',
@@ -708,6 +715,7 @@ TYPE_SHAPES = {'xui_accessibility_event_proc': 'e024773384cabe3acdff878404d4c09f
  'xui_accessibility_event_t': 'f39ed9eca1aa8f1b8caa63368d57a586a8aa8f8d563d6f8c2e65247d43fdc873',
  'xui_callback_owner_t': '35c650eef37df012c6e923aadf66f21faa1ca1be3ed0d835988075edbe397a71',
  'xui_context_desc_t': '915af53e0a24c2a045f6281d2b500d0528d910a3b8f24bb8eaae7dd57666c8fa',
+ 'xui_code_find_result_t': '8140f41a4aacab78803fbe3a9db5279a074a49f0a2961913d364c85f82e1da84',
  'xui_dock_drop_info_t': '548739842232aca5557c245360c3280859db8a50cdc764323db41eb1580423ab',
  'xui_error_info_t': '3a3a8cbc9278b6bf896fbe5e9d470e93e7a3aaba37a25b3b32b08f2f46744812',
  'xui_error_proc': '69c9d6276e273cb8485a1fa32ec1f2a146ab575fc653287422fd4871ddf6ba4a',

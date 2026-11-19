@@ -1,0 +1,83 @@
+import xui
+
+extern "findResultsHeapBegin" @header("test/cases/foreign_xui_find_results.h") @no_raise func heapBegin()
+extern "findResultsHeapEnd" @header("test/cases/foreign_xui_find_results.h") @no_raise func heapEnd(c_int expected)
+extern "findResultsTextEqual" @header("test/cases/foreign_xui_find_results.h") @no_raise @c_text_view(0) @c_text_view(1) func samePreview(string left,string right) as c_int
+extern "findResultsNativeHot" @header("test/cases/foreign_xui_find_results.h") @no_raise func nativeHot(xui.CodeEdit editor, xui.CodeFindScope scope)
+
+func verify(xui.Context context)
+    auto first = context.codeEditNative()
+    auto second = context.codeEditNative()
+    first.setText("  啊 alpha\tβ")
+    auto clipped = "alpha " + string.repeat("x", 152)
+    auto maximum = "alpha " + string.repeat("x", 151) + "é"
+    second.setText("\t" + clipped + "你好\n" + maximum + "\n")
+    auto scope = xui.createCodeFindScope()
+    string saved = ""
+    try
+        scope.addEditorNamed(first,"first.xl")
+        scope.addEditorNamed(second,"second.xl")
+        assert first.findAll("alpha") == 1
+        assert scope.findAll("alpha") == 3
+        auto start, finish, line, column, preview = first.getFindResult(0)
+        assert start == 6 and finish == 11 and line == 0 and column == 4 and preview == "啊 alpha β"
+        auto sharedStart, sharedEnd, sharedLine, sharedColumn, shared = scope.getResult(0)
+        assert sharedStart == start and sharedEnd == finish and sharedLine == line and sharedColumn == column and shared == preview
+        assert (scope.resultEditorName(0) ?? "") == "first.xl" and (scope.resultEditorName(1) ?? "") == "second.xl"
+
+        auto clipStart, clipEnd, clipLine, clipColumn, clipPreview = scope.getResult(1)
+        assert clipStart == 1 and clipEnd == 6 and clipLine == 0 and clipColumn == 1
+        assert clipPreview == clipped and string.byteLen(clipPreview) == 158
+        auto maxStart, maxEnd, maxLine, maxColumn, maxPreview = scope.getResult(2)
+        assert maxStart == 166 and maxEnd == 171 and maxLine == 1 and maxColumn == 0
+        assert maxPreview == maximum and string.byteLen(maxPreview) == 159
+        saved = clipPreview
+
+        bool rejected = false
+        try
+            start,finish,line,column,preview = first.getFindResult(-1)
+        catch Error
+            rejected = true
+        end
+        assert rejected and start == 6 and finish == 11 and line == 0 and column == 4 and preview == "啊 alpha β"
+        rejected = false
+        try
+            sharedStart,sharedEnd,sharedLine,sharedColumn,shared = scope.getResult(3)
+        catch Error
+            rejected = true
+        end
+        assert rejected and shared == preview and sharedStart == start and sharedEnd == finish
+
+        heapBegin()
+        for i in range(1000)
+            auto localStart,localEnd,localLine,localColumn,localPreview = first.getFindResult(0)
+            auto scopeStart,scopeEnd,scopeLine,scopeColumn,scopePreview = scope.getResult(0)
+            assert localStart == scopeStart and localEnd == scopeEnd and localLine == scopeLine
+            assert localColumn == scopeColumn and samePreview(localPreview,scopePreview) == 1
+        end
+        heapEnd(2000)
+        nativeHot(first,scope)
+
+        scope.removeEditor(second)
+        assert scope.resultCount() == 0
+    finally
+        scope.close()
+    end
+    assert saved == clipped
+end
+
+func main(...) as int
+    auto proxy = xui.createProxy()
+    try
+        auto context = xui.create(proxy,xui.XUI_SYSTEM_FONT_DISABLED)
+        try
+            verify(context)
+        finally
+            context.close()
+        end
+    finally
+        proxy.close()
+    end
+    println("XUI_FIND_RESULTS_OK")
+    return 0
+end

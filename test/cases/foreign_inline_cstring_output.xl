@@ -1,0 +1,52 @@
+extern "inlineTextRead" @header("test/cases/foreign_inline_cstring_output.h") @no_raise @c_output_record(1,"InlineTextOutput","borrowed") @c_output_size(1,"iSize") @c_status(0) @c_output_field(0,"number") @c_output_field(1,"borrowed","cstring") @c_output_field(2,"preview","cstring") func read(c_int mode) as (c_int,string?,string)
+extern "inlineTextBudget" @header("test/cases/foreign_inline_cstring_output.h") @no_raise func budget(c_int count)
+extern "inlineTextReset" @header("test/cases/foreign_inline_cstring_output.h") @no_raise func reset()
+extern "inlineTextHeapBegin" @header("test/cases/foreign_inline_cstring_output.h") @no_raise func heapBegin()
+extern "inlineTextHeapEqual" @header("test/cases/foreign_inline_cstring_output.h") @no_raise func heapEqual()
+
+export func readText(c_int mode) as (c_int,string?,string)
+    return read(mode)
+end
+
+func attempt(c_int mode,c_int allowance) as bool
+    c_int number = 19
+    string? pointer = "old pointer"
+    string preview = "old preview"
+    bool failed = false
+    if allowance >= 0 then budget(allowance) end
+    try
+        number,pointer,preview = readText(mode)
+    catch Error
+        reset()
+        failed = true
+        assert number == 19 and (pointer as string) == "old pointer" and preview == "old preview"
+    finally
+        reset()
+    end
+    if not failed then
+        assert number == 27 and (pointer as string) == "pointer" and preview == "你😀"
+    end
+    return failed
+end
+
+func main(...) as int
+    auto code,pointer,inlineText = readText(0)
+    assert code == 27 and (pointer as string) == "pointer" and inlineText == "你😀"
+    auto emptyCode,nullPointer,emptyText = readText(1)
+    assert emptyCode == code and nullPointer == null and emptyText == ""
+    auto emptyPointerCode,emptyPointer,copied = readText(4)
+    assert emptyPointerCode == code and emptyPointer != null and (emptyPointer as string) == "" and copied == inlineText
+
+    heapBegin()
+    assert attempt(2,-1) and attempt(3,-1)
+    heapEqual()
+    int failures = 0
+    for allowance in range(16)
+        heapBegin()
+        if attempt(0,c_int(allowance)) then failures += 1 end
+        heapEqual()
+    end
+    assert failures >= 2 and failures < 16
+    println("INLINE_CSTRING_OUTPUT_OK failures=", failures)
+    return 0
+end

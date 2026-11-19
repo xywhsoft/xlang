@@ -1,5 +1,22 @@
 # Direct editor search and replacement
 
+`CodeEdit.getFindResult(index)` and `CodeFindScope.getResult(index)` return
+`(start, end, line, column, preview)`. Start and end are UTF-8 byte offsets.
+Line and column are zero-based, with the column counted in Unicode code points.
+The preview is an independent string copied from the native inline buffer.
+The native preview removes leading spaces and tabs, replaces remaining tabs
+with spaces and ends at a complete UTF-8 code point when truncated. Invalid
+indices report a checked error. To identify or navigate to a scoped match,
+call `resultEditorName(index)` or `activateResult(index)` on the same scope.
+The example [shared_find.xl](../lib/bindings/xui/examples/shared_find.xl) shows
+how to read and display results across documents.
+
+Each accessor makes one native call. On the prepared two-document fixture,
+1,000 local and 1,000 scoped result reads allocate and free 2,000 preview
+strings in xlang. The C comparison reads inline previews with no XRT heap
+operations. The xlang path also scans the bounded preview, copies its bytes,
+and enters checked native scopes.
+
 CodeEdit exposes findAll, findNext, findPrevious, replaceCurrent, replaceAll,
 replaceAllPlain and replaceAllRegex. TextEdit exposes findNext, findPrevious,
 replaceCurrent and replaceAll. Each declaration calls the original native

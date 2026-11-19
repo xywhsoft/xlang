@@ -1,0 +1,125 @@
+{
+  "complete": true,
+  "passed": true,
+  "releaseInstalled": false,
+  "shippingDelivery": false,
+  "sourceParent": "00f44bfff1d8b2ef1a43b26df736077fc62c4bc2",
+  "nativeCommit": "84bd6866ab07466157b21f03122b31a7957109f9",
+  "frozenXrt": "804cc769de3030118c2b46ef7af69543d1b82d9d",
+  "scope": [
+    "Existing borrowed output record cstring field accepts const char* and inline char arrays with a compile-time physical type proof.",
+    "Inline storage is scanned to its actual extent. Missing NUL and allocation failure reject the whole result and preserve the previous assignment. Pointer NULL and empty string keep their distinct behavior.",
+    "Local and multi-editor find return owned previews and exact source positions. Native preview truncation retains complete UTF-8 code points. Scope editor names/navigation use the existing scope entries.",
+    "Cross-context checked editor alias from a CodeFindScope result and matched release installation remain separate."
+  ],
+  "workload": {
+    "iterations": 1000,
+    "readsPerIteration": 2,
+    "xlang": {
+      "allocations": 2000,
+      "frees": 2000,
+      "reallocations": 0
+    },
+    "nativeC": {
+      "allocations": 0,
+      "frees": 0,
+      "reallocations": 0
+    },
+    "conditions": "Prepared local and shared find results in a CPU-only XUI context. Compare preview bytes without allocating comparison operands. No CPU performance equivalence claim."
+  },
+  "sources": {
+    "src/cgen/xl6_ir_cgen_foreign_output_view.c": "455709ec5eb2c36eb45955f1889e2c7b98543effc5f9a915a8b0dceffce4edf2",
+    "docs/foreign-output-snapshots.md": "abc3e22c1fed408e3e1e2a9fc3e410e2d31683c96507dd66b01a4ba167dcc4ed",
+    "docs/xui-edit-search.md": "664ac4dc2bd7c3fe6b8995e0210f3702db90d1a6b738d53d83acca0bde4c826f",
+    "lib/bindings/xui/src/find.xl": "538eca83e5fac8370227e78494a1e2ce9360bb41ea4640694570ad5ec6908e5a",
+    "lib/bindings/xui/src/managed.xl": "e280f56129f7803bd9c1ff193cfa8c4444d86ebf1984cb63a3a311a444384bf1",
+    "lib/bindings/xui/examples/shared_find.xl": "654dd2af944ac0e68ce195dbd182d9b98f204f853193bbe16575fa0ce6dfcc09",
+    "tools/xui_managed_contracts.py": "990633f2d993afe4e5f09eb0716ff675d2be3d1960bcab6bf6e19baca7aa3c06",
+    "test/cases/foreign_inline_cstring_output.xl": "7f97c1b48164c7b1a170f685a9e4a23eb3cd582741843246616f38866236eda3",
+    "test/cases/foreign_inline_cstring_output.h": "aa0c6203f3e15f62cdf7b03bd710f4ac951fde18245eca373b6d4ddc78980727",
+    "test/cases/foreign_inline_cstring_output_native.c": "20c934d941e9ae0cd78bd73f2390e9def643697eb16ef3ea75592eebc57bd46d",
+    "test/cases/foreign_xui_find_results.xl": "24eaa9933d9bc2bb03dffe4a13e7ac638efd25ff6715c24dec06b544318e1061",
+    "test/cases/foreign_xui_find_results.h": "2be0111689ca5f6396578da577fc587484250efeab78fccfe8e4908952eee802",
+    "test/cases/foreign_xui_find_results_native.c": "9a983904471af06142f132581e175f3d4fbf8de703f110d6c3cf51dc7ea9915f"
+  },
+  "nativeSources": {
+    "src/xui/code/xui_code_edit.c": "aa314a4dd4019635165e2891238d9cd0076350b374d76fc183fac3448f0af6ae",
+    "tests/xui/xui_code_find_session_test.c": "23ac1f3d71d52581a83c47660ac35ee6a9c76ba75e43664fd6fc8b65e00fd9c6"
+  },
+  "platforms": {
+    "win": {
+      "fullO2Compiler": {
+        "path": "F:\\xlang-validation\\xge-full-20261110\\compiler-inline-cstring-win-r1\\build.json",
+        "sha256": "c6298f0cbdf9af6e9e7950878c0e13da00955cf470af7f8e3a7d9c73a5577df2",
+        "commands": 1
+      },
+      "matchedCompilerSdk": {
+        "path": "F:\\xlang-validation\\xge-full-20261110\\inline-cstring-compiler-sdk-win-r1\\results.json",
+        "sha256": "740c7f6074c8c605521c1047de1c552576a8051f39ea2075641537041cfda361"
+      },
+      "nativeSdk": {
+        "path": "F:\\xlang-validation\\xge-full-20261110\\find-results-sdk-win-r1\\results.json",
+        "sha256": "4924bcdb0acfa2ffd86a99fb339141cb5f9e2365ed1419dda1c61e872a03e006",
+        "commands": 2
+      },
+      "nativeFindSession": {
+        "path": "F:\\xlang-validation\\xge-full-20261110\\find-results-native-tests-win-r2\\results.json",
+        "sha256": "4e2884ef4dd53f709985663cc9a946b5eaf5f26c6a55c17f22bbc484b448bed9",
+        "commands": 4
+      },
+      "packageReplay": {
+        "path": "F:\\xlang-validation\\xge-full-20261110\\find-results-packages-win-r2\\results.json",
+        "sha256": "fe19333b0f8b40bd348179e2f38242e3df83c055f8069fa702b2ef457811b0b5",
+        "sourceReviewChecks": 668,
+        "commands": 6
+      },
+      "languageAndExample": {
+        "path": "F:\\xlang-validation\\xge-full-20261110\\find-results-tests-win-r5\\results.json",
+        "sha256": "c51d531773452ee735f7d039a37f5330efa3f508561dc34b5205cdd4d5137684",
+        "commands": 37
+      },
+      "physicalTypeProof": {
+        "path": "F:\\xlang-validation\\xge-full-20261110\\inline-cstring-abi-negative-win-r2\\results.json",
+        "sha256": "b95ca5afd79ab929c0a41f8eca9edede098f35330497f5b36522ea2b2a54df90",
+        "commands": 2
+      }
+    },
+    "linux": {
+      "fullO2Compiler": {
+        "path": "/var/tmp/xlang-validation/xge-full-20261110/compiler-inline-cstring-linux-r1/build.json",
+        "sha256": "b3a5cd35d92852dc5780f6fec1d795426c76b3521f59088752f0f97862b98284",
+        "commands": 1
+      },
+      "matchedCompilerSdk": {
+        "path": "/var/tmp/xlang-validation/xge-full-20261110/inline-cstring-compiler-sdk-linux-r1/results.json",
+        "sha256": "19252f8a7944cb40005889f117b606621c05431aed4ddd640bd1d27ae666b964"
+      },
+      "nativeSdk": {
+        "path": "/var/tmp/xlang-validation/xge-full-20261110/find-results-sdk-linux-r1/results.json",
+        "sha256": "2e1bb06ab18c900474b4d1b7b42b1ad609795ab4e9a88b03f59b7628c4c8b385",
+        "commands": 2
+      },
+      "nativeFindSession": {
+        "path": "/var/tmp/xlang-validation/xge-full-20261110/find-results-native-tests-linux-r2/results.json",
+        "sha256": "7453955fcc90dd6e77833aeb7f96ee3e1f45b8d87613eaea659c4ffa5211ea3d",
+        "commands": 4
+      },
+      "packageReplay": {
+        "path": "/var/tmp/xlang-validation/xge-full-20261110/find-results-packages-linux-r2/results.json",
+        "sha256": "a729bbb2db8d9762c180db1ea1129774bed34fa8c4ee0b0045e035be619cadea",
+        "sourceReviewChecks": 669,
+        "commands": 6
+      },
+      "languageAndExample": {
+        "path": "/var/tmp/xlang-validation/xge-full-20261110/find-results-tests-linux-r5/results.json",
+        "sha256": "ebee72c60b9794db472b5d42592755f198c272d76acc30809e1b1f49d213c314",
+        "commands": 37
+      },
+      "physicalTypeProof": {
+        "path": "/var/tmp/xlang-validation/xge-full-20261110/inline-cstring-abi-negative-linux-r2/results.json",
+        "sha256": "09cecb8e6b76662a113557cda2eb1fa4d0dc33fea21f553b144a4cad04c81aff",
+        "commands": 2
+      }
+    }
+  }
+}

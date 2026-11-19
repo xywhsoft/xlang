@@ -10,8 +10,10 @@ extern "nativeRead" @header("native.h") @no_raise @c_output_record(1,"NativeInfo
 
 上例表示物理参数 1 是 `NativeInfo*`。字段可以是直接成员，也可以通过
 `tValue.sText` 这样的点分路径读取内嵌记录。路径只接受标识符，各结果字段必须
-互不覆盖。字符串字段的准确 C 类型是 `const char*`。
-`string?` 保留 NULL 与空串的区别；非空 `string` 遇到 NULL 会报 checked 错误。
+互不覆盖。`cstring` 字段接受 `const char*` 和记录内联的 `char[N]` 或 `const char[N]`。
+`string?` 保留指针 NULL 与空串的区别，非空 `string` 遇到 NULL 会报 checked 错误。
+内联数组始终存在，空串用首字节 NUL 表示。编译时核对 C 字段类型，运行时在实际数组长度内
+查找 NUL。数组内没有终止符时，整组结果报 checked 错误。
 
 原生状态和错误检查成功后，字符串在输入／回调作用域结束前复制为独立拥有值。
 POD、字符串及独立 retain 资源可以组成同一结果；只有所有字段和退出清理成功，
