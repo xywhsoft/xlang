@@ -1,0 +1,129 @@
+{
+  "complete": true,
+  "passed": true,
+  "releaseInstalled": false,
+  "sourceParent": "d59e8bea0f9c1b5001fd676cc280fe0165fdb1e5",
+  "nativeCommit": "bd00bd732245822fa0a29b1d7d032201b9d1e296",
+  "xrtCommit": "804cc769de3030118c2b46ef7af69543d1b82d9d",
+  "sourceHashes": {
+    "src/type/xl6_foreign_call_contract.h": "1bc22b8eb7fcfd8eb8d2bb327fec6351354ff7d58039cb21456735c15460e2a9",
+    "src/type/xl6_foreign_output_record_decl.h": "2daa88632a7d19866b898a11df6d9951a96daa0c165d9341b5fe8d3192a1eeab",
+    "src/sem/xl6_sem_foreign_output_record.c": "aacc2866e14474f570836c595966060614bfb695a80703fd9fb6b844f5948d24",
+    "src/ir/xl6_ir_foreign_output_record.c": "dc18b7ecf119acb62b41a76c0b4f2960466d9d3c1f7c4b7b653cfc91b893913f",
+    "src/ir/xl6_ir_foreign_output_view.c": "3c6b7c4d37defce9a1c7468dc07951f1e1777539bb8b1dfc64acb0251830ccf6",
+    "src/cgen/xl6_ir_cgen_foreign_output_view.c": "e549c4607c013ad0155436d59995981e640623c503a34ac5451709967ef8165e",
+    "src/cgen/xl6_ir_cgen_native_dependencies.c": "ab0b4ffe8a0c56a12ad56cc757751597c2555928e047bfbad2076c5eedba57df",
+    "tools/xui_managed_contracts.py": "00fafebc370d67cc85a1981c3c84e4293ec553723e420839fb36a61afdf8f442",
+    "lib/bindings/xui/src/managed.xl": "66662b2569ec3d9ab327cf22c8677ebb614f684a9025e648ff39947896d4a4d0",
+    "lib/bindings/xui/examples/dock_queries.xl": "ecff50482af1f979dd0e44525adf83fd72dd489bc92c65c8e2cfd0802439c1d8",
+    "test/cases/foreign_owner_view_record.xl": "f37afea3f3e3cf804356c2df596bf0005085d2acd0d1827e6323c2c5ac472f85",
+    "test/cases/foreign_owner_view_record.h": "c7426dde418207817456fac7c74c72d7491cc2c5754dfbff74e9e0e1d240f209",
+    "test/cases/foreign_owner_view_record.c": "9ed6feeea06be645406f2e7caf1c7f8ea3891bd799b7579c22bf3351883dde42",
+    "test/cases/foreign_owner_view_record_ir.c": "9c05bbdcf690290177dceccca30f2f3b4b2f980f9e428c4a11e4180bb073af85",
+    "test/cases/foreign_xui_watched_diagnostics.xl": "f60f315ed6eab410e2100600602410edd57699dae1d76a6ac86306d562c849e4"
+  },
+  "evidence": {
+    "win": {
+      "compilerFreeze": {
+        "path": "F:\\xlang-validation\\xge-full-20261110\\compiler-owner-view-record-win-r1\\freeze.json",
+        "sha256": "f3ef1481089267a5771fd7409a3d29a826446c384c3072b835a2a9e71fc35fdc"
+      },
+      "compilerBuild": {
+        "path": "F:\\xlang-validation\\xge-full-20261110\\compiler-owner-view-record-win-r1\\build.json",
+        "sha256": "c20f4401622538969bea3a4fe7c2d3e00e01a18d16d479cb78b2bab6d5c9b82e"
+      },
+      "matchedSdk": {
+        "path": "F:\\xlang-validation\\xge-full-20261110\\owner-view-record-compiler-sdk-win-r1\\results.json",
+        "sha256": "bc083b11ecab506b18e0c458c984c5315b98914bf47899bcdc6568d2371981ea"
+      },
+      "packageReplay": {
+        "path": "F:\\xlang-validation\\xge-full-20261110\\xui-watched-diagnostics-packages-win-r1\\results.json",
+        "sha256": "179b383394d7a782fd1c3a2729bad505c998ac6a4cda897814445fcc04f9f212"
+      },
+      "interop": {
+        "path": "F:\\xlang-validation\\xge-full-20261110\\owner-view-record-interop-win-r2\\results.json",
+        "sha256": "e7c8a7feadb976c768b24792c854ed7a73a8fe00eb5d4e5d12136a429e73eed6",
+        "stepCount": 16
+      },
+      "xui": {
+        "path": "F:\\xlang-validation\\xge-full-20261110\\owner-view-record-xui-win-r1\\results.json",
+        "sha256": "9ecd2424adca5ce73c558ddc4fda6a13e0c3b812c7c488526a6c9265c88ef2a9",
+        "stepCount": 15
+      },
+      "ir": {
+        "path": "F:\\xlang-validation\\xge-full-20261110\\owner-view-record-ir-win-r1\\results.json",
+        "sha256": "42356e21ca08faec9b4cdab6958f2df7b781b20323197cfaae18e72edcfd418c",
+        "stepCount": 2
+      },
+      "shared": {
+        "path": "F:\\xlang-validation\\xge-full-20261110\\owner-view-record-shared-win-r1\\results.json",
+        "sha256": "6e5bf9500d56df391eb68a6e66db0b00504758564334bd96529fd6ca2af8bd3f",
+        "stepCount": 2
+      },
+      "regression": {
+        "path": "F:\\xlang-validation\\xge-full-20261110\\owner-view-record-regression-win-r1\\results.json",
+        "sha256": "a47910ffcf2773be01e6dfb82e9a380e817e7870b4bbdcb610f3e6e1a3ead458",
+        "stepCount": 2
+      },
+      "wrongRoot": {
+        "path": "F:\\xlang-validation\\xge-full-20261110\\owner-view-record-wrong-root-win-r1\\results.json",
+        "sha256": "b13f0fc3f3998651f35b99d284599bfda71fe2d3b8391233ae66b6f0a706ab2b"
+      }
+    },
+    "linux": {
+      "compilerFreeze": {
+        "path": "\\\\wsl.localhost\\Ubuntu\\var\\tmp\\xlang-validation\\xge-full-20261110\\compiler-owner-view-record-linux-r1\\freeze.json",
+        "sha256": "bc425a04592ca8b1d5aacd8dec2cdd494efbbbd96cc8e87b942badffd0e4697b"
+      },
+      "compilerBuild": {
+        "path": "\\\\wsl.localhost\\Ubuntu\\var\\tmp\\xlang-validation\\xge-full-20261110\\compiler-owner-view-record-linux-r1\\build.json",
+        "sha256": "7aff9b08a8a45efe6dfd266908eea35e6501b4d0d10aa1fe9580ef640cf5873d"
+      },
+      "matchedSdk": {
+        "path": "\\\\wsl.localhost\\Ubuntu\\var\\tmp\\xlang-validation\\xge-full-20261110\\owner-view-record-compiler-sdk-linux-r1\\results.json",
+        "sha256": "8dd1619f0d26bda8be8255b3220a9b23fa742496623a06f8752ae07f000647ce"
+      },
+      "packageReplay": {
+        "path": "\\\\wsl.localhost\\Ubuntu\\var\\tmp\\xlang-validation\\xge-full-20261110\\xui-watched-diagnostics-packages-linux-r1\\results.json",
+        "sha256": "0e8b5f6c6952124a426338c6d720665fb7406ed10ccffe19b8a3c6f7666edd13"
+      },
+      "interop": {
+        "path": "\\\\wsl.localhost\\Ubuntu\\var\\tmp\\xlang-validation\\xge-full-20261110\\owner-view-record-interop-linux-r2\\results.json",
+        "sha256": "1533be74ff7082abfbf95f4ed2a75c94bfb65363080714444df7428adf35fa62",
+        "stepCount": 16
+      },
+      "xui": {
+        "path": "\\\\wsl.localhost\\Ubuntu\\var\\tmp\\xlang-validation\\xge-full-20261110\\owner-view-record-xui-linux-r1\\results.json",
+        "sha256": "4de776fd126221feba5841f8949a25092183b1fffc8aff3fe1d9f848ea9294e0",
+        "stepCount": 15
+      },
+      "ir": {
+        "path": "\\\\wsl.localhost\\Ubuntu\\var\\tmp\\xlang-validation\\xge-full-20261110\\owner-view-record-ir-linux-r1\\results.json",
+        "sha256": "681ee79d2678888c694832b56616d9185c01cec8f590219f31dfb6dbda4d3808",
+        "stepCount": 2
+      },
+      "shared": {
+        "path": "\\\\wsl.localhost\\Ubuntu\\var\\tmp\\xlang-validation\\xge-full-20261110\\owner-view-record-shared-linux-r1\\results.json",
+        "sha256": "dbdffce8d21f8620212345908977e4e779fda37e1aa53e549ab39e7c0ab40b30",
+        "stepCount": 2
+      },
+      "regression": {
+        "path": "\\\\wsl.localhost\\Ubuntu\\var\\tmp\\xlang-validation\\xge-full-20261110\\owner-view-record-regression-linux-r1\\results.json",
+        "sha256": "d712c3c9b033acb79294f01c6411cf9a48029cc7bfcb1fd97d59d94416eb1aa0",
+        "stepCount": 2
+      },
+      "wrongRoot": {
+        "path": "\\\\wsl.localhost\\Ubuntu\\var\\tmp\\xlang-validation\\xge-full-20261110\\owner-view-record-wrong-root-linux-r1\\results.json",
+        "sha256": "1250f4a4f6d16b028f49192ea073f318946b9676036153f054f7e82f84c29ad8"
+      }
+    }
+  },
+  "coverage": [
+    "Watched native record fields use the active same-root receiver and an exact header-proven pointer.",
+    "Failed status ignores poison outputs. Optional NULL, required NULL, later allocation failure and destroyed aliases are checked.",
+    "Required and optional fields, single result, direct, bound and protocol paths, whole-result rollback and balanced native/watch release.",
+    "XUI render-node view, protected Dock host, wrong thread, destroyed widgets and saved independent POD values.",
+    "1000 warmed generic pairs and 1000 warmed XUI pairs with no XRT heap operations or attempted allocations respectively.",
+    "Windows and Linux JIT/dynamic/static AOT, shared module checked unload, C11/C++11/C++17, 55 damaged IR rejections per platform and existing output regressions."
+  ]
+}

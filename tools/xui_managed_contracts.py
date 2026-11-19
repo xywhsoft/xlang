@@ -447,7 +447,8 @@ METHODS.update({
         ['extern "xuiGetRenderNode" @no_raise @c_output_record(2,"xui_render_node_t","borrowed") @c_output_size(2,"iSize") @c_status(0) '
          '@c_output_field(0,"tWorldRect") @c_output_field(1,"tPaintRect") @c_output_field(2,"iLayer") @c_output_field(3,"iZIndex") '
          '@c_output_field(4,"iStateId") @c_output_field(5,"iCachePolicy") @c_output_field(6,"iFlags") '
-         'func getRenderNode(c_int index) as (Rect,Rect,c_int,c_int,c_uint,c_int,c_uint)']],
+'func getRenderNode(c_int index) as (Rect,Rect,c_int,c_int,c_uint,c_int,c_uint)',
+         'extern "xuiGetRenderNode" @no_raise @c_output_record(2,"xui_render_node_t","borrowed") @c_output_size(2,"iSize") @c_status(0) @c_output_field(0,"pWidget","owner_view") @c_output_field(1,"tWorldRect") @c_output_field(2,"tPaintRect") @c_output_field(3,"iLayer") @c_output_field(4,"iZIndex") @c_output_field(5,"iStateId") @c_output_field(6,"iCachePolicy") @c_output_field(7,"iFlags") func getRenderNodeWithWidget(c_int index) as (Widget,Rect,Rect,c_int,c_int,c_uint,c_int,c_uint)']],
     'xuiDebugWidgetInspect': [
         'int xuiDebugWidgetInspect(xui_widget pWidget, xui_debug_widget_info_t* pInfo)', 'Widget',
         ['extern "xuiDebugWidgetInspect" @no_raise @c_output_record(1,"xui_debug_widget_info_t","borrowed") @c_output_size(1,"iSize") @c_status(0) '
@@ -465,7 +466,8 @@ METHODS.update({
          '@c_output_field(8,"bDockable") @c_output_field(9,"bMovable") @c_output_field(10,"bResizable") @c_output_field(11,"iResizeEdges") '
          '@c_output_field(12,"fMinWidth") @c_output_field(13,"fMinHeight") @c_output_field(14,"tIconSrc") @c_output_field(15,"tRect") '
          '@c_output_field(16,"tClientRect") @c_output_field(17,"tTabRect") @c_output_field(18,"tAutoHideRect") '
-         'func getWindowInfo(c_int window) as (c_int,c_int,c_int,c_int,c_int,c_int,c_int,c_int,c_int,c_int,c_int,c_uint,c_float,c_float,Rect,Rect,Rect,Rect,Rect)']],
+'func getWindowInfo(c_int window) as (c_int,c_int,c_int,c_int,c_int,c_int,c_int,c_int,c_int,c_int,c_int,c_uint,c_float,c_float,Rect,Rect,Rect,Rect,Rect)',
+         'extern "xuiDockPanelGetWindowInfo" @no_raise @c_output_record(2,"xui_dock_window_info_t","borrowed") @c_output_size(2,"iSize") @c_status(0) @c_output_field(0,"pHostWidget","owner_view") func getWindowHost(c_int window) as Widget']],
     'xuiFlowGraphWidgetGetGraphOwned': [
         'int xuiFlowGraphWidgetGetGraphOwned(xui_widget widget,xui_flow_graph* output)',
         'FlowGraphWidget',

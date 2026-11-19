@@ -551,6 +551,8 @@ int xl6IrCgenVisitResidentSymbols(const XL6_IrModule* module, XL6_DiagList* diag
         if(xl6IrForeignRetainGet(module,target) && !visitor(context,"xl6ForeignStatusFailureV1"))return 0;
         for(size_t o=0;o<xl6IrForeignOutputCount(module,target);++o){
             const XL6_ForeignOutputViewContract* output=xl6IrForeignOutputViewGet(module,target,o);
+            if(output && output->conversion==XL6_FOREIGN_OUTPUT_CONVERSION_OWNER_VIEW &&
+                (!visitor(context,"xl6ForeignViewBorrowChildV1") || !visitor(context,"xl6ForeignViewReleaseV1")))return 0;
             if(!output || output->conversion!=XL6_FOREIGN_OUTPUT_CONVERSION_RETAINED_NATIVE)continue;
             if(!visitor(context,"xl6ForeignResultProbeMaterializeRootV1") ||
                 !visitor(context,"xl6ForeignResultProbeReserveRootV1") || !visitor(context,"xl6ForeignResultProbeObserveV1") ||

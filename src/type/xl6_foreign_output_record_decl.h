@@ -20,7 +20,8 @@ static inline int xl6ForeignOutputFieldRead(const XL6_AstNode* attr,XL6_ForeignO
     if(attr->childCount==3){char kind[16];
         if(!xl6ForeignQuotedText(attr->children[2],kind,sizeof(kind)))return 0;
         view.ordinal=row.ordinal;view.conversion=!strcmp(kind,"cstring") ? XL6_FOREIGN_OUTPUT_CONVERSION_CSTRING:
-            !strcmp(kind,"borrowed_value") ? XL6_FOREIGN_OUTPUT_CONVERSION_BORROWED_VALUE:XL6_FOREIGN_OUTPUT_CONVERSION_INVALID;
+            !strcmp(kind,"borrowed_value") ? XL6_FOREIGN_OUTPUT_CONVERSION_BORROWED_VALUE:
+            !strcmp(kind,"owner_view") ? XL6_FOREIGN_OUTPUT_CONVERSION_OWNER_VIEW:XL6_FOREIGN_OUTPUT_CONVERSION_INVALID;
         if(!view.conversion)return 0;
     }
     if(attr->childCount==6){

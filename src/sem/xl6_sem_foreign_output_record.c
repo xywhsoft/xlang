@@ -1,5 +1,17 @@
 /* Native borrowed records are stack-only physical storage. No raw pointer
  * field may masquerade as a trivial language value. */
+static int xl6SemForeignOutputWatchedChild(XL6_SemContext* ctx,const XL6_AstNode* ownerClass,
+    const XL6_AstNode* result)
+{
+    XL6_ForeignClassDecl owner={0},child={0},root={0};
+    if(xl6ForeignClassRead(ownerClass,&owner,NULL)!=1 ||
+        (owner.lifetime!=XL6_FOREIGN_LIFETIME_OWNED && owner.lifetime!=XL6_FOREIGN_LIFETIME_OWNER))return 0;
+    const XL6_AstNode* resultDecl=xl6SemForeignViewDeclaration(ctx,result,&child);
+    if(!resultDecl || child.lifetime!=XL6_FOREIGN_LIFETIME_OWNER || !child.policy[0] || !child.watch[0])return 0;
+    const XL6_AstNode* ownerRoot=xl6SemForeignRootDeclaration(ctx,ownerClass,&owner);
+    return ownerRoot && ownerRoot==xl6SemForeignRootDeclaration(ctx,resultDecl,&child) &&
+        xl6ForeignClassRead(ownerRoot,&root,NULL)==1 && root.scope[0];
+}
 static int xl6SemForeignOutputRecord(XL6_SemContext* ctx,XL6_AstNode* node,
     const XL6_AstNode* attrs,const XL6_AstNode* ownerClass,const XL6_ForeignCallFacts* facts,size_t inputs,size_t receiver)
 {
@@ -21,6 +33,10 @@ static int xl6SemForeignOutputRecord(XL6_SemContext* ctx,XL6_AstNode* node,
             if(!inner || inner->childCount || !xl6TextEquals(inner->text,"string"))goto invalid;
         }else if(view.conversion==XL6_FOREIGN_OUTPUT_CONVERSION_BORROWED_VALUE){
             if(!result || result->childCount || !xl6TextEquals(result->text,"var") || (node->flags&XL6_AST_FLAG_FOREIGN_PURE))goto invalid;
+        }else if(view.conversion==XL6_FOREIGN_OUTPUT_CONVERSION_OWNER_VIEW){
+            if(!receiver || (facts->controlViews&UINT64_C(1)) ||
+                (node->flags&XL6_AST_FLAG_FOREIGN_PURE) ||
+                !xl6SemForeignOutputWatchedChild(ctx,ownerClass,result))goto invalid;
         }else if(view.conversion){
             const XL6_AstNode* inner=xl6SemTypeIsNullable(result) ? xl6SemResolveAliasType(ctx,xl6SemNullableInnerType(result)):result;
             XL6_ForeignClassDecl contract={0};const XL6_AstNode* declaration=xl6SemForeignViewDeclaration(ctx,inner,&contract);
@@ -34,5 +50,5 @@ static int xl6SemForeignOutputRecord(XL6_SemContext* ctx,XL6_AstNode* node,
     }
     if(count!=returns->childCount)goto invalid;
     return 1;
-invalid:xl6SemErrorNode(ctx,node,"borrowed C record output requires one exact POD field, C-string snapshot, retained independent resource, or borrowed xvalue field per result and an authoritative header");return 0;
+invalid:xl6SemErrorNode(ctx,node,"borrowed C record output requires an authoritative header and an exact POD, C-string, retained resource, borrowed xvalue or same-root watched child per result");return 0;
 }

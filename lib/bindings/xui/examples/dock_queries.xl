@@ -24,10 +24,12 @@ try
 
  auto depth, children, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _ = dock.debugInfo()
  println("Dock widget depth: ",depth,", children: ",children)
+ auto host = dock.getWindowHost(tools)
+ println("Tool window host children: ",host.getChildCount())
  assert ui.buildRenderTree()==0
  if ui.getRenderNodeCount()>0 then
-  auto _, paint, layer, _, _, _, _ = ui.getRenderNode(0)
-  println("First render node layer: ",layer,", paint width: ",paint.fW)
+  auto widget, _, paint, layer, _, _, _, _ = ui.getRenderNodeWithWidget(0)
+  println("First render node layer: ",layer,", paint width: ",paint.fW,", children: ",widget.getChildCount())
  end
 
  // Coordinates are local to the DockPanel; bValid distinguishes a miss.

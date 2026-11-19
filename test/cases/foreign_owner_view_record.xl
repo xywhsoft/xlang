@@ -1,0 +1,123 @@
+extern "ManagedRoot*" class Root @header("test/cases/foreign_owner_view_record.h") @lifetime("owned") @policy("managedRootPolicy") @scope("ManagedScope") @watch("ManagedWatch")
+    native point handle
+    extern "watched_record_seed" @no_raise @c_result("status",0) func seed()
+    extern "watched_record_query" @no_raise @c_output_record(2,"WatchedRecord","borrowed") @c_status(0) @c_output_field(0,"stamp") @c_output_field(1,"first","owner_view") @c_output_field(2,"second","owner_view") @c_output_field(3,"text","cstring") func read(c_int mode) as (c_int,Child,Child?,string)
+    extern "watched_record_query" @no_raise @c_output_record(2,"WatchedRecord","borrowed") @c_status(0) @c_output_field(0,"first","owner_view") @c_output_field(1,"second","owner_view") func pair(c_int mode) as (Child,Child?)
+    extern "watched_record_query" @no_raise @c_output_record(2,"WatchedRecord","borrowed") @c_status(0) @c_output_field(0,"first","owner_view") func first(c_int mode) as Child
+    extern "watched_record_watches" @no_raise func watches() as c_int
+    extern "xl6ForeignViewCloseV1" @no_raise @c_control(0) @c_result("bool_status") func close()
+end
+
+extern "ManagedChild*" class Child @header("test/cases/foreign_owner_view_record.h") @lifetime("owner") @owner(Root) @policy("managedChildPolicy") @watch("ManagedWatch")
+    native point handle
+    extern "managed_child_read" @no_raise get value() as c_int
+    extern "xl6ForeignViewCloseV1" @no_raise @c_control(0) @c_result("bool_status") func close()
+end
+
+extern "managed_root_destroy" @no_raise func rollback(Root root)
+extern "managed_root_create" @no_raise @c_result("owned_view") @factory(1,0,rollback) func create(c_int mode) as Root
+extern "managed_roots_live" @no_raise func live() as c_int
+extern "managed_children_live" @no_raise func childLive() as c_int
+extern "watched_record_queries" @no_raise func queries() as c_int
+extern "watched_record_set_budget" @no_raise func budget(c_int allowance)
+extern "watched_record_reset" @no_raise func reset()
+extern "watched_record_mark" @no_raise func mark()
+extern "watched_record_balanced" @no_raise func balanced()
+extern "managed_counter_begin" @no_raise func beginCounters()
+extern "managed_counter_end" @no_raise func endCounters()
+
+protocol Reader
+    func read(c_int mode) as (c_int,Child,Child?,string)
+end
+
+func checkColdFailure(int allowance) as bool
+    auto root = create(0)
+    root.seed()
+    c_int stamp = -8
+    string text = "preserved"
+    bool failed = false
+    budget(c_int(allowance))
+    try
+        stamp, _, _, text = root.read(0)
+    catch Error
+        failed = true
+    finally
+        reset()
+    end
+    if failed then
+        assert stamp == -8 and text == "preserved", "failure preserves all assigned destinations"
+    else
+        assert stamp == 47 and text == "owned text"
+    end
+    auto first, second = root.pair(0)
+    assert first.value == 24 and (second as Child).value == 58
+    root.close()
+    return failed
+end
+
+func testResults()
+    auto root = create(0)
+    root.seed()
+    auto before = queries()
+    bool failed = false
+    try
+        auto _, _, _, _ = root.read(3)
+    catch Error
+        failed = true
+    end
+    assert failed and root.watches() == 0 and queries() == before + 1, "failed status never observes a pointer"
+    failed = false
+    try
+        auto _, _, _, _ = root.read(2)
+    catch Error
+        failed = true
+    end
+    assert failed and root.watches() == 0 and queries() == before + 2, "required null is a checked error"
+    auto stamp, first, absent, text = root.read(1)
+    assert stamp == 47 and first.value == 24 and absent == null and text == "owned text"
+    Reader reader = root
+    auto _, same, second, _ = reader.read(0)
+    assert same.value == 24 and (second as Child).value == 58
+    func(c_int) as (Child,Child?) bound = root.pair
+    auto duplicate, sameAgain = bound(4)
+    assert duplicate.value == 24 and (sameAgain as Child).value == 24 and root.watches() == 2
+    auto scalar = root.first(0)
+    assert scalar.value == 24 and root.watches() == 2
+    beginCounters()
+    for i in range(1000)
+        auto x, y = root.pair(0)
+        assert x.value == 24 and (y as Child).value == 58
+    end
+    endCounters()
+
+    first.close()
+    failed = false
+    try
+        auto stale = same.value
+    catch StateError
+        failed = true
+    end
+    assert failed and (second as Child).value == 58, "only the destroyed child's aliases expire"
+    root.close()
+    failed = false
+    try
+        auto stale = (second as Child).value
+    catch StateError
+        failed = true
+    end
+    assert failed and text == "owned text", "root closure expires the remaining view and preserves snapshots"
+end
+
+func main(...) as int
+    testResults()
+    mark()
+    int failures = 0
+    for i in range(16)
+        if checkColdFailure(i) then failures += 1 end
+        assert live() == 0 and childLive() == 0
+    end
+    balanced()
+    assert failures >= 2 and failures < 16
+    println("WATCHED_RECORD_OK ", failures)
+    return 0
+end

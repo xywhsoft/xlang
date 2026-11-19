@@ -1,0 +1,113 @@
+import xui
+
+extern "fixtureRenderProxy" @header("test/cases/foreign_xui_flow_canvas.h") @no_raise @c_result("owned_view") @factory(0,0,dropProxy) func cpuProxy() as xui.Proxy
+extern "xuiProxyReleaseChecked" @header("xge3_runtime.h") @no_raise @c_result("status",0) func dropProxy(xui.Proxy proxy)
+extern "fixtureRenderBalanced" @no_raise func balanced() as c_int
+extern "fixtureFlowCanvasBudget" @no_raise func budget(c_int allowance)
+extern "fixtureFlowCanvasReset" @no_raise func reset()
+extern "xrtMemDebugFailTriggered" @header("xrt_decl.h") @no_raise func failedAllocation() as c_bool
+
+func main(...) as int
+    auto proxy = cpuProxy()
+    auto ui = xui.create(proxy, xui.XUI_SYSTEM_FONT_DISABLED)
+    auto root = ui.widget()
+    xui.Rect bounds
+    bounds.fW = 640
+    bounds.fH = 480
+    assert root.setRect(bounds) == 0 and ui.setRootWidget(root) == 0
+    ui.inputViewport(640, 480)
+
+    auto dock = ui.dockPanelNative()
+    bounds.fW = 420
+    bounds.fH = 310
+    assert dock.setRect(bounds) == 0 and root.addChild(dock) == 0
+    auto client = ui.labelNative()
+    auto id = dock.addWindow("Inspector", client)
+    dock.dockWindow(id, xui.XUI_DOCK_PANEL_REGION_DOCUMENT, xui.XUI_DOCK_PANEL_SIDE_FILL)
+
+    auto leaf = ui.buttonNative()
+    bounds.fX = 450
+    bounds.fY = 20
+    bounds.fW = 130
+    bounds.fH = 36
+    assert leaf.setRect(bounds) == 0 and root.addChild(leaf) == 0
+    leaf.setStateId(781)
+    assert ui.layout() == 0 and ui.buildRenderTree() == 0
+
+    bool rejected = false
+    bool triggered = false
+    budget(0)
+    try
+        auto tooEarly = dock.getWindowHost(id)
+    catch Error
+        rejected = true
+    finally
+        triggered = bool(failedAllocation())
+        reset()
+    end
+    assert rejected and triggered, "the first host view can fail on allocation and retry"
+    auto host = dock.getWindowHost(id)
+    auto hostRect = host.getRect()
+    auto attachedParent = client.getParent()
+    assert attachedParent != null and host.getChildCount() >= 1 and hostRect.fW > 0
+    rejected = false
+    try
+        host.close()
+    catch Error
+        rejected = true
+    end
+    assert rejected, "Dock owns destruction of its internal host"
+
+    int found = -1
+    for index in range(int(ui.getRenderNodeCount()))
+        auto _, _, _, _, state, _, _ = ui.getRenderNode(c_int(index))
+        if state == 781 then found = index end
+    end
+    assert found >= 0
+    auto alias, world, paint, _, _, state, _, _ = ui.getRenderNodeWithWidget(c_int(found))
+    auto actualRect = alias.getWorldRect()
+    assert state == 781 and paint.fW > 0 and actualRect.fX == world.fX and world.fW == 130
+    auto worker = thread(func() as int
+        try
+            auto wrongThreadRect = alias.getRect()
+        catch StateError
+            return 0
+        end
+        return 1
+    end)
+    assert worker.waitTimeout(30000) and worker.exitCode() == 0
+
+    budget(0)
+    try
+        for round in range(1000)
+            auto secondHost = dock.getWindowHost(id)
+            auto secondAlias, _, _, _, _, current, _, _ = ui.getRenderNodeWithWidget(c_int(found))
+            assert secondHost.getChildCount() >= 1 and secondAlias.getStateId() == 781 and current == 781
+        end
+        assert not failedAllocation(), "warm lookups reuse the existing watch"
+    finally
+        reset()
+    end
+
+    leaf.close()
+    rejected = false
+    try
+        auto expired = alias.getRect()
+    catch StateError
+        rejected = true
+    end
+    assert rejected and world.fW == 130
+    assert dock.clear() == 0
+    rejected = false
+    try
+        auto expired = host.getRect()
+    catch StateError
+        rejected = true
+    end
+    assert rejected and hostRect.fW > 0
+    ui.close()
+    proxy.close()
+    assert balanced() == 1
+    println("XUI_WATCHED_DIAGNOSTICS_OK")
+    return 0
+end

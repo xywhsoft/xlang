@@ -19,8 +19,13 @@ The C records also carry transient object pointers. Use `Widget.getParent()`,
 `Context.hitTest()` and the DockPanel's client, button and icon accessors to
 obtain watched or retained resources. `DockPanel.getWindowTitle()` returns
 the title as an independent string. The native size fields are supplied by
-the bindings. Direct access to the render node's associated widget and the
-Dock window's host widget still needs a watched record-field output.
+the bindings.
+
+`Context.getRenderNodeWithWidget(index)` adds the corresponding managed
+Widget before the seven fields of `getRenderNode()`. `DockPanel.getWindowHost(window)`
+returns the watched host. The host is an internal DockPanel part and its
+destruction is controlled by the DockPanel. Both methods use the
+[watched output field contract](foreign-watched-record-fields.md).
 
 Each query directly calls its XUI function once. The first render-node read
 after a tree change can rebuild the native index and allocate. Value

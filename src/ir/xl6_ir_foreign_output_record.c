@@ -101,7 +101,9 @@ static int xl6IrVerifyOutputRecords(const XL6_IrModule* m,XL6_DiagList* diags)
         if(!xl6IrForeignOutputRecordGet(m,&target))goto invalid;
         const XL6_ForeignOutputViewContract* view=xl6IrForeignOutputViewGet(m,&target,row->ordinal);
         if(view ? (view->conversion!=XL6_FOREIGN_OUTPUT_CONVERSION_RETAINED_NATIVE &&
-            view->conversion!=XL6_FOREIGN_OUTPUT_CONVERSION_CSTRING && view->conversion!=XL6_FOREIGN_OUTPUT_CONVERSION_BORROWED_VALUE):!xl6IrForeignTrivialCValue(m,row->logicalType,0))goto invalid;
+            view->conversion!=XL6_FOREIGN_OUTPUT_CONVERSION_CSTRING &&
+            view->conversion!=XL6_FOREIGN_OUTPUT_CONVERSION_BORROWED_VALUE &&
+            view->conversion!=XL6_FOREIGN_OUTPUT_CONVERSION_OWNER_VIEW):!xl6IrForeignTrivialCValue(m,row->logicalType,0))goto invalid;
         for(size_t p=0;p<r;++p)if(m->foreignOutputFields[p].declaration==row->declaration &&
             (m->foreignOutputFields[p].ordinal==row->ordinal || !strcmp(m->foreignOutputFields[p].field,row->field)))goto invalid;
     }

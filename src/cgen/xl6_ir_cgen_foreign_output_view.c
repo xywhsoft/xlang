@@ -181,6 +181,19 @@ static void xl6IrCgenOutputProbesEnd(XL6_Output* out,const XL6_IrModule* module,
     }
     xl6OutputPuts("    }\n",out);
 }
+static void xl6IrCgenOutputWatchChild(XL6_Output* out,const XL6_IrModule* module,
+    const XL6_ForeignOutputViewContract* row,const char* raw,const char* admitted,const char* scope)
+{
+    const XL6_IrType* type=xl6IrTypeGet(&module->types,row->logicalType);
+    xl6OutputPrintf(out,"    if(!%s.failed && !xrtGetError()) {\n"
+        "        if(%s) {\n"
+        "            %s=xl6ForeignViewBorrowChildV1(%s,native_view_0.root,&%s,xlir_code_owner.size ? &xlir_code_owner : NULL);\n"
+        "            if(!%s || xrtGetError())xl6ErrorScopeCaptureFailure(&%s);\n"
+        "        }",scope,raw,admitted,raw,type->foreignPolicy,admitted,scope);
+    if(type->kind!=XL6_IR_TYPE_NULLABLE)
+        xl6OutputPrintf(out," else { xrtSetErrorKind(XERR_STATE); xl6ErrorScopeCaptureFailure(&%s); }",scope);
+    xl6OutputPuts("\n    }\n",out);
+}
 static int xl6IrCgenOutputValuesAdmit(XL6_Output* out,const XL6_IrModule* module,
     const XL6_IrCallTarget* target,const char* place,const char* scope)
 {
@@ -221,9 +234,22 @@ static int xl6IrCgenOutputValuesAdmit(XL6_Output* out,const XL6_IrModule* module
             "        if(!%s || xrtGetError())xl6ErrorScopeCaptureFailure(&%s);\n"
             "    }\n",scope,field->field,admitted,admitted,scope);
     }
+    /* Attach watchers while all borrowed addresses are still valid, before
+     * converting fields that can invoke native retain hooks. */
     for(size_t ordinal=0;ordinal<count;++ordinal){
         const XL6_ForeignOutputViewContract* row=xl6IrForeignOutputViewGet(module,target,ordinal);
-        if(row && row->conversion==XL6_FOREIGN_OUTPUT_CONVERSION_BORROWED_VALUE)continue;
+        if(!row || row->conversion!=XL6_FOREIGN_OUTPUT_CONVERSION_OWNER_VIEW)continue;
+        const XL6_ForeignOutputFieldContract* field=xl6IrForeignOutputFieldGet(module,target,ordinal);
+        if(!field)return 0;
+        char raw[128],admitted[48]="native_admitted";
+        snprintf(raw,sizeof(raw),"native_raw.%s",field->field);
+        if(count>1)snprintf(admitted,sizeof(admitted),"native_admitted.e%lu",(unsigned long)ordinal);
+        xl6IrCgenOutputWatchChild(out,module,row,raw,admitted,scope);
+    }
+    for(size_t ordinal=0;ordinal<count;++ordinal){
+        const XL6_ForeignOutputViewContract* row=xl6IrForeignOutputViewGet(module,target,ordinal);
+        if(row && (row->conversion==XL6_FOREIGN_OUTPUT_CONVERSION_BORROWED_VALUE ||
+            row->conversion==XL6_FOREIGN_OUTPUT_CONVERSION_OWNER_VIEW))continue;
         char raw[128],admitted[48];
         if(count>1){snprintf(raw,sizeof(raw),"native_raw.e%lu",(unsigned long)ordinal);
             snprintf(admitted,sizeof(admitted),"native_admitted.e%lu",(unsigned long)ordinal);}
@@ -256,7 +282,8 @@ static int xl6IrCgenOutputValuesAdmit(XL6_Output* out,const XL6_IrModule* module
         size_t ordinal=reverse-1;
         const XL6_ForeignOutputViewContract* row=xl6IrForeignOutputViewGet(module,target,ordinal);
         if(!row)continue;
-        if(row->conversion==XL6_FOREIGN_OUTPUT_CONVERSION_RETAINED_NATIVE){
+        if(row->conversion==XL6_FOREIGN_OUTPUT_CONVERSION_RETAINED_NATIVE ||
+            row->conversion==XL6_FOREIGN_OUTPUT_CONVERSION_OWNER_VIEW){
             char admitted[48];if(count>1)snprintf(admitted,sizeof(admitted),"native_admitted.e%lu",(unsigned long)ordinal);else strcpy(admitted,"native_admitted");
             xl6OutputPrintf(out,"        if (%s && !xl6ForeignViewReleaseV1(%s)) xl6ErrorScopeCaptureFailure(&%s);\n",admitted,admitted,scope);
             continue;
