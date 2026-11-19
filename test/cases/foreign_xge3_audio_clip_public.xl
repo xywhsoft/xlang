@@ -1,0 +1,71 @@
+import xge
+
+func main(...) as int
+    // Eight 8 kHz stereo frames, sampled from -8/16 through 7/16.
+    bytes wave = b"RIFFD\0\0\0WAVEfmt \x10\0\0\0\x01\0\x02\0\x40\x1f\0\0\x00\x7d\0\0\x04\0\x10\0data\x20\0\0\0\0\xc0\0\xc8\0\xd0\0\xd8\0\xe0\0\xe8\0\xf0\0\xf8\0\0\0\x08\0\x10\0\x18\0\x20\0\x28\0\x30\0\x38"
+    auto clip = xge.decodeAudioClip(wave, maxDecodedBytes = 64)
+    auto info = clip.info()
+    assert info.channels == c_uint(2) and info.sample_rate == c_uint(8000)
+    assert info.frames == uint64(8) and info.bytes == uint64(64)
+    auto shared = clip.share()
+    auto samples = clip.samples()
+    clip.close()
+
+    auto worker = thread(func() as int
+        assert shared.info().frames == uint64(8)
+        auto local = shared.share()
+        shared.close()
+        auto localSamples = local.samples()
+        local.close()
+        assert localSamples.length == 16 and localSamples[4] == c_float(-0.25)
+        assert samples.slice(4, 2)[1] == c_float(-0.1875)
+        c_float total = c_float(0)
+        for sample in samples
+            total += sample
+        end
+        assert total == c_float(-0.5)
+        auto decoded = xge.decodeAudioClip(wave, 64)
+        assert decoded.info().channels == c_uint(2)
+        decoded.close()
+        return 12
+    end)
+    assert worker.waitTimeout(30000) and worker.exitCode() == 12
+    assert samples[15] == c_float(0.4375)
+    bool closed = false
+    try
+        shared.info()
+    catch StateError
+        closed = true
+    end
+    assert closed
+
+    bool cancelled = false
+    try
+        xge.decodeAudioClip(wave, cancelled = func() as c_int
+            return c_int(1)
+        end)
+    catch error
+        cancelled = error.code == int(xge.XGE_ERROR_INVALID_STATE)
+    end
+    assert cancelled
+
+    bool thrown = false
+    try
+        xge.decodeAudioClip(wave, cancelled = func() as c_int
+            throw Error("audio clip cancel callback")
+        end)
+    catch error
+        thrown = error.message == "audio clip cancel callback"
+    end
+    assert thrown
+
+    bool limited = false
+    try
+        xge.decodeAudioClip(wave, 63)
+    catch error
+        limited = error.code == int(xge.XGE_ERROR_OUT_OF_MEMORY)
+    end
+    assert limited
+    println("PUBLIC_AUDIO_CLIP_OK")
+    return 0
+end

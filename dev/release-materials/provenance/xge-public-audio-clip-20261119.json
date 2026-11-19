@@ -1,0 +1,197 @@
+{
+  "complete": true,
+  "passed": true,
+  "releaseInstalled": false,
+  "sourceParent": "eabbad8750f8271c65746d2bb48dce5a2edfbb37",
+  "nativeCommit": "bd00bd732245822fa0a29b1d7d032201b9d1e296",
+  "xrtCommit": "804cc769de3030118c2b46ef7af69543d1b82d9d",
+  "runtime": {
+    "path": "D:\\GIT\\x-lang\\dev\\release-materials\\provenance\\foreign-thread-neutral-leaf-20261119.json",
+    "sha256": "0269ac2b79db1076efa4e8dbde3fdcb7603e0245d2f2d4ef02facfae903e8531"
+  },
+  "sourceHashes": {
+    "lib/bindings/_xge_native/src/runtime.c": "86cac9ca6c562d87e645191ec1895a1fdb50075f1e1fc0ee27bee5fc3bd3bdd8",
+    "lib/bindings/xge/src/audio_resources.xl": "8e9fd73a2942772fcb55b3aebeb0dcbaddf16373e028474437e222e0360f03ac",
+    "lib/bindings/xge/examples/README.md": "735f7208230653aad71b993371b34a37bdffc6299e2c5f88da1e8bc8b3928d1c",
+    "lib/bindings/xge/examples/audio_clip.xl": "e769d2d9ecebacbfbb94212c617725ea40a472f5893dcf89cd6ee9518f77b4a0",
+    "test/cases/foreign_xge3_audio_clip_public.xl": "55fe27fdc27d8db78ee5ecf54f0afce53d238f0c36f4c21fdf807f3e45f69098",
+    "test/cases/foreign_xge3_audio_clip_playback.xl": "46623ac38ffd72275f8e772b6d969eba5230c6090598115cdfeef0c93636a342",
+    "docs/xge3-audio-integration.md": "a5895e088301ea1e009453249392796a23c8b6c040df37afa274eca9a3b3da10"
+  },
+  "physicalAudio": false,
+  "behavior": [
+    "Public AudioClip decode, share, metadata and PCM sequence call their exact native symbols.",
+    "A creator-independent clip or retained sample sequence is usable on a language worker. A closed clip view refuses queries, while independently retained samples remain readable.",
+    "Checked cancellation, callback exceptions and a bounded decode are verified without an audio device.",
+    "The private real CPU mixer verifies source-frame trimming, exact last frame, silence after playback and rate conversion. Sound and sequence allocation prefixes are balanced with the audio engine still alive.",
+    "PCM traversal uses one admitted read scope and reads native float slots. The tested warm traversal permits zero new XRT allocations. Decode and cold sequence acquisition allocate their owners, and admission uses an existing runtime lock."
+  ],
+  "evidence": {
+    "win": {
+      "sdk": {
+        "path": "F:\\xlang-validation\\xge-full-20261110\\public-audio-clip-sdk-win-r1\\results.json",
+        "sha256": "4f0cee22e37f28ff2f73a7004f1eb39c7aaf88da49649296c92d22103ca4bcae"
+      },
+      "audioDisabled": {
+        "path": "F:\\xlang-validation\\xge-full-20261110\\audio-disabled-clip-win-r1\\results.json",
+        "sha256": "706d10ca6958776953fb21102e68ea62d544212dbd5b3556bdaa0ef55e9d6121"
+      },
+      "compiler": {
+        "path": "F:\\xlang-validation\\xge-full-20261110\\compiler-thread-neutral-audio-clip-win-r1\\build.json",
+        "sha256": "002dde21eea80e175636e3830e928e76b98b453a108cad261dc9ea58a16d934f"
+      },
+      "compilerSdk": {
+        "path": "F:\\xlang-validation\\xge-full-20261110\\public-audio-clip-compiler-sdk-win-r1\\results.json",
+        "sha256": "74a7c90054a6bdcf89bab4152784bf03b4a0092fe043559b1aa66b952259464c"
+      },
+      "packages": {
+        "path": "F:\\xlang-validation\\xge-full-20261110\\public-audio-clip-packages-win-r3\\results.json",
+        "sha256": "6e0596052f11c8f97fff48f15cd9d3b1d8464850dce973677eb0bf92f0d95b0e",
+        "storageReview": {
+          "path": "F:\\xlang-validation\\xge-full-20261110\\public-audio-clip-packages-win-r3\\source-review\\results.json",
+          "sha256": "c1fc28eb2b0fe117eafbc4b01081ef3235665b32d9589c3b7e8c73cc2b84ad75"
+        }
+      },
+      "language": {
+        "public": {
+          "path": "F:\\xlang-validation\\xge-full-20261110\\public-audio-clip-public-win-r3\\results.json",
+          "sha256": "d87fae6d276a36e678c18d2657479ab828293f0ef38dff0863f359eaf9b3a15f",
+          "checks": 14,
+          "directNativeCalls": [
+            "xgeAudioClipDecodeMemory",
+            "xgeAudioClipInfo",
+            "xgeAudioClipGetSamples",
+            "xgeAudioClipShareOwned"
+          ]
+        },
+        "playback": {
+          "path": "F:\\xlang-validation\\xge-full-20261110\\public-audio-clip-playback-win-r3\\results.json",
+          "sha256": "4e8802957647bc7295a13753035c03e3f1cd80c89aa5981ac0a9c9463b1f35ae",
+          "checks": 8,
+          "directNativeCalls": [
+            "xgeAudioClipDecodeMemory",
+            "xgeAudioClipInfo",
+            "xgeAudioClipGetSamples",
+            "xgeAudioClipShareOwned",
+            "xgeSoundCreateFromClipOwned"
+          ],
+          "allocationPrefixes": {
+            "jit": [
+              [
+                4,
+                28
+              ],
+              [
+                5,
+                27
+              ]
+            ],
+            "dynamic": [
+              [
+                4,
+                28
+              ],
+              [
+                5,
+                27
+              ]
+            ],
+            "static": [
+              [
+                4,
+                28
+              ],
+              [
+                5,
+                27
+              ]
+            ]
+          }
+        }
+      }
+    },
+    "linux": {
+      "sdk": {
+        "path": "\\\\wsl.localhost\\Ubuntu\\var\\tmp\\xlang-validation\\xge-full-20261110\\public-audio-clip-sdk-linux-r1\\results.json",
+        "sha256": "621d0af5c80bb43ccc00454dcadb22213cdf7756dafaf0b8f9223537052af59c"
+      },
+      "audioDisabled": {
+        "path": "\\\\wsl.localhost\\Ubuntu\\var\\tmp\\xlang-validation\\xge-full-20261110\\audio-disabled-clip-linux-r1\\results.json",
+        "sha256": "a122f072ba024903ed461f42e8002ef0dfa75db59065ffccb050bb58286b05c4"
+      },
+      "compiler": {
+        "path": "\\\\wsl.localhost\\Ubuntu\\var\\tmp\\xlang-validation\\xge-full-20261110\\compiler-thread-neutral-audio-clip-linux-r1\\build.json",
+        "sha256": "f8dd18a1c00d586709404632f8899e21fc05da551a54b3d49f4d0a2e2b5f04e2"
+      },
+      "compilerSdk": {
+        "path": "\\\\wsl.localhost\\Ubuntu\\var\\tmp\\xlang-validation\\xge-full-20261110\\public-audio-clip-compiler-sdk-linux-r1\\results.json",
+        "sha256": "f24d70f9bb72992aaa90d316eeabf1f0b7d3cd2b3c386bb41b236e9b0e7268ba"
+      },
+      "packages": {
+        "path": "\\\\wsl.localhost\\Ubuntu\\var\\tmp\\xlang-validation\\xge-full-20261110\\public-audio-clip-packages-linux-r3\\results.json",
+        "sha256": "9186af4ed683d4c7603feeb47df441f11da2f145c670c2f8d8066ecbecb73111",
+        "storageReview": {
+          "path": "\\\\wsl.localhost\\Ubuntu\\var\\tmp\\xlang-validation\\xge-full-20261110\\public-audio-clip-packages-linux-r3\\source-review\\results.json",
+          "sha256": "bfc843b2f9494c55114b7692185fe171ff142607332c1ea3085728776f366816"
+        }
+      },
+      "language": {
+        "public": {
+          "path": "\\\\wsl.localhost\\Ubuntu\\var\\tmp\\xlang-validation\\xge-full-20261110\\public-audio-clip-public-linux-r3\\results.json",
+          "sha256": "2962c1a57d587a836868ae2dccbcc3b8873fd8a0d8b3517cbb587e35f2044958",
+          "checks": 14,
+          "directNativeCalls": [
+            "xgeAudioClipDecodeMemory",
+            "xgeAudioClipInfo",
+            "xgeAudioClipGetSamples",
+            "xgeAudioClipShareOwned"
+          ]
+        },
+        "playback": {
+          "path": "\\\\wsl.localhost\\Ubuntu\\var\\tmp\\xlang-validation\\xge-full-20261110\\public-audio-clip-playback-linux-r3\\results.json",
+          "sha256": "f882f701d19715b1a5c3db0e22f0c40a913fdf1b96d6551ca61ee64f8a2e6a94",
+          "checks": 8,
+          "directNativeCalls": [
+            "xgeAudioClipDecodeMemory",
+            "xgeAudioClipInfo",
+            "xgeAudioClipGetSamples",
+            "xgeAudioClipShareOwned",
+            "xgeSoundCreateFromClipOwned"
+          ],
+          "allocationPrefixes": {
+            "jit": [
+              [
+                4,
+                28
+              ],
+              [
+                5,
+                27
+              ]
+            ],
+            "dynamic": [
+              [
+                4,
+                28
+              ],
+              [
+                5,
+                27
+              ]
+            ],
+            "static": [
+              [
+                4,
+                28
+              ],
+              [
+                5,
+                27
+              ]
+            ]
+          }
+        }
+      }
+    }
+  }
+}

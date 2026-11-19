@@ -65,6 +65,11 @@ are checked; physical output-device playback is a manual example check. The
 automated audio suite instead exercises the same public APIs with an explicitly
 private, real no-device mixer SDK. It does not install those test images.
 
+`audio_clip.xl` decodes the same tone and calculates its peak sample. Run it
+beside `data/tone.wav`. It prints the format, frame count and peak, and shows
+how the read-only PCM sequence keeps its own reference after the clip closes.
+This example uses the CPU decoder and needs no audio output device.
+
 `sound_loading.xl` uses the same tone through a SoundLoad request: register a
 completion callback, start on the control thread, inspect failure and take an
 independent Sound. Expect a completion line and one short tone. Run it beside

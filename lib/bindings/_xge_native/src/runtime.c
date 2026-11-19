@@ -753,10 +753,13 @@ const XL6_ForeignViewDescriptorV1* xl6Xge3ShapePolicyGet(void){return NULL;}
 const XL6_ForeignViewDescriptorV1* xl6Xge3ShapeScenePolicyGet(void){return NULL;}
 const XL6_ForeignViewDescriptorV1* xl6Xge3PathMeasurePolicyGet(void){return NULL;}
 #endif
-#if XGE_ENABLE_AUDIO
+/* The audio-disabled SDK also defines the clip entry points. Let its checked
+ * decoder report Unsupported in that profile. */
 static bool destroy_audio_clip(void* raw){xgeAudioClipFree(raw);return true;}
-RESOURCE_POLICY(xl6Xge3AudioClipPolicyGet,"xge.audio_clip",destroy_audio_clip,NULL)
-#else
-const XL6_ForeignViewDescriptorV1* xl6Xge3AudioClipPolicyGet(void){return NULL;}
-#endif
+const XL6_ForeignViewDescriptorV1* xl6Xge3AudioClipPolicyGet(void)
+{
+    static const XL6_ForeignViewDescriptorV1 value={sizeof(value),XL6_FOREIGN_VIEW_V1_TAG,"xge.audio_clip",
+        0,1,NULL,NULL,destroy_audio_clip,0,1,NULL,NULL,NULL,NULL,XL6_FOREIGN_VIEW_THREAD_NEUTRAL_LEAF,NULL,NULL};
+    return &value;
+}
 #undef RESOURCE_POLICY

@@ -1,0 +1,21 @@
+import xge
+
+func main(...) as int
+    // Run beside data/tone.wav. Inspecting PCM only needs the CPU decoder.
+    auto clip = xge.decodeAudioClip(file.readBytes("data/tone.wav"))
+    auto info = clip.info()
+    println("Sample rate", info.sample_rate, "Channels", info.channels, "Frames", info.frames)
+
+    // The sequence keeps its own reference to the interleaved PCM array.
+    auto samples = clip.samples()
+    clip.close()
+
+    c_float peak = c_float(0)
+    for sample in samples
+        auto magnitude = sample < c_float(0) ? -sample : sample
+        if magnitude > peak then peak = magnitude end
+    end
+    assert peak > c_float(0)
+    println("Peak sample", peak)
+    return 0
+end

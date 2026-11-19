@@ -1,7 +1,6 @@
 # Complete audio integration: current boundary
 
-This is the active implementation ledger for the unfinished audio family, not
-a completed language API or a release qualification. FontLoad is recorded
+This ledger records audio APIs and their qualification. FontLoad is recorded
 separately in [owned loading](xge3-async-loading.md).
 
 ## Existing language surface
@@ -14,16 +13,15 @@ stable native-owned record rather than the old in-place language allocation.
 Playback, pause/resume/stop, loop, volume, fade, applicable position and state
 queries call their declared native symbols directly. `audioUnit()` now maps to
 checked native shutdown. Every resource has checked, creator-thread close.
-`AudioClipInfo` and a private clip destruction policy are not proof of a complete
-public clip API. Its thread/sequence contract and clip voices remain unfinished.
 The fallback surface is qualified below. Owning SoundLoad is qualified through the
 [shared request protocol](xge3-async-loading.md#sound-loading-qualification).
+The public clip API and its thread contract are described below.
 
 ## Native and compiler prerequisites
 
 | Area | Confirmed source contract / remaining work |
 | --- | --- |
-| Immutable clip | Native decode, metadata, exact PCM span and atomic shared ownership are qualified. A general cross-thread resource and sequence policy for the public xlang API is pending. |
+| Immutable clip | Native decode, metadata, exact PCM span and atomic shared ownership support the thread-neutral resource policy described below. |
 | Decode input | `xge_audio_clip_decode_t` packs data, byte count, output limit and synchronous cancellation callback/user fields. The [generic paired callback projection](foreign-packed-callbacks.md) now composes sealed `c_pack` with existing scoped callbacks and exact C signature proofs. The real CPU decoder is tested through a private Clip fixture; this does not publish a provisional AudioClip thread policy or complete playback ownership. |
 | Engine lifetime | Native `29e6e561` adds audio-specific parent reservations, including in-flight constructors. AudioUnitChecked and global Unit reject live audio without teardown. These reservations are separate from graphics-context owners. |
 | Group lifetime | Each voice now retains the private group backend. Free clears the public group handle; the last voice releases the actual mixer node and parent reservation. No language keep-alive field substitutes for native ownership. |
@@ -102,8 +100,7 @@ One AudioGroup retains 3 native allocations/8,776 bytes versus 5 allocations/
 and code/lifetime ownership. These measurements agree across the six JIT/AOT
 executions, for this exact workload and cohort.
 
-The public immutable Clip/thread/PCM-sequence contract, clip voices,
-automatic module-global code residency and final
+Automatic module-global code residency and final
 current-mainline SDK/compiler/IDE/help delivery remain unfinished. The private
 setup fixture and explicitly drained worker references do not replace them.
 
@@ -146,6 +143,43 @@ mixer, including the last frame and silence after it. For nonspatial voices
 and mixer groups, the equal-rate path skips the unused pitch resampler.
 The test also covers a 4 kHz source played by an 8 kHz mixer.
 See [clip acceptance](../dev/release-materials/provenance/xge-audio-clip-ownership-20261119.json).
+
+#### Public AudioClip
+
+- `xge.decodeAudioClip(bytes, maxDecodedBytes=0, cancelled=null)` decodes in the
+  calling thread. The default decoded size limit is 64 MiB. The optional callback
+  can return nonzero to stop decoding; an exception raised by it reaches the
+  caller. Decoding, queries and PCM reads require no audio device or engine init.
+- `AudioClip.info()` gives the channel count, sample rate, frame count and
+  decoded byte count. `samples()` returns a read-only `NativeSequence<c_float>`
+  of interleaved scalar samples. The sequence and its slices keep the PCM alive.
+- `AudioClip.share()` returns an independently closable view of the same PCM.
+  A clip and a PCM sequence can be used on different threads. When one thread
+  closes a clip, further calls through that view fail. Reads already in progress
+  finish before that view's native reference is released.
+- `xge.createSoundFromClip(clip, firstFrame=0, frameCount=0, spatial=0, group=null)`
+  creates a voice with its own playback cursor. The offset and count are in
+  source frames. A count of zero plays through the remaining frames. Sound
+  creation and playback stay on the audio control thread. The voice retains
+  its own clip reference.
+
+The resident runtime validates `XL6_FOREIGN_VIEW_THREAD_NEUTRAL_LEAF` for owned
+roots whose payload and operations are thread-neutral and have no user
+callbacks, external invalidation, native call scopes or owning graph edges.
+The descriptor and code lease remain live through retirement. An individual
+read scope stays on the thread that opened it. The admission lock protects
+the lifetime check and active count; a typed PCM loop opens one scope and then
+reads the C array directly. Building a clip or sequence still allocates its
+ownership records, and decoding allocates the PCM. Sharing, slicing and voice
+creation reuse the existing samples.
+
+See [audio_clip.xl](../lib/bindings/xge/examples/audio_clip.xl) for CPU decoding
+and peak calculation with the bundled tone.
+
+Windows and Linux passed the public JIT and dynamic/static AOT tests with
+matched compiler and SDK headers. A separate no-device mixer test exercised
+trimmed playback and allocation rollback through the same public API.
+See [public clip acceptance](../dev/release-materials/provenance/xge-public-audio-clip-20261119.json).
 
 ## Sound fallback: language qualification
 

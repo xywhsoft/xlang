@@ -61,3 +61,17 @@ export extern "xgeSoundCreateOwned" @header("xge3_audio_resources.h") @no_raise 
 export extern "xgeSoundFallbackCreateOwned" @header("xge3_audio_resources.h") @no_raise @c_result("owned_view") @factory(0,0,freeSound) func loadFallbackSound() as Sound
 export extern "xgeMusicCreateOwned" @header("xge3_audio_resources.h") @no_raise @c_cstr(0) @c_result("owned_view") @factory(0,0,freeMusic) func loadMusic(string path,AudioGroup? group=null) as Music
 export extern "xgeStreamCreateOwned" @header("xge3_audio_resources.h") @no_raise @c_cstr(0) @c_result("owned_view") @factory(0,0,freeAudioStream) func openAudioStream(string path,AudioGroup? group=null) as AudioStream
+
+// Immutable, interleaved float PCM. Holds no audio-engine resource.
+export typedef AudioDecodeCancelProc = func() as c_int
+export extern "xge_audio_clip*" class AudioClip @header("xge3_runtime.h") @lifetime("owned") @policy("xl6Xge3AudioClipPolicy")
+ native point handle
+ extern "xgeAudioClipInfo" @no_raise @c_const(0) func info() as AudioClipInfo
+ extern "xgeAudioClipShareOwned" @no_raise @c_result("owned_view") @factory(1,0,freeAudioClip) func share() as AudioClip
+ extern "xgeAudioClipGetSamples" @no_raise @c_const(0) @c_owned_sequence(1,2,0,"size_t",0) @c_retain(retainAudioClip,"zero",freeAudioClip) func samples() as NativeSequence<c_float>
+ extern "xl6ForeignViewCloseV1" @no_raise @c_control(0) @c_result("bool_status") func close()
+end
+extern "xgeAudioClipFree" @header("xge3_runtime.h") @no_raise func freeAudioClip(AudioClip clip)
+extern "xgeAudioClipAddRef" @header("xge3_runtime.h") @no_raise func retainAudioClip(AudioClip clip) as c_int
+export extern "xgeAudioClipDecodeMemory" @header("xge3_runtime.h") @no_raise @c_result("owned_view") @factory(1,0,freeAudioClip) @c_span(0,"const void*","size_t") @c_sync_callback(2,-1,-19) @c_pack(0,"xge_audio_clip_decode_t",0,3) @c_pack_field(0,"data",0,"span_data") @c_pack_field(0,"bytes",0,"span_count") @c_pack_field(0,"max_decoded_bytes",1,"value") @c_pack_field(0,"cancelled",2,"callback") @c_pack_field(0,"user",2,"callback_user") func decodeAudioClip(bytes data,uint64 maxDecodedBytes=0,AudioDecodeCancelProc? cancelled=null) as AudioClip
+export extern "xgeSoundCreateFromClipOwned" @header("xge3_runtime.h") @no_raise @c_result("owned_view") @factory(0,0,freeSound) @c_pack(1,"xge_sound_clip_desc_t",0,5) @c_pack_field(1,"clip",0,"view_raw") @c_pack_field(1,"first_frame",1,"value") @c_pack_field(1,"frame_count",2,"value") @c_pack_field(1,"spatial",3,"value") @c_pack_field(1,"group",4,"view_raw") func createSoundFromClip(AudioClip clip,uint64 firstFrame=0,uint64 frameCount=0,c_int spatial=0,AudioGroup? group=null) as Sound
