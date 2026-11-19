@@ -1,0 +1,171 @@
+{
+  "complete": true,
+  "passed": true,
+  "releaseInstalled": false,
+  "sourceParent": "bf205688fbaed2ddcfd21789a13b0a182eaabfe8",
+  "nativeCommit": "644d7f41af7212eb669835ecaefebf5f2799eb42",
+  "frozenXrt": "804cc769de3030118c2b46ef7af69543d1b82d9d",
+  "sourceHashesLf": {
+    "docs/xge3-xui3-api-map-storage.json": "85eca14f9beb228753e9b5f92f4eaa424a41e5c5da71657d679d1ad9bf6631a6",
+    "lib/bindings/_xge_native/include/xge3_runtime.h": "1e1239683d93113b18bcdee3c335f3988671f6f55b231a054c79851bfbfea8f4",
+    "lib/bindings/_xge_native/src/runtime.c": "c1d98e1eb37d36d34bc112e7b5840af57ff3b327c9b9f8f4063ea04fe5205f5f",
+    "lib/bindings/xui/examples/README.md": "99149597f23c9664da42812bc94164f2826c71d6bae73920daf1b8ed7f5db5e4",
+    "lib/bindings/xui/examples/code_editor_language.xl": "925a7c4c5e4451cc643ab930387be93101564612b98ffa2f5d1a2257664675fd",
+    "lib/bindings/xui/src/code_language_registry.xl": "7badbf907811100e9bafb295ba691aa9f3a00960097bd7433ad157fae4819d35",
+    "lib/bindings/xui/src/managed.xl": "f4fa611fc46eb7441ee4799d8e01102cdf869fe35695b0b4beca0588d0b1b95a",
+    "lib/bindings/xui/xlang.package.json": "bcf65dc3e991422cee4f553a48a75008caa0f5dcddcd78fb5b1df0b1134bb0ab",
+    "tools/xui_managed_contracts.py": "e3521e1f7e09d304f6609d48cbf0274f9af355ad1fcd533b3641518e7d2d168d",
+    "test/cases/foreign_xui_codeedit_language_registry.xl": "7d337b5c9bdf193637d44998485221271d3d4aa503dc36355f28cc69bc0b2a62",
+    "docs/xui-code-assist.md": "157010d3cf7176d310ba98cdea9fb96bc1c83d7b4cf1ba8deecb401521b5ce82"
+  },
+  "nativeHashesLf": {
+    "tests/xui/xui_code_language_registry_test.c": "9918e3487dfeee731fb900eadc94b95daa0fb50568d3c2c0731fb09378170b84",
+    "include/xui.h": "4e14a10592144f04288b7c9834feef7afd998541d00d36a6538e4712b3eddc52",
+    "src/xui/code/xui_code_edit.c": "41b3239b85f9a4ae0f5353d7c4e4e0e1d3a7d0915b1805c909e19c9eca0b94de",
+    "src/xui/code/xui_code_language_internal.h": "68f04c2df92e9eae59f41176c613dacb5b358baac0e482e9088aa89624664ff8",
+    "src/xui/code/xui_code_language.c": "248a7cbbb697ffac238d5735eaf89b107b3636c2568eb3c7ebe8589ba052f28c"
+  },
+  "coverage": [
+    "The editor's live registry exposes declarative regex definitions, extension lookup, metadata and rules through direct calls.",
+    "Independent registries support empty creation, native defaults, replacement and checked cleanup.",
+    "Replacing an active definition refreshes tokens on the unchanged document at the next paint; replacing another definition does not dirty the editor.",
+    "Failed native registration preserves the old definition and XRT live heap at 12 consecutive allocation budgets.",
+    "View release detaches observation, editor close expires the view, and native or xlang cross-thread access is checked.",
+    "Windows/Linux generated calls, JIT, dynamic/static AOT, and the bounded GUI example use the same validated package cohort."
+  ],
+  "costs": [
+    "Generated C initializes one native descriptor and allocates one temporary record array for each nonempty group.",
+    "Input strings undergo C-string admission, native storage copies definitions, and query results copy borrowed strings.",
+    "Native regex compilation remains part of tokenization when the cache is cold. No language callback runs for a declarative rule."
+  ],
+  "evidence": {
+    "win": {
+      "nativeSdk": {
+        "path": "F:\\xlang-validation\\xge-full-20261110\\codeedit-language-registry-sdk-win-r1\\results.json",
+        "sha256": "e14e733040b8f6fb1962bbbec6650ae84ab873665eda4ee62a38c0f730caf6ac",
+        "checks": 2
+      },
+      "packages": {
+        "path": "F:\\xlang-validation\\xge-full-20261110\\codeedit-language-registry-packages-win-r4\\results.json",
+        "sha256": "06ba3c916049dafe634dc1dbe7f2649884b2f4f5b937d3db5e7a79ead4b922a6",
+        "checks": 6,
+        "directory": "F:\\xlang-validation\\xge-full-20261110\\codeedit-language-registry-packages-win-r4\\packages"
+      },
+      "nativeTests": {
+        "path": "F:\\xlang-validation\\xge-full-20261110\\codeedit-language-registry-native-tests-win-r1\\results.json",
+        "sha256": "ce9d28db2d7680598e7ce38cef19c623e773f72e8055d71dfa9191168c733a3c",
+        "checks": 4
+      },
+      "language": {
+        "path": "F:\\xlang-validation\\xge-full-20261110\\codeedit-language-registry-xlang-win-r3\\results.json",
+        "sha256": "326dfe0fb8be615d2386967c949ad6fa909554f05c5c644ad297b85e2b5ca90b",
+        "checks": 12,
+        "programs": {
+          "dynamic.exe": {
+            "sha256": "5cfb14d3fbb26463a7b2ac0bf2fd607657b26768ef74baa3852a8dd320928cad",
+            "imports": [
+              "msvcrt.dll",
+              "xge3_host.dll",
+              "kernel32.dll",
+              "SHELL32.dll",
+              "ws2_32.dll",
+              "IPHLPAPI.dll",
+              "ucrtbase.dll"
+            ]
+          },
+          "static.exe": {
+            "sha256": "1b2729ec4e9c5c9621dbee345230d45e5000367c469f8a0c40e9f4994ff2986b",
+            "imports": [
+              "msvcrt.dll",
+              "kernel32.dll",
+              "USER32.dll",
+              "ole32.dll",
+              "OLEAUT32.dll",
+              "SHELL32.dll",
+              "GDI32.dll",
+              "IMM32.dll",
+              "DWrite.dll"
+            ]
+          },
+          "lesson.exe": {
+            "sha256": "114a2e85bfc8b424e959c08fce85453529d7d83a90d2acb03a172aced9b06ea6",
+            "imports": [
+              "msvcrt.dll",
+              "kernel32.dll",
+              "USER32.dll",
+              "GDI32.dll",
+              "ole32.dll",
+              "OLEAUT32.dll",
+              "SHELL32.dll",
+              "IMM32.dll",
+              "DWrite.dll"
+            ]
+          }
+        },
+        "generatedCodeSha256": "f61a1e0719dc07651b56b4b8404426c3eb60cd63e54f373169f0b629039ce166"
+      }
+    },
+    "linux": {
+      "nativeSdk": {
+        "path": "\\\\wsl.localhost\\Ubuntu\\var\\tmp\\xlang-validation\\xge-full-20261110\\codeedit-language-registry-sdk-linux-r1\\results.json",
+        "sha256": "e87df90e2f1bd28934ecd7579db7fbad8b3ab35a94c6f813e27749020249ee4e",
+        "checks": 2
+      },
+      "packages": {
+        "path": "\\\\wsl.localhost\\Ubuntu\\var\\tmp\\xlang-validation\\xge-full-20261110\\codeedit-language-registry-packages-linux-r4\\results.json",
+        "sha256": "7b5cc0bc36d22d128e529e2f90818691b733883939dc7a532051c205bef0eb74",
+        "checks": 6,
+        "directory": "/var/tmp/xlang-validation/xge-full-20261110/codeedit-language-registry-packages-linux-r4/packages"
+      },
+      "nativeTests": {
+        "path": "\\\\wsl.localhost\\Ubuntu\\var\\tmp\\xlang-validation\\xge-full-20261110\\codeedit-language-registry-native-tests-linux-r1\\results.json",
+        "sha256": "b92ca6471ad9dcee0afc7fd8913bc21f34bd990a8788dac677d1e4c3f7d442ef",
+        "checks": 4
+      },
+      "language": {
+        "path": "\\\\wsl.localhost\\Ubuntu\\var\\tmp\\xlang-validation\\xge-full-20261110\\codeedit-language-registry-xlang-linux-r3\\results.json",
+        "sha256": "dc67c61a3e5a5d2fc0d2484ff631b0d19179098604ca6f04fa6026e3e3690a01",
+        "checks": 12,
+        "programs": {
+          "dynamic": {
+            "sha256": "df95bce709460b2c041969e055ae0a424fbef8d7b10760eb50e8dba2d02bdce2",
+            "imports": [
+              "libm.so.6",
+              "libmvec.so.1",
+              "libxge3_host.so",
+              "libc.so.6",
+              "ld-linux-x86-64.so.2"
+            ]
+          },
+          "static": {
+            "sha256": "e52013bc6207ae2e6a1c10c1824010a4694fd320093e7623404f7b3e4be4c8af",
+            "imports": [
+              "libm.so.6",
+              "libmvec.so.1",
+              "libX11.so.6",
+              "libXi.so.6",
+              "libXcursor.so.1",
+              "libGL.so.1",
+              "libc.so.6",
+              "ld-linux-x86-64.so.2"
+            ]
+          },
+          "lesson": {
+            "sha256": "2edd06aad9d835e861a87f5fc57edb5d6b093d4e49afe5e22301a3fb41f820df",
+            "imports": [
+              "libm.so.6",
+              "libmvec.so.1",
+              "libX11.so.6",
+              "libXi.so.6",
+              "libXcursor.so.1",
+              "libGL.so.1",
+              "libc.so.6",
+              "ld-linux-x86-64.so.2"
+            ]
+          }
+        },
+        "generatedCodeSha256": "f61a1e0719dc07651b56b4b8404426c3eb60cd63e54f373169f0b629039ce166"
+      }
+    }
+  }
+}

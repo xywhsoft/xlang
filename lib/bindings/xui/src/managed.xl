@@ -2579,6 +2579,7 @@ export extern "xui_widget_t*" class CodeEdit @header("xge3_runtime.h") @lifetime
 
  extern "xuiCodeEditGetCommandMap" @no_raise @c_result("owner_view",0) func commandMap() as CodeEditCommandMap
  extern "xuiCodeEditGetFoldState" @no_raise @c_result("owner_view",0) func foldState() as CodeEditFoldState
+ extern "xuiCodeEditGetLanguageRegistry" @no_raise @c_result("owner_view",0) func languageRegistry() as CodeEditLanguageRegistry
 
  extern "xuiCodeEditQueryCommandEnabled" @no_raise @c_outputs(2,3) @c_status(0) func queryCommandEnabled(c_int command) as (bool,bool)
 

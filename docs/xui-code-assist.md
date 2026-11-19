@@ -95,3 +95,28 @@ Windows 10.45 μs、Linux 4.52 μs。相同的 C 回调分别为 3.53 μs、2.03
 C 记录，原生端保存自己的副本。范围无效或内存分配失败时保留原状态。
 
 [编辑器折叠范例](../lib/bindings/xui/examples/code_editor_folding.xl)
+
+## 语言注册表与语法高亮
+
+`editor.languageRegistry()` 返回当前编辑器的语言注册表。调用
+`registerRegex()` 可注册语言 ID、扩展名、注释语法和高亮规则，再用
+`editor.setLanguage(id)` 启用。扩展名可以带前导点，ID 和扩展名查找
+不区分大小写。规则在同一位置命中时使用数组中靠前的规则。替换当前语言的
+定义会刷新高亮缓存。
+
+扩展名和规则分别使用数组。各数组组的数量参数为 `-1` 时使用全部元素，
+且同组各列长度必须相等。非负数量选择同组各列的可用前缀。规则按原生正则
+词法器的合同在词法分析时编译，正则语法错误会从该调用返回。
+
+`get()`、`find()` 和 `findByExtension()` 返回定义的元数据。可按索引
+用 `getExtension()` 和 `getRegexRule()` 获取具体值。返回的字符串是独立副本，
+可在规则替换后继续使用。xlang 在注册时投影两组临时 C 记录，原生注册表
+复制字符串并保留自己的定义。注册失败会保留原定义。
+
+`createCodeLanguageRegistry()` 创建空的独立注册表，可通过 `loadDefaults()`
+装入内建 C 定义。关闭编辑器注册表的视图只解绑观察者，定义继续生效。
+跨线程使用与关闭编辑器后访问视图会报 checked 错误。原生词法与折叠回调仍由
+C 调用者管理。
+
+[高亮范例](../lib/bindings/xui/examples/code_editor_language.xl) ·
+[验收记录](../dev/release-materials/provenance/xui-codeedit-language-registry-20261120.json)

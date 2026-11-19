@@ -1,0 +1,96 @@
+import xui
+
+extern "fixtureDiagnosticBudget" @header("test/cases/foreign_xui_codeedit_diagnostics_heap.h") @no_raise func budget(c_int allowance)
+
+func checkIndependent()
+ auto languages=xui.createCodeLanguageRegistry()
+ assert languages.getCount()==0
+ languages.loadDefaults()
+ auto id,name,line,blockStart,blockEnd,kind,extensions,rules=languages.findByExtension(".H")
+ assert id=="c" and name=="C" and (line as string)=="//"
+ assert (blockStart as string)=="/*" and (blockEnd as string)=="*/"
+ assert kind==xui.XUI_CODE_LEXER_BUILTIN_C and extensions==2 and rules==0
+ assert languages.getExtension(0,1)=="h"
+ languages.clear()
+ assert languages.getCount()==0 and name=="C"
+ languages.close()
+end
+
+func checkEditor(xui.CodeEdit editor)
+ auto languages=editor.languageRegistry()
+ array<string> extensions=[".note","nt"]
+ array<string?> names=["heading",null]
+ array<string> patterns=["#[^\n]+","[0-9]+"]
+ array<c_int> kinds=[xui.XUI_CODE_TOKEN_KEYWORD,xui.XUI_CODE_TOKEN_NUMBER]
+ array<c_int> styles=[xui.XUI_CODE_STYLE_KEYWORD,xui.XUI_CODE_STYLE_NUMBER]
+ array<c_uint> flags=[c_uint(0),c_uint(0)]
+ languages.registerRegex("notes","Notes",extensions,-1,names,patterns,kinds,styles,flags,-1,"//")
+ assert editor.setLanguage("NOTES")==xui.XUI_OK and languages.getCount()==2
+ auto id,name,line,blockStart,blockEnd,kind,extensionCount,ruleCount=languages.get(1)
+ assert id=="notes" and name=="Notes" and (line as string)=="//" and blockStart==null and blockEnd==null
+ assert kind==xui.XUI_CODE_LEXER_REGEX and extensionCount==2 and ruleCount==2
+ assert languages.getExtension(1,0)=="note"
+ auto ruleName,pattern,tokenKind,style,flag=languages.getRegexRule(1,1)
+ assert ruleName==null and pattern=="[0-9]+" and tokenKind==xui.XUI_CODE_TOKEN_NUMBER
+ assert style==xui.XUI_CODE_STYLE_NUMBER and flag==0
+
+ bool rejected=false
+ try
+  languages.registerRegex("notes","Broken",extensions,-1,names,["short"],kinds,styles,flags)
+ catch Error
+  rejected=true
+ end
+ assert rejected
+ rejected=false
+ budget(0)
+ try
+  languages.registerRegex("notes","Failed",extensions,-1,names,patterns,kinds,styles,flags)
+ catch Error
+  rejected=true
+ finally
+  budget(-1)
+ end
+ assert rejected
+ auto _,unchanged,_,_,_,_,_,_=languages.find("NOTES")
+ assert unchanged=="Notes"
+ languages.registerRegex("NOTES","Replaced",extensions,-1,names,patterns,kinds,styles,flags)
+ auto _,replacement,_,_,_,_,_,_=languages.findByExtension("NT")
+ assert replacement=="Replaced" and name=="Notes" and languages.getCount()==2
+
+ languages.close()
+ auto live=editor.languageRegistry()
+ assert live.getCount()==2
+ auto worker=thread(func() as int
+  try
+   live.clear()
+   return 1
+  catch Error
+   return 0
+  end
+ end)
+ assert worker.waitTimeout(30000) and worker.exitCode()==0
+ editor.close()
+ bool expired=false
+ try
+  live.getCount()
+ catch StateError
+  expired=true
+ end
+ assert expired
+end
+
+func main(...) as int
+ checkIndependent()
+ auto proxy=xui.createProxy()
+ auto ui=xui.create(proxy,xui.XUI_SYSTEM_FONT_DISABLED)
+ auto editor=ui.codeEditNative()
+ assert ui.setRootWidget(editor)==xui.XUI_OK
+ try
+  checkEditor(editor)
+ finally
+  ui.close()
+  proxy.close()
+ end
+ println("XUI_CODEEDIT_LANGUAGE_REGISTRY_OK")
+ return 0
+end

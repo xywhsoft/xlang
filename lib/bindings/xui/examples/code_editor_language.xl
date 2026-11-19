@@ -1,0 +1,15 @@
+import xui
+from "./_window.xl" import Window
+
+Window.show("Custom syntax highlighting",func(xui.Context ui,xui.Widget root)
+ auto editor=ui.codeEditNative()
+ Window.place(root,editor,24,24,560,180)
+
+ // Each rule has a name, pattern, token kind, style and flags.
+ auto languages=editor.languageRegistry()
+ languages.registerRegex("notes","Notes",["note"],-1,["heading"],["#[^\n]+"],
+  [xui.XUI_CODE_TOKEN_KEYWORD],[xui.XUI_CODE_STYLE_KEYWORD],[c_uint(0)])
+ assert editor.setLanguage("notes")==xui.XUI_OK
+ assert editor.setText("# Release notes\nWrite a short summary here.\n")==xui.XUI_OK
+ println("The heading uses the keyword style.")
+end)
