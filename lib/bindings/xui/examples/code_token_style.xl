@@ -1,0 +1,17 @@
+// Override the foreground of numeric tokens without changing the lexer.
+import xui
+from "./_window.xl" import Window
+
+Window.show("CodeEdit token style",func(xui.Context ui,xui.Widget root)
+ auto editor=ui.codeEditNative()
+ Window.place(root,editor,24,24,560,160)
+ assert editor.setLanguage("c")==xui.XUI_OK
+ assert editor.setText("int score = 42;\nint level = 3;\n")==xui.XUI_OK
+
+ editor.setTokenStyleResolver(func(xui.CallbackCodeDocument document,xui.CallbackConstCodeToken token,xui.CallbackInt style) as c_int
+  if token.kind!=xui.XUI_CODE_TOKEN_NUMBER then return xui.XUI_ERROR_NOT_FOUND end
+  style.value=xui.XUI_CODE_STYLE_KEYWORD
+  return xui.XUI_OK
+ end)
+ println("Numeric tokens use the keyword foreground.")
+end)

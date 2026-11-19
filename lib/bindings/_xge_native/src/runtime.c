@@ -67,7 +67,7 @@ static bool request_context(void* raw)
 static bool destroy_widget(void* raw)
 {int status=xuiWidgetDestroyChecked(raw);report_resource_failure(status,"xuiWidgetDestroyChecked");return status==XUI_OK;}
 static bool context_begin(void* raw,void* storage)
-{int status=xuiCallScopeBegin(raw,storage);if(status!=XUI_OK)report_resource_failure(status,"xuiCallScopeBegin");return status==XUI_OK;}
+{int status=xuiCallScopeBeginManaged(raw,storage);if(status!=XUI_OK)report_resource_failure(status,"xuiCallScopeBegin");return status==XUI_OK;}
 static bool context_end(void* storage)
 {int status=xuiCallScopeEnd(storage);if(status!=XUI_OK)report_resource_failure(status,"xuiCallScopeEnd");return status==XUI_OK;}
 static bool context_busy(const void* raw){return xuiContextOwnershipBusy((xui_context)raw);}

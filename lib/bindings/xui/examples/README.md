@@ -255,6 +255,9 @@ window loop. System fonts are demonstrated in the xge package's `examples/system
 `Cached tokens: 1` 和 `Version and byte range: 1 0 4`。不创建窗口或文档；
 缓存复制输入记录，`finally` 释放独立模型。它不演示尚未公开的批量 token 读取。
 
+[code_token_style.xl](code_token_style.xl) 打开 CodeEdit，为可见数字 token 使用关键字的
+前景颜色。可在窗口里编辑数字，观察对应范围的颜色变化。
+
 `code_annotations.xl` 不创建窗口，先标记两处 `todo`，再用平行列发布一条诊断。
 预期输出 `Marked matches: 2` 和 `W001 : Complete this task ; source: lesson`。
 随后用 `getDiagnostic(0)` 读回范围、级别、编号、说明、来源和用户 ID，断言数值、

@@ -840,6 +840,34 @@ end
 """.strip(),
 })
 
+METHODS.update({
+    'xuiCodeEditSetTokenStyleResolverOwned': [
+        'int xuiCodeEditSetTokenStyleResolverOwned(xui_widget pWidget, xui_code_token_style_proc onStyle, void* pUser, const xui_callback_owner_t* pOwner)',
+        'CodeEdit', ['extern "xuiCodeEditSetTokenStyleResolverOwned" @no_raise @c_owned_callback(0,0,"xui_callback_owner_t",-16) @c_result("status",0) func setTokenStyleResolver(CodeTokenStyleResolver? resolver)'],
+    ],
+    'xuiCodeEditHasTokenStyleResolver': [
+        'bool xuiCodeEditHasTokenStyleResolver(xui_widget pWidget)', 'CodeEdit', ['extern "xuiCodeEditHasTokenStyleResolver" @no_raise func hasTokenStyleResolver() as bool'],
+    ],
+})
+CALLBACKS['xui_code_token_style_proc'] = (
+    'typedef int (*xui_code_token_style_proc)(xui_code_document_t* pDocument, const xui_code_token_t* pToken, int* pStyleId, void* pUser);',
+    'export typedef CodeTokenStyleResolver = func(CallbackCodeDocument,CallbackConstCodeToken,CallbackInt) as c_int',
+)
+VIEWS['CallbackConstCodeToken'] = """
+export extern "const xui_code_token_t*" class CallbackConstCodeToken @header("xge3_runtime.h") @lifetime("callback")
+ native point handle
+ extern "iStartOffset" @c_field get startOffset() as c_int
+ extern "iEndOffset" @c_field get endOffset() as c_int
+ extern "iStyle" @c_field get style() as c_int
+ extern "iKind" @c_field get kind() as c_int
+ extern "iFlags" @c_field get flags() as c_int
+end
+""".strip()
+TYPE_SHAPES.update({
+    'xui_code_token_t': 'bb082d4f8e837b8716830ea41689d774bdc090cc6d76512774a52f4cfa3bedbe',
+    'xui_code_token_style_proc': 'ee01ae5abf574ec1b8beeec018dbdafeeed6c6cecff259d62df254ee1f243511',
+})
+
 # Typed style rules and scoped snapshots of nested property records.
 METHODS.update({
     'xuiStyleSetNamed': ['int xuiStyleSetNamed(xui_context pContext, const xui_style_desc_t* pStyle)', 'Context',
@@ -952,6 +980,7 @@ REPLACED = {
     'xuiEditGetText': ('xui.Widget.editGetText','xuiEditGetTextView'),
     'xuiCodeEditGetText': ('xui.CodeEdit.getText','xuiCodeEditGetTextView'),
     'xuiCodeEditSetDiagnosticHover': ('xui.CodeEdit.setDiagnosticHover','xuiCodeEditSetDiagnosticHoverOwned'),
+    'xuiCodeEditSetTokenStyleResolver': ('xui.CodeEdit.setTokenStyleResolver','xuiCodeEditSetTokenStyleResolverOwned'),
 }
 
 

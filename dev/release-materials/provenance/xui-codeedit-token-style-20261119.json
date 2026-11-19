@@ -1,0 +1,209 @@
+{
+  "complete": true,
+  "passed": true,
+  "releaseInstalled": false,
+  "sourceParent": "0b6b8673a447e108d3f9d92e274cbfa5140bcd46",
+  "nativeCommit": "46b473f810ea2ff97e7cc93d969378ccaca1a9ed",
+  "frozenXrt": "804cc769de3030118c2b46ef7af69543d1b82d9d",
+  "sourceHashesLf": {
+    "lib/bindings/_xge_native/src/runtime.c": "030141483def64fb1b813fce2f60d90f3e07a66f9e9be1fa2ce8faee6fefce2f",
+    "lib/bindings/xui/src/managed.xl": "853453ef33f9a89df7b677dbe630d12e3378a26d2bab09965aec075158a2a15e",
+    "lib/bindings/xui/examples/code_token_style.xl": "f987d726eae40fac60e6ff93177bcb0319c6b1206d17b4591fccdc12dc83c8e4",
+    "lib/bindings/xui/examples/README.md": "f3fed7acaa9bfd727042e7f6e081bb975f3a1a2271837c372fcd1549a1ea1946",
+    "tools/xui_managed_contracts.py": "f69e0cd768de973a7a6d1638c094e4f02b146df2d863694557e184bc69573d30",
+    "docs/xge3-xui3-api-map-storage.json": "75f7c398d62474ff395ba365f1d6145d9ce0a9015e6fc724aca4905f29a95e11",
+    "test/cases/foreign_xui_codeedit_token_style.xl": "bf4dc5b082884373aebd8da75f9bc95af29059cf151ca6e533da1afa60076048",
+    "docs/xui-code-tokens.md": "3697f501cc668e18a531b3ceee27fbc4443271d0bd1f940f0b10893635dadbd4"
+  },
+  "nativeHashesLf": {
+    "include/xui.h": "6fa48dd376c17d4dab8b8bc2311f75c3597b0e368328333acf01c70c565a0b56",
+    "src/xui/code/xui_code_edit.c": "a53465ff54e578b0f9ea9283ff3b50cf9509bb364929b419f46b3d8065244c61",
+    "src/xui/core/xui_internal.h": "6e6d15202b7bfb3a2d925b667f9ef5076988b7d0d1621e5e1c03efda6eb66c5a",
+    "src/xui/core/xui_core.c": "556154121e6ab066f77bc15e30222f8f5b47167f563dcc0586761051e204ac7d",
+    "src/xui/core/xui_widget.c": "37c392d2458962c58bf69028f92318283213851fbdf75bd1d28ac6abe4b92b25",
+    "tests/xui/xui_token_style_resolver_test.c": "9b6e513c08ee932d1842b096824f6da6155a3c417f6559c71142abb63b9602ce"
+  },
+  "validation": {
+    "native": [
+      "lexical and CSS fallback on undefined, transparent and declined style",
+      "document byte offsets on later lines and full token range in clipped wrapped rows",
+      "retained shape, long-line chunk and ordinary span output",
+      "no lexical cache changes and no additional shaping",
+      "ownership trace, OOM rollback, legacy raw setter and widget retirement",
+      "one native hold and drop per cache render",
+      "one managed callback admission per token invocation, Busy for reentry during resolver and owner hooks",
+      "legacy CodeEdit regression"
+    ],
+    "language": [
+      "scoped document, const token and writable scalar views",
+      "failed read or write after callback epoch",
+      "checked Busy for captured editor mutation and recursive rendering",
+      "original exception and successful rendering after unregister",
+      "direct C ABI emission, imports, JIT and both standalone AOT linkages",
+      "example and prior managed diagnostic hover regression"
+    ],
+    "measurement": "Alternating native-owned C and xlang resolver in a single static AOT image with the same CPU drawing proxy, source, renderer, token count and output. Seven samples per mode, 60 invalidated renders per sample, 7200 callbacks per sample. Time includes the common native render and callback dispatch, normalized by calls. Registration, creation and warmup are outside timing.",
+    "networkTests": false
+  },
+  "evidence": {
+    "win": {
+      "sdk": {
+        "path": "F:\\xlang-validation\\xge-full-20261110\\codeedit-token-style-sdk-win-r3\\results.json",
+        "sha256": "b8c9eab80a1df547251390b706e24a1bc3c4e35c53aa81ce29d88fab84ee8aa3",
+        "checks": 2
+      },
+      "packages": {
+        "path": "F:\\xlang-validation\\xge-full-20261110\\codeedit-token-style-packages-win-r4\\results.json",
+        "sha256": "e27f1f7a8897459ffcefb4ebefe60c7704332b36eaf336695f4cd44acae6859a",
+        "checks": 6
+      },
+      "native": {
+        "path": "F:\\xlang-validation\\xge-full-20261110\\codeedit-token-style-native-tests-win-r4\\results.json",
+        "sha256": "5e1e61a04ff9c9d514002ab96924a51b25870482141ec2e33b5273e853979aeb",
+        "checks": 8,
+        "fixtureWithHostResolverSha256": "1436aef611b60da0e7a76d42c704a8e3deaecc1bd0fc1eea3329bc4724c467a0"
+      },
+      "language": {
+        "path": "F:\\xlang-validation\\xge-full-20261110\\codeedit-token-style-xlang-win-r4\\results.json",
+        "sha256": "3994965c049a21f59d3df0c3e8c35c010ba0e8012cf349f9a7a3cb44aab12acf",
+        "checks": 12,
+        "programs": {
+          "dynamic.exe": {
+            "sha256": "d4813ed932b9bf3c85b72da2f8040c753e937fcf2420f49ab57cc5dddac64e98",
+            "imports": [
+              "xge3_host.dll",
+              "msvcrt.dll",
+              "kernel32.dll",
+              "SHELL32.dll",
+              "Ole32.dll",
+              "ucrtbase.dll"
+            ]
+          },
+          "static.exe": {
+            "sha256": "09c28323f80c7ce9a412632be14924b480eb230f478f481038c142b83a748e88",
+            "imports": [
+              "msvcrt.dll",
+              "kernel32.dll",
+              "USER32.dll",
+              "GDI32.dll",
+              "ole32.dll",
+              "OLEAUT32.dll",
+              "SHELL32.dll",
+              "IMM32.dll",
+              "DWrite.dll"
+            ]
+          },
+          "lesson.exe": {
+            "sha256": "b6067a34ff5712cf59eed969a39b7fa9d6342946ab5a842963b754a2970248b5",
+            "imports": [
+              "msvcrt.dll",
+              "kernel32.dll",
+              "USER32.dll",
+              "GDI32.dll",
+              "ole32.dll",
+              "OLEAUT32.dll",
+              "SHELL32.dll",
+              "IMM32.dll",
+              "DWrite.dll"
+            ]
+          }
+        }
+      },
+      "measurement": {
+        "path": "F:\\xlang-validation\\xge-full-20261110\\codeedit-token-style-measure-win-r2\\results.json",
+        "sha256": "b68d4fbff0cd16af8bed912103fcea2c1f35e834b07ce2124626c0f3d345638d",
+        "checks": 3,
+        "nativeMedianNanosecondsPerToken": 912.9027764888889,
+        "managedMedianNanosecondsPerToken": 5807.833335388888,
+        "framesPerSample": 60,
+        "callsPerSample": 7200,
+        "allocationsPerSample": 180,
+        "deallocationsPerSample": 180,
+        "reallocationsPerSample": 0
+      },
+      "hoverRegression": {
+        "path": "F:\\xlang-validation\\xge-full-20261110\\codeedit-token-style-hover-regression-win-r1\\results.json",
+        "sha256": "d48abc6f5871f1d6bac79ccc14824846632798d49675d889e6e07a23f006408b",
+        "checks": 2
+      }
+    },
+    "linux": {
+      "sdk": {
+        "path": "\\\\wsl.localhost\\Ubuntu\\var\\tmp\\xlang-validation\\xge-full-20261110\\codeedit-token-style-sdk-linux-r3\\results.json",
+        "sha256": "d5d9e567e460f8d97eac15974172e7a993cb00a0e48c9955ec2c75f78140ef60",
+        "checks": 2
+      },
+      "packages": {
+        "path": "\\\\wsl.localhost\\Ubuntu\\var\\tmp\\xlang-validation\\xge-full-20261110\\codeedit-token-style-packages-linux-r4\\results.json",
+        "sha256": "70d9d1eab89f9ea2b7255ef7b8c1501de8b4ef0ec451f30e73785092be819b14",
+        "checks": 6
+      },
+      "native": {
+        "path": "\\\\wsl.localhost\\Ubuntu\\var\\tmp\\xlang-validation\\xge-full-20261110\\codeedit-token-style-native-tests-linux-r4\\results.json",
+        "sha256": "e93448afbd36032d3c7f85ff62cf6e68803cd8d4ca1edb1e1e2a8a48135a9902",
+        "checks": 8,
+        "fixtureWithHostResolverSha256": "1436aef611b60da0e7a76d42c704a8e3deaecc1bd0fc1eea3329bc4724c467a0"
+      },
+      "language": {
+        "path": "\\\\wsl.localhost\\Ubuntu\\var\\tmp\\xlang-validation\\xge-full-20261110\\codeedit-token-style-xlang-linux-r4\\results.json",
+        "sha256": "775d838a46adb14d24881f54e1102f45b7071384157bbfe4bcabdbc9aa5ebed1",
+        "checks": 12,
+        "programs": {
+          "dynamic": {
+            "sha256": "ea91f5e8cb0d987b1883dd50a83f42789d5dece8f4d464a73d0570d3a4ec2d73",
+            "imports": [
+              "libm.so.6",
+              "libmvec.so.1",
+              "libxge3_host.so",
+              "libc.so.6",
+              "ld-linux-x86-64.so.2"
+            ]
+          },
+          "static": {
+            "sha256": "69336e221c60f3a1874db99699e9678316fb75999e931c79811403b67bc45a3c",
+            "imports": [
+              "libm.so.6",
+              "libmvec.so.1",
+              "libX11.so.6",
+              "libXi.so.6",
+              "libXcursor.so.1",
+              "libGL.so.1",
+              "libc.so.6",
+              "ld-linux-x86-64.so.2"
+            ]
+          },
+          "lesson": {
+            "sha256": "bae1883b7fb4d66b2efb8331bb4c2dd51cda41b7a5585792f04e4deaa315571a",
+            "imports": [
+              "libm.so.6",
+              "libmvec.so.1",
+              "libX11.so.6",
+              "libXi.so.6",
+              "libXcursor.so.1",
+              "libGL.so.1",
+              "libc.so.6",
+              "ld-linux-x86-64.so.2"
+            ]
+          }
+        }
+      },
+      "measurement": {
+        "path": "\\\\wsl.localhost\\Ubuntu\\var\\tmp\\xlang-validation\\xge-full-20261110\\codeedit-token-style-measure-linux-r2\\results.json",
+        "sha256": "8a74885289327aae78e2f86203413eceec7f0dcc0a4fb7d9d983fc98802c007f",
+        "checks": 3,
+        "nativeMedianNanosecondsPerToken": 907.4166666694443,
+        "managedMedianNanosecondsPerToken": 2337.0138888888887,
+        "framesPerSample": 60,
+        "callsPerSample": 7200,
+        "allocationsPerSample": 180,
+        "deallocationsPerSample": 180,
+        "reallocationsPerSample": 0
+      },
+      "hoverRegression": {
+        "path": "\\\\wsl.localhost\\Ubuntu\\var\\tmp\\xlang-validation\\xge-full-20261110\\codeedit-token-style-hover-regression-linux-r1\\results.json",
+        "sha256": "cc1ae5cbc4793d9b7ff882b5c971717fc34716f527e1c4c4557fdff53f33b9a0",
+        "checks": 2
+      }
+    }
+  }
+}

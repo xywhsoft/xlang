@@ -1,0 +1,112 @@
+import xge
+import xui
+from xui import CallbackCodeDocument,CallbackConstCodeToken,CallbackInt
+
+func exercise(xui.Context context,xui.CodeEdit editor,xui.Surface target)
+ assert editor.setLanguage("c")==xui.XUI_OK
+ string source="int alpha = 42;\nconst char* s=\"x\";\n"
+ assert editor.setText(source)==xui.XUI_OK
+ c_int alternate=xui.XUI_CODE_STYLE_KEYWORD
+ assert not editor.hasTokenStyleResolver()
+
+ CallbackCodeDocument? savedDocument=null
+ CallbackConstCodeToken? savedToken=null
+ CallbackInt? savedChoice=null
+ int matched=0
+ int late=0
+ int blocked=0
+ int calls=0
+ editor.setTokenStyleResolver(func(CallbackCodeDocument document,CallbackConstCodeToken token,CallbackInt choice) as c_int
+  calls+=1
+  if token.startOffset==28 and token.endOffset==29 then late+=1 end
+  if token.kind!=xui.XUI_CODE_TOKEN_NUMBER then return xui.XUI_ERROR_NOT_FOUND end
+  assert token.startOffset==12 and token.endOffset==14
+  assert document.getText()==source
+  savedDocument=document
+  savedToken=token
+  savedChoice=choice
+  try
+   editor.setText("mutation while resolving")
+  catch Error failure
+   if failure.code==xui.XUI_ERROR_BUSY then blocked+=1 end
+  end
+  try
+   context.render(target)
+  catch Error failure
+   if failure.code==xui.XUI_ERROR_BUSY then blocked+=1 end
+  end
+  choice.value=alternate
+  assert choice.value==alternate
+  matched+=1
+  return xui.XUI_OK
+ end)
+ assert editor.hasTokenStyleResolver()
+ context.render(target)
+ assert matched==1 and late==1 and blocked==2 and calls>1
+ assert (editor.getText() ?? "")==source
+
+ int expired=0
+ try
+  auto text=(savedDocument as CallbackCodeDocument).getText()
+ catch StateError
+  expired+=1
+ end
+ try
+  auto kind=(savedToken as CallbackConstCodeToken).kind
+ catch StateError
+  expired+=1
+ end
+ try
+  (savedChoice as CallbackInt).value=0
+ catch StateError
+  expired+=1
+ end
+ assert expired==3
+
+ editor.setTokenStyleResolver(func(CallbackCodeDocument document,CallbackConstCodeToken token,CallbackInt choice) as c_int
+  throw RuntimeError "token style failure"
+ end)
+ bool caught=false
+ try
+  context.render(target)
+ catch RuntimeError failure
+  caught=failure.message=="token style failure"
+ end
+ assert caught
+ editor.setTokenStyleResolver(null)
+ assert not editor.hasTokenStyleResolver()
+ context.render(target)
+ assert (editor.getText() ?? "")==source
+end
+
+func main(...) as int
+ auto fontPath=env.get("XUI_EXAMPLE_FONT")
+ assert fontPath!=null
+ xge.init(320,180,"CodeEdit token style qualification",c_int(xge.XGE_INIT_OFFSCREEN))
+ xge.run(func() as c_int
+  assert xge.begin()==0
+  auto proxy=xui.createProxy()
+  auto context=xui.create(proxy,xui.XUI_SYSTEM_FONT_DISABLED)
+  auto font=proxy.loadFont(fontPath as string,c_float(16),c_uint(xui.XUI_FONT_FORMAT_TTF))
+  context.setDefaultFont(font)
+  auto editor=context.codeEditNative()
+  xui.Rect bounds
+  bounds.fW=320
+  bounds.fH=180
+  assert editor.setRect(bounds)==xui.XUI_OK and context.setRootWidget(editor)==xui.XUI_OK
+  context.setViewportSize(320,180)
+  auto target=proxy.createSurfaceRGBA(320,180,flags=c_uint(xui.XUI_SURFACE_USAGE_TARGET))
+  assert context.update(c_float(0.016))==0
+  exercise(context,editor,target)
+  context.close()
+  target.close()
+  font.close()
+  proxy.close()
+  assert xge.nativeEnd()==0
+  return c_int(1)
+ end)
+ xge.setFrameCallback(null)
+ xge.unit()
+ println("XUI_CODEEDIT_TOKEN_STYLE_OK")
+ return 0
+end
