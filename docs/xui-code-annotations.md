@@ -15,12 +15,9 @@ close deferral and expired receiver/callable rejection. Close in `finally`.
 | `clearSearchIndicators` | `xuiCodeSearchClearResultIndicators` |
 | `CodeDocument.markAllPlain` / `markAllRegex` | `xuiCodeSearchMarkAllPlain` / `MarkAllRegex` |
 
-Factory/destruction map to StoreCreate/StoreDestroy. There are 16 distinct visible
-native declarations, plus native destruction through the lifetime policy: 14/19
-annotation-family functions and all three mark-all search-indicator helpers.
-Five annotation output functions remain pending typed bulk outputs and borrowed
-string fields in output records. CodeEdit's internal store is not exposed as an
-independent owner. Declaration inventory is not full runtime certification.
+Factory and destruction map to StoreCreate and StoreDestroy. CodeEdit exposes
+its internal store through an observed view. The owned capture methods below
+provide the bulk queries to xlang.
 
 `setMarker(line,id,flags,text,userData=0)` passes checked C text; an overload
 `setMarker(line,id,flags=0,userData=0)` injects an exact typed NULL for tooltip.
@@ -85,12 +82,47 @@ compiler/package startup is outside the interval.
 Exact compiler/SDK/case/header/import checks, native regressions, work counters
 and unused-declaration size comparison are pinned in
 `dev/release-materials/provenance/xui-code-annotations-20261114.json`. This is an
-incremental batch; remaining output/alias contracts, module/global callback
-cycles and final matched runtime/IDE/help installation remain in the full goal.
+incremental batch; module/global callback cycles and final matched
+runtime/IDE/help installation remain in the full goal.
 
-Both platforms pass 60 combined native/language/lesson build, execution,
-C11/C++11/C++17 header and import checks, plus 16 unused-interface reachability
-comparison steps. The control removes only the new annotation module and its
-two coupled Document mark declarations. File, text and BSS deltas are zero on
-Windows and Linux. Two small x64 layout proofs establish the 48-byte native
-row size. Native repair/regression and legacy controls are separate receipts.
+The original standalone-store batch passed 60 combined native/language/lesson
+build, execution, C11/C++11/C++17 header and import checks, plus 16
+unused-interface reachability checks. Removing the unused annotation module
+and its two coupled Document mark declarations left file, text and BSS sizes
+unchanged on Windows and Linux. Two x64 layout proofs established the 48-byte
+native row size.
+
+## Live editor annotations and captures
+
+`editor.annotations()` opens a checked view of the actual annotation store.
+Closing that view leaves annotations in the editor. Closing the editor expires
+all its store views. Editing moves live ranges and markers according to the
+native edit rules. For diagnostics computed asynchronously, use the editor's
+versioned `applyDiagnostics()` method to reject stale results.
+
+`editor.markAllPlain()` and `editor.markAllRegex()` publish matches in that
+editor's own document and annotation store. The search loop invalidates paint
+once when it adds or clears indicators, including partial changes on failure.
+The independent Document and store APIs remain available for other workloads.
+
+Both store types can capture markers on a line, indicators at a byte offset,
+and diagnostics at an offset or overlapping a half-open byte range. The
+capture has a fixed count and supports indexed access. Diagnostic entries
+report the index in the original set at capture time. Captures survive mutation
+and closing the editor or store. Close a capture when finished.
+
+A native capture allocates one block for the selected records. Marker tooltips
+are copied into that block. Diagnostic text is retained through the original
+immutable text allocation, which may contain strings for other diagnostics in
+the same set. The xlang owner has its own checked lifetime, and reading a
+text field copies it to an independent string while preserving NULL and empty
+text. The original C APIs can fill caller-provided records with no allocation
+by borrowing text.
+On Windows and Linux, 1,000 warm repetitions of capturing one marker, reading
+the count and item, and releasing the capture recorded 1,000 XRT allocations
+in C and 6,000 through xlang. Frees matched allocations and neither path
+reallocated. The xlang path returns independent text and includes managed
+lifetime and result handling.
+
+[Editor example](../lib/bindings/xui/examples/code_editor_annotations.xl) ·
+[Validation](../dev/release-materials/provenance/xui-codeedit-live-annotations-20261120.json)

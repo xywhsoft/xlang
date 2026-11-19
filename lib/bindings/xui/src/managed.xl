@@ -2580,6 +2580,9 @@ export extern "xui_widget_t*" class CodeEdit @header("xge3_runtime.h") @lifetime
  extern "xuiCodeEditGetCommandMap" @no_raise @c_result("owner_view",0) func commandMap() as CodeEditCommandMap
  extern "xuiCodeEditGetFoldState" @no_raise @c_result("owner_view",0) func foldState() as CodeEditFoldState
  extern "xuiCodeEditGetLanguageRegistry" @no_raise @c_result("owner_view",0) func languageRegistry() as CodeEditLanguageRegistry
+ extern "xuiCodeEditGetAnnotations" @no_raise @c_result("owner_view",0) func annotations() as CodeEditAnnotations
+ extern "xuiCodeEditMarkAllPlain" @no_raise @c_cstr(0) @c_output(4,0) func markAllPlain(string pattern,c_uint flags=0,c_int indicator=0) as c_int
+ extern "xuiCodeEditMarkAllRegex" @no_raise @c_cstr(0) @c_output(4,0) @c_span(3,"char*","int") func markAllRegex(string pattern,c_uint flags=0,c_int indicator=0,Buffer? error=null) as c_int
 
  extern "xuiCodeEditQueryCommandEnabled" @no_raise @c_outputs(2,3) @c_status(0) func queryCommandEnabled(c_int command) as (bool,bool)
 

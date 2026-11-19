@@ -1,0 +1,109 @@
+import xui
+
+extern "fixtureDiagnosticBudget" @header("test/cases/foreign_xui_codeedit_diagnostics_heap.h") @no_raise func budget(c_int allowance)
+
+func mark(xui.CodeEdit editor,xui.CodeEditAnnotations annotations)
+ annotations.setMarker(0,xui.XUI_CODE_MARKER_BOOKMARK,0,"")
+ annotations.setMarker(0,xui.XUI_CODE_MARKER_BREAKPOINT)
+ annotations.setMarker(1,xui.XUI_CODE_MARKER_BOOKMARK,0,"second")
+ assert editor.markAllPlain("TODO")==2
+ assert editor.markAllRegex("T[O]DO")==2
+end
+
+func exercise(xui.CodeEdit editor)
+ assert editor.setText("TODO one\nTODO two\n")==xui.XUI_OK
+ auto annotations=editor.annotations()
+ mark(editor,annotations)
+ auto markers=annotations.captureMarkers(0)
+ assert markers.getCount()==2
+ auto line,id,flags,tip,userData=markers.getMarker(0)
+ assert line==0 and id==xui.XUI_CODE_MARKER_BOOKMARK and (tip as string)==""
+ auto _,_,_,absent,_=markers.getMarker(1)
+ assert absent==null
+ auto indicators=annotations.captureIndicatorsAt(1)
+ assert indicators.getCount()==1
+ auto item=indicators.getIndicator(0)
+ assert item.tRange.iStart==0 and item.tRange.iEnd==4
+
+ auto late=xui.CodeRange()
+ late.iStart=9
+ late.iEnd=13
+ auto early=xui.CodeRange()
+ early.iEnd=4
+ array<string?> labels=[null,""]
+ array<string?> messages=["late","early"]
+ annotations.setDiagnosticsColumns([late,early],[xui.XUI_CODE_DIAGNOSTIC_ERROR,xui.XUI_CODE_DIAGNOSTIC_WARNING],
+     labels,messages,labels,[c_uintptr(3),c_uintptr(5)])
+ assert editor.diagnosticCount()==2
+ auto diagnostic=annotations.captureDiagnosticsAt(0)
+ auto all=annotations.captureDiagnosticsInRange(0,13)
+ assert diagnostic.getCount()==1 and all.getCount()==2
+ auto index,range,severity,code,message,source,tag=all.getDiagnostic(0)
+ assert index==1 and range.iStart==0 and range.iEnd==4 and severity==xui.XUI_CODE_DIAGNOSTIC_WARNING
+ assert (code as string)=="" and (message as string)=="early" and (source as string)=="" and tag==5
+
+ bool failed=false
+ budget(0)
+ try
+  annotations.captureMarkers(0)
+ catch Error
+  failed=true
+ finally
+  budget(-1)
+ end
+ assert failed and markers.getCount()==2
+ editor.document().insert(0,"prefix\n")
+ auto moved=annotations.captureMarkers(2)
+ auto movedLine,_,_,movedTip,_=moved.getMarker(0)
+ assert movedLine==2 and (movedTip as string)=="second"
+ moved.close()
+ annotations.close()
+ auto live=editor.annotations()
+ assert live.getDiagnosticCount()==2
+ auto worker=thread(func() as int
+  try
+   live.clear()
+   return 1
+  catch Error
+   return 0
+  end
+ end)
+ assert worker.waitTimeout(30000) and worker.exitCode()==0
+ live.clear()
+ editor.close()
+ failed=false
+ try
+  live.captureMarkers(0)
+ catch StateError
+  failed=true
+ end
+ assert failed
+ auto _,_,_,_,saved,_,_=diagnostic.getDiagnostic(0)
+ assert (saved as string)=="early" and indicators.getIndicator(0).tRange.iEnd==4
+ assert all.getCount()==2 and markers.getCount()==2
+ diagnostic.close()
+ all.close()
+ markers.close()
+ indicators.close()
+end
+
+func main(...) as int
+ auto store=xui.createCodeAnnotationStore()
+ auto empty=store.captureMarkers(0)
+ store.close()
+ assert empty.getCount()==0
+ empty.close()
+
+ auto proxy=xui.createProxy()
+ auto ui=xui.create(proxy,xui.XUI_SYSTEM_FONT_DISABLED)
+ auto editor=ui.codeEditNative()
+ assert ui.setRootWidget(editor)==xui.XUI_OK
+ try
+  exercise(editor)
+ finally
+  ui.close()
+  proxy.close()
+ end
+ println("XUI_CODEEDIT_LIVE_ANNOTATIONS_OK")
+ return 0
+end

@@ -1,0 +1,19 @@
+import xui
+from "./_window.xl" import Window
+
+Window.show("CodeEdit annotations",func(xui.Context ui,xui.Widget root)
+ auto editor=ui.codeEditNative()
+ Window.place(root,editor,24,24,560,180)
+ assert editor.setText("TODO add a test\nRun it before release.\n")==xui.XUI_OK
+ assert editor.setDefaultMargins(1,1,0,0)==xui.XUI_OK
+
+ // Mark a zero-based line and highlight each occurrence in this document.
+ auto annotations=editor.annotations()
+ annotations.setMarker(0,xui.XUI_CODE_MARKER_BOOKMARK,0,"Add a test")
+ assert editor.markAllPlain("TODO")==1
+
+ auto markers=annotations.captureMarkers(0)
+ auto line,kind,flags,tooltip,userData=markers.getMarker(0)
+ println("Line",line+1,"bookmark",tooltip as string)
+ markers.close()
+end)
