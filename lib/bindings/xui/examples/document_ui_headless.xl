@@ -1,6 +1,6 @@
 // View and Editor can share one Document without rendering it.
 import xui
-from xui import Document
+from xui import Document, WidgetType
 
 auto proxy = xui.createProxy()
 try
@@ -10,6 +10,10 @@ try
   try
    auto view = xui.createDocumentView(ui, document)
    auto editor = xui.createDocumentEditor(ui, document)
+   // DocumentEditor inherits DocumentView in this Context's type registry.
+   auto viewType = xui.documentViewType(ui) as WidgetType
+   auto editorType = xui.documentEditorType(ui) as WidgetType
+   assert editor.isType(viewType) != 0 and view.isType(editorType) == 0
    editor.setReadOnly(1)
    println(editor.readOnly())
    auto sameDocument = view.document() as Document

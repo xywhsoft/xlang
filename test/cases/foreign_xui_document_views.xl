@@ -1,0 +1,170 @@
+import xui
+from xui import CallbackDrawContext, Context, Document, DocumentImageRequest, Proxy, Resource, Surface, WidgetType
+
+extern "fixtureRenderProxy" @header("test/cases/foreign_xui_render_backend.h") @no_raise @c_result("owned_view") @factory(0,0,dropProxy) func cpuProxy() as Proxy
+extern "fixtureRenderSurface" @no_raise @c_result("owned_view") @factory(1,0,dropSurface) func cpuSurface(Proxy proxy) as xui.Surface
+extern "fixtureRenderBalanced" @no_raise func balanced() as c_int
+extern "fixtureRenderBudget" @no_raise func budget(c_int allowance)
+extern "xuiProxyReleaseChecked" @header("xge3_runtime.h") @no_raise @c_result("status",0) func dropProxy(Proxy value)
+extern "xuiSurfaceReleaseChecked" @header("xge3_runtime.h") @no_raise @c_result("status",0) func dropSurface(xui.Surface value)
+
+// These exported probes exercise typed code generation without starting a
+// browser. The image request exercises the same owner-root admission at runtime.
+export "document_web_provider_has_context" func webProviderHasContext(xui.DocumentWebProvider provider) as bool
+    return provider.context() != null
+end
+
+export "document_html_interaction_has_context" func htmlInteractionHasContext(xui.DocumentHtmlInteraction interaction) as bool
+    return interaction.context() != null
+end
+
+func checkTypes(Proxy proxy,Context context,Document document)
+    bool failed = false
+    budget(0)
+    try
+        failed = xui.documentViewType(context) == null
+    catch Error
+        failed = true
+    finally
+        budget(-1)
+    end
+    assert failed, "cold type registration must report OOM"
+    auto viewType = xui.documentViewType(context) as WidgetType
+    auto editorType = xui.documentEditorType(context) as WidgetType
+    assert viewType.getName() == "document-view" and editorType.getName() == "document-editor"
+    auto view = xui.createDocumentView(context,document)
+    auto editor = xui.createDocumentEditor(context,document)
+    assert view.isType(viewType) != 0 and view.isType(editorType) == 0
+    assert editor.isType(viewType) != 0 and editor.isType(editorType) != 0
+    editor.close()
+    view.close()
+
+    auto other = xui.create(proxy,xui.XUI_SYSTEM_FONT_DISABLED)
+    auto otherType = xui.documentViewType(other) as WidgetType
+    assert otherType.getName() == viewType.getName()
+    other.close()
+    bool stale = false
+    try
+        otherType.getName()
+    catch StateError
+        stale = true
+    end
+    assert stale and viewType.getName() == "document-view"
+end
+
+func waitImage(DocumentImageRequest request) as c_int
+    for i in range(3000)
+        auto status = request.poll()
+        if status != xui.XUI_DOC_ERROR_BUSY then
+            return status
+        end
+        time.sleep(1)
+    end
+    assert false, "image request did not complete"
+    return xui.XUI_DOC_ERROR_BUSY
+end
+
+func checkImageContext(Proxy proxy,Context context)
+    // A local 2 x 3 opaque PNG exercises the real asynchronous decoder.
+    auto png = codec.hexDecode("89504e470d0a1a0a0000000d4948445200000002000000030806000000b9eade810000001149444154789c635098e0f01f841930180095d30b9b5dee02c50000000049454e44ae426082")
+    auto request = xui.loadDocumentImageMemoryAsync(context,"thumbnail",png,maxPixels=6)
+    auto owner = request.context() as Context
+    owner.setViewportSize(240,160)
+    assert context.getViewportSize().iW == 240 and context.getViewportSize().iH == 160
+    assert waitImage(request) == xui.XUI_OK, "decode the local PNG"
+    auto entry = owner.findResource("thumbnail") as Resource
+    auto surface = entry.surface() as Surface
+    request.close()
+    bool stale = false
+    try
+        request.context()
+    catch StateError
+        stale = true
+    end
+    assert stale and entry.name == "thumbnail", "closing the request keeps the published image"
+    auto description = proxy.surfaceDesc(surface)
+    assert description.iWidth == 2 and description.iHeight == 3
+    surface.close()
+    entry.remove()
+    assert context.findResource("thumbnail") == null
+
+    auto cancelled = xui.loadDocumentImageMemoryAsync(context,"cancelled",png,maxPixels=6)
+    cancelled.cancel()
+    assert waitImage(cancelled) == xui.XUI_DOC_ERROR_CANCELLED, "cancel without publishing the image"
+    assert context.findResource("cancelled") == null
+    cancelled.close()
+end
+
+func checkDraw(Proxy proxy,Context context,Document document)
+    auto transaction = document.beginTransaction()
+    uint64 paragraph = transaction.insertNode(uint64(1),xui.XUI_DOCUMENT_APPEND,c_uint(2))
+    uint64 objectId = transaction.insertNode(paragraph,xui.XUI_DOCUMENT_APPEND,c_uint(17),text="x+y")
+    auto changes = transaction.commit()
+    transaction.close()
+    auto snapshot = document.snapshot()
+    auto renderer = xui.createDocumentRenderer(context)
+    renderer.setSnapshot(snapshot,changes)
+    renderer.setObjectMeasure(func(xui.CallbackDocumentRenderer source,xui.CallbackDocumentSnapshot input,uint64 id,c_float width,c_float zoom,xui.CallbackVec2 size,xui.CallbackDocumentFloat baseline) as c_int
+        assert id == objectId
+        size.fX = 40
+        size.fY = 20
+        baseline.value = 15
+        return 0
+    end)
+    int painted = 0
+    xui.CallbackDrawContext? savedDraw = null
+    renderer.setObjectDraw(func(xui.CallbackDocumentRenderer source,xui.CallbackDocumentSnapshot input,uint64 id,xui.CallbackDrawContext draw,xui.Rect area) as c_int
+        assert id == objectId and area.fW == 40 and area.fH == 20
+        proxy.fillRect(draw,area,c_uint(0x278B50FF))
+        savedDraw = draw
+        painted += 1
+        return 0
+    end)
+    renderer.layout(320,0,240)
+    xui.Rect clip
+    clip.fW = 320
+    clip.fH = 240
+    auto surface = cpuSurface(proxy)
+    auto draw = proxy.beginDraw(surface)
+    renderer.draw(draw,0,0,clip)
+    assert painted > 0, "object drawing callback must execute"
+    bool expired = false
+    try
+        proxy.fillRect(savedDraw as CallbackDrawContext,clip,0)
+    catch StateError
+        expired = true
+    end
+    assert expired
+    renderer.setObjectDraw(func(xui.CallbackDocumentRenderer source,xui.CallbackDocumentSnapshot input,uint64 id,xui.CallbackDrawContext target,xui.Rect area) as c_int
+        throw RuntimeError "Document painter failed"
+    end)
+    bool caught = false
+    try
+        renderer.draw(draw,0,0,clip)
+    catch RuntimeError failure
+        caught = failure.message == "Document painter failed"
+    end
+    assert caught, "the failing painter must retain its original error"
+    renderer.setObjectDraw(null)
+    draw.finish()
+    draw.close()
+    surface.close()
+    renderer.close()
+    snapshot.close()
+    changes.close()
+end
+
+func main(...) as int
+    auto proxy = cpuProxy()
+    auto context = xui.create(proxy,xui.XUI_SYSTEM_FONT_DISABLED)
+    auto document = xui.createDocument()
+    checkTypes(proxy,context,document)
+    checkImageContext(proxy,context)
+    checkDraw(proxy,context,document)
+    document.close()
+    context.close()
+    proxy.close()
+    assert balanced() != 0
+    println("XUI_DOCUMENT_VIEWS_OK")
+    return 0
+end

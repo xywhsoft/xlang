@@ -91,9 +91,11 @@
       "native": "xuiDocumentImageResourceGetContext",
       "declaration": "xui_context xuiDocumentImageResourceGetContext(xui_doc_image_request request)",
       "line": 135,
-      "logical": [],
-      "status": "explicit-C",
-      "reason": "Borrowed Context pointer has no independent native owner to upgrade; use the existing constructor Context"
+      "logical": [
+        "DocumentImageRequest.context"
+      ],
+      "status": "declared-not-yet-qualified",
+      "reason": ""
     },
     {
       "native": "xuiDocumentImageResourceLifetimeWatch",
@@ -231,7 +233,7 @@
       "line": 173,
       "logical": [],
       "status": "explicit-C",
-      "reason": "Borrowed Context pointer has no independent native owner to upgrade; use the existing constructor Context"
+      "reason": "Renderer is an independent managed root with a weak native Context link; use the existing constructor Context"
     },
     {
       "native": "xuiDocumentRendererOwnershipBusy",
@@ -546,9 +548,11 @@
       "native": "xuiDocumentWebProviderGetContext",
       "declaration": "xui_context xuiDocumentWebProviderGetContext(xui_doc_web_provider provider)",
       "line": 304,
-      "logical": [],
-      "status": "explicit-C",
-      "reason": "Borrowed Context pointer has no independent native owner to upgrade; use the existing constructor Context"
+      "logical": [
+        "DocumentWebProvider.context"
+      ],
+      "status": "declared-not-yet-qualified",
+      "reason": ""
     },
     {
       "native": "xuiDocumentWebProviderLifetimeWatch",
@@ -700,9 +704,11 @@
       "native": "xuiDocumentHtmlInteractionGetContext",
       "declaration": "xui_context xuiDocumentHtmlInteractionGetContext(xui_doc_html_interaction interaction)",
       "line": 389,
-      "logical": [],
-      "status": "explicit-C",
-      "reason": "Borrowed Context pointer has no independent native owner to upgrade; use the existing constructor Context"
+      "logical": [
+        "DocumentHtmlInteraction.context"
+      ],
+      "status": "declared-not-yet-qualified",
+      "reason": ""
     },
     {
       "native": "xuiDocumentHtmlInteractionLifetimeWatch",
@@ -734,9 +740,11 @@
       "native": "xuiDocumentViewGetType",
       "declaration": "xui_widget_type xuiDocumentViewGetType(xui_context context)",
       "line": 414,
-      "logical": [],
-      "status": "explicit-C",
-      "reason": "Native WidgetType registry identity is not an owned public Widget object"
+      "logical": [
+        "documentViewType"
+      ],
+      "status": "declared-not-yet-qualified",
+      "reason": ""
     },
     {
       "native": "xuiDocumentViewCreate",
@@ -1166,9 +1174,11 @@
       "native": "xuiDocumentEditorGetType",
       "declaration": "xui_widget_type xuiDocumentEditorGetType(xui_context context)",
       "line": 620,
-      "logical": [],
-      "status": "explicit-C",
-      "reason": "Native WidgetType registry identity is not an owned public Widget object"
+      "logical": [
+        "documentEditorType"
+      ],
+      "status": "declared-not-yet-qualified",
+      "reason": ""
     },
     {
       "native": "xuiDocumentEditorCreate",

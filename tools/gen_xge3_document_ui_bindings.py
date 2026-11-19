@@ -45,6 +45,15 @@ classes={n:[] for n in ('DocumentRenderer','DocumentView','DocumentEditor','Docu
 handles={'xui_context':'Context','xui_widget':'Widget','xui_document':'Document','xui_document_snapshot':'DocumentSnapshot','xui_document_change_set':'DocumentChangeSet','xui_document_prepare':'DocumentPrepare','xui_proxy':'Proxy','xui_draw_context':'DrawContext','xui_font':'Font'}
 nullable={'xuiDocumentRendererSetSnapshot':{'changes'},'xuiDocumentRendererSetSourceInput':{'prepare'}}
 intValues={'xuiDocumentEditorCanExecute','xuiDocumentEditorGetReadOnly','xuiDocumentEditorIsComposing'}
+widgetTypes={
+ 'xuiDocumentViewGetType':'documentViewType',
+ 'xuiDocumentEditorGetType':'documentEditorType',
+}
+contextChildren={
+ 'xuiDocumentWebProviderGetContext':'xui_doc_web_provider',
+ 'xuiDocumentHtmlInteractionGetContext':'xui_doc_html_interaction',
+ 'xuiDocumentImageResourceGetContext':'xui_doc_image_request',
+}
 def decl(name,mn,params,attrs=(),returns=None):return ' extern "'+name+'" @no_raise '+(' '.join(attrs)+' ' if attrs else '')+'func '+mn+'('+params+')'+(' as '+returns if returns else '')
 def add(cl,name,mn,params,attrs=(),returns=None):classes[cl].append(decl(name,mn,params,attrs,returns));mapped.setdefault(name,[]).append(cl+'.'+mn);reasons.pop(name,None)
 def status(cl,name,mn,params='',attrs=()):add(cl,name,mn,params,[*attrs,'@c_result("status",0)'])
@@ -54,6 +63,16 @@ def owner(name):
  return None,None
 for f in h['functions']:
  name=f['name'];cl,prefix=owner(name);ps=f['type']['parameters']
+ if name in widgetTypes:
+  assert named(f['type']['returns'])=='xui_widget_type' and [named(p['type']) for p in ps]==['xui_context'], f['declaration']
+  method=widgetTypes[name]
+  globalFunctions.append('export'+decl(name,method,'Context context',['@c_result("owner_view",0)'],'WidgetType?'))
+  mapped[name]=[method]
+  continue
+ if name in contextChildren:
+  assert named(f['type']['returns'])=='xui_context' and [named(p['type']) for p in ps]==[contextChildren[name]], f['declaration']
+  add(cl,name,'context','',['@c_result("owner_view",0)'],'Context?')
+  continue
  if name.startswith('xuiDocumentRangeRects'):
   reasons[name]='Native reference policy for the immutable selection geometry result';continue
  if not cl:reasons[name]='Explicit callback-output helper or legacy void-userdata provider adapter';continue
@@ -200,8 +219,7 @@ for f in h['functions']:
  name=f['name'];reason=reasons.get(name,'');state='declared-not-yet-qualified'
  if name not in mapped:
   state='private-lifetime-infrastructure'
-  if name.endswith('GetContext'):state='explicit-C';reason='Borrowed Context pointer has no independent native owner to upgrade; use the existing constructor Context'
-  elif name.endswith('GetType'):state='explicit-C';reason='Native WidgetType registry identity is not an owned public Widget object'
+  if name=='xuiDocumentRendererGetContext':state='explicit-C';reason='Renderer is an independent managed root with a weak native Context link; use the existing constructor Context'
   elif name=='xuiDocumentFontOutputInit':reason='Fresh native callback storage only; resetting a live output would erase owning Font state'
   elif name.endswith(('SetOpenLink','SetInvalidate')):state='explicit-C';reason='Persistent raw callback/userdata contract; use the typed Owned setter'
   elif name in ('xuiDocumentWebObjectMeasure','xuiDocumentWebObjectDraw'):state='explicit-C';reason='Legacy callback adapter erases provider as void*; typed Renderer Owned callbacks avoid untracked userdata'

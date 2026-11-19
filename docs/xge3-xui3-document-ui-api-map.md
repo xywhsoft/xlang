@@ -20,11 +20,19 @@ stack packing; they are not fake POD records containing language pointers.
 The private renderer policy has no invented native call scope, RC or watch.
 Its real native active-call admission and Resident view pin defer destruction;
 its policy traces the actual Snapshot, Font, Proxy, callback and cache edges.
-Its Context is weak. The three composite child policies watch identity and
-use the parent Context scope; only Context traces their native directory.
+Its Context is weak. Keep the Context passed to its constructor when needed.
+The three composite child policies watch identity and use the parent Context
+scope. Their `context()` method returns the original managed Context through
+that owner relationship. The Context traces their native directory.
 Callback outputs expose actual Native set/get/clear or scoped POD fields,
 never their private owning fields. Saved callback Snapshot values require
 Native `share()`; copying counted callback text creates a normal owned string.
+
+`xui.documentViewType(context)` and `xui.documentEditorType(context)` expose the
+Context's WidgetType registry views. The first call can register the type.
+`DocumentEditor` inherits `DocumentView`. Use `widget.isType(type)` to test
+inheritance. Closing the Context expires either type view.
+See the [headless example](../lib/bindings/xui/examples/document_ui_headless.xl).
 
 Current independent Windows/Linux acceptance uses the frozen R38 successor
 plus 46-frontend nested-pack/NULL overlay, inherited from real full R37.
@@ -90,3 +98,13 @@ Native constructors and Document attachment perform their own allocations
 and retains. Native callback registration retains captures, scoped views
 check their epochs, explicit text reads copy, and Snapshot `share()` adds a
 real native owner. No general zero-overhead performance claim is made.
+
+The current [Document UI regression](../dev/release-materials/provenance/xui-document-view-types-20261120.json)
+covers Windows and Linux JIT, dynamic AOT and static AOT. It checks first type
+registration under allocation failure, type inheritance, and expiry after
+Context close. A local PNG exercises asynchronous decode, publication and
+cancellation. The renderer test dispatches a drawing callback on an owned CPU
+target, checks expiry of the callback draw view and preserves the original
+error. The DocumentEditor example also renders through the actual graphics
+backend. WebProvider and HtmlInteraction Context lookups have compile and
+link evidence. Browser startup and live browser behavior remain separate.

@@ -1,0 +1,159 @@
+{
+  "complete": true,
+  "passed": true,
+  "releaseInstalled": false,
+  "sourceParent": "e146d14fee822150859632345a41857da12b4523",
+  "nativeCommit": "8fb05b6b2d182a4da24be6341a7c12ea86054343",
+  "documentUiHeaderSha256": "afe44776b722ef18c280aeea84a4c1db64f057058cf78f71c9dccb758b7ae647",
+  "languageSourcesSha256Lf": {
+    "docs/xge3-xui3-document-ui-api-map.json": "769007d8a39822c4f0f40f052ad1f04c4b680c16e957ab22b8a8029cee0d41df",
+    "docs/xge3-xui3-document-ui-api-map.md": "3f34f07f2569e9c64af4260170f671191620c30ee8e4e45b1be517ce1fdcf29a",
+    "lib/bindings/xui/src/document_ui.xl": "f2f90d300c14ac59b47e1e66955a789d1b931ce8eea6655eaf6da984011f848a",
+    "lib/bindings/xui/examples/document_ui_headless.xl": "1779466fb34e96015f009b8f526e071031877f433535cd649bf31c8705b4e522",
+    "test/cases/foreign_xui_document_views.xl": "90c8e673a3b8544fc0d751cc8258abd926ac33e03d86eff7c9256f2a9143c77a",
+    "tools/gen_xge3_document_ui_bindings.py": "610b9e5548cb27af49e6e1108ae485a9a2c27930395e4ee922b000588d456397"
+  },
+  "editorExampleSha256Lf": "1330827bab2a9fcadd592ef5fd55f1c5c014a655b8189d12f9a31d1beb40ce27",
+  "runtimeVerified": [
+    "Cold registration allocation failure and retry.",
+    "View type and Editor type resolve through the owning Context with native inheritance.",
+    "Closing one Context invalidates its own type view.",
+    "Image request returns the original Context, publishes a 2-by-3 PNG and leaves that image in the registry after request close.",
+    "Image cancellation does not publish a registry entry.",
+    "Document object draw runs on an owned CPU drawing target, checks expired draw views and preserves the original callback error.",
+    "The packaged DocumentEditor example produces text-region pixels with the actual backend."
+  ],
+  "compileAndLinkOnly": [
+    "DocumentWebProvider.context",
+    "DocumentHtmlInteraction.context"
+  ],
+  "evidence": {
+    "win": {
+      "packages": {
+        "path": "F:\\xlang-validation\\xge-full-20261110\\document-view-types-packages-win-r2\\results.json",
+        "sha256": "423599e4a42fc79c9eeb938f626c44c99018f9f0b17ae9b21e30b30d779c8c7b",
+        "checks": 7
+      },
+      "language": {
+        "path": "F:\\xlang-validation\\xge-full-20261110\\document-view-types-tests-win-r2\\results.json",
+        "sha256": "2d8c3159c7c78595656ddf2ac64ef08e73ca2133341d44cb3703b1f96eb8e659",
+        "checks": 8
+      },
+      "graphics": {
+        "path": "F:\\xlang-validation\\xge-full-20261110\\document-view-types-graphics-win-r1\\results.json",
+        "sha256": "e27f1be5684141b1b61eb55c0558cb945544944d8d5f3bb9e9e8841e343b34b8",
+        "checks": 4
+      },
+      "nativeSdk": {
+        "path": "F:\\xlang-validation\\xge-full-20261110\\tree-painters-sdk-win-r1\\results.json",
+        "sha256": "2001ef2d75a61c3f9688a321e8e76d22608259847090b178427824d9bb01755c",
+        "checks": 2
+      },
+      "editorPixels": {
+        "example-jit": {
+          "darkInterior": 854
+        },
+        "static-run": {
+          "darkInterior": 854
+        }
+      },
+      "languageArtifacts": {
+        "host": {
+          "path": "F:\\xlang-validation\\xge-full-20261110\\document-view-types-tests-win-r2\\host.exe",
+          "sha256": "b35b286d51037a0836fbe7ec5feab45a617c003a3a0f007b864c24eb817d9476",
+          "imports": [
+            "msvcrt.dll",
+            "xge3_host.dll",
+            "kernel32.dll",
+            "SHELL32.dll",
+            "ws2_32.dll",
+            "IPHLPAPI.dll",
+            "ucrtbase.dll"
+          ]
+        },
+        "static": {
+          "path": "F:\\xlang-validation\\xge-full-20261110\\document-view-types-tests-win-r2\\static.exe",
+          "sha256": "71c727af66da7351bbce054c5d222c819082e91d2f589105919685a8d34b99b6",
+          "imports": [
+            "msvcrt.dll",
+            "kernel32.dll",
+            "USER32.dll",
+            "ole32.dll",
+            "OLEAUT32.dll",
+            "SHELL32.dll",
+            "GDI32.dll",
+            "IMM32.dll"
+          ]
+        }
+      }
+    },
+    "linux": {
+      "packages": {
+        "path": "\\\\wsl.localhost\\Ubuntu\\var\\tmp\\xlang-validation\\xge-full-20261110\\document-view-types-packages-linux-r2\\results.json",
+        "sha256": "1c2cb59c9d90bae36e72502fc73a859cb2c451b2a0a3478219c48dca7a709624",
+        "checks": 7
+      },
+      "language": {
+        "path": "\\\\wsl.localhost\\Ubuntu\\var\\tmp\\xlang-validation\\xge-full-20261110\\document-view-types-tests-linux-r2\\results.json",
+        "sha256": "b8efa31a14228f5d0245cbae41ac0005f2932a575e3c5cca7395d085e407d868",
+        "checks": 8
+      },
+      "graphics": {
+        "path": "\\\\wsl.localhost\\Ubuntu\\var\\tmp\\xlang-validation\\xge-full-20261110\\document-view-types-graphics-linux-r1\\results.json",
+        "sha256": "317d30a552fa25a68098560581b901199a02977ca490315aa0d3362d62b2e06f",
+        "checks": 4
+      },
+      "nativeSdk": {
+        "path": "\\\\wsl.localhost\\Ubuntu\\var\\tmp\\xlang-validation\\xge-full-20261110\\tree-painters-sdk-linux-r1\\results.json",
+        "sha256": "6f2a6afc9da64989ce754bb943af15be1126be48a4d7e04c04ad6fa0a14380d6",
+        "checks": 2
+      },
+      "editorPixels": {
+        "example-jit": {
+          "darkInterior": 646
+        },
+        "static-run": {
+          "darkInterior": 646
+        }
+      },
+      "languageArtifacts": {
+        "host": {
+          "path": "\\\\wsl.localhost\\Ubuntu\\var\\tmp\\xlang-validation\\xge-full-20261110\\document-view-types-tests-linux-r2\\host",
+          "sha256": "ae065dcdfac9d39ff547c2b245e010182b910101972edb2ab00880f82de1df1d",
+          "imports": [
+            "libm.so.6",
+            "libmvec.so.1",
+            "libxge3_host.so",
+            "libc.so.6",
+            "ld-linux-x86-64.so.2"
+          ]
+        },
+        "static": {
+          "path": "\\\\wsl.localhost\\Ubuntu\\var\\tmp\\xlang-validation\\xge-full-20261110\\document-view-types-tests-linux-r2\\static",
+          "sha256": "dcf589e35b4fd082e317951ef122a96020cc26cc7907f4fd8c5d10957b4e9960",
+          "imports": [
+            "libm.so.6",
+            "libmvec.so.1",
+            "libX11.so.6",
+            "libXi.so.6",
+            "libXcursor.so.1",
+            "libGL.so.1",
+            "libc.so.6",
+            "ld-linux-x86-64.so.2"
+          ]
+        }
+      }
+    }
+  },
+  "optionalOutputProbe": {
+    "rejectedAlias": {
+      "path": "F:\\xlang-validation\\xge-full-20261110\\document-image-poll-output-probe-win-r1\\probe.log",
+      "sha256": "e69ee2f21e94d561ae9d497ac329426fc2b3b0fd2ed54eaf2dcf1d6761e56c07"
+    },
+    "standaloneBorrowedOutput": {
+      "path": "F:\\xlang-validation\\xge-full-20261110\\document-image-poll-output-positive-win-r1\\probe.c",
+      "sha256": "054db1c055d36ca9dab5a6e8ffb432871da8929373290f0ce9188bb935143041"
+    },
+    "result": "The current compiler emits a standalone sparse borrowed output but rejects coexistence with the existing typed NULL poll declaration."
+  }
+}
