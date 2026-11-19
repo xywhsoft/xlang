@@ -868,6 +868,50 @@ TYPE_SHAPES.update({
     'xui_code_token_style_proc': 'ee01ae5abf574ec1b8beeec018dbdafeeed6c6cecff259d62df254ee1f243511',
 })
 
+METHODS['xuiCodeEditSetInputHandlerOwned'] = [
+    'int xuiCodeEditSetInputHandlerOwned(xui_widget pWidget, xui_code_input_owned_proc onInput, void* pUser, const xui_callback_owner_t* pOwner)',
+    'CodeEdit', ['extern "xuiCodeEditSetInputHandlerOwned" @no_raise @c_owned_callback(0,0,"xui_callback_owner_t",-16) @c_result("status",0) func setInputHandler(CodeInputHandler? handler)'],
+]
+CALLBACKS['xui_code_input_owned_proc'] = (
+    'typedef int (*xui_code_input_owned_proc)(xui_widget_t* pWidget, const xui_code_input_event_t* pEvent, xui_code_input_response_t* pAction, void* pUser);',
+    'export typedef CodeInputHandler = func(CallbackWidget,CallbackConstCodeInputEvent,CallbackCodeInputResponse) as c_int',
+)
+VIEWS.update({
+    'CallbackConstCodeInputEvent': """
+export extern "const xui_code_input_event_t*" class CallbackConstCodeInputEvent @header("xge3_runtime.h") @lifetime("callback")
+ native point handle
+ extern "iPhase" @c_field get phase() as c_int
+ extern "iSource" @c_field get source() as c_int
+ extern "pDocument" @c_field @c_result("scope_view",0) get document() as CallbackCodeDocument
+ extern "iDocumentVersion" @c_field get documentVersion() as c_uint
+ extern "sText" @c_field @c_length("iTextSize","int") @c_result("text_view") get text() as string
+ extern "iTextSize" @c_field get textSize() as c_int
+ extern "iCodepoint" @c_field get codepoint() as c_uint
+ extern "iKey" @c_field get key() as c_int
+ extern "iModifiers" @c_field get modifiers() as c_uint
+ extern "tSelectionBefore" @c_field get selectionBefore() as CodeSelection
+ extern "tSelectionAfter" @c_field get selectionAfter() as CodeSelection
+ extern "tReplacedRange" @c_field get replacedRange() as CodeRange
+ extern "tInsertedRange" @c_field get insertedRange() as CodeRange
+end
+""".strip(),
+    'CallbackCodeInputResponse': """
+export extern "xui_code_input_response_t*" class CallbackCodeInputResponse @header("xge3_runtime.h") @lifetime("callback")
+ native point handle
+ extern "xuiCodeInputResponseGetFlags" @no_raise @c_const(0) func flags() as c_uint
+ extern "xuiCodeInputResponseSetFlags" @no_raise @c_result("status",0) func setFlags(c_uint flags)
+ extern "xuiCodeInputResponseSetSelection" @no_raise @c_result("status",0) func setSelection(c_int anchor,c_int caret)
+ extern "xuiCodeInputResponseSetEdits" @no_raise @c_array_group(1,0,2,"int",2) @c_array_record(1,"xui_code_text_edit_t","iSize","uint32_t") @c_array_field(1,"tRange",0,"value") @c_array_field(1,"sText",1,"c_string") @c_result("status",0) func setEdits(array<CodeRange> ranges,array<string> replacements,int size=-1)
+end
+""".strip(),
+})
+TYPE_SHAPES.update({
+    'xui_code_text_edit_t': 'ea4a11dc194bdd6c6409e45e1b0d3f0fcd301999db1382124acac29525079ed0',
+    'xui_code_input_event_t': 'dd6b743d0c04ada452b02084b1e0176670712f6ccb9d190f05faac0596bb4092',
+    'xui_code_input_response_t': '9944445e0a01cb20a77fb946309e5dd4b6633837eeb756df81084afd0adbed72',
+    'xui_code_input_owned_proc': 'd26b97f1de461e28f9a6bc5f51861acbb064a5d2da5b434ca5c49cdac97cc48e',
+})
+
 # Typed style rules and scoped snapshots of nested property records.
 METHODS.update({
     'xuiStyleSetNamed': ['int xuiStyleSetNamed(xui_context pContext, const xui_style_desc_t* pStyle)', 'Context',
@@ -966,6 +1010,13 @@ VIEW_FUNCTIONS.update({
     'xuiWidgetUnregisterType': 'int xuiWidgetUnregisterType(xui_widget_type pType)',
 })
 
+VIEW_FUNCTIONS.update({
+    'xuiCodeInputResponseGetFlags': 'uint32_t xuiCodeInputResponseGetFlags(const xui_code_input_response_t* response)',
+    'xuiCodeInputResponseSetFlags': 'int xuiCodeInputResponseSetFlags(xui_code_input_response_t* response, uint32_t flags)',
+    'xuiCodeInputResponseSetSelection': 'int xuiCodeInputResponseSetSelection(xui_code_input_response_t* response, int anchor, int caret)',
+    'xuiCodeInputResponseSetEdits': 'int xuiCodeInputResponseSetEdits(xui_code_input_response_t* response, const xui_code_text_edit_t* edits, int count)',
+})
+
 INLINE_FUNCTIONS = {'xuiEventDragData': 'f9bd130d67726da8ae4ca0fa029089b33cb1ed0de3d9918fec59bee9d0ba219c'}
 
 INLINE_FUNCTIONS['xuiCodeDiagnosticHitDetails'] = '35a47617b74dfa170459596fcc0eed87afadf2a46645e14f72320e900755c192'
@@ -981,6 +1032,7 @@ REPLACED = {
     'xuiCodeEditGetText': ('xui.CodeEdit.getText','xuiCodeEditGetTextView'),
     'xuiCodeEditSetDiagnosticHover': ('xui.CodeEdit.setDiagnosticHover','xuiCodeEditSetDiagnosticHoverOwned'),
     'xuiCodeEditSetTokenStyleResolver': ('xui.CodeEdit.setTokenStyleResolver','xuiCodeEditSetTokenStyleResolverOwned'),
+    'xuiCodeEditSetInputHandler': ('xui.CodeEdit.setInputHandler','xuiCodeEditSetInputHandlerOwned'),
 }
 
 
@@ -1036,6 +1088,10 @@ def extend(context,classes,free,callback_declarations,mapped):
     free.append('extern "xuiWidgetUnregisterType" @no_raise @c_result("status",0) func rollbackWidgetType(WidgetType value)')
     mapped.update(xuiWidgetTypeGetName='xui.WidgetType.getName',xuiWidgetTypeGetParent='xui.WidgetType.getParent',
                   xuiWidgetUnregisterType='xui.WidgetType.unregister')
+    mapped.update(xuiCodeInputResponseGetFlags='xui.CallbackCodeInputResponse.flags',
+                  xuiCodeInputResponseSetFlags='xui.CallbackCodeInputResponse.setFlags',
+                  xuiCodeInputResponseSetSelection='xui.CallbackCodeInputResponse.setSelection',
+                  xuiCodeInputResponseSetEdits='xui.CallbackCodeInputResponse.setEdits')
     mapped['xuiCodeDiagnosticHitDetails']='xui.CallbackConstCodeDiagnosticHit.details'
     mapped.update(xuiEventDragData='xui.CallbackConstEvent.dragData',xuiRequestClose='xui.CallbackContext.requestClose')
 

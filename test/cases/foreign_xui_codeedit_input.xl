@@ -1,0 +1,132 @@
+import xge
+import xui
+from xui import CallbackConstCodeInputEvent,CallbackCodeInputResponse,CallbackCodeDocument
+
+extern "fixtureCodeEditDispatchText" @header("test/cases/foreign_xui_codeedit_input_setup.h") @no_raise @c_result("status",0) func dispatchText(xui.Context context,xui.CodeEdit editor,c_uint scalar)
+extern "fixtureCodeEditDispatchIme" @no_raise @c_result("status",0) func dispatchIme(xui.Context context,xui.CodeEdit editor)
+
+func exercise(xui.Context context,xui.CodeEdit editor)
+ assert editor.setText("")==xui.XUI_OK
+ CallbackConstCodeInputEvent? savedEvent=null
+ CallbackCodeInputResponse? savedResponse=null
+ CallbackCodeDocument? savedDocument=null
+ int previews=0
+ int commits=0
+ int imu=0
+ int busy=0
+ editor.setInputHandler(func(xui.CallbackWidget widget,CallbackConstCodeInputEvent event,CallbackCodeInputResponse response) as c_int
+  assert event.documentVersion>0
+  if event.source==xui.XUI_CODE_INPUT_SOURCE_IME then
+   assert event.text=="中" and event.textSize==3
+   imu+=1
+   return xui.XUI_OK
+  end
+  assert event.source==xui.XUI_CODE_INPUT_SOURCE_KEYBOARD
+  if event.phase==xui.XUI_CODE_INPUT_PREVIEW then
+   previews+=1
+   if event.text=="q" then throw RuntimeError "input preview error" end
+   if event.text=="(" then
+    assert event.codepoint==40 and event.document.getText()==""
+    assert event.selectionBefore.iCaretOffset==0 and event.selectionAfter.iCaretOffset==0
+    auto replaced=event.replacedRange
+    response.setEdits([replaced],["()"])
+    response.setSelection(1,1)
+    response.setFlags(response.flags() | c_uint(xui.XUI_CODE_INPUT_ACTION_CONSUME))
+    try
+     editor.setText("reentry")
+    catch Error failure
+     if failure.code==xui.XUI_ERROR_BUSY then busy+=1 end
+    end
+    savedEvent=event
+    savedResponse=response
+    savedDocument=event.document
+   end
+  else
+   assert event.phase==xui.XUI_CODE_INPUT_COMMITTED
+   commits+=1
+   if event.text=="v" then throw RuntimeError "input committed error" end
+   if event.text=="(" then
+    assert event.document.getText()=="()" and event.selectionAfter.iCaretOffset==1
+    xui.CodeRange middle
+    middle.iStart=1
+    middle.iEnd=1
+    response.setEdits([middle],["Z"])
+    response.setSelection(2,2)
+   end
+  end
+  return xui.XUI_OK
+ end)
+ dispatchText(context,editor,40)
+ assert previews==1 and commits==1 and busy==1 and (editor.getText() ?? "")=="(Z)"
+ assert editor.editUndo()==xui.XUI_OK
+ assert (editor.getText() ?? "")==""
+ int expired=0
+ try
+  auto text=(savedEvent as CallbackConstCodeInputEvent).text
+ catch StateError
+  expired+=1
+ end
+ try
+  (savedResponse as CallbackCodeInputResponse).setSelection(0,0)
+ catch StateError
+  expired+=1
+ end
+ try
+  auto text=(savedDocument as CallbackCodeDocument).getText()
+ catch StateError
+  expired+=1
+ end
+ assert expired==3
+ dispatchIme(context,editor)
+ assert imu==2 and (editor.getText() ?? "")=="中"
+
+ bool caught=false
+ try
+  dispatchText(context,editor,113)
+ catch RuntimeError failure
+  caught=failure.message=="input preview error"
+ end
+ assert caught, "Preview must report the original callback error"
+ assert (editor.getText() ?? "")=="中", "A failed preview must leave the document intact"
+ caught=false
+ try
+  dispatchText(context,editor,118)
+ catch RuntimeError failure
+  caught=failure.message=="input committed error"
+ end
+ assert caught, "Committed phase must report the original callback error"
+ assert (editor.getText() ?? "")=="中v", "The committed input must remain undoable"
+ assert editor.editUndo()==xui.XUI_OK
+ assert (editor.getText() ?? "")=="中"
+ editor.setInputHandler(null)
+ dispatchText(context,editor,119)
+ assert (editor.getText() ?? "")=="中w"
+end
+
+func main(...) as int
+ auto fontPath=env.get("XUI_EXAMPLE_FONT")
+ assert fontPath!=null
+ xge.init(320,180,"CodeEdit input handler qualification",c_int(xge.XGE_INIT_OFFSCREEN))
+ xge.run(func() as c_int
+  auto proxy=xui.createProxy()
+  auto context=xui.create(proxy,xui.XUI_SYSTEM_FONT_DISABLED)
+  auto font=proxy.loadFont(fontPath as string,c_float(16),c_uint(xui.XUI_FONT_FORMAT_TTF))
+  context.setDefaultFont(font)
+  auto editor=context.codeEditNative()
+  xui.Rect bounds
+  bounds.fW=320
+  bounds.fH=180
+  assert editor.setRect(bounds)==xui.XUI_OK and context.setRootWidget(editor)==xui.XUI_OK
+  context.setViewportSize(320,180)
+  assert context.setFocusWidget(editor)==xui.XUI_OK
+  exercise(context,editor)
+  context.close()
+  font.close()
+  proxy.close()
+  return c_int(1)
+ end)
+ xge.setFrameCallback(null)
+ xge.unit()
+ println("XUI_CODEEDIT_INPUT_HANDLER_OK")
+ return 0
+end

@@ -280,7 +280,7 @@
       "dependencies": [
         {
           "sourceFile": "src/xui/code/xui_code_edit.c",
-          "lfSha256": "a53465ff54e578b0f9ea9283ff3b50cf9509bb364929b419f46b3d8065244c61"
+          "lfSha256": "694c97f24dbd4a672a5b73ff17aa18c9d76bef8fdecba84e02e5c3a011de4b9d"
         }
       ]
     },
@@ -294,7 +294,7 @@
       "dependencies": [
         {
           "sourceFile": "src/xui/code/xui_code_edit.c",
-          "lfSha256": "a53465ff54e578b0f9ea9283ff3b50cf9509bb364929b419f46b3d8065244c61"
+          "lfSha256": "694c97f24dbd4a672a5b73ff17aa18c9d76bef8fdecba84e02e5c3a011de4b9d"
         }
       ]
     },
@@ -308,7 +308,21 @@
       "dependencies": [
         {
           "sourceFile": "src/xui/code/xui_code_edit.c",
-          "lfSha256": "a53465ff54e578b0f9ea9283ff3b50cf9509bb364929b419f46b3d8065244c61"
+          "lfSha256": "694c97f24dbd4a672a5b73ff17aa18c9d76bef8fdecba84e02e5c3a011de4b9d"
+        }
+      ]
+    },
+    "xuiCodeInputResponseSetEdits": {
+      "bindingFile": "lib\\bindings\\xui\\src\\managed.xl",
+      "declaration": "extern \"xuiCodeInputResponseSetEdits\" @no_raise @c_array_group(1,0,2,\"int\",2) @c_array_record(1,\"xui_code_text_edit_t\",\"iSize\",\"uint32_t\") @c_array_field(1,\"tRange\",0,\"value\") @c_array_field(1,\"sText\",1,\"c_string\") @c_result(\"status\",0) func setEdits(array<CodeRange> ranges,array<string> replacements,int size=-1)",
+      "storage": "native-copy-or-synchronous-read",
+      "sourceFile": "src/xui/code/xui_code_edit.c",
+      "line": 3391,
+      "functionSha256": "a819cb2c44d3deb6c4d923302c09261b335eeb0e83a848bc98a320f29caaf994",
+      "dependencies": [
+        {
+          "sourceFile": "src/xui/code/xui_code_edit.c",
+          "lfSha256": "694c97f24dbd4a672a5b73ff17aa18c9d76bef8fdecba84e02e5c3a011de4b9d"
         }
       ]
     },
@@ -322,7 +336,7 @@
       "dependencies": [
         {
           "sourceFile": "src/xui/code/xui_code_edit.c",
-          "lfSha256": "a53465ff54e578b0f9ea9283ff3b50cf9509bb364929b419f46b3d8065244c61"
+          "lfSha256": "694c97f24dbd4a672a5b73ff17aa18c9d76bef8fdecba84e02e5c3a011de4b9d"
         }
       ]
     },
@@ -1184,7 +1198,7 @@
       "dependencies": [
         {
           "sourceFile": "include/xui.h",
-          "lfSha256": "6fa48dd376c17d4dab8b8bc2311f75c3597b0e368328333acf01c70c565a0b56"
+          "lfSha256": "ba85af1f113af69e735957ddda2fe7b5ed31a6b54e25938293253a9228cd1774"
         },
         {
           "sourceFile": "src/xui/core/xui_proxy_xge.c",
@@ -1282,7 +1296,7 @@
       "dependencies": [
         {
           "sourceFile": "include/xui.h",
-          "lfSha256": "6fa48dd376c17d4dab8b8bc2311f75c3597b0e368328333acf01c70c565a0b56"
+          "lfSha256": "ba85af1f113af69e735957ddda2fe7b5ed31a6b54e25938293253a9228cd1774"
         },
         {
           "sourceFile": "src/xui/core/xui_proxy_xge.c",

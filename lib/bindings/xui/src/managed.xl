@@ -2496,12 +2496,40 @@ end
 
 export typedef CodeTokenStyleResolver = func(CallbackCodeDocument,CallbackConstCodeToken,CallbackInt) as c_int
 
+export extern "const xui_code_input_event_t*" class CallbackConstCodeInputEvent @header("xge3_runtime.h") @lifetime("callback")
+ native point handle
+ extern "iPhase" @c_field get phase() as c_int
+ extern "iSource" @c_field get source() as c_int
+ extern "pDocument" @c_field @c_result("scope_view",0) get document() as CallbackCodeDocument
+ extern "iDocumentVersion" @c_field get documentVersion() as c_uint
+ extern "sText" @c_field @c_length("iTextSize","int") @c_result("text_view") get text() as string
+ extern "iTextSize" @c_field get textSize() as c_int
+ extern "iCodepoint" @c_field get codepoint() as c_uint
+ extern "iKey" @c_field get key() as c_int
+ extern "iModifiers" @c_field get modifiers() as c_uint
+ extern "tSelectionBefore" @c_field get selectionBefore() as CodeSelection
+ extern "tSelectionAfter" @c_field get selectionAfter() as CodeSelection
+ extern "tReplacedRange" @c_field get replacedRange() as CodeRange
+ extern "tInsertedRange" @c_field get insertedRange() as CodeRange
+end
+
+export extern "xui_code_input_response_t*" class CallbackCodeInputResponse @header("xge3_runtime.h") @lifetime("callback")
+ native point handle
+ extern "xuiCodeInputResponseGetFlags" @no_raise @c_const(0) func flags() as c_uint
+ extern "xuiCodeInputResponseSetFlags" @no_raise @c_result("status",0) func setFlags(c_uint flags)
+ extern "xuiCodeInputResponseSetSelection" @no_raise @c_result("status",0) func setSelection(c_int anchor,c_int caret)
+ extern "xuiCodeInputResponseSetEdits" @no_raise @c_array_group(1,0,2,"int",2) @c_array_record(1,"xui_code_text_edit_t","iSize","uint32_t") @c_array_field(1,"tRange",0,"value") @c_array_field(1,"sText",1,"c_string") @c_result("status",0) func setEdits(array<CodeRange> ranges,array<string> replacements,int size=-1)
+end
+
+export typedef CodeInputHandler = func(CallbackWidget,CallbackConstCodeInputEvent,CallbackCodeInputResponse) as c_int
+
 export extern "xui_widget_t*" class CodeEdit @header("xge3_runtime.h") @lifetime("owner") @owner(Context) @policy("xl6Xui3WidgetPolicy") @watch("xui_lifetime_link_t") extends Widget
 
  extern "xuiCodeEditSetTheme" @no_raise @c_result("status",0) func setTheme(CodeTheme theme)
 
  extern "xuiCodeEditSetStyle" @no_raise @c_ref(1) func setStyle(c_int iStyleId,CodeStyle pStyle) as c_int
  extern "xuiCodeEditSetTokenStyleResolverOwned" @no_raise @c_owned_callback(0,0,"xui_callback_owner_t",-16) @c_result("status",0) func setTokenStyleResolver(CodeTokenStyleResolver? resolver)
+ extern "xuiCodeEditSetInputHandlerOwned" @no_raise @c_owned_callback(0,0,"xui_callback_owner_t",-16) @c_result("status",0) func setInputHandler(CodeInputHandler? handler)
  extern "xuiCodeEditHasTokenStyleResolver" @no_raise func hasTokenStyleResolver() as bool
 
  extern "xuiCodeEditSetLanguage" @no_raise @c_cstr(0) func setLanguage(string sLanguage) as c_int

@@ -258,6 +258,8 @@ window loop. System fonts are demonstrated in the xge package's `examples/system
 [code_token_style.xl](code_token_style.xl) 打开 CodeEdit，为可见数字 token 使用关键字的
 前景颜色。可在窗口里编辑数字，观察对应范围的颜色变化。
 
+[code_input_handler.xl](code_input_handler.xl) 在输入左括号时插入一对括号，并将光标放在中间。
+
 `code_annotations.xl` 不创建窗口，先标记两处 `todo`，再用平行列发布一条诊断。
 预期输出 `Marked matches: 2` 和 `W001 : Complete this task ; source: lesson`。
 随后用 `getDiagnostic(0)` 读回范围、级别、编号、说明、来源和用户 ID，断言数值、

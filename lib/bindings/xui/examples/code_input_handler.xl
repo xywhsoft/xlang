@@ -1,0 +1,19 @@
+// Pair parentheses in the input preview and put the caret between them.
+import xui
+from "./_window.xl" import Window
+
+Window.show("CodeEdit input handler",func(xui.Context ui,xui.Widget root)
+ auto editor=ui.codeEditNative()
+ Window.place(root,editor,24,24,560,160)
+ assert editor.setText("Type an opening parenthesis here.\n")==xui.XUI_OK
+ editor.setInputHandler(func(xui.CallbackWidget widget,xui.CallbackConstCodeInputEvent event,xui.CallbackCodeInputResponse action) as c_int
+  if event.phase==xui.XUI_CODE_INPUT_PREVIEW and event.text=="(" then
+   auto replaced=event.replacedRange
+   action.setEdits([replaced],["()"])
+   action.setSelection(replaced.iStart+1,replaced.iStart+1)
+   action.setFlags(action.flags() | c_uint(xui.XUI_CODE_INPUT_ACTION_CONSUME))
+  end
+  return xui.XUI_OK
+ end)
+ println("Type ( to insert a pair.")
+end)
