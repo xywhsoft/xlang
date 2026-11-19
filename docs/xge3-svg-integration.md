@@ -363,12 +363,9 @@ execute. Document, cache and Texture creation allocate native and language
 owners; URI conversion and native parsing/rasterization retain their costs.
 There is no claim of zero total binding cost or hardware throughput.
 
-Actual shared-library import is a separate open gate: the current package's
-top-level bootstrap call is rejected by DLL/DSO builds. The generic package
-initializer proposal awaits a decision. This batch does not alter that rule or
-the separately pending non-destructible node-view runtime contract. SvgPaint,
-traversal and remaining full-ecosystem work are not complete. Matched final
-release/IDE/help delivery remains open; these candidates are not installed.
+The November 12 root and cache acceptance covered JIT and standalone static
+AOT. The later shared-document and observed-paint acceptance is described
+below. Matched final release, IDE and help delivery remains open.
 
 ## Shared documents and numeric parsing
 
@@ -426,3 +423,6 @@ scene results take actual native references. Each bound operation calls
 the selected XGE function directly.
 
 See the [SVG paint example](../lib/bindings/xge/examples/svg_paint.xl).
+The observed-paint recheck passed 20 steps each on Windows and Linux,
+including JIT, dynamic and static AOT, and checked shared-library retirement.
+See the [acceptance record](../dev/release-materials/provenance/xge-miniprogram-js-20261119.json).

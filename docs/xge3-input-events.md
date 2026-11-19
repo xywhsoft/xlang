@@ -25,7 +25,7 @@
 
 批量输入将语言数组转换为临时连续 C 记录，只调用一次原生函数。非空批次需要一次 XRT 分配，并逐项复制记录。分配失败发生在原生调用前。查询返回值直接来自原生输出，暖态无 XRT 堆分配。
 
-运行 [miniprogram_touch.xl](../lib/bindings/xge/examples/miniprogram_touch.xl) 可在桌面无窗环境验证两个触点和 DPR 坐标换算。微信宿主的 JavaScript 回调接入另行验收。
+运行 [miniprogram_touch.xl](../lib/bindings/xge/examples/miniprogram_touch.xl) 可在桌面无窗环境验证两个触点和 DPR 坐标换算。
 
 ## 小程序宿主回调
 
@@ -37,4 +37,8 @@
 
 使用预先创建的三字节载荷连续调用 1,000 次，Windows 和 Linux 上的原生 C 与 xlang 循环均未触发 XRT 堆操作。该测量的 xlang 回调只读取长度，不包含首次注册或音频数据复制。
 
-运行 [miniprogram_bridge.xl](../lib/bindings/xge/examples/miniprogram_bridge.xl) 可用本地回调验证帧请求、资源读取和音频指令。现有微信 JavaScript 适配器仍需注册这些回调，并在真实宿主中验收。
+运行 [miniprogram_bridge.xl](../lib/bindings/xge/examples/miniprogram_bridge.xl) 可用本地回调验证帧请求、资源读取和音频指令。
+
+XGE 的小程序 JavaScript 适配器使用同一原生回调组。单线程 wasm32 构建可显式启用 `XGE_ENABLE_MINIPROGRAM_JS` 并链接配套的 Emscripten JavaScript 库。回调通过固定的 WASM 导入函数执行，原生最后一个引用释放时回收 JavaScript 注册。资源回调向原生输出复制实际字节。JS 主动提交音频时将实际字节写入 WASM 内存，音频处理函数在本次调用期间借用该视图。
+
+Node.js 的实际 WASM 回归覆盖帧调度、资源加载、音频状态、分配失败、内存扩充及桥接替换。它使用测试 canvas，微信客户端的图形与音频设备验收仍待进行。Windows 和 Linux 的匹配扩展包已通过 xlang JIT、动态 AOT 和静态 AOT 回归。详见 [验收记录](../dev/release-materials/provenance/xge-miniprogram-js-20261119.json)。

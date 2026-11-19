@@ -1,0 +1,129 @@
+{
+  "complete": true,
+  "passed": true,
+  "releaseInstalled": false,
+  "nativeCommit": "35c3892a2939c7faa75fcf995337f021c5bf78ee",
+  "frozenXrt": "804cc769de3030118c2b46ef7af69543d1b82d9d",
+  "wasm": {
+    "compiler": "Emscripten 3.1.69",
+    "node": "22.14.0",
+    "profile": "O2 core wasm32, single-threaded",
+    "canvas": "test double",
+    "freeze": {
+      "path": "\\\\wsl.localhost\\Ubuntu\\var\\tmp\\xlang-validation\\xge-full-20261110\\miniprogram-js-wasm-r2\\freeze.json",
+      "sha256": "dfb930243fb39b9567a2fe6a24329089446472e14b297a5d93b97b0c0e43b616"
+    },
+    "nativeAndJsSourceHashes": {
+      "src/xge/platform/xge_miniprogram.c": "80a81b6988244fc281dc78558c6aed99f6d6bbcc1b89da8026ce3d5904cdcf26",
+      "platform/miniprogram/xge_miniprogram_wasm.c": "75ff5316609358d43e8f90c3e0b4fc91671344b2e3f058e44491db0533e6bb0c",
+      "platform/miniprogram/xge_miniprogram_library.js": "7ba99b1db2c2e722010bbd76fbbb37a7f2adc3c339fa7dfa11a308415000b29c",
+      "platform/miniprogram/xge_miniprogram.js": "657cba7e3ea580564dd27cf07ca3d73d2c9fe1def00a1570298845afeecb02cb",
+      "platform/miniprogram/xge_miniprogram_types.d.ts": "a77784c1cd4f8e4a3ae17e21c5432555ac16792495f6d91cf10beb69a1145fbb",
+      "tests/xge/miniprogram_wasm_probe.c": "aca98a4b1eb00e51c7ff69dda1c90cc2dfe75fe794698d31b4ad61713699d548",
+      "tests/xge/miniprogram_wasm_probe.cjs": "53712d46abd8933ab216e31aeb4a8f03bef97381ea91a5abfa36d1effbfe5d11"
+    },
+    "bridge": [
+      {
+        "path": "\\\\wsl.localhost\\Ubuntu\\var\\tmp\\xlang-validation\\xge-full-20261110\\miniprogram-js-wasm-r2\\link-memdebug.log",
+        "sha256": "89ad472c54717207bd946e014f0de3470f805cd24b33f84849e3beca4c417c15"
+      },
+      {
+        "path": "\\\\wsl.localhost\\Ubuntu\\var\\tmp\\xlang-validation\\xge-full-20261110\\miniprogram-js-wasm-r2\\run-memdebug.log",
+        "sha256": "800d8e4fb49ac7025b2dd75da396e800c6b42f391a2ab65963720f1710c0ca32"
+      },
+      {
+        "path": "\\\\wsl.localhost\\Ubuntu\\var\\tmp\\xlang-validation\\xge-full-20261110\\miniprogram-js-wasm-r2\\probe-memdebug.cjs",
+        "sha256": "9052da7d4c64a49fb17f5c414e40b57b0032567ee1d1cecf53baa56495f957f5"
+      },
+      {
+        "path": "\\\\wsl.localhost\\Ubuntu\\var\\tmp\\xlang-validation\\xge-full-20261110\\miniprogram-js-wasm-r2\\probe-memdebug.wasm",
+        "sha256": "2c488b3d50e7bd504d23fde0434db0419f0e44048185220fe9b067118bc3c92b"
+      }
+    ],
+    "plain": [
+      {
+        "path": "\\\\wsl.localhost\\Ubuntu\\var\\tmp\\xlang-validation\\xge-full-20261110\\miniprogram-js-wasm-r2\\link-plain.log",
+        "sha256": "1e2aed0269f7aab6be5cbf7bcee06032cba7bee9dc58621e431226059187a770"
+      },
+      {
+        "path": "\\\\wsl.localhost\\Ubuntu\\var\\tmp\\xlang-validation\\xge-full-20261110\\miniprogram-js-wasm-r2\\run-plain.log",
+        "sha256": "3a5c0bb391f684c3bfcff168ca6657a76c70902fd00ad05157811527984160d3"
+      },
+      {
+        "path": "\\\\wsl.localhost\\Ubuntu\\var\\tmp\\xlang-validation\\xge-full-20261110\\miniprogram-js-wasm-r2\\probe-plain.cjs",
+        "sha256": "fc508e1c6a387233fc5fc3081ebb6e3941df8247fc0f5f044e107b67f240312c"
+      },
+      {
+        "path": "\\\\wsl.localhost\\Ubuntu\\var\\tmp\\xlang-validation\\xge-full-20261110\\miniprogram-js-wasm-r2\\probe-plain.wasm",
+        "sha256": "e253aa8b367b5abd73f58361df066009c2b42363d98dac79c4e7adcfa75d3d48"
+      }
+    ],
+    "checks": [
+      "native frame dispatch and frame ticket invalidation",
+      "UTF-8 URI, empty and binary resource replies",
+      "resource rejection, failure rollback and four install allocation budgets",
+      "one audio dispatch, signed return status and counted UTF-8",
+      "replacement during callback, stale close and surviving resources",
+      "linear-memory growth while copying a resource source view",
+      "repeated replacement and engine retirement",
+      "ordinary wasm32 without mini-program JS imports"
+    ],
+    "deviceValidation": false
+  },
+  "evidence": {
+    "win": {
+      "desktopBuild": {
+        "path": "F:\\xlang-validation\\xge-full-20261110\\miniprogram-js-desktop-sdk-win-r3\\results.json",
+        "sha256": "a2b6d430c9587e4a62a296edd4aec41e40f31fa6ce0cf78fdc8b6195af6a3e5f",
+        "checks": 2
+      },
+      "desktopNative": {
+        "path": "F:\\xlang-validation\\xge-full-20261110\\miniprogram-js-desktop-tests-win-r1\\results.json",
+        "sha256": "8653175b433dbc7314575874dc8276374e95bd8973d95ed4d0912c1a6ba2daed",
+        "checks": 4
+      },
+      "desktopPackages": {
+        "path": "F:\\xlang-validation\\xge-full-20261110\\miniprogram-js-desktop-packages-win-r1\\results.json",
+        "sha256": "3acab267c33f0382cf3e66bd13bf8d7545a068d095c64c8000dd4d3f41cdd710",
+        "checks": 6
+      },
+      "desktopXlang": {
+        "path": "F:\\xlang-validation\\xge-full-20261110\\miniprogram-js-xlang-tests-win-r1\\results.json",
+        "sha256": "b4dea20e376f3ea7b5c3379d2f8fecb65798ef8a92df4f06488c030c23bf2056",
+        "checks": 26
+      },
+      "observedSvgRecheck": {
+        "path": "F:\\xlang-validation\\xge-full-20261110\\svg-observed-probe-qualification-win-r3\\results.json",
+        "sha256": "495da04608bf451146c7c41287ea2d063c9b0fe57310a90c26880b9bf936946d",
+        "checks": 20
+      }
+    },
+    "linux": {
+      "desktopBuild": {
+        "path": "\\\\wsl.localhost\\Ubuntu\\var\\tmp\\xlang-validation\\xge-full-20261110\\miniprogram-js-desktop-sdk-linux-r3\\results.json",
+        "sha256": "41bf1ba586d9622b514931708fce73c475cd7b6c6cff9715018a75429c603bcf",
+        "checks": 2
+      },
+      "desktopNative": {
+        "path": "\\\\wsl.localhost\\Ubuntu\\var\\tmp\\xlang-validation\\xge-full-20261110\\miniprogram-js-desktop-tests-linux-r1\\results.json",
+        "sha256": "b7308e167bbeb3cab860d7212483dfcf0f5bb07ce9b98c7334ef44ab8b6e2c00",
+        "checks": 4
+      },
+      "desktopPackages": {
+        "path": "\\\\wsl.localhost\\Ubuntu\\var\\tmp\\xlang-validation\\xge-full-20261110\\miniprogram-js-desktop-packages-linux-r1\\results.json",
+        "sha256": "2b0291510b5b80ffe2f30950c8fae2a67cf371dfc4a6cd2f27833b4fb4b27c16",
+        "checks": 6
+      },
+      "desktopXlang": {
+        "path": "\\\\wsl.localhost\\Ubuntu\\var\\tmp\\xlang-validation\\xge-full-20261110\\miniprogram-js-xlang-tests-linux-r1\\results.json",
+        "sha256": "dfa8cdefb40381b1715640258a90d3ddc1d51075a912bf4fa93999f87e342043",
+        "checks": 26
+      },
+      "observedSvgRecheck": {
+        "path": "\\\\wsl.localhost\\Ubuntu\\var\\tmp\\xlang-validation\\xge-full-20261110\\svg-observed-probe-qualification-linux-r3\\results.json",
+        "sha256": "cda7a7ac99e8c3e7be2b5943afbdd874692aa25c91956058513107b2a1d2d99d",
+        "checks": 20
+      }
+    }
+  }
+}
