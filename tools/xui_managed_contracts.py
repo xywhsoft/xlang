@@ -759,6 +759,14 @@ METHODS.update({
 })
 
 METHODS.update({
+    'xuiListViewSetActivateOwned': ['int xuiListViewSetActivateOwned(xui_widget pWidget, xui_list_view_activate_proc onActivate, void* pUser, const xui_callback_owner_t* pOwner)',
+        'ListView', ['extern "xuiListViewSetActivateOwned" @no_raise @c_owned_callback(0,0,"xui_callback_owner_t",0) @c_result("status",0) func setActivate(ListViewActivateProc? onActivate)']],
+    'xuiListViewSetItemRendererOwned': ['int xuiListViewSetItemRendererOwned(xui_widget pWidget, xui_list_view_item_proc onRender, void* pUser, const xui_callback_owner_t* pOwner)',
+        'ListView', ['extern "xuiListViewSetItemRendererOwned" @no_raise @c_owned_callback(0,0,"xui_callback_owner_t",-16) @c_result("status",0) func setItemRenderer(ListViewItemRenderProc? onRender)']],
+    'xuiListViewSetEnabledItems': ['int xuiListViewSetEnabledItems(xui_widget pWidget, const int* arrEnabled, int iCount)', 'ListView', [
+        'extern "xuiListViewSetEnabledItems" @no_raise @c_span(0,"const int*","int") @c_result("status",0) func setEnabledItems(Buffer arrEnabled)',
+        'extern "xuiListViewSetEnabledItems" @no_raise @c_array_group(1,0,1,"int",1) @c_array_input(1,0,"const int*","value") @c_result("status",0) func setEnabledItems(array<c_int> enabled,int size=-1)',
+    ]],
     'xuiTreeViewSetItemRendererOwned': ['int xuiTreeViewSetItemRendererOwned(xui_widget pWidget, xui_tree_view_item_proc onRender, void* pUser, const xui_callback_owner_t* pOwner)',
         'TreeView', ['extern "xuiTreeViewSetItemRendererOwned" @no_raise @c_owned_callback(0,0,"xui_callback_owner_t",-16) @c_result("status",0) func setItemRenderer(TreeViewItemRenderProc? onRender)']],
     'xuiTreeViewSetIconRendererOwned': ['int xuiTreeViewSetIconRendererOwned(xui_widget pWidget, xui_tree_view_icon_proc onRender, void* pUser, const xui_callback_owner_t* pOwner)',
@@ -774,6 +782,14 @@ METHODS.update({
 })
 
 CALLBACKS.update({
+    'xui_list_view_activate_proc': (
+        'typedef void (*xui_list_view_activate_proc)(xui_widget_t* pWidget, int iIndex, int iButton, void* pUser);',
+        'export typedef ListViewActivateProc = func(Widget,c_int,c_int)',
+    ),
+    'xui_list_view_item_proc': (
+        'typedef int (*xui_list_view_item_proc)(xui_widget_t* pWidget, int iIndex, xui_draw_context_t* pDraw, xui_rect_t tRect, int iState, void* pUser);',
+        'export typedef ListViewItemRenderProc = func(CallbackWidget,c_int,CallbackDrawContext,Rect,c_int) as c_int',
+    ),
     'xui_tree_view_item_proc': (
         'typedef int (*xui_tree_view_item_proc)(xui_widget_t* pWidget, int iNodeId, int iVisible, const xui_tree_view_node_t* pNode, xui_draw_context_t* pDraw, xui_rect_t tRect, int iState, void* pUser);',
         'export typedef TreeViewItemRenderProc = func(CallbackWidget,c_int,c_int,CallbackTreeNode,CallbackDrawContext,Rect,c_int) as c_int',
@@ -1148,6 +1164,8 @@ REPLACED = {
     'xuiCodeEditSetInputHandler': ('xui.CodeEdit.setInputHandler','xuiCodeEditSetInputHandlerOwned'),
     'xuiTreeViewSetItemRenderer': ('xui.TreeView.setItemRenderer','xuiTreeViewSetItemRendererOwned'),
     'xuiTreeViewSetIconRenderer': ('xui.TreeView.setIconRenderer','xuiTreeViewSetIconRendererOwned'),
+    'xuiListViewSetActivate': ('xui.ListView.setActivate','xuiListViewSetActivateOwned'),
+    'xuiListViewSetItemRenderer': ('xui.ListView.setItemRenderer','xuiListViewSetItemRendererOwned'),
 }
 
 

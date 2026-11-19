@@ -504,6 +504,10 @@ export typedef ScrollViewChangeProc = func(Widget,c_float,c_float)
 
 export typedef ListViewSelectProc = func(Widget,c_int)
 
+export typedef ListViewActivateProc = func(Widget,c_int,c_int)
+
+export typedef ListViewItemRenderProc = func(CallbackWidget,c_int,CallbackDrawContext,Rect,c_int) as c_int
+
 export typedef ListViewContextProc = func(Widget,c_int,c_float,c_float) as c_int
 
 export extern "const xui_message_list_event_t*" class CallbackConstMessageListEvent @header("xge3_runtime.h") @lifetime("callback")
@@ -4857,9 +4861,15 @@ export extern "xui_widget_t*" class ListView @header("xge3_runtime.h") @lifetime
 
  extern "xuiListViewSetSelectOwned" @no_raise @c_owned_callback(0,0,"xui_callback_owner_t",0) @c_result("status",0) func setSelect(ListViewSelectProc? onSelect)
 
+ extern "xuiListViewSetActivateOwned" @no_raise @c_owned_callback(0,0,"xui_callback_owner_t",0) @c_result("status",0) func setActivate(ListViewActivateProc? onActivate)
+
+ extern "xuiListViewSetItemRendererOwned" @no_raise @c_owned_callback(0,0,"xui_callback_owner_t",-16) @c_result("status",0) func setItemRenderer(ListViewItemRenderProc? onRender)
+
  extern "xuiListViewSetContextMenuOwned" @no_raise @c_owned_callback(0,0,"xui_callback_owner_t",-16) @c_result("status",0) func setContextMenu(ListViewContextProc? onContext)
 
  extern "xuiListViewSetEnabledItems" @no_raise @c_span(0,"const int*","int") @c_result("status",0) func setEnabledItems(Buffer arrEnabled)
+
+ extern "xuiListViewSetEnabledItems" @no_raise @c_array_group(1,0,1,"int",1) @c_array_input(1,0,"const int*","value") @c_result("status",0) func setEnabledItems(array<c_int> enabled,int size=-1)
 
  extern "xuiListViewGetItemCount" @no_raise func getItemCount() as c_int
 

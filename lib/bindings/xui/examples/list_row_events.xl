@@ -1,0 +1,28 @@
+import xui
+from xui import CallbackDrawContext, CallbackWidget, Rect, Widget
+from "./_window.xl" import Window
+
+Window.showWithProxy("ListView / row events", func(xui.Context ui,xui.Widget root,xui.Proxy proxy)
+    auto list = ui.listViewNative()
+    auto status = ui.labelNative()
+    Window.place(root,list,24,24,420,160)
+    Window.place(root,status,24,196,420,30)
+
+    list.setItems(["Default row","Blue swatch","Disabled row"])
+    list.setEnabledItems([c_int(1),c_int(1),c_int(0)])
+    status.setText("Select a row, then press Enter.")
+
+    list.setItemRenderer(func(CallbackWidget sender,c_int index,CallbackDrawContext draw,Rect area,c_int state) as c_int
+        if index != 1 then return 0 end // 其他行继续使用默认绘制。
+        Rect swatch
+        swatch.fX = area.fX + 8
+        swatch.fY = area.fY + 4
+        swatch.fW = 96
+        swatch.fH = area.fH - 8
+        proxy.fillRect(draw,swatch,c_uint(0x276BAEFF))
+        return 1
+    end)
+    list.setActivate(func(Widget sender,c_int index,c_int button)
+        status.setText("Activated row " + string(int(index) + 1))
+    end)
+end)

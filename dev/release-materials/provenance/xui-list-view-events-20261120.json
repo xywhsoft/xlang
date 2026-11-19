@@ -1,0 +1,227 @@
+{
+  "complete": true,
+  "passed": true,
+  "releaseInstalled": false,
+  "sourceParent": "7a55ccff6fcbef105d3c5a4a551e4f6bc31d8fa6",
+  "nativeCommit": "8f77f94a2b50ad97b30e27861be6902a77d34f84",
+  "nativeSourcesSha256Lf": {
+    "include/xui.h": "cc9bfa5cab6c5af88150c6d5613771176a067f52de9d536bf0639333580b3fed",
+    "src/xui/controls/xui_list_view.c": "fa2753e966f1b3b4b7210c2253a894d96dd958d79d16e41e974a2b39da006c66",
+    "tests/xui/xui_list_owned_callbacks_test.c": "73d68df644c7d0a1d34f40575b9a3a00f0fd9b85f423b78842de770ac4e9b8b7"
+  },
+  "languageSourcesSha256Lf": {
+    "docs/xui-list-view-events.md": "07eac1043269e28f50d20a7a7a7dae9e973e4e4406e9a178f4acb6c047bbabb4",
+    "docs/xge3-xui3-api-map-storage.json": "e7efecb87b06ddc14e66e36e10a8d5803273acbf959eec7a1cfee214126fbe3b",
+    "lib/bindings/xui/src/managed.xl": "ef3b2e7b119b88cf5004d4d1c90a0992a5e85130f55e03fdb1f9294ed3272213",
+    "lib/bindings/xui/examples/README.md": "a30b2d1bbc9537fdb75f68315f056afe68e8b219898dc4ac4ef8553bc45654b5",
+    "lib/bindings/xui/examples/list_row_events.xl": "2610cdd3d80a91b88814999ae3e4b1de0a5882f9bdd97fdb2e4525714e2760d5",
+    "test/cases/foreign_xui_list_callbacks.xl": "bfa2fc49e1ada9983bf2fc43333885636f425f373f2ffc5deb63a92ab86db403",
+    "tools/xui_managed_contracts.py": "1143a25950b158e8bb03d287a61b67b369ea60968dda99354b23ba8fe3359fe1",
+    "tools/check_xge3_bindings.py": "02634ed6f548f1495458ea1ef03633536e1459d37c810d30f0aa718f9a0d714c"
+  },
+  "verified": [
+    "The original raw ListView row and virtual-list tests still pass.",
+    "Activation and item painter registrations own their callbacks independently.",
+    "An incoming owner Hold that replaces rows cannot activate a stale row.",
+    "Unbinding and closing a widget preserve the active callback owner until physical return.",
+    "A failed painter registration preserves the previous callback.",
+    "A painter can handle a row or fall back to native text, and its diagnostic reaches render.",
+    "The scoped draw view expires and the activation sender can close the widget.",
+    "The array overload uses the original integer count and disabled-prefix behavior.",
+    "The bounded example produces the custom swatch through the actual backend."
+  ],
+  "evidence": {
+    "win": {
+      "sdk": {
+        "path": "F:\\xlang-validation\\xge-full-20261110\\list-painters-sdk-win-r1\\results.json",
+        "sha256": "992ecb4c9aaf7321e3d8cc8f1a640403cbf049b684ec7d159818aed1052068a6",
+        "checks": 2
+      },
+      "nativeHost": {
+        "path": "F:\\xlang-validation\\xge-full-20261110\\list-painters-native-tests-win-r1\\results.json",
+        "sha256": "e2a8471997c5fa17a14f1cc3b58b32dd4bebe2eb7fe45cf4f3bc580b7b035d37",
+        "checks": 4
+      },
+      "nativeStatic": {
+        "path": "F:\\xlang-validation\\xge-full-20261110\\list-painters-native-static-win-r1\\results.json",
+        "sha256": "11785ecb7c233c91a64fdebad24aec50ebd97f5c81c0c640c9b80f8092d5d3ef",
+        "checks": 4
+      },
+      "legacy": {
+        "path": "F:\\xlang-validation\\xge-full-20261110\\list-painters-legacy-win-r2\\results.json",
+        "sha256": "029655890b053d9bd763468c9b7d8c7ad74f9c9399d20554bee9fd4c55fb0d0d",
+        "checks": 4
+      },
+      "languagePackages": {
+        "path": "F:\\xlang-validation\\xge-full-20261110\\list-painters-packages-win-r1\\results.json",
+        "sha256": "61be4888147d46c8145c6e1e31ec252fcc7151730061ab017c14be46d2381208",
+        "checks": 6
+      },
+      "finalPackages": {
+        "path": "F:\\xlang-validation\\xge-full-20261110\\list-painters-packages-win-r2\\results.json",
+        "sha256": "0cc0e1cc774ca720d244734105511f6ab278d3f105f9e43cbf4c506d82ac4e07",
+        "checks": 6
+      },
+      "language": {
+        "path": "F:\\xlang-validation\\xge-full-20261110\\list-painters-language-tests-win-r1\\results.json",
+        "sha256": "38272b1b186f848285a0f05a176d1862f9b1cbc4bc81c3ccb69ee451352497a3",
+        "checks": 6
+      },
+      "graphics": {
+        "path": "F:\\xlang-validation\\xge-full-20261110\\list-painters-example-win-r2\\results.json",
+        "sha256": "b68b0d219c7a53415f684d5b7e8dadcfb08cd6e075396fa104800b9925ac27da",
+        "checks": 4
+      },
+      "blueSwatchPixels": {
+        "example-jit": 1536,
+        "static-run": 1536
+      },
+      "legacyVirtual": {
+        "checks": 76,
+        "rows": 1000000,
+        "largestAllocation": 0,
+        "linuxClockAdapted": false
+      },
+      "enabledItemsAllocations": {
+        "path": "F:\\xlang-validation\\xge-full-20261110\\list-painters-bench-win-r2\\results.json",
+        "sha256": "94e7d50277744841abebff6fcc96edf76489959d7aef71f221378e6d55db02e7",
+        "iterations": 1000,
+        "counts": {
+          "xlang": [
+            1000,
+            1000,
+            0
+          ],
+          "native": [
+            1000,
+            1000,
+            0
+          ]
+        }
+      },
+      "languageArtifacts": {
+        "host": {
+          "path": "F:\\xlang-validation\\xge-full-20261110\\list-painters-language-tests-win-r1\\host.exe",
+          "sha256": "2df32c0b3cb2fb9aa9d40f4887d368427ae5bc7e7a0508be9c7987d27fddc999",
+          "imports": [
+            "msvcrt.dll",
+            "xge3_host.dll",
+            "kernel32.dll",
+            "SHELL32.dll",
+            "ws2_32.dll",
+            "IPHLPAPI.dll",
+            "ucrtbase.dll"
+          ]
+        },
+        "static": {
+          "path": "F:\\xlang-validation\\xge-full-20261110\\list-painters-language-tests-win-r1\\static.exe",
+          "sha256": "9eeb960baba27c5cd32bb5072a426c00b4f6c042f05ba5092cc37680295420b8",
+          "imports": [
+            "msvcrt.dll",
+            "kernel32.dll",
+            "USER32.dll",
+            "OLEAUT32.dll",
+            "ole32.dll",
+            "SHELL32.dll"
+          ]
+        }
+      }
+    },
+    "linux": {
+      "sdk": {
+        "path": "\\\\wsl.localhost\\Ubuntu\\var\\tmp\\xlang-validation\\xge-full-20261110\\list-painters-sdk-linux-r1\\results.json",
+        "sha256": "00920ee5382e1152653099cfee09621f01216a1c9954558e196000192dff69b3",
+        "checks": 2
+      },
+      "nativeHost": {
+        "path": "\\\\wsl.localhost\\Ubuntu\\var\\tmp\\xlang-validation\\xge-full-20261110\\list-painters-native-tests-linux-r1\\results.json",
+        "sha256": "b22653b6057a13d69fe089792ac217b3ddfa6e586e98e29bfd5a20ebaf20d317",
+        "checks": 4
+      },
+      "nativeStatic": {
+        "path": "\\\\wsl.localhost\\Ubuntu\\var\\tmp\\xlang-validation\\xge-full-20261110\\list-painters-native-static-linux-r1\\results.json",
+        "sha256": "e2e440a5e6def3ba6df6710fe57de989de995dff112b1bf367102f71071783a8",
+        "checks": 4
+      },
+      "legacy": {
+        "path": "\\\\wsl.localhost\\Ubuntu\\var\\tmp\\xlang-validation\\xge-full-20261110\\list-painters-legacy-linux-r2\\results.json",
+        "sha256": "2ea13ee91f710ef24baa1c42b05be88635186fceb33bf7ef94c8d884cb5317d0",
+        "checks": 4
+      },
+      "languagePackages": {
+        "path": "\\\\wsl.localhost\\Ubuntu\\var\\tmp\\xlang-validation\\xge-full-20261110\\list-painters-packages-linux-r1\\results.json",
+        "sha256": "7b7735a0a7607410fa99b4f0cdd7dcffb6d5e34c2a5b207d1fdd5c283137ff3f",
+        "checks": 6
+      },
+      "finalPackages": {
+        "path": "\\\\wsl.localhost\\Ubuntu\\var\\tmp\\xlang-validation\\xge-full-20261110\\list-painters-packages-linux-r2\\results.json",
+        "sha256": "9e012c0ae01290f7c3c23c6f91b6b9797d6cff818444e5ebd883dd41b917d1fc",
+        "checks": 6
+      },
+      "language": {
+        "path": "\\\\wsl.localhost\\Ubuntu\\var\\tmp\\xlang-validation\\xge-full-20261110\\list-painters-language-tests-linux-r1\\results.json",
+        "sha256": "95bada48344e745570ad2028fc839e685e19d47c78a53b57d0f5eb12ff73191b",
+        "checks": 6
+      },
+      "graphics": {
+        "path": "\\\\wsl.localhost\\Ubuntu\\var\\tmp\\xlang-validation\\xge-full-20261110\\list-painters-example-linux-r2\\results.json",
+        "sha256": "51e292ffa250cb005829817c439171ce1df883c195591e3f77d07a66b09eff1c",
+        "checks": 4
+      },
+      "blueSwatchPixels": {
+        "example-jit": 1536,
+        "static-run": 1536
+      },
+      "legacyVirtual": {
+        "checks": 76,
+        "rows": 1000000,
+        "largestAllocation": 0,
+        "linuxClockAdapted": true
+      },
+      "enabledItemsAllocations": {
+        "path": "\\\\wsl.localhost\\Ubuntu\\var\\tmp\\xlang-validation\\xge-full-20261110\\list-painters-bench-linux-r2\\results.json",
+        "sha256": "ca1756640ebab80cd73e348ef312a788206339c2d56c494524d12f4189be0313",
+        "iterations": 1000,
+        "counts": {
+          "xlang": [
+            1000,
+            1000,
+            0
+          ],
+          "native": [
+            1000,
+            1000,
+            0
+          ]
+        }
+      },
+      "languageArtifacts": {
+        "host": {
+          "path": "\\\\wsl.localhost\\Ubuntu\\var\\tmp\\xlang-validation\\xge-full-20261110\\list-painters-language-tests-linux-r1\\host",
+          "sha256": "1ba85661523b5cc09bacdd6adead7531fd51827eda7ce3ee100488b12e7bb1c4",
+          "imports": [
+            "libm.so.6",
+            "libmvec.so.1",
+            "libxge3_host.so",
+            "libc.so.6",
+            "ld-linux-x86-64.so.2"
+          ]
+        },
+        "static": {
+          "path": "\\\\wsl.localhost\\Ubuntu\\var\\tmp\\xlang-validation\\xge-full-20261110\\list-painters-language-tests-linux-r1\\static",
+          "sha256": "6997af58313cb9e4d1e5719cf2026055e6584d914ca1b8becb6f1b79ad7ad590",
+          "imports": [
+            "libm.so.6",
+            "libmvec.so.1",
+            "libX11.so.6",
+            "libXi.so.6",
+            "libXcursor.so.1",
+            "libGL.so.1",
+            "libc.so.6",
+            "ld-linux-x86-64.so.2"
+          ]
+        }
+      }
+    }
+  }
+}
