@@ -1,0 +1,121 @@
+import xui
+
+extern "fixtureDiagnosticBudget" @header("test/cases/foreign_xui_codeedit_diagnostics_heap.h") @no_raise func budget(c_int allowance)
+extern "fixtureDiagnosticHeapBegin" @header("test/cases/foreign_xui_codeedit_diagnostics_heap.h") @no_raise func heapBegin()
+extern "fixtureDiagnosticHeapUnchanged" @header("test/cases/foreign_xui_codeedit_diagnostics_heap.h") @no_raise func heapUnchanged() as c_int
+
+func token(c_int start,c_int endOffset,c_int style) as xui.CodeToken
+ auto value=xui.CodeToken()
+ value.iStartOffset=start
+ value.iEndOffset=endOffset
+ value.iStyle=style
+ value.iKind=xui.XUI_CODE_TOKEN_KEYWORD
+ return value
+end
+
+func checkIndependent()
+ auto buffer=xui.createCodeTokenBuffer()
+ c_uint version=4294967295
+ auto left=token(0,3,xui.XUI_CODE_STYLE_KEYWORD)
+ auto middle=token(2,5,xui.XUI_CODE_STYLE_KEYWORD)
+ auto right=token(5,9,xui.XUI_CODE_STYLE_KEYWORD)
+ buffer.setRange([left,middle,right],-1,version,0,9)
+ auto slice=buffer.captureInRange(version,3,6)
+ auto capturedVersion,start,endOffset=slice.getRange()
+ assert capturedVersion==version and start==3 and endOffset==6
+ auto records=slice.tokens()
+ auto empty=buffer.captureInRange(version,3,3)
+ assert empty.tokens().length==0
+ empty.close()
+ slice.close()
+ buffer.clear()
+ buffer.close()
+ assert records.length==2 and records[0].iStartOffset==2 and records[1].iEndOffset==9
+ int total=0
+ heapBegin()
+ budget(0)
+ try
+  for round in range(1000)
+   for record in records
+    total+=int(record.iEndOffset-record.iStartOffset)
+   end
+  end
+ finally
+  budget(-1)
+ end
+ assert total==7000 and heapUnchanged()!=0
+end
+
+func checkEditor(xui.CodeEdit editor)
+ assert editor.setText("memo release") == xui.XUI_OK
+ auto cache=editor.tokenBuffer()
+ auto version=editor.documentVersion()
+ auto first=token(0,4,xui.XUI_CODE_STYLE_KEYWORD)
+ cache.set([first],-1,version)
+ auto current,start,endOffset=cache.getRange()
+ assert current==version and start==0 and endOffset==12
+ auto old=cache.capture(version)
+ auto oldTokens=old.tokens()
+
+ auto replacement=token(0,4,xui.XUI_CODE_STYLE_COMMENT)
+ bool failed=false
+ budget(0)
+ try
+  cache.set([replacement],-1,version)
+ catch Error
+  failed=true
+ finally
+  budget(-1)
+ end
+ assert failed and cache.getCount()==1
+ cache.set([replacement],-1,version)
+ auto newSnapshot=cache.capture(version)
+ assert newSnapshot.tokens()[0].iStyle==xui.XUI_CODE_STYLE_COMMENT
+ assert oldTokens[0].iStyle==xui.XUI_CODE_STYLE_KEYWORD
+ old.close()
+ newSnapshot.close()
+
+ editor.document().insert(0,"x")
+ failed=false
+ try
+  cache.set([replacement],-1,version)
+ catch Error
+  failed=true
+ end
+ assert failed and cache.getVersion()==version
+ cache.close()
+ auto live=editor.tokenBuffer()
+ auto worker=thread(func() as int
+  try
+   live.capture(version)
+   return 1
+  catch Error
+   return 0
+  end
+ end)
+ assert worker.waitTimeout(30000) and worker.exitCode()==0
+ editor.close()
+ failed=false
+ try
+  live.getCount()
+ catch StateError
+  failed=true
+ end
+ assert failed and oldTokens[0].iStyle==xui.XUI_CODE_STYLE_KEYWORD
+end
+
+func main(...) as int
+ checkIndependent()
+ auto proxy=xui.createProxy()
+ auto ui=xui.create(proxy,xui.XUI_SYSTEM_FONT_DISABLED)
+ auto editor=ui.codeEditNative()
+ assert ui.setRootWidget(editor)==xui.XUI_OK
+ try
+  checkEditor(editor)
+ finally
+  ui.close()
+  proxy.close()
+ end
+ println("XUI_CODEEDIT_TOKEN_SNAPSHOT_OK")
+ return 0
+end

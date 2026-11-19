@@ -1,0 +1,231 @@
+{
+  "complete": true,
+  "passed": true,
+  "releaseInstalled": false,
+  "sourceParent": "f187a05e6ecbc27792bee6d944619ddc4e43dba8",
+  "nativeCommit": "bfdc3eefaf775239212462086fab27b096f57da5",
+  "frozenXrt": "804cc769de3030118c2b46ef7af69543d1b82d9d",
+  "sourceHashesLf": {
+    "docs/xge3-xui3-api-map-storage.json": "504dd241d452b91d2509a8bd2fb562619eba5f5f79b6b00eb6eeffb84968b548",
+    "lib/bindings/_xge_native/include/xge3_runtime.h": "bb122ef0b89012e2ca78d9bef1e4d1ba08c35741f395c5cfea41979f83256119",
+    "lib/bindings/_xge_native/include/xui3_code_token_buffer.h": "49059323499f4872060a0cc0536f33b28e1a625e4db66b5ca1f350d01e8b7d4b",
+    "lib/bindings/_xge_native/src/runtime.c": "ac4c37f22753b4cb01fb6233d6810e70151d15db209deee88a2d29a6fb05aa54",
+    "lib/bindings/xui/examples/README.md": "829549379325cb0f53f26517e0e3feee93b25e8baac6314f439b9bd6f5b79807",
+    "lib/bindings/xui/examples/code_editor_tokens.xl": "4be69c5b4758c5faedd8d8c990af952622024792bf30ff097c48c53fe64d1ba0",
+    "lib/bindings/xui/src/code_token_buffer.xl": "ff97f892653230d14640d75e56c9312ad4c1e8cfbefc2f58ad5513ba236b1cd9",
+    "lib/bindings/xui/src/managed.xl": "e1c6338b3a5236512bece49aefc5173aa181ac19e08c772e9f2a102e8207e4a2",
+    "tools/xui_managed_contracts.py": "1e145147ed4f4c15322ce5d0dec6ad2bebf0af9afd160932d65aa99bb8b38ab4",
+    "test/cases/foreign_xui_codeedit_token_snapshot.xl": "9c3b43d53d699b56e051769acc29e93e33e418833b9c72c8aa2a654d7d497067",
+    "docs/xui-code-tokens.md": "e2d83fdbf2476e0ebe569c9a6491d571f3d4969e424f68925d0259d3ed268cf0"
+  },
+  "nativeHashesLf": {
+    "tests/xui/xui_code_edit_token_snapshot_test.c": "85ae496b604e77d7dfbda230e2a80051297cd43bb9a6f5620a10afa6756cd940",
+    "include/xui.h": "db47763f532cd5763a3a4321e1ff7799d63639cfd55a0901f01af2b721c9ee93",
+    "src/xui/code/xui_code_edit.c": "197fd367f86ff9e291d37f3f5bc5529801560f53a29f88836d0fca8204160d5a",
+    "src/xui/code/xui_code_token_internal.h": "eb183959b9cab7f8ad43d4a2d8552c7059c873f6c9474be1ecb63b71f64205fe",
+    "src/xui/code/xui_code_token_buffer.c": "4bf6400914a898052ee628ca72da579c3fcb0442b29bb5a886477ef5ece2a7ed"
+  },
+  "coverage": [
+    "The observed cache publishes versioned tokens and expires with CodeEdit. Constructor rollback and creator-thread checks are exercised.",
+    "Editor paint consumes published tokens and rejects reentrant cache mutation from a token style callback.",
+    "Whole and slice captures point to the same native token allocation. Both survive cache refill and close.",
+    "Allocation failure before capture or splitting a shared token buffer preserves its previous contents and metadata.",
+    "Legacy native caller-buffer reads, unsigned versions, capacity boundaries and allocation failure prefixes pass at O0 and O2.",
+    "Windows/Linux generated direct calls, JIT, dynamic and static executables, and the bounded GUI example use the same validated package cohort."
+  ],
+  "measurement": {
+    "nativeWarmedWrites": {
+      "iterations": 1000,
+      "allocFreeRealloc": [
+        0,
+        0,
+        0
+      ]
+    },
+    "nativeRepeatedSlices": {
+      "iterations": 1000,
+      "allocFreeRealloc": [
+        1000,
+        1000,
+        0
+      ],
+      "tokenPayloadCopies": 0
+    },
+    "xlangSequence": "1000 complete traversals of an acquired two-element sequence under zero allocation budget; failure injection and XRT alloc/free/realloc checks all pass.",
+    "standalone": "Static builds and execution of the same standalone-cache lesson before and after the change. Files are compared in bytes, excluding package data.",
+    "standaloneStaticBytes": {
+      "win": {
+        "before": 834560,
+        "after": 835072,
+        "delta": 512,
+        "inputs": {
+          "before": {
+            "bytes": 834560,
+            "imageSha256": "9b98fbcdeaf02216047621a9dbf4179af4a196425879c8b1e2820377e8ec0b77",
+            "lessonSha256": "9510d34ef2f04850e926bd44f24cb068a2a00af592a0596fa727e0356e4288b4"
+          },
+          "after": {
+            "bytes": 835072,
+            "imageSha256": "f6806f01e8d6e094faa8db3a2d0d7c6b5a0da195230363a054e98d0c34dc56ac",
+            "lessonSha256": "9510d34ef2f04850e926bd44f24cb068a2a00af592a0596fa727e0356e4288b4"
+          }
+        }
+      },
+      "linux": {
+        "before": 1115120,
+        "after": 1116630,
+        "delta": 1510,
+        "inputs": {
+          "before": {
+            "bytes": 1115120,
+            "imageSha256": "b212e1a52ebd2a1ee7981bcef781869176c30ecb5b653b553af360499f970f3a",
+            "lessonSha256": "9510d34ef2f04850e926bd44f24cb068a2a00af592a0596fa727e0356e4288b4"
+          },
+          "after": {
+            "bytes": 1116630,
+            "imageSha256": "c74088f74b8b30f806bfa5fd267f92e50bc22e72da4654791e00d29414f7c433",
+            "lessonSha256": "9510d34ef2f04850e926bd44f24cb068a2a00af592a0596fa727e0356e4288b4"
+          }
+        }
+      }
+    }
+  },
+  "evidence": {
+    "win": {
+      "nativeSdk": {
+        "path": "F:\\xlang-validation\\xge-full-20261110\\codeedit-token-snapshot-sdk-win-r1\\results.json",
+        "sha256": "4499ba4e4e59116ffbc86c3870505901efe140949c3a7bb09e94f70173fca01f",
+        "checks": 2
+      },
+      "packages": {
+        "path": "F:\\xlang-validation\\xge-full-20261110\\codeedit-token-snapshot-packages-win-r1\\results.json",
+        "sha256": "9897f6977e23fb785958216cb336c88786ef8c586cfaa1f1d3c2f3a5fc3975aa",
+        "checks": 6,
+        "directory": "F:\\xlang-validation\\xge-full-20261110\\codeedit-token-snapshot-packages-win-r1\\packages"
+      },
+      "nativeTests": {
+        "path": "F:\\xlang-validation\\xge-full-20261110\\codeedit-token-snapshot-native-tests-win-r5\\results.json",
+        "sha256": "e60b6b83ad530b132b223c05e40436eb223c10928c602827172c2290c5dc9832",
+        "checks": 8
+      },
+      "language": {
+        "path": "F:\\xlang-validation\\xge-full-20261110\\codeedit-token-snapshot-xlang-win-r1\\results.json",
+        "sha256": "e01ba222cb8dc4c27754e65ad2a3c2f193c5fa2945c13aa68a039ef761b2f8b0",
+        "checks": 12,
+        "programs": {
+          "dynamic.exe": {
+            "sha256": "2f92778f9e78ef56bcfe6bef2469f4f9402dd44d6a77139698ff81475e875320",
+            "imports": [
+              "msvcrt.dll",
+              "xge3_host.dll",
+              "kernel32.dll",
+              "SHELL32.dll",
+              "ws2_32.dll",
+              "IPHLPAPI.dll",
+              "ucrtbase.dll"
+            ]
+          },
+          "static.exe": {
+            "sha256": "496425a4b458dd29299759bb85255d31b224be3a0178ca90fdfa3717c32b6b06",
+            "imports": [
+              "msvcrt.dll",
+              "kernel32.dll",
+              "USER32.dll",
+              "ole32.dll",
+              "OLEAUT32.dll",
+              "SHELL32.dll",
+              "GDI32.dll",
+              "IMM32.dll",
+              "DWrite.dll"
+            ]
+          },
+          "lesson.exe": {
+            "sha256": "92fdd7a17b9809713db759764c47d20d48071415f8561404b3f61fab9a37b799",
+            "imports": [
+              "msvcrt.dll",
+              "kernel32.dll",
+              "USER32.dll",
+              "GDI32.dll",
+              "ole32.dll",
+              "OLEAUT32.dll",
+              "SHELL32.dll",
+              "IMM32.dll",
+              "DWrite.dll"
+            ]
+          }
+        },
+        "generatedCodeSha256": "cfbb047c77a4d57f656f1ebbd4d561d34e5db99fb239e13a4a279cbfde109473"
+      },
+      "standaloneProgramSize": {
+        "path": "F:\\xlang-validation\\xge-full-20261110\\codeedit-token-snapshot-static-size-win-r1\\results.json",
+        "sha256": "e243955c3ca451c5165035e986a356d7cc9499f5c6341a929d3a1cdd8e821dab"
+      }
+    },
+    "linux": {
+      "nativeSdk": {
+        "path": "\\\\wsl.localhost\\Ubuntu\\var\\tmp\\xlang-validation\\xge-full-20261110\\codeedit-token-snapshot-sdk-linux-r1\\results.json",
+        "sha256": "8b99f6999cbb8c45d6c4d3c17e2ee15295d185889e108a2327dd06ccee69a0a5",
+        "checks": 2
+      },
+      "packages": {
+        "path": "\\\\wsl.localhost\\Ubuntu\\var\\tmp\\xlang-validation\\xge-full-20261110\\codeedit-token-snapshot-packages-linux-r1\\results.json",
+        "sha256": "37b4965f4961ee8a3ebe8cc057c0733947d651558b33cbac7a6733c4c05ba98f",
+        "checks": 6,
+        "directory": "/var/tmp/xlang-validation/xge-full-20261110/codeedit-token-snapshot-packages-linux-r1/packages"
+      },
+      "nativeTests": {
+        "path": "\\\\wsl.localhost\\Ubuntu\\var\\tmp\\xlang-validation\\xge-full-20261110\\codeedit-token-snapshot-native-tests-linux-r5\\results.json",
+        "sha256": "1d641fc774826d5e51f193e3ca06332d3e6c096989c344bfc69ebaf04f9c7aff",
+        "checks": 8
+      },
+      "language": {
+        "path": "\\\\wsl.localhost\\Ubuntu\\var\\tmp\\xlang-validation\\xge-full-20261110\\codeedit-token-snapshot-xlang-linux-r1\\results.json",
+        "sha256": "ebc0f3621fa7fa732dda32ba4833ce8e92d94ae828795a63d068d699220c17b3",
+        "checks": 12,
+        "programs": {
+          "dynamic": {
+            "sha256": "2ac36e58771b1da79389b28820e2581d01d662b89a29a7a87731fbea772633a7",
+            "imports": [
+              "libm.so.6",
+              "libmvec.so.1",
+              "libxge3_host.so",
+              "libc.so.6",
+              "ld-linux-x86-64.so.2"
+            ]
+          },
+          "static": {
+            "sha256": "363ea9499f26e618882822ee9c422bddf177856a1c64fa921f78e5a96715d2f3",
+            "imports": [
+              "libm.so.6",
+              "libmvec.so.1",
+              "libX11.so.6",
+              "libXi.so.6",
+              "libXcursor.so.1",
+              "libGL.so.1",
+              "libc.so.6",
+              "ld-linux-x86-64.so.2"
+            ]
+          },
+          "lesson": {
+            "sha256": "c681dab04a9f2b1b1fc31e87a1dd740fbed9016ba1481db85e3895056a67e87b",
+            "imports": [
+              "libm.so.6",
+              "libmvec.so.1",
+              "libX11.so.6",
+              "libXi.so.6",
+              "libXcursor.so.1",
+              "libGL.so.1",
+              "libc.so.6",
+              "ld-linux-x86-64.so.2"
+            ]
+          }
+        },
+        "generatedCodeSha256": "cfbb047c77a4d57f656f1ebbd4d561d34e5db99fb239e13a4a279cbfde109473"
+      },
+      "standaloneProgramSize": {
+        "path": "\\\\wsl.localhost\\Ubuntu\\var\\tmp\\xlang-validation\\xge-full-20261110\\codeedit-token-snapshot-static-size-linux-r1\\results.json",
+        "sha256": "594d3b60d175b83defea2bebf03e5fbeddf0f05e468e7b684133c850673e1ef1"
+      }
+    }
+  }
+}

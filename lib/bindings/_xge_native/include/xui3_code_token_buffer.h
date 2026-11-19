@@ -12,4 +12,13 @@ static inline const XL6_ForeignViewDescriptorV1* xl6Xui3CodeTokenBufferPolicyGet
  return &value;
 }
 #define xl6Xui3CodeTokenBufferPolicy (*xl6Xui3CodeTokenBufferPolicyGet())
+static inline bool xl6Xui3CodeTokenSnapshotDestroy(void* raw)
+{xuiCodeTokenSnapshotDestroy((xui_code_token_snapshot)raw);return true;}
+static inline const XL6_ForeignViewDescriptorV1* xl6Xui3CodeTokenSnapshotPolicyGet(void)
+{
+ static const XL6_ForeignViewDescriptorV1 value={sizeof(value),XL6_FOREIGN_VIEW_V1_TAG,"xui.codeTokenSnapshot",
+  0,1,NULL,NULL,xl6Xui3CodeTokenSnapshotDestroy,0,1,NULL,NULL,NULL,NULL,0,NULL,NULL};
+ return &value;
+}
+#define xl6Xui3CodeTokenSnapshotPolicy (*xl6Xui3CodeTokenSnapshotPolicyGet())
 #endif

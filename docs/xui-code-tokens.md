@@ -14,10 +14,9 @@ lifetime as `CodeFoldState`. Close in `finally`.
 | `getCount()` | `xuiCodeTokenBufferGetCount` |
 | `clear()` | `xuiCodeTokenBufferClear` |
 
-The factory and owner destruction call native Create/Destroy. This exposes
-eight of ten native public functions; bulk `GetTokens` and `GetTokensInRange`
-remain pending the general typed writable-output contract. CodeEdit's internal
-token cache is not made an independent owner or an untracked borrowed alias.
+The factory and owner destruction call native Create/Destroy. Native C still
+offers the caller-buffer operations `GetTokens` and `GetTokensInRange`. The
+owned captures below expose the same selections in xlang.
 
 Write parameters preserve native array/count/version/range order. The existing
 array projection contract requires count immediately after its column. Use
@@ -55,9 +54,8 @@ Cold compiler/package work and CPU-time equality are not measured.
 
 Exact runner, sources, SDK reuse, heap counters and unreferenced-declaration
 size comparison are indexed in
-`dev/release-materials/provenance/xui-code-tokens-20261114.json`. This cache batch
-does not certify bulk output, internal-model aliases, callback-cycle retirement
-or the full XGE/XUI/Document goal. It does not install runtime/IDE/help files.
+`dev/release-materials/provenance/xui-code-tokens-20261114.json` for the
+original standalone-cache batch.
 
 Measured prepared metadata reads make 3000 native calls per language/C sample
 with zero XRT alloc/free/realloc; the language loop succeeds under allocation
@@ -101,3 +99,29 @@ xlang 2.34 µs。每轮两条路径均有 180 次分配、180 次释放和 0 次
 运行 [CodeEdit 前景样式范例](../lib/bindings/xui/examples/code_token_style.xl)，
 可以看到 `42` 和 `3` 使用关键字的前景色。
 [验收记录](../dev/release-materials/provenance/xui-codeedit-token-style-20261119.json)。
+
+## 实时缓存与只读快照
+
+`editor.tokenBuffer()` 取得编辑器实际使用的缓存。用
+`editor.documentVersion()` 获取发布所需的当前版本。版本过期或范围超出
+文档字节长度时，发布会抛出 checked 错误并保留旧缓存。编辑器优先使用覆盖
+当前渲染范围的同版本缓存，缺少覆盖时按已选语言重新生成。关闭缓存视图会
+保留编辑器里的缓存，关闭编辑器会使视图失效。
+
+`capture(version)` 读取已缓存的全部 token。
+`captureInRange(version, start, endOffset)` 选择与半开字节范围相交的
+token，保留原始位置。请求的版本和范围必须已缓存。空区间返回空序列。
+快照的 `getRange()` 返回版本和此次选取的字节范围。
+
+在快照上调用 `tokens()` 取得 `NativeSequence<CodeToken>`。序列保留
+快照的原生引用，关闭快照、清空缓存或关闭编辑器后仍可遍历。捕获和切片
+共享同一块只读记录。后续非空发布如遇已共享存储，只将本次输入写入新块，
+原快照保留旧块。缓存独占且容量足够时直接复用。新的原生快照分配一个小
+描述符，xlang 获取序列时还会登记拥有关系。
+
+Windows 和 Linux 的原生测试均确认，预热后 1,000 次同容量发布产生
+0 次堆分配，1,000 次区间捕获产生 1,000 次描述符分配和释放。xlang 在
+零分配预算下完成 1,000 轮已取得序列的遍历。快照、发布和遍历分开计量。
+
+[编辑器 token 范例](../lib/bindings/xui/examples/code_editor_tokens.xl) ·
+[快照验收记录](../dev/release-materials/provenance/xui-codeedit-token-snapshot-20261120.json)

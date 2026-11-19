@@ -7,7 +7,33 @@ export extern "xui_code_token_buffer" class CodeTokenBuffer @header("xui3_code_t
  extern "xuiCodeTokenBufferGetVersion" @no_raise @c_output(1,0) func getVersion() as c_uint
  extern "xuiCodeTokenBufferGetRange" @no_raise @c_outputs(1,2,3) @c_status(0) func getRange() as (c_uint,c_int,c_int)
  extern "xuiCodeTokenBufferGetCount" @no_raise func getCount() as c_int
+ extern "xuiCodeTokenBufferCapture" @no_raise @c_result("owned_view") @factory(2,0,releaseCodeTokenSnapshot) func capture(c_uint textVersion) as CodeTokenSnapshot
+ extern "xuiCodeTokenBufferCaptureInRange" @no_raise @c_result("owned_view") @factory(4,0,releaseCodeTokenSnapshot) func captureInRange(c_uint textVersion,c_int start,c_int endOffset) as CodeTokenSnapshot
  extern "xl6ForeignViewCloseV1" @no_raise @c_control(0) @c_result("bool_status") func close()
 end
 extern "xuiCodeTokenBufferDestroy" @header("xui3_code_token_buffer.h") @no_raise func rollbackCodeTokenBuffer(CodeTokenBuffer buffer)
 export extern "xuiCodeTokenBufferCreate" @header("xui3_code_token_buffer.h") @no_raise @c_result("owned_view") @factory(0,0,rollbackCodeTokenBuffer) func createCodeTokenBuffer() as CodeTokenBuffer
+
+// Immutable view of a token generation, optionally narrowed by byte range.
+export extern "struct xui_code_token_snapshot_t*" class CodeTokenSnapshot @header("xui3_code_token_buffer.h") @lifetime("owned") @policy("xl6Xui3CodeTokenSnapshotPolicy")
+ native point handle
+ extern "xuiCodeTokenSnapshotGetRange" @no_raise @c_const(0) @c_outputs(1,2,3) @c_status(0) func getRange() as (c_uint,c_int,c_int)
+ extern "xuiCodeTokenSnapshotGetTokens" @no_raise @c_const(0) @c_owned_sequence(1,2,0,"size_t",0) @c_retain(retainCodeTokenSnapshot,"zero",releaseCodeTokenSnapshot) func tokens() as NativeSequence<CodeToken>
+ extern "xl6ForeignViewCloseV1" @no_raise @c_control(0) @c_result("bool_status") func close()
+end
+extern "xuiCodeTokenSnapshotAddRef" @header("xui3_code_token_buffer.h") @no_raise func retainCodeTokenSnapshot(CodeTokenSnapshot snapshot) as c_int
+extern "xuiCodeTokenSnapshotDestroy" @header("xui3_code_token_buffer.h") @no_raise func releaseCodeTokenSnapshot(CodeTokenSnapshot snapshot)
+
+// The editor holds this cache. Publishing uses the current document version.
+export extern "xui_code_token_buffer" class CodeEditTokenBuffer @header("xui3_code_token_buffer.h") @lifetime("owner") @owner(Context) @policy("xl6Xui3CodeEditTokenBufferPolicy") @watch("xui_lifetime_link_t")
+ native point handle
+ extern "xuiCodeTokenBufferClearChecked" @no_raise @c_result("status",0) func clear()
+ extern "xuiCodeTokenBufferSet" @no_raise @c_array_group(1,0,1,"int",1) @c_array_input(1,0,"const xui_code_token_t*","value") @c_result("status",0) func set(array<CodeToken> tokens,int size,c_uint textVersion)
+ extern "xuiCodeTokenBufferSetRange" @no_raise @c_array_group(1,0,1,"int",1) @c_array_input(1,0,"const xui_code_token_t*","value") @c_result("status",0) func setRange(array<CodeToken> tokens,int size,c_uint textVersion,c_int start,c_int endOffset)
+ extern "xuiCodeTokenBufferGetVersion" @no_raise @c_output(1,0) func getVersion() as c_uint
+ extern "xuiCodeTokenBufferGetRange" @no_raise @c_outputs(1,2,3) @c_status(0) func getRange() as (c_uint,c_int,c_int)
+ extern "xuiCodeTokenBufferGetCount" @no_raise func getCount() as c_int
+ extern "xuiCodeTokenBufferCapture" @no_raise @c_result("owned_view") @factory(2,0,releaseCodeTokenSnapshot) func capture(c_uint textVersion) as CodeTokenSnapshot
+ extern "xuiCodeTokenBufferCaptureInRange" @no_raise @c_result("owned_view") @factory(4,0,releaseCodeTokenSnapshot) func captureInRange(c_uint textVersion,c_int start,c_int endOffset) as CodeTokenSnapshot
+ extern "xl6ForeignViewCloseV1" @no_raise @c_control(0) @c_result("bool_status") func close()
+end

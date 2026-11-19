@@ -776,6 +776,21 @@ const XL6_ForeignViewDescriptorV1* xl6Xui3CodeEditAnnotationsPolicyGet(void)
     };
     return &value;
 }
+static bool watch_code_edit_token_buffer(void* raw, void* storage, void (*invalidate)(void*), void* user)
+{
+    int status = xuiCodeTokenBufferEditorLifetimeWatch(raw, storage, invalidate, user);
+    if (status != XUI_OK) report_resource_failure(status, "xuiCodeTokenBufferEditorLifetimeWatch");
+    return status == XUI_OK;
+}
+const XL6_ForeignViewDescriptorV1* xl6Xui3CodeEditTokenBufferPolicyGet(void)
+{
+    static const XL6_ForeignViewDescriptorV1 value = {
+        sizeof(value), XL6_FOREIGN_VIEW_V1_TAG, "xui.codeEdit.tokenBuffer",
+        sizeof(xui_lifetime_link_t), _Alignof(xui_lifetime_link_t),
+        watch_code_edit_token_buffer, unwatch, NULL, 0, 1, NULL, NULL, NULL, NULL, 0, NULL, NULL
+    };
+    return &value;
+}
 #else
 const XL6_ForeignViewDescriptorV1* xl6Xui3CodeEditDocumentViewPolicyGet(void){return NULL;}
 const XL6_ForeignViewDescriptorV1* xl6Xui3CodeEditSelectionViewPolicyGet(void){return NULL;}
@@ -785,6 +800,7 @@ const XL6_ForeignViewDescriptorV1* xl6Xui3CodeEditFoldStatePolicyGet(void){retur
 const XL6_ForeignViewDescriptorV1* xl6Xui3CodeLanguageRegistryPolicyGet(void){return NULL;}
 const XL6_ForeignViewDescriptorV1* xl6Xui3CodeEditLanguageRegistryPolicyGet(void){return NULL;}
 const XL6_ForeignViewDescriptorV1* xl6Xui3CodeEditAnnotationsPolicyGet(void){return NULL;}
+const XL6_ForeignViewDescriptorV1* xl6Xui3CodeEditTokenBufferPolicyGet(void){return NULL;}
 const XL6_ForeignViewDescriptorV1* xl6Xui3CodeEditMarginsPolicyGet(void){return NULL;}
 const XL6_ForeignViewDescriptorV1* xl6Xui3CodeMarginPolicyGet(void){return NULL;}
 #endif

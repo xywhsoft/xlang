@@ -198,6 +198,7 @@ WebView 范例只加载源码中的本地 HTML。它需要启用 WebView2 的 Wi
 | [code_editor_folding.xl](code_editor_folding.xl) | 在 CodeEdit 中折叠代码块，点击折叠栏展开。 |
 | [code_editor_language.xl](code_editor_language.xl) | 注册 Notes 语言的正则高亮规则，用关键字样式显示标题。 |
 | [code_editor_annotations.xl](code_editor_annotations.xl) | 在编辑器中添加书签并高亮 TODO，读取书签提示。 |
+| [code_editor_tokens.xl](code_editor_tokens.xl) | 为当前文本发布高亮 token，遍历保留的只读序列。 |
 | [code_editor_commands.xl](code_editor_commands.xl) | 在编辑器中按 Ctrl+F2，调用自定义命令并追加一行文本。 |
 | [code_editing.xl](code_editing.xl) | 替换选中的 world、缩进、撤销并切换行注释；使用原生选区和撤销组。 |
 | [workflow_callbacks.xl](workflow_callbacks.xl) | 根据配置添加预览端口，并打印端口名称。 |
