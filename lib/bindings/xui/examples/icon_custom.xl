@@ -4,9 +4,12 @@ from "./_window.xl" import Window
 
 Window.show("自绘图标",func(xui.Context ui,xui.Widget root)
  auto category=xui.createIconCategory(ui,"custom",xui.iconCategoryDescDefault())
+ auto triangle=category.addSvgPath("三角形","M0 16 L8 0 L16 16 Z",Window.rect(0,0,16,16))
+ auto drawing=xui.iconDrawDescDefault()
  auto icon=category.addCustom("蓝色方块",func(xui.CallbackIcon selected,xui.CallbackPainter painter,xui.Rect box,xui.CallbackIconDrawDesc? style) as c_int
   painter.fillRect(box,0x3388EEFF)
   painter.strokeRect(box,1,0xFFFFFFFF)
+  painter.drawIcon(triangle,box,drawing)
   return 0
  end)
 

@@ -15,6 +15,9 @@ export extern "xui_painter_t*" class CallbackPainter @header("xge3_runtime.h") @
  extern "xuiPainterFillRect" @no_raise @c_result("status",0) func fillRect(Rect rectangle,c_uint color=0xFFFFFFFF)
  extern "xuiPainterStrokeRect" @no_raise @c_result("status",0) func strokeRect(Rect rectangle,c_float width=1,c_uint color=0xFFFFFFFF)
  extern "xuiPainterDrawVectorIcon" @no_raise @c_cstr(0) @c_result("status",0) func drawVectorIcon(string name,Rect rectangle,c_uint color=0xFFFFFFFF)
+ extern "xuiIconDraw" @no_raise @c_ref(2) @c_result("status",0) func drawIcon(Icon icon,Rect rectangle,IconDrawDesc description)
+ extern "xuiIconDrawByName" @no_raise @c_cstr(1) @c_ref(3) @c_result("status",0) func drawIconByName(IconCategory category,string name,Rect rectangle,IconDrawDesc description)
+ extern "xuiIconDrawById" @no_raise @c_ref(3) @c_result("status",0) func drawIconById(IconCategory category,c_uint id,Rect rectangle,IconDrawDesc description)
  extern "xuiPainterDrawText" @no_raise @c_cstr(1) @c_result("status",0) func drawText(Font font,string text,Rect rectangle,c_uint color=0xFFFFFFFF,c_uint flags=0)
  extern "xuiPainterDrawNinePatch" @no_raise @c_result("status",0) func drawNinePatch(Surface surface,Rect source,Rect target,Thickness slices,c_uint color=0xFFFFFFFF,c_uint flags=0)
 end

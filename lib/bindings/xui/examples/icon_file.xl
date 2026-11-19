@@ -1,8 +1,8 @@
-// 两种文件图标：SVG 圆形与 PNG 方形。图片在第一次绘制时才加载。
+// 文件图标按需加载，也可以复用已经加载的 Surface。
 import xui
 from "./_window.xl" import Window
 
-Window.show("从文件加载图标",func(xui.Context ui,xui.Widget root)
+Window.showWithProxy("从文件加载图标",func(xui.Context ui,xui.Widget root,xui.Proxy proxy)
  auto category=xui.createIconCategory(ui,"files",xui.iconCategoryDescDefault())
  category.beginUpdate()
  try
@@ -12,8 +12,13 @@ Window.show("从文件加载图标",func(xui.Context ui,xui.Widget root)
   category.endUpdate()
  end
 
+ auto surface=proxy.loadSurface(Window.asset("icon_file.png"))
+ auto shared=category.addSurface("共享位图",surface,xui.Rect())
+ surface.close()
+
  auto picker=xui.createIconPicker(ui)
  picker.setCategory(category)
+ picker.setSelectedId(shared.id)
  picker.setTextMode(xui.XUI_ICON_PICKER_TEXT_DISPLAY_NAME)
  Window.place(root,picker,24,24,260,48)
 end)

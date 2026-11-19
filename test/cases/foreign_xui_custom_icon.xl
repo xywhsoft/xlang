@@ -113,6 +113,32 @@ func painterMethods()
     auto root=context.widget()
     assert root.setRect(rectangle(0,0,640,480))==0 and context.setRootWidget(root)==0
     auto category=xui.createIconCategory(context,"custom",xui.iconCategoryDescDefault())
+    auto sharedImage=cpuSurface(proxy)
+    auto surfaceIcon=category.addSurface("surface",sharedImage,rectangle(0,0,16,16))
+    assert surfaceIcon.sourceType==xui.XUI_ICON_SOURCE_SURFACE
+    auto transient=category.addSurface("transient",sharedImage,rectangle(0,0,16,16))
+    category.removeById(transient.id)
+    assert proxy.surfaceDesc(sharedImage).iWidth==640
+    sharedImage.close()
+    assert surfaceIcon.intrinsicSize().fX==16
+    bool wrongProxy=false
+    try
+        auto invalid=category.addSurface("wrong-proxy",foreignImage,rectangle(0,0,16,16))
+    catch error
+        wrongProxy=true
+    end
+    assert wrongProxy and category.find("wrong-proxy")==null
+    auto otherContext=xui.create(foreignProxy,xui.XUI_SYSTEM_FONT_DISABLED)
+    auto otherCategory=xui.createIconCategory(otherContext,"other",xui.iconCategoryDescDefault())
+    auto foreignIcon=otherCategory.addSvgPath("foreign","M0 0 H16 V16 H0 Z",rectangle(0,0,16,16))
+    auto paint=xui.iconDrawDescDefault()
+    paint.iColor=0xFFA1B2C3
+    int iconDraws=0
+    auto marker=category.addCustom("marker",func(CallbackIcon source,CallbackPainter painter,xui.Rect rect,CallbackIconDrawDesc? style) as c_int
+        assert rect.fW>0 and (style as CallbackIconDrawDesc).color==0xFFA1B2C3
+        iconDraws+=1
+        return 0
+    end)
     string vectorName=xui.vectorIconGetName(0) as string
     auto icon=category.addCustom("custom",func(CallbackIcon selected,CallbackPainter painter,xui.Rect rect,CallbackIconDrawDesc? style) as c_int
         draws+=1
@@ -144,6 +170,10 @@ func painterMethods()
         slices.fBottom=4
         painter.drawNinePatch(image,box,box,slices)
         verifyDraw()
+        painter.drawIcon(marker,box,paint)
+        painter.drawIconByName(category,"marker",box,paint)
+        painter.drawIconById(category,marker.id,box,paint)
+        painter.drawIcon(surfaceIcon,box,paint)
         proxy.drawPoint(savedDraw as CallbackDrawContext,1,1,1,0xFFFFFFFF)
         int rejected=0
         try
@@ -166,7 +196,17 @@ func painterMethods()
         catch error
             rejected+=1
         end
-        assert rejected==4
+        try
+            painter.drawIcon(foreignIcon,box,paint)
+        catch error
+            rejected+=1
+        end
+        try
+            painter.drawIconByName(category,"missing",box,paint)
+        catch error
+            rejected+=1
+        end
+        assert rejected==6
         return 0
     end,func(CallbackIcon selected,CallbackVec2 size) as c_int
         measures+=1
@@ -191,8 +231,17 @@ func painterMethods()
     assert context.layout()==0 and context.update(0.016)==0
     context.render(target)
     assert measures>0 and prepares==1 and draws==1
+    assert iconDraws==3
+    bool expired=false
+    try
+        (savedPainter as CallbackPainter).drawIcon(marker,rectangle(0,0,16,16),paint)
+    catch error
+        expired=true
+    end
+    assert expired and iconDraws==3
     expireChecks(proxy)
     context.close()
+    otherContext.close()
     assert destroys==1 and destroyedName=="custom"
     path.close()
     target.close()
@@ -203,6 +252,7 @@ func painterMethods()
     foreignProxy.close()
     proxy.close()
     assert balanced()==1
+    println("Icon registry drawing and shared Surface ownership passed")
 end
 
 int scenarioCalls=0

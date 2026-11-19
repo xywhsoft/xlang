@@ -22,6 +22,42 @@ func main(...) as int
     assert icon.name=="triangle"
     assert icon.displayName=="triangle"
     assert icon.tags==null
+    budget(0)
+    heapBegin()
+    icon.setMetadata()
+    assert heapUnchanged()==1
+    budget(-1)
+    icon.setMetadata("三角形","绘图 三角形")
+    assert icon.name=="triangle" and icon.displayName=="三角形" and (icon.tags as string)=="绘图 三角形"
+    string label=icon.displayName
+    auto generation=icon.generation
+    string? newLabel="Updated"
+    string? newTags="New tags"
+    c_int metadataAllowance=0
+    while metadataAllowance<2
+        bool rejected=false
+        budget(metadataAllowance)
+        try
+            icon.setMetadata(newLabel,newTags)
+        catch error
+            rejected=true
+        end
+        budget(-1)
+        assert rejected and icon.generation==generation
+        assert icon.displayName=="三角形" and (icon.tags as string)=="绘图 三角形"
+        metadataAllowance+=1
+    end
+    icon.setMetadata("","")
+    assert icon.displayName=="" and (icon.tags as string)==""
+    bool embeddedNul=false
+    try
+        icon.setMetadata("new\0label")
+    catch error
+        embeddedNul=true
+    end
+    assert embeddedNul and icon.displayName==""
+    icon.setMetadata()
+    assert icon.displayName=="triangle" and icon.tags==null and label=="三角形"
     auto alias=category.addAlias("copy",icon)
     assert category.count==2
     assert (category.find("triangle") as IconModel).id==icon.id
@@ -30,6 +66,21 @@ func main(...) as int
     assert category.iconAt(-1)==null
     assert (category.iconAt(0) as IconModel).id==icon.id
     assert category.iconAt(2)==null
+    auto byName=category.addAlias("remove-name",icon)
+    auto namedId=byName.id
+    category.remove("remove-name")
+    assert category.findById(namedId)==null
+    auto byId=category.addAlias("remove-id",icon)
+    auto removedId=byId.id
+    category.removeById(removedId)
+    assert category.findById(removedId)==null and category.count==2
+    bool removed=false
+    try
+        auto retired=byId.id
+    catch error
+        removed=true
+    end
+    assert removed
     assert category.description().fWidth==description.fWidth
     assert (xui.findIconCategory(context,"tools") as IconCategoryModel).name=="tools"
     assert (xui.iconCategoryAt(context,0) as IconCategoryModel).name=="tools"

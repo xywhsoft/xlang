@@ -1,0 +1,91 @@
+{
+  "complete": true,
+  "passed": true,
+  "releaseInstalled": false,
+  "shippingDelivery": false,
+  "xlangParent": "69515e2b0f6062fa4a954c118ead2afa13bd87e9",
+  "nativeCommit": "86d3a42c1072a70dc024ef8cf96ba1996e6acc61",
+  "frozenXrt": "804cc769de3030118c2b46ef7af69543d1b82d9d",
+  "scope": [
+    "Icon metadata: nullable labels and tags, native copies, embedded NUL rejection, atomic failure and cached label lifetime.",
+    "Removal by name or ID, view expiry and alias retention.",
+    "Callback Painter: checked Icon drawing by handle, name and ID, foreign Context rejection and epoch expiry.",
+    "Shared Surface registration: retain one independent reference, reject foreign Proxy and unmanaged Context, preserve legacy transfer."
+  ],
+  "costs": "The generated calls target the native operations directly. Managed admission and callback epoch checks still run. Input C strings require a NUL scan. Native metadata updates allocate and copy non-null strings only when the metadata changes. Native Surface registration acquires a real reference and creates a registry entry.",
+  "sources": {
+    "docs/xge3-xui3-api-map-storage.json": "0e67e4eccdc1212aa41895d6f04f00c78975242657fd8107505a95d1754e9d33",
+    "lib/bindings/xui/src/icons.xl": "8e2e4ac1dded30f2fa55a45e2830fdd76d09d789e24cdb94772518ab12891996",
+    "lib/bindings/xui/src/painter.xl": "8b13b8685911d4343c251308574554ac25a4e312654f7ed2bed9cc32fe06f473",
+    "lib/bindings/xui/examples/icon_picker.xl": "d1b78ab93b0b8cb00b66b9f97bb5c4ce4f46b15142554cdfd7a7566e8a4a26e8",
+    "lib/bindings/xui/examples/icon_custom.xl": "f867842a5fcf8063d81bc7ec6faff4d8dcfe1a2927162bf0ee289ebb808f9ddc",
+    "lib/bindings/xui/examples/icon_file.xl": "4a2898b0b593ba0093f7002fb8e6e1a40589543114241d78ed23421e95d474ad",
+    "test/cases/foreign_xui_icon_models.xl": "f8b7ef06f033d66790f2183b0a4b38c36506d93524515c0137f458e5817d2558",
+    "test/cases/foreign_xui_custom_icon.xl": "3d20c28dc59e8053db7f248c906fd6c9f45408957751924c00d390e958b51f83"
+  },
+  "platforms": {
+    "win": {
+      "nativeBuild": {
+        "path": "F:\\xlang-validation\\xge-full-20261110\\xui-surface-shared-sdk-win-r1\\results.json",
+        "sha256": "b4c345346596197b35193195f6e63624db999fa72d5e2be5fe49520bb14d0980",
+        "commands": 2
+      },
+      "nativeFixture": {
+        "path": "F:\\xlang-validation\\xge-full-20261110\\xui-surface-shared-native-tests-win-r3\\results.json",
+        "sha256": "7574dbdd9bea90cab4b196861fe3112eec8cc5df86f288bd5cb195b6e0f27ccf",
+        "commands": 4
+      },
+      "packageReview": {
+        "path": "F:\\xlang-validation\\xge-full-20261110\\xui-icon-operations-packages-win-r3\\results.json",
+        "sha256": "449f32fca7228524e58a280f74eb7192648300717b02d16dded49b0a785f4424",
+        "commands": 6
+      },
+      "iconModels": {
+        "path": "F:\\xlang-validation\\xge-full-20261110\\xui-icon-operations-tests-win-r8\\results.json",
+        "sha256": "d5f0bcf4090aceecf1865145805e912520c1ef8bcbd4e766ebbc0d8a474f11fc",
+        "commands": 11
+      },
+      "renderingAndExamples": {
+        "path": "F:\\xlang-validation\\xge-full-20261110\\xui-icon-operations-tests-win-r7\\results.json",
+        "sha256": "0deb2e429525663436165122648745d877f0b9b89d5130a9c8e1f31e7b2183eb",
+        "commands": 20
+      },
+      "preexistingFullSurfaceSuiteFailure": {
+        "path": "F:\\xlang-validation\\xge-full-20261110\\xui-surface-baseline-tests-win-r1\\O0-run.log",
+        "sha256": "9d57fd06ddadb5fe429958cdcac995f6e771f83037ced8e96098b9b7e6a40b65"
+      }
+    },
+    "linux": {
+      "nativeBuild": {
+        "path": "/var/tmp/xlang-validation/xge-full-20261110/xui-surface-shared-sdk-linux-r1/results.json",
+        "sha256": "f49dec093b7bdfea884ab9d89e8a31c384490dd3ab02a3782cbf0802a4f97cd1",
+        "commands": 2
+      },
+      "nativeFixture": {
+        "path": "/var/tmp/xlang-validation/xge-full-20261110/xui-surface-shared-native-tests-linux-r3/results.json",
+        "sha256": "72f2b067c0d28ff5a2c6aae707384d6e0aa286b4fb94eeded9d337a3e9f4fc03",
+        "commands": 4
+      },
+      "packageReview": {
+        "path": "/var/tmp/xlang-validation/xge-full-20261110/xui-icon-operations-packages-linux-r3/results.json",
+        "sha256": "bd9809af82f0b739fe53b640beaad5017393056118a12a7b5caba062fd4cf259",
+        "commands": 6
+      },
+      "iconModels": {
+        "path": "/var/tmp/xlang-validation/xge-full-20261110/xui-icon-operations-tests-linux-r8/results.json",
+        "sha256": "5f6f6d16eaa22ea39e50521875c6b31397a527cc04c70b9faf12c193704dd067",
+        "commands": 11
+      },
+      "renderingAndExamples": {
+        "path": "/var/tmp/xlang-validation/xge-full-20261110/xui-icon-operations-tests-linux-r7/results.json",
+        "sha256": "e60ccc795d0ae77739cc55a071d27e2aa38045a0306587b29f5e1e3d4b2c2969",
+        "commands": 20
+      },
+      "preexistingFullSurfaceSuiteFailure": {
+        "path": "/var/tmp/xlang-validation/xge-full-20261110/xui-surface-baseline-tests-linux-r1/O0-run.log",
+        "sha256": "24018ee0a20b90a9dc5470f0115b34057eb2dd5effebedacaa3e377799936f87"
+      }
+    }
+  },
+  "acceptanceNote": "The full native Surface fixture stops while initializing Button with XUI_ERROR_INVALID_ARGUMENT in both the parent SDK and the candidate SDK. The scoped Icon case ran at GCC O0/O2 on both platforms and passed 16 allocation-failure budgets in each run."
+}
