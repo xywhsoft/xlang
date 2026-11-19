@@ -1,0 +1,20 @@
+import xui
+from "./_window.xl" import Window
+
+Window.show("CodeEdit pointer hover",func(xui.Context ui,xui.Widget root)
+ auto editor=ui.codeEditNative()
+ Window.place(root,editor,24,24,560,160)
+ assert editor.setText("length") == xui.XUI_OK
+
+ // The provider receives a UTF-8 byte offset. Use a range to anchor the hint.
+ editor.setHoverProvider(func(xui.CallbackWidget widget,c_int offset,xui.CodeHoverReply reply) as c_int
+  if offset>=6 then return xui.XUI_ERROR_NOT_FOUND end
+  xui.CodeRange word
+  word.iStart=0
+  word.iEnd=6
+  reply.set(word,"length is the number of items.")
+  return xui.XUI_OK
+ end)
+ editor.setHoverOptions(true)
+ println("Hover over length to see its description")
+end)

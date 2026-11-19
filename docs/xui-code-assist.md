@@ -39,6 +39,20 @@
 [同步补全示例](../lib/bindings/xui/examples/code_providers.xl) 注册两个候选，
 可用键盘或鼠标选择。
 
+## 鼠标停留提示
+
+`setHoverOptions(true)` 开启自动提示，默认等待 0.35 秒。延时可以配置，
+0 表示下一次更新时查询。提供器收到鼠标下文本簇的 UTF-8 字节偏移，
+可以返回 `XUI_ERROR_NOT_FOUND` 跳过。已有诊断、补全和签名提示优先显示。
+移动、离开、滚动、编辑或开始输入法组合会取消当前请求。提供器可以
+在回调中关闭编辑器或禁用悬停，已失效的结果会被丢弃。
+提供器仍由界面更新在 UI 线程同步调用。
+
+[悬停示例](../lib/bindings/xui/examples/code_pointer_hover.xl) 演示把说明
+显示在 `length` 下方。
+计时测试在停留阈值前交替派发鼠标移动并更新界面。开启与关闭时的 XRT
+分配、释放和重分配计数均为零。[验收记录](../dev/release-materials/provenance/xui-codeedit-pointer-hover-20261120.json)
+
 ## 自定义命令
 
 `editor.commandMap()` 返回编辑器正在使用的键位表。可直接绑定、解除绑定、

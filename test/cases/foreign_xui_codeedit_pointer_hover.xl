@@ -1,0 +1,93 @@
+import xui
+from xui import CodeHoverReply
+
+func pointer(xui.Context context,xui.CodeEdit editor,c_int offset,bool leave=false)
+ if leave then
+  assert context.inputPointerLeave()==xui.XUI_OK
+ else
+  auto caret=editor.getOffsetRect(offset)
+  assert context.inputPointerMove(c_int(caret.fX+1),c_int(caret.fY+2),c_uint(0))==xui.XUI_OK
+ end
+ assert context.dispatchPendingEvents()==xui.XUI_OK
+end
+
+func exercise(xui.Context context,xui.CodeEdit editor)
+ assert editor.setText("aébc") == xui.XUI_OK and context.layout() == xui.XUI_OK
+ auto enabled,initialDelay=editor.getHoverOptions()
+ assert not enabled and initialDelay>0
+ int calls=0
+ xui.CodeHoverReply? saved=null
+ editor.setHoverProvider(func(xui.CallbackWidget widget,c_int offset,xui.CodeHoverReply reply) as c_int
+  assert offset==1, "Hover must resolve to the UTF-8 cluster at the pointer"
+  calls+=1
+  saved=reply
+  xui.CodeRange hit
+  hit.iStart=offset
+  hit.iEnd=3
+  reply.set(hit,"hovered é")
+  return xui.XUI_OK
+ end)
+
+ pointer(context,editor,1)
+ assert context.update(1.0)==xui.XUI_OK and calls==0
+ editor.setHoverOptions(true,0.25)
+ auto active,delay=editor.getHoverOptions()
+ assert active and delay==0.25
+ pointer(context,editor,1)
+ assert context.update(0.125)==xui.XUI_OK and calls==0
+ pointer(context,editor,1)
+ assert context.update(0.125)==xui.XUI_OK and calls==1
+ assert editor.isHintOpen()==1
+ assert context.update(1.0)==xui.XUI_OK and calls==1
+ pointer(context,editor,1,true)
+ assert editor.isHintOpen()==0
+
+ bool expired=false
+ try
+  xui.CodeRange empty
+  empty.iStart=0
+  empty.iEnd=0
+  (saved as CodeHoverReply).set(empty,"expired")
+ catch StateError
+  expired=true
+ end
+ assert expired
+
+ pointer(context,editor,1)
+ editor.document().insert(0,"x")
+ assert context.update(1.0)==xui.XUI_OK and calls==1 and editor.isHintOpen()==0
+ editor.setHoverProvider(func(xui.CallbackWidget widget,c_int offset,xui.CodeHoverReply reply) as c_int
+  throw RuntimeError "pointer hover failure"
+ end)
+ pointer(context,editor,2)
+ bool primary=false
+ try
+  context.update(1.0)
+ catch RuntimeError failure
+  primary=failure.message=="pointer hover failure"
+ end
+ assert primary and editor.isHintOpen()==0
+ editor.setHoverOptions(false)
+ editor.setHoverProvider(null)
+end
+
+func main(...) as int
+ auto fontPath=env.get("XUI_EXAMPLE_FONT")
+ assert fontPath!=null
+ auto proxy=xui.createProxy()
+ auto context=xui.create(proxy,xui.XUI_SYSTEM_FONT_DISABLED)
+ auto font=proxy.loadFont(fontPath as string,c_float(16),c_uint(xui.XUI_FONT_FORMAT_TTF))
+ context.setDefaultFont(font)
+ auto editor=context.codeEditNative()
+ assert context.setRootWidget(editor)==xui.XUI_OK
+ context.setViewportSize(320,160)
+ try
+  exercise(context,editor)
+ finally
+  context.close()
+  font.close()
+  proxy.close()
+ end
+ println("XUI_CODEEDIT_POINTER_HOVER_OK")
+ return 0
+end
