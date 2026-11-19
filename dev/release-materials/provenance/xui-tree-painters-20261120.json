@@ -1,0 +1,189 @@
+{
+  "complete": true,
+  "passed": true,
+  "releaseInstalled": false,
+  "sourceParent": "5b56252c925e63c125e3dbee807c545055fdc62e",
+  "nativeCommit": "8fb05b6b2d182a4da24be6341a7c12ea86054343",
+  "nativeSourcesSha256Lf": {
+    "include/xui.h": "17e90e77b67e7513af0d2b370591dfb22efcc36e121e7d3f9201eb0c71a61cd4",
+    "src/xui/controls/xui_tree_view.c": "1798cd649b11efb1e67b375332e7e2535ba0d1077d0be555eba6a9f117da660c",
+    "tests/xui/xui_tree_painter_ownership_test.c": "aab57326dca5c8af000fbb2dbebf48b4c15a0485bfa52e2b24953a36e644f176"
+  },
+  "languageSourcesSha256Lf": {
+    "docs/xge3-xui3-api-map-storage.json": "43664d26412ca388212944c2fe984b75280042fc5ad95e031c2e13f7c5b07669",
+    "docs/xui-tree-nodes.md": "d3de2232b55548f1d5fde1ba5206048e204e0472f49d2549510e50fd34a79e0b",
+    "lib/bindings/xui/src/managed.xl": "6ccb9ded19b4a950ed2934ed4b6ee35a9a0ae65fe5c4fadf7eeb17706a50343e",
+    "lib/bindings/xui/src/tree_nodes.xl": "a62ba44367432da69685f529d92f823a036ac5dfc90b0b4e80a00abc0bf4fc0b",
+    "lib/bindings/xui/examples/README.md": "05d38b2aeedc64bfca9d1468b0a61d2af6371081da788d2eee9efc831f5d3b07",
+    "lib/bindings/xui/examples/tree_painters.xl": "acde956be8f6e3540a3459edacd5f95d3200113e6c0d57f79381f7c4505bda58",
+    "test/cases/foreign_xui_tree_painters.xl": "f088e23dd5d1dfedf5b8e51584bba6ba9e91629d8b5d14a07fe37d860b594289",
+    "tools/check_xge3_bindings.py": "c4420a30df7a842b43694fceee11da4375964fc9d41be32908c20808a66bd1be",
+    "tools/xui_managed_contracts.py": "35e448f521a796da6222b8c6e6d167c715b4cb46c3c7f238aceecb6eb76149d6"
+  },
+  "verified": [
+    "Independent owning item and icon painter slots and direct compiler calls.",
+    "An active row snapshot keeps its original text readable across tree clear.",
+    "A native reentrant hold that clears the rows prevents stale dispatch.",
+    "Raw unbind and checked close keep the active callback owner through physical return.",
+    "Failed callback preparation preserves the installed painters.",
+    "Saved callback views expire while the copied text remains usable.",
+    "The original language error survives dispatch and is delivered from render.",
+    "The graphical example paints both custom colors in JIT and static AOT."
+  ],
+  "bindingCosts": [
+    "The item painter uses a stack row snapshot and stack text pin; it does not copy the row text.",
+    "Reading the text property scans and copies the native string.",
+    "The callback owner directory lookup, registration allocations and dispatch hold/drop still execute.",
+    "Default label drawing after a custom callback re-resolves the font."
+  ],
+  "evidence": {
+    "win": {
+      "sdk": {
+        "path": "F:\\xlang-validation\\xge-full-20261110\\tree-painters-sdk-win-r1\\results.json",
+        "sha256": "2001ef2d75a61c3f9688a321e8e76d22608259847090b178427824d9bb01755c",
+        "checks": 2
+      },
+      "nativeHost": {
+        "path": "F:\\xlang-validation\\xge-full-20261110\\tree-painters-native-tests-win-r4\\results.json",
+        "sha256": "0bb2ed03a37391d6b1e83cb792f02d9efed13f883b2feb28b581a1e88c71b098",
+        "checks": 4
+      },
+      "nativeStatic": {
+        "path": "F:\\xlang-validation\\xge-full-20261110\\tree-painters-native-static-win-r2\\results.json",
+        "sha256": "6c27e70a499a81fa2794595dda1c5c7a1bd230714810ca9c7a5792a7f085d600",
+        "checks": 4
+      },
+      "rawTree": {
+        "path": "F:\\xlang-validation\\xge-full-20261110\\tree-painters-legacy-win-r2\\results.json",
+        "sha256": "f58653ba54ffd83f37a285ae01f010270aad319448067f283cb18b1b96fa0225",
+        "checks": 4
+      },
+      "packages": {
+        "path": "F:\\xlang-validation\\xge-full-20261110\\tree-painters-packages-win-r2\\results.json",
+        "sha256": "3422c5683423d8fef3522758e69ce434850fd71ca4cc6851b695b071d414191f",
+        "checks": 6
+      },
+      "language": {
+        "path": "F:\\xlang-validation\\xge-full-20261110\\tree-painters-language-tests-win-r4\\results.json",
+        "sha256": "3c0d3bd14bf8e65d67188a7dfee5eb00d2f3b7b14f8a05073d47e68d1f31a23e",
+        "checks": 6
+      },
+      "example": {
+        "path": "F:\\xlang-validation\\xge-full-20261110\\tree-painters-example-win-r1\\results.json",
+        "sha256": "6c227ff918c08d014269d005260c8c48715eab6f12743fd67c6f40c4471ec1c4",
+        "checks": 4
+      },
+      "pixels": {
+        "example-jit": {
+          "folder": 210,
+          "script": 210
+        },
+        "static-run": {
+          "folder": 210,
+          "script": 210
+        }
+      },
+      "languageArtifacts": {
+        "host": {
+          "path": "F:\\xlang-validation\\xge-full-20261110\\tree-painters-language-tests-win-r4\\host.exe",
+          "sha256": "a76a046f655a533bc0eda8b47c96c97aa14084d2d15974ffabfe338a6053e8b4",
+          "imports": [
+            "msvcrt.dll",
+            "xge3_host.dll",
+            "kernel32.dll",
+            "SHELL32.dll",
+            "ws2_32.dll",
+            "IPHLPAPI.dll",
+            "ucrtbase.dll"
+          ]
+        },
+        "static": {
+          "path": "F:\\xlang-validation\\xge-full-20261110\\tree-painters-language-tests-win-r4\\static.exe",
+          "sha256": "99b5b8c7dffcd733d45a38ad7363767e8d0b66d62b9a25f6545157ca99da5e8d",
+          "imports": [
+            "msvcrt.dll",
+            "kernel32.dll",
+            "USER32.dll",
+            "OLEAUT32.dll",
+            "ole32.dll",
+            "SHELL32.dll"
+          ]
+        }
+      }
+    },
+    "linux": {
+      "sdk": {
+        "path": "\\\\wsl.localhost\\Ubuntu\\var\\tmp\\xlang-validation\\xge-full-20261110\\tree-painters-sdk-linux-r1\\results.json",
+        "sha256": "6f2a6afc9da64989ce754bb943af15be1126be48a4d7e04c04ad6fa0a14380d6",
+        "checks": 2
+      },
+      "nativeHost": {
+        "path": "\\\\wsl.localhost\\Ubuntu\\var\\tmp\\xlang-validation\\xge-full-20261110\\tree-painters-native-tests-linux-r4\\results.json",
+        "sha256": "4feee3b610dcf4dbbea0304410c9214ae006b343849422b7c37a25250ab6b701",
+        "checks": 4
+      },
+      "nativeStatic": {
+        "path": "\\\\wsl.localhost\\Ubuntu\\var\\tmp\\xlang-validation\\xge-full-20261110\\tree-painters-native-static-linux-r2\\results.json",
+        "sha256": "d8f90f1e8b87b0fb896f2af1220bc3635da566b5f62c71b7958f745bf9bc888f",
+        "checks": 4
+      },
+      "rawTree": {
+        "path": "\\\\wsl.localhost\\Ubuntu\\var\\tmp\\xlang-validation\\xge-full-20261110\\tree-painters-legacy-linux-r2\\results.json",
+        "sha256": "e58efcfb1f45ae393222dd7d88df0bb020ac0e927d1260b498857b4f46da3abb",
+        "checks": 4
+      },
+      "packages": {
+        "path": "\\\\wsl.localhost\\Ubuntu\\var\\tmp\\xlang-validation\\xge-full-20261110\\tree-painters-packages-linux-r2\\results.json",
+        "sha256": "691519168066b78f8b1228b5a05c10c78781988dcfd8da14cc771a862f25d4c8",
+        "checks": 6
+      },
+      "language": {
+        "path": "\\\\wsl.localhost\\Ubuntu\\var\\tmp\\xlang-validation\\xge-full-20261110\\tree-painters-language-tests-linux-r4\\results.json",
+        "sha256": "d879ef873f85eb169edaadb6b3666fb2fa4b0b98433a5c7794354f666ebc0c67",
+        "checks": 6
+      },
+      "example": {
+        "path": "\\\\wsl.localhost\\Ubuntu\\var\\tmp\\xlang-validation\\xge-full-20261110\\tree-painters-example-linux-r1\\results.json",
+        "sha256": "d5357db70c11a2762969dba57106a3e54b9a21b37d0dc2530cab8d2a53d74812",
+        "checks": 4
+      },
+      "pixels": {
+        "example-jit": {
+          "folder": 210,
+          "script": 210
+        },
+        "static-run": {
+          "folder": 210,
+          "script": 210
+        }
+      },
+      "languageArtifacts": {
+        "host": {
+          "path": "\\\\wsl.localhost\\Ubuntu\\var\\tmp\\xlang-validation\\xge-full-20261110\\tree-painters-language-tests-linux-r4\\host",
+          "sha256": "63bc0e6cd3401a0177b100bc62e7159c3a035a36bd136d3bd44b4da51feb274a",
+          "imports": [
+            "libm.so.6",
+            "libmvec.so.1",
+            "libxge3_host.so",
+            "libc.so.6",
+            "ld-linux-x86-64.so.2"
+          ]
+        },
+        "static": {
+          "path": "\\\\wsl.localhost\\Ubuntu\\var\\tmp\\xlang-validation\\xge-full-20261110\\tree-painters-language-tests-linux-r4\\static",
+          "sha256": "568499c4b74ec5262fe329f22306ca1a679f01f7e2ab30e71168ee22437744f4",
+          "imports": [
+            "libm.so.6",
+            "libmvec.so.1",
+            "libX11.so.6",
+            "libXi.so.6",
+            "libXcursor.so.1",
+            "libGL.so.1",
+            "libc.so.6",
+            "ld-linux-x86-64.so.2"
+          ]
+        }
+      }
+    }
+  }
+}

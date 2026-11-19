@@ -1,0 +1,128 @@
+import xui
+from xui import CallbackDrawContext, CallbackTreeNode, CallbackWidget, Rect, TreeNodeState
+
+extern "fixtureRenderProxy" @header("test/cases/foreign_xui_render_backend.h") @no_raise @c_result("owned_view") @factory(0,0,dropProxy) func cpuProxy() as xui.Proxy
+extern "fixtureRenderSurface" @no_raise @c_result("owned_view") @factory(1,0,dropSurface) func cpuSurface(xui.Proxy proxy) as xui.Surface
+extern "fixtureRenderBudget" @no_raise func allocationBudget(c_int allowance)
+extern "fixtureRenderBalanced" @no_raise func balanced() as c_int
+extern "xuiProxyReleaseChecked" @header("xge3_runtime.h") @no_raise @c_result("status",0) func dropProxy(xui.Proxy proxy)
+extern "xuiSurfaceReleaseChecked" @header("xge3_runtime.h") @no_raise @c_result("status",0) func dropSurface(xui.Surface surface)
+
+func exercise(xui.Proxy proxy,xui.Context ui,xui.TreeView tree,xui.Surface target,Rect bounds)
+    TreeNodeState row
+    row.iId = 10
+    row.iParent = -1
+    row.bEnabled = 1
+    row.bIconReserved = 1
+    tree.setNodes([row],["original row"])
+
+    int items = 0
+    int icons = 0
+    CallbackTreeNode? saved = null
+    CallbackDrawContext? savedDraw = null
+    string savedText = ""
+    tree.setItemRenderer(func(CallbackWidget widget,c_int id,c_int index,CallbackTreeNode node,CallbackDrawContext draw,Rect area,c_int flags) as c_int
+        assert id == 10 and index == 0 and node.id == id and node.depth == 0, "row identity"
+        assert node.parentId == -1 and node.enabled == 1 and node.iconReserved == 1, "row attributes"
+        assert area.fW > 0 and widget.rect().fW > 0, "row geometry"
+        items += 1
+        saved = node
+        savedText = node.text
+        assert savedText == "original row", "row snapshot text"
+        return 0
+    end)
+    tree.setIconRenderer(func(CallbackWidget widget,c_int id,CallbackDrawContext draw,Rect area,c_int flags) as c_int
+        assert id == 10 and area.fW > 0 and area.fH > 0, "icon geometry"
+        proxy.fillRect(draw,area,c_uint(0x278B50FF))
+        savedDraw = draw
+        icons += 1
+        return 1
+    end)
+
+    xui.TreeViewIconRenderProc replacement = func(CallbackWidget widget,c_int id,CallbackDrawContext draw,Rect area,c_int flags) as c_int
+        throw RuntimeError "replacement must not run"
+    end
+    bool rejected = false
+    allocationBudget(0)
+    try
+        tree.setIconRenderer(replacement)
+    catch Error
+        rejected = true
+    finally
+        allocationBudget(-1)
+    end
+    assert rejected, "callback preparation must report injected OOM"
+    assert ui.update(0) == 0, "layout before painters"
+    ui.render(target)
+    assert items == 1 and icons == 1, "failed replacement preserves both painters"
+
+    int expired = 0
+    try
+        auto id = (saved as CallbackTreeNode).id
+    catch StateError
+        expired += 1
+    end
+    try
+        proxy.fillRect(savedDraw as CallbackDrawContext,bounds,c_uint(0xFFFFFFFF))
+    catch StateError
+        expired += 1
+    end
+    assert expired == 2 and savedText == "original row", "callback views expire and captured text survives"
+
+    tree.setItemRenderer(func(CallbackWidget widget,c_int id,c_int index,CallbackTreeNode node,CallbackDrawContext draw,Rect area,c_int flags) as c_int
+        items += 1
+        tree.clear()
+        assert node.text == "original row", "row text stays readable after clearing"
+        return 0
+    end)
+    ui.render(target)
+    assert items == 2 and icons == 1 and tree.getNodeCount() == 0, "clearing during row paint skips the stale icon"
+
+    tree.setItemRenderer(null)
+    tree.setNodes([row],["original row"])
+    assert ui.layout() == 0, "layout restored rows"
+    tree.setIconRenderer(func(CallbackWidget widget,c_int id,CallbackDrawContext draw,Rect area,c_int flags) as c_int
+        throw RuntimeError "tree painter failure"
+    end)
+    bool caught = false
+    try
+        ui.render(target)
+    catch RuntimeError failure
+        caught = failure.message == "tree painter failure"
+    end
+    assert caught, "render must deliver the original callback diagnostic"
+
+    tree.setIconRenderer(func(CallbackWidget widget,c_int id,CallbackDrawContext draw,Rect area,c_int flags) as c_int
+        tree.close()
+        icons += 1
+        return 1
+    end)
+    ui.render(target)
+    assert icons == 2, "icon callback closes the tree"
+    bool closed = false
+    try
+        tree.getNodeCount()
+    catch StateError
+        closed = true
+    end
+    assert closed, "tree view expires after closing inside the icon painter"
+end
+
+func main(...) as int
+    auto proxy = cpuProxy()
+    auto ui = xui.create(proxy,xui.XUI_SYSTEM_FONT_DISABLED)
+    auto tree = ui.treeViewNative()
+    Rect bounds
+    bounds.fW = 320
+    bounds.fH = 180
+    assert tree.setRect(bounds) == 0 and ui.setRootWidget(tree) == 0, "arrange tree on the root"
+    ui.setViewportSize(320,180)
+    auto target = cpuSurface(proxy)
+    exercise(proxy,ui,tree,target,bounds)
+    ui.close()
+    target.close()
+    proxy.close()
+    assert balanced() != 0, "release the CPU renderer's resources"
+    println("XUI_TREE_PAINTERS_OK")
+    return 0
+end

@@ -1,0 +1,28 @@
+import xui
+from xui import CallbackDrawContext, CallbackWidget, Rect, TreeNodeState
+from "./_window.xl" import Window
+
+// 图标和文字仍由同一棵树管理。只替换预留图标的画法。
+Window.showWithProxy("Tree / custom icons", func(xui.Context ui,xui.Widget root,xui.Proxy proxy)
+    auto tree = ui.treeViewNative()
+    Window.place(root,tree,24,24,420,180)
+
+    TreeNodeState folder
+    folder.iId = 1
+    folder.iParent = -1
+    folder.bEnabled = 1
+    folder.bExpanded = 1
+    folder.bIconReserved = 1
+    TreeNodeState script
+    script.iId = 2
+    script.iParent = 1
+    script.bEnabled = 1
+    script.bIconReserved = 1
+    array<string?> labels = ["Project","main.xl"]
+    tree.setNodes([folder,script],labels)
+
+    tree.setIconRenderer(func(CallbackWidget widget,c_int id,CallbackDrawContext draw,Rect area,c_int state) as c_int
+        proxy.fillRect(draw,area,id == 1 ? c_uint(0xD19232FF) : c_uint(0x278B50FF))
+        return 1 // 图标已绘制。返回 0 可继续使用默认图标。
+    end)
+end)

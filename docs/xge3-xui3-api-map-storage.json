@@ -345,12 +345,12 @@
       "declaration": "extern \"xuiTreeViewSetNodeDescriptors\" @no_raise @c_array_group(1,0,2,\"int\",2) @c_array_record(1,\"xui_tree_node_desc_t\") @c_array_field(1,\"tState\",0,\"value\") @c_array_field(1,\"sText\",1,\"c_string\") @c_result(\"status\",0) func setNodes(array<TreeNodeState> states,array<string?> texts,int size=-1)",
       "storage": "native-copy-or-synchronous-read",
       "sourceFile": "src/xui/controls/xui_tree_view.c",
-      "line": 3015,
+      "line": 3096,
       "functionSha256": "ac4e1f87f44be164e2d6e33c89d962523bed9a1dfe9d4ad9c92226350ac6bbb2",
       "dependencies": [
         {
           "sourceFile": "src/xui/controls/xui_tree_view.c",
-          "lfSha256": "e0bd63dff2b31f4576418555c2eebf4dc3c1326fd5368e708080ed0d3da238ca"
+          "lfSha256": "1798cd649b11efb1e67b375332e7e2535ba0d1077d0be555eba6a9f117da660c"
         }
       ]
     },
@@ -359,12 +359,12 @@
       "declaration": "extern \"xuiTreeViewGetNodeDescriptor\" @no_raise @c_output_record(2,\"xui_tree_node_desc_t\",\"borrowed\") @c_status(0) @c_output_field(0,\"tState\") @c_output_field(1,\"sText\",\"cstring\") func getNode(c_int index) as (TreeNodeState,string)",
       "storage": "borrowed-synchronous-output",
       "sourceFile": "src/xui/controls/xui_tree_view.c",
-      "line": 3230,
+      "line": 3311,
       "functionSha256": "dd55c465c181249471a3a018d1469d13d3fa3e67092902eb348c069cbe81e81f",
       "dependencies": [
         {
           "sourceFile": "src/xui/controls/xui_tree_view.c",
-          "lfSha256": "e0bd63dff2b31f4576418555c2eebf4dc3c1326fd5368e708080ed0d3da238ca"
+          "lfSha256": "1798cd649b11efb1e67b375332e7e2535ba0d1077d0be555eba6a9f117da660c"
         }
       ]
     },
@@ -373,12 +373,12 @@
       "declaration": "extern \"xuiTreeViewGetNodeDescriptorById\" @no_raise @c_output_record(2,\"xui_tree_node_desc_t\",\"borrowed\") @c_status(0) @c_output_field(0,\"tState\") @c_output_field(1,\"sText\",\"cstring\") func getNodeById(c_int id) as (TreeNodeState,string)",
       "storage": "borrowed-synchronous-output",
       "sourceFile": "src/xui/controls/xui_tree_view.c",
-      "line": 3235,
+      "line": 3316,
       "functionSha256": "82d276bb25939b976620cec7d2b066079741fb7304138f296afe49869ab1bab9",
       "dependencies": [
         {
           "sourceFile": "src/xui/controls/xui_tree_view.c",
-          "lfSha256": "e0bd63dff2b31f4576418555c2eebf4dc3c1326fd5368e708080ed0d3da238ca"
+          "lfSha256": "1798cd649b11efb1e67b375332e7e2535ba0d1077d0be555eba6a9f117da660c"
         }
       ]
     },
@@ -387,12 +387,12 @@
       "declaration": "extern \"xuiTreeViewGetVisibleNodeDescriptor\" @no_raise @c_output_record(2,\"xui_tree_node_desc_t\",\"borrowed\") @c_status(0) @c_output_field(0,\"tState\") @c_output_field(1,\"sText\",\"cstring\") func getVisibleNode(c_int index) as (TreeNodeState,string)",
       "storage": "borrowed-synchronous-output",
       "sourceFile": "src/xui/controls/xui_tree_view.c",
-      "line": 3240,
+      "line": 3321,
       "functionSha256": "a61b626566884f14bb39587c858afe7c34a317b2aeff0cf912e6cab7215e560f",
       "dependencies": [
         {
           "sourceFile": "src/xui/controls/xui_tree_view.c",
-          "lfSha256": "e0bd63dff2b31f4576418555c2eebf4dc3c1326fd5368e708080ed0d3da238ca"
+          "lfSha256": "1798cd649b11efb1e67b375332e7e2535ba0d1077d0be555eba6a9f117da660c"
         }
       ]
     },
@@ -1165,6 +1165,50 @@
           "lfSha256": "11462814785c2f1e631f7d7aacde30f0d7421151b748892872c5a70da5fb017b"
         }
       ]
+    },
+    "xuiTreeViewSetItemRendererOwned": {
+      "bindingFile": "lib\\bindings\\xui\\src\\managed.xl",
+      "declaration": "extern \"xuiTreeViewSetItemRendererOwned\" @no_raise @c_owned_callback(0,0,\"xui_callback_owner_t\",-16) @c_result(\"status\",0) func setItemRenderer(TreeViewItemRenderProc? onRender)",
+      "storage": "owned-callback",
+      "sourceFile": "src/xui/controls/xui_tree_view.c",
+      "line": 2779,
+      "functionSha256": "ce79de783267974551707fdaf9b11fea7437f6ec1f6cbe69d7cf3534e1ff0882",
+      "dependencies": [
+        {
+          "sourceFile": "src/xui/controls/xui_tree_view.c",
+          "lfSha256": "1798cd649b11efb1e67b375332e7e2535ba0d1077d0be555eba6a9f117da660c"
+        },
+        {
+          "sourceFile": "src/xui/core/xui_callback_owned.c",
+          "lfSha256": "2e28d0df474ab2b72b7a8bbdeafce696ca78e6944b32d660c4dbedf07deea891"
+        },
+        {
+          "sourceFile": "include/xui.h",
+          "lfSha256": "17e90e77b67e7513af0d2b370591dfb22efcc36e121e7d3f9201eb0c71a61cd4"
+        }
+      ]
+    },
+    "xuiTreeViewSetIconRendererOwned": {
+      "bindingFile": "lib\\bindings\\xui\\src\\managed.xl",
+      "declaration": "extern \"xuiTreeViewSetIconRendererOwned\" @no_raise @c_owned_callback(0,0,\"xui_callback_owner_t\",-16) @c_result(\"status\",0) func setIconRenderer(TreeViewIconRenderProc? onRender)",
+      "storage": "owned-callback",
+      "sourceFile": "src/xui/controls/xui_tree_view.c",
+      "line": 2809,
+      "functionSha256": "16adbbe256b3daaa8e917d87386ab70d540519068e5ce7846d72f39a4fba5070",
+      "dependencies": [
+        {
+          "sourceFile": "src/xui/controls/xui_tree_view.c",
+          "lfSha256": "1798cd649b11efb1e67b375332e7e2535ba0d1077d0be555eba6a9f117da660c"
+        },
+        {
+          "sourceFile": "src/xui/core/xui_callback_owned.c",
+          "lfSha256": "2e28d0df474ab2b72b7a8bbdeafce696ca78e6944b32d660c4dbedf07deea891"
+        },
+        {
+          "sourceFile": "include/xui.h",
+          "lfSha256": "17e90e77b67e7513af0d2b370591dfb22efcc36e121e7d3f9201eb0c71a61cd4"
+        }
+      ]
     }
   },
   "fieldEntries": {
@@ -1290,7 +1334,7 @@
       "dependencies": [
         {
           "sourceFile": "include/xui.h",
-          "lfSha256": "7e5d3175a397208e3c501ac11667209ae9e800938436d011e75c5b34b15c0e68"
+          "lfSha256": "17e90e77b67e7513af0d2b370591dfb22efcc36e121e7d3f9201eb0c71a61cd4"
         },
         {
           "sourceFile": "src/xui/core/xui_proxy_xge.c",
@@ -1388,7 +1432,7 @@
       "dependencies": [
         {
           "sourceFile": "include/xui.h",
-          "lfSha256": "7e5d3175a397208e3c501ac11667209ae9e800938436d011e75c5b34b15c0e68"
+          "lfSha256": "17e90e77b67e7513af0d2b370591dfb22efcc36e121e7d3f9201eb0c71a61cd4"
         },
         {
           "sourceFile": "src/xui/core/xui_proxy_xge.c",

@@ -759,6 +759,10 @@ METHODS.update({
 })
 
 METHODS.update({
+    'xuiTreeViewSetItemRendererOwned': ['int xuiTreeViewSetItemRendererOwned(xui_widget pWidget, xui_tree_view_item_proc onRender, void* pUser, const xui_callback_owner_t* pOwner)',
+        'TreeView', ['extern "xuiTreeViewSetItemRendererOwned" @no_raise @c_owned_callback(0,0,"xui_callback_owner_t",-16) @c_result("status",0) func setItemRenderer(TreeViewItemRenderProc? onRender)']],
+    'xuiTreeViewSetIconRendererOwned': ['int xuiTreeViewSetIconRendererOwned(xui_widget pWidget, xui_tree_view_icon_proc onRender, void* pUser, const xui_callback_owner_t* pOwner)',
+        'TreeView', ['extern "xuiTreeViewSetIconRendererOwned" @no_raise @c_owned_callback(0,0,"xui_callback_owner_t",-16) @c_result("status",0) func setIconRenderer(TreeViewIconRenderProc? onRender)']],
     'xuiTreeViewSetNodeDescriptors': ['int xuiTreeViewSetNodeDescriptors(xui_widget pWidget, const xui_tree_node_desc_t* pNodes, int iCount)',
         'TreeView', ['extern "xuiTreeViewSetNodeDescriptors" @no_raise @c_array_group(1,0,2,"int",2) @c_array_record(1,"xui_tree_node_desc_t") @c_array_field(1,"tState",0,"value") @c_array_field(1,"sText",1,"c_string") @c_result("status",0) func setNodes(array<TreeNodeState> states,array<string?> texts,int size=-1)']],
     'xuiTreeViewGetNodeDescriptor': ['int xuiTreeViewGetNodeDescriptor(xui_widget pWidget, int iIndex, xui_tree_node_desc_t* pNode)',
@@ -767,6 +771,17 @@ METHODS.update({
         'TreeView', ['extern "xuiTreeViewGetNodeDescriptorById" @no_raise @c_output_record(2,"xui_tree_node_desc_t","borrowed") @c_status(0) @c_output_field(0,"tState") @c_output_field(1,"sText","cstring") func getNodeById(c_int id) as (TreeNodeState,string)']],
     'xuiTreeViewGetVisibleNodeDescriptor': ['int xuiTreeViewGetVisibleNodeDescriptor(xui_widget pWidget, int iVisible, xui_tree_node_desc_t* pNode)',
         'TreeView', ['extern "xuiTreeViewGetVisibleNodeDescriptor" @no_raise @c_output_record(2,"xui_tree_node_desc_t","borrowed") @c_status(0) @c_output_field(0,"tState") @c_output_field(1,"sText","cstring") func getVisibleNode(c_int index) as (TreeNodeState,string)']],
+})
+
+CALLBACKS.update({
+    'xui_tree_view_item_proc': (
+        'typedef int (*xui_tree_view_item_proc)(xui_widget_t* pWidget, int iNodeId, int iVisible, const xui_tree_view_node_t* pNode, xui_draw_context_t* pDraw, xui_rect_t tRect, int iState, void* pUser);',
+        'export typedef TreeViewItemRenderProc = func(CallbackWidget,c_int,c_int,CallbackTreeNode,CallbackDrawContext,Rect,c_int) as c_int',
+    ),
+    'xui_tree_view_icon_proc': (
+        'typedef int (*xui_tree_view_icon_proc)(xui_widget pWidget, int iNodeId, xui_draw_context pDraw, xui_rect_t tRect, int iState, void* pUser);',
+        'export typedef TreeViewIconRenderProc = func(CallbackWidget,c_int,CallbackDrawContext,Rect,c_int) as c_int',
+    ),
 })
 
 METHODS.update({
@@ -1131,6 +1146,8 @@ REPLACED = {
     'xuiCodeEditSetDiagnosticHover': ('xui.CodeEdit.setDiagnosticHover','xuiCodeEditSetDiagnosticHoverOwned'),
     'xuiCodeEditSetTokenStyleResolver': ('xui.CodeEdit.setTokenStyleResolver','xuiCodeEditSetTokenStyleResolverOwned'),
     'xuiCodeEditSetInputHandler': ('xui.CodeEdit.setInputHandler','xuiCodeEditSetInputHandlerOwned'),
+    'xuiTreeViewSetItemRenderer': ('xui.TreeView.setItemRenderer','xuiTreeViewSetItemRendererOwned'),
+    'xuiTreeViewSetIconRenderer': ('xui.TreeView.setIconRenderer','xuiTreeViewSetIconRendererOwned'),
 }
 
 

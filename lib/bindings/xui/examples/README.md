@@ -34,6 +34,7 @@
 [message_renderer.xl](message_renderer.xl) 为系统消息使用自绘色块，并保留普通消息的默认绘制。
 
 [tree_nodes.xl](tree_nodes.xl) 批量设置父节点和子节点，展开父节点后读取子节点的名称与深度。
+[tree_painters.xl](tree_painters.xl) 为同一棵树绘制橙色和绿色图标，仍可展开和选择各行。
 
 [code_assist.xl](code_assist.xl) 读取编辑器的补全位置并打开签名帮助。
 [code_diagnostics.xl](code_diagnostics.xl) 为一段代码发布诊断，在编辑器里标出未知名称，并读取诊断文本。
