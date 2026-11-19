@@ -6132,15 +6132,23 @@ export extern "xui_widget_t*" class DatePicker @header("xge3_runtime.h") @lifeti
 
 end
 
-export extern "xui_widget_t*" class FlowGraphWidget @header("xge3_runtime.h") @lifetime("owner") @owner(Context) @policy("xl6Xui3WidgetPolicy") @watch("xui_lifetime_link_t") extends Widget
+export extern "xui_widget_t*" class FlowCanvas @header("xge3_runtime.h") @lifetime("owner") @owner(Context) @policy("xl6Xui3WidgetPolicy") @watch("xui_lifetime_link_t") extends Widget
+
+ extern "xuiFlowGraphWidgetHitTest" @no_raise @c_output(3,0) func hitTest(c_float x,c_float y) as FlowHit
+
+ extern "xuiFlowGraphWidgetSelectAt" @no_raise @c_output(3,0) func selectAt(c_float x,c_float y) as FlowHit
+
+ extern "xuiFlowGraphWidgetGetHoverHit" @no_raise @c_output(1,0) func getHoverHit() as FlowHit
+
+end
+
+export extern "xui_widget_t*" class FlowGraphWidget @header("xge3_runtime.h") @lifetime("owner") @owner(Context) @policy("xl6Xui3WidgetPolicy") @watch("xui_lifetime_link_t") extends FlowCanvas
 
  extern "xuiFlowGraphWidgetGetGraphOwned" @no_raise @c_result("owned_view") @factory(1,0,rollbackFlowGraph) func getGraph() as FlowGraph
 
  extern "xuiFlowGraphWidgetSetGraphShared" @no_raise @c_result("status",0) func setGraph(FlowGraph graph)
 
  extern "xuiFlowGraphWidgetSetContextMenuOwned" @no_raise @c_owned_callback(0,0,"xui_callback_owner_t",-16) @c_result("status",0) func setContextMenu(FlowContextProc? onContext)
-
- extern "xuiFlowGraphWidgetGetHoverHit" @no_raise @c_output(1,0) func getHoverHit() as FlowHit
 
 end
 
@@ -6349,3 +6357,5 @@ export extern "xuiScrollModelContentToViewport" @header("xge3_runtime.h") @no_ra
 export extern "xuiScrollModelContentToScreen" @header("xge3_runtime.h") @no_raise @c_ref(0) func scrollModelContentToScreen(ScrollModel pModel,c_float fX,c_float fY) as Vec2
 
 export extern "xuiDockPanelStateGetCounts" @header("xge3_runtime.h") @no_raise @c_outputs(1,2,3) @c_status(0) func dockStateCounts(var state) as (c_int,c_int,c_int)
+
+export extern "xuiWorkflowWidgetGetCanvas" @header("xge3_runtime.h") @no_raise @c_result("owner_view",0) func flowCanvas(WorkflowWidget widget) as FlowCanvas?

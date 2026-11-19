@@ -985,7 +985,7 @@ def generate_xge_objects(root,header,records,types,primitive,param,reserved,revi
 
 
 def generate_xui(root,header,records,types,primitive,param,reserved,reviewed_span,storage):
-    src=root/'lib/bindings/xui/src';functions=header['functions'];mapped={};raw={};callbacks={};views={};classes={'Widget':[]};context=[];free=[]
+    src=root/'lib/bindings/xui/src';functions=header['functions'];mapped={};raw={};callbacks={};views={};classes={'Widget':[],'FlowCanvas':[]};context=[];free=[]
     from xui_managed_contracts import validate as validate_managed,extend as extend_managed,DEFERRED,REPLACED,CALLBACKS as REVIEWED_CALLBACKS
     validate_managed(root,header,native_function_sha)
     native_root=Path(header['header']).parents[1]
@@ -1404,7 +1404,9 @@ def generate_xui(root,header,records,types,primitive,param,reserved,reviewed_spa
     lines+=callback_declarations
     lines+=['export extern "xui_context_t*" class Context @header("xge3_runtime.h") @lifetime("owned") @policy("xl6Xui3ContextPolicy") @scope("xui_call_scope_t") @watch("xui_lifetime_link_t") @domain("xl6Xui3OwnershipDomainV1")',' native point handle',*context,' extern "xuiGetProxyOwned" @no_raise @c_result("retained_view") @c_retain(retainProxy,"zero",rollbackProxy) func proxy() as Proxy',' extern "xl6ForeignViewCloseV1" @no_raise @c_control(0) @c_result("bool_status") func close()','end']
     for group,methods in classes.items():
-        lines+=['export extern "xui_widget_t*" class '+group+' @header("xge3_runtime.h") @lifetime("owner") @owner(Context) @policy("xl6Xui3WidgetPolicy") @watch("xui_lifetime_link_t")'+(' extends Widget' if group!='Widget' else '')]
+        base='FlowCanvas' if group=='FlowGraphWidget' else 'Widget'
+        extends=' extends '+base if group!='Widget' else ''
+        lines+=['export extern "xui_widget_t*" class '+group+' @header("xge3_runtime.h") @lifetime("owner") @owner(Context) @policy("xl6Xui3WidgetPolicy") @watch("xui_lifetime_link_t")'+extends]
         if group=='Widget':lines+=[' native point handle']
         lines+=methods
         documentMethods=src/'document_ui_message_methods.inc'
@@ -1412,7 +1414,7 @@ def generate_xui(root,header,records,types,primitive,param,reserved,reviewed_spa
         if group=='Widget':lines+=[' extern "xuiWidgetDestroyChecked" @no_raise @c_result("status",0) func close()']
         lines+=['end']
     lines+=['extern "xuiDestroy" @no_raise func rollback(Context value)']
-    lines+=['extern "xuiWidgetDestroyChecked" @no_raise @c_result("status",0) func rollback'+group+'('+group+' value)' for group in classes]
+    lines+=['extern "xuiWidgetDestroyChecked" @no_raise @c_result("status",0) func rollback'+group+'('+group+' value)' for group in classes if group!='FlowCanvas']
     lines+=['export extern "xuiCreateOwned" @no_raise @c_result("owned_view") @factory(1,0,rollback) func create(Proxy proxy) as Context']
     lines+=free
     (src/'managed.xl').write_text('\n\n'.join(lines)+'\n',encoding='utf8')

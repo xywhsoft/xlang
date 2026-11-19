@@ -450,6 +450,22 @@ METHODS.update({
         'int xuiFlowGraphWidgetSetGraphShared(xui_widget widget,xui_flow_graph graph)',
         'FlowGraphWidget',
         ['extern "xuiFlowGraphWidgetSetGraphShared" @no_raise @c_result("status",0) func setGraph(FlowGraph graph)']],
+    'xuiFlowGraphWidgetHitTest': [
+        'int xuiFlowGraphWidgetHitTest(xui_widget pWidget, float fX, float fY, xui_flow_hit_t* pHit)',
+        'FlowCanvas',
+        ['extern "xuiFlowGraphWidgetHitTest" @no_raise @c_output(3,0) func hitTest(c_float x,c_float y) as FlowHit']],
+    'xuiFlowGraphWidgetSelectAt': [
+        'int xuiFlowGraphWidgetSelectAt(xui_widget pWidget, float fX, float fY, xui_flow_hit_t* pHit)',
+        'FlowCanvas',
+        ['extern "xuiFlowGraphWidgetSelectAt" @no_raise @c_output(3,0) func selectAt(c_float x,c_float y) as FlowHit']],
+    'xuiFlowGraphWidgetGetHoverHit': [
+        'int xuiFlowGraphWidgetGetHoverHit(xui_widget pWidget, xui_flow_hit_t* pHit)',
+        'FlowCanvas',
+        ['extern "xuiFlowGraphWidgetGetHoverHit" @no_raise @c_output(1,0) func getHoverHit() as FlowHit']],
+    'xuiWorkflowWidgetGetCanvas': [
+        'xui_widget xuiWorkflowWidgetGetCanvas(xui_widget pWidget)',
+        'WorkflowWidget',
+        ['extern "xuiWorkflowWidgetGetCanvas" @no_raise @c_result("owner_view",0) func getCanvas() as Widget?']],
 })
 
 METHODS.update({
@@ -734,12 +750,18 @@ def validate(root,header,function_sha):
 
 
 def extend(context,classes,free,callback_declarations,mapped):
+    # The inferred declaration belongs to the standalone widget. Publish it
+    # on the common canvas view so Workflow can use it as well.
+    canvas=classes['FlowGraphWidget']
+    canvas[:]=[row for row in canvas if 'extern "xuiFlowGraphWidgetGetHoverHit"' not in row]
     for native,(_,owner,rows)in METHODS.items():
         target=free if owner is None else context if owner=='Context'else classes[owner]
         target[:]=[row for row in target if 'extern "'+native+'"'not in row]
         target.extend((' 'if owner else'')+row for row in rows)
         method=re.search(r'\bfunc (\w+)\(',rows[0]).group(1)
         mapped[native]='xui.'+(owner+'.'if owner else'')+method
+    # A dedicated view factory preserves the existing bound method signature.
+    free.append('export extern "xuiWorkflowWidgetGetCanvas" @header("xge3_runtime.h") @no_raise @c_result("owner_view",0) func flowCanvas(WorkflowWidget widget) as FlowCanvas?')
     # requestClose intentionally operates on a callback-epoch view, not an
     # independently owning Context projected from an asynchronous observer.
     context[:]=[row for row in context if 'extern "xuiRequestClose"'not in row]

@@ -56,3 +56,21 @@ configuration/reentry decisions, associated Graph mutation safety, persistent
 module/cycle qualification, other required configurations and final matched
 compiler/SDK/IDE/help/example installation remain. No normal release tree was
 installed, no network/security test ran, and the long-running goal remains active.
+
+## Hit testing and selection
+
+`FlowGraphWidget` inherits the point-query methods from `FlowCanvas`.
+`xui.flowCanvas(workflowWidget)` exposes the same methods on its embedded
+canvas. Its lifetime follows the owning widget and Context. The existing
+`getCanvas()` accessor continues to return `Widget?`.
+
+`hitTest(x, y)` accepts logical Context coordinates and returns a `FlowHit`
+record by value. In the result, `fX`, `fY`, and `tRect` are widget-local.
+`selectAt(x, y)` selects a node (including a hit on one of its ports) or edge
+exclusively. A point on the background or outside the canvas clears selection.
+`getHoverHit()` reads the cached kind and indexes from pointer dispatch.
+The hit indexes describe the model at the time of the call.
+
+The compiler emits one native call per method. The existing XUI spatial
+indexes may allocate on first use or after model changes. Native failures
+propagate through checked status and the warmed path uses the cached indexes.

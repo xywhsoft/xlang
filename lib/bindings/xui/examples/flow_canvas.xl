@@ -1,16 +1,25 @@
-// 流程画布：右键单击，在上方显示坐标。
+// 流程画布：右键单击节点或空白处，显示命中结果。
 import xui
 from "./_window.xl" import Window
 
 Window.show("流程画布", func(xui.Context ui,xui.Widget root)
  auto status=ui.labelNative()
- status.setText("在画布中右键单击，查看坐标。")
+ status.setText("在节点或空白处右键单击。")
  Window.place(root,status,24,16,720,28)
 
  auto canvas=ui.flowGraphWidget()
  Window.place(root,canvas,24,56,720,420)
- canvas.setContextMenu(func(xui.Widget sender,xui.CallbackConstFlowHit hit,c_float x,c_float y) as c_int
-  status.setText(f"右键位置：{int(x)}, {int(y)}")
+ auto graph=canvas.getGraph()
+ graph.addNode("start",title="开始",x=50,y=40,width=140,height=72)
+ graph.close()
+
+ canvas.setContextMenu(func(xui.Widget sender,xui.CallbackConstFlowHit eventHit,c_float x,c_float y) as c_int
+  auto hit=canvas.selectAt(x,y)
+  if hit.iType==xui.XUI_FLOW_HIT_NODE then
+   status.setText("选中节点：开始")
+  else
+   status.setText("已清除选择。")
+  end
   return c_int(xui.XUI_EVENT_DISPATCH_STOP)
  end)
 end)

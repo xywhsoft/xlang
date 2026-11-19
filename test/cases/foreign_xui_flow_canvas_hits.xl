@@ -1,0 +1,108 @@
+import xui
+from xui import FlowCanvas
+
+extern "fixtureRenderProxy" @header("test/cases/foreign_xui_flow_canvas.h") @no_raise @c_result("owned_view") @factory(0,0,dropProxy) func cpuProxy() as xui.Proxy
+extern "xuiProxyReleaseChecked" @header("xge3_runtime.h") @no_raise @c_result("status",0) func dropProxy(xui.Proxy proxy)
+extern "fixtureRenderBalanced" @no_raise func balanced() as c_int
+extern "fixtureFlowCanvasBudget" @no_raise func budget(c_int allowance)
+extern "fixtureFlowCanvasReset" @no_raise func reset()
+extern "xrtMemDebugFailTriggered" @header("xrt_decl.h") @no_raise func failedAllocation() as c_bool
+
+func main(...) as int
+    auto proxy = cpuProxy()
+    auto ui = xui.create(proxy, xui.XUI_SYSTEM_FONT_DISABLED)
+    auto root = ui.widget()
+    xui.Rect bounds
+    bounds.fW = 640
+    bounds.fH = 660
+    assert root.setRect(bounds) == 0 and ui.setRootWidget(root) == 0
+    ui.inputViewport(640, 660)
+
+    auto widget = ui.flowGraphWidget()
+    FlowCanvas canvas = widget
+    auto graph = widget.getGraph()
+    graph.setViewport(8, 12, 1, 640, 360)
+    auto first = graph.addNode("start", type = "event.start", title = "Start", x = 40, y = 50, width = 150, height = 80)
+    auto second = graph.addNode("tool", type = "action.tool", title = "Tool", x = 280, y = 70, width = 150, height = 80)
+    assert graph.addPort(first, "out", direction = xui.XUI_FLOW_PORT_OUTPUT, kind = xui.XUI_FLOW_PORT_CONTROL) == 0
+    assert graph.addPort(second, "in", direction = xui.XUI_FLOW_PORT_INPUT, kind = xui.XUI_FLOW_PORT_CONTROL) == 0
+    assert graph.addEdge("edge", xui.XUI_FLOW_PORT_CONTROL, "start", "out", "tool", "in") == 0
+    bounds.fX = 24
+    bounds.fY = 58
+    bounds.fW = 600
+    bounds.fH = 280
+    assert widget.setRect(bounds) == 0 and root.addChild(widget) == 0
+
+    auto workflow = ui.workflowWidget()
+    bounds.fY = 350
+    assert workflow.setRect(bounds) == 0 and root.addChild(workflow) == 0
+    func() as xui.Widget? oldGetter = workflow.getCanvas
+    assert oldGetter() != null
+    auto embedded = xui.flowCanvas(workflow) as FlowCanvas
+    assert ui.layout() == 0 and ui.update(0.016) == 0
+
+    auto outside = canvas.hitTest(2, 2)
+    assert outside.iType == xui.XUI_FLOW_HIT_NONE and outside.iNode == -1
+    bool rejected = false
+    bool injected = false
+    budget(0)
+    try
+        auto cold = canvas.selectAt(334, 158)
+    catch Error
+        rejected = true
+    finally
+        injected = bool(failedAllocation())
+        reset()
+    end
+    assert rejected and injected
+    assert graph.isNodeSelected("tool") == 0
+
+    auto background = canvas.hitTest(44, 78)
+    assert background.iType == xui.XUI_FLOW_HIT_BACKGROUND
+    auto node = canvas.hitTest(334, 158)
+    assert node.iType == xui.XUI_FLOW_HIT_NODE and node.iNode == second
+    assert node.fX == 310 and node.fY == 100 and node.tRect.fW == 150 and node.tRect.fH == 80
+    assert graph.isNodeSelected("tool") == 0
+    auto port = canvas.selectAt(222, 170)
+    assert port.iType == xui.XUI_FLOW_HIT_PORT and port.iNode == first and port.iPort == 0
+    assert graph.isNodeSelected("start") == 1 and graph.isNodeSelected("tool") == 0
+    auto edge = canvas.selectAt(267, 190)
+    assert edge.iType == xui.XUI_FLOW_HIT_EDGE and edge.iEdge == 0
+    assert graph.isEdgeSelected("edge") == 1 and graph.isNodeSelected("start") == 0
+    auto cleared = canvas.selectAt(44, 78)
+    assert cleared.iType == xui.XUI_FLOW_HIT_BACKGROUND
+    assert graph.isEdgeSelected("edge") == 0
+    auto hover = canvas.getHoverHit()
+    assert hover.iType == xui.XUI_FLOW_HIT_NONE
+
+    budget(0)
+    try
+        for i in range(1000)
+            auto nodeHit = canvas.hitTest(334, 158)
+            auto edgeHit = canvas.hitTest(267, 190)
+            assert nodeHit.iNode == second and edgeHit.iEdge == 0
+        end
+        assert not failedAllocation()
+    finally
+        reset()
+    end
+
+    auto world = embedded.getWorldRect()
+    assert world.fW > 16 and world.fH > 16
+    auto embeddedHit = embedded.selectAt(c_float(world.fX + 8), c_float(world.fY + 8))
+    assert embeddedHit.iType == xui.XUI_FLOW_HIT_BACKGROUND
+    workflow.close()
+    bool expired = false
+    try
+        auto stale = embedded.hitTest(44, 78)
+    catch StateError
+        expired = true
+    end
+    assert expired
+    graph.close()
+    ui.close()
+    proxy.close()
+    assert balanced() == 1
+    println("XUI_FLOW_CANVAS_HITS_OK")
+    return 0
+end

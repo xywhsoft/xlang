@@ -1,0 +1,67 @@
+{
+  "complete": true,
+  "passed": true,
+  "releaseInstalled": false,
+  "sourceParent": "bc29946edfa501a93015a55c3d7cd97b75cadfb4",
+  "nativeCommit": "bd00bd732245822fa0a29b1d7d032201b9d1e296",
+  "xrtCommit": "804cc769de3030118c2b46ef7af69543d1b82d9d",
+  "sourceHashes": {
+    "tools/check_xge3_bindings.py": "edb4ddc56837983f53bfab4e15285345b0cf34fe7ddffc7a21719bfd6133c2ac",
+    "tools/xui_managed_contracts.py": "11e6bdf4c1664132382bc2840940e4e95fe270fbe876e652afe9645720dee674",
+    "lib/bindings/xui/src/managed.xl": "e86976fc8383b3f1d8ef4e36bf607d8783ac2b2a9519986292b4a82b91fe6f98",
+    "lib/bindings/xui/examples/flow_canvas.xl": "7c8ef3d479e9ffc9941fdb5af090dde9f27d3f2be116a6ca70d7a73403a2e51c",
+    "test/cases/foreign_xui_flow_canvas_hits.xl": "17dc3bb6eec0fdb68f4d76f9fe4c582c175108bcd5cc480bffedf582f19cad21"
+  },
+  "evidence": {
+    "win": {
+      "package": {
+        "path": "F:\\xlang-validation\\xge-full-20261110\\flow-canvas-hits-packages-win-r4\\results.json",
+        "sha256": "8b1f3f7a62bf3b19f9d8693c2d1bfbbaa9d4faacae38750b54d079ed67db12e2"
+      },
+      "language": {
+        "path": "F:\\xlang-validation\\xge-full-20261110\\flow-canvas-hits-language-win-r5\\results.json",
+        "sha256": "b9d7bac14d8f96311917cbc22fe7390b1a3c404609008a8fb479a4a351e71194"
+      },
+      "borrowedValueRegression": {
+        "path": "F:\\xlang-validation\\xge-full-20261110\\borrowed-value-post-audio-win-r1\\results.json",
+        "sha256": "0587920516afa78cba6de7d624eb3934a89c1a00ae6ae5d50fc30e34cf935254"
+      },
+      "packageSteps": 6,
+      "languageSteps": 15,
+      "borrowedValueSteps": 26,
+      "lessonReadback": {
+        "path": "F:\\xlang-validation\\xge-full-20261110\\flow-canvas-lesson-render-win-r1\\results.json",
+        "sha256": "80986233edace41761c9d77a30e0a3a9b8d53dbd431cc0d86a5f4aa77d87d650"
+      }
+    },
+    "linux": {
+      "package": {
+        "path": "\\\\wsl.localhost\\Ubuntu\\var\\tmp\\xlang-validation\\xge-full-20261110\\flow-canvas-hits-packages-linux-r4\\results.json",
+        "sha256": "9daea18556924bed6cb712356be3873ec8264e2f1e55e8e37f46fc497ff7c696"
+      },
+      "language": {
+        "path": "\\\\wsl.localhost\\Ubuntu\\var\\tmp\\xlang-validation\\xge-full-20261110\\flow-canvas-hits-language-linux-r5\\results.json",
+        "sha256": "38be0adbfb346a7e517d48ab69c48b39ea1a40376110493c781f75a1d55fdfed"
+      },
+      "borrowedValueRegression": {
+        "path": "\\\\wsl.localhost\\Ubuntu\\var\\tmp\\xlang-validation\\xge-full-20261110\\borrowed-value-post-audio-linux-r1\\results.json",
+        "sha256": "8c91d6645a1bafb09ad9fab1e502cca74c627ed907d91290014abf1cafac14b0"
+      },
+      "packageSteps": 6,
+      "languageSteps": 15,
+      "borrowedValueSteps": 26,
+      "lessonReadback": {
+        "path": "\\\\wsl.localhost\\Ubuntu\\var\\tmp\\xlang-validation\\xge-full-20261110\\flow-canvas-lesson-render-linux-r2\\results.json",
+        "sha256": "9d3bbb4311b521612591cc53aaa1e7f63f4befa6a6b3d74bb7573888debc750b"
+      }
+    }
+  },
+  "coverage": [
+    "Standalone and Workflow canvases call the same XUI hit and selection functions directly.",
+    "Logical-to-local coordinates, node, port, edge, blank, clear selection and expired views.",
+    "One injected cold failure before selection, successful retry, and 2000 warmed hits without an attempted XRT allocation.",
+    "JIT, dynamic and static AOT on Windows and Linux, strict C11/C++11/C++17 emitted headers, and static import checks.",
+    "Borrowed-value field ownership, strict snapshots and whole-record rollback replayed against the current compiler.",
+    "The updated flow canvas lesson renders three frames on Windows graphics and Linux Xvfb with software GL."
+  ]
+}
