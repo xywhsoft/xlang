@@ -1,0 +1,88 @@
+import xui
+from xui import CallbackWidget,CallbackWidgetTypeData,CallbackWidgetCreateData
+
+extern "fixtureRenderProxy" @header("test/cases/foreign_xui_render_backend.h") @no_raise @c_result("owned_view") @factory(0,0,dropProxy) func cpuProxy() as xui.Proxy
+extern "xuiProxyReleaseChecked" @header("xge3_runtime.h") @no_raise @c_result("status",0) func dropProxy(xui.Proxy value)
+extern "fixtureRenderBudget" @no_raise func budget(c_int allowance)
+extern "fixtureRenderBalanced" @no_raise func balanced() as c_int
+
+class Counter
+    int value
+
+    create(int start)
+        self.value=start
+    end
+end
+
+func main(...) as int
+    auto proxy=cpuProxy()
+    auto ui=xui.create(proxy,xui.XUI_SYSTEM_FONT_DISABLED)
+    auto ordinary=ui.widget()
+    bool rejected=false
+    try
+        ordinary.getInstanceState()
+    catch error
+        rejected=true
+    end
+    assert rejected
+    ordinary.close()
+
+    c_int destroyed=0
+    int sum=0
+    auto initialize=func(CallbackWidget widget,CallbackWidgetTypeData? data,CallbackWidgetCreateData? input) as c_int
+        assert data==null and input==null
+        assert widget.getInstanceState()==null
+        widget.setInstanceState(Counter(10))
+        return 0
+    end
+    auto retire=func(CallbackWidget widget,CallbackWidgetTypeData? data)
+        auto value=widget.getInstanceState() as Counter
+        sum+=value.value
+        destroyed+=1
+        bool writeRejected=false
+        try
+            widget.setInstanceState(null)
+        catch error
+            writeRejected=true
+        end
+        assert writeRejected
+    end
+    auto flag=c_uint(xui.XUI_WIDGET_TYPE_MANAGED_STATE)
+    auto kind=ui.registerWidgetTypeWithCallbacks("state.counter",flags=flag,initialize=initialize,destroy=retire)
+    auto subtype=ui.registerWidgetType("state.inherited",kind)
+    auto left=ui.createWidget(subtype)
+    auto right=ui.createWidget(kind)
+
+    auto a=left.getInstanceState() as Counter
+    auto b=right.getInstanceState() as Counter
+    a.value=42
+    assert b.value==10 and (left.getInstanceState() as Counter).value==42
+    var alternate=Counter(60)
+    int iteration=0
+    budget(0)
+    while iteration<1000
+        var original=left.getInstanceState()
+        left.setInstanceState(alternate)
+        left.setInstanceState(original)
+        iteration+=1
+    end
+    budget(-1)
+    right.setInstanceState(null)
+    assert right.getInstanceState()==null
+    var saved=Counter(21)
+    right.setInstanceState(saved)
+    (saved as Counter).value=23
+    assert (right.getInstanceState() as Counter).value==23
+
+    left.close()
+    assert destroyed==1 and sum==42
+    assert a.value==42
+    // Context shutdown also calls the type destructor and releases its state.
+    ui.close()
+    assert destroyed==2 and sum==65
+    assert (saved as Counter).value==23
+    proxy.close()
+    assert balanced()==1
+    println("XUI_WIDGET_INSTANCE_STATE_OK")
+    return 0
+end

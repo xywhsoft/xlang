@@ -75,7 +75,14 @@ update and cursor callbacks. The Context registry retains one group per
 type. Derived instances use the group of the type that declared each
 callback. Widget, draw, and native data arguments are callback-scope views.
 The language registration uses a zero-size native instance descriptor.
-Use closure captures for type-wide data. See [custom_widget.xl](examples/custom_widget.xl).
+Use closure captures for type-wide data. Add `XUI_WIDGET_TYPE_MANAGED_STATE`
+to the type flags to give each instance an initially null `var` slot.
+Derived types inherit the slot. `setInstanceState` retains the assigned value
+with its identity, and `getInstanceState` returns an independent owning
+reference to that value. The Context traces the slot for ownership collection.
+Type destructors can read the state until they return. Writes become invalid
+once destruction is requested. The slot adds one pointer to each opted-in
+instance allocation. See [custom_widget.xl](examples/custom_widget.xl).
 
 The default Document model has seven typed resource classes: `Document`,
 `DocumentSnapshot`, `DocumentChangeSet`, `DocumentPrepare`, `DocumentFragment`,

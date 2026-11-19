@@ -99,6 +99,7 @@ export const c_int XUI_WIDGET_TYPE_DEFAULT_LAYOUT = 1
 export const c_int XUI_WIDGET_TYPE_DEFAULT_CACHE_POLICY = 2
 export const c_int XUI_WIDGET_TYPE_UPDATE_ON_INACTIVE = 4
 export const c_int XUI_WIDGET_TYPE_PREPARE_FRAME_DEPENDENT = 8
+export const c_int XUI_WIDGET_TYPE_MANAGED_STATE = 16
 export const c_int XUI_RESOURCE_SURFACE = 1
 export const c_int XUI_RESOURCE_FONT = 2
 export const c_int XUI_RESOURCE_STYLE = 3

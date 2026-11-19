@@ -1,0 +1,77 @@
+{
+  "complete": true,
+  "passed": true,
+  "releaseInstalled": false,
+  "shippingDelivery": false,
+  "xlangParent": "81243617cf4f8b5329e701cd4f55d7db2c90ef95",
+  "nativeCommit": "02323c463c2b932845cab6623664882f0b9be9ea",
+  "frozenXrt": "804cc769de3030118c2b46ef7af69543d1b82d9d",
+  "scope": [
+    "Opt-in storage is one XRT value pointer at the tail of each instance allocation. Derived types inherit state support.",
+    "Get retains the same value identity, Set retains and replaces the slot, and Context trace reports each real state edge.",
+    "Read access continues inside type destructors. Writes after logical destruction are rejected. The native fixture replaces a member of a busy XRT object and requests widget destruction from its drop callback.",
+    "Direct C O0/O2 and language JIT/dynamic/static AOT exercise 1000 warm reads and twice as many assignments with pre-existing values and allocations forbidden. The C fixture also compares heap counters.",
+    "The language fixtures check mutable object identity, per-instance separation, prior owner lifetime after teardown, and regression of all nine virtual callbacks. The graphical example uses separate per-widget colors."
+  ],
+  "sources": {
+    "docs/xge3-xui3-api-map-storage.json": "ab8a5a2348c3908bb1879f4d63d39828bbf1f6be811bcba77fdb45d9b34bb4cd",
+    "lib/bindings/xui/README.md": "538366de12e9f671d0f3c5932a38d8c598fff9b86996a6a1baa8eed93f6db892",
+    "lib/bindings/xui/examples/README.md": "55e1868424181b88baaf65fa73e4cd3f55ae5e32941be24dfec0e08f3305405a",
+    "lib/bindings/xui/examples/custom_widget.xl": "b22ba48d15d2e7ffedd1b4b5607376aa5d009a052f5dcc84c1153f252540a98e",
+    "lib/bindings/xui/src/managed.xl": "ef489ffed950782e03f28537ffa58ec18ab6368799165f2f9487372488f157e5",
+    "lib/bindings/xui/src/constants.xl": "3a36b7f147b6eed6335a14a636686e57bd68b296290a53b2aaa47c83449ad775",
+    "test/cases/foreign_xui_widget_instance_state.xl": "7b0e6fe74d824b3ed58082fef0126f894019697cd32622d39102eef8dd32ffb9",
+    "tools/xui_managed_contracts.py": "f34c8d6f0a3d17766e58b2a85bd1f5bf798e1c3ef7d225c02308ca32eefab50d"
+  },
+  "nativeSources": {
+    "include/xui.h": "3621563891e1b0f28e82aaafd466c97f36b309e7c627f6ae486ecc3f2ae5a903",
+    "src/xui/core/xui_widget.c": "ec85e641efffbba817d4570a86f0156023d7c0b4a0569001e8c976036e4e4bf4",
+    "tests/xui/xui_widget_instance_state_test.c": "4068f819567369328cb5200e13c6c60f4d0159ffd58e4106ac3dced560bccf7d"
+  },
+  "platforms": {
+    "win": {
+      "qualifiedNativeSdk": {
+        "path": "F:\\xlang-validation\\xge-full-20261110\\xui-widget-instance-state-sdk-win-r1\\results.json",
+        "sha256": "996a4844b1ceca03ee12afb6085cf29cd2f17d8afb5ac6f92ebfab776c871f1c",
+        "commands": 2
+      },
+      "nativeLifecycle": {
+        "path": "F:\\xlang-validation\\xge-full-20261110\\xui-widget-instance-state-native-tests-win-r2\\results.json",
+        "sha256": "5a35710f41b13d7813f6cf2f008abcaef7489340b9951ec47ef716f579145234",
+        "commands": 4
+      },
+      "packages": {
+        "path": "F:\\xlang-validation\\xge-full-20261110\\xui-widget-instance-state-packages-win-r1\\results.json",
+        "sha256": "d2549fefa03fccd522be46febe4b1653351cb0c60f28e214a426490eda006ad7",
+        "commands": 6
+      },
+      "languageAndExample": {
+        "path": "F:\\xlang-validation\\xge-full-20261110\\xui-widget-instance-state-tests-win-r2\\results.json",
+        "sha256": "38b39e89e5ea2da0899528456638719869635ea8b79b5e7ea3ade09c1ab1f6e3",
+        "commands": 25
+      }
+    },
+    "linux": {
+      "qualifiedNativeSdk": {
+        "path": "/var/tmp/xlang-validation/xge-full-20261110/xui-widget-instance-state-sdk-linux-r1/results.json",
+        "sha256": "61a3a396a9d4667d3a032908766297e809e5621b46b034b02ed118060eb5fac3",
+        "commands": 2
+      },
+      "nativeLifecycle": {
+        "path": "/var/tmp/xlang-validation/xge-full-20261110/xui-widget-instance-state-native-tests-linux-r2/results.json",
+        "sha256": "978a84c85663b0ae2858205e9198479fc1c3d67dbb7f94d161b83d4b8881a20f",
+        "commands": 4
+      },
+      "packages": {
+        "path": "/var/tmp/xlang-validation/xge-full-20261110/xui-widget-instance-state-packages-linux-r1/results.json",
+        "sha256": "928f2c6ce812b2f6f451883a014af92ea507993a095b0f0c2204794d30065350",
+        "commands": 6
+      },
+      "languageAndExample": {
+        "path": "/var/tmp/xlang-validation/xge-full-20261110/xui-widget-instance-state-tests-linux-r2/results.json",
+        "sha256": "73a80dd6d0cfafc06c5ab3af87fb99a5e5de23f52c817ca1d9a3b411258a1a4d",
+        "commands": 25
+      }
+    }
+  }
+}

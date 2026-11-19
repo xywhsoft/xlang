@@ -8,10 +8,19 @@ Window.showWithProxy("自绘控件",func(xui.Context ui,xui.Widget root,xui.Prox
         auto area=widget.rect()
         area.fX=0
         area.fY=0
-        proxy.fillRect(draw,area,0x3878B8FF)
+        auto color=c_uint(widget.getInstanceState() as int)
+        proxy.fillRect(draw,area,color)
         return 0
     end
 
-    auto tile=ui.registerWidgetTypeWithCallbacks("example.tile",render=paint)
-    Window.place(root,ui.createWidget(tile),24,24,200,96)
+    auto stateFlag=c_uint(xui.XUI_WIDGET_TYPE_MANAGED_STATE)
+    auto tile=ui.registerWidgetTypeWithCallbacks("example.tile",flags=stateFlag,render=paint)
+
+    auto blue=ui.createWidget(tile)
+    blue.setInstanceState(0x3878B8FF)
+    Window.place(root,blue,24,24,200,72)
+
+    auto green=ui.createWidget(tile)
+    green.setInstanceState(0x389866FF)
+    Window.place(root,green,24,108,200,72)
 end)
