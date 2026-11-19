@@ -732,6 +732,21 @@ const XL6_ForeignViewDescriptorV1* xl6Xui3CodeEditFoldStatePolicyGet(void)
     };
     return &value;
 }
+static bool watch_code_edit_theme(void* raw, void* storage, void (*invalidate)(void*), void* user)
+{
+    int status = xuiCodeThemeEditorLifetimeWatch(raw, storage, invalidate, user);
+    if (status != XUI_OK) report_resource_failure(status, "xuiCodeThemeEditorLifetimeWatch");
+    return status == XUI_OK;
+}
+const XL6_ForeignViewDescriptorV1* xl6Xui3CodeEditThemePolicyGet(void)
+{
+    static const XL6_ForeignViewDescriptorV1 value = {
+        sizeof(value), XL6_FOREIGN_VIEW_V1_TAG, "xui.codeEdit.theme",
+        sizeof(xui_lifetime_link_t), _Alignof(xui_lifetime_link_t),
+        watch_code_edit_theme, unwatch, NULL, 0, 1, NULL, NULL, NULL, NULL, 0, NULL, NULL
+    };
+    return &value;
+}
 static bool destroy_code_language_registry(void* raw)
 {
     int status = xuiCodeLanguageRegistryDestroyChecked(raw);
@@ -797,6 +812,7 @@ const XL6_ForeignViewDescriptorV1* xl6Xui3CodeEditSelectionViewPolicyGet(void){r
 const XL6_ForeignViewDescriptorV1* xl6Xui3CodeDocumentPolicyGet(void){return NULL;}
 const XL6_ForeignViewDescriptorV1* xl6Xui3CodeEditCommandMapPolicyGet(void){return NULL;}
 const XL6_ForeignViewDescriptorV1* xl6Xui3CodeEditFoldStatePolicyGet(void){return NULL;}
+const XL6_ForeignViewDescriptorV1* xl6Xui3CodeEditThemePolicyGet(void){return NULL;}
 const XL6_ForeignViewDescriptorV1* xl6Xui3CodeLanguageRegistryPolicyGet(void){return NULL;}
 const XL6_ForeignViewDescriptorV1* xl6Xui3CodeEditLanguageRegistryPolicyGet(void){return NULL;}
 const XL6_ForeignViewDescriptorV1* xl6Xui3CodeEditAnnotationsPolicyGet(void){return NULL;}

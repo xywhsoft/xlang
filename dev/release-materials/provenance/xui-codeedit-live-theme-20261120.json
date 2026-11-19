@@ -1,0 +1,192 @@
+{
+  "complete": true,
+  "passed": true,
+  "releaseInstalled": false,
+  "sourceParent": "28c91cc31e3ff73749dcc6e63bed62ac77594f20",
+  "nativeCommit": "ebf2e5053946b1f8c0033b89b42ee9e2d8fc51fd",
+  "frozenXrt": "804cc769de3030118c2b46ef7af69543d1b82d9d",
+  "sourceHashesLf": {
+    "docs/xge3-xui3-api-map-storage.json": "c80c33b96669c08d097280a778f43ff2485eef87e0e6af21ef52e9faf71bbbf6",
+    "lib/bindings/_xge_native/include/xge3_runtime.h": "e56e8711e5ff2e04ff188eaa23d13ba1249f27a612aacbc056af41f16a099065",
+    "lib/bindings/_xge_native/src/runtime.c": "7c96e082dfcb91ed3fda68830d79afa2e2446759bb69e81712c6f19c6465fa98",
+    "lib/bindings/xui/examples/README.md": "e1f2e23c67e0e85a21bf98e0dc4ac29dda7d96906817adaef2ecab04c6c9a6d5",
+    "lib/bindings/xui/examples/code_editor_theme.xl": "e5b56c6440f2ecc7fcacbe5e2bc498185d21c8959e28295b3851218457c370dd",
+    "lib/bindings/xui/src/code_models.xl": "fd4416ba947c5096e6a6a666337fd028fdf64278bd8b24f70e11fe6ed1b180ef",
+    "lib/bindings/xui/src/managed.xl": "42637f91414e263111f9a7586c57d1b8fecc1a7971f8b1ce74788f5037b035d1",
+    "tools/xui_managed_contracts.py": "4d6981dc78966a02a6be3ca1b0b3e9ab4bea3c89668bb6eb3d34ced38ef2af4f",
+    "test/cases/foreign_xui_codeedit_theme.xl": "5e0f40a6ea3ea09c0edf280a76885e37cef822bc2d2844c168703fb6bf2adecf",
+    "docs/xui-code-models.md": "3fe9df5bb674444872c386fb605eb0fb29e49a06e3c883f0fb24630062a2f3ce"
+  },
+  "nativeHashesLf": {
+    "tests/xui/xui_code_edit_theme_test.c": "90d460f8d07b93a6fb8c80bdc4015c66bc5827e570e72c5f74faaf5c926ebe6a",
+    "include/xui.h": "7ff5201171c05ace2dd4ec9284fd776b2d96b2533877091c1eac636a6614deb8",
+    "src/xui/code/xui_code_edit.c": "5dbd40ab7ce32dcd037385e0c5ce758e338335442a5d476a00040b44858c71ba",
+    "src/xui/code/xui_code_theme_internal.h": "d530d4dd82cc510ccab5ccfda98779bf0677caf181f130de47bc63e7c85a3bce",
+    "src/xui/code/xui_code_theme.c": "60fc3b09db8d07af267007475a5bf1d8b41d769efb5f9f877ad9edb3e691d820"
+  },
+  "coverage": [
+    "The theme stays live across copy and view recreation. Closing the editor invalidates its views.",
+    "Style mutations request redraw. The native renderer emits the updated token color and rejects mutation during its token-style callback.",
+    "Cross-thread writes fail. Detaching a watch leaves the native theme intact and only active watches get notified.",
+    "Failed copies leave the current style and widget dirty state unchanged. Failed clones release partial storage and return no owner.",
+    "Windows/Linux native O0/O2, direct C emission, JIT, dynamic and static executables, standalone theme regression and GUI lesson."
+  ],
+  "measurement": {
+    "nativeWarmPairs": {
+      "iterations": 1000,
+      "allocFreeRealloc": [
+        0,
+        0,
+        0
+      ],
+      "operations": [
+        "setStyle",
+        "mapTokenKind"
+      ]
+    },
+    "xlangWarmPairs": {
+      "iterations": 1000,
+      "allocFreeRealloc": [
+        0,
+        0,
+        0
+      ],
+      "operations": [
+        "theme",
+        "setStyle",
+        "getStyle"
+      ]
+    },
+    "extraCosts": "Cold language view admission may allocate. Clone allocates a theme and copies the optional arrays. Live writes add state and creator-thread admission and invalidate the editor."
+  },
+  "evidence": {
+    "win": {
+      "nativeSdk": {
+        "path": "F:\\xlang-validation\\xge-full-20261110\\codeedit-live-theme-sdk-win-r2\\results.json",
+        "sha256": "805a1412952de87dce8aceaea0a9479fa38d7fc0c806edefbcdd547e1f788a07",
+        "checks": 2
+      },
+      "packages": {
+        "path": "F:\\xlang-validation\\xge-full-20261110\\codeedit-live-theme-packages-win-r2\\results.json",
+        "sha256": "0f9088dac83707ef5c67645c82da4a339dad6b2f25c7fa31e25b81c75fd7b1dc",
+        "checks": 6,
+        "directory": "F:\\xlang-validation\\xge-full-20261110\\codeedit-live-theme-packages-win-r2\\packages"
+      },
+      "nativeTests": {
+        "path": "F:\\xlang-validation\\xge-full-20261110\\codeedit-live-theme-native-tests-win-r2\\results.json",
+        "sha256": "d9db9812f5fb090044eb71bbfebe96487b4f36c3740c6ac641bf831534c984d3",
+        "checks": 4
+      },
+      "language": {
+        "path": "F:\\xlang-validation\\xge-full-20261110\\codeedit-live-theme-xlang-win-r3\\results.json",
+        "sha256": "c064ebeff9b3d020fe93624eed48ead5fbe291a36169c0a2fbea2aabb91f6031",
+        "checks": 13,
+        "programs": {
+          "dynamic.exe": {
+            "sha256": "1420512322bb0e353312aba5eb56384a8f4bf66118ce105ebc0a3084c5614d7e",
+            "imports": [
+              "msvcrt.dll",
+              "xge3_host.dll",
+              "kernel32.dll",
+              "SHELL32.dll",
+              "ws2_32.dll",
+              "IPHLPAPI.dll",
+              "ucrtbase.dll"
+            ]
+          },
+          "static.exe": {
+            "sha256": "9df2bf8fcd89d361ff041919ed1fa3fe3884e3fee9c8994985acbb78fe5b1a4c",
+            "imports": [
+              "msvcrt.dll",
+              "kernel32.dll",
+              "USER32.dll",
+              "ole32.dll",
+              "OLEAUT32.dll",
+              "SHELL32.dll",
+              "GDI32.dll",
+              "IMM32.dll",
+              "DWrite.dll"
+            ]
+          },
+          "lesson.exe": {
+            "sha256": "f118900f974fe2817e026f3cd22a5819525e008db4845951a43ee9b4276cad30",
+            "imports": [
+              "msvcrt.dll",
+              "kernel32.dll",
+              "USER32.dll",
+              "GDI32.dll",
+              "ole32.dll",
+              "OLEAUT32.dll",
+              "SHELL32.dll",
+              "IMM32.dll",
+              "DWrite.dll"
+            ]
+          }
+        },
+        "generatedCodeSha256": "af9fdf65b69c4c763eed95309cc30f61fd24001bc2ab4e8bba1a9d4d361bbf27"
+      }
+    },
+    "linux": {
+      "nativeSdk": {
+        "path": "\\\\wsl.localhost\\Ubuntu\\var\\tmp\\xlang-validation\\xge-full-20261110\\codeedit-live-theme-sdk-linux-r2\\results.json",
+        "sha256": "1c4d35e1d9f755f02781d923dddaf0dc93d34b8ed550bb7ae0b1ffa195f9f4a5",
+        "checks": 2
+      },
+      "packages": {
+        "path": "\\\\wsl.localhost\\Ubuntu\\var\\tmp\\xlang-validation\\xge-full-20261110\\codeedit-live-theme-packages-linux-r2\\results.json",
+        "sha256": "692bb215e070c133baf25c1ff543d5ba83fbe8fac0561ba5cbb1df4afb9a67be",
+        "checks": 6,
+        "directory": "/var/tmp/xlang-validation/xge-full-20261110/codeedit-live-theme-packages-linux-r2/packages"
+      },
+      "nativeTests": {
+        "path": "\\\\wsl.localhost\\Ubuntu\\var\\tmp\\xlang-validation\\xge-full-20261110\\codeedit-live-theme-native-tests-linux-r2\\results.json",
+        "sha256": "3888c145bd2c3170a9924592759aaa43e99477d2c22a5cb0495fe17849aa132e",
+        "checks": 4
+      },
+      "language": {
+        "path": "\\\\wsl.localhost\\Ubuntu\\var\\tmp\\xlang-validation\\xge-full-20261110\\codeedit-live-theme-xlang-linux-r3\\results.json",
+        "sha256": "ad08b5739c82176dbc6393a5fab6c20dd7cb066406870d85ba87785b007be4b8",
+        "checks": 13,
+        "programs": {
+          "dynamic": {
+            "sha256": "e2e84f2db782399a181a956779fbd462f164867593cffea62dd7c6ee359ef9af",
+            "imports": [
+              "libm.so.6",
+              "libmvec.so.1",
+              "libxge3_host.so",
+              "libc.so.6",
+              "ld-linux-x86-64.so.2"
+            ]
+          },
+          "static": {
+            "sha256": "e941c8a4d649ddea724f80287fc8d1842fef5cbc5cdce318b551476c7a26cf89",
+            "imports": [
+              "libm.so.6",
+              "libmvec.so.1",
+              "libX11.so.6",
+              "libXi.so.6",
+              "libXcursor.so.1",
+              "libGL.so.1",
+              "libc.so.6",
+              "ld-linux-x86-64.so.2"
+            ]
+          },
+          "lesson": {
+            "sha256": "a08245ad160dc828b4dfdd31aaeb9cf68cf81f5bcc3f5acd2df28d41f65ab87b",
+            "imports": [
+              "libm.so.6",
+              "libmvec.so.1",
+              "libX11.so.6",
+              "libXi.so.6",
+              "libXcursor.so.1",
+              "libGL.so.1",
+              "libc.so.6",
+              "ld-linux-x86-64.so.2"
+            ]
+          }
+        },
+        "generatedCodeSha256": "af9fdf65b69c4c763eed95309cc30f61fd24001bc2ab4e8bba1a9d4d361bbf27"
+      }
+    }
+  }
+}

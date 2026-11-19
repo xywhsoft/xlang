@@ -12,8 +12,9 @@ active-call lifetime and alias invalidation on close.
 | Model | Direct native operations |
 | --- | --- |
 | CodeSelectionModel | clear, setRange, setState, getRange, getState, hasSelection, getCount, getAt, add, selectAll, selectWord, selectLine, gotoOffset, gotoLineColumn, move |
-| CodeTheme | setDefault, setStyle, getStyle, mapTokenKind, getTokenStyle, copyFrom |
-| CodeEdit | setTheme copies the supplied native theme |
+| CodeTheme | setDefault, setStyle, getStyle, mapTokenKind, getTokenStyle, copyFrom, clone |
+| CodeEditTheme | getStyle, getTokenStyle, setStyle, setDefault, mapTokenKind, copyFrom, clone |
+| CodeEdit | theme returns the active theme view and setTheme copies an independent theme into it |
 
 Offsets are UTF-8 byte positions. Native movement and clamping follow grapheme
 boundaries, including combining marks; range direction and inactive extra
@@ -43,8 +44,7 @@ to the existing unique-root lifecycle protocol. They do not claim a checked
 native destructor API. Custom array growth and theme copies retain their
 original allocation/copy costs; factory/root admission and generic scopes are
 additional cold/bookkeeping costs. Borrowed internal editor model getters need
-their own safe owner-view contract; these declarations create no second owner
-for those internal pointers.
+an observed owner view. CodeEdit owns its active theme.
 
 The console lesson is [code_models.xl](../lib/bindings/xui/examples/code_models.xl).
 It has no window, file I/O, network, explicit library loader or testing scaffold.
@@ -70,3 +70,34 @@ section reordering, not an optimization guarantee. There are 12 build/check
 commands. Final packages differ from the qualified ones only in README and
 catalogue data; a final completed-report hash and whole-package comparison
 verify code reuse. See `dev/release-materials/provenance/xui-code-models-20261114.json`.
+
+## Live CodeEdit themes
+
+`editor.theme()` returns a `CodeEditTheme` backed by the editor's existing
+theme. Style edits, token mapping changes, reset and copy invalidate the
+editor's style and render caches. Edit the view on the creator thread.
+Attempting a mutation from a guarded render callback reports Busy.
+
+Closing the view detaches its observer. It leaves the native theme available
+to the editor and to a later lookup. Closing the editor expires all its views.
+Applying another theme with `editor.setTheme(theme)` copies the contents into
+the same live theme. Existing views can read the updated contents.
+
+Use `live.clone()` to keep an independent `CodeTheme`. A clone copies both
+optional arrays and owns their storage. Clone and copy preserve the original
+theme on allocation failure. Use `live.copyFrom(otherLive)` to copy directly
+between two editors. Copy from a standalone theme with `editor.setTheme`.
+
+The first live lookup may allocate a language view and attach its observer.
+Repeated lookups reuse the view while it stays live. Reads copy the small
+`CodeStyle` value to the caller. The renderer retains its existing direct
+native reads. Mutations add a thread and state check, plus invalidation.
+See the [keyword color example](../lib/bindings/xui/examples/code_editor_theme.xl).
+
+The [live-theme qualification](../dev/release-materials/provenance/xui-codeedit-live-theme-20261120.json)
+records Windows and Linux native and language runs. The native test reads the
+color submitted to the text renderer and rejects reentrant mutation during
+token styling. It checks both copy allocation failures and all three clone
+allocation failures for a populated theme. The warmed language case verifies
+1,000 lookups, writes and reads under a zero-allocation budget while retaining
+the view.

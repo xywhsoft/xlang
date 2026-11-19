@@ -1,0 +1,91 @@
+import xui
+
+extern "fixtureDiagnosticBudget" @header("test/cases/foreign_xui_codeedit_diagnostics_heap.h") @no_raise func budget(c_int allowance)
+extern "fixtureDiagnosticHeapBegin" @header("test/cases/foreign_xui_codeedit_diagnostics_heap.h") @no_raise func heapBegin()
+extern "fixtureDiagnosticHeapUnchanged" @header("test/cases/foreign_xui_codeedit_diagnostics_heap.h") @no_raise func heapUnchanged() as c_int
+
+func checkEditor(xui.CodeEdit editor,xui.CodeEdit second)
+ c_int keyword=xui.XUI_CODE_STYLE_KEYWORD
+ c_int custom=xui.XUI_CODE_STYLE_CUSTOM_BASE
+ c_int kind=xui.XUI_CODE_TOKEN_CUSTOM_BASE
+ auto theme=editor.theme()
+ auto alias=editor.theme()
+ auto previous=theme.getStyle(keyword)
+ auto style=previous
+ style.iForeground=0xa12accff
+ theme.setStyle(keyword,style)
+ assert alias.getStyle(keyword).iForeground==style.iForeground
+ assert second.theme().getStyle(keyword).iForeground==previous.iForeground
+
+ auto copy=theme.clone()
+ copy.setStyle(custom,style)
+ copy.mapTokenKind(kind,custom)
+ for allowance in range(2)
+  bool failed=false
+  budget(c_int(allowance))
+  try
+   editor.setTheme(copy)
+  catch Error
+   failed=true
+  finally
+   budget(-1)
+  end
+  assert failed and theme.getTokenStyle(kind).iForeground!=style.iForeground
+ end
+ editor.setTheme(copy)
+ assert alias.getTokenStyle(kind).iForeground==style.iForeground
+ second.theme().copyFrom(theme)
+ assert second.theme().getStyle(custom).iForeground==style.iForeground
+
+ heapBegin()
+ budget(0)
+ try
+  for round in range(1000)
+   auto again=editor.theme()
+   again.setStyle(keyword,style)
+   assert again.getStyle(keyword).iForeground==style.iForeground
+  end
+ finally
+  budget(-1)
+ end
+ assert heapUnchanged()!=0
+
+ alias.close()
+ auto live=editor.theme()
+ assert live.getTokenStyle(kind).iForeground==style.iForeground
+ auto worker=thread(func() as int
+  try
+   live.setDefault()
+   return 1
+  catch StateError
+   return 0
+  end
+ end)
+ assert worker.waitTimeout(30000) and worker.exitCode()==0
+ editor.close()
+ bool expired=false
+ try
+  live.getStyle(keyword)
+ catch StateError
+  expired=true
+ end
+ assert expired and copy.getStyle(custom).iForeground==style.iForeground
+ second.theme().setDefault()
+ assert second.theme().getStyle(keyword).iForeground==previous.iForeground
+ copy.close()
+end
+
+func main(...) as int
+ auto proxy=xui.createProxy()
+ auto ui=xui.create(proxy,xui.XUI_SYSTEM_FONT_DISABLED)
+ auto editor=ui.codeEditNative()
+ auto second=ui.codeEditNative()
+ try
+  checkEditor(editor,second)
+ finally
+  ui.close()
+  proxy.close()
+ end
+ println("XUI_CODEEDIT_LIVE_THEME_OK")
+ return 0
+end

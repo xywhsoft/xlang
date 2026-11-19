@@ -1,0 +1,16 @@
+import xui
+from "./_window.xl" import Window
+
+Window.show("CodeEdit keyword colors",func(xui.Context ui,xui.Widget root)
+ auto editor=ui.codeEditNative()
+ Window.place(root,editor,24,24,560,180)
+ assert editor.setLanguage("c")==xui.XUI_OK
+ assert editor.setText("int main(void) { return 42; }")==xui.XUI_OK
+
+ // Change the color of keywords in this editor.
+ auto theme=editor.theme()
+ auto keyword=theme.getStyle(xui.XUI_CODE_STYLE_KEYWORD)
+ keyword.iForeground=0xa12accff
+ theme.setStyle(xui.XUI_CODE_STYLE_KEYWORD,keyword)
+ println("Keyword color updated")
+end)

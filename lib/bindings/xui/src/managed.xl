@@ -2600,6 +2600,7 @@ export extern "xui_widget_t*" class CodeEdit @header("xge3_runtime.h") @lifetime
  extern "xuiCodeEditSetDocumentChangeCallbackOwned" @no_raise @c_owned_callback(0,0,"xui_callback_owner_t",0) @c_result("status",0) func setDocumentChangeCallback(CodeDocumentChangeProc? callback)
 
  extern "xuiCodeEditSetTheme" @no_raise @c_result("status",0) func setTheme(CodeTheme theme)
+ extern "xuiCodeEditGetTheme" @no_raise @c_result("owner_view",0) func theme() as CodeEditTheme
 
  extern "xuiCodeEditSetStyle" @no_raise @c_ref(1) func setStyle(c_int iStyleId,CodeStyle pStyle) as c_int
  extern "xuiCodeEditSetTokenStyleResolverOwned" @no_raise @c_owned_callback(0,0,"xui_callback_owner_t",-16) @c_result("status",0) func setTokenStyleResolver(CodeTokenStyleResolver? resolver)
