@@ -89,6 +89,19 @@ const XL6_ForeignViewDescriptorV1* xl6Xui3WidgetPolicyGet(void)
         sizeof(xui_lifetime_link_t),_Alignof(xui_lifetime_link_t),watch_widget,unwatch,destroy_widget,0,1,NULL,NULL,NULL,NULL,0,NULL,NULL};
     return &value;
 }
+static bool watch_widget_type(void* raw,void* storage,void(*invalidate)(void*),void* user)
+{
+    int status=xuiWidgetTypeLifetimeWatch(raw,storage,invalidate,user);
+    if(status!=XUI_OK)report_resource_failure(status,"xuiWidgetTypeLifetimeWatch");
+    return status==XUI_OK;
+}
+const XL6_ForeignViewDescriptorV1* xl6Xui3WidgetTypePolicyGet(void)
+{
+    static const XL6_ForeignViewDescriptorV1 value={sizeof(value),XL6_FOREIGN_VIEW_V1_TAG,"xui.widget_type",
+        sizeof(xui_lifetime_link_t),_Alignof(xui_lifetime_link_t),watch_widget_type,unwatch,
+        NULL,0,1,NULL,NULL,NULL,NULL,0,NULL,NULL};
+    return &value;
+}
 /* Packs have no language-owned native reference: their Context registry owns
  * them. Child controls retain that Context, and native watches expire before
  * strings/slots are freed. Destroy is used only for explicit control cleanup;

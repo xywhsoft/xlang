@@ -55,6 +55,20 @@ The resolved queries read the current resolved properties. Call
 `Widget.resolveStyle()` to explicitly recompute them. See
 [style_rules.xl](examples/style_rules.xl) for a per-control example.
 
+`Context.findWidgetType`, type getters such as `Context.buttonType`, and
+`Widget.widgetType` return observed `WidgetType` views. Each view holds its
+Context. A successful native unregister or Context shutdown expires the
+views, and access to an expired view raises a checked error. Unregister
+requires the type to have no live instances or derived types.
+`Context.registerWidgetType` registers a data-free custom subtype and
+`createWidget(type)` uses that type's default creation data.
+
+`styleSetType` and `styleRemoveType` manage type rules.
+`styleRegisterProperty` accepts an optional type scope, which
+`styleGetPropertyScope` retrieves as a watched view.
+Unregister retires that type's rule and scoped registry properties.
+See [widget_type_style.xl](examples/widget_type_style.xl).
+
 The default Document model has seven typed resource classes: `Document`,
 `DocumentSnapshot`, `DocumentChangeSet`, `DocumentPrepare`, `DocumentFragment`,
 `DocumentSourceIndex` and unique `DocumentTransaction`. Use `createDocument()`

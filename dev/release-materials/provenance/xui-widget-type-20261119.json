@@ -1,0 +1,89 @@
+{
+  "complete": true,
+  "passed": true,
+  "releaseInstalled": false,
+  "shippingDelivery": false,
+  "xlangParent": "636cecdaa7efd5d36fc05fe54c52119efddaeb5f",
+  "nativeCommit": "0969673889dba8b87f54c11ceee4bdf32a2b91c2",
+  "frozenXrt": "804cc769de3030118c2b46ef7af69543d1b82d9d",
+  "scope": [
+    "Observed Context-owned WidgetType, built-in type queries, data-free custom type registration, typed instances, and checked unregister.",
+    "Native type rules and scoped style metadata retire before a type identity can be reused. Context disposal blocks type registration from invalidation callbacks.",
+    "57 built-in type accessor declarations checked against the SDK catalog. Runtime fixture exercises base, Button, custom parent and derived types.",
+    "Native O0/O2 tests cover linked observer removal, callback reentry, context close and 1000 warm watch/read iterations with no native XRT heap operations.",
+    "Generated business methods call the native API directly. Cold observed views require allocation and tracking. Warm calls retain native scope and registry costs."
+  ],
+  "sources": {
+    "docs/xge3-xui3-api-map-storage.json": "e855f4a029478775713e50dfe9ec20237f0523d7c517b3a0e4561c389c2148fd",
+    "lib/bindings/_xge_native/include/xge3_runtime.h": "f6073fd238cd0119f303854edf033168175942eb00a91aa8bcd7883f1370ac0a",
+    "lib/bindings/_xge_native/src/runtime.c": "6e2277cf43b90fed4e16235b9df7ab62f3a76d4248ae1f76bd19c087c8362804",
+    "lib/bindings/xui/README.md": "35b13ef47672dd48ea093fc517e61120a250d6d9ba106a7b379de0431ea11f7d",
+    "lib/bindings/xui/examples/README.md": "1ba166fa78e1ce4bdc643aa21199cddbdf2db5e19a0ea877f8b8469293d096df",
+    "lib/bindings/xui/examples/widget_type_style.xl": "a7356aa503514388b3f977e5a6423e10cc79db8bc481fe65b28e42b34f86154c",
+    "lib/bindings/xui/src/managed.xl": "90dc495b2712c6303e14c6ce2386b9e3d684d9952f07e0ae64d09b582ff2ae22",
+    "test/cases/foreign_xui_widget_type.xl": "b491ea17cc1379b48cf2cc0c6ac171e3c6f8a3a3c8909d1c4babe9d3dfb66ac3",
+    "tools/xui_managed_contracts.py": "5245a624c489c2275a84eeda8714be7c30c6b8328942fa8b60e15ea1cab2033b"
+  },
+  "nativeSources": {
+    "include/xui.h": "f9126d5824e09271d2a243cae2f7944d7a838f9cfe1586023f9f92cdff2e7453",
+    "src/xui/core/xui_internal.h": "8700361c5ab86d45469fd9b067216983511e2be74f8c55f5a98713583e7189d0",
+    "src/xui/core/xui_widget.c": "42ed8bc73b3d89adef1d05c1d449b00f6c886b0d18ccf576f3deab8ccf56210c",
+    "tests/xui/xui_widget_type_lifetime_test.c": "d73ea5ececfc0a08bf4b401017cd28435aac1ecafa1dd42847c5284d964e4ae0"
+  },
+  "platforms": {
+    "win": {
+      "fullNativeSdk": {
+        "path": "F:\\xlang-validation\\xge-full-20261110\\xui-widget-type-sdk-win-r1\\results.json",
+        "sha256": "b5022e201c785bc36e346393f82bb66c1978573cf2638197be6c0076083773ba",
+        "commands": 2
+      },
+      "qualifiedNativeSdk": {
+        "path": "F:\\xlang-validation\\xge-full-20261110\\xui-widget-type-sdk-win-r2\\results.json",
+        "sha256": "b96f4ff453f735f908adac30ecae715eddc61ec6d023fe37c23bc35bc4f946a0",
+        "commands": 2
+      },
+      "nativeLifecycle": {
+        "path": "F:\\xlang-validation\\xge-full-20261110\\xui-widget-type-native-tests-win-r3\\results.json",
+        "sha256": "7e7d2af560947c11dc45ab831acf218798706f967eecb27098889a4cdbf486cb",
+        "commands": 4
+      },
+      "packages": {
+        "path": "F:\\xlang-validation\\xge-full-20261110\\xui-widget-type-packages-win-r3\\results.json",
+        "sha256": "b7a28222309652003e952497cd93aa07c87f364cb1d055b0a57980b1831920f4",
+        "commands": 6
+      },
+      "languageAndExample": {
+        "path": "F:\\xlang-validation\\xge-full-20261110\\xui-widget-type-tests-win-r3\\results.json",
+        "sha256": "de51d89812b19af6799515547845e2f703bc737635cb0ee5f05791887d87baad",
+        "commands": 25
+      }
+    },
+    "linux": {
+      "fullNativeSdk": {
+        "path": "/var/tmp/xlang-validation/xge-full-20261110/xui-widget-type-sdk-linux-r1/results.json",
+        "sha256": "9241e5896caa8ceebd1ed0095f269e9794ebd33a37130c2f552dc04841832e68",
+        "commands": 2
+      },
+      "qualifiedNativeSdk": {
+        "path": "/var/tmp/xlang-validation/xge-full-20261110/xui-widget-type-sdk-linux-r2/results.json",
+        "sha256": "0e669840dcf68e1e3ca5ba1853280cc73d845eeb402afebf28372c4b7f5394f1",
+        "commands": 2
+      },
+      "nativeLifecycle": {
+        "path": "/var/tmp/xlang-validation/xge-full-20261110/xui-widget-type-native-tests-linux-r3/results.json",
+        "sha256": "7e95140d163adf18443ffa352992b2d1a7c7199d2eb6d702c0e3030ce6423096",
+        "commands": 4
+      },
+      "packages": {
+        "path": "/var/tmp/xlang-validation/xge-full-20261110/xui-widget-type-packages-linux-r3/results.json",
+        "sha256": "d04c1085e1657d62d937d85ad28f21c58316eb6b7dc2babb0091e02a0a24683b",
+        "commands": 6
+      },
+      "languageAndExample": {
+        "path": "/var/tmp/xlang-validation/xge-full-20261110/xui-widget-type-tests-linux-r3/results.json",
+        "sha256": "3fe66473226ef1333acc98cfe49ca7f91b7457d56dc258c9814a823bd774eb56",
+        "commands": 25
+      }
+    }
+  }
+}

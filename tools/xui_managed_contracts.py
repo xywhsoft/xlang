@@ -789,9 +789,10 @@ METHODS.update({
     'xuiStyleSetDefault': ['int xuiStyleSetDefault(xui_context pContext, const xui_style_property_t* pProperties, int iPropertyCount)', 'Context',
         ['extern "xuiStyleSetDefault" @no_raise @c_array_group(1,0,8,"int",8) @c_array_record(1,"xui_style_property_t","iSize","uint32_t") @c_array_size(1,"tValue.iSize","uint32_t") @c_array_field(1,"iPropertyId",0,"value") @c_array_field(1,"sName",1,"c_string") @c_array_field(1,"iDirtyFlags",2,"value") @c_array_field(1,"tValue.iType",3,"value") @c_array_field(1,"tValue.iInt",4,"value") @c_array_field(1,"tValue.fFloat",5,"value") @c_array_field(1,"tValue.iColor",6,"value") @c_array_field(1,"tValue.sText",7,"c_string") @c_result("status",0) func styleSetDefault(array<c_uint> ids,array<string?> names,array<c_uint> dirtyFlags,array<c_int> types,array<c_int> integers,array<c_float> numbers,array<c_uint> colors,array<string?> texts,int size=-1)']],
     'xuiStyleRegisterProperty': ['int xuiStyleRegisterProperty(xui_context pContext, const xui_style_property_info_t* pInfo, uint32_t* pPropertyId)', 'Context',
-        ['extern "xuiStyleRegisterProperty" @no_raise @c_pack(1,"xui_style_property_info_t",0,9) @c_pack_size(1,"iSize","uint32_t") @c_pack_field(1,"sName",0,"c_string") @c_pack_field(1,"iValueType",1,"value") @c_pack_field(1,"iDirtyFlags",2,"value") @c_pack_field(1,"iFlags",3,"value") @c_pack_record(1,"tDefaultValue","xui_style_value_t") @c_pack_size(1,"tDefaultValue.iSize","uint32_t","tDefaultValue") @c_pack_field(1,"tDefaultValue.iType",4,"value") @c_pack_field(1,"tDefaultValue.iInt",5,"value") @c_pack_field(1,"tDefaultValue.fFloat",6,"value") @c_pack_field(1,"tDefaultValue.iColor",7,"value") @c_pack_field(1,"tDefaultValue.sText",8,"c_string") @c_output(2,0) func styleRegisterProperty(string name,c_int valueType,c_uint dirtyFlags=0,c_uint flags=0,c_int defaultType=0,c_int defaultInt=0,c_float defaultFloat=0,c_uint defaultColor=0,string? defaultText=null) as c_uint']],
+        ['extern "xuiStyleRegisterProperty" @no_raise @c_pack(1,"xui_style_property_info_t",0,10) @c_pack_size(1,"iSize","uint32_t") @c_pack_field(1,"sName",0,"c_string") @c_pack_field(1,"iValueType",1,"value") @c_pack_field(1,"iDirtyFlags",2,"value") @c_pack_field(1,"iFlags",3,"value") @c_pack_record(1,"tDefaultValue","xui_style_value_t") @c_pack_size(1,"tDefaultValue.iSize","uint32_t","tDefaultValue") @c_pack_field(1,"tDefaultValue.iType",4,"value") @c_pack_field(1,"tDefaultValue.iInt",5,"value") @c_pack_field(1,"tDefaultValue.fFloat",6,"value") @c_pack_field(1,"tDefaultValue.iColor",7,"value") @c_pack_field(1,"tDefaultValue.sText",8,"c_string") @c_pack_field(1,"pWidgetType",9,"view_raw") @c_output(2,0) func styleRegisterProperty(string name,c_int valueType,c_uint dirtyFlags=0,c_uint flags=0,c_int defaultType=0,c_int defaultInt=0,c_float defaultFloat=0,c_uint defaultColor=0,string? defaultText=null,WidgetType? widgetType=null) as c_uint']],
     'xuiStyleGetPropertyInfo': ['int xuiStyleGetPropertyInfo(xui_context pContext, uint32_t iPropertyId, xui_style_property_info_t* pInfo)', 'Context',
-        ['extern "xuiStyleGetPropertyInfo" @no_raise @c_output_record(2,"xui_style_property_info_t","borrowed") @c_output_size(2,"iSize") @c_status(0) @c_output_field(0,"iPropertyId") @c_output_field(1,"sName","cstring") @c_output_field(2,"iValueType") @c_output_field(3,"iDirtyFlags") @c_output_field(4,"iFlags") @c_output_field(5,"tDefaultValue.iType") @c_output_field(6,"tDefaultValue.iInt") @c_output_field(7,"tDefaultValue.fFloat") @c_output_field(8,"tDefaultValue.iColor") @c_output_field(9,"tDefaultValue.sText","cstring") func styleGetPropertyInfo(c_uint id) as (c_uint,string?,c_int,c_uint,c_uint,c_int,c_int,c_float,c_uint,string?)']],
+        ['extern "xuiStyleGetPropertyInfo" @no_raise @c_output_record(2,"xui_style_property_info_t","borrowed") @c_output_size(2,"iSize") @c_status(0) @c_output_field(0,"iPropertyId") @c_output_field(1,"sName","cstring") @c_output_field(2,"iValueType") @c_output_field(3,"iDirtyFlags") @c_output_field(4,"iFlags") @c_output_field(5,"tDefaultValue.iType") @c_output_field(6,"tDefaultValue.iInt") @c_output_field(7,"tDefaultValue.fFloat") @c_output_field(8,"tDefaultValue.iColor") @c_output_field(9,"tDefaultValue.sText","cstring") func styleGetPropertyInfo(c_uint id) as (c_uint,string?,c_int,c_uint,c_uint,c_int,c_int,c_float,c_uint,string?)',
+        'extern "xuiStyleGetPropertyInfo" @no_raise @c_output_record(2,"xui_style_property_info_t","borrowed") @c_output_size(2,"iSize") @c_status(0) @c_output_field(0,"pWidgetType","owner_view") func styleGetPropertyScope(c_uint id) as WidgetType?']],
     'xuiWidgetSetInlineStyle': ['int xuiWidgetSetInlineStyle(xui_widget pWidget, const xui_style_property_t* pProperties, int iPropertyCount)', 'Widget',
         ['extern "xuiWidgetSetInlineStyle" @no_raise @c_array_group(1,0,8,"int",8) @c_array_record(1,"xui_style_property_t","iSize","uint32_t") @c_array_size(1,"tValue.iSize","uint32_t") @c_array_field(1,"iPropertyId",0,"value") @c_array_field(1,"sName",1,"c_string") @c_array_field(1,"iDirtyFlags",2,"value") @c_array_field(1,"tValue.iType",3,"value") @c_array_field(1,"tValue.iInt",4,"value") @c_array_field(1,"tValue.fFloat",5,"value") @c_array_field(1,"tValue.iColor",6,"value") @c_array_field(1,"tValue.sText",7,"c_string") @c_result("status",0) func setInlineStyle(array<c_uint> ids,array<string?> names,array<c_uint> dirtyFlags,array<c_int> types,array<c_int> integers,array<c_float> numbers,array<c_uint> colors,array<string?> texts,int size=-1)']],
     'xuiWidgetGetInlineStyleProperty': ['int xuiWidgetGetInlineStyleProperty(xui_widget pWidget, const char* sName, xui_style_property_t* pProperty)', 'Widget',
@@ -802,7 +803,50 @@ METHODS.update({
         ['extern "xuiWidgetGetResolvedStylePropertyAt" @no_raise @c_output_record(2,"xui_style_property_t","borrowed") @c_output_size(2,"iSize") @c_status(0) @c_output_field(0,"iPropertyId") @c_output_field(1,"sName","cstring") @c_output_field(2,"iDirtyFlags") @c_output_field(3,"tValue.iType") @c_output_field(4,"tValue.iInt") @c_output_field(5,"tValue.fFloat") @c_output_field(6,"tValue.iColor") @c_output_field(7,"tValue.sText","cstring") func getResolvedStylePropertyAt(c_int index) as (c_uint,string?,c_uint,c_int,c_int,c_float,c_uint,string?)']],
 })
 
+
+VIEWS["WidgetType"] = 'export extern "xui_widget_type_t*" class WidgetType @header("xge3_runtime.h") @lifetime("owner") @owner(Context) @policy("xl6Xui3WidgetTypePolicy") @watch("xui_lifetime_link_t")\n native point handle\n extern "xuiWidgetTypeGetName" @no_raise @c_result("cstring") func getName() as string\n extern "xuiWidgetTypeGetParent" @no_raise @c_result("owner_view",0) func getParent() as WidgetType?\n extern "xuiWidgetUnregisterType" @no_raise @c_result("status",0) func unregister()\n extern "xl6ForeignViewCloseV1" @no_raise @c_control(0) @c_result("bool_status") func close()\nend'
+
+METHODS.update({
+    'xuiWidgetFindType': ['xui_widget_type xuiWidgetFindType(xui_context pContext, const char* sName)', 'Context',
+        ['extern "xuiWidgetFindType" @no_raise @c_cstr(0) @c_result("owner_view",0) func findWidgetType(string name) as WidgetType?']],
+    'xuiWidgetRegisterType': ['int xuiWidgetRegisterType(xui_context pContext, xui_widget_type* ppType, const xui_widget_type_desc_t* pDesc)', 'Context',
+        ['extern "xuiWidgetRegisterType" @no_raise @c_pack(2,"xui_widget_type_desc_t",0,2) @c_pack_size(2,"iSize","uint32_t") @c_pack_field(2,"sName",0,"c_string") @c_pack_field(2,"pParent",1,"view_raw") @c_result("owner_view",0) @factory(1,0,rollbackWidgetType) func registerWidgetType(string name,WidgetType? parent=null) as WidgetType']],
+    'xuiWidgetCreateTyped': ['int xuiWidgetCreateTyped(xui_context pContext, xui_widget_type pType, xui_widget* ppWidget, const void* pCreateData)', 'Context',
+        ['extern "xuiWidgetCreateTyped" @no_raise @c_null(3,"const void*") @c_result("owner_view",0) @factory(2,0,rollbackWidget) func createWidget(WidgetType type) as Widget']],
+    'xuiStyleSetType': ['int xuiStyleSetType(xui_context pContext, xui_widget_type pType, const xui_style_desc_t* pStyle)', 'Context',
+        ['extern "xuiStyleSetType" @no_raise @c_pack(2,"xui_style_desc_t",1,10) @c_pack_size(2,"iSize","uint32_t") @c_pack_field(2,"sParent",1,"c_string") @c_array_pack(20,2,"pProperties","iPropertyCount") @c_array_group(20,2,8,"int",10) @c_array_record(20,"xui_style_property_t","iSize","uint32_t") @c_array_size(20,"tValue.iSize","uint32_t") @c_array_field(20,"iPropertyId",0,"value") @c_array_field(20,"sName",1,"c_string") @c_array_field(20,"iDirtyFlags",2,"value") @c_array_field(20,"tValue.iType",3,"value") @c_array_field(20,"tValue.iInt",4,"value") @c_array_field(20,"tValue.fFloat",5,"value") @c_array_field(20,"tValue.iColor",6,"value") @c_array_field(20,"tValue.sText",7,"c_string") @c_result("status",0) func styleSetType(WidgetType type,string? parent,array<c_uint> ids,array<string?> names,array<c_uint> dirtyFlags,array<c_int> types,array<c_int> integers,array<c_float> numbers,array<c_uint> colors,array<string?> texts,int size=-1)']],
+    'xuiStyleRemoveType': ['int xuiStyleRemoveType(xui_context pContext, xui_widget_type pType)', 'Context',
+        ['extern "xuiStyleRemoveType" @no_raise @c_result("status",0) func styleRemoveType(WidgetType type)']],
+    'xuiWidgetGetType': ['xui_widget_type xuiWidgetGetType(xui_widget pWidget)', 'Widget',
+        ['extern "xuiWidgetGetType" @no_raise @c_result("owner_view",0) func widgetType() as WidgetType']],
+    'xuiWidgetIsType': ['int xuiWidgetIsType(xui_widget pWidget, xui_widget_type pType)', 'Widget',
+        ['extern "xuiWidgetIsType" @no_raise func isType(WidgetType type) as c_int']],
+})
+
+for control in (
+    'Label', 'Hyperlink', 'Breadcrumb', 'Image', 'QrCode', 'Panel',
+    'Separator', 'Progress', 'StepBar', 'Chart', 'CodeEdit', 'Input',
+    'TagInput', 'NumericInput', 'TextEdit', 'Button', 'CheckBox', 'CheckCard',
+    'Radio', 'RadioGroup', 'Toggle', 'ScrollBar', 'Slider', 'RangeSlider',
+    'Page', 'Carousel', 'VirtualJoystick', 'InventoryGrid', 'Terminal', 'SplitLayout',
+    'Tabs', 'Accordion', 'Window', 'DockPanel', 'ScrollFrame', 'ScrollView',
+    'Canvas', 'ListView', 'MessageList', 'TreeView', 'TableView', 'TableGrid',
+    'TimeLineView', 'PropertyGrid', 'Popup', 'Menu', 'MenuBar', 'Toolbar',
+    'StatusBar', 'ComboBox', 'Cascader', 'ColorPicker', 'IconPicker', 'DatePicker',
+    'FlowGraph', 'Workflow', 'WebView',
+):
+    native = f"xui{control}GetType"
+    method = control[0].lower() + control[1:] + "Type"
+    METHODS[native] = [f"xui_widget_type {native}(xui_context pContext)", "Context",
+        [f'extern "{native}" @no_raise @c_result("owner_view",0) func {method}() as WidgetType?']]
+
 VIEW_FUNCTIONS = {'xuiGetLanguage': 'int xuiGetLanguage(xui_context pContext)', 'xuiRequestClose': 'int xuiRequestClose(xui_context pContext)'}
+
+VIEW_FUNCTIONS.update({
+    'xuiWidgetTypeGetName': 'const char* xuiWidgetTypeGetName(xui_widget_type pType)',
+    'xuiWidgetTypeGetParent': 'xui_widget_type xuiWidgetTypeGetParent(xui_widget_type pType)',
+    'xuiWidgetUnregisterType': 'int xuiWidgetUnregisterType(xui_widget_type pType)',
+})
 
 INLINE_FUNCTIONS = {'xuiEventDragData': 'f9bd130d67726da8ae4ca0fa029089b33cb1ed0de3d9918fec59bee9d0ba219c'}
 
@@ -865,6 +909,10 @@ def extend(context,classes,free,callback_declarations,mapped):
         pattern=r'^export extern "[^"\n]+" class '+re.escape(name)+r'\b'
         callback_declarations[:]=[v for v in callback_declarations if not re.match(pattern,v)]
         callback_declarations.append(body)
+    free[:]=[row for row in free if 'extern "xuiWidgetUnregisterType"' not in row]
+    free.append('extern "xuiWidgetUnregisterType" @no_raise @c_result("status",0) func rollbackWidgetType(WidgetType value)')
+    mapped.update(xuiWidgetTypeGetName='xui.WidgetType.getName',xuiWidgetTypeGetParent='xui.WidgetType.getParent',
+                  xuiWidgetUnregisterType='xui.WidgetType.unregister')
     mapped.update(xuiEventDragData='xui.CallbackConstEvent.dragData',xuiRequestClose='xui.CallbackContext.requestClose')
 
 

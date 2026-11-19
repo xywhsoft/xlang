@@ -1,0 +1,24 @@
+import xui
+from xui import WidgetType
+from "./_window.xl" import Window
+
+Window.show("按控件类型设置样式",func(xui.Context ui,xui.Widget root)
+    auto buttonType=ui.buttonType() as WidgetType
+    array<c_uint> ids=[0]
+    array<string?> names=["button.normal_color"]
+    array<c_uint> dirtyFlags=[0]
+    array<c_int> types=[xui.XUI_STYLE_VALUE_COLOR]
+    array<c_int> integers=[0]
+    array<c_float> numbers=[0]
+    array<c_uint> colors=[0x90C8F4FF]
+    array<string?> texts=[null]
+    ui.styleSetType(buttonType,null,ids,names,dirtyFlags,types,integers,numbers,colors,texts)
+
+    auto first=ui.buttonNative()
+    first.setText("第一个按钮")
+    Window.place(root,first,24,24,220,38)
+
+    auto second=ui.buttonNative()
+    second.setText("第二个按钮")
+    Window.place(root,second,24,76,220,38)
+end)

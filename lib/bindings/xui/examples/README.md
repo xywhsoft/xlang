@@ -38,6 +38,7 @@
 [code_assist.xl](code_assist.xl) 读取编辑器的补全位置并打开签名帮助。
 
 [style_rules.xl](style_rules.xl) 给两个按钮中的一个添加样式类，单独设置它的普通状态背景色。
+[widget_type_style.xl](widget_type_style.xl) 用类型选择器设置两个按钮的普通状态背景色。
 
 先运行 [button.xl](button.xl)，然后按“标签 → 输入 → 事件 → 布局”的顺序学习。每个文件都是独立程序，打开源码就能按顺序看到界面是如何组成的。
 

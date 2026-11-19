@@ -1050,6 +1050,132 @@ export extern "xui_context_t*" class Context @header("xge3_runtime.h") @lifetime
 
  extern "xuiDatePickerCreate" @no_raise @c_result("owner_view",0) @factory(1,0,rollbackDatePicker) func datePickerNative(NativeConstXuiDatePickerDescTPointer? pDesc=null) as DatePicker
 
+ extern "xuiWidgetFindType" @no_raise @c_cstr(0) @c_result("owner_view",0) func findWidgetType(string name) as WidgetType?
+
+ extern "xuiWidgetRegisterType" @no_raise @c_pack(2,"xui_widget_type_desc_t",0,2) @c_pack_size(2,"iSize","uint32_t") @c_pack_field(2,"sName",0,"c_string") @c_pack_field(2,"pParent",1,"view_raw") @c_result("owner_view",0) @factory(1,0,rollbackWidgetType) func registerWidgetType(string name,WidgetType? parent=null) as WidgetType
+
+ extern "xuiWidgetCreateTyped" @no_raise @c_null(3,"const void*") @c_result("owner_view",0) @factory(2,0,rollbackWidget) func createWidget(WidgetType type) as Widget
+
+ extern "xuiStyleSetType" @no_raise @c_pack(2,"xui_style_desc_t",1,10) @c_pack_size(2,"iSize","uint32_t") @c_pack_field(2,"sParent",1,"c_string") @c_array_pack(20,2,"pProperties","iPropertyCount") @c_array_group(20,2,8,"int",10) @c_array_record(20,"xui_style_property_t","iSize","uint32_t") @c_array_size(20,"tValue.iSize","uint32_t") @c_array_field(20,"iPropertyId",0,"value") @c_array_field(20,"sName",1,"c_string") @c_array_field(20,"iDirtyFlags",2,"value") @c_array_field(20,"tValue.iType",3,"value") @c_array_field(20,"tValue.iInt",4,"value") @c_array_field(20,"tValue.fFloat",5,"value") @c_array_field(20,"tValue.iColor",6,"value") @c_array_field(20,"tValue.sText",7,"c_string") @c_result("status",0) func styleSetType(WidgetType type,string? parent,array<c_uint> ids,array<string?> names,array<c_uint> dirtyFlags,array<c_int> types,array<c_int> integers,array<c_float> numbers,array<c_uint> colors,array<string?> texts,int size=-1)
+
+ extern "xuiStyleRemoveType" @no_raise @c_result("status",0) func styleRemoveType(WidgetType type)
+
+ extern "xuiLabelGetType" @no_raise @c_result("owner_view",0) func labelType() as WidgetType?
+
+ extern "xuiHyperlinkGetType" @no_raise @c_result("owner_view",0) func hyperlinkType() as WidgetType?
+
+ extern "xuiBreadcrumbGetType" @no_raise @c_result("owner_view",0) func breadcrumbType() as WidgetType?
+
+ extern "xuiImageGetType" @no_raise @c_result("owner_view",0) func imageType() as WidgetType?
+
+ extern "xuiQrCodeGetType" @no_raise @c_result("owner_view",0) func qrCodeType() as WidgetType?
+
+ extern "xuiPanelGetType" @no_raise @c_result("owner_view",0) func panelType() as WidgetType?
+
+ extern "xuiSeparatorGetType" @no_raise @c_result("owner_view",0) func separatorType() as WidgetType?
+
+ extern "xuiProgressGetType" @no_raise @c_result("owner_view",0) func progressType() as WidgetType?
+
+ extern "xuiStepBarGetType" @no_raise @c_result("owner_view",0) func stepBarType() as WidgetType?
+
+ extern "xuiChartGetType" @no_raise @c_result("owner_view",0) func chartType() as WidgetType?
+
+ extern "xuiCodeEditGetType" @no_raise @c_result("owner_view",0) func codeEditType() as WidgetType?
+
+ extern "xuiInputGetType" @no_raise @c_result("owner_view",0) func inputType() as WidgetType?
+
+ extern "xuiTagInputGetType" @no_raise @c_result("owner_view",0) func tagInputType() as WidgetType?
+
+ extern "xuiNumericInputGetType" @no_raise @c_result("owner_view",0) func numericInputType() as WidgetType?
+
+ extern "xuiTextEditGetType" @no_raise @c_result("owner_view",0) func textEditType() as WidgetType?
+
+ extern "xuiButtonGetType" @no_raise @c_result("owner_view",0) func buttonType() as WidgetType?
+
+ extern "xuiCheckBoxGetType" @no_raise @c_result("owner_view",0) func checkBoxType() as WidgetType?
+
+ extern "xuiCheckCardGetType" @no_raise @c_result("owner_view",0) func checkCardType() as WidgetType?
+
+ extern "xuiRadioGetType" @no_raise @c_result("owner_view",0) func radioType() as WidgetType?
+
+ extern "xuiRadioGroupGetType" @no_raise @c_result("owner_view",0) func radioGroupType() as WidgetType?
+
+ extern "xuiToggleGetType" @no_raise @c_result("owner_view",0) func toggleType() as WidgetType?
+
+ extern "xuiScrollBarGetType" @no_raise @c_result("owner_view",0) func scrollBarType() as WidgetType?
+
+ extern "xuiSliderGetType" @no_raise @c_result("owner_view",0) func sliderType() as WidgetType?
+
+ extern "xuiRangeSliderGetType" @no_raise @c_result("owner_view",0) func rangeSliderType() as WidgetType?
+
+ extern "xuiPageGetType" @no_raise @c_result("owner_view",0) func pageType() as WidgetType?
+
+ extern "xuiCarouselGetType" @no_raise @c_result("owner_view",0) func carouselType() as WidgetType?
+
+ extern "xuiVirtualJoystickGetType" @no_raise @c_result("owner_view",0) func virtualJoystickType() as WidgetType?
+
+ extern "xuiInventoryGridGetType" @no_raise @c_result("owner_view",0) func inventoryGridType() as WidgetType?
+
+ extern "xuiTerminalGetType" @no_raise @c_result("owner_view",0) func terminalType() as WidgetType?
+
+ extern "xuiSplitLayoutGetType" @no_raise @c_result("owner_view",0) func splitLayoutType() as WidgetType?
+
+ extern "xuiTabsGetType" @no_raise @c_result("owner_view",0) func tabsType() as WidgetType?
+
+ extern "xuiAccordionGetType" @no_raise @c_result("owner_view",0) func accordionType() as WidgetType?
+
+ extern "xuiWindowGetType" @no_raise @c_result("owner_view",0) func windowType() as WidgetType?
+
+ extern "xuiDockPanelGetType" @no_raise @c_result("owner_view",0) func dockPanelType() as WidgetType?
+
+ extern "xuiScrollFrameGetType" @no_raise @c_result("owner_view",0) func scrollFrameType() as WidgetType?
+
+ extern "xuiScrollViewGetType" @no_raise @c_result("owner_view",0) func scrollViewType() as WidgetType?
+
+ extern "xuiCanvasGetType" @no_raise @c_result("owner_view",0) func canvasType() as WidgetType?
+
+ extern "xuiListViewGetType" @no_raise @c_result("owner_view",0) func listViewType() as WidgetType?
+
+ extern "xuiMessageListGetType" @no_raise @c_result("owner_view",0) func messageListType() as WidgetType?
+
+ extern "xuiTreeViewGetType" @no_raise @c_result("owner_view",0) func treeViewType() as WidgetType?
+
+ extern "xuiTableViewGetType" @no_raise @c_result("owner_view",0) func tableViewType() as WidgetType?
+
+ extern "xuiTableGridGetType" @no_raise @c_result("owner_view",0) func tableGridType() as WidgetType?
+
+ extern "xuiTimeLineViewGetType" @no_raise @c_result("owner_view",0) func timeLineViewType() as WidgetType?
+
+ extern "xuiPropertyGridGetType" @no_raise @c_result("owner_view",0) func propertyGridType() as WidgetType?
+
+ extern "xuiPopupGetType" @no_raise @c_result("owner_view",0) func popupType() as WidgetType?
+
+ extern "xuiMenuGetType" @no_raise @c_result("owner_view",0) func menuType() as WidgetType?
+
+ extern "xuiMenuBarGetType" @no_raise @c_result("owner_view",0) func menuBarType() as WidgetType?
+
+ extern "xuiToolbarGetType" @no_raise @c_result("owner_view",0) func toolbarType() as WidgetType?
+
+ extern "xuiStatusBarGetType" @no_raise @c_result("owner_view",0) func statusBarType() as WidgetType?
+
+ extern "xuiComboBoxGetType" @no_raise @c_result("owner_view",0) func comboBoxType() as WidgetType?
+
+ extern "xuiCascaderGetType" @no_raise @c_result("owner_view",0) func cascaderType() as WidgetType?
+
+ extern "xuiColorPickerGetType" @no_raise @c_result("owner_view",0) func colorPickerType() as WidgetType?
+
+ extern "xuiIconPickerGetType" @no_raise @c_result("owner_view",0) func iconPickerType() as WidgetType?
+
+ extern "xuiDatePickerGetType" @no_raise @c_result("owner_view",0) func datePickerType() as WidgetType?
+
+ extern "xuiFlowGraphGetType" @no_raise @c_result("owner_view",0) func flowGraphType() as WidgetType?
+
+ extern "xuiWorkflowGetType" @no_raise @c_result("owner_view",0) func workflowType() as WidgetType?
+
+ extern "xuiWebViewGetType" @no_raise @c_result("owner_view",0) func webViewType() as WidgetType?
+
+ extern "xuiStyleGetPropertyInfo" @no_raise @c_output_record(2,"xui_style_property_info_t","borrowed") @c_output_size(2,"iSize") @c_status(0) @c_output_field(0,"pWidgetType","owner_view") func styleGetPropertyScope(c_uint id) as WidgetType?
+
  extern "xuiWidgetCreate" @no_raise @c_result("owner_view",0) @factory(1,0,rollbackWidget) func widget() as Widget
 
  extern "xuiFlowGraphWidgetCreate" @no_raise @c_result("owner_view",0) @factory(1,0,rollbackFlowGraphWidget) func flowGraphWidget(NativeConstXuiFlowGraphDescTPointer? descriptor=null) as FlowGraphWidget
@@ -1142,7 +1268,7 @@ export extern "xui_context_t*" class Context @header("xge3_runtime.h") @lifetime
 
  extern "xuiStyleSetDefault" @no_raise @c_array_group(1,0,8,"int",8) @c_array_record(1,"xui_style_property_t","iSize","uint32_t") @c_array_size(1,"tValue.iSize","uint32_t") @c_array_field(1,"iPropertyId",0,"value") @c_array_field(1,"sName",1,"c_string") @c_array_field(1,"iDirtyFlags",2,"value") @c_array_field(1,"tValue.iType",3,"value") @c_array_field(1,"tValue.iInt",4,"value") @c_array_field(1,"tValue.fFloat",5,"value") @c_array_field(1,"tValue.iColor",6,"value") @c_array_field(1,"tValue.sText",7,"c_string") @c_result("status",0) func styleSetDefault(array<c_uint> ids,array<string?> names,array<c_uint> dirtyFlags,array<c_int> types,array<c_int> integers,array<c_float> numbers,array<c_uint> colors,array<string?> texts,int size=-1)
 
- extern "xuiStyleRegisterProperty" @no_raise @c_pack(1,"xui_style_property_info_t",0,9) @c_pack_size(1,"iSize","uint32_t") @c_pack_field(1,"sName",0,"c_string") @c_pack_field(1,"iValueType",1,"value") @c_pack_field(1,"iDirtyFlags",2,"value") @c_pack_field(1,"iFlags",3,"value") @c_pack_record(1,"tDefaultValue","xui_style_value_t") @c_pack_size(1,"tDefaultValue.iSize","uint32_t","tDefaultValue") @c_pack_field(1,"tDefaultValue.iType",4,"value") @c_pack_field(1,"tDefaultValue.iInt",5,"value") @c_pack_field(1,"tDefaultValue.fFloat",6,"value") @c_pack_field(1,"tDefaultValue.iColor",7,"value") @c_pack_field(1,"tDefaultValue.sText",8,"c_string") @c_output(2,0) func styleRegisterProperty(string name,c_int valueType,c_uint dirtyFlags=0,c_uint flags=0,c_int defaultType=0,c_int defaultInt=0,c_float defaultFloat=0,c_uint defaultColor=0,string? defaultText=null) as c_uint
+ extern "xuiStyleRegisterProperty" @no_raise @c_pack(1,"xui_style_property_info_t",0,10) @c_pack_size(1,"iSize","uint32_t") @c_pack_field(1,"sName",0,"c_string") @c_pack_field(1,"iValueType",1,"value") @c_pack_field(1,"iDirtyFlags",2,"value") @c_pack_field(1,"iFlags",3,"value") @c_pack_record(1,"tDefaultValue","xui_style_value_t") @c_pack_size(1,"tDefaultValue.iSize","uint32_t","tDefaultValue") @c_pack_field(1,"tDefaultValue.iType",4,"value") @c_pack_field(1,"tDefaultValue.iInt",5,"value") @c_pack_field(1,"tDefaultValue.fFloat",6,"value") @c_pack_field(1,"tDefaultValue.iColor",7,"value") @c_pack_field(1,"tDefaultValue.sText",8,"c_string") @c_pack_field(1,"pWidgetType",9,"view_raw") @c_output(2,0) func styleRegisterProperty(string name,c_int valueType,c_uint dirtyFlags=0,c_uint flags=0,c_int defaultType=0,c_int defaultInt=0,c_float defaultFloat=0,c_uint defaultColor=0,string? defaultText=null,WidgetType? widgetType=null) as c_uint
 
  extern "xuiStyleGetPropertyInfo" @no_raise @c_output_record(2,"xui_style_property_info_t","borrowed") @c_output_size(2,"iSize") @c_status(0) @c_output_field(0,"iPropertyId") @c_output_field(1,"sName","cstring") @c_output_field(2,"iValueType") @c_output_field(3,"iDirtyFlags") @c_output_field(4,"iFlags") @c_output_field(5,"tDefaultValue.iType") @c_output_field(6,"tDefaultValue.iInt") @c_output_field(7,"tDefaultValue.fFloat") @c_output_field(8,"tDefaultValue.iColor") @c_output_field(9,"tDefaultValue.sText","cstring") func styleGetPropertyInfo(c_uint id) as (c_uint,string?,c_int,c_uint,c_uint,c_int,c_int,c_float,c_uint,string?)
 
@@ -1345,6 +1471,14 @@ export extern "xui_context_t*" class Context @header("xge3_runtime.h") @lifetime
 
  extern "xuiStyleSetToken" @no_raise @c_cstr(0) @c_pack(2,"xui_style_value_t",1,5) @c_pack_size(2,"iSize","uint32_t") @c_pack_field(2,"iType",1,"value") @c_pack_field(2,"iInt",2,"value") @c_pack_field(2,"fFloat",3,"value") @c_pack_field(2,"iColor",4,"value") @c_pack_field(2,"sText",5,"c_string") @c_result("status",0) func styleSetToken(string name,c_int valueType,c_int integer=0,c_float number=0,c_uint color=0,string? text=null)
 
+end
+
+export extern "xui_widget_type_t*" class WidgetType @header("xge3_runtime.h") @lifetime("owner") @owner(Context) @policy("xl6Xui3WidgetTypePolicy") @watch("xui_lifetime_link_t")
+ native point handle
+ extern "xuiWidgetTypeGetName" @no_raise @c_result("cstring") func getName() as string
+ extern "xuiWidgetTypeGetParent" @no_raise @c_result("owner_view",0) func getParent() as WidgetType?
+ extern "xuiWidgetUnregisterType" @no_raise @c_result("status",0) func unregister()
+ extern "xl6ForeignViewCloseV1" @no_raise @c_control(0) @c_result("bool_status") func close()
 end
 
 export extern "xui_widget_t*" class Widget @header("xge3_runtime.h") @lifetime("owner") @owner(Context) @policy("xl6Xui3WidgetPolicy") @watch("xui_lifetime_link_t")
@@ -1650,6 +1784,10 @@ export extern "xui_widget_t*" class Widget @header("xge3_runtime.h") @lifetime("
  extern "xuiWidgetGetResolvedStyleProperty" @no_raise @c_cstr(0) @c_output_record(2,"xui_style_property_t","borrowed") @c_output_size(2,"iSize") @c_status(0) @c_output_field(0,"iPropertyId") @c_output_field(1,"sName","cstring") @c_output_field(2,"iDirtyFlags") @c_output_field(3,"tValue.iType") @c_output_field(4,"tValue.iInt") @c_output_field(5,"tValue.fFloat") @c_output_field(6,"tValue.iColor") @c_output_field(7,"tValue.sText","cstring") func getResolvedStyleProperty(string name) as (c_uint,string?,c_uint,c_int,c_int,c_float,c_uint,string?)
 
  extern "xuiWidgetGetResolvedStylePropertyAt" @no_raise @c_output_record(2,"xui_style_property_t","borrowed") @c_output_size(2,"iSize") @c_status(0) @c_output_field(0,"iPropertyId") @c_output_field(1,"sName","cstring") @c_output_field(2,"iDirtyFlags") @c_output_field(3,"tValue.iType") @c_output_field(4,"tValue.iInt") @c_output_field(5,"tValue.fFloat") @c_output_field(6,"tValue.iColor") @c_output_field(7,"tValue.sText","cstring") func getResolvedStylePropertyAt(c_int index) as (c_uint,string?,c_uint,c_int,c_int,c_float,c_uint,string?)
+
+ extern "xuiWidgetGetType" @no_raise @c_result("owner_view",0) func widgetType() as WidgetType
+
+ extern "xuiWidgetIsType" @no_raise func isType(WidgetType type) as c_int
 
  extern "xuiWidgetResolveStyle" @no_raise @c_result("status",0) func resolveStyle()
 
@@ -6237,6 +6375,7 @@ end
 
 extern "xuiDestroy" @no_raise func rollback(Context value)
 
+extern "xuiWidgetUnregisterType" @no_raise @c_result("status",0) func rollbackWidgetType(WidgetType value)
 extern "xuiWidgetDestroyChecked" @no_raise @c_result("status",0) func rollbackWidget(Widget value)
 
 extern "xuiWidgetDestroyChecked" @no_raise @c_result("status",0) func rollbackLabel(Label value)

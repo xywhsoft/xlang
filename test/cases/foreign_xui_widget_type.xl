@@ -1,0 +1,136 @@
+import xui
+from xui import WidgetType
+
+extern "fixtureRenderProxy" @header("test/cases/foreign_xui_render_backend.h") @no_raise @c_result("owned_view") @factory(0,0,dropProxy) func cpuProxy() as xui.Proxy
+extern "xuiProxyReleaseChecked" @header("xge3_runtime.h") @no_raise @c_result("status",0) func dropProxy(xui.Proxy value)
+extern "fixtureRenderBudget" @no_raise func budget(c_int allowance)
+extern "fixtureRenderBalanced" @no_raise func balanced() as c_int
+
+func checkCreationFailures(xui.Context ui)
+    bool completed=false
+    for allowance in range(0,32)
+        WidgetType? made=null
+        budget(c_int(allowance))
+        try
+            made=ui.registerWidgetType("control.tmp")
+        catch error
+        end
+        budget(-1)
+        if made!=null then
+            (made as WidgetType).unregister()
+            completed=true
+            break
+        end
+        assert ui.findWidgetType("control.tmp")==null
+    end
+    assert completed
+end
+
+func main(...) as int
+    auto proxy=cpuProxy()
+    auto ui=xui.create(proxy,xui.XUI_SYSTEM_FONT_DISABLED)
+    auto other=xui.create(proxy,xui.XUI_SYSTEM_FONT_DISABLED)
+    auto base=ui.findWidgetType("widget") as WidgetType
+    assert base.getName()=="widget" and base.getParent()==null
+    auto typed=ui.buttonType() as WidgetType
+    auto button=ui.buttonNative()
+    assert button.isType(typed)==1 and button.isType(base)==1
+    assert button.widgetType().getName()==typed.getName()
+
+    checkCreationFailures(ui)
+    auto parent=ui.registerWidgetType("control.parent",base)
+    auto child=ui.registerWidgetType("control.child",parent)
+    auto alias=ui.findWidgetType("control.child") as WidgetType
+    auto inherited=child.getParent() as WidgetType
+    assert inherited.getName()==parent.getName() and alias.getName()=="control.child"
+    bool rejected=false
+    try
+        parent.unregister()
+    catch error
+        rejected=true
+    end
+    assert rejected and parent.getName()=="control.parent"
+    rejected=false
+    try
+        other.createWidget(child)
+    catch error
+        rejected=true
+    end
+    assert rejected
+
+    c_int valueType=xui.XUI_STYLE_VALUE_STRING
+    auto id=ui.styleRegisterProperty("example.scope",valueType,0,0,valueType,0,0,0,"scoped",child)
+    assert (ui.styleGetPropertyScope(id) as WidgetType).getName()=="control.child"
+    auto globalId=ui.styleRegisterProperty("example.global",valueType)
+    assert ui.styleGetPropertyScope(globalId)==null
+    array<c_uint> ids=[id]
+    array<string?> names=[null]
+    array<c_uint> dirtyFlags=[0]
+    array<c_int> types=[valueType]
+    array<c_int> integers=[0]
+    array<c_float> numbers=[0]
+    array<c_uint> colors=[0]
+    array<string?> texts=["type rule"]
+    ui.styleSetType(child,null,ids,names,dirtyFlags,types,integers,numbers,colors,texts)
+    auto widget=ui.createWidget(child)
+    assert widget.isType(child)==1 and widget.isType(parent)==1
+    widget.resolveStyle()
+    auto a,b,c,d,e,f,g,caption=widget.getResolvedStyleProperty("example.scope")
+    assert a==id and (caption as string)=="type rule"
+    ui.styleRemoveType(child)
+    widget.resolveStyle()
+    auto aa,bb,cc,dd,ee,ff,gg,captionDefault=widget.getResolvedStyleProperty("example.scope")
+    assert aa==id and (captionDefault as string)=="scoped"
+    ui.styleSetType(child,null,ids,names,dirtyFlags,types,integers,numbers,colors,texts)
+
+    rejected=false
+    try
+        child.unregister()
+    catch error
+        rejected=true
+    end
+    assert rejected and alias.getName()=="control.child"
+    widget.close()
+    child.unregister()
+    assert ui.findWidgetType("control.child")==null and ui.styleFindProperty("example.scope")==0
+    rejected=false
+    try
+        alias.getName()
+    catch error
+        rejected=true
+    end
+    assert rejected
+    auto successor=ui.registerWidgetType("control.child",parent)
+    auto fresh=ui.createWidget(successor)
+    fresh.resolveStyle()
+    rejected=false
+    try
+        fresh.getResolvedStyleProperty("example.scope")
+    catch error
+        rejected=true
+    end
+    assert rejected
+    fresh.close()
+
+    button.close()
+    other.close()
+    ui.close()
+    rejected=false
+    try
+        base.getName()
+    catch error
+        rejected=true
+    end
+    assert rejected
+    rejected=false
+    try
+        successor.getName()
+    catch error
+        rejected=true
+    end
+    assert rejected
+    proxy.close()
+    assert balanced()==1
+    println("XUI_WIDGET_TYPE_OK")
+    return 0
+end

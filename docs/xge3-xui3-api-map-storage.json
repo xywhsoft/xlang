@@ -1178,7 +1178,7 @@
       "dependencies": [
         {
           "sourceFile": "include/xui.h",
-          "lfSha256": "6ad5ab35e744aab51b8caa21508f596787a7e17ebe393fd47304d2f764b7bc73"
+          "lfSha256": "f9126d5824e09271d2a243cae2f7944d7a838f9cfe1586023f9f92cdff2e7453"
         },
         {
           "sourceFile": "src/xui/core/xui_proxy_xge.c",
@@ -1276,7 +1276,7 @@
       "dependencies": [
         {
           "sourceFile": "include/xui.h",
-          "lfSha256": "6ad5ab35e744aab51b8caa21508f596787a7e17ebe393fd47304d2f764b7bc73"
+          "lfSha256": "f9126d5824e09271d2a243cae2f7944d7a838f9cfe1586023f9f92cdff2e7453"
         },
         {
           "sourceFile": "src/xui/core/xui_proxy_xge.c",
