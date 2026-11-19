@@ -1,0 +1,86 @@
+{
+  "complete": true,
+  "passed": true,
+  "releaseInstalled": false,
+  "shippingDelivery": false,
+  "xlangParent": "91298696961548126c9eb8c8997a34d1423ab8b4",
+  "nativeCommit": "60bf816b0da2ee805aff0f72c1f16a8230968d5e",
+  "frozenXrt": "804cc769de3030118c2b46ef7af69543d1b82d9d",
+  "scope": [
+    "Native owned type registration retains a single traced callback group. Constructor and destruction use physical C instance data. Other virtuals use the declaring type callback environment.",
+    "Checked Hold failure, allocation rollback, incompatible owner, registry reentry, inherited virtual dispatch, legacy instance-data dispatch, and consuming Drop failure exercised by the native fixture.",
+    "Direct language registration for nine scoped callbacks. Language instance data remains a separate pending API.",
+    "Language fixture verifies inherited callbacks, view expiration, constructor and destructor exceptions, and allocation rollback. The custom-widget window paints through the real XGE backend."
+  ],
+  "sources": {
+    "docs/xge3-xui3-api-map-storage.json": "7123308c98c45526cc7af064b843b7f1b4a35b342a9d7c200c3278faa9453470",
+    "lib/bindings/xui/README.md": "93b86bebde1a22c82cf56c51f5dda2d00272d2e692b72d18672a047f3a6b1b8f",
+    "lib/bindings/xui/examples/README.md": "7481644ff80a1b349386b566badedd2f0315b4b5912e36e21e27657b823f650f",
+    "lib/bindings/xui/examples/custom_widget.xl": "b5d8ccc0a04206082152e1ec1d6ff4b62b3ef8af048b35fd49ac33ecfecb5b63",
+    "lib/bindings/xui/src/managed.xl": "53af566a02b9681fd39dd9e84f958fda9b6f584e64da62178c87f995726fb0cf",
+    "test/cases/foreign_xui_widget_type_callbacks.xl": "4115927b1fd99c59154b33fb8407f374289b747f0cf45cc0e7196c7e5382bc5a",
+    "tools/xui_managed_contracts.py": "0ded4cd7afb5e020f2b4a791761ce222c6754471d63b1771aa83a73028b43b0a"
+  },
+  "nativeSources": {
+    "include/xui.h": "cfa47bb07b964cc2e6aee555996baf726215f4d958adb76e2fef45ead4bb4154",
+    "src/xui/core/xui_internal.h": "4ca20d8d99dd464f3fc0c336552a829b6fc4b1c49890eaed90ceac40bf24ecdc",
+    "src/xui/core/xui_widget.c": "8ee400f7e8616c8415e6081e242e4fe268c923ee1d8a8ce04135b6d761757399",
+    "tests/xui/xui_widget_type_callback_test.c": "0b92bcf97c0bd3983f6532762b630cbae919c95f9ea6ee9661c13875e7c270b4"
+  },
+  "platforms": {
+    "win": {
+      "qualifiedNativeSdk": {
+        "path": "F:\\xlang-validation\\xge-full-20261110\\xui-owned-widget-type-sdk-win-r1\\results.json",
+        "sha256": "5db7851496ff396e62c4cb495b4cf0e783ebefede5758b35d80dc916e1ac07cf",
+        "commands": 2
+      },
+      "nativeLifecycle": {
+        "path": "F:\\xlang-validation\\xge-full-20261110\\xui-owned-widget-type-native-tests-win-r1\\results.json",
+        "sha256": "2ca08124385463c042803d7a302b3044731cf0481c0e243684d893fb595f2d2c",
+        "commands": 4
+      },
+      "typeStyleLifecycleRegression": {
+        "path": "F:\\xlang-validation\\xge-full-20261110\\xui-owned-widget-type-lifetime-regression-win-r1\\results.json",
+        "sha256": "932abf044e1d2b6e08b4a1c2f722efa48542eb75b42a812688fca9e3c83c605c",
+        "commands": 4
+      },
+      "packages": {
+        "path": "F:\\xlang-validation\\xge-full-20261110\\xui-owned-widget-type-packages-win-r1\\results.json",
+        "sha256": "789ead01ab7c4069da51e3e4b60a165188eee347be939e15a85e8548ade60991",
+        "commands": 6
+      },
+      "languageAndExample": {
+        "path": "F:\\xlang-validation\\xge-full-20261110\\xui-owned-widget-type-tests-win-r3\\results.json",
+        "sha256": "dd608ccd2b1b30c989c6a28972be1d8d67b5b2ea60183ded86cd9b4b669657ef",
+        "commands": 25
+      }
+    },
+    "linux": {
+      "qualifiedNativeSdk": {
+        "path": "/var/tmp/xlang-validation/xge-full-20261110/xui-owned-widget-type-sdk-linux-r1/results.json",
+        "sha256": "e22e3f7366b00cea361618f9cc99be3a9239cab3ea166cb2b8959925025d1a4d",
+        "commands": 2
+      },
+      "nativeLifecycle": {
+        "path": "/var/tmp/xlang-validation/xge-full-20261110/xui-owned-widget-type-native-tests-linux-r1/results.json",
+        "sha256": "496073a1733c1e3b1797cea8352059ad9acc3bb5bdf34ef889b76943537da282",
+        "commands": 4
+      },
+      "typeStyleLifecycleRegression": {
+        "path": "/var/tmp/xlang-validation/xge-full-20261110/xui-owned-widget-type-lifetime-regression-linux-r1/results.json",
+        "sha256": "13027f94a918741d77f411abc4918259dcf961eb1797b08b6fad0c7c6c559395",
+        "commands": 4
+      },
+      "packages": {
+        "path": "/var/tmp/xlang-validation/xge-full-20261110/xui-owned-widget-type-packages-linux-r1/results.json",
+        "sha256": "2c206a6e7671cd2b389505c92c810b8f4ed10dec6419a79bd0ca761697129d0a",
+        "commands": 6
+      },
+      "languageAndExample": {
+        "path": "/var/tmp/xlang-validation/xge-full-20261110/xui-owned-widget-type-tests-linux-r3/results.json",
+        "sha256": "cf24f2fcfbe3eeaa1d2b2327f7fb309a9ada203c0daeaba75303cbc008d6fee3",
+        "commands": 25
+      }
+    }
+  }
+}

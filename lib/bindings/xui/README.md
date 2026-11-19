@@ -69,6 +69,14 @@ requires the type to have no live instances or derived types.
 Unregister retires that type's rule and scoped registry properties.
 See [widget_type_style.xl](examples/widget_type_style.xl).
 
+`Context.registerWidgetTypeWithCallbacks` registers a custom type with
+optional initialization, destruction, measurement, layout, painting,
+update and cursor callbacks. The Context registry retains one group per
+type. Derived instances use the group of the type that declared each
+callback. Widget, draw, and native data arguments are callback-scope views.
+The language registration uses a zero-size native instance descriptor.
+Use closure captures for type-wide data. See [custom_widget.xl](examples/custom_widget.xl).
+
 The default Document model has seven typed resource classes: `Document`,
 `DocumentSnapshot`, `DocumentChangeSet`, `DocumentPrepare`, `DocumentFragment`,
 `DocumentSourceIndex` and unique `DocumentTransaction`. Use `createDocument()`

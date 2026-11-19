@@ -840,6 +840,27 @@ for control in (
     METHODS[native] = [f"xui_widget_type {native}(xui_context pContext)", "Context",
         [f'extern "{native}" @no_raise @c_result("owner_view",0) func {method}() as WidgetType?']]
 
+VIEWS.update({
+    'CallbackWidget': 'export extern "xui_widget_t*" class CallbackWidget @header("xge3_runtime.h") @lifetime("callback")\n native point handle\n extern "xuiWidgetGetRect" @no_raise func rect() as Rect\n extern "xuiWidgetSetRect" @no_raise @c_result("status",0) func setRect(Rect value)\n extern "xuiWidgetInvalidate" @no_raise @c_result("status",0) func invalidate(c_uint dirtyFlags)\nend',
+    'CallbackWidgetTypeData': 'export extern "void*" class CallbackWidgetTypeData @header("xge3_runtime.h") @lifetime("callback")\n native point handle\nend',
+    'CallbackWidgetCreateData': 'export extern "const void*" class CallbackWidgetCreateData @header("xge3_runtime.h") @lifetime("callback")\n native point handle\nend',
+})
+
+WIDGET_TYPE_CALLBACKS = (
+    'export typedef WidgetTypeInitProc = func(CallbackWidget,CallbackWidgetTypeData?,CallbackWidgetCreateData?) as c_int',
+    'export typedef WidgetTypeDestroyProc = func(CallbackWidget,CallbackWidgetTypeData?)',
+    'export typedef WidgetTypeMeasureProc = func(CallbackWidget,Vec2,CallbackVec2) as c_int',
+    'export typedef WidgetTypeLayoutPrepareProc = func(CallbackWidget) as c_int',
+    'export typedef WidgetTypeLayoutChildrenProc = func(CallbackWidget,Rect) as c_int',
+    'export typedef WidgetTypeLayoutCompleteProc = func(CallbackWidget,Rect) as c_int',
+    'export typedef WidgetTypeRenderProc = func(CallbackWidget,CallbackDrawContext,c_uint) as c_int',
+    'export typedef WidgetTypeUpdateProc = func(CallbackWidget,c_float) as c_int',
+    'export typedef WidgetTypeCursorProc = func(CallbackWidget,c_int,c_int) as c_int',
+)
+
+METHODS["xuiWidgetRegisterTypeOwned"] = ['int xuiWidgetRegisterTypeOwned(xui_context pContext, xui_widget_type* ppType, const xui_widget_type_desc_t* pDesc, const xui_callback_owner_t* pOwner)', "Context",
+    ['extern "xuiWidgetRegisterTypeOwned" @no_raise @c_pack(2,"xui_widget_type_desc_t",0,12) @c_pack_size(2,"iSize","uint32_t") @c_pack_callback_group(2,"pUser",3) @c_pack_field(2,"sName",0,"c_string") @c_pack_field(2,"pParent",1,"view_raw") @c_pack_field(2,"iFlags",2,"value") @c_pack_field(2,"onInit",3,"owned_callback") @c_owned_callback(3,-1,"xui_callback_owner_t",-16,"last") @c_pack_field(2,"onDestroy",4,"owned_callback") @c_owned_callback(4,-1,"xui_callback_owner_t",0,"last") @c_pack_field(2,"onContentMeasure",5,"owned_callback") @c_owned_callback(5,-1,"xui_callback_owner_t",-16,"last") @c_pack_field(2,"onLayoutPrepare",6,"owned_callback") @c_owned_callback(6,-1,"xui_callback_owner_t",-16,"last") @c_pack_field(2,"onLayoutChildren",7,"owned_callback") @c_owned_callback(7,-1,"xui_callback_owner_t",-16,"last") @c_pack_field(2,"onLayoutComplete",8,"owned_callback") @c_owned_callback(8,-1,"xui_callback_owner_t",-16,"last") @c_pack_field(2,"onCacheRender",9,"owned_callback") @c_owned_callback(9,-1,"xui_callback_owner_t",-16,"last") @c_pack_field(2,"onUpdate",10,"owned_callback") @c_owned_callback(10,-1,"xui_callback_owner_t",-16,"last") @c_pack_field(2,"onQueryCursor",11,"owned_callback") @c_owned_callback(11,-1,"xui_callback_owner_t",-16,"last") @c_result("owner_view",0) @factory(1,0,rollbackWidgetType) func registerWidgetTypeWithCallbacks(string name,WidgetType? parent=null,c_uint flags=0,WidgetTypeInitProc? initialize=null,WidgetTypeDestroyProc? destroy=null,WidgetTypeMeasureProc? measure=null,WidgetTypeLayoutPrepareProc? prepareLayout=null,WidgetTypeLayoutChildrenProc? layoutChildren=null,WidgetTypeLayoutCompleteProc? completeLayout=null,WidgetTypeRenderProc? render=null,WidgetTypeUpdateProc? update=null,WidgetTypeCursorProc? queryCursor=null) as WidgetType']]
+
 VIEW_FUNCTIONS = {'xuiGetLanguage': 'int xuiGetLanguage(xui_context pContext)', 'xuiRequestClose': 'int xuiRequestClose(xui_context pContext)'}
 
 VIEW_FUNCTIONS.update({
@@ -905,6 +926,7 @@ def extend(context,classes,free,callback_declarations,mapped):
         logical=re.search(r'typedef (\w+)',row).group(1)
         callback_declarations[:]=[v for v in callback_declarations if not v.startswith('export typedef '+logical+' ')]
         callback_declarations.append(row)
+    callback_declarations.extend(WIDGET_TYPE_CALLBACKS)
     for name,body in VIEWS.items():
         pattern=r'^export extern "[^"\n]+" class '+re.escape(name)+r'\b'
         callback_declarations[:]=[v for v in callback_declarations if not re.match(pattern,v)]

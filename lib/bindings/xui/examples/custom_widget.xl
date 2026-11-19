@@ -1,0 +1,17 @@
+import xui
+from xui import CallbackWidget,CallbackDrawContext
+from "./_window.xl" import Window
+
+Window.showWithProxy("自绘控件",func(xui.Context ui,xui.Widget root,xui.Proxy proxy)
+    auto paint=func(CallbackWidget widget,CallbackDrawContext draw,c_uint state) as c_int
+        // 控件的缓存画布使用本地坐标。
+        auto area=widget.rect()
+        area.fX=0
+        area.fY=0
+        proxy.fillRect(draw,area,0x3878B8FF)
+        return 0
+    end
+
+    auto tile=ui.registerWidgetTypeWithCallbacks("example.tile",render=paint)
+    Window.place(root,ui.createWidget(tile),24,24,200,96)
+end)
