@@ -1,0 +1,39 @@
+// Draw orange through a circular mask. The window closes after 90 frames.
+import xge
+
+func main(...) as int
+ xge.init(320,200,"Draw through a shape mask")
+ auto layer=xge.createShape()
+ layer.appendRect(40,40,240,120,0,0,1)
+ layer.fillColor(xge.colorRGBA(255,123,50,255))
+ auto circle=xge.createShape()
+ circle.appendCircle(160,100,54,54,1)
+ circle.fillColor(0xffffffff)
+ auto mask=xge.createShapeScene()
+ mask.add(circle)
+ circle.close()
+ auto bounds=layer.getBounds(0.25)
+ auto parent=xge.shapeExMatrixIdentity()
+ int frame=0
+ try
+  xge.run(func() as c_int
+   assert xge.begin()==0
+   xge.clear(xge.colorRGBA(25,34,48,255))
+   mask.compositeMask(xge.XGE_SHAPE_EX_MASK_ALPHA,xge.XGE_BLEND_ALPHA,bounds,
+    func(xge.ShapeMaskTransform transform) as c_int
+     layer.drawPxEx(0.25,transform.value,1)
+     return c_int(0)
+    end,0.25,parent)
+   assert xge.nativeEnd()==0
+   frame+=1
+   return c_int(frame>=90 ? 1 : 0)
+  end)
+ finally
+  xge.setFrameCallback(null)
+  mask.close()
+  layer.close()
+  xge.unit()
+ end
+ println("Circular mask rendered")
+ return 0
+end

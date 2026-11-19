@@ -1,0 +1,115 @@
+import xge
+from xge import ShapeMaskTransform
+
+func box(float x,float y,float width,float height) as xge.Rect
+ auto r=xge.Rect()
+ r.fX=c_float(x)
+ r.fY=c_float(y)
+ r.fW=c_float(width)
+ r.fH=c_float(height)
+ return r
+end
+
+func checkFrame()
+ auto target=xge.createRenderTarget(32,24)
+ auto outer=xge.createPass(target,c_uint(xge.XGE_PASS_CLEAR_COLOR),0x000000ff)
+ auto nestedTarget=xge.createRenderTarget(4,4)
+ auto nested=xge.createPass(nestedTarget)
+ auto mask=xge.createShapeScene()
+ auto stencil=xge.createShape()
+ stencil.appendRect(8,4,8,16,0,0,1)
+ stencil.fillColor(0xffffffff)
+ mask.add(stencil)
+ stencil.close()
+ auto source=xge.createShape()
+ source.appendRect(0,0,32,24,0,0,1)
+ source.fillColor(0xc02010ff)
+ auto bounds=box(0,0,32,24)
+ auto clip=box(2,2,28,20)
+ auto parent=xge.shapeExMatrixIdentity()
+ c_int mode=xge.XGE_SHAPE_EX_MASK_ALPHA
+ c_int blend=xge.XGE_BLEND_ALPHA
+ int calls=0
+ xge.ShapeMaskTransform? stale=null
+
+ outer.begin()
+ xge.clipSet(clip)
+ try
+  mask.compositeMask(mode,blend,bounds,func(xge.ShapeMaskTransform local) as c_int
+   nested.begin()
+   throw "mask source failure"
+  end,0.25,parent)
+  assert false
+ catch Error error
+  assert error.message=="mask source failure"
+ end
+ assert outer.isCurrent() and not nested.isCurrent()
+ assert xge.clipGet().fX==clip.fX and xge.clipGet().fW==clip.fW
+
+ bool unbalanced=false
+ try
+  mask.compositeMask(mode,blend,bounds,func(xge.ShapeMaskTransform local) as c_int
+   nested.begin()
+   return c_int(0)
+  end,0.25,parent)
+ catch Error
+  unbalanced=true
+ end
+ assert unbalanced and outer.isCurrent() and not nested.isCurrent()
+
+ mask.compositeMask(mode,blend,bounds,func(xge.ShapeMaskTransform local) as c_int
+  calls+=1
+  stale=local
+  bool busy=false
+  try
+   mask.clear()
+  catch Error
+   busy=true
+  end
+  assert busy and mask.getCount()==1
+  nested.begin()
+  nested.finish()
+  source.drawPxEx(0.25,local.value,1)
+  return c_int(0)
+ end,0.25,parent)
+ assert calls==1 and outer.isCurrent()
+ bool expired=false
+ try
+   auto former=(stale as ShapeMaskTransform).value
+ catch StateError
+  expired=true
+ end
+ assert expired
+ outer.finish()
+ assert xge.passesIdle()
+ auto pixels=Buffer()
+ assert pixels.resize(32*24*4)
+ target.readPixels(pixels)
+ auto data=pixels.toBytes()
+ int inside=(12*32+12)*4
+ int outside=(12*32+24)*4
+ assert data[inside]==0xc0 and data[inside+1]==0x20 and data[inside+2]==0x10
+ assert data[outside]==0 and data[outside+1]==0 and data[outside+2]==0
+ mask.clear()
+ mask.close()
+ source.close()
+ nested.close()
+ nestedTarget.close()
+ outer.close()
+ target.close()
+end
+
+func main(...) as int
+ xge.init(96,72,"Shape mask acceptance")
+ try
+  xge.run(func() as c_int
+   checkFrame()
+   return c_int(1)
+  end)
+ finally
+  xge.setFrameCallback(null)
+  xge.unit()
+ end
+ println("XGE_SHAPE_MASK_OK")
+ return 0
+end

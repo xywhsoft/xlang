@@ -1,0 +1,205 @@
+{
+  "complete": true,
+  "passed": true,
+  "releaseInstalled": false,
+  "sourceParent": "23d42fee894c24f65915bce8c0ac6a9d2d644dea",
+  "nativeCommit": "ada14ae23153b76136060eff43bb52d30b080d57",
+  "frozenXrt": "804cc769de3030118c2b46ef7af69543d1b82d9d",
+  "sourceHashesLf": {
+    "docs/xge3-xui3-api-map-storage.json": "7770bd82a1dcb3fd58ed52ef2cf810e8216cd0a57c7b34d520549b8d0c93094a",
+    "lib/bindings/xge/examples/README.md": "8cb5838699f019a9d15110dad10d685d80d97775a6327f4bf1a244a86840726b",
+    "lib/bindings/xge/examples/shape_mask.xl": "fb3ccd08c5d077bc97278d5c6805c685ca2daca7c4ae939f0e3a370fe99bad0b",
+    "lib/bindings/xge/src/shapes.xl": "74241e5f34543a4a53e30aabf94015ae3eb488f508058d639450f56311728e49",
+    "tools/check_xge3_bindings.py": "f716891b3d16cd7aa641a6604cf69e18da3715d962fbdb0a9fadb92c60257e13",
+    "test/cases/foreign_xge3_shape_mask.xl": "8150a53007f0e45ad7e0b9447c16c7540885ade5bd2ab2574e7719e24e6d3fea",
+    "docs/xge3-shape-mask.md": "b3d8fa8d8d4f4b2bef5b9369348bf782a1635a87dc2e01d897db639d2d2253e7"
+  },
+  "nativeHashesLf": {
+    "tests/xge/test_shape_mask_callback.c": "dbfb5e5819d5791177be82e386f166f57263c7eb24cb1f53831bbdb9d593d71d",
+    "include/xge.h": "33ecda10c91fdcca9057f661d60148bd77ec2903dfeb6d984530f9c99156bb3d",
+    "src/xge/render/xge_shape_ex.c": "8c245d59b4f05153afbc034d4aa545dfd8e4a761553b9eae5d5f5394dfcbfe42",
+    "src/xge/render/xge_pass.inl": "11462814785c2f1e631f7d7aacde30f0d7421151b748892872c5a70da5fb017b"
+  },
+  "coverage": [
+    "Native and language OpenGL cases read back inside and outside pixels after composing a cropped target.",
+    "Wrong-thread calls are rejected, an externally released mask is pinned until completion, and structural mutation reports Busy.",
+    "The caller's pass and clip survive native allocation failure, callback failure and abandonment of an inner pass.",
+    "Language callbacks preserve the thrown error. Callback transform expires on return; reading it as a value copies six floats.",
+    "The dynamic and static programs and the bounded example execute against matched SDK inputs on Windows and Linux."
+  ],
+  "measurement": {
+    "nativeClippedCalls": 1000,
+    "baselineAllocFreeRealloc": {
+      "win": [
+        2000,
+        2000,
+        0
+      ],
+      "linux": [
+        2000,
+        2000,
+        0
+      ]
+    },
+    "allocFreeRealloc": {
+      "win": [
+        2000,
+        2000,
+        0
+      ],
+      "linux": [
+        2000,
+        2000,
+        0
+      ]
+    },
+    "cost": "No callbacks for clipped regions in the measurement. Successful composition still submits native passes and uses GPU targets. No elapsed-time or total overhead equivalence claimed."
+  },
+  "evidence": {
+    "win": {
+      "sdk": {
+        "path": "F:\\xlang-validation\\xge-full-20261110\\shape-mask-sdk-win-r2\\results.json",
+        "sha256": "44bedaf5ab236b775320523949aedfa70fb8dfef9688fcf7cf0bf577ce31f969",
+        "checks": 2
+      },
+      "packages": {
+        "path": "F:\\xlang-validation\\xge-full-20261110\\shape-mask-packages-win-r2\\results.json",
+        "sha256": "d7300ed7733b7500931e2476fb02b55494f9ac62c6ce151733fbfa85beed78b1",
+        "checks": 6,
+        "directory": "F:\\xlang-validation\\xge-full-20261110\\shape-mask-packages-win-r2\\packages"
+      },
+      "nativeTests": {
+        "path": "F:\\xlang-validation\\xge-full-20261110\\shape-mask-native-tests-win-r2\\results.json",
+        "sha256": "bc6a2d5de70878b21babf049250e40ba83544c73e592237010d3c65ab40caa41",
+        "checks": 4
+      },
+      "language": {
+        "path": "F:\\xlang-validation\\xge-full-20261110\\shape-mask-xlang-win-r4\\results.json",
+        "sha256": "46b8c7bc34fcbd029ca8cf9d8145b0d1c0fb504e93ff6b9a3bbd807f178897b8",
+        "checks": 12,
+        "generatedCodeSha256": "90053edad0173d48c21e968f5dc64ce83e2362652443e0c344c6e4f354d6002f",
+        "programs": {
+          "dynamic.exe": {
+            "sha256": "249c22cbe379c5c135e931a331dea9b085d4c7e3b4e2fcf71b1245f5ce6f1e7a",
+            "imports": [
+              "xge3_host.dll",
+              "msvcrt.dll",
+              "kernel32.dll",
+              "SHELL32.dll",
+              "Ole32.dll",
+              "ucrtbase.dll"
+            ]
+          },
+          "static.exe": {
+            "sha256": "f79b33175c91954d514808fc55c4dfeaade2e72c0c4d1103ef1fd9278b9f568c",
+            "imports": [
+              "msvcrt.dll",
+              "kernel32.dll",
+              "USER32.dll",
+              "GDI32.dll",
+              "ole32.dll",
+              "OLEAUT32.dll",
+              "SHELL32.dll",
+              "IMM32.dll"
+            ]
+          },
+          "lesson.exe": {
+            "sha256": "2060302122ad844dcebe8f88ee2251d9bd52877df6e0d67877f7bbb22364a126",
+            "imports": [
+              "msvcrt.dll",
+              "kernel32.dll",
+              "USER32.dll",
+              "GDI32.dll",
+              "ole32.dll",
+              "OLEAUT32.dll",
+              "SHELL32.dll",
+              "IMM32.dll"
+            ]
+          }
+        }
+      },
+      "clipPerfBefore": {
+        "path": "F:\\xlang-validation\\xge-full-20261110\\shape-mask-perf-win-before-r2\\results.json",
+        "sha256": "e18bbfa1dddcbfc313d1f4c241e7389f9ee10669556a4a4d8142975f0c4179ec",
+        "checks": 2
+      },
+      "clipPerfAfter": {
+        "path": "F:\\xlang-validation\\xge-full-20261110\\shape-mask-perf-win-after-r2\\results.json",
+        "sha256": "88002974bcb38e040a3534be652d612e7e1de0b3c8a6f5edce0a20beb4650de5",
+        "checks": 2
+      }
+    },
+    "linux": {
+      "sdk": {
+        "path": "\\\\wsl.localhost\\Ubuntu\\var\\tmp\\xlang-validation\\xge-full-20261110\\shape-mask-sdk-linux-r2\\results.json",
+        "sha256": "e7925f71461fa5a28990327ec211400f08f95acf200400eea176f7a83f56fa50",
+        "checks": 2
+      },
+      "packages": {
+        "path": "\\\\wsl.localhost\\Ubuntu\\var\\tmp\\xlang-validation\\xge-full-20261110\\shape-mask-packages-linux-r2\\results.json",
+        "sha256": "4e5a21859631442e6358108b7ded7d9e2a2533ad3f393072b969e93eb9331f34",
+        "checks": 6,
+        "directory": "/var/tmp/xlang-validation/xge-full-20261110/shape-mask-packages-linux-r2/packages"
+      },
+      "nativeTests": {
+        "path": "\\\\wsl.localhost\\Ubuntu\\var\\tmp\\xlang-validation\\xge-full-20261110\\shape-mask-native-tests-linux-r2\\results.json",
+        "sha256": "d7f7d164b248f211c87e3dfb6a511104be1a4ab449e780b77a77948c162794fb",
+        "checks": 4
+      },
+      "language": {
+        "path": "\\\\wsl.localhost\\Ubuntu\\var\\tmp\\xlang-validation\\xge-full-20261110\\shape-mask-xlang-linux-r4\\results.json",
+        "sha256": "f50b76efbc04d4058e077b12b2c6fa633cf785fa9b3c66e9d04c0a56b9241e75",
+        "checks": 12,
+        "generatedCodeSha256": "90053edad0173d48c21e968f5dc64ce83e2362652443e0c344c6e4f354d6002f",
+        "programs": {
+          "dynamic": {
+            "sha256": "3afa774723c378e23aecede21d7a967af71ee343c842f8f968de1fc1d156f070",
+            "imports": [
+              "libm.so.6",
+              "libmvec.so.1",
+              "libxge3_host.so",
+              "libc.so.6",
+              "ld-linux-x86-64.so.2"
+            ]
+          },
+          "static": {
+            "sha256": "b570067de245163b6ac563154350a4f8dc7a62f643998f020b11ceb5a8440566",
+            "imports": [
+              "libm.so.6",
+              "libmvec.so.1",
+              "libX11.so.6",
+              "libXi.so.6",
+              "libXcursor.so.1",
+              "libGL.so.1",
+              "libc.so.6",
+              "ld-linux-x86-64.so.2"
+            ]
+          },
+          "lesson": {
+            "sha256": "b2076d0ad243448a4b244e43d9f4e7c99d31bd6f5356a99e293dd37341bae183",
+            "imports": [
+              "libm.so.6",
+              "libmvec.so.1",
+              "libX11.so.6",
+              "libXi.so.6",
+              "libXcursor.so.1",
+              "libGL.so.1",
+              "libc.so.6",
+              "ld-linux-x86-64.so.2"
+            ]
+          }
+        }
+      },
+      "clipPerfBefore": {
+        "path": "\\\\wsl.localhost\\Ubuntu\\var\\tmp\\xlang-validation\\xge-full-20261110\\shape-mask-perf-linux-before-r2\\results.json",
+        "sha256": "490e911cb06fef2d955a9a0a887a7f9c911cbd9abadb2c58ca81cd9eea12effe",
+        "checks": 2
+      },
+      "clipPerfAfter": {
+        "path": "\\\\wsl.localhost\\Ubuntu\\var\\tmp\\xlang-validation\\xge-full-20261110\\shape-mask-perf-linux-after-r2\\results.json",
+        "sha256": "85ee31a622ef8c89c3bed1a29119da63fa4be1a73a77a71d3906ba303c58e871",
+        "checks": 2
+      }
+    }
+  }
+}

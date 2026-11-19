@@ -20,6 +20,7 @@ $env:XLANG_PACKAGE_PATH = "$runtime\extlibs"
 | `headless_shape.xl` | Native Shape feature; no engine initialization or device. Clone has an independent ID after modification. | Both owners close in `finally`. |
 | `shape_references.xl` | Native Shape feature; no device. A hit result still reports ID 7 after the scene and original shape close. | Closes all three managed references. |
 | `shape_traversal.xl` | Native Shape feature; no device. A depth-first visitor prints `Visited shape 7`. | Closes the retained result, scene and original shape. |
+| `shape_mask.xl` | Native Shape feature and OpenGL. Draws an orange layer through a circular mask. | Closes the scene, shape and engine after 90 frames. |
 | `input_events.xl` | No window or device. Posts an IME update and a key-up event, then prints their text and key in queue order. | Calls checked `unit()` after consuming the events. |
 | `miniprogram_touch.xl` | Simulates two touch points at DPR 2 and prints the second point in framebuffer pixels (100, 70). | No window or device. Ends both touches and closes the host and engine. |
 | `gui_shapes.xl` | Interactive desktop and working 2D graphics backend. Opens the native default window and draws a rectangle/circle until the user closes it. `begin`/`nativeEnd` must succeed. | Clears the persistent frame callback, then checked engine shutdown. |
