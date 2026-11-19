@@ -105,6 +105,24 @@ def main():
             require(binding['storageReview']['state']=='changed'and 'storageContract'not in field)
             require(not binding['evidence']['abiAccepted']and not binding['evidence']['runtimeAccepted'])
         check('non-strict-marks-changed-clears-prior-contract',non_strict);dependency.write_bytes(original)
+        def document_annotation():
+            (folder/'test.xl').write_text(
+                'export extern "xuiDocFind" func find() as c_int\n'
+                'export extern "xuiDocView" func view() as c_int\n'
+                'export extern "xuiDocMissing" func missing() as c_int\n',encoding='utf8')
+            primary=dict(header=str(fixture/'include/xui.h'),functions=[dict(name='xuiDocFind')],callableFields=[])
+            document=dict(header=str(fixture/'include/xui_document.h'),functions=[dict(name='xuiDocFind')],callableFields=[])
+            renderer=dict(header=str(fixture/'include/xui_document_ui.h'),functions=[dict(name='xuiDocView'),dict(name='xuiDocClosed')],callableFields=[])
+            rows=dict(headers=[primary],supplementaryHeaders=[document,renderer])
+            annotate_existing_bindings(mini,rows)
+            for header,language in ((primary,'xui.find'),(document,'xui.find'),(renderer,'xui.view')):
+                require(header['bindingSummary']['publicFunctionsDeclared']==1)
+                binding,=header['functions'][0]['declarations']
+                require(binding['language']==language and binding['evidence']==dict(declarationPresent=True,abiAccepted=False,runtimeAccepted=False))
+            require('declarations' not in renderer['functions'][1])
+            unresolved,=primary['unresolvedDeclarations']
+            require(unresolved['native']=='xuiDocMissing' and unresolved['authority']=='not-in-inventoried-headers')
+        check('existing-annotation-covers-document-public-headers',document_annotation)
         manifest_path=out/'manifest.json'
         seed=dict(format='xlang-package-1',name='test',abiVersion='2',kind='xlang-extlib',artifact=dict(kind='source',xlSources=['src/generated.xl'],includeDirs=['include']))
         check('manifest-first-generation',lambda:write_binding_manifest(manifest_path,seed))
@@ -192,7 +210,9 @@ def main():
             else:raise AssertionError('unsupported resolved-shape mutation fixture: '+name)
             changed=dict(ui_header,types=[dict(t,type=shape)if t['name']==name else t for t in ui_header['types']])
             check('managed-resolved-layout-reject-'+name,lambda c=changed:reject_managed(c))
-        inline=out/'managed-inline.h';inline.write_text(Path(ui_header['header']).read_text(encoding='utf-8-sig').replace('case XUI_EVENT_DRAG_LEAVE:case XUI_EVENT_DROP:break;','case XUI_EVENT_DRAG_LEAVE:case XUI_EVENT_DROP+1:break;'))
+        inline=out/'managed-inline.h'
+        header_text=Path(ui_header['header']).read_text(encoding='utf-8-sig')
+        inline.write_text(header_text.replace('case XUI_EVENT_DRAG_LEAVE:case XUI_EVENT_DROP:break;','case XUI_EVENT_DRAG_LEAVE:case XUI_EVENT_DROP+1:break;'),encoding='utf8')
         check('managed-inline-helper-drift-rejected',lambda:reject_managed(dict(ui_header,header=str(inline))))
         runtime=out/'managed-runtime/lib/bindings/_xge_native/include/xge3_runtime.h';runtime.parent.mkdir(parents=True)
         runtime.write_text((root/'lib/bindings/_xge_native/include/xge3_runtime.h').read_text().replace('int xl6Xui3CopyToClipboard(','void xl6Xui3CopyToClipboard('))

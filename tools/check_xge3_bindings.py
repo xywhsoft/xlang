@@ -681,8 +681,14 @@ def annotate_existing_bindings(root,data,strict_storage=False,generated=False):
         package=Path(header['header']).stem;folder=root/'lib/bindings'/package
         folders=[folder]
         if package=='xge':folders += [folder/'three_d',folder/'debug']
-        by_name={f['name']:f for f in header['functions']}
-        callable_fields={(f['record'],f['member']):f for f in header['callableFields']}
+        package_headers=[header]
+        if package=='xui':
+            package_headers.extend(data.get('supplementaryHeaders',[]))
+        by_name={}
+        for public_header in package_headers:
+            for function in public_header['functions']:
+                by_name.setdefault(function['name'],[]).append(function)
+        callable_fields={(f['record'],f['member']):f for h in package_headers for f in h['callableFields']}
         classes=[];records=[];unresolved=[]
         for public_folder in folders:
             manifest_path=public_folder/'xlang.package.json'
@@ -719,15 +725,18 @@ def annotate_existing_bindings(root,data,strict_storage=False,generated=False):
                         field.update(state='direct-callable-field-declaration' if generated else 'callable-field-declaration-present')
                         field.setdefault('bindings',[]).append(binding)
                     elif declaration[1] in by_name:
-                        function=by_name[declaration[1]];function.update(state='direct-declaration' if generated else 'declaration-present',language=binding['language'],bindingSource=source_path)
-                        function.setdefault('declarations',[]).append(binding)
+                        for function in by_name[declaration[1]]:
+                            function.update(state='direct-declaration' if generated else 'declaration-present',language=binding['language'],bindingSource=source_path)
+                            function.setdefault('declarations',[]).append(binding)
                     elif not re.search(r'@c_(?:field|deref|control)\b',line):
-                        unresolved.append(dict(native=declaration[1],owner=native_owner,authority='runtime-or-CRT' if declaration[1].startswith(('xl6','xrt')) or declaration[1] in ('strlen',) else 'not-in-primary-header',**binding))
+                        unresolved.append(dict(native=declaration[1],owner=native_owner,authority='runtime-or-CRT' if declaration[1].startswith(('xl6','xrt')) or declaration[1] in ('strlen',) else 'not-in-inventoried-headers',**binding))
         header.update(classBindings=classes,recordBindings=records,unresolvedDeclarations=unresolved)
-        summary=header.setdefault('bindingSummary',{})
-        summary.update(publicFunctionsDeclared=sum(bool(f.get('declarations')) for f in header['functions']),callableFieldsDeclared=sum(bool(f.get('bindings')) for f in header['callableFields']),foreignClasses=len(classes),recordDeclarations=len(records),nonPrimaryDeclarations=len(unresolved))
-        if generated:summary.update(publicFunctionsMapped=summary['publicFunctionsDeclared'],callableFieldsMapped=summary['callableFieldsDeclared'])
-        print(package,summary)
+        header.setdefault('bindingSummary',{}).update(foreignClasses=len(classes),recordDeclarations=len(records),nonPrimaryDeclarations=len(unresolved))
+        for public_header in package_headers:
+            summary=public_header.setdefault('bindingSummary',{})
+            summary.update(publicFunctionsDeclared=sum(bool(f.get('declarations')) for f in public_header['functions']),callableFieldsDeclared=sum(bool(f.get('bindings')) for f in public_header['callableFields']))
+            if generated:summary.update(publicFunctionsMapped=summary['publicFunctionsDeclared'],callableFieldsMapped=summary['callableFieldsDeclared'])
+            print(Path(public_header['header']).stem,summary)
     unchanged=all(hashlib.sha256((root/path).read_bytes()).hexdigest()==digest for path,digest in pins.items())
     if not unchanged:raise ValueError('public binding source changed during inventory annotation')
     data['existingBindingAnnotation']=dict(declarationOnly=True,abiAccepted=False,runtimeAccepted=False,sourceFilesModified=False,inputsUnchanged=unchanged,generatorWroteSourcesBeforeAnnotation=generated,sourceSha256=pins)
