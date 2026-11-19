@@ -49,6 +49,7 @@ void xl6Xui3RollbackLanguage(xui_language value);
 const XL6_ForeignViewDescriptorV1* xl6Xui3WidgetPolicyGet(void);
 const XL6_ForeignViewDescriptorV1* xl6Xui3IconCategoryPolicyGet(void);
 const XL6_ForeignViewDescriptorV1* xl6Xui3IconPolicyGet(void);
+const XL6_ForeignViewDescriptorV1* xl6Xui3ResourcePolicyGet(void);
 void xl6Xui3RollbackIconCategory(xui_icon_category);
 void xl6Xui3RollbackIcon(xui_icon);
 const XL6_ForeignViewDescriptorV1* xl6Xui3MsgBoxPolicyGet(void);
@@ -112,6 +113,7 @@ const XL6_ForeignViewDescriptorV1* xl6Xge3AudioClipPolicyGet(void);
 #define xl6Xui3WidgetPolicy (*xl6Xui3WidgetPolicyGet())
 #define xl6Xui3IconCategoryPolicy (*xl6Xui3IconCategoryPolicyGet())
 #define xl6Xui3IconPolicy (*xl6Xui3IconPolicyGet())
+#define xl6Xui3ResourcePolicy (*xl6Xui3ResourcePolicyGet())
 #define xl6Xui3CodeFindScopePolicy (*xl6Xui3CodeFindScopePolicyGet())
 #define xl6Xui3CodeSelectionPolicy (*xl6Xui3CodeSelectionPolicyGet())
 #define xl6Xui3CodeThemePolicy (*xl6Xui3CodeThemePolicyGet())

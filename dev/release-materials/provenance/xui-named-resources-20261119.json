@@ -1,0 +1,86 @@
+{
+  "complete": true,
+  "passed": true,
+  "releaseInstalled": false,
+  "shippingDelivery": false,
+  "xlangParent": "bf8b2f08e46a4d464ebe15fe5b786ac90a8ee4f1",
+  "nativeCommit": "88eb14be7caf67ec0da5e9a3f85cceed1dbf55f8",
+  "surfaceFixtureRepair": "31e3c0411fe0a83bc88ad4649ef7b8628701fb44",
+  "frozenXrt": "804cc769de3030118c2b46ef7af69543d1b82d9d",
+  "scope": [
+    "Context registers shared managed Surface and Font resources by name; an idempotent set preserves the same entry.",
+    "Resource views expire when removed, replaced, or destroyed with their Context. Retained Surface and Font results continue to work.",
+    "Dependencies can be added, enumerated, cleared, and invalidated. Cross-Context dependency and wrong-Proxy resource registration are rejected.",
+    "Icons can resolve managed Surface resources by name. The window example uses the packaged PNG.",
+    "Full native Surface fixture restored on both platforms by omitting the test Proxy system-Font callback that produced raw Fonts."
+  ],
+  "costs": "The new opaque native entry holds one intrusive watch-list pointer. The native typed setters construct a descriptor on the stack and delegate to the registry. New entries still allocate the registry record and copy the key. Typed results retain the real Surface or Font reference. Existing observation controls are reused, with no XRT heap operations in 1000 dependency reads in each language run.",
+  "sources": {
+    "docs/xge3-xui3-api-map-storage.json": "702cf398a6abe68732611ecb9c0490969f830b4176aa7663ff94bd8b8f5e1c89",
+    "lib/bindings/_xge_native/include/xge3_runtime.h": "a4b07101a27916964c1c4df26bf7b042345227d0af482174df605107ff7b8096",
+    "lib/bindings/_xge_native/src/runtime.c": "a55f0fae65ed9596313cc6099f66516f7749a755b989538dacd9e67ec1b8daeb",
+    "lib/bindings/xui/src/icons.xl": "53dde85396a0f86c3e1afcb858d9aa245aec432b475d7d66f0b44b241640f678",
+    "lib/bindings/xui/src/managed.xl": "d1b51736cca329d189b32625726f61ef7ca4506820917906f57d5bc43369c602",
+    "lib/bindings/xui/src/resources.xl": "97ca38e0a0e260b984469e9c42d9bcc84d0f24c9888ac8a1669abb33197e6b8d",
+    "lib/bindings/xui/xlang.package.json": "079dc4e257ffc1fbb6dc608800c5954a81181ca00814be8f78ea346f6e04b16a",
+    "lib/bindings/xui/examples/named_resources.xl": "7be6574dd74af635a7eb4a5808b389bc4050c880a9ac8bd7702e6fe6e051201b",
+    "test/cases/foreign_xui_named_resources.xl": "aed1bdf6651ffe58ac35cf4a9fc35552e23ccb3ff055dfecc407b9c89a903db7",
+    "tools/xui_managed_contracts.py": "ca84074b28a89634d35f2e29b243d3547b96a1f3112857f75f4197a7c3c3b48c"
+  },
+  "platforms": {
+    "win": {
+      "restoredSurfaceFixture": {
+        "path": "F:\\xlang-validation\\xge-full-20261110\\xui-surface-full-restore-tests-win-r2\\results.json",
+        "sha256": "af75542d0f2edf00226e78ad137b250a23281edbe83e97bea388d58fe1ef4a44",
+        "commands": 4
+      },
+      "nativeBuild": {
+        "path": "F:\\xlang-validation\\xge-full-20261110\\xui-resource-registry-sdk-win-r1\\results.json",
+        "sha256": "9c006a88be5046963223818cc47353096e37c8b196554b0f0b5566598d184fc0",
+        "commands": 2
+      },
+      "nativeFixture": {
+        "path": "F:\\xlang-validation\\xge-full-20261110\\xui-resource-registry-native-tests-win-r1\\results.json",
+        "sha256": "a8173b09a90d558ba55e3d2f07671ea87c8ca27a3e94db25d2542d1a4b54fc91",
+        "commands": 4
+      },
+      "packageReview": {
+        "path": "F:\\xlang-validation\\xge-full-20261110\\xui-resource-registry-packages-win-r2\\results.json",
+        "sha256": "7fafed87c5990e47258456458d9515b5e5c96a2169abdeb02f501942c036bb94",
+        "commands": 6
+      },
+      "languageAndExample": {
+        "path": "F:\\xlang-validation\\xge-full-20261110\\xui-resource-registry-tests-win-r2\\results.json",
+        "sha256": "41c12c1f018928fb2ccb6f95a15b55301f76d09553b42fb092dc938316b3b785",
+        "commands": 14
+      }
+    },
+    "linux": {
+      "restoredSurfaceFixture": {
+        "path": "/var/tmp/xlang-validation/xge-full-20261110/xui-surface-full-restore-tests-linux-r2/results.json",
+        "sha256": "c023dd3a035f003f8d6a7c063a4c493876d5cb8cc07a17654aee68d85b3e0218",
+        "commands": 4
+      },
+      "nativeBuild": {
+        "path": "/var/tmp/xlang-validation/xge-full-20261110/xui-resource-registry-sdk-linux-r1/results.json",
+        "sha256": "a9baf4532e2f6d8f2308ba8e147b70d3b8ecd9c674cb2a679673abf42223d9f5",
+        "commands": 2
+      },
+      "nativeFixture": {
+        "path": "/var/tmp/xlang-validation/xge-full-20261110/xui-resource-registry-native-tests-linux-r1/results.json",
+        "sha256": "ca621f07c4cfafa6495de61a9c48f0dc9178047bcb752c8380d5c46cf2ea56a5",
+        "commands": 4
+      },
+      "packageReview": {
+        "path": "/var/tmp/xlang-validation/xge-full-20261110/xui-resource-registry-packages-linux-r2/results.json",
+        "sha256": "57180ec2a38eb86809b3983601d916100a783ae78b31de3f7845612e6fb260e4",
+        "commands": 6
+      },
+      "languageAndExample": {
+        "path": "/var/tmp/xlang-validation/xge-full-20261110/xui-resource-registry-tests-linux-r2/results.json",
+        "sha256": "9ecadcc2495b38c63060b6346d0778f771972699754b690c6701b647e1fa17d8",
+        "commands": 14
+      }
+    }
+  }
+}

@@ -8,7 +8,16 @@ import re,hashlib,json
 from pathlib import Path
 from collections import Counter
 
-METHODS = {'xl6Xui3CopyToClipboard': ['int xl6Xui3CopyToClipboard(xui_context,xui_data_object,const XL6_CodeOwner*);',
+METHODS = {'xuiResourceFind': ['xui_resource xuiResourceFind(xui_context pContext, const char* sName)',
+                              'Context',
+                              ['extern "xuiResourceFind" @no_raise @c_cstr(0) @c_result("owner_view",0) func findResource(string name) as Resource?']],
+ 'xuiResourceSetSurface': ['int xuiResourceSetSurface(xui_context pContext, const char* sName, xui_surface pSurface)',
+                           'Context',
+                           ['extern "xuiResourceSetSurface" @no_raise @c_cstr(0) @c_result("status",0) func setSurfaceResource(string name,Surface surface)']],
+ 'xuiResourceSetFont': ['int xuiResourceSetFont(xui_context pContext, const char* sName, xui_font pFont)',
+                        'Context',
+                        ['extern "xuiResourceSetFont" @no_raise @c_cstr(0) @c_result("status",0) func setFontResource(string name,Font font)']],
+ 'xl6Xui3CopyToClipboard': ['int xl6Xui3CopyToClipboard(xui_context,xui_data_object,const XL6_CodeOwner*);',
                             'Context',
                             ['extern "xl6Xui3CopyToClipboard" @no_raise @c_code_owner(2) @c_result("status",0) func '
                              'copyToClipboard(DataObject data)']],

@@ -14,6 +14,7 @@
       "src/managed.xl",
       "src/localization.xl",
       "src/assets.xl",
+      "src/resources.xl",
       "src/icons.xl",
       "src/cell.xl",
       "src/table_columns.xl",

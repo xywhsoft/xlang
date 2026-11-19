@@ -124,6 +124,22 @@ void xl6Xui3RollbackIconCategory(xui_icon_category raw)
 void xl6Xui3RollbackIcon(xui_icon raw)
 {(void)destroy_Icon(raw);}
 
+static bool watch_named_resource(void* raw,void* storage,void(*invalidate)(void*),void* user)
+{
+    int status=xuiResourceLifetimeWatch(raw,storage,invalidate,user);
+    if(status!=XUI_OK)report_resource_failure(status,"xuiResourceLifetimeWatch");
+    return status==XUI_OK;
+}
+const XL6_ForeignViewDescriptorV1* xl6Xui3ResourcePolicyGet(void)
+{
+    static const XL6_ForeignViewDescriptorV1 value={
+        sizeof(value),XL6_FOREIGN_VIEW_V1_TAG,"xui.resource",
+        sizeof(xui_lifetime_link_t),_Alignof(xui_lifetime_link_t),watch_named_resource,unwatch,
+        NULL,0,1,NULL,NULL,NULL,NULL,0,NULL,NULL
+    };
+    return &value;
+}
+
 /* Context owns each manager exactly once. These are distinct composite child
  * views, not Widget casts and not independent native RC roots. Context's real
  * directory traces their callback/font/layout edges; tracing them again from

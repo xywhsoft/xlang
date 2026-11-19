@@ -1,0 +1,16 @@
+// The registry owns entries. Removing or replacing one expires its Resource
+// views. A Surface or Font returned by a getter owns an independent reference.
+export extern "xui_resource_t*" class Resource @header("xge3_runtime.h") @lifetime("owner") @owner(Context) @policy("xl6Xui3ResourcePolicy") @watch("xui_lifetime_link_t")
+ native point handle
+ extern "xuiResourceGetName" @no_raise @c_result("cstring") get name() as string
+ extern "xuiResourceGetKind" @no_raise get kind() as c_int
+ extern "xuiResourceGetGeneration" @no_raise get generation() as c_uint
+ extern "xuiResourceGetSurface" @no_raise @c_result("retained_view") @c_retain(retainSurface,"zero",rollbackSurface) func surface() as Surface?
+ extern "xuiResourceGetFont" @no_raise @c_result("retained_view") @c_retain(retainFont,"zero",rollbackFont) func font() as Font?
+ extern "xuiResourceGetDependencyCount" @no_raise func dependencyCount() as c_int
+ extern "xuiResourceGetDependency" @no_raise @c_result("owner_view",0) func dependencyAt(c_int index) as Resource?
+ extern "xuiResourceAddDependency" @no_raise @c_result("status",0) func addDependency(Resource dependency)
+ extern "xuiResourceClearDependencies" @no_raise func clearDependencies()
+ extern "xuiResourceTouch" @no_raise @c_result("status",0) func touch()
+ extern "xuiResourceRemove" @no_raise @c_result("status",0) func remove()
+end

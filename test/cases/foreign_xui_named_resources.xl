@@ -1,0 +1,141 @@
+import xui
+from xui import Resource,Surface,Font
+
+extern "fixtureRenderProxy" @header("test/cases/foreign_xui_custom_icon.h") @no_raise @c_result("owned_view") @factory(0,0,dropProxy) func cpuProxy() as xui.Proxy
+extern "fixtureCustomOtherProxy" @no_raise @c_result("owned_view") @factory(0,0,dropProxy) func otherProxy() as xui.Proxy
+extern "fixtureRenderSurface" @no_raise @c_result("owned_view") @factory(1,0,dropSurface) func cpuSurface(xui.Proxy proxy) as Surface
+extern "fixtureRenderFont" @no_raise @c_result("owned_view") @factory(1,0,dropFont) func cpuFont(xui.Proxy proxy) as Font
+extern "xuiProxyReleaseChecked" @header("xge3_runtime.h") @no_raise @c_result("status",0) func dropProxy(xui.Proxy value)
+extern "xuiSurfaceReleaseChecked" @header("xge3_runtime.h") @no_raise @c_result("status",0) func dropSurface(Surface value)
+extern "xuiFontReleaseChecked" @header("xge3_runtime.h") @no_raise @c_result("status",0) func dropFont(Font value)
+extern "fixtureRenderBudget" @no_raise func budget(c_int allowance)
+extern "fixtureRenderBalanced" @no_raise func balanced() as c_int
+extern "fixtureCustomHeapBegin" @no_raise func heapBegin()
+extern "fixtureCustomHeapUnchanged" @no_raise func heapUnchanged() as c_int
+
+func assertExpired(Resource entry)
+    bool expired=false
+    try
+        auto unexpected=entry.generation
+    catch error
+        expired=true
+    end
+    assert expired
+end
+
+func main(...) as int
+    auto proxy=cpuProxy()
+    auto other=otherProxy()
+    auto ui=xui.create(proxy,xui.XUI_SYSTEM_FONT_DISABLED)
+    auto otherUI=xui.create(other,xui.XUI_SYSTEM_FONT_DISABLED)
+    auto surface=cpuSurface(proxy)
+    auto replacement=cpuSurface(proxy)
+    auto foreign=cpuSurface(other)
+    auto font=cpuFont(proxy)
+    string surfaceName="标记"
+    assert ui.findResource(surfaceName)==null
+    ui.setSurfaceResource(surfaceName,surface)
+    ui.setFontResource("font",font)
+    auto entry=ui.findResource(surfaceName) as Resource
+    auto fontEntry=ui.findResource("font") as Resource
+    assert entry.name==surfaceName and entry.kind==xui.XUI_RESOURCE_SURFACE and entry.font()==null
+    assert fontEntry.kind==xui.XUI_RESOURCE_FONT and fontEntry.surface()==null
+    auto heldSurface=entry.surface() as Surface
+    auto heldFont=fontEntry.font() as Font
+    font.close()
+    assert proxy.fontMetrics(heldFont).fSize==16
+
+    auto before=ui.resourceGetRegistryGeneration()
+    ui.setSurfaceResource(surfaceName,surface)
+    assert ui.resourceGetRegistryGeneration()==before
+    bool rejected=false
+    try
+        ui.setSurfaceResource(surfaceName,foreign)
+    catch error
+        rejected=true
+    end
+    assert rejected and ui.resourceGetRegistryGeneration()==before
+    surface.close()
+    assert proxy.surfaceDesc(heldSurface).iWidth==640
+
+    fontEntry.addDependency(entry)
+    fontEntry.addDependency(entry)
+    assert fontEntry.dependencyCount()==1 and fontEntry.dependencyAt(-1)==null
+    assert (fontEntry.dependencyAt(0) as Resource).name==surfaceName
+    auto generation=fontEntry.generation
+    entry.touch()
+    assert fontEntry.generation!=generation
+    otherUI.setSurfaceResource("foreign",foreign)
+    auto foreignEntry=otherUI.findResource("foreign") as Resource
+    rejected=false
+    try
+        fontEntry.addDependency(foreignEntry)
+    catch error
+        rejected=true
+    end
+    assert rejected and fontEntry.dependencyCount()==1
+
+    auto category=xui.createIconCategory(ui,"owned",xui.iconCategoryDescDefault())
+    auto icon=category.addResource("symbol",entry,xui.Rect())
+    assert icon.sourceType==xui.XUI_ICON_SOURCE_RESOURCE and icon.intrinsicSize().fX==640
+    rejected=false
+    try
+        auto unusable=category.addResource("wrong-kind",fontEntry,xui.Rect())
+    catch error
+        rejected=true
+    end
+    assert rejected and category.count==1
+
+    // With the entry and dependency already observed, these queries reuse
+    // their controls and do not allocate an XRT object per read.
+    int index=0
+    heapBegin()
+    budget(0)
+    while index<1000
+        auto dependency=fontEntry.dependencyAt(0) as Resource
+        assert dependency.kind==xui.XUI_RESOURCE_SURFACE and fontEntry.dependencyCount()==1
+        index+=1
+    end
+    budget(-1)
+    assert heapUnchanged()==1
+
+    c_int allowance=0
+    while allowance<2
+        rejected=false
+        budget(allowance)
+        try
+            ui.setSurfaceResource(surfaceName,replacement)
+        catch error
+            rejected=true
+        end
+        budget(-1)
+        assert rejected and entry.kind==xui.XUI_RESOURCE_SURFACE and fontEntry.dependencyCount()==1
+        allowance+=1
+    end
+    ui.setSurfaceResource(surfaceName,replacement)
+    assertExpired(entry)
+    auto latest=ui.findResource(surfaceName) as Resource
+    assert latest.name==surfaceName and fontEntry.dependencyCount()==0
+    // Resource-backed Icons resolve the registry by name when drawn.
+    assert icon.intrinsicSize().fX==640
+    fontEntry.addDependency(latest)
+    fontEntry.clearDependencies()
+    assert fontEntry.dependencyCount()==0
+    latest.remove()
+    assertExpired(latest)
+    assert ui.findResource(surfaceName)==null
+    ui.close()
+    assertExpired(fontEntry)
+    assert proxy.surfaceDesc(heldSurface).iWidth==640 and proxy.fontMetrics(heldFont).fSize==16
+    otherUI.close()
+    assertExpired(foreignEntry)
+    heldFont.close()
+    heldSurface.close()
+    foreign.close()
+    replacement.close()
+    other.close()
+    proxy.close()
+    assert balanced()==1
+    println("XUI_NAMED_RESOURCES_OK")
+    return 0
+end

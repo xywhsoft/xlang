@@ -1,0 +1,18 @@
+// 同一张位图由 Context 注册一次，使用资源名为选择器提供图标。
+import xui
+from xui import Resource
+from "./_window.xl" import Window
+
+Window.showWithProxy("命名资源",func(xui.Context ui,xui.Widget root,xui.Proxy proxy)
+ auto bitmap=proxy.loadSurface(Window.asset("icon_file.png"))
+ ui.setSurfaceResource("badge",bitmap)
+ bitmap.close()
+
+ auto resource=ui.findResource("badge") as Resource
+ auto category=xui.createIconCategory(ui,"badges",xui.iconCategoryDescDefault())
+ auto icon=category.addResource("徽标",resource,xui.Rect())
+ auto picker=xui.createIconPicker(ui)
+ picker.setCategory(category)
+ picker.setSelectedId(icon.id)
+ Window.place(root,picker,24,24,260,48)
+end)
