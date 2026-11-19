@@ -17,6 +17,31 @@ METHODS = {'xuiResourceFind': ['xui_resource xuiResourceFind(xui_context pContex
  'xuiResourceSetFont': ['int xuiResourceSetFont(xui_context pContext, const char* sName, xui_font pFont)',
                         'Context',
                         ['extern "xuiResourceSetFont" @no_raise @c_cstr(0) @c_result("status",0) func setFontResource(string name,Font font)']],
+ 'xuiSetTheme': ['int xuiSetTheme(xui_context pContext, const xui_theme_t* pTheme)',
+                        'Context',
+                        ['extern "xuiSetTheme" @no_raise @c_pack(1,"xui_theme_t",0,15) @c_pack_size(1,"iSize","uint32_t") '
+                        '@c_pack_field(1,"iTextColor",0,"value") @c_pack_field(1,"iBackgroundColor",1,"value") '
+                        '@c_pack_field(1,"iPanelColor",2,"value") @c_pack_field(1,"iBorderColor",3,"value") '
+                        '@c_pack_field(1,"iAccentColor",4,"value") @c_pack_field(1,"iSelectionColor",5,"value") '
+                        '@c_pack_field(1,"iStateNormalColor",6,"value") @c_pack_field(1,"iStateHoverColor",7,"value") '
+                        '@c_pack_field(1,"iStateActiveColor",8,"value") @c_pack_field(1,"iStateFocusColor",9,"value") '
+                        '@c_pack_field(1,"iStateDisabledColor",10,"value") @c_pack_field(1,"fPadding",11,"value") '
+                        '@c_pack_field(1,"fSpacing",12,"value") @c_pack_field(1,"fBorderWidth",13,"value") '
+                        '@c_pack_field(1,"pFont",14,"view_raw") @c_result("status",0) func setTheme(c_uint textColor,c_uint '
+                        'backgroundColor,c_uint panelColor,c_uint borderColor,c_uint accentColor,c_uint selectionColor,c_uint '
+                        'normalColor,c_uint hoverColor,c_uint activeColor,c_uint focusColor,c_uint disabledColor,c_float '
+                        'padding,c_float spacing,c_float borderWidth,Font? font=null)']],
+ 'xuiGetTheme': ['int xuiGetTheme(xui_context pContext, xui_theme_t* pTheme)',
+                        'Context',
+                        ['extern "xuiGetTheme" @no_raise @c_output_record(1,"xui_theme_t","borrowed") @c_status(0) '
+                        '@c_output_field(0,"iTextColor") @c_output_field(1,"iBackgroundColor") @c_output_field(2,"iPanelColor") '
+                        '@c_output_field(3,"iBorderColor") @c_output_field(4,"iAccentColor") @c_output_field(5,"iSelectionColor") '
+                        '@c_output_field(6,"iStateNormalColor") @c_output_field(7,"iStateHoverColor") '
+                        '@c_output_field(8,"iStateActiveColor") @c_output_field(9,"iStateFocusColor") '
+                        '@c_output_field(10,"iStateDisabledColor") @c_output_field(11,"fPadding") @c_output_field(12,"fSpacing") '
+                        '@c_output_field(13,"fBorderWidth") @c_output_field(14,"pFont","retain",retainFont,"zero",rollbackFont) '
+                        'func getTheme() as '
+                        '(c_uint,c_uint,c_uint,c_uint,c_uint,c_uint,c_uint,c_uint,c_uint,c_uint,c_uint,c_float,c_float,c_float,Font?)']],
  'xl6Xui3CopyToClipboard': ['int xl6Xui3CopyToClipboard(xui_context,xui_data_object,const XL6_CodeOwner*);',
                             'Context',
                             ['extern "xl6Xui3CopyToClipboard" @no_raise @c_code_owner(2) @c_result("status",0) func '

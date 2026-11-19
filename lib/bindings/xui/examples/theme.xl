@@ -1,0 +1,16 @@
+// 保留 XUI 默认配色的其余部分，只调整按钮的普通、悬停和按下颜色。
+import xui
+from "./_window.xl" import Window
+
+Window.show("按钮主题",func(xui.Context ui,xui.Widget root)
+ auto text,background,panel,border,accent,selection,normal,hover,active,focus,disabled,padding,spacing,borderWidth=xui.themeDefault()
+ normal=0xDEE8FCFF
+ hover=0xC2D6F9FF
+ active=0xA5C0F2FF
+ ui.setTheme(text,background,panel,border,accent,selection,normal,hover,active,focus,disabled,
+  padding,spacing,borderWidth,ui.getDefaultFont())
+
+ auto button=ui.buttonNative()
+ button.setText("悬停或按下，查看主题颜色")
+ Window.place(root,button,24,24,260,42)
+end)

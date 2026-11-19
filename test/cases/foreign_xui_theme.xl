@@ -1,0 +1,74 @@
+import xui
+from xui import Font
+
+extern "fixtureRenderProxy" @header("test/cases/foreign_xui_render_backend.h") @no_raise @c_result("owned_view") @factory(0,0,dropProxy) func cpuProxy() as xui.Proxy
+extern "fixtureRenderFont" @no_raise @c_result("owned_view") @factory(1,0,dropFont) func cpuFont(xui.Proxy proxy) as Font
+extern "xuiProxyReleaseChecked" @header("xge3_runtime.h") @no_raise @c_result("status",0) func dropProxy(xui.Proxy value)
+extern "xuiFontReleaseChecked" @header("xge3_runtime.h") @no_raise @c_result("status",0) func dropFont(Font value)
+extern "fixtureRenderBudget" @no_raise func budget(c_int allowance)
+extern "fixtureRenderBalanced" @no_raise func balanced() as c_int
+
+func main(...) as int
+    auto proxy=cpuProxy()
+    auto ui=xui.create(proxy,xui.XUI_SYSTEM_FONT_DISABLED)
+    auto font=cpuFont(proxy)
+    auto text,background,panel,border,accent,selection,normal,hover,active,focus,disabled,padding,spacing,borderWidth=xui.themeDefault()
+    assert padding==6 and spacing==6 and borderWidth==1
+    auto oldText,oldBackground,oldPanel,oldBorder,oldAccent,oldSelection,oldNormal,oldHover,oldActive,oldFocus,oldDisabled,oldPadding,oldSpacing,oldWidth,oldFont=ui.getTheme()
+    assert oldText==text and oldBackground==background and oldPanel==panel and oldBorder==border
+    assert oldAccent==accent and oldSelection==selection and oldNormal==normal and oldHover==hover
+    assert oldActive==active and oldFocus==focus and oldDisabled==disabled
+    assert oldPadding==padding and oldSpacing==spacing and oldWidth==borderWidth and oldFont==null
+
+    auto generation=ui.styleGetGeneration()
+    auto tokens=ui.styleGetTokenGeneration()
+    bool rejected=false
+    budget(5)
+    try
+        ui.setTheme(0x102030FF,background,panel,border,accent,selection,normal,hover,active,focus,disabled,padding,spacing,3,font)
+    catch error
+        rejected=true
+    end
+    budget(-1)
+    assert rejected and ui.styleGetGeneration()==generation and ui.styleGetTokenGeneration()==tokens
+    assert ui.getDefaultFont()==null
+
+    ui.setTheme(0x102030FF,0x203040FF,0x304050FF,0x405060FF,0x506070FF,0x607080FF,
+        0x708090FF,0x8090A0FF,0x90A0B0FF,0xA0B0C0FF,0xB0C0D0FF,8,9,3,font)
+    auto actualText,actualBackground,actualPanel,actualBorder,actualAccent,actualSelection,actualNormal,actualHover,actualActive,actualFocus,actualDisabled,actualPadding,actualSpacing,actualWidth,ownedFont=ui.getTheme()
+    assert actualText==0x102030FF and actualBackground==0x203040FF and actualPanel==0x304050FF
+    assert actualBorder==0x405060FF and actualAccent==0x506070FF and actualSelection==0x607080FF
+    assert actualNormal==0x708090FF and actualHover==0x8090A0FF and actualActive==0x90A0B0FF
+    assert actualFocus==0xA0B0C0FF and actualDisabled==0xB0C0D0FF
+    assert actualPadding==8 and actualSpacing==9 and actualWidth==3 and ownedFont!=null
+    assert ui.styleGetGeneration()==generation+1 and ui.styleGetTokenGeneration()==tokens+14
+    auto tokenType,integer,number,color,tokenText=ui.styleGetToken("theme.text")
+    assert tokenType==xui.XUI_STYLE_VALUE_COLOR and color==actualText and tokenText==null
+
+    auto defaultChrome=ui.getChromeStyle()
+    auto chrome=defaultChrome
+    chrome.iBackdropColor=0x10203080
+    chrome.fShadowSize=18
+    rejected=false
+    budget(5)
+    try
+        rejected=ui.setChromeStyle(chrome)==xui.XUI_ERROR_OUT_OF_MEMORY
+    catch error
+        rejected=true
+    end
+    budget(-1)
+    assert rejected and ui.getChromeStyle().iBackdropColor==defaultChrome.iBackdropColor
+    assert ui.styleGetTokenGeneration()==tokens+14
+    assert ui.setChromeStyle(chrome)==0
+    assert ui.getChromeStyle().fShadowSize==18 and ui.styleGetTokenGeneration()==tokens+22
+
+    font.close()
+    ui.close()
+    auto retained=ownedFont as Font
+    assert proxy.fontMetrics(retained).fSize==16
+    retained.close()
+    proxy.close()
+    assert balanced()==1
+    println("XUI_THEME_OK")
+    return 0
+end

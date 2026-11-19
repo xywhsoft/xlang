@@ -1,0 +1,152 @@
+{
+  "complete": true,
+  "passed": true,
+  "releaseInstalled": false,
+  "shippingDelivery": false,
+  "xlangParent": "87696dc82d404288765830abcf0512cdeada000e",
+  "nativeCommit": "d3fc78fce355d5194839943cb0d9ab1d421289e9",
+  "frozenXrt": "804cc769de3030118c2b46ef7af69543d1b82d9d",
+  "scope": [
+    "Direct declarations for xuiThemeDefault, xuiSetTheme and xuiGetTheme. The snapshot retains its optional Font.",
+    "Theme and ChromeStyle allocate all missing numeric token storage before publication. Preparation failures leave palette, font, token definitions and generations intact.",
+    "The palette, font and numeric tokens are coherent after publication. A later widget refresh or retiring Font failure remains a checked outcome."
+  ],
+  "timingScope": "Seven samples of 100000 warm native Theme + ChromeStyle updates, same hosted XRT, managed Font, no widget tree, GCC O2 in the current and parent SDKs. clock() for each platform. Native benchmark only.",
+  "cost": "Token preparation keeps a small stack array. No XRT heap operations in 2000 warm native updates without a widget tree. First registration still allocates missing native token entries and copies keys. Theme includes scoped Font admission and a retained output reference.",
+  "sources": {
+    "lib/bindings/xui/xlang.package.json": "74a979ac3124d93abed6f02865b89f017353354c2ba61ac65a4ac97a685de55a",
+    "lib/bindings/xui/src/managed.xl": "faecbaf567c9c14163436f3fe55028c907b2e2b12368aee1d3ad3618ede81e9a",
+    "lib/bindings/xui/src/theme.xl": "7a90b41f7024a0ba1e5436e84ca2cd1d6710faa836261e39c79f2106072a3f00",
+    "lib/bindings/xui/examples/theme.xl": "407dd3cea353400fefdbb5fd4e07d09d6048c2d21bdff3ec36a304225e827214",
+    "tools/xui_managed_contracts.py": "0eeef65b73423ee00f1492d712fabbdae551226969d08ab151fb6a78b1b322e3",
+    "test/cases/foreign_xui_theme.xl": "f23ff33c3c71a3a7ed3e4369f38c15d4532e3991ced12b2aabef80dc5f5ca6a4"
+  },
+  "platforms": {
+    "win": {
+      "nativeBuild": {
+        "path": "F:\\xlang-validation\\xge-full-20261110\\xui-theme-transaction-sdk-win-r1\\results.json",
+        "sha256": "69ee13987798cb82160da9aea4fbc2c5e3d416e79fcaf1b8aaa36a66d7c047b7",
+        "commands": 2
+      },
+      "nativeAtomicity": {
+        "path": "F:\\xlang-validation\\xge-full-20261110\\xui-theme-transaction-native-tests-win-r2\\results.json",
+        "sha256": "0a97b6a2a22af4d6d8e8c898659f5a73c9004ae7397dfc2c63a16a5d77605e14",
+        "commands": 4
+      },
+      "existingStyleSuite": {
+        "path": "F:\\xlang-validation\\xge-full-20261110\\xui-theme-regression-tests-win-r1\\results.json",
+        "sha256": "e7058de5db9f9333391d4376d28b625659f2ec50599b4b9facb856873b1d67bf",
+        "commands": 4
+      },
+      "packageReview": {
+        "path": "F:\\xlang-validation\\xge-full-20261110\\xui-theme-transaction-packages-win-r1\\results.json",
+        "sha256": "7f040fd68ee41f9bfe412dcf27ed96c4a333ee97591ae54d54818a6e0856f184",
+        "commands": 6
+      },
+      "languageAndExample": {
+        "path": "F:\\xlang-validation\\xge-full-20261110\\xui-theme-language-tests-win-r2\\results.json",
+        "sha256": "3803cc28e8d66e198da7cc49a6cbf8bb1ae03091fa0f8cbd0dcab7acb03daf81",
+        "commands": 14
+      },
+      "reproducedBaselineFailure": {
+        "path": "F:\\xlang-validation\\xge-full-20261110\\xui-theme-baseline-native-tests-win-r2\\O0-run.log",
+        "sha256": "b761efedd51157d78fd38053e8fc63f12747e1f420006253436185adb6ec3dfb"
+      },
+      "timing": {
+        "baseline": {
+          "medianNanoseconds": 1860.0,
+          "samplesNanoseconds": [
+            1700.0,
+            1870.0,
+            1960.0,
+            1770.0,
+            1860.0,
+            1930.0,
+            1810.0
+          ],
+          "report": "F:\\xlang-validation\\xge-full-20261110\\xui-theme-timing-baseline-win-r1\\results.json",
+          "reportSha256": "8d1e150413d7d0f33b382ffa186ed6a8bc47331e62f2cd2a5a12ffd34df38eb8",
+          "commands": 2
+        },
+        "current": {
+          "medianNanoseconds": 2100.0,
+          "samplesNanoseconds": [
+            2060.0,
+            2420.0,
+            2220.0,
+            2100.0,
+            2140.0,
+            2050.0,
+            2030.0
+          ],
+          "report": "F:\\xlang-validation\\xge-full-20261110\\xui-theme-timing-current-win-r1\\results.json",
+          "reportSha256": "022b729072314772a6fbf1c0e17953a09e268ca4446e3dcaf5de240a94517749",
+          "commands": 2
+        }
+      }
+    },
+    "linux": {
+      "nativeBuild": {
+        "path": "/var/tmp/xlang-validation/xge-full-20261110/xui-theme-transaction-sdk-linux-r1/results.json",
+        "sha256": "923f9deb34702c76fc0b9276c0113b3f5c5196e7380261b5ffa6adaf5b859699",
+        "commands": 2
+      },
+      "nativeAtomicity": {
+        "path": "/var/tmp/xlang-validation/xge-full-20261110/xui-theme-transaction-native-tests-linux-r2/results.json",
+        "sha256": "9d68bf8dd90dd1091cb39a3300072980e299210d6ffbb0c404e5a559f9ecb652",
+        "commands": 4
+      },
+      "existingStyleSuite": {
+        "path": "/var/tmp/xlang-validation/xge-full-20261110/xui-theme-regression-tests-linux-r1/results.json",
+        "sha256": "f2a80b0ebb5ebd995c8bffa0babbf212abdb7ccad326e5f0a7cc646861a59cc0",
+        "commands": 4
+      },
+      "packageReview": {
+        "path": "/var/tmp/xlang-validation/xge-full-20261110/xui-theme-transaction-packages-linux-r1/results.json",
+        "sha256": "f53d144069cb15b4c2a66c36fc156500c8d5c16af644a5c5bee9067945ebcd08",
+        "commands": 6
+      },
+      "languageAndExample": {
+        "path": "/var/tmp/xlang-validation/xge-full-20261110/xui-theme-language-tests-linux-r2/results.json",
+        "sha256": "f17d3f1b117daba0c450a8f8d6c7c239fb76d7b07b75dbf6541ba9ebbc50facb",
+        "commands": 14
+      },
+      "reproducedBaselineFailure": {
+        "path": "/var/tmp/xlang-validation/xge-full-20261110/xui-theme-baseline-native-tests-linux-r2/O0-run.log",
+        "sha256": "ca7193ce8a61d482962a0e7936cd24833c5695a77856cd7ecf20e33e92e6832a"
+      },
+      "timing": {
+        "baseline": {
+          "medianNanoseconds": 1232.82,
+          "samplesNanoseconds": [
+            1239.39,
+            1232.82,
+            1335.98,
+            1170.42,
+            1149.12,
+            1466.05,
+            1190.23
+          ],
+          "report": "/var/tmp/xlang-validation/xge-full-20261110/xui-theme-timing-baseline-linux-r1/results.json",
+          "reportSha256": "3cfedb7b010e437e24765c66a91b8d63b44df01aa73c5497b9f784e79396e381",
+          "commands": 2
+        },
+        "current": {
+          "medianNanoseconds": 1514.02,
+          "samplesNanoseconds": [
+            1789.4,
+            1514.02,
+            1749.58,
+            1727.7,
+            1445.99,
+            1410.35,
+            1388.0
+          ],
+          "report": "/var/tmp/xlang-validation/xge-full-20261110/xui-theme-timing-current-linux-r1/results.json",
+          "reportSha256": "03c73b2954e804aae13dfa2c208fe5a2132e878dc8b01d135d927848dc07d754",
+          "commands": 2
+        }
+      }
+    }
+  }
+}

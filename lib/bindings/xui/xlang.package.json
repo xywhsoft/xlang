@@ -15,6 +15,7 @@
       "src/localization.xl",
       "src/assets.xl",
       "src/resources.xl",
+      "src/theme.xl",
       "src/icons.xl",
       "src/cell.xl",
       "src/table_columns.xl",
