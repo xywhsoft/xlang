@@ -1,0 +1,113 @@
+{
+  "complete": true,
+  "passed": true,
+  "releaseInstalled": false,
+  "sourceParent": "65a70e59d1e9a9642c45403cd9c8c573af2a711e",
+  "nativeCommit": "96e1f972d97e34df731b5b6fcc9643c41d4f5aa2",
+  "frozenXrt": "804cc769de3030118c2b46ef7af69543d1b82d9d",
+  "sourceHashesLf": {
+    "lib/bindings/xui/src/managed.xl": "33a327df50220cab354e72017c1f0f015cad3506cb005ce712b89f926c5a1025",
+    "lib/bindings/xui/examples/code_diagnostics.xl": "67f646e4ef56d95e495eebbb5f2cb05bc23d88b0408b20dcea854f8bbc12d1a5",
+    "lib/bindings/xui/examples/README.md": "67d2057c1a6758d71d98ac750a93f3437a32822ee41bd46cf10c063d22e2a085",
+    "tools/xui_managed_contracts.py": "05b9b27026178e0faa729e016c093376e0e19e7fc0b147c125929361580de231",
+    "docs/xge3-xui3-api-map-storage.json": "e2a447f7e2d1f9dd6eeb02e0a869491b80ff990544206d1aedf64955453c8bc2",
+    "test/cases/foreign_xui_codeedit_diagnostics.xl": "3a0fcaac25e4ee061ffd079dab1cb285370f4d70a29e64cc70ea334e7a20fd88",
+    "test/cases/foreign_xui_codeedit_diagnostics_heap.c": "dca65e16526c37143b34a50d4cdba0ceca86db298b19838ad77342e87a4a37b9",
+    "test/cases/foreign_xui_codeedit_diagnostics_heap.h": "faadffeb2d6da433ccd0a7285c18d7088f1dd728c8468c533af24f0a0ea8b039"
+  },
+  "nativeHashesLf": {
+    "include/xui.h": "e3a0c97e83bd22a16f64dbb36c25ca55bd92903764cf9b7fb7203aabf2b3a5a4",
+    "src/xui/code/xui_code_edit.c": "e4df8f0965639c67b7030dc6a96fa606c151e51c9262f289b0c02358d549cf26",
+    "src/xui/code/xui_code_annotation.c": "cfc1fe895fcf19921e99217f5ad4bd9eef8ba30e2c991eeef0969703c46bafcb",
+    "src/xui/code/xui_code_diagnostics_internal.h": "0b497b6840fdc10f51851fdd9b6bd04577a4f2b0e236f32cff317253fedc5d80",
+    "tests/xui/xui_code_edit_diagnostics_test.c": "d4f1a0a48ce9ebf1dad867673b53d9271bcf13953ad239721d22afaa5260f82a"
+  },
+  "validation": {
+    "published": [
+      "document version",
+      "versioned diagnostic publication",
+      "count",
+      "index lookup",
+      "visual-row hit test"
+    ],
+    "native": [
+      "legacy hover/hit regression",
+      "40 overlapping diagnostics and severity precedence",
+      "NaN/infinity",
+      "reentrant editor closure during measurement",
+      "stale version",
+      "candidate and damage-region OOM"
+    ],
+    "language": [
+      "UTF-8 positions in a wrapped line",
+      "null versus empty string",
+      "stale version",
+      "publication OOM and output snapshot rollback",
+      "closed widget",
+      "one-frame example"
+    ],
+    "heap": "1,000 empty misses completed under zero allocation budget without alloc/free/realloc.",
+    "timing": "Seven 100,000-call samples, C and xlang in one static AOT image, empty diagnostic store.",
+    "networkTests": false
+  },
+  "evidence": {
+    "win": {
+      "sdk": {
+        "path": "F:\\xlang-validation\\xge-full-20261110\\codeedit-diagnostics-sdk-win-r4\\results.json",
+        "sha256": "d02b55c9ae467adb992778828fa688021328a5119ba26c1e94fc2b47e82b7749",
+        "checks": 2
+      },
+      "packages": {
+        "path": "F:\\xlang-validation\\xge-full-20261110\\codeedit-diagnostics-packages-win-r5\\results.json",
+        "sha256": "b92009e6e8bf14cb621ac36a9eae5aff3cd769488f8a174169874d18b8fdc816",
+        "checks": 6
+      },
+      "native": {
+        "path": "F:\\xlang-validation\\xge-full-20261110\\codeedit-diagnostics-native-tests-win-r6\\results.json",
+        "sha256": "aa2a4e95c5978664eca5549eeb3518b8f29adf8fb207afc40b851e5691ba0d44",
+        "checks": 8
+      },
+      "tests": {
+        "path": "F:\\xlang-validation\\xge-full-20261110\\codeedit-diagnostics-xlang-win-r5\\results.json",
+        "sha256": "af78980fa7722621cd27e382bfe5e148a3d8370b21f490fce8d0917ff252cf58",
+        "checks": 12
+      },
+      "measurement": {
+        "path": "F:\\xlang-validation\\xge-full-20261110\\codeedit-diagnostics-measure-win-r1\\results.json",
+        "sha256": "bdc5edc0de3f69711ba76a5bd1542aeaddc34f61809ca906191fb3c04ee65cf3",
+        "checks": 3,
+        "nativeMedianNanoseconds": 73.2500001322478,
+        "managedMedianNanoseconds": 3571.560001000762
+      }
+    },
+    "linux": {
+      "sdk": {
+        "path": "\\\\wsl.localhost\\Ubuntu\\var\\tmp\\xlang-validation\\xge-full-20261110\\codeedit-diagnostics-sdk-linux-r4\\results.json",
+        "sha256": "23b5703335f2e172371aa33c9bec1c711ff47bbdedc121465e71a486a8433e8f",
+        "checks": 2
+      },
+      "packages": {
+        "path": "\\\\wsl.localhost\\Ubuntu\\var\\tmp\\xlang-validation\\xge-full-20261110\\codeedit-diagnostics-packages-linux-r5\\results.json",
+        "sha256": "29f68c2fb91b59d03cfa9816abc76205a67c4b9c4e097707ce9a105e9fc5e7d7",
+        "checks": 6
+      },
+      "native": {
+        "path": "\\\\wsl.localhost\\Ubuntu\\var\\tmp\\xlang-validation\\xge-full-20261110\\codeedit-diagnostics-native-tests-linux-r6\\results.json",
+        "sha256": "9cb2218edbc20357b74dba1d8b54f6522caf7914ea30a08b0b6b3084cdcd80b0",
+        "checks": 8
+      },
+      "tests": {
+        "path": "\\\\wsl.localhost\\Ubuntu\\var\\tmp\\xlang-validation\\xge-full-20261110\\codeedit-diagnostics-xlang-linux-r5\\results.json",
+        "sha256": "a3bc8f987fd0e812dd5ce7ad09767dffe70503cdfae8d2cca4ac144be116dc6f",
+        "checks": 12
+      },
+      "measurement": {
+        "path": "\\\\wsl.localhost\\Ubuntu\\var\\tmp\\xlang-validation\\xge-full-20261110\\codeedit-diagnostics-measure-linux-r1\\results.json",
+        "sha256": "bb6e78801dbfd70151c3c2420a448718e011bd78da0831a448013e9d520c6574",
+        "checks": 3,
+        "nativeMedianNanoseconds": 72.84699999217992,
+        "managedMedianNanoseconds": 1623.7040600026376
+      }
+    }
+  }
+}

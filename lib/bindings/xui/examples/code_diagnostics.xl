@@ -1,0 +1,25 @@
+// Publish diagnostics for one version of the editor's source text.
+import xui
+from "./_window.xl" import Window
+
+Window.show("CodeEdit diagnostics",func(xui.Context ui,xui.Widget root)
+ auto editor=ui.codeEditNative()
+ Window.place(root,editor,24,24,560,160)
+ editor.setText("answer = unknownName\n")
+
+ xui.CodeRange name
+ name.iStart=9
+ name.iEnd=20
+ array<xui.CodeRange> ranges=[name]
+ array<c_int> severities=[c_int(xui.XUI_CODE_DIAGNOSTIC_ERROR)]
+ array<string?> codes=["E01"]
+ array<string?> messages=["Unknown name"]
+ array<string?> sources=["example"]
+ array<c_uintptr> ids=[c_uintptr(1)]
+ // Offsets are UTF-8 bytes. A background checker captures the version when
+ // it reads the text and passes that same version here after analysis.
+ editor.applyDiagnostics(editor.documentVersion(),ranges,severities,codes,messages,sources,ids)
+ auto location,severity,code,message,source,id=editor.getDiagnostic(0)
+ assert location.iStart==9 and location.iEnd==20 and id==1
+ println(code," ",message)
+end)

@@ -2546,6 +2546,17 @@ export extern "xui_widget_t*" class CodeEdit @header("xge3_runtime.h") @lifetime
 
  extern "xuiCodeEditHitTestText" @no_raise @c_output(3,0) func hitTestText(c_float fContextX,c_float fContextY) as CodeEditTextHit
 
+ extern "xuiCodeEditGetDocumentVersion" @no_raise @c_output(1,0) func documentVersion() as c_uint
+
+ extern "xuiCodeEditApplyDiagnostics" @no_raise @c_array_group(2,1,6,"int",7) @c_array_record(2,"xui_code_diagnostic_t") @c_array_field(2,"tRange",0,"value") @c_array_field(2,"iSeverity",1,"value") @c_array_field(2,"sCode",2,"c_string") @c_array_field(2,"sMessage",3,"c_string") @c_array_field(2,"sSource",4,"c_string") @c_array_field(2,"iUserData",5,"value") @c_result("status",0) func applyDiagnostics(c_uint version,array<CodeRange> ranges,array<c_int> severities,array<string?> codes,array<string?> messages,array<string?> sources,array<c_uintptr> userData,int size=-1)
+
+ extern "xuiCodeEditGetDiagnosticCount" @no_raise @c_result("integer_min",0) func diagnosticCount() as c_int
+
+ extern "xuiCodeEditGetDiagnostic" @no_raise @c_output_record(2,"xui_code_diagnostic_t","borrowed") @c_status(0) @c_output_field(0,"tRange") @c_output_field(1,"iSeverity") @c_output_field(2,"sCode","cstring") @c_output_field(3,"sMessage","cstring") @c_output_field(4,"sSource","cstring") @c_output_field(5,"iUserData") func getDiagnostic(c_int index) as (CodeRange,c_int,string?,string?,string?,c_uintptr)
+
+ // An ordinary miss returns index -1. The strings are independent snapshots.
+ extern "xuiCodeEditFindDiagnostic" @no_raise @c_output_record(3,"xui_code_diagnostic_hit_t","borrowed") @c_status(0) @c_output_field(0,"iIndex") @c_output_field(1,"tRect") @c_output_field(2,"tDiagnostic.tRange") @c_output_field(3,"tDiagnostic.iSeverity") @c_output_field(4,"tDiagnostic.sCode","cstring") @c_output_field(5,"tDiagnostic.sMessage","cstring") @c_output_field(6,"tDiagnostic.sSource","cstring") @c_output_field(7,"tDiagnostic.iUserData") func hitTestDiagnostic(c_float contextX,c_float contextY) as (c_int,Rect,CodeRange,c_int,string?,string?,string?,c_uintptr)
+
  extern "xuiCodeEditSetPlaceholders" @no_raise @c_span(0,"const xui_code_placeholder_t*","int") func setPlaceholders(Buffer pPlaceholders,c_int iActiveIndex) as c_int
 
  extern "xuiCodeEditSetPlaceholders" @no_raise @c_array_group(1,0,1,"int",1) @c_array_input(1,0,"const xui_code_placeholder_t*","value") func setPlaceholders(array<CodePlaceholder> placeholders,int size=-1,c_int activeIndex=0) as c_int

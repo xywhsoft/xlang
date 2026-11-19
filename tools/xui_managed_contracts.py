@@ -786,6 +786,30 @@ METHODS.update({
 })
 
 
+# CodeEdit diagnostic publication and independent query snapshots.
+METHODS.update({
+    'xuiCodeEditGetDocumentVersion': ['int xuiCodeEditGetDocumentVersion(xui_widget widget, uint32_t* version)', 'CodeEdit',
+        ['extern "xuiCodeEditGetDocumentVersion" @no_raise @c_output(1,0) func documentVersion() as c_uint']],
+    'xuiCodeEditApplyDiagnostics': ['int xuiCodeEditApplyDiagnostics(xui_widget widget, uint32_t documentVersion, const xui_code_diagnostic_t* diagnostics, int count)', 'CodeEdit',
+        ['extern "xuiCodeEditApplyDiagnostics" @no_raise @c_array_group(2,1,6,"int",7) @c_array_record(2,"xui_code_diagnostic_t") @c_array_field(2,"tRange",0,"value") @c_array_field(2,"iSeverity",1,"value") @c_array_field(2,"sCode",2,"c_string") @c_array_field(2,"sMessage",3,"c_string") @c_array_field(2,"sSource",4,"c_string") @c_array_field(2,"iUserData",5,"value") @c_result("status",0) func applyDiagnostics(c_uint version,array<CodeRange> ranges,array<c_int> severities,array<string?> codes,array<string?> messages,array<string?> sources,array<c_uintptr> userData,int size=-1)']],
+    'xuiCodeEditGetDiagnosticCount': ['int xuiCodeEditGetDiagnosticCount(xui_widget widget)', 'CodeEdit',
+        ['extern "xuiCodeEditGetDiagnosticCount" @no_raise @c_result("integer_min",0) func diagnosticCount() as c_int']],
+    'xuiCodeEditGetDiagnostic': ['int xuiCodeEditGetDiagnostic(xui_widget widget, int index, xui_code_diagnostic_t* diagnostic)', 'CodeEdit',
+        ['extern "xuiCodeEditGetDiagnostic" @no_raise @c_output_record(2,"xui_code_diagnostic_t","borrowed") @c_status(0) @c_output_field(0,"tRange") @c_output_field(1,"iSeverity") @c_output_field(2,"sCode","cstring") @c_output_field(3,"sMessage","cstring") @c_output_field(4,"sSource","cstring") @c_output_field(5,"iUserData") func getDiagnostic(c_int index) as (CodeRange,c_int,string?,string?,string?,c_uintptr)']],
+    'xuiCodeEditFindDiagnostic': ['int xuiCodeEditFindDiagnostic(xui_widget widget, float x, float y, xui_code_diagnostic_hit_t* hit)', 'CodeEdit',
+        ['extern "xuiCodeEditFindDiagnostic" @no_raise @c_output_record(3,"xui_code_diagnostic_hit_t","borrowed") @c_status(0) @c_output_field(0,"iIndex") @c_output_field(1,"tRect") @c_output_field(2,"tDiagnostic.tRange") @c_output_field(3,"tDiagnostic.iSeverity") @c_output_field(4,"tDiagnostic.sCode","cstring") @c_output_field(5,"tDiagnostic.sMessage","cstring") @c_output_field(6,"tDiagnostic.sSource","cstring") @c_output_field(7,"tDiagnostic.iUserData") func hitTestDiagnostic(c_float contextX,c_float contextY) as (c_int,Rect,CodeRange,c_int,string?,string?,string?,c_uintptr)']],
+})
+RECORDS.update({
+    'xui_code_range_t': 'typedef struct xui_code_range_t xui_code_range_t;',
+    'xui_code_diagnostic_t': 'typedef struct xui_code_diagnostic_t xui_code_diagnostic_t;',
+    'xui_code_diagnostic_hit_t': 'typedef struct xui_code_diagnostic_hit_t xui_code_diagnostic_hit_t;',
+})
+TYPE_SHAPES.update({
+    'xui_code_range_t': '756be221361dae72d21123ef3cdb63823041d3a543c64a83400cc00f00d18ef5',
+    'xui_code_diagnostic_t': '2bb5b2e09ee0a377a9b02f38644d2be72d4241f990930085d154696a8f6bfc0b',
+    'xui_code_diagnostic_hit_t': '96bfdb7fed7bc83de249a36f510e812d52cc571ded0ca3c1517f2cd72a387b71',
+})
+
 # Typed style rules and scoped snapshots of nested property records.
 METHODS.update({
     'xuiStyleSetNamed': ['int xuiStyleSetNamed(xui_context pContext, const xui_style_desc_t* pStyle)', 'Context',

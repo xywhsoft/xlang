@@ -36,6 +36,7 @@
 [tree_nodes.xl](tree_nodes.xl) 批量设置父节点和子节点，展开父节点后读取子节点的名称与深度。
 
 [code_assist.xl](code_assist.xl) 读取编辑器的补全位置并打开签名帮助。
+[code_diagnostics.xl](code_diagnostics.xl) 为一段代码发布诊断，在编辑器里标出未知名称，并读取诊断文本。
 
 [style_rules.xl](style_rules.xl) 给两个按钮中的一个添加样式类，单独设置它的普通状态背景色。
 [widget_type_style.xl](widget_type_style.xl) 用类型选择器设置两个按钮的普通状态背景色。

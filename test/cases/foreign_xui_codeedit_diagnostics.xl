@@ -1,0 +1,149 @@
+import xge
+import xui
+
+extern "fixtureDiagnosticBudget" @header("test/cases/foreign_xui_codeedit_diagnostics_heap.h") @no_raise func budget(c_int allowance)
+extern "fixtureDiagnosticHeapBegin" @header("test/cases/foreign_xui_codeedit_diagnostics_heap.h") @no_raise func heapBegin()
+extern "fixtureDiagnosticHeapUnchanged" @header("test/cases/foreign_xui_codeedit_diagnostics_heap.h") @no_raise func heapUnchanged() as c_int
+extern "fixtureDiagnosticNaN" @header("test/cases/foreign_xui_codeedit_diagnostics_heap.h") @no_raise func nan() as c_float
+
+func span(c_int start,c_int finish) as xui.CodeRange
+ xui.CodeRange result
+ result.iStart=start
+ result.iEnd=finish
+ return result
+end
+
+func exercise(xui.Context ui,xui.CodeEdit editor)
+ assert editor.setText("alpha alpha alpha alpha alpha alpha 中😀 omega delta\n") == 0
+ auto version=editor.documentVersion()
+ array<xui.CodeRange> ranges=[span(0,5),span(36,43)]
+ array<c_int> severities=[c_int(xui.XUI_CODE_DIAGNOSTIC_WARNING),c_int(xui.XUI_CODE_DIAGNOSTIC_ERROR)]
+ array<string?> codes=["W1",""]
+ array<string?> messages=["first","Chinese and emoji"]
+ array<string?> sources=["example",null]
+ array<c_uintptr> ids=[c_uintptr(10),c_uintptr(42)]
+ editor.applyDiagnostics(version,ranges,severities,codes,messages,sources,ids)
+ assert editor.diagnosticCount()==2 and ui.layout()==0
+ auto first=editor.getOffsetRect(0)
+ auto late=editor.getOffsetRect(36)
+ assert late.fY>first.fY
+ auto index,hit,location,severity,code,message,source,id=editor.hitTestDiagnostic(c_float(late.fX+1),c_float(late.fY+1))
+ assert index==1 and hit.fY==late.fY and hit.fW>1
+ assert location.iStart==36 and location.iEnd==43 and severity==xui.XUI_CODE_DIAGNOSTIC_ERROR
+ assert (code ?? "missing")=="" and source==null and (message ?? "")=="Chinese and emoji" and id==42
+ index,hit,location,severity,code,message,source,id=editor.hitTestDiagnostic(c_float(-100),c_float(-100))
+ assert index==-1 and code==null and message==null and source==null
+ bool rejected=false
+ try
+  index,hit,location,severity,code,message,source,id=editor.hitTestDiagnostic(nan(),c_float(20))
+ catch Error failure
+  rejected=true
+  assert failure.code==xui.XUI_ERROR_INVALID_ARGUMENT
+ end
+ assert rejected
+
+ auto savedRange,savedSeverity,savedCode,savedMessage,savedSource,savedId=editor.getDiagnostic(0)
+ for allowance in range(3)
+  xui.CodeRange failedRange=span(100,101)
+  c_int failedSeverity=0
+  string? failedCode="sentinel"
+  string? failedMessage=null
+  string? failedSource=null
+  c_uintptr failedId=0
+  rejected=false
+  budget(c_int(allowance))
+  try
+   failedRange,failedSeverity,failedCode,failedMessage,failedSource,failedId=editor.getDiagnostic(0)
+  catch Error failure
+   rejected=true
+  finally
+   budget(-1)
+  end
+  assert rejected and failedRange.iStart==100 and failedSeverity==0 and (failedCode ?? "")=="sentinel"
+  assert failedMessage==null and failedSource==null and failedId==0
+ end
+ array<string?> replacement=["replaced","next"]
+ int failures=0
+ for allowance in range(48)
+  rejected=false
+  budget(c_int(allowance))
+  try
+   editor.applyDiagnostics(version,ranges,severities,codes,replacement,sources,ids)
+  catch Error failure
+   rejected=true
+  finally
+   budget(-1)
+  end
+  auto checkedRange,checkedSeverity,checkedCode,checkedMessage,checkedSource,checkedId=editor.getDiagnostic(0)
+  assert checkedRange.iEnd==5 and checkedId==10
+  if not rejected then
+   assert (checkedMessage ?? "")=="replaced"
+   break
+  end
+  failures+=1
+  assert (checkedMessage ?? "")=="first"
+ end
+ assert failures>=3 and failures<48 and (savedMessage ?? "")=="first" and (savedSource ?? "")=="example"
+
+ // A text replacement makes the original worker result stale.
+ assert editor.setText("fresh source\n")==0 and editor.documentVersion()!=version
+ rejected=false
+ try
+  editor.applyDiagnostics(version,ranges,severities,codes,messages,sources,ids)
+ catch Error failure
+  rejected=true
+  assert failure.code==xui.XUI_ERROR_INVALID_STATE
+ end
+ assert rejected and editor.diagnosticCount()==0
+ for i in range(2)
+  index,hit,location,severity,code,message,source,id=editor.hitTestDiagnostic(5,5)
+  assert index==-1
+ end
+ heapBegin()
+ budget(0)
+ try
+  for i in range(1000)
+   index,hit,location,severity,code,message,source,id=editor.hitTestDiagnostic(5,5)
+   assert index==-1 and message==null
+  end
+ finally
+  budget(-1)
+ end
+ assert heapUnchanged()==1
+end
+
+func main(...) as int
+ auto fontPath=env.get("XUI_EXAMPLE_FONT")
+ assert fontPath!=null
+ xge.init(128,140,"CodeEdit diagnostic qualification",c_int(xge.XGE_INIT_OFFSCREEN))
+ xge.run(func() as c_int
+  auto proxy=xui.createProxy()
+  auto ui=xui.create(proxy,xui.XUI_SYSTEM_FONT_DISABLED)
+  auto font=proxy.loadFont(fontPath as string,c_float(16),c_uint(xui.XUI_FONT_FORMAT_TTF))
+  ui.setDefaultFont(font)
+  auto editor=ui.codeEditNative()
+  xui.Rect bounds
+  bounds.fW=c_int(116)
+  bounds.fH=c_int(128)
+  assert editor.setRect(bounds)==0 and ui.setRootWidget(editor)==0
+  ui.setViewportSize(c_int(116),c_int(128))
+  assert editor.setDefaultMargins(0,0,0,0)==0
+  editor.setWordWrap(1)
+  exercise(ui,editor)
+  ui.close()
+  bool expired=false
+  try
+   auto remaining=editor.diagnosticCount()
+  catch StateError
+   expired=true
+  end
+  assert expired
+  font.close()
+  proxy.close()
+  return c_int(1)
+ end)
+ xge.setFrameCallback(null)
+ xge.unit()
+ println("XUI_CODEEDIT_DIAGNOSTICS_OK")
+ return 0
+end
