@@ -1,0 +1,340 @@
+{
+  "complete": true,
+  "passed": true,
+  "releaseInstalled": false,
+  "sourceParent": "d542d01173e0277f68602ac0f2b97ed2793a75bb",
+  "nativeCommit": "ee7549a09e01a7ca5a776b00e2b021a9e58fd3a0",
+  "frozenXrt": "804cc769de3030118c2b46ef7af69543d1b82d9d",
+  "sourceHashesLf": {
+    "docs/xge3-xui3-api-map-storage.json": "79a4788c62c383f7f0311d9ce522bba524137b7282661f563e8a0fe3bdd41966",
+    "lib/bindings/_xge_native/include/xge3_runtime.h": "73c906e8aecb8cf35a93a6b854fe6b0711454d53946aff252d44f17926a6158b",
+    "lib/bindings/_xge_native/src/runtime.c": "6befcd8176c92691ee9029b4ff14b783e1a4e575116900285fbb48f733c48e68",
+    "lib/bindings/xui/examples/README.md": "b36deeb9b25e6cdaddaf368306f47e9884504b5053b1a73688d5e88f3494bf02",
+    "lib/bindings/xui/examples/code_editor_folding.xl": "26f65ee01c124c5ade36dba7ea2db9336cc0fccdf1b1126f855b351b3e7efb0b",
+    "lib/bindings/xui/src/code_fold_state.xl": "e931608ce54de6ac887581f31d77995c5736b7ad480e8157c855e1d94687b66f",
+    "lib/bindings/xui/src/managed.xl": "a7737a7f7e352cbf1134c72e3eb12947557378895e117e96447426cd1044358d",
+    "tools/xui_managed_contracts.py": "3cae949fc2b1235e6bbad84033359f3985394aec55b3a4c3f9f9efcecde21cf1",
+    "test/cases/foreign_xui_codeedit_fold_view.xl": "8a798d85f5da6c49c9735490dd73ca72fde229f4714310dfda9fc1281c4956d4",
+    "docs/xui-code-assist.md": "c0f911941fc2c621d4e56cff4a777bc53815392d308524ecbfef65d31a0fd2fe"
+  },
+  "nativeHashesLf": {
+    "include/xui.h": "facbc7fdbaae62aa494201e6278fc5e418ccf19378618272802fa08b68e68022",
+    "src/xui/code/xui_code_edit.c": "ae8b48bc7f4e426b7fac9411797e63ec05f00446d1d7bc6ac86dc2a224455c9f",
+    "src/xui/code/xui_code_fold_state.c": "d9b34a4be63d5106a96febb8b28783bc641775d3f736d9ed8d64d66ce0f9e456",
+    "src/xui/code/xui_code_fold_state_internal.h": "07018ab89f3686c712e77d91b6ba0b73fc3017a04667d4b4b839405bbec8590d",
+    "tests/xui/xui_code_edit_model_views_test.c": "c6a00075f78c8ef68a08152bc6eb1318de57eeea939dbe59b6da9b9c70352ed3"
+  },
+  "baselineNativeCommit": "65badca878a6a4fab0fdbaa93e45ee941468ef6d",
+  "validation": [
+    "Live fold view and standalone model share the same native range operations.",
+    "Fold edits invalidate the layout and paint only on change. The editor remaps folds after document edits.",
+    "Closing a view only detaches observation. Editor close invalidates it. Wrong thread, wrong document and guarded provider reentry are checked.",
+    "Failed allocation leaves the old ranges and previous output intact. Repeating the query after allocation failure succeeds.",
+    "Generated direct calls and Windows/Linux JIT, dynamic and static AOT, including the GUI example."
+  ],
+  "performanceScope": "Same O2 native font/viewport, 2048 expanded ranges and 4097 text lines with word wrap enabled. Base comparison uses seven samples of 8000 identical caret-rectangle queries per revision. The paired run alternates revision order in three trials on each platform, for 21 samples per revision. Allocation counts include preexisting text layout work.",
+  "measurement": {
+    "win": {
+      "before": {
+        "medianMicrosecondsPerQuery": 24.59637500575,
+        "seconds": [
+          0.195250599994,
+          0.205288599944,
+          0.210241900058,
+          0.196771000046,
+          0.204525000066,
+          0.192014200031,
+          0.187584200059
+        ],
+        "allocFreeReallocPerSample": [
+          48000,
+          48000,
+          0
+        ],
+        "rect": [
+          96,
+          40,
+          2,
+          18
+        ],
+        "logSha256": "11d81bde245839ac206d629db8ed364a582e4a7705b238620040ff9509bed722"
+      },
+      "after": {
+        "medianMicrosecondsPerQuery": 16.122687506125,
+        "seconds": [
+          0.128923299955,
+          0.131743700011,
+          0.129540900001,
+          0.128981500049,
+          0.126245900057,
+          0.134985100012,
+          0.109986099997
+        ],
+        "allocFreeReallocPerSample": [
+          48000,
+          48000,
+          0
+        ],
+        "rect": [
+          96,
+          40,
+          2,
+          18
+        ],
+        "logSha256": "559890d2c330bc901a25bf3899c3808608f29c44bb22c79834b2c475138b5e6f"
+      },
+      "pairedMedianMicrosecondsPerQuery": {
+        "before": 23.759887510125,
+        "after": 13.123925004
+      }
+    },
+    "linux": {
+      "before": {
+        "medianMicrosecondsPerQuery": 31.59405175,
+        "seconds": [
+          0.252719314,
+          0.265348109,
+          0.248394815,
+          0.266448809,
+          0.252752414,
+          0.250901714,
+          0.256883813
+        ],
+        "allocFreeReallocPerSample": [
+          48000,
+          48000,
+          0
+        ],
+        "rect": [
+          96,
+          40,
+          2,
+          18
+        ],
+        "logSha256": "1f218497f95549cd81c4e89c3eafc584551ee3c4fa16f83824a6a3a6ff21b757"
+      },
+      "after": {
+        "medianMicrosecondsPerQuery": 16.204625125,
+        "seconds": [
+          0.115335701,
+          0.138911801,
+          0.11174,
+          0.112316301,
+          0.129637001,
+          0.145240401,
+          0.154842201
+        ],
+        "allocFreeReallocPerSample": [
+          48000,
+          48000,
+          0
+        ],
+        "rect": [
+          96,
+          40,
+          2,
+          18
+        ],
+        "logSha256": "ad42d677760cf72b80ce516ef95777fb2ba110165509c89bf1a6ccca6938d3f6"
+      },
+      "pairedMedianMicrosecondsPerQuery": {
+        "before": 31.166563250000003,
+        "after": 12.61262525
+      }
+    }
+  },
+  "standaloneStaticBytes": {
+    "win": {
+      "before": {
+        "bytes": 782848,
+        "imageSha256": "28a18a15f90e93b0a3b6ca1df0b813d5b731ad03e0f87ed44d1d1049efe883af",
+        "lessonSha256": "a887c4c4af9d28553114633a657f48388e237c549f794bca3a7a6f2e22941df3"
+      },
+      "after": {
+        "bytes": 783360,
+        "imageSha256": "2141a09d59d26fc2753a4d78db8257887e2d81497403357a103e6aed2ce54a0c",
+        "lessonSha256": "a887c4c4af9d28553114633a657f48388e237c549f794bca3a7a6f2e22941df3"
+      }
+    },
+    "linux": {
+      "before": {
+        "bytes": 1052663,
+        "imageSha256": "fb88691948ed89fa81f176d16cbe665bae900b28905a37393388dbc00ede7623",
+        "lessonSha256": "a887c4c4af9d28553114633a657f48388e237c549f794bca3a7a6f2e22941df3"
+      },
+      "after": {
+        "bytes": 1053946,
+        "imageSha256": "be8e665bb1bd029858aa9b8106175111448f0f46697e21485daa28f1e8475181",
+        "lessonSha256": "a887c4c4af9d28553114633a657f48388e237c549f794bca3a7a6f2e22941df3"
+      }
+    }
+  },
+  "evidence": {
+    "win": {
+      "sdk": {
+        "path": "F:\\xlang-validation\\xge-full-20261110\\codeedit-fold-view-sdk-win-r3\\results.json",
+        "sha256": "f7886c5acb512d0b85c0cd946297aec5d1ca778d069ebb0f3cebb96fc3e3ab63",
+        "checks": 2
+      },
+      "packages": {
+        "path": "F:\\xlang-validation\\xge-full-20261110\\codeedit-fold-view-packages-win-r2\\results.json",
+        "sha256": "ca5b8934031d6668ac0b51c87c778b7cdcdd073465cdb9ea31466fbc9e51abb8",
+        "checks": 6,
+        "directory": "F:\\xlang-validation\\xge-full-20261110\\codeedit-fold-view-packages-win-r2\\packages"
+      },
+      "native": {
+        "path": "F:\\xlang-validation\\xge-full-20261110\\codeedit-fold-view-native-tests-win-r5\\results.json",
+        "sha256": "46dfc84140e67ca8e02d8991e396d79ac38f8458c980e977a314e2b872968ef9",
+        "checks": 8
+      },
+      "language": {
+        "path": "F:\\xlang-validation\\xge-full-20261110\\codeedit-fold-view-xlang-win-r4\\results.json",
+        "sha256": "d7e56cfc1b839fc732f89d430d07db747d2d262c57d82cedaec8baa2b44ab6d8",
+        "checks": 12,
+        "programs": {
+          "dynamic.exe": {
+            "sha256": "ff215c7ffd0831738f6bd7f49be9988d9af59a4ee230556f1ef754630c11ee02",
+            "imports": [
+              "msvcrt.dll",
+              "xge3_host.dll",
+              "kernel32.dll",
+              "SHELL32.dll",
+              "ws2_32.dll",
+              "IPHLPAPI.dll",
+              "ucrtbase.dll"
+            ]
+          },
+          "static.exe": {
+            "sha256": "e6009421c4404a273ea16a009f5eb09203612753bdc743e669b5798157cda5d4",
+            "imports": [
+              "msvcrt.dll",
+              "kernel32.dll",
+              "USER32.dll",
+              "ole32.dll",
+              "OLEAUT32.dll",
+              "SHELL32.dll",
+              "GDI32.dll",
+              "IMM32.dll",
+              "DWrite.dll"
+            ]
+          },
+          "lesson.exe": {
+            "sha256": "d3b00d18421461fe8028cc5896b2339f7f78b25aa6764c452ba4dbbb4d6cb56f",
+            "imports": [
+              "msvcrt.dll",
+              "kernel32.dll",
+              "USER32.dll",
+              "GDI32.dll",
+              "ole32.dll",
+              "OLEAUT32.dll",
+              "SHELL32.dll",
+              "IMM32.dll",
+              "DWrite.dll"
+            ]
+          }
+        }
+      },
+      "programSize": {
+        "path": "F:\\xlang-validation\\xge-full-20261110\\codeedit-fold-view-static-size-win-r2\\results.json",
+        "sha256": "235c879ef2c6df0de87f665010cf2c57048319813a25feaa490ee4ce4195183e",
+        "checks": 2
+      },
+      "baseline": {
+        "path": "F:\\xlang-validation\\xge-full-20261110\\codeedit-fold-view-perf-win-before-r1\\results.json",
+        "sha256": "383c8e8b585b220df36fe4626d052e492e46cebac66a560315d514e7e8998bdd",
+        "checks": 2
+      },
+      "comparison": {
+        "path": "F:\\xlang-validation\\xge-full-20261110\\codeedit-fold-view-perf-win-after-r2\\results.json",
+        "sha256": "db33b77531e001943f5dd38a529a92f999ec22895f0275282f96dd0062316ffb",
+        "checks": 2
+      },
+      "pairedMeasurement": {
+        "path": "F:\\xlang-validation\\xge-full-20261110\\codeedit-fold-view-perf-paired-win-r1\\results.json",
+        "sha256": "bad035e30bdab4ef7aca7895a44d86027c0666460999c21102849efe4a032cca",
+        "checks": 6
+      }
+    },
+    "linux": {
+      "sdk": {
+        "path": "\\\\wsl.localhost\\Ubuntu\\var\\tmp\\xlang-validation\\xge-full-20261110\\codeedit-fold-view-sdk-linux-r3\\results.json",
+        "sha256": "4e869568f7bcf32ada5cce399efbbe626a0881a8c0a1b633c35e4a80c315b23f",
+        "checks": 2
+      },
+      "packages": {
+        "path": "\\\\wsl.localhost\\Ubuntu\\var\\tmp\\xlang-validation\\xge-full-20261110\\codeedit-fold-view-packages-linux-r2\\results.json",
+        "sha256": "d94c2850ab79aa1185b12d8db39941198a7d9a6294469b7616b160c6c3c8a0c9",
+        "checks": 6,
+        "directory": "/var/tmp/xlang-validation/xge-full-20261110/codeedit-fold-view-packages-linux-r2/packages"
+      },
+      "native": {
+        "path": "\\\\wsl.localhost\\Ubuntu\\var\\tmp\\xlang-validation\\xge-full-20261110\\codeedit-fold-view-native-tests-linux-r5\\results.json",
+        "sha256": "594b08fb5a4e272d62f76c31eb41446680855de3171a8fd784092b03eaf6fa0a",
+        "checks": 8
+      },
+      "language": {
+        "path": "\\\\wsl.localhost\\Ubuntu\\var\\tmp\\xlang-validation\\xge-full-20261110\\codeedit-fold-view-xlang-linux-r4\\results.json",
+        "sha256": "c55c126745e97f6a1f57377a8942449f97226c3f532859c6a51494000f422461",
+        "checks": 12,
+        "programs": {
+          "dynamic": {
+            "sha256": "3889d030c70a962b1f39f73698b67a22e861142162dd404aa9f5458f37f6b0d2",
+            "imports": [
+              "libm.so.6",
+              "libmvec.so.1",
+              "libxge3_host.so",
+              "libc.so.6",
+              "ld-linux-x86-64.so.2"
+            ]
+          },
+          "static": {
+            "sha256": "e28351177a736c085ee063909a3dcf3cfcafb4303f200f0e21db187709e7ff3c",
+            "imports": [
+              "libm.so.6",
+              "libmvec.so.1",
+              "libX11.so.6",
+              "libXi.so.6",
+              "libXcursor.so.1",
+              "libGL.so.1",
+              "libc.so.6",
+              "ld-linux-x86-64.so.2"
+            ]
+          },
+          "lesson": {
+            "sha256": "f1417b9a731e3d7ac6e6a6c563aa6e405ce3884028e2fd6266c2e75029efa4a6",
+            "imports": [
+              "libm.so.6",
+              "libmvec.so.1",
+              "libX11.so.6",
+              "libXi.so.6",
+              "libXcursor.so.1",
+              "libGL.so.1",
+              "libc.so.6",
+              "ld-linux-x86-64.so.2"
+            ]
+          }
+        }
+      },
+      "programSize": {
+        "path": "\\\\wsl.localhost\\Ubuntu\\var\\tmp\\xlang-validation\\xge-full-20261110\\codeedit-fold-view-static-size-linux-r2\\results.json",
+        "sha256": "1025a8642974cd413cc8275473653755de8b8d9fd0d9fae2a26e5f6863e61fb7",
+        "checks": 2
+      },
+      "baseline": {
+        "path": "\\\\wsl.localhost\\Ubuntu\\var\\tmp\\xlang-validation\\xge-full-20261110\\codeedit-fold-view-perf-linux-before-r1\\results.json",
+        "sha256": "f17186aca55b780dee7f01d5851ff916d2f2564c524ab635d93ab8584c46eb2b",
+        "checks": 2
+      },
+      "comparison": {
+        "path": "\\\\wsl.localhost\\Ubuntu\\var\\tmp\\xlang-validation\\xge-full-20261110\\codeedit-fold-view-perf-linux-after-r2\\results.json",
+        "sha256": "9c560caf516354909b931554b50eb74926ca5d9a97a217f3865a5c2db6e4e3ce",
+        "checks": 2
+      },
+      "pairedMeasurement": {
+        "path": "\\\\wsl.localhost\\Ubuntu\\var\\tmp\\xlang-validation\\xge-full-20261110\\codeedit-fold-view-perf-paired-linux-r1\\results.json",
+        "sha256": "21227aa1de18c93921db5726434c5a630254811f8fd82b60a8a9502ccfb1b3d8",
+        "checks": 6
+      }
+    }
+  }
+}

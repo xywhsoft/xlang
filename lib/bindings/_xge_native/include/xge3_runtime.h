@@ -94,6 +94,7 @@ const XL6_ForeignViewDescriptorV1* xl6Xui3CodeEditSelectionViewPolicyGet(void);
 const XL6_ForeignViewDescriptorV1* xl6Xui3CodeSelectionPolicyGet(void);
 const XL6_ForeignViewDescriptorV1* xl6Xui3CodeThemePolicyGet(void);
 const XL6_ForeignViewDescriptorV1* xl6Xui3CodeEditCommandMapPolicyGet(void);
+const XL6_ForeignViewDescriptorV1* xl6Xui3CodeEditFoldStatePolicyGet(void);
 const XL6_ForeignViewDescriptorV1* xl6Xui3CodeEditMarginsPolicyGet(void);
 const XL6_ForeignViewDescriptorV1* xl6Xui3CodeMarginPolicyGet(void);
 const XL6_ForeignViewDescriptorV1* xl6Xge3FontPolicyGet(void);
@@ -126,6 +127,7 @@ const XL6_ForeignViewDescriptorV1* xl6Xge3AudioClipPolicyGet(void);
 #define xl6Xui3CodeSelectionPolicy (*xl6Xui3CodeSelectionPolicyGet())
 #define xl6Xui3CodeThemePolicy (*xl6Xui3CodeThemePolicyGet())
 #define xl6Xui3CodeEditCommandMapPolicy (*xl6Xui3CodeEditCommandMapPolicyGet())
+#define xl6Xui3CodeEditFoldStatePolicy (*xl6Xui3CodeEditFoldStatePolicyGet())
 #define xl6Xui3CodeEditMarginsPolicy (*xl6Xui3CodeEditMarginsPolicyGet())
 #define xl6Xui3CodeMarginPolicy (*xl6Xui3CodeMarginPolicyGet())
 #define xl6Xui3MsgBoxPolicy (*xl6Xui3MsgBoxPolicyGet())

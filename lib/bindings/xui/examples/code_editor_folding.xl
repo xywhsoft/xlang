@@ -1,0 +1,19 @@
+import xui
+from "./_window.xl" import Window
+
+Window.show("CodeEdit folding",func(xui.Context ui,xui.Widget root)
+ auto editor=ui.codeEditNative()
+ Window.place(root,editor,24,24,560,180)
+ assert editor.setText("func greet()\n    println(\"Hello!\")\nend\n") == xui.XUI_OK
+ assert editor.setDefaultMargins(1,0,1,0) == xui.XUI_OK
+
+ // Zero-based lines. The header stays visible when the block is collapsed.
+ auto block=xui.CodeFoldRange()
+ block.iStartLine=0
+ block.iEndLine=2
+ auto folds=editor.foldState()
+ folds.setRanges([block])
+ folds.toggleLine(0)
+ assert folds.isLineVisible(1)==0
+ println("Click the fold margin to expand greet")
+end)

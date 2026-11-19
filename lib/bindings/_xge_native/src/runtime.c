@@ -717,11 +717,27 @@ const XL6_ForeignViewDescriptorV1* xl6Xui3CodeEditCommandMapPolicyGet(void)
     };
     return &value;
 }
+static bool watch_code_edit_fold_state(void* raw, void* storage, void (*invalidate)(void*), void* user)
+{
+    int status = xuiCodeFoldStateEditorLifetimeWatch(raw, storage, invalidate, user);
+    if (status != XUI_OK) report_resource_failure(status, "xuiCodeFoldStateEditorLifetimeWatch");
+    return status == XUI_OK;
+}
+const XL6_ForeignViewDescriptorV1* xl6Xui3CodeEditFoldStatePolicyGet(void)
+{
+    static const XL6_ForeignViewDescriptorV1 value = {
+        sizeof(value), XL6_FOREIGN_VIEW_V1_TAG, "xui.codeEdit.foldState",
+        sizeof(xui_lifetime_link_t), _Alignof(xui_lifetime_link_t),
+        watch_code_edit_fold_state, unwatch, NULL, 0, 1, NULL, NULL, NULL, NULL, 0, NULL, NULL
+    };
+    return &value;
+}
 #else
 const XL6_ForeignViewDescriptorV1* xl6Xui3CodeEditDocumentViewPolicyGet(void){return NULL;}
 const XL6_ForeignViewDescriptorV1* xl6Xui3CodeEditSelectionViewPolicyGet(void){return NULL;}
 const XL6_ForeignViewDescriptorV1* xl6Xui3CodeDocumentPolicyGet(void){return NULL;}
 const XL6_ForeignViewDescriptorV1* xl6Xui3CodeEditCommandMapPolicyGet(void){return NULL;}
+const XL6_ForeignViewDescriptorV1* xl6Xui3CodeEditFoldStatePolicyGet(void){return NULL;}
 const XL6_ForeignViewDescriptorV1* xl6Xui3CodeEditMarginsPolicyGet(void){return NULL;}
 const XL6_ForeignViewDescriptorV1* xl6Xui3CodeMarginPolicyGet(void){return NULL;}
 #endif
