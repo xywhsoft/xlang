@@ -1,6 +1,11 @@
 #ifndef XL6_FOREIGN_PACK_CONTRACT_H
 #define XL6_FOREIGN_PACK_CONTRACT_H
 
+#include <string.h>
+
+static inline size_t xl6ForeignPackParentLength(const char* path)
+{const char* dot=strrchr(path,'.');return dot ? (size_t)(dot-path):0;}
+
 /* A physical-only immutable C descriptor. Its inputs remain ordinary typed
  * language parameters, evaluated once and borrowed only during this call. */
 typedef struct XL6_ForeignPackContract {

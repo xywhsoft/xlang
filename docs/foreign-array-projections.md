@@ -60,9 +60,9 @@ extern "nativeSetButtons" @header("native.h") @no_raise @c_result("status",0) @c
 This emits one NativeButton pointer and count. It does not accept an array of
 ordinary mutable language objects or read fields/getters from them. Fields are
 exact pointer-free C scalar/CRecord values, scoped resource pointers, or
-terminated strings. Unspecified native fields remain zero. Union descriptors,
-arbitrary C expressions and nested managed records are rejected. Header proofs
-verify the real struct, field/function types, alignment and trivial C++ layout.
+terminated strings. Unspecified native fields remain zero. Header proofs
+verify the real struct, field/function types, disjoint writes, alignment and
+trivial C++ layout.
 
 XUI exposes `Tabs.setItems`, `Tabs.setIcons`, `Toolbar.setItemsColumns`, and
 `MsgBox.setCustomButtonsColumns`. `Columns` identifies the strict parallel-array
@@ -82,8 +82,13 @@ proof. `c_array_span_field` names the physical group, data field, length field,
 logical column, exact data-pointer type and exact length type. Data pointers
 must be `const char*`, `const uint8_t*` or `const void*`; length and size fields
 must be `int`, `uint32_t`, `uint64_t` or `size_t`. The real header must match.
-Narrow lengths get checked conversion before native entry. All field names,
-including the optional size field, must be distinct.
+Narrow lengths get checked conversion before native entry.
+
+Field attributes accept dotted paths into embedded C records, such as
+`tValue.iType`. Use `@c_array_size(0,"tValue.iSize","uint32_t")` to fill
+that field from `sizeof(tValue)` in every selected record. The size takes
+no language column. The C header proves the field type, size range and that
+the generated writes do not overlap.
 
 The source is a nonnullable `array<string>` or `array<bytes>` with nonnullable
 elements. Embedded NUL, empty values and arbitrary bytes retain their actual

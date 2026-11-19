@@ -1,0 +1,24 @@
+import xui
+from "./_window.xl" import Window
+
+Window.show("控件样式类",func(xui.Context ui,xui.Widget root)
+    // 两个按钮使用同一套主题，只有第二个应用这个样式类。
+    array<c_uint> ids=[0]
+    array<string?> names=["button.normal_color"]
+    array<c_uint> dirtyFlags=[0]
+    array<c_int> types=[xui.XUI_STYLE_VALUE_COLOR]
+    array<c_int> integers=[0]
+    array<c_float> numbers=[0]
+    array<c_uint> colors=[0x90C8F4FF]
+    array<string?> texts=[null]
+    ui.styleSetClass("highlighted",null,ids,names,dirtyFlags,types,integers,numbers,colors,texts)
+
+    auto normal=ui.buttonNative()
+    normal.setText("主题默认颜色")
+    Window.place(root,normal,24,24,220,38)
+
+    auto highlighted=ui.buttonNative()
+    highlighted.setText("样式类指定的颜色")
+    highlighted.addStyleClass("highlighted")
+    Window.place(root,highlighted,24,76,220,38)
+end)

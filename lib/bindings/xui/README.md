@@ -41,6 +41,20 @@ queried values. Negative native errors reject the entire result. Disabled
 options can retain their configured values; inspect the flag separately.
 See `docs/xui-chart-queries.md` and `examples/chart.xl`.
 
+`Context.styleSetDefault`, `styleSetNamed`, `styleSetClass` and
+`styleSetStateClass` install batches of rules. `Widget.setInlineStyle`
+targets one control. The columns share one count. Use a registered property ID
+with a null name, or supply its name. A count of zero sends an empty rule.
+The compiler projects the columns into a temporary C record array with both
+size fields initialized. XUI copies any text it keeps.
+
+`Context.styleRegisterProperty` registers a context-wide property.
+`styleGetPropertyInfo`, `Widget.getInlineStyleProperty` and the resolved
+property queries return independent snapshots, including nullable strings.
+The resolved queries read the current resolved properties. Call
+`Widget.resolveStyle()` to explicitly recompute them. See
+[style_rules.xl](examples/style_rules.xl) for a per-control example.
+
 The default Document model has seven typed resource classes: `Document`,
 `DocumentSnapshot`, `DocumentChangeSet`, `DocumentPrepare`, `DocumentFragment`,
 `DocumentSourceIndex` and unique `DocumentTransaction`. Use `createDocument()`

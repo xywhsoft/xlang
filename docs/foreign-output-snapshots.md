@@ -8,8 +8,9 @@
 extern "nativeRead" @header("native.h") @no_raise @c_output_record(1,"NativeInfo","borrowed") @c_output_size(1,"iSize") @c_status(0) @c_output_field(0,"kind") @c_output_field(1,"title","cstring") func read(Resource input) as (c_int,string?)
 ```
 
-上例表示物理参数 1 是 `NativeInfo*`。字段必须是直接成员；字符串字段的准确
-C 类型是 `const char*`。不接受成员表达式、裸指针结果、内嵌字符数组或隐含编码转换。
+上例表示物理参数 1 是 `NativeInfo*`。字段可以是直接成员，也可以通过
+`tValue.sText` 这样的点分路径读取内嵌记录。路径只接受标识符，各结果字段必须
+互不覆盖。字符串字段的准确 C 类型是 `const char*`。
 `string?` 保留 NULL 与空串的区别；非空 `string` 遇到 NULL 会报 checked 错误。
 
 原生状态和错误检查成功后，字符串在输入／回调作用域结束前复制为独立拥有值。
@@ -27,8 +28,8 @@ POD、字符串及独立 retain 资源可以组成同一结果；只有所有字
   `(resource, info, title, linkTarget, linkTitle)`，五项均为 `string?`。
 - `DocumentSnapshot.linkInfo(range)`：`(linked, mixed, uri, title)`，后两项为 `string?`。
 
-已有 `nodeInfo` 和 `linkState` 的返回形状保持不变。嵌套的 `tAttributes.sLanguage`、
-固定字符数组及其他未声明字段仍不由本合同推导。
+XUI 样式查询通过点分路径返回内嵌样式值。路径需要在声明中逐字段指定，
+字符串仍在原生调用作用域内完成复制。
 
 ## 接管一个 XRT 拥有值
 

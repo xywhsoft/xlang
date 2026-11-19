@@ -121,6 +121,21 @@ static inline int xl6ForeignOutputViewRead(const XL6_AstNode* attr,XL6_ForeignOu
     if(!row.conversion)return 0;
     row.physicalIndex=(uint32)index;if(output)*output=row;return 1;
 }
+/* Closed member paths contain identifiers only, with bounded nesting. */
+static inline int xl6ForeignPackPath(const char* path)
+{
+    if(!path || !*path)return 0;
+    size_t depth=0;const char* part=path;
+    for(const char* p=path;;++p)if(*p=='.' || !*p){
+        size_t length=(size_t)(p-part);char name[64];
+        if(!length || length>=sizeof(name) || ++depth>8)return 0;
+        memcpy(name,part,length);name[length]=0;if(!xl6ForeignIdentifier(name))return 0;
+        if(!*p)return 1;
+        part=p+1;
+    }
+}
+static inline int xl6ForeignPackPathsOverlap(const char* a,const char* b)
+{size_t na=strlen(a),nb=strlen(b);return !strcmp(a,b) || (na<nb && !strncmp(a,b,na) && b[na]=='.') || (nb<na && !strncmp(a,b,nb) && a[nb]=='.');}
 #include "src/type/xl6_foreign_output_record_decl.h"
 static inline int xl6ForeignConstPointerName(const char* input,char* output,size_t capacity)
 {
@@ -325,23 +340,6 @@ static inline int xl6ForeignMultiOutputSlotsValid(const XL6_ForeignCallFacts* f,
     }
     return 1;
 }
-/* Closed member paths contain identifiers only, with bounded nesting. */
-static inline int xl6ForeignPackPath(const char* path)
-{
-    if(!path || !*path)return 0;
-    size_t depth=0;const char* part=path;
-    for(const char* p=path;;++p)if(*p=='.' || !*p){
-        size_t length=(size_t)(p-part);char name[64];
-        if(!length || length>=sizeof(name) || ++depth>8)return 0;
-        memcpy(name,part,length);name[length]=0;if(!xl6ForeignIdentifier(name))return 0;
-        if(!*p)return 1;
-        part=p+1;
-    }
-}
-static inline size_t xl6ForeignPackParentLength(const char* path)
-{const char* dot=strrchr(path,'.');return dot ? (size_t)(dot-path):0;}
-static inline int xl6ForeignPackPathsOverlap(const char* a,const char* b)
-{size_t na=strlen(a),nb=strlen(b);return !strcmp(a,b) || (na<nb && !strncmp(a,b,na) && b[na]=='.') || (nb<na && !strncmp(a,b,nb) && a[nb]=='.');}
 #include "src/type/xl6_foreign_array_decl.h"
 #include "src/type/xl6_foreign_pack_decl.h"
 
@@ -418,7 +416,7 @@ static inline int xl6ForeignFunctionRead(const XL6_AstNode* node,
             if(!xl6ForeignArrayRecordRead(attr,&slot,name,sizeof(name)) || (arrayRecords&(UINT64_C(1)<<slot)))return 0;
             arrayRecords|=UINT64_C(1)<<slot;continue;
         }
-        if(attr && attr->text && (!strcmp(attr->text,"c_array_field") || !strcmp(attr->text,"c_array_span_field"))){
+        if(attr && attr->text && (!strcmp(attr->text,"c_array_field") || !strcmp(attr->text,"c_array_span_field") || !strcmp(attr->text,"c_array_size"))){
             XL6_ForeignArrayFieldContract row;if(!xl6ForeignArrayFieldRead(attr,&row))return 0;
             ++arrayFields;continue;
         }
@@ -503,7 +501,7 @@ static inline int xl6ForeignFunctionRead(const XL6_AstNode* node,
             XL6_ForeignOutputFieldContract row;XL6_ForeignOutputViewContract view;
             if(!xl6ForeignOutputFieldRead(attr,&row,&view) || (recordFields&(UINT64_C(1)<<row.ordinal)))return 0;
             for(size_t j=0;j<i;++j){XL6_ForeignOutputFieldContract previous;
-                if(xl6ForeignOutputFieldRead(attributes->children[j],&previous,NULL) && !strcmp(row.field,previous.field))return 0;}
+                if(xl6ForeignOutputFieldRead(attributes->children[j],&previous,NULL) && xl6ForeignPackPathsOverlap(row.field,previous.field))return 0;}
             recordFields|=UINT64_C(1)<<row.ordinal;
             if(view.conversion)recordRetains|=UINT64_C(1)<<row.ordinal;
             continue;

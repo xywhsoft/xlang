@@ -35,6 +35,42 @@ static int xl6IrCgenArrayPackProof(XL6_Output* out,const XL6_IrModule* m,const X
     }
     return !xl6OutputHasFailed(out);
 }
+static void xl6IrCgenArrayRecordProof(XL6_Output* out,const XL6_IrModule* m,const XL6_IrCallTarget* t,
+    const XL6_ForeignArrayGroupContract* group)
+{
+    const char* record=group->recordCName;
+    for(size_t i=0;i<m->foreignArrayFieldCount;++i){const XL6_ForeignArrayFieldContract* row=&m->foreignArrayFields[i];
+        if(row->declaration!=t->declaration || row->groupPhysicalIndex!=group->physicalIndex)continue;
+        if(row->kind==XL6_FOREIGN_ARRAY_ELEMENT_SIZE)xl6OutputPrintf(out,
+            "XLIR_NATIVE_ASSERT(XLIR_NATIVE_IS_TYPE(((%s*)0)->%s,%s), \"native Array nested sizeof field ABI\");\n"
+            "XLIR_NATIVE_ASSERT(sizeof(((%s*)0)->%.*s)<=%s, \"native Array nested sizeof field range\");\n",
+            record,row->field,row->lengthCName,record,(int)xl6ForeignPackParentLength(row->field),row->field,
+            xl6IrCgenArrayLengthMax(row->lengthCName));
+        const char* paths[2]={row->field,row->lengthField};
+        for(size_t p=0;p<2 && *paths[p];++p){
+            if(group->sizeField[0])xl6IrCgenArrayPackDisjoint(out,record,paths[p],group->sizeField);
+            if(p)xl6IrCgenArrayPackDisjoint(out,record,paths[0],paths[p]);
+            for(size_t j=0;j<i;++j){const XL6_ForeignArrayFieldContract* old=&m->foreignArrayFields[j];
+                if(old->declaration!=t->declaration || old->groupPhysicalIndex!=group->physicalIndex)continue;
+                xl6IrCgenArrayPackDisjoint(out,record,paths[p],old->field);
+                if(old->lengthField[0])xl6IrCgenArrayPackDisjoint(out,record,paths[p],old->lengthField);
+            }
+        }
+    }
+}
+static void xl6IrCgenArrayRecordSizes(XL6_Output* out,const XL6_IrModule* m,const XL6_IrCallTarget* t,
+    const XL6_ForeignArrayGroupContract* group)
+{
+    unsigned k=group->physicalIndex;
+    if(group->sizeField[0])xl6OutputPrintf(out,
+        "    native_array_record_%u[native_array_i].%s=(%s)sizeof(%s);\n",
+        k,group->sizeField,group->sizeCName,group->recordCName);
+    for(size_t i=0;i<m->foreignArrayFieldCount;++i){const XL6_ForeignArrayFieldContract* row=&m->foreignArrayFields[i];
+        if(row->declaration!=t->declaration || row->groupPhysicalIndex!=k || row->kind!=XL6_FOREIGN_ARRAY_ELEMENT_SIZE)continue;
+        xl6OutputPrintf(out,"    native_array_record_%u[native_array_i].%s=(%s)sizeof(native_array_record_%u[native_array_i].%.*s);\n",
+            k,row->field,row->lengthCName,k,(int)xl6ForeignPackParentLength(row->field),row->field);
+    }
+}
 static int xl6IrCgenArrayProof(XL6_Output* out,const XL6_IrModule* m,const XL6_IrCallTarget* t)
 {
     if(!xl6IrForeignArrayGroupsMatch(m,t))return 0;
@@ -51,6 +87,7 @@ static int xl6IrCgenArrayProof(XL6_Output* out,const XL6_IrModule* m,const XL6_I
             "XLIR_NATIVE_ASSERT(XLIR_NATIVE_IS_TYPE(((%s*)0)->%s,%s), \"native Array sizeof field ABI\");\n"
             "XLIR_NATIVE_ASSERT(sizeof(%s)<=%s, \"native Array sizeof field range\");\n",
             group->recordCName,group->sizeField,group->sizeCName,group->recordCName,xl6IrCgenArrayLengthMax(group->sizeCName));
+        if(group->recordCName[0])xl6IrCgenArrayRecordProof(out,m,t,group);
         if(!xl6IrCgenArrayPackProof(out,m,t,group))return 0;
         if(group->countAbi==XL6_FOREIGN_SPAN_COUNT_U64)xl6OutputPuts("XLIR_NATIVE_ASSERT(sizeof(size_t)<=sizeof(uint64_t), \"native Array uint64 count range\");\n",out);
         for(size_t c=0;c<group->arrayCount;++c){XL6_ForeignArrayInputContract col;const XL6_ForeignArrayFieldContract* field;
@@ -144,7 +181,7 @@ static int xl6IrCgenArraysBegin(XL6_Output* out,const XL6_IrModule* m,const XL6_
             else snprintf(destination,sizeof(destination),"native_array_data_%u_%lu[native_array_i]",k,(unsigned long)c);
             const XL6_IrType* element=xl6IrTypeGet(&m->types,col.elementType);
             xl6OutputPrintf(out,"    for(size_t native_array_i=0; native_arrays_ok && native_array_i<native_array_count_%u; ++native_array_i) { const void* native_array_slot=xl6SequenceReadPinSlotV1(&native_array_pin_%u_%lu,native_array_i); if(!native_array_slot) { native_arrays_ok=false; xl6ErrorScopeCaptureFailure(&%s); break; }\n",k,k,(unsigned long)c,errors);
-            if(!c && group->sizeField[0])xl6OutputPrintf(out,"    native_array_record_%u[native_array_i].%s=(%s)sizeof(%s);\n",k,group->sizeField,group->sizeCName,group->recordCName);
+            if(!c && field)xl6IrCgenArrayRecordSizes(out,m,t,group);
             if(col.kind==XL6_FOREIGN_ARRAY_ELEMENT_VIEW_RAW){
                 xl6OutputPrintf(out,"    if(!xl6ForeignViewCopyValueV1(*(XL6_ForeignView* const*)native_array_slot,&native_array_views_%u_%lu[native_array_i].owner)) { native_arrays_ok=false; xl6ErrorScopeCaptureFailure(&%s); }\n",k,(unsigned long)c,errors);
                 if(element->kind!=XL6_IR_TYPE_NULLABLE)xl6OutputPrintf(out,"    if(!native_array_views_%u_%lu[native_array_i].owner && native_arrays_ok) { native_arrays_ok=false; xrtSetErrorKind(XERR_TYPE); xl6ErrorScopeCaptureFailure(&%s); }\n",k,(unsigned long)c,errors);

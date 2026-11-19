@@ -96,7 +96,7 @@ static int xl6IrVerifyOutputRecords(const XL6_IrModule* m,XL6_DiagList* diags)
         const XL6_ForeignOutputFieldContract* row=&m->foreignOutputFields[r];
         const XL6_IrNode* returns=xl6IrOutputRecordReturns(m,row->declaration);
         const XL6_IrNode* value=returns && row->ordinal<returns->childCount ? xl6IrNodeGet(m,m->children[returns->firstChild+row->ordinal]):NULL;
-        if(!value || row->logicalType!=value->type || !memchr(row->field,0,sizeof(row->field)) || !xl6ForeignIdentifier(row->field) || row->field[0]=='_')goto invalid;
+        if(!value || row->logicalType!=value->type || !memchr(row->field,0,sizeof(row->field)) || !xl6ForeignOutputMemberPath(row->field))goto invalid;
         XL6_IrCallTarget target={0};target.declaration=row->declaration;
         if(!xl6IrForeignOutputRecordGet(m,&target))goto invalid;
         const XL6_ForeignOutputViewContract* view=xl6IrForeignOutputViewGet(m,&target,row->ordinal);
@@ -105,7 +105,7 @@ static int xl6IrVerifyOutputRecords(const XL6_IrModule* m,XL6_DiagList* diags)
             view->conversion!=XL6_FOREIGN_OUTPUT_CONVERSION_BORROWED_VALUE &&
             view->conversion!=XL6_FOREIGN_OUTPUT_CONVERSION_OWNER_VIEW):!xl6IrForeignTrivialCValue(m,row->logicalType,0))goto invalid;
         for(size_t p=0;p<r;++p)if(m->foreignOutputFields[p].declaration==row->declaration &&
-            (m->foreignOutputFields[p].ordinal==row->ordinal || !strcmp(m->foreignOutputFields[p].field,row->field)))goto invalid;
+            (m->foreignOutputFields[p].ordinal==row->ordinal || xl6ForeignPackPathsOverlap(m->foreignOutputFields[p].field,row->field)))goto invalid;
     }
     for(size_t n=0;n<m->nodeCount;++n){
         const XL6_IrNode* node=&m->nodes[n];size_t records=0,fields=0;
@@ -117,7 +117,7 @@ static int xl6IrVerifyOutputRecords(const XL6_IrModule* m,XL6_DiagList* diags)
         }else if(records || fields)goto invalid;
     }
     return 1;
-invalid:return xl6IrDiag(diags,NULL,"borrowed output records need one physical group, unique direct fields, exact POD, scoped C-string snapshots or retained results and closed declaration/type/ownership contracts");
+invalid:return xl6IrDiag(diags,NULL,"borrowed output records need one physical group, disjoint field paths, exact POD, scoped C-string snapshots or retained results and closed declaration/type/ownership contracts");
 }
 int xl6IrForeignOutputRecordsMatch(const XL6_IrModule* m,const XL6_IrCallTarget* target)
 {

@@ -68,15 +68,21 @@ static int xl6SemForeignArrayGroups(XL6_SemContext* ctx,XL6_AstNode* node,const 
                     ++matches;++inputs;
                 }
                 if(xl6ForeignArrayFieldRead(attrs->children[f],&field) && field.groupPhysicalIndex==group.physicalIndex && field.column==column){
-                    if(!records || !xl6SemForeignArrayElementValid(ctx,element,field.kind) ||
-                        (group.sizeField[0] && (!strcmp(group.sizeField,field.field) || !strcmp(group.sizeField,field.lengthField))))goto invalid;
-                    for(size_t previous=0;previous<f;++previous){XL6_ForeignArrayFieldContract old;
-                        if(xl6ForeignArrayFieldRead(attrs->children[previous],&old) && old.groupPhysicalIndex==field.groupPhysicalIndex && xl6ForeignArrayFieldNamesOverlap(&old,&field))goto invalid;}
+                    if(!records || !xl6SemForeignArrayElementValid(ctx,element,field.kind))goto invalid;
                     ++matches;++fields;
                 }
             }
             if(matches!=1)goto invalid;
             used|=UINT64_C(1)<<column;
+        }
+        size_t recordFields=0;
+        for(size_t f=0;f<attrs->childCount;++f){XL6_ForeignArrayFieldContract field;
+            if(!xl6ForeignArrayFieldRead(attrs->children[f],&field) || field.groupPhysicalIndex!=group.physicalIndex)continue;
+            if(!records || ++recordFields>64 || (group.sizeField[0] &&
+                xl6ForeignArrayFieldUsesPath(&field,group.sizeField)))goto invalid;
+            for(size_t previous=0;previous<f;++previous){XL6_ForeignArrayFieldContract old;
+                if(xl6ForeignArrayFieldRead(attrs->children[previous],&old) &&
+                    old.groupPhysicalIndex==field.groupPhysicalIndex && xl6ForeignArrayFieldNamesOverlap(&old,&field))goto invalid;}
         }
         if(used!=((UINT64_C(1)<<group.arrayCount)-1))goto invalid;
     }
@@ -86,7 +92,7 @@ static int xl6SemForeignArrayGroups(XL6_SemContext* ctx,XL6_AstNode* node,const 
         if(xl6ForeignArrayInputRead(attrs->children[a],&input)){slot=input.groupPhysicalIndex;column=input.column;has=1;}
         if(xl6ForeignArrayFieldRead(attrs->children[a],&field)){slot=field.groupPhysicalIndex;column=field.column;has=1;}
         if(has){size_t found=0;for(size_t g=0;g<attrs->childCount;++g){XL6_ForeignArrayGroupContract group;
-            if(xl6ForeignArrayGroupRead(attrs->children[g],&group) && group.physicalIndex==slot && column<group.arrayCount)++found;}
+            if(xl6ForeignArrayGroupRead(attrs->children[g],&group) && group.physicalIndex==slot && (column==UINT32_MAX || column<group.arrayCount))++found;}
             if(found!=1)goto invalid;}
         uint32 qualifier;XL6_ForeignValueContract value;
         size_t receiver=node->kind==XL6_AST_NATIVE_EXTERN_FUNC && !(node->flags&XL6_AST_FLAG_STATIC) ? 1:0;

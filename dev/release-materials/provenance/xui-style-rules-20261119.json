@@ -1,0 +1,112 @@
+{
+  "complete": true,
+  "passed": true,
+  "releaseInstalled": false,
+  "shippingDelivery": false,
+  "xlangParent": "3f8d5c4b03b45fa1a17e7329f62a7cf1707de5aa",
+  "nativeCommit": "d3fc78fce355d5194839943cb0d9ab1d421289e9",
+  "frozenXrt": "804cc769de3030118c2b46ef7af69543d1b82d9d",
+  "scope": [
+    "Dotted fields in C record-array inputs and borrowed output records. Nested C struct size initialization has no language column.",
+    "XUI global property registration and metadata, default/named/class/state style rules, widget inline style and resolved properties.",
+    "Direct single native calls. Writes prepare an O(n) temporary C array. Reads copy borrowed text and keep native null distinct from an empty string."
+  ],
+  "remaining": "Native type-scoped registrations and selectors require a watched WidgetType. Checked errors following native style refresh preserve existing native semantics.",
+  "sources": {
+    "docs/foreign-array-projections.md": "97b8587bee4670dfc96e861121aedecf40c27e6234b9402cd60f3bd0ee03e725",
+    "docs/foreign-output-snapshots.md": "c95c4887d1e15ae4b0e1a118dc37775939b3080af8fdc550445c41ef50902939",
+    "lib/bindings/xui/README.md": "a31b272c71636b7bf5e0ffecf43f5afee75549f3209593fc9db2e98badbdad06",
+    "lib/bindings/xui/examples/README.md": "bfdb8881ecf0127cafa15201a0d17365f50da90966f20b110f45b56559113961",
+    "lib/bindings/xui/examples/style_rules.xl": "b23d8b18653cacfdc6b1ba2801c0811bd9abd94fa0bc919f9b8ad9195af2c074",
+    "lib/bindings/xui/src/managed.xl": "a3bd70985a66a658fcb821bf7baec4603dbae25f228ed929d41629fff174585d",
+    "src/cgen/xl6_ir_cgen_foreign_array.c": "b98b1cbe1d720d0f94395be984034da87f020bb5289dd8e607e1db7ccf9a87e7",
+    "src/ir/xl6_ir.c": "25ccd4aecc8fadc2dcf371e693e742cb37563b845146353d6b730bfc34504dfe",
+    "src/ir/xl6_ir_foreign_array.c": "25ab4ec5b24e2715f4ffc70ffaf9c6ef545f5e9a6d82d1792fc0964abf81db6b",
+    "src/ir/xl6_ir_foreign_output_record.c": "75dc0c2547832219fd769f6f4ddd778fbb031ba691635c8b50685adb619f29ee",
+    "src/sem/xl6_sem_foreign_array.c": "b332486c320f9250d446adb0a24d316bdad541b6c015dbaf6384b4adf6433db7",
+    "src/sem/xl6_sem_foreign_projection_compat.c": "38980182e4e89e753a7a96c3fc6c5701b545a25c1a3f3ad04ce4c294dee0adfb",
+    "src/type/xl6_foreign_array_contract.h": "dfdf44dc182befbfc98fe4020fb3aaeab7653d79ce5c1ee9f6a0b1cd4a2e2609",
+    "src/type/xl6_foreign_array_decl.h": "4a3aec22a00aaa2d6d0ab84cd0751543c27d3b8cc2c96d34cd6f11f867ddefff",
+    "src/type/xl6_foreign_decl.h": "3645a1509e12614380ca62a5d570ae64b7abd95f9f3625602f77d06dc1f07aef",
+    "src/type/xl6_foreign_output_record_decl.h": "07b7389b5c0b04addc4c1e69c66223ecb2d99fc28f7fd0a9ea655320543e7ca2",
+    "src/type/xl6_foreign_pack_contract.h": "26ecdf598948b4570e5ef34638ee21eaa931ec3a019d78aa43bb74ed4c355f9c",
+    "test/cases/foreign_xui_style_rules.xl": "610557cf0518f3870dc60d64eb9d3fe0c25006c2c868c00dfd38bb651eea872f",
+    "tools/xui_managed_contracts.py": "60adb0b75aaa8b674270b2e07edbea41442e8884490e99dc2834411f97c3b1ca"
+  },
+  "platforms": {
+    "win": {
+      "compiler": {
+        "path": "F:\\xlang-validation\\xge-full-20261110\\compiler-nested-style-record-win-r3\\build.json",
+        "sha256": "e0c30d980d7496262928c530569ac71d4e1280af26a326e11bf40854e4285f05",
+        "commands": 0
+      },
+      "sdk": {
+        "path": "F:\\xlang-validation\\xge-full-20261110\\nested-style-compiler-sdk-win-r3\\results.json",
+        "sha256": "825791409a7cc2b0fb38885663a03b396378a37e4cdeaa2ff1710455aabbf752",
+        "commands": 0
+      },
+      "packages": {
+        "path": "F:\\xlang-validation\\xge-full-20261110\\xui-nested-style-packages-win-r3\\results.json",
+        "sha256": "226ba933fa6edced82fb5675bbb70ace1e364dba7c61d50293442d891bc5d262",
+        "commands": 6
+      },
+      "language": {
+        "path": "F:\\xlang-validation\\xge-full-20261110\\xui-nested-style-tests-win-r8\\results.json",
+        "sha256": "7354a78177aa2a9bbb04a59ab2acfd967e2bab3afb691028344af7c654693ad6",
+        "commands": 14
+      },
+      "contractNegativeCases": {
+        "path": "F:\\xlang-validation\\xge-full-20261110\\nested-style-negative-win-r4\\results.json",
+        "sha256": "a6f8360787cc818447a2f6339c269b92a76f9b2ace964a9b9a8008b9fe4e8883",
+        "commands": 5
+      },
+      "svgLifetimeRegression": {
+        "path": "F:\\xlang-validation\\xge-full-20261110\\nested-style-svg-regression-win-r1\\results.json",
+        "sha256": "f71f6243a8446563c911721a174f1b5c6fb673b4498a3aac6314b89f0aaa0718",
+        "commands": 1
+      },
+      "flatArrayRegression": {
+        "path": "F:\\xlang-validation\\xge-full-20261110\\nested-style-code-assist-regression-win-r2\\results.json",
+        "sha256": "dac0689e202e39e143ae9f3b7e0b1940f5bf2e72961aabdbab92d287aaa27547",
+        "commands": 1
+      }
+    },
+    "linux": {
+      "compiler": {
+        "path": "/var/tmp/xlang-validation/xge-full-20261110/compiler-nested-style-record-linux-r3/build.json",
+        "sha256": "84eb66de891cfc9ffc99a1638252f3dc58de77a5af8a17fbd3f92571c46ef37e",
+        "commands": 0
+      },
+      "sdk": {
+        "path": "/var/tmp/xlang-validation/xge-full-20261110/nested-style-compiler-sdk-linux-r3/results.json",
+        "sha256": "107e6d58dd82be8de716799576a2c208ffa4a3f7436ab0e629c4cf827d17ce75",
+        "commands": 0
+      },
+      "packages": {
+        "path": "/var/tmp/xlang-validation/xge-full-20261110/xui-nested-style-packages-linux-r3/results.json",
+        "sha256": "7a617aff31e3061293f079433f6a9a0645a0b756043f69eb54433027572810ed",
+        "commands": 6
+      },
+      "language": {
+        "path": "/var/tmp/xlang-validation/xge-full-20261110/xui-nested-style-tests-linux-r8/results.json",
+        "sha256": "7a718be44ab437530a4608cb4c3626ae087f9f8c12e4ee1c90ad7b870e1309ee",
+        "commands": 14
+      },
+      "contractNegativeCases": {
+        "path": "/var/tmp/xlang-validation/xge-full-20261110/nested-style-negative-linux-r4/results.json",
+        "sha256": "ef709ea29eeb8faf30a12389fd8b3435ed379c8451100c53e1e514c726118ffc",
+        "commands": 5
+      },
+      "svgLifetimeRegression": {
+        "path": "/var/tmp/xlang-validation/xge-full-20261110/nested-style-svg-regression-linux-r1/results.json",
+        "sha256": "c29883f2ff9b98c2a4d453d96a5fa32625367ffe0fe32efac234739c4f9c4447",
+        "commands": 1
+      },
+      "flatArrayRegression": {
+        "path": "/var/tmp/xlang-validation/xge-full-20261110/nested-style-code-assist-regression-linux-r2/results.json",
+        "sha256": "c78bafe8408b22dd60fdd20510fbe5a128464c1f1afaf6a9ca49c5e658c564c2",
+        "commands": 1
+      }
+    }
+  }
+}

@@ -1,0 +1,94 @@
+import xui
+
+extern "fixtureRenderProxy" @header("test/cases/foreign_xui_render_backend.h") @no_raise @c_result("owned_view") @factory(0,0,dropProxy) func cpuProxy() as xui.Proxy
+extern "xuiProxyReleaseChecked" @header("xge3_runtime.h") @no_raise @c_result("status",0) func dropProxy(xui.Proxy proxy)
+extern "fixtureRenderBudget" @no_raise func budget(c_int allowance)
+extern "fixtureRenderBalanced" @no_raise func balanced() as c_int
+
+func main(...) as int
+    auto proxy=cpuProxy()
+    auto ui=xui.create(proxy,xui.XUI_SYSTEM_FONT_DISABLED)
+    auto widget=ui.widget()
+    assert ui.setRootWidget(widget)==0
+    c_int textType=xui.XUI_STYLE_VALUE_STRING
+    c_int colorType=xui.XUI_STYLE_VALUE_COLOR
+    auto id=ui.styleRegisterProperty("example.caption",textType,0,0,textType,0,0,0,"")
+    auto found,name,valueType,dirty,flags,defaultType,integer,number,color,defaultText=ui.styleGetPropertyInfo(id)
+    assert found==id and id==ui.styleFindProperty("example.caption")
+    assert (name as string)=="example.caption" and valueType==textType and defaultType==textType
+    assert defaultText!=null and (defaultText as string)==""
+    auto colorId=ui.styleRegisterProperty("example.tint",colorType)
+    array<c_uint> ids=[id,colorId]
+    array<string?> names=[null,null]
+    array<c_uint> dirtyFlags=[0,0]
+    array<c_int> types=[textType,colorType]
+    array<c_int> integers=[0,0]
+    array<c_float> numbers=[0,0]
+    array<c_uint> colors=[0,0x223344FF]
+    array<string?> texts=["default",null]
+
+    ui.styleSetDefault(ids,names,dirtyFlags,types,integers,numbers,colors,texts)
+    widget.resolveStyle()
+    auto a,b,c,d,e,f,g,caption=widget.getResolvedStyleProperty("example.caption")
+    assert a==id and (b as string)=="example.caption" and d==textType and (caption as string)=="default"
+
+    texts[0]="named"
+    ui.styleSetNamed("base",null,ids,names,dirtyFlags,types,integers,numbers,colors,texts)
+    widget.setStyleName("base")
+    auto namedId,namedName,namedDirty,namedType,namedInt,namedFloat,namedColor,namedText=widget.getResolvedStyleProperty("example.caption")
+    assert namedId==id and (namedText as string)=="named"
+
+    texts[0]="class"
+    ui.styleSetClass("accent","base",ids,names,dirtyFlags,types,integers,numbers,colors,texts)
+    widget.addStyleClass("accent")
+    ui.styleSetStateClass("accent",c_uint(xui.XUI_WIDGET_STATE_DISABLED),ids,names,dirtyFlags,types,integers,numbers,colors,texts)
+
+    texts[0]="inline"
+    widget.setInlineStyle(ids,names,dirtyFlags,types,integers,numbers,colors,texts)
+    auto ia,ib,ic,it,ii,ifloat,icolor,saved=widget.getInlineStyleProperty("example.caption")
+    assert ia==id and (ib as string)=="example.caption" and it==textType and (saved as string)=="inline"
+    auto ca,cb,cc,ct,ci,cf,tint,absentText=widget.getResolvedStyleProperty("example.tint")
+    assert ca==colorId and ct==colorType and tint==0x223344FF and absentText==null
+    auto count=widget.getResolvedStylePropertyCount()
+    bool seen=false
+    c_int index=0
+    while index<count
+        auto key,label,unused,type,i,n,rgba,t=widget.getResolvedStylePropertyAt(index)
+        if key==id then seen=(label as string)=="example.caption" and (t as string)=="inline" end
+        index+=1
+    end
+    assert seen
+
+    bool rejected=false
+    texts[0]="invalid\0text"
+    try
+        widget.setInlineStyle(ids,names,dirtyFlags,types,integers,numbers,colors,texts)
+    catch error
+        rejected=true
+    end
+    assert rejected
+    auto si,sn,sd,st,sv,sf,sc,afterInvalidText=widget.getInlineStyleProperty("example.caption")
+    assert (afterInvalidText as string)=="inline"
+
+    texts[0]="replace"
+    rejected=false
+    budget(0)
+    try
+        widget.setInlineStyle(ids,names,dirtyFlags,types,integers,numbers,colors,texts)
+    catch error
+        rejected=true
+    end
+    budget(-1)
+    assert rejected
+    auto oi,on,od,ot,ov,of,oc,afterAllocationFailure=widget.getInlineStyleProperty("example.caption")
+    assert (afterAllocationFailure as string)=="inline"
+
+    widget.setInlineStyle(ids,names,dirtyFlags,types,integers,numbers,colors,texts,0)
+    widget.close()
+    ui.close()
+    assert (saved as string)=="inline" and (defaultText as string)==""
+    proxy.close()
+    assert balanced()==1
+    println("XUI_STYLE_RULES_OK")
+    return 0
+end

@@ -1,5 +1,11 @@
 /* Physical borrowed-record outputs. These descriptors assert that no field
  * carries a producer-owned responsibility requiring a record destructor. */
+static inline int xl6ForeignOutputMemberPath(const char* path)
+{
+    if(!xl6ForeignPackPath(path) || path[0]=='_')return 0;
+    for(const char* p=path;*p;++p)if(*p=='.' && p[1]=='_')return 0;
+    return 1;
+}
 static inline int xl6ForeignOutputRecordRead(const XL6_AstNode* attr,XL6_ForeignOutputRecordContract* output)
 {
     XL6_ForeignOutputRecordContract row={0};int32 physical;char ownership[16];
@@ -15,7 +21,7 @@ static inline int xl6ForeignOutputFieldRead(const XL6_AstNode* attr,XL6_ForeignO
     XL6_ForeignOutputFieldContract row={0};XL6_ForeignOutputViewContract view={0};int32 ordinal;
     if(!attr || !attr->text || strcmp(attr->text,"c_output_field") || (attr->childCount!=2 && attr->childCount!=3 && attr->childCount!=6) ||
         !xl6ForeignDecimalInt(attr->children[0],&ordinal) || ordinal<0 || ordinal>=64 ||
-        !xl6ForeignQuotedText(attr->children[1],row.field,sizeof(row.field)) || !xl6ForeignIdentifier(row.field) || row.field[0]=='_')return 0;
+        !xl6ForeignQuotedText(attr->children[1],row.field,sizeof(row.field)) || !xl6ForeignOutputMemberPath(row.field))return 0;
     row.ordinal=(uint32)ordinal;
     if(attr->childCount==3){char kind[16];
         if(!xl6ForeignQuotedText(attr->children[2],kind,sizeof(kind)))return 0;

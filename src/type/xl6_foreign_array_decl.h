@@ -30,15 +30,28 @@ static inline int xl6ForeignArrayLengthSpelling(const char* text)
 static inline int xl6ForeignArraySpanPointerSpelling(const char* text)
 {return text && (!strcmp(text,"const char*") || !strcmp(text,"const uint8_t*") || !strcmp(text,"const void*"));}
 static inline int xl6ForeignArrayFieldNamesOverlap(const XL6_ForeignArrayFieldContract* a,const XL6_ForeignArrayFieldContract* b)
-{return !strcmp(a->field,b->field) || (a->lengthField[0] && !strcmp(a->lengthField,b->field)) ||
-    (b->lengthField[0] && !strcmp(a->field,b->lengthField)) || (a->lengthField[0] && b->lengthField[0] && !strcmp(a->lengthField,b->lengthField));}
+{
+    return xl6ForeignPackPathsOverlap(a->field,b->field) ||
+        (a->lengthField[0] && xl6ForeignPackPathsOverlap(a->lengthField,b->field)) ||
+        (b->lengthField[0] && xl6ForeignPackPathsOverlap(a->field,b->lengthField)) ||
+        (a->lengthField[0] && b->lengthField[0] && xl6ForeignPackPathsOverlap(a->lengthField,b->lengthField));
+}
+static inline int xl6ForeignArrayFieldUsesPath(const XL6_ForeignArrayFieldContract* row,const char* path)
+{
+    return xl6ForeignPackPathsOverlap(row->field,path) ||
+        (row->lengthField[0] && xl6ForeignPackPathsOverlap(row->lengthField,path));
+}
 static inline int xl6ForeignArrayFieldShape(const XL6_ForeignArrayFieldContract* row)
 {
-    if(!memchr(row->field,0,sizeof(row->field)) || !xl6ForeignIdentifier(row->field) ||
+    if(!memchr(row->field,0,sizeof(row->field)) || !xl6ForeignPackPath(row->field) ||
         !memchr(row->lengthField,0,sizeof(row->lengthField)) || !memchr(row->lengthCName,0,sizeof(row->lengthCName)))return 0;
+    if(row->kind==XL6_FOREIGN_ARRAY_ELEMENT_SIZE)
+        return row->column==UINT32_MAX && !row->arrayType && !row->elementType && !row->profile &&
+            !row->physicalCName[0] && !row->lengthField[0] && xl6ForeignPackParentLength(row->field) &&
+            xl6ForeignArrayLengthSpelling(row->lengthCName);
     if(row->kind!=XL6_FOREIGN_ARRAY_ELEMENT_SPAN)return !row->lengthField[0] && !row->lengthCName[0];
     return memchr(row->physicalCName,0,sizeof(row->physicalCName)) && xl6ForeignArraySpanPointerSpelling(row->physicalCName) &&
-        xl6ForeignIdentifier(row->lengthField) && strcmp(row->field,row->lengthField) && xl6ForeignArrayLengthSpelling(row->lengthCName);
+        xl6ForeignPackPath(row->lengthField) && !xl6ForeignPackPathsOverlap(row->field,row->lengthField) && xl6ForeignArrayLengthSpelling(row->lengthCName);
 }
 static inline int xl6ForeignArrayGroupRead(const XL6_AstNode* attr,XL6_ForeignArrayGroupContract* output)
 {
@@ -129,11 +142,22 @@ static inline int xl6ForeignArrayRecordSizeRead(const XL6_AstNode* attr,XL6_Fore
 static inline int xl6ForeignArrayFieldRead(const XL6_AstNode* attr,XL6_ForeignArrayFieldContract* output)
 {
     int32 physical,column;char mode[24];XL6_ForeignArrayFieldContract row={0};
+    if(attr && attr->text && !strcmp(attr->text,"c_array_size")){
+        if(attr->childCount!=3 || !xl6ForeignDecimalInt(attr->children[0],&physical) || physical<0 || physical>=64 ||
+            !xl6ForeignQuotedText(attr->children[1],row.field,sizeof(row.field)) ||
+            !xl6ForeignQuotedText(attr->children[2],row.lengthCName,sizeof(row.lengthCName)))return 0;
+        row.groupPhysicalIndex=(uint32)physical;
+        row.column=UINT32_MAX;
+        row.kind=XL6_FOREIGN_ARRAY_ELEMENT_SIZE;
+        if(!xl6ForeignArrayFieldShape(&row))return 0;
+        if(output)*output=row;
+        return 1;
+    }
     if(attr && attr->text && !strcmp(attr->text,"c_array_span_field")){
         if(attr->childCount!=6 || !xl6ForeignDecimalInt(attr->children[0],&physical) || physical<0 || physical>=64 ||
-            !xl6ForeignQuotedText(attr->children[1],row.field,sizeof(row.field)) || !xl6ForeignIdentifier(row.field) ||
-            !xl6ForeignQuotedText(attr->children[2],row.lengthField,sizeof(row.lengthField)) || !xl6ForeignIdentifier(row.lengthField) ||
-            !strcmp(row.field,row.lengthField) || !xl6ForeignDecimalInt(attr->children[3],&column) || column<0 || column>=64 ||
+            !xl6ForeignQuotedText(attr->children[1],row.field,sizeof(row.field)) || !xl6ForeignPackPath(row.field) ||
+            !xl6ForeignQuotedText(attr->children[2],row.lengthField,sizeof(row.lengthField)) || !xl6ForeignPackPath(row.lengthField) ||
+            xl6ForeignPackPathsOverlap(row.field,row.lengthField) || !xl6ForeignDecimalInt(attr->children[3],&column) || column<0 || column>=64 ||
             !xl6ForeignQuotedText(attr->children[4],row.physicalCName,sizeof(row.physicalCName)) || !xl6ForeignArraySpanPointerSpelling(row.physicalCName) ||
             !xl6ForeignQuotedText(attr->children[5],row.lengthCName,sizeof(row.lengthCName)) || !xl6ForeignArrayLengthSpelling(row.lengthCName))return 0;
         row.groupPhysicalIndex=(uint32)physical;row.column=(uint32)column;row.kind=XL6_FOREIGN_ARRAY_ELEMENT_SPAN;
@@ -142,7 +166,7 @@ static inline int xl6ForeignArrayFieldRead(const XL6_AstNode* attr,XL6_ForeignAr
     }
     if(!attr || !attr->text || strcmp(attr->text,"c_array_field") || attr->childCount!=4 ||
         !xl6ForeignDecimalInt(attr->children[0],&physical) || physical<0 || physical>=64 ||
-        !xl6ForeignQuotedText(attr->children[1],row.field,sizeof(row.field)) || !xl6ForeignIdentifier(row.field) ||
+        !xl6ForeignQuotedText(attr->children[1],row.field,sizeof(row.field)) || !xl6ForeignPackPath(row.field) ||
         !xl6ForeignDecimalInt(attr->children[2],&column) || column<0 || column>=64 ||
         !xl6ForeignQuotedText(attr->children[3],mode,sizeof(mode)) ||
         !(row.kind=xl6ForeignArrayElementKind(mode)))return 0;

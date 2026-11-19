@@ -4497,7 +4497,7 @@ static XL6_IrNodeId xl6IrBuildAstNode(
             row.declaration=id;module->foreignArrayInputs[module->foreignArrayInputCount++]=row;continue;
         }
         if(declaration && declaration->text && (!strcmp(declaration->text,"c_array_record") || !strcmp(declaration->text,"c_array_pack")))continue;
-        if(declaration && declaration->text && (!strcmp(declaration->text,"c_array_field") || !strcmp(declaration->text,"c_array_span_field"))){
+        if(declaration && declaration->text && (!strcmp(declaration->text,"c_array_field") || !strcmp(declaration->text,"c_array_span_field") || !strcmp(declaration->text,"c_array_size"))){
             XL6_ForeignArrayFieldContract row;
             if(!xl6ForeignArrayFieldRead(declaration,&row) || !xl6IrGrow((void**)&module->foreignArrayFields,&module->foreignArrayFieldCapacity,
                 module->foreignArrayFieldCount,sizeof(*module->foreignArrayFields))){*ok=0;return 0;}
