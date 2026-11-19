@@ -438,3 +438,6 @@ A follow-up using the XGE/XUI packages that include CodeEdit token snapshots
 passed 17 checks per platform on Windows and Linux. The checks include JIT,
 dynamic and static AOT, shared-module retirement, public headers and the paint
 example. See the [package regression](../dev/release-materials/provenance/xge-svg-observed-matched-packages-20261120.json).
+
+The packages that include ShapeScene mask composition passed the same 17
+checks per platform. See the [ShapeScene package regression](../dev/release-materials/provenance/xge-svg-observed-shape-mask-20261120.json).
