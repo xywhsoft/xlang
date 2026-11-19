@@ -1,0 +1,124 @@
+import xui
+from xui import CallbackWidget, Context, Font, ListView, Proxy, Rect, Surface
+
+extern "fixtureRenderProxy" @header("test/cases/foreign_xui_render_backend.h") @no_raise @c_result("owned_view") @factory(0,0,dropProxy) func cpuProxy() as Proxy
+extern "fixtureRenderSurface" @no_raise @c_result("owned_view") @factory(1,0,dropSurface) func cpuSurface(Proxy proxy) as Surface
+extern "fixtureRenderFont" @no_raise @c_result("owned_view") @factory(1,0,dropFont) func cpuFont(Proxy proxy) as Font
+extern "fixtureRenderBalanced" @no_raise func balanced() as c_int
+extern "fixtureRenderBudget" @no_raise func budget(c_int allowance)
+extern "fixtureRenderSawText" @no_raise @c_cstr(0) func sawText(string text) as c_int
+extern "xuiProxyReleaseChecked" @header("xge3_runtime.h") @no_raise @c_result("status",0) func dropProxy(Proxy value)
+extern "xuiSurfaceReleaseChecked" @header("xge3_runtime.h") @no_raise @c_result("status",0) func dropSurface(Surface value)
+extern "xuiFontReleaseChecked" @header("xge3_runtime.h") @no_raise @c_result("status",0) func dropFont(Font value)
+
+func checkProvider(ListView list,Context ui,Surface target)
+    int calls = 0
+    CallbackWidget? sender = null
+    list.setVirtualItems(1000000,func(CallbackWidget widget,c_int index) as string
+        calls += 1
+        sender = widget
+        if index == 999999 then return "a\0名" end
+        return "Row " + string(int(index) + 1)
+    end)
+    assert list.getItemCount() == 1000000 and calls == 0
+    assert list.readItemText(999999) == "a\0名" and calls == 1
+    assert (list.getItemText(999999) as string) == "a"
+    assert list.getItemText(1000000) == null
+    bool staleSender = false
+    try
+        (sender as CallbackWidget).rect()
+    catch StateError
+        staleSender = true
+    end
+    assert staleSender
+
+    calls = 0
+    ui.render(target)
+    assert calls > 0 and calls < 20 and sawText("Row 1") != 0
+
+    auto id,parent,role,state,name,value,description,bounds,start,finish,level,row,column,rows,columns,actions,rangeInfo = list.getAccessibleNode(2)
+    assert (name as string) == "Row 2"
+
+    xui.ListViewTextProc rejected = func(CallbackWidget widget,c_int index) as string
+        return "unexpected"
+    end
+    bool allocationFailed = false
+    budget(0)
+    try
+        list.setVirtualItems(1,rejected)
+    catch Error
+        allocationFailed = true
+    finally
+        budget(-1)
+    end
+    assert allocationFailed and list.getItemCount() == 1000000
+    assert list.readItemText(0) == "Row 1"
+end
+
+func checkFailureAndReplacement(ListView list,Context ui,Surface target)
+    list.setVirtualItems(2,func(CallbackWidget sender,c_int index) as string
+        throw RuntimeError "virtual provider failure"
+    end)
+    bool readFailed = false
+    try
+        list.readItemText(0)
+    catch RuntimeError error
+        readFailed = error.message == "virtual provider failure"
+    end
+    assert readFailed
+    bool renderFailed = false
+    try
+        ui.render(target)
+    catch RuntimeError error
+        renderFailed = error.message == "virtual provider failure"
+    end
+    assert renderFailed
+
+    list.setVirtualItems(2,func(CallbackWidget sender,c_int index) as string
+        list.setItems(["replacement"])
+        return "stale"
+    end)
+    bool changed = false
+    try
+        list.readItemText(0)
+    catch Error
+        changed = true
+    end
+    assert changed and list.getItemCount() == 1 and list.readItemText(0) == "replacement"
+    list.setVirtualItems(2)
+    assert list.getItemCount() == 2 and list.readItemText(0) == ""
+    bool outOfRange = false
+    try
+        list.readItemText(2)
+    catch Error
+        outOfRange = true
+    end
+    assert outOfRange
+end
+
+func main(...) as int
+    auto proxy = cpuProxy()
+    auto target = cpuSurface(proxy)
+    auto font = cpuFont(proxy)
+    auto ui = xui.create(proxy,xui.XUI_SYSTEM_FONT_DISABLED)
+    ui.setViewportSize(400,200)
+    auto list = ui.listViewNative()
+    Rect bounds
+    bounds.fW = 400
+    bounds.fH = 200
+    list.setRect(bounds)
+    list.setFont(font)
+    ui.setRootWidget(list)
+    assert ui.layout() == 0
+
+    checkProvider(list,ui,target)
+    checkFailureAndReplacement(list,ui,target)
+
+    ui.close()
+    font.close()
+    target.close()
+    proxy.close()
+    assert balanced() != 0
+    println("XUI_LIST_VIRTUAL_OWNED_OK")
+    return 0
+end

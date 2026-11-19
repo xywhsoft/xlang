@@ -36,6 +36,7 @@
 [tree_nodes.xl](tree_nodes.xl) 批量设置父节点和子节点，展开父节点后读取子节点的名称与深度。
 [tree_painters.xl](tree_painters.xl) 为同一棵树绘制橙色和绿色图标，仍可展开和选择各行。
 [list_row_events.xl](list_row_events.xl) 自绘色块、禁用一行，并在按 Enter 或双击时显示激活的行。
+[list_virtual_rows.xl](list_virtual_rows.xl) 创建一百万个虚拟行，滚动时才按索引生成可见行的文字。
 
 [code_assist.xl](code_assist.xl) 读取编辑器的补全位置并打开签名帮助。
 [code_diagnostics.xl](code_diagnostics.xl) 为一段代码发布诊断，在编辑器里标出未知名称，并读取诊断文本。

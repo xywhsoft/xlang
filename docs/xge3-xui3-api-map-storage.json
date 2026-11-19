@@ -960,12 +960,12 @@
       "declaration": "extern \"xuiListViewSetEnabledItems\" @no_raise @c_array_group(1,0,1,\"int\",1) @c_array_input(1,0,\"const int*\",\"value\") @c_result(\"status\",0) func setEnabledItems(array<c_int> enabled,int size=-1)",
       "storage": "native-copy-or-synchronous-read",
       "sourceFile": "src/xui/controls/xui_list_view.c",
-      "line": 2335,
+      "line": 2390,
       "functionSha256": "69ed3bc842f4f142701a1fb2a6321ef92614ad2d2bdef81b040c895cb1830579",
       "dependencies": [
         {
           "sourceFile": "src/xui/controls/xui_list_view.c",
-          "lfSha256": "fa2753e966f1b3b4b7210c2253a894d96dd958d79d16e41e974a2b39da006c66"
+          "lfSha256": "273b1d1e3bd8b3e7c437fe6518b13b48f314881b7d19d33185143680e8ee744e"
         },
         {
           "sourceFile": "src/xui/core/xui_callback_owned.c",
@@ -973,7 +973,7 @@
         },
         {
           "sourceFile": "include/xui.h",
-          "lfSha256": "cc9bfa5cab6c5af88150c6d5613771176a067f52de9d536bf0639333580b3fed"
+          "lfSha256": "661ca627bb3e3b8310ab699725fbedec95592948794a301963d7fddb534dc2ca"
         }
       ]
     },
@@ -1067,7 +1067,7 @@
       "defaultExport": false,
       "reason": "arrExternalSelected stores caller array; Buffer retain alone cannot protect later realloc",
       "sourceFile": "src/xui/controls/xui_list_view.c",
-      "line": 2596,
+      "line": 2705,
       "functionSha256": "9862045505ce3d15a9304b38f5592564d499b092942f30144b04082d13be3c25"
     },
     "xgeDebugDumpCaps": {
@@ -1198,7 +1198,7 @@
         },
         {
           "sourceFile": "include/xui.h",
-          "lfSha256": "cc9bfa5cab6c5af88150c6d5613771176a067f52de9d536bf0639333580b3fed"
+          "lfSha256": "661ca627bb3e3b8310ab699725fbedec95592948794a301963d7fddb534dc2ca"
         }
       ]
     },
@@ -1220,7 +1220,7 @@
         },
         {
           "sourceFile": "include/xui.h",
-          "lfSha256": "cc9bfa5cab6c5af88150c6d5613771176a067f52de9d536bf0639333580b3fed"
+          "lfSha256": "661ca627bb3e3b8310ab699725fbedec95592948794a301963d7fddb534dc2ca"
         }
       ]
     },
@@ -1229,12 +1229,12 @@
       "declaration": "extern \"xuiListViewSetItemRendererOwned\" @no_raise @c_owned_callback(0,0,\"xui_callback_owner_t\",-16) @c_result(\"status\",0) func setItemRenderer(ListViewItemRenderProc? onRender)",
       "storage": "owned-callback",
       "sourceFile": "src/xui/controls/xui_list_view.c",
-      "line": 2148,
+      "line": 2182,
       "functionSha256": "35450d7bb87771510eee6ca86d8e2e4f445b70be460bc1575f86f36ac4d38623",
       "dependencies": [
         {
           "sourceFile": "src/xui/controls/xui_list_view.c",
-          "lfSha256": "fa2753e966f1b3b4b7210c2253a894d96dd958d79d16e41e974a2b39da006c66"
+          "lfSha256": "273b1d1e3bd8b3e7c437fe6518b13b48f314881b7d19d33185143680e8ee744e"
         },
         {
           "sourceFile": "src/xui/core/xui_callback_owned.c",
@@ -1242,7 +1242,7 @@
         },
         {
           "sourceFile": "include/xui.h",
-          "lfSha256": "cc9bfa5cab6c5af88150c6d5613771176a067f52de9d536bf0639333580b3fed"
+          "lfSha256": "661ca627bb3e3b8310ab699725fbedec95592948794a301963d7fddb534dc2ca"
         }
       ]
     },
@@ -1251,12 +1251,12 @@
       "declaration": "extern \"xuiListViewSetActivateOwned\" @no_raise @c_owned_callback(0,0,\"xui_callback_owner_t\",0) @c_result(\"status\",0) func setActivate(ListViewActivateProc? onActivate)",
       "storage": "owned-callback",
       "sourceFile": "src/xui/controls/xui_list_view.c",
-      "line": 2089,
+      "line": 2123,
       "functionSha256": "2a5466183942e10a4cbe57749976e7fe23a0133c23abd47d252a437831dca858",
       "dependencies": [
         {
           "sourceFile": "src/xui/controls/xui_list_view.c",
-          "lfSha256": "fa2753e966f1b3b4b7210c2253a894d96dd958d79d16e41e974a2b39da006c66"
+          "lfSha256": "273b1d1e3bd8b3e7c437fe6518b13b48f314881b7d19d33185143680e8ee744e"
         },
         {
           "sourceFile": "src/xui/core/xui_callback_owned.c",
@@ -1264,7 +1264,29 @@
         },
         {
           "sourceFile": "include/xui.h",
-          "lfSha256": "cc9bfa5cab6c5af88150c6d5613771176a067f52de9d536bf0639333580b3fed"
+          "lfSha256": "661ca627bb3e3b8310ab699725fbedec95592948794a301963d7fddb534dc2ca"
+        }
+      ]
+    },
+    "xuiListViewSetVirtualItemsOwned": {
+      "bindingFile": "lib\\bindings\\xui\\src\\managed.xl",
+      "declaration": "extern \"xuiListViewSetVirtualItemsOwned\" @no_raise @c_owned_callback(1,0,\"xui_callback_owner_t\",0,\"owned_text\") @c_result(\"status\",0) func setVirtualItems(c_int count,ListViewTextProc? onText=null)",
+      "storage": "owned-callback",
+      "sourceFile": "src/xui/controls/xui_list_view.c",
+      "line": 2373,
+      "functionSha256": "8ce3130638528fe6e0e7a382bda6fe56b045cd425a7d38a582c7c995b0fe2a2d",
+      "dependencies": [
+        {
+          "sourceFile": "src/xui/controls/xui_list_view.c",
+          "lfSha256": "273b1d1e3bd8b3e7c437fe6518b13b48f314881b7d19d33185143680e8ee744e"
+        },
+        {
+          "sourceFile": "src/xui/core/xui_callback_owned.c",
+          "lfSha256": "2e28d0df474ab2b72b7a8bbdeafce696ca78e6944b32d660c4dbedf07deea891"
+        },
+        {
+          "sourceFile": "include/xui.h",
+          "lfSha256": "661ca627bb3e3b8310ab699725fbedec95592948794a301963d7fddb534dc2ca"
         }
       ]
     }
@@ -1392,7 +1414,7 @@
       "dependencies": [
         {
           "sourceFile": "include/xui.h",
-          "lfSha256": "cc9bfa5cab6c5af88150c6d5613771176a067f52de9d536bf0639333580b3fed"
+          "lfSha256": "661ca627bb3e3b8310ab699725fbedec95592948794a301963d7fddb534dc2ca"
         },
         {
           "sourceFile": "src/xui/core/xui_proxy_xge.c",
@@ -1490,7 +1512,7 @@
       "dependencies": [
         {
           "sourceFile": "include/xui.h",
-          "lfSha256": "cc9bfa5cab6c5af88150c6d5613771176a067f52de9d536bf0639333580b3fed"
+          "lfSha256": "661ca627bb3e3b8310ab699725fbedec95592948794a301963d7fddb534dc2ca"
         },
         {
           "sourceFile": "src/xui/core/xui_proxy_xge.c",

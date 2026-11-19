@@ -1023,6 +1023,7 @@ def generate_xui(root,header,records,types,primitive,param,reserved,reviewed_spa
                       ('xuiTreeViewSetIconRendererOwned','owned-callback'),
                       ('xuiListViewSetActivateOwned','owned-callback'),
                       ('xuiListViewSetItemRendererOwned','owned-callback'),
+                      ('xuiListViewSetVirtualItemsOwned','owned-callback'),
                       ('xuiListViewSetEnabledItems','native-copy-or-synchronous-read'),
                       ('xuiTimeLineViewGetLayerDescriptor','borrowed-synchronous-output'),
                       ('xuiTimeLineViewGetFrame','borrowed-synchronous-output'),

@@ -1,0 +1,225 @@
+{
+  "complete": true,
+  "passed": true,
+  "releaseInstalled": false,
+  "sourceParent": "db085afd7747aaa86d6661a60cc05978f587939c",
+  "nativeCommit": "7ce334e4bb839b37cc899e321e841cb00ae3fa7f",
+  "languageSourcesSha256Lf": {
+    "docs/xui-list-view-events.md": "2bb8b120afd84692fa1c610a3d33810b65e4a90511bb2deef3e92bfdd2e74bde",
+    "test/cases/foreign_xui_list_virtual_owned.xl": "ab5159ffc19c6833c63f059b9ec4647dfb973823a82dabb2b0156dc19689f04f",
+    "lib/bindings/xui/examples/list_virtual_rows.xl": "de62f732559dec30d6b2975cd408062585633afc012b76112f3c4b4931574929",
+    "docs/xge3-xui3-api-map-storage.json": "9ecd705b499b16d744860185a8b9821798cb4c02a0c0f45b4b648a1ed89f58a7",
+    "lib/bindings/xui/src/managed.xl": "fbeded1c81315032060fc13f3d65b5e8b85aea5dede274dd8db32d049bab0663",
+    "lib/bindings/xui/examples/README.md": "41b824618c213418711f881a7ba3e2ee58d5551eed2f5579614d51920cb1fb9c",
+    "tools/check_xge3_bindings.py": "a749f3a6a2d042d987f90748378c83e860f85f1f4dccd64ebb9783bd892c4ace",
+    "tools/xui_managed_contracts.py": "23491b36549cd5f1f259f9e966c18ba825a1270650196d0f9545952363d6b314"
+  },
+  "nativeSourcesSha256Lf": {
+    "include/xui.h": "661ca627bb3e3b8310ab699725fbedec95592948794a301963d7fddb534dc2ca",
+    "src/xui/controls/xui_list_view.c": "273b1d1e3bd8b3e7c437fe6518b13b48f314881b7d19d33185143680e8ee744e",
+    "tests/xui/xui_list_virtual_owned_test.c": "91f7adfea8e64e686d47dcdbe0691411e3fb0b305e2e32f45c027b82b4b901bb"
+  },
+  "verified": [
+    "The raw native ListView suites keep lazy setup, selection and scroll behavior.",
+    "No provider calls occur during one-million-row adoption. The 400x200 viewport requests fewer than 20 rows.",
+    "The native owned getter transfers the exact allocation and byte count. xlang preserves NUL and UTF-8.",
+    "The compatibility pointer getter and accessibility query keep their C-string behavior.",
+    "Registration OOM preserves the old source, count and selection and releases the candidate.",
+    "Provider source replacement and in-callback close do not publish stale text.",
+    "Recursive owned provider reads report Busy, and native callers can handle that error.",
+    "The owning callback retains its environment until physical return. Failed release clears the outputs.",
+    "Provider errors reach both the checked direct read and the checked render boundary.",
+    "Generated C directly calls native registration and retrieval, then adopts and validates the text.",
+    "The beginner example produces visible glyph pixels on the real backend."
+  ],
+  "evidence": {
+    "win": {
+      "sdk": {
+        "path": "F:\\xlang-validation\\xge-full-20261110\\list-virtual-owned-sdk-win-r2\\results.json",
+        "sha256": "c57c05662150e827c904cf37eec5a71edbd3ad94b879a94b986e3aaec429da77",
+        "checks": 2
+      },
+      "packages": {
+        "path": "F:\\xlang-validation\\xge-full-20261110\\list-virtual-owned-packages-win-r1\\results.json",
+        "sha256": "44d950e2a7beb8de200d343d4c4a6f843d8b8987d296eb51fa56232ef62bf08b",
+        "checks": 6
+      },
+      "nativeHost": {
+        "path": "F:\\xlang-validation\\xge-full-20261110\\list-virtual-owned-native-tests-win-r3\\results.json",
+        "sha256": "f1029152c787ce0d0ea164af20745d37eeef2699348d1c2d4a007a71a3f4b8a4",
+        "checks": 4
+      },
+      "nativeStatic": {
+        "path": "F:\\xlang-validation\\xge-full-20261110\\list-virtual-owned-native-static-win-r3\\results.json",
+        "sha256": "75c78e245280b25301ebe29cbe16f28ba555531748da9e7d81008d5fa5a95892",
+        "checks": 4
+      },
+      "legacy": {
+        "path": "F:\\xlang-validation\\xge-full-20261110\\list-virtual-owned-legacy-win-r1\\results.json",
+        "sha256": "a2ea3bfeb3b53df8e1a73306a78dee6ffea7ed15cd8b5041a5b6022245f782fc",
+        "checks": 4
+      },
+      "language": {
+        "path": "F:\\xlang-validation\\xge-full-20261110\\list-virtual-owned-language-tests-win-r3\\results.json",
+        "sha256": "9f8be263a8421be952ba7f129ecb377933f2776adc3ca8c76c2fc6f8ce271c92",
+        "checks": 6
+      },
+      "graphics": {
+        "path": "F:\\xlang-validation\\xge-full-20261110\\list-virtual-owned-example-win-r1\\results.json",
+        "sha256": "158e17725024d3586c6d93fe11c5fe4331dff6e47194cdce2fec06887c0c043a",
+        "checks": 4
+      },
+      "benchmark": {
+        "path": "F:\\xlang-validation\\xge-full-20261110\\list-virtual-owned-bench-win-r3\\results.json",
+        "sha256": "d5d2872e592deb81a37cb6792e35a4ebd526ae386891f16898291a160587e9db",
+        "checks": 0
+      },
+      "legacyMillionRows": {
+        "checks": 76,
+        "rows": 1000000,
+        "linuxClockAdapted": false
+      },
+      "darkTextPixels": {
+        "example-jit": 1401,
+        "static-run": 1401
+      },
+      "readItemTextAllocationCounts": {
+        "xlang": [
+          1000,
+          1000,
+          0
+        ],
+        "native": [
+          1000,
+          1000,
+          0
+        ]
+      },
+      "generatedC": {
+        "path": "F:\\xlang-validation\\xge-full-20261110\\list-virtual-owned-language-tests-win-r3\\list_callbacks.c",
+        "sha256": "0b77809a333347603f95624273efe16b6788df82d9aad0eee464d92f84c81f39"
+      },
+      "languageArtifacts": {
+        "host": {
+          "path": "F:\\xlang-validation\\xge-full-20261110\\list-virtual-owned-language-tests-win-r3\\host.exe",
+          "sha256": "467e4bc865eb198ba4a2c7f863d7c0d809538ca0ac4e24ac0da0d8239d9535da",
+          "imports": [
+            "msvcrt.dll",
+            "xge3_host.dll",
+            "kernel32.dll",
+            "SHELL32.dll",
+            "ws2_32.dll",
+            "IPHLPAPI.dll",
+            "ucrtbase.dll"
+          ]
+        },
+        "static": {
+          "path": "F:\\xlang-validation\\xge-full-20261110\\list-virtual-owned-language-tests-win-r3\\static.exe",
+          "sha256": "3437bab0a49d4f6a80a1ace014ab4ac404c634e450858ecdabd457f7495eeb4c",
+          "imports": [
+            "msvcrt.dll",
+            "kernel32.dll",
+            "USER32.dll",
+            "OLEAUT32.dll",
+            "ole32.dll",
+            "SHELL32.dll"
+          ]
+        }
+      }
+    },
+    "linux": {
+      "sdk": {
+        "path": "\\\\wsl.localhost\\Ubuntu\\var\\tmp\\xlang-validation\\xge-full-20261110\\list-virtual-owned-sdk-linux-r2\\results.json",
+        "sha256": "e36744d393cc994530bf24a846179507efc0c337e7eab6b93f4cc0841b2d2185",
+        "checks": 2
+      },
+      "packages": {
+        "path": "\\\\wsl.localhost\\Ubuntu\\var\\tmp\\xlang-validation\\xge-full-20261110\\list-virtual-owned-packages-linux-r1\\results.json",
+        "sha256": "f78f2c5bb6e664b0a72f87df64e22de60a65d69b5b6aba30cfe9a37dce9195e1",
+        "checks": 6
+      },
+      "nativeHost": {
+        "path": "\\\\wsl.localhost\\Ubuntu\\var\\tmp\\xlang-validation\\xge-full-20261110\\list-virtual-owned-native-tests-linux-r3\\results.json",
+        "sha256": "c79da595b86846a21907e3a35eba4e2a7f0164d49c3199dc8229b9cdfe2a8815",
+        "checks": 4
+      },
+      "nativeStatic": {
+        "path": "\\\\wsl.localhost\\Ubuntu\\var\\tmp\\xlang-validation\\xge-full-20261110\\list-virtual-owned-native-static-linux-r3\\results.json",
+        "sha256": "3811690b0c51f7bd53759ca736ac5aee42ef2393b29d755dc112765c36fc8949",
+        "checks": 4
+      },
+      "legacy": {
+        "path": "\\\\wsl.localhost\\Ubuntu\\var\\tmp\\xlang-validation\\xge-full-20261110\\list-virtual-owned-legacy-linux-r1\\results.json",
+        "sha256": "f32a60b3b327c977564efa6c51e1ec7862c111a0277cc497a6fbdbb19f863e78",
+        "checks": 4
+      },
+      "language": {
+        "path": "\\\\wsl.localhost\\Ubuntu\\var\\tmp\\xlang-validation\\xge-full-20261110\\list-virtual-owned-language-tests-linux-r3\\results.json",
+        "sha256": "bc56efa315faafbb1837bcb129e0f059e531f83c388530b8229974c9a497c125",
+        "checks": 6
+      },
+      "graphics": {
+        "path": "\\\\wsl.localhost\\Ubuntu\\var\\tmp\\xlang-validation\\xge-full-20261110\\list-virtual-owned-example-linux-r1\\results.json",
+        "sha256": "b6fe2fb3ecb282402d477b2b5f9a1f32c7c9fe480c7baab13d76ec3c0dd8c30a",
+        "checks": 4
+      },
+      "benchmark": {
+        "path": "\\\\wsl.localhost\\Ubuntu\\var\\tmp\\xlang-validation\\xge-full-20261110\\list-virtual-owned-bench-linux-r3\\results.json",
+        "sha256": "18d346ced7e3a86c93e46784a5811629273440f4bf2989dc19f5eb972a7471c2",
+        "checks": 0
+      },
+      "legacyMillionRows": {
+        "checks": 76,
+        "rows": 1000000,
+        "linuxClockAdapted": true
+      },
+      "darkTextPixels": {
+        "example-jit": 1062,
+        "static-run": 1062
+      },
+      "readItemTextAllocationCounts": {
+        "xlang": [
+          1000,
+          1000,
+          0
+        ],
+        "native": [
+          1000,
+          1000,
+          0
+        ]
+      },
+      "generatedC": {
+        "path": "\\\\wsl.localhost\\Ubuntu\\var\\tmp\\xlang-validation\\xge-full-20261110\\list-virtual-owned-language-tests-linux-r3\\list_callbacks.c",
+        "sha256": "0b77809a333347603f95624273efe16b6788df82d9aad0eee464d92f84c81f39"
+      },
+      "languageArtifacts": {
+        "host": {
+          "path": "\\\\wsl.localhost\\Ubuntu\\var\\tmp\\xlang-validation\\xge-full-20261110\\list-virtual-owned-language-tests-linux-r3\\host",
+          "sha256": "dd34204b1e3b51f1cd6d6f9464b672e74132981b2fc186963bd35b85410b4596",
+          "imports": [
+            "libm.so.6",
+            "libmvec.so.1",
+            "libxge3_host.so",
+            "libc.so.6",
+            "ld-linux-x86-64.so.2"
+          ]
+        },
+        "static": {
+          "path": "\\\\wsl.localhost\\Ubuntu\\var\\tmp\\xlang-validation\\xge-full-20261110\\list-virtual-owned-language-tests-linux-r3\\static",
+          "sha256": "d5ae5996e7c1ec27f4903208650d286d1c7881105d6da71229161497bab73706",
+          "imports": [
+            "libm.so.6",
+            "libmvec.so.1",
+            "libX11.so.6",
+            "libXi.so.6",
+            "libXcursor.so.1",
+            "libGL.so.1",
+            "libc.so.6",
+            "ld-linux-x86-64.so.2"
+          ]
+        }
+      }
+    }
+  }
+}

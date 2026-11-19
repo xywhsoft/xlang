@@ -11,3 +11,15 @@
 Windows 和 Linux 上各重复设置两行状态 1,000 次。语言数组入口与手写 C 各记录到 1,000 次 XRT 堆分配和释放，循环结束时的存活块数及字节数均与循环前一致。语言入口仍会转换数组元素。见[验收记录](../dev/release-materials/provenance/xui-list-view-events-20261120.json)。
 
 [list_row_events.xl](../lib/bindings/xui/examples/list_row_events.xl) 展示默认行、自绘色块和禁用行。选中可用行后按 Enter 或双击，可以在列表下方看到激活结果。
+
+## 虚拟行文本
+
+`setVirtualItems(count, provider)` 按索引生成行文本。绘制只读取视口和边缘缓冲内的行，无障碍和显式读取会查询指定行。`provider` 接收一个回调期控件视图和零基索引。省略提供器时使用空标签，可与自绘行配合。提供器捕获的状态变化后，可重新调用 `setVirtualItems` 让列表更新。`setItems` 会恢复普通条目并解除提供器。
+
+`readItemText(index)` 返回独立的字符串，保留内嵌 NUL，索引无效时抛出 checked 错误。旧的 `getItemText(index)` 保持 C 字符串语义和越界返回 `null`。无障碍名称仍是受长度限制的 C 字符串。提供器可以替换数据源或关闭列表，当前读取会放弃过期结果。回调中递归读取同一个正在执行的提供器会收到 Busy 错误。
+
+注册通过原生拥有目录保活闭包。每次查询都经过回调和拥有引用检查。绘制直接使用文本指针和字节长度。`readItemText` 直接接管提供器交回的 XRT 缓冲区，并执行运行时的 UTF-8 校验。普通条目或原生借用文本需要复制一次。
+
+预热后分别用 xlang 和手写 C 读取五字节标签 1,000 次。两条路径各记录到 1,000 次 XRT 堆分配和释放，无重分配。见[验收记录](../dev/release-materials/provenance/xui-list-view-virtual-text-20261120.json)。
+
+用 `xl run list_virtual_rows.xl` 运行[虚拟行示例](../lib/bindings/xui/examples/list_virtual_rows.xl)，可以从最后一行往回滚动查看。

@@ -1,0 +1,14 @@
+import xui
+from xui import CallbackWidget
+from "./_window.xl" import Window
+
+Window.show("ListView / virtual rows", func(xui.Context ui,xui.Widget root)
+    auto list = ui.listViewNative()
+    Window.place(root,list,24,24,420,240)
+
+    // 滚动时按索引生成文字，无需预先创建一百万个字符串。
+    list.setVirtualItems(1000000,func(CallbackWidget sender,c_int index) as string
+        return "Row " + string(int(index) + 1)
+    end)
+    list.ensureVisible(999999)
+end)
