@@ -1,0 +1,140 @@
+import xge
+import xui
+from xui import CallbackDrawContext,CallbackWidget
+
+extern "fixtureDiagnosticBudget" @header("test/cases/foreign_xui_codeedit_diagnostics_heap.h") @no_raise func budget(c_int allowance)
+
+func exercise(xui.Context context,xui.CodeEdit editor,xui.Proxy proxy,xui.Surface target,xui.Rect viewport)
+ auto margins=editor.margins()
+ margins.clear()
+ margins.add(10,xui.XUI_CODE_MARGIN_CUSTOM,20,c_uint(xui.XUI_CODE_MARGIN_VISIBLE | xui.XUI_CODE_MARGIN_CLICKABLE))
+ margins.setWidth(10,24)
+ auto visible,text= margins.measureLayout(viewport)
+ assert visible==1 and text.fX==24 and text.fW==296
+ auto hit=margins.findHit(viewport,8,26,13)
+ assert hit.iId==10 and hit.iKind==xui.XUI_CODE_MARGIN_CUSTOM and hit.iLine==2 and hit.tRect.fW==24
+ assert margins.findHit(viewport,100,26,13).iId==0
+ margins.setVisible(10,0)
+ assert margins.findHit(viewport,8,26,13).iId==0
+ margins.setVisible(10,1)
+
+ int rendered=0
+ int clicked=0
+ xui.CallbackDrawContext? savedDraw=null
+ xui.CallbackWidget? savedWidget=null
+ editor.setMarginRenderCallback(10,func(xui.CallbackWidget widget,c_int id,c_int line,xui.CallbackDrawContext draw,xui.Rect rectangle) as c_int
+  assert id==10 and rectangle.fW==24
+  proxy.fillRect(draw,rectangle,c_uint(0xFF3076AE))
+  savedDraw=draw
+  rendered+=1
+  return xui.XUI_OK
+ end)
+ editor.setMarginEventCallback(10,func(xui.CallbackWidget widget,c_int id,c_int line,c_int event,xui.Rect rectangle) as c_int
+  assert id==10 and line==0
+  if event==xui.XUI_EVENT_POINTER_DOWN then clicked+=1 end
+  savedWidget=widget
+  return xui.XUI_OK
+ end)
+ xui.CodeMarginRenderProc replacement=func(xui.CallbackWidget widget,c_int id,c_int line,xui.CallbackDrawContext draw,xui.Rect rectangle) as c_int
+  throw RuntimeError "replacement must have been rejected"
+ end
+ bool oom=false
+ budget(0)
+ try
+  editor.setMarginRenderCallback(10,replacement)
+ catch Error failure
+  oom=true
+ finally
+  budget(-1)
+ end
+ assert oom
+ visible,text=margins.measureLayout(viewport)
+ assert visible==1 and text.fX==24
+ auto alias=editor.margins()
+ margins.close()
+ bool stale=false
+ try
+  alias.getCount()
+ catch StateError
+  stale=true
+ end
+ assert stale
+
+ context.render(target)
+ assert rendered>0
+ assert context.inputPointerDown(8,10,xui.XUI_POINTER_BUTTON_LEFT,c_uint(xui.XUI_POINTER_BUTTON_LEFT))==xui.XUI_OK
+ assert context.dispatchPendingEvents()==xui.XUI_OK and clicked==1
+ assert context.inputPointerUp(8,10,xui.XUI_POINTER_BUTTON_LEFT,0)==xui.XUI_OK
+ assert context.dispatchPendingEvents()==xui.XUI_OK
+
+ int expired=0
+ try
+  proxy.fillRect(savedDraw as CallbackDrawContext,viewport,c_uint(0xFFFFFFFF))
+ catch StateError
+  expired+=1
+ end
+ try
+  (savedWidget as CallbackWidget).rect()
+ catch StateError
+  expired+=1
+ end
+ assert expired==2
+
+ editor.setMarginRenderCallback(10,func(xui.CallbackWidget widget,c_int id,c_int line,xui.CallbackDrawContext draw,xui.Rect rectangle) as c_int
+  throw RuntimeError "margin render failure"
+ end)
+ bool caught=false
+ try
+  context.render(target)
+ catch RuntimeError failure
+  caught=failure.message=="margin render failure"
+ end
+ assert caught
+ editor.setMarginRenderCallback(10,null)
+ editor.setMarginEventCallback(10,null)
+ context.render(target)
+
+ auto other=context.codeEditNative()
+ auto before=other.margins()
+ other.close()
+ stale=false
+ try
+  before.getCount()
+ catch StateError
+  stale=true
+ end
+ assert stale
+end
+
+func main(...) as int
+ auto fontPath=env.get("XUI_EXAMPLE_FONT")
+ assert fontPath!=null
+ xge.init(320,180,"CodeEdit margin qualification",c_int(xge.XGE_INIT_OFFSCREEN))
+ xge.run(func() as c_int
+  assert xge.begin()==0
+  auto proxy=xui.createProxy()
+  auto context=xui.create(proxy,xui.XUI_SYSTEM_FONT_DISABLED)
+  auto font=proxy.loadFont(fontPath as string,c_float(16),c_uint(xui.XUI_FONT_FORMAT_TTF))
+  context.setDefaultFont(font)
+  auto editor=context.codeEditNative()
+  xui.Rect bounds
+  bounds.fW=320
+  bounds.fH=180
+  assert editor.setRect(bounds)==xui.XUI_OK and context.setRootWidget(editor)==xui.XUI_OK
+  assert editor.setText("first\nsecond\n")==xui.XUI_OK
+  context.setViewportSize(320,180)
+  auto target=proxy.createSurfaceRGBA(320,180,flags=c_uint(xui.XUI_SURFACE_USAGE_TARGET))
+  assert context.update(c_float(0.016))==0
+  exercise(context,editor,proxy,target,bounds)
+  context.close()
+  target.close()
+  font.close()
+  proxy.close()
+  assert xge.nativeEnd()==0
+  return c_int(1)
+ end)
+ xge.setFrameCallback(null)
+ xge.unit()
+ println("XUI_CODEEDIT_MARGIN_OK")
+ return 0
+end

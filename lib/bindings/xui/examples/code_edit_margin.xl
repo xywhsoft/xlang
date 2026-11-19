@@ -1,0 +1,33 @@
+import xui
+from "./_window.xl" import Window
+
+Window.showWithProxy("CodeEdit custom margin",func(xui.Context ui,xui.Widget root,xui.Proxy proxy)
+ auto editor=ui.codeEditNative()
+ Window.place(root,editor,24,24,560,160)
+ assert editor.setText("Click the colored margin beside this line.\n")==xui.XUI_OK
+
+ c_int badge=20
+ auto margins=editor.margins()
+ margins.add(badge,xui.XUI_CODE_MARGIN_CUSTOM,24,
+  c_uint(xui.XUI_CODE_MARGIN_VISIBLE | xui.XUI_CODE_MARGIN_CLICKABLE))
+
+ bool selected=false
+ editor.setMarginRenderCallback(badge,func(xui.CallbackWidget widget,c_int id,c_int line,xui.CallbackDrawContext draw,xui.Rect rectangle) as c_int
+  if line==0 then
+   if selected then
+    proxy.fillRect(draw,rectangle,c_uint(0xFF2B8A67))
+   else
+    proxy.fillRect(draw,rectangle,c_uint(0xFFC88436))
+   end
+  end
+  return xui.XUI_OK
+ end)
+ editor.setMarginEventCallback(badge,func(xui.CallbackWidget widget,c_int id,c_int line,c_int event,xui.Rect rectangle) as c_int
+  if line==0 and event==xui.XUI_EVENT_POINTER_DOWN then
+   selected=not selected
+   widget.invalidate(c_uint(xui.XUI_WIDGET_DIRTY_CACHE | xui.XUI_WIDGET_DIRTY_RENDER))
+  end
+  return xui.XUI_OK
+ end)
+ println("Click the colored margin")
+end)

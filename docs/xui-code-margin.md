@@ -1,4 +1,29 @@
-# Standalone CodeMargin model
+# CodeEdit margins
+
+`editor.margins()` observes the live margin model and keeps the editor's
+Context alive. Closing the editor invalidates the view. Closing the view
+detaches its observer. The editor and installed callbacks remain active.
+Changing a margin's size or visibility schedules layout and rendering.
+
+`editor.setMarginRenderCallback(id, callback)` and
+`setMarginEventCallback(id, callback)` store the closures on the editor.
+Pass `null` to clear a role. The callback may use its DrawContext through
+the existing Proxy draw methods during the invocation.
+See [the custom margin lesson](../lib/bindings/xui/examples/code_edit_margin.xl).
+
+`measureLayout(viewport)` returns the visible margin count and text rectangle.
+`findHit(viewport,x,y,lineHeight,scrollY=0)` returns a pointer-free
+`CodeMarginHit`. The id is zero when the point misses. Invalid geometry still
+raises a checked error. Both queries also work with owned callbacks installed.
+Use `getState` and `getRect` to inspect individual margins.
+
+Windows and Linux acceptance exercises real render and pointer callbacks, with
+JIT and standalone dynamic/static builds. The same CPU-rendering workload
+performs three XRT allocations and frees per frame with either callback.
+See [the current acceptance record](../dev/release-materials/provenance/xui-codeedit-margin-20261120.json)
+for timings and SDK hashes.
+
+## Standalone model
 
 `xui.createCodeMargin()` returns one unique, watched owner. `CodeMarginModel`
 declares native clear/defaults/add/remove/width/visibility/query methods directly,
@@ -39,21 +64,14 @@ remain. Numeric language/C loops are measured separately. These results do
 not imply CPU equivalence or a zero-cost ownership layer. Frame preparation
 copies M layout entries and looks up their lazy slots, O(M*S) in the worst
 case for S registered role slots; an invocation uses the cached node directly.
-The packed input descriptor uses 48 stack bytes on x64. Language closure
-creation/registration costs and actual callback execution remain unqualified;
-the one-allocation slot measurement describes the native slot alone.
+The packed input descriptor uses 48 stack bytes on x64. The one-allocation
+slot measurement covers native storage. Language closure creation and
+registration are outside the timed render workload.
 
-`examples/code_margin.xl` is a linear, window-free lesson. The language fixture
-tests direct packing/numeric queries, output preservation, callback publication,
-registration OOM, explicit cycle cleanup and closed-handle rejection. It does
-not claim execution of a language Margin render/event callback: real native
-consumers are tested in C. CodeEdit's existing internally owned model is not
-exposed as a second owner. A long-lived safe alias, hit-test result projection,
-writable layout arrays, full UI callback examples and complete release/IDE
-delivery retain their separate work/contracts.
+`examples/code_margin.xl` is a window-free lesson for the standalone model.
+Its language fixture covers direct packing, numeric queries, output preservation,
+callback publication, registration OOM, cycle cleanup and closed-handle rejection.
+The pointer-bearing C layout array remains available through explicit C interop.
 
-See `dev/release-materials/provenance/xui-margin-owned-20261115.json` for exact
-builds, hashes, diagnostics, acceptance commands and costs. The full O2 native
-parents are followed by a one-unit hosted/two-unit static fast-path successor;
-the successor is never described as a full rebuild. No shipping release,
-current-delivery, version or online update is installed by this batch.
+See [the standalone model acceptance record](../dev/release-materials/provenance/xui-margin-owned-20261115.json)
+for the earlier builds, allocation counts and callback-slot tests.

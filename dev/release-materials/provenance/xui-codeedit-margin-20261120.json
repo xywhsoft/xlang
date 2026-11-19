@@ -1,0 +1,240 @@
+{
+  "complete": true,
+  "passed": true,
+  "releaseInstalled": false,
+  "sourceParent": "54505ff27f958e566931e86c5f85cf95fe3300e8",
+  "nativeCommit": "34e8f3e6ce7614a9f8a8bb6219ec1dc440de9d8d",
+  "frozenXrt": "804cc769de3030118c2b46ef7af69543d1b82d9d",
+  "sourceHashesLf": {
+    "docs/xge3-xui3-api-map-storage.json": "fa402843901a70437a4267da7b70057ba6b9e87fa3b0d5ec1f5cf595ad85ccf8",
+    "lib/bindings/_xge_native/include/xge3_runtime.h": "157817085ab2b2ecbc5de998a8468c6a0fbefb9d88dc7dafae9b0f4385f1e11f",
+    "lib/bindings/_xge_native/src/runtime.c": "4960d278b935ba6606331beb3104f772ec8094ec65c6ffb6e1806b00b4654e87",
+    "lib/bindings/xui/src/code_margin.xl": "2921177a2d005e9dce634324fea2aba373f05e692832071fe43ccc5d473f6be6",
+    "lib/bindings/xui/src/managed.xl": "0db6a680494ed19d38a2c4d8220eb062d7354fb46126a4421204d54b59888afb",
+    "lib/bindings/xui/examples/README.md": "7a236811c890670a0319528bee80f7635baeb159fbaa784d78a0a8b0b54ec312",
+    "lib/bindings/xui/examples/code_edit_margin.xl": "23572b8ecf274d2d81ecba696cc8577bb24f67133a44b555cb1d31e9c050a8c0",
+    "tools/xui_managed_contracts.py": "eda78d9d0f3d0fb38d0fae84c802725d3200401b493dd72a5b433c423a0db181",
+    "docs/xui-code-margin.md": "befbd292bd39e93be3131800bf155fe26363780a3440d5e6a80a03783d2a8e84",
+    "test/cases/foreign_xui_codeedit_margin.xl": "bd2d89efb11fc1c01ddb9ba2fef6efaa21ea72196d12ffd3d346f6495c1cb91f"
+  },
+  "nativeHashesLf": {
+    "include/xui.h": "6bd4124095f0c3e2bc7d1f03708ae201df8f2254fd2267d2f0ee882a2f77b52e",
+    "src/xui/code/xui_code_margin.c": "95a9da3e89a63b0eb77f48fa603da46da2f75d9dde0741558cc7504e4f9b269e",
+    "src/xui/code/xui_code_margin_owned.inl": "5ba69ddc520d0016fe1229a25ef39be4cfd5325828ef3cb13bbaef0267267695",
+    "src/xui/code/xui_code_edit.c": "004132441b669890c4d94ef9dc2f30dc829e3c58c9d385b5bd0f632d8e3da7e0",
+    "tests/xui/xui_code_margin_owned_test.c": "66022d11ff54d58e81e9ef8af3b418e5f2bd96e67d3f5ca673b049720cb379c5"
+  },
+  "validation": {
+    "native": [
+      "Logical widget close invalidates the borrowed observer before physical callback retirement.",
+      "A detached observer receives no close notification. The editor-owned model refuses independent destruction.",
+      "Geometry mutation dirties layout/cache/render, identical size is a no-op.",
+      "Pointer-free layout and hit queries succeed with an installed callback, distinguishes miss and invalid geometry.",
+      "Real renderer and pointer event dispatch, callback graph edges, clear and close reentry, hold/drop faults and OOM."
+    ],
+    "language": [
+      "Real GPU-target offscreen render and real pointer events call the language closures.",
+      "Typed Proxy drawing using the callback-period DrawContext, expiry checks for Widget and DrawContext.",
+      "Closing a model view invalidates aliases and leaves registered callbacks active.",
+      "Allocation failure preserves the old callback. A callback exception reaches the caller and rendering recovers after clearing it.",
+      "Generated native call targets, JIT, dynamic/static AOT, import checks, GUI lesson and standalone regression."
+    ],
+    "measurement": "A single static AOT executable alternates 7 samples per mode. Each sample renders 1000 invalidated frames of the same one-line CodeEdit on a deterministic CPU Proxy. One owned callback per frame, each callback checks the margin ID and increments its counter. Both paths have the same editor, backend and xlang driver. Registration and warmup precede measurement. The reported heap counts include the native frame work.",
+    "networkTests": false
+  },
+  "timing": {
+    "win": {
+      "nativeMedianNsPerFrame": 11696.5000052,
+      "managedMedianNsPerFrame": 15099.799958999998,
+      "framesPerSample": 1000,
+      "samplesPerMode": 7,
+      "xrtHeapAllocFreeReallocPerSample": {
+        "native": [
+          [
+            3000,
+            3000,
+            0
+          ]
+        ],
+        "managed": [
+          [
+            3000,
+            3000,
+            0
+          ]
+        ]
+      }
+    },
+    "linux": {
+      "nativeMedianNsPerFrame": 5679.600000009999,
+      "managedMedianNsPerFrame": 7254.79999994,
+      "framesPerSample": 1000,
+      "samplesPerMode": 7,
+      "xrtHeapAllocFreeReallocPerSample": {
+        "native": [
+          [
+            3000,
+            3000,
+            0
+          ]
+        ],
+        "managed": [
+          [
+            3000,
+            3000,
+            0
+          ]
+        ]
+      }
+    }
+  },
+  "evidence": {
+    "win": {
+      "sdk": {
+        "path": "F:\\xlang-validation\\xge-full-20261110\\codeedit-margin-sdk-win-r1\\results.json",
+        "sha256": "e080469c7346ab5027d13a83a9a21e96479db49df186a20d2c7a649e8eb84ee3",
+        "checks": 2
+      },
+      "packages": {
+        "path": "F:\\xlang-validation\\xge-full-20261110\\codeedit-margin-packages-win-r1\\results.json",
+        "sha256": "47be766c8098c05bbf3f4cf1db21951b5a0db116b75dce8615b19ca8354fa500",
+        "checks": 6,
+        "directory": "F:\\xlang-validation\\xge-full-20261110\\codeedit-margin-packages-win-r1\\packages"
+      },
+      "native": {
+        "path": "F:\\xlang-validation\\xge-full-20261110\\codeedit-margin-native-tests-win-r1\\results.json",
+        "sha256": "566168d70e0c5abd3db59cf13e9e34bfc3f019625f1cbaaa6adfaf4fb9dd3d69",
+        "checks": 8
+      },
+      "language": {
+        "path": "F:\\xlang-validation\\xge-full-20261110\\codeedit-margin-xlang-win-r2\\results.json",
+        "sha256": "b9d0d220857f44126f071e8fc79f0c92960225af367640a157165273ac75364c",
+        "checks": 12,
+        "programs": {
+          "dynamic.exe": {
+            "sha256": "99e36caddad4f863fb838fd1c9ca49243d0b4e4c18f71949acee47aeab6373b9",
+            "imports": [
+              "xge3_host.dll",
+              "msvcrt.dll",
+              "kernel32.dll",
+              "SHELL32.dll",
+              "Ole32.dll",
+              "ws2_32.dll",
+              "IPHLPAPI.dll",
+              "ucrtbase.dll"
+            ]
+          },
+          "static.exe": {
+            "sha256": "ea08f770acac3b9d19f7fe779ae80d8d4a4ab1d7790eb7cfee236d4d52b14dc0",
+            "imports": [
+              "msvcrt.dll",
+              "kernel32.dll",
+              "USER32.dll",
+              "GDI32.dll",
+              "ole32.dll",
+              "OLEAUT32.dll",
+              "SHELL32.dll",
+              "IMM32.dll",
+              "DWrite.dll"
+            ]
+          },
+          "lesson.exe": {
+            "sha256": "eea0daa0c81192a690c13547bd1cbfddac13c6fa40294a8d385a5c6d871babd4",
+            "imports": [
+              "msvcrt.dll",
+              "kernel32.dll",
+              "USER32.dll",
+              "GDI32.dll",
+              "ole32.dll",
+              "OLEAUT32.dll",
+              "SHELL32.dll",
+              "IMM32.dll",
+              "DWrite.dll"
+            ]
+          }
+        }
+      },
+      "measurement": {
+        "path": "F:\\xlang-validation\\xge-full-20261110\\codeedit-margin-measure-win-r3\\results.json",
+        "sha256": "a27f798952799b402a786576a414a1f4ed42fe821013b80ba65b34d6bebd12a2",
+        "checks": 3
+      },
+      "regression": {
+        "path": "F:\\xlang-validation\\xge-full-20261110\\codeedit-margin-regression-win-r1\\results.json",
+        "sha256": "b4617978d4dba31c1a59fdd3d38178c20f9850ee23169330aa5734a62681ed01",
+        "checks": 2
+      }
+    },
+    "linux": {
+      "sdk": {
+        "path": "\\\\wsl.localhost\\Ubuntu\\var\\tmp\\xlang-validation\\xge-full-20261110\\codeedit-margin-sdk-linux-r1\\results.json",
+        "sha256": "af525d99751e4c555fd75515e1662bec7679ec6b07f5f35259e179dc767140a5",
+        "checks": 2
+      },
+      "packages": {
+        "path": "\\\\wsl.localhost\\Ubuntu\\var\\tmp\\xlang-validation\\xge-full-20261110\\codeedit-margin-packages-linux-r2\\results.json",
+        "sha256": "0d1ea4d51a4272695cde9090bef0536509faeb41c0ff78212b428b4e2178bf67",
+        "checks": 6,
+        "directory": "/var/tmp/xlang-validation/xge-full-20261110/codeedit-margin-packages-linux-r2/packages"
+      },
+      "native": {
+        "path": "\\\\wsl.localhost\\Ubuntu\\var\\tmp\\xlang-validation\\xge-full-20261110\\codeedit-margin-native-tests-linux-r1\\results.json",
+        "sha256": "3621648318a219b997db89377477c47bfccc6c991a1029c77ac2b62764a34719",
+        "checks": 8
+      },
+      "language": {
+        "path": "\\\\wsl.localhost\\Ubuntu\\var\\tmp\\xlang-validation\\xge-full-20261110\\codeedit-margin-xlang-linux-r3\\results.json",
+        "sha256": "8e7a3e2ec786525a9bb61de741b76caec939570c951d5fa80aed8a56cf537b12",
+        "checks": 12,
+        "programs": {
+          "dynamic": {
+            "sha256": "ee459f295f2701d0d27e2d629855a0ba2e557787cfa2b411ee7cf3ec681362cc",
+            "imports": [
+              "libm.so.6",
+              "libmvec.so.1",
+              "libxge3_host.so",
+              "libc.so.6",
+              "ld-linux-x86-64.so.2"
+            ]
+          },
+          "static": {
+            "sha256": "d9e95cd3ae2eb0791f4ac081f3bdc91970bdb653aa6e7e7d66ec7a8e508a7af4",
+            "imports": [
+              "libm.so.6",
+              "libmvec.so.1",
+              "libX11.so.6",
+              "libXi.so.6",
+              "libXcursor.so.1",
+              "libGL.so.1",
+              "libc.so.6",
+              "ld-linux-x86-64.so.2"
+            ]
+          },
+          "lesson": {
+            "sha256": "b857860ba91282928762f2fdfcf0b03bddda31cd17298faf74e1c4bc392809d3",
+            "imports": [
+              "libm.so.6",
+              "libmvec.so.1",
+              "libX11.so.6",
+              "libXi.so.6",
+              "libXcursor.so.1",
+              "libGL.so.1",
+              "libc.so.6",
+              "ld-linux-x86-64.so.2"
+            ]
+          }
+        }
+      },
+      "measurement": {
+        "path": "\\\\wsl.localhost\\Ubuntu\\var\\tmp\\xlang-validation\\xge-full-20261110\\codeedit-margin-measure-linux-r3\\results.json",
+        "sha256": "3529de2fdd55a5543912a4990f4ac164ed988bc9d07ccb0f94abcf3c54284d2f",
+        "checks": 3
+      },
+      "regression": {
+        "path": "\\\\wsl.localhost\\Ubuntu\\var\\tmp\\xlang-validation\\xge-full-20261110\\codeedit-margin-regression-linux-r1\\results.json",
+        "sha256": "36907a3a34eaee745b892ca541a979ec143e53315b42cfa289b011ce5724c3a8",
+        "checks": 2
+      }
+    }
+  }
+}

@@ -873,6 +873,19 @@ METHODS.update({
     'xuiCodeEditGetSelection': ['xui_code_selection_model xuiCodeEditGetSelection(xui_widget pWidget)', 'CodeEdit', ['extern "xuiCodeEditGetSelection" @no_raise @c_result("owner_view",0) func selection() as CodeEditSelection']],
     'xuiCodeEditSetDocumentChangeCallbackOwned': ['int xuiCodeEditSetDocumentChangeCallbackOwned(xui_widget pWidget, xui_code_document_change_proc onChange, void* pUser, const xui_callback_owner_t* pOwner)', 'CodeEdit', ['extern "xuiCodeEditSetDocumentChangeCallbackOwned" @no_raise @c_owned_callback(0,0,"xui_callback_owner_t",0) @c_result("status",0) func setDocumentChangeCallback(CodeDocumentChangeProc? callback)']],
 })
+METHODS.update({
+    'xuiCodeEditGetMargins': ['xui_code_margin_model xuiCodeEditGetMargins(xui_widget pWidget)', 'CodeEdit', ['extern "xuiCodeEditGetMargins" @no_raise @c_result("owner_view",0) func margins() as CodeEditMargins']],
+    'xuiCodeEditSetMarginRenderCallbackOwned': ['int xuiCodeEditSetMarginRenderCallbackOwned(xui_widget pWidget, int iId, xui_code_margin_render_proc onRender, void* pUser, const xui_callback_owner_t* pOwner)', 'CodeEdit', ['extern "xuiCodeEditSetMarginRenderCallbackOwned" @no_raise @c_owned_callback(1,0,"xui_callback_owner_t",-16) @c_result("status",0) func setMarginRenderCallback(c_int id,CodeMarginRenderProc? callback)']],
+    'xuiCodeEditSetMarginEventCallbackOwned': ['int xuiCodeEditSetMarginEventCallbackOwned(xui_widget pWidget, int iId, xui_code_margin_event_proc onEvent, void* pUser, const xui_callback_owner_t* pOwner)', 'CodeEdit', ['extern "xuiCodeEditSetMarginEventCallbackOwned" @no_raise @c_owned_callback(1,0,"xui_callback_owner_t",-16) @c_result("status",0) func setMarginEventCallback(c_int id,CodeMarginEventProc? callback)']],
+})
+CALLBACKS['xui_code_margin_render_proc'] = (
+    'typedef int (*xui_code_margin_render_proc)(xui_widget_t* pWidget, int iMarginId, int iLine, xui_draw_context_t* pDraw, xui_rect_t tRect, void* pUser);',
+    'export typedef CodeMarginRenderProc = func(CallbackWidget,c_int,c_int,CallbackDrawContext,Rect) as c_int',
+)
+CALLBACKS['xui_code_margin_event_proc'] = (
+    'typedef int (*xui_code_margin_event_proc)(xui_widget_t* pWidget, int iMarginId, int iLine, int iEvent, xui_rect_t tRect, void* pUser);',
+    'export typedef CodeMarginEventProc = func(CallbackWidget,c_int,c_int,c_int,Rect) as c_int',
+)
 CALLBACKS['xui_code_document_change_proc'] = (
     'typedef void (*xui_code_document_change_proc)(xui_code_document_t* pDocument, xui_code_range_t tRange, uint32_t iVersion, void* pUser);',
     'export typedef CodeDocumentChangeProc = func(CallbackCodeDocument,CodeRange,c_uint)',

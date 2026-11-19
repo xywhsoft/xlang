@@ -706,11 +706,27 @@ const XL6_ForeignViewDescriptorV1* xl6Xui3CodeEditSelectionViewPolicyGet(void)
 const XL6_ForeignViewDescriptorV1* xl6Xui3CodeEditDocumentViewPolicyGet(void){return NULL;}
 const XL6_ForeignViewDescriptorV1* xl6Xui3CodeEditSelectionViewPolicyGet(void){return NULL;}
 const XL6_ForeignViewDescriptorV1* xl6Xui3CodeDocumentPolicyGet(void){return NULL;}
+const XL6_ForeignViewDescriptorV1* xl6Xui3CodeEditMarginsPolicyGet(void){return NULL;}
 const XL6_ForeignViewDescriptorV1* xl6Xui3CodeMarginPolicyGet(void){return NULL;}
 #endif
 /* The standalone Margin owner participates in the real native callback graph.
  * CodeEdit's internal borrowed model is deliberately not exposed as a root. */
 #if XUI_ENABLE_CODE_EDIT
+static bool watch_code_edit_margins(void* raw, void* storage, void (*invalidate)(void*), void* user)
+{
+    int status = xuiCodeMarginModelEditorLifetimeWatch(raw, storage, invalidate, user);
+    if (status != XUI_OK) report_resource_failure(status, "xuiCodeMarginModelEditorLifetimeWatch");
+    return status == XUI_OK;
+}
+const XL6_ForeignViewDescriptorV1* xl6Xui3CodeEditMarginsPolicyGet(void)
+{
+    static const XL6_ForeignViewDescriptorV1 value = {
+        sizeof(value), XL6_FOREIGN_VIEW_V1_TAG, "xui.codeEdit.margins",
+        sizeof(xui_lifetime_link_t), _Alignof(xui_lifetime_link_t),
+        watch_code_edit_margins, unwatch, NULL, 0, 1, NULL, NULL, NULL, NULL, 0, NULL, NULL
+    };
+    return &value;
+}
 static bool watch_code_margin(void* raw,void* storage,void(*invalidate)(void*),void* user)
 {int status=xuiCodeMarginModelLifetimeWatch(raw,storage,invalidate,user);if(status!=XUI_OK)report_resource_failure(status,"xuiCodeMarginModelLifetimeWatch");return status==XUI_OK;}
 static bool begin_code_margin(void* raw,void* storage)
