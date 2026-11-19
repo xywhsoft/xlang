@@ -928,6 +928,13 @@ export extern "xui_code_signature_reply_t*" class CodeSignatureReply @header("xg
  extern "xuiCodeSignatureReplySet" @no_raise @c_pack(1,"xui_code_signature_help_t",0,8) @c_pack_size(1,"iSize","uint32_t") @c_pack_field(1,"sLabel",0,"c_string") @c_pack_field(1,"sDocumentation",1,"c_string") @c_pack_field(1,"iActiveParameter",2,"value") @c_pack_field(1,"iUserData",7,"value") @c_array_group(10,3,3,"int",6) @c_array_record(10,"xui_code_signature_parameter_t","iSize","uint32_t") @c_array_field(10,"sLabel",0,"c_string") @c_array_field(10,"sDocumentation",1,"c_string") @c_array_field(10,"tLabelRange",2,"value") @c_array_pack(10,1,"pParameters","iParameterCount") @c_result("status",0) func set(string label,string? documentation=null,c_int activeParameter=-1,array<string?> parameterLabels=[],array<string?> parameterDocumentation=[],array<CodeRange> parameterRanges=[],int size=-1,c_uintptr userData=0)
 end
 """.strip()
+VIEWS['InputDecoration'] = """
+export extern "xui_input_decoration" class InputDecoration @header("xge3_runtime.h") @lifetime("owner") @owner(Context) @policy("xl6Xui3InputDecorationPolicy") @watch("xui_lifetime_link_t")
+ native point handle
+ extern "xuiInputDecorationGetBounds" @no_raise @c_output(1,0) func getBounds() as Rect
+ extern "xl6ForeignViewCloseV1" @no_raise @c_control(0) @c_result("bool_status") func close()
+end
+""".strip()
 METHODS.update({
     'xuiCodeEditGetCommandMap': ['xui_code_command_map xuiCodeEditGetCommandMap(xui_widget pWidget)', 'CodeEdit', ['extern "xuiCodeEditGetCommandMap" @no_raise @c_result("owner_view",0) func commandMap() as CodeEditCommandMap']],
     'xuiCodeEditGetFoldState': ['xui_code_fold_state xuiCodeEditGetFoldState(xui_widget pWidget)', 'CodeEdit', ['extern "xuiCodeEditGetFoldState" @no_raise @c_result("owner_view",0) func foldState() as CodeEditFoldState']],
@@ -935,6 +942,8 @@ METHODS.update({
     'xuiCodeEditGetAnnotations': ['xui_code_annotation_store xuiCodeEditGetAnnotations(xui_widget pWidget)', 'CodeEdit', ['extern "xuiCodeEditGetAnnotations" @no_raise @c_result("owner_view",0) func annotations() as CodeEditAnnotations']],
     'xuiCodeEditGetTokenBuffer': ['xui_code_token_buffer xuiCodeEditGetTokenBuffer(xui_widget pWidget)', 'CodeEdit', ['extern "xuiCodeEditGetTokenBuffer" @no_raise @c_result("owner_view",0) func tokenBuffer() as CodeEditTokenBuffer']],
     'xuiCodeEditGetTheme': ['xui_code_theme xuiCodeEditGetTheme(xui_widget pWidget)', 'CodeEdit', ['extern "xuiCodeEditGetTheme" @no_raise @c_result("owner_view",0) func theme() as CodeEditTheme']],
+    'xuiInputDecorationGetAt': ['xui_input_decoration xuiInputDecorationGetAt(xui_widget pWidget, int iSide, int iIndex)', 'Input', ['extern "xuiInputDecorationGetAt" @no_raise @c_result("owner_view",0) func decorationGetAt(c_int side,c_int index) as InputDecoration?']],
+    'xuiInputDecorationRemove': ['int xuiInputDecorationRemove(xui_widget pWidget, xui_input_decoration pDecoration)', 'Input', ['extern "xuiInputDecorationRemove" @no_raise @c_result("status",0) func decorationRemove(InputDecoration decoration)']],
     'xuiCodeEditMarkAllPlain': ['int xuiCodeEditMarkAllPlain(xui_widget widget, const char* pattern, uint32_t flags, int indicator, int* matches)', 'CodeEdit', ['extern "xuiCodeEditMarkAllPlain" @no_raise @c_cstr(0) @c_output(4,0) func markAllPlain(string pattern,c_uint flags=0,c_int indicator=0) as c_int']],
     'xuiCodeEditMarkAllRegex': ['int xuiCodeEditMarkAllRegex(xui_widget widget, const char* pattern, uint32_t flags, int indicator, int* matches, char* error, int errorCapacity)', 'CodeEdit', ['extern "xuiCodeEditMarkAllRegex" @no_raise @c_cstr(0) @c_output(4,0) @c_span(3,"char*","int") func markAllRegex(string pattern,c_uint flags=0,c_int indicator=0,Buffer? error=null) as c_int']],
     'xuiCodeEditQueryCommandEnabled': ['int xuiCodeEditQueryCommandEnabled(xui_widget widget, int command, bool* hasDecision, bool* enabled)', 'CodeEdit', ['extern "xuiCodeEditQueryCommandEnabled" @no_raise @c_outputs(2,3) @c_status(0) func queryCommandEnabled(c_int command) as (bool,bool)']],
@@ -1091,6 +1100,7 @@ METHODS["xuiWidgetRegisterTypeOwned"] = ['int xuiWidgetRegisterTypeOwned(xui_con
     ['extern "xuiWidgetRegisterTypeOwned" @no_raise @c_pack(2,"xui_widget_type_desc_t",0,12) @c_pack_size(2,"iSize","uint32_t") @c_pack_callback_group(2,"pUser",3) @c_pack_field(2,"sName",0,"c_string") @c_pack_field(2,"pParent",1,"view_raw") @c_pack_field(2,"iFlags",2,"value") @c_pack_field(2,"onInit",3,"owned_callback") @c_owned_callback(3,-1,"xui_callback_owner_t",-16,"last") @c_pack_field(2,"onDestroy",4,"owned_callback") @c_owned_callback(4,-1,"xui_callback_owner_t",0,"last") @c_pack_field(2,"onContentMeasure",5,"owned_callback") @c_owned_callback(5,-1,"xui_callback_owner_t",-16,"last") @c_pack_field(2,"onLayoutPrepare",6,"owned_callback") @c_owned_callback(6,-1,"xui_callback_owner_t",-16,"last") @c_pack_field(2,"onLayoutChildren",7,"owned_callback") @c_owned_callback(7,-1,"xui_callback_owner_t",-16,"last") @c_pack_field(2,"onLayoutComplete",8,"owned_callback") @c_owned_callback(8,-1,"xui_callback_owner_t",-16,"last") @c_pack_field(2,"onCacheRender",9,"owned_callback") @c_owned_callback(9,-1,"xui_callback_owner_t",-16,"last") @c_pack_field(2,"onUpdate",10,"owned_callback") @c_owned_callback(10,-1,"xui_callback_owner_t",-16,"last") @c_pack_field(2,"onQueryCursor",11,"owned_callback") @c_owned_callback(11,-1,"xui_callback_owner_t",-16,"last") @c_result("owner_view",0) @factory(1,0,rollbackWidgetType) func registerWidgetTypeWithCallbacks(string name,WidgetType? parent=null,c_uint flags=0,WidgetTypeInitProc? initialize=null,WidgetTypeDestroyProc? destroy=null,WidgetTypeMeasureProc? measure=null,WidgetTypeLayoutPrepareProc? prepareLayout=null,WidgetTypeLayoutChildrenProc? layoutChildren=null,WidgetTypeLayoutCompleteProc? completeLayout=null,WidgetTypeRenderProc? render=null,WidgetTypeUpdateProc? update=null,WidgetTypeCursorProc? queryCursor=null) as WidgetType']]
 
 VIEW_FUNCTIONS = {'xuiGetLanguage': 'int xuiGetLanguage(xui_context pContext)', 'xuiRequestClose': 'int xuiRequestClose(xui_context pContext)'}
+VIEW_FUNCTIONS['xuiInputDecorationGetBounds'] = 'int xuiInputDecorationGetBounds(xui_input_decoration pDecoration, xui_rect_t* pRect)'
 
 VIEW_FUNCTIONS.update({
     'xuiWidgetTypeGetName': 'const char* xuiWidgetTypeGetName(xui_widget_type pType)',
@@ -1181,6 +1191,7 @@ def extend(context,classes,free,callback_declarations,mapped):
                   xuiCodeInputResponseSetSelection='xui.CallbackCodeInputResponse.setSelection',
                   xuiCodeInputResponseSetEdits='xui.CallbackCodeInputResponse.setEdits')
     mapped['xuiCodeDiagnosticHitDetails']='xui.CallbackConstCodeDiagnosticHit.details'
+    mapped['xuiInputDecorationGetBounds']='xui.InputDecoration.getBounds'
     mapped.update(xuiEventDragData='xui.CallbackConstEvent.dragData',xuiRequestClose='xui.CallbackContext.requestClose')
 
 

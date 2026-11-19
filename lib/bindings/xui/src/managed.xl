@@ -2792,6 +2792,12 @@ export extern "xui_widget_t*" class CodeEdit @header("xge3_runtime.h") @lifetime
 
 end
 
+export extern "xui_input_decoration" class InputDecoration @header("xge3_runtime.h") @lifetime("owner") @owner(Context) @policy("xl6Xui3InputDecorationPolicy") @watch("xui_lifetime_link_t")
+ native point handle
+ extern "xuiInputDecorationGetBounds" @no_raise @c_output(1,0) func getBounds() as Rect
+ extern "xl6ForeignViewCloseV1" @no_raise @c_control(0) @c_result("bool_status") func close()
+end
+
 export extern "xui_widget_t*" class Input @header("xge3_runtime.h") @lifetime("owner") @owner(Context) @policy("xl6Xui3WidgetPolicy") @watch("xui_lifetime_link_t") extends Widget
 
  extern "xuiInputSetChangeOwned" @no_raise @c_owned_callback(0,0,"xui_callback_owner_t",0) @c_result("status",0) func setChange(InputChangeProc? onChange)
@@ -2871,6 +2877,10 @@ export extern "xui_widget_t*" class Input @header("xge3_runtime.h") @lifetime("o
  extern "xuiInputDecorationClear" @no_raise func decorationClear(c_int iSide) as c_int
 
  extern "xuiInputDecorationGetCount" @no_raise func decorationGetCount(c_int iSide) as c_int
+
+ extern "xuiInputDecorationGetAt" @no_raise @c_result("owner_view",0) func decorationGetAt(c_int side,c_int index) as InputDecoration?
+
+ extern "xuiInputDecorationRemove" @no_raise @c_result("status",0) func decorationRemove(InputDecoration decoration)
 
  extern "xuiInputSetMenuTitle" @no_raise @c_cstr(1) @c_result("status",0) func setMenuTitle(c_int iCommand,string sTitle)
 

@@ -1,0 +1,79 @@
+{
+  "complete": true,
+  "passed": true,
+  "releaseInstalled": false,
+  "sourceParent": "3b5a370b6f117db5e4faa8bddb4746d19bd2a7c9",
+  "nativeCommit": "f5a8c00cd66a1a823a33a800aa8fc477c01ae7f8",
+  "nativeSourcesSha256Lf": {
+    "include/xui.h": "5964ba4ea73823929f92fd3f6153b28903d4d0f877670c50b3df7981805f1493",
+    "src/xui/core/xui_input_widget.c": "afb153d4206d892faa7a73cd5362e585a808baf3227987b46bccdd2a9c2bd801",
+    "tests/xui/xui_input_widget_lifetime_test.c": "70915c14900f915f79fcfc0e54f61419ec816b002708974aff0b03c584c6c149"
+  },
+  "languageSourcesSha256Lf": {
+    "docs/xge3-xui3-api-map-storage.json": "a86b0436eced28721406c0be8dbc6e915c0bcf3d37204edc1db3c1a857a887e8",
+    "lib/bindings/xui/src/managed.xl": "fb1d6e40eb9970ca94fddee78b48864c3a7e3bc6ec008d440c7aff3b839553ae",
+    "lib/bindings/_xge_native/include/xge3_runtime.h": "6833bf667176aadecbaf942a7bffeeee31f91992dfa031394ab5a08bd9e9b765",
+    "lib/bindings/_xge_native/src/runtime.c": "a598097b033e9801f101a3dc165bd3101a62a949df2a71f39e30af47ab8bf588",
+    "tools/xui_managed_contracts.py": "1e0d8d6ca7cd27c416c2d1697f035bbbc69a425c85f4158981aa08edbb16f9df",
+    "test/cases/foreign_xui_input_decoration.xl": "80506eb1beb23be6df308be25e17caa9dc64d316cdd8db7d310bab2ea97062ce",
+    "test/cases/foreign_xui_input_decoration.h": "48d6bdfd390cc479834c22e4c9804869c71e296aed6cf039a7091b1917a7e3d4",
+    "test/cases/foreign_xui_input_decoration_fixture.c": "1c8882815dc9551d2801ce9592272050691ceb724e26827f87737cd16496cbee"
+  },
+  "verified": [
+    "A detached observation leaves the native decoration intact.",
+    "Native removal, clearing a side, and destroying the Input invalidate old views. Reacquiring a replacement returns a current view.",
+    "Foreign Input removal fails checked. Native clear detaches first, rejects reentrant mutation and permits unwatching a peer.",
+    "Generated JIT and AOT call native queries directly. A lookup retains its owner and installs an invalidation watch on cold admission."
+  ],
+  "knownBaselineFailure": "undo_destroy_widget fails in the prior and current native suites at O0 and O2 on both platforms. The new decoration observer assertions pass in all four runs.",
+  "pending": [
+    "Managed creation and replacement of Input decorations with native Surface and callback ownership.",
+    "Performance comparison against handwritten C and final delivery installation."
+  ],
+  "evidence": {
+    "win": {
+      "sdk": {
+        "path": "F:\\xlang-validation\\xge-full-20261110\\input-decoration-sdk-win-r2\\results.json",
+        "sha256": "87600fcce97b6e66fcc9ea9ce28580c9b1817b426302f6a8d28f48a25a6e7c49",
+        "checks": 2
+      },
+      "packages": {
+        "path": "F:\\xlang-validation\\xge-full-20261110\\input-decoration-packages-win-r4\\results.json",
+        "sha256": "f32444d115dbb7c23cd4b1a28933a45b5d3b996a49ca1e2f859d6b8b721f584d",
+        "checks": 6
+      },
+      "native": {
+        "path": "F:\\xlang-validation\\xge-full-20261110\\input-decoration-native-tests-win-r5\\results.json",
+        "sha256": "47e477cff751aa9ca7f78652e6467e2158b632572077d2afc639cdad6f55cc99",
+        "checks": 8
+      },
+      "language": {
+        "path": "F:\\xlang-validation\\xge-full-20261110\\input-decoration-language-tests-win-r7\\results.json",
+        "sha256": "3135201210603e39f5c064ff5c1bdd92a16e1e72133969ff861ee1bf614da9ca",
+        "checks": 6
+      }
+    },
+    "linux": {
+      "sdk": {
+        "path": "\\\\wsl.localhost\\Ubuntu\\var\\tmp\\xlang-validation\\xge-full-20261110\\input-decoration-sdk-linux-r2\\results.json",
+        "sha256": "6f564d49ae7f2885ade8eced02de28e392a033ce32894c72e640bfb4b8efd712",
+        "checks": 2
+      },
+      "packages": {
+        "path": "\\\\wsl.localhost\\Ubuntu\\var\\tmp\\xlang-validation\\xge-full-20261110\\input-decoration-packages-linux-r4\\results.json",
+        "sha256": "500210ddca722d6c07ee2eadaaa1762819a824b5b24878c04f251df3ddc5368e",
+        "checks": 6
+      },
+      "native": {
+        "path": "\\\\wsl.localhost\\Ubuntu\\var\\tmp\\xlang-validation\\xge-full-20261110\\input-decoration-native-tests-linux-r5\\results.json",
+        "sha256": "c77894fd8fa19fb9a5e5b9f10aff27faa988cc94f6670cb63fe4a71e6d893e9c",
+        "checks": 8
+      },
+      "language": {
+        "path": "\\\\wsl.localhost\\Ubuntu\\var\\tmp\\xlang-validation\\xge-full-20261110\\input-decoration-language-tests-linux-r7\\results.json",
+        "sha256": "b7ac5d82b1471926d8eb389877b53131835e6a002360d99405b44b581283205c",
+        "checks": 6
+      }
+    }
+  }
+}

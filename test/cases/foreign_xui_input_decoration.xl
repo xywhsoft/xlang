@@ -1,0 +1,52 @@
+import xui
+from xui import InputDecoration
+
+extern "fixtureAddInputDecoration" @header("test/cases/foreign_xui_input_decoration.h") @no_raise func addDecoration(xui.Input input,c_int side,c_float width) as c_int
+
+func expired(xui.InputDecoration decoration) as bool
+ try
+  auto rect=decoration.getBounds()
+ catch StateError
+  return true
+ end
+ return false
+end
+
+func main(...) as int
+ auto proxy=xui.createProxy()
+ auto ui=xui.create(proxy,c_int(xui.XUI_SYSTEM_FONT_DISABLED))
+ auto input=ui.inputNative()
+ auto other=ui.inputNative()
+ c_int side=xui.XUI_INPUT_DECORATION_SIDE_TRAILING
+ assert input.decorationGetAt(side,0)==null
+ assert addDecoration(input,side,22)==0
+ auto decoration=input.decorationGetAt(side,0) as InputDecoration
+ assert decoration.getBounds().fW==22
+ decoration.close()
+ assert input.decorationGetCount(side)==1
+ decoration=input.decorationGetAt(side,0) as InputDecoration
+ auto alias=input.decorationGetAt(side,0) as InputDecoration
+ bool rejected=false
+ try
+  other.decorationRemove(decoration)
+ catch Error failure
+  rejected=true
+ end
+ assert rejected and decoration.getBounds().fW==22
+ input.decorationRemove(decoration)
+ assert expired(decoration) and expired(alias)
+ assert input.decorationGetAt(side,0)==null
+ assert addDecoration(input,side,36)==0
+ auto replacement=input.decorationGetAt(side,0) as InputDecoration
+ assert replacement.getBounds().fW==36 and expired(alias)
+ assert input.decorationClear(side)==0
+ assert expired(replacement)
+ assert addDecoration(input,side,20)==0
+ auto last=input.decorationGetAt(side,0) as InputDecoration
+ input.close()
+ assert expired(last)
+ ui.close()
+ proxy.close()
+ print("XUI_INPUT_DECORATION_OK")
+ return 0
+end

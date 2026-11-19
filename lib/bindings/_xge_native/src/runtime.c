@@ -820,6 +820,25 @@ const XL6_ForeignViewDescriptorV1* xl6Xui3CodeEditTokenBufferPolicyGet(void){ret
 const XL6_ForeignViewDescriptorV1* xl6Xui3CodeEditMarginsPolicyGet(void){return NULL;}
 const XL6_ForeignViewDescriptorV1* xl6Xui3CodeMarginPolicyGet(void){return NULL;}
 #endif
+#if XUI_ENABLE_INPUT
+static bool watch_input_decoration(void* raw, void* storage, void (*invalidate)(void*), void* user)
+{
+    int status = xuiInputDecorationLifetimeWatch(raw, storage, invalidate, user);
+    if (status != XUI_OK) report_resource_failure(status, "xuiInputDecorationLifetimeWatch");
+    return status == XUI_OK;
+}
+const XL6_ForeignViewDescriptorV1* xl6Xui3InputDecorationPolicyGet(void)
+{
+    static const XL6_ForeignViewDescriptorV1 value = {
+        sizeof(value), XL6_FOREIGN_VIEW_V1_TAG, "xui.input.decoration",
+        sizeof(xui_lifetime_link_t), _Alignof(xui_lifetime_link_t),
+        watch_input_decoration, unwatch, NULL, 0, 1, NULL, NULL, NULL, NULL, 0, NULL, NULL
+    };
+    return &value;
+}
+#else
+const XL6_ForeignViewDescriptorV1* xl6Xui3InputDecorationPolicyGet(void){return NULL;}
+#endif
 /* The standalone Margin owner participates in the real native callback graph.
  * CodeEdit's internal borrowed model is deliberately not exposed as a root. */
 #if XUI_ENABLE_CODE_EDIT
