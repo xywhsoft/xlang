@@ -1,0 +1,49 @@
+{
+  "complete": true,
+  "passed": true,
+  "scope": "Windows GUI candidate and paired XGE SDK smoke checks",
+  "xlangCommit": "6fc923aa3d8f6e604a8fe4fd506ec6d571127fd6",
+  "nativeCommit": "1185a7ead1ad628b6991a4ef0018115dfc6a8ef2",
+  "releaseInstalled": false,
+  "languageServerRebuilt": false,
+  "catalogRegenerated": false,
+  "hiddenStartupCases": 4,
+  "buildRunCases": 7,
+  "editorInputPassed": true,
+  "frontendChangedOrMissingPins": 46,
+  "checks": [
+    "The IDE Release GUI compiled and linked with the staged XGE SDK. The isolated runtime passed four bounded startups, including settings and session cases, and seven C/xlang file, project and workspace build/run cases with the candidate compiler.",
+    "The established native input fixture confirms click-to-focus, editing, undo/redo, both Enter keys, C completion and Unicode/IME events. This check uses the previously installed catalog and language-server binary, with the new GUI and XGE DLL.",
+    "The complete matched installation still requires a catalog generated for the new compiler and a rebuilt language server. The latest candidate frontend differs at 46 sources in the previously admitted LSP cohort. AST and XRT changes already fail its parser admission guard."
+  ],
+  "evidence": {
+    "guiLink": {
+      "path": "F:\\xlang-validation\\xge-full-20261110\\xui-widget-inspect-ide-gui-link-win-r1\\results.json",
+      "sha256": "e84be1e2b9acaff208dea0370a1614758fce6beee26f9aa191e5c7cdce361f17"
+    },
+    "smoke": {
+      "path": "F:\\xlang-validation\\xge-full-20261110\\xui-widget-inspect-ide-gui-smoke-win-r1\\results.json",
+      "sha256": "0a9605c5ca6f425e47f5d511e7e406f4dbc04ea5c520a8870f1dd23a6ff8d0cf"
+    },
+    "hiddenStarts": {
+      "path": "F:\\xlang-validation\\xge-full-20261110\\xui-widget-inspect-ide-gui-smoke-win-r1\\startup\\results.json",
+      "sha256": "a64fa03c3ed7ce412f3f66b8a268451e75770d25ebb2d18d6a81a838d903289c"
+    },
+    "buildRun": {
+      "path": "F:\\xlang-validation\\xge-full-20261110\\xui-widget-inspect-ide-gui-smoke-win-r1\\targets\\result.json",
+      "sha256": "c2edf4a1567d789104d72eb994f6322c14634729ea608302b30588f23a4dff89"
+    },
+    "editorInput": {
+      "path": "F:\\xlang-validation\\xge-full-20261110\\xui-widget-inspect-ide-input-check-win-r3\\results.json",
+      "sha256": "21b433c0fc13a0cdf65283a6fa2f64b7908a73dafbc9a98905e0a02c01336b42"
+    },
+    "frontendPrerequisites": {
+      "path": "F:\\xlang-validation\\xge-full-20261110\\xui-widget-inspect-ide-frontend-prerequisites-r1.json",
+      "sha256": "20f6c4286bddb686bc89292734fe6065f00b6e4a77a9a0470d9b55efcc153a95"
+    },
+    "sdk": {
+      "path": "D:\\GIT\\x-lang\\dev\\release-materials\\provenance\\xge-ide-split-xrt-sdk-20261121.json",
+      "sha256": "bff1019cc8dd9d59c15c5fb0d8e834ef99d8110be4d7fe45422d12ee4fc38dea"
+    }
+  }
+}
