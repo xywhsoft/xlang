@@ -6,6 +6,28 @@ func main(...) as int
  document.loadMarkdown(markdown,2000)
  auto snapshot=document.snapshot()
  auto wire=snapshot.serialize()
+ string directory=dir.temp("", "xui-document-exports-", "")
+ string filename=path.join(directory,"document.xuidoc")
+ c_uint nativeFormat=c_uint(xui.XUI_DOC_FILE_NATIVE)
+ try
+    document.saveFile(filename,nativeFormat)
+    auto opened=xui.openDocument(filename,nativeFormat,maxFileBytes=uint64(wire.length))
+    auto openedSnapshot=opened.snapshot()
+    assert openedSnapshot.serialize()==wire
+    openedSnapshot.close()
+    opened.close()
+    bool limitRejected=false
+    try
+        auto tooLarge=xui.openDocument(filename,nativeFormat,maxFileBytes=uint64(wire.length-1))
+        tooLarge.close()
+    catch error
+        limitRejected=true
+    end
+    assert limitRejected, "openDocument must check the supplied byte limit"
+ finally
+    if file.exists(filename) then file.delete(filename) end
+    dir.delete(directory)
+ end
  auto restored=xui.deserializeDocument(wire)
  auto restoredSnapshot=restored.snapshot()
  assert restoredSnapshot.serialize()==wire

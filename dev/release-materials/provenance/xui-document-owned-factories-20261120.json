@@ -1,0 +1,113 @@
+{
+  "complete": true,
+  "passed": true,
+  "releaseInstalled": false,
+  "sourceParent": "d05449349b40cb8fd4b15fc43bf48ce05b40939b",
+  "nativeRuntimeCommit": "e75266536290e2e9ac3c99b186c8bcf3f9397c18",
+  "sourceHashesLf": {
+    "test/cases/foreign_xui_document_exports.xl": "c437d9646a74559890cd7d972341bf48ac43ab160f191b45806d4c994d89e981",
+    "tools/xui_document_replacements.py": "031a530fbe0c169083cbdd4da6e3bb4228b0065af7ac763a853357744b2a14a9",
+    "docs/xge3-xui3-document-api-map.md": "462002bb6d2945c605fceeecef33b00505b903965f75580171480ae08b57662a"
+  },
+  "checks": [
+    "Generated C calls each of the five native Owned factories directly.",
+    "Create, local file save and open, memory deserialize, HTML fragment import, and fragment deserialize use matching default allocator packages.",
+    "The native-format file round-trips at its exact byte length. Passing a limit one byte smaller raises a checked error.",
+    "Native and fragment serialization, Unicode HTML and text output, and release of all successful managed results pass on Windows and Linux in JIT, dynamic AOT and static AOT.",
+    "The static Windows executable imports neither the XGE host nor WebView2. Both inventory runs identify five additional owned replacements; custom allocators remain in raw C interoperability."
+  ],
+  "replacements": {
+    "xuiDocumentCreate": {
+      "language": "xui.createDocument",
+      "native": "xuiDocumentCreateOwned"
+    },
+    "xuiDocumentOpenFile": {
+      "language": "xui.openDocument",
+      "native": "xuiDocumentOpenFileOwned"
+    },
+    "xuiDocumentDeserialize": {
+      "language": "xui.deserializeDocument",
+      "native": "xuiDocumentDeserializeOwned"
+    },
+    "xuiDocumentFragmentImportHtml": {
+      "language": "xui.importDocumentFragmentHtml",
+      "native": "xuiDocumentFragmentImportHtmlOwned"
+    },
+    "xuiDocumentFragmentDeserialize": {
+      "language": "xui.deserializeDocumentFragment",
+      "native": "xuiDocumentFragmentDeserializeOwned"
+    }
+  },
+  "nonDirectWithoutConsumerOrReplacementEvidence": 859,
+  "remainingByFamily": {
+    "Document": 33,
+    "Document UI": 10,
+    "XGE": 399,
+    "XUI": 417
+  },
+  "platforms": {
+    "win": {
+      "runtime": {
+        "path": "F:\\xlang-validation\\xge-full-20261110\\document-factory-runtime-win-r2\\results.json",
+        "sha256": "6dd919b40b5ebbb73f9456e583bda71d4ce02d50cf7f1f199cf324af078e0575"
+      },
+      "surface": {
+        "path": "F:\\xlang-validation\\xge-full-20261110\\document-factory-api-audit-win-r1\\surface\\surface.json",
+        "sha256": "9fe260cd4c60b5dbdf6109eec51da77d5f96afdc0cc3ae89483b603f53820be4"
+      },
+      "consumers": {
+        "path": "F:\\xlang-validation\\xge-full-20261110\\document-factory-api-audit-win-r1\\consumers\\results.json",
+        "sha256": "65175585c03f75d5832952c34e88995b3721362d50bdb775f10dca10d8df32b0"
+      },
+      "checks": 9,
+      "importLibraries": {
+        "host": [
+          "msvcrt.dll",
+          "xge3_host.dll",
+          "kernel32.dll",
+          "SHELL32.dll",
+          "ucrtbase.dll"
+        ],
+        "static": [
+          "msvcrt.dll",
+          "kernel32.dll",
+          "SHELL32.dll"
+        ]
+      }
+    },
+    "linux": {
+      "runtime": {
+        "path": "\\\\wsl.localhost\\Ubuntu\\var\\tmp\\xlang-validation\\xge-full-20261110\\document-factory-runtime-linux-r1\\results.json",
+        "sha256": "bee4d1379500b655d8aad8692d39d6ea13014fc646cdfc80d5003a9a22f58ce3"
+      },
+      "surface": {
+        "path": "\\\\wsl.localhost\\Ubuntu\\var\\tmp\\xlang-validation\\xge-full-20261110\\document-factory-api-audit-linux-r1\\surface\\surface.json",
+        "sha256": "12de0dd1121064ac013c1f4b5a89bf24f7c5544485b68fbf342d718fcade5cc7"
+      },
+      "consumers": {
+        "path": "\\\\wsl.localhost\\Ubuntu\\var\\tmp\\xlang-validation\\xge-full-20261110\\document-factory-api-audit-linux-r1\\consumers\\results.json",
+        "sha256": "bf57a7719585127cbeebf80e5446820cb64248beccba6995fef53290d012d5c4"
+      },
+      "checks": 9,
+      "importLibraries": {
+        "host": [
+          "libm.so.6",
+          "libmvec.so.1",
+          "libxge3_host.so",
+          "libc.so.6",
+          "ld-linux-x86-64.so.2"
+        ],
+        "static": [
+          "libm.so.6",
+          "libmvec.so.1",
+          "libX11.so.6",
+          "libXi.so.6",
+          "libXcursor.so.1",
+          "libGL.so.1",
+          "libc.so.6",
+          "ld-linux-x86-64.so.2"
+        ]
+      }
+    }
+  }
+}
