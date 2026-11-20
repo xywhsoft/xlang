@@ -92,6 +92,7 @@ static int xl6IrCgenForeignPacksBegin(XL6_Output* out,const XL6_IrModule* module
             case XL6_FOREIGN_PACK_FIELD_OWNED_CALLBACK:{
                 size_t member;const XL6_ForeignPackContract* group=xl6IrForeignPackCallbackMember(module,target,p,&member,NULL);
                 if(group!=pack)return -1;
+                if(pack->callbackGroupOptional)xl6OutputPrintf(out,"native_callback_group_%u && ",pack->physicalIndex);
                 xl6OutputPrintf(out,"native_callback_group_%u->Members[%lu] ? %s_thunk : NULL",pack->physicalIndex,
                     (unsigned long)member,field->physicalCName);break;
             }

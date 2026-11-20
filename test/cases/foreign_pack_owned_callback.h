@@ -14,6 +14,7 @@ int gp_install(const GpDesc*,const GpOwner*);
 int gp_dispatch(int);
 int gp_clear(void);
 int gp_two(const GpDesc*,const GpOwner*,const GpDesc*,const GpOwner*);
+int gp_optional(const GpDesc*,const GpOwner*);
 int gp_nested(const GpNested*,const GpOwner*);
 int gp_reject(const GpDesc*,GpRoot**,const GpOwner*);
 int gp_failure_roots(void);

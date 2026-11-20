@@ -26,6 +26,7 @@ int main(int argc,char** argv)
         ++groups;XL6_ForeignPackContract saved=*pack;
         pack->callbackOwnerPhysicalIndexPlusOne=0;refused(ir,"lost group owner");*pack=saved;
         pack->callbackOwnerPhysicalIndexPlusOne=65;refused(ir,"owner outside physical range");*pack=saved;
+        pack->callbackGroupOptional=2;refused(ir,"unknown callback group mode");*pack=saved;
         pack->callbackOwnerPhysicalIndexPlusOne=pack->physicalIndex+1;refused(ir,"owner overlaps descriptor");*pack=saved;
         pack->callbackOwnerPhysicalIndexPlusOne=64;refused(ir,"owner never reached by physical steps");*pack=saved;
         pack->callbackUserField[0]=0;refused(ir,"lost userdata field");*pack=saved;

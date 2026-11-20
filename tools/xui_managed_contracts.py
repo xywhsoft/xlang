@@ -991,13 +991,66 @@ export extern "xui_code_signature_reply_t*" class CodeSignatureReply @header("xg
  extern "xuiCodeSignatureReplySet" @no_raise @c_pack(1,"xui_code_signature_help_t",0,8) @c_pack_size(1,"iSize","uint32_t") @c_pack_field(1,"sLabel",0,"c_string") @c_pack_field(1,"sDocumentation",1,"c_string") @c_pack_field(1,"iActiveParameter",2,"value") @c_pack_field(1,"iUserData",7,"value") @c_array_group(10,3,3,"int",6) @c_array_record(10,"xui_code_signature_parameter_t","iSize","uint32_t") @c_array_field(10,"sLabel",0,"c_string") @c_array_field(10,"sDocumentation",1,"c_string") @c_array_field(10,"tLabelRange",2,"value") @c_array_pack(10,1,"pParameters","iParameterCount") @c_result("status",0) func set(string label,string? documentation=null,c_int activeParameter=-1,array<string?> parameterLabels=[],array<string?> parameterDocumentation=[],array<CodeRange> parameterRanges=[],int size=-1,c_uintptr userData=0)
 end
 """.strip()
-VIEWS['InputDecoration'] = """
+INPUT_DECORATION_FIELDS = (
+    ('iKind','value','c_int kind'),
+    ('sText','c_string','string? text=null'),
+    ('fWidth','value','c_float width=0'),
+    ('onClick','owned_callback','InputDecorationClickProc? click=null'),
+    ('onPaint','owned_callback','InputDecorationPaintProc? paint=null'),
+    ('iIcon','value','c_int icon=0'),
+    ('pSurface','view_raw','Surface? surface=null'),
+    ('iVisibleMode','value','c_int visibility=0'),
+    ('fPadding','value','c_float padding=0'),
+    ('iColor','value','c_uint color=0'),
+    ('iHoverColor','value','c_uint hoverColor=0'),
+    ('iActiveColor','value','c_uint activeColor=0'),
+    ('iDisabledColor','value','c_uint disabledColor=0'),
+    ('tSrc','value','Rect source=Rect()'),
+)
+
+def input_decoration_configure(add):
+    pack=3 if add else 2
+    native='xuiInputDecorationAddOwned' if add else 'xuiInputDecorationSetOwned'
+    name='decorationAdd' if add else 'decorationSet'
+    first='c_int side' if add else 'InputDecoration decoration'
+    result='@factory(2,0,rollbackInputDecoration) @c_result("owner_view",0)' if add else '@c_result("status",0)'
+    args=','.join((first,*(arg for _,_,arg in INPUT_DECORATION_FIELDS)))
+    fields=[]
+    for index,(field,mode,_) in enumerate(INPUT_DECORATION_FIELDS,1):
+        fields.append(f'@c_pack_field({pack},"{field}",{index},"{mode}")')
+        if mode=='owned_callback':
+            failure=0 if field=='onClick' else -16
+            fields.append(f'@c_owned_callback({index},-1,"xui_callback_owner_t",{failure},"last")')
+    prefix=f'@c_pack({pack},"xui_input_decoration_desc_t",1,{len(INPUT_DECORATION_FIELDS)}) @c_pack_size({pack},"iSize","uint32_t") @c_pack_callback_group({pack},"pUser",{pack+1},"optional")'
+    suffix=' as InputDecoration' if add else ''
+    return f'extern "{native}" @no_raise {prefix} {" ".join(fields)} {result} func {name}({args}){suffix}'
+
+INPUT_DECORATION_DESCRIBE = 'extern "xuiInputDecorationDescribe" @no_raise @c_output_record(1,"xui_input_decoration_desc_t","borrowed") @c_status(0) @c_output_field(0,"iKind") @c_output_field(1,"iVisibleMode") @c_output_field(2,"fWidth") @c_output_field(3,"fPadding") @c_output_field(4,"iIcon") @c_output_field(5,"sText","cstring") @c_output_field(6,"pSurface","retain",retainSurface,"zero",rollbackSurface) @c_output_field(7,"tSrc") @c_output_field(8,"iColor") @c_output_field(9,"iHoverColor") @c_output_field(10,"iActiveColor") @c_output_field(11,"iDisabledColor") func describe() as (c_int,c_int,c_float,c_float,c_int,string?,Surface?,Rect,c_uint,c_uint,c_uint,c_uint)'
+INPUT_DECORATION_ROLLBACK = 'extern "xuiInputDecorationRemoveFromOwner" @no_raise @c_result("status",0) func rollbackInputDecoration(InputDecoration decoration)'
+
+VIEWS['CallbackInputDecoration'] = """
+export extern "xui_input_decoration" class CallbackInputDecoration @header("xge3_runtime.h") @lifetime("callback")
+ native point handle
+ extern "xuiInputDecorationGetBounds" @no_raise @c_output(1,0) func getBounds() as Rect
+end
+""".strip()
+CALLBACKS.update({
+    'xui_input_decoration_click_proc': (
+        'typedef void (*xui_input_decoration_click_proc)(xui_widget_t* pWidget, xui_input_decoration_t* pDecoration, void* pUser);',
+        'export typedef InputDecorationClickProc = func(CallbackWidget,CallbackInputDecoration)'),
+    'xui_input_decoration_paint_proc': (
+        'typedef int (*xui_input_decoration_paint_proc)(xui_widget_t* pWidget, xui_input_decoration_t* pDecoration, xui_draw_context_t* pDraw, xui_rect_t tRect, uint32_t iState, void* pUser);',
+        'export typedef InputDecorationPaintProc = func(CallbackWidget,CallbackInputDecoration,CallbackDrawContext,Rect,c_uint) as c_int'),
+})
+VIEWS['InputDecoration'] = ("""
 export extern "xui_input_decoration" class InputDecoration @header("xge3_runtime.h") @lifetime("owner") @owner(Context) @policy("xl6Xui3InputDecorationPolicy") @watch("xui_lifetime_link_t")
  native point handle
  extern "xuiInputDecorationGetBounds" @no_raise @c_output(1,0) func getBounds() as Rect
+ {}
+ extern "xuiInputDecorationRemoveFromOwner" @no_raise @c_result("status",0) func remove()
  extern "xl6ForeignViewCloseV1" @no_raise @c_control(0) @c_result("bool_status") func close()
 end
-""".strip()
+""".strip().format(INPUT_DECORATION_DESCRIBE))
 METHODS.update({
     'xuiCodeEditGetCommandMap': ['xui_code_command_map xuiCodeEditGetCommandMap(xui_widget pWidget)', 'CodeEdit', ['extern "xuiCodeEditGetCommandMap" @no_raise @c_result("owner_view",0) func commandMap() as CodeEditCommandMap']],
     'xuiCodeEditGetFoldState': ['xui_code_fold_state xuiCodeEditGetFoldState(xui_widget pWidget)', 'CodeEdit', ['extern "xuiCodeEditGetFoldState" @no_raise @c_result("owner_view",0) func foldState() as CodeEditFoldState']],
@@ -1006,6 +1059,8 @@ METHODS.update({
     'xuiCodeEditGetTokenBuffer': ['xui_code_token_buffer xuiCodeEditGetTokenBuffer(xui_widget pWidget)', 'CodeEdit', ['extern "xuiCodeEditGetTokenBuffer" @no_raise @c_result("owner_view",0) func tokenBuffer() as CodeEditTokenBuffer']],
     'xuiCodeEditGetTheme': ['xui_code_theme xuiCodeEditGetTheme(xui_widget pWidget)', 'CodeEdit', ['extern "xuiCodeEditGetTheme" @no_raise @c_result("owner_view",0) func theme() as CodeEditTheme']],
     'xuiInputDecorationGetAt': ['xui_input_decoration xuiInputDecorationGetAt(xui_widget pWidget, int iSide, int iIndex)', 'Input', ['extern "xuiInputDecorationGetAt" @no_raise @c_result("owner_view",0) func decorationGetAt(c_int side,c_int index) as InputDecoration?']],
+    'xuiInputDecorationAddOwned': ['int xuiInputDecorationAddOwned(xui_widget pWidget, int iSide, xui_input_decoration* ppDecoration, const xui_input_decoration_desc_t* pDesc, const xui_callback_owner_t* pOwner)', 'Input', [input_decoration_configure(True)]],
+    'xuiInputDecorationSetOwned': ['int xuiInputDecorationSetOwned(xui_widget pWidget, xui_input_decoration pDecoration, const xui_input_decoration_desc_t* pDesc, const xui_callback_owner_t* pOwner)', 'Input', [input_decoration_configure(False)]],
     'xuiInputDecorationRemove': ['int xuiInputDecorationRemove(xui_widget pWidget, xui_input_decoration pDecoration)', 'Input', ['extern "xuiInputDecorationRemove" @no_raise @c_result("status",0) func decorationRemove(InputDecoration decoration)']],
     'xuiCodeEditMarkAllPlain': ['int xuiCodeEditMarkAllPlain(xui_widget widget, const char* pattern, uint32_t flags, int indicator, int* matches)', 'CodeEdit', ['extern "xuiCodeEditMarkAllPlain" @no_raise @c_cstr(0) @c_output(4,0) func markAllPlain(string pattern,c_uint flags=0,c_int indicator=0) as c_int']],
     'xuiCodeEditMarkAllRegex': ['int xuiCodeEditMarkAllRegex(xui_widget widget, const char* pattern, uint32_t flags, int indicator, int* matches, char* error, int errorCapacity)', 'CodeEdit', ['extern "xuiCodeEditMarkAllRegex" @no_raise @c_cstr(0) @c_output(4,0) @c_span(3,"char*","int") func markAllRegex(string pattern,c_uint flags=0,c_int indicator=0,Buffer? error=null) as c_int']],
@@ -1160,10 +1215,12 @@ METHODS.update({
 })
 
 METHODS["xuiWidgetRegisterTypeOwned"] = ['int xuiWidgetRegisterTypeOwned(xui_context pContext, xui_widget_type* ppType, const xui_widget_type_desc_t* pDesc, const xui_callback_owner_t* pOwner)', "Context",
-    ['extern "xuiWidgetRegisterTypeOwned" @no_raise @c_pack(2,"xui_widget_type_desc_t",0,12) @c_pack_size(2,"iSize","uint32_t") @c_pack_callback_group(2,"pUser",3) @c_pack_field(2,"sName",0,"c_string") @c_pack_field(2,"pParent",1,"view_raw") @c_pack_field(2,"iFlags",2,"value") @c_pack_field(2,"onInit",3,"owned_callback") @c_owned_callback(3,-1,"xui_callback_owner_t",-16,"last") @c_pack_field(2,"onDestroy",4,"owned_callback") @c_owned_callback(4,-1,"xui_callback_owner_t",0,"last") @c_pack_field(2,"onContentMeasure",5,"owned_callback") @c_owned_callback(5,-1,"xui_callback_owner_t",-16,"last") @c_pack_field(2,"onLayoutPrepare",6,"owned_callback") @c_owned_callback(6,-1,"xui_callback_owner_t",-16,"last") @c_pack_field(2,"onLayoutChildren",7,"owned_callback") @c_owned_callback(7,-1,"xui_callback_owner_t",-16,"last") @c_pack_field(2,"onLayoutComplete",8,"owned_callback") @c_owned_callback(8,-1,"xui_callback_owner_t",-16,"last") @c_pack_field(2,"onCacheRender",9,"owned_callback") @c_owned_callback(9,-1,"xui_callback_owner_t",-16,"last") @c_pack_field(2,"onUpdate",10,"owned_callback") @c_owned_callback(10,-1,"xui_callback_owner_t",-16,"last") @c_pack_field(2,"onQueryCursor",11,"owned_callback") @c_owned_callback(11,-1,"xui_callback_owner_t",-16,"last") @c_result("owner_view",0) @factory(1,0,rollbackWidgetType) func registerWidgetTypeWithCallbacks(string name,WidgetType? parent=null,c_uint flags=0,WidgetTypeInitProc? initialize=null,WidgetTypeDestroyProc? destroy=null,WidgetTypeMeasureProc? measure=null,WidgetTypeLayoutPrepareProc? prepareLayout=null,WidgetTypeLayoutChildrenProc? layoutChildren=null,WidgetTypeLayoutCompleteProc? completeLayout=null,WidgetTypeRenderProc? render=null,WidgetTypeUpdateProc? update=null,WidgetTypeCursorProc? queryCursor=null) as WidgetType']]
+    ['extern "xuiWidgetRegisterTypeOwned" @no_raise @c_pack(2,"xui_widget_type_desc_t",0,12) @c_pack_size(2,"iSize","uint32_t") @c_pack_callback_group(2,"pUser",3,"optional") @c_pack_field(2,"sName",0,"c_string") @c_pack_field(2,"pParent",1,"view_raw") @c_pack_field(2,"iFlags",2,"value") @c_pack_field(2,"onInit",3,"owned_callback") @c_owned_callback(3,-1,"xui_callback_owner_t",-16,"last") @c_pack_field(2,"onDestroy",4,"owned_callback") @c_owned_callback(4,-1,"xui_callback_owner_t",0,"last") @c_pack_field(2,"onContentMeasure",5,"owned_callback") @c_owned_callback(5,-1,"xui_callback_owner_t",-16,"last") @c_pack_field(2,"onLayoutPrepare",6,"owned_callback") @c_owned_callback(6,-1,"xui_callback_owner_t",-16,"last") @c_pack_field(2,"onLayoutChildren",7,"owned_callback") @c_owned_callback(7,-1,"xui_callback_owner_t",-16,"last") @c_pack_field(2,"onLayoutComplete",8,"owned_callback") @c_owned_callback(8,-1,"xui_callback_owner_t",-16,"last") @c_pack_field(2,"onCacheRender",9,"owned_callback") @c_owned_callback(9,-1,"xui_callback_owner_t",-16,"last") @c_pack_field(2,"onUpdate",10,"owned_callback") @c_owned_callback(10,-1,"xui_callback_owner_t",-16,"last") @c_pack_field(2,"onQueryCursor",11,"owned_callback") @c_owned_callback(11,-1,"xui_callback_owner_t",-16,"last") @c_result("owner_view",0) @factory(1,0,rollbackWidgetType) func registerWidgetTypeWithCallbacks(string name,WidgetType? parent=null,c_uint flags=0,WidgetTypeInitProc? initialize=null,WidgetTypeDestroyProc? destroy=null,WidgetTypeMeasureProc? measure=null,WidgetTypeLayoutPrepareProc? prepareLayout=null,WidgetTypeLayoutChildrenProc? layoutChildren=null,WidgetTypeLayoutCompleteProc? completeLayout=null,WidgetTypeRenderProc? render=null,WidgetTypeUpdateProc? update=null,WidgetTypeCursorProc? queryCursor=null) as WidgetType']]
 
 VIEW_FUNCTIONS = {'xuiGetLanguage': 'int xuiGetLanguage(xui_context pContext)', 'xuiRequestClose': 'int xuiRequestClose(xui_context pContext)'}
 VIEW_FUNCTIONS['xuiInputDecorationGetBounds'] = 'int xuiInputDecorationGetBounds(xui_input_decoration pDecoration, xui_rect_t* pRect)'
+VIEW_FUNCTIONS['xuiInputDecorationDescribe'] = 'int xuiInputDecorationDescribe(xui_input_decoration pDecoration, xui_input_decoration_desc_t* pDesc)'
+VIEW_FUNCTIONS['xuiInputDecorationRemoveFromOwner'] = 'int xuiInputDecorationRemoveFromOwner(xui_input_decoration pDecoration)'
 
 VIEW_FUNCTIONS.update({
     'xuiWidgetTypeGetName': 'const char* xuiWidgetTypeGetName(xui_widget_type pType)',
@@ -1445,6 +1502,7 @@ def extend(context,classes,free,callback_declarations,mapped):
         callback_declarations.append(body)
     free[:]=[row for row in free if 'extern "xuiWidgetUnregisterType"' not in row]
     free.append('extern "xuiWidgetUnregisterType" @no_raise @c_result("status",0) func rollbackWidgetType(WidgetType value)')
+    free.append(INPUT_DECORATION_ROLLBACK)
     mapped.update(xuiWidgetTypeGetName='xui.WidgetType.getName',xuiWidgetTypeGetParent='xui.WidgetType.getParent',
                   xuiWidgetUnregisterType='xui.WidgetType.unregister')
     mapped.update(xuiCodeInputResponseGetFlags='xui.CallbackCodeInputResponse.flags',
@@ -1453,6 +1511,8 @@ def extend(context,classes,free,callback_declarations,mapped):
                   xuiCodeInputResponseSetEdits='xui.CallbackCodeInputResponse.setEdits')
     mapped['xuiCodeDiagnosticHitDetails']='xui.CallbackConstCodeDiagnosticHit.details'
     mapped['xuiInputDecorationGetBounds']='xui.InputDecoration.getBounds'
+    mapped['xuiInputDecorationDescribe']='xui.InputDecoration.describe'
+    mapped['xuiInputDecorationRemoveFromOwner']='xui.InputDecoration.remove'
     mapped['xuiInventoryIndicesGet']='xui.InventoryIndices.indices'
     mapped.update(xuiEventDragData='xui.CallbackConstEvent.dragData',xuiRequestClose='xui.CallbackContext.requestClose')
 

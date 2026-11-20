@@ -224,12 +224,12 @@ static int xl6IrPackExpected(const XL6_IrModule* m,const XL6_ForeignPackContract
     const XL6_IrType* owner=xl6IrTypeGet(&m->types,node->declarationOwnerType);const char* header=owner ? owner->foreignHeader:NULL;
     for(size_t i=0;i<m->foreignFunctionHeaderCount;++i)if(m->foreignFunctionHeaders[i].declaration==row->declaration)header=m->foreignFunctionHeaders[i].header;
     if(!header || !xl6ForeignHeaderName(header) || strlen(header)>=sizeof(row->header))return 0;
-    if(row->callbackOwnerPhysicalIndexPlusOne>64 ||
+    if(row->callbackOwnerPhysicalIndexPlusOne>64 || row->callbackGroupOptional>1 ||
         !memchr(row->callbackUserField,0,sizeof(row->callbackUserField)) ||
         !memchr(row->callbackGroupOwnerCName,0,sizeof(row->callbackGroupOwnerCName)))return 0;
     *expected=*row;strcpy(expected->header,header);expected->callbackGroupOwnerCName[0]=0;
     if(!row->callbackOwnerPhysicalIndexPlusOne)
-        return !row->callbackUserField[0] && !row->callbackGroupOwnerCName[0];
+        return !row->callbackGroupOptional && !row->callbackUserField[0] && !row->callbackGroupOwnerCName[0];
     if(!xl6ForeignPackPath(row->callbackUserField) || row->callbackOwnerPhysicalIndexPlusOne==row->physicalIndex+1 ||
         (receiver && row->callbackOwnerPhysicalIndexPlusOne==1) ||
         m->foreignParameterCount>m->foreignParameterCapacity || (m->foreignParameterCount && !m->foreignParameters))return 0;

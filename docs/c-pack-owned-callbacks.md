@@ -9,6 +9,7 @@ The additional attribute is:
 
 ```text
 @c_pack_callback_group(packSlot, "userdataField", ownerSlot)
+@c_pack_callback_group(packSlot, "userdataField", ownerSlot, "optional")
 ```
 
 `packSlot` identifies an existing `@c_pack`. `userdataField` is a closed member
@@ -24,6 +25,13 @@ Each member uses `@c_pack_field(..., "owned_callback")` and the existing
 in force. The owner binding is distinct from `ownerSlot`. Every member in one
 group must name the same native ownership-record C type. A group must contain
 at least one declared retained member; individual members may be NULL.
+
+Use the explicit `"optional"` mode when the native API accepts an absent
+group. If all members are NULL, generated code allocates no callback-group
+environment and passes NULL for both the descriptor userdata and the physical
+owner argument. If any member is active, the existing checked group ownership
+and rollback rules apply. The three-argument declaration continues to pass an
+owner for an all-NULL group.
 
 The complete runnable declaration/tests are in
 `test/cases/foreign_pack_owned_callback.xl` with its authoritative `.h` and native

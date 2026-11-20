@@ -15,6 +15,7 @@ extern "gp_two" @header("test/cases/foreign_pack_owned_callback.h") @no_raise @c
 extern "gp_nested" @header("test/cases/foreign_pack_owned_callback.h") @no_raise @c_result("status",0) @c_pack(0,"GpNested",0,3) @c_pack_record(0,"inner","GpDesc") @c_pack_callback_group(0,"inner.user",1) @c_pack_field(0,"inner.value",0,"owned_callback") @c_pack_field(0,"inner.notice",1,"owned_callback") @c_pack_field(0,"inner.seed",2,"value") @c_owned_callback(0,-1,"GpOwner",-111) @c_owned_callback(1,-1,"GpOwner",0,"first") func nested(ValueCallback? value,NoticeCallback? notice,c_int seed)
 extern "gp_reject" @header("test/cases/foreign_pack_owned_callback.h") @no_raise @c_result("owned_view") @factory(1,0,dropRoot) @c_pack(0,"GpDesc",0,3) @c_pack_callback_group(0,"user",2) @c_pack_field(0,"value",0,"owned_callback") @c_pack_field(0,"notice",1,"owned_callback") @c_pack_field(0,"seed",2,"value") @c_owned_callback(0,-1,"GpOwner",-111) @c_owned_callback(1,-1,"GpOwner",0,"first") func rejectFactory(ValueCallback? value,NoticeCallback? notice,c_int seed) as Root
 extern "gp_failure_roots" @header("test/cases/foreign_pack_owned_callback.h") @no_raise func failureRoots() as c_int
+extern "gp_optional" @header("test/cases/foreign_pack_owned_callback.h") @no_raise @c_result("integer_min",0) @c_pack(0,"GpDesc",0,3) @c_pack_callback_group(0,"user",1,"optional") @c_pack_field(0,"value",0,"owned_callback") @c_pack_field(0,"notice",1,"owned_callback") @c_pack_field(0,"seed",2,"value") @c_owned_callback(0,-1,"GpOwner",-111) @c_owned_callback(1,-1,"GpOwner",0,"first") func optionalGroup(ValueCallback? value,NoticeCallback? notice,c_int seed) as c_int
 extern "gp_dispatch" @header("test/cases/foreign_pack_owned_callback.h") @no_raise @c_result("integer_min",0) func dispatch(c_int value) as c_int
 extern "gp_clear" @header("test/cases/foreign_pack_owned_callback.h") @no_raise @c_result("status",0) func clear()
 extern "gp_installs" @header("test/cases/foreign_pack_owned_callback.h") @no_raise func installs() as c_int
@@ -23,6 +24,7 @@ extern "gp_fail_after" @header("test/cases/foreign_pack_owned_callback.h") @no_r
 extern "gp_fail_reset" @header("test/cases/foreign_pack_owned_callback.h") @no_raise func failReset() as c_int
 extern "gp_heap" @header("test/cases/foreign_pack_owned_callback.h") @no_raise @c_outputs(0,1,2,3,4) func heap() as (c_size,c_size,uint64,uint64,uint64)
 extern "xrtMemDebugEnabled" @header("xrt_decl.h") @no_raise func debugEnabled() as bool
+extern "xrtMemDebugEnable" @header("xrt_decl.h") @no_raise func setDebugEnabled(bool enabled) as bool
 func plus(c_int value) as c_int
  return value+c_int(5)
 end
@@ -76,6 +78,25 @@ func main(...) as int
  install(null,null,c_int(9))
  assert active()==c_int(1) and dispatch(c_int(4))==c_int(9)
  clear()
+ assert optionalGroup(null,null,c_int(9))==c_int(9)
+ assert optionalGroup(plus,null,c_int(3))==c_int(10)
+ assert optionalGroup(null,notice,c_int(3))==c_int(3)
+ bool previousDebug=debugEnabled()
+ if not previousDebug then assert setDebugEnabled(true) end
+ failAfter(c_int(0))
+ c_int value=optionalGroup(null,null,c_int(4))
+ c_int triggered=failReset()
+ assert value==c_int(4) and triggered==c_int(0)
+ ValueCallback valueCallback=plus
+ bool optionalRejected=false
+ failAfter(c_int(0))
+ try
+  auto unused=optionalGroup(valueCallback,null,c_int(4))
+ catch error
+  optionalRejected=true
+ end
+ assert failReset()!=c_int(0) and optionalRejected
+ if not previousDebug then assert setDebugEnabled(false) end
  assert two(plus,null,c_int(1),plus,null,c_int(2))==c_int(18)
  nested(plus,null,c_int(3))
  assert dispatch(c_int(4))==c_int(12)

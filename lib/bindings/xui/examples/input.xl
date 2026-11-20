@@ -1,9 +1,11 @@
-// 点击输入框，编辑或选择 UTF-8 文字。
+// 编辑 UTF-8 文字，或点击右侧清空按钮。
 import xui
 from "./_window.xl" import Window
 
 Window.show("Input / edit UTF-8 text", func(xui.Context ui, xui.Widget root)
  auto input = ui.inputNative()
  Window.place(root, input, 24, 24, 640, 44)
+ input.decorationAdd(xui.XUI_INPUT_DECORATION_SIDE_LEADING, xui.XUI_INPUT_DECORATION_TEXT, "搜索", 44)
+ input.decorationAdd(xui.XUI_INPUT_DECORATION_SIDE_TRAILING, xui.XUI_INPUT_DECORATION_CLEAR)
  input.setText("Hello, xlang - edit this text")
 end)

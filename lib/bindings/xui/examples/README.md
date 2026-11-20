@@ -149,7 +149,8 @@ WebView 范例只加载源码中的本地 HTML。它需要启用 WebView2 的 Wi
 | [dockpanel.xl](dockpanel.xl) | 拖动 Inspector 标题移动或停靠内容。 |
 | [hyperlink.xl](hyperlink.xl) | Hyperlink / local click callback |
 | [image.xl](image.xl) | 把一张橙色原生 Surface 放大显示为图片。 |
-| [input.xl](input.xl) | 点击输入框，编辑或选择 UTF-8 文字。 |
+| [input.xl](input.xl) | 编辑 UTF-8 文字，点击右侧按钮清空内容。 |
+| [input_decorations.xl](input_decorations.xl) | 为输入框添加文字、纹理和自定义绘制装饰。 |
 | [listview.xl](listview.xl) | 点击行，改变列表的选中项。 |
 | [menu.xl](menu.xl) | Menu / command selection |
 | [messagelist.xl](messagelist.xl) | 两条聊天消息对应两个 addNode 调用。 |

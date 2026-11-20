@@ -12,6 +12,10 @@ func main(...) as int
     auto proxy=cpuProxy()
     auto ui=xui.create(proxy,xui.XUI_SYSTEM_FONT_DISABLED)
     auto target=cpuSurface(proxy)
+    auto plain=ui.registerWidgetTypeWithCallbacks("test.withoutCallbacks")
+    assert ui.findWidgetType("test.withoutCallbacks")!=null
+    plain.unregister()
+    assert ui.findWidgetType("test.withoutCallbacks")==null
     c_int initialized=0
     c_int destroyed=0
     c_int measured=0

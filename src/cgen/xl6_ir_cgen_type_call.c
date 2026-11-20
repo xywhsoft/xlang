@@ -699,7 +699,10 @@ static int xl6IrCgenEmitWitnessNativeCall(XL6_Output* out, const XL6_IrModule* m
             else xl6OutputPrintf(out,"(%s)0",row->pointerCName);
             continue;
         }
-        if(step.kind==XL6_FOREIGN_PHYSICAL_STEP_CALLBACK_GROUP_OWNER){xl6OutputPrintf(out,"&native_callback_group_owner_%u",step.ordinal);continue;}
+        if(step.kind==XL6_FOREIGN_PHYSICAL_STEP_CALLBACK_GROUP_OWNER){
+            if(!xl6IrCgenCallbackGroupOwnerArgument(out,module,target,step.ordinal))return 0;
+            continue;
+        }
         if(step.kind==XL6_FOREIGN_PHYSICAL_STEP_ARRAY_GROUP){if(!xl6IrCgenArrayArguments(out,module,target,step.physicalIndex))return 0;continue;}
         if(step.kind==XL6_FOREIGN_PHYSICAL_STEP_PACK){xl6OutputPrintf(out,"&native_pack_%u",step.physicalIndex);continue;}
         if(step.kind==XL6_FOREIGN_PHYSICAL_STEP_OUTPUT){
@@ -1169,7 +1172,10 @@ static int xl6IrCgenEmitDirectCall(
                 else xl6OutputPrintf(out,"(%s)0",row->pointerCName);
                 continue;
             }
-            if(step.kind==XL6_FOREIGN_PHYSICAL_STEP_CALLBACK_GROUP_OWNER){xl6OutputPrintf(out,"&native_callback_group_owner_%u",step.ordinal);continue;}
+            if(step.kind==XL6_FOREIGN_PHYSICAL_STEP_CALLBACK_GROUP_OWNER){
+                if(!xl6IrCgenCallbackGroupOwnerArgument(out,module,target,step.ordinal))return 0;
+                continue;
+            }
         if(step.kind==XL6_FOREIGN_PHYSICAL_STEP_ARRAY_GROUP){if(!xl6IrCgenArrayArguments(out,module,target,step.physicalIndex))return 0;continue;}
             if(step.kind==XL6_FOREIGN_PHYSICAL_STEP_PACK){xl6OutputPrintf(out,"&native_pack_%u",step.physicalIndex);continue;}
             if(step.kind==XL6_FOREIGN_PHYSICAL_STEP_OUTPUT){

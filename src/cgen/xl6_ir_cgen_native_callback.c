@@ -205,7 +205,15 @@ static int xl6IrCgenNativeCallbacksBegin(XL6_Output* out,const XL6_IrModule* mod
             if(n++)xl6OutputPuts(",",out);
             xl6OutputPrintf(out,"0x%016llXULL",(unsigned long long)signature->typeValueId);
         }
-        xl6OutputPrintf(out,"};\n    if (native_callbacks_ok) { native_callback_group_%u=xl6NativeCallbackGroupRuntimeV1Get()->Create("
+        xl6OutputPuts("};\n    if (native_callbacks_ok",out);
+        if(pack->callbackGroupOptional){
+            xl6OutputPuts(" && (",out);
+            for(size_t member=0;member<members;++member)
+                xl6OutputPrintf(out,"%snative_callback_group_closures_%u[%lu]",
+                    member ? " || ":"",pack->physicalIndex,(unsigned long)member);
+            xl6OutputPuts(")",out);
+        }
+        xl6OutputPrintf(out,") { native_callback_group_%u=xl6NativeCallbackGroupRuntimeV1Get()->Create("
             "xlir_closure_owner,native_callback_group_closures_%u,native_callback_group_contexts_%u,native_callback_group_signatures_%u,%lu);\n"
             "    if (!native_callback_group_%u) { native_callbacks_ok=false; xl6ErrorScopeCaptureFailure(&%s); }\n"
             "    else native_callback_group_owner_%u=(%s){xl6NativeCallbackGroupRuntimeV1Get()->Ownership(native_callback_group_%u),"
@@ -244,6 +252,16 @@ static int xl6IrCgenNativeCallbacksBegin(XL6_Output* out,const XL6_IrModule* mod
     }
     if(count)xl6OutputPuts("    if (native_callbacks_ok) {\n",out);
     return count;
+}
+static int xl6IrCgenCallbackGroupOwnerArgument(XL6_Output* out,const XL6_IrModule* module,
+    const XL6_IrCallTarget* target,uint32 packIndex)
+{
+    const XL6_ForeignPackContract* pack=xl6IrForeignPackGet(module,target,packIndex);
+    if(!pack)return 0;
+    if(pack->callbackGroupOptional)
+        xl6OutputPrintf(out,"(native_callback_group_%u ? &native_callback_group_owner_%u : NULL)",packIndex,packIndex);
+    else xl6OutputPrintf(out,"&native_callback_group_owner_%u",packIndex);
+    return 1;
 }
 static void xl6IrCgenNativeCallbacksObserve(XL6_Output* out,const XL6_IrCallTarget* target,const char* errors)
 {

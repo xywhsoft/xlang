@@ -45,6 +45,16 @@ int gp_two(const GpDesc* left,const GpOwner* a,const GpDesc* right,const GpOwner
     int x=invoke(left,a,2);if(x<0)return x;
     int y=invoke(right,b,3);return y<0 ? y:x+y;
 }
+int gp_optional(const GpDesc* desc,const GpOwner* owner)
+{
+    assert(desc);
+    if (!desc->value && !desc->notice) {
+        assert(!desc->user && !owner);
+        return desc->seed;
+    }
+    assert(desc->user && owner);
+    return invoke(desc,owner,2);
+}
 int gp_nested(const GpNested* desc,const GpOwner* owner){return gp_install(&desc->inner,owner);}
 static int root_install(GpRoot* root,const GpDesc* desc,const GpOwner* owner)
 {assert(root);return gp_install(desc,owner);}

@@ -1,0 +1,26 @@
+import xui
+from "./_window.xl" import Window
+
+Window.showWithProxy("Input decorations", func(xui.Context ui,xui.Widget root,xui.Proxy proxy)
+ auto input=ui.inputNative()
+ Window.place(root,input,24,24,440,44)
+ input.setText("Edit this text, or clear it with the button on the right.")
+
+ c_int leading=xui.XUI_INPUT_DECORATION_SIDE_LEADING
+ c_int trailing=xui.XUI_INPUT_DECORATION_SIDE_TRAILING
+ input.decorationAdd(leading,xui.XUI_INPUT_DECORATION_TEXT,"Search",52)
+ input.decorationAdd(trailing,xui.XUI_INPUT_DECORATION_CLEAR)
+
+ // The input retains the texture through its decoration.
+ auto texture=proxy.createSurfaceRGBA(12,12,flags=c_uint(xui.XUI_SURFACE_USAGE_TARGET))
+ proxy.clearSurface(texture,c_uint(0x3284E8FF))
+ input.decorationAdd(leading,xui.XUI_INPUT_DECORATION_TEXTURE,width=16,surface=texture,color=c_uint(0xFFFFFFFF))
+ texture.close()
+
+ // The draw context is valid during this callback.
+ input.decorationAdd(trailing,xui.XUI_INPUT_DECORATION_CUSTOM_PAINT,width=18,
+  paint=func(xui.CallbackWidget widget,xui.CallbackInputDecoration decoration,xui.CallbackDrawContext draw,xui.Rect rect,c_uint state) as c_int
+   proxy.fillRect(draw,rect,c_uint(0x279E67FF))
+   return c_int(0)
+  end)
+end)

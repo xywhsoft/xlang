@@ -102,12 +102,18 @@ static inline int xl6ForeignPackFieldRead(const XL6_AstNode* attr,XL6_ForeignPac
 static inline int xl6ForeignPackCallbackGroupRead(const XL6_AstNode* attr,XL6_ForeignPackContract* output)
 {
     int32 pack,owner;XL6_ForeignPackContract row={0};
-    if(!attr || !attr->text || strcmp(attr->text,"c_pack_callback_group") || attr->childCount!=3 ||
+    if(!attr || !attr->text || strcmp(attr->text,"c_pack_callback_group") ||
+        (attr->childCount!=3 && attr->childCount!=4) ||
         !xl6ForeignDecimalInt(attr->children[0],&pack) || pack<0 || pack>=64 ||
         !xl6ForeignQuotedText(attr->children[1],row.callbackUserField,sizeof(row.callbackUserField)) ||
         !xl6ForeignPackPath(row.callbackUserField) ||
         !xl6ForeignDecimalInt(attr->children[2],&owner) || owner<0 || owner>=64 || owner==pack)return 0;
     row.physicalIndex=(uint32)pack;row.callbackOwnerPhysicalIndexPlusOne=(uint32)owner+1;
+    if(attr->childCount==4){
+        char mode[16];
+        if(!xl6ForeignQuotedText(attr->children[3],mode,sizeof(mode)) || strcmp(mode,"optional"))return 0;
+        row.callbackGroupOptional=1;
+    }
     if(output)*output=row;
     return 1;
 }
@@ -118,6 +124,7 @@ static inline int xl6ForeignPackApplyCallbackGroup(const XL6_AstNode* node,XL6_F
         if(xl6ForeignPackCallbackGroupRead(attrs->children[i],&row) && row.physicalIndex==pack->physicalIndex){
             if(++found>1)return 0;
             pack->callbackOwnerPhysicalIndexPlusOne=row.callbackOwnerPhysicalIndexPlusOne;
+            pack->callbackGroupOptional=row.callbackGroupOptional;
             strcpy(pack->callbackUserField,row.callbackUserField);
         }
     }

@@ -54728,9 +54728,10 @@ void xl6IrDumpModuleJson(XL6_Output* out, const XL6_IrModule* module)
     }
     xl6OutputPuts("  ],\n  \"foreignPacks\": [\n",out);
     for(i=0;i<module->foreignPackCount;++i){const XL6_ForeignPackContract* row=&module->foreignPacks[i];
-        xl6OutputPrintf(out,"    {\"declaration\":%u,\"physicalIndex\":%u,\"firstParameter\":%u,\"parameterCount\":%u,\"recordCName\":\"%s\",\"header\":\"%s\",\"callbackOwnerPhysicalIndexPlusOne\":%u,\"callbackUserField\":\"%s\",\"callbackGroupOwnerCName\":\"%s\"}%s\n",
+        xl6OutputPrintf(out,"    {\"declaration\":%u,\"physicalIndex\":%u,\"firstParameter\":%u,\"parameterCount\":%u,\"recordCName\":\"%s\",\"header\":\"%s\",\"callbackOwnerPhysicalIndexPlusOne\":%u,\"callbackUserField\":\"%s\",\"callbackGroupOwnerCName\":\"%s\",\"callbackGroupOptional\":%s}%s\n",
             row->declaration,row->physicalIndex,row->firstParameter,row->parameterCount,row->recordCName,row->header,
-            row->callbackOwnerPhysicalIndexPlusOne,row->callbackUserField,row->callbackGroupOwnerCName,i+1==module->foreignPackCount ? "":",");
+            row->callbackOwnerPhysicalIndexPlusOne,row->callbackUserField,row->callbackGroupOwnerCName,
+            row->callbackGroupOptional ? "true":"false",i+1==module->foreignPackCount ? "":",");
     }
     xl6OutputPuts("  ],\n  \"foreignPackFields\": [\n",out);
     for(i=0;i<module->foreignPackFieldCount;++i){const XL6_ForeignPackFieldContract* row=&module->foreignPackFields[i];

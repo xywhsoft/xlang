@@ -14,6 +14,7 @@ typedef struct XL6_ForeignPackContract {
     /* Optional retained callback group. A distinct physical owner slot has no
      * logical language argument; its record ABI is derived from the members. */
     uint32 callbackOwnerPhysicalIndexPlusOne;
+    uint32 callbackGroupOptional;
     char callbackUserField[64],callbackGroupOwnerCName[64];
 } XL6_ForeignPackContract;
 

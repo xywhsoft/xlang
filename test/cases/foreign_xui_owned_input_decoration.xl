@@ -1,0 +1,114 @@
+import xui
+from xui import CallbackInputDecoration, InputDecoration
+
+extern "fixtureInputProxy" @header("test/cases/foreign_xui_input_extended.h") @no_raise @c_result("owned_view") @factory(0,0,dropProxy) func cpuProxy() as xui.Proxy
+extern "xuiProxyReleaseChecked" @header("xge3_runtime.h") @no_raise @c_result("status",0) func dropProxy(xui.Proxy value)
+extern "fixtureLayoutFont" @no_raise @c_result("owned_view") @factory(1,0,dropFont) func cpuFont(xui.Proxy proxy) as xui.Font
+extern "xuiFontReleaseChecked" @header("xge3_runtime.h") @no_raise @c_result("status",0) func dropFont(xui.Font value)
+extern "fixtureInputCleanupCheck" @no_raise func checkCleanup()
+
+extern "xrtMemDebugEnable" @header("xrt_decl.h") @no_raise func memDebug(bool enabled) as bool
+extern "xrtMemDebugFailAfter" @header("xrt_decl.h") @no_raise func failAfter(uint64 prefix) as bool
+extern "xrtMemDebugFailClear" @header("xrt_decl.h") @no_raise func failClear()
+
+func click(xui.Context ui,xui.Input input,InputDecoration decoration)
+ assert ui.update(0)==0
+ auto rect=decoration.getBounds()
+ auto world=input.getWorldRect()
+ c_int x=c_int(world.fX+rect.fX+rect.fW/2)
+ c_int y=c_int(world.fY+rect.fY+rect.fH/2)
+ assert ui.inputPointerDown(x,y,1,1)==0
+ assert ui.dispatchPendingEvents()==0
+ assert ui.inputPointerUp(x,y,1,0)==0
+ assert ui.dispatchPendingEvents()==0
+end
+
+func detached(InputDecoration decoration) as bool
+ try
+  auto bounds=decoration.getBounds()
+ catch StateError
+  return true
+ end
+ return false
+end
+
+func expired(CallbackInputDecoration decoration) as bool
+ try
+  auto bounds=decoration.getBounds()
+ catch StateError
+  return true
+ end
+ return false
+end
+
+func main(...) as int
+ auto proxy=cpuProxy()
+ auto font=cpuFont(proxy)
+ auto ui=xui.create(proxy,xui.XUI_SYSTEM_FONT_DISABLED)
+ ui.setDefaultFont(font)
+ auto root=ui.widget()
+ root.setFlowMode(xui.XUI_FLOW_ABSOLUTE)
+ assert ui.setRootWidget(root)==0
+ ui.setViewportSize(320,120)
+ auto input=ui.inputNative()
+ assert root.addChild(input)==0
+ auto rect=xui.Rect()
+ rect.fX=10
+ rect.fY=10
+ rect.fW=200
+ rect.fH=40
+ assert input.setRect(rect)==0
+ c_int leading=xui.XUI_INPUT_DECORATION_SIDE_LEADING
+ c_int trailing=xui.XUI_INPUT_DECORATION_SIDE_TRAILING
+ auto label=input.decorationAdd(leading,xui.XUI_INPUT_DECORATION_TEXT,"搜索",26)
+ auto alias=input.decorationGetAt(leading,0) as InputDecoration
+ auto kind,visibility,width,padding,icon,caption,surface,source,color,hover,active,disabled=label.describe()
+ assert caption!=null and (caption as string)=="搜索" and width==26 and surface==null, "description preserves text and width"
+ input.decorationSet(label,xui.XUI_INPUT_DECORATION_TEXT,"已替换",36)
+ assert alias.getBounds().fW==36, "replacement preserves the observed identity"
+ label.close()
+ assert input.decorationGetCount(leading)==1, "closing a view keeps the decoration"
+
+ int calls=0
+ CallbackInputDecoration? saved=null
+ auto clear=input.decorationAdd(trailing,xui.XUI_INPUT_DECORATION_CLEAR,null,30,
+  func(xui.CallbackWidget widget,CallbackInputDecoration view)
+   assert view.getBounds().fW==30
+   saved=view
+   calls+=1
+  end)
+ assert input.setText("clear this")==0
+ click(ui,input,clear)
+ auto text=input.getText()
+ assert text!=null and (text as string)=="" and calls==1, "click clears the input and fires one callback"
+ assert saved!=null and expired(saved as CallbackInputDecoration), "the saved callback view expires"
+ clear.remove()
+ assert detached(clear)
+ assert input.decorationClear(leading)==0
+ assert input.decorationGetAt(leading,0)==null
+ bool previous=memDebug(true)
+ int failures=0
+ for prefix in range(24)
+  auto pending=input.decorationGetAt(leading,0)
+  assert failAfter(uint64(prefix))
+  try
+   pending=input.decorationAdd(leading,xui.XUI_INPUT_DECORATION_TEXT,"Retry",24)
+  catch Error
+   failures+=1
+  finally
+   failClear()
+  end
+  if pending!=null then
+   (pending as InputDecoration).remove()
+  end
+  assert input.decorationGetCount(leading)==0, "failed factory admission leaves no decoration"
+ end
+ memDebug(previous)
+ assert failures>0 and failures<24
+ ui.close()
+ font.close()
+ proxy.close()
+ checkCleanup()
+ print("XUI_OWNED_INPUT_DECORATION_OK")
+ return 0
+end

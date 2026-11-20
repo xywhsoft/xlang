@@ -1,0 +1,119 @@
+{
+  "complete": true,
+  "passed": true,
+  "releaseInstalled": false,
+  "sourceParent": "1d5cbb1593fdcaf298691057fab3ed7ace6e0443",
+  "windowsBuildRecovery": "The standard build exhausted available compiler commit memory. Retried the same GCC O2 response commands with more frequent garbage collection; XRT, TinyCC, generated resources and frozen source inputs were preserved.",
+  "nativeRuntimeCommit": "e75266536290e2e9ac3c99b186c8bcf3f9397c18",
+  "sourceHashesLf": {
+    "src/type/xl6_foreign_pack_contract.h": "24f415d01214747f00e6e3a785475898b02acc6de73f0dd91a1378f8b9d23ae4",
+    "src/type/xl6_foreign_pack_decl.h": "839092298dc26c9cb061c6ddefe3c96f03786c2338e0767517e52f0c1d9cbcfe",
+    "src/ir/xl6_ir_foreign_pack.c": "42bf32776e145623ac194505e2575c5bbc37be314a2030c1b45372cf289ce3be",
+    "src/ir/xl6_ir.c": "d0236d66ec377a61319f8aa128873a33ad929e3adbeae01c85ba5171aaba2d8b",
+    "src/cgen/xl6_ir_cgen_foreign_pack.c": "ef18197a2732ffb4eecca7539bf6c49a0ec0aea677bcdfae1d5ede6161fe88a5",
+    "src/cgen/xl6_ir_cgen_native_callback.c": "480f7733368ee99881e3181e1e90d7bebe1d82a4a48c0f5c3609dcf8ceb5bcb8",
+    "src/cgen/xl6_ir_cgen_type_call.c": "fd54fdda9f26ce74790d0ef565b73baaa30a3a89153b94d580cddd84f011bb8c",
+    "docs/c-pack-owned-callbacks.md": "0d1cd14067f99b7fefa05b79a5513c3c4938bf5619376b873b18124b2038ec7e",
+    "test/cases/foreign_pack_owned_callback.xl": "5c3a1b11e0f701de49cd962d873c7d85feac18951bd87c2fa805f6ed2ea20630",
+    "test/cases/foreign_pack_owned_callback.h": "50e95e66a5c971e5a5b0857acb4030337a0d3b36259c2ee24c44a80af663212c",
+    "test/cases/foreign_pack_owned_callback_native.c": "c08eb384b80209c056ad37dfbeb60c7bbecdf309cf8a1fcb2ed4c92d4172f7ed",
+    "test/cases/foreign_pack_owned_callback_ir.c": "b2b796d27756b54fdd886f7b14fad6fb834563b8fccf1a332c79bcc82a8c0458",
+    "test/cases/foreign_xui_widget_type_callbacks.xl": "51c4181fa6d5484826a1a7b0a02037897435e405c1a615e348417b95239946e0",
+    "test/cases/foreign_xui_owned_input_decoration.xl": "e4349576395a555ccd0c43cee1cec8d18d97e5d3efe3b1b55d6f4e2e60082977",
+    "tools/xui_managed_contracts.py": "6d151b1a152a13f12f094d10543def65ade86468df67304fb68235c6d892ea72",
+    "lib/bindings/xui/src/managed.xl": "2f5b6f9e1b92e10d969f6138b99e39ce5bc2180f716f13d6d56492e2828c7429",
+    "lib/bindings/xui/examples/input_decorations.xl": "3cd574e63dd9e9be6085a8417ae993862fef8c8e9b5308d291c023abab3840c2",
+    "lib/bindings/xui/examples/input.xl": "eaec0cbb1cc4b42bbdab9e7434e68fece1d83cbee83c3ed97768d5abe044dc29",
+    "lib/bindings/xui/examples/README.md": "bf3f2e1d220412869df05a3262b261c71b4e570803ae8f03687fb1aa04cb91fd"
+  },
+  "checks": [
+    "Optional all-null groups pass NULL userdata, NULL owner and NULL callback fields to native code.",
+    "The allocation fault armed for the next allocation is not consumed by the empty call. A non-empty group under the same fault reports a checked failure.",
+    "Either callback can be supplied alone. Required groups keep the original non-NULL owner with all members absent.",
+    "Input decoration creation and replacement accept an absent callback group; a retained click callback still runs and its callback view expires.",
+    "The widget registration API accepts an absent callback group, an individual callback, and the full callback set.",
+    "Generated descriptor fields check group presence before accessing its members. Public native calls remain direct.",
+    "An invalid mode, a non-string mode and a repeated group declaration are rejected without emitting C on both platforms.",
+    "Against the Linux O2 compiler, the O0 and O2 verifier harnesses each reject 266 IR mutations before emitting either C or a header."
+  ],
+  "declaration": "@c_pack_callback_group(packSlot, \"userdataField\", ownerSlot, \"optional\")",
+  "remainingNativeFunctionsWithoutEvidence": 855,
+  "remainingByFamily": {
+    "Document": 33,
+    "Document UI": 10,
+    "XGE": 399,
+    "XUI": 413
+  },
+  "platforms": {
+    "win": {
+      "compiler": {
+        "path": "F:\\xlang-validation\\xge-full-20261110\\compiler-optional-callback-win-r2\\build-oom-retry.json",
+        "sha256": "54c2ad539999bbffc424f4ac6a50a552435b8d56afe4a0f8fc37e52e53c01b23"
+      },
+      "packages": {
+        "path": "F:\\xlang-validation\\xge-full-20261110\\optional-callback-packages-win-r1\\results.json",
+        "sha256": "d3948b8645808c87f69007c7a5698934717754620f0dde621995957fcf90105a"
+      },
+      "decorations": {
+        "path": "F:\\xlang-validation\\xge-full-20261110\\optional-callback-input-decoration-win-r3\\results.json",
+        "sha256": "e351c48aec3fdf21f301751bb83364c38df8adc3b907e3b85d58c6a021dc69fa"
+      },
+      "callbackGroup": {
+        "path": "F:\\xlang-validation\\xge-full-20261110\\optional-callback-full-check-win-r3\\results.json",
+        "sha256": "66f4db401dadf345109be633f6ece02221676a6785a47535de4ef9061abdf0f2"
+      },
+      "widget": {
+        "path": "F:\\xlang-validation\\xge-full-20261110\\optional-callback-widget-tests-win-r3\\results.json",
+        "sha256": "b4e6787bb1d5084e9197776c67d19a0c83c4748de54ec113b66af33f3e894a4c"
+      },
+      "inventory": {
+        "path": "F:\\xlang-validation\\xge-full-20261110\\optional-callback-api-audit-win-r3\\consumers\\results.json",
+        "sha256": "f9fd401286ee27d431975ed880cbf6be671f60dd31c12056da238eb401f0da17"
+      },
+      "declarationNegatives": {
+        "path": "F:\\xlang-validation\\xge-full-20261110\\optional-callback-invalid-mode-win-r1\\results.json",
+        "sha256": "524e2cf7c637982ebe0d97dae291438a2d6c424340ecf317f66b784147b5fee2"
+      },
+      "decorationChecks": 6,
+      "callbackGroupChecks": 19,
+      "widgetChecks": 25
+    },
+    "linux": {
+      "compiler": {
+        "path": "\\\\wsl.localhost\\Ubuntu\\var\\tmp\\xlang-validation\\xge-full-20261110\\compiler-optional-callback-linux-r2\\build.json",
+        "sha256": "10427dacac372fcabb12f9a6af4b49cced0b8ee6034d0d682980142cc068fc28"
+      },
+      "packages": {
+        "path": "\\\\wsl.localhost\\Ubuntu\\var\\tmp\\xlang-validation\\xge-full-20261110\\optional-callback-packages-linux-r1\\results.json",
+        "sha256": "5a3bb65b9a2e95a1d488aed88a5cf2f4b3e21dfe9b47fdef1c52c1bcc4f59de0"
+      },
+      "decorations": {
+        "path": "\\\\wsl.localhost\\Ubuntu\\var\\tmp\\xlang-validation\\xge-full-20261110\\optional-callback-input-decoration-linux-r2\\results.json",
+        "sha256": "96d5a162e9d2161e5c6a1a39bb3ae2f97c56046cda8003fcc58143d028aa929c"
+      },
+      "callbackGroup": {
+        "path": "\\\\wsl.localhost\\Ubuntu\\var\\tmp\\xlang-validation\\xge-full-20261110\\optional-callback-full-check-linux-r2\\results.json",
+        "sha256": "24adab2d64f97e254777c82f7df523d99aa07fe57c6cce1218ee4e270d5dc03e"
+      },
+      "widget": {
+        "path": "\\\\wsl.localhost\\Ubuntu\\var\\tmp\\xlang-validation\\xge-full-20261110\\optional-callback-widget-tests-linux-r2\\results.json",
+        "sha256": "0919bbc06c415dd4296cceece128445fff52127bd0ce4f6505a7156a516b3f3a"
+      },
+      "inventory": {
+        "path": "\\\\wsl.localhost\\Ubuntu\\var\\tmp\\xlang-validation\\xge-full-20261110\\optional-callback-api-audit-linux-r2\\consumers\\results.json",
+        "sha256": "1f7a3faacd6fc6642b34b1be5cc849048e13d46219686c1c822615760224a45c"
+      },
+      "declarationNegatives": {
+        "path": "\\\\wsl.localhost\\Ubuntu\\var\\tmp\\xlang-validation\\xge-full-20261110\\optional-callback-invalid-mode-linux-r1\\results.json",
+        "sha256": "b18c25cec81297c8a6312a02bdad68eb8cdcd32199430c25b822882d927207f5"
+      },
+      "decorationChecks": 6,
+      "callbackGroupChecks": 19,
+      "widgetChecks": 25,
+      "irMutations": {
+        "path": "\\\\wsl.localhost\\Ubuntu\\var\\tmp\\xlang-validation\\xge-full-20261110\\optional-callback-ir-linux-r3\\results.json",
+        "sha256": "c9bfc0e39e493077fe7837688de00df542e32fa35429219910fa9848df501542"
+      }
+    }
+  }
+}
