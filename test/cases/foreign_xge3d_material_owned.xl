@@ -30,7 +30,41 @@ func main(...) as int
  assert material.params().roughness==c_float(0.5)
  shared.close()
 
- auto texture=xge3d.createTexture(2,2,b"\0\0\0\xFF\0\0\0\xFF\0\0\0\xFF\0\0\0\xFF")
+ auto rgba=b"\0\0\0\xFF\0\0\0\xFF\0\0\0\xFF\0\0\0\xFF"
+ auto png=xge.encodeImagePng(2,2,rgba)
+ auto premultiplied=xge.loadImage(png)
+ rejected=false
+ try
+  auto invalid=xge3d.createTexture(premultiplied)
+  invalid.close()
+ catch Error
+  rejected=true
+ end
+ assert rejected and xge.graphicsResourceCount()==uint64(1)
+ premultiplied.close()
+ auto image=xge.loadImage(png,c_uint(xge.XGE_IMAGE_STRAIGHT_ALPHA))
+ auto texture=xge3d.createTexture(image)
+ auto sampler=xge3d.Xge3dSampler()
+ sampler.min_filter=c_int(0x2600)
+ sampler.mag_filter=c_int(0x2600)
+ auto sampledImage=xge3d.createTexture(image,0,sampler)
+ image.close()
+ assert texture.info().cpu_payload_bytes==uint64(16)
+ assert sampledImage.info().cpu_payload_bytes==uint64(16)
+ sampledImage.close()
+ auto sampledBuffer=xge3d.createTexture(2,2,Buffer(rgba),0,sampler)
+ assert sampledBuffer.info().cpu_payload_bytes==uint64(16)
+ sampledBuffer.close()
+ auto defaultBuffer=xge3d.createTexture(2,2,Buffer(rgba))
+ defaultBuffer.close()
+ rejected=false
+ try
+  auto shortBuffer=xge3d.createTexture(2,2,Buffer(b"\0"))
+  shortBuffer.close()
+ catch Error
+  rejected=true
+ end
+ assert rejected and xge.graphicsResourceCount()==uint64(2)
  auto textureAlias=texture.share()
  auto mapping=xge3d.textureMappingDefault()
  mapping.texcoord=c_int(1)

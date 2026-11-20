@@ -88,6 +88,7 @@ REPLACED = {
     'xge3dMotionDefault': ('xge3d.threeDMotionDefault', 'xge3dMotionDefaultInto'),
     'xge3dCameraLookAt': ('xge3d.viewLookAt', 'xge3dViewLookAt'),
     'xge3dCameraLookAtGlobal': ('xge3d.viewLookAtGlobal', 'xge3dViewLookAtGlobal'),
+    'xge3dTextureCreate': ('xge3d.createTexture', 'xge3dTextureCreateFromImageOwned'),
     'xgeActionsReset': ('xge.Actions.reset', 'xgeActionsResetChecked'),
     'xgeAudioClipSamples': ('xge.AudioClip.samples', 'xgeAudioClipGetSamples'),
     'xgeFontGlyphRasterize': ('xge.Font.rasterize', 'xgeFontGlyphRasterizeOwned'),

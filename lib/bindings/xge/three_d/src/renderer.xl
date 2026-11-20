@@ -1,3 +1,5 @@
+from xge import Image
+
 export extern "xge3d_billboard_color_t" struct BillboardColor @header("xge3d_renderer.h")
  c_float r
  c_float g
@@ -88,6 +90,8 @@ extern "xge3dRendererReleaseChecked" @header("xge3d_renderer.h") @no_raise @c_re
 extern "xge3dTargetReleaseChecked" @header("xge3d_renderer.h") @no_raise @c_result("status",0) func rollbackTarget3D(RenderTarget3D value)
 export extern "xge3dRendererCreateOwned" @header("xge3d_renderer.h") @no_raise @c_result("owned_view") @factory(0,0,rollbackRenderer) func createRenderer() as Renderer
 export extern "xge3dTargetCreateOwned" @header("xge3d_renderer.h") @no_raise @c_result("owned_view") @factory(2,0,rollbackTarget3D) func createRenderTarget(c_int width,c_int height) as RenderTarget3D
-export extern "xge3dTextureCreateRGBAOwned" @header("xge3d_renderer.h") @no_raise @c_span(2,"const void*","size_t") @c_null(5,"const xge3d_sampler_t*") @c_result("owned_view") @factory(6,0,rollbackTexture3D) func createTexture(c_int width,c_int height,bytes pixels,c_int srgb=1) as Texture3D
-export extern "xge3dTextureCreateRGBAOwned" @header("xge3d_renderer.h") @no_raise @c_span(2,"const void*","size_t") @c_ref(4) @c_result("owned_view") @factory(6,0,rollbackTexture3D) func createTexture(c_int width,c_int height,bytes pixels,c_int srgb,Xge3dSampler sampler) as Texture3D
+export extern "xge3dTextureCreateRGBAOwned" @header("xge3d_renderer.h") @no_raise @c_span(2,"const void*","size_t") @c_ref(4) @c_result("owned_view") @factory(6,0,rollbackTexture3D) func createTexture(c_int width,c_int height,bytes pixels,c_int srgb=1,Xge3dSampler sampler=Xge3dSampler()) as Texture3D
+export extern "xge3dTextureCreateRGBAOwned" @header("xge3d_renderer.h") @no_raise @c_span(2,"const void*","size_t") @c_ref(4) @c_result("owned_view") @factory(6,0,rollbackTexture3D) func createTexture(c_int width,c_int height,Buffer pixels,c_int srgb=1,Xge3dSampler sampler=Xge3dSampler()) as Texture3D
+export extern "xge3dTextureCreateFromImageOwned" @header("xge3d_renderer.h") @no_raise @c_const(0) @c_null(2,"const xge3d_sampler_t*") @c_result("owned_view") @factory(3,0,rollbackTexture3D) func createTexture(Image image,c_int srgb=1) as Texture3D
+export extern "xge3dTextureCreateFromImageOwned" @header("xge3d_renderer.h") @no_raise @c_const(0) @c_ref(2) @c_result("owned_view") @factory(3,0,rollbackTexture3D) func createTexture(Image image,c_int srgb,Xge3dSampler sampler) as Texture3D
 export extern "xge3dBillboardGeometryDefault" @header("xge3d_renderer.h") @no_raise func billboardDefault() as BillboardGeometry

@@ -107,6 +107,19 @@ language builder view.
 
 [Incremental model example](../lib/bindings/xge/three_d/examples/model_instance.xl)
 
+## Texture inputs
+
+`xge3d.createTexture(image)` takes a straight-alpha RGBA8 `Image`.
+Load encoded images with `xge.XGE_IMAGE_STRAIGHT_ALPHA`. The original
+image supplies the pixels and row stride during the call. The native texture
+copies the pixels into its own storage, so the image may be closed immediately.
+For raw inputs, `createTexture(width, height, pixels)` accepts either
+`bytes` or `Buffer` and checks that the full image fits. A zero-initialized
+sampler selects the native defaults. Pass a sampler and sRGB flag to
+configure either form.
+
+[Material example](../lib/bindings/xge/three_d/examples/material.xl)
+
 ## Animation and skinning
 
 Use `model.clip(index)` for a clip in a loaded model, or `xge3d.loadClip()`

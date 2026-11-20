@@ -1,0 +1,111 @@
+{
+  "complete": true,
+  "passed": true,
+  "releaseInstalled": false,
+  "sourceParent": "ea0116804698c7c69bf7e6b576874872e7ceccb9",
+  "nativeCommit": "fc65b249927af6b8485358063c6e71b36ad41acc",
+  "checks": [
+    "The native managed image factory borrows straight-alpha RGBA8 input, respects image stride and uses one native texture storage copy. It returns an independent owner on the creator thread.",
+    "The RGBA8 input accepts bytes and a protected Buffer. With no explicit sampler the declaration passes one zero C value record, selecting the same native normalized defaults. The Image overload can pass a typed NULL.",
+    "Closed source images can be followed by managed texture upload and draw. Native and language GPU fixtures exercise retained material references, checked Busy on engine shutdown, and shutdown after releasing the last graphics owner.",
+    "The native fixture rejects premultiplied input and covers both allocation failure prefixes without a new lease or partial output. The language fixture rejects premultiplied images and short Buffer backing.",
+    "Both allocation comparisons reuse one already decoded Image for 64 warm create/close calls. Xlang records 256 allocations and frees, and handwritten C records 128 of each, with zero reallocations in both. Two additional managed-control allocations per texture are observed. The bridge borrows the original image rather than calling Image.pixels. It does not add a second pixel copy.",
+    "Both language profiles check direct generated C calls, the material example, and the GPU fixture through JIT and dynamic/static AOT. Native C GPU fixtures use O0/O2 with both host and static XGE builds."
+  ],
+  "headerReviewRebase": {
+    "path": "F:\\xlang-validation\\xge-full-20261110\\texture-image3d-storage-rebase-r1.json",
+    "sha256": "99a582086b9e689c0ab00d6c6e65e3fa102bedec396e4c4be0ab019169ea6986"
+  },
+  "platforms": {
+    "win": {
+      "sdk": {
+        "path": "F:\\xlang-validation\\xge-full-20261110\\texture-image3d-sdk-win-r1\\results.json",
+        "sha256": "37605bd99d3d1cd0e9b0369741de43af39fa607cadfd17dcaceefa8d2f1e1e5b"
+      },
+      "native": {
+        "path": "F:\\xlang-validation\\xge-full-20261110\\texture-image3d-native-win-r1\\results.json",
+        "sha256": "20429dbaa2fd3f40dc5c523c9dcafbe5c1a63411a08ba55c9d50618584f74b94"
+      },
+      "packages": {
+        "path": "F:\\xlang-validation\\xge-full-20261110\\texture-image3d-packages-win-r3\\results.json",
+        "sha256": "b136a28dff2656fbd3c7fe135f79e8091b4a93461086b5dd0eb719b3c23b5445"
+      },
+      "runtime": {
+        "path": "F:\\xlang-validation\\xge-full-20261110\\texture-image3d-language-win-r4\\results.json",
+        "sha256": "64a77f4ef18f208d552428f278139a982b37fb765f09830f3a918d98809ef5ce"
+      },
+      "bridgeAudit": {
+        "path": "F:\\xlang-validation\\xge-full-20261110\\texture-image3d-audit-win-r1\\consumers\\results.json",
+        "sha256": "89a6740378fe0a3a1865ec4509da42ac8e4cbef58609036cf08baaa442b789db"
+      },
+      "compiler": {
+        "path": "F:\\xlang-validation\\xge-full-20261110\\compiler-existing-root-win-r1\\build.json",
+        "sha256": "107a294cdefd81906f8e3fef6bced071ececaad4bf1837b61a15b1e9c7858a07"
+      },
+      "heapComparison": {
+        "iterations": 64,
+        "language": [
+          256,
+          256,
+          0
+        ],
+        "C": [
+          128,
+          128,
+          0
+        ]
+      },
+      "unclassifiedByFamily": {
+        "XGE": 368,
+        "XUI": 398,
+        "Document UI": 1,
+        "Document": 1
+      }
+    },
+    "linux": {
+      "sdk": {
+        "path": "\\\\wsl.localhost\\Ubuntu\\var\\tmp\\xlang-validation\\xge-full-20261110\\texture-image3d-sdk-linux-r1\\results.json",
+        "sha256": "4628f4b23fde234f5216bc7657655af4d7f68eda972eb11f2b829c4d72757846"
+      },
+      "native": {
+        "path": "\\\\wsl.localhost\\Ubuntu\\var\\tmp\\xlang-validation\\xge-full-20261110\\texture-image3d-native-linux-r1\\results.json",
+        "sha256": "3b15cb45caff203dfb5f78291b93445b31f4403231276d84ff75ae632779e29d"
+      },
+      "packages": {
+        "path": "\\\\wsl.localhost\\Ubuntu\\var\\tmp\\xlang-validation\\xge-full-20261110\\texture-image3d-packages-linux-r3\\results.json",
+        "sha256": "6556a15f4e7b40ddd268f7d2f10b59a559de47f400a6c0e533c9aec7bb330a65"
+      },
+      "runtime": {
+        "path": "\\\\wsl.localhost\\Ubuntu\\var\\tmp\\xlang-validation\\xge-full-20261110\\texture-image3d-language-linux-r4\\results.json",
+        "sha256": "ce3270721ac42637912433f6bf77d26d929a63c016c58aa1da11f9bc35a913c8"
+      },
+      "bridgeAudit": {
+        "path": "\\\\wsl.localhost\\Ubuntu\\var\\tmp\\xlang-validation\\xge-full-20261110\\texture-image3d-audit-linux-r1\\consumers\\results.json",
+        "sha256": "ccac64cb51c3c536a249f2139a872257fbf2c517fc3a0b61b7e0fdf4ca13ecc6"
+      },
+      "compiler": {
+        "path": "\\\\wsl.localhost\\Ubuntu\\var\\tmp\\xlang-validation\\xge-full-20261110\\compiler-existing-root-linux-r1\\build.json",
+        "sha256": "6e729bc793dcd92edcd42f51e244bad799187c32ef82121e8275288a31274b11"
+      },
+      "heapComparison": {
+        "iterations": 64,
+        "language": [
+          256,
+          256,
+          0
+        ],
+        "C": [
+          128,
+          128,
+          0
+        ]
+      },
+      "unclassifiedByFamily": {
+        "XGE": 368,
+        "XUI": 398,
+        "Document UI": 1,
+        "Document": 1
+      }
+    }
+  }
+}
