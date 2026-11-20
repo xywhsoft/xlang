@@ -23,7 +23,9 @@
       "analysis_ir_sparse_decode_test"
     ],
     "windowsLoaderOracleChecks": 92,
-    "linuxLoaderOracleChecks": 56
+    "linuxLoaderOracleChecks": 56,
+    "windowsImportNamesChecks": 1386,
+    "linuxImportNamesChecks": 1386
   },
   "evidence": {
     "languageServer": {
@@ -61,6 +63,14 @@
     "linuxLoaderOracle": {
       "path": "\\\\wsl.localhost\\Ubuntu\\var\\tmp\\xlang-validation\\xge-full-20261110\\lsp-xge-loader-oracle-replay-linux-r2\\result.json",
       "sha256": "c49dc66872f529325e2e907a6ac8887c591f26af87a67be5d2ef56645b9b1db5"
+    },
+    "windowsImportNames": {
+      "path": "F:\\xlang-validation\\xge-full-20261110\\lsp-xge-import-names-replay-win-r1\\result.json",
+      "sha256": "75e8609c6bb626eda497e7a3ced4e836df332e031806f60f33a2bbfa5b4d459f"
+    },
+    "linuxImportNames": {
+      "path": "\\\\wsl.localhost\\Ubuntu\\var\\tmp\\xlang-validation\\xge-full-20261110\\lsp-xge-import-names-replay-linux-r1\\result.json",
+      "sha256": "ad9ae0c3c9de22218f6b202e05504074aecb79e125ec309e2c01378de302eb2e"
     }
   }
 }

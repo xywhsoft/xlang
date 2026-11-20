@@ -19,6 +19,11 @@ static bool fixtureMapRemove(xmap* map,xbytesview key) {return operation() && xr
 #define xl6ImportsExpandModule privateExpand
 #define xl6CompiledPackageInterfaceValid privateInterfaceValid
 #define xl6CompiledPackageDecode privateInterfaceDecode
+#define xl6CompiledPackageDescriptorInterfaceValid privateDescriptorInterfaceValid
+#define xl6CompiledPackageFeaturesDecode privatePackageFeaturesDecode
+#define xl6CompiledNativeFeaturesFree privateNativeFeaturesFree
+#define xl6CompiledNativeFeaturesDecode privateNativeFeaturesDecode
+#define xl6CompiledNativeFeaturesEncode privateNativeFeaturesEncode
 #define xlsFrontendImportNamesBegin privateBegin
 #define xlsFrontendImportNamesEnd privateEnd
 #define xlsFrontendNativeSelectionAvailable privateNativeSelectionAvailable
@@ -43,6 +48,11 @@ static bool fixtureMapRemove(xmap* map,xbytesview key) {return operation() && xr
 #undef xlsFrontendNativeSelectionAvailable
 #undef xl6CompiledPackageInterfaceValid
 #undef xl6CompiledPackageDecode
+#undef xl6CompiledPackageDescriptorInterfaceValid
+#undef xl6CompiledPackageFeaturesDecode
+#undef xl6CompiledNativeFeaturesFree
+#undef xl6CompiledNativeFeaturesDecode
+#undef xl6CompiledNativeFeaturesEncode
 #undef xlsFrontendImportNamesBegin
 #undef xlsFrontendImportNamesEnd
 static unsigned checks;
