@@ -23,4 +23,5 @@ int xgeTestHostPoll(void);
 void xgeTestHostPresent(void);
 int xgeTestHostInfo(xge_test_host_probe_info*);
 void* xgeTestHostGetProc(const char* name);
+unsigned xgeTestHostTargetFramebuffer(const xge_render_target_t* target);
 #endif

@@ -9,6 +9,10 @@ func main(...) as int
     auto pass=xge.createPass(target,c_uint(xge.XGE_PASS_CLEAR_COLOR),xge.colorRGBA(10,20,30,255))
     try
      pass.begin()
+     // The window target still describes the host framebuffer inside this pass.
+     auto window=xge.createWindowTarget()
+     println("Window framebuffer", window.width, "x", window.height)
+     window.close()
      pass.finish()
     finally
      pass.close()

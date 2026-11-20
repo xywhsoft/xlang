@@ -1,0 +1,84 @@
+{
+  "complete": true,
+  "passed": true,
+  "releaseInstalled": false,
+  "sourceParent": "97be1154971cb993a59cca58a1b7863a7c446ca3",
+  "nativeCommit": "15ca3706e8ca5afa98e72069dcffc08123b8b39a",
+  "storageDependencyReview": {
+    "path": "F:\\xlang-validation\\xge-full-20261110\\host-framebuffer-storage-rebase-r1.json",
+    "sha256": "ebacb7fc19fde5ed09c38c7ca0eb8c63e18deeb2bd0535dc52eabb08ecf02f82"
+  },
+  "platforms": {
+    "win": {
+      "sdk": {
+        "path": "F:\\xlang-validation\\xge-full-20261110\\host-framebuffer-sdk-win-r1\\results.json",
+        "sha256": "8739c41bce47aab0ce764e4219e307643d5f68520b02263a6975e4516371ba92"
+      },
+      "native": {
+        "path": "F:\\xlang-validation\\xge-full-20261110\\host-framebuffer-native-win-r1\\results.json",
+        "sha256": "4e3d8377873412ffe2f5b303bacf3b3bf80d7b79ec04674f97fe50a3a5864860"
+      },
+      "runtime": {
+        "path": "F:\\xlang-validation\\xge-full-20261110\\host-framebuffer-runtime-win-r2\\results.json",
+        "sha256": "2f909ff84fa6f10db87b4abf7ac6e2f7f805674181bc7adf4d14f09b52dd5228"
+      },
+      "packages": {
+        "path": "F:\\xlang-validation\\xge-full-20261110\\host-framebuffer-packages-win-r2\\results.json",
+        "sha256": "31465c89c0a6eca7390c5a85846aa9456f19f1250cf35c0f624940f071623274"
+      },
+      "audit": {
+        "path": "F:\\xlang-validation\\xge-full-20261110\\host-framebuffer-audit-win-r1\\consumers\\results.json",
+        "sha256": "bf7cfcc17ba4ce1765940a4d3ca708cccbf47256948f5708d0e34ad0ae2794b6"
+      },
+      "compiler": {
+        "path": "F:\\xlang-validation\\xge-full-20261110\\compiler-existing-root-win-r1\\build.json",
+        "sha256": "107a294cdefd81906f8e3fef6bced071ececaad4bf1837b61a15b1e9c7858a07"
+      },
+      "unclassifiedByBridgeOrReplacement": {
+        "XGE": 362,
+        "XUI": 398,
+        "Document UI": 2,
+        "Document": 1
+      }
+    },
+    "linux": {
+      "sdk": {
+        "path": "\\\\wsl.localhost\\Ubuntu\\var\\tmp\\xlang-validation\\xge-full-20261110\\host-framebuffer-sdk-linux-r1\\results.json",
+        "sha256": "ad3e25e151a24fce4d6215d5f208840f8a71c5927373bf143f614155d1b2420f"
+      },
+      "native": {
+        "path": "\\\\wsl.localhost\\Ubuntu\\var\\tmp\\xlang-validation\\xge-full-20261110\\host-framebuffer-native-linux-r1\\results.json",
+        "sha256": "70c6e173b54f183feb995a38963f1a214b7af60e2b786e1aa5f9679fa8275549"
+      },
+      "runtime": {
+        "path": "\\\\wsl.localhost\\Ubuntu\\var\\tmp\\xlang-validation\\xge-full-20261110\\host-framebuffer-runtime-linux-r2\\results.json",
+        "sha256": "e313dc823249da31423acff3f5057c177bd7bb08b00dc59d68e7de8466188228"
+      },
+      "packages": {
+        "path": "\\\\wsl.localhost\\Ubuntu\\var\\tmp\\xlang-validation\\xge-full-20261110\\host-framebuffer-packages-linux-r2\\results.json",
+        "sha256": "3a7891b2300964aaa15eb9465b58d6308ad23da11a62d5b2475d52c64abcc90d"
+      },
+      "audit": {
+        "path": "\\\\wsl.localhost\\Ubuntu\\var\\tmp\\xlang-validation\\xge-full-20261110\\host-framebuffer-audit-linux-r1\\consumers\\results.json",
+        "sha256": "8df4007690df59923aa8c4d5f68fe85227ba4b8145f94113b2bc9f0b89fb3881"
+      },
+      "compiler": {
+        "path": "\\\\wsl.localhost\\Ubuntu\\var\\tmp\\xlang-validation\\xge-full-20261110\\compiler-existing-root-linux-r1\\build.json",
+        "sha256": "6e729bc793dcd92edcd42f51e244bad799187c32ef82121e8275288a31274b11"
+      },
+      "unclassifiedByBridgeOrReplacement": {
+        "XGE": 362,
+        "XUI": 398,
+        "Document UI": 2,
+        "Document": 1
+      }
+    }
+  },
+  "checks": [
+    "Window targets derive their initial size from the host framebuffer even inside an offscreen pass. Their pass and readback operations select the host framebuffer separately from the active draw framebuffer. The host may publish a replacement framebuffer at its frame boundary.",
+    "A window target retains its view dimensions. If the host shrinks below those dimensions, rendering and readback fail checked until the view is resized to fit. Existing public declarations and the native RenderTarget ABI are unchanged.",
+    "Native O0/O2 WGL and EGL/OpenGL fixtures render distinct colors on two framebuffers and through nested passes. They verify framebuffer switching, row padding, pixel pack buffer/state restoration, capacity rejection, OOM and an actual GL read failure with untouched destination bytes.",
+    "GPU readback keeps one native allocation for a temporary copy and one glReadPixels call. Saving and restoring the OpenGL read framebuffer and pack/PBO state adds GL queries and state changes. The verdict covers pixel equality, memory balance and the existing 1000-iteration allocation-free host-frame gate, without a frame-rate or hardware-performance benchmark.",
+    "Windows and Linux qualify JIT, dynamic and static standalone executables against the host target fixture and import checks. Linux also runs GLES host JIT. Both run the regular window GPU pipeline, the scoped ShapeEx mask callback and the offscreen example."
+  ]
+}

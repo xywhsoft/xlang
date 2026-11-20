@@ -29,6 +29,7 @@ extern "xgeTestHostPoll" @header("test/cases/foreign_xge3_host_probe.h") @no_rai
 extern "xgeTestHostPresent" @header("test/cases/foreign_xge3_host_probe.h") @no_raise func present()
 extern "xgeTestHostInfo" @header("test/cases/foreign_xge3_host_probe.h") @no_raise @c_output(0,0) func probeInfo() as ProbeInfo
 extern "xgeTestHostGetProc" @header("test/cases/foreign_xge3_host_probe.h") @no_raise func getProc(xge.CallbackProcName name) as point
+extern "xgeTestHostTargetFramebuffer" @header("test/cases/foreign_xge3_host_probe.h") @no_raise @c_const(0) func targetFramebuffer(xge.RenderTarget target) as c_uint
 
 class ResolverCapture
  xge.CallbackProcName? name=null
@@ -238,7 +239,10 @@ func main(...) as int
  platform.close()
  graphics.close()
  assert shared.isCurrent() and shared.poll()==c_int(9)
- shared.resize(4,4,2,0)
+ auto hostTarget=xge.createRenderTarget(4,4)
+ auto framebuffer=targetFramebuffer(hostTarget)
+ assert framebuffer!=c_uint(0)
+ shared.resize(4,4,2,framebuffer)
  shared.beginFrame()
  bool busy=false
  try
@@ -255,6 +259,12 @@ func main(...) as int
  rect.fW=c_float(2)
  rect.fH=c_float(2)
  xge.shapeRectFill(rect,xge.colorRGBA(80,90,100,255))
+ auto window=xge.createWindowTarget()
+ assert window.width==c_int(4) and window.height==c_int(4)
+ auto windowPass=xge.createPass(window,c_uint(xge.XGE_PASS_CLEAR_COLOR),xge.colorRGBA(0,255,0,255))
+ windowPass.begin()
+ windowPass.finish()
+ assert pass.isCurrent() and xge.getWidth()==c_int(2)
  pass.finish()
  shared.endFrame()
  shared.present()
@@ -262,11 +272,19 @@ func main(...) as int
  assert pixels.resize(16)
  target.readPixels(pixels)
  assert pixels.hex()=="505a64ff505a64ff505a64ff505a64ff"
+ auto windowPixels=Buffer()
+ assert windowPixels.resize(64)
+ window.readPixels(windowPixels)
+ assert windowPixels.hex()==string.repeat("00ff00ff",16)
+ windowPass.close()
+ window.close()
  pass.close()
  target.close()
+ shared.resize(4,4,2,0)
  shared.beginFrame()
  shared.endFrame()
  shared.discardFrame()
+ hostTarget.close()
  try
   shared.close()
  catch error

@@ -84,6 +84,14 @@ The public gate verifies both failure paths against real OS contexts.
 | `share()` | Acquire another native owner |
 | `close()` | Common checked owner control and typed native cleanup policy |
 
+`createWindowTarget()` can be used inside a nested offscreen pass. It
+captures the host framebuffer's dimensions and follows the framebuffer
+published by the latest successful `beginFrame()`. Passes and readback
+through that target use the host's framebuffer even when its ID is nonzero.
+After a resize, call `windowTarget.resize(width, height)` to update the
+size of the view. A view larger than the current host framebuffer is
+rejected before rendering or reading pixels.
+
 An open frame, pass or active callback makes explicit close fail before logical
 close, keeping `endFrame()` usable. GPU children can delay physical cleanup;
 release them before expecting complete retirement. Destruction never

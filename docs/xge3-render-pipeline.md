@@ -13,6 +13,11 @@ checked 返回 Busy，保持引擎和回调注册；释放资源/保留槽后重
 | Pass / createPass | CreateOwned、Begin、End、IsCurrent、ReleaseOwnerChecked | 保留目标；关闭当前 Pass 恢复 LIFO；非当前活跃 Pass 关闭 Busy、可重试 |
 | graphicsResourceCount / passesIdle | 原生只读查询 | 包括创建中的原生拥有义务，不是显存计数 |
 
+GPU 像素读回使用一次原生读取，按从上到下的顺序写入指定步长的 Buffer，
+保持行尾填充。读回期间会保存并恢复 OpenGL 的读帧缓冲、像素打包参数和
+像素打包缓冲区绑定。容量不足、临时分配失败或 GPU 读回失败时，目标
+Buffer 内容保持原样。配套用法见 [离屏绘制范例](../lib/bindings/xge/examples/offscreen_pass.xl)。
+
 业务方法保持直接声明，生成 C 直接调用真实 XGE。头文件仅承接冷路径生命周期，
 不增加逐方法转发、操作码分发或另一份渲染实现。目标/Pass 的 close 预检先拒绝
 不能消费的拥有者，再交给通用视图关闭，避免把 Busy 的对象先标成不可用。

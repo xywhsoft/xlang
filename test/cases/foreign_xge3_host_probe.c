@@ -43,6 +43,10 @@ static bool creator(void)
     return pthread_equal(probe.creator,pthread_self())!=0;
 #endif
 }
+PROBE_API unsigned xgeTestHostTargetFramebuffer(const xge_render_target_t* target)
+{
+    return target->iFramebufferId;
+}
 PROBE_API int xgeTestHostConfigure(int backend,bool defer)
 {
     if(probe.info.contextLive || probe.info.platformLive)return XGE_ERROR_BUSY;
