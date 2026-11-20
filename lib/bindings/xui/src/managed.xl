@@ -2340,6 +2340,21 @@ export extern "xui_widget_t*" class StepBar @header("xge3_runtime.h") @lifetime(
  extern "xuiStepBarSetSteps" @no_raise @c_result("status",0) @c_array_group(1,0,1,"int",1) @c_array_input(1,0,"const char* const*","c_string") func setSteps(array<string> titles,int size=-1)
 end
 
+export extern "const xui_chart_hit_t*" class CallbackChartHit @header("xge3_runtime.h") @lifetime("callback")
+ native point handle
+ extern "iSize" @c_field get size() as c_uint
+ extern "iPart" @c_field get part() as c_int
+ extern "iSeries" @c_field get series() as c_int
+ extern "iItem" @c_field get item() as c_int
+ extern "tRect" @c_field get rect() as Rect
+ extern "fX" @c_field get x() as c_float
+ extern "fY" @c_field get y() as c_float
+end
+
+export typedef ChartTooltipProc = func(CallbackWidget,c_int,c_int) as string
+
+export typedef ChartContextProc = func(CallbackWidget,CallbackChartHit,c_float,c_float) as c_int
+
 export extern "xui_widget_t*" class Chart @header("xge3_runtime.h") @lifetime("owner") @owner(Context) @policy("xl6Xui3WidgetPolicy") @watch("xui_lifetime_link_t") extends Widget
 
  extern "xuiChartSetTitle" @no_raise @c_cstr(0) @c_result("status",0) func setTitle(string sTitle)
@@ -2377,6 +2392,10 @@ export extern "xui_widget_t*" class Chart @header("xge3_runtime.h") @lifetime("o
  extern "xuiChartSetTooltipVisible" @no_raise @c_result("status",0) func setTooltipVisible(c_int bVisible)
 
  extern "xuiChartGetTooltipVisible" @no_raise func getTooltipVisible() as c_int
+
+ extern "xuiChartSetTooltipCallbackOwned" @no_raise @c_owned_callback(0,0,"xui_callback_owner_t",0,"owned_text") @c_result("status",0) func setTooltipProvider(ChartTooltipProc? provider)
+
+ extern "xuiChartSetContextMenuOwned" @no_raise @c_owned_callback(0,0,"xui_callback_owner_t",-16) @c_result("status",0) func setContextMenu(ChartContextProc? callback)
 
  extern "xuiChartSetPadding" @no_raise @c_result("status",0) func setPadding(Thickness tPadding)
 

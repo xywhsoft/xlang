@@ -552,6 +552,12 @@ METHODS.update({
     'xuiChartGetViewRange': [
         'int xuiChartGetViewRange(xui_widget pWidget, double* pMinX, double* pMaxX, double* pMinY, double* pMaxY)',
         'Chart', ['extern "xuiChartGetViewRange" @no_raise @c_outputs(-1,1,2,3,4) @c_result("integer_min",0) func getViewRange() as (c_int,c_double,c_double,c_double,c_double)']],
+    'xuiChartSetTooltipCallbackOwned': [
+        'int xuiChartSetTooltipCallbackOwned(xui_widget pWidget, xui_chart_tooltip_owned_proc onTooltip, void* pUser, const xui_callback_owner_t* pOwner)',
+        'Chart', ['extern "xuiChartSetTooltipCallbackOwned" @no_raise @c_owned_callback(0,0,"xui_callback_owner_t",0,"owned_text") @c_result("status",0) func setTooltipProvider(ChartTooltipProc? provider)']],
+    'xuiChartSetContextMenuOwned': [
+        'int xuiChartSetContextMenuOwned(xui_widget pWidget, xui_chart_context_proc onContext, void* pUser, const xui_callback_owner_t* pOwner)',
+        'Chart', ['extern "xuiChartSetContextMenuOwned" @no_raise @c_owned_callback(0,0,"xui_callback_owner_t",-16) @c_result("status",0) func setContextMenu(ChartContextProc? callback)']],
     'xuiChartGetBrushRange': [
         'int xuiChartGetBrushRange(xui_widget pWidget, double* pMinX, double* pMaxX, double* pMinY, double* pMaxY)',
         'Chart', ['extern "xuiChartGetBrushRange" @no_raise @c_outputs(-1,1,2,3,4) @c_result("integer_min",0) func getBrushRange() as (c_int,c_double,c_double,c_double,c_double)']],
@@ -580,6 +586,14 @@ CALLBACKS = {'xui_accessibility_event_proc': ('typedef void (*xui_accessibility_
                                  'export typedef RadioGroupChangeProc = func(Widget,Widget?,c_int)')}
 
 CALLBACKS.update({
+    'xui_chart_tooltip_owned_proc': (
+        'typedef xstrview (*xui_chart_tooltip_owned_proc)(xui_widget_t* pWidget, int iSeries, int iItem, void* pUser);',
+        'export typedef ChartTooltipProc = func(CallbackWidget,c_int,c_int) as string',
+    ),
+    'xui_chart_context_proc': (
+        'typedef int (*xui_chart_context_proc)(xui_widget_t* pWidget, const xui_chart_hit_t* pHit, float fX, float fY, void* pUser);',
+        'export typedef ChartContextProc = func(CallbackWidget,CallbackChartHit,c_float,c_float) as c_int',
+    ),
     'xui_message_list_node_renderer_proc': (
         'typedef int (*xui_message_list_node_renderer_proc)(xui_widget_t* pWidget, int iIndex, const xui_message_node_t* pNode, '
         'xui_draw_context_t* pDraw, xui_rect_t tRect, int iState, void* pUser);',
@@ -858,6 +872,16 @@ CALLBACKS['xui_code_diagnostic_hover_proc'] = (
     'export typedef CodeDiagnosticHoverProc = func(CallbackWidget,CallbackConstCodeDiagnosticHit?)',
 )
 VIEWS.update({
+    'CallbackChartHit': """export extern "const xui_chart_hit_t*" class CallbackChartHit @header("xge3_runtime.h") @lifetime("callback")
+ native point handle
+ extern "iSize" @c_field get size() as c_uint
+ extern "iPart" @c_field get part() as c_int
+ extern "iSeries" @c_field get series() as c_int
+ extern "iItem" @c_field get item() as c_int
+ extern "tRect" @c_field get rect() as Rect
+ extern "fX" @c_field get x() as c_float
+ extern "fY" @c_field get y() as c_float
+end""",
     'CallbackConstCodeDiagnosticHit': """
 export extern "const xui_code_diagnostic_hit_t*" class CallbackConstCodeDiagnosticHit @header("xge3_runtime.h") @lifetime("callback")
  native point handle
@@ -1175,6 +1199,8 @@ REPLACED = {
     'xuiListViewSetActivate': ('xui.ListView.setActivate','xuiListViewSetActivateOwned'),
     'xuiListViewSetItemRenderer': ('xui.ListView.setItemRenderer','xuiListViewSetItemRendererOwned'),
     'xuiListViewSetVirtualItems': ('xui.ListView.setVirtualItems','xuiListViewSetVirtualItemsOwned'),
+    'xuiChartSetTooltipCallback': ('xui.Chart.setTooltipProvider','xuiChartSetTooltipCallbackOwned'),
+    'xuiChartSetContextMenu': ('xui.Chart.setContextMenu','xuiChartSetContextMenuOwned'),
 }
 
 

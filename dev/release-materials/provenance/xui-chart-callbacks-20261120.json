@@ -1,0 +1,201 @@
+{
+  "complete": true,
+  "passed": true,
+  "releaseInstalled": false,
+  "nativeCommit": "6eedff3aa5e8d7a09ff50068a8f14e23e62e9449",
+  "nativeCallbacksCommit": "7d4348253afae8439b282d4e742e8f904c90d5bd",
+  "sourceParent": "45cd63cd907bc8165d3771924e3fe2b98372ea2d",
+  "nativeSourceHashesLf": {
+    "include/xui.h": "ed053129c58e1b5f14d2b21171949da63f68467c064be857f3e16f031563b54c",
+    "src/xui/controls/xui_chart.c": "ea0f0210c0e57293041e54df965b3d31a875ed58eeb966741d1cb3aac4f82cdd",
+    "src/xui/core/xui_widget.c": "c83acfa8348870a0b150dc94c89f443d0ad6e57c35d040d0429a5ab294bc5600",
+    "tests/xui/xui_cache_render_outcome_test.c": "716078c62a1de34ceaa481243fac0f9253b74976de5b84648c48284876e52bd8",
+    "tests/xui/xui_chart_test.c": "156520eeaae5fdea7e67963d7778761f0f841997c21c5ace7d7e4cc28befdfc8"
+  },
+  "languageSourceHashesLf": {
+    "docs/xge3-xui3-api-map-storage.json": "2cf8af22f5ca1ebc24c355d0125bf50a70459f33c9540df1179bda3c4ec98f5f",
+    "docs/xui-chart-queries.md": "2915d3faa112dd3071c9a610abec3c2a56539a64af4aa1b514ab3d206a576629",
+    "lib/bindings/xui/examples/chart.xl": "436422e4a3ce967adde86901ac7a8042d9249b54d684b87179d0b4f33f4ed6bb",
+    "lib/bindings/xui/src/managed.xl": "9de287156712d69fd8420a71f6a74dd0037aac18dbdfdb9bc017405d81d1cb78",
+    "test/cases/foreign_xui_chart_callbacks.xl": "831ede5f9a7c5afe968992df23b016390916c7b56454a5069c9df0ed82999c07",
+    "tools/check_xge3_bindings.py": "0b87fd8757fff7766af9b670ab60f4206be66358f1b8b3fbddb5f4be917fc3c7",
+    "tools/xui_managed_contracts.py": "21b2736100d17a1787b72762fde1f172c29f9be0665d956fb91b9e0e786b420d"
+  },
+  "checks": [
+    "Both public Chart callback setters compile into direct calls to native owned slots.",
+    "Native C coverage retains the active callback through a legacy same-slot clear, observes the custom tooltip and checks both registration references are released.",
+    "Language execution verifies UTF-8 truncation, fallback text, allocation-failure rollback, self-removal, original render and dispatch exceptions, expired callback views and chart close inside a callback.",
+    "The example opens a real window and renders the chart in JIT and static AOT on Windows and under Linux Xvfb. Callback behavior is tested separately using the CPU backend.",
+    "The native cache preserves a cache invalidation triggered while painting a single or multiple cache states. The old library fails the same case. Render-only invalidation retains the cached contents.",
+    "Document browser widgets pass JIT again with the final cache implementation on both platforms.",
+    "Source inventory uses the exact staged headers and declaration selection on both platforms. Presence does not certify behavior for the remaining population."
+  ],
+  "costs": [
+    "Chart adds one pointer for the additional owned tooltip slot.",
+    "The host callback directory retains registrations and active callback snapshots. Hit geometry is call-local.",
+    "Tooltip text materialization uses the existing owned result. The native display buffer copies at most 127 bytes and releases the transferred allocation.",
+    "The tooltip path rechecks the Chart generation after the callback. The CPU heap comparison counts XRT allocations, frees and reallocations for 1,000 forced tooltip frames in each language. It does not measure elapsed time."
+  ],
+  "platforms": {
+    "win": {
+      "imports": {
+        "host": [
+          "msvcrt.dll",
+          "xge3_host.dll",
+          "kernel32.dll",
+          "SHELL32.dll",
+          "ws2_32.dll",
+          "IPHLPAPI.dll",
+          "ucrtbase.dll"
+        ],
+        "static": [
+          "msvcrt.dll",
+          "kernel32.dll",
+          "USER32.dll",
+          "OLEAUT32.dll",
+          "ole32.dll",
+          "SHELL32.dll"
+        ]
+      },
+      "xrtCommit": "804cc769de3030118c2b46ef7af69543d1b82d9d",
+      "heapPer1000TooltipFrames": {
+        "language": [
+          4000,
+          4000,
+          0
+        ],
+        "native": [
+          3000,
+          3000,
+          0
+        ]
+      }
+    },
+    "linux": {
+      "imports": {
+        "host": [
+          "libm.so.6",
+          "libmvec.so.1",
+          "libxge3_host.so",
+          "libc.so.6",
+          "ld-linux-x86-64.so.2"
+        ],
+        "static": [
+          "libm.so.6",
+          "libmvec.so.1",
+          "libX11.so.6",
+          "libXi.so.6",
+          "libXcursor.so.1",
+          "libGL.so.1",
+          "libc.so.6",
+          "ld-linux-x86-64.so.2"
+        ]
+      },
+      "xrtCommit": "804cc769de3030118c2b46ef7af69543d1b82d9d",
+      "heapPer1000TooltipFrames": {
+        "language": [
+          4000,
+          4000,
+          0
+        ],
+        "native": [
+          3000,
+          3000,
+          0
+        ]
+      }
+    }
+  },
+  "surface": {
+    "functions": 5654,
+    "declared": 4574
+  },
+  "evidence": {
+    "win": {
+      "sdk": {
+        "path": "F:\\xlang-validation\\xge-full-20261110\\chart-callbacks-sdk-win-r2\\results.json",
+        "sha256": "400cafca8df031e337c0747888bb87bee69d0935b6022e6dd406b865a8aa23eb",
+        "checks": 2
+      },
+      "packages": {
+        "path": "F:\\xlang-validation\\xge-full-20261110\\chart-callbacks-packages-win-r3\\results.json",
+        "sha256": "1642969c720e56733d6600b89c421c6a60d95db172bce30e33695890987a776e",
+        "checks": 6
+      },
+      "runtime": {
+        "path": "F:\\xlang-validation\\xge-full-20261110\\chart-callbacks-language-tests-win-r7\\results.json",
+        "sha256": "33862969ad267fad087f6080453d770cff4b7290e7d97ac0d385ebc19bb7db2f",
+        "checks": 8
+      },
+      "visualExample": {
+        "path": "F:\\xlang-validation\\xge-full-20261110\\chart-callbacks-example-win-r3\\results.json",
+        "sha256": "d02c8d6fecab6c9988f1e706ed139c87167460ec852919902ff712eaeca30f6c",
+        "checks": 4
+      },
+      "heapComparison": {
+        "path": "F:\\xlang-validation\\xge-full-20261110\\chart-callbacks-bench-win-r2\\results.json",
+        "sha256": "f02e4cf591e82355416ea4c0ccef4146c75e373b147b26dfd98383f84a69d197",
+        "checks": 2
+      },
+      "legacyAndOwnedNative": {
+        "path": "F:\\xlang-validation\\xge-full-20261110\\chart-cache-native-static-win-r1\\results.json",
+        "sha256": "32f80b2fcca365852c3a50bc1aa86827b2645aed9c34001e1c2775a9d0904451",
+        "checks": 14,
+        "expectedNegativeControl": "xui_cache_render_outcome_test-old-run"
+      },
+      "documentRegression": {
+        "path": "F:\\xlang-validation\\xge-full-20261110\\chart-cache-document-regression-win-r1\\results.json",
+        "sha256": "5236d43cf0807e43a2637171acf20d47b4c980105830efaa97a55b10acc3fc2d",
+        "checks": 2
+      },
+      "surface": {
+        "path": "F:\\xlang-validation\\xge-full-20261110\\chart-callbacks-surface-win-r2\\surface.json",
+        "sha256": "ba18570410a7835f0ddd01a10d7fbccbbbcb1df0b5d815353927570bec49537a",
+        "checks": 1
+      }
+    },
+    "linux": {
+      "sdk": {
+        "path": "\\\\wsl.localhost\\Ubuntu\\var\\tmp\\xlang-validation\\xge-full-20261110\\chart-callbacks-sdk-linux-r2\\results.json",
+        "sha256": "d1bf249446652a6f1ba8597fd2e4a35c462a3b3df6e6413563af88cf19b992dd",
+        "checks": 2
+      },
+      "packages": {
+        "path": "\\\\wsl.localhost\\Ubuntu\\var\\tmp\\xlang-validation\\xge-full-20261110\\chart-callbacks-packages-linux-r3\\results.json",
+        "sha256": "b9f673b1ef000ed592b82431c7b8ecf2c5982894900993ec88340ca4c9ede9a5",
+        "checks": 6
+      },
+      "runtime": {
+        "path": "\\\\wsl.localhost\\Ubuntu\\var\\tmp\\xlang-validation\\xge-full-20261110\\chart-callbacks-language-tests-linux-r7\\results.json",
+        "sha256": "4a33cdda67c4035736ed2800f60d3ddad8eee073bdf29406241f37ce885e0033",
+        "checks": 8
+      },
+      "visualExample": {
+        "path": "\\\\wsl.localhost\\Ubuntu\\var\\tmp\\xlang-validation\\xge-full-20261110\\chart-callbacks-example-linux-r3\\results.json",
+        "sha256": "926169587bd03b03495da545ca14a8dd74c5fef14ed6ad6f88cdecef56ae3bfb",
+        "checks": 4
+      },
+      "heapComparison": {
+        "path": "\\\\wsl.localhost\\Ubuntu\\var\\tmp\\xlang-validation\\xge-full-20261110\\chart-callbacks-bench-linux-r2\\results.json",
+        "sha256": "e4c28e92ba99df536aa518dd37859edd618948b0ac1a51f19d012acc637b4c2f",
+        "checks": 2
+      },
+      "legacyAndOwnedNative": {
+        "path": "\\\\wsl.localhost\\Ubuntu\\var\\tmp\\xlang-validation\\xge-full-20261110\\chart-cache-native-static-linux-r1\\results.json",
+        "sha256": "bd5c44b832af0d25d7b7394d2f1767ec65db7a398cdec1fda1ac302f3593bd21",
+        "checks": 14,
+        "expectedNegativeControl": "xui_cache_render_outcome_test-old-run"
+      },
+      "documentRegression": {
+        "path": "\\\\wsl.localhost\\Ubuntu\\var\\tmp\\xlang-validation\\xge-full-20261110\\chart-cache-document-regression-linux-r1\\results.json",
+        "sha256": "8edaf26b9588bc6a3734499074037e966f2704405edfea5bdd1173f6682538f0",
+        "checks": 2
+      },
+      "surface": {
+        "path": "\\\\wsl.localhost\\Ubuntu\\var\\tmp\\xlang-validation\\xge-full-20261110\\chart-callbacks-surface-linux-r2\\surface.json",
+        "sha256": "7d5c9906f9e7778dc95a0f60a794fd5975de0c4573f651d44269fff518541d52",
+        "checks": 1
+      }
+    }
+  }
+}

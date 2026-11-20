@@ -1024,6 +1024,8 @@ def generate_xui(root,header,records,types,primitive,param,reserved,reviewed_spa
                       ('xuiListViewSetActivateOwned','owned-callback'),
                       ('xuiListViewSetItemRendererOwned','owned-callback'),
                       ('xuiListViewSetVirtualItemsOwned','owned-callback'),
+                      ('xuiChartSetTooltipCallbackOwned','owned-callback'),
+                      ('xuiChartSetContextMenuOwned','owned-callback'),
                       ('xuiListViewSetEnabledItems','native-copy-or-synchronous-read'),
                       ('xuiTimeLineViewGetLayerDescriptor','borrowed-synchronous-output'),
                       ('xuiTimeLineViewGetFrame','borrowed-synchronous-output'),

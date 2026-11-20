@@ -840,7 +840,7 @@
       "declaration": "extern \"xuiChartSetSeriesDash\" @no_raise @c_span(1,\"const float*\",\"int\") @c_result(\"status\",0) func setSeriesDash(c_int iSeries,Buffer pDashPattern)",
       "storage": "native-copy-or-synchronous-read",
       "sourceFile": "src/xui/controls/xui_chart.c",
-      "line": 3864,
+      "line": 3948,
       "functionSha256": "d4567e2950dbc4dac9cc3c55ee4a64972fb9d93f208904fea10f39c496a6da12"
     },
     "xuiChartGetSeriesDash": {
@@ -848,7 +848,7 @@
       "declaration": "extern \"xuiChartGetSeriesDash\" @no_raise @c_span(1,\"float*\",\"int\") func getSeriesDash(c_int iSeries,Buffer pDashPattern) as c_int",
       "storage": "bounded-synchronous-output",
       "sourceFile": "src/xui/controls/xui_chart.c",
-      "line": 3898,
+      "line": 3982,
       "functionSha256": "d0cfe99082d8dbc41f0f3ef522eab9cc45a3af60ba02556d46cc738c2a82e701"
     },
     "xuiCodeEditSetTextLength": {
@@ -973,7 +973,7 @@
         },
         {
           "sourceFile": "include/xui.h",
-          "lfSha256": "661ca627bb3e3b8310ab699725fbedec95592948794a301963d7fddb534dc2ca"
+          "lfSha256": "ed053129c58e1b5f14d2b21171949da63f68467c064be857f3e16f031563b54c"
         }
       ]
     },
@@ -1198,7 +1198,7 @@
         },
         {
           "sourceFile": "include/xui.h",
-          "lfSha256": "661ca627bb3e3b8310ab699725fbedec95592948794a301963d7fddb534dc2ca"
+          "lfSha256": "ed053129c58e1b5f14d2b21171949da63f68467c064be857f3e16f031563b54c"
         }
       ]
     },
@@ -1220,7 +1220,7 @@
         },
         {
           "sourceFile": "include/xui.h",
-          "lfSha256": "661ca627bb3e3b8310ab699725fbedec95592948794a301963d7fddb534dc2ca"
+          "lfSha256": "ed053129c58e1b5f14d2b21171949da63f68467c064be857f3e16f031563b54c"
         }
       ]
     },
@@ -1242,7 +1242,7 @@
         },
         {
           "sourceFile": "include/xui.h",
-          "lfSha256": "661ca627bb3e3b8310ab699725fbedec95592948794a301963d7fddb534dc2ca"
+          "lfSha256": "ed053129c58e1b5f14d2b21171949da63f68467c064be857f3e16f031563b54c"
         }
       ]
     },
@@ -1264,7 +1264,7 @@
         },
         {
           "sourceFile": "include/xui.h",
-          "lfSha256": "661ca627bb3e3b8310ab699725fbedec95592948794a301963d7fddb534dc2ca"
+          "lfSha256": "ed053129c58e1b5f14d2b21171949da63f68467c064be857f3e16f031563b54c"
         }
       ]
     },
@@ -1286,7 +1286,51 @@
         },
         {
           "sourceFile": "include/xui.h",
-          "lfSha256": "661ca627bb3e3b8310ab699725fbedec95592948794a301963d7fddb534dc2ca"
+          "lfSha256": "ed053129c58e1b5f14d2b21171949da63f68467c064be857f3e16f031563b54c"
+        }
+      ]
+    },
+    "xuiChartSetTooltipCallbackOwned": {
+      "bindingFile": "lib\\bindings\\xui\\src\\managed.xl",
+      "declaration": "extern \"xuiChartSetTooltipCallbackOwned\" @no_raise @c_owned_callback(0,0,\"xui_callback_owner_t\",0,\"owned_text\") @c_result(\"status\",0) func setTooltipProvider(ChartTooltipProc? provider)",
+      "storage": "owned-callback",
+      "sourceFile": "src/xui/controls/xui_chart.c",
+      "line": 3521,
+      "functionSha256": "07c3046e821cb3d75be9e802f2dae13b38fb3d003e5e40bfa2447d34c4de2e02",
+      "dependencies": [
+        {
+          "sourceFile": "src/xui/controls/xui_chart.c",
+          "lfSha256": "ea0f0210c0e57293041e54df965b3d31a875ed58eeb966741d1cb3aac4f82cdd"
+        },
+        {
+          "sourceFile": "src/xui/core/xui_callback_owned.c",
+          "lfSha256": "2e28d0df474ab2b72b7a8bbdeafce696ca78e6944b32d660c4dbedf07deea891"
+        },
+        {
+          "sourceFile": "include/xui.h",
+          "lfSha256": "ed053129c58e1b5f14d2b21171949da63f68467c064be857f3e16f031563b54c"
+        }
+      ]
+    },
+    "xuiChartSetContextMenuOwned": {
+      "bindingFile": "lib\\bindings\\xui\\src\\managed.xl",
+      "declaration": "extern \"xuiChartSetContextMenuOwned\" @no_raise @c_owned_callback(0,0,\"xui_callback_owner_t\",-16) @c_result(\"status\",0) func setContextMenu(ChartContextProc? callback)",
+      "storage": "owned-callback",
+      "sourceFile": "src/xui/controls/xui_chart.c",
+      "line": 3540,
+      "functionSha256": "8eeab0a302c91fd6a2a30b9a965a5a33bba82e1b3637b530bc745fef4358d4b5",
+      "dependencies": [
+        {
+          "sourceFile": "src/xui/controls/xui_chart.c",
+          "lfSha256": "ea0f0210c0e57293041e54df965b3d31a875ed58eeb966741d1cb3aac4f82cdd"
+        },
+        {
+          "sourceFile": "src/xui/core/xui_callback_owned.c",
+          "lfSha256": "2e28d0df474ab2b72b7a8bbdeafce696ca78e6944b32d660c4dbedf07deea891"
+        },
+        {
+          "sourceFile": "include/xui.h",
+          "lfSha256": "ed053129c58e1b5f14d2b21171949da63f68467c064be857f3e16f031563b54c"
         }
       ]
     }
@@ -1414,7 +1458,7 @@
       "dependencies": [
         {
           "sourceFile": "include/xui.h",
-          "lfSha256": "661ca627bb3e3b8310ab699725fbedec95592948794a301963d7fddb534dc2ca"
+          "lfSha256": "ed053129c58e1b5f14d2b21171949da63f68467c064be857f3e16f031563b54c"
         },
         {
           "sourceFile": "src/xui/core/xui_proxy_xge.c",
@@ -1512,7 +1556,7 @@
       "dependencies": [
         {
           "sourceFile": "include/xui.h",
-          "lfSha256": "661ca627bb3e3b8310ab699725fbedec95592948794a301963d7fddb534dc2ca"
+          "lfSha256": "ed053129c58e1b5f14d2b21171949da63f68467c064be857f3e16f031563b54c"
         },
         {
           "sourceFile": "src/xui/core/xui_proxy_xge.c",

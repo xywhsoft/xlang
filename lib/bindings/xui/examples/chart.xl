@@ -15,4 +15,13 @@ Window.show("Chart / typed data columns", func(xui.Context ui, xui.Widget root)
  auto manual, minX, maxX, minY, maxY = chart.getViewRange()
  assert manual == 1 and minX == 0 and maxX == 3 and minY == 0 and maxY == 8
  chart.setLegendVisible(1)
+ chart.setTooltipProvider(func(xui.CallbackWidget sender,c_int series,c_int item) as string
+  return "Sample " + string(int(item) + 1)
+ end)
+ // Right-click a point to show which sample the chart hit.
+ chart.setContextMenu(func(xui.CallbackWidget sender,xui.CallbackChartHit hit,c_float x,c_float y) as c_int
+  if hit.part != xui.XUI_CHART_HIT_SERIES then return 0 end
+  chart.setTitle("Selected sample " + string(int(hit.item) + 1))
+  return 1
+ end)
 end)
