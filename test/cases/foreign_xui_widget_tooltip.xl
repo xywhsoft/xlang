@@ -1,0 +1,102 @@
+import xui
+
+extern "xrtMemDebugEnabled" @header("xrt_decl.h") @no_raise func memDebugEnabled() as bool
+extern "xrtMemDebugEnable" @header("xrt_decl.h") @no_raise func memDebug(bool enabled) as bool
+extern "xrtMemDebugFailAfter" @header("xrt_decl.h") @no_raise func failAfter(uint64 prefix) as bool
+extern "xrtMemDebugFailClear" @header("xrt_decl.h") @no_raise func failClear()
+
+func assertCurrent(xui.Widget widget, string expected, c_int anchor)
+ auto kind, text, placement = widget.tooltipInfo()
+ assert kind == xui.XUI_TOOLTIP_TEXT and text != null and (text as string) == expected and placement.iAnchor == anchor
+end
+
+func main(...) as int
+ auto proxy = xui.createProxy()
+ auto ui = xui.create(proxy, xui.XUI_SYSTEM_FONT_DISABLED)
+ auto widget = ui.widget()
+ auto defaultPlacement = xui.tooltipPlacementDefault()
+ assert defaultPlacement.iAnchor == xui.XUI_TOOLTIP_ANCHOR_WIDGET_BOTTOM
+ assert defaultPlacement.fOffsetY == c_float(6) and defaultPlacement.fDelay == c_float(-1)
+ assert defaultPlacement.bFollowCursor == c_int(0) and defaultPlacement.bCustomAnchorRect == c_int(0)
+
+ assert widget.setTooltipText("legacy") == xui.XUI_OK
+ assertCurrent(widget,"legacy",xui.XUI_TOOLTIP_ANCHOR_WIDGET_BOTTOM)
+ auto placement = defaultPlacement
+ placement.iAnchor = xui.XUI_TOOLTIP_ANCHOR_WIDGET_RIGHT
+ placement.bCustomAnchorRect = 1
+ placement.tAnchorRect.fX = 23
+ placement.tAnchorRect.fY = 17
+ placement.tAnchorRect.fW = 35
+ placement.tAnchorRect.fH = 20
+ placement.fOffsetX = c_float(3.5)
+ placement.fOffsetY = c_float(-4.25)
+ placement.fDelay = c_float(0.25)
+ placement.bFollowCursor = 1
+ string original = "配置后的提示，包含中文文本。"
+ widget.setTooltipText(original,placement)
+ auto kind, savedText, savedPlacement = widget.tooltipInfo()
+ assert kind == xui.XUI_TOOLTIP_TEXT and savedText != null and (savedText as string) == original
+ assert savedPlacement.iAnchor == placement.iAnchor and savedPlacement.bCustomAnchorRect == c_int(1)
+ assert savedPlacement.tAnchorRect.fX == 23 and savedPlacement.tAnchorRect.fY == 17
+ assert savedPlacement.tAnchorRect.fW == 35 and savedPlacement.tAnchorRect.fH == 20
+ assert savedPlacement.fOffsetX == c_float(3.5) and savedPlacement.fOffsetY == c_float(-4.25)
+ assert savedPlacement.fDelay == c_float(0.25) and savedPlacement.bFollowCursor == c_int(1)
+
+ auto invalid = placement
+ invalid.iAnchor = c_int(-99)
+ bool rejected = false
+ try
+  widget.setTooltipText("invalid",invalid)
+ catch Error
+  rejected = true
+ end
+ assert rejected
+ assertCurrent(widget,original,placement.iAnchor)
+
+ if not memDebugEnabled() then assert memDebug(true) end
+ int writeFailures = 0
+ int readFailures = 0
+ for prefix in range(12)
+  assert failAfter(uint64(prefix))
+  try
+   widget.setTooltipText("replacement",defaultPlacement)
+  catch Error
+   writeFailures += 1
+   failClear()
+   assertCurrent(widget,original,placement.iAnchor)
+  finally
+   failClear()
+  end
+  widget.setTooltipText(original,placement)
+  assert failAfter(uint64(prefix))
+  try
+   auto queriedKind, queriedText, queriedPlacement = widget.tooltipInfo()
+   assert queriedKind == kind and queriedText != null and (queriedText as string) == original
+   assert queriedPlacement.iAnchor == placement.iAnchor
+  catch Error
+   readFailures += 1
+  finally
+   failClear()
+  end
+  assertCurrent(widget,original,placement.iAnchor)
+ end
+ assert writeFailures > 0 and writeFailures < 12
+ assert readFailures > 0 and readFailures < 12
+
+ widget.setTooltipText("",placement)
+ auto clearedKind, clearedText, clearedPlacement = widget.tooltipInfo()
+ assert clearedKind == xui.XUI_TOOLTIP_NONE and clearedText == null
+ assert clearedPlacement.iAnchor == defaultPlacement.iAnchor
+ widget.close()
+ rejected = false
+ try
+  widget.tooltipInfo()
+ catch StateError
+  rejected = true
+ end
+ assert rejected and savedText != null and (savedText as string) == original and savedPlacement.tAnchorRect.fX == 23
+ ui.close()
+ proxy.close()
+ println("XUI_WIDGET_TOOLTIP_OK")
+ return 0
+end

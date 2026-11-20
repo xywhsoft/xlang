@@ -1,0 +1,133 @@
+{
+  "complete": true,
+  "passed": true,
+  "releaseInstalled": false,
+  "nativeCommit": "c54a46a904475278b79048b40445f36a0c80f07a",
+  "sourceParent": "e3887022329530246c95bc18addc3fe28f5dad13",
+  "nativeSourceHashesLf": {
+    "include/xui.h": "d24a4cf160dcdd12fb84137a1a68d7622b65575b3e3bd16b8c36fa0ea3acf56b",
+    "src/xui/core/xui_widget.c": "2a4bc6ea8d30a2e6acfa9d8c427ddc2532532a604a4cf80a2a83a84ea329c69b",
+    "tests/xui/xui_input_test.c": "0f52ecf5a7f620b75323d47f4799e52d9d7a702388222d6624b3269688d4529e"
+  },
+  "languageSourceHashesLf": {
+    "docs/xge3-xui3-api-map-storage.json": "273957d5e4342f4cfa740283bd18766f11633d7034f2808335654b71388906a7",
+    "docs/xge3-xui3-api-map.md": "9399b4f01f272822f82f5090e1dbac1f31d8ba87969959c7f20dd5fda40183a0",
+    "lib/bindings/xui/src/managed.xl": "0a62b3b48456edd9b20fc8214e18e48d7bad542f45f936858711fd36d5a7ce63",
+    "lib/bindings/xui/src/records.xl": "857dab0afbe10d807d646c4ea4790181cb722f7da79131c3bac9fcc0fbac9c96",
+    "lib/bindings/xui/examples/widget_tooltip.xl": "6fb005b93942e25860132857f42aaee9fbdc3a5d7bc1db1aa08654c949cd5108",
+    "lib/bindings/xui/examples/README.md": "0fd0110bb4df582c34202e1f0cae9241521bdc19c6edbc07def24bd495fe017e",
+    "tools/xui_managed_contracts.py": "c688306f8ec65b81f5e9050e667d5fab342d6908a0ebdbd25befe273a859078b",
+    "test/cases/foreign_xui_widget_tooltip.xl": "6c11da65b1668547bac85d81a8b6e64b96fbccb2e3ecc4d8e56d6511f7f1a50b"
+  },
+  "checks": [
+    "Native O0/O2 input test opens at the configured delay, tests the custom right anchor and exact offsets, then clears an open tooltip.",
+    "A short native output is unchanged on failure. The input test now initializes its separate debug output size.",
+    "Language checks every placement field, existing text-only calls, nullable text, owned snapshots, empty clear, checked failures and 12 OOM prefixes for each of setter and getter.",
+    "Generated C calls each native declaration directly. JIT and both AOT linkages run the language fixture; JIT and static AOT open the example window.",
+    "The matched SDK inventories contain three new declarations and 814 other native functions without a classified consumer or replacement."
+  ],
+  "measuredHeapPer1000Reads": {
+    "nativeBorrow": [
+      0,
+      0,
+      0
+    ],
+    "languageEmpty": [
+      0,
+      0,
+      0
+    ],
+    "languageText": [
+      1000,
+      1000,
+      0
+    ],
+    "columnOrder": [
+      "allocations",
+      "frees",
+      "reallocations"
+    ]
+  },
+  "outstanding": [
+    "Owning custom tooltip rendering and resolver registrations still require separate qualification.",
+    "Whole-goal API audit and matched release/IDE delivery remain open."
+  ],
+  "platforms": {
+    "win": {
+      "evidence": {
+        "nativeSdk": {
+          "path": "F:\\xlang-validation\\xge-full-20261110\\widget-tooltip-sdk-win-r1\\results.json",
+          "sha256": "1f85ccda5e1c6baa2c394bb2e2732a33e861498eab3da8e0c366d080ba787768"
+        },
+        "packages": {
+          "path": "F:\\xlang-validation\\xge-full-20261110\\widget-tooltip-packages-win-r1\\results.json",
+          "sha256": "159e6e42545fe3c1f07adc6b51e7c38342a2d0692ad7c59f511bb38ad6fca72f"
+        },
+        "nativeInput": {
+          "path": "F:\\xlang-validation\\xge-full-20261110\\widget-tooltip-native-test-win-r2\\results.json",
+          "sha256": "0456cb7ae485570d918f20d1ac5bb3274ba174e5959497206b8c0a99bde18421"
+        },
+        "language": {
+          "path": "F:\\xlang-validation\\xge-full-20261110\\widget-tooltip-runtime-win-r2\\results.json",
+          "sha256": "dc00888d23ea88b0030703ed9c3e52fc44e1d0e853af6ba74dbdb0f4d5582c30"
+        },
+        "heap": {
+          "path": "F:\\xlang-validation\\xge-full-20261110\\widget-tooltip-heap-win-r1\\results.json",
+          "sha256": "f79310e80949c5db1d4a9c8414e3d3c2c124eb64192d8f6800096b7c678a54b6"
+        },
+        "surface": {
+          "path": "F:\\xlang-validation\\xge-full-20261110\\widget-tooltip-api-audit-win-r1\\surface\\surface.json",
+          "sha256": "687ebc3c41a0b27a9d91f51924b27eae756f6653bcb2cab7690ff920a7311b7f"
+        },
+        "consumers": {
+          "path": "F:\\xlang-validation\\xge-full-20261110\\widget-tooltip-api-audit-win-r1\\consumers\\results.json",
+          "sha256": "e6570d90b35b148492229cd874339e76dccbcae9843517a9b44582c142560a01"
+        }
+      },
+      "checks": {
+        "nativeInput": 4,
+        "language": 11,
+        "packages": 7,
+        "consumers": 24
+      }
+    },
+    "linux": {
+      "evidence": {
+        "nativeSdk": {
+          "path": "\\\\wsl.localhost\\Ubuntu\\var\\tmp\\xlang-validation\\xge-full-20261110\\widget-tooltip-sdk-linux-r1\\results.json",
+          "sha256": "bcd639fdbf1bb3d02af3e6d23351eb670e43604c1b40005cf3eba14b74c94b1b"
+        },
+        "packages": {
+          "path": "\\\\wsl.localhost\\Ubuntu\\var\\tmp\\xlang-validation\\xge-full-20261110\\widget-tooltip-packages-linux-r1\\results.json",
+          "sha256": "c6a6257438465709321ad92911c6bc959934c19004e4ff46725febfd27ef3ec9"
+        },
+        "nativeInput": {
+          "path": "\\\\wsl.localhost\\Ubuntu\\var\\tmp\\xlang-validation\\xge-full-20261110\\widget-tooltip-native-test-linux-r2\\results.json",
+          "sha256": "d943341a4f1103a0db6d8de2a94f3ba6526a80b11cfc715a47e22416e9968533"
+        },
+        "language": {
+          "path": "\\\\wsl.localhost\\Ubuntu\\var\\tmp\\xlang-validation\\xge-full-20261110\\widget-tooltip-runtime-linux-r2\\results.json",
+          "sha256": "0b605e359dc686275e259f9f2efab20ad81b5aefe5a326217af19eb33de9bb6a"
+        },
+        "heap": {
+          "path": "\\\\wsl.localhost\\Ubuntu\\var\\tmp\\xlang-validation\\xge-full-20261110\\widget-tooltip-heap-linux-r1\\results.json",
+          "sha256": "d152687de88225745337f4d844b4e4ec41f97556829bb839a540905209c92a68"
+        },
+        "surface": {
+          "path": "\\\\wsl.localhost\\Ubuntu\\var\\tmp\\xlang-validation\\xge-full-20261110\\widget-tooltip-api-audit-linux-r1\\surface\\surface.json",
+          "sha256": "5f577aaa0c827209f002774ebdd4375c897eeef1f6860d776a1333496e0bb445"
+        },
+        "consumers": {
+          "path": "\\\\wsl.localhost\\Ubuntu\\var\\tmp\\xlang-validation\\xge-full-20261110\\widget-tooltip-api-audit-linux-r1\\consumers\\results.json",
+          "sha256": "42b349d732739172e80bd6773767c21f4df889510fb2a299c6ed6153ceece6ed"
+        }
+      },
+      "checks": {
+        "nativeInput": 4,
+        "language": 11,
+        "packages": 7,
+        "consumers": 24
+      }
+    }
+  }
+}

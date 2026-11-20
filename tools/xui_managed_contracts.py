@@ -1244,6 +1244,33 @@ INLINE_FUNCTIONS['xuiCodeDiagnosticHitDetails'] = '35a47617b74dfa170459596fcc0ee
 DEFERRED = {}
 
 # Sized text views preserve embedded NUL and checked read failure. The legacy
+RECORDS.update({
+    'xui_tooltip_placement_t': 'typedef struct xui_tooltip_placement_t { int iAnchor; int bCustomAnchorRect; xui_rect_t tAnchorRect; '
+                               'float fOffsetX; float fOffsetY; float fDelay; int bFollowCursor; } xui_tooltip_placement_t;',
+    'xui_tooltip_info_t': 'typedef struct xui_tooltip_info_t { uint32_t iSize; int iType; const char* sText; '
+                          'xui_tooltip_placement_t tPlacement; } xui_tooltip_info_t;',
+})
+TYPE_SHAPES.update({
+    'xui_tooltip_placement_t': '7e392f48a4649b6903a5f310011403fcbcc6c83a0bd0a9211c0de000a51eaeec',
+    'xui_tooltip_info_t': '980e18b4dfa23d765168b5b8fd4cfb4163f4b0efbbe32d9639eb6ef73fd22013',
+})
+METHODS.update({
+    'xuiTooltipPlacementDefault': [
+        'xui_tooltip_placement_t xuiTooltipPlacementDefault(void)', None,
+        ['export extern "xuiTooltipPlacementDefault" @header("xge3_runtime.h") @pure @no_raise '
+         'func tooltipPlacementDefault() as TooltipPlacement']],
+    'xuiWidgetSetTextTooltip': [
+        'int xuiWidgetSetTextTooltip(xui_widget pWidget, const char* sText, const xui_tooltip_placement_t* pPlacement)', 'Widget',
+        ['extern "xuiWidgetSetTextTooltip" @no_raise @c_cstr(0) @c_ref(1) @c_result("status",0) '
+         'func setTooltipText(string text,TooltipPlacement placement)']],
+    'xuiWidgetGetTooltipInfo': [
+        'int xuiWidgetGetTooltipInfo(xui_widget pWidget, xui_tooltip_info_t* pInfo)', 'Widget',
+        ['extern "xuiWidgetGetTooltipInfo" @no_raise @c_output_record(1,"xui_tooltip_info_t","borrowed") '
+         '@c_output_size(1,"iSize") @c_status(0) @c_output_field(0,"iType") '
+         '@c_output_field(1,"sText","cstring") @c_output_field(2,"tPlacement") '
+         'func tooltipInfo() as (c_int,string?,TooltipPlacement)']],
+})
+
 # Reviewed native entry points with managed replacements.
 REPLACED = {
     'xuiEditGetText': ('xui.Widget.editGetText','xuiEditGetTextView'),

@@ -23,6 +23,16 @@ export extern "xui_rect_i_t" struct RectI @header("xge3_runtime.h")
  c_int iH
 end
 
+export extern "xui_tooltip_placement_t" struct TooltipPlacement @header("xge3_runtime.h")
+ c_int iAnchor
+ c_int bCustomAnchorRect
+ Rect tAnchorRect
+ c_float fOffsetX
+ c_float fOffsetY
+ c_float fDelay
+ c_int bFollowCursor
+end
+
 export extern "xui_thickness_t" struct Thickness @header("xge3_runtime.h")
  c_int fLeft
  c_int fTop

@@ -1,0 +1,16 @@
+// 将鼠标停在按钮上，提示文字会显示在按钮的右侧。
+import xui
+from "./_window.xl" import Window
+
+Window.show("工具提示", func(xui.Context ui, xui.Widget root)
+ auto button = ui.buttonNative()
+ button.setText("将鼠标停在这里")
+ Window.place(root, button, 24, 72, 180, 40)
+
+ auto placement = xui.tooltipPlacementDefault()
+ placement.iAnchor = xui.XUI_TOOLTIP_ANCHOR_WIDGET_RIGHT
+ placement.fOffsetX = 8
+ placement.fOffsetY = 0
+ placement.fDelay = c_float(0.25)
+ button.setTooltipText("这条提示显示在按钮的右侧。", placement)
+end)

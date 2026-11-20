@@ -32,6 +32,20 @@ symbol names in `tools/xge_replay_contracts.py` and
 | DatePicker and Input decorations | The five DatePicker notification setters and `Input.decorationAdd()` / `decorationSet()` use native retained callback registrations. `InputDecoration.getBounds()` reports checked failures when a view is no longer usable. |
 | FlowGraph revisions | `FlowGraph.revision` and `cleanRevision` use checked native reads, including Busy during model callback reentry. |
 
+## Widget text tooltips
+
+Start with `xui.tooltipPlacementDefault()` and adjust the anchor, anchor
+rectangle, offsets, delay or cursor following before passing the value to
+`widget.setTooltipText(text, placement)`. The delay is in seconds. A delay of
+`-1` uses the Context interaction policy. An empty string clears the tooltip.
+The native setter copies the supplied text and uses the existing tooltip layout.
+
+`widget.tooltipInfo()` returns the configured kind, a nullable text snapshot,
+and a copied `TooltipPlacement`. The values survive later changes to the widget.
+Reading a native custom tooltip reports its kind and placement with a null text
+value. The read leaves hover and resolver state alone.
+See [widget_tooltip.xl](../lib/bindings/xui/examples/widget_tooltip.xl).
+
 | Surface | Native functions | Types | Callable fields |
 | --- | ---: | ---: | ---: |
 | `xge.h` | 1,037 | 281 | 0 |
