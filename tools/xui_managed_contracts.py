@@ -1204,6 +1204,81 @@ REPLACED = {
 }
 
 
+METHODS.update({'xuiInventoryGridSetSlotContent': ['int xuiInventoryGridSetSlotContent(xui_widget pWidget, int iSlot, const xui_inventory_slot_content_t* pContent)',
+                                    'InventoryGrid',
+                                    ['extern "xuiInventoryGridSetSlotContent" @no_raise @c_pack(2,"xui_inventory_slot_content_t",1,3) '
+                                     '@c_pack_field(2,"tSettings",1,"value") @c_pack_field(2,"sText",2,"c_string") @c_pack_field(2,"sHotkey",3,"c_string") '
+                                     '@c_result("status",0) func setSlotContent(c_int index,InventorySlotSettings settings,string text="",string hotkey="")']],
+ 'xuiInventoryGridGetSlotContent': ['int xuiInventoryGridGetSlotContent(xui_widget pWidget, int iSlot, xui_inventory_slot_content_t* pContent)',
+                                    'InventoryGrid',
+                                    ['extern "xuiInventoryGridGetSlotContent" @no_raise @c_output_record(2,"xui_inventory_slot_content_t","borrowed") '
+                                     '@c_status(0) @c_output_field(0,"tSettings") @c_output_field(1,"sText","cstring") @c_output_field(2,"sHotkey","cstring") '
+                                     'func getSlotContent(c_int index) as (InventorySlotSettings,string,string)']],
+ 'xuiInventoryGridQuerySlotsOwned': ['int xuiInventoryGridQuerySlotsOwned(xui_widget pWidget, const xui_inventory_slot_query_t* pQuery, xui_inventory_indices* '
+                                     'pOut)',
+                                     'InventoryGrid',
+                                     ['extern "xuiInventoryGridQuerySlotsOwned" @no_raise @c_result("owned_view") @factory(2,0,releaseInventoryIndices) '
+                                      '@c_sync_callback(5,0,0,"last","xge3_runtime.h") @c_sync_callback(6,0,0,"last","xge3_runtime.h") '
+                                      '@c_pack(1,"xui_inventory_slot_query_t",0,7) @c_pack_size(1,"iSize","uint32_t") @c_pack_field(1,"iFlags",0,"value") '
+                                      '@c_pack_field(1,"iRequiredFlags",1,"value") @c_pack_field(1,"iRejectedFlags",2,"value") '
+                                      '@c_pack_field(1,"iSortMode",3,"value") @c_pack_field(1,"sTextContains",4,"c_string") '
+                                      '@c_pack_field(1,"onFilter",5,"callback") @c_pack_field(1,"pFilterUser",5,"callback_user") '
+                                      '@c_pack_field(1,"onCompare",6,"callback") @c_pack_field(1,"pCompareUser",6,"callback_user") func querySlots(c_uint '
+                                      'flags=0,c_uint requiredFlags=0,c_uint rejectedFlags=0,c_int sortMode=0,string? textContains=null,InventoryFilterProc? '
+                                      'filter=null,InventoryCompareProc? compare=null) as InventoryIndices']],
+ 'xuiInventoryGridSortSlotsOwned': ['int xuiInventoryGridSortSlotsOwned(xui_widget pWidget, const int* arrSlots, int iSlotCount, int iSortMode, uint32_t '
+                                    'iFlags, xui_inventory_compare_proc onCompare, void* pUser, xui_inventory_indices* pOut)',
+                                    'InventoryGrid',
+                                    ['extern "xuiInventoryGridSortSlotsOwned" @no_raise @c_array_group(1,0,1,"int",1) @c_array_input(1,0,"const int*","value") '
+                                     '@c_sync_callback(4,0,0,"last","xge3_runtime.h") @c_result("owned_view") @factory(7,0,releaseInventoryIndices) func '
+                                     'sortSlots(array<c_int> slots,int size=-1,c_int sortMode=0,c_uint flags=0,InventoryCompareProc? compare=null) as '
+                                     'InventoryIndices']],
+ 'xuiInventoryIndicesAddRef': ['int xuiInventoryIndicesAddRef(xui_inventory_indices pIndices)',
+                               None,
+                               ['extern "xuiInventoryIndicesAddRef" @header("xge3_runtime.h") @no_raise func retainInventoryIndices(InventoryIndices value) as '
+                                'c_int']],
+ 'xuiInventoryIndicesRelease': ['void xuiInventoryIndicesRelease(xui_inventory_indices pIndices)',
+                                None,
+                                ['extern "xuiInventoryIndicesRelease" @header("xge3_runtime.h") @no_raise func releaseInventoryIndices(InventoryIndices '
+                                 'value)']]})
+CALLBACKS.update({'xui_inventory_filter_proc': ('typedef int (*xui_inventory_filter_proc)(xui_widget_t* pWidget, int iSlot, const xui_inventory_slot_t* pSlot, void* pUser);',
+                               'export typedef InventoryFilterProc = func(CallbackWidget,c_int,CallbackInventorySlot) as c_int'),
+ 'xui_inventory_compare_proc': ('typedef int (*xui_inventory_compare_proc)(xui_widget_t* pWidget, int iSlotA, const xui_inventory_slot_t* pSlotA, int iSlotB, '
+                                'const xui_inventory_slot_t* pSlotB, void* pUser);',
+                                'export typedef InventoryCompareProc = func(CallbackWidget,c_int,CallbackInventorySlot,c_int,CallbackInventorySlot) as c_int')})
+VIEWS.update({
+    'CallbackInventorySlot': """export extern "const xui_inventory_slot_t*" class CallbackInventorySlot @header("xge3_runtime.h") @lifetime("callback")
+ native point handle
+ extern "iSlotId" @c_field get slotId() as c_int
+ extern "iItemId" @c_field get itemId() as c_int
+ extern "iCount" @c_field get count() as c_int
+ extern "iMaxCount" @c_field get maxCount() as c_int
+ extern "iSlotType" @c_field get slotType() as c_int
+ extern "iItemType" @c_field get itemType() as c_int
+ extern "iFlags" @c_field get flags() as c_uint
+ extern "iQualityColor" @c_field get qualityColor() as c_uint
+ extern "fCooldownRate" @c_field get cooldownRate() as c_float
+ extern "fDurabilityRate" @c_field get durabilityRate() as c_float
+ extern "xl6Xui3InventorySlotText" @no_raise @c_result("cstring") func text() as string
+ extern "xl6Xui3InventorySlotHotkey" @no_raise @c_result("cstring") func hotkey() as string
+end""",
+    'InventoryIndices': """export extern "xui_inventory_indices" class InventoryIndices @header("xge3_runtime.h") @lifetime("owned") @policy("xl6Xui3InventoryIndicesPolicy")
+ native point handle
+ extern "xuiInventoryIndicesGet" @no_raise @c_owned_sequence(1,2,0,"size_t",0) @c_retain(retainInventoryIndices,"zero",releaseInventoryIndices) func indices() as NativeSequence<c_int>
+ extern "xl6ForeignViewCloseV1" @no_raise @c_control(0) @c_result("bool_status") func close()
+end""",
+})
+VIEW_FUNCTIONS["xuiInventoryIndicesGet"] = 'int xuiInventoryIndicesGet(xui_inventory_indices pIndices, const int** ppSlots, size_t* pCount)'
+RECORDS.update({
+    'xui_inventory_slot_settings_t': 'typedef struct xui_inventory_slot_settings_t { int iSlotId; int iItemId; int iCount; int iMaxCount; int iSlotType; int iItemType; uint32_t iFlags; uint32_t iQualityColor; float fCooldownRate; float fDurabilityRate; } xui_inventory_slot_settings_t;',
+    'xui_inventory_slot_content_t': 'typedef struct xui_inventory_slot_content_t { xui_inventory_slot_settings_t tSettings; const char* sText; const char* sHotkey; } xui_inventory_slot_content_t;',
+    'xui_inventory_indices': 'typedef struct xui_inventory_indices_t* xui_inventory_indices;',
+})
+REPLACED.update({
+    "xuiInventoryGridQuerySlots": ("xui.InventoryGrid.querySlots", "xuiInventoryGridQuerySlotsOwned"),
+    "xuiInventoryGridSortSlots": ("xui.InventoryGrid.sortSlots", "xuiInventoryGridSortSlotsOwned"),
+})
+
 def validate(root,header,function_sha):
     functions={f['name']:f['declaration']for f in header['functions']}
     types={t['name']:t['declaration']for t in header['types']}
@@ -1262,6 +1337,7 @@ def extend(context,classes,free,callback_declarations,mapped):
                   xuiCodeInputResponseSetEdits='xui.CallbackCodeInputResponse.setEdits')
     mapped['xuiCodeDiagnosticHitDetails']='xui.CallbackConstCodeDiagnosticHit.details'
     mapped['xuiInputDecorationGetBounds']='xui.InputDecoration.getBounds'
+    mapped['xuiInventoryIndicesGet']='xui.InventoryIndices.indices'
     mapped.update(xuiEventDragData='xui.CallbackConstEvent.dragData',xuiRequestClose='xui.CallbackContext.requestClose')
 
 

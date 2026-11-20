@@ -1,0 +1,185 @@
+{
+  "complete": true,
+  "passed": true,
+  "releaseInstalled": false,
+  "sourceParent": "9114a60416235038c6f7ccc5ed799ea0157ad7f6",
+  "nativeCommit": "4b34261e1af0ffafa582e872f57ba88bec04bee9",
+  "xrtCommit": "804cc769de3030118c2b46ef7af69543d1b82d9d",
+  "nativeSourceHashesLf": {
+    "include/xui.h": "5856f57801e37bdc391b18969029aa966ae31dd2d4c8d9cccb5252bb0687dbd1",
+    "src/xui/controls/xui_inventory_grid.c": "9cc9e9a3a1f52bd9ac3ca7d05aba4e9d0e685de7a779271ae8a557efc3cc96e8",
+    "tests/xui/xui_inventory_grid_test.c": "1026e7b9030bf4420d558c7e784ef17a094bb22444ffeef85238adb3678efa45"
+  },
+  "languageSourceHashesLf": {
+    "docs/xge3-xui3-api-map-storage.json": "b9c4e6cf88fdb3bade50b67e149e2de307b63a9e4c3fa1d9bbffcd45765d2e09",
+    "lib/bindings/_xge_native/include/xge3_runtime.h": "2f684552f27bab0305adff05af254fac15aa729140080e3374c6908cbf0831e7",
+    "lib/bindings/_xge_native/src/runtime.c": "2ce9255a79546b3f8668cecaf2f40ca0b89485eca78eb60c4055dee42e630f40",
+    "lib/bindings/xui/examples/README.md": "f8a03d5f11519cf8a1d9639d87d13661efebcdbc4474099e7dd850fdc7c92ab9",
+    "lib/bindings/xui/examples/inventory_content.xl": "b3e13a19d8174e7257b6d6c79de354614dd9233895bd019a68d8dc62d84c83aa",
+    "lib/bindings/xui/src/managed.xl": "595b02b7b7d055105470b1beeda5bcb29f20d78da1f13ac4fc9a8ca977fb06f2",
+    "lib/bindings/xui/src/records.xl": "175db0734d9f83951d9dca2a86076c7c664f945bd206dc3dadea84cb2e3fe0bc",
+    "test/cases/foreign_xui_inventory_slot_query.xl": "b9c2ad1a98e866ace1a4fff01638ece35a5a26ca5bbf12cc4aa7556916577be2",
+    "tools/check_xge3_bindings.py": "7a087f6b6aca96276bdd33c8ad5a591eadf3568d6a6d42e38ebd5301a00ee766",
+    "tools/xui_managed_contracts.py": "9a7a3a1a89a72d1be979544ec766844f1ed2119d00aefde17c4d476beba9dc63"
+  },
+  "checks": [
+    "Direct native slot writes and reads preserve existing native media and copy the returned text. UTF-8 remains intact when the native buffers truncate an input.",
+    "Built-in queries support filters and descending ordering. Owned indices are historical slot positions and outlive the grid. Iteration directly reads the native integer array.",
+    "Synchronous callbacks see the same snapshot under query reentry. Expired views and exceptions are checked. A non-reflexive native comparator terminates without changing the input slot array.",
+    "The native allocation-failure test verifies a cleared output pointer. The prior result stays valid.",
+    "A borrowed icon generation change causes the current widget cache to redraw, while repeated unmodified prepares preserve it.",
+    "The checked package publishes direct managed signatures. The hosted program imports XGE3 host; the static program does not. Both run the same language fixture."
+  ],
+  "costs": [
+    "In the native built-in query fixture, four slots and a nonempty needle use one XRT allocation for the owner and the index capacity. The operation traverses the live grid and does not copy all slot records.",
+    "Custom callbacks take a native slot snapshot. Saving either returned slot string as a language value copies its text. Index sequence construction retains the native owner without copying the array.",
+    "Explicit sort projects the selected input prefix and sorts a separate native result. The test records allocator activity in native C; it does not measure end-to-end latency or claim zero language overhead.",
+    "The render prepare pass visits InventoryGrid to inspect generations for visible icon slots. An unchanged icon does not cause a redraw."
+  ],
+  "pending": [
+    "InventoryGrid managed icon and animation ownership, scroll model access, and tooltip, drag/drop and render callback ownership.",
+    "Whole-goal XGE, XUI and Document audit and matched release/IDE delivery."
+  ],
+  "platforms": {
+    "win": {
+      "imports": {
+        "host": [
+          "msvcrt.dll",
+          "xge3_host.dll",
+          "kernel32.dll",
+          "ucrtbase.dll"
+        ],
+        "static": [
+          "msvcrt.dll",
+          "kernel32.dll",
+          "USER32.dll",
+          "ole32.dll",
+          "OLEAUT32.dll",
+          "SHELL32.dll",
+          "GDI32.dll",
+          "IMM32.dll",
+          "DWrite.dll"
+        ]
+      },
+      "nativeBuiltInQueryAllocations": 1
+    },
+    "linux": {
+      "imports": {
+        "host": [
+          "libm.so.6",
+          "libmvec.so.1",
+          "libxge3_host.so",
+          "libc.so.6",
+          "ld-linux-x86-64.so.2"
+        ],
+        "static": [
+          "libm.so.6",
+          "libmvec.so.1",
+          "libX11.so.6",
+          "libXi.so.6",
+          "libXcursor.so.1",
+          "libGL.so.1",
+          "libc.so.6",
+          "ld-linux-x86-64.so.2"
+        ]
+      },
+      "nativeBuiltInQueryAllocations": 1
+    }
+  },
+  "evidence": {
+    "win": {
+      "sdk": {
+        "path": "F:\\xlang-validation\\xge-full-20261110\\inventory-slot-query-sdk-win-r2\\results.json",
+        "sha256": "28cb853c55b7ce680d6f334c4835a7a03bcdf300e8201e3c003d1d04896ecf45",
+        "checks": [
+          "host",
+          "static"
+        ]
+      },
+      "packageReplay": {
+        "path": "F:\\xlang-validation\\xge-full-20261110\\inventory-slot-query-packages-win-r3\\results.json",
+        "sha256": "dc486b1cbf81447f64ccb319c9afc2c5ddb01f41e7dd6527329d339cdf03d134",
+        "checks": [
+          "generated-declarations",
+          "inventory",
+          "strict-current-storage-replay",
+          "host",
+          "static",
+          "replay"
+        ]
+      },
+      "nativeFixture": {
+        "path": "F:\\xlang-validation\\xge-full-20261110\\inventory-slot-query-native-static-win-r7\\results.json",
+        "sha256": "443ad7eee0b646f73109003a66ef235bfeb46f64ebc92135d9f8f4edc751c6b2",
+        "checks": [
+          "O0-build",
+          "O0-run",
+          "O2-build",
+          "O2-run"
+        ]
+      },
+      "languageFixture": {
+        "path": "F:\\xlang-validation\\xge-full-20261110\\inventory-slot-query-language-tests-win-r4\\results.json",
+        "sha256": "b0706853a69e971c2912695d4f571bb62c832a4b32897a6dde0a1b88f16637eb",
+        "checks": [
+          "emit",
+          "jit",
+          "example",
+          "host-build",
+          "host-run",
+          "host-imports",
+          "static-build",
+          "static-run",
+          "static-imports"
+        ]
+      }
+    },
+    "linux": {
+      "sdk": {
+        "path": "\\\\wsl.localhost\\Ubuntu\\var\\tmp\\xlang-validation\\xge-full-20261110\\inventory-slot-query-sdk-linux-r2\\results.json",
+        "sha256": "85d1c4882a48351d0e3808046682d14374cbf3948f35f0a536d82a341f450917",
+        "checks": [
+          "host",
+          "static"
+        ]
+      },
+      "packageReplay": {
+        "path": "\\\\wsl.localhost\\Ubuntu\\var\\tmp\\xlang-validation\\xge-full-20261110\\inventory-slot-query-packages-linux-r3\\results.json",
+        "sha256": "bcc42df7be4a0a5db020342f375c494592c6c924234b475ab1b2e11a6651a6f6",
+        "checks": [
+          "generated-declarations",
+          "inventory",
+          "strict-current-storage-replay",
+          "host",
+          "static",
+          "replay"
+        ]
+      },
+      "nativeFixture": {
+        "path": "\\\\wsl.localhost\\Ubuntu\\var\\tmp\\xlang-validation\\xge-full-20261110\\inventory-slot-query-native-static-linux-r7\\results.json",
+        "sha256": "9f4b64f95ddc4fa04e17f9438b899f6e96f7f3917f5d8a80965f84f5b730de74",
+        "checks": [
+          "O0-build",
+          "O0-run",
+          "O2-build",
+          "O2-run"
+        ]
+      },
+      "languageFixture": {
+        "path": "\\\\wsl.localhost\\Ubuntu\\var\\tmp\\xlang-validation\\xge-full-20261110\\inventory-slot-query-language-tests-linux-r4\\results.json",
+        "sha256": "7b335483d190d4d159dc2bd2af0af12eaa4143c19e2d23e9bc2e88213eab5b59",
+        "checks": [
+          "emit",
+          "jit",
+          "example",
+          "host-build",
+          "host-run",
+          "host-imports",
+          "static-build",
+          "static-run",
+          "static-imports"
+        ]
+      }
+    }
+  }
+}

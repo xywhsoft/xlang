@@ -1028,4 +1028,15 @@ const XL6_ForeignViewDescriptorV1* xl6Xge3AudioClipPolicyGet(void)
         0,1,NULL,NULL,destroy_audio_clip,0,1,NULL,NULL,NULL,NULL,XL6_FOREIGN_VIEW_THREAD_NEUTRAL_LEAF,NULL,NULL};
     return &value;
 }
+#if XUI_ENABLE_INVENTORY_GRID
+static bool destroy_inventory_indices(void* raw){xuiInventoryIndicesRelease(raw);return true;}
+const XL6_ForeignViewDescriptorV1* xl6Xui3InventoryIndicesPolicyGet(void)
+{
+    static const XL6_ForeignViewDescriptorV1 value={sizeof(value),XL6_FOREIGN_VIEW_V1_TAG,"xui.inventory_indices",
+        0,1,NULL,NULL,destroy_inventory_indices,0,1,NULL,NULL,NULL,NULL,XL6_FOREIGN_VIEW_THREAD_NEUTRAL_LEAF,NULL,NULL};
+    return &value;
+}
+#else
+const XL6_ForeignViewDescriptorV1* xl6Xui3InventoryIndicesPolicyGet(void){return NULL;}
+#endif
 #undef RESOURCE_POLICY

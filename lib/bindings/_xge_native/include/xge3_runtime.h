@@ -115,6 +115,18 @@ const XL6_ForeignViewDescriptorV1* xl6Xge3SvgPolicyGet(void);
 const XL6_ForeignViewDescriptorV1* xl6Xge3SvgPaintPolicyGet(void);
 const XL6_ForeignViewDescriptorV1* xl6Xge3SvgCachePolicyGet(void);
 const XL6_ForeignViewDescriptorV1* xl6Xge3AudioClipPolicyGet(void);
+const XL6_ForeignViewDescriptorV1* xl6Xui3InventoryIndicesPolicyGet(void);
+
+/* Grid snapshots terminate their inline text before any callback sees it. */
+static inline const char* xl6Xui3InventorySlotText(const xui_inventory_slot_t* slot)
+{
+    return slot->sText;
+}
+
+static inline const char* xl6Xui3InventorySlotHotkey(const xui_inventory_slot_t* slot)
+{
+    return slot->sHotkey;
+}
 #ifdef __cplusplus
 }
 #endif
@@ -188,4 +200,5 @@ const XL6_ForeignViewDescriptorV1* xl6Xge3AudioClipPolicyGet(void);
 #define xl6Xge3SvgPaintPolicy (*xl6Xge3SvgPaintPolicyGet())
 #define xl6Xge3SvgCachePolicy (*xl6Xge3SvgCachePolicyGet())
 #define xl6Xge3AudioClipPolicy (*xl6Xge3AudioClipPolicyGet())
+#define xl6Xui3InventoryIndicesPolicy (*xl6Xui3InventoryIndicesPolicyGet())
 #endif

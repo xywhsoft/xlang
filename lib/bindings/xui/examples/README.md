@@ -27,6 +27,9 @@
 
 [inventory_snapshot.xl](inventory_snapshot.xl) 在不打开窗口的情况下导出物品栏数据，关闭控件后仍能读取快照。
 
+[inventory_content.xl](inventory_content.xl) 写入两个物品，按名称筛选，再按数量从多到少输出。
+查询得到的是当时的槽位下标，关闭控件后仍可遍历。调整网格内容后，需要重新查询才能得到新下标。
+
 [combobox_items.xl](combobox_items.xl) 使用业务值、禁用状态和分隔线配置下拉选项，并读取当前选项。
 
 [timeline_state.xl](timeline_state.xl) 设置一个关键帧并读取区间快照。[message_nodes.xl](message_nodes.xl) 批量加载消息，再读取辅助节点。

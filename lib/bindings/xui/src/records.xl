@@ -640,6 +640,19 @@ export extern "xui_page_item_info_t" struct PageItemInfo @header("xge3_runtime.h
  c_char sText[16]
 end
 
+export extern "xui_inventory_slot_settings_t" struct InventorySlotSettings @header("xge3_runtime.h")
+ c_int iSlotId
+ c_int iItemId
+ c_int iCount
+ c_int iMaxCount
+ c_int iSlotType
+ c_int iItemType
+ c_uint iFlags
+ c_uint iQualityColor
+ c_float fCooldownRate
+ c_float fDurabilityRate
+end
+
 export extern "xui_inventory_grid_layout_t" struct InventoryGridLayout @header("xge3_runtime.h")
  c_uint iSize
  c_int iColumns

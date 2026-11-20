@@ -878,7 +878,7 @@
       "declaration": "extern \"xuiInventoryGridExportXSON\" @no_raise @c_span(0,\"char*\",\"int\") func exportXSON(Buffer sBuffer) as c_int",
       "storage": "bounded-synchronous-output",
       "sourceFile": "src/xui/controls/xui_inventory_grid.c",
-      "line": 5288,
+      "line": 5469,
       "functionSha256": "68f9ae30c7ed52bc2268a488a5366d71dea8ef5bf331b39cdd87b4e1e19f4da4"
     },
     "xuiTerminalWrite": {
@@ -973,7 +973,7 @@
         },
         {
           "sourceFile": "include/xui.h",
-          "lfSha256": "ed053129c58e1b5f14d2b21171949da63f68467c064be857f3e16f031563b54c"
+          "lfSha256": "5856f57801e37bdc391b18969029aa966ae31dd2d4c8d9cccb5252bb0687dbd1"
         }
       ]
     },
@@ -1198,7 +1198,7 @@
         },
         {
           "sourceFile": "include/xui.h",
-          "lfSha256": "ed053129c58e1b5f14d2b21171949da63f68467c064be857f3e16f031563b54c"
+          "lfSha256": "5856f57801e37bdc391b18969029aa966ae31dd2d4c8d9cccb5252bb0687dbd1"
         }
       ]
     },
@@ -1220,7 +1220,7 @@
         },
         {
           "sourceFile": "include/xui.h",
-          "lfSha256": "ed053129c58e1b5f14d2b21171949da63f68467c064be857f3e16f031563b54c"
+          "lfSha256": "5856f57801e37bdc391b18969029aa966ae31dd2d4c8d9cccb5252bb0687dbd1"
         }
       ]
     },
@@ -1242,7 +1242,7 @@
         },
         {
           "sourceFile": "include/xui.h",
-          "lfSha256": "ed053129c58e1b5f14d2b21171949da63f68467c064be857f3e16f031563b54c"
+          "lfSha256": "5856f57801e37bdc391b18969029aa966ae31dd2d4c8d9cccb5252bb0687dbd1"
         }
       ]
     },
@@ -1264,7 +1264,7 @@
         },
         {
           "sourceFile": "include/xui.h",
-          "lfSha256": "ed053129c58e1b5f14d2b21171949da63f68467c064be857f3e16f031563b54c"
+          "lfSha256": "5856f57801e37bdc391b18969029aa966ae31dd2d4c8d9cccb5252bb0687dbd1"
         }
       ]
     },
@@ -1286,7 +1286,7 @@
         },
         {
           "sourceFile": "include/xui.h",
-          "lfSha256": "ed053129c58e1b5f14d2b21171949da63f68467c064be857f3e16f031563b54c"
+          "lfSha256": "5856f57801e37bdc391b18969029aa966ae31dd2d4c8d9cccb5252bb0687dbd1"
         }
       ]
     },
@@ -1308,7 +1308,7 @@
         },
         {
           "sourceFile": "include/xui.h",
-          "lfSha256": "ed053129c58e1b5f14d2b21171949da63f68467c064be857f3e16f031563b54c"
+          "lfSha256": "5856f57801e37bdc391b18969029aa966ae31dd2d4c8d9cccb5252bb0687dbd1"
         }
       ]
     },
@@ -1330,7 +1330,95 @@
         },
         {
           "sourceFile": "include/xui.h",
-          "lfSha256": "ed053129c58e1b5f14d2b21171949da63f68467c064be857f3e16f031563b54c"
+          "lfSha256": "5856f57801e37bdc391b18969029aa966ae31dd2d4c8d9cccb5252bb0687dbd1"
+        }
+      ]
+    },
+    "xuiInventoryGridSetSlotContent": {
+      "bindingFile": "lib\\bindings\\xui\\src\\managed.xl",
+      "declaration": "extern \"xuiInventoryGridSetSlotContent\" @no_raise @c_pack(2,\"xui_inventory_slot_content_t\",1,3) @c_pack_field(2,\"tSettings\",1,\"value\") @c_pack_field(2,\"sText\",2,\"c_string\") @c_pack_field(2,\"sHotkey\",3,\"c_string\") @c_result(\"status\",0) func setSlotContent(c_int index,InventorySlotSettings settings,string text=\"\",string hotkey=\"\")",
+      "storage": "native-copy-or-synchronous-read",
+      "sourceFile": "src/xui/controls/xui_inventory_grid.c",
+      "line": 4128,
+      "functionSha256": "038694517c1f942c8e0601444a29adeb26c4ae6c23c0f980922bf7b8fa07017a",
+      "dependencies": [
+        {
+          "sourceFile": "src/xui/controls/xui_inventory_grid.c",
+          "lfSha256": "9cc9e9a3a1f52bd9ac3ca7d05aba4e9d0e685de7a779271ae8a557efc3cc96e8"
+        },
+        {
+          "sourceFile": "src/xui/core/xui_widget.c",
+          "lfSha256": "c83acfa8348870a0b150dc94c89f443d0ad6e57c35d040d0429a5ab294bc5600"
+        },
+        {
+          "sourceFile": "include/xui.h",
+          "lfSha256": "5856f57801e37bdc391b18969029aa966ae31dd2d4c8d9cccb5252bb0687dbd1"
+        }
+      ]
+    },
+    "xuiInventoryGridGetSlotContent": {
+      "bindingFile": "lib\\bindings\\xui\\src\\managed.xl",
+      "declaration": "extern \"xuiInventoryGridGetSlotContent\" @no_raise @c_output_record(2,\"xui_inventory_slot_content_t\",\"borrowed\") @c_status(0) @c_output_field(0,\"tSettings\") @c_output_field(1,\"sText\",\"cstring\") @c_output_field(2,\"sHotkey\",\"cstring\") func getSlotContent(c_int index) as (InventorySlotSettings,string,string)",
+      "storage": "borrowed-synchronous-output",
+      "sourceFile": "src/xui/controls/xui_inventory_grid.c",
+      "line": 4146,
+      "functionSha256": "e5cc689e9ac01a841171810b3a268b4d5b1befc4c1efc35f08b86b14e93ec09a",
+      "dependencies": [
+        {
+          "sourceFile": "src/xui/controls/xui_inventory_grid.c",
+          "lfSha256": "9cc9e9a3a1f52bd9ac3ca7d05aba4e9d0e685de7a779271ae8a557efc3cc96e8"
+        },
+        {
+          "sourceFile": "src/xui/core/xui_widget.c",
+          "lfSha256": "c83acfa8348870a0b150dc94c89f443d0ad6e57c35d040d0429a5ab294bc5600"
+        },
+        {
+          "sourceFile": "include/xui.h",
+          "lfSha256": "5856f57801e37bdc391b18969029aa966ae31dd2d4c8d9cccb5252bb0687dbd1"
+        }
+      ]
+    },
+    "xuiInventoryGridQuerySlotsOwned": {
+      "bindingFile": "lib\\bindings\\xui\\src\\managed.xl",
+      "declaration": "extern \"xuiInventoryGridQuerySlotsOwned\" @no_raise @c_result(\"owned_view\") @factory(2,0,releaseInventoryIndices) @c_sync_callback(5,0,0,\"last\",\"xge3_runtime.h\") @c_sync_callback(6,0,0,\"last\",\"xge3_runtime.h\") @c_pack(1,\"xui_inventory_slot_query_t\",0,7) @c_pack_size(1,\"iSize\",\"uint32_t\") @c_pack_field(1,\"iFlags\",0,\"value\") @c_pack_field(1,\"iRequiredFlags\",1,\"value\") @c_pack_field(1,\"iRejectedFlags\",2,\"value\") @c_pack_field(1,\"iSortMode\",3,\"value\") @c_pack_field(1,\"sTextContains\",4,\"c_string\") @c_pack_field(1,\"onFilter\",5,\"callback\") @c_pack_field(1,\"pFilterUser\",5,\"callback_user\") @c_pack_field(1,\"onCompare\",6,\"callback\") @c_pack_field(1,\"pCompareUser\",6,\"callback_user\") func querySlots(c_uint flags=0,c_uint requiredFlags=0,c_uint rejectedFlags=0,c_int sortMode=0,string? textContains=null,InventoryFilterProc? filter=null,InventoryCompareProc? compare=null) as InventoryIndices",
+      "storage": "synchronous-callback-owned-output",
+      "sourceFile": "src/xui/controls/xui_inventory_grid.c",
+      "line": 4710,
+      "functionSha256": "f26cdc92fb6007bb31f3a4d2323a19ffdc12ca4224a3ea903c777d21c5f783a7",
+      "dependencies": [
+        {
+          "sourceFile": "src/xui/controls/xui_inventory_grid.c",
+          "lfSha256": "9cc9e9a3a1f52bd9ac3ca7d05aba4e9d0e685de7a779271ae8a557efc3cc96e8"
+        },
+        {
+          "sourceFile": "src/xui/core/xui_widget.c",
+          "lfSha256": "c83acfa8348870a0b150dc94c89f443d0ad6e57c35d040d0429a5ab294bc5600"
+        },
+        {
+          "sourceFile": "include/xui.h",
+          "lfSha256": "5856f57801e37bdc391b18969029aa966ae31dd2d4c8d9cccb5252bb0687dbd1"
+        }
+      ]
+    },
+    "xuiInventoryGridSortSlotsOwned": {
+      "bindingFile": "lib\\bindings\\xui\\src\\managed.xl",
+      "declaration": "extern \"xuiInventoryGridSortSlotsOwned\" @no_raise @c_array_group(1,0,1,\"int\",1) @c_array_input(1,0,\"const int*\",\"value\") @c_sync_callback(4,0,0,\"last\",\"xge3_runtime.h\") @c_result(\"owned_view\") @factory(7,0,releaseInventoryIndices) func sortSlots(array<c_int> slots,int size=-1,c_int sortMode=0,c_uint flags=0,InventoryCompareProc? compare=null) as InventoryIndices",
+      "storage": "synchronous-callback-owned-output",
+      "sourceFile": "src/xui/controls/xui_inventory_grid.c",
+      "line": 4802,
+      "functionSha256": "58411d2228e030865f715fd5d93945720382dd8cfd36868d4873b81f6bf41bb6",
+      "dependencies": [
+        {
+          "sourceFile": "src/xui/controls/xui_inventory_grid.c",
+          "lfSha256": "9cc9e9a3a1f52bd9ac3ca7d05aba4e9d0e685de7a779271ae8a557efc3cc96e8"
+        },
+        {
+          "sourceFile": "src/xui/core/xui_widget.c",
+          "lfSha256": "c83acfa8348870a0b150dc94c89f443d0ad6e57c35d040d0429a5ab294bc5600"
+        },
+        {
+          "sourceFile": "include/xui.h",
+          "lfSha256": "5856f57801e37bdc391b18969029aa966ae31dd2d4c8d9cccb5252bb0687dbd1"
         }
       ]
     }
@@ -1458,7 +1546,7 @@
       "dependencies": [
         {
           "sourceFile": "include/xui.h",
-          "lfSha256": "ed053129c58e1b5f14d2b21171949da63f68467c064be857f3e16f031563b54c"
+          "lfSha256": "5856f57801e37bdc391b18969029aa966ae31dd2d4c8d9cccb5252bb0687dbd1"
         },
         {
           "sourceFile": "src/xui/core/xui_proxy_xge.c",
@@ -1556,7 +1644,7 @@
       "dependencies": [
         {
           "sourceFile": "include/xui.h",
-          "lfSha256": "ed053129c58e1b5f14d2b21171949da63f68467c064be857f3e16f031563b54c"
+          "lfSha256": "5856f57801e37bdc391b18969029aa966ae31dd2d4c8d9cccb5252bb0687dbd1"
         },
         {
           "sourceFile": "src/xui/core/xui_proxy_xge.c",
