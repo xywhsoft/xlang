@@ -3,7 +3,7 @@
 This admits index/type assets only; full semantic memo/IR guards remain separate.
 """
 from pathlib import Path
-from native_final_c_interop_profile import COHORT as FINAL_COHORT, PINS as FINAL_PINS
+from native_final_c_interop_profile import COHORT as FINAL_COHORT, PINS as FINAL_PINS, XGE_PINS, XGE_REVISION
 import hashlib
 from native_signature_overlay import profile as parser_profile, PROFILES as PARSER_PROFILES
 from native_current_unified_profile import updated_pins
@@ -43,6 +43,7 @@ PROFILES = {
 
 PROFILES[C_INTEROP_COHORT]={key:C_INTEROP_PINS[key] for key in PROFILES['current-9192a99f']}
 PROFILES[FINAL_COHORT]={key:FINAL_PINS[key] for key in PROFILES['current-9192a99f']}
+PROFILES[XGE_REVISION]={key:XGE_PINS[key] for key in PROFILES['current-9192a99f']}
 
 def profile(frontend: Path) -> dict[str,str]:
     audited = parser_profile(frontend)

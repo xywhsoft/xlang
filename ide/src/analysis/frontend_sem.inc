@@ -979,6 +979,10 @@ static XL6_AstSource* xlsSemApplySource(const XL6_AstSource* source,void* user)
 {
     xls_sem_apply* apply=user; if(!source->path) return NULL;
     XL6_AstNode* const* found=xrtMapConstGet(apply->sources,(xbytesview){(const unsigned char*)source->path,strlen(source->path)});
+#ifdef XLS_NATIVE_AST_IMPORT_NAMESPACE
+    /* The path index is for geometry. It may name another import instance. */
+    if(found && !xlsAstSourceSameNamespace(source,(*found)->source))found=NULL;
+#endif
     /* A cursor source cannot be silently copied with stale metadata when its
      * current private destination is missing. The clone rejects a self target. */
     return found ? (*found)->source : source->completionQuery ? (XL6_AstSource*)source : NULL;

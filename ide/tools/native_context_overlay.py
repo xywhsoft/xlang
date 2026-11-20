@@ -1,4 +1,4 @@
-from native_final_c_interop_profile import COHORT as FINAL_COHORT, PINS as FINAL_PINS
+from native_final_c_interop_profile import COHORT as FINAL_COHORT, PINS as FINAL_PINS, XGE_PINS
 from native_c_interop_profile import pins_for as final_active_pins
 """Audit and adapt shared resolution inputs without copying its search rules."""
 from pathlib import Path
@@ -82,6 +82,8 @@ def derive(frontend: Path, output: Path) -> list[dict]:
         'src/package/xl6_package.h':'19683527d8e14a43eabcdda9d89d52c602ad7eff51f6b644222799ccb156c24f',
         'src/package/xl6_package_native_variants.inc':'c1e153ba3d60a4cdc6ebc64599d065e9414f0af34355c11fb21b7ee2ecb5a941',
     }
+    if c_interop_selected(frontend) and final_active_pins(frontend) is XGE_PINS:
+        selection_pins={path:XGE_PINS[path] for path in selection_pins}
     native_selection=all(audited.get(str(frontend/p))==h for p,h in selection_pins.items())
     rows = []
     for relative, expected in sources.items():

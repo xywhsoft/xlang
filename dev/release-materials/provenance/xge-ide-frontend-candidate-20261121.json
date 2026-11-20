@@ -1,0 +1,56 @@
+{
+  "complete": true,
+  "passed": true,
+  "releaseInstalled": false,
+  "scope": "Matched Windows IDE and language-server candidate; Linux focused analysis and IR verification",
+  "xlangFrontendRevision": "a52bf66d1fc39a6d344c8f20ed1bae7dee2bcecc",
+  "xrtRevision": "804cc769de3030118c2b46ef7af69543d1b82d9d",
+  "xgeRevision": "1185a7ead1ad628b6991a4ef0018115dfc6a8ef2",
+  "checks": {
+    "frontendInputs": 470,
+    "frontendAdmissionChecks": 16,
+    "registeredCommands": 22755,
+    "extensionPackages": 209,
+    "availableCatalogSources": 650,
+    "hiddenGuiStartups": 4,
+    "guiBuildRunCases": 7,
+    "editorInputPassed": true,
+    "windowsStdioCases": 21,
+    "linuxFocusedFixtures": [
+      "analysis_ir_unit_capture_test",
+      "analysis_ir_table_graph_test",
+      "analysis_ast_intern_test",
+      "analysis_ir_sparse_decode_test"
+    ]
+  },
+  "evidence": {
+    "languageServer": {
+      "path": "F:\\xlang-validation\\xge-full-20261110\\lsp-xge-current-win-r4\\build-result.json",
+      "sha256": "786d1f9924a1ace625ea06d9ec0e645a90fb3c47cc88f785950a05a7108f7643"
+    },
+    "matchedWindowsGui": {
+      "path": "F:\\xlang-validation\\xge-full-20261110\\lsp-xge-qualified-pair-win-r1\\results.json",
+      "sha256": "0fe919c507282c47e11945116b4f2f7fa6347071e5f68357aa36bac2f2abf933"
+    },
+    "commandCatalog": {
+      "path": "F:\\xlang-validation\\xge-full-20261110\\lsp-xge-catalog-combined-candidate-r1\\receipt.json",
+      "sha256": "628269240b68e82e5fe7490b49df2454fcd276b526769adf0b2988f22c5b4dfa"
+    },
+    "linuxTargetedChecks": {
+      "path": "\\\\wsl.localhost\\Ubuntu\\var\\tmp\\xlang-validation\\xge-full-20261110\\lsp-xge-ir-tables-replay-linux-r3\\result.json",
+      "sha256": "092cbdc9926418c8faf14336f999dfd025e4f83970b0bbd6234a9b355380c3f5"
+    },
+    "frontendAdmission": {
+      "path": "F:\\xlang-validation\\xge-full-20261110\\lsp-xge-admission-win-r1\\results.json",
+      "sha256": "59f07fa57c2880f096a16f306e88bb8ee003de52cfff9705ce143b4ca6fbb730"
+    },
+    "compilerFreeze": {
+      "path": "F:\\xlang-validation\\xge-full-20261110\\compiler-existing-root-win-r1\\freeze.json",
+      "sha256": "1908a6c0073ebd9577f11e7a898deb72b3e5737e4575a8522333638cb747d8cc"
+    },
+    "compilerBuild": {
+      "path": "F:\\xlang-validation\\xge-full-20261110\\compiler-existing-root-win-r1\\build.json",
+      "sha256": "107a294cdefd81906f8e3fef6bced071ececaad4bf1837b61a15b1e9c7858a07"
+    }
+  }
+}

@@ -17,7 +17,14 @@ def generate(headers,path):
  expected=TYPES|SYMBOLS|NODES|REGIONS|VALUES|PAYLOADS|SPECIAL
  if names!=expected:raise ValueError('Audit native node reference roles: missing='+str(sorted(expected-names))+' new='+str(sorted(names-expected)))
  foreign=ownership['valueRecords'].get('XL6_ForeignCallFacts',[])
- if {r['name']for r in foreign}!=FOREIGN_VALUES|{'rollbackSymbol'}:raise ValueError('Audit native foreign-call reference roles')
+ expected_foreign=FOREIGN_VALUES|{'rollbackSymbol'}
+ names={r['name'] for r in foreign}
+ if names not in (expected_foreign,expected_foreign|{'dataSnapshotCount'}):
+  raise ValueError('Audit native foreign-call reference roles')
+ if 'dataSnapshotCount' in names:
+  count=next(r for r in foreign if r['name']=='dataSnapshotCount')
+  if count['type']!='uint8' or count['pointers'] or count['extent'] is not None:
+   raise ValueError('Foreign snapshot row count representation changed')
  span=ownership['valueRecords'].get('XL6_IrSpan',[])
  if [(r['name'],r['type'],r['pointers'],r['extent'])for r in span]!=[('line','int',0,None),('column','int',0,None)]:raise ValueError('Audit native node coordinates')
  roleTypes={'TYPE':'XL6_IrTypeId','SYMBOL':'XL6_SymbolId','NODE':'XL6_IrNodeId','REGION':'uint32','AGGREGATE_FIELD':'size_t'}

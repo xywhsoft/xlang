@@ -37,6 +37,15 @@ static int keyPath(intern_key* k,const char* path)
     }
     unsigned char encoded[10];size_t size=numberBytes(encoded,id);return keyData(k,encoded,size);
 }
+static int keySource(intern_key* k,const XL6_AstSource* source)
+{
+    if(!keyPath(k,source ? source->path : NULL))return 0;
+#ifdef XLS_NATIVE_AST_IMPORT_NAMESPACE
+    return keyText(k,source ? source->importNamespace : NULL);
+#else
+    return 1;
+#endif
+}
 static int bareLeaf(const XL6_AstNode* n)
 {
     if(n->doc || n->literalData || n->inferredType || n->semanticDeclaredType || n->childCount || !xlsAstPackageBare(n))return 0;
@@ -61,7 +70,7 @@ static int keyNode(intern_key* k,const XL6_AstNode* n,size_t depth)
             n->source ? n->source->completionStart : 0,n->source ? n->source->completionEnd : 0};
         unsigned char encoded[sizeof(fields)/sizeof(*fields)*10];size_t size=0;
         for(size_t i=0;i<sizeof(fields)/sizeof(*fields);++i)size+=numberBytes(encoded+size,fields[i]);
-        return keyData(k,encoded,size) && keyText(k,n->text) && keyPath(k,n->source ? n->source->path : NULL);
+        return keyData(k,encoded,size) && keyText(k,n->text) && keySource(k,n->source);
     }
     uint64_t fields[]={n->kind,n->flags,n->literalSize,n->literalScalar,n->literalDecoded,
 #ifdef XLS_NATIVE_AST_PACKAGE_FIELDS
@@ -83,7 +92,7 @@ static int keyNode(intern_key* k,const XL6_AstNode* n,size_t depth)
 #ifdef XLS_NATIVE_AST_PACKAGE_FIELDS
     if(!keyText(k,n->compiledPackageLink))return 0;
 #endif
-    if(!keyData(k,encoded,size) || !keyText(k,n->text) || !keyText(k,n->doc) || !keyPath(k,n->source ? n->source->path : NULL) ||
+    if(!keyData(k,encoded,size) || !keyText(k,n->text) || !keyText(k,n->doc) || !keySource(k,n->source) ||
        !keyData(k,&present,sizeof(present)) || (n->literalData && !keyData(k,n->literalData,n->literalSize)) ||
        !keyNode(k,n->inferredType,depth+1) || !keyNode(k,n->semanticDeclaredType,depth+1))return 0;
     if(n->childCount && !n->children)return 0;

@@ -51,12 +51,13 @@ static int tableSynthetic(int empty)
  xstrbuf expected={0};CHECK(tableModuleBook(&expected,source));xls_ir_graph_status status;
  faultActive=1;faultAt=faultCalls=denied=peakBytes=0;
  xls_ir_table_graph* g=xlsIrTablesCapture(source,SIZE_MAX,NULL,NULL,&status);faultActive=0;
- CHECK(g && status==XLS_IR_GRAPH_OK && xlsIrTablesCount(g)==107 && !overflow);
+ CHECK(g && status==XLS_IR_GRAPH_OK && xlsIrTablesCount(g)==xlsIrTableSchemaCount() && !overflow);
  CHECK(xlsIrTablesBytes(g)==liveBytes && peakBytes==liveBytes);
  size_t exact=xlsIrTablesBytes(g);
  xls_ir_table_graph* duplicate=xlsIrTablesCapture(source,exact,NULL,NULL,&status);CHECK(duplicate && status==XLS_IR_GRAPH_OK);xlsIrTablesRelease(duplicate);
  CHECK(!xlsIrTablesCapture(source,exact-1,NULL,NULL,&status) && status==XLS_IR_GRAPH_BUDGET);
- CHECK(!xlsIrTablesPinUnit(g,107,0) && !xlsIrTablesName(g,107));
+ size_t end=xlsIrTablesCount(g);
+ CHECK(!xlsIrTablesPinUnit(g,end,0) && !xlsIrTablesName(g,end));
  size_t scalar=tableFind(g,"symbolNodes");CHECK(scalar!=SIZE_MAX && xlsIrTablesRows(g,scalar)==3 && xlsIrTablesUnits(g,scalar)==1);
  size_t table=tableFind(g,"persistenceRestoreFields");CHECK(table!=SIZE_MAX);
  xls_ir_table_unit* unit=xlsIrTablesPinUnit(g,table,0);CHECK(unit && xlsIrTableUnitRows(unit)==1);
@@ -229,6 +230,6 @@ int main(void)
 #ifdef XLS_IR_TABLE_GRAPH_LOWERED_TEST
  if(!tableNativePersistence())return 1;
 #endif
- printf("analysis_ir_table_graph_test passed: %u checks; %u complete native graph clones;107tables,70pointer fields,exact records/payloads,aliases,retirement,4readers,OOM,cancellation\n",
-  xrtAtomic32Load(&checks,XMEMORY_RELAXED),xrtAtomic32Load(&tableOracleRuns,XMEMORY_RELAXED));return 0;
+ printf("analysis_ir_table_graph_test passed: %u checks; %u complete native graph clones; %zu tables, exact records, aliases, retirement, readers, OOM, cancellation\n",
+  xrtAtomic32Load(&checks,XMEMORY_RELAXED),xrtAtomic32Load(&tableOracleRuns,XMEMORY_RELAXED),xlsIrTableSchemaCount());return 0;
 }

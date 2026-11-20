@@ -136,6 +136,10 @@ static int foreignPayloads(void)
  input.foreignCall.receiverDereference=11;
  input.foreignCall.inplaceOutput=12;
  input.foreignCall.inputMappingFacts=13;
+#ifdef XLS_NATIVE_IR_DATA_SNAPSHOTS
+ input.foreignCall.spanPrefixCount=18;
+ input.foreignCall.dataSnapshotCount=19;
+#endif
  input.foreignCall.resultOwnerIndexPlusOne=14;
  input.foreignCall.outputIndexPlusOne=15;
  input.foreignCall.successCode=16;
@@ -144,12 +148,21 @@ static int foreignPayloads(void)
  xstrbuf first={0},other={0};xls_ir_unit unit={0};xls_ir_capture capture={.unit=&unit};
  CHECK(xlsIrMemoEncodeNode(&first,&input,1024u*1024u,&capture));
  XL6_IrNode changed=input;
+#ifdef XLS_NATIVE_IR_DATA_SNAPSHOTS
+ ++changed.foreignCall.spanPrefixCount;
+ CHECK(xlsIrMemoEncodeNode(&other,&changed,1024u*1024u,&capture));
+ CHECK(first.Size!=other.Size || memcmp(first.Data,other.Data,first.Size));xrtStrBufFree(&other);
+ changed=input;++changed.foreignCall.dataSnapshotCount;
+ CHECK(xlsIrMemoEncodeNode(&other,&changed,1024u*1024u,&capture));
+ CHECK(first.Size!=other.Size || memcmp(first.Data,other.Data,first.Size));xrtStrBufFree(&other);
+#else
  size_t begin=offsetof(XL6_ForeignCallFacts,inputMappingFacts)+sizeof(input.foreignCall.inputMappingFacts);
  size_t end=offsetof(XL6_ForeignCallFacts,resultOwnerIndexPlusOne);
  CHECK(end-begin==2 && sizeof(XL6_ForeignCallFacts)==88);
  for(size_t i=begin;i<end;++i)((unsigned char*)&changed.foreignCall)[i]=0xa5;
  CHECK(xlsIrMemoEncodeNode(&other,&changed,1024u*1024u,&capture));
  CHECK(first.Size==other.Size && !memcmp(first.Data,other.Data,first.Size));xrtStrBufFree(&other);
+#endif
  changed=input;++changed.foreignCall.constAggregateAddresses;
  CHECK(xlsIrMemoEncodeNode(&other,&changed,1024u*1024u,&capture));
  CHECK(first.Size!=other.Size || memcmp(first.Data,other.Data,first.Size));xrtStrBufFree(&other);
@@ -218,6 +231,10 @@ static int foreignPayloads(void)
   CHECK(actual.foreignCall.receiverDereference==input.foreignCall.receiverDereference);
   CHECK(actual.foreignCall.inplaceOutput==input.foreignCall.inplaceOutput);
   CHECK(actual.foreignCall.inputMappingFacts==input.foreignCall.inputMappingFacts);
+#ifdef XLS_NATIVE_IR_DATA_SNAPSHOTS
+  CHECK(actual.foreignCall.spanPrefixCount==input.foreignCall.spanPrefixCount);
+  CHECK(actual.foreignCall.dataSnapshotCount==input.foreignCall.dataSnapshotCount);
+#endif
   CHECK(actual.foreignCall.resultOwnerIndexPlusOne==input.foreignCall.resultOwnerIndexPlusOne);
   CHECK(actual.foreignCall.outputIndexPlusOne==input.foreignCall.outputIndexPlusOne);
   CHECK(actual.foreignCall.successCode==input.foreignCall.successCode);
@@ -237,6 +254,9 @@ static int finalSchema(void)
  module.foreignValueCount=1;CHECK(!xlsFinalIrTablesEmpty(&module));module.foreignValueCount=0;
  module.foreignCallbackSpanCount=1;CHECK(!xlsFinalIrTablesEmpty(&module));module.foreignCallbackSpanCount=0;
  module.foreignPointerQualifierCount=1;CHECK(!xlsFinalIrTablesEmpty(&module));module.foreignPointerQualifierCount=0;
+#ifdef XLS_NATIVE_IR_DATA_SNAPSHOTS
+ module.foreignDataSnapshotCount=1;CHECK(!xlsFinalIrTablesEmpty(&module));module.foreignDataSnapshotCount=0;
+#endif
  module.foreignFieldCallCount=1;CHECK(!xlsFinalIrTablesEmpty(&module));module.foreignFieldCallCount=0;
  module.foreignFunctionHeaderCount=1;CHECK(!xlsFinalIrTablesEmpty(&module));module.foreignFunctionHeaderCount=0;
  module.foreignOutputSizeCount=1;CHECK(!xlsFinalIrTablesEmpty(&module));module.foreignOutputSizeCount=0;

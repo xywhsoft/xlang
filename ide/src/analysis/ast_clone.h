@@ -26,6 +26,14 @@ XL6_AstNode* xlsAstClone(const XL6_AstNode* input,const xls_ast_clone_options* o
  * ONLY a start/end difference with cursor flag=1 on both sides may be admitted;
  * default cloning and the existing options layout stay unchanged. */
 typedef int (*xls_ast_cursor_source_policy)(const XL6_AstSource* input,const XL6_AstSource* target,void* user);
+#ifdef XLS_NATIVE_AST_IMPORT_NAMESPACE
+static inline int xlsAstSourceSameNamespace(const XL6_AstSource* a,const XL6_AstSource* b)
+{
+    const char* first=a ? a->importNamespace : NULL;
+    const char* second=b ? b->importNamespace : NULL;
+    return first==second || (first && second && strcmp(first,second)==0);
+}
+#endif
 /* Shared exact admission for eager clones and immutable demand views. The
  * caller separately guarantees that target belongs to its private result. */
 static inline int xlsAstCloneSourceTargetValid(const XL6_AstSource* input,const XL6_AstSource* target,
@@ -33,6 +41,9 @@ static inline int xlsAstCloneSourceTargetValid(const XL6_AstSource* input,const 
 {
     if(!input || !target || target==input || !target->references || !!target->path!=!!input->path ||
        (input->path && strcmp(target->path,input->path)) || target->completionQuery!=input->completionQuery)return 0;
+#ifdef XLS_NATIVE_AST_IMPORT_NAMESPACE
+    if(!xlsAstSourceSameNamespace(input,target))return 0;
+#endif
     return (target->completionStart==input->completionStart && target->completionEnd==input->completionEnd) ||
         (input->completionQuery==1 && policy && policy(input,target,user));
 }

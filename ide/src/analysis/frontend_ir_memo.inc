@@ -156,6 +156,9 @@ static int xlsFinalIrTablesEmpty(const XL6_IrModule* module)
     !module->foreignValueCount &&
     !module->foreignCallbackSpanCount &&
     !module->foreignPointerQualifierCount &&
+#ifdef XLS_NATIVE_IR_DATA_SNAPSHOTS
+    !module->foreignDataSnapshotCount &&
+#endif
     !module->foreignFieldCallCount &&
     !module->foreignFunctionHeaderCount &&
     !module->foreignOutputSizeCount &&
@@ -388,6 +391,10 @@ static int xlsIrMemoEncodeNode(xstrbuf* data,const XL6_IrNode* in,size_t limit,x
     value.foreignCall.receiverDereference=foreign.receiverDereference;
     value.foreignCall.inplaceOutput=foreign.inplaceOutput;
     value.foreignCall.inputMappingFacts=foreign.inputMappingFacts;
+#ifdef XLS_NATIVE_IR_DATA_SNAPSHOTS
+    value.foreignCall.spanPrefixCount=foreign.spanPrefixCount;
+    value.foreignCall.dataSnapshotCount=foreign.dataSnapshotCount;
+#endif
     value.foreignCall.resultOwnerIndexPlusOne=foreign.resultOwnerIndexPlusOne;
     value.foreignCall.outputIndexPlusOne=foreign.outputIndexPlusOne;
     value.foreignCall.successCode=foreign.successCode;

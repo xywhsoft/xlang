@@ -1,4 +1,5 @@
 #include "analysis/ast_intern.h"
+#include "analysis/ast_size.h"
 #include <xrt.h>
 #include <stdio.h>
 #include <string.h>
@@ -40,6 +41,9 @@ static int sameAst(const XL6_AstNode* a,const XL6_AstNode* b)
   (a->literalData && memcmp(a->literalData,b->literalData,a->literalSize)) || !!a->source!=!!b->source)return 0;
  if(a->source && (!sameText(a->source->path,b->source->path) || a->source->completionQuery!=b->source->completionQuery ||
   a->source->completionStart!=b->source->completionStart || a->source->completionEnd!=b->source->completionEnd))return 0;
+#ifdef XLS_NATIVE_AST_IMPORT_NAMESPACE
+ if(!xlsAstSourceSameNamespace(a->source,b->source))return 0;
+#endif
  if(!sameAst(a->inferredType,b->inferredType) || !sameAst(a->semanticDeclaredType,b->semanticDeclaredType))return 0;
  for(size_t i=0;i<a->childCount;++i)if(!sameAst(a->children[i],b->children[i]))return 0;
  return 1;
@@ -96,6 +100,33 @@ static int budgetsAndFaults(void)
  faultMode=0;values[0]=values[1]=input;CHECK(!xlsAstInternCapture(NULL,2,1024,1024,NULL) && !xlsAstInternCapture(values,0,1024,1024,NULL) && !xlsAstInternCapture(values,2,0,1024,NULL) && !xlsAstInternCapture(values,2,1024,8u*1024u*1024u+1,NULL));CHECK(values[0]==input && values[1]==input);
  xl6AstFree(input);return 1;
 }
+#ifdef XLS_NATIVE_AST_IMPORT_NAMESPACE
+static int importNamespaces(void)
+{
+ XL6_AstNode* input=scalar();CHECK(input);
+ size_t plainBytes=0, boundBytes=0;
+ XL6_AstNode* plain=xlsAstClone(input,NULL,&plainBytes);CHECK(plain && plainBytes);
+ CHECK(xl6AstBindSourceNamespace(input,"pkg.example"));
+ XL6_AstNode* bound=xlsAstClone(input,NULL,&boundBytes);CHECK(bound && sameAst(input,bound));
+ CHECK(bound->source->importNamespace!=input->source->importNamespace &&
+       boundBytes==plainBytes+sizeof("pkg.example"));
+ CHECK(xlsAstCloneSourceTargetValid(input->source,bound->source,NULL,NULL));
+ CHECK(!xlsAstCloneSourceTargetValid(input->source,plain->source,NULL,NULL));
+ CHECK(pair(input,bound,1) && pair(input,plain,0));
+ CHECK(xl6AstBindSourceNamespace(plain,"pkg.another"));
+ CHECK(!xlsAstCloneSourceTargetValid(input->source,plain->source,NULL,NULL) && pair(input,plain,0));
+ xls_ast_size size;
+ CHECK(xlsAstSizeBegin(&size,boundBytes,0));
+ CHECK(xlsAstSizeTree(&size,bound,0,NULL,NULL) && size.bytes==boundBytes);
+ xlsAstSizeEnd(&size);
+ CHECK(xlsAstSizeBegin(&size,boundBytes-1,0));
+ CHECK(!xlsAstSizeTree(&size,bound,0,NULL,NULL) && size.exceeded);
+ xlsAstSizeEnd(&size);
+ xls_ast_clone_options limited={.bytes=boundBytes-1};
+ CHECK(!xlsAstClone(input,&limited,NULL));
+ xl6AstFree(input);xl6AstFree(plain);xl6AstFree(bound);return 1;
+}
+#endif
 typedef struct intern_reader {const XL6_AstNode* input;unsigned failures;} intern_reader;
 static int32 cloneReads(void* user)
 {intern_reader* r=user;for(unsigned i=0;i<100;++i){XL6_AstNode* copy=xlsAstClone(r->input,NULL,NULL);if(!copy || !sameAst(r->input,copy))++r->failures;xl6AstFree(copy);}return 0;}
@@ -112,5 +143,8 @@ static int ownership(void)
 int main(void)
 {
  if(!identities() || !budgetsAndFaults() || !ownership())return 1;
+#ifdef XLS_NATIVE_AST_IMPORT_NAMESPACE
+ if(!importNamespaces())return 1;
+#endif
  printf("analysis_ast_intern_test passed: %u checks;exact lexical/semantic/source/literal identity,immutable aliases,capacity-owner normalization,key/clone limits,real index failures,fallback and400concurrent independent clones.\n",checks);return 0;
 }

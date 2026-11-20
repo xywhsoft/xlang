@@ -759,7 +759,8 @@ def main() -> None:
     except ValueError as error:
         parser.error(str(error))
     c_interop = c_interop_selected(frontend)
-    current_core = frontend_materials.get('sourceRevision') in ('current-core-20261108','current-projection-20261111','current-ownership-20261116')
+    from native_final_c_interop_profile import XGE_REVISION
+    current_core = frontend_materials.get('sourceRevision') in ('current-core-20261108','current-projection-20261111','current-ownership-20261116',XGE_REVISION)
     if current_core and not args.skip_tests:tests=('analysis_native_selection_test','analysis_current_core_test',*tests)
     unified = c_interop or ((frontend/'src/sem/xl6_sem.c').is_file() and sha(frontend/'src/sem/xl6_sem.c')==UNIFIED_PINS['src/sem/xl6_sem.c'])
     if completion_facts(frontend) and not args.skip_tests:tests=('analysis_completion_visibility_test',*tests)
@@ -1139,7 +1140,7 @@ def main() -> None:
             if name == "analysis_source_text_test":extra.append("-Wl,--wrap=xlsInputBatchAt")
             if name == "analysis_ast_replacement_test":extra.append("-Wl,--wrap=xrtPoolFree")
             if name == "semantic_token_guards_test":extra.append("-Wl,--wrap=xlsSemanticTokensData")
-            if name == "analysis_ir_projection_test" and frontend_materials.get('sourceRevision') in ('current-projection-20261111','current-ownership-20261116'):extra+=['-Wl,--wrap=xrtFree','-Wl,--wrap=xrtStrDup']
+            if name == "analysis_ir_projection_test" and frontend_materials.get('sourceRevision') in ('current-projection-20261111','current-ownership-20261116',XGE_REVISION):extra+=['-Wl,--wrap=xrtFree','-Wl,--wrap=xrtStrDup']
             if name=='analysis_current_provider_test' and ir_overlay.get('irDependencyCohort') in ('current-ed78373d',UNIFIED_COHORT,C_INTEROP_COHORT,FINAL_COHORT):extra+=[str(objects['xl6_ir_lower'])]
             if name=='analysis_current_loader_test' and loader_references:
                 extra += [str(objects[p.stem]) for p in loader_references]+['-Wl,--wrap=xrtMalloc']

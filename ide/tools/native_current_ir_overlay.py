@@ -1,4 +1,4 @@
-from native_final_c_interop_profile import COHORT as FINAL_COHORT, PINS as FINAL_PINS, CURRENT_PINS, PROJECTION_PINS, OWNERSHIP_PINS
+from native_final_c_interop_profile import COHORT as FINAL_COHORT, PINS as FINAL_PINS, CURRENT_PINS, PROJECTION_PINS, OWNERSHIP_PINS, XGE_PINS, projection_family
 from native_c_interop_profile import pins_for as final_active_pins
 """Audited current IR components; normal builds require the corrected phase cohort."""
 from pathlib import Path
@@ -23,7 +23,8 @@ PHASE_IR_SHA256='e1ea31c336278b6729369e9f6a1bb4d86a4e945018a88f8c672c0a643e08962
 # Git archive's configured checkout conversion produces this exact CRLF copy.
 # Both constants name the same committed correction; arbitrary normalization
 # must not admit otherwise unknown source contents.
-PHASE_IR_DIGESTS=(PHASE_IR_SHA256,'5c7a46e13b8f774c0fd27c3d66fc9c064aafc73b20386d2e9a448e9df7d78e6a',C_INTEROP_PINS['src/ir/xl6_ir.c'])+RETIREMENT_IR_DIGESTS+(FINAL_PINS['src/ir/xl6_ir.c'],CURRENT_PINS['src/ir/xl6_ir.c'],PROJECTION_PINS['src/ir/xl6_ir.c'],OWNERSHIP_PINS['src/ir/xl6_ir.c'])
+PHASE_IR_DIGESTS=(PHASE_IR_SHA256,'5c7a46e13b8f774c0fd27c3d66fc9c064aafc73b20386d2e9a448e9df7d78e6a',C_INTEROP_PINS['src/ir/xl6_ir.c'])+RETIREMENT_IR_DIGESTS+tuple(
+    pins['src/ir/xl6_ir.c'] for pins in (FINAL_PINS,CURRENT_PINS,PROJECTION_PINS,OWNERSHIP_PINS,XGE_PINS))
 
 
 def derive(frontend:Path,output:Path,*,phases=False,ir_source=None):
@@ -56,6 +57,7 @@ def derive(frontend:Path,output:Path,*,phases=False,ir_source=None):
     profile_source=Path(__file__).with_name('native_current_ir_profile.py')
     audited[str(profile_source)]=hashlib.sha256(profile_source.read_bytes()).hexdigest()
     original=frontend/'src/ir/xl6_ir.c'
+    active=final_active_pins(frontend)
     selected=original
     if phases:
         if ir_source is None and audited[str(original)] not in PHASE_IR_DIGESTS:raise ValueError('current phase qualification requires the audited shared C-vararg bounds correction')
@@ -72,17 +74,20 @@ def derive(frontend:Path,output:Path,*,phases=False,ir_source=None):
         from native_ir_derived_overlay import derive as derived
         source,seams=scans(source,current=True)
         from native_final_c_interop_profile import selected as final_selected
-        source=ir_cancellation(source,current=True,foreign=c_interop_selected(frontend),final=final_selected(frontend))
+        source=ir_cancellation(source,current=True,foreign=c_interop_selected(frontend),
+                               final=final_selected(frontend),data_snapshots=active is XGE_PINS)
         source=initializers(source)
         source,derived_overlay=derived(source,output,hashlib.sha256(selected.read_bytes()).hexdigest(),audited[str(frontend/'src/ir/xl6_ir.h')],frontend=frontend)
         for name in ('native_ir_derived_overlay.py','check_native_bridge_catalog.py'):
             dependency=Path(__file__).with_name(name)
             audited[str(dependency)]=hashlib.sha256(dependency.read_bytes()).hexdigest()
     source=raw_memo(source,current=True)
-    if audited[str(frontend/'src/ir/xl6_ir.h')] in (PROJECTION_PINS['src/ir/xl6_ir.h'],OWNERSHIP_PINS['src/ir/xl6_ir.h']):
+    if projection_family(active):
         source='#define XLS_NATIVE_IR_RECORD_PROJECTION 1\n'+source
-    if audited[str(frontend/'src/ir/xl6_ir.h')]==OWNERSHIP_PINS['src/ir/xl6_ir.h']:
+    if active is OWNERSHIP_PINS or active is XGE_PINS:
         source='#define XLS_NATIVE_IR_OWNED_OUTPUT 1\n'+source
+    if active is XGE_PINS:
+        source='#define XLS_NATIVE_IR_DATA_SNAPSHOTS 1\n'+source
     parameter_overlay=None
     classifier_overlay=None
     topology_overlay=None

@@ -80,7 +80,23 @@ static int source(clone_context* c,const XL6_AstSource* in,XL6_AstNode* out)
         value->completionQuery=in->completionQuery;
         value->completionStart=in->completionStart;value->completionEnd=in->completionEnd;
         value->path=duplicate(c,in->path);
-        if((in->path && !value->path) || !xrtMapSet(&c->sources,key,&value)) { xrtFree(value->path); xrtFree(value); return 0; }
+        if(in->path && !value->path) { xrtFree(value); return 0; }
+#ifdef XLS_NATIVE_AST_IMPORT_NAMESPACE
+        value->importNamespace=duplicate(c,in->importNamespace);
+        if(in->importNamespace && !value->importNamespace) {
+            xrtFree(value->path);
+            xrtFree(value);
+            return 0;
+        }
+#endif
+        if(!xrtMapSet(&c->sources,key,&value)) {
+#ifdef XLS_NATIVE_AST_IMPORT_NAMESPACE
+            xrtFree(value->importNamespace);
+#endif
+            xrtFree(value->path);
+            xrtFree(value);
+            return 0;
+        }
     }
     out->source=value; ++value->references; return 1;
 }

@@ -2,6 +2,7 @@
 from pathlib import Path
 import hashlib
 import json
+import sys
 
 RECORD = json.loads(Path(__file__).with_name('native_final_c_interop_pins.json').read_text())
 COHORT = RECORD['cohort']
@@ -23,6 +24,15 @@ OWNERSHIP_RECORD_PATH = Path(__file__).with_name('native_current_ownership_pins_
 OWNERSHIP_RECORD = json.loads(OWNERSHIP_RECORD_PATH.read_text(encoding='utf-8'))
 OWNERSHIP_PINS = OWNERSHIP_RECORD['pins']
 OWNERSHIP_RECORD_SHA256 = hashlib.sha256(OWNERSHIP_RECORD_PATH.read_bytes()).hexdigest()
+XGE_RECORD_PATH = Path(__file__).with_name('native_current_xge_pins_20261121.json')
+XGE_RECORD = json.loads(XGE_RECORD_PATH.read_text(encoding='utf-8'))
+XGE_RECORD_SHA256 = hashlib.sha256(XGE_RECORD_PATH.read_bytes()).hexdigest()
+XGE_REVISION = XGE_RECORD['sourceRevision']
+XGE_PINS = {**OWNERSHIP_PINS, **XGE_RECORD['pins']}
+_xge_parent = OWNERSHIP_RECORD_PATH.read_bytes().replace(b'\r\n',b'\n')
+if XGE_RECORD['parentRecordSha256'] != hashlib.sha256(_xge_parent).hexdigest():
+    raise ValueError('XGE frontend delta has a different audited parent')
+LAYOUT_PROFILES = (CURRENT_PINS, PRODUCT_PINS, PROJECTION_PINS, OWNERSHIP_PINS, XGE_PINS)
 _ownership_parent_lf = PROJECTION_RECORD_PATH.read_bytes().replace(b'\r\n',b'\n')
 if (OWNERSHIP_RECORD['parentRecordSha256'] not in {hashlib.sha256(data).hexdigest() for data in (_ownership_parent_lf,_ownership_parent_lf.replace(b'\n',b'\r\n'))} or
     set(OWNERSHIP_PINS) != set(PROJECTION_PINS) | set(OWNERSHIP_RECORD['addedPaths']) or
@@ -65,6 +75,8 @@ def _current_runtime(frontend):
 
 def pins_for(frontend):
     header=source_path(frontend,'src/ir/xl6_ir.h')
+    if _matches(header,'src/ir/xl6_ir.h',XGE_PINS):
+        return XGE_PINS
     if header.is_file() and _recover_current(header.read_bytes(),'src/ir/xl6_ir.h',OWNERSHIP_PINS) is not None:
         return OWNERSHIP_PINS
     if header.is_file() and _recover_current(header.read_bytes(),'src/ir/xl6_ir.h',PROJECTION_PINS) is not None:
@@ -84,12 +96,19 @@ def completion_facts(frontend):
 
 def source_revision(frontend):
     pins=pins_for(frontend)
+    if pins is XGE_PINS:return XGE_REVISION
     if pins is OWNERSHIP_PINS:return OWNERSHIP_RECORD['sourceRevision']
     if pins is PROJECTION_PINS:return PROJECTION_RECORD['sourceRevision']
     return CURRENT_RECORD['sourceRevision'] if pins is CURRENT_PINS or pins is PRODUCT_PINS else 'final-completion-facts-20261108' if pins is COMPLETION_PINS else 'final-core-r2-20261105'
 
 
+def _matches(path,name,pins):
+    return path.is_file() and _recover_current(path.read_bytes(),name,pins) is not None
+
+
 def selected(frontend):
+    if _matches(frontend/'src/ast/xl6_ast.h','src/ast/xl6_ast.h',XGE_PINS):
+        return _matches(frontend/'lib/xrt/xrt.h','lib/xrt/xrt.h',XGE_PINS)
     if _current_runtime(frontend):
         path=frontend/'src/ast/xl6_ast.h'
         return path.is_file() and _recover_current(path.read_bytes(),'src/ast/xl6_ast.h') is not None
@@ -97,25 +116,30 @@ def selected(frontend):
                for name in ('src/ast/xl6_ast.h','lib/xrt/xrt.h'))
 
 
-def source_path(frontend, name):
+def source_path(frontend, name, pins=None):
     direct=frontend/name
     if direct.is_file():return direct
+    if pins is XGE_PINS and sys.platform.startswith('linux') and name.startswith('release/include/'):
+        linux=frontend/name.replace('release/include/','release/linux_x64/include/',1)
+        if linux.is_file():return linux
     return frontend/PROJECTION_RECORD['sourcePaths'].get(name,CURRENT_RECORD['sourcePaths'].get(name,name))
 
 
 def projection_family(pins):
-    return pins is PROJECTION_PINS or pins is OWNERSHIP_PINS
+    return pins is PROJECTION_PINS or pins is OWNERSHIP_PINS or pins is XGE_PINS
 
 
 def profile(frontend):
     if not selected(frontend):
         raise ValueError('final frontend AST/XRT anchors differ')
     pins=pins_for(frontend);inputs={}
+    if _matches(frontend/'src/ast/xl6_ast.h','src/ast/xl6_ast.h',XGE_PINS) and pins is not XGE_PINS:
+        raise ValueError('XGE frontend IR header changed or mixed')
     for name,expected in pins.items():
-        path=source_path(frontend,name)
+        path=source_path(frontend,name,pins)
         if not path.is_file():raise ValueError('final frontend contract dependency missing: '+name)
         data=path.read_bytes();actual=hashlib.sha256(data).hexdigest()
-        if actual!=expected and (all(pins is not p for p in (CURRENT_PINS,PRODUCT_PINS,PROJECTION_PINS,OWNERSHIP_PINS)) or _recover_current(data,name,pins) is None):
+        if actual!=expected and (all(pins is not p for p in LAYOUT_PROFILES) or _recover_current(data,name,pins) is None):
             raise ValueError('final frontend contract dependency changed: '+name)
         inputs[str(path)]=actual
     return inputs
@@ -130,16 +154,18 @@ def prepare(frontend,destination):
     if pins is PROJECTION_PINS:
         original[str(PROJECTION_RECORD_PATH.resolve())]=PROJECTION_RECORD_SHA256
         original[str(PRODUCT_RECORD_PATH.resolve())]=PRODUCT_RECORD_SHA256
-    if pins is OWNERSHIP_PINS:
+    if pins is XGE_PINS:
+        original[str(XGE_RECORD_PATH.resolve())]=XGE_RECORD_SHA256
+    if pins is OWNERSHIP_PINS or pins is XGE_PINS:
         original[str(OWNERSHIP_RECORD_PATH.resolve())]=OWNERSHIP_RECORD_SHA256
         original[str(PROJECTION_RECORD_PATH.resolve())]=PROJECTION_RECORD_SHA256
         original[str(PRODUCT_RECORD_PATH.resolve())]=PRODUCT_RECORD_SHA256
     destination=destination.resolve();destination.mkdir(parents=True,exist_ok=False)
     projected=[]
     for name,expected in pins.items():
-        source=source_path(frontend,name);target=destination/name;data=source.read_bytes()
+        source=source_path(frontend,name,pins);target=destination/name;data=source.read_bytes()
         operation='SDK-layout-projection'
-        if any(pins is p for p in (CURRENT_PINS,PRODUCT_PINS,PROJECTION_PINS,OWNERSHIP_PINS)):
+        if any(pins is p for p in LAYOUT_PROFILES):
             recovered=_recover_current(data,name,pins)
             if recovered is None:raise ValueError('final frontend changed during source projection: '+name)
             data,operation=recovered
@@ -151,6 +177,6 @@ def prepare(frontend,destination):
     if any(sha(path)!=expected for path,expected in original.items()):
         raise ValueError('final frontend changed during source projection')
     return destination,dict(status='final-cohort-layout-projection',cohort=COHORT,
-        productVersion=OWNERSHIP_RECORD['productVersion'] if pins is OWNERSHIP_PINS else PROJECTION_RECORD['productVersion'] if pins is PROJECTION_PINS else PRODUCT_RECORD['productVersion'] if pins is PRODUCT_PINS else None,
+        productVersion=XGE_RECORD['productVersion'] if pins is XGE_PINS else OWNERSHIP_RECORD['productVersion'] if pins is OWNERSHIP_PINS else PROJECTION_RECORD['productVersion'] if pins is PROJECTION_PINS else PRODUCT_RECORD['productVersion'] if pins is PRODUCT_PINS else None,
         sourceRevision=revision,sourceRoot=str(frontend),frontendRoot=str(destination),
         originalInputs=original,transformations=projected)

@@ -37,7 +37,7 @@ def semantic_cancellation(source: str) -> str:
     return source[:start] + body + source[end:]
 
 
-def ir_cancellation(source: str, *, current=False, foreign=False, final=False) -> str:
+def ir_cancellation(source: str, *, current=False, foreign=False, final=False, data_snapshots=False) -> str:
     start = source.index('static XL6_IrNodeId xl6IrBuildAstNode(')
     end = source.index('\nstatic XL6_IrTypeId xl6IrClassTypeByDeclaration(', start)
     body = source[start:end]
@@ -70,6 +70,9 @@ def ir_cancellation(source: str, *, current=False, foreign=False, final=False) -
     if final:
         import re
         expected=('xl6IrBuildForeignClassBases', 'xl6IrInternAsyncInvocationTypes', 'xl6IrBuildNamedCallableAbis', 'xl6IrInternProjectionDomains', 'xl6IrTypePoolFinalizeCallableResults', 'xl6IrBuildOwnedReadResults', 'xl6IrBuildUnionLayouts', 'xl6IrCloseOutputSizes', 'xl6IrCloseOutputRecords', 'xl6IrCloseOutputViews', 'xl6IrCloseNativeSequences', 'xl6IrBuildEnumLayouts', 'xl6IrRefreshClassLayoutsDetailed', 'xl6IrBuildClassStaticFields', 'xl6IrCloseRegions', 'xl6IrClosePacks', 'xl6IrCloseArrayGroups', 'xl6IrBuildImplicitNameAbis', 'xl6IrBuildProtocolDispatchTables', 'xl6IrRefreshNominalIdentitySets', 'xl6IrNormalizeExpressionCallKinds', 'xl6IrBuildDynamicMethodRegistry', 'xl6IrBuildIntrinsicCalls', 'xl6IrRefreshDynamicMethodAdmissions', 'xl6IrBuildCallSites', 'xl6IrBuildValueInitializers', 'xl6IrBuildNativeHandleBinds', 'xl6IrBuildNativeHandleProjects', 'xl6IrBuildOperatorErrorAbis', 'xl6IrBuildCastAbis', 'xl6IrBuildMemberAbis', 'xl6IrBuildDynamicCalls', 'xl6IrBuildIndexWriteAbis', 'xl6IrRefreshLoopAbis', 'xl6IrBuildImplicitConversionAbis', 'xl6IrRefreshExitPlans')
+        if data_snapshots:
+            boundary=expected.index('xl6IrClosePacks')
+            expected=expected[:boundary]+('xl6IrCloseDataSnapshots',)+expected[boundary:]
         if tuple(re.findall(r'if \( !(\w+)\(',phases))!=expected:
             raise ValueError('final IR phase ownership/cancellation chain differs')
     elif phases.count('if ( !') != (29 if foreign else 28 if current else 26):

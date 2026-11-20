@@ -4,7 +4,7 @@ The source function is identical in the matched SDK and compiler assets. No
 installed or upstream source is edited; only a new output header is generated.
 """
 from pathlib import Path
-from native_final_c_interop_profile import PINS as FINAL_PINS, CURRENT_PINS
+from native_final_c_interop_profile import PINS as FINAL_PINS, CURRENT_PINS, XGE_PINS
 import hashlib
 from native_current_unified_profile import PINS as UNIFIED_PINS
 
@@ -16,6 +16,7 @@ BASES = {
     UNIFIED_PINS['lib/xrt/xrt.h'],
     FINAL_PINS['lib/xrt/xrt.h'],
     CURRENT_PINS['lib/xrt/xrt.h'],
+    XGE_PINS['lib/xrt/xrt.h'],
 }
 
 

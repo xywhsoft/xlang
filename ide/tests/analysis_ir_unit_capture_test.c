@@ -63,11 +63,17 @@ static int nodeBook(xstrbuf* out,const xls_ir_node_unit* unit)
 static int captureTables(void)
 {
  table_fixture fixture={0};CHECK(tableFixtureCreate(&fixture));xls_ir_graph_status status;
- xls_ir_table_graph* oracle=xlsIrTablesCapture(&fixture.module,SIZE_MAX,NULL,NULL,&status);CHECK(oracle && xlsIrTableSchemaCount()==107);
+ size_t tables=xlsIrTableSchemaCount();
+#ifdef XL6_FOREIGN_DATA_SNAPSHOT_RESULT
+ CHECK(tables==108 && xlsIrTableSchemaFind("foreignDataSnapshots")!=SIZE_MAX);
+#else
+ CHECK(tables==107);
+#endif
+ xls_ir_table_graph* oracle=xlsIrTablesCapture(&fixture.module,SIZE_MAX,NULL,NULL,&status);CHECK(oracle && xlsIrTablesCount(oracle)==tables);
  xstrbuf sourceBefore={0},sourceAfter={0};CHECK(tableModuleBook(&sourceBefore,&fixture.module));
- CHECK(xlsIrTableSchemaFind(NULL)==SIZE_MAX && xlsIrTableSchemaFind("not-a-table")==SIZE_MAX && !xlsIrTableSchemaName(107) && !xlsIrTableSchemaRowBytes(107));
+ CHECK(xlsIrTableSchemaFind(NULL)==SIZE_MAX && xlsIrTableSchemaFind("not-a-table")==SIZE_MAX && !xlsIrTableSchemaName(tables) && !xlsIrTableSchemaRowBytes(tables));
  xls_ir_table_unit* anchor=NULL,*keep=NULL;xstrbuf expectedKeep={0};size_t keepTable=0;
- for(size_t t=0;t<107;++t){size_t count,width;int scalar;const unsigned char* rows=tableFixtureRows(&fixture.module,t,&count,&width,&scalar);
+ for(size_t t=0;t<tables;++t){size_t count,width;int scalar;const unsigned char* rows=tableFixtureRows(&fixture.module,t,&count,&width,&scalar);
   CHECK(rows && count && xlsIrTableSchemaRowBytes(t)==width && xlsIrTableSchemaFind(xlsIrTableSchemaName(t))==t && tableFind(oracle,xlsIrTableSchemaName(t))==t && !strcmp(xlsIrTableSchemaName(t),xlsIrTablesName(oracle,t)));
   xls_ir_table_unit* original=xlsIrTablesPinUnit(oracle,t,0);CHECK(original);xstrbuf a={0},b={0};CHECK(tableUnitBook(&a,t,original));
   xls_ir_table_capture_input input={t,scalar ? 0 : (size_t)UINT32_MAX-1,scalar ? count : 1,rows,&fixture.module};size_t peak=0;
@@ -101,7 +107,7 @@ static int tableCaptureFailures(void)
  faultActive=1;faultAt=faultCalls=denied=0;unit=xlsIrTableUnitCapture(&input,NULL,0,NULL,NULL,&status,&peak);faultActive=0;CHECK(!unit && status==XLS_IR_GRAPH_BUDGET && !faultCalls && !live && !peak);
  xls_ir_table_capture_input bad=input;bad.count=2;CHECK(!xlsIrTableUnitCapture(&bad,NULL,SIZE_MAX,NULL,NULL,&status,NULL) && status==XLS_IR_GRAPH_INVALID);
  bad=input;bad.first=SIZE_MAX;CHECK(!xlsIrTableUnitCapture(&bad,NULL,SIZE_MAX,NULL,NULL,&status,NULL) && status==XLS_IR_GRAPH_INVALID);
- bad=input;bad.table=107;CHECK(!xlsIrTableUnitCapture(&bad,NULL,SIZE_MAX,NULL,NULL,&status,NULL) && status==XLS_IR_GRAPH_INVALID);
+ bad=input;bad.table=xlsIrTableSchemaCount();CHECK(!xlsIrTableUnitCapture(&bad,NULL,SIZE_MAX,NULL,NULL,&status,NULL) && status==XLS_IR_GRAPH_INVALID);
  bad=(xls_ir_table_capture_input){xlsIrTableSchemaFind("symbolNodes"),0,0,NULL,NULL};unit=xlsIrTableUnitCapture(&bad,NULL,SIZE_MAX,NULL,NULL,&status,NULL);CHECK(unit && !xlsIrTableUnitRows(unit) && !xlsIrTableUnitRow(unit,0));xlsIrTableUnitRelease(unit);
  bad.first=1;CHECK(!xlsIrTableUnitCapture(&bad,NULL,SIZE_MAX,NULL,NULL,&status,NULL) && status==XLS_IR_GRAPH_INVALID);bad.first=0;bad.count=SIZE_MAX;bad.rows=params;
  CHECK(!xlsIrTableUnitCapture(&bad,NULL,SIZE_MAX,NULL,NULL,&status,NULL) && status==XLS_IR_GRAPH_BUDGET);
@@ -111,7 +117,7 @@ static int tableCaptureFailures(void)
  input.aliases=NULL;CHECK(!xlsIrTableUnitCapture(&input,NULL,SIZE_MAX,NULL,NULL,&status,NULL) && status==XLS_IR_GRAPH_INVALID);input.aliases=&aliases;
  char* duplicate=xrtStrDup(field.name);CHECK(duplicate);row.targetKey=duplicate;CHECK(!xlsIrTableUnitCapture(&input,NULL,SIZE_MAX,NULL,NULL,&status,NULL) && status==XLS_IR_GRAPH_INVALID);xrtFree(duplicate);
  row.targetKey=NULL;input.aliases=NULL;unit=xlsIrTableUnitCapture(&input,NULL,SIZE_MAX,NULL,NULL,&status,NULL);CHECK(unit && !xlsIrTableUnitKeyAlias(unit));xlsIrTableUnitRelease(unit);
- printf("table unit capture:2allocation sites,%zu cancellation points;107schema kinds\n",calls);return 1;
+ printf("table unit capture: 2 allocation sites, %zu cancellation points, %zu table kinds\n",calls,xlsIrTableSchemaCount());return 1;
 }
 typedef struct node_fixture {
  XL6_IrNode values[3];XL6_IrNodeId children[2];unsigned char literal[4];
@@ -255,5 +261,6 @@ int main(void)
 {
  xrtAtomic32Init(&checks,0);xrtAtomic32Init(&oracleRuns,0);xrtAtomic32Init(&oracleErrors,0);xrtAtomic32Init(&oracleActive,0);
  if(!captureTables() || !tableCaptureFailures() || !nodeCaptureFailures() || !rootCapture() || !captureNative() || !captureLifetimes())return 1;
- printf("analysis_ir_unit_capture_test passed:%u checks;%u complete native verifier/JSON oracles;direct selected units,107table kinds,cohorts,retirement,OOM,budgets,cancellation,sparse IDs,closure\n",xrtAtomic32Load(&checks,XMEMORY_RELAXED),xrtAtomic32Load(&oracleRuns,XMEMORY_RELAXED));return 0;
+ printf("analysis_ir_unit_capture_test passed: %u checks; %u native verifier/JSON comparisons; %zu table kinds, retirement, OOM, budgets, cancellation, sparse IDs\n",
+  xrtAtomic32Load(&checks,XMEMORY_RELAXED),xrtAtomic32Load(&oracleRuns,XMEMORY_RELAXED),xlsIrTableSchemaCount());return 0;
 }

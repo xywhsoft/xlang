@@ -34,6 +34,9 @@ int xlsAstSizeNode(xls_ast_size* size,const XL6_AstNode* node)
         const XL6_AstSource* source=node->source;xbytesview key={(const unsigned char*)&source,sizeof(source)};
         if(!xrtMapHas(&size->sources,key)){
             if(!charge(size,sizeof(*source)) || (source->path && !charge(size,strlen(source->path)+1)) ||
+#ifdef XLS_NATIVE_AST_IMPORT_NAMESPACE
+               (source->importNamespace && !charge(size,strlen(source->importNamespace)+1)) ||
+#endif
                !xrtMapSet(&size->sources,key,&yes))return 0;
         }
     }
