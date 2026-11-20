@@ -1,0 +1,20 @@
+// Search positions are UTF-8 byte offsets.
+import xui
+
+func main(...) as int
+    auto document = xui.createCodeDocument()
+    try
+        document.setText("待办: item 12, item 34")
+        auto found, first = document.findPlain("item")
+        assert found == 1
+        println("First item starts at byte",first.iStart)
+
+        auto captured, result = document.findRegex("item ([0-9]+)", start = first.iEnd)
+        assert captured == 1
+        auto number = result.arrCaptures[1]
+        println("Second number occupies bytes",number.iStart,"to",number.iEnd)
+    finally
+        document.close()
+    end
+    return 0
+end

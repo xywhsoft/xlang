@@ -1,0 +1,49 @@
+import xui
+
+extern "fixtureLocateBegin" @header("test/cases/foreign_xui_code_search_cost.h") @no_raise func beginHeap() as c_int
+extern "fixtureLocateEnd" @header("test/cases/foreign_xui_code_search_cost.h") @no_raise func endHeap() as c_int
+extern "fixtureLocateNative" @header("test/cases/foreign_xui_code_search_cost.h") @no_raise func nativeLoop(xui.CodeDocument document) as c_int
+extern "fixtureLocateFail" @header("test/cases/foreign_xui_code_search_cost.h") @no_raise func failHeap() as c_int
+extern "fixtureLocateClear" @header("test/cases/foreign_xui_code_search_cost.h") @no_raise func clearHeap()
+
+func languageLoop(xui.CodeDocument document,string pattern) as int
+    int checksum = 0
+    for i in range(1000)
+        auto hit, result = document.findPlain(pattern)
+        assert hit == 1
+        checksum += int(result.iEnd)
+    end
+    return checksum
+end
+
+func main(...) as int
+    auto doc = xui.createCodeDocument()
+    try
+        string pattern = "needle"
+        doc.setText("needle lost")
+        assert nativeLoop(doc) == 6000 and languageLoop(doc,pattern) == 6000
+        assert beginHeap() == 1
+        auto expected = nativeLoop(doc)
+        assert endHeap() == 1, "Native warm short search allocated"
+        assert beginHeap() == 1
+        auto actual = languageLoop(doc,pattern)
+        assert endHeap() == 1 and actual == int(expected), "Managed warm short search allocated or disagreed with C"
+        doc.setText(string.repeat("a",2048))
+        auto version = doc.getChangeVersion()
+        assert failHeap() == 1
+        bool failed = false
+        try
+            doc.findPlain(pattern,start = 1,flags = c_uint(xui.XUI_CODE_SEARCH_WRAP))
+        catch Error failure
+            clearHeap()
+            failed = true
+        end
+        clearHeap()
+        assert failed and doc.getChangeVersion() == version
+    finally
+        clearHeap()
+        doc.close()
+    end
+    println("XUI_CODE_SEARCH_NATIVE_AND_XLANG_WARM_HEAP_ZERO")
+    return 0
+end

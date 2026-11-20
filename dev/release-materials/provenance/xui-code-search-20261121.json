@@ -1,0 +1,101 @@
+{
+  "complete": true,
+  "passed": true,
+  "releaseInstalled": false,
+  "sourceParent": "4f255bfacec65170a9cb683636de857f60cb6dca",
+  "nativeCommit": "cbecb3927ab53bd0d506e3116b47c731c05814d0",
+  "storageReview": {
+    "path": "F:\\xlang-validation\\xge-full-20261110\\xui-code-search-storage-rebase-r1.json",
+    "sha256": "243aff024ef03c6272bfa14a8fd38a41cad296a1d9c4a7be441883a508273727"
+  },
+  "platforms": {
+    "win": {
+      "sdk": {
+        "path": "F:\\xlang-validation\\xge-full-20261110\\xui-code-search-sdk-win-r1\\results.json",
+        "sha256": "a3a3730d86882549140d712eaf25c82958b48de84b1375d7a932b6fd19481519"
+      },
+      "packages": {
+        "path": "F:\\xlang-validation\\xge-full-20261110\\xui-code-search-packages-win-r1\\results.json",
+        "sha256": "0537f5be5cca2ab59a6ca0ae641302c8d81dc2b84bac69c0a70778dbe6a036de"
+      },
+      "native": {
+        "path": "F:\\xlang-validation\\xge-full-20261110\\xui-code-search-native-win-r5\\results.json",
+        "sha256": "10d4ad09e0566b8267b152f45e1f94c389d63895b626ddae8140a7205db7cde0"
+      },
+      "rawFixtureBeforeCleanup": {
+        "path": "F:\\xlang-validation\\xge-full-20261110\\xui-code-search-native-legacy-win-r1\\results.json",
+        "sha256": "c22152f9bec430aece6f798a673a9ae9936f41afe5ca3dea3903dd381610cb6a"
+      },
+      "runtime": {
+        "path": "F:\\xlang-validation\\xge-full-20261110\\xui-code-search-runtime-win-r2\\results.json",
+        "sha256": "3209f099d03cea3ff23f0991d885d2c3dd08feecbfa78f540c5cedd13ce53870"
+      },
+      "audit": {
+        "path": "F:\\xlang-validation\\xge-full-20261110\\xui-code-search-audit-win-r1\\consumers\\results.json",
+        "sha256": "26e260ea3863099e36933f6021a8f997c83455971a2d6f160876e9a98543c4ee"
+      },
+      "compiler": {
+        "path": "F:\\xlang-validation\\xge-full-20261110\\compiler-existing-root-win-r1\\build.json",
+        "sha256": "107a294cdefd81906f8e3fef6bced071ececaad4bf1837b61a15b1e9c7858a07"
+      },
+      "nativeRows": 16,
+      "languageRows": 24,
+      "publicFunctionPopulation": 5712,
+      "directDeclarations": 4639,
+      "unclassifiedByBridgeOrReplacement": {
+        "XGE": 350,
+        "XUI": 393,
+        "Document UI": 2,
+        "Document": 1
+      }
+    },
+    "linux": {
+      "sdk": {
+        "path": "\\\\wsl.localhost\\Ubuntu\\var\\tmp\\xlang-validation\\xge-full-20261110\\xui-code-search-sdk-linux-r1\\results.json",
+        "sha256": "4a9e983e8e0ab3b12ce5dd8bc4012d771e89b86b584763dc132a45d444cea334"
+      },
+      "packages": {
+        "path": "\\\\wsl.localhost\\Ubuntu\\var\\tmp\\xlang-validation\\xge-full-20261110\\xui-code-search-packages-linux-r1\\results.json",
+        "sha256": "19bb8d344be79e71b32b786d8b65b79bb968e94924ef5013022f124d9b43ecaf"
+      },
+      "native": {
+        "path": "\\\\wsl.localhost\\Ubuntu\\var\\tmp\\xlang-validation\\xge-full-20261110\\xui-code-search-native-linux-r5\\results.json",
+        "sha256": "158f4d8f57b160209b0d331786054de2b819798b6f78198473ed5ef4874f31ed"
+      },
+      "rawFixtureBeforeCleanup": {
+        "path": "\\\\wsl.localhost\\Ubuntu\\var\\tmp\\xlang-validation\\xge-full-20261110\\xui-code-search-native-legacy-linux-r1\\results.json",
+        "sha256": "536a93bc43fee87b9bbb36d4a0a4a879f36787df9300852e4e31e5cf96b44877"
+      },
+      "runtime": {
+        "path": "\\\\wsl.localhost\\Ubuntu\\var\\tmp\\xlang-validation\\xge-full-20261110\\xui-code-search-runtime-linux-r2\\results.json",
+        "sha256": "05e1cd6fc6ec3114e3b25daa08edc01756edfe34ca8e3653861aedf54ec44258"
+      },
+      "audit": {
+        "path": "\\\\wsl.localhost\\Ubuntu\\var\\tmp\\xlang-validation\\xge-full-20261110\\xui-code-search-audit-linux-r1\\consumers\\results.json",
+        "sha256": "5ed99a2da78e2fe5c56e26b63f50e1f2478019278d56fb99b66a124acf124992"
+      },
+      "compiler": {
+        "path": "\\\\wsl.localhost\\Ubuntu\\var\\tmp\\xlang-validation\\xge-full-20261110\\compiler-existing-root-linux-r1\\build.json",
+        "sha256": "6e729bc793dcd92edcd42f51e244bad799187c32ef82121e8275288a31274b11"
+      },
+      "nativeRows": 16,
+      "languageRows": 24,
+      "publicFunctionPopulation": 5712,
+      "directDeclarations": 4639,
+      "unclassifiedByBridgeOrReplacement": {
+        "XGE": 350,
+        "XUI": 393,
+        "Document UI": 2,
+        "Document": 1
+      }
+    }
+  },
+  "checks": [
+    "CodeDocument and observed CodeEditDocument expose plain and regex single-match methods through direct declarations. Standalone find uses counted string, bytes and Buffer input.",
+    "Tests cover UTF-8 byte offsets, NUL in counted text, directional and bounded search, wrap, empty matches, unmatched captures, diagnostics, closed views and unchanged document state.",
+    "The old SDK reports first-leg out-of-memory as a miss. The new host and static SDKs pass O0 and O2 native tests, including a match spanning an internal chunk boundary.",
+    "The old raw search fixture carried expected XRT errors into its next SetText on both platforms. The corrected fixture checks the errors before clearing them. The baseline and candidate both pass that fixture.",
+    "The functional test and the window-free example pass JIT, standalone dynamic and standalone static AOT. Generated public declarations compile as C11, C++11 and C++17. Static executables import neither the XGE host nor the xlang compiler image.",
+    "Handwritten C and xlang each search 1000 short-range matches with prebuilt inputs, produce checksum 6000 and perform zero XRT allocations, reallocations and frees. Plain search copies the range to native stack scratch. Regex retains native preparation and document-range copying. Total call time was not measured."
+  ]
+}

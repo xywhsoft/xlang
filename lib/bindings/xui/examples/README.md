@@ -292,6 +292,9 @@ window loop. System fonts are demonstrated in the xge package's `examples/system
 把 `item 12, item 34` 转成 `#12, #34`。预期输出 `Literal replacements: 2`
 和 `#12, #34`；每一步都能从源码和输出核对，`finally` 关闭独立文档。
 
+`code_search.xl` 不创建窗口，先定位中文前缀后的第一个 `item`，再用正则读取下一个
+编号的捕获区间。输出的位置按 UTF-8 字节计数。
+
 `code_tokens.xl` 用一个关键词的 UTF-8 字节范围创建带版本的词法缓存，打印
 `Cached tokens: 1` 和 `Version and byte range: 1 0 4`。不创建窗口或文档；
 缓存复制输入记录，`finally` 释放独立模型。它不演示尚未公开的批量 token 读取。

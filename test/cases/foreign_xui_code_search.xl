@@ -1,0 +1,101 @@
+import xui
+
+func independent()
+    auto doc = xui.createCodeDocument()
+    try
+        doc.setText("你\0tag_12 tag")
+        auto version = doc.getChangeVersion()
+        auto hit, prefix = doc.findPlain("TAG")
+        assert hit == 1 and prefix.iStart == 4 and prefix.iEnd == 7
+        auto noHit, empty = doc.findPlain("TAG",rangeStart = 10,rangeEnd = 4,
+            flags = c_uint(xui.XUI_CODE_SEARCH_CASE_SENSITIVE))
+        assert noHit == 0 and empty.iStart == 0 and empty.iEnd == 0
+        auto wrapped, wrappedRange = doc.findPlain("tag", start = 14, rangeEnd = 10,
+            flags = c_uint(xui.XUI_CODE_SEARCH_WRAP))
+        assert wrapped == 1 and wrappedRange.iStart == 4
+        auto reverse, last = doc.findPlain("tag",start = 14,flags = c_uint(xui.XUI_CODE_SEARCH_BACKWARD))
+        assert reverse == 1 and last.iStart == 11
+        auto captured, result = doc.findRegex("tag(_([0-9]+))?")
+        assert captured == 1 and result.iCaptureCount == 3
+        assert result.arrCaptures[2].iStart == 8 and result.arrCaptures[2].iEnd == 10
+        auto optional, trailing = doc.findRegex("tag(_([0-9]+))?",rangeStart = 10)
+        assert optional == 1 and trailing.iStart == 11 and trailing.arrCaptures[2].iStart == -1
+
+        auto diagnostic = Buffer("................................")
+        auto absent, missing = doc.findRegex("unknown",error = diagnostic)
+        assert absent == 0 and missing.iSize == 0 and diagnostic[0] == uint8(0)
+        auto zero, marker = doc.findRegex("^",rangeStart = 4,error = diagnostic)
+        assert zero == 1 and marker.iStart == 4 and marker.iEnd == 4
+        bool invalid = false
+        try
+            zero, marker = doc.findRegex("[",error = diagnostic)
+        catch Error failure
+            invalid = true
+        end
+        assert invalid and zero == 1 and marker.iStart == 4
+        assert diagnostic.length == 32 and diagnostic[0] != uint8(0)
+        invalid = false
+        try
+            captured, result = doc.findRegex("tag\0suffix")
+        catch Error failure
+            invalid = true
+        end
+        assert invalid and result.iStart == 4 and doc.getChangeVersion() == version and doc.canUndo() == 0
+    finally
+        doc.close()
+    end
+end
+
+func standalone()
+    auto diagnostic = Buffer("................................")
+    auto power, folded = xui.findText("a\0Tag","tag",error = diagnostic)
+    assert power == 1 and folded.iStart == 2 and folded.iEnd == 5 and diagnostic[0] == uint8(0)
+    auto digits, groups = xui.findText(b"X\0tag12","([0-9]+)",flags = c_uint(xui.XUI_FIND_REGEX))
+    assert digits == 1 and groups.arrCaptures[1].iStart == 5 and groups.arrCaptures[1].iEnd == 7
+    auto absent, missing = xui.findText(Buffer(),"A")
+    assert absent == 0 and missing.iSize == 0
+    auto raw = Buffer(b"one\0two")
+    auto hit, result = xui.findText(raw,"two")
+    assert hit == 1 and result.iStart == 4 and result.iEnd == 7
+    bool invalid = false
+    try
+        xui.findText(raw,"[",flags = c_uint(xui.XUI_FIND_REGEX),error = diagnostic)
+    catch Error failure
+        invalid = true
+    end
+    assert invalid and diagnostic[0] != uint8(0) and raw.toBytes() == b"one\0two"
+end
+
+func editorDocument()
+    auto proxy = xui.createProxy()
+    try
+        auto context = xui.create(proxy,xui.XUI_SYSTEM_FONT_DISABLED)
+        auto view = context.codeEditNative().document()
+        try
+            view.setText("needle\nneedle 2")
+            auto found, prefix = view.findPlain("needle",start = 1)
+            assert found == 1 and prefix.iStart == 7
+            auto parsed, line = view.findRegex("needle ([0-9])")
+            assert parsed == 1 and line.arrCaptures[1].iStart == 14
+        finally
+            context.close()
+        end
+        bool expired = false
+        try
+            view.findPlain("needle")
+        catch Error failure
+            expired = true
+        end
+        assert expired
+    finally
+        proxy.close()
+    end
+end
+
+func main(...) as int
+    independent()
+    standalone()
+    editorDocument()
+    println("XUI_CODE_SEARCH_DIRECT_OK")
+    return 0
+end
