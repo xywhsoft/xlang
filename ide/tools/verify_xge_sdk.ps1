@@ -91,7 +91,13 @@ try {
         $upstream = Get-Content -LiteralPath (Join-Path $resolvedRoot ($xrtDirectory + '/upstream.json')) -Raw | ConvertFrom-Json
         $declarationRecord = Join-Path $resolvedRoot 'provenance/xrt-declarations.json'
         $expectedDeclaration = [string]$upstream.declaration_header_sha256
-        if (Test-Path -LiteralPath $declarationRecord -PathType Leaf) {
+        $declarationMode = [string]$manifest.xrtDeclarationMode
+        if ($declarationMode -and $declarationMode -ne 'upstream') {
+            throw 'Unrecognized SDK XRT declaration mode.'
+        }
+        # Older manifests infer derivation from their record. Staged upstream
+        # declarations keep that record as history and pin the upstream hash.
+        if (!$declarationMode -and (Test-Path -LiteralPath $declarationRecord -PathType Leaf)) {
             $derived = Get-Content -LiteralPath $declarationRecord -Raw | ConvertFrom-Json
             $inventory = Get-Content -LiteralPath (Join-Path $resolvedRoot 'xge-source-files.json') -Raw | ConvertFrom-Json
             $sourceHeader = @($inventory.files | Where-Object { $_.path -eq 'extlibs/xrt/xrt.h' })

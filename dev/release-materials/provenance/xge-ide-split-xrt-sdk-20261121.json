@@ -1,0 +1,71 @@
+{
+  "complete": true,
+  "passed": true,
+  "scope": "Windows IDE-profile XGE engine and matched SDK staging",
+  "releaseInstalled": false,
+  "applicationCandidateVerified": false,
+  "catalogRegenerated": false,
+  "nativeCommit": "1185a7ead1ad628b6991a4ef0018115dfc6a8ef2",
+  "sourceParent": "dea67626da11b9f68db2e6710370c6d962dfb0a0",
+  "nativeRuntimeOwner": "xge.dll",
+  "xrtCommit": "804cc769de3030118c2b46ef7af69543d1b82d9d",
+  "nativeSourceCount": 350,
+  "extensionSourceCount": 205,
+  "linkResponseBytes": 51751,
+  "stagingSourceSha256": "103d4fc82a2bf829a0882f0169c47ba110469069ee31f62ed22582ad7f38979e",
+  "verifierSourceSha256": "22251c415116be8ad536ffaface0138773b4006ae8535d2dc3ec93c5170ac0d0",
+  "notes": [
+    "Read the extension closure from the pinned XRT snapshot. Include modular core features before compiling extension units and link each distinct source once.",
+    "The first linked Windows profile reused 349 compiled or fingerprint-verified objects from the previous attempt and rebuilt HarfBuzz in the successor source tree. The 51,751-byte compiler response file prevents the Windows process command-line limit.",
+    "The staged SDK selects upstream declaration provenance explicitly. The current derived SDK still passes. Negative controls reject an omitted selector in the new SDK and an unrecognized selector. The prior derivation record keeps the same bytes.",
+    "The full IDE build was stopped by catalog prerequisites. Its isolated release lacked the compiler required by the catalog guard. The installed catalog also pins a different compiler and source revision. This receipt covers the SDK only."
+  ],
+  "evidence": {
+    "syntax": {
+      "path": "F:\\xlang-validation\\xge-full-20261110\\xui-widget-inspect-ide-extensions-offline-r1\\results.json",
+      "sha256": "1c2c47314fb9953e99170e0c3b39383f159a2d7376ed82f1ce8af8165a4aebaf"
+    },
+    "guard": {
+      "path": "F:\\xlang-validation\\xge-full-20261110\\xui-widget-inspect-ide-sdk-mode-verifier-win-r1\\results.json",
+      "sha256": "c26fed656781fa06d7fe68e40531364cf9edd41779590aa642de602d6bd7dcc6"
+    },
+    "engineBuild": {
+      "path": "F:\\xlang-validation\\xge-full-20261110\\xui-widget-inspect-matched-ide-win-r3\\engine\\build-report.json",
+      "sha256": "5148d2c0d2911f2bc1dd8ee27676b2123f95789ec74d682f09828a23a1383023"
+    },
+    "result": {
+      "path": "F:\\xlang-validation\\xge-full-20261110\\xui-widget-inspect-matched-ide-win-r4\\results.json",
+      "sha256": "3922221fa235aaf5b181a2e349c5e289ed7429fbdd3eb0c07c7bc26f3fa768a0"
+    },
+    "stage": {
+      "path": "F:\\xlang-validation\\xge-full-20261110\\xui-widget-inspect-matched-ide-win-r4\\stage.json",
+      "sha256": "c2389277ae6816eb325b5dbdcb1afeeb31eff60f301e9a93f362e4dc5eb97340"
+    },
+    "sourceFreeze": {
+      "path": "F:\\xlang-validation\\xge-full-20261110\\xui-widget-inspect-ide-bridge-input-r4\\freeze.json",
+      "sha256": "bd390dcd4a1627e489234aee134a42e24667c62417d9d309f39e67fcfa7a59b5"
+    },
+    "manifest": {
+      "path": "F:\\xlang-validation\\xge-full-20261110\\xui-widget-inspect-matched-ide-win-r4\\sdk\\sdk_manifest.json",
+      "sha256": "8304039c1c42f6806a61b5d504ba263da69eea35d6c23992ae082c8e86622198"
+    },
+    "linkResponse": {
+      "path": "F:\\xlang-validation\\xge-full-20261110\\xui-widget-inspect-matched-ide-win-r3\\engine\\link.rsp",
+      "sha256": "4d089ae31504e17cc5f328d143c6b9f70a00304211cb38edf5586062f97e5e9c"
+    }
+  },
+  "controls": [
+    {
+      "path": "F:\\xlang-validation\\xge-full-20261110\\xui-widget-inspect-matched-ide-win-r1\\ide-profile-build.log",
+      "sha256": "cd80a0df9387c0170cd7a7e1050df980e9cff599aad31999375b666bf832665d"
+    },
+    {
+      "path": "F:\\xlang-validation\\xge-full-20261110\\xui-widget-inspect-matched-ide-win-r2\\ide-profile-build.log",
+      "sha256": "fae97e8c03098c612dca22342917cb89166513403b14153487b65a73d15dc682"
+    },
+    {
+      "path": "F:\\xlang-validation\\xge-full-20261110\\xui-widget-inspect-matched-ide-win-r3\\ide-profile-build.log",
+      "sha256": "9f7621e5218a8c0978a90784eb9394d186b547dd5d9c0a1fdd48d39f424856b3"
+    }
+  ]
+}

@@ -66,7 +66,7 @@ def main():
         add(native/'extlibs/xrt'/name,'extlibs/xrt/'+name)
     # Preserve the dependency-owned public include structure required by the
     # IDE profile's features headers, without copying C implementation units.
-    for family in ('xwork','xllm','xllm-session'):
+    for family in upstream['extensions']:
         base=native/'extlibs/xrt/extlibs'/family
         for source in sorted(base.rglob('*')):
             if source.is_file() and source.suffix in ('.h','.inc'):
@@ -93,6 +93,7 @@ def main():
     files=[dict(path=p.relative_to(out).as_posix(),sha256=sha(p)) for p in sorted(out.rglob('*')) if p.is_file()]
     manifest=dict(schemaVersion=2,profile='xlang-ide-xge3-matched-set',version='3.0.0',
         policy=original['policy'],buildDefines=['XGE_XRT_PROFILE_IDE'],xrtDirectory='extlibs/xrt',
+        xrtDeclarationMode='upstream',
         configurationHeader='xge_build_config.h',requiredXrtModules=original['requiredXrtModules'],
         requiredExports=original['requiredExports'],privateCandidate=True,formalRelease=False,
         provenance=dict(sourceCommit=frozen['baseHEAD'],sourceWorktreeDirty=bool(frozen['overlay']),
