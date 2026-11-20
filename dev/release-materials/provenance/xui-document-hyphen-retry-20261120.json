@@ -1,0 +1,91 @@
+{
+  "complete": true,
+  "passed": true,
+  "releaseInstalled": false,
+  "sourceParent": "ab563ca340805abe1305c940883e44f4afd99325",
+  "candidateNativeRuntimeCommit": "e75266536290e2e9ac3c99b186c8bcf3f9397c18",
+  "nativeTestCommit": "96b5cc82bdfc0e1f229f9104adfc098070abede0",
+  "supersedesPortabilityFailureIn": {
+    "path": "D:\\GIT\\x-lang\\dev\\release-materials\\provenance\\xui-document-web-objects-20261120.json",
+    "sha256": "36816a51ac3384cb850cfd15894b2b13aaa98be42e8018932833c462657307e1"
+  },
+  "changedNativeTestSha256Lf": {
+    "tests/xui/xui_document_format_cases.h": "a2eb6775129838af0dc8bbf201bbb02227ea2c0023bc8ed8aa27f6e37163fe63"
+  },
+  "checks": [
+    "Both SDK cohorts reproduced the original failure on Windows and Linux.",
+    "Discretionary hyphen fallback width uses textMeasure after XGE 4d5257f64. The test now injects one OOM into that callback and checks that it was consumed.",
+    "The renderer reports OOM, accepts an immediate retry, and publishes the expected 27-unit caret geometry. The three contextual shaping retries remain covered.",
+    "The entire renderer portability program passed at O0 and O2 on both platforms and against both SDK cohorts. The only native change is the test fixture."
+  ],
+  "platforms": {
+    "win": {
+      "documentWebObjects": {
+        "before": {
+          "path": "F:\\xlang-validation\\xge-full-20261110\\document-web-object-native-static-win-r6\\document_renderer_portability-O0-run.log",
+          "sha256": "cd92d05fa1aa40add0e2b098dfc71acb81d75f4dbf3191f18f147d0ae12e8d90"
+        },
+        "after": {
+          "path": "F:\\xlang-validation\\xge-full-20261110\\document-hyphen-measure-win-r1\\results.json",
+          "sha256": "9fd435f51fb1c038586713dac2d140afbe77e4acddde60026fdbc2387bf27729"
+        },
+        "archivePath": "F:\\xlang-validation\\xge-full-20261110\\document-web-object-sdk-win-r3\\static\\libxge3_static.a",
+        "archiveSha256": "d6e1971a291b3ab97578c706e0ba3f9aa67d2c11662466f87eb4c5b00720bae4",
+        "variants": [
+          "O0",
+          "O2"
+        ]
+      },
+      "precedingScrollValue": {
+        "before": {
+          "path": "F:\\xlang-validation\\xge-full-20261110\\document-web-object-native-baseline-win-r6\\document_renderer_portability-O0-run.log",
+          "sha256": "cd92d05fa1aa40add0e2b098dfc71acb81d75f4dbf3191f18f147d0ae12e8d90"
+        },
+        "after": {
+          "path": "F:\\xlang-validation\\xge-full-20261110\\document-hyphen-measure-baseline-win-r1\\results.json",
+          "sha256": "e6cde24fde55ef38cb5fda54ef4da80c7631e240d6fcc654ac8145b00382b651"
+        },
+        "archivePath": "F:\\xlang-validation\\xge-full-20261110\\scroll-value-sdk-win-r1\\static\\libxge3_static.a",
+        "archiveSha256": "9a93b5be3c20b3f5b4e5df222a12631cdfbabbe5e21ccf0fb9698042b03b0059",
+        "variants": [
+          "O0",
+          "O2"
+        ]
+      }
+    },
+    "linux": {
+      "documentWebObjects": {
+        "before": {
+          "path": "\\\\wsl.localhost\\Ubuntu\\var\\tmp\\xlang-validation\\xge-full-20261110\\document-web-object-native-static-linux-r5\\document_renderer_portability-O0-run.log",
+          "sha256": "8ba6b239e7990ce9a8a2131d4cecab6f0ea67e97eb9333502f250caba7628ba3"
+        },
+        "after": {
+          "path": "\\\\wsl.localhost\\Ubuntu\\var\\tmp\\xlang-validation\\xge-full-20261110\\document-hyphen-measure-linux-r1\\results.json",
+          "sha256": "b27757e561b4e3de1bcde4361dcf08f78633fc2506a40ddf7159062e7e943fde"
+        },
+        "archivePath": "/var/tmp/xlang-validation/xge-full-20261110/document-web-object-sdk-linux-r3/static/libxge3_static.a",
+        "archiveSha256": "5ac921365c16c0ca5cc4e6f6926f5cfc2c7aac9ef950d86474198b6efbba0195",
+        "variants": [
+          "O0",
+          "O2"
+        ]
+      },
+      "precedingScrollValue": {
+        "before": {
+          "path": "\\\\wsl.localhost\\Ubuntu\\var\\tmp\\xlang-validation\\xge-full-20261110\\document-web-object-native-baseline-linux-r6\\document_renderer_portability-O0-run.log",
+          "sha256": "8ba6b239e7990ce9a8a2131d4cecab6f0ea67e97eb9333502f250caba7628ba3"
+        },
+        "after": {
+          "path": "\\\\wsl.localhost\\Ubuntu\\var\\tmp\\xlang-validation\\xge-full-20261110\\document-hyphen-measure-baseline-linux-r1\\results.json",
+          "sha256": "daf7819830c5098874348fb9e5d3f3ead1115d3a5e2cd292360b137740f45a09"
+        },
+        "archivePath": "/var/tmp/xlang-validation/xge-full-20261110/scroll-value-sdk-linux-r1/static/libxge3_static.a",
+        "archiveSha256": "4215424c886fba6e6bd83daa1948d89abb4edc022fdde91e94e6eddd3a463ea1",
+        "variants": [
+          "O0",
+          "O2"
+        ]
+      }
+    }
+  }
+}
