@@ -1033,6 +1033,8 @@ def generate_xui(root,header,records,types,primitive,param,reserved,reviewed_spa
                       ('xuiInventoryGridSetDragCallbackOwned','owned-callback'),
                       ('xuiInventoryGridSetDropCallbackOwned','owned-callback'),
                       ('xuiInventoryGridSetTooltipCallbackOwned','owned-callback'),
+                      ('xuiInventoryGridSetRenderCallbackOwned','owned-callback'),
+                      ('xuiInventoryGridSetAnimationLayerOwned','owned-callback'),
                       ('xuiListViewSetEnabledItems','native-copy-or-synchronous-read'),
                       ('xuiTimeLineViewGetLayerDescriptor','borrowed-synchronous-output'),
                       ('xuiTimeLineViewGetFrame','borrowed-synchronous-output'),

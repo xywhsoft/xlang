@@ -1,0 +1,34 @@
+import xui
+from "./_window.xl" import Window
+
+Window.showWithProxy("物品槽自绘与动画层", func(xui.Context ui, xui.Widget root, xui.Proxy proxy)
+    auto inventory = ui.inventoryGridNative()
+    Window.place(root, inventory, 24, 24, 480, 240)
+    inventory.setSlotCount(4)
+
+    auto item = xui.InventorySlotSettings()
+    item.iItemId = 1
+    inventory.setSlotContent(0, item, "自绘槽位")
+    item.iItemId = 2
+    inventory.setSlotContent(1, item, "带动画层的槽位")
+
+    inventory.setSlotRenderer(func(xui.CallbackWidget sender, c_int index, xui.CallbackInventorySlot slot, xui.CallbackDrawContext draw, xui.Rect bounds, c_uint state) as c_int
+        if index != 0 then return 0 end
+        proxy.fillRect(draw, bounds, c_uint(0x356DB8FF))
+        return 1
+    end)
+
+    c_uint tint = c_uint(0xD48231FF)
+    inventory.setSlotAnimationStyle(1, 0, 0.5, tint)
+    inventory.setAnimationRenderer(func(xui.CallbackWidget sender, c_int index, xui.CallbackInventorySlot slot, xui.CallbackDrawContext draw, xui.Rect bounds, c_uint state, c_uint flags, c_uint color) as c_int
+        proxy.fillRect(draw, bounds, color)
+        return 0
+    end)
+
+    float seconds = 0.0
+    inventory.setUpdateCallback(func(xui.Widget sender, c_float delta) as c_int
+        seconds += float(delta)
+        inventory.setSlotAnimationStyle(1, 0, c_float(0.45 + 0.12 * math.sin(seconds * 4)), tint)
+        return 0
+    end)
+end)

@@ -1289,6 +1289,18 @@ METHODS.update({
     'xuiInventoryGridSetTooltipCallbackOwned': (
         'int xuiInventoryGridSetTooltipCallbackOwned(xui_widget pWidget, xui_inventory_tooltip_owned_proc onTooltip, void* pUser, const xui_callback_owner_t* pOwner)',
         'InventoryGrid', ['extern "xuiInventoryGridSetTooltipCallbackOwned" @no_raise @c_owned_callback(0,0,"xui_callback_owner_t",0,"owned_text") @c_result("status",0) func setTooltipProvider(InventoryTooltipProc? provider)']),
+    'xuiInventoryGridSetRenderCallbackOwned': (
+        'int xuiInventoryGridSetRenderCallbackOwned(xui_widget pWidget, xui_inventory_slot_render_proc onRender, void* pUser, const xui_callback_owner_t* pOwner)',
+        'InventoryGrid', ['extern "xuiInventoryGridSetRenderCallbackOwned" @no_raise @c_owned_callback(0,0,"xui_callback_owner_t",-16) @c_result("status",0) func setSlotRenderer(InventorySlotRenderProc? renderer)']),
+    'xuiInventoryGridSetAnimationLayerOwned': (
+        'int xuiInventoryGridSetAnimationLayerOwned(xui_widget pWidget, xui_inventory_animation_layer_proc onRender, void* pUser, const xui_callback_owner_t* pOwner)',
+        'InventoryGrid', ['extern "xuiInventoryGridSetAnimationLayerOwned" @no_raise @c_owned_callback(0,0,"xui_callback_owner_t",-16) @c_result("status",0) func setAnimationRenderer(InventoryAnimationRenderProc? renderer)']),
+    'xuiInventoryGridSetSlotAnimationStyle': (
+        'int xuiInventoryGridSetSlotAnimationStyle(xui_widget pWidget, int iSlot, uint32_t iFlags, float fScale, uint32_t iTint)',
+        'InventoryGrid', ['extern "xuiInventoryGridSetSlotAnimationStyle" @no_raise @c_result("status",0) func setSlotAnimationStyle(c_int index,c_uint flags,c_float scale=1.0,c_uint tint=0)']),
+    'xuiInventoryGridGetSlotAnimationStyle': (
+        'int xuiInventoryGridGetSlotAnimationStyle(xui_widget pWidget, int iSlot, int* pActive, uint32_t* pFlags, float* pScale, uint32_t* pTint)',
+        'InventoryGrid', ['extern "xuiInventoryGridGetSlotAnimationStyle" @no_raise @c_outputs(2,3,4,5) @c_status(0) func getSlotAnimationStyle(c_int index) as (c_int,c_uint,c_float,c_uint)']),
 })
 CALLBACKS.update({
     'xui_inventory_drag_proc': (
@@ -1300,11 +1312,19 @@ CALLBACKS.update({
     'xui_inventory_tooltip_owned_proc': (
         'typedef xstrview (*xui_inventory_tooltip_owned_proc)(xui_widget_t* pWidget, int iSlot, const xui_inventory_slot_t* pSlot, void* pUser);',
         'export typedef InventoryTooltipProc = func(CallbackWidget,c_int,CallbackInventorySlot) as string'),
+    'xui_inventory_slot_render_proc': (
+        'typedef int (*xui_inventory_slot_render_proc)(xui_widget_t* pWidget, int iSlot, const xui_inventory_slot_t* pSlot, xui_draw_context_t* pDraw, xui_rect_t tRect, uint32_t iState, void* pUser);',
+        'export typedef InventorySlotRenderProc = func(CallbackWidget,c_int,CallbackInventorySlot,CallbackDrawContext,Rect,c_uint) as c_int'),
+    'xui_inventory_animation_layer_proc': (
+        'typedef int (*xui_inventory_animation_layer_proc)(xui_widget_t* pWidget, int iSlot, const xui_inventory_slot_t* pSlot, xui_draw_context_t* pDraw, xui_rect_t tRect, uint32_t iState, uint32_t iFlags, uint32_t iTint, void* pUser);',
+        'export typedef InventoryAnimationRenderProc = func(CallbackWidget,c_int,CallbackInventorySlot,CallbackDrawContext,Rect,c_uint,c_uint,c_uint) as c_int'),
 })
 REPLACED.update({
     'xuiInventoryGridSetDragCallback': ('xui.InventoryGrid.setDragCallback','xuiInventoryGridSetDragCallbackOwned'),
     'xuiInventoryGridSetDropCallback': ('xui.InventoryGrid.setDropCallback','xuiInventoryGridSetDropCallbackOwned'),
     'xuiInventoryGridSetTooltipCallback': ('xui.InventoryGrid.setTooltipProvider','xuiInventoryGridSetTooltipCallbackOwned'),
+    'xuiInventoryGridSetRenderCallback': ('xui.InventoryGrid.setSlotRenderer','xuiInventoryGridSetRenderCallbackOwned'),
+    'xuiInventoryGridSetAnimationRenderCallback': ('xui.InventoryGrid.setAnimationRenderer','xuiInventoryGridSetAnimationLayerOwned'),
 })
 
 def validate(root,header,function_sha):

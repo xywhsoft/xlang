@@ -1,0 +1,281 @@
+{
+  "complete": true,
+  "passed": true,
+  "releaseInstalled": false,
+  "sourceParent": "2c5e20864b979859d59c439ceb8c20b3d957577a",
+  "nativeCommit": "20622eba6cef6fbb2b7f4b674dfc5a6bc9947735",
+  "xrtCommit": "804cc769de3030118c2b46ef7af69543d1b82d9d",
+  "nativeSourceHashesLf": {
+    "include/xui.h": "77a829aeadce754c517607a2f5596501a6d00c6d06420ba9f69fe028104bc4da",
+    "src/xui/controls/xui_inventory_grid.c": "0d930f7abe0fc5de9e7358037147668dcccec7828dbe9c6802939813d8a618e3",
+    "tests/xui/xui_inventory_grid_test.c": "3710ad06690d121e4f295ed1814f6438d9610be14d160b21b5225856fa98dce8"
+  },
+  "languageSourceHashesLf": {
+    "docs/xge3-xui3-api-map-storage.json": "64006e56d79597b906647c5b9d6292c14b2c439d3b3ad2aaa33470cfb1c0fe79",
+    "lib/bindings/xui/examples/README.md": "15ef99798adae4e6b399eddbc4d584a3c15dfb05ee6a218d45ac6ff45e892ccb",
+    "lib/bindings/xui/examples/inventory_paint.xl": "b4f2f1302d95ca85ade681323a8abdc1586d9e427b0b2d036bc0044cf9ab9bce",
+    "lib/bindings/xui/src/managed.xl": "1b50f14b106c28b57716164518769c0a0323c5f254f5f1a1b43490b4752ae6f5",
+    "test/cases/foreign_xui_inventory_paint.xl": "00282174ab0531c402f109c0e8d051b0fdc8ff32517fc1ed308532551641f0e2",
+    "tools/check_xge3_bindings.py": "3ff7bbd04d7d441fb19c3c7a358b466cdc9319da74cff014f6bf0816d0f911e1",
+    "tools/xui_managed_contracts.py": "127ca5e4fcbc68b7333af259591fdb04fb77a0ad703fb051b6e945dec4fbcd29"
+  },
+  "checks": [
+    "Managed slot and animation renderers are retained by the widget. The native test verifies invocation with an extra active reference, retirement through legacy C clear, and final context teardown.",
+    "Injected registration OOM retains the previous renderer. Returning handled suppresses default slot paint while other slots and the animation layer continue.",
+    "Animation flags, tint and scaled rectangle reach the renderer. The native style update preserves the C plugin-specific animation pointer. The xlang layer uses the callback closure and checked slot/geometry.",
+    "A renderer may replace itself, shrink the grid or close the widget. The current geometry pass stops after mutation. The following pass uses the new range and registration, and saved views expire.",
+    "The original callback exception reaches the checked render boundary in JIT, dynamic AOT and static AOT. The generated setters and slot animation accesses are direct C calls.",
+    "The window example renders custom blue and orange areas on the Windows desktop and Linux Xvfb using both JIT and static AOT. Only the dynamic fixture imports the XGE3 host library."
+  ],
+  "costs": [
+    "Each selected painter retains and drops the existing callback owner, checks widget lifetime and paint revision, and refreshes the font used by native fallback drawing. Slot snapshots reuse the preexisting stack copy.",
+    "Both implementations run 100 forced frames after warm-up with three slot callback calls and one animation-layer call per frame. Timed latency, first-use cost and rendering with slot text snapshots are outside the heap profile."
+  ],
+  "pending": [
+    "InventoryGrid shared icon ownership and borrowed scroll model access.",
+    "App-specific C animation payload remains in C interop. The managed animation renderer receives the slot, draw context, geometry and style and can capture application-managed state.",
+    "Whole-goal XGE, XUI and Document audit and matched release/IDE delivery."
+  ],
+  "platforms": {
+    "win": {
+      "imports": {
+        "host": [
+          "msvcrt.dll",
+          "xge3_host.dll",
+          "kernel32.dll",
+          "SHELL32.dll",
+          "ws2_32.dll",
+          "IPHLPAPI.dll",
+          "ucrtbase.dll"
+        ],
+        "static": [
+          "msvcrt.dll",
+          "kernel32.dll",
+          "USER32.dll",
+          "OLEAUT32.dll",
+          "ole32.dll",
+          "SHELL32.dll"
+        ]
+      },
+      "example": {
+        "example-jit": {
+          "dimensions": [
+            800,
+            600
+          ],
+          "layerPixels": {
+            "blue": 2868,
+            "orange": 484
+          }
+        },
+        "static-run": {
+          "dimensions": [
+            800,
+            600
+          ],
+          "layerPixels": {
+            "blue": 2868,
+            "orange": 484
+          }
+        }
+      },
+      "heapPer100Frames": {
+        "native": [
+          300,
+          300,
+          0
+        ],
+        "language": [
+          300,
+          300,
+          0
+        ]
+      }
+    },
+    "linux": {
+      "imports": {
+        "host": [
+          "libm.so.6",
+          "libmvec.so.1",
+          "libxge3_host.so",
+          "libc.so.6",
+          "ld-linux-x86-64.so.2"
+        ],
+        "static": [
+          "libm.so.6",
+          "libmvec.so.1",
+          "libX11.so.6",
+          "libXi.so.6",
+          "libXcursor.so.1",
+          "libGL.so.1",
+          "libc.so.6",
+          "ld-linux-x86-64.so.2"
+        ]
+      },
+      "example": {
+        "example-jit": {
+          "dimensions": [
+            800,
+            600
+          ],
+          "layerPixels": {
+            "blue": 2868,
+            "orange": 529
+          }
+        },
+        "static-run": {
+          "dimensions": [
+            800,
+            600
+          ],
+          "layerPixels": {
+            "blue": 2868,
+            "orange": 576
+          }
+        }
+      },
+      "heapPer100Frames": {
+        "native": [
+          300,
+          300,
+          0
+        ],
+        "language": [
+          300,
+          300,
+          0
+        ]
+      }
+    }
+  },
+  "evidence": {
+    "win": {
+      "sdk": {
+        "path": "F:\\xlang-validation\\xge-full-20261110\\inventory-paint-sdk-win-r1\\results.json",
+        "sha256": "99bd3bc796a9950a26d6c861f4bc1f18b0a14d88ad95957b962df2197527eb2b",
+        "checks": [
+          "host",
+          "static"
+        ]
+      },
+      "packageReplay": {
+        "path": "F:\\xlang-validation\\xge-full-20261110\\inventory-paint-packages-win-r1\\results.json",
+        "sha256": "79d4fdccdb56778c8df2dc9af1d985677309523d53ba2b4bc037db20eab42983",
+        "checks": [
+          "generated-declarations",
+          "inventory",
+          "strict-current-storage-replay",
+          "host",
+          "static",
+          "replay"
+        ]
+      },
+      "nativeFixture": {
+        "path": "F:\\xlang-validation\\xge-full-20261110\\inventory-paint-native-static-win-r2\\results.json",
+        "sha256": "5dea25b7b22eb3b5263433d37a946fd09abc22445c5cac0f07caf8601191f93d",
+        "checks": [
+          "O0-build",
+          "O0-run",
+          "O2-build",
+          "O2-run"
+        ]
+      },
+      "languageFixture": {
+        "path": "F:\\xlang-validation\\xge-full-20261110\\inventory-paint-language-tests-win-r1\\results.json",
+        "sha256": "bcf36cbde35930dd01e95cae4233fa281239740a9458ac25f3e6ee906485ebb1",
+        "checks": [
+          "emit",
+          "jit",
+          "example-cgen",
+          "host-build",
+          "host-run",
+          "host-imports",
+          "static-build",
+          "static-run",
+          "static-imports"
+        ]
+      },
+      "example": {
+        "path": "F:\\xlang-validation\\xge-full-20261110\\inventory-paint-example-win-r1\\results.json",
+        "sha256": "14ca3f724eb514660d8960ab4c9da55ee6139b7b1506ed0695a880c0fbd287dc",
+        "checks": [
+          "base-emit",
+          "example-jit",
+          "static-build",
+          "static-run"
+        ]
+      },
+      "paintHeapProfile": {
+        "path": "F:\\xlang-validation\\xge-full-20261110\\inventory-paint-profile-win-r1\\results.json",
+        "sha256": "26d03550bd32c8359cac0bb20f64c8db84d8c3bd2d9c60221ba1a9f40195645f",
+        "checks": [
+          "profile"
+        ]
+      }
+    },
+    "linux": {
+      "sdk": {
+        "path": "\\\\wsl.localhost\\Ubuntu\\var\\tmp\\xlang-validation\\xge-full-20261110\\inventory-paint-sdk-linux-r1\\results.json",
+        "sha256": "b29263a3d302b629a706b40201c31518ef941714128858275b773465da3db137",
+        "checks": [
+          "host",
+          "static"
+        ]
+      },
+      "packageReplay": {
+        "path": "\\\\wsl.localhost\\Ubuntu\\var\\tmp\\xlang-validation\\xge-full-20261110\\inventory-paint-packages-linux-r1\\results.json",
+        "sha256": "9830e05119a2aab42590c235c5a9182f4d7999fd5b117fc5a6453ae9c9fd3396",
+        "checks": [
+          "generated-declarations",
+          "inventory",
+          "strict-current-storage-replay",
+          "host",
+          "static",
+          "replay"
+        ]
+      },
+      "nativeFixture": {
+        "path": "\\\\wsl.localhost\\Ubuntu\\var\\tmp\\xlang-validation\\xge-full-20261110\\inventory-paint-native-static-linux-r2\\results.json",
+        "sha256": "cfbfc4dc50d5693a4515a94d8f954fbb817b280f4393265b2d8c3d58d4efa4b3",
+        "checks": [
+          "O0-build",
+          "O0-run",
+          "O2-build",
+          "O2-run"
+        ]
+      },
+      "languageFixture": {
+        "path": "\\\\wsl.localhost\\Ubuntu\\var\\tmp\\xlang-validation\\xge-full-20261110\\inventory-paint-language-tests-linux-r1\\results.json",
+        "sha256": "d66af96eb24036c241ca44609c3b7fba0e7aa840aa97f8acca772ea09a13e109",
+        "checks": [
+          "emit",
+          "jit",
+          "example-cgen",
+          "host-build",
+          "host-run",
+          "host-imports",
+          "static-build",
+          "static-run",
+          "static-imports"
+        ]
+      },
+      "example": {
+        "path": "\\\\wsl.localhost\\Ubuntu\\var\\tmp\\xlang-validation\\xge-full-20261110\\inventory-paint-example-linux-r1\\results.json",
+        "sha256": "7ee16320f872210680d00942de3b937686d9b809525f2a72f1dcd4ffac78771f",
+        "checks": [
+          "base-emit",
+          "example-jit",
+          "static-build",
+          "static-run"
+        ]
+      },
+      "paintHeapProfile": {
+        "path": "\\\\wsl.localhost\\Ubuntu\\var\\tmp\\xlang-validation\\xge-full-20261110\\inventory-paint-profile-linux-r1\\results.json",
+        "sha256": "89917a5c499b90bd49acdaa26b0d142409d377e5b16c4d2b998ee36888dbf4d1",
+        "checks": [
+          "profile"
+        ]
+      }
+    }
+  }
+}

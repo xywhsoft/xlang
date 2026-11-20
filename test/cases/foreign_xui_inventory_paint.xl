@@ -1,0 +1,159 @@
+import xui
+from xui import CallbackDrawContext, CallbackInventorySlot, CallbackWidget, Context, Font, InventoryGrid, Proxy, Rect, Surface
+
+extern "fixtureRenderProxy" @header("test/cases/foreign_xui_render_backend.h") @no_raise @c_result("owned_view") @factory(0,0,dropProxy) func cpuProxy() as Proxy
+extern "fixtureRenderSurface" @no_raise @c_result("owned_view") @factory(1,0,dropSurface) func cpuSurface(Proxy proxy) as Surface
+extern "fixtureRenderFont" @no_raise @c_result("owned_view") @factory(1,0,dropFont) func cpuFont(Proxy proxy) as Font
+extern "fixtureRenderBalanced" @no_raise func balanced() as c_int
+extern "fixtureRenderBudget" @no_raise func budget(c_int allowance)
+extern "fixtureRenderSawText" @no_raise @c_cstr(0) func sawText(string text) as c_int
+extern "fixtureRenderResetText" @no_raise func resetText()
+extern "xuiProxyReleaseChecked" @header("xge3_runtime.h") @no_raise @c_result("status",0) func dropProxy(Proxy value)
+extern "xuiSurfaceReleaseChecked" @header("xge3_runtime.h") @no_raise @c_result("status",0) func dropSurface(Surface value)
+extern "xuiFontReleaseChecked" @header("xge3_runtime.h") @no_raise @c_result("status",0) func dropFont(Font value)
+
+func checkRenderers(Context ui,Proxy proxy,Surface target,InventoryGrid grid)
+    int draws = 0
+    int animationDraws = 0
+    CallbackDrawContext? savedDraw = null
+    CallbackInventorySlot? savedSlot = null
+    c_uint tint = c_uint(0x2D69AFFF)
+    grid.setSlotAnimationStyle(1,23,0.5,tint)
+    auto active, flags, scale, color = grid.getSlotAnimationStyle(1)
+    assert active == 1 and flags == 23 and scale == 0.5 and color == tint, "animation style round trip"
+    auto slotArea = grid.getSlotRect(1)
+
+    grid.setSlotRenderer(func(CallbackWidget sender,c_int index,CallbackInventorySlot slot,CallbackDrawContext draw,Rect area,c_uint state) as c_int
+        draws += 1
+        if index != 0 then return 0 end
+        assert slot.itemId == 8 and slot.text() == "Potion", "slot payload in painter"
+        savedDraw = draw
+        savedSlot = slot
+        proxy.fillRect(draw,area,tint)
+        return 1
+    end)
+    grid.setAnimationRenderer(func(CallbackWidget sender,c_int index,CallbackInventorySlot slot,CallbackDrawContext draw,Rect area,c_uint state,c_uint options,c_uint rgba) as c_int
+        assert index == 1 and options == 23 and rgba == tint and slot.itemId == 9, "animation callback parameters"
+        assert area.fW > 0 and area.fW < slotArea.fW, "animation uses scaled geometry"
+        animationDraws += 1
+        proxy.fillRect(draw,area,rgba)
+        return 0
+    end)
+    xui.InventorySlotRenderProc replacement = func(CallbackWidget sender,c_int index,CallbackInventorySlot slot,CallbackDrawContext draw,Rect area,c_uint state) as c_int
+        throw RuntimeError "replacement installed after OOM"
+    end
+    bool rejected = false
+    budget(0)
+    try
+        grid.setSlotRenderer(replacement)
+    catch Error
+        rejected = true
+    finally
+        budget(-1)
+    end
+    assert rejected, "painter replacement has checked allocation fault"
+    resetText()
+    ui.render(target)
+    assert draws == 3 and animationDraws == 1, "both existing painters ran after OOM"
+    assert sawText("Potion") == 0 and sawText("Gem") != 0, "handled slot suppresses default drawing"
+
+    bool expired = false
+    try
+        proxy.fillRect(savedDraw as CallbackDrawContext,slotArea,tint)
+    catch StateError
+        expired = true
+    end
+    assert expired, "callback drawing view expires"
+    expired = false
+    try
+        string text = (savedSlot as CallbackInventorySlot).text()
+    catch StateError
+        expired = true
+    end
+    assert expired, "callback slot view expires"
+
+    grid.clearSlotAnimation(1)
+    active, flags, scale, color = grid.getSlotAnimationStyle(1)
+    assert active == 0 and flags == 0 and scale == 1, "animation cleared"
+    ui.render(target)
+    assert animationDraws == 1, "no animation callback for a cleared slot"
+    grid.setAnimationRenderer(null)
+end
+
+func checkReentry(Context ui,Surface target,InventoryGrid grid)
+    int oldCalls = 0
+    int newCalls = 0
+    xui.InventorySlotRenderProc next = func(CallbackWidget sender,c_int index,CallbackInventorySlot slot,CallbackDrawContext draw,Rect area,c_uint state) as c_int
+        newCalls += 1
+        return 0
+    end
+    grid.setSlotRenderer(func(CallbackWidget sender,c_int index,CallbackInventorySlot slot,CallbackDrawContext draw,Rect area,c_uint state) as c_int
+        oldCalls += 1
+        assert grid.setSlotCount(1) == 0, "resize inside painter"
+        grid.setSlotRenderer(next)
+        assert slot.itemId == 8, "call-local slot survives resize"
+        return 0
+    end)
+    ui.render(target)
+    assert oldCalls == 1 and newCalls == 0, "superseded pass stops before later slots"
+    ui.render(target)
+    assert oldCalls == 1 and newCalls == 1 and grid.getLastPaintSlotCount() == 1, "next pass uses new range and renderer"
+
+    grid.setSlotRenderer(func(CallbackWidget sender,c_int index,CallbackInventorySlot slot,CallbackDrawContext draw,Rect area,c_uint state) as c_int
+        throw RuntimeError "inventory painter failure"
+    end)
+    bool raised = false
+    try
+        ui.render(target)
+    catch RuntimeError error
+        raised = error.message == "inventory painter failure"
+    end
+    assert raised, "painter exception reaches the checked render call"
+
+    grid.setSlotRenderer(func(CallbackWidget sender,c_int index,CallbackInventorySlot slot,CallbackDrawContext draw,Rect area,c_uint state) as c_int
+        grid.close()
+        return 0
+    end)
+    ui.render(target)
+    bool closed = false
+    try
+        grid.getSlotCount()
+    catch StateError
+        closed = true
+    end
+    assert closed, "painting may close the widget"
+end
+
+func main(...) as int
+    auto proxy = cpuProxy()
+    auto target = cpuSurface(proxy)
+    auto font = cpuFont(proxy)
+    auto ui = xui.create(proxy,xui.XUI_SYSTEM_FONT_DISABLED)
+    ui.setDefaultFont(font)
+    ui.setViewportSize(400,260)
+    auto grid = ui.inventoryGridNative()
+    auto bounds = Rect()
+    bounds.fW = 400
+    bounds.fH = 260
+    assert grid.setRect(bounds) == 0 and ui.setRootWidget(grid) == 0
+    auto layout = grid.getLayout()
+    layout.iColumns = 3
+    grid.setLayout(layout)
+    grid.setSlotCount(3)
+    auto item = xui.InventorySlotSettings()
+    item.iItemId = 8
+    item.iCount = 3
+    grid.setSlotContent(0,item,"Potion")
+    item.iItemId = 9
+    grid.setSlotContent(1,item,"Gem")
+    assert ui.layout() == 0
+    checkRenderers(ui,proxy,target,grid)
+    checkReentry(ui,target,grid)
+    ui.close()
+    font.close()
+    target.close()
+    proxy.close()
+    assert balanced() != 0
+    println("XUI_INVENTORY_PAINT_OK")
+    return 0
+end

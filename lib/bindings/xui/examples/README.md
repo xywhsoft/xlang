@@ -32,6 +32,8 @@
 
 [inventory_drag.xl](inventory_drag.xl) 在窗口中显示物品提示，并允许把一组药水拖到任意空槽。
 
+[inventory_paint.xl](inventory_paint.xl) 用自绘替换第一个槽位的默认画面，并在第二个槽位叠加随时间缩放的动画层。
+
 [combobox_items.xl](combobox_items.xl) 使用业务值、禁用状态和分隔线配置下拉选项，并读取当前选项。
 
 [timeline_state.xl](timeline_state.xl) 设置一个关键帧并读取区间快照。[message_nodes.xl](message_nodes.xl) 批量加载消息，再读取辅助节点。
