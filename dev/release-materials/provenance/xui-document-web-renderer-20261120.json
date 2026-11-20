@@ -1,0 +1,134 @@
+{
+  "complete": true,
+  "passed": true,
+  "releaseInstalled": false,
+  "sourceParent": "d50bc94501823cd80743cf3668937f3d78b18669",
+  "nativeCommit": "224365afca22cf29ff94a1ebb2f76911464f5aab",
+  "nativeSourceHashesLf": {
+    "include/xui_document_ui.h": "9c01495a4a9bfe6a128c2d5792c8562a77d15efaeac319e026504b54ac0f75f2",
+    "src/xui/document/xui_document_layout_internal.h": "dbb69e9a952d609e93585967009596547095aa0453690d99db1e3eebf8c55c02",
+    "src/xui/document/xui_document_renderer.c": "bec893bc96e75751b346978a619e710ae0485c01529cfbba862b300c1fabed15",
+    "src/xui/document/xui_document_web_provider.c": "cbc4063ac217cd34043e2fa33453997218279b6090eebe2752cbaee2ee5a17e8",
+    "src/xui/document/xui_document_web_internal.h": "3d125a0e05e72062fe99a5e4e3f450a934bc250cc5bc8b181f5ce8f766d090aa",
+    "tests/xui/xui_owned_web_provider_test.c": "b3873126d4f160d23a0b77c6c5a5bbf30143776dc032807e37613f637f831961"
+  },
+  "languageSourceHashesLf": {
+    "tools/gen_xge3_document_ui_bindings.py": "6f7200f09158de77bec6c8dc93ad588b0ff210c80538de5104db64218e156a60",
+    "docs/xge3-xui3-document-ui-api-map.json": "03a07e98f83da5a50c2811ca8f298317887921c4a9b8d4efe0e364ac5907a2db",
+    "docs/xge3-xui3-document-ui-api-map.md": "a44066672943781dee7384702e70fb4cdb0deb9b21291ca3d2d3a16651673985",
+    "lib/bindings/xui/src/document_ui.xl": "f8ccc786b6d828b92da9dde4a663916c0d96ba5b36a2ec6a44ba2df69a9468f9",
+    "lib/bindings/xui/examples/README.md": "c82d1a73477ba1124045e423c0f873e51e2fe09da1929657825c77095f228939",
+    "lib/bindings/xui/examples/document_web_formula.xl": "834559b5d30fcb194324bacc00d03a8f4aeeeff26094c389e8730b82594cef0a",
+    "test/cases/foreign_xui_document_web_renderer.xl": "3b27034a38e971b65e0fe4f5eaf93a826df75ac1af7146650270258ea0a9a0f4"
+  },
+  "checks": [
+    "One native renderer setter attaches both measurement and drawing.",
+    "Cross-context replacement is rejected while the current provider remains attached.",
+    "Renderer-first release unlinks its watch. Provider-first and reentrant draw close expire it before native cleanup.",
+    "XRT next-allocation failure stays armed across a successful attachment, and CPU suites restore live count and bytes.",
+    "Cache readiness changes geometry automatically and Windows readback differs from a white surface.",
+    "The existing application invalidate callback is still invoked.",
+    "Linux validates the checked unavailable backend and preserves the placeholder layout."
+  ],
+  "costs": [
+    "One embedded lifetime watcher and one generation counter per renderer. No attachment allocation.",
+    "The normal geometry refresh checks the observed generation. A change reuses object-dependent layout invalidation.",
+    "The native browser measure and draw operations keep their existing Context scopes. No bridge timing comparison."
+  ],
+  "platforms": {
+    "win": {
+      "backend": "WebView2",
+      "imports": {
+        "host": [
+          "xge3_host.dll",
+          "msvcrt.dll",
+          "kernel32.dll",
+          "Ole32.dll",
+          "ucrtbase.dll"
+        ],
+        "static": [
+          "msvcrt.dll",
+          "kernel32.dll",
+          "USER32.dll",
+          "GDI32.dll",
+          "ole32.dll",
+          "OLEAUT32.dll",
+          "SHELL32.dll",
+          "IMM32.dll",
+          "DWrite.dll",
+          "WebView2Loader.dll"
+        ]
+      },
+      "xrtCommit": "804cc769de3030118c2b46ef7af69543d1b82d9d"
+    },
+    "linux": {
+      "backend": "unsupported",
+      "imports": {
+        "host": [
+          "libm.so.6",
+          "libmvec.so.1",
+          "libxge3_host.so",
+          "libc.so.6",
+          "ld-linux-x86-64.so.2"
+        ],
+        "static": [
+          "libm.so.6",
+          "libmvec.so.1",
+          "libX11.so.6",
+          "libXi.so.6",
+          "libXcursor.so.1",
+          "libGL.so.1",
+          "libc.so.6",
+          "ld-linux-x86-64.so.2"
+        ]
+      },
+      "xrtCommit": "804cc769de3030118c2b46ef7af69543d1b82d9d"
+    }
+  },
+  "evidence": {
+    "win": {
+      "native": {
+        "path": "F:\\xlang-validation\\xge-full-20261110\\document-web-renderer-native-sdk-win-r2\\results.json",
+        "sha256": "bc4559ffff314d0e32c113da9126533d81a243f37abb9acd37921c3238924921",
+        "checks": 2
+      },
+      "packages": {
+        "path": "F:\\xlang-validation\\xge-full-20261110\\document-web-renderer-packages-win-r1\\results.json",
+        "sha256": "0242cef5f15b1c164698047521d1179f6828ce1d5d0f0813d64f601f752d57db",
+        "checks": 6
+      },
+      "runtime": {
+        "path": "F:\\xlang-validation\\xge-full-20261110\\document-web-renderer-runtime-win-r1\\results.json",
+        "sha256": "2aabbff1bae191aa1077bc00f61fdf1fcbf7f4faf1e3d5fd741e06feb5ffd3c3",
+        "checks": 9
+      },
+      "cpu": {
+        "path": "F:\\xlang-validation\\xge-full-20261110\\document-web-renderer-cpu-win-r7\\results.json",
+        "sha256": "139e7a1143cd351c3ecfd4ce16adf5f2992160330aa645d8e0e1652fc0e550b9",
+        "checks": 4
+      }
+    },
+    "linux": {
+      "native": {
+        "path": "\\\\wsl.localhost\\Ubuntu\\var\\tmp\\xlang-validation\\xge-full-20261110\\document-web-renderer-native-sdk-linux-r2\\results.json",
+        "sha256": "f19c2de85867d3894d4e9533ee4d02fd9e820e04339cf571856e47f4b6ae86a3",
+        "checks": 2
+      },
+      "packages": {
+        "path": "\\\\wsl.localhost\\Ubuntu\\var\\tmp\\xlang-validation\\xge-full-20261110\\document-web-renderer-packages-linux-r1\\results.json",
+        "sha256": "b85aac4194e49c685784c51f8df426c6b4faaca4dade6d392d70e7e60eef1d81",
+        "checks": 6
+      },
+      "runtime": {
+        "path": "\\\\wsl.localhost\\Ubuntu\\var\\tmp\\xlang-validation\\xge-full-20261110\\document-web-renderer-runtime-linux-r1\\results.json",
+        "sha256": "6091448f556ccffab755df7a298a8c08e09056e191e128965c971f2d1031b2fd",
+        "checks": 8
+      },
+      "cpu": {
+        "path": "\\\\wsl.localhost\\Ubuntu\\var\\tmp\\xlang-validation\\xge-full-20261110\\document-web-renderer-cpu-linux-r7\\results.json",
+        "sha256": "178ba737c47904aee170e6b7e6c767e941fe0c56acf0997c0fbf475ef62d70c8",
+        "checks": 4
+      }
+    }
+  }
+}

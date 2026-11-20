@@ -82,6 +82,18 @@ Context. Closing the interaction expires that child view. The
 opens a Document node from memory. Builds without the WebView2 backend report
 `XUI_ERROR_UNSUPPORTED` when initializing the browser.
 
+`DocumentRenderer.setWebProvider(provider)` attaches browser measurement and
+drawing together. The provider must belong to the same Context. Passing `null`
+detaches it. A Context-owned provider that closes detaches automatically, and
+layout returns to the ordinary placeholders. An attached provider and custom
+object callbacks are mutually exclusive. The application drives
+`provider.update()` as before. The renderer observes the cache generation and
+reuses its existing object layout invalidation. The application's invalidate
+callback remains available. See the [formula example](../lib/bindings/xui/examples/document_web_formula.xl).
+The [renderer acceptance record](../dev/release-materials/provenance/xui-document-web-renderer-20261120.json)
+includes Windows pixel readback, Linux's checked unsupported path, and native
+lifetime and allocation checks on both platforms.
+
 Current independent Windows/Linux acceptance uses the frozen R38 successor
 plus 46-frontend nested-pack/NULL overlay, inherited from real full R37.
 `document-ui-full-win-r1/results.json` under the shared validation base and
@@ -108,9 +120,9 @@ runs one layout query and owns the complete result. Its `entries()` sequence
 retains the result and reads the rectangle array in place. The geometry stays
 readable after the renderer, context and snapshot close. The result buffer
 may grow while the query runs. The original `GetRangeRects` C entry accepts
-a caller buffer and still reports the total count. The two WebObject adapter
-functions erase their provider as
-`void*`, so they remain explicit C; use typed Owned Renderer callbacks instead.
+a caller buffer and still reports the total count. The two raw WebObject
+adapters accept C callback userdata. The managed Renderer attachment calls
+these native operations directly with the observed provider.
 FontOutput Init is native fresh-storage infrastructure, not a resettable
 language method. Typed NULL aliases expose these Native branches through the
 same physical function, with no forwarding wrapper:

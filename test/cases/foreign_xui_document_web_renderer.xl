@@ -1,0 +1,93 @@
+import xge
+import xui
+from xui import Context, DocumentNodeAttributes, Proxy, Widget
+from "../../lib/bindings/xui/examples/_window.xl" import Window
+
+string profile = env.get("XUI_BROWSER_PROFILE") as string
+string expectation = env.get("XUI_BROWSER_EXPECTATION") as string
+string assets = env.get("XUI_BROWSER_ASSETS") as string
+bool completed = false
+
+Window.showWithProxy("Document web renderer verification", func(Context ui,Widget root,Proxy proxy)
+    auto document = xui.createDocument()
+    auto transaction = document.beginTransaction()
+    DocumentNodeAttributes block
+    block.iFlags = c_uint(xui.XUI_DOC_BLOCK)
+    auto formula = transaction.insertNodeWithAttributes(1,xui.XUI_DOCUMENT_APPEND,block,"",null,
+        c_uint(xui.XUI_DOC_MATH),"x^2+1")
+    transaction.commit().close()
+    transaction.close()
+    auto snapshot = document.snapshot()
+    auto renderer = xui.createDocumentRenderer(ui)
+    renderer.setSnapshot(snapshot,null)
+    renderer.layout(360,0,180)
+    auto placeholder = renderer.nodeRect(formula)
+    assert placeholder.width > 0 and placeholder.height > 0
+
+    if expectation == "unsupported" then
+        bool unsupported = false
+        try
+            xui.createDocumentWebProvider(ui,root,assets,profile)
+        catch Error error
+            unsupported = error.code == int(xui.XUI_ERROR_UNSUPPORTED)
+        end
+        assert unsupported and root.getChildCount() == 0
+        renderer.setWebProvider(null)
+        renderer.layout(360,0,180)
+        assert renderer.nodeRect(formula).height == placeholder.height
+        renderer.close()
+        snapshot.close()
+        document.close()
+        completed = true
+        xge.requestQuit()
+        return
+    end
+
+    auto provider = xui.createDocumentWebProvider(ui,root,assets,profile,timeoutMs=15000)
+    renderer.setWebProvider(provider)
+    renderer.layout(360,0,180)
+    assert provider.stats().iQueued == 1
+    int invalidations = 0
+    provider.setInvalidate(func()
+        invalidations += 1
+    end)
+
+    root.setUpdateCallback(func(Widget sender,c_float elapsed) as c_int
+        provider.update()
+        auto stats = provider.stats()
+        assert stats.bWorkerFailed == 0 and stats.iFailed == 0
+        if stats.iReady == 0 then return 0 end
+
+        // No manual renderer invalidation between the placeholder and the result.
+        renderer.layout(360,0,180)
+        auto ready = renderer.nodeRect(formula)
+        assert ready.width != placeholder.width or ready.height != placeholder.height
+        auto surface = proxy.createSurfaceRGBA(360,180,flags=c_uint(xui.XUI_SURFACE_USAGE_TARGET))
+        auto draw = proxy.beginDraw(surface)
+        proxy.clearRect(draw,Window.rect(0,0,360,180),0xFFFFFFFF)
+        renderer.draw(draw,0,0,Window.rect(0,0,360,180))
+        draw.finish()
+        draw.close()
+        auto pixels = Buffer()
+        auto white = Buffer()
+        assert pixels.resize(360*180*4) and white.resize(360*180*4,255)
+        proxy.readSurfaceRGBA(surface,pixels)
+        assert pixels.toBytes() != white.toBytes()
+        surface.close()
+        assert provider.stats().iDrawn == 1 and invalidations > 0
+
+        provider.close()
+        renderer.layout(360,0,180)
+        auto detached = renderer.nodeRect(formula)
+        assert detached.width == placeholder.width and detached.height == placeholder.height
+        sender.setUpdateCallback(null)
+        renderer.close()
+        snapshot.close()
+        document.close()
+        completed = true
+        xge.requestQuit()
+        return 0
+    end)
+end)
+assert completed, "Document web renderer did not reach its terminal state"
+println("XUI_DOCUMENT_WEB_RENDERER_OK")

@@ -1,0 +1,42 @@
+// 需要启用了 WebView2 的 Windows 扩展包和本地渲染资源。
+import xui
+from "./_window.xl" import Window
+
+string assets = env.get("XUI_DOCUMENT_WEB_ASSETS") as string
+Window.showWithProxy("Document / formula",func(xui.Context ui,xui.Widget root,xui.Proxy proxy)
+    auto document = xui.createDocument(c_uint(xui.XUI_DOCUMENT_MARKDOWN))
+    document.loadMarkdown("$$\nx^2 + y^2 = r^2\n$$")
+    auto snapshot = document.snapshot()
+    auto renderer = xui.createDocumentRenderer(ui)
+    renderer.setSnapshot(snapshot,null)
+    snapshot.close()
+    document.close()
+
+    auto provider = xui.createDocumentWebProvider(ui,root,path.abs(assets))
+    renderer.setWebProvider(provider)
+    auto area = Window.rect(0,0,520,180)
+    auto surface = proxy.createSurfaceRGBA(520,180,flags=c_uint(xui.XUI_SURFACE_USAGE_TARGET))
+    auto image = ui.imageNative()
+    Window.place(root,image,24,24,520,180)
+
+    // 每帧推进本地渲染。结果就绪后，Renderer 自动重测公式。
+    root.setUpdateCallback(func(xui.Widget sender,c_float elapsed) as c_int
+        provider.update()
+        renderer.layout(520,0,180)
+        if provider.stats().iReady == 0 then return 0 end
+        auto draw = proxy.beginDraw(surface)
+        try
+            proxy.clearRect(draw,area,0xFFFFFFFF)
+            renderer.draw(draw,0,0,area)
+            draw.finish()
+        finally
+            draw.close()
+        end
+        image.setSurface(surface)
+        sender.setUpdateCallback(null)
+        renderer.close()
+        provider.close()
+        surface.close() // Image 持有用于显示的引用。
+        return 0
+    end)
+end)

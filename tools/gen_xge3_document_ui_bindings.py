@@ -42,8 +42,8 @@ for en in h['enums']:
   n=e['name'];v=inv.integer(e['expression'],constantValues) if e['expression'] else v+1;constantValues[n]=v;constants.append((n,v));lines.append('export const c_uint '+n+' = '+str(v))
 (root/'lib/bindings/xui/src/document_ui_records.xl').write_text('\n'.join(lines).rstrip()+'\n')
 classes={n:[] for n in ('DocumentRenderer','DocumentView','DocumentEditor','DocumentWebProvider','DocumentHtmlInteraction','DocumentImageRequest','MessageList')};mapped={};reasons={};globalFunctions=[]
-handles={'xui_context':'Context','xui_widget':'Widget','xui_document':'Document','xui_document_snapshot':'DocumentSnapshot','xui_document_change_set':'DocumentChangeSet','xui_document_prepare':'DocumentPrepare','xui_proxy':'Proxy','xui_draw_context':'DrawContext','xui_font':'Font'}
-nullable={'xuiDocumentRendererSetSnapshot':{'changes'},'xuiDocumentRendererSetSourceInput':{'prepare'}}
+handles={'xui_context':'Context','xui_widget':'Widget','xui_document':'Document','xui_document_snapshot':'DocumentSnapshot','xui_document_change_set':'DocumentChangeSet','xui_document_prepare':'DocumentPrepare','xui_proxy':'Proxy','xui_draw_context':'DrawContext','xui_font':'Font','xui_doc_web_provider':'DocumentWebProvider'}
+nullable={'xuiDocumentRendererSetSnapshot':{'changes'},'xuiDocumentRendererSetSourceInput':{'prepare'},'xuiDocumentRendererSetWebProvider':{'provider'}}
 intValues={'xuiDocumentEditorCanExecute','xuiDocumentEditorGetReadOnly','xuiDocumentEditorIsComposing'}
 widgetTypes={
  'xuiDocumentViewGetType':'documentViewType',
