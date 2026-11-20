@@ -122,8 +122,14 @@ before shutting down the engine.
 
 Playback supports eight layers, fades, global and per-layer pause,
 override and additive blending, queued events and root motion.
+`setLayer(layer, clip)` immediately replaces a layer using the native
+defaults unless time, speed, weight or looping are supplied. Omit the clip
+to clear the layer and cancel its transition. `layerTime()` reads the native float
+time directly. An empty layer or invalid index returns zero, while
+`playback()` supplies checked validation and the active flag.
 `playMapped()` accepts an optional target-node mask and explicit source
-and target indices. Native code copies the mask and bindings. Default
+and target indices. With zero fade it uses the same immediate replacement
+operation as `setLayer()`. Native code copies the mask and bindings. Default
 playback matches clips from another model by unique node names. Use
 `bone()` for a socket node and `pose()` / `setPose()` to inspect or
 override the current pose. `nextEvent()` returns `XGE_ERROR_NOT_FOUND`

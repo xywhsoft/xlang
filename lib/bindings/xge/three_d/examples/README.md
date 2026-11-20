@@ -5,7 +5,7 @@ context, window, model file or network service.
 
 | File | Observable result |
 | --- | --- |
-| `camera_values.xl` | Checks transform matrices and perspective/orthographic cameras. |
+| `camera_values.xl` | Builds projection matrices, aims a camera, and checks the center ray. |
 | `screen_ray.xl` | Preserves a 0.25-unit offset near a world origin of 10^12 and checks the centre screen ray points along negative Z. |
 | `look_at.xl` | Aims a perspective camera with global coordinates near 10^12 and computes a centre ray along positive X. |
 | `mesh_geometry.xl` | Reads the mesh's original vertices and indices after closing the graphics engine. |
@@ -58,8 +58,8 @@ cumulative progress until the retirement is complete.
 `model_instance.xl` builds one unit of scene work per frame and
 publishes only after the instance is complete.
 
-`animation.xl` plays a separate motion clip on a model and reads a bone
-position after updating the pose. Both fixtures are included in `assets/`.
+`animation.xl` installs a motion clip in one layer and prints its elapsed
+time and a bone position after updating the pose. Both assets are included in `assets/`.
 
 `terrain.xl` samples a two-by-two U16 height grid. `collision.xl` sweeps
 a sphere toward a box and prints the distance to first contact.

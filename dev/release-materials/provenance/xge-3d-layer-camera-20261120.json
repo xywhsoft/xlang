@@ -1,0 +1,76 @@
+{
+  "complete": true,
+  "passed": true,
+  "releaseInstalled": false,
+  "sourceParent": "1a86816781747806bb4cafae3bcf1b81403f415d",
+  "nativeCommit": "7fd0650aac6a96099a61c8106f216d8ac04b4366",
+  "platforms": {
+    "win": {
+      "packages": {
+        "path": "F:\\xlang-validation\\xge-full-20261110\\animation-camera-completion-packages-win-r2\\results.json",
+        "sha256": "c2b0ff49b8ce072f07de77c70ea2132d21d40d9594637b4359d8109f0f81398e"
+      },
+      "runtime": {
+        "path": "F:\\xlang-validation\\xge-full-20261110\\animation-camera-completion-language-win-r4\\results.json",
+        "sha256": "0482675e6ebe1004536fbe99db90794644fd3c7c2dfb1584dd2e9662cb9872e2"
+      },
+      "allocationComparison": {
+        "path": "F:\\xlang-validation\\xge-full-20261110\\animation-layer-perf-win-r1\\results.json",
+        "sha256": "89c26f8919f167171e3f1d45e40cbc8faf7ae9dcc1b46cc80bdb54f9a7e7d458"
+      },
+      "bridgeAudit": {
+        "path": "F:\\xlang-validation\\xge-full-20261110\\animation-camera-completion-audit-win-r2\\consumers\\results.json",
+        "sha256": "96ce843cc13fd869448f981557fe98eab970de603c9e0306e29ceefa383297a5"
+      },
+      "compiler": {
+        "path": "F:\\xlang-validation\\xge-full-20261110\\compiler-existing-root-win-r1\\build.json",
+        "sha256": "107a294cdefd81906f8e3fef6bced071ececaad4bf1837b61a15b1e9c7858a07"
+      },
+      "directDeclarations": 4620,
+      "nativeFunctions": 5695,
+      "unclassifiedByFamily": {
+        "XGE": 369,
+        "XUI": 398,
+        "Document UI": 1,
+        "Document": 1
+      }
+    },
+    "linux": {
+      "packages": {
+        "path": "\\\\wsl.localhost\\Ubuntu\\var\\tmp\\xlang-validation\\xge-full-20261110\\animation-camera-completion-packages-linux-r2\\results.json",
+        "sha256": "794d291cf15c37ace4119dcdeff07e024d55e33460ccbd8533a8e5d2bf7f9a07"
+      },
+      "runtime": {
+        "path": "\\\\wsl.localhost\\Ubuntu\\var\\tmp\\xlang-validation\\xge-full-20261110\\animation-camera-completion-language-linux-r4\\results.json",
+        "sha256": "5eb3086df14e954ac03e3211b3bf97ff47136733177650949e899569cb14ea59"
+      },
+      "allocationComparison": {
+        "path": "\\\\wsl.localhost\\Ubuntu\\var\\tmp\\xlang-validation\\xge-full-20261110\\animation-layer-perf-linux-r1\\results.json",
+        "sha256": "32f39d92bf84abedcb8001483140eb1d08c3fcda2244984b956e050fb5ec8ed8"
+      },
+      "bridgeAudit": {
+        "path": "\\\\wsl.localhost\\Ubuntu\\var\\tmp\\xlang-validation\\xge-full-20261110\\animation-camera-completion-audit-linux-r2\\consumers\\results.json",
+        "sha256": "d6f75255c365f7153a90e95cb7a99782baaf808bc4871590e29661eb2a44c5e8"
+      },
+      "compiler": {
+        "path": "\\\\wsl.localhost\\Ubuntu\\var\\tmp\\xlang-validation\\xge-full-20261110\\compiler-existing-root-linux-r1\\build.json",
+        "sha256": "6e729bc793dcd92edcd42f51e244bad799187c32ef82121e8275288a31274b11"
+      },
+      "directDeclarations": 4620,
+      "nativeFunctions": 5695,
+      "unclassifiedByFamily": {
+        "XGE": 369,
+        "XUI": 398,
+        "Document UI": 1,
+        "Document": 1
+      }
+    }
+  },
+  "checks": [
+    "Animator.setLayer directly calls xge3dAnimatorSetLayer with a stack descriptor and borrowed clip. Omitting clip passes NULL and retires the layer and its transition. layerTime uses the native scalar getter, including the native zero sentinel.",
+    "The selected clip remains usable after releasing its language owner. Invalid weight and the first two allocation fault prefixes preserve the existing layer. Existing mapped playback, events, skinning and offscreen render remain in the acceptance fixture.",
+    "Camera mutators and matrix assignment agree with the same native math for local and rebased world coordinates. The C oracle checks identical matrices, preserved projection and near/far planes, rays, visibility and rejection paths. The xlang fixture confirms checked failure leaves the previous view intact.",
+    "Direct language/native measurements match with zero allocations, frees or reallocations in 1024 time queries, and 128 allocations and frees with zero reallocations in 64 replacements. Stack descriptor assembly and checked native-scope machinery remain real costs. No CPU speedup or total zero-overhead claim is made.",
+    "Both platforms use the same frozen XGE headers, host image and static archive validated with the matching O2 xlang compiler. Native execution is covered by JIT, dynamic AOT, static AOT, import inspection and runnable examples."
+  ]
+}

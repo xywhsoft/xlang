@@ -1,6 +1,11 @@
 import xge
 import xge3d
 
+extern "xrtMemDebugEnabled" @header("xrt_decl.h") @no_raise func memDebugEnabled() as bool
+extern "xrtMemDebugEnable" @header("xrt_decl.h") @no_raise func memDebug(bool enabled) as bool
+extern "xrtMemDebugFailAfter" @header("xrt_decl.h") @no_raise func failAfter(uint64 prefix) as bool
+extern "xrtMemDebugFailClear" @header("xrt_decl.h") @no_raise func failClear()
+
 func main(...) as int
     xge.init(64, 64, "Managed 3D animation")
     auto rig = xge3d.loadModel("animation-rig.gltf")
@@ -35,6 +40,34 @@ func main(...) as int
     auto readScene = scene.share()
     scene.close()
 
+    auto assigned = second.share()
+    animator.setLayer(1, assigned, time=c_float(0.25), speed=c_float(0.5), weight=c_float(0.75), loop=0)
+    assigned.close()
+    assert animator.layerTime(1) == c_float(0.25) and animator.playback(1).weight == c_float(0.75)
+    bool invalidWeight = false
+    try
+        animator.setLayer(1, second, weight=c_float(2))
+    catch Error
+        invalidWeight = true
+    end
+    assert invalidWeight and animator.layerTime(1) == c_float(0.25)
+    if not memDebugEnabled() then assert memDebug(true) end
+    for prefix in range(2)
+        assert failAfter(uint64(prefix))
+        bool rejected = false
+        try
+            animator.setLayer(1, second, time=c_float(0.75))
+        catch Error
+            rejected = true
+        finally
+            failClear()
+        end
+        assert rejected and animator.layerTime(1) == c_float(0.25)
+    end
+    animator.setLayer(1)
+    assert animator.playback(1).active == c_int(0) and animator.layerTime(1) == c_float(0)
+    assert animator.layerTime(-1) == c_float(0)
+
     auto mapping = xge3d.Xge3dBoneBinding()
     mapping.source = c_size(1)
     mapping.target = c_size(3)
@@ -47,6 +80,7 @@ func main(...) as int
     animator.setRootMotion(c_size(3), c_uint(xge.XGE3D_ROOT_X))
     animator.update(c_float(0.5))
     assert animator.playback(0).time == c_float(0.5)
+    assert animator.layerTime(0) == c_float(0.5)
     assert animator.takeRootMotion().translation.x == c_float(1)
     assert animator.takeRootMotion().translation.x == c_float(0)
     auto status, event = animator.nextEvent()

@@ -13,6 +13,13 @@ It verifies scaling, translation, perspective and orthographic matrices without
 creating a window or GPU context. Plain record construction zero-initializes
 fields; set the identity quaternion and scale explicitly as in the example.
 
+Set `camera.view = xge3d.viewLookAt(eye, target, up)` to aim a camera in
+local coordinates. Use `viewLookAtGlobal(origin, eye, target, up)` with
+double-precision world positions rebased to a render origin. These operations
+use the same native matrix routines as the C camera mutators and preserve
+projection and clip planes. The result is assigned only after a successful
+native call, so an invalid direction leaves the previous view in place.
+
 Windows r29 and Linux r21 complete O2 compiler cohorts each pass 21 checks:
 real JIT, dynamic and static executables for the fixture and example, independent
 C++17 value ABI, and C11/C++11/C++17 exported header validation. Tests also

@@ -18,4 +18,14 @@ auto orthographic=xge3d.orthographicCamera(c_float(8),c_float(4),c_float(0),c_fl
 assert perspective.projection.m[11]==c_float(-1)
 assert orthographic.projection.m[0]==c_float(0.25)
 assert orthographic.projection.m[5]==c_float(0.5)
+
+auto eye=xge3d.Xge3dVec3()
+eye.z=c_float(3)
+auto target=xge3d.Xge3dVec3()
+auto up=xge3d.Xge3dVec3()
+up.y=c_float(1)
+perspective.view=xge3d.viewLookAt(eye,target,up)
+auto centerRay=xge3d.screenRay(perspective,c_float(400),c_float(300),c_float(800),c_float(600))
+assert centerRay.direction.z<c_float(-0.99)
+
 println("3D matrix and camera values passed")
