@@ -5,18 +5,48 @@ does not infer equivalent behavior, complete ownership, runtime acceptance or
 API completeness from a symbol reference. All unreviewed rows remain pending.
 """
 from pathlib import Path
-import argparse,hashlib,json,shutil,subprocess,time
+import argparse,hashlib,json,re,shutil,subprocess,time
 from full_compiler_qualification import verify_full_compiler
 from stage_xge3_replay_contracts import verify_replay_package
 from check_xge3_full_surface import source_bindings
 from xge_replay_contracts import REPLACED as XGE_REPLACEMENTS
-from xui_document_replacements import REPLACEMENTS as DOCUMENT_REPLACEMENTS
+from xui_document_replacements import CLOSE_REPLACEMENTS,LIFECYCLE_REPLACEMENTS,REPLACEMENTS as DOCUMENT_REPLACEMENTS
 from xui_managed_contracts import REPLACED as XUI_REPLACEMENTS
 
 # Logical source-group selectors may name an object-like header alias. Prove
 # this one against an actual C relocation, rather than assuming a name suffix.
 PROVIDER_ALIASES={'xl6Xge3InitPacked':('xge3_init.h','xl6Xge3InitWithCode')}
-REPLACED = {**XGE_REPLACEMENTS, **XUI_REPLACEMENTS, **DOCUMENT_REPLACEMENTS}
+REPLACED = {**XGE_REPLACEMENTS, **XUI_REPLACEMENTS, **DOCUMENT_REPLACEMENTS, **LIFECYCLE_REPLACEMENTS}
+
+
+def object_relocations(text):
+    """Read GNU objdump section relocations in COFF and ELF objects."""
+    relocations={}
+    section=None
+    for line in text.splitlines():
+        match=re.fullmatch(r'RELOCATION RECORDS FOR \[(.+)\]:',line)
+        if match:
+            section=relocations.setdefault(match[1],set())
+            continue
+        target=re.fullmatch(r'[0-9a-fA-F]+\s+\S+\s+(\S+)',line.strip())
+        if section is not None and target:
+            name=re.sub(r'[+-]0x[0-9a-fA-F]+$','',target[1]).removeprefix('__imp_')
+            section.add(name)
+    return relocations
+
+
+def close_relocation_path(relocations,policy,destroy,release):
+    # A policy can also reach native functions through tracing and quiescence.
+    # Only its descriptor's registered consuming function proves close.
+    paths=[]
+    for prefix in ('.text.','.text$'):
+        getter=prefix+policy+'Get';consumer=prefix+destroy
+        if release not in relocations.get(consumer,()):continue
+        for descriptor in relocations.get(getter,()):
+            if consumer in relocations.get(descriptor,()):
+                paths.append((getter,descriptor,consumer,release))
+    assert len(paths)==1,(policy,destroy,release,paths)
+    return paths[0]
 
 
 def main():
@@ -38,7 +68,7 @@ def main():
     artifact=metadata['artifact'];groups=artifact.get('cSourceGroups',[])
     sources=[*artifact['cSources'],*[g['source'] for g in groups]]
     assert len(sources)==len(set(sources))
-    tools={name:Path(shutil.which(name)).resolve() for name in ('gcc','nm')}
+    tools={name:Path(shutil.which(name)).resolve() for name in ('gcc','nm','objdump')}
     sdk=cc.parent/'include';files=[Path(__file__),Path(__file__).with_name('full_compiler_qualification.py'),
         Path(__file__).with_name('xge_replay_contracts.py'),Path(__file__).with_name('check_xge3_full_surface.py'),
         Path(__file__).with_name('xui_managed_contracts.py'),Path(__file__).with_name('xui_document_replacements.py'),
@@ -71,7 +101,7 @@ def main():
             shutil.copyfile(original,target/'xlang.package.json')
             for name in declaration['artifact']['xlSources']:
                 dest=target/name;dest.parent.mkdir(parents=True,exist_ok=True);shutil.copyfile(original.parent/name,dest)
-        bound,_,_,_,view_pins=source_bindings(view)
+        bound,_,bound_types,_,view_pins=source_bindings(view)
         expected={n for n,r in functions.items() if r['declarationPresent']}
         actual=set(bound)&set(functions)
         assert actual==expected,dict(missing=sorted(expected-actual),unexpected=sorted(actual-expected))
@@ -82,11 +112,14 @@ def main():
             *['-I'+str(f) for f in sorted(packages.glob('*/include'))]]
         if any(artifact.get('nativeLink', {}).values()):
             flags.append('-DXL6_NATIVE_LINK_SCHEMA=1')
+        policy_relocations={}
         for number,source in enumerate(sources):
             name='unit-'+str(number);obj=out/(name+'.o')
             run(name+'-compile',[tools['gcc'],*flags,'-c',core/source,'-o',obj])
             undefined=symbols(run(name+'-undefined',[tools['nm'],'-u',obj]))
             defined=symbols(run(name+'-defined',[tools['nm'],'--defined-only','-g',obj]))
+            if source=='src/runtime.c' and CLOSE_REPLACEMENTS.keys() & functions.keys():
+                policy_relocations=object_relocations(run(name+'-relocations',[tools['objdump'],'-r',obj]))
             for group in groups:
                 if group['source']!=source:continue
                 for alias in set(group['providedSymbols'])-defined:
@@ -106,15 +139,29 @@ def main():
             report['objects'].append(dict(source=source,path=str(obj),sha256=sha(obj),nativeImports=native,
                 otherUndefinedSymbols=sorted(undefined-set(functions))));save()
         rows=[]
+        class_bindings={r['language']:r for group in bound_types.values() for r in group}
         for symbol,item in sorted(functions.items()):
             if item['declarationPresent']:continue
             replacement=REPLACED.get(symbol)
+            evidence=None
             if replacement:
                 assert replacement[1] in functions and functions[replacement[1]]['declarationPresent'],symbol
                 assert any(r['language']==replacement[0] for r in bound[replacement[1]]),replacement
+                evidence=dict(language=replacement[0],native=replacement[1])
+            elif symbol in CLOSE_REPLACEMENTS:
+                logical,policy,destroy,release=CLOSE_REPLACEMENTS[symbol]
+                owner=class_bindings[logical.rsplit('.',1)[0]]
+                lines=(view/owner['source']).read_text(encoding='utf-8-sig').splitlines()[owner['line']-1:]
+                assert '@lifetime("owned")' in lines[0] and f'@policy("{policy}")' in lines[0],logical
+                class_end=next(i for i,line in enumerate(lines) if line.strip()=='end')
+                close='extern "xl6ForeignViewCloseV1" @no_raise @c_control(0) @c_result("bool_status") func close()'
+                assert any(line.strip()==close for line in lines[1:class_end]),logical
+                assert release in functions and 'src/runtime.c' in consumers.get(release,()),release
+                evidence=dict(language=logical,native=release,policy=policy,
+                    relocationPath=close_relocation_path(policy_relocations,policy,destroy,release))
             rows.append(dict(id=item['id'],symbol=symbol,family=item['family'],conditions=item['conditions'],
                 publicDeclarationPresent=False,compiledNativeConsumers=consumers.get(symbol,[]),
-                explicitReplacement=dict(language=replacement[0],native=replacement[1]) if replacement else None,
+                explicitReplacement=evidence,
                 contractReview='pending',runtimeAcceptance='not-certified-by-this-audit'))
         verify_replay_package(packages,replay)
         report.update(items=rows,nativeRevision=audit['nativeRevision'],functionPopulation=len(functions),

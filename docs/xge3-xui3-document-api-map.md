@@ -9,9 +9,10 @@ The classes are `Document`, `DocumentSnapshot`, `DocumentChangeSet`, `DocumentPr
 `deserializeDocumentFragment(bytes)` accepts the binary `XUIFRAG1` envelope,
 including its zero-containing eight-byte metadata block and JSON payload.
 Its C `const char*` parameter is a byte carrier. HTML import and the pure-JSON
-Document deserializer remain text APIs. Native fragment serialization buffers
-still require `xuiDocumentFreeBuffer`; the binding does not adopt them with
-`xrtFree`.
+Document deserializer remain text APIs. C callers release raw serialization
+buffers with `xuiDocumentFreeBuffer`. With the matched resident-XRT allocator
+contract, `DocumentFragment.serialize()` transfers the native buffer into
+owned `bytes` and lets value cleanup release it.
 
 `subscribe` installs the real Native Owned callback. Its `CallbackDocument` and `CallbackDocumentChangeSet` are valid through that callback's tail. Pure reads and POD change info are available there; saving a long-lived handle requires explicit `share()`. A nonzero callback result is a notification failure. Committed content is already published; `notificationFailureStatus()` preserves its original int and `checkNotifications(clear)` delivers the checked failure. No implicit retry or undo occurs.
 

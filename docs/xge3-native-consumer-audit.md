@@ -1,5 +1,34 @@
 # Native consumers in the full API inventory
 
+## Document lifecycle audit at XGE 7fd0650a
+
+The matched Windows and Linux packages provide managed counterparts for 39
+previously unclassified Document and Document UI entries. The audit verifies
+20 direct replacements for reference acquisition, subscriptions and release
+aliases. It also verifies 19 `close()` replacements through 11 class policies.
+For each policy, a COFF or ELF relocation chain reaches the descriptor, its
+consuming destructor, and the checked native owner-release function.
+
+The runtime coverage exercises shares after closing the original view,
+self-unsubscription, removing a peer before delivery, rejecting registration
+while notifying, allocation-failure rollback, and expiration of callback
+views. It uses the default-provenance managed model factories. Raw custom
+allocator objects retain their C ownership contract.
+
+| Family | Remaining without compiled consumer or replacement evidence |
+| --- | ---: |
+| XGE | 373 |
+| XUI | 398 |
+| Document | 1 |
+| Document UI | 3 |
+| Total | 775 |
+
+The remaining Document entries are `xuiDocumentFreeBuffer`,
+`xuiDocumentFontOutputInit`, `xuiDocumentRendererGetContext`, and
+`xuiDocumentRendererLifetimeWatch`. In particular, a renderer's Context link
+is weak and can expire before the renderer. Its language exposure still needs
+a verified lifetime contract. [Evidence index](../dev/release-materials/provenance/xui-document-lifecycle-audit-20261120.json)
+
 ## XGE 6d58ce7a and matched XUI packages
 
 The November 20 audit found 4,604 directly declared function names in a

@@ -1,0 +1,92 @@
+{
+  "complete": true,
+  "passed": true,
+  "releaseInstalled": false,
+  "nativeCommit": "7fd0650aac6a96099a61c8106f216d8ac04b4366",
+  "representedAliases": 39,
+  "priorUnclassified": 814,
+  "unclassified": 775,
+  "openDocumentEntries": [
+    "xuiDocumentFontOutputInit",
+    "xuiDocumentFreeBuffer",
+    "xuiDocumentRendererGetContext",
+    "xuiDocumentRendererLifetimeWatch"
+  ],
+  "relocationNegatives": {
+    "path": "F:\\xlang-validation\\xge-full-20261110\\document-lifecycle-relocation-negatives-r1.json",
+    "sha256": "fc102f1c18a1950b55c83308e4890519653d48164245bba1aef5621bc31c0ec6"
+  },
+  "platforms": {
+    "win": {
+      "previous": {
+        "path": "F:\\xlang-validation\\xge-full-20261110\\widget-tooltip-resolver-api-audit-win-r1\\consumers\\results.json",
+        "sha256": "c0b9b99b2953bfc55f8df7695ad624e0aa62eb4c1fdb191a8ac1e088fb26516d"
+      },
+      "surface": {
+        "path": "F:\\xlang-validation\\xge-full-20261110\\document-lifecycle-audit-win-r1\\surface\\surface.json",
+        "sha256": "1e6874202a410da46b2dfb5bc09505448d9d09f43a5d6c04f83bbaa189e926be"
+      },
+      "consumers": {
+        "path": "F:\\xlang-validation\\xge-full-20261110\\document-lifecycle-audit-win-r1\\consumers\\results.json",
+        "sha256": "e699ed3966d6a4f360d9d152293682c78290159cd1794bfab8058336e7ae6537"
+      },
+      "language": {
+        "path": "F:\\xlang-validation\\xge-full-20261110\\document-lifecycle-runtime-win-r1\\results.json",
+        "sha256": "a166b643af02df8389b46e91e5cf42a123b130e43f7b0c4fc62247edbba2ca59"
+      },
+      "nativeLegacyObserver": {
+        "path": "F:\\xlang-validation\\xge-full-20261110\\document-lifecycle-native-win-r1\\results.json",
+        "sha256": "1626e3d185c701a61f6d90fa4e703c1902235f9995393a97068ea30929f0dd2b"
+      },
+      "packages": {
+        "path": "F:\\xlang-validation\\xge-full-20261110\\widget-tooltip-resolver-packages-win-r2\\results.json",
+        "sha256": "ee7e2a7f656d79d258e50bfd77ab86e5ce49c910a6af5e02db43e854ad2e599a"
+      },
+      "unclassifiedByFamily": {
+        "XGE": 373,
+        "XUI": 398,
+        "Document UI": 3,
+        "Document": 1
+      }
+    },
+    "linux": {
+      "previous": {
+        "path": "\\\\wsl.localhost\\Ubuntu\\var\\tmp\\xlang-validation\\xge-full-20261110\\widget-tooltip-resolver-api-audit-linux-r1\\consumers\\results.json",
+        "sha256": "ecead4f3dd7be7c563eb3fb257b4675b3160f41beef8173da204bc5f5e2d4949"
+      },
+      "surface": {
+        "path": "\\\\wsl.localhost\\Ubuntu\\var\\tmp\\xlang-validation\\xge-full-20261110\\document-lifecycle-audit-linux-r1\\surface\\surface.json",
+        "sha256": "088542ef8abb97c61eda8371878a36de0026306966b6ac7c9f7446a4dcc7ba55"
+      },
+      "consumers": {
+        "path": "\\\\wsl.localhost\\Ubuntu\\var\\tmp\\xlang-validation\\xge-full-20261110\\document-lifecycle-audit-linux-r1\\consumers\\results.json",
+        "sha256": "79514125b3d9888867eee72039ec89e5053b18f6f83a2b1110a22dacd68ae618"
+      },
+      "language": {
+        "path": "\\\\wsl.localhost\\Ubuntu\\var\\tmp\\xlang-validation\\xge-full-20261110\\document-lifecycle-runtime-linux-r1\\results.json",
+        "sha256": "7d7868d06dfa7f1a0daa4d4f3adbb0231cef7d50da36dc32b69355f12d04a4b9"
+      },
+      "nativeLegacyObserver": {
+        "path": "\\\\wsl.localhost\\Ubuntu\\var\\tmp\\xlang-validation\\xge-full-20261110\\document-lifecycle-native-linux-r1\\results.json",
+        "sha256": "860eb6ab6f73724c454aa6979cc3581f51b759853fbe7d6da217b5fff8e4d75d"
+      },
+      "packages": {
+        "path": "\\\\wsl.localhost\\Ubuntu\\var\\tmp\\xlang-validation\\xge-full-20261110\\widget-tooltip-resolver-packages-linux-r2\\results.json",
+        "sha256": "57b92d19fcf0816ceda1ef0da3a53d78ddad1d46cb9126b355dbbe3969c9d186"
+      },
+      "unclassifiedByFamily": {
+        "XGE": 373,
+        "XUI": 398,
+        "Document UI": 3,
+        "Document": 1
+      }
+    }
+  },
+  "checks": [
+    "Twenty ordinary replacement targets have the exact managed declaration in the package, and nineteen close aliases reach the checked native consuming path through eleven actual class policies.",
+    "Both GNU COFF and ELF objects reject two broken relocation paths per policy, substituting a different native release or removing the descriptor-to-destructor edge.",
+    "The native raw C observer fixture at O0/O2 verifies reentrant removal order, busy admission while notifying, token monotonicity, and refusal to install raw observers on an owned document.",
+    "The managed fixture verifies independent share/close, OOM registration rollback, peer and self-unsubscription, rejection of a subscription while notifying, and callback-view expiry.",
+    "The matched model, query result, and range-rect fixtures also run in JIT, dynamic AOT, and static AOT on both platforms."
+  ]
+}

@@ -1,0 +1,104 @@
+import xui
+from xui import CallbackDocument,CallbackDocumentChangeSet,DocumentChangeSet
+
+extern "xrtMemDebugEnabled" @header("xrt_decl.h") @no_raise func memDebugEnabled() as bool
+extern "xrtMemDebugEnable" @header("xrt_decl.h") @no_raise func setMemDebug(bool enabled) as bool
+extern "xrtMemDebugFailAfter" @header("xrt_decl.h") @no_raise func failAfter(uint64 prefix) as bool
+extern "xrtMemDebugFailClear" @header("xrt_decl.h") @no_raise func failClear()
+
+class ObserverState
+ uint64 firstToken
+ uint64 skippedToken
+ int calls
+ int skippedCalls
+ bool addingRejected
+ CallbackDocument? borrowedDocument
+ CallbackDocumentChangeSet? borrowedChange
+ DocumentChangeSet? retainedChange
+end
+
+func ignored(CallbackDocument current,CallbackDocumentChangeSet changed) as c_int
+ throw "failed observer registration became visible"
+end
+
+func main(...) as int
+ auto document = xui.createDocument(profile=c_uint(2))
+ auto shared = document.share()
+ auto state = ObserverState()
+ uint64 identity = document.identity()
+ assert identity == shared.identity(), "share kept the document identity"
+ document.close()
+ assert shared.identity() == identity, "closing the first owner invalidated its share"
+
+ if not memDebugEnabled() then assert setMemDebug(true) end
+ xui.DocumentChangeProc candidate = ignored
+ int failures = 0
+ for prefix in range(16)
+  uint64 token = 0
+  assert failAfter(uint64(prefix))
+  try
+   token = shared.subscribe(candidate)
+  catch Error
+   failures += 1
+  finally
+   failClear()
+  end
+  if token != 0 then shared.unsubscribeChecked(token) end
+ end
+ assert failures > 0 and failures < 16, "subscription allocation paths were exercised"
+
+ state.skippedToken = shared.subscribe(func(CallbackDocument current,CallbackDocumentChangeSet changed) as c_int
+  state.skippedCalls += 1
+  return 0
+ end)
+ state.firstToken = shared.subscribe(func(CallbackDocument current,CallbackDocumentChangeSet changed) as c_int
+  state.calls += 1
+  state.borrowedDocument = current
+  state.borrowedChange = changed
+  state.retainedChange = changed.share()
+  try
+   shared.subscribe(candidate)
+  catch Error
+   state.addingRejected = true
+  end
+  shared.unsubscribeChecked(state.firstToken)
+  shared.unsubscribeChecked(state.skippedToken)
+  return 0
+ end)
+ assert state.firstToken > state.skippedToken, "observer tokens must be monotonic"
+
+ shared.loadMarkdown("# first revision\n")
+ assert state.calls == 1 and state.skippedCalls == 0 and state.addingRejected, "checked reentrant observer removal"
+ shared.checkNotifications(false)
+
+ bool expiredDocument = false
+ try
+  auto expired = state.borrowedDocument as CallbackDocument
+  expired.identity()
+ catch StateError
+  expiredDocument = true
+ end
+ bool expiredChange = false
+ try
+  auto expired = state.borrowedChange as CallbackDocumentChangeSet
+  expired.info()
+ catch StateError
+  expiredChange = true
+ end
+ assert expiredDocument and expiredChange, "callback views survived their epoch"
+
+ shared.unsubscribeChecked(state.firstToken)
+ shared.loadMarkdown("# second revision\n")
+ shared.checkNotifications(false)
+ shared.close()
+ assert state.calls == 1 and state.skippedCalls == 0, "one of the removed callbacks fired again"
+
+ auto change = state.retainedChange as DocumentChangeSet
+ auto retained = change.share()
+ change.close()
+ auto flags, before, after, origin, generation, count, undo, domain = retained.info()
+ assert after > before and count > 0, "retained change survived its document and original view"
+ retained.close()
+ println("DOCUMENT_SUBSCRIPTION_LIFECYCLE_OK")
+ return 0
+end
