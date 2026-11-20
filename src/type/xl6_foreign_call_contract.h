@@ -27,7 +27,8 @@ typedef enum XL6_ForeignBorrowedViewResult {
     XL6_FOREIGN_VIEW_RESULT_BORROWED_VALUE,
     XL6_FOREIGN_VIEW_RESULT_CSTRING,
     /* Preserve the exact signed C result; values below successCode fail. */
-    XL6_FOREIGN_VIEW_RESULT_INTEGER_MIN
+    XL6_FOREIGN_VIEW_RESULT_INTEGER_MIN,
+    XL6_FOREIGN_VIEW_RESULT_EXISTING_ROOT
 } XL6_ForeignBorrowedViewResult;
 
 static inline int xl6ForeignResultTextView(XL6_ForeignBorrowedViewResult kind)

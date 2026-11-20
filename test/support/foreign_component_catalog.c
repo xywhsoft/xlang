@@ -19,6 +19,7 @@ int main(void)
         {"xl6ForeignCallbackEnterV1",XL6_ARTIFACT_FOREIGN_CALLBACK_SCOPE},
         {"xl6ForeignViewCallBeginV1",XL6_ARTIFACT_FOREIGN_VIEW},
         {"xl6ForeignViewBorrowRootV1",XL6_ARTIFACT_FOREIGN_VIEW},
+        {"xl6ForeignViewFindExistingRootV1",XL6_ARTIFACT_FOREIGN_VIEW},
         {"xl6ForeignViewBoxV1",XL6_ARTIFACT_FOREIGN_VIEW_VALUE},
         {"xl6ForeignViewStorageBoxV1",XL6_ARTIFACT_FOREIGN_VIEW_VALUE},
         {"xl6ForeignViewSequenceCreateV1",XL6_ARTIFACT_FOREIGN_VIEW_SEQUENCE},

@@ -271,9 +271,11 @@
       "native": "xuiDocumentRendererGetContext",
       "declaration": "xui_context xuiDocumentRendererGetContext(xui_document_renderer renderer)",
       "line": 194,
-      "logical": [],
-      "status": "explicit-C",
-      "reason": "Renderer is an independent managed root with a weak native Context link; use the existing constructor Context"
+      "logical": [
+        "DocumentRenderer.getContext"
+      ],
+      "status": "declared-not-yet-qualified",
+      "reason": ""
     },
     {
       "native": "xuiDocumentRendererOwnershipBusy",

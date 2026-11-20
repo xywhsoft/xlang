@@ -317,26 +317,34 @@ XL6_ForeignView* xl6ForeignViewCreateRootWithDomainProbedV1(const void* raw,XL6_
     if(!probe || !probe->reservedRoot || probe->identity!=raw || probe->reservedRoot->nativeDomain!=domain){xrtSetErrorKind(XERR_STATE);return NULL;}
     return xl6ForeignResultProbeMaterializeRootV1(probe);
 }
+/* Copy only an existing language reference. Do not revive native-only pins. */
+static inline bool viewRetainExternal(XL6_ForeignView* view,XL6_ForeignView* root,bool* range)
+{
+    uint64 external=xrtAtomic64Load(&root->external,XMEMORY_RELAXED);
+    while(external){
+        if(external==UINT64_MAX){*range=true;break;}
+        if(xrtAtomic64CompareExchange(&root->external,&external,external+1,XMEMORY_RELAXED,XMEMORY_RELAXED)){
+            if(viewHold(view))return true;
+            xrtAtomic64FetchSub(&root->external,1,XMEMORY_RELAXED);
+            *range=true;
+            break;
+        }
+    }
+    return false;
+}
+
 XL6_ForeignView* xl6ForeignViewRetainV1(XL6_ForeignView* view)
 {
     if (!view) return NULL;
     XL6_ForeignView* root=viewRoot(view);
     xrtownershipscope mutation={0}; viewMutationBegin(&mutation);
-    uint64 external=xrtAtomic64Load(&root->external,XMEMORY_RELAXED);
-    bool ok=false,range=false;
-    while(external){
-        if(external==UINT64_MAX){range=true;break;}
-        if(xrtAtomic64CompareExchange(&root->external,&external,external+1,XMEMORY_RELAXED,XMEMORY_RELAXED)){
-            ok=viewHold(view);
-            if(!ok){xrtAtomic64FetchSub(&root->external,1,XMEMORY_RELAXED);range=true;}
-            break;
-        }
-    }
+    bool range=false;
+    bool ok=viewRetainExternal(view,root,&range);
     if(!ok && !range){
         /* A physical native pin may promote an unrequested automatic close.
          * Serialize zero-to-one promotion with request acceptance; copying a
          * genuinely held language reference keeps the ordinary atomic path. */
-        viewLockEnter();external=xrtAtomic64Load(&root->external,XMEMORY_RELAXED);
+        viewLockEnter();uint64 external=xrtAtomic64Load(&root->external,XMEMORY_RELAXED);
         for(;;){
             if(!external && (root->closeRequesting || view->closeRequesting ||
                xrtAtomic32Load(&root->closing,XMEMORY_ACQUIRE) || xrtAtomic32Load(&view->closing,XMEMORY_ACQUIRE)))break;
@@ -458,6 +466,47 @@ XL6_ForeignView* xl6ForeignViewBorrowRootV1(const void* raw,XL6_ForeignView* sou
     }
     return xl6ForeignViewRetainV1(root);
 }
+static bool viewSameRootPolicy(const XL6_ForeignViewDescriptorV1* a,const XL6_ForeignViewDescriptorV1* b)
+{
+    return a->Destroy==b->Destroy && a->Watch==b->Watch && a->Unwatch==b->Unwatch &&
+        a->CallBegin==b->CallBegin && a->CallEnd==b->CallEnd && a->TraceRaw==b->TraceRaw &&
+        a->Busy==b->Busy && a->RequestClose==b->RequestClose && a->DestroyUnadopted==b->DestroyUnadopted &&
+        a->flags==b->flags && a->watchBytes==b->watchBytes && a->watchAlignment==b->watchAlignment &&
+        a->callBytes==b->callBytes && a->callAlignment==b->callAlignment && !strcmp(a->family,b->family);
+}
+
+XL6_ForeignView* xl6ForeignViewFindExistingRootV1(const void* raw,XL6_ForeignView* source,
+    const XL6_ForeignViewDescriptorV1* descriptor)
+{
+    if(!raw || !source || !viewDescriptorValid(descriptor,true) || !descriptor->Watch){
+        xrtSetErrorKind(XERR_ARGUMENT);
+        return NULL;
+    }
+    uint64 thread=xrtThreadCurrentId();
+    if(source->owner || source->thread!=thread || !source->descriptor.CallBegin ||
+        !xl6ForeignContextCallOwnsV1(source)){
+        xrtSetErrorKind(XERR_STATE);
+        return NULL;
+    }
+    XL6_ForeignView* match=NULL;
+    bool range=false;
+    xrtownershipscope mutation={0};
+    viewMutationBegin(&mutation);
+    viewLockEnter();
+    for(XL6_ForeignView* root=viewRoots;root;root=root->rootsNext){
+        if(root->thread!=thread || root->raw!=raw || !root->watched || root->unadopted ||
+            root->claim || root->cleared || root->closeRequesting ||
+            xrtAtomic32Load(&root->closing,XMEMORY_ACQUIRE) || !viewSameRootPolicy(&root->descriptor,descriptor))continue;
+        if(match){match=NULL;break;}
+        match=root;
+    }
+    if(match && !viewRetainExternal(match,match,&range))match=NULL;
+    viewLockLeave();
+    viewMutationEnd(&mutation);
+    if(!match)xrtSetErrorKind(range ? XERR_RANGE:XERR_STATE);
+    return match;
+}
+
 static void viewDrop(const void* raw)
 {
     XL6_ForeignView* view=(XL6_ForeignView*)raw;

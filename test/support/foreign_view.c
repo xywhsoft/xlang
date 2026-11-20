@@ -34,6 +34,48 @@ static void views_and_scopes(void)
     xl6ForeignViewReleaseV1(a); xl6ForeignViewReleaseV1(root);
     assert(codeReferences==1 && xl6ForeignViewPendingV1(0)==0);
 }
+static void existing_root(void)
+{
+    Native* sourceRaw=native_create();
+    Native* resultRaw=native_create();
+    Native* unmanaged=native_create();
+    XL6_ForeignView* source=xl6ForeignViewCreateRootV1(sourceRaw,&rootDescriptor,&codeOwner);
+    XL6_ForeignView* result=xl6ForeignViewCreateRootV1(resultRaw,&rootDescriptor,&codeOwner);
+    assert(source && result);
+    assert(!xl6ForeignViewFindExistingRootV1(resultRaw,source,&rootDescriptor));
+    assert(xrtErrorKind(xrtGetError())==XERR_STATE);xrtClearError();
+
+    NativeScope sourceNative={0},resultNative={0};
+    XL6_ForeignViewCallV1 sourceCall={0},resultCall={0};
+    assert(xl6ForeignViewCallBeginV1(source,&sourceCall,&sourceNative,sizeof(sourceNative)));
+    assert(xl6ForeignViewCallBeginV1(result,&resultCall,&resultNative,sizeof(resultNative)));
+    XL6_ForeignViewDescriptorV1 wrong=rootDescriptor;
+    wrong.family="native.test.other_root";
+    assert(!xl6ForeignViewFindExistingRootV1(resultRaw,source,&wrong));
+    assert(xrtErrorKind(xrtGetError())==XERR_STATE);xrtClearError();
+    assert(!xl6ForeignViewFindExistingRootV1(unmanaged,source,&rootDescriptor));
+    assert(xrtErrorKind(xrtGetError())==XERR_STATE);xrtClearError();
+
+    xmemdebugsnapshot before,after;
+    xrtMemDebugSnapshot(&before);
+    assert(xrtMemDebugFailAfter(0));
+    for(unsigned i=0;i<1000;++i){
+        XL6_ForeignView* alias=xl6ForeignViewFindExistingRootV1(resultRaw,source,&rootDescriptor);
+        assert(alias==result && xl6ForeignViewReleaseV1(alias));
+    }
+    assert(xrtMemDebugFailAfter(-1));
+    xrtMemDebugSnapshot(&after);
+    assert(before.AllocCount==after.AllocCount && before.FreeCount==after.FreeCount &&
+        before.ReallocCount==after.ReallocCount);
+    XL6_ForeignView* alias=xl6ForeignViewFindExistingRootV1(resultRaw,source,&rootDescriptor);
+    assert(alias==result && xl6ForeignViewCloseV1(alias));
+    assert(!xl6ForeignViewFindExistingRootV1(resultRaw,source,&rootDescriptor));
+    assert(xrtErrorKind(xrtGetError())==XERR_STATE);xrtClearError();
+    assert(xl6ForeignViewCallEndV1(&resultCall) && xl6ForeignViewCallEndV1(&sourceCall));
+    assert(xl6ForeignViewReleaseV1(alias) && xl6ForeignViewReleaseV1(result) && xl6ForeignViewReleaseV1(source));
+    assert(destroy_native(unmanaged));
+}
+
 static void native_stack_residency(void)
 {
     Native* raw=native_create();
@@ -264,7 +306,7 @@ int main(int argc,char** argv)
     assert(xrtMemDebugEnable(true));
     xmemdebugsnapshot before,after; xrtMemDebugSnapshot(&before);
     const struct { const char* name; void (*run)(void); } cases[]={
-        {"views",views_and_scopes},{"residency",native_stack_residency},{"affinity",affinity},
+        {"views",views_and_scopes},{"existing-root",existing_root},{"residency",native_stack_residency},{"affinity",affinity},
         {"retry",checked_retry},{"graph",graph_cycle},{"allocation",allocation_rollback},
         {"exclusive",exclusive_root},{"admission",metadata_and_admission},{"deferred",deferred_active_close}};
     bool found=argc==1;

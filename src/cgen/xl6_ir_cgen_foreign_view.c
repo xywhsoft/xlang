@@ -266,6 +266,11 @@ static void xl6IrCgenNativeViewAdmission(XL6_Output* out,const XL6_IrModule* mod
     if(declaration->foreignCall.borrowedViewResult==XL6_FOREIGN_VIEW_RESULT_OWNED_NATIVE){
         xl6OutputPuts("xl6ForeignResultProbeMaterializeRootV1(&native_result_probe)",out);
     }
+    else if(declaration->foreignCall.borrowedViewResult==XL6_FOREIGN_VIEW_RESULT_EXISTING_ROOT){
+        xl6OutputPrintf(out,"xl6ForeignViewFindExistingRootV1(%s, ",raw);
+        xl6IrCgenForeignViewArgument(out,values,0,receiver);
+        xl6OutputPrintf(out,", &%s)",type->foreignPolicy);
+    }
     else {
         int root=type->foreignLifetime==XL6_FOREIGN_LIFETIME_OWNED;
         xl6OutputPrintf(out,"%s(%s, ",root ? "xl6ForeignViewBorrowRootV1" : "xl6ForeignViewBorrowChildV1",raw);

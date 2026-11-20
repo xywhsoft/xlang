@@ -1,0 +1,81 @@
+{
+  "complete": true,
+  "passed": true,
+  "releaseInstalled": false,
+  "sourceParent": "daccdec47be1587bec4f2ca46082ddb0fef84b63",
+  "nativeCommit": "7fd0650aac6a96099a61c8106f216d8ac04b4366",
+  "platforms": {
+    "win": {
+      "compilerBuild": {
+        "path": "F:\\xlang-validation\\xge-full-20261110\\compiler-existing-root-win-r1\\build.json",
+        "sha256": "107a294cdefd81906f8e3fef6bced071ececaad4bf1837b61a15b1e9c7858a07"
+      },
+      "compilerSdk": {
+        "path": "F:\\xlang-validation\\xge-full-20261110\\existing-root-compiler-sdk-win-r1\\results.json",
+        "sha256": "65db31ba586530cdbf45b1be0901437c5d045cb6136377a59c468501f371cebe"
+      },
+      "package": {
+        "path": "F:\\xlang-validation\\xge-full-20261110\\document-renderer-existing-root-packages-win-r1\\results.json",
+        "sha256": "2a02d30f859d91932039cec1f8c5e3f80c00ef164a6f74eb95f48cc5107e7ce3"
+      },
+      "native": {
+        "path": "F:\\xlang-validation\\xge-full-20261110\\existing-root-native-win-r2\\results.json",
+        "sha256": "f0bc5966619df722b9062a0373ca395c3134488da5c5e4706c3caea66d848e34"
+      },
+      "runtime": {
+        "path": "F:\\xlang-validation\\xge-full-20261110\\document-renderer-existing-root-runtime-win-r2\\results.json",
+        "sha256": "a4fc2a1d86ed1a293ec7fd2a0417819cac5a5a79f0188591e93e1aff7bfab9f0"
+      },
+      "cgen": {
+        "path": "F:\\xlang-validation\\xge-full-20261110\\existing-root-cgen-win-r2\\results.json",
+        "sha256": "aac606cf5556e055e3ffbe29b626f546a7f4b2b5dca46978467c03b632d329b4"
+      },
+      "optimizedAssembly": {
+        "path": "F:\\xlang-validation\\xge-full-20261110\\existing-root-native-win-r2\\foreign-view-O2.s",
+        "sha256": "db6025b37de02df9cb9cca323b5638f7280a08fcc6a23cce85e8ccd531835242"
+      }
+    },
+    "linux": {
+      "compilerBuild": {
+        "path": "\\\\wsl.localhost\\Ubuntu\\var\\tmp\\xlang-validation\\xge-full-20261110\\compiler-existing-root-linux-r1\\build.json",
+        "sha256": "6e729bc793dcd92edcd42f51e244bad799187c32ef82121e8275288a31274b11"
+      },
+      "compilerSdk": {
+        "path": "\\\\wsl.localhost\\Ubuntu\\var\\tmp\\xlang-validation\\xge-full-20261110\\existing-root-compiler-sdk-linux-r1\\results.json",
+        "sha256": "d0db060cd5560332558284eb3c963a8a0a4034f549f138c5754b9fed1f61332b"
+      },
+      "package": {
+        "path": "\\\\wsl.localhost\\Ubuntu\\var\\tmp\\xlang-validation\\xge-full-20261110\\document-renderer-existing-root-packages-linux-r1\\results.json",
+        "sha256": "d75bde0b812158d87e655d87dd457bc71b518af0d2d9da74fa5241464cbd849c"
+      },
+      "native": {
+        "path": "\\\\wsl.localhost\\Ubuntu\\var\\tmp\\xlang-validation\\xge-full-20261110\\existing-root-native-linux-r2\\results.json",
+        "sha256": "9ba808dde6a17a5b459b30051a453235e4e03d73410a6d9d3d1e2fc3d6bcac6c"
+      },
+      "runtime": {
+        "path": "\\\\wsl.localhost\\Ubuntu\\var\\tmp\\xlang-validation\\xge-full-20261110\\document-renderer-existing-root-runtime-linux-r1\\results.json",
+        "sha256": "a13e3cec289e1720f0dd03f1698f441f2fcd838ae3eed11f27f3e5b74e2bd90a"
+      },
+      "cgen": {
+        "path": "\\\\wsl.localhost\\Ubuntu\\var\\tmp\\xlang-validation\\xge-full-20261110\\existing-root-cgen-linux-r2\\results.json",
+        "sha256": "a6c279d0f2735faa2002cde3ac107c2d91b25074aa5a0767e47ac89728f361e5"
+      },
+      "optimizedAssembly": {
+        "path": "\\\\wsl.localhost\\Ubuntu\\var\\tmp\\xlang-validation\\xge-full-20261110\\existing-root-native-linux-r2\\foreign-view-O2.s",
+        "sha256": "2cd6615de5df2ac70fc680e0286189121408dafbd5d9ce240cac74919e1f054d"
+      },
+      "sanitizers": {
+        "path": "\\\\wsl.localhost\\Ubuntu\\var\\tmp\\xlang-validation\\xge-full-20261110\\existing-root-native-sanitized-linux-r1\\results.json",
+        "sha256": "7f02794963e3ae0c089d546189a2ef2c02478c796a9c6e9683e4ab8fed691fbd"
+      }
+    }
+  },
+  "finalSourceDelta": "The full compiler binaries used in end-to-end tests precede a one-keyword static inline adjustment. Native O0/O2 suites use the final source. O2 assembler output on both platforms confirms that no out-of-line call is added to the existing retain path.",
+  "checks": [
+    "A watched instance result reuses the original Context control and adds exactly one language reference. Explicit close expires its other aliases. Renderer retains a weak link, which returns null after native Context retirement.",
+    "The runtime checks creator affinity, active native receiver scope and exact result policy. It does not wrap unregistered pointers or create a new native owner.",
+    "The O0/O2 native runs each completed 1,000 same-root lookups with the next-allocation fault armed and unchanged allocation, free, and reallocation counts. Missing, out-of-scope, wrong-policy, and closed queries reported StateError.",
+    "Generated code uses the direct native getter and a resident lookup. The protected native renderer scope also queries its weak link.",
+    "The lookup takes a runtime lock and scans registered roots for a unique live match. No zero-overhead claim is made."
+  ]
+}

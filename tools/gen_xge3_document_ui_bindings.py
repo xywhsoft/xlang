@@ -76,6 +76,10 @@ for f in h['functions']:
   assert named(f['type']['returns'])=='xui_context' and [named(p['type']) for p in ps]==[contextChildren[name]], f['declaration']
   add(cl,name,'context','',['@c_result("owner_view",0)'],'Context?')
   continue
+ if name=='xuiDocumentRendererGetContext':
+  assert cl=='DocumentRenderer' and named(f['type']['returns'])=='xui_context' and [named(p['type']) for p in ps]==['xui_document_renderer'], f['declaration']
+  add(cl,name,'getContext','',['@c_result("existing_root")'],'Context?')
+  continue
  if name.startswith('xuiDocumentRangeRects'):
   reasons[name]='Native reference policy for the immutable selection geometry result';continue
  if not cl:reasons[name]='Explicit callback-output helper or legacy void-userdata provider adapter';continue
@@ -227,8 +231,7 @@ for f in h['functions']:
  name=f['name'];reason=reasons.get(name,'');state='declared-not-yet-qualified'
  if name not in mapped:
   state='private-lifetime-infrastructure'
-  if name=='xuiDocumentRendererGetContext':state='explicit-C';reason='Renderer is an independent managed root with a weak native Context link; use the existing constructor Context'
-  elif name=='xuiDocumentFontOutputInit':reason='Fresh native callback storage only; resetting a live output would erase owning Font state'
+  if name=='xuiDocumentFontOutputInit':reason='Fresh native callback storage only; resetting a live output would erase owning Font state'
   elif name in REPLACEMENTS:
    state='replaced-managed-entry';logical,replacement=REPLACEMENTS[name]
    assert logical.removeprefix('xui.') in mapped.get(replacement,[]),(name,logical,replacement)

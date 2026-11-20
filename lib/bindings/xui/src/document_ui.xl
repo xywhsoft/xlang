@@ -49,6 +49,7 @@ extern "xuiDocumentRangeRectsAddRef" @header("xge3_runtime.h") @no_raise func re
 export extern "struct xui_document_renderer_t*" class DocumentRenderer @header("xge3_runtime.h") @lifetime("owned") @policy("xl6Xui3DocumentRendererPolicy") @scope("xui_call_scope_t") @watch("xui_lifetime_link_t") @domain("xl6Xui3OwnershipDomainV1")
  native point handle
  extern "xuiDocumentRendererSetWebProvider" @no_raise @c_result("status",0) func setWebProvider(DocumentWebProvider? provider)
+ extern "xuiDocumentRendererGetContext" @no_raise @c_result("existing_root") func getContext() as Context?
  extern "xuiDocumentRendererSetSnapshot" @no_raise @c_result("status",0) func setSnapshot(DocumentSnapshot snapshot,DocumentChangeSet? changes)
  extern "xuiDocumentRendererSetSourceInput" @no_raise @c_result("status",0) func setSourceInput(DocumentPrepare? prepare)
  extern "xuiDocumentRendererSetMode" @no_raise @c_result("status",0) func setMode(c_uint mode)

@@ -23493,6 +23493,7 @@ XL6_IrCallResultCAbi xl6IrCallResultCAbiForTarget(const XL6_IrModule* module,con
         !xl6ForeignBorrowedOwnerOutput(&declaration->foreignCall))return XL6_IR_CALL_RESULT_C_ABI_STORAGE;
     if(declaration && (declaration->foreignCall.borrowedViewResult==XL6_FOREIGN_VIEW_RESULT_OWNED_NATIVE ||
         declaration->foreignCall.borrowedViewResult==XL6_FOREIGN_VIEW_RESULT_OWNER_NATIVE ||
+        declaration->foreignCall.borrowedViewResult==XL6_FOREIGN_VIEW_RESULT_EXISTING_ROOT ||
         declaration->foreignCall.borrowedViewResult==XL6_FOREIGN_VIEW_RESULT_SCOPE_NATIVE ||
         declaration->foreignCall.borrowedViewResult==XL6_FOREIGN_VIEW_RESULT_RETAINED_NATIVE))return XL6_IR_CALL_RESULT_C_ABI_FOREIGN_VIEW;
     if(declaration && declaration->foreignCall.borrowedViewResult==XL6_FOREIGN_VIEW_RESULT_BOOL_STATUS)return XL6_IR_CALL_RESULT_C_ABI_BOOL_STATUS;
@@ -23587,6 +23588,18 @@ int xl6IrCallResultCAbiMatches(const XL6_IrModule* module, const XL6_IrCallTarge
             target->resultConversionAbi!=XL6_IR_CALL_RESULT_CONVERSION_NATIVE_VIEW_ADMIT)return 0;
         if((source->foreignCall.borrowedViewResult==XL6_FOREIGN_VIEW_RESULT_SCOPE_NATIVE)!=
             (result->foreignLifetime==XL6_FOREIGN_LIFETIME_CALLBACK))return 0;
+        if(source->foreignCall.borrowedViewResult==XL6_FOREIGN_VIEW_RESULT_EXISTING_ROOT){
+            const XL6_IrType* receiver=target->parameterCount ? xl6IrTypeGet(&module->types,target->parameterTypes[0]):NULL;
+            return source->sourceKind==XL6_AST_NATIVE_EXTERN_FUNC && !(source->flags&XL6_AST_FLAG_STATIC) &&
+                (source->flags&XL6_AST_FLAG_FOREIGN_NO_RAISE) &&
+                !(source->flags&(XL6_AST_FLAG_FOREIGN_FIELD|XL6_AST_FLAG_FOREIGN_PURE|XL6_AST_FLAG_FOREIGN_OWNED_STRING)) &&
+                receiver && receiver->kind!=XL6_IR_TYPE_NULLABLE && receiver->foreignLifetime==XL6_FOREIGN_LIFETIME_OWNED &&
+                receiver->foreignScope && xl6IrForeignManagedViewParameter(module,target,0) &&
+                result->foreignLifetime==XL6_FOREIGN_LIFETIME_OWNED && result->foreignHeader && result->foreignWatch &&
+                target->resultPhysicalAbi==XL6_IR_CALL_RESULT_PHYSICAL_DIRECT &&
+                xl6IrForeignOperationInvokesFunction(target->foreignOperationAbi) &&
+                !source->foreignCall.outputIndexPlusOne && !source->foreignCall.receiverDereference;
+        }
         if(source->foreignCall.outputIndexPlusOne && !borrowedOutput){
             XL6_IrTypeId factoryType=target->returnType;
             if(result->kind==XL6_IR_TYPE_NULLABLE){
@@ -23685,6 +23698,7 @@ XL6_IrCallResultConversionAbi xl6IrCallResultConversionForTarget(
         !xl6ForeignBorrowedOwnerOutput(&declaration->foreignCall))return XL6_IR_CALL_RESULT_CONVERSION_NATIVE_OUTPUT_VALUE;
     if(declaration && (declaration->foreignCall.borrowedViewResult==XL6_FOREIGN_VIEW_RESULT_OWNED_NATIVE ||
         declaration->foreignCall.borrowedViewResult==XL6_FOREIGN_VIEW_RESULT_OWNER_NATIVE ||
+        declaration->foreignCall.borrowedViewResult==XL6_FOREIGN_VIEW_RESULT_EXISTING_ROOT ||
         declaration->foreignCall.borrowedViewResult==XL6_FOREIGN_VIEW_RESULT_SCOPE_NATIVE ||
         declaration->foreignCall.borrowedViewResult==XL6_FOREIGN_VIEW_RESULT_RETAINED_NATIVE))return XL6_IR_CALL_RESULT_CONVERSION_NATIVE_VIEW_ADMIT;
     if(declaration && declaration->foreignCall.borrowedViewResult==XL6_FOREIGN_VIEW_RESULT_INTEGER_MIN)
@@ -41775,7 +41789,7 @@ int xl6IrVerifyModule(const XL6_IrModule* module, XL6_DiagList* diags)
                    (node->flags&XL6_AST_FLAG_EXTERN) && !node->foreignCall.constAggregateAddresses &&
                    !node->foreignCall.staticCallbackAddresses && (!node->foreignCall.outputIndexPlusOne || node->foreignCall.valueOutput))) ||
                 !params || params->kind != XL6_IR_NODE_LIST ||
-                node->foreignCall.borrowedViewResult>XL6_FOREIGN_VIEW_RESULT_INTEGER_MIN ||
+                node->foreignCall.borrowedViewResult>XL6_FOREIGN_VIEW_RESULT_EXISTING_ROOT ||
                 (node->foreignCall.borrowedViewResult==XL6_FOREIGN_VIEW_RESULT_CSTRING &&
                  (((node->flags&XL6_AST_FLAG_FOREIGN_FIELD) && (node->sourceKind!=XL6_AST_GET || params->childCount!=0 || (node->flags&XL6_AST_FLAG_STATIC))) || node->foreignCall.outputIndexPlusOne || node->foreignCall.receiverDereference)) ||
                 (node->foreignCall.physicalPairs & node->foreignCall.retainedCallbacks) ||

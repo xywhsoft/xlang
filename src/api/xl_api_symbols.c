@@ -406,6 +406,7 @@ static int xlVisitDefaultTccApiSymbols(XL_ApiSymbolVisit visit, void* user)
     if (!visit(user, "xl6ForeignViewCreateRootWithDomainProbedV1", (const void*)xl6ForeignViewCreateRootWithDomainProbedV1)) return 0;
     if (!visit(user, "xl6ForeignViewBorrowChildV1", (const void*)xl6ForeignViewBorrowChildV1)) return 0;
     if (!visit(user, "xl6ForeignViewBorrowRootV1", (const void*)xl6ForeignViewBorrowRootV1)) return 0;
+    if (!visit(user, "xl6ForeignViewFindExistingRootV1", (const void*)xl6ForeignViewFindExistingRootV1)) return 0;
     if (!visit(user, "xl6ForeignViewRetainV1", (const void*)xl6ForeignViewRetainV1)) return 0;
     if (!visit(user, "xl6ForeignViewCopyValueV1", (const void*)xl6ForeignViewCopyValueV1)) return 0;
     if (!visit(user, "xl6ArrayExtractForeignViewV1", (const void*)xl6ArrayExtractForeignViewV1)) return 0;

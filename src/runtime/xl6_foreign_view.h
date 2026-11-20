@@ -140,6 +140,11 @@ XL6_CODE_LEASE_API XL6_ForeignView* xl6ForeignViewBorrowChildV1(const void*,XL6_
  * proves the nominal root type. raw must equal that same live native root;
  * no second control record/watch is created for e.g. Widget.context. */
 XL6_CODE_LEASE_API XL6_ForeignView* xl6ForeignViewBorrowRootV1(const void* raw,XL6_ForeignView* source);
+/* The scoped native query keeps raw valid until admission. Retain the unique
+ * matching watched root on its creator thread. Missing or ambiguous roots
+ * fail checked, and a native-only pin cannot revive a dropped language root. */
+XL6_CODE_LEASE_API XL6_ForeignView* xl6ForeignViewFindExistingRootV1(const void* raw,XL6_ForeignView* source,
+    const XL6_ForeignViewDescriptorV1* descriptor);
 XL6_CODE_LEASE_API XL6_ForeignView* xl6ForeignViewRetainV1(XL6_ForeignView*);
 /* Consumes its language reference on success AND checked cleanup failure.
  * A void native drop adapter must propagate a false result's separate failure

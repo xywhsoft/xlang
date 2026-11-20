@@ -537,7 +537,8 @@ int xl6IrCgenVisitResidentSymbols(const XL6_IrModule* module, XL6_DiagList* diag
             const XL6_IrCallTarget* rollback=owning ? NULL:xl6IrCallTargetGet(module,declaration->foreignCall.rollbackSymbol);
             if(rollback && rollback->resultCAbi==XL6_IR_CALL_RESULT_C_ABI_INT_STATUS && !visitor(context,"xl6ForeignStatusFailureV1"))return 0;
             const char* admit=owning ? "xl6ForeignResultProbeMaterializeRootV1" : type->foreignLifetime==XL6_FOREIGN_LIFETIME_CALLBACK ?
-                "xl6ForeignScopeViewDeriveV2" : type->foreignLifetime==XL6_FOREIGN_LIFETIME_OWNED ?
+                "xl6ForeignScopeViewDeriveV2" : declaration->foreignCall.borrowedViewResult==XL6_FOREIGN_VIEW_RESULT_EXISTING_ROOT ?
+                "xl6ForeignViewFindExistingRootV1" : type->foreignLifetime==XL6_FOREIGN_LIFETIME_OWNED ?
                 "xl6ForeignViewBorrowRootV1" : "xl6ForeignViewBorrowChildV1";
             if(!visitor(context,admit))return 0;
             if((declaration->foreignCall.outputIndexPlusOne || declaration->foreignCall.borrowedViewResult==XL6_FOREIGN_VIEW_RESULT_RETAINED_NATIVE) &&

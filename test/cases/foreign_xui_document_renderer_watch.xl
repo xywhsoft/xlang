@@ -1,5 +1,5 @@
 import xui
-from xui import CallbackDocumentFontOutput,Font
+from xui import CallbackDocumentFontOutput,Context,Font
 
 extern "xuiDocumentRendererReleaseChecked" @header("xge3_runtime.h") @no_raise @c_result("status",0) func releaseFromNative(xui.DocumentRenderer renderer)
 extern "xrtMemDebugEnabled" @header("xrt_decl.h") @no_raise func memDebugEnabled() as bool
@@ -15,6 +15,9 @@ func main(...) as int
  auto font = proxy.loadFont(location as string,c_float(16),c_uint(xui.XUI_FONT_FORMAT_TTF))
  ui.setDefaultFont(font)
  auto renderer = xui.createDocumentRenderer(ui)
+ auto contextAlias = renderer.getContext() as Context
+ contextAlias.setViewportSize(c_int(320),c_int(240))
+ assert renderer.getContext() != null
  if not memDebugEnabled() then assert memDebug(true) end
  int failures = 0
  for prefix in range(20)
@@ -70,7 +73,17 @@ func main(...) as int
  alias.close()
  snapshot.close()
  document.close()
- ui.close()
+ auto weakRenderer = xui.createDocumentRenderer(ui)
+ contextAlias.close()
+ expired = false
+ try
+  ui.setViewportSize(c_int(320),c_int(240))
+ catch StateError
+  expired = true
+ end
+ assert expired, "closing the returned Context did not invalidate the original"
+ assert weakRenderer.getContext() == null, "renderer retained a retired Context"
+ weakRenderer.close()
  font.close()
  proxy.close()
  println("DOCUMENT_RENDERER_WATCH_OK")

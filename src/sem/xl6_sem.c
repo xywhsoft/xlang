@@ -21888,6 +21888,18 @@ static int xl6SemCheckForeignFunctionDeclaration(XL6_SemContext* ctx, XL6_AstNod
             }
             retained->children[0]->semanticSymbolId=retain->semanticSymbolId;
             retained->children[2]->semanticSymbolId=rollback->semanticSymbolId;
+        }else if(facts.borrowedViewResult==XL6_FOREIGN_VIEW_RESULT_EXISTING_ROOT){
+            XL6_ForeignClassDecl sourceContract={0};
+            if(!receiver || node->kind!=XL6_AST_NATIVE_EXTERN_FUNC ||
+                !xl6ForeignClassRead(ownerClass,&sourceContract,NULL) ||
+                sourceContract.lifetime!=XL6_FOREIGN_LIFETIME_OWNED || !sourceContract.scope[0] ||
+                (facts.controlViews&UINT64_C(1)) || resultContract.lifetime!=XL6_FOREIGN_LIFETIME_OWNED ||
+                !resultContract.header[0] || !resultContract.watch[0] ||
+                facts.outputIndexPlusOne || facts.valueOutput || facts.receiverDereference ||
+                !(node->flags&XL6_AST_FLAG_FOREIGN_NO_RAISE) ||
+                (node->flags&(XL6_AST_FLAG_FOREIGN_FIELD|XL6_AST_FLAG_FOREIGN_PURE|XL6_AST_FLAG_FOREIGN_OWNED_STRING))){
+                xl6SemErrorNode(ctx,node,"existing_root requires a scoped owned receiver and a direct watched owned result");return 0;
+            }
         }else if(facts.borrowedViewResult==XL6_FOREIGN_VIEW_RESULT_OWNER_NATIVE || facts.borrowedViewResult==XL6_FOREIGN_VIEW_RESULT_SCOPE_NATIVE){
             size_t p=facts.resultOwnerIndexPlusOne-1;
             const XL6_AstNode* ownerType=p>=receiver && p-receiver<count ?

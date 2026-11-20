@@ -318,6 +318,12 @@ Root 拥有原生对象；`owner` 子视图由 Root 管辖，失去最后一个�
 
 `@c_result("owner_view", source)` 的 source 包含接收者；0 是实例方法的 self，
 自由函数则是首个实参。Root 结果只能借回同一 Root；子结果必须属于声明的 Root。
+`@c_result("existing_root")` 用于有原生调用作用域的拥有式实例方法，例如
+`DocumentRenderer.getContext()`。原生查询必须保证返回指针在该作用域内有效。
+运行时按当前线程、指针和结果类型的策略查找唯一存活且已有语言引用的受观察
+Root，返回其别名。可空声明将 C NULL 转为 null。非空指针找不到唯一匹配时
+抛出 `StateError`。成功查询扫描现有 Root 并保留一份语言引用，无新控制记录、
+原生引用或数据复制。
 `@c_control(index)` 显式传控制记录，供 checked close 等驻留生命周期操作使用。
 `@c_result("bool_status")` 把原生 bool 转为语言 void，false 独立表示失败。
 

@@ -557,6 +557,7 @@ static inline int xl6ForeignFunctionRead(const XL6_AstNode* node,
             else if (!strcmp(value->text, "\"owned_view\"")) facts.borrowedViewResult = XL6_FOREIGN_VIEW_RESULT_OWNED_NATIVE;
             else if (!strcmp(value->text, "\"retained_view\"")) facts.borrowedViewResult = XL6_FOREIGN_VIEW_RESULT_RETAINED_NATIVE;
             else if (!strcmp(value->text, "\"owner_view\"")) facts.borrowedViewResult = XL6_FOREIGN_VIEW_RESULT_OWNER_NATIVE;
+            else if (!strcmp(value->text, "\"existing_root\"")) facts.borrowedViewResult = XL6_FOREIGN_VIEW_RESULT_EXISTING_ROOT;
             else if (!strcmp(value->text, "\"bool_status\"")) facts.borrowedViewResult = XL6_FOREIGN_VIEW_RESULT_BOOL_STATUS;
             else if (!strcmp(value->text, "\"scope_view\"")) facts.borrowedViewResult = XL6_FOREIGN_VIEW_RESULT_SCOPE_NATIVE;
             else if (!strcmp(value->text, "\"status\"")) facts.borrowedViewResult = XL6_FOREIGN_VIEW_RESULT_INT_STATUS;
