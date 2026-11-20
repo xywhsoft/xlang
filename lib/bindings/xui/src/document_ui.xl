@@ -86,6 +86,7 @@ export extern "xui_widget_t*" class DocumentView @header("xge3_runtime.h") @life
  extern "xuiDocumentViewGetScroll" @no_raise @c_outputs(1,2) @c_status(0) func scroll() as (c_double,c_double)
  extern "xuiDocumentViewSetZoom" @no_raise @c_result("status",0) func setZoom(c_float zoom)
  extern "xuiDocumentViewSetMode" @no_raise @c_result("status",0) func setMode(c_uint mode)
+ extern "xuiDocumentViewSetWebProvider" @no_raise @c_result("status",0) func setWebProvider(DocumentWebProvider? provider)
  extern "xuiDocumentViewInvalidateObjects" @no_raise @c_result("status",0) func invalidateObjects()
  extern "xuiDocumentViewInvalidateFonts" @no_raise @c_result("status",0) func invalidateFonts()
  extern "xuiDocumentViewGetMode" @no_raise func mode() as c_uint

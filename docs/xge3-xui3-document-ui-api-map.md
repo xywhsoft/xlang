@@ -169,3 +169,19 @@ error. The DocumentEditor example also renders through the actual graphics
 backend. The [browser acceptance record](../dev/release-materials/provenance/xui-document-browser-20261120.json)
 covers local HTML navigation, the math provider and watched WebView retirement
 on Windows, plus checked unavailability on Linux.
+
+`DocumentView.setWebProvider(provider)` also works on `DocumentEditor`.
+Attach a provider to an existing MessageList Document binding with
+`messages.setNodeWebProvider(id, provider)`. Replacing a message's binding
+starts the new binding without a provider. The provider and widget share a
+Context. Keep driving `provider.update()` from the application's update loop.
+Passing `null` or closing the provider restores placeholders.
+
+Provider updates mark attached controls and affected message rows. Idle
+frames can use the existing cache path without scanning message bindings.
+Each widget renderer embeds a change watcher. Attachment requires no native
+watch allocation. A published change visits the attached widget renderers.
+The controls can reuse an attachment across renderer rebuilds for zoom,
+font changes and editor IME previews. See the
+[widget acceptance record](../dev/release-materials/provenance/xui-document-web-widgets-20261120.json)
+and [DocumentView example](../lib/bindings/xui/examples/document_web_view.xl).

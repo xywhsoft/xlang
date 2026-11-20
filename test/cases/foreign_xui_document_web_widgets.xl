@@ -1,0 +1,123 @@
+import xge
+import xui
+from xui import Context, Document, DocumentNodeAttributes, Proxy, Widget
+from "../../lib/bindings/xui/examples/_window.xl" import Window
+
+func formula(string text) as Document
+    auto document = xui.createDocument()
+    auto transaction = document.beginTransaction()
+    DocumentNodeAttributes block
+    block.iFlags = c_uint(xui.XUI_DOC_BLOCK)
+    transaction.insertNodeWithAttributes(1,xui.XUI_DOCUMENT_APPEND,block,"",null,c_uint(xui.XUI_DOC_MATH),text)
+    transaction.commit().close()
+    transaction.close()
+    return document
+end
+
+string profile = env.get("XUI_BROWSER_PROFILE") as string
+string expectation = env.get("XUI_BROWSER_EXPECTATION") as string
+string assets = env.get("XUI_BROWSER_ASSETS") as string
+bool completed = false
+
+Window.showWithProxy("Document browser widgets",func(Context ui,Widget root,Proxy proxy)
+    auto viewDocument = formula("x^2+1")
+    auto editorDocument = formula("y^3+2")
+    auto messageDocument = formula("z^4+3")
+    auto view = xui.createDocumentView(ui,viewDocument)
+    auto editor = xui.createDocumentEditor(ui,editorDocument)
+    auto messages = ui.messageListNative()
+    Window.place(root,view,12,12,270,130)
+    Window.place(root,editor,12,154,270,130)
+    Window.place(root,messages,296,12,320,272)
+    messages.addNode("math","",sender="Formula")
+    messages.setNodeDocument("math",messageDocument)
+    viewDocument.close()
+    editorDocument.close()
+    messageDocument.close()
+
+    if expectation == "unsupported" then
+        bool unsupported = false
+        try
+            xui.createDocumentWebProvider(ui,root,assets,profile)
+        catch Error error
+            unsupported = error.code == int(xui.XUI_ERROR_UNSUPPORTED)
+        end
+        assert unsupported and root.getChildCount() == 3
+        view.setWebProvider(null)
+        editor.setWebProvider(null)
+        messages.setNodeWebProvider("math",null)
+        assert ui.layout() == 0
+        auto size, exact = view.contentSize()
+        assert size.height > 0 and messages.getBubbleRect(0).fH > 0
+        completed = true
+        xge.requestQuit()
+        return
+    end
+
+    auto provider = xui.createDocumentWebProvider(ui,root,assets,profile,timeoutMs=15000)
+    auto other = xui.create(proxy)
+    auto separate = formula("w^5+4")
+    auto otherView = xui.createDocumentView(other,separate)
+    separate.close()
+    bool rejected = false
+    try
+        otherView.setWebProvider(provider)
+    catch Error error
+        rejected = error.code == int(xui.XUI_ERROR_INVALID_ARGUMENT)
+    end
+    assert rejected
+    otherView.close()
+    other.close()
+
+    bool missing = false
+    try
+        messages.setNodeWebProvider("missing",provider)
+    catch Error error
+        missing = error.code == int(xui.XUI_ERROR_NOT_FOUND)
+    end
+    assert missing
+
+    view.setWebProvider(provider)
+    editor.setWebProvider(provider)
+    messages.setNodeWebProvider("math",provider)
+    view.setZoom(c_float(1.25))
+    auto font = proxy.loadSystemFont(19)
+    messages.setFont(font)
+    font.close()
+    assert ui.layout() == 0
+    auto pendingView, viewExact = view.contentSize()
+    auto pendingEditor, editorExact = editor.contentSize()
+    auto pendingMessage = messages.getBubbleRect(0)
+    int stage = 0
+    int invalidations = 0
+    provider.setInvalidate(func()
+        invalidations += 1
+    end)
+
+    root.setUpdateCallback(func(Widget sender,c_float elapsed) as c_int
+        if stage == 0 then
+            provider.update()
+            auto stats = provider.stats()
+            assert stats.bWorkerFailed == 0 and stats.iFailed == 0
+            // Ordinary window rendering draws all three distinct formulas.
+            if stats.iDrawn < 3 then return 0 end
+            assert invalidations >= 3
+            provider.close()
+            stage = 1
+            return 0
+        end
+
+        auto closedView, closedViewExact = view.contentSize()
+        auto closedEditor, closedEditorExact = editor.contentSize()
+        auto closedMessage = messages.getBubbleRect(0)
+        assert closedView.height == pendingView.height
+        assert closedEditor.height == pendingEditor.height
+        assert closedMessage.fH == pendingMessage.fH
+        sender.setUpdateCallback(null)
+        completed = true
+        xge.requestQuit()
+        return 0
+    end)
+end)
+assert completed, "Document widgets did not draw all browser objects"
+println("XUI_DOCUMENT_WEB_WIDGETS_OK")

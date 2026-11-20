@@ -1,0 +1,19 @@
+// 需要启用了 WebView2 的 Windows 扩展包。
+import xui
+from "./_window.xl" import Window
+
+string assets = env.get("XUI_DOCUMENT_WEB_ASSETS") as string
+Window.show("DocumentView / browser objects",func(xui.Context ui,xui.Widget root)
+    auto document = xui.createDocument(c_uint(xui.XUI_DOCUMENT_MARKDOWN))
+    document.loadMarkdown("# 圆的方程\n\n$$\nx^2 + y^2 = r^2\n$$")
+    auto view = xui.createDocumentView(ui,document)
+    document.close() // View 持有文档。
+    Window.place(root,view,24,24,520,240)
+
+    auto provider = xui.createDocumentWebProvider(ui,root,path.abs(assets))
+    view.setWebProvider(provider)
+    root.setUpdateCallback(func(xui.Widget sender,c_float elapsed) as c_int
+        provider.update() // 浏览器结果就绪后，View 会自己重排并重绘。
+        return 0
+    end)
+end)

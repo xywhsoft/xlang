@@ -1,5 +1,6 @@
 
 // Document UI declarations generated from xui_document_ui.h.
+ extern "xuiMessageListSetNodeWebProvider" @no_raise @c_cstr(0) @c_result("status",0) func setNodeWebProvider(string message_id,DocumentWebProvider? provider)
  extern "xuiMessageListGetNodeDocument" @no_raise @c_result("retained_view") @c_retain(retainDocumentUi,"zero",rollbackDocument) @c_cstr(0) func nodeDocument(string message_id) as Document?
  extern "xuiMessageListGetNodeDocumentRenderStats" @no_raise @c_cstr(0) @c_output(2,0) @c_output_size(2,"iSize") func nodeDocumentRenderStats(string message_id) as DocumentRendererStats
  extern "xuiMessageListInvalidateNodeDocumentObjects" @no_raise @c_cstr(0) @c_result("status",0) func invalidateNodeDocumentObjects(string message_id)

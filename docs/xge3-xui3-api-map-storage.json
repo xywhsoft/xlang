@@ -14,7 +14,7 @@
       "dependencies": [
         {
           "sourceFile": "src/xui/controls/xui_message_list.c",
-          "lfSha256": "6c7950e5f52515f7e29e8d743cdc4c3da3a6e326be6cc125ce91ca70b20d7dd3"
+          "lfSha256": "06adbce2876f28eead5672e972bb52dc7f173f02ca7a57f28fd766e477ba955a"
         }
       ]
     },
@@ -28,7 +28,7 @@
       "dependencies": [
         {
           "sourceFile": "src/xui/controls/xui_message_list.c",
-          "lfSha256": "6c7950e5f52515f7e29e8d743cdc4c3da3a6e326be6cc125ce91ca70b20d7dd3"
+          "lfSha256": "06adbce2876f28eead5672e972bb52dc7f173f02ca7a57f28fd766e477ba955a"
         }
       ]
     },
@@ -42,7 +42,7 @@
       "dependencies": [
         {
           "sourceFile": "src/xui/controls/xui_message_list.c",
-          "lfSha256": "6c7950e5f52515f7e29e8d743cdc4c3da3a6e326be6cc125ce91ca70b20d7dd3"
+          "lfSha256": "06adbce2876f28eead5672e972bb52dc7f173f02ca7a57f28fd766e477ba955a"
         }
       ]
     },

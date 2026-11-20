@@ -1,0 +1,148 @@
+{
+  "complete": true,
+  "passed": true,
+  "releaseInstalled": false,
+  "sourceParent": "589064cd509c42a1c7858ae8b6e343e38b1fbfc2",
+  "nativeCommit": "a67d7d26075bf455f7f72b415d4eb72d860a3dfc",
+  "nativeSourceHashesLf": {
+    "docs/guide/XUI_DOCUMENT.md": "92d096e2a4f5fdda31c34f4d674ff8bc298ed5aeceed662c9bbd84e3075a5e9d",
+    "include/xui_document_ui.h": "36654d92f286121d74b5017eecfbb8d0cd09aa598d1f5852a68417f8c83c9935",
+    "src/xui/controls/xui_message_list.c": "06adbce2876f28eead5672e972bb52dc7f173f02ca7a57f28fd766e477ba955a",
+    "src/xui/document/xui_document_editor.c": "5aa17831c7c30fbf6e04a8003065844b4cb4b4113685b741b31e56063b14864a",
+    "src/xui/document/xui_document_layout_internal.h": "90839de039509ebab047d113d616295ce54649f4b7ec49231fce078839223d21",
+    "src/xui/document/xui_document_renderer.c": "3470c1e523e21e3e48b44d2fa113d7dc250af76d4422f6b8dd5401ca1d9ec75e",
+    "src/xui/document/xui_document_view.c": "f47251260053f07b787a301101617375a06567b3f87819ee861dc345df03efaf",
+    "src/xui/document/xui_document_view_internal.h": "c59499a1c447b3a248a53075af74bff36c63dc05b9e7404be6f926b58c7fa7cf",
+    "src/xui/document/xui_document_web_internal.h": "d511064a5968f3184ce74f9668219663ac56d49febb695247ceac2a1d0703580",
+    "src/xui/document/xui_document_web_provider.c": "1cc22aaf39e2c35c074f1622a5a969448ad2ceeb021d08876b74fc641cf0db63",
+    "tests/xui/xui_owned_web_provider_test.c": "6744b04aa742d1eeab8545738c64a72e56f824a8b24f3856cb10580fa22b0b0e"
+  },
+  "languageSourceHashesLf": {
+    "docs/xge3-xui3-api-map-storage.json": "eb2559a0f3265ed0bf814aab7c09b178ced47dc53885f62ff3670278fa71390b",
+    "docs/xge3-xui3-document-ui-api-map.json": "dc7de144d7d039faeb38aec150de486732131142a7aa9428ce23cc147788229c",
+    "docs/xge3-xui3-document-ui-api-map.md": "6cef53546d553a714b1b0e2cd2dc5c0be3a96b0d5b104027964f7fdd0b6154eb",
+    "tools/gen_xge3_document_ui_bindings.py": "d0a43ca0a235670dc294bee9913b3c9cb12b97b277feaf078af074d18cd6d944",
+    "lib/bindings/xui/src/document_ui.xl": "438a7a1ba505ea20025aebc858883fd6f02aac765ef79a4a86f23b6e718f6ee6",
+    "lib/bindings/xui/src/document_ui_message_methods.inc": "410aa5a12f8493d6c2bc77f165f35fc1af103c33e34139a660183502d681727a",
+    "lib/bindings/xui/src/managed.xl": "030c0b3d1b1767b39a4c88559109314eff93375a63f21d595c4f3511926d75dc",
+    "lib/bindings/xui/examples/README.md": "8badb92d3b8dc8cb21a40bad6079ce0e9b7d7079b2212d83d3e3f4a401655921",
+    "lib/bindings/xui/examples/document_web_view.xl": "710cc8edef6ff62f5852bf0e2c785bd18c3fe9f13b436132bb55f14cd3d4c064",
+    "test/cases/foreign_xui_document_web_widgets.xl": "9cdc6c8272fc68b67299d090dfa4480490636ce76d69eead7c264fc1593ada08"
+  },
+  "checks": [
+    "Generated C directly calls the native View and per-message Provider setters.",
+    "Windows draws three distinct local browser formulas through the normal DocumentView, DocumentEditor and MessageList render paths.",
+    "Provider retirement restores placeholder geometry. Cross-Context attachment and unknown message IDs report checked errors.",
+    "The native CPU suite verifies attached observers after zoom and IME projection, before and after widget destruction, message removal and provider retirement.",
+    "Native CPU processes at GCC O0 and O2 restore exact XRT live allocation count and bytes on both platforms.",
+    "Linux validates checked browser unavailability and usable Document placeholders.",
+    "The Windows candidate also compiles the affected units with WebView disabled."
+  ],
+  "costs": [
+    "Each renderer embeds a second intrusive watcher and two owner-notification pointers when WebView is enabled.",
+    "A provider publication visits its attached widget renderers and marks affected controls or message rows.",
+    "Idle updates use the existing cache path. Message layout can remeasure affected rows after a publication.",
+    "No bridge execution time comparison was done."
+  ],
+  "platforms": {
+    "win": {
+      "backend": "WebView2",
+      "imports": {
+        "host": [
+          "xge3_host.dll",
+          "msvcrt.dll",
+          "kernel32.dll",
+          "Ole32.dll",
+          "ucrtbase.dll"
+        ],
+        "static": [
+          "msvcrt.dll",
+          "kernel32.dll",
+          "USER32.dll",
+          "GDI32.dll",
+          "ole32.dll",
+          "OLEAUT32.dll",
+          "SHELL32.dll",
+          "IMM32.dll",
+          "DWrite.dll",
+          "WebView2Loader.dll"
+        ]
+      },
+      "xrtCommit": "804cc769de3030118c2b46ef7af69543d1b82d9d"
+    },
+    "linux": {
+      "backend": "unsupported",
+      "imports": {
+        "host": [
+          "libm.so.6",
+          "libmvec.so.1",
+          "libxge3_host.so",
+          "libc.so.6",
+          "ld-linux-x86-64.so.2"
+        ],
+        "static": [
+          "libm.so.6",
+          "libmvec.so.1",
+          "libX11.so.6",
+          "libXi.so.6",
+          "libXcursor.so.1",
+          "libGL.so.1",
+          "libc.so.6",
+          "ld-linux-x86-64.so.2"
+        ]
+      },
+      "xrtCommit": "804cc769de3030118c2b46ef7af69543d1b82d9d"
+    }
+  },
+  "evidence": {
+    "win": {
+      "native": {
+        "path": "F:\\xlang-validation\\xge-full-20261110\\document-web-widgets-sdk-win-r2\\results.json",
+        "sha256": "dd83d1a7ac0bdea4b9b4a0f6d119e09c6165a5b70480780c5db0ed50de81ed82",
+        "checks": 2
+      },
+      "packages": {
+        "path": "F:\\xlang-validation\\xge-full-20261110\\document-web-widgets-packages-win-r3\\results.json",
+        "sha256": "792c5d71fe812a156f320ce36cfafe1f7fe98e392393a955cb7b08b40e348fbc",
+        "checks": 6
+      },
+      "runtime": {
+        "path": "F:\\xlang-validation\\xge-full-20261110\\document-web-widgets-runtime-win-r3\\results.json",
+        "sha256": "4ca889e4cb40b32d5e6bd308301526162f4a119704806e7d6bfcada08028b2b6",
+        "checks": 9
+      },
+      "cpu": {
+        "path": "F:\\xlang-validation\\xge-full-20261110\\document-web-widgets-cpu-win-r3\\results.json",
+        "sha256": "2f9e72b48d954ea7fe99f2b82dda47c9fae553f7aff58226dd6d39d552dd7c2e",
+        "checks": 4
+      },
+      "nativeFeatureOff": {
+        "path": "F:\\xlang-validation\\xge-full-20261110\\document-web-widgets-feature-off-win-r1\\results.json",
+        "sha256": "9f445b4fea53b5cb835952aafdff1bb3ce6b667c1b818054dd4d26e3a4604a5b",
+        "checks": 1
+      }
+    },
+    "linux": {
+      "native": {
+        "path": "\\\\wsl.localhost\\Ubuntu\\var\\tmp\\xlang-validation\\xge-full-20261110\\document-web-widgets-sdk-linux-r2\\results.json",
+        "sha256": "e838f51f48b175dbc78dc56156b3c60bcd0de1124649748a8c9034e4807e178f",
+        "checks": 2
+      },
+      "packages": {
+        "path": "\\\\wsl.localhost\\Ubuntu\\var\\tmp\\xlang-validation\\xge-full-20261110\\document-web-widgets-packages-linux-r3\\results.json",
+        "sha256": "46522e875121764a7555b29240e8209d8379cd6c507274f1aecaed142468de2c",
+        "checks": 6
+      },
+      "runtime": {
+        "path": "\\\\wsl.localhost\\Ubuntu\\var\\tmp\\xlang-validation\\xge-full-20261110\\document-web-widgets-runtime-linux-r3\\results.json",
+        "sha256": "b89bbf46b335926c0c7b77c90a036916beccb74d4cd9d2c67d2227c1eec94ea5",
+        "checks": 8
+      },
+      "cpu": {
+        "path": "\\\\wsl.localhost\\Ubuntu\\var\\tmp\\xlang-validation\\xge-full-20261110\\document-web-widgets-cpu-linux-r3\\results.json",
+        "sha256": "522bf08c1700e19eae6d093d9fc502827d99ae8ae3835c3064b1ebcf26435c5d",
+        "checks": 4
+      }
+    }
+  }
+}
