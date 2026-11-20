@@ -11,8 +11,46 @@ func vertex(float x,float y) as xge3d.Xge3dVertex
  return value
 end
 
+func checkSnapshot()
+ auto settings=xge3d.materialSettingsDefault()
+ settings.params.roughness=c_float(0.25)
+ for slot in range(5)
+  auto mapping=xge3d.textureMappingDefault()
+  mapping.offset[0]=c_float(slot)
+  settings.maps[slot]=mapping
+ end
+ auto texture=xge3d.createTexture(1,1,b"\xFF\0\0\xFF")
+ auto material=xge3d.createMaterial(settings,baseColor=texture,emissive=texture)
+ auto saved=material.snapshot()
+ texture.close()
+ material.setState(xge3d.materialSettingsDefault())
+ material.close()
+ auto copied=saved.settings()
+ assert copied.params.roughness==c_float(0.25)
+ for slot in range(5)
+  assert copied.maps[slot].offset[0]==c_float(slot)
+ end
+ assert saved.mapTexture(xge.XGE3D_MAP_NORMAL)==null
+ auto base=saved.mapTexture(xge.XGE3D_MAP_BASE_COLOR) as Texture3D
+ auto emissive=saved.mapTexture(xge.XGE3D_MAP_EMISSIVE) as Texture3D
+ auto alias=saved
+ saved.close()
+ bool rejected=false
+ try
+  alias.settings()
+ catch Error
+  rejected=true
+ end
+ assert rejected and xge.graphicsResourceCount()==uint64(1)
+ base.close()
+ assert emissive.info().cpu_payload_bytes==uint64(4)
+ emissive.close()
+ assert xge.graphicsResourceCount()==uint64(0)
+end
+
 func main(...) as int
  xge.init(64,64,"Managed 3D material")
+ checkSnapshot()
  auto params=xge3d.materialDefault()
  params.unlit=c_int(1)
  auto material=xge3d.createMaterial(params)

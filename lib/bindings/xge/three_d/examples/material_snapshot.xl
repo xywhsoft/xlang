@@ -1,0 +1,20 @@
+import xge
+import xge3d
+from xge3d import Texture3D
+
+xge.init(160, 100, "3D 材质快照")
+auto settings = xge3d.materialSettingsDefault()
+settings.params.roughness = c_float(0.25)
+auto red = xge3d.createTexture(1, 1, b"\xFF\0\0\xFF")
+auto material = xge3d.createMaterial(settings, baseColor=red)
+auto saved = material.snapshot()
+red.close()
+material.close()
+
+// 快照仍保留原始粗糙度与底色贴图。
+println("快照中的粗糙度", saved.settings().params.roughness)
+auto texture = saved.mapTexture(xge.XGE3D_MAP_BASE_COLOR) as Texture3D
+saved.close()
+println("贴图像素字节数", texture.info().cpu_payload_bytes)
+texture.close()
+xge.unit()

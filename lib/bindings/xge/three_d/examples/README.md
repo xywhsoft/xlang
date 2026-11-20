@@ -64,6 +64,10 @@ time and a bone position after updating the pose. Both assets are included in `a
 `terrain.xl` samples a two-by-two U16 height grid. `collision.xl` sweeps
 a sphere toward a box and prints the distance to first contact.
 
+`material_snapshot.xl` captures a material's roughness and texture, then
+reads them after closing the material. It initializes the graphics engine
+and uses a one-pixel inline texture.
+
 `destroyStep` immediately retires the entire subtree logically, including when
 `budget.nodes` is zero. Its return value is zero until all nodes are physically
 removed, then one. Continue with the original root handle while incomplete;

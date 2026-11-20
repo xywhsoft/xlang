@@ -134,6 +134,14 @@ slots. A rejected change preserves the old state. Use `setMap()` to change
 just one slot. Keep texture inputs valid through the call; successful
 materials retain their own references.
 
+`material.snapshot()` captures the factors, all five mappings and all five
+texture references together. The captured settings and slot assignments
+remain available after the source material changes or closes. Each
+`snapshot.mapTexture(slot)` returns a separately owned texture, or `null`
+for an empty slot. The underlying pixels remain shared with other holders
+of that texture. Use the snapshot on its creator thread and close it before
+shutting down the engine. [Material snapshot example](../lib/bindings/xge/three_d/examples/material_snapshot.xl)
+
 ## Animation and skinning
 
 Use `model.clip(index)` for a clip in a loaded model, or `xge3d.loadClip()`

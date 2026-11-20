@@ -1,0 +1,146 @@
+{
+  "complete": true,
+  "passed": true,
+  "releaseInstalled": false,
+  "sourceParent": "9a3e2a840193f4e3d3e2ab518f843fe8d97215fb",
+  "nativeCommit": "58e85f1786343eaf341f3eb0957b88f572de6d90",
+  "checks": [
+    "Capture copies descriptor values and retains all five texture slots under one graphics lease; the underlying texture pixels remain shared. The source material may change or close before the snapshot is queried.",
+    "A snapshot records the creator thread. Missing slots return null. Acquiring a texture yields an independent owner that outlives the snapshot.",
+    "Native and language fixtures verify source replacement, duplicate texture identity, aliases, and engine Busy. Native fixtures verify allocation failure and foreign-thread rejection. In a live GL context, injected reference saturation verifies full capture rollback, and injected foreign context identity verifies checked close retry without consuming any references.",
+    "Generated language code calls capture, settings, and texture acquisition directly. Across 128 paired capture/query/close operations, handwritten C makes 128 allocations and xlang makes 384. Reads alone make no allocations in either version. These counts do not measure elapsed time.",
+    "Both platforms pass JIT, dynamic AOT, static AOT, import checks, and the material snapshot example. Native C fixtures pass O0/O2 with host and static XGE."
+  ],
+  "headerReviewRebase": {
+    "path": "F:\\xlang-validation\\xge-full-20261110\\material-snapshot3d-storage-rebase-r1.json",
+    "sha256": "d1605e8f07d2bdc6c641ea567245f7d82572fb13bc8af43de598d775c4415e92"
+  },
+  "platforms": {
+    "win": {
+      "sdk": {
+        "path": "F:\\xlang-validation\\xge-full-20261110\\material-snapshot3d-sdk-win-r1\\results.json",
+        "sha256": "08e81fee12f1e9642175518ab9251bce9e8b57ace425925b7328b68e6854baef"
+      },
+      "native": {
+        "path": "F:\\xlang-validation\\xge-full-20261110\\material-snapshot3d-native-win-r1\\results.json",
+        "sha256": "b0d83441fbf87425700eaa419bf276da72c106218d863d154145324072d1e3dd"
+      },
+      "nativeContext": {
+        "path": "F:\\xlang-validation\\xge-full-20261110\\material-snapshot3d-context-win-r1\\results.json",
+        "sha256": "0ed547766ce102cd44137282fa91dea71a9b1aea8b6a0daacae911df7bde65ec"
+      },
+      "packages": {
+        "path": "F:\\xlang-validation\\xge-full-20261110\\material-snapshot3d-packages-win-r1\\results.json",
+        "sha256": "0dc91fdb911dc5157cddec93b8218c29fc673ca765291c6185b16d69b83aa29d"
+      },
+      "runtime": {
+        "path": "F:\\xlang-validation\\xge-full-20261110\\material-snapshot3d-language-win-r1\\results.json",
+        "sha256": "df0716ce3e3895e62390539a79a8cc39b87bbdd7f5c4944129450ee6f9731c88"
+      },
+      "bridgeAudit": {
+        "path": "F:\\xlang-validation\\xge-full-20261110\\material-snapshot3d-audit-win-r2\\consumers\\results.json",
+        "sha256": "ba8c911682a76f55e6ca9cf5d44703e411df474046db8117b2166f15d3626ae6"
+      },
+      "compiler": {
+        "path": "F:\\xlang-validation\\xge-full-20261110\\compiler-existing-root-win-r1\\build.json",
+        "sha256": "107a294cdefd81906f8e3fef6bced071ececaad4bf1837b61a15b1e9c7858a07"
+      },
+      "heapComparison": {
+        "iterations": 128,
+        "capture": {
+          "language": [
+            384,
+            384,
+            0
+          ],
+          "C": [
+            128,
+            128,
+            0
+          ]
+        },
+        "read": {
+          "language": [
+            0,
+            0,
+            0
+          ],
+          "C": [
+            0,
+            0,
+            0
+          ]
+        }
+      },
+      "unclassifiedByFamily": {
+        "XGE": 366,
+        "XUI": 398,
+        "Document UI": 1,
+        "Document": 1
+      }
+    },
+    "linux": {
+      "sdk": {
+        "path": "\\\\wsl.localhost\\Ubuntu\\var\\tmp\\xlang-validation\\xge-full-20261110\\material-snapshot3d-sdk-linux-r1\\results.json",
+        "sha256": "5ae1178c25f113027bb0a911da02e0b80feb540b24e46c39041a44740d4adada"
+      },
+      "native": {
+        "path": "\\\\wsl.localhost\\Ubuntu\\var\\tmp\\xlang-validation\\xge-full-20261110\\material-snapshot3d-native-linux-r1\\results.json",
+        "sha256": "b581e3cdf8b4566b3f53d7fe82645b523752879d982d4ea07b6eba3702f3b3d2"
+      },
+      "nativeContext": {
+        "path": "\\\\wsl.localhost\\Ubuntu\\var\\tmp\\xlang-validation\\xge-full-20261110\\material-snapshot3d-context-linux-r1\\results.json",
+        "sha256": "5c5421e19329ec4fd18bbdfcd88ca3f1923b3ca68762977edf8f4e4709c5c8a6"
+      },
+      "packages": {
+        "path": "\\\\wsl.localhost\\Ubuntu\\var\\tmp\\xlang-validation\\xge-full-20261110\\material-snapshot3d-packages-linux-r1\\results.json",
+        "sha256": "275b03fb6ff463bd08f801673a2fd206eb84357459d7f4361d14b4106d2b81e5"
+      },
+      "runtime": {
+        "path": "\\\\wsl.localhost\\Ubuntu\\var\\tmp\\xlang-validation\\xge-full-20261110\\material-snapshot3d-language-linux-r1\\results.json",
+        "sha256": "391bac227b889fb7f7dbd60c6902c99f907d2ee711e019ef069087ec7944c8e4"
+      },
+      "bridgeAudit": {
+        "path": "\\\\wsl.localhost\\Ubuntu\\var\\tmp\\xlang-validation\\xge-full-20261110\\material-snapshot3d-audit-linux-r2\\consumers\\results.json",
+        "sha256": "64fa63cc9ca8880bdce896de0a604fd75caedb25031c466ad78508da3ed246d2"
+      },
+      "compiler": {
+        "path": "\\\\wsl.localhost\\Ubuntu\\var\\tmp\\xlang-validation\\xge-full-20261110\\compiler-existing-root-linux-r1\\build.json",
+        "sha256": "6e729bc793dcd92edcd42f51e244bad799187c32ef82121e8275288a31274b11"
+      },
+      "heapComparison": {
+        "iterations": 128,
+        "capture": {
+          "language": [
+            384,
+            384,
+            0
+          ],
+          "C": [
+            128,
+            128,
+            0
+          ]
+        },
+        "read": {
+          "language": [
+            0,
+            0,
+            0
+          ],
+          "C": [
+            0,
+            0,
+            0
+          ]
+        }
+      },
+      "unclassifiedByFamily": {
+        "XGE": 366,
+        "XUI": 398,
+        "Document UI": 1,
+        "Document": 1
+      }
+    }
+  }
+}

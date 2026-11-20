@@ -91,6 +91,7 @@ REPLACED = {
     'xge3dTextureCreate': ('xge3d.createTexture', 'xge3dTextureCreateFromImageOwned'),
     'xge3dMaterialCreate': ('xge3d.createMaterial', 'xge3dMaterialCreateStateOwned'),
     'xge3dMaterialDefault': ('xge3d.materialSettingsDefault', 'xge3dMaterialSettingsDefault'),
+    'xge3dMaterialGetDesc': ('xge3d.Material3D.snapshot', 'xge3dMaterialCaptureOwned'),
     'xge3dMaterialSetDesc': ('xge3d.Material3D.setState', 'xge3dMaterialSetState'),
     'xgeActionsReset': ('xge.Actions.reset', 'xgeActionsResetChecked'),
     'xgeAudioClipSamples': ('xge.AudioClip.samples', 'xgeAudioClipGetSamples'),
