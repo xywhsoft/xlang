@@ -1,0 +1,92 @@
+import xui
+from xui import Font, Proxy, Rect, Surface
+
+extern "fixtureRenderProxy" @header("test/cases/foreign_xui_render_backend.h") @no_raise @c_result("owned_view") @factory(0,0,dropProxy) func cpuProxy() as Proxy
+extern "fixtureRenderSurface" @no_raise @c_result("owned_view") @factory(1,0,dropSurface) func cpuSurface(Proxy proxy) as Surface
+extern "fixtureRenderFont" @no_raise @c_result("owned_view") @factory(1,0,dropFont) func cpuFont(Proxy proxy) as Font
+extern "fixtureRenderBalanced" @no_raise func balanced() as c_int
+extern "fixtureRenderBudget" @no_raise func budget(c_int allowance)
+extern "xuiProxyReleaseChecked" @header("xge3_runtime.h") @no_raise @c_result("status",0) func dropProxy(Proxy value)
+extern "xuiSurfaceReleaseChecked" @no_raise @c_result("status",0) func dropSurface(Surface value)
+extern "xuiFontReleaseChecked" @no_raise @c_result("status",0) func dropFont(Font value)
+
+func main(...) as int
+    auto proxy = cpuProxy()
+    auto target = cpuSurface(proxy)
+    auto font = cpuFont(proxy)
+    auto ui = xui.create(proxy,xui.XUI_SYSTEM_FONT_DISABLED)
+    ui.setDefaultFont(font)
+    ui.setViewportSize(400,260)
+    auto grid = ui.inventoryGridNative()
+    auto bounds = Rect()
+    bounds.fW = 400
+    bounds.fH = 260
+    assert grid.setRect(bounds) == 0 and ui.setRootWidget(grid) == 0
+    assert grid.setSlotCount(3) == 0
+
+    auto icon = cpuSurface(proxy)
+    auto rect = Rect()
+    rect.fX = 4
+    rect.fY = 7
+    rect.fW = 40
+    rect.fH = 30
+    c_uint tint = c_uint(0xabcdefff)
+    grid.setSlotIcon(0,icon,rect,tint)
+    grid.setSlotIcon(2,icon,rect)
+    assert grid.setSlotCount(6) == 0, "growth keeps icons"
+    icon.close()
+    ui.render(target)
+
+    auto saved, source, actualTint = grid.getSlotIcon(0)
+    assert saved != null and source.fX == 4 and source.fY == 7 and source.fW == 40 and source.fH == 30
+    assert actualTint == tint
+    auto item = xui.InventorySlotSettings()
+    item.iItemId = 42
+    grid.setSlotContent(0,item,"Ores")
+    auto stillThere, rect2, tint2 = grid.getSlotIcon(0)
+    assert stillThere != null and rect2.fW == 40 and tint2 == tint, "content changes preserve the icon"
+    (stillThere as Surface).close()
+
+    bool rejected = false
+    budget(0)
+    try
+        rejected = grid.setSlotCount(1) != 0
+    catch Error
+        rejected = true
+    finally
+        budget(-1)
+    end
+    assert rejected and grid.getSlotCount() == 6, "failed resize keeps slot count"
+    auto later, laterRect, laterTint = grid.getSlotIcon(2)
+    assert later != null and laterTint == c_uint(0xffffffff), "failed resize keeps later icon"
+    (later as Surface).close()
+    assert grid.setSlotCount(1) == 0
+    ui.render(target)
+
+    grid.setSlotIcon(0,null,rect)
+    auto empty, emptyRect, emptyTint = grid.getSlotIcon(0)
+    assert empty == null, "null clears icon only"
+    auto data, name, key = grid.getSlotContent(0)
+    assert data.iItemId == 42 and name == "Ores", "icon changes preserve content"
+    grid.setSlotIcon(0,saved,rect,tint)
+    grid.clearSlot(0)
+    auto cleared, clearedRect, clearedTint = grid.getSlotIcon(0)
+    assert cleared == null, "clearSlot releases its icon"
+    grid.setSlotIcon(0,saved,rect,tint)
+    grid.clearAll()
+    auto clearedAll, allRect, allTint = grid.getSlotIcon(0)
+    assert clearedAll == null, "clearAll releases its icon"
+    grid.setSlotIcon(0,saved,rect,tint)
+    grid.close()
+    ui.close()
+
+    auto independent = saved as Surface
+    proxy.clearSurface(independent,tint)
+    independent.close()
+    font.close()
+    target.close()
+    proxy.close()
+    assert balanced() != 0, "all surface and proxy owners retire"
+    println("XUI_INVENTORY_ICONS_OK")
+    return 0
+end

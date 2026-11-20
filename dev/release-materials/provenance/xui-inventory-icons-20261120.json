@@ -1,0 +1,280 @@
+{
+  "complete": true,
+  "passed": true,
+  "releaseInstalled": false,
+  "sourceParent": "ddc92e715ad9a03f3d33d75804c51a60190cda69",
+  "nativeCommit": "ccb3d92610694ff677e9b73441cf05fdf19b15b1",
+  "xrtCommit": "804cc769de3030118c2b46ef7af69543d1b82d9d",
+  "nativeSourceHashesLf": {
+    "include/xui.h": "30e054411999a3c6e3e1fae94388c50db83426defa2fe7c599543903b682b8d5",
+    "src/xui/controls/xui_inventory_grid.c": "5b9876b8fce7a6d4e9f989c58d537f9fd7b17a6bd8fbdbb4464cd32b4b8ab637",
+    "tests/xui/xui_inventory_grid_test.c": "a4bdf7726fb02ce1706e45efd712f996a649ee867448f167f5f4f4c24dc05036"
+  },
+  "languageSourceHashesLf": {
+    "docs/xge3-xui3-api-map-storage.json": "42a57938cde5c9906a1259fac840d51560e328290021fcf8595035002aad90f2",
+    "lib/bindings/xui/examples/README.md": "bd29dafcc96e986ee76fc8b383a09d082eaaaaee8743d6481e3074ad4829dd79",
+    "lib/bindings/xui/examples/inventory_icons.xl": "6a01a72c92caba49dc251ac8b7d4448223716d771c199dd6dd8db9be7247b89b",
+    "lib/bindings/xui/src/managed.xl": "402c2cfa1c3a1446f42a010d08ce8c1649f01fd0dd7c5b012d2ad55e78f74d75",
+    "test/cases/foreign_xui_inventory_icons.xl": "27d215b27e9c93fe9d7a517fa5e023ab573cbecf25fbd462fdf12e0db1bedf62",
+    "tools/check_xge3_bindings.py": "7ef83c17d107b866f131555ab9dd0fea62a1185efe95f5cc92e115edf9115054",
+    "tools/xui_managed_contracts.py": "7b850484e729a3843207bb818eb506b8ea8bfa9c3b5e196e3277c5d1224aeb42"
+  },
+  "checks": [
+    "Native managed descriptors and per-slot updates retain the Surface on the matching Proxy. Ownership tracing observes both icons, and a Surface from a different Proxy is rejected.",
+    "Resize retains the prefix, retires truncated icons, and preserves state and references on OOM. Content updates preserve icons and animation metadata. Nullable icon replacement preserves slot contents.",
+    "Clear-all commits every slot before release. A finalizer observes the cleared second slot and resizes the same grid safely. Failed retirement allocation preserves existing icon owners.",
+    "The native fixture destroys 100,000 slots with owned media using iterative retirement. The xlang getter retains a returned Surface independently of the grid and Context.",
+    "The JIT, dynamic and static fixtures exercise shared ownership and close the caller handle before rendering. The window example verifies both purple icon regions in JIT and static render captures."
+  ],
+  "costs": [
+    "A set admits the matching surface, publishes the pointer under the existing ownership gate and releases the previous owner. The render path uses the existing Surface pointer.",
+    "Resize moves the surviving references in the existing slot array copy. Clear-all allocates a temporary array of one pointer per installed icon to publish the bulk mutation before running finalizers. Destruction reuses the detached array.",
+    "The paired profile alternates two already allocated Surface handles for 100 replacements in both implementations. It measures XRT heap operations and excludes Surface construction, finalization and elapsed time."
+  ],
+  "pending": [
+    "InventoryGrid controlled scrolling and access to its embedded scroll model.",
+    "Whole-goal XGE, XUI and Document audit and matched release/IDE delivery."
+  ],
+  "platforms": {
+    "win": {
+      "imports": {
+        "host": [
+          "msvcrt.dll",
+          "xge3_host.dll",
+          "kernel32.dll",
+          "SHELL32.dll",
+          "ws2_32.dll",
+          "IPHLPAPI.dll",
+          "ucrtbase.dll"
+        ],
+        "static": [
+          "msvcrt.dll",
+          "kernel32.dll",
+          "USER32.dll",
+          "OLEAUT32.dll",
+          "ole32.dll",
+          "SHELL32.dll"
+        ]
+      },
+      "example": {
+        "example-jit": {
+          "dimensions": [
+            800,
+            600
+          ],
+          "iconPixels": {
+            "firstIcon": 1024,
+            "secondIcon": 1024
+          }
+        },
+        "static-run": {
+          "dimensions": [
+            800,
+            600
+          ],
+          "iconPixels": {
+            "firstIcon": 1024,
+            "secondIcon": 1024
+          }
+        }
+      },
+      "heapPer100Replacements": {
+        "native": [
+          0,
+          0,
+          0
+        ],
+        "language": [
+          0,
+          0,
+          0
+        ]
+      }
+    },
+    "linux": {
+      "imports": {
+        "host": [
+          "libm.so.6",
+          "libmvec.so.1",
+          "libxge3_host.so",
+          "libc.so.6",
+          "ld-linux-x86-64.so.2"
+        ],
+        "static": [
+          "libm.so.6",
+          "libmvec.so.1",
+          "libX11.so.6",
+          "libXi.so.6",
+          "libXcursor.so.1",
+          "libGL.so.1",
+          "libc.so.6",
+          "ld-linux-x86-64.so.2"
+        ]
+      },
+      "example": {
+        "example-jit": {
+          "dimensions": [
+            800,
+            600
+          ],
+          "iconPixels": {
+            "firstIcon": 1024,
+            "secondIcon": 1024
+          }
+        },
+        "static-run": {
+          "dimensions": [
+            800,
+            600
+          ],
+          "iconPixels": {
+            "firstIcon": 1024,
+            "secondIcon": 1024
+          }
+        }
+      },
+      "heapPer100Replacements": {
+        "native": [
+          0,
+          0,
+          0
+        ],
+        "language": [
+          0,
+          0,
+          0
+        ]
+      }
+    }
+  },
+  "evidence": {
+    "win": {
+      "sdk": {
+        "path": "F:\\xlang-validation\\xge-full-20261110\\inventory-icons-sdk-win-r2\\results.json",
+        "sha256": "f5ebb462ad2874dea8c6cead1017a3e87aee48b96ef7b39d00b9679f1327352c",
+        "checks": [
+          "host",
+          "static"
+        ]
+      },
+      "packageReplay": {
+        "path": "F:\\xlang-validation\\xge-full-20261110\\inventory-icons-packages-win-r2\\results.json",
+        "sha256": "cf0e28efb472e246b23420e937ce5fdebd892c9b5a93f1d4562ea607f4ff14e5",
+        "checks": [
+          "generated-declarations",
+          "inventory",
+          "strict-current-storage-replay",
+          "host",
+          "static",
+          "replay"
+        ]
+      },
+      "nativeFixture": {
+        "path": "F:\\xlang-validation\\xge-full-20261110\\inventory-icons-native-static-win-r3\\results.json",
+        "sha256": "17055a29ed3afa66b79768e8df9572d30623ecca1cc74886be9e356301ceb99b",
+        "checks": [
+          "O0-build",
+          "O0-run",
+          "O2-build",
+          "O2-run"
+        ]
+      },
+      "languageFixture": {
+        "path": "F:\\xlang-validation\\xge-full-20261110\\inventory-icons-language-tests-win-r2\\results.json",
+        "sha256": "3fbbcd945e758818ed02545aad32d41fa51376664727dd2116b4ab44c367a482",
+        "checks": [
+          "emit",
+          "jit",
+          "example-cgen",
+          "host-build",
+          "host-run",
+          "host-imports",
+          "static-build",
+          "static-run",
+          "static-imports"
+        ]
+      },
+      "example": {
+        "path": "F:\\xlang-validation\\xge-full-20261110\\inventory-icons-example-win-r2\\results.json",
+        "sha256": "9d52605305b8d505356fb8d098b986d04ff5d92e81b4748657eb6fa998f628d7",
+        "checks": [
+          "base-emit",
+          "example-jit",
+          "static-build",
+          "static-run"
+        ]
+      },
+      "iconHeapProfile": {
+        "path": "F:\\xlang-validation\\xge-full-20261110\\inventory-icons-profile-win-r1\\results.json",
+        "sha256": "445b59224e08b7c6ffff5d0d73c11527e3deecb3c36b0146ddb0850939adcc69",
+        "checks": [
+          "profile"
+        ]
+      }
+    },
+    "linux": {
+      "sdk": {
+        "path": "\\\\wsl.localhost\\Ubuntu\\var\\tmp\\xlang-validation\\xge-full-20261110\\inventory-icons-sdk-linux-r2\\results.json",
+        "sha256": "f9de3ea8bd2e0d412901d3a5c9b648599ebec448227aa2112a3bda7c157da478",
+        "checks": [
+          "host",
+          "static"
+        ]
+      },
+      "packageReplay": {
+        "path": "\\\\wsl.localhost\\Ubuntu\\var\\tmp\\xlang-validation\\xge-full-20261110\\inventory-icons-packages-linux-r2\\results.json",
+        "sha256": "8ae1e02e902e042365ef668a284485582da6675a3f5fa37d3331afdf96a30c99",
+        "checks": [
+          "generated-declarations",
+          "inventory",
+          "strict-current-storage-replay",
+          "host",
+          "static",
+          "replay"
+        ]
+      },
+      "nativeFixture": {
+        "path": "\\\\wsl.localhost\\Ubuntu\\var\\tmp\\xlang-validation\\xge-full-20261110\\inventory-icons-native-static-linux-r3\\results.json",
+        "sha256": "212977e7ff611ad1921ae9d2390e4269e660e763a0da913c658a68862a65e928",
+        "checks": [
+          "O0-build",
+          "O0-run",
+          "O2-build",
+          "O2-run"
+        ]
+      },
+      "languageFixture": {
+        "path": "\\\\wsl.localhost\\Ubuntu\\var\\tmp\\xlang-validation\\xge-full-20261110\\inventory-icons-language-tests-linux-r2\\results.json",
+        "sha256": "daee29c71458f7c658d3b6f5a1276a54bd31cdd4e860b0233463686013520445",
+        "checks": [
+          "emit",
+          "jit",
+          "example-cgen",
+          "host-build",
+          "host-run",
+          "host-imports",
+          "static-build",
+          "static-run",
+          "static-imports"
+        ]
+      },
+      "example": {
+        "path": "\\\\wsl.localhost\\Ubuntu\\var\\tmp\\xlang-validation\\xge-full-20261110\\inventory-icons-example-linux-r2\\results.json",
+        "sha256": "97d1cc478d10802e7c0435feaf35f72927c26a4a1b1f07c49d46b98eba47ecf4",
+        "checks": [
+          "base-emit",
+          "example-jit",
+          "static-build",
+          "static-run"
+        ]
+      },
+      "iconHeapProfile": {
+        "path": "\\\\wsl.localhost\\Ubuntu\\var\\tmp\\xlang-validation\\xge-full-20261110\\inventory-icons-profile-linux-r1\\results.json",
+        "sha256": "879db6c7f0763c1aea424579fc77db0ca828420860a86379c7ef450dfaad3374",
+        "checks": [
+          "profile"
+        ]
+      }
+    }
+  }
+}

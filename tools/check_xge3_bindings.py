@@ -1035,6 +1035,8 @@ def generate_xui(root,header,records,types,primitive,param,reserved,reviewed_spa
                       ('xuiInventoryGridSetTooltipCallbackOwned','owned-callback'),
                       ('xuiInventoryGridSetRenderCallbackOwned','owned-callback'),
                       ('xuiInventoryGridSetAnimationLayerOwned','owned-callback'),
+                      ('xuiInventoryGridSetSlotIcon','shared-owned-surface-slot'),
+                      ('xuiInventoryGridGetSlotIcon','retained-surface-output'),
                       ('xuiListViewSetEnabledItems','native-copy-or-synchronous-read'),
                       ('xuiTimeLineViewGetLayerDescriptor','borrowed-synchronous-output'),
                       ('xuiTimeLineViewGetFrame','borrowed-synchronous-output'),
@@ -1048,7 +1050,7 @@ def generate_xui(root,header,records,types,primitive,param,reserved,reviewed_spa
     # or synchronous use; do not broaden this list by matching a type name.
     surface_setters={
         'xuiBreadcrumbSetSeparatorIcon','xuiImageSetSurface','xuiQrCodeSetIcon',
-        'xuiPanelSetIcon','xuiButtonSetIcon','xuiButtonSetBadgeSurface',
+        'xuiPanelSetIcon','xuiButtonSetIcon','xuiButtonSetBadgeSurface','xuiInventoryGridSetSlotIcon',
         'xuiCheckBoxSetIndicatorSurface','xuiCheckBoxSetMixedIndicatorSurface',
         'xuiRadioSetIndicatorSurface','xuiToggleSetIndicatorSurface',
         'xuiVirtualJoystickSetSurface','xuiWindowSetIcon',
@@ -1058,7 +1060,7 @@ def generate_xui(root,header,records,types,primitive,param,reserved,reviewed_spa
         'xuiPanelGetIconSurface','xuiButtonGetIconSurface','xuiWindowGetIconSurface',
         'xuiDockPanelGetWindowIconSurface','xuiCanvasGetSurface','xuiWidgetGetCacheSurface'}
     surface_outputs={
-        'xuiButtonGetIcon','xuiButtonGetBadgeSurface',
+        'xuiButtonGetIcon','xuiButtonGetBadgeSurface','xuiInventoryGridGetSlotIcon',
         'xuiCheckBoxGetIndicatorSurface','xuiCheckBoxGetMixedIndicatorSurface',
         'xuiRadioGetIndicatorSurface','xuiToggleGetIndicatorSurface',
         'xuiVirtualJoystickGetSurface','xuiBuiltinAssetGetAtlas'}

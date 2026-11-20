@@ -1280,6 +1280,15 @@ REPLACED.update({
 })
 
 METHODS.update({
+    'xuiInventoryGridSetSlotIcon': (
+        'int xuiInventoryGridSetSlotIcon(xui_widget pWidget, int iSlot, xui_surface pIcon, xui_rect_t tSource, uint32_t iTint)',
+        'InventoryGrid', ['extern "xuiInventoryGridSetSlotIcon" @no_raise @c_result("status",0) func setSlotIcon(c_int index,Surface? icon,Rect source,c_uint tint=0)']),
+    'xuiInventoryGridGetSlotIcon': (
+        'int xuiInventoryGridGetSlotIcon(xui_widget pWidget, int iSlot, xui_surface* pIcon, xui_rect_t* pSource, uint32_t* pTint)',
+        'InventoryGrid', ['extern "xuiInventoryGridGetSlotIcon" @no_raise @c_output_retain(2,retainSurface,"zero",rollbackSurface) @c_outputs(2,3,4) @c_status(0) func getSlotIcon(c_int index) as (Surface?,Rect,c_uint)']),
+    'xuiInventoryGridClearAll': (
+        'int xuiInventoryGridClearAll(xui_widget pWidget)',
+        'InventoryGrid', ['extern "xuiInventoryGridClearAll" @no_raise @c_result("status",0) func clearAll()']),
     'xuiInventoryGridSetDragCallbackOwned': (
         'int xuiInventoryGridSetDragCallbackOwned(xui_widget pWidget, xui_inventory_drag_proc onDrag, void* pUser, const xui_callback_owner_t* pOwner)',
         'InventoryGrid', ['extern "xuiInventoryGridSetDragCallbackOwned" @no_raise @c_owned_callback(0,0,"xui_callback_owner_t",0) @c_result("status",0) func setDragCallback(InventoryDragProc? onDrag)']),

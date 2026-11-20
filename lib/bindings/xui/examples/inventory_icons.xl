@@ -1,0 +1,19 @@
+import xui
+from "./_window.xl" import Window
+
+Window.showWithProxy("两个槽位共享一张图标", func(xui.Context ui, xui.Widget root, xui.Proxy proxy)
+    auto inventory = ui.inventoryGridNative()
+    Window.place(root, inventory, 24, 24, 480, 240)
+    inventory.setSlotCount(4)
+
+    auto icon = proxy.createSurfaceRGBA(32, 32, flags = c_uint(xui.XUI_SURFACE_USAGE_TARGET))
+    try
+        proxy.clearSurface(icon, c_uint(0x8B4DDCFF))
+        auto source = Window.rect(0, 0, 32, 32)
+        inventory.setSlotIcon(0, icon, source)
+        inventory.setSlotIcon(1, icon, source)
+    finally
+        // 两个槽位各自持有图标，离开这里后仍可绘制。
+        icon.close()
+    end
+end)
