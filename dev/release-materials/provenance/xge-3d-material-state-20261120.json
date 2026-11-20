@@ -1,0 +1,118 @@
+{
+  "complete": true,
+  "passed": true,
+  "releaseInstalled": false,
+  "sourceParent": "c2bf79ac27753c0d6cb927f0b2142a1fbef777ea",
+  "nativeCommit": "82f677cbeb0a6a0ef27b702c191edd27bcfe47c5",
+  "checks": [
+    "CreateStateOwned constructs one managed material with all factors, mappings, and texture slots already installed. Failure retains no new graphics lease. GetSettings copies the pointer-free factors and mappings in one native call.",
+    "SetState validates every mapping, retains all incoming references, and preflights retirement of old references before publication. Omitted textures clear slots. Repeated texture identities are counted so replacing the last references cannot invalidate unrelated state.",
+    "Native and language tests check invalid mapping rollback, duplicate slot references, creation OOM, real owner transfer, checked creator-thread admission and engine Busy followed by successful shutdown. The context guard fixture uses one real GL context and injects a foreign context identity to verify last-reference rollback and retry.",
+    "The language declaration assembles one typed stack descriptor and borrows each supplied texture through its native call scope. It calls the original native producer once. The matched C comparison performs 1024 paired writes and reads with zero allocations, frees or reallocations in both versions. Stack record stores, slot retains and checked scopes remain execution costs.",
+    "Both platforms pass the material example and GPU fixture in JIT, dynamic AOT and static AOT, with import inspection. Native C uses O0/O2 with host and static XGE."
+  ],
+  "headerReviewRebase": {
+    "path": "F:\\xlang-validation\\xge-full-20261110\\material-state3d-storage-rebase-r1.json",
+    "sha256": "b36d713836384a53378166cb4d8c5ec39995e734829c5364e61f038667168f71"
+  },
+  "platforms": {
+    "win": {
+      "sdk": {
+        "path": "F:\\xlang-validation\\xge-full-20261110\\material-state3d-sdk-win-r1\\results.json",
+        "sha256": "98ef6fffdd6ce4a4cb4108785f4058aa253042a9143bca67eb32e1b61c5b7d5c"
+      },
+      "native": {
+        "path": "F:\\xlang-validation\\xge-full-20261110\\material-state3d-native-win-r1\\results.json",
+        "sha256": "93aed54308b1f9720d5d22e19bef35b3c19850afc2f7f28be1730fee4d9e776b"
+      },
+      "nativeContext": {
+        "path": "F:\\xlang-validation\\xge-full-20261110\\material-state3d-context-win-r1\\results.json",
+        "sha256": "f8cc30cacad87935cd702cdea679e9ff9a4ca7386671cb0c553c3cc625b9fb24"
+      },
+      "packages": {
+        "path": "F:\\xlang-validation\\xge-full-20261110\\material-state3d-packages-win-r1\\results.json",
+        "sha256": "278b90b0ef2063406a5d04ac2a563eb2c7d8376cb126d7fe7e3f646f1bb17aaa"
+      },
+      "runtime": {
+        "path": "F:\\xlang-validation\\xge-full-20261110\\material-state3d-language-win-r2\\results.json",
+        "sha256": "dffebeab9c88ebdaa1e2f7316cd77489df783ed7428fcf7ebaf33166051129e5"
+      },
+      "bridgeAudit": {
+        "path": "F:\\xlang-validation\\xge-full-20261110\\material-state3d-audit-win-r1\\consumers\\results.json",
+        "sha256": "b7738272ceda2145a1aecea11e40c1bda1b45c404485d362fcc9bc488774e1e6"
+      },
+      "compiler": {
+        "path": "F:\\xlang-validation\\xge-full-20261110\\compiler-existing-root-win-r1\\build.json",
+        "sha256": "107a294cdefd81906f8e3fef6bced071ececaad4bf1837b61a15b1e9c7858a07"
+      },
+      "heapComparison": {
+        "iterations": 1024,
+        "language": [
+          0,
+          0,
+          0
+        ],
+        "C": [
+          0,
+          0,
+          0
+        ]
+      },
+      "unclassifiedByFamily": {
+        "XGE": 365,
+        "XUI": 398,
+        "Document UI": 1,
+        "Document": 1
+      }
+    },
+    "linux": {
+      "sdk": {
+        "path": "\\\\wsl.localhost\\Ubuntu\\var\\tmp\\xlang-validation\\xge-full-20261110\\material-state3d-sdk-linux-r1\\results.json",
+        "sha256": "d2145d1b898a648f8433a057eb121edc0e454a78e2bef1729095a1fd502811cc"
+      },
+      "native": {
+        "path": "\\\\wsl.localhost\\Ubuntu\\var\\tmp\\xlang-validation\\xge-full-20261110\\material-state3d-native-linux-r1\\results.json",
+        "sha256": "7ce1f05fcf150717f8273d3bdec4103ff39767c6b409ce6ddb957c8d9c154d8f"
+      },
+      "nativeContext": {
+        "path": "\\\\wsl.localhost\\Ubuntu\\var\\tmp\\xlang-validation\\xge-full-20261110\\material-state3d-context-linux-r1\\results.json",
+        "sha256": "b7adbf588ab9cd61f5d3c8c54687988efd60bca1d14780c573ccaaef192d941e"
+      },
+      "packages": {
+        "path": "\\\\wsl.localhost\\Ubuntu\\var\\tmp\\xlang-validation\\xge-full-20261110\\material-state3d-packages-linux-r1\\results.json",
+        "sha256": "3071b4756a0ed24095b6046bb80176c06556a1e94a123bfc1fa82f424eeb465e"
+      },
+      "runtime": {
+        "path": "\\\\wsl.localhost\\Ubuntu\\var\\tmp\\xlang-validation\\xge-full-20261110\\material-state3d-language-linux-r2\\results.json",
+        "sha256": "0612aafa73b8ce1a49dba6ed3b097bb0cd8596cd3544b3c6f361da7ffbbe3870"
+      },
+      "bridgeAudit": {
+        "path": "\\\\wsl.localhost\\Ubuntu\\var\\tmp\\xlang-validation\\xge-full-20261110\\material-state3d-audit-linux-r1\\consumers\\results.json",
+        "sha256": "874de8231033d8ddb118a5bbb2de49d7f13957f0785e3052b88b7c42ab0c52f8"
+      },
+      "compiler": {
+        "path": "\\\\wsl.localhost\\Ubuntu\\var\\tmp\\xlang-validation\\xge-full-20261110\\compiler-existing-root-linux-r1\\build.json",
+        "sha256": "6e729bc793dcd92edcd42f51e244bad799187c32ef82121e8275288a31274b11"
+      },
+      "heapComparison": {
+        "iterations": 1024,
+        "language": [
+          0,
+          0,
+          0
+        ],
+        "C": [
+          0,
+          0,
+          0
+        ]
+      },
+      "unclassifiedByFamily": {
+        "XGE": 365,
+        "XUI": 398,
+        "Document UI": 1,
+        "Document": 1
+      }
+    }
+  }
+}

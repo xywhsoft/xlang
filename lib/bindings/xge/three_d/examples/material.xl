@@ -13,16 +13,15 @@ func vertex(float x, float y, float u, float v) as xge3d.Xge3dVertex
 end
 
 xge.init(480, 320, "3D 贴图材质")
-auto params = xge3d.materialDefault()
-params.unlit = c_int(1)
-auto material = xge3d.createMaterial(params)
+auto settings = xge3d.materialSettingsDefault()
+settings.params.unlit = c_int(1)
 // 用四色 PNG 演示从 Image 创建纹理，范例可独立运行。
 auto rgba = b"\xFF\0\0\xFF\0\xFF\0\xFF\0\0\xFF\xFF\xFF\xFF\xFF\xFF"
 auto png = xge.encodeImagePng(2, 2, rgba)
 auto image = xge.loadImage(png, c_uint(xge.XGE_IMAGE_STRAIGHT_ALPHA))
 auto texture = xge3d.createTexture(image)
 image.close() // 创建时已复制纹理像素。
-material.setMap(xge.XGE3D_MAP_BASE_COLOR, texture)
+auto material = xge3d.createMaterial(settings, baseColor=texture)
 texture.close() // 材质持有贴图。
 
 auto scene = xge3d.createScene()

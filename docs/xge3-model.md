@@ -120,6 +120,20 @@ configure either form.
 
 [Material example](../lib/bindings/xge/three_d/examples/material.xl)
 
+## Complete material updates
+
+`materialSettingsDefault()` returns a value with the native material factors
+and five texture mappings, in `XGE3D_MAP_*` order. `material.settings()` takes
+a copy of the current factors and mappings. Use `mapTexture(slot)` to obtain an
+independent texture reference for a slot.
+
+`createMaterial(settings, baseColor=texture)` installs the supplied state
+at creation. `material.setState(settings, ...)` replaces all factors,
+mappings and texture slots together. Omitted texture arguments clear their
+slots. A rejected change preserves the old state. Use `setMap()` to change
+just one slot. Keep texture inputs valid through the call; successful
+materials retain their own references.
+
 ## Animation and skinning
 
 Use `model.clip(index)` for a clip in a loaded model, or `xge3d.loadClip()`

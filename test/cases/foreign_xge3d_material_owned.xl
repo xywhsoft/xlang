@@ -69,7 +69,33 @@ func main(...) as int
  auto mapping=xge3d.textureMappingDefault()
  mapping.texcoord=c_int(1)
  assert material.mapTexture(xge.XGE3D_MAP_BASE_COLOR)==null
- material.setMap(xge.XGE3D_MAP_BASE_COLOR,textureAlias,mapping)
+ auto state=material.settings()
+ state.params.roughness=c_float(0.25)
+ state.maps[0]=mapping
+ auto occlusionMapping=xge3d.textureMappingDefault()
+ occlusionMapping.offset[0]=c_float(0.25)
+ state.maps[3]=occlusionMapping
+ auto second=xge3d.createMaterial(state,baseColor=textureAlias)
+ assert second.settings().params.roughness==c_float(0.25)
+ second.close()
+ material.setState(state,baseColor=textureAlias,emissive=textureAlias)
+ auto invalid=state
+ invalid.params.roughness=c_float(0.75)
+ auto invalidMapping=xge3d.textureMappingDefault()
+ invalidMapping.texcoord=c_int(2)
+ invalid.maps[4]=invalidMapping
+ rejected=false
+ try
+  material.setState(invalid)
+ catch Error
+  rejected=true
+ end
+ assert rejected and material.settings().params.roughness==c_float(0.25)
+ assert material.settings().maps[3].offset[0]==c_float(0.25)
+ auto emissive=material.mapTexture(xge.XGE3D_MAP_EMISSIVE) as Texture3D
+ emissive.close()
+ material.setState(state,baseColor=textureAlias)
+ assert material.mapTexture(xge.XGE3D_MAP_EMISSIVE)==null
  assert material.mapping(xge.XGE3D_MAP_BASE_COLOR).texcoord==c_int(1)
  texture.close()
  textureAlias.close()
