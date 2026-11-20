@@ -292,6 +292,8 @@ window loop. System fonts are demonstrated in the xge package's `examples/system
 把 `item 12, item 34` 转成 `#12, #34`。预期输出 `Literal replacements: 2`
 和 `#12, #34`；每一步都能从源码和输出核对，`finally` 关闭独立文档。
 
+`widget_inspect.xl` 根据坐标找到控件并读取它的层级和世界坐标宽度。
+
 `find_matches.xl` 查找多条正则匹配，查看总数，并用捕获组生成替换文本。
 
 `code_search.xl` 不创建窗口，先定位中文前缀后的第一个 `item`，再用正则读取下一个

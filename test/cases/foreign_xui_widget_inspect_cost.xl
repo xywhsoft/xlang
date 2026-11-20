@@ -1,0 +1,45 @@
+import xui
+
+extern "fixtureInspectHeapBegin" @header("test/cases/foreign_xui_widget_inspect_cost.h") @no_raise func beginHeap() as c_int
+extern "fixtureInspectHeapUnchanged" @header("test/cases/foreign_xui_widget_inspect_cost.h") @no_raise func unchangedHeap() as c_int
+extern "fixtureInspectNativeLoop" @header("test/cases/foreign_xui_widget_inspect_cost.h") @no_raise func nativeLoop(xui.Context context) as c_int
+
+func languageLoop(xui.Context context) as int
+    int checksum=0
+    for pass in range(1000)
+        auto widget, parent, _, world, depth, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _=context.inspectWidgetAt(25,25)
+        assert widget!=null and parent!=null
+        checksum+=int(depth)+int(world.fW)
+    end
+    return checksum
+end
+
+func main(...) as int
+    auto proxy=xui.createProxy()
+    auto context=xui.create(proxy,xui.XUI_SYSTEM_FONT_DISABLED)
+    auto root=context.widget()
+    auto child=context.widget()
+    xui.Rect bounds
+    bounds.fW=140
+    bounds.fH=90
+    root.setRect(bounds)
+    context.setRootWidget(root)
+    bounds.fX=12
+    bounds.fY=13
+    bounds.fW=48
+    bounds.fH=30
+    child.setRect(bounds)
+    root.addChild(child)
+    context.inputViewport(140,90)
+    assert nativeLoop(context)==49000 and languageLoop(context)==49000
+    assert beginHeap()==1
+    int expected=nativeLoop(context)
+    assert unchangedHeap()==1
+    assert beginHeap()==1
+    int measured=languageLoop(context)
+    assert unchangedHeap()==1 and measured==expected
+    context.close()
+    proxy.close()
+    println("XUI_WIDGET_INSPECT_WARM_HEAP_ZERO")
+    return 0
+end

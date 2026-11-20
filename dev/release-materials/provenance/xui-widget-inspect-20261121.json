@@ -1,0 +1,92 @@
+{
+  "complete": true,
+  "passed": true,
+  "releaseInstalled": false,
+  "sourceParent": "8c07d569f4f0ae42f33b4c56bdfa845c710109ac",
+  "nativeCommit": "77be7ba891489232ead6f1f7d942c3ab54478293",
+  "storageReview": {
+    "path": "F:\\xlang-validation\\xge-full-20261110\\xui-widget-inspect-storage-rebase-r1.json",
+    "sha256": "fdd96bdde463f9a8e33ae20765eebf4e9adf2d7d5391cddaf501a9748f448658"
+  },
+  "platforms": {
+    "win": {
+      "sdk": {
+        "path": "F:\\xlang-validation\\xge-full-20261110\\xui-widget-inspect-sdk-win-r1\\results.json",
+        "sha256": "35dd1cff7075d5de58c87573160317248817a6fce3fb162a3827f0f5987e963f"
+      },
+      "packages": {
+        "path": "F:\\xlang-validation\\xge-full-20261110\\xui-widget-inspect-packages-win-r1\\results.json",
+        "sha256": "30865dc3e1d2c0d4edae94dc26ede29c2e928ff8b68f816147d38ba8fc261003"
+      },
+      "native": {
+        "path": "F:\\xlang-validation\\xge-full-20261110\\xui-widget-inspect-native-win-r3\\results.json",
+        "sha256": "4cf7a91258e974de4c96d27dfc48a3067b722d847799e4fcbd7422012892587d"
+      },
+      "runtime": {
+        "path": "F:\\xlang-validation\\xge-full-20261110\\xui-widget-inspect-runtime-win-r4\\results.json",
+        "sha256": "09e99ccb9bf918804836f5f09915e7e14367831524daffca07dec38a60215897"
+      },
+      "audit": {
+        "path": "F:\\xlang-validation\\xge-full-20261110\\xui-widget-inspect-audit-win-r1\\consumers\\results.json",
+        "sha256": "7ab25f0ebe99c8e7f203820e22faa1ee4d00efe0dd5a209212fd5c388fe55b65"
+      },
+      "compiler": {
+        "path": "F:\\xlang-validation\\xge-full-20261110\\compiler-existing-root-win-r1\\build.json",
+        "sha256": "107a294cdefd81906f8e3fef6bced071ececaad4bf1837b61a15b1e9c7858a07"
+      },
+      "nativeRows": 12,
+      "languageRows": 24,
+      "publicFunctionPopulation": 5718,
+      "directDeclarations": 4644,
+      "unclassifiedByBridgeOrReplacement": {
+        "XGE": 350,
+        "XUI": 392,
+        "Document UI": 2,
+        "Document": 1
+      }
+    },
+    "linux": {
+      "sdk": {
+        "path": "\\\\wsl.localhost\\Ubuntu\\var\\tmp\\xlang-validation\\xge-full-20261110\\xui-widget-inspect-sdk-linux-r1\\results.json",
+        "sha256": "a6ad3edadce9edb12484e89f73a96c48035e41047652fbe2a04869b35e515195"
+      },
+      "packages": {
+        "path": "\\\\wsl.localhost\\Ubuntu\\var\\tmp\\xlang-validation\\xge-full-20261110\\xui-widget-inspect-packages-linux-r1\\results.json",
+        "sha256": "5ca281d32b5ba4d5a78702a95248e226e3535bb09100cc254e97b9df31b775af"
+      },
+      "native": {
+        "path": "\\\\wsl.localhost\\Ubuntu\\var\\tmp\\xlang-validation\\xge-full-20261110\\xui-widget-inspect-native-linux-r3\\results.json",
+        "sha256": "e9c0b07d099c6108a299199a99f6de5dfb4f95d45d54027ab29776c4dec4d190"
+      },
+      "runtime": {
+        "path": "\\\\wsl.localhost\\Ubuntu\\var\\tmp\\xlang-validation\\xge-full-20261110\\xui-widget-inspect-runtime-linux-r4\\results.json",
+        "sha256": "fdc76322c5caa71789b542a1ab9eb8507aad5e7a39db52daf534a4f91e5d0a77"
+      },
+      "audit": {
+        "path": "\\\\wsl.localhost\\Ubuntu\\var\\tmp\\xlang-validation\\xge-full-20261110\\xui-widget-inspect-audit-linux-r1\\consumers\\results.json",
+        "sha256": "0fbdc7876c5f861af259005005e4bd0e0df12ee3fa2c7a7d51f3d27e89a3a386"
+      },
+      "compiler": {
+        "path": "\\\\wsl.localhost\\Ubuntu\\var\\tmp\\xlang-validation\\xge-full-20261110\\compiler-existing-root-linux-r1\\build.json",
+        "sha256": "6e729bc793dcd92edcd42f51e244bad799187c32ef82121e8275288a31274b11"
+      },
+      "nativeRows": 12,
+      "languageRows": 24,
+      "publicFunctionPopulation": 5718,
+      "directDeclarations": 4644,
+      "unclassifiedByBridgeOrReplacement": {
+        "XGE": 350,
+        "XUI": 392,
+        "Document UI": 2,
+        "Document": 1
+      }
+    }
+  },
+  "checks": [
+    "One checked native call inspects the point using existing hit-test ordering and flags. It returns Context-owned watched views for the selected widget and its parent, plus by-value geometry and diagnostic fields.",
+    "Native and language tests distinguish a miss, a root hit with no parent, a default child hit, a disabled child hit with explicit flags, and invalid coordinates. Closing a widget expires its language alias while the collected geometry remains usable.",
+    "The raw native test verifies cold hit-test stacking OOM leaves output intact, a recoverable layout-prepare diagnostic preserves fallback behavior, and closing Context from layout never publishes an invalidated widget. Both hosted and static native builds run the fixture at O0 and O2 and rerun the prior input and code-search tests.",
+    "The language fixture and the window-free example pass JIT plus standalone dynamic and static AOT. Emitted public declarations compile as C11, C++11 and C++17. Standalone executables omit compiler-library imports.",
+    "Handwritten C and xlang each inspect the same warmed point 1000 times, produce checksum 49000 and show zero XRT allocations, reallocations and frees. Stack-local lifetime links, the native snapshot copy, checked owner-view admission, and geometry conversion remain work. This comparison measures heap activity only."
+  ]
+}

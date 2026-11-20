@@ -1,0 +1,74 @@
+import xui
+
+func stateId(xui.Widget? widget) as c_uint
+    if widget!=null then
+        return widget.getStateId()
+    end
+    return 0
+end
+
+func childCount(xui.Widget? widget) as c_int
+    if widget!=null then
+        return widget.getChildCount()
+    end
+    return -1
+end
+
+func main(...) as int
+    auto proxy=xui.createProxy()
+    auto context=xui.create(proxy,xui.XUI_SYSTEM_FONT_DISABLED)
+    auto root=context.widget()
+    auto leaf=context.widget()
+    xui.Rect bounds
+    bounds.fW=140
+    bounds.fH=90
+    assert root.setRect(bounds)==0 and context.setRootWidget(root)==0
+    bounds.fX=11
+    bounds.fY=17
+    bounds.fW=80
+    bounds.fH=30
+    assert leaf.setRect(bounds)==0 and root.addChild(leaf)==0
+    leaf.setStateId(70)
+    leaf.setLayer(xui.XUI_LAYER_DEBUG,9)
+    context.inputViewport(140,90)
+
+    auto picked, parent, localRect, world, depth, children, visible, _, _, _, _, _, _, _, _, layer, z, _, _, _, _=context.inspectWidgetAt(22.5,24)
+    assert picked!=null and parent!=null
+    assert stateId(picked)==70 and childCount(parent)==1
+    assert visible!=0 and depth==1 and children==0
+    assert layer==xui.XUI_LAYER_DEBUG and z==9
+    assert localRect.fX==11 and world.fY==17 and world.fW==80
+    auto hitRoot, rootParent, _, _, rootDepth, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _=context.inspectWidgetAt(2,2)
+    assert hitRoot!=null and rootParent==null and rootDepth==0
+
+    assert leaf.setEnabled(0)==0
+    auto normal, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _=context.inspectWidgetAt(22,24)
+    assert normal!=null and stateId(normal)!=70
+    c_uint flags=c_uint(xui.XUI_WIDGET_HIT_DEFAULT & ~xui.XUI_WIDGET_HIT_ENABLED)
+    auto disabled, _, _, _, _, _, _, enabled, _, _, _, _, _, _, _, _, _, _, _, _, _=context.inspectWidgetAt(22,24,flags)
+    assert disabled!=null and stateId(disabled)==70 and enabled==0
+    assert leaf.setEnabled(1)==0
+
+    auto missing, missingParent, zeroRect, _, missingDepth, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _=context.inspectWidgetAt(400,400)
+    assert missing==null and missingParent==null and zeroRect.fW==0 and missingDepth==0
+    bool failed=false
+    try
+        picked, parent, localRect, world, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _=context.inspectWidgetAt(1e20,0)
+    catch Error failure
+        failed=true
+    end
+    assert failed and stateId(picked)==70 and world.fW==80
+
+    leaf.close()
+    failed=false
+    try
+        stateId(picked)
+    catch Error failure
+        failed=true
+    end
+    assert failed and world.fW==80 and childCount(parent)==0
+    context.close()
+    proxy.close()
+    println("XUI_WIDGET_INSPECT_DIRECT_OK")
+    return 0
+end

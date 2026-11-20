@@ -1438,6 +1438,8 @@ export extern "xui_context_t*" class Context @header("xge3_runtime.h") @lifetime
 
  extern "xuiHitTest" @no_raise @c_result("owner_view",0) func hitTest(c_int iX,c_int iY,c_uint iFlags) as Widget?
 
+ extern "xuiDebugWidgetInspectAtChecked" @no_raise @c_output_record(4,"xui_debug_widget_info_t","borrowed") @c_output_size(4,"iSize") @c_status(0) @c_output_field(0,"pWidget","owner_view") @c_output_field(1,"pParent","owner_view") @c_output_field(2,"tRect") @c_output_field(3,"tWorldRect") @c_output_field(4,"iDepth") @c_output_field(5,"iChildCount") @c_output_field(6,"bVisible") @c_output_field(7,"bEnabled") @c_output_field(8,"bFocusable") @c_output_field(9,"bTabStop") @c_output_field(10,"bFocusScope") @c_output_field(11,"bHitTestVisible") @c_output_field(12,"bDragEnabled") @c_output_field(13,"bDropEnabled") @c_output_field(14,"iImeMode") @c_output_field(15,"iLayer") @c_output_field(16,"iZIndex") @c_output_field(17,"iDirtyFlags") @c_output_field(18,"iSubtreeDirtyFlags") @c_output_field(19,"iEventMask") @c_output_field(20,"iSubtreeEventMask") func inspectWidgetAt(c_float x,c_float y,c_uint flags=0) as (Widget?,Widget?,Rect,Rect,c_int,c_int,c_int,c_int,c_int,c_int,c_int,c_int,c_int,c_int,c_int,c_int,c_int,c_uint,c_uint,uint64,uint64)
+
  extern "xuiGetHoverWidget" @no_raise @c_result("owner_view",0) func getHoverWidget() as Widget?
 
  extern "xuiGetActiveWidget" @no_raise @c_result("owner_view",0) func getActiveWidget() as Widget?

@@ -1,0 +1,27 @@
+// Inspect a point without opening a window.
+import xui
+
+func main(...) as int
+    auto proxy=xui.createProxy()
+    auto context=xui.create(proxy,xui.XUI_SYSTEM_FONT_DISABLED)
+    auto root=context.widget()
+    auto child=context.widget()
+    xui.Rect bounds
+    bounds.fW=240
+    bounds.fH=140
+    root.setRect(bounds)
+    context.setRootWidget(root)
+    bounds.fX=20
+    bounds.fY=20
+    bounds.fW=100
+    bounds.fH=40
+    child.setRect(bounds)
+    root.addChild(child)
+    context.inputViewport(240,140)
+
+    auto widget, _, _, world, depth, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _=context.inspectWidgetAt(35,30)
+    if widget!=null then
+        println("Widget depth",depth,"width",world.fW)
+    end
+    return 0
+end

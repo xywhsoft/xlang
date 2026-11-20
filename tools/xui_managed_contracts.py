@@ -492,6 +492,15 @@ METHODS.update({
          '@c_output_field(4,"iStateId") @c_output_field(5,"iCachePolicy") @c_output_field(6,"iFlags") '
 'func getRenderNode(c_int index) as (Rect,Rect,c_int,c_int,c_uint,c_int,c_uint)',
          'extern "xuiGetRenderNode" @no_raise @c_output_record(2,"xui_render_node_t","borrowed") @c_output_size(2,"iSize") @c_status(0) @c_output_field(0,"pWidget","owner_view") @c_output_field(1,"tWorldRect") @c_output_field(2,"tPaintRect") @c_output_field(3,"iLayer") @c_output_field(4,"iZIndex") @c_output_field(5,"iStateId") @c_output_field(6,"iCachePolicy") @c_output_field(7,"iFlags") func getRenderNodeWithWidget(c_int index) as (Widget,Rect,Rect,c_int,c_int,c_uint,c_int,c_uint)']],
+    'xuiDebugWidgetInspectAtChecked': [
+        'int xuiDebugWidgetInspectAtChecked(xui_context pContext, float fX, float fY, uint32_t iFlags, xui_debug_widget_info_t* pInfo)', 'Context',
+        ['extern "xuiDebugWidgetInspectAtChecked" @no_raise @c_output_record(4,"xui_debug_widget_info_t","borrowed") @c_output_size(4,"iSize") @c_status(0) '
+         '@c_output_field(0,"pWidget","owner_view") @c_output_field(1,"pParent","owner_view") @c_output_field(2,"tRect") @c_output_field(3,"tWorldRect") '
+         '@c_output_field(4,"iDepth") @c_output_field(5,"iChildCount") @c_output_field(6,"bVisible") @c_output_field(7,"bEnabled") @c_output_field(8,"bFocusable") '
+         '@c_output_field(9,"bTabStop") @c_output_field(10,"bFocusScope") @c_output_field(11,"bHitTestVisible") @c_output_field(12,"bDragEnabled") @c_output_field(13,"bDropEnabled") '
+         '@c_output_field(14,"iImeMode") @c_output_field(15,"iLayer") @c_output_field(16,"iZIndex") @c_output_field(17,"iDirtyFlags") '
+         '@c_output_field(18,"iSubtreeDirtyFlags") @c_output_field(19,"iEventMask") @c_output_field(20,"iSubtreeEventMask") '
+         'func inspectWidgetAt(c_float x,c_float y,c_uint flags=0) as (Widget?,Widget?,Rect,Rect,c_int,c_int,c_int,c_int,c_int,c_int,c_int,c_int,c_int,c_int,c_int,c_int,c_int,c_uint,c_uint,uint64,uint64)']],
     'xuiDebugWidgetInspect': [
         'int xuiDebugWidgetInspect(xui_widget pWidget, xui_debug_widget_info_t* pInfo)', 'Widget',
         ['extern "xuiDebugWidgetInspect" @no_raise @c_output_record(1,"xui_debug_widget_info_t","borrowed") @c_output_size(1,"iSize") @c_status(0) '
