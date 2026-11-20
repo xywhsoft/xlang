@@ -1,0 +1,34 @@
+import xge
+from xge import ResourcePath,ResourceOutput
+
+func main(...) as int
+ xge.init(160,120,"Queued texture")
+ try
+  xge.addResourceProvider("tile",func(ResourcePath path,ResourceOutput output) as c_int
+   // A one-pixel TGA in BGR byte order.
+   output.set(b"\0\0\x02\0\0\0\0\0\0\0\0\0\x01\0\x01\0\x18\x20\x40\x80\xff")
+   return xge.XGE_OK
+  end)
+  auto request=xge.createTextureLoad()
+  request.start("tile://orange")
+  request.throwIfFailed()
+  auto texture=request.take()
+  request.close()
+  try
+   xge.run(func() as c_int
+    assert xge.textureUploadFlush()>=c_int(0)
+    assert texture.storageInfo().bResident==c_int(1)
+    texture.drawPx(0,0)
+    println("Queued texture uploaded")
+    return c_int(1)
+   end)
+  finally
+   xge.setFrameCallback(null)
+   texture.close()
+  end
+ finally
+  xge.resourceProviderClear()
+  xge.unit()
+ end
+ return 0
+end

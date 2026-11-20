@@ -1,0 +1,89 @@
+{
+  "complete": true,
+  "passed": true,
+  "releaseInstalled": false,
+  "sourceParent": "cfddabb88ef43ce7575250be6d88037b55686399",
+  "nativeCommit": "5b2d32e895f8f7efea69febcee5197933a945a2f",
+  "platforms": {
+    "win": {
+      "sdk": {
+        "path": "F:\\xlang-validation\\xge-full-20261110\\async-texture-transfer-sdk-win-r1\\results.json",
+        "sha256": "b92c01fc2810adab088af2b984ecafd2f1912f146ae0f645d95c3e3c977572f7"
+      },
+      "native": {
+        "path": "F:\\xlang-validation\\xge-full-20261110\\async-texture-transfer-native-win-r2\\results.json",
+        "sha256": "1a22b6f8d33507c5c6cdbc98ec0a11924ec88a037ad53d1fe521afc8742bdf71"
+      },
+      "packages": {
+        "path": "F:\\xlang-validation\\xge-full-20261110\\async-texture-transfer-packages-win-r1\\results.json",
+        "sha256": "68673ba31589c663f9c9113ed2ff3e194c64860ffc0c36f15feb88b8cb646088"
+      },
+      "runtime": {
+        "path": "F:\\xlang-validation\\xge-full-20261110\\async-texture-transfer-runtime-win-r2\\results.json",
+        "sha256": "f5a91c7b9f8012848b128b3ef9b25aa6c7c92e935e2d783d664740a4875fff84"
+      },
+      "compiler": {
+        "path": "F:\\xlang-validation\\xge-full-20261110\\compiler-existing-root-win-r1\\build.json",
+        "sha256": "107a294cdefd81906f8e3fef6bced071ececaad4bf1837b61a15b1e9c7858a07"
+      },
+      "audit": {
+        "path": "F:\\xlang-validation\\xge-full-20261110\\async-texture-transfer-audit-win-r1\\consumers\\results.json",
+        "sha256": "b9e863dda51dbb21d4963580f64cebcf43b9998dc468b1d6d9ca9a221d557e44"
+      },
+      "nativeRows": {
+        "owned": 50,
+        "raw": 14
+      },
+      "languageRows": 13,
+      "unclassifiedByBridgeOrReplacement": {
+        "XGE": 358,
+        "XUI": 398,
+        "Document UI": 2,
+        "Document": 1
+      }
+    },
+    "linux": {
+      "sdk": {
+        "path": "\\\\wsl.localhost\\Ubuntu\\var\\tmp\\xlang-validation\\xge-full-20261110\\async-texture-transfer-sdk-linux-r1\\results.json",
+        "sha256": "f5c4a00f510feae6dc868fbc7947c77ffb5c8bc0dde575202af835d84ded67e7"
+      },
+      "native": {
+        "path": "\\\\wsl.localhost\\Ubuntu\\var\\tmp\\xlang-validation\\xge-full-20261110\\async-texture-transfer-native-linux-r1\\results.json",
+        "sha256": "1766bb0edc2dc9034ebcd30208e88fa606af2f953a4d0f2da94971f60ac2eab7"
+      },
+      "packages": {
+        "path": "\\\\wsl.localhost\\Ubuntu\\var\\tmp\\xlang-validation\\xge-full-20261110\\async-texture-transfer-packages-linux-r1\\results.json",
+        "sha256": "ebb636a27e483c0cb93c58c10d0f87a10a33e9a7966275b377cc0acac4d1c539"
+      },
+      "runtime": {
+        "path": "\\\\wsl.localhost\\Ubuntu\\var\\tmp\\xlang-validation\\xge-full-20261110\\async-texture-transfer-runtime-linux-r2\\results.json",
+        "sha256": "e75296c6a0033215ebb525eb13b47b84996a5272eb4d5f66a2da9e030196f39e"
+      },
+      "compiler": {
+        "path": "\\\\wsl.localhost\\Ubuntu\\var\\tmp\\xlang-validation\\xge-full-20261110\\compiler-existing-root-linux-r1\\build.json",
+        "sha256": "6e729bc793dcd92edcd42f51e244bad799187c32ef82121e8275288a31274b11"
+      },
+      "audit": {
+        "path": "\\\\wsl.localhost\\Ubuntu\\var\\tmp\\xlang-validation\\xge-full-20261110\\async-texture-transfer-audit-linux-r1\\consumers\\results.json",
+        "sha256": "5a5b5b4c8823f68979d7c6dc854210fdf0f1385a517766148c565093cb446423"
+      },
+      "nativeRows": {
+        "owned": 50,
+        "raw": 14
+      },
+      "languageRows": 13,
+      "unclassifiedByBridgeOrReplacement": {
+        "XGE": 358,
+        "XUI": 398,
+        "Document UI": 2,
+        "Document": 1
+      }
+    }
+  },
+  "checks": [
+    "The asynchronous texture request allocates a stable backing record at start. Take transfers this exact record. The GPU upload queue and managed texture keep the same address, including when the request closes before GPU startup.",
+    "Native O0/O2 tests cover provider and worker paths, injected allocation failure at start, retry from Pending, single take, checked graphics ownership and no native allocation in take. Take does not copy pixels or scan the upload queue. Normal language view reservation and ownership costs still apply.",
+    "The graphics fixture starts provider and worker requests before the first GPU frame, takes both textures, and closes their requests. At first frame it checks both are already resident and reads back the exact bytes 010203ff010203ff. It also resets and closes requests holding abandoned queued textures before GPU startup.",
+    "Both platforms validate graphics through JIT and standalone dynamic/static AOT, native direct calls, static import isolation and a runnable example. Linux runs the graphics fixture under Xvfb with software OpenGL. This pass verifies correctness and the native allocation boundary without a frame-rate benchmark."
+  ]
+}

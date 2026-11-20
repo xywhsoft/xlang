@@ -42,20 +42,26 @@ OS IO or decoding. Final release requests cancellation and defers physical clean
 until the real XRT worker has returned. It never infers return from an early worker
 flag or frees URI/result/code storage while the worker can still use it.
 
-Image take moves pixels into empty in-place Image storage. Texture take creates
-an independent native owned Texture record and adopts the result; failed transfer
-keeps the request's result. Neither transfer adds a pixel copy. Pending texture
-work and its unclaimed result hold the graphics lifetime, so checked engine
-shutdown reports Busy. Taking the texture transfers that obligation to Texture.
+Image take moves pixels into empty in-place Image storage. The texture request
+allocates a stable record when loading starts. Texture take adopts that same
+record, preserving its address in the GPU upload queue even after the request
+closes. It performs no native allocation, pixel copy or queue search. A failed
+transfer keeps the result in the request. Pending texture work and its unclaimed
+result hold the graphics lifetime, so checked engine shutdown reports Busy.
+Taking the texture transfers that obligation to Texture.
+
+[The queued texture example](../lib/bindings/xge/examples/async_texture.xl)
+loads before the first graphics frame, closes the request, and draws the
+resident Texture when the engine starts.
 
 Font requests allocate a private stable Font record on demand. `take()` adopts
 and detaches that record without moving it, copying its contents or performing
 a native allocation. The Font survives request close, with its own graphics
 lifetime obligation. Reset/close destroys an unclaimed font; admission allocation
 failure leaves the request Pending and releases its temporary graphics hold.
-The 96-byte native Font is not embedded into the common target union: empty
-ImageLoad/TextureLoad request storage retains its prior size. Language result
-ownership still needs its normal view metadata and code-lifetime bookkeeping.
+The native Font and Texture records are both stored by pointer in the common
+target union. Language result ownership still needs its normal view metadata
+and code-lifetime bookkeeping.
 
 Sound requests keep a stable, native-owned Sound pointer in the existing target
 union. A ready unclaimed result holds the audio engine lifetime. `take()` moves
@@ -92,7 +98,7 @@ OS thread-ID reuse remain part of the broader thread-lifetime audit.
 | ReleaseChecked / ReleaseOwnerChecked | rollback or consuming checked destruction, including Deferred |
 | Ownership / Adapter / Preparation / Quiescence / Completion / Finalization / ReadReady | native ownership domain used by the existing runtime graph protocols |
 | AsyncThreadingSet / Get | existing asyncThreadingSet / asyncThreadingGet declarations |
-| AsyncSoundLoad | pending owning audio resource integration; not replaced by an unsafe target pointer |
+| AsyncSoundLoad | SoundLoad.start with an independently owned Sound result |
 
 Mutable raw request targets/payload/user pointers remain the native C protocol.
 They are not advertised as safe language fields; their business functions use
@@ -131,7 +137,7 @@ on both platforms, without a module code owner. The language difference
 is 3 allocations / 592 requested bytes; this comparison does not equate that C
 case to a JIT module with an independent code lease.
 Decoder allocations/copies, worker creation, callback bookkeeping, native Texture
-record allocation and language lifetime bookkeeping remain explicit costs.
+allocation at start and language lifetime bookkeeping remain explicit costs.
 `start` also checks the input byte span for embedded NUL before passing its C
 string; native XGE copies its URI normally. Taking a result creates the language
 owning view/storage metadata without copying pixels. Ordinary calls retain the

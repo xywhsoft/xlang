@@ -1,0 +1,94 @@
+import xge
+from xge import ResourcePath,ResourceOutput
+extern "fixtureAsyncWrite" @header("test/cases/foreign_xge3_async_texture.h") func fixturePath() as string
+extern "fixtureAsyncRemove" @header("test/cases/foreign_xge3_async_texture.h") func removeFixture() as c_int
+func checkTexture(string path) as xge.Texture
+ auto request=xge.createTextureLoad()
+ try
+  request.start(path)
+  int polls=0
+  while request.info().threaded and polls<5000
+   request.poll()
+   xge.sleep(c_uint(1))
+   polls+=1
+  end
+  assert polls<5000 and request.poll()==xge.XGE_ASYNC_READY
+  bool busy=false
+  try
+   xge.unit()
+  catch error
+   busy=true
+  end
+  assert busy and request.info().hasResult
+  auto shared=request.share()
+  request.close()
+  auto texture=shared.take()
+  assert not shared.info().hasResult
+  shared.close()
+  auto pixels=Buffer(b"\0\0\0\0")
+  texture.readPixels(pixels)
+  assert texture.width==c_int(1) and texture.height==c_int(1) and pixels.toBytes()==b"\x01\x02\x03\xff"
+  assert texture.storageInfo().bResident==c_int(0)
+  return texture
+ finally
+  request.close()
+ end
+end
+func main(...) as int
+ xge.init(64,64,"Async texture ownership")
+ string path=fixturePath()
+ try
+  assert path!=""
+  xge.addResourceProvider("texture",func(ResourcePath path,ResourceOutput output) as c_int
+   output.set(b"\0\0\x02\0\0\0\0\0\0\0\0\0\x01\0\x01\0\x18\x20\x03\x02\x01")
+   return xge.XGE_OK
+  end)
+  assert xge.asyncThreadingSet(c_int(0))==xge.XGE_OK
+  auto abandoned=xge.createTextureLoad()
+  abandoned.start("texture://one")
+  abandoned.reset()
+  abandoned.start("texture://one")
+  abandoned.close()
+  assert xge.graphicsResourceCount()==uint64(0)
+  auto providerTexture=checkTexture("texture://one")
+  try
+   assert xge.asyncThreadingSet(c_int(1))==xge.XGE_OK
+   auto fileTexture=checkTexture(path)
+   try
+    xge.run(func() as c_int
+     assert xge.textureUploadFlush()>=c_int(0)
+     // Check residency before a draw can supply its own on-demand upload.
+     assert providerTexture.storageInfo().bResident==c_int(1)
+     assert fileTexture.storageInfo().bResident==c_int(1)
+     auto target=xge.createRenderTarget(2,1)
+     auto pass=xge.createPass(target,c_uint(xge.XGE_PASS_CLEAR_COLOR),0)
+     try
+      pass.begin()
+      providerTexture.drawPx(0,0)
+      fileTexture.drawPx(1,0)
+      pass.finish()
+      auto pixels=Buffer()
+      assert pixels.resize(8)
+      target.readPixels(pixels)
+      assert pixels.hex()=="010203ff010203ff"
+     finally
+      pass.close()
+      target.close()
+     end
+     return c_int(1)
+    end)
+   finally
+    xge.setFrameCallback(null)
+    fileTexture.close()
+   end
+  finally
+   providerTexture.close()
+  end
+  println("ASYNC_TEXTURE_QUEUED_GPU_OK")
+ finally
+  xge.resourceProviderClear()
+  xge.unit()
+  assert removeFixture()==c_int(0)
+ end
+ return 0
+end
