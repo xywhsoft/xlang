@@ -1244,7 +1244,7 @@ INLINE_FUNCTIONS['xuiCodeDiagnosticHitDetails'] = '35a47617b74dfa170459596fcc0ee
 DEFERRED = {}
 
 # Sized text views preserve embedded NUL and checked read failure. The legacy
-# C-string producers remain native capabilities, with explicit replacement maps.
+# Reviewed native entry points with managed replacements.
 REPLACED = {
     'xuiEditGetText': ('xui.Widget.editGetText','xuiEditGetTextView'),
     'xuiCodeEditGetText': ('xui.CodeEdit.getText','xuiCodeEditGetTextView'),
@@ -1258,6 +1258,21 @@ REPLACED = {
     'xuiListViewSetVirtualItems': ('xui.ListView.setVirtualItems','xuiListViewSetVirtualItemsOwned'),
     'xuiChartSetTooltipCallback': ('xui.Chart.setTooltipProvider','xuiChartSetTooltipCallbackOwned'),
     'xuiChartSetContextMenu': ('xui.Chart.setContextMenu','xuiChartSetContextMenuOwned'),
+    'xuiCodeAnnotationGetMarkers': ('xui.CodeAnnotationStore.captureMarkers','xuiCodeAnnotationCaptureMarkers'),
+    'xuiCodeAnnotationGetIndicatorsAt': ('xui.CodeAnnotationStore.captureIndicatorsAt','xuiCodeAnnotationCaptureIndicatorsAt'),
+    'xuiCodeAnnotationGetDiagnosticsAt': ('xui.CodeAnnotationStore.captureDiagnosticsAt','xuiCodeAnnotationCaptureDiagnosticsAt'),
+    'xuiCodeAnnotationGetDiagnosticsInRange': ('xui.CodeAnnotationStore.captureDiagnosticsInRange','xuiCodeAnnotationCaptureDiagnosticsInRange'),
+    'xuiCodeEditGetTextOffsetRect': ('xui.CodeEdit.getOffsetRect','xuiCodeEditGetOffsetRect'),
+    'xuiDatePickerSetChanging': ('xui.DatePicker.setChanging','xuiDatePickerSetChangingOwned'),
+    'xuiDatePickerSetChange': ('xui.DatePicker.setChange','xuiDatePickerSetChangeOwned'),
+    'xuiDatePickerSetCommit': ('xui.DatePicker.setCommit','xuiDatePickerSetCommitOwned'),
+    'xuiDatePickerSetCancel': ('xui.DatePicker.setCancel','xuiDatePickerSetCancelOwned'),
+    'xuiDatePickerSetClear': ('xui.DatePicker.setClear','xuiDatePickerSetClearOwned'),
+    'xuiFlowGraphGetRevision': ('xui.FlowGraph.revision','xuiFlowGraphGetRevisionChecked'),
+    'xuiFlowGraphGetCleanRevision': ('xui.FlowGraph.cleanRevision','xuiFlowGraphGetCleanRevisionChecked'),
+    'xuiInputDecorationAdd': ('xui.Input.decorationAdd','xuiInputDecorationAddOwned'),
+    'xuiInputDecorationSet': ('xui.Input.decorationSet','xuiInputDecorationSetOwned'),
+    'xuiInputDecorationGetRect': ('xui.InputDecoration.getBounds','xuiInputDecorationGetBounds'),
 }
 
 

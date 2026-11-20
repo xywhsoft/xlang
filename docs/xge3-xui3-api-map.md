@@ -12,6 +12,26 @@ The later [explicit host-session batch](xge3-host-session.md) targets native
 driver. It has separate public-package runtime evidence; the older inventory
 counts below have not been relabeled as a full current-SDK acceptance result.
 
+## Managed replacements for legacy C entry points
+
+The native-consumer audit checks the following mappings against the declarations
+selected by the matched XGE and XUI packages. Each mapping points to a callable
+language entry and its actual native target. The detailed audit uses the C
+symbol names in `tools/xge_replay_contracts.py` and
+`tools/xui_managed_contracts.py`.
+
+| Capability | Managed entry and boundary |
+| --- | --- |
+| Input action reset | `Actions.reset()` delivers checked errors from the same native reset operation. |
+| Decoded PCM and glyph bitmaps | `AudioClip.samples()` retains the clip for the immutable sample sequence. `Font.rasterize()` and `rasterizeByIndex()` return owning bitmaps. |
+| Image and texture creation, loading and fallback | `loadImage()`, `loadTexture()`, `createTexture()`, `createYUV420PTexture()`, `textureFallbackSetRGBA()` and `textureFallbackGet()` preserve native format and default flags. Managed constructors publish an owner and counted inputs validate the supplied storage. |
+| Texture transfer | `Texture.readPixels()`, `updateRGBA()` and `updateYUV420P()` call the counted native operations with the actual buffer capacities. |
+| Shader variants and shape clips | `ShaderVariants.get()` returns an independent shader owner. `Shape.clipShapeAt()` and `ShapeScene.clipShapeAt()` retain the selected shape and also return its clip mode. |
+| Particle collision and events | `particleSweepPlane()` and `particleSweepRect()` distinguish an invalid query from a miss. `ParticleWorld.pollEvent()` removes at most one event and distinguishes an empty queue from an error. |
+| Code annotations and text geometry | `CodeAnnotationStore` captures marker, indicator and diagnostic results in explicit snapshots. `CodeEdit.getOffsetRect()` covers the forwarding C alias and keeps UTF-8 byte offsets. |
+| DatePicker and Input decorations | The five DatePicker notification setters and `Input.decorationAdd()` / `decorationSet()` use native retained callback registrations. `InputDecoration.getBounds()` reports checked failures when a view is no longer usable. |
+| FlowGraph revisions | `FlowGraph.revision` and `cleanRevision` use checked native reads, including Busy during model callback reentry. |
+
 | Surface | Native functions | Types | Callable fields |
 | --- | ---: | ---: | ---: |
 | `xge.h` | 1,037 | 281 | 0 |

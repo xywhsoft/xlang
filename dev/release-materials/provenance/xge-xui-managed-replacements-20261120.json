@@ -1,0 +1,232 @@
+{
+  "complete": true,
+  "passed": true,
+  "releaseInstalled": false,
+  "sourceParent": "52b60f96f08148a1ccc4a4d0cd30cc55059917fe",
+  "nativeRuntimeCommit": "e75266536290e2e9ac3c99b186c8bcf3f9397c18",
+  "sourceHashesLf": {
+    "tools/xge_replay_contracts.py": "cbb4a44638da19cae6dc9411f13e344436cd69976049412726f752ebeac3f815",
+    "tools/xui_managed_contracts.py": "02397f68b4153d914cdad051f3ca796c67c140eee0546e815059776a3da2ce7b",
+    "docs/xge3-xui3-api-map.md": "3830ee5e64f1c41373b2450220adc4bb8dd6125c0f7e5a0d7bada6ad27afc889"
+  },
+  "directDeclarations": 4610,
+  "compiledConsumerFunctions": 174,
+  "explicitReplacements": 90,
+  "nonDirectWithoutConsumerOrReplacementEvidence": 814,
+  "remainingByFamily": {
+    "Document": 33,
+    "Document UI": 10,
+    "XGE": 373,
+    "XUI": 398
+  },
+  "addedReplacements": {
+    "xgeActionsReset": {
+      "language": "xge.Actions.reset",
+      "native": "xgeActionsResetChecked"
+    },
+    "xgeAudioClipSamples": {
+      "language": "xge.AudioClip.samples",
+      "native": "xgeAudioClipGetSamples"
+    },
+    "xgeFontGlyphRasterize": {
+      "language": "xge.Font.rasterize",
+      "native": "xgeFontGlyphRasterizeOwned"
+    },
+    "xgeFontGlyphRasterizeByIndex": {
+      "language": "xge.Font.rasterizeByIndex",
+      "native": "xgeFontGlyphRasterizeByIndexOwned"
+    },
+    "xgeImageLoad": {
+      "language": "xge.loadImage",
+      "native": "xgeImageLoadEx"
+    },
+    "xgeImageLoadMemory": {
+      "language": "xge.loadImage",
+      "native": "xgeImageLoadMemoryEx"
+    },
+    "xgeParticleCollidePlane": {
+      "language": "xge.particleSweepPlane",
+      "native": "xgeParticleSweepPlane"
+    },
+    "xgeParticleCollideRect": {
+      "language": "xge.particleSweepRect",
+      "native": "xgeParticleSweepRect"
+    },
+    "xgeParticleEventPoll": {
+      "language": "xge.ParticleWorld.pollEvent",
+      "native": "xgeParticleWorldPollEvent"
+    },
+    "xgeShaderVariantGet": {
+      "language": "xge.ShaderVariants.get",
+      "native": "xgeShaderVariantGetOwned"
+    },
+    "xgeShapeExClipShapeGetAt": {
+      "language": "xge.Shape.clipShapeAt",
+      "native": "xgeShapeExClipShapeGetAtEx"
+    },
+    "xgeShapeExSceneClipShapeGetAt": {
+      "language": "xge.ShapeScene.clipShapeAt",
+      "native": "xgeShapeExSceneClipShapeGetAtEx"
+    },
+    "xgeTextureCreateFromImage": {
+      "language": "xge.createTexture",
+      "native": "xgeTextureCreateFromImageOwned"
+    },
+    "xgeTextureCreateFromImageEx": {
+      "language": "xge.createTexture",
+      "native": "xgeTextureCreateFromImageOwned"
+    },
+    "xgeTextureCreateRGBA": {
+      "language": "xge.createTexture",
+      "native": "xgeTextureCreateRGBAExOwned"
+    },
+    "xgeTextureCreateRGBAEx": {
+      "language": "xge.createTexture",
+      "native": "xgeTextureCreateRGBAExOwned"
+    },
+    "xgeTextureCreateYUV420P": {
+      "language": "xge.createYUV420PTexture",
+      "native": "xgeTextureCreateYUV420POwned"
+    },
+    "xgeTextureFallbackGet": {
+      "language": "xge.textureFallbackGet",
+      "native": "xgeTextureFallbackGetOwned"
+    },
+    "xgeTextureFallbackSetRGBA": {
+      "language": "xge.textureFallbackSetRGBA",
+      "native": "xgeTextureFallbackSetRGBASized"
+    },
+    "xgeTextureLoad": {
+      "language": "xge.loadTexture",
+      "native": "xgeTextureLoadExOwned"
+    },
+    "xgeTextureLoadEx": {
+      "language": "xge.loadTexture",
+      "native": "xgeTextureLoadExOwned"
+    },
+    "xgeTextureLoadMemory": {
+      "language": "xge.loadTexture",
+      "native": "xgeTextureLoadMemoryExOwned"
+    },
+    "xgeTextureLoadMemoryEx": {
+      "language": "xge.loadTexture",
+      "native": "xgeTextureLoadMemoryExOwned"
+    },
+    "xgeTextureReadPixels": {
+      "language": "xge.Texture.readPixels",
+      "native": "xgeTextureReadPixelsSized"
+    },
+    "xgeTextureUpdateRGBA": {
+      "language": "xge.Texture.updateRGBA",
+      "native": "xgeTextureUpdateRGBASized"
+    },
+    "xgeTextureUpdateYUV420P": {
+      "language": "xge.Texture.updateYUV420P",
+      "native": "xgeTextureUpdateYUV420PSized"
+    },
+    "xuiCodeAnnotationGetDiagnosticsAt": {
+      "language": "xui.CodeAnnotationStore.captureDiagnosticsAt",
+      "native": "xuiCodeAnnotationCaptureDiagnosticsAt"
+    },
+    "xuiCodeAnnotationGetDiagnosticsInRange": {
+      "language": "xui.CodeAnnotationStore.captureDiagnosticsInRange",
+      "native": "xuiCodeAnnotationCaptureDiagnosticsInRange"
+    },
+    "xuiCodeAnnotationGetIndicatorsAt": {
+      "language": "xui.CodeAnnotationStore.captureIndicatorsAt",
+      "native": "xuiCodeAnnotationCaptureIndicatorsAt"
+    },
+    "xuiCodeAnnotationGetMarkers": {
+      "language": "xui.CodeAnnotationStore.captureMarkers",
+      "native": "xuiCodeAnnotationCaptureMarkers"
+    },
+    "xuiCodeEditGetTextOffsetRect": {
+      "language": "xui.CodeEdit.getOffsetRect",
+      "native": "xuiCodeEditGetOffsetRect"
+    },
+    "xuiDatePickerSetCancel": {
+      "language": "xui.DatePicker.setCancel",
+      "native": "xuiDatePickerSetCancelOwned"
+    },
+    "xuiDatePickerSetChange": {
+      "language": "xui.DatePicker.setChange",
+      "native": "xuiDatePickerSetChangeOwned"
+    },
+    "xuiDatePickerSetChanging": {
+      "language": "xui.DatePicker.setChanging",
+      "native": "xuiDatePickerSetChangingOwned"
+    },
+    "xuiDatePickerSetClear": {
+      "language": "xui.DatePicker.setClear",
+      "native": "xuiDatePickerSetClearOwned"
+    },
+    "xuiDatePickerSetCommit": {
+      "language": "xui.DatePicker.setCommit",
+      "native": "xuiDatePickerSetCommitOwned"
+    },
+    "xuiFlowGraphGetCleanRevision": {
+      "language": "xui.FlowGraph.cleanRevision",
+      "native": "xuiFlowGraphGetCleanRevisionChecked"
+    },
+    "xuiFlowGraphGetRevision": {
+      "language": "xui.FlowGraph.revision",
+      "native": "xuiFlowGraphGetRevisionChecked"
+    },
+    "xuiInputDecorationAdd": {
+      "language": "xui.Input.decorationAdd",
+      "native": "xuiInputDecorationAddOwned"
+    },
+    "xuiInputDecorationGetRect": {
+      "language": "xui.InputDecoration.getBounds",
+      "native": "xuiInputDecorationGetBounds"
+    },
+    "xuiInputDecorationSet": {
+      "language": "xui.Input.decorationSet",
+      "native": "xuiInputDecorationSetOwned"
+    }
+  },
+  "platforms": {
+    "win": {
+      "baseline": {
+        "path": "F:\\xlang-validation\\xge-full-20261110\\optional-callback-api-audit-win-r3\\consumers\\results.json",
+        "sha256": "f9fd401286ee27d431975ed880cbf6be671f60dd31c12056da238eb401f0da17"
+      },
+      "audit": {
+        "path": "F:\\xlang-validation\\xge-full-20261110\\managed-replacements-audit-win-r1\\results.json",
+        "sha256": "505836b31f4bd0032618ec93fa0877e65cc9671bf66c34844e1feebc7ed57c18"
+      },
+      "runtime": {
+        "path": "F:\\xlang-validation\\xge-full-20261110\\managed-replacements-runtime-win-r2\\results.json",
+        "sha256": "597ead28169f88c955a4500ce856f369568af3f241786f45bd4dee754fa934f1"
+      },
+      "auditChecks": 24,
+      "runtimeChecks": 49
+    },
+    "linux": {
+      "baseline": {
+        "path": "\\\\wsl.localhost\\Ubuntu\\var\\tmp\\xlang-validation\\xge-full-20261110\\optional-callback-api-audit-linux-r2\\consumers\\results.json",
+        "sha256": "1f7a3faacd6fc6642b34b1be5cc849048e13d46219686c1c822615760224a45c"
+      },
+      "audit": {
+        "path": "\\\\wsl.localhost\\Ubuntu\\var\\tmp\\xlang-validation\\xge-full-20261110\\managed-replacements-audit-linux-r1\\results.json",
+        "sha256": "acab916bd005e9f43272af5abcab17d7028f51b7018b2a2eabcdc3db89cdf2c5"
+      },
+      "runtime": {
+        "path": "\\\\wsl.localhost\\Ubuntu\\var\\tmp\\xlang-validation\\xge-full-20261110\\managed-replacements-runtime-linux-r2\\results.json",
+        "sha256": "ec01e22c1c1c54072cb5bc2adbd240316a8a2c525ba83eb2fdc8cd613565175f"
+      },
+      "auditChecks": 24,
+      "runtimeChecks": 49
+    }
+  },
+  "runtimeCases": [
+    "foreign_xge3_input_actions",
+    "foreign_xge3_audio_clip_public",
+    "foreign_xge_particle_queries",
+    "foreign_xge3_texture",
+    "foreign_xge_shape_references",
+    "foreign_xui_codeedit_live_annotations",
+    "foreign_xui_flow_graph"
+  ],
+  "scope": "Checks the 41 reviewed replacement declarations against both matched SDK cohorts and reruns seven representative runtime fixtures. It leaves per-contract qualification of other APIs and release delivery open."
+}
