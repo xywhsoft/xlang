@@ -1,0 +1,148 @@
+{
+  "complete": true,
+  "passed": true,
+  "releaseInstalled": false,
+  "sourceParent": "399db37923a672aef6442c9462e1ca77737e2d4a",
+  "nativeCommit": "2cc1edb7a5e358298384575cf943910b9f1b553c",
+  "checks": [
+    "Renderer.setParticleBillboards calls xge3dBillboardsSetParticles directly. The native call projects live particle records into the renderer's staging array, validates the generated rows, retains the selected texture per row, and publishes only after all admission succeeds.",
+    "Successful submission owns texture references and a copy of the billboard commands independently of later simulation steps. Empty submission clears those commands. collectBillboards remains available to inspect or to hold a reusable immutable snapshot.",
+    "On real graphics contexts, the native fixtures compare rendered pixels to the legacy stack-output path, exercise allocation failure on growth, reject invalid blending, and verify texture leases and render counts through clear and shutdown. The language fixture also checks closed source rejection and independent simulation edits.",
+    "After warming both staging arrays, 128 submissions of the same three textured rows allocate nothing in direct xlang, direct C, and the hand-written C stack output path. The older xlang snapshot route allocated within the frame callback and released memory after it returned. These samples measure XRT heap operations for submission; they do not measure rendering, execution time, or language scope bookkeeping.",
+    "Both Windows and Linux pass the language GPU fixture in JIT, dynamic AOT and static AOT, with import inspection, and run the particle example. Native C uses O0/O2 with host and static XGE."
+  ],
+  "headerReviewRebase": {
+    "path": "F:\\xlang-validation\\xge-full-20261110\\particle-submit3d-storage-rebase-r1.json",
+    "sha256": "4a143a31e25768168032da02afcb21fc38cd22907ee6fcf2643ac870aad562df"
+  },
+  "platforms": {
+    "win": {
+      "sdk": {
+        "path": "F:\\xlang-validation\\xge-full-20261110\\particle-submit3d-sdk-win-r1\\results.json",
+        "sha256": "39a121c2ef288355fca19548c09e98a2134d0456b7b96ab6871b857aaf351b58"
+      },
+      "native": {
+        "path": "F:\\xlang-validation\\xge-full-20261110\\particle-submit3d-native-win-r1\\results.json",
+        "sha256": "f7cb9af8b3d3ebb88f1ce20431d713706a758f408a37889e9aca3a2970abd91b"
+      },
+      "packages": {
+        "path": "F:\\xlang-validation\\xge-full-20261110\\particle-submit3d-packages-win-r1\\results.json",
+        "sha256": "fc6a479faae6c67042adf574836fdcc15ff9b81d0f81eb2be6ab08ecf90b84f8"
+      },
+      "runtime": {
+        "path": "F:\\xlang-validation\\xge-full-20261110\\particle-submit3d-language-win-r2\\results.json",
+        "sha256": "ac9f496845a9fef066bc61b73585effe4491a90eb350d3cbc0bb30bac40a207f"
+      },
+      "bridgeAudit": {
+        "path": "F:\\xlang-validation\\xge-full-20261110\\particle-submit3d-audit-win-r2\\consumers\\results.json",
+        "sha256": "ccc771e9af752ab75cb78f7cf14cd45922d8c45c7b8e19301cbab647b95345d7"
+      },
+      "compiler": {
+        "path": "F:\\xlang-validation\\xge-full-20261110\\compiler-existing-root-win-r1\\build.json",
+        "sha256": "107a294cdefd81906f8e3fef6bced071ececaad4bf1837b61a15b1e9c7858a07"
+      },
+      "publicSurface": {
+        "path": "F:\\xlang-validation\\xge-full-20261110\\particle-submit3d-audit-win-r2\\surface\\surface.json",
+        "sha256": "19b739815d61fda0fc6ad4961cd95774242df0d055be46cc4fbccd5935d165b6"
+      },
+      "heapComparison": {
+        "iterations": 128,
+        "directLanguage": [
+          0,
+          0,
+          0
+        ],
+        "directC": [
+          0,
+          0,
+          0
+        ],
+        "snapshotLanguageInFrame": [
+          256,
+          0,
+          0
+        ],
+        "legacyStackC": [
+          0,
+          0,
+          0
+        ],
+        "snapshotPhaseThroughFrameExit": [
+          256,
+          268,
+          0
+        ]
+      },
+      "unclassifiedByFamily": {
+        "XGE": 366,
+        "XUI": 398,
+        "Document UI": 1,
+        "Document": 1
+      }
+    },
+    "linux": {
+      "sdk": {
+        "path": "\\\\wsl.localhost\\Ubuntu\\var\\tmp\\xlang-validation\\xge-full-20261110\\particle-submit3d-sdk-linux-r1\\results.json",
+        "sha256": "c1ba1bd7ccca3436afc9dc0119a1b4745cf38c47f8cdf05cc7ce379dd1e9a5b0"
+      },
+      "native": {
+        "path": "\\\\wsl.localhost\\Ubuntu\\var\\tmp\\xlang-validation\\xge-full-20261110\\particle-submit3d-native-linux-r1\\results.json",
+        "sha256": "0b19a018c58ca213100900e62be74438e21533c7945972192abbe0292f554f82"
+      },
+      "packages": {
+        "path": "\\\\wsl.localhost\\Ubuntu\\var\\tmp\\xlang-validation\\xge-full-20261110\\particle-submit3d-packages-linux-r1\\results.json",
+        "sha256": "dca077701d71a39454038e51231b1fa864c926b27d3155bafd1f3053de2fe668"
+      },
+      "runtime": {
+        "path": "\\\\wsl.localhost\\Ubuntu\\var\\tmp\\xlang-validation\\xge-full-20261110\\particle-submit3d-language-linux-r2\\results.json",
+        "sha256": "4037c8d4c80eb882015befb2e509795cd1817d379a9c73ef74e2e2f1771624f0"
+      },
+      "bridgeAudit": {
+        "path": "\\\\wsl.localhost\\Ubuntu\\var\\tmp\\xlang-validation\\xge-full-20261110\\particle-submit3d-audit-linux-r2\\consumers\\results.json",
+        "sha256": "0c7aed3fce2f2ca26f4d97d7f617a8ce2e93100c7da13a7a25402105426cd40b"
+      },
+      "compiler": {
+        "path": "\\\\wsl.localhost\\Ubuntu\\var\\tmp\\xlang-validation\\xge-full-20261110\\compiler-existing-root-linux-r1\\build.json",
+        "sha256": "6e729bc793dcd92edcd42f51e244bad799187c32ef82121e8275288a31274b11"
+      },
+      "publicSurface": {
+        "path": "\\\\wsl.localhost\\Ubuntu\\var\\tmp\\xlang-validation\\xge-full-20261110\\particle-submit3d-audit-linux-r2\\surface\\surface.json",
+        "sha256": "c80138fa72af688b97658d2d8858869491b31a9cccda91e1ad43bcd117eedf83"
+      },
+      "heapComparison": {
+        "iterations": 128,
+        "directLanguage": [
+          0,
+          0,
+          0
+        ],
+        "directC": [
+          0,
+          0,
+          0
+        ],
+        "snapshotLanguageInFrame": [
+          256,
+          0,
+          0
+        ],
+        "legacyStackC": [
+          0,
+          0,
+          0
+        ],
+        "snapshotPhaseThroughFrameExit": [
+          256,
+          266,
+          0
+        ]
+      },
+      "unclassifiedByFamily": {
+        "XGE": 366,
+        "XUI": 398,
+        "Document UI": 1,
+        "Document": 1
+      }
+    }
+  }
+}

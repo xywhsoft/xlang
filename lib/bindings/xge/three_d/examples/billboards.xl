@@ -8,9 +8,6 @@ settings.size_end = c_float(0.5)
 auto particles = xge3d.createParticles(settings)
 particles.emit(c_uint(3))
 particles.update(c_float(0.2), c_int(0))
-auto batch = particles.collectBillboards()
-particles.close()
-
 xge.init(480, 320, "3D 粒子")
 xge.run(func() as c_int
     assert xge.begin() == 0
@@ -19,7 +16,8 @@ xge.run(func() as c_int
     auto camera = xge3d.orthographicCamera(c_float(4), c_float(3), c_float(0.1), c_float(10))
     c_float[4] background
     background[3] = c_float(1)
-    renderer.setBillboards(batch)
+    // 直接提交当前粒子，后续帧可以复用渲染器的缓冲区。
+    renderer.setParticleBillboards(particles)
     auto stats = renderer.render(scene, camera, background)
     println("粒子三角形数", stats.triangles)
     renderer.close()
@@ -28,5 +26,5 @@ xge.run(func() as c_int
     return c_int(1)
 end)
 xge.setFrameCallback(null)
+particles.close()
 xge.unit()
-batch.close()

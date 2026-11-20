@@ -68,6 +68,9 @@ a sphere toward a box and prints the distance to first contact.
 reads them after closing the material. It initializes the graphics engine
 and uses a one-pixel inline texture.
 
+`billboards.xl` submits three live particles directly to the 3D renderer
+and prints six triangles. It requires a graphics context and particle support.
+
 `destroyStep` immediately retires the entire subtree logically, including when
 `budget.nodes` is zero. Its return value is zero until all nodes are physically
 removed, then one. Continue with the original root handle while incomplete;

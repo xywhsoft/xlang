@@ -364,6 +364,14 @@ operations after warm-up. The counts cover submission, before rendering.
 
 [Custom billboard example](../lib/bindings/xge/three_d/examples/billboard_batch.xl)
 
+Use `renderer.setParticleBillboards(particles, blend, texture)` to submit
+live particles directly from the simulation. It generates commands in the
+renderer’s reusable staging buffer and retains the optional shared texture
+on publication. Empty particles clear the submission. Later simulation
+updates leave the submitted rows intact until the next successful call.
+Use `particles.collectBillboards()` to keep or inspect an independent batch.
+[Particle rendering example](../lib/bindings/xge/three_d/examples/billboards.xl)
+
 ## Scene node data
 
 `scene.setUserData(node, value)` stores an independent data snapshot.
