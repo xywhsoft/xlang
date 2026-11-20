@@ -1,0 +1,28 @@
+import xui
+from xui import CallbackDocumentFontOutput
+
+auto path = env.get("XUI_RENDERER_FONT")
+assert path != null, "请将 XUI_RENDERER_FONT 设为一个本地 TTF 文件"
+auto proxy = xui.createProxy()
+auto context = xui.create(proxy, xui.XUI_SYSTEM_FONT_DISABLED)
+auto font = proxy.loadFont(path as string, c_float(16), c_uint(xui.XUI_FONT_FORMAT_TTF))
+context.setDefaultFont(font)
+
+auto document = xui.createDocument(profile=c_uint(xui.XUI_DOCUMENT_MARKDOWN))
+document.loadMarkdown("Normal text and **bold text**.")
+auto snapshot = document.snapshot()
+auto renderer = xui.createDocumentRenderer(context)
+renderer.setSnapshot(snapshot, null)
+renderer.setFontResolver(func(xui.CallbackDocumentRenderer source, xui.CString family, c_uint marks, c_float size, CallbackDocumentFontOutput output) as c_int
+    output.setFont(font)
+    return c_int(1)
+end)
+renderer.layout(220, 0, 160)
+println("自定义字体解析完成")
+
+renderer.close()
+snapshot.close()
+document.close()
+context.close()
+font.close()
+proxy.close()

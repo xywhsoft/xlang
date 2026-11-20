@@ -18,6 +18,9 @@
 [document_selection_geometry.xl](document_selection_geometry.xl) 在不打开窗口的情况下
 计算并输出一段跨行选区的矩形。
 
+[document_font_resolver.xl](document_font_resolver.xl) 演示排版时如何通过回调选择字体。
+运行前将环境变量 XUI_RENDERER_FONT 指向一个本地 TTF 文件。
+
 [dock_queries.xl](dock_queries.xl) 不创建图形窗口，演示两个窗口的窗格拆分，
 读取停靠状态、控件和渲染节点的诊断快照，以及使用局部坐标查询拖放目标。
 

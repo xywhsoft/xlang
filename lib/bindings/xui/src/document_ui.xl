@@ -25,7 +25,7 @@ export extern "xui_doc_font_output_t*" class CallbackDocumentFontOutput @header(
  native point handle
  extern "xuiDocumentFontOutputSetFont" @no_raise @c_result("status",0) func setFont(Font font)
  extern "xuiDocumentFontOutputGetFont" @no_raise @c_const(0) @c_result("retained_view") @c_retain(retainFont,"zero",rollbackFont) func font() as Font?
- extern "xuiDocumentFontOutputDisposeChecked" @no_raise @c_result("status",0) func clear()
+ extern "xuiDocumentFontOutputClear" @no_raise @c_result("status",0) func clear()
 end
 
 export typedef DocumentFontResolverProc = func(CallbackDocumentRenderer,CString,c_uint,c_float,CallbackDocumentFontOutput) as c_int

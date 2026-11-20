@@ -127,7 +127,7 @@ prefixLines=['// Direct native Document UI methods. Resource pins, callback epoc
 'export extern "float*" class CallbackDocumentFloat @header("xge3_runtime.h") @lifetime("callback")',' native point handle',' extern "value" @c_deref get value() as c_float',' extern "value" @c_deref let value(c_float number)','end','',
 'export extern "struct xui_doc_snapshot_t*" class CallbackDocumentSnapshot @header("xge3_runtime.h") @lifetime("callback")',' native point handle',' extern "xuiDocumentSnapshotShareOwned" @no_raise @c_result("owned_view") @factory(1,0,rollbackDocumentSnapshot) func share() as DocumentSnapshot','end','',
 'export extern "struct xui_document_renderer_t*" class CallbackDocumentRenderer @header("xge3_runtime.h") @lifetime("callback")',' native point handle',' extern "xuiDocumentRendererRequestClose" @no_raise @c_result("status",0) func requestClose()','end','',
-'export extern "xui_doc_font_output_t*" class CallbackDocumentFontOutput @header("xge3_runtime.h") @lifetime("callback")',' native point handle',' extern "xuiDocumentFontOutputSetFont" @no_raise @c_result("status",0) func setFont(Font font)',' extern "xuiDocumentFontOutputGetFont" @no_raise @c_const(0) @c_result("retained_view") @c_retain(retainFont,"zero",rollbackFont) func font() as Font?',' extern "xuiDocumentFontOutputDisposeChecked" @no_raise @c_result("status",0) func clear()','end','',
+'export extern "xui_doc_font_output_t*" class CallbackDocumentFontOutput @header("xge3_runtime.h") @lifetime("callback")',' native point handle',' extern "xuiDocumentFontOutputSetFont" @no_raise @c_result("status",0) func setFont(Font font)',' extern "xuiDocumentFontOutputGetFont" @no_raise @c_const(0) @c_result("retained_view") @c_retain(retainFont,"zero",rollbackFont) func font() as Font?',' extern "xuiDocumentFontOutputClear" @no_raise @c_result("status",0) func clear()','end','',
 'export typedef DocumentFontResolverProc = func(CallbackDocumentRenderer,CString,c_uint,c_float,CallbackDocumentFontOutput) as c_int',
 'export typedef DocumentObjectMeasureProc = func(CallbackDocumentRenderer,CallbackDocumentSnapshot,uint64,c_float,c_float,CallbackVec2,CallbackDocumentFloat) as c_int',
 'export typedef DocumentObjectDrawProc = func(CallbackDocumentRenderer,CallbackDocumentSnapshot,uint64,CallbackDrawContext,Rect) as c_int',
@@ -217,7 +217,8 @@ for cl in ('DocumentRenderer','DocumentView','DocumentEditor','DocumentWebProvid
  output+=['export extern "'+physical+'" class '+cl+' @header("xge3_runtime.h") '+attributes+base,*([' native point handle'] if not base else []),*classes[cl],*([close] if close else []),'end',decl(release,'rollback'+cl,cl+' value',['@header("xge3_runtime.h")','@c_result("status",0)']).lstrip(),'']
 output+=['extern "xuiDocumentAddRef" @header("xge3_runtime.h") @no_raise func retainDocumentUi(Document value) as c_int','',*[line.replace(' @no_raise ',' @header("xge3_runtime.h") @no_raise ',1) for line in globalFunctions]]
 (root/'lib/bindings/xui/src/document_ui.xl').write_text('\n'.join(output).rstrip()+'\n')
-for name,logical in [('xuiDocumentFontOutputSetFont','CallbackDocumentFontOutput.setFont'),('xuiDocumentFontOutputGetFont','CallbackDocumentFontOutput.font'),('xuiDocumentFontOutputDisposeChecked','CallbackDocumentFontOutput.clear'),('xuiDocumentRendererRequestClose','CallbackDocumentRenderer.requestClose')]:mapped[name]=[logical];reasons.pop(name,None)
+for name,logical in [('xuiDocumentFontOutputSetFont','CallbackDocumentFontOutput.setFont'),('xuiDocumentFontOutputClear','CallbackDocumentFontOutput.clear'),('xuiDocumentFontOutputGetFont','CallbackDocumentFontOutput.font'),('xuiDocumentRendererRequestClose','CallbackDocumentRenderer.requestClose')]:
+ mapped.setdefault(name,[]).append(logical);reasons.pop(name,None)
 message='\n// Document UI declarations generated from xui_document_ui.h.\n'+'\n'.join(classes['MessageList'])+'\n'
 (root/'lib/bindings/xui/src/document_ui_message_methods.inc').write_text(message)
 if not a.no_managed_write:
@@ -232,6 +233,7 @@ for f in h['functions']:
  if name not in mapped:
   state='private-lifetime-infrastructure'
   if name=='xuiDocumentFontOutputInit':reason='Fresh native callback storage only; resetting a live output would erase owning Font state'
+  elif name=='xuiDocumentFontOutputDisposeChecked':reason='Native renderer disposes the output at the callback tail. FontOutputClear can clear and reuse the slot within the callback.'
   elif name in REPLACEMENTS:
    state='replaced-managed-entry';logical,replacement=REPLACEMENTS[name]
    assert logical.removeprefix('xui.') in mapped.get(replacement,[]),(name,logical,replacement)

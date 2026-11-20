@@ -1,5 +1,23 @@
 # Native consumers in the full API inventory
 
+## Document callback output and export ownership
+
+Each font resolver invocation receives an empty output initialized by
+`xuiDocumentFontOutputInit`. Select a Font with `output.setFont(font)`.
+`output.clear()` releases its selection through the checked native
+`xuiDocumentFontOutputClear` operation and leaves the slot usable for another
+selection during that callback. If native release refuses the owner, the slot
+keeps the selected Font so the caller can retry. The renderer disposes the
+output with `xuiDocumentFontOutputDisposeChecked` when the callback returns.
+The language view expires at the callback boundary. A Font obtained with
+`output.font()` owns its own reference.
+
+`xuiDocumentFreeBuffer` remains the release function for raw C outputs.
+The language uses the matched resident XRT allocator marker to adopt the
+seven counted export outputs as owned values. The C reference fixture calls
+`xuiDocumentFreeBuffer` and the language fixture checks the same exports under
+allocation failure. [Ownership evidence](../dev/release-materials/provenance/xui-document-font-output-20261121.json)
+
 ## Document lifecycle audit at XGE 7fd0650a
 
 The matched Windows and Linux packages provide managed counterparts for 39

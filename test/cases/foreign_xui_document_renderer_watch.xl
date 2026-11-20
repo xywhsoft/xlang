@@ -44,6 +44,10 @@ func main(...) as int
   assert output.font() == null, "font resolver output was not initialized empty"
   output.setFont(font)
   auto acquired = output.font() as Font
+  output.clear()
+  output.clear()
+  assert output.font() == null, "clearing the selected font left the output populated"
+  output.setFont(acquired)
   acquired.close()
   saved = output
   callbacks += 1
@@ -54,7 +58,7 @@ func main(...) as int
  bool expired = false
  try
   auto previous = saved as CallbackDocumentFontOutput
-  previous.font()
+  previous.clear()
  catch StateError
   expired = true
  end

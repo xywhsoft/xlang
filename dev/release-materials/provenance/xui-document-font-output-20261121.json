@@ -1,0 +1,104 @@
+{
+  "complete": true,
+  "passed": true,
+  "releaseInstalled": false,
+  "sourceParent": "dc27e0b07b016c67dbab76ab85140367cd5d06ac",
+  "nativeCommit": "07666bdc897331b5413d8c4b76b6d98a1721f901",
+  "nativeHeaderSha256": "f71b81ba01d0cee4fd17a3b1286b94eed83e3809fb05b00c0c5e36309f238775",
+  "generatedMapSha256": "e63653cc9c258f5b15dcd62ceb367290e91c6b998c2a2dcf20e629d5100b7e84",
+  "checks": [
+    "The managed declaration calls xuiDocumentFontOutputClear directly. Clearing releases the current owner while preserving a usable callback output slot. Repeated clear and selecting another Font within the same callback are supported.",
+    "The native test injects a foreign creator identity on the last reference to the selected Font. A rejected clear keeps that owner in place. Restoring the identity and retrying finalizes it once. The language test explicitly reuses an independent Font after clear and rejects a saved output view outside its callback epoch.",
+    "The renderer initializes and disposes the callback-period storage through xuiDocumentFontOutputInit and xuiDocumentFontOutputDisposeChecked. The safe language path uses the callback view and never exposes these two lifetime controls to the caller.",
+    "The matched resident-XRT export marker enables owning text and byte adoption. The executable C reference calls xuiDocumentFreeBuffer on the original five text export allocations. The language fixture exercises all seven producers and checks balanced ownership over 448 injected allocation budgets, invalid range/table inputs, and empty and reversed ranges.",
+    "Windows and Linux exercise the native renderer with both O0 and O2 hosted and static XGE. Language fixtures use JIT, dynamic AOT and static AOT with import inspection. The font resolver example uses a repository TTF and no browser, network, or GPU."
+  ],
+  "platforms": {
+    "win": {
+      "sdk": {
+        "path": "F:\\xlang-validation\\xge-full-20261110\\document-font-clear-sdk-win-r2\\results.json",
+        "sha256": "a1aa14f6394097a74ee7ad69e3316d6e7af6d8daf10b3adab4bc2be028aa7302"
+      },
+      "native": {
+        "path": "F:\\xlang-validation\\xge-full-20261110\\document-font-clear-native-win-r4\\results.json",
+        "sha256": "10dc7a21d9855f8195c584cb14a75893253a483831e7469e7a79e317b53d0e72"
+      },
+      "packages": {
+        "path": "F:\\xlang-validation\\xge-full-20261110\\document-font-clear-packages-win-r3\\results.json",
+        "sha256": "88450e1df94260aaefa5b38c883a9d1152b35cf951c122d63d897b83fe94d013"
+      },
+      "testedPackages": {
+        "path": "F:\\xlang-validation\\xge-full-20261110\\document-font-clear-packages-win-r2\\results.json",
+        "sha256": "df39fb20e5b64f782aa1469e4f2a203f24142b5a36926f10c7f60ca162ee1f45"
+      },
+      "runtime": {
+        "path": "F:\\xlang-validation\\xge-full-20261110\\document-font-clear-runtime-win-r2\\results.json",
+        "sha256": "a926d7f918f9c467fa18c02b043c796736bc89ac2451f2ef38ec62086e191fb8"
+      },
+      "bridgeAudit": {
+        "path": "F:\\xlang-validation\\xge-full-20261110\\document-font-clear-audit-win-r1\\consumers\\results.json",
+        "sha256": "65ab89e4e8141644911fac35493290df6274ef901de04d87505113c82ef620a4"
+      },
+      "compiler": {
+        "path": "F:\\xlang-validation\\xge-full-20261110\\compiler-existing-root-win-r1\\build.json",
+        "sha256": "107a294cdefd81906f8e3fef6bced071ececaad4bf1837b61a15b1e9c7858a07"
+      },
+      "exportAllocationCounts": {
+        "rounds": 100,
+        "native": [
+          600,
+          600,
+          0
+        ],
+        "language": [
+          600,
+          600,
+          0
+        ]
+      }
+    },
+    "linux": {
+      "sdk": {
+        "path": "\\\\wsl.localhost\\Ubuntu\\var\\tmp\\xlang-validation\\xge-full-20261110\\document-font-clear-sdk-linux-r2\\results.json",
+        "sha256": "bb94d9ba4fc42a6b3d5684e5dea7620e41fdf75d184b75195eebf1ceab6285df"
+      },
+      "native": {
+        "path": "\\\\wsl.localhost\\Ubuntu\\var\\tmp\\xlang-validation\\xge-full-20261110\\document-font-clear-native-linux-r4\\results.json",
+        "sha256": "298db4b43d666ea01c5d919070d724337000f444d394c8b80564682e525a0cd2"
+      },
+      "packages": {
+        "path": "\\\\wsl.localhost\\Ubuntu\\var\\tmp\\xlang-validation\\xge-full-20261110\\document-font-clear-packages-linux-r3\\results.json",
+        "sha256": "4bbf5ea3727b11aa56b7abc7e5e4a0c7cd728b8a1d8be353b562ec2a6acc9aea"
+      },
+      "testedPackages": {
+        "path": "\\\\wsl.localhost\\Ubuntu\\var\\tmp\\xlang-validation\\xge-full-20261110\\document-font-clear-packages-linux-r2\\results.json",
+        "sha256": "c8010f02b84d609444718b36558babe0fbb213d7afc9aecbaab7554b2af79278"
+      },
+      "runtime": {
+        "path": "\\\\wsl.localhost\\Ubuntu\\var\\tmp\\xlang-validation\\xge-full-20261110\\document-font-clear-runtime-linux-r2\\results.json",
+        "sha256": "a335fb905eb9cfbd9631fd42cfc9e5a1d6ad1a6b344bb4a5f273578574e962ea"
+      },
+      "bridgeAudit": {
+        "path": "\\\\wsl.localhost\\Ubuntu\\var\\tmp\\xlang-validation\\xge-full-20261110\\document-font-clear-audit-linux-r1\\consumers\\results.json",
+        "sha256": "c860f070113601d5e165df9026da297463ba7112971b9f54172982af25b2c838"
+      },
+      "compiler": {
+        "path": "\\\\wsl.localhost\\Ubuntu\\var\\tmp\\xlang-validation\\xge-full-20261110\\compiler-existing-root-linux-r1\\build.json",
+        "sha256": "6e729bc793dcd92edcd42f51e244bad799187c32ef82121e8275288a31274b11"
+      },
+      "exportAllocationCounts": {
+        "rounds": 100,
+        "native": [
+          600,
+          600,
+          0
+        ],
+        "language": [
+          600,
+          600,
+          0
+        ]
+      }
+    }
+  }
+}
