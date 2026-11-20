@@ -1,0 +1,78 @@
+{
+  "complete": true,
+  "passed": true,
+  "shippingDelivery": false,
+  "runtimeAcceptance": false,
+  "sourceParent": "482da253f79ec2ea64bca2a48790cb4b9b9fbbf5",
+  "nativeCommit": "6d58ce7a88e53399f46766b374d4af53020b931d",
+  "functionPopulation": 5686,
+  "directDeclarations": 4604,
+  "nonDirectFunctions": 1082,
+  "families": {
+    "XGE": {
+      "nonDirect": 438,
+      "compiledBridge": 33,
+      "replacement": 6,
+      "neither": 399
+    },
+    "XUI": {
+      "nonDirect": 553,
+      "compiledBridge": 106,
+      "replacement": 30,
+      "neither": 417
+    },
+    "Document": {
+      "nonDirect": 65,
+      "compiledBridge": 24,
+      "replacement": 0,
+      "neither": 41
+    },
+    "Document UI": {
+      "nonDirect": 26,
+      "compiledBridge": 11,
+      "replacement": 0,
+      "neither": 15
+    }
+  },
+  "toolSourcesSha256Lf": {
+    "tools/check_xge3_native_consumers.py": "393cc448d3790fff4e818e4036322d71d96188994e072e0926a6c5fcacd39cd6",
+    "docs/xge3-native-consumer-audit.md": "c702f33e0699034056f50ddb167cfb6af38f9e198a7c5c22a92c375cb23f9a71"
+  },
+  "checks": [
+    "The native consumer audit combines reviewed XGE and XUI replacements and checks each language name against the matched package-selected declarations.",
+    "Static package compilation receives the native-link schema macro selected by the compiler's native-link options.",
+    "Windows and Linux classify every non-direct row identically. Symbol consumers and replacements do not imply runtime qualification."
+  ],
+  "platforms": {
+    "win": {
+      "surface": {
+        "path": "F:\\xlang-validation\\xge-full-20261110\\scroll-value-api-audit-win-r1\\surface\\surface.json",
+        "sha256": "d7b062e883cf0e979eb649ac2e1937cb56489ecdcac0f0b2ddef006560049d72"
+      },
+      "compiledConsumers": {
+        "path": "F:\\xlang-validation\\xge-full-20261110\\scroll-value-api-audit-win-r1\\consumers-r4\\results.json",
+        "sha256": "b3cd04cbac976b0d0db93b4cc25be197985413e0fccc2d2d70a38f83623a5b52"
+      },
+      "nativeSourceRecord": {
+        "path": "F:\\xlang-validation\\xge-full-20261110\\scroll-value-api-audit-win-r1\\native-source.json",
+        "sha256": "7b9602d6b6c1dedec0ff8b94136e7283714e4522769754641ce627ce12b21ecb"
+      },
+      "checks": 24
+    },
+    "linux": {
+      "surface": {
+        "path": "\\\\wsl.localhost\\Ubuntu\\var\\tmp\\xlang-validation\\xge-full-20261110\\scroll-value-api-audit-linux-r1\\surface\\surface.json",
+        "sha256": "8869a60e44256e983a92b0d7cd0672b3e21db97de4cf2b6ea7751209664a522b"
+      },
+      "compiledConsumers": {
+        "path": "\\\\wsl.localhost\\Ubuntu\\var\\tmp\\xlang-validation\\xge-full-20261110\\scroll-value-api-audit-linux-r1\\consumers-r4\\results.json",
+        "sha256": "e8fc1fa342c739484fc817d914f76acaddfd9f7c9cd95bb3040f625321cf0201"
+      },
+      "nativeSourceRecord": {
+        "path": "\\\\wsl.localhost\\Ubuntu\\var\\tmp\\xlang-validation\\xge-full-20261110\\scroll-value-api-audit-linux-r1\\native-source.json",
+        "sha256": "3991a743f0da289e5728f47e5f47cfffe51a586c38ef29717bdd08af97e3f983"
+      },
+      "checks": 24
+    }
+  }
+}

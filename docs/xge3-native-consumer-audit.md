@@ -1,6 +1,22 @@
 # Native consumers in the full API inventory
 
-The current committed binding population declares 3903 of the 5294 native
+## XGE 6d58ce7a and matched XUI packages
+
+The November 20 audit found 4,604 directly declared function names in a
+population of 5,686. The 1,082 remaining rows include 174 with a compiled
+bridge consumer and 36 with a verified public replacement, including
+30 from the XUI registry. Another 872 rows still require classification.
+
+Both platforms compiled all seven package-selected bridge units and produced
+identical classifications. The audit uses the matched static package's
+native-link schema and verifies the language name and declaration of each
+replacement against the staged sources. The counts describe source and
+consumer evidence. ABI, lifetime and runtime qualification remain separate.
+[Evidence index](../dev/release-materials/provenance/xge3-native-consumer-refresh-20261120.json)
+
+## Earlier Native b44 audit
+
+The audited binding population declared 3903 of the 5294 native
 function names at Native b44. The other 1391 names are a review population,
 not a missing-feature count or a completion percentage. This population
 excludes the uncommitted Graph model candidate.
