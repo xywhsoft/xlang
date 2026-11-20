@@ -36,6 +36,8 @@
 
 [inventory_icons.xl](inventory_icons.xl) 让两个槽位共享同一张图标，关闭创建时的引用后仍可正常显示。
 
+[inventory_scroll.xl](inventory_scroll.xl) 用按钮回到物品栏顶部或定位到最后一槽，滚轮也可操作同一视口。
+
 [combobox_items.xl](combobox_items.xl) 使用业务值、禁用状态和分隔线配置下拉选项，并读取当前选项。
 
 [timeline_state.xl](timeline_state.xl) 设置一个关键帧并读取区间快照。[message_nodes.xl](message_nodes.xl) 批量加载消息，再读取辅助节点。

@@ -1289,6 +1289,18 @@ METHODS.update({
     'xuiInventoryGridClearAll': (
         'int xuiInventoryGridClearAll(xui_widget pWidget)',
         'InventoryGrid', ['extern "xuiInventoryGridClearAll" @no_raise @c_result("status",0) func clearAll()']),
+    'xuiInventoryGridGetScrollSnapshot': (
+        'int xuiInventoryGridGetScrollSnapshot(xui_widget pWidget, xui_scroll_model_t* pSnapshot)',
+        'InventoryGrid', ['extern "xuiInventoryGridGetScrollSnapshot" @no_raise @c_output(1,0) func scrollSnapshot() as ScrollModel']),
+    'xuiInventoryGridSetScrollOffset': (
+        'int xuiInventoryGridSetScrollOffset(xui_widget pWidget, float fX, float fY)',
+        'InventoryGrid', ['extern "xuiInventoryGridSetScrollOffset" @no_raise @c_result("status",0) func setScrollOffset(c_float x,c_float y)']),
+    'xuiInventoryGridScrollBy': (
+        'int xuiInventoryGridScrollBy(xui_widget pWidget, float fDeltaX, float fDeltaY)',
+        'InventoryGrid', ['extern "xuiInventoryGridScrollBy" @no_raise @c_result("status",0) func scrollBy(c_float dx,c_float dy)']),
+    'xuiInventoryGridEnsureContentRectVisible': (
+        'int xuiInventoryGridEnsureContentRectVisible(xui_widget pWidget, xui_rect_t tContentRect)',
+        'InventoryGrid', ['extern "xuiInventoryGridEnsureContentRectVisible" @no_raise @c_result("status",0) func ensureContentRectVisible(Rect contentRect)']),
     'xuiInventoryGridSetDragCallbackOwned': (
         'int xuiInventoryGridSetDragCallbackOwned(xui_widget pWidget, xui_inventory_drag_proc onDrag, void* pUser, const xui_callback_owner_t* pOwner)',
         'InventoryGrid', ['extern "xuiInventoryGridSetDragCallbackOwned" @no_raise @c_owned_callback(0,0,"xui_callback_owner_t",0) @c_result("status",0) func setDragCallback(InventoryDragProc? onDrag)']),
@@ -1329,6 +1341,7 @@ CALLBACKS.update({
         'export typedef InventoryAnimationRenderProc = func(CallbackWidget,c_int,CallbackInventorySlot,CallbackDrawContext,Rect,c_uint,c_uint,c_uint) as c_int'),
 })
 REPLACED.update({
+    'xuiInventoryGridGetScrollModel': ('xui.InventoryGrid.scrollSnapshot','xuiInventoryGridGetScrollSnapshot'),
     'xuiInventoryGridSetDragCallback': ('xui.InventoryGrid.setDragCallback','xuiInventoryGridSetDragCallbackOwned'),
     'xuiInventoryGridSetDropCallback': ('xui.InventoryGrid.setDropCallback','xuiInventoryGridSetDropCallbackOwned'),
     'xuiInventoryGridSetTooltipCallback': ('xui.InventoryGrid.setTooltipProvider','xuiInventoryGridSetTooltipCallbackOwned'),

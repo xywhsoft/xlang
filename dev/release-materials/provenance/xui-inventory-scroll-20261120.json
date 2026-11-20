@@ -1,0 +1,323 @@
+{
+  "complete": true,
+  "passed": true,
+  "releaseInstalled": false,
+  "sourceParent": "dcdd213259d9543bf3318cb7228b098f16c79f91",
+  "nativeCommit": "d36ff96f9fa626806ccde3e7bcab560013f1728b",
+  "xrtCommit": "804cc769de3030118c2b46ef7af69543d1b82d9d",
+  "nativeSourceHashesLf": {
+    "include/xui.h": "c053bfdccbaa98e98ed12c4a15cd3024e61508a99dfa574ee60f66a7eb809753",
+    "src/xui/controls/xui_inventory_grid.c": "73068735d9e99edca529a47a8a5e0da13746eea93c992c67b29e8d8d7ce43095",
+    "tests/xui/xui_inventory_grid_test.c": "0355376bb815f08f77ef10dea0aed70ff80e3f1a6c7e124e37d37d112282620b"
+  },
+  "languageSourceHashesLf": {
+    "docs/xge3-xui3-api-map-storage.json": "eb43f8e38ce2480ebecb0f3a34cbd3fe6280492b777d7789cded0a1901582613",
+    "lib/bindings/xui/examples/README.md": "1643ec76b5cea1fc2448d760dc273f94d467a35fcd3470b22b1146c5629920d8",
+    "lib/bindings/xui/examples/inventory_scroll.xl": "b7229617f0b660f304825b3b0ed9451c0b7eb6c54d98b22d07e69efadc3c33fb",
+    "lib/bindings/xui/src/managed.xl": "b10897ad36c7a1c631635ca75fc6bdf304e017a634e632b7cb1e3b6bbe8dbad9",
+    "test/cases/foreign_xui_inventory_scroll.xl": "5c35979b00b868ddb244cd2aa42fc93755a3ca3b888bdb8f845ad8ffa5972a2b",
+    "tools/check_xge3_bindings.py": "29018a9d8736046d94d502274533b11a99259a92cd691c8084db5b1ea203700b",
+    "tools/xui_managed_contracts.py": "56b8c0d4f0e53f00bb3f8355afe2b666180ee98b4714a958fc70541e6f791802"
+  },
+  "checks": [
+    "InventoryGrid returns an independent copy of arranged viewport, content extent and offset. The copy survives grid and Context retirement.",
+    "Absolute and relative changes, content-rectangle reveals, wheel input and slot reveals use the same update path. An unchanged offset retains the render cache. A changed offset updates painted ranges and hit testing.",
+    "The native fixture rejects over-limit finite deltas and NaN with the previous offset intact. Boundary deltas clamp, growing viewport and content together preserves a valid offset, and empty grids reset the tested offset.",
+    "The JIT, dynamic and static xlang fixtures exercise scrolling and retirement. The window example renders the initial grid in JIT and static AOT.",
+    "The same matched packages pass 17 SVG observed-view checks on each platform, including checked failure before and after reload clears contents, alias invalidation, shared-module retirement and the public example."
+  ],
+  "costs": [
+    "Generated calls target the native entry points directly. Reading a snapshot copies the fixed-size native record by value.",
+    "Layout uses a temporary native scroll record so viewport and content-size updates publish together. Managed calls retain existing scope and checked status handling.",
+    "The paired heap profile warms both paths, then alternates +8 and -8 pixels for 100 successful changes in each path on the same grid. It records XRT allocator operations and excludes drawing, construction and elapsed time."
+  ],
+  "svgObservedChildCommit": "14fc37ca8e2ecdd8fbaba99c017e5d941ecc9967",
+  "svgPaintCommit": "0eab8a36212129c4fd17670639f0988e264a34e6",
+  "pending": [
+    "Whole-goal XGE, XUI and Document audit and matched release/IDE delivery."
+  ],
+  "platforms": {
+    "win": {
+      "imports": {
+        "host": [
+          "msvcrt.dll",
+          "xge3_host.dll",
+          "kernel32.dll",
+          "SHELL32.dll",
+          "ws2_32.dll",
+          "IPHLPAPI.dll",
+          "ucrtbase.dll"
+        ],
+        "static": [
+          "msvcrt.dll",
+          "kernel32.dll",
+          "USER32.dll",
+          "OLEAUT32.dll",
+          "ole32.dll",
+          "SHELL32.dll"
+        ]
+      },
+      "example": {
+        "example-jit": {
+          "dimensions": [
+            800,
+            600
+          ],
+          "gridPixels": {
+            "gridInk": 254
+          }
+        },
+        "static-run": {
+          "dimensions": [
+            800,
+            600
+          ],
+          "gridPixels": {
+            "gridInk": 254
+          }
+        }
+      },
+      "heapPer100Scrolls": {
+        "native": [
+          0,
+          0,
+          0
+        ],
+        "language": [
+          0,
+          0,
+          0
+        ]
+      }
+    },
+    "linux": {
+      "imports": {
+        "host": [
+          "libm.so.6",
+          "libmvec.so.1",
+          "libxge3_host.so",
+          "libc.so.6",
+          "ld-linux-x86-64.so.2"
+        ],
+        "static": [
+          "libm.so.6",
+          "libmvec.so.1",
+          "libX11.so.6",
+          "libXi.so.6",
+          "libXcursor.so.1",
+          "libGL.so.1",
+          "libc.so.6",
+          "ld-linux-x86-64.so.2"
+        ]
+      },
+      "example": {
+        "example-jit": {
+          "dimensions": [
+            800,
+            600
+          ],
+          "gridPixels": {
+            "gridInk": 311
+          }
+        },
+        "static-run": {
+          "dimensions": [
+            800,
+            600
+          ],
+          "gridPixels": {
+            "gridInk": 311
+          }
+        }
+      },
+      "heapPer100Scrolls": {
+        "native": [
+          0,
+          0,
+          0
+        ],
+        "language": [
+          0,
+          0,
+          0
+        ]
+      }
+    }
+  },
+  "evidence": {
+    "win": {
+      "sdk": {
+        "path": "F:\\xlang-validation\\xge-full-20261110\\inventory-scroll-sdk-win-r1\\results.json",
+        "sha256": "4dd48e38dcc5c9c981d54a435745d6c70b672e7c3ae85800c8cb1a21e0226bbd",
+        "checks": [
+          "host",
+          "static"
+        ]
+      },
+      "packageReplay": {
+        "path": "F:\\xlang-validation\\xge-full-20261110\\inventory-scroll-packages-win-r1\\results.json",
+        "sha256": "c71b61ebfcdd01bccc740ea947c5ac1c5b98865381f50081d7dd37f79288b474",
+        "checks": [
+          "generated-declarations",
+          "inventory",
+          "strict-current-storage-replay",
+          "host",
+          "static",
+          "replay"
+        ]
+      },
+      "nativeFixture": {
+        "path": "F:\\xlang-validation\\xge-full-20261110\\inventory-scroll-native-static-win-r2\\results.json",
+        "sha256": "99a5a66142c5429514b2fa5124e3684694529601d977f2ebf08cec7397cf09df",
+        "checks": [
+          "O0-build",
+          "O0-run",
+          "O2-build",
+          "O2-run"
+        ]
+      },
+      "languageFixture": {
+        "path": "F:\\xlang-validation\\xge-full-20261110\\inventory-scroll-language-tests-win-r1\\results.json",
+        "sha256": "b300a69773e8c51573cbf74b55047e0b02a5b9474c59ad1d3a7f094cffdcc0e4",
+        "checks": [
+          "emit",
+          "jit",
+          "example-cgen",
+          "host-build",
+          "host-run",
+          "host-imports",
+          "static-build",
+          "static-run",
+          "static-imports"
+        ]
+      },
+      "example": {
+        "path": "F:\\xlang-validation\\xge-full-20261110\\inventory-scroll-example-win-r1\\results.json",
+        "sha256": "4696e2e6188b9bdcb80ee2e2ba50074a2c9d49beedfccd0313651f3193e8ac81",
+        "checks": [
+          "base-emit",
+          "example-jit",
+          "static-build",
+          "static-run"
+        ]
+      },
+      "scrollHeapProfile": {
+        "path": "F:\\xlang-validation\\xge-full-20261110\\inventory-scroll-profile-win-r1\\results.json",
+        "sha256": "236433ad808dc78d5cd707f79fa4ff6fc63d60df11289ad99386efc17949953f",
+        "checks": [
+          "profile"
+        ]
+      },
+      "svgObservedView": {
+        "path": "F:\\xlang-validation\\xge-full-20261110\\svg-observed-inventory-scroll-win-r1\\results.json",
+        "sha256": "98cc53312228c51819f65842a0a3f33a6248ade15b57c51d918df3f18bce335b",
+        "checks": [
+          "emit",
+          "header-c11",
+          "header-c++11",
+          "header-c++17",
+          "host-jit",
+          "host-build",
+          "host-run",
+          "host-imports",
+          "static-build",
+          "static-run",
+          "static-imports",
+          "shared-build",
+          "shared-run",
+          "shared-imports",
+          "lesson-build",
+          "lesson-run",
+          "lesson-imports"
+        ]
+      }
+    },
+    "linux": {
+      "sdk": {
+        "path": "\\\\wsl.localhost\\Ubuntu\\var\\tmp\\xlang-validation\\xge-full-20261110\\inventory-scroll-sdk-linux-r1\\results.json",
+        "sha256": "0afe5b98ea96812d04d6d10201f20bcb68fbddcdc22246610f3bbfdada843126",
+        "checks": [
+          "host",
+          "static"
+        ]
+      },
+      "packageReplay": {
+        "path": "\\\\wsl.localhost\\Ubuntu\\var\\tmp\\xlang-validation\\xge-full-20261110\\inventory-scroll-packages-linux-r1\\results.json",
+        "sha256": "52b93b8b6887450894cef878c8cb525e65c69047d411a91bbcf16b8ea4e11d29",
+        "checks": [
+          "generated-declarations",
+          "inventory",
+          "strict-current-storage-replay",
+          "host",
+          "static",
+          "replay"
+        ]
+      },
+      "nativeFixture": {
+        "path": "\\\\wsl.localhost\\Ubuntu\\var\\tmp\\xlang-validation\\xge-full-20261110\\inventory-scroll-native-static-linux-r2\\results.json",
+        "sha256": "af580f841da9aebbcfaed1b740c3786346d74d0e10c8ed7c26db9cbf279540ee",
+        "checks": [
+          "O0-build",
+          "O0-run",
+          "O2-build",
+          "O2-run"
+        ]
+      },
+      "languageFixture": {
+        "path": "\\\\wsl.localhost\\Ubuntu\\var\\tmp\\xlang-validation\\xge-full-20261110\\inventory-scroll-language-tests-linux-r1\\results.json",
+        "sha256": "38235a44dd76e3a275cc8945eef313c4750b7c97802f924f43d9f264c06ac4a8",
+        "checks": [
+          "emit",
+          "jit",
+          "example-cgen",
+          "host-build",
+          "host-run",
+          "host-imports",
+          "static-build",
+          "static-run",
+          "static-imports"
+        ]
+      },
+      "example": {
+        "path": "\\\\wsl.localhost\\Ubuntu\\var\\tmp\\xlang-validation\\xge-full-20261110\\inventory-scroll-example-linux-r1\\results.json",
+        "sha256": "c1ee83a1549c1b560bcc79d28f9bee200b88b37ccc118b6ffd0831d6e852eda2",
+        "checks": [
+          "base-emit",
+          "example-jit",
+          "static-build",
+          "static-run"
+        ]
+      },
+      "scrollHeapProfile": {
+        "path": "\\\\wsl.localhost\\Ubuntu\\var\\tmp\\xlang-validation\\xge-full-20261110\\inventory-scroll-profile-linux-r1\\results.json",
+        "sha256": "653b88aa454054e21c0dcfd440a765106aad1ac9c4cfeb7be14b304b3d528352",
+        "checks": [
+          "profile"
+        ]
+      },
+      "svgObservedView": {
+        "path": "\\\\wsl.localhost\\Ubuntu\\var\\tmp\\xlang-validation\\xge-full-20261110\\svg-observed-inventory-scroll-linux-r1\\results.json",
+        "sha256": "bd6ee1edaaf7786b7445846a13787ca14e5dc45026d5a58d851ebbe01aa52ec1",
+        "checks": [
+          "emit",
+          "header-c11",
+          "header-c++11",
+          "header-c++17",
+          "host-jit",
+          "host-build",
+          "host-run",
+          "host-imports",
+          "static-build",
+          "static-run",
+          "static-imports",
+          "shared-build",
+          "shared-run",
+          "shared-imports",
+          "lesson-build",
+          "lesson-run",
+          "lesson-imports"
+        ]
+      }
+    }
+  }
+}

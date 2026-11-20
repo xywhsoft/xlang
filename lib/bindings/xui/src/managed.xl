@@ -3969,6 +3969,14 @@ export extern "xui_widget_t*" class InventoryGrid @header("xge3_runtime.h") @lif
 
  extern "xuiInventoryGridGetSlotRect" @no_raise @c_output(2,0) func getSlotRect(c_int iSlot) as Rect
 
+ extern "xuiInventoryGridGetScrollSnapshot" @no_raise @c_output(1,0) func scrollSnapshot() as ScrollModel
+
+ extern "xuiInventoryGridSetScrollOffset" @no_raise @c_result("status",0) func setScrollOffset(c_float x,c_float y)
+
+ extern "xuiInventoryGridScrollBy" @no_raise @c_result("status",0) func scrollBy(c_float dx,c_float dy)
+
+ extern "xuiInventoryGridEnsureContentRectVisible" @no_raise @c_result("status",0) func ensureContentRectVisible(Rect contentRect)
+
  // Native hit-test input is in world coordinates; its result rectangle is local.
  extern "xuiInventoryGridHitTest" @no_raise @c_output(3,0) func hitTest(c_float worldX,c_float worldY) as InventoryHit
 

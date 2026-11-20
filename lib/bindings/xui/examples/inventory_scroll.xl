@@ -1,0 +1,31 @@
+import xui
+from "./_window.xl" import Window
+
+Window.show("滚动物品栏", func(xui.Context ui, xui.Widget root)
+    auto inventory = ui.inventoryGridNative()
+    Window.place(root, inventory, 24, 24, 320, 190)
+    auto layout = inventory.getLayout()
+    layout.iColumns = 6
+    inventory.setLayout(layout)
+    inventory.setSlotCount(48)
+
+    auto item = xui.InventorySlotSettings()
+    for index in range(48)
+        item.iItemId = c_int(index + 1)
+        inventory.setSlotContent(c_int(index), item, string(index + 1))
+    end
+
+    auto home = ui.buttonNative()
+    home.setText("回到顶部")
+    Window.place(root, home, 24, 230, 126, 34)
+    home.setClick(func(xui.Widget sender)
+        inventory.setScrollOffset(0, 0)
+    end)
+
+    auto last = ui.buttonNative()
+    last.setText("查看最后一槽")
+    Window.place(root, last, 160, 230, 150, 34)
+    last.setClick(func(xui.Widget sender)
+        inventory.ensureSlotVisible(47)
+    end)
+end)

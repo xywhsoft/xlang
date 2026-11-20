@@ -1037,6 +1037,7 @@ def generate_xui(root,header,records,types,primitive,param,reserved,reviewed_spa
                       ('xuiInventoryGridSetAnimationLayerOwned','owned-callback'),
                       ('xuiInventoryGridSetSlotIcon','shared-owned-surface-slot'),
                       ('xuiInventoryGridGetSlotIcon','retained-surface-output'),
+                      ('xuiInventoryGridGetScrollSnapshot','copied-record-output'),
                       ('xuiListViewSetEnabledItems','native-copy-or-synchronous-read'),
                       ('xuiTimeLineViewGetLayerDescriptor','borrowed-synchronous-output'),
                       ('xuiTimeLineViewGetFrame','borrowed-synchronous-output'),
