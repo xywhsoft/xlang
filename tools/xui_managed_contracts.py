@@ -1251,6 +1251,8 @@ RECORDS.update({
                           'xui_tooltip_placement_t tPlacement; } xui_tooltip_info_t;',
     'xui_custom_tooltip_desc_t': 'typedef struct xui_custom_tooltip_desc_t { uint32_t iSize; xui_tooltip_placement_t tPlacement; '
                                  'xui_tooltip_measure_proc onMeasure; xui_tooltip_paint_proc onPaint; void* pUser; } xui_custom_tooltip_desc_t;',
+    'xui_tooltip_resolver_desc_t': 'typedef struct xui_tooltip_resolver_desc_t { uint32_t iSize; xui_tooltip_reply_proc onResolve; '
+                                   'xui_tooltip_measure_proc onMeasure; xui_tooltip_paint_proc onPaint; void* pUser; } xui_tooltip_resolver_desc_t;',
 })
 CALLBACKS.update({
     'xui_tooltip_measure_proc': (
@@ -1261,13 +1263,30 @@ CALLBACKS.update({
         'typedef int (*xui_tooltip_paint_proc)(xui_context pContext, xui_widget pOwner, xui_draw_context pDraw, xui_rect_t tRect, void* pUser);',
         'export typedef TooltipPaintProc = func(CallbackContext,CallbackWidget,CallbackDrawContext,Rect) as c_int',
     ),
+    'xui_tooltip_reply_proc': (
+        'typedef int (*xui_tooltip_reply_proc)(xui_context pContext, xui_widget pWidget, xui_tooltip_reply_t* pReply, void* pUser);',
+        'export typedef TooltipResolverProc = func(CallbackContext,CallbackWidget,TooltipReply) as c_int',
+    ),
 })
+VIEW_FUNCTIONS.update({
+    'xuiTooltipReplySetText': 'int xuiTooltipReplySetText(xui_tooltip_reply_t* pReply, xstrview tText, const xui_tooltip_placement_t* pPlacement)',
+    'xuiTooltipReplySetCustom': 'int xuiTooltipReplySetCustom(xui_tooltip_reply_t* pReply, const xui_tooltip_placement_t* pPlacement)',
+})
+VIEWS['TooltipReply'] = """
+export extern "xui_tooltip_reply_t*" class TooltipReply @header("xge3_runtime.h") @lifetime("callback")
+ native point handle
+ extern "xuiTooltipReplySetText" @no_raise @c_text_view(0) @c_ref(1) @c_result("status",0) func setText(string text,TooltipPlacement placement)
+ extern "xuiTooltipReplySetCustom" @no_raise @c_ref(0) @c_result("status",0) func setCustom(TooltipPlacement placement)
+end
+""".strip()
 TYPE_SHAPES.update({
     'xui_tooltip_placement_t': '7e392f48a4649b6903a5f310011403fcbcc6c83a0bd0a9211c0de000a51eaeec',
     'xui_tooltip_info_t': '980e18b4dfa23d765168b5b8fd4cfb4163f4b0efbbe32d9639eb6ef73fd22013',
     'xui_custom_tooltip_desc_t': '819255cc83e84c6a4207d08db88f06a453679532fee06ce97149061b640eac8e',
     'xui_tooltip_measure_proc': 'ef6ed08d8e94cee3e665bc0bd0a62d5a63013037fae4ced247fe322b159f0380',
     'xui_tooltip_paint_proc': '6dbc7199687e3bc05cca4077ba96b47b3d3065847e08e3122ed1bf8bb1585092',
+    'xui_tooltip_reply_proc': '42295719473f790af1a8a2f5d073eaeaa3a3c89fdaa093839c801ddfa9f86001',
+    'xui_tooltip_resolver_desc_t': 'a1b7eaa329d11595afca1001a1a9f952dc258b54c426e75496a3f5c26fa2d119',
 })
 METHODS.update({
     'xuiTooltipPlacementDefault': [
@@ -1287,6 +1306,15 @@ METHODS.update({
          '@c_owned_callback(1,-1,"xui_callback_owner_t",0,"last") @c_pack_field(1,"onPaint",2,"owned_callback") '
          '@c_owned_callback(2,-1,"xui_callback_owner_t",-16,"last") @c_result("status",0) '
          'func setCustomTooltip(TooltipPlacement placement,TooltipMeasureProc measure,TooltipPaintProc paint)']],
+    'xuiWidgetSetTooltipResolverOwned': [
+        'int xuiWidgetSetTooltipResolverOwned(xui_widget pWidget, const xui_tooltip_resolver_desc_t* pDesc, '
+        'const xui_callback_owner_t* pOwner)', 'Widget',
+        ['extern "xuiWidgetSetTooltipResolverOwned" @no_raise @c_pack(1,"xui_tooltip_resolver_desc_t",0,3) '
+         '@c_pack_size(1,"iSize","uint32_t") @c_pack_callback_group(1,"pUser",2) @c_pack_field(1,"onResolve",0,"owned_callback") '
+         '@c_owned_callback(0,-1,"xui_callback_owner_t",-16,"last") @c_pack_field(1,"onMeasure",1,"owned_callback") '
+         '@c_owned_callback(1,-1,"xui_callback_owner_t",0,"last") @c_pack_field(1,"onPaint",2,"owned_callback") '
+         '@c_owned_callback(2,-1,"xui_callback_owner_t",-16,"last") @c_result("status",0) '
+         'func setTooltipResolver(TooltipResolverProc resolver,TooltipMeasureProc? measure=null,TooltipPaintProc? paint=null)']],
     'xuiWidgetGetTooltipInfo': [
         'int xuiWidgetGetTooltipInfo(xui_widget pWidget, xui_tooltip_info_t* pInfo)', 'Widget',
         ['extern "xuiWidgetGetTooltipInfo" @no_raise @c_output_record(1,"xui_tooltip_info_t","borrowed") '
@@ -1579,6 +1607,7 @@ def extend(context,classes,free,callback_declarations,mapped):
     mapped['xuiInputDecorationGetBounds']='xui.InputDecoration.getBounds'
     mapped['xuiInputDecorationDescribe']='xui.InputDecoration.describe'
     mapped['xuiInputDecorationRemoveFromOwner']='xui.InputDecoration.remove'
+    mapped.update(xuiTooltipReplySetText='xui.TooltipReply.setText',xuiTooltipReplySetCustom='xui.TooltipReply.setCustom')
     mapped['xuiInventoryIndicesGet']='xui.InventoryIndices.indices'
     mapped.update(xuiEventDragData='xui.CallbackConstEvent.dragData',xuiRequestClose='xui.CallbackContext.requestClose')
 

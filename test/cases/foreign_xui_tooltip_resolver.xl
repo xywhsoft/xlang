@@ -1,0 +1,126 @@
+import xge
+import xui
+from xui import TooltipReply
+
+extern "xrtMemDebugEnabled" @header("xrt_decl.h") @no_raise func memDebugEnabled() as bool
+extern "xrtMemDebugEnable" @header("xrt_decl.h") @no_raise func memDebug(bool enabled) as bool
+extern "xrtMemDebugFailAfter" @header("xrt_decl.h") @no_raise func failAfter(uint64 prefix) as bool
+extern "xrtMemDebugFailClear" @header("xrt_decl.h") @no_raise func failClear()
+
+class Probe
+ int phase
+ int paints
+ TooltipReply? savedReply
+end
+
+func exercise(xui.Context ui,xui.Widget widget,xui.Proxy proxy,xui.Surface target)
+ auto probe = Probe()
+ auto placement = xui.tooltipPlacementDefault()
+ placement.fDelay = 0
+ xui.TooltipResolverProc resolver = func(xui.CallbackContext context,xui.CallbackWidget owner,TooltipReply reply) as c_int
+  probe.savedReply = reply
+  if probe.phase == 0 then
+   reply.setText("temporary resolved text",placement)
+  elseif probe.phase == 1 then
+   reply.setCustom(placement)
+  elseif probe.phase == 3 then
+   reply.setText("superseded text",placement)
+   widget.setTooltipText("replacement",placement)
+  elseif probe.phase == 4 then
+   assert failAfter(0), "arm reply allocation failure"
+   try
+    reply.setText("allocation should fail",placement)
+   finally
+    failClear()
+   end
+  end
+  return xui.XUI_OK
+ end
+ xui.TooltipMeasureProc measure = func(xui.CallbackContext context,xui.CallbackWidget owner) as xui.Vec2
+  auto size = xui.Vec2()
+  size.fX = 42
+  size.fY = 22
+  return size
+ end
+ xui.TooltipPaintProc paint = func(xui.CallbackContext context,xui.CallbackWidget owner,xui.CallbackDrawContext draw,xui.Rect rect) as c_int
+  assert rect.fW == 42 and rect.fH == 22, "resolved custom dimensions"
+  proxy.fillRect(draw,rect,c_uint(0x086BB9FF))
+  probe.paints += 1
+  return xui.XUI_OK
+ end
+
+ ui.render(target)
+ bool rejected = false
+ try
+  widget.setTooltipResolver(resolver,measure)
+ catch Error
+  rejected = true
+ end
+ assert rejected, "a single custom callback was accepted"
+ widget.setTooltipResolver(resolver,measure,paint)
+ assert ui.inputPointerMove(8,8,0) == 0 and ui.update(0) == 0, "text resolution"
+ assert ui.widgetTooltipIsOpen() != 0 and ui.widgetTooltipGetRect().fW > 20, "text reply opened"
+ bool expired = false
+ try
+  auto escaped = probe.savedReply as TooltipReply
+  escaped.setText("expired",placement)
+ catch StateError
+  expired = true
+ end
+ assert expired, "reply cannot escape its callback"
+
+ probe.phase = 1
+ assert ui.update(0) == 0 and ui.widgetTooltipGetRect().fW == 42, "resolver selected custom drawing"
+ ui.render(target)
+ assert probe.paints == 1, "custom paint ran"
+
+ probe.phase = 2
+ assert ui.update(0) == 0 and ui.widgetTooltipIsOpen() == 0, "untouched reply hides the tooltip"
+ probe.phase = 3
+ assert ui.inputPointerMove(9,8,0) == 0 and ui.widgetTooltipIsOpen() == 0, "superseded reply was discarded"
+ assert ui.update(0) == 0 and ui.widgetTooltipIsOpen() != 0, "replacement opened on update"
+ auto kind, text, configured = widget.tooltipInfo()
+ assert kind == xui.XUI_TOOLTIP_TEXT and text != null and (text as string) == "replacement", "retained replacement"
+
+ assert widget.clearTooltip() == xui.XUI_OK
+ if not memDebugEnabled() then assert memDebug(true) end
+ probe.phase = 4
+ widget.setTooltipResolver(resolver)
+ rejected = false
+ try
+  ui.inputPointerMove(10,8,0)
+ catch Error
+  rejected = true
+ end
+ assert rejected and ui.widgetTooltipIsOpen() == 0, "reply allocation failure propagates without publication"
+ assert widget.clearTooltip() == xui.XUI_OK
+end
+
+func main(...) as int
+ xge.init(100,80,"Tooltip resolver qualification",c_int(xge.XGE_INIT_OFFSCREEN))
+ xge.run(func() as c_int
+  assert xge.begin() == 0
+  auto proxy = xui.createProxy()
+  auto ui = xui.create(proxy,xui.XUI_SYSTEM_FONT_DISABLED)
+  auto widget = ui.widget()
+  auto rect = xui.Rect()
+  rect.fW = 100
+  rect.fH = 80
+  assert widget.setRect(rect) == 0 and ui.setRootWidget(widget) == 0
+  ui.setViewportSize(100,80)
+  auto target = proxy.createSurfaceRGBA(100,80,flags=c_uint(xui.XUI_SURFACE_USAGE_TARGET))
+  try
+   exercise(ui,widget,proxy,target)
+  finally
+   ui.close()
+   target.close()
+   proxy.close()
+   assert xge.nativeEnd() == 0
+  end
+  return c_int(1)
+ end)
+ xge.setFrameCallback(null)
+ xge.unit()
+ println("XUI_TOOLTIP_RESOLVER_OK")
+ return 0
+end

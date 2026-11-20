@@ -1,0 +1,22 @@
+// 首次悬停显示等待保存。点击后，提示从按钮读取新的状态。
+import xui
+from "./_window.xl" import Window
+
+Window.show("动态工具提示", func(xui.Context ui, xui.Widget root)
+ auto button = ui.buttonNative()
+ button.setText("等待保存")
+ Window.place(root, button, 24, 72, 180, 40)
+ button.setClick(func(xui.Widget clicked)
+  button.setText("已保存")
+ end)
+
+ auto placement = xui.tooltipPlacementDefault()
+ placement.iAnchor = xui.XUI_TOOLTIP_ANCHOR_WIDGET_RIGHT
+ button.setTooltipResolver(func(xui.CallbackContext context, xui.CallbackWidget owner, xui.TooltipReply reply) as c_int
+  auto caption = button.getText()
+  if caption != null then
+   reply.setText("当前状态：" + (caption as string), placement)
+  end
+  return xui.XUI_OK
+ end)
+end)
