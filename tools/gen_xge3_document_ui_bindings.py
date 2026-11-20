@@ -6,6 +6,7 @@ Every remaining C interface has an individual inventory reason.
 from pathlib import Path
 import argparse,sys,re,json
 p=argparse.ArgumentParser(description=__doc__);p.add_argument('--root',type=Path,default=Path(__file__).resolve().parents[1]);p.add_argument('--native-root',type=Path,required=True);p.add_argument('--no-managed-write',action='store_true');p.add_argument('--no-manifest-write',action='store_true');a=p.parse_args();root=a.root.resolve();native=a.native_root.resolve();sys.path.insert(0,str(root/'tools'));import check_xge3_bindings as inv
+from xui_document_replacements import REPLACEMENTS
 known=set();previous=[]
 for n in ('xge.h','xui.h','xui_document.h'):
  h=inv.header_inventory(native/'include'/n,known);known.update(x['name'] for x in h['types']);previous+=h['types']
@@ -228,9 +229,10 @@ for f in h['functions']:
   state='private-lifetime-infrastructure'
   if name=='xuiDocumentRendererGetContext':state='explicit-C';reason='Renderer is an independent managed root with a weak native Context link; use the existing constructor Context'
   elif name=='xuiDocumentFontOutputInit':reason='Fresh native callback storage only; resetting a live output would erase owning Font state'
-  elif name.endswith(('SetOpenLink','SetInvalidate')):state='explicit-C';reason='Persistent raw callback/userdata contract; use the typed Owned setter'
-  elif name in ('xuiDocumentWebObjectMeasure','xuiDocumentWebObjectDraw'):state='explicit-C';reason='Legacy callback adapter erases provider as void*; typed Renderer Owned callbacks avoid untracked userdata'
-  elif name=='xuiDocumentRendererGetRangeRects':state='explicit-C'
+  elif name in REPLACEMENTS:
+   state='replaced-managed-entry';logical,replacement=REPLACEMENTS[name]
+   assert logical.removeprefix('xui.') in mapped.get(replacement,[]),(name,logical,replacement)
+   reason='Managed replacement: '+logical+' ('+replacement+')'
   elif any(x in name for x in ('Release','LifetimeWatch','TraceOwnership','OwnershipBusy')):reason='Cold private resource policy/watch/graph contract; language close does not expose a second consuming native owner'
  rows.append(dict(native=name,declaration=f['declaration'],line=f['line'],logical=mapped.get(name,[]),status=state,reason=reason))
 api=dict(scope=__doc__,authority=h['header'],authoritySha256=h['sha256'],functions=rows,records=newRecords,constants=constants,notes=['No per-method C forwarding wrapper','Descriptors are synchronous zeroed stack records; Native copies/pins/retains remain real costs','Async image polling exposes a native status-only path and an optional Context-owned resource output on success','Supported NULL branches use exact same-symbol physical aliases; Renderer active-position and View ordinary selection reject NULL and have no invented clear method'])

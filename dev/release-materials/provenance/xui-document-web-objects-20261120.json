@@ -1,0 +1,275 @@
+{
+  "complete": true,
+  "passed": true,
+  "releaseInstalled": false,
+  "sourceParent": "0de9952783097b6ad68ced488474c3ad30ecaab0",
+  "nativeCommit": "e75266536290e2e9ac3c99b186c8bcf3f9397c18",
+  "nativeSourceHashesLf": {
+    "include/xui_document_ui.h": "ee97f61f7b6e1a256250c60db2c0c9d41e1c6fe08eb31b5b9d3454a1250c5c4f",
+    "src/xui/document/xui_document_renderer.c": "a0b9cb6e3915d2cd11b72b3069d3b0a09194122874b706afcc4c528738044ffd",
+    "src/xui/document/xui_document_web_provider.c": "c7d69fd013ac1efdc1eb988efabb075807830b8e56615dd808e105fb7848a210"
+  },
+  "languageSourceHashesLf": {
+    "docs/xge3-xui3-document-ui-api-map.json": "91cf23fc8c5d412e81b1263e2d4850484f289449166bad7b1615bfa6479681b2",
+    "docs/xge3-xui3-document-ui-api-map.md": "e287b35a2938ad91e5b864d2c9ce912562573444aba6bdb62c8ed2690fcbe981",
+    "lib/bindings/xui/examples/README.md": "0bfdf68b4296d042e3c6aefdd336a9321bdd150a35ef96b4f0af4506144af291",
+    "lib/bindings/xui/examples/document_web_object.xl": "7fac297a7064882cbfe804f5c6bddd34f65d4ad96b8b018d06d463d1ed90d70c",
+    "lib/bindings/xui/src/document_ui.xl": "b0c54be459174c91bc4c75a138a164dfde60e39aff3ba8204a821ddc9aaca2ad",
+    "test/cases/foreign_xui_document_web_objects.xl": "41fa82638884f4ee8e63d9f0d1dcbad84500e0627ef5ca992ac5bfd74613b717",
+    "tools/check_xge3_native_consumers.py": "1415cae53a9a4ed2bfd4c60fabb0fd6619ae66a1a53b13c3bba46b69e373c55b",
+    "tools/gen_xge3_document_ui_bindings.py": "844bd7a13b3746cc82c7c5e0acd922489f38ffda9c11b9effd9d2f688f9750d2",
+    "tools/xui_document_replacements.py": "a836e8a74a173d73b6242275542e3404a0251e1a82021016f7ddc798e874a20b"
+  },
+  "checks": [
+    "WebView2 local formula: invalid dimensions do not enqueue; first request reports pending and zero geometry; capture becomes ready, supplies geometry, renders non-white pixels and emits the invalidation callback.",
+    "The renderer and manual provider both reject a managed DrawContext from a different Proxy. A same-Proxy managed draw and deterministic raw-C drawing continue to work.",
+    "The managed fixture verifies a closed provider raises a checked error. Linux exercises no-browser Unsupported and the renderer guard through JIT and both AOT linkages.",
+    "Direct generated declarations, static import shape, the existing automatic Renderer attachment, and the manual example were replayed.",
+    "The per-platform native consumer audits record eight Document replacements and agree on all non-direct rows. 864 rows still lack compiled consumer or replacement evidence."
+  ],
+  "costs": [
+    "The native typed measure path uses a provider operation scope, a fixed geometry record and the existing cache. Cold requests retain the original source copy and browser worker costs.",
+    "Manual drawing checks the provider's Proxy and pins the native draw session across callbacks. DocumentRenderer checks the Proxy of managed sessions before backend drawing."
+  ],
+  "outstanding": [
+    "The wider native renderer portability fixture fails the hyphenation OOM/retry expectation in xui_document_format_cases.h:339. The same fixture also fails there using the preceding frozen SDK on Windows and Linux.",
+    "Whole-goal capability classification, per-contract qualification and matched release/IDE delivery remain open."
+  ],
+  "platforms": {
+    "win": {
+      "backend": "WebView2",
+      "imports": {
+        "host": [
+          "xge3_host.dll",
+          "msvcrt.dll",
+          "kernel32.dll",
+          "Ole32.dll",
+          "ucrtbase.dll"
+        ],
+        "static": [
+          "msvcrt.dll",
+          "kernel32.dll",
+          "USER32.dll",
+          "GDI32.dll",
+          "ole32.dll",
+          "OLEAUT32.dll",
+          "SHELL32.dll",
+          "IMM32.dll",
+          "DWrite.dll",
+          "WebView2Loader.dll"
+        ]
+      }
+    },
+    "linux": {
+      "backend": "unsupported",
+      "imports": {
+        "host": [
+          "libm.so.6",
+          "libmvec.so.1",
+          "libxge3_host.so",
+          "libc.so.6",
+          "ld-linux-x86-64.so.2"
+        ],
+        "static": [
+          "libm.so.6",
+          "libmvec.so.1",
+          "libX11.so.6",
+          "libXi.so.6",
+          "libXcursor.so.1",
+          "libGL.so.1",
+          "libc.so.6",
+          "ld-linux-x86-64.so.2"
+        ]
+      }
+    }
+  },
+  "evidence": {
+    "win": {
+      "sdk": {
+        "path": "F:\\xlang-validation\\xge-full-20261110\\document-web-object-sdk-win-r3\\results.json",
+        "sha256": "d8bbcde10f7e3c1c9e6b32c9cb22b88b4bdb945bd12f90d58d25360b3177e1f8",
+        "steps": [
+          "host",
+          "static"
+        ]
+      },
+      "packages": {
+        "path": "F:\\xlang-validation\\xge-full-20261110\\document-web-object-packages-win-r2\\results.json",
+        "sha256": "841439c99f763f1188fc25bc07edd5ae9d63738d9926442f1a6ac2e58a591a82",
+        "steps": [
+          "generated-ui",
+          "generated-declarations",
+          "inventory",
+          "strict-current-storage-replay",
+          "host",
+          "static",
+          "replay"
+        ]
+      },
+      "language": {
+        "path": "F:\\xlang-validation\\xge-full-20261110\\document-web-object-runtime-win-r2\\results.json",
+        "sha256": "3ac566082b8e7abdf712c7fcb1d9b58d7bb90fcad72a5932309f3a859603b828",
+        "steps": [
+          "emit",
+          "jit",
+          "host-build",
+          "host-run",
+          "host-imports",
+          "static-build",
+          "static-run",
+          "static-imports",
+          "example-emit",
+          "renderer-regression",
+          "example-jit"
+        ]
+      },
+      "nativeRaw": {
+        "path": "F:\\xlang-validation\\xge-full-20261110\\document-web-object-native-raw-win-r1\\results.json",
+        "sha256": "b96f1405edf82343a3654612a9b141b7459df3bcf7f520ce1800884c790051cd",
+        "steps": [
+          "document_web_raw-O0-build",
+          "document_web_raw-O0-run",
+          "document_web_raw-O2-build",
+          "document_web_raw-O2-run"
+        ]
+      },
+      "apiConsumers": {
+        "path": "F:\\xlang-validation\\xge-full-20261110\\document-web-object-api-audit-win-r1\\consumers\\results.json",
+        "sha256": "68fdf275166d94f6684dc9c7b68f92bb126367430d85d04a8320a3a5c3e2836b",
+        "steps": [
+          "unit-0-compile",
+          "unit-0-undefined",
+          "unit-0-defined",
+          "unit-1-compile",
+          "unit-1-undefined",
+          "unit-1-defined",
+          "unit-2-compile",
+          "unit-2-undefined",
+          "unit-2-defined",
+          "xl6Xge3InitPacked-macros",
+          "xl6Xge3InitPacked-compile",
+          "xl6Xge3InitPacked-undefined",
+          "unit-3-compile",
+          "unit-3-undefined",
+          "unit-3-defined",
+          "unit-4-compile",
+          "unit-4-undefined",
+          "unit-4-defined",
+          "unit-5-compile",
+          "unit-5-undefined",
+          "unit-5-defined",
+          "unit-6-compile",
+          "unit-6-undefined",
+          "unit-6-defined"
+        ]
+      },
+      "apiSurface": {
+        "path": "F:\\xlang-validation\\xge-full-20261110\\document-web-object-api-audit-win-r1\\surface\\surface.json",
+        "sha256": "d61c01d82dfdef4e1a910370e80bfaa71e99a7df15378e84dc1fe2e25eb83009"
+      },
+      "portabilityOomBaseline": {
+        "candidate": {
+          "path": "F:\\xlang-validation\\xge-full-20261110\\document-web-object-native-static-win-r6\\document_renderer_portability-O0-run.log",
+          "sha256": "cd92d05fa1aa40add0e2b098dfc71acb81d75f4dbf3191f18f147d0ae12e8d90"
+        },
+        "baseline": {
+          "path": "F:\\xlang-validation\\xge-full-20261110\\document-web-object-native-baseline-win-r6\\document_renderer_portability-O0-run.log",
+          "sha256": "cd92d05fa1aa40add0e2b098dfc71acb81d75f4dbf3191f18f147d0ae12e8d90"
+        }
+      }
+    },
+    "linux": {
+      "sdk": {
+        "path": "\\\\wsl.localhost\\Ubuntu\\var\\tmp\\xlang-validation\\xge-full-20261110\\document-web-object-sdk-linux-r3\\results.json",
+        "sha256": "e5d5a93fa89a3e779c8433b35889eef74e5c5cebc9df4745ed3464cb62f8f17c",
+        "steps": [
+          "host",
+          "static"
+        ]
+      },
+      "packages": {
+        "path": "\\\\wsl.localhost\\Ubuntu\\var\\tmp\\xlang-validation\\xge-full-20261110\\document-web-object-packages-linux-r2\\results.json",
+        "sha256": "5cf7c3a23039f6497ab18416ffcd4f7f3f6aca7a0d732a3cd3a02daf8a8b459a",
+        "steps": [
+          "generated-ui",
+          "generated-declarations",
+          "inventory",
+          "strict-current-storage-replay",
+          "host",
+          "static",
+          "replay"
+        ]
+      },
+      "language": {
+        "path": "\\\\wsl.localhost\\Ubuntu\\var\\tmp\\xlang-validation\\xge-full-20261110\\document-web-object-runtime-linux-r2\\results.json",
+        "sha256": "2149a552c61a8c19a479cbbbc5a8463fefe6892ec1d2df9c3338e54e76207866",
+        "steps": [
+          "emit",
+          "jit",
+          "host-build",
+          "host-run",
+          "host-imports",
+          "static-build",
+          "static-run",
+          "static-imports",
+          "example-emit",
+          "renderer-regression"
+        ]
+      },
+      "nativeRaw": {
+        "path": "\\\\wsl.localhost\\Ubuntu\\var\\tmp\\xlang-validation\\xge-full-20261110\\document-web-object-native-raw-linux-r1\\results.json",
+        "sha256": "47824d9b340d1d286178f75c0b01ca06a348675a812fbb482e5839e494e7004c",
+        "steps": [
+          "document_web_raw-O0-build",
+          "document_web_raw-O0-run",
+          "document_web_raw-O2-build",
+          "document_web_raw-O2-run"
+        ]
+      },
+      "apiConsumers": {
+        "path": "\\\\wsl.localhost\\Ubuntu\\var\\tmp\\xlang-validation\\xge-full-20261110\\document-web-object-api-audit-linux-r1\\consumers\\results.json",
+        "sha256": "29811770d587c12516b2262fa610e232e3acc4782d77946aaec2f9f070cff8ec",
+        "steps": [
+          "unit-0-compile",
+          "unit-0-undefined",
+          "unit-0-defined",
+          "unit-1-compile",
+          "unit-1-undefined",
+          "unit-1-defined",
+          "unit-2-compile",
+          "unit-2-undefined",
+          "unit-2-defined",
+          "xl6Xge3InitPacked-macros",
+          "xl6Xge3InitPacked-compile",
+          "xl6Xge3InitPacked-undefined",
+          "unit-3-compile",
+          "unit-3-undefined",
+          "unit-3-defined",
+          "unit-4-compile",
+          "unit-4-undefined",
+          "unit-4-defined",
+          "unit-5-compile",
+          "unit-5-undefined",
+          "unit-5-defined",
+          "unit-6-compile",
+          "unit-6-undefined",
+          "unit-6-defined"
+        ]
+      },
+      "apiSurface": {
+        "path": "\\\\wsl.localhost\\Ubuntu\\var\\tmp\\xlang-validation\\xge-full-20261110\\document-web-object-api-audit-linux-r1\\surface\\surface.json",
+        "sha256": "01c6f9d11a1b58e99c8e56b9c7b01112de2db9dfc8bc7ec11fbc267538e374f4"
+      },
+      "portabilityOomBaseline": {
+        "candidate": {
+          "path": "\\\\wsl.localhost\\Ubuntu\\var\\tmp\\xlang-validation\\xge-full-20261110\\document-web-object-native-static-linux-r5\\document_renderer_portability-O0-run.log",
+          "sha256": "8ba6b239e7990ce9a8a2131d4cecab6f0ea67e97eb9333502f250caba7628ba3"
+        },
+        "baseline": {
+          "path": "\\\\wsl.localhost\\Ubuntu\\var\\tmp\\xlang-validation\\xge-full-20261110\\document-web-object-native-baseline-linux-r6\\document_renderer_portability-O0-run.log",
+          "sha256": "8ba6b239e7990ce9a8a2131d4cecab6f0ea67e97eb9333502f250caba7628ba3"
+        }
+      }
+    }
+  }
+}

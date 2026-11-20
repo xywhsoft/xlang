@@ -1,7 +1,7 @@
 {
   "scope": "Generate direct Document UI declarations from one matched Native authority.\n\nOnly explicitly audited ownership/callback/descriptor contracts are added.\nEvery remaining C interface has an individual inventory reason.\n",
-  "authority": "F:\\xlang-validation\\xge-full-20261110\\document-web-widgets-sdk-win-r1\\source\\include\\xui_document_ui.h",
-  "authoritySha256": "36654d92f286121d74b5017eecfbb8d0cd09aa598d1f5852a68417f8c83c9935",
+  "authority": "F:\\xlang-validation\\xge-full-20261110\\document-web-object-sdk-win-r1\\source\\include\\xui_document_ui.h",
+  "authoritySha256": "ee97f61f7b6e1a256250c60db2c0c9d41e1c6fe08eb31b5b9d3454a1250c5c4f",
   "functions": [
     {
       "native": "xuiDocumentImageResourceLoadMemory",
@@ -464,8 +464,8 @@
       "declaration": "int xuiDocumentRendererGetRangeRects(xui_document_renderer renderer, const xui_doc_range_t* range, xui_doc_rect_t* rects, uint64_t capacity, uint64_t* total)",
       "line": 271,
       "logical": [],
-      "status": "explicit-C",
-      "reason": "Caller-supplied rectangle buffer; DocumentRenderer.collectRangeRects returns an owned result"
+      "status": "replaced-managed-entry",
+      "reason": "Managed replacement: xui.DocumentRenderer.collectRangeRects (xuiDocumentRendererCollectRangeRects)"
     },
     {
       "native": "xuiDocumentRendererCollectRangeRects",
@@ -607,8 +607,8 @@
       "declaration": "int xuiDocumentWebProviderSetInvalidate(xui_doc_web_provider provider, xui_doc_web_invalidate_proc callback,void* user)",
       "line": 327,
       "logical": [],
-      "status": "explicit-C",
-      "reason": "Persistent raw callback/userdata contract; use the typed Owned setter"
+      "status": "replaced-managed-entry",
+      "reason": "Managed replacement: xui.DocumentWebProvider.setInvalidate (xuiDocumentWebProviderSetInvalidateOwned)"
     },
     {
       "native": "xuiDocumentWebProviderSetInvalidateOwned",
@@ -651,25 +651,45 @@
       "reason": ""
     },
     {
+      "native": "xuiDocumentWebProviderMeasureObject",
+      "declaration": "int xuiDocumentWebProviderMeasureObject(xui_doc_web_provider provider, xui_document_snapshot snapshot, xui_doc_node_id node, float width, float zoom, bool* ready, xui_vec2_t* size, float* baseline)",
+      "line": 355,
+      "logical": [
+        "DocumentWebProvider.measureObject"
+      ],
+      "status": "declared-not-yet-qualified",
+      "reason": ""
+    },
+    {
+      "native": "xuiDocumentWebProviderDrawObject",
+      "declaration": "int xuiDocumentWebProviderDrawObject(xui_doc_web_provider provider, xui_document_snapshot snapshot, xui_doc_node_id node, xui_draw_context draw, xui_rect_t bounds, bool* drawn)",
+      "line": 360,
+      "logical": [
+        "DocumentWebProvider.drawObject"
+      ],
+      "status": "declared-not-yet-qualified",
+      "reason": ""
+    },
+    {
       "native": "xuiDocumentWebObjectMeasure",
       "declaration": "int xuiDocumentWebObjectMeasure(xui_document_snapshot snapshot, xui_doc_node_id node, float width, float zoom, xui_vec2_t* size, float* baseline, void* provider)",
-      "line": 353,
+      "line": 364,
       "logical": [],
-      "status": "explicit-C",
-      "reason": "Legacy callback adapter erases provider as void*; typed Renderer Owned callbacks avoid untracked userdata"
+      "status": "replaced-managed-entry",
+      "reason": "Managed replacement: xui.DocumentWebProvider.measureObject (xuiDocumentWebProviderMeasureObject)"
     },
     {
       "native": "xuiDocumentWebObjectDraw",
       "declaration": "int xuiDocumentWebObjectDraw(xui_document_snapshot snapshot, xui_doc_node_id node, xui_proxy proxy, xui_draw_context draw, xui_rect_t bounds, void* provider)",
-      "line": 357,
+      "line": 368,
       "logical": [],
-      "status": "explicit-C",
-      "reason": "Legacy callback adapter erases provider as void*; typed Renderer Owned callbacks avoid untracked userdata"
+      "status": "replaced-managed-entry",
+      "reason": "Managed replacement: xui.DocumentWebProvider.drawObject (xuiDocumentWebProviderDrawObject)"
     },
     {
       "native": "xuiDocumentHtmlInteractionCreate",
       "declaration": "int xuiDocumentHtmlInteractionCreate( const xui_doc_html_interaction_desc_t* desc, xui_doc_html_interaction* out)",
-      "line": 395,
+      "line": 406,
       "logical": [
         "createDocumentHtmlInteraction"
       ],
@@ -679,7 +699,7 @@
     {
       "native": "xuiDocumentHtmlInteractionUpdate",
       "declaration": "int xuiDocumentHtmlInteractionUpdate(xui_doc_html_interaction interaction)",
-      "line": 398,
+      "line": 409,
       "logical": [
         "DocumentHtmlInteraction.update"
       ],
@@ -689,7 +709,7 @@
     {
       "native": "xuiDocumentHtmlInteractionShow",
       "declaration": "int xuiDocumentHtmlInteractionShow(xui_doc_html_interaction interaction)",
-      "line": 400,
+      "line": 411,
       "logical": [
         "DocumentHtmlInteraction.show"
       ],
@@ -699,7 +719,7 @@
     {
       "native": "xuiDocumentHtmlInteractionGetWindow",
       "declaration": "xui_widget xuiDocumentHtmlInteractionGetWindow(xui_doc_html_interaction interaction)",
-      "line": 402,
+      "line": 413,
       "logical": [
         "DocumentHtmlInteraction.window"
       ],
@@ -709,7 +729,7 @@
     {
       "native": "xuiDocumentHtmlInteractionGetWebView",
       "declaration": "xui_widget xuiDocumentHtmlInteractionGetWebView(xui_doc_html_interaction interaction)",
-      "line": 404,
+      "line": 415,
       "logical": [
         "DocumentHtmlInteraction.webView"
       ],
@@ -719,7 +739,7 @@
     {
       "native": "xuiDocumentHtmlInteractionRelease",
       "declaration": "void xuiDocumentHtmlInteractionRelease(xui_doc_html_interaction interaction)",
-      "line": 406,
+      "line": 417,
       "logical": [],
       "status": "private-lifetime-infrastructure",
       "reason": "Cold private resource policy/watch/graph contract; language close does not expose a second consuming native owner"
@@ -727,7 +747,7 @@
     {
       "native": "xuiDocumentHtmlInteractionReleaseOwnerChecked",
       "declaration": "int xuiDocumentHtmlInteractionReleaseOwnerChecked(xui_doc_html_interaction interaction, bool* consumed)",
-      "line": 407,
+      "line": 418,
       "logical": [],
       "status": "private-lifetime-infrastructure",
       "reason": "Cold private resource policy/watch/graph contract; language close does not expose a second consuming native owner"
@@ -735,7 +755,7 @@
     {
       "native": "xuiDocumentHtmlInteractionReleaseChecked",
       "declaration": "int xuiDocumentHtmlInteractionReleaseChecked(xui_doc_html_interaction interaction)",
-      "line": 408,
+      "line": 419,
       "logical": [],
       "status": "private-lifetime-infrastructure",
       "reason": "Cold private resource policy/watch/graph contract; language close does not expose a second consuming native owner"
@@ -743,7 +763,7 @@
     {
       "native": "xuiDocumentHtmlInteractionGetContext",
       "declaration": "xui_context xuiDocumentHtmlInteractionGetContext(xui_doc_html_interaction interaction)",
-      "line": 409,
+      "line": 420,
       "logical": [
         "DocumentHtmlInteraction.context"
       ],
@@ -753,7 +773,7 @@
     {
       "native": "xuiDocumentHtmlInteractionLifetimeWatch",
       "declaration": "int xuiDocumentHtmlInteractionLifetimeWatch(xui_doc_html_interaction interaction, xui_lifetime_link_t* link, xui_lifetime_invalidate_proc invalidate, void* user)",
-      "line": 410,
+      "line": 421,
       "logical": [],
       "status": "private-lifetime-infrastructure",
       "reason": "Cold private resource policy/watch/graph contract; language close does not expose a second consuming native owner"
@@ -761,15 +781,15 @@
     {
       "native": "xuiDocumentHtmlInteractionSetOpenLink",
       "declaration": "int xuiDocumentHtmlInteractionSetOpenLink(xui_doc_html_interaction interaction, xui_doc_html_open_link_proc callback, void* user)",
-      "line": 413,
+      "line": 424,
       "logical": [],
-      "status": "explicit-C",
-      "reason": "Persistent raw callback/userdata contract; use the typed Owned setter"
+      "status": "replaced-managed-entry",
+      "reason": "Managed replacement: xui.DocumentHtmlInteraction.setOpenLink (xuiDocumentHtmlInteractionSetOpenLinkOwned)"
     },
     {
       "native": "xuiDocumentHtmlInteractionSetOpenLinkOwned",
       "declaration": "int xuiDocumentHtmlInteractionSetOpenLinkOwned(xui_doc_html_interaction interaction, xui_doc_html_open_link_view_proc callback, void* user, const xui_callback_owner_t* owner)",
-      "line": 414,
+      "line": 425,
       "logical": [
         "DocumentHtmlInteraction.setOpenLink"
       ],
@@ -779,7 +799,7 @@
     {
       "native": "xuiDocumentViewGetType",
       "declaration": "xui_widget_type xuiDocumentViewGetType(xui_context context)",
-      "line": 434,
+      "line": 445,
       "logical": [
         "documentViewType"
       ],
@@ -789,7 +809,7 @@
     {
       "native": "xuiDocumentViewCreate",
       "declaration": "int xuiDocumentViewCreate(xui_context context, const xui_doc_view_desc_t* desc, xui_widget* out)",
-      "line": 436,
+      "line": 447,
       "logical": [
         "createDocumentView"
       ],
@@ -799,7 +819,7 @@
     {
       "native": "xuiDocumentViewSetActivateOwned",
       "declaration": "int xuiDocumentViewSetActivateOwned(xui_widget view, xui_doc_view_activate_owned_proc callback, void* user, const xui_callback_owner_t* owner)",
-      "line": 437,
+      "line": 448,
       "logical": [
         "DocumentView.setActivate"
       ],
@@ -809,7 +829,7 @@
     {
       "native": "xuiDocumentViewSetDocument",
       "declaration": "int xuiDocumentViewSetDocument(xui_widget view, xui_document document)",
-      "line": 439,
+      "line": 450,
       "logical": [
         "DocumentView.setDocument"
       ],
@@ -819,7 +839,7 @@
     {
       "native": "xuiDocumentViewGetDocument",
       "declaration": "xui_document xuiDocumentViewGetDocument(xui_widget view)",
-      "line": 441,
+      "line": 452,
       "logical": [
         "DocumentView.document"
       ],
@@ -829,7 +849,7 @@
     {
       "native": "xuiDocumentViewSetSelection",
       "declaration": "int xuiDocumentViewSetSelection(xui_widget view, const xui_doc_range_t* range)",
-      "line": 443,
+      "line": 454,
       "logical": [
         "DocumentView.setSelection"
       ],
@@ -839,7 +859,7 @@
     {
       "native": "xuiDocumentViewGetSelection",
       "declaration": "int xuiDocumentViewGetSelection(xui_widget view, xui_doc_range_t* range)",
-      "line": 445,
+      "line": 456,
       "logical": [
         "DocumentView.selection"
       ],
@@ -849,7 +869,7 @@
     {
       "native": "xuiDocumentViewSelectObject",
       "declaration": "int xuiDocumentViewSelectObject(xui_widget view, xui_doc_node_id node)",
-      "line": 448,
+      "line": 459,
       "logical": [
         "DocumentView.selectObject"
       ],
@@ -859,7 +879,7 @@
     {
       "native": "xuiDocumentViewSetScroll",
       "declaration": "int xuiDocumentViewSetScroll(xui_widget view, double x, double y)",
-      "line": 450,
+      "line": 461,
       "logical": [
         "DocumentView.setScroll"
       ],
@@ -869,7 +889,7 @@
     {
       "native": "xuiDocumentViewGetScroll",
       "declaration": "int xuiDocumentViewGetScroll(xui_widget view, double* x, double* y)",
-      "line": 452,
+      "line": 463,
       "logical": [
         "DocumentView.scroll"
       ],
@@ -879,7 +899,7 @@
     {
       "native": "xuiDocumentViewSetZoom",
       "declaration": "int xuiDocumentViewSetZoom(xui_widget view, float zoom)",
-      "line": 454,
+      "line": 465,
       "logical": [
         "DocumentView.setZoom"
       ],
@@ -889,7 +909,7 @@
     {
       "native": "xuiDocumentViewSetMode",
       "declaration": "int xuiDocumentViewSetMode(xui_widget view, uint32_t mode)",
-      "line": 456,
+      "line": 467,
       "logical": [
         "DocumentView.setMode"
       ],
@@ -899,7 +919,7 @@
     {
       "native": "xuiDocumentViewSetWebProvider",
       "declaration": "int xuiDocumentViewSetWebProvider(xui_widget view, xui_doc_web_provider provider)",
-      "line": 459,
+      "line": 470,
       "logical": [
         "DocumentView.setWebProvider"
       ],
@@ -909,7 +929,7 @@
     {
       "native": "xuiDocumentViewInvalidateObjects",
       "declaration": "int xuiDocumentViewInvalidateObjects(xui_widget view)",
-      "line": 462,
+      "line": 473,
       "logical": [
         "DocumentView.invalidateObjects"
       ],
@@ -919,7 +939,7 @@
     {
       "native": "xuiDocumentViewInvalidateFonts",
       "declaration": "int xuiDocumentViewInvalidateFonts(xui_widget view)",
-      "line": 465,
+      "line": 476,
       "logical": [
         "DocumentView.invalidateFonts"
       ],
@@ -929,7 +949,7 @@
     {
       "native": "xuiDocumentViewGetMode",
       "declaration": "uint32_t xuiDocumentViewGetMode(xui_widget view)",
-      "line": 467,
+      "line": 478,
       "logical": [
         "DocumentView.mode"
       ],
@@ -939,7 +959,7 @@
     {
       "native": "xuiDocumentViewGetContentSize",
       "declaration": "int xuiDocumentViewGetContentSize(xui_widget view, xui_doc_rect_t* size, int* exact)",
-      "line": 469,
+      "line": 480,
       "logical": [
         "DocumentView.contentSize"
       ],
@@ -949,7 +969,7 @@
     {
       "native": "xuiDocumentViewGetRenderStats",
       "declaration": "int xuiDocumentViewGetRenderStats(xui_widget view, xui_doc_renderer_stats_t* stats)",
-      "line": 471,
+      "line": 482,
       "logical": [
         "DocumentView.renderStats"
       ],
@@ -959,7 +979,7 @@
     {
       "native": "xuiDocumentViewHitTest",
       "declaration": "int xuiDocumentViewHitTest(xui_widget view, double x, double y, xui_doc_position_t* position)",
-      "line": 473,
+      "line": 484,
       "logical": [
         "DocumentView.hitTest"
       ],
@@ -969,7 +989,7 @@
     {
       "native": "xuiDocumentViewHitTestCell",
       "declaration": "int xuiDocumentViewHitTestCell(xui_widget view, double x, double y, xui_doc_cell_hit_t* out)",
-      "line": 475,
+      "line": 486,
       "logical": [
         "DocumentView.hitTestCell"
       ],
@@ -979,7 +999,7 @@
     {
       "native": "xuiDocumentViewGetCellRect",
       "declaration": "int xuiDocumentViewGetCellRect(xui_widget view, xui_doc_node_id cell, xui_doc_cell_hit_t* out)",
-      "line": 477,
+      "line": 488,
       "logical": [
         "DocumentView.cellRect"
       ],
@@ -989,7 +1009,7 @@
     {
       "native": "xuiDocumentViewSetTableSelection",
       "declaration": "int xuiDocumentViewSetTableSelection(xui_widget view, const xui_doc_table_selection_t* selection)",
-      "line": 482,
+      "line": 493,
       "logical": [
         "DocumentView.setTableSelection",
         "DocumentView.clearTableSelection"
@@ -1000,7 +1020,7 @@
     {
       "native": "xuiDocumentViewGetTableSelection",
       "declaration": "int xuiDocumentViewGetTableSelection(xui_widget view, xui_doc_table_selection_t* out)",
-      "line": 485,
+      "line": 496,
       "logical": [
         "DocumentView.tableSelection"
       ],
@@ -1010,7 +1030,7 @@
     {
       "native": "xuiDocumentViewFind",
       "declaration": "int xuiDocumentViewFind(xui_widget view, const char* pattern, uint64_t bytes, int backward, int wrap, xui_doc_range_t* match)",
-      "line": 487,
+      "line": 498,
       "logical": [
         "DocumentView.find"
       ],
@@ -1020,7 +1040,7 @@
     {
       "native": "xuiDocumentViewFindEx",
       "declaration": "int xuiDocumentViewFindEx(xui_widget view, const char* pattern, uint64_t bytes, uint32_t flags, int backward, int wrap, xui_doc_range_t* match)",
-      "line": 489,
+      "line": 500,
       "logical": [
         "DocumentView.findEx"
       ],
@@ -1030,7 +1050,7 @@
     {
       "native": "xuiDocumentViewSetFindQuery",
       "declaration": "int xuiDocumentViewSetFindQuery(xui_widget view, const char* pattern, uint64_t bytes)",
-      "line": 497,
+      "line": 508,
       "logical": [
         "DocumentView.setFindQuery"
       ],
@@ -1040,7 +1060,7 @@
     {
       "native": "xuiDocumentViewSetFindQueryEx",
       "declaration": "int xuiDocumentViewSetFindQueryEx(xui_widget view, const char* pattern, uint64_t bytes, uint32_t flags)",
-      "line": 499,
+      "line": 510,
       "logical": [
         "DocumentView.setFindQueryEx"
       ],
@@ -1050,7 +1070,7 @@
     {
       "native": "xuiDocumentViewSetFindScope",
       "declaration": "int xuiDocumentViewSetFindScope(xui_widget view, const xui_doc_range_t* scope)",
-      "line": 503,
+      "line": 514,
       "logical": [
         "DocumentView.setFindScope",
         "DocumentView.clearFindScope"
@@ -1061,7 +1081,7 @@
     {
       "native": "xuiDocumentViewGetFindScope",
       "declaration": "int xuiDocumentViewGetFindScope(xui_widget view, xui_doc_range_t* scope)",
-      "line": 505,
+      "line": 516,
       "logical": [
         "DocumentView.findScope"
       ],
@@ -1071,7 +1091,7 @@
     {
       "native": "xuiDocumentViewClearFind",
       "declaration": "int xuiDocumentViewClearFind(xui_widget view)",
-      "line": 507,
+      "line": 518,
       "logical": [
         "DocumentView.clearFind"
       ],
@@ -1081,7 +1101,7 @@
     {
       "native": "xuiDocumentViewGetFindResultCount",
       "declaration": "int xuiDocumentViewGetFindResultCount(xui_widget view, uint64_t* count)",
-      "line": 509,
+      "line": 520,
       "logical": [
         "DocumentView.findResultCount"
       ],
@@ -1091,7 +1111,7 @@
     {
       "native": "xuiDocumentViewGetFindResult",
       "declaration": "int xuiDocumentViewGetFindResult(xui_widget view, uint64_t index, xui_doc_range_t* range, int* active)",
-      "line": 511,
+      "line": 522,
       "logical": [
         "DocumentView.findResult"
       ],
@@ -1101,7 +1121,7 @@
     {
       "native": "xuiDocumentViewActivateFindResult",
       "declaration": "int xuiDocumentViewActivateFindResult(xui_widget view, uint64_t index, xui_doc_range_t* match)",
-      "line": 513,
+      "line": 524,
       "logical": [
         "DocumentView.activateFindResult"
       ],
@@ -1111,7 +1131,7 @@
     {
       "native": "xuiMessageListSetNodeDocument",
       "declaration": "int xuiMessageListSetNodeDocument(xui_widget list, const char* message_id, const xui_message_document_desc_t* desc)",
-      "line": 536,
+      "line": 547,
       "logical": [
         "MessageList.setNodeDocument",
         "MessageList.clearDocument"
@@ -1122,7 +1142,7 @@
     {
       "native": "xuiMessageListSetNodeWebProvider",
       "declaration": "int xuiMessageListSetNodeWebProvider(xui_widget list, const char* message_id, xui_doc_web_provider provider)",
-      "line": 540,
+      "line": 551,
       "logical": [
         "MessageList.setNodeWebProvider"
       ],
@@ -1132,7 +1152,7 @@
     {
       "native": "xuiMessageListSetNodeDocumentActivateOwned",
       "declaration": "int xuiMessageListSetNodeDocumentActivateOwned(xui_widget list, const char* message_id, xui_doc_view_activate_owned_proc callback, void* user, const xui_callback_owner_t* owner)",
-      "line": 543,
+      "line": 554,
       "logical": [
         "MessageList.setNodeDocumentActivate"
       ],
@@ -1142,7 +1162,7 @@
     {
       "native": "xuiMessageListSetNodeDocumentTaskToggleOwned",
       "declaration": "int xuiMessageListSetNodeDocumentTaskToggleOwned(xui_widget list, const char* message_id, xui_doc_task_toggle_proc callback, void* user, const xui_callback_owner_t* owner)",
-      "line": 544,
+      "line": 555,
       "logical": [
         "MessageList.setNodeDocumentTaskToggle"
       ],
@@ -1152,7 +1172,7 @@
     {
       "native": "xuiMessageListGetNodeDocument",
       "declaration": "xui_document xuiMessageListGetNodeDocument(xui_widget list, const char* message_id)",
-      "line": 546,
+      "line": 557,
       "logical": [
         "MessageList.nodeDocument"
       ],
@@ -1162,7 +1182,7 @@
     {
       "native": "xuiMessageListGetNodeDocumentRenderStats",
       "declaration": "int xuiMessageListGetNodeDocumentRenderStats(xui_widget list, const char* message_id, xui_doc_renderer_stats_t* stats)",
-      "line": 550,
+      "line": 561,
       "logical": [
         "MessageList.nodeDocumentRenderStats"
       ],
@@ -1172,7 +1192,7 @@
     {
       "native": "xuiMessageListInvalidateNodeDocumentObjects",
       "declaration": "int xuiMessageListInvalidateNodeDocumentObjects(xui_widget list, const char* message_id)",
-      "line": 553,
+      "line": 564,
       "logical": [
         "MessageList.invalidateNodeDocumentObjects"
       ],
@@ -1182,7 +1202,7 @@
     {
       "native": "xuiMessageListInvalidateNodeDocumentFonts",
       "declaration": "int xuiMessageListInvalidateNodeDocumentFonts(xui_widget list, const char* message_id)",
-      "line": 556,
+      "line": 567,
       "logical": [
         "MessageList.invalidateNodeDocumentFonts"
       ],
@@ -1192,7 +1212,7 @@
     {
       "native": "xuiMessageListHitNodeDocument",
       "declaration": "int xuiMessageListHitNodeDocument(xui_widget list, const char* message_id, double world_x, double world_y, xui_doc_position_t* position)",
-      "line": 559,
+      "line": 570,
       "logical": [
         "MessageList.hitNodeDocument"
       ],
@@ -1202,7 +1222,7 @@
     {
       "native": "xuiMessageListGetNodeDocumentSelection",
       "declaration": "int xuiMessageListGetNodeDocumentSelection(xui_widget list, const char* message_id, xui_doc_range_t* range)",
-      "line": 563,
+      "line": 574,
       "logical": [
         "MessageList.nodeDocumentSelection"
       ],
@@ -1212,7 +1232,7 @@
     {
       "native": "xuiMessageListSetNodeDocumentTableSelection",
       "declaration": "int xuiMessageListSetNodeDocumentTableSelection(xui_widget list, const char* message_id, const xui_doc_table_selection_t* selection)",
-      "line": 567,
+      "line": 578,
       "logical": [
         "MessageList.setNodeDocumentTableSelection",
         "MessageList.clearDocumentTableSelection"
@@ -1223,7 +1243,7 @@
     {
       "native": "xuiMessageListGetNodeDocumentTableSelection",
       "declaration": "int xuiMessageListGetNodeDocumentTableSelection(xui_widget list, const char* message_id, xui_doc_table_selection_t* out)",
-      "line": 570,
+      "line": 581,
       "logical": [
         "MessageList.nodeDocumentTableSelection"
       ],
@@ -1233,7 +1253,7 @@
     {
       "native": "xuiDocumentEditorGetType",
       "declaration": "xui_widget_type xuiDocumentEditorGetType(xui_context context)",
-      "line": 649,
+      "line": 660,
       "logical": [
         "documentEditorType"
       ],
@@ -1243,7 +1263,7 @@
     {
       "native": "xuiDocumentEditorCreate",
       "declaration": "int xuiDocumentEditorCreate(xui_context context, const xui_doc_editor_desc_t* desc, xui_widget* out)",
-      "line": 651,
+      "line": 662,
       "logical": [
         "createDocumentEditor"
       ],
@@ -1253,7 +1273,7 @@
     {
       "native": "xuiDocumentEditorSetErrorOwned",
       "declaration": "int xuiDocumentEditorSetErrorOwned(xui_widget editor, xui_doc_editor_error_proc callback, void* user, const xui_callback_owner_t* owner)",
-      "line": 653,
+      "line": 664,
       "logical": [
         "DocumentEditor.setError"
       ],
@@ -1263,7 +1283,7 @@
     {
       "native": "xuiDocumentEditorInsertText",
       "declaration": "int xuiDocumentEditorInsertText(xui_widget editor, const char* text, uint64_t bytes)",
-      "line": 661,
+      "line": 672,
       "logical": [
         "DocumentEditor.insertText"
       ],
@@ -1273,7 +1293,7 @@
     {
       "native": "xuiDocumentEditorAppendStreamSource",
       "declaration": "int xuiDocumentEditorAppendStreamSource(xui_widget editor, const char* text, uint64_t bytes, int final_chunk)",
-      "line": 669,
+      "line": 680,
       "logical": [
         "DocumentEditor.appendStreamSource"
       ],
@@ -1283,7 +1303,7 @@
     {
       "native": "xuiDocumentEditorExecute",
       "declaration": "int xuiDocumentEditorExecute(xui_widget editor, uint32_t command)",
-      "line": 672,
+      "line": 683,
       "logical": [
         "DocumentEditor.execute"
       ],
@@ -1293,7 +1313,7 @@
     {
       "native": "xuiDocumentEditorGetMenuWidget",
       "declaration": "xui_widget xuiDocumentEditorGetMenuWidget(xui_widget editor)",
-      "line": 675,
+      "line": 686,
       "logical": [
         "DocumentEditor.menuWidget"
       ],
@@ -1303,7 +1323,7 @@
     {
       "native": "xuiDocumentEditorOpenMenu",
       "declaration": "int xuiDocumentEditorOpenMenu(xui_widget editor, float x, float y)",
-      "line": 677,
+      "line": 688,
       "logical": [
         "DocumentEditor.openMenu"
       ],
@@ -1313,7 +1333,7 @@
     {
       "native": "xuiDocumentEditorSetupToolbar",
       "declaration": "int xuiDocumentEditorSetupToolbar(xui_widget editor, xui_widget toolbar, uint32_t groups)",
-      "line": 682,
+      "line": 693,
       "logical": [
         "DocumentEditor.setupToolbar"
       ],
@@ -1323,7 +1343,7 @@
     {
       "native": "xuiDocumentEditorSyncToolbar",
       "declaration": "int xuiDocumentEditorSyncToolbar(xui_widget editor, xui_widget toolbar)",
-      "line": 684,
+      "line": 695,
       "logical": [
         "DocumentEditor.syncToolbar"
       ],
@@ -1333,7 +1353,7 @@
     {
       "native": "xuiDocumentEditorExecuteToolbarItem",
       "declaration": "int xuiDocumentEditorExecuteToolbarItem(xui_widget editor, xui_widget toolbar, int index)",
-      "line": 686,
+      "line": 697,
       "logical": [
         "DocumentEditor.executeToolbarItem"
       ],
@@ -1343,7 +1363,7 @@
     {
       "native": "xuiDocumentEditorQueryCommand",
       "declaration": "int xuiDocumentEditorQueryCommand(xui_widget editor, uint32_t command, xui_doc_command_state_t* state)",
-      "line": 689,
+      "line": 700,
       "logical": [
         "DocumentEditor.queryCommand"
       ],
@@ -1353,7 +1373,7 @@
     {
       "native": "xuiDocumentEditorCanExecute",
       "declaration": "int xuiDocumentEditorCanExecute(xui_widget editor, uint32_t command)",
-      "line": 691,
+      "line": 702,
       "logical": [
         "DocumentEditor.canExecute"
       ],
@@ -1363,7 +1383,7 @@
     {
       "native": "xuiDocumentEditorQueryParagraphSpacing",
       "declaration": "int xuiDocumentEditorQueryParagraphSpacing(xui_widget editor, xui_doc_paragraph_spacing_state_t* state)",
-      "line": 694,
+      "line": 705,
       "logical": [
         "DocumentEditor.queryParagraphSpacing"
       ],
@@ -1373,7 +1393,7 @@
     {
       "native": "xuiDocumentEditorSetParagraphSpacing",
       "declaration": "int xuiDocumentEditorSetParagraphSpacing(xui_widget editor, float spacing, int use_default)",
-      "line": 696,
+      "line": 707,
       "logical": [
         "DocumentEditor.setParagraphSpacing"
       ],
@@ -1383,7 +1403,7 @@
     {
       "native": "xuiDocumentEditorSetReadOnly",
       "declaration": "int xuiDocumentEditorSetReadOnly(xui_widget editor, int read_only)",
-      "line": 698,
+      "line": 709,
       "logical": [
         "DocumentEditor.setReadOnly"
       ],
@@ -1393,7 +1413,7 @@
     {
       "native": "xuiDocumentEditorSetTableColumnWidth",
       "declaration": "int xuiDocumentEditorSetTableColumnWidth(xui_widget editor, xui_doc_node_id table, uint32_t column, float width)",
-      "line": 701,
+      "line": 712,
       "logical": [
         "DocumentEditor.setTableColumnWidth"
       ],
@@ -1403,7 +1423,7 @@
     {
       "native": "xuiDocumentEditorToggleTaskItem",
       "declaration": "int xuiDocumentEditorToggleTaskItem(xui_widget editor, xui_doc_node_id item)",
-      "line": 705,
+      "line": 716,
       "logical": [
         "DocumentEditor.toggleTaskItem"
       ],
@@ -1413,7 +1433,7 @@
     {
       "native": "xuiDocumentEditorGetReadOnly",
       "declaration": "int xuiDocumentEditorGetReadOnly(xui_widget editor)",
-      "line": 708,
+      "line": 719,
       "logical": [
         "DocumentEditor.readOnly"
       ],
@@ -1423,7 +1443,7 @@
     {
       "native": "xuiDocumentEditorSetMarks",
       "declaration": "int xuiDocumentEditorSetMarks(xui_widget editor, uint32_t set, uint32_t clear)",
-      "line": 710,
+      "line": 721,
       "logical": [
         "DocumentEditor.setMarks"
       ],
@@ -1433,7 +1453,7 @@
     {
       "native": "xuiDocumentEditorQueryTextStyle",
       "declaration": "int xuiDocumentEditorQueryTextStyle(xui_widget editor, xui_doc_editor_text_style_state_t* state)",
-      "line": 721,
+      "line": 732,
       "logical": [
         "DocumentEditor.queryTextStyle"
       ],
@@ -1443,7 +1463,7 @@
     {
       "native": "xuiDocumentEditorSetTextStyle",
       "declaration": "int xuiDocumentEditorSetTextStyle(xui_widget editor, uint32_t fields, const xui_doc_text_style_t* style)",
-      "line": 723,
+      "line": 734,
       "logical": [
         "DocumentEditor.setTextStyle"
       ],
@@ -1453,7 +1473,7 @@
     {
       "native": "xuiDocumentEditorInsertLink",
       "declaration": "int xuiDocumentEditorInsertLink(xui_widget editor, const char* label, uint64_t label_bytes, const char* uri, const char* title)",
-      "line": 728,
+      "line": 739,
       "logical": [
         "DocumentEditor.insertLink"
       ],
@@ -1463,7 +1483,7 @@
     {
       "native": "xuiDocumentEditorSetLink",
       "declaration": "int xuiDocumentEditorSetLink(xui_widget editor, const char* uri, const char* title)",
-      "line": 731,
+      "line": 742,
       "logical": [
         "DocumentEditor.setLink"
       ],
@@ -1473,7 +1493,7 @@
     {
       "native": "xuiDocumentEditorInsertImage",
       "declaration": "int xuiDocumentEditorInsertImage(xui_widget editor, const xui_doc_image_desc_t* image)",
-      "line": 733,
+      "line": 744,
       "logical": [
         "DocumentEditor.insertImage"
       ],
@@ -1483,7 +1503,7 @@
     {
       "native": "xuiDocumentEditorInsertObject",
       "declaration": "int xuiDocumentEditorInsertObject(xui_widget editor, uint32_t kind, uint32_t flags, const char* utf8, uint64_t bytes)",
-      "line": 736,
+      "line": 747,
       "logical": [
         "DocumentEditor.insertObject"
       ],
@@ -1493,7 +1513,7 @@
     {
       "native": "xuiDocumentEditorInsertCodeBlock",
       "declaration": "int xuiDocumentEditorInsertCodeBlock(xui_widget editor, const char* language, const char* utf8, uint64_t bytes)",
-      "line": 740,
+      "line": 751,
       "logical": [
         "DocumentEditor.insertCodeBlock"
       ],
@@ -1503,7 +1523,7 @@
     {
       "native": "xuiDocumentEditorSetCodeBlockLanguage",
       "declaration": "int xuiDocumentEditorSetCodeBlockLanguage(xui_widget editor, xui_doc_node_id code_id, const char* language)",
-      "line": 745,
+      "line": 756,
       "logical": [
         "DocumentEditor.setCodeBlockLanguage"
       ],
@@ -1513,7 +1533,7 @@
     {
       "native": "xuiDocumentEditorInsertRule",
       "declaration": "int xuiDocumentEditorInsertRule(xui_widget editor)",
-      "line": 748,
+      "line": 759,
       "logical": [
         "DocumentEditor.insertRule"
       ],
@@ -1523,7 +1543,7 @@
     {
       "native": "xuiDocumentEditorWrapQuote",
       "declaration": "int xuiDocumentEditorWrapQuote(xui_widget editor)",
-      "line": 751,
+      "line": 762,
       "logical": [
         "DocumentEditor.wrapQuote"
       ],
@@ -1533,7 +1553,7 @@
     {
       "native": "xuiDocumentEditorUnwrapQuote",
       "declaration": "int xuiDocumentEditorUnwrapQuote(xui_widget editor)",
-      "line": 753,
+      "line": 764,
       "logical": [
         "DocumentEditor.unwrapQuote"
       ],
@@ -1543,7 +1563,7 @@
     {
       "native": "xuiDocumentEditorInsertFootnote",
       "declaration": "int xuiDocumentEditorInsertFootnote(xui_widget editor, const char* label, const char* initial_utf8, uint64_t initial_bytes)",
-      "line": 756,
+      "line": 767,
       "logical": [
         "DocumentEditor.insertFootnote"
       ],
@@ -1553,7 +1573,7 @@
     {
       "native": "xuiDocumentEditorRemoveFootnoteReference",
       "declaration": "int xuiDocumentEditorRemoveFootnoteReference(xui_widget editor, xui_doc_node_id reference_id)",
-      "line": 759,
+      "line": 770,
       "logical": [
         "DocumentEditor.removeFootnoteReference"
       ],
@@ -1563,7 +1583,7 @@
     {
       "native": "xuiDocumentEditorInsertTable",
       "declaration": "int xuiDocumentEditorInsertTable(xui_widget editor, uint32_t rows, uint32_t columns)",
-      "line": 764,
+      "line": 775,
       "logical": [
         "DocumentEditor.insertTable"
       ],
@@ -1573,7 +1593,7 @@
     {
       "native": "xuiDocumentEditorUpdateImage",
       "declaration": "int xuiDocumentEditorUpdateImage(xui_widget editor, xui_doc_node_id image_id, const xui_doc_image_desc_t* image)",
-      "line": 766,
+      "line": 777,
       "logical": [
         "DocumentEditor.updateImage"
       ],
@@ -1583,7 +1603,7 @@
     {
       "native": "xuiDocumentEditorUpdateObjectSource",
       "declaration": "int xuiDocumentEditorUpdateObjectSource(xui_widget editor, xui_doc_node_id object_id, const char* utf8, uint64_t bytes)",
-      "line": 772,
+      "line": 783,
       "logical": [
         "DocumentEditor.updateObjectSource"
       ],
@@ -1593,7 +1613,7 @@
     {
       "native": "xuiDocumentEditorReplaceCurrent",
       "declaration": "int xuiDocumentEditorReplaceCurrent(xui_widget editor, const char* pattern, uint64_t pattern_bytes, const char* replacement, uint64_t replacement_bytes)",
-      "line": 776,
+      "line": 787,
       "logical": [
         "DocumentEditor.replaceCurrent"
       ],
@@ -1603,7 +1623,7 @@
     {
       "native": "xuiDocumentEditorReplaceCurrentEx",
       "declaration": "int xuiDocumentEditorReplaceCurrentEx(xui_widget editor, const char* pattern, uint64_t pattern_bytes, const char* replacement, uint64_t replacement_bytes, uint32_t flags)",
-      "line": 779,
+      "line": 790,
       "logical": [
         "DocumentEditor.replaceCurrentEx"
       ],
@@ -1613,7 +1633,7 @@
     {
       "native": "xuiDocumentEditorReplaceAll",
       "declaration": "int xuiDocumentEditorReplaceAll(xui_widget editor, const char* pattern, uint64_t pattern_bytes, const char* replacement, uint64_t replacement_bytes, const xui_doc_range_t* scope, uint64_t* replaced)",
-      "line": 783,
+      "line": 794,
       "logical": [
         "DocumentEditor.replaceAll",
         "DocumentEditor.replaceAll"
@@ -1624,7 +1644,7 @@
     {
       "native": "xuiDocumentEditorReplaceAllEx",
       "declaration": "int xuiDocumentEditorReplaceAllEx(xui_widget editor, const char* pattern, uint64_t pattern_bytes, const char* replacement, uint64_t replacement_bytes, uint32_t flags, const xui_doc_range_t* scope, uint64_t* replaced)",
-      "line": 786,
+      "line": 797,
       "logical": [
         "DocumentEditor.replaceAllEx",
         "DocumentEditor.replaceAllEx"
@@ -1635,7 +1655,7 @@
     {
       "native": "xuiDocumentEditorOpenFind",
       "declaration": "int xuiDocumentEditorOpenFind(xui_widget editor)",
-      "line": 792,
+      "line": 803,
       "logical": [
         "DocumentEditor.openFind"
       ],
@@ -1645,7 +1665,7 @@
     {
       "native": "xuiDocumentEditorOpenReplace",
       "declaration": "int xuiDocumentEditorOpenReplace(xui_widget editor)",
-      "line": 794,
+      "line": 805,
       "logical": [
         "DocumentEditor.openReplace"
       ],
@@ -1655,7 +1675,7 @@
     {
       "native": "xuiDocumentEditorGetFindWindow",
       "declaration": "xui_widget xuiDocumentEditorGetFindWindow(xui_widget editor)",
-      "line": 796,
+      "line": 807,
       "logical": [
         "DocumentEditor.findWindow"
       ],
@@ -1665,7 +1685,7 @@
     {
       "native": "xuiDocumentEditorCancelComposition",
       "declaration": "int xuiDocumentEditorCancelComposition(xui_widget editor)",
-      "line": 798,
+      "line": 809,
       "logical": [
         "DocumentEditor.cancelComposition"
       ],
@@ -1675,7 +1695,7 @@
     {
       "native": "xuiDocumentEditorIsComposing",
       "declaration": "int xuiDocumentEditorIsComposing(xui_widget editor)",
-      "line": 800,
+      "line": 811,
       "logical": [
         "DocumentEditor.isComposing"
       ],
@@ -1685,7 +1705,7 @@
     {
       "native": "xuiDocumentEditorFlush",
       "declaration": "int xuiDocumentEditorFlush(xui_widget editor)",
-      "line": 808,
+      "line": 819,
       "logical": [
         "DocumentEditor.flush"
       ],
@@ -1695,7 +1715,7 @@
     {
       "native": "xuiDocumentEditorRetryInput",
       "declaration": "int xuiDocumentEditorRetryInput(xui_widget editor)",
-      "line": 810,
+      "line": 821,
       "logical": [
         "DocumentEditor.retryInput"
       ],
@@ -1705,7 +1725,7 @@
     {
       "native": "xuiDocumentEditorCancelInput",
       "declaration": "int xuiDocumentEditorCancelInput(xui_widget editor)",
-      "line": 812,
+      "line": 823,
       "logical": [
         "DocumentEditor.cancelInput"
       ],
@@ -1715,7 +1735,7 @@
     {
       "native": "xuiDocumentEditorGetPendingInput",
       "declaration": "int xuiDocumentEditorGetPendingInput(xui_widget editor, xui_doc_prepare_info_t* info)",
-      "line": 814,
+      "line": 825,
       "logical": [
         "DocumentEditor.pendingInput"
       ],
@@ -1725,7 +1745,7 @@
     {
       "native": "xuiDocumentEditorGetPendingWork",
       "declaration": "int xuiDocumentEditorGetPendingWork(xui_widget editor, xui_doc_editor_pending_work_t* info)",
-      "line": 832,
+      "line": 843,
       "logical": [
         "DocumentEditor.pendingWork"
       ],

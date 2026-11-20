@@ -1,0 +1,135 @@
+import xge
+import xui
+from xui import Context, DocumentNodeAttributes, Proxy, Widget
+from "../../lib/bindings/xui/examples/_window.xl" import Window
+
+string profile = env.get("XUI_BROWSER_PROFILE") as string
+string expectation = env.get("XUI_BROWSER_EXPECTATION") as string
+string assets = env.get("XUI_BROWSER_ASSETS") as string
+bool completed = false
+
+Window.showWithProxy("Document web object verification",func(Context ui,Widget root,Proxy proxy)
+    auto document = xui.createDocument()
+    auto transaction = document.beginTransaction()
+    auto attrs = DocumentNodeAttributes()
+    attrs.iFlags = c_uint(xui.XUI_DOC_BLOCK)
+    auto formula = transaction.insertNodeWithAttributes(1,xui.XUI_DOCUMENT_APPEND,attrs,"",null,
+        c_uint(xui.XUI_DOC_MATH),"x^2+1")
+    transaction.commit().close()
+    transaction.close()
+    auto snapshot = document.snapshot()
+    document.close()
+    auto renderer = xui.createDocumentRenderer(ui)
+    renderer.setSnapshot(snapshot,null)
+    renderer.layout(360,0,180)
+    auto area = Window.rect(0,0,360,180)
+
+    auto other = xui.createProxy()
+    auto otherSurface = other.createSurfaceRGBA(360,180,flags=c_uint(xui.XUI_SURFACE_USAGE_TARGET))
+    auto otherDraw = other.beginDraw(otherSurface)
+    bool rejected = false
+    try
+        renderer.draw(otherDraw,0,0,area)
+    catch Error error
+        rejected = error.code == int(xui.XUI_ERROR_INVALID_ARGUMENT)
+    end
+    assert rejected, "renderer must check the drawing backend"
+    other.clearRect(otherDraw,area,0xFFFFFFFF)
+    otherDraw.finish()
+    otherDraw.close()
+    otherSurface.close()
+    auto surface = proxy.createSurfaceRGBA(360,180,flags=c_uint(xui.XUI_SURFACE_USAGE_TARGET))
+    auto draw = proxy.beginDraw(surface)
+    renderer.draw(draw,0,0,area)
+    draw.finish()
+    draw.close()
+
+    if expectation == "unsupported" then
+        bool unsupported = false
+        try
+            xui.createDocumentWebProvider(ui,root,assets,profile)
+        catch Error error
+            unsupported = error.code == int(xui.XUI_ERROR_UNSUPPORTED)
+        end
+        assert unsupported and root.getChildCount() == 0
+        surface.close()
+        other.close()
+        renderer.close()
+        snapshot.close()
+        completed = true
+        xge.requestQuit()
+        return
+    end
+
+    auto provider = xui.createDocumentWebProvider(ui,root,assets,profile,timeoutMs=15000)
+    rejected = false
+    try
+        provider.measureObject(snapshot,formula,0,1)
+    catch Error error
+        rejected = error.code == int(xui.XUI_ERROR_INVALID_ARGUMENT)
+    end
+    assert rejected and provider.stats().iQueued == 0, "invalid dimensions do not enqueue work"
+    auto pending, empty, zero = provider.measureObject(snapshot,formula,360,1)
+    assert not pending and empty.fX == 0 and empty.fY == 0 and zero == 0
+    assert provider.stats().iQueued == 1
+
+    auto missingDraw = proxy.beginDraw(surface)
+    assert not provider.drawObject(snapshot,formula,missingDraw,area), "pending object draws no pixels"
+    missingDraw.finish()
+    missingDraw.close()
+    otherSurface = other.createSurfaceRGBA(360,180,flags=c_uint(xui.XUI_SURFACE_USAGE_TARGET))
+    otherDraw = other.beginDraw(otherSurface)
+    rejected = false
+    try
+        provider.drawObject(snapshot,formula,otherDraw,area)
+    catch Error error
+        rejected = error.code == int(xui.XUI_ERROR_INVALID_ARGUMENT)
+    end
+    assert rejected, "provider must check the backend before looking at the cache"
+    otherDraw.finish()
+    otherDraw.close()
+    otherSurface.close()
+    other.close()
+
+    int invalidations = 0
+    provider.setInvalidate(func()
+        invalidations += 1
+    end)
+    root.setUpdateCallback(func(Widget sender,c_float elapsed) as c_int
+        provider.update()
+        auto stats = provider.stats()
+        assert stats.bWorkerFailed == 0 and stats.iFailed == 0
+        if stats.iReady == 0 then return 0 end
+        auto ready, measured, baseline = provider.measureObject(snapshot,formula,360,1)
+        assert ready and measured.fX > 0 and measured.fY > 0 and baseline > 0
+        auto bounds = Window.rect(0,0,int(measured.fX),int(measured.fY))
+        auto cachedDraw = proxy.beginDraw(surface)
+        proxy.clearRect(cachedDraw,area,0xFFFFFFFF)
+        assert provider.drawObject(snapshot,formula,cachedDraw,bounds)
+        cachedDraw.finish()
+        cachedDraw.close()
+        auto pixels = Buffer()
+        auto white = Buffer()
+        assert pixels.resize(360*180*4) and white.resize(360*180*4,255)
+        proxy.readSurfaceRGBA(surface,pixels)
+        assert pixels.toBytes() != white.toBytes()
+        assert provider.stats().iDrawn == 1 and invalidations > 0
+        sender.setUpdateCallback(null)
+        provider.close()
+        bool expired = false
+        try
+            provider.measureObject(snapshot,formula,360,1)
+        catch Error
+            expired = true
+        end
+        assert expired, "closed provider cannot measure"
+        surface.close()
+        renderer.close()
+        snapshot.close()
+        completed = true
+        xge.requestQuit()
+        return 0
+    end)
+end)
+assert completed, "web object verification did not finish"
+println("XUI_DOCUMENT_WEB_OBJECTS_OK")

@@ -1,0 +1,44 @@
+// 使用带 WebView2 的 Windows 扩展包和本地 XUI_DOCUMENT_WEB_ASSETS。
+import xui
+from "./_window.xl" import Window
+
+string assets = env.get("XUI_DOCUMENT_WEB_ASSETS") as string
+Window.showWithProxy("手动绘制文档公式",func(xui.Context ui,xui.Widget root,xui.Proxy proxy)
+    auto document = xui.createDocument()
+    auto edit = document.beginTransaction()
+    auto attributes = xui.DocumentNodeAttributes()
+    attributes.iFlags = c_uint(xui.XUI_DOC_BLOCK)
+    auto formula = edit.insertNodeWithAttributes(1,xui.XUI_DOCUMENT_APPEND,attributes,"",null,
+        c_uint(xui.XUI_DOC_MATH),"x^2+y^2=r^2")
+    edit.commit().close()
+    edit.close()
+    auto snapshot = document.snapshot()
+    document.close()
+
+    auto provider = xui.createDocumentWebProvider(ui,root,path.abs(assets))
+    auto preview = ui.imageNative()
+    Window.place(root,preview,24,24,360,120)
+    provider.measureObject(snapshot,formula,360,1)
+    root.setUpdateCallback(func(xui.Widget sender,c_float elapsed) as c_int
+        provider.update()
+        auto ready, size, baseline = provider.measureObject(snapshot,formula,360,1)
+        if not ready then return 0 end
+
+        auto bounds = Window.rect(0,0,int(size.fX),int(size.fY))
+        auto surface = proxy.createSurfaceRGBA(c_int(size.fX),c_int(size.fY),flags=c_uint(xui.XUI_SURFACE_USAGE_TARGET))
+        auto draw = proxy.beginDraw(surface)
+        try
+            proxy.clearRect(draw,bounds,0xFFFFFFFF)
+            assert provider.drawObject(snapshot,formula,draw,bounds)
+            draw.finish()
+        finally
+            draw.close()
+        end
+        preview.setSurface(surface)
+        surface.close()
+        sender.setUpdateCallback(null)
+        provider.close()
+        snapshot.close()
+        return 0
+    end)
+end)

@@ -56,6 +56,7 @@
 [document_image_resource.xl](document_image_resource.xl) 加载本地图标，并在 Markdown 中用资源名引用它。
 [document_html_interaction.xl](document_html_interaction.xl) 在启用 WebView2 的 Windows 扩展包中打开文档里的本地 HTML。
 [document_web_formula.xl](document_web_formula.xl) 用 DocumentRenderer 把本地公式绘制到 Surface。运行前将 `XUI_DOCUMENT_WEB_ASSETS` 设为包内 `xui/resources/document_web` 的路径。
+[document_web_object.xl](document_web_object.xl) 用 WebProvider 测量单个本地公式，结果就绪后将它画进独立的 Surface。使用同一个资源目录设置。
 [document_web_view.xl](document_web_view.xl) 在 DocumentView 内自动显示本地公式，使用同一个资源目录设置。
 
 [code_assist.xl](code_assist.xl) 读取编辑器的补全位置并打开签名帮助。

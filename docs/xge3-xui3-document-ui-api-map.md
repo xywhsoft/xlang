@@ -120,9 +120,23 @@ runs one layout query and owns the complete result. Its `entries()` sequence
 retains the result and reads the rectangle array in place. The geometry stays
 readable after the renderer, context and snapshot close. The result buffer
 may grow while the query runs. The original `GetRangeRects` C entry accepts
-a caller buffer and still reports the total count. The two raw WebObject
-adapters accept C callback userdata. The managed Renderer attachment calls
-these native operations directly with the observed provider.
+a caller buffer and still reports the total count.
+
+`DocumentWebProvider.measureObject(snapshot, node, width, zoom)` returns
+`(ready, size, baseline)`. A pending or unsupported object returns false
+and zero geometry. Call `update()` to advance queued work. The matching
+`drawObject(snapshot, node, draw, bounds)` paints the cached result through
+an active draw session and returns false on a cache miss. Both methods report
+invalid arguments and errors from the native scope as checked errors.
+
+The draw session must use the provider's Proxy. `DocumentRenderer.draw`
+also checks the Proxy of a managed draw session before invoking backend drawing.
+The provider's drawing operation holds an additional native draw pin while
+backend callbacks run. Measuring or drawing an object reuses the existing
+browser cache, including the existing first-request copy of the object's source.
+The [manual web object example](../lib/bindings/xui/examples/document_web_object.xl)
+uses local formula assets. Renderer attachment remains available for automatic
+measurement and drawing.
 FontOutput Init is native fresh-storage infrastructure, not a resettable
 language method. Typed NULL aliases expose these Native branches through the
 same physical function, with no forwarding wrapper:

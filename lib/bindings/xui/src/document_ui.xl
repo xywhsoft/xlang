@@ -173,6 +173,8 @@ export extern "struct xui_doc_web_provider_t*" class DocumentWebProvider @header
  extern "xuiDocumentWebProviderUpdate" @no_raise @c_result("status",0) func update()
  extern "xuiDocumentWebProviderSetPalette" @no_raise @c_result("status",0) func setPalette(c_uint foreground,c_uint background)
  extern "xuiDocumentWebProviderGetStats" @no_raise @c_output(1,0) @c_output_size(1,"iSize") func stats() as DocumentWebProviderStats
+ extern "xuiDocumentWebProviderMeasureObject" @no_raise @c_outputs(5,6,7) @c_status(0) func measureObject(DocumentSnapshot snapshot,uint64 node,c_float width,c_float zoom) as (bool,Vec2,c_float)
+ extern "xuiDocumentWebProviderDrawObject" @no_raise @c_output(5,0) func drawObject(DocumentSnapshot snapshot,uint64 node,DrawContext draw,Rect bounds) as bool
  extern "xuiDocumentWebProviderSetInvalidateOwned" @no_raise @c_owned_callback(0,0,"xui_callback_owner_t",0) @c_result("status",0) func setInvalidate(DocumentWebInvalidateProc? callback)
  extern "xuiDocumentWebProviderReleaseChecked" @no_raise @c_result("status",0) func close()
 end

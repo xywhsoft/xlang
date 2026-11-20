@@ -10,12 +10,13 @@ from full_compiler_qualification import verify_full_compiler
 from stage_xge3_replay_contracts import verify_replay_package
 from check_xge3_full_surface import source_bindings
 from xge_replay_contracts import REPLACED as XGE_REPLACEMENTS
+from xui_document_replacements import REPLACEMENTS as DOCUMENT_REPLACEMENTS
 from xui_managed_contracts import REPLACED as XUI_REPLACEMENTS
 
 # Logical source-group selectors may name an object-like header alias. Prove
 # this one against an actual C relocation, rather than assuming a name suffix.
 PROVIDER_ALIASES={'xl6Xge3InitPacked':('xge3_init.h','xl6Xge3InitWithCode')}
-REPLACED = {**XGE_REPLACEMENTS, **XUI_REPLACEMENTS}
+REPLACED = {**XGE_REPLACEMENTS, **XUI_REPLACEMENTS, **DOCUMENT_REPLACEMENTS}
 
 
 def main():
@@ -40,7 +41,7 @@ def main():
     tools={name:Path(shutil.which(name)).resolve() for name in ('gcc','nm')}
     sdk=cc.parent/'include';files=[Path(__file__),Path(__file__).with_name('full_compiler_qualification.py'),
         Path(__file__).with_name('xge_replay_contracts.py'),Path(__file__).with_name('check_xge3_full_surface.py'),
-        Path(__file__).with_name('xui_managed_contracts.py'),
+        Path(__file__).with_name('xui_managed_contracts.py'),Path(__file__).with_name('xui_document_replacements.py'),
         Path(__file__).with_name('check_xge3_bindings.py'),surface,cc,build,*proof,*tools.values()]
     for folder in (sdk,packages):files.extend(f for f in folder.rglob('*') if f.is_file())
     inputs={str(f):sha(f) for f in files};out.mkdir(parents=True,exist_ok=False)
