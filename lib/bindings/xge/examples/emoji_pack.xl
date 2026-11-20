@@ -1,0 +1,31 @@
+// Run here with: xl run emoji_pack.xl
+import xge
+
+func main(...) as int
+    xge.init(240,120,"Custom Emoji")
+    try
+        auto pack = xge.createEmojiPack()
+        auto id = pack.addSvg("😀", b"<svg width='16' height='16'><circle cx='8' cy='8' r='7' fill='#287cdb'/></svg>")
+        auto found, prefix = pack.find("😀 Hello!")
+        assert found == c_int(1) and prefix.iEmojiId == id
+        println("Emoji prefix:", prefix.iTextSize, "UTF-8 bytes")
+
+        auto font = xge.loadFont("data/font_fixture.ttf", c_float(24))
+        auto text = xge.shapeText(font, "😀 Hello!",
+            flags = c_uint(xge.XGE_TEXT_SHAPE_EMOJI), emojiPack = pack)
+        pack.close() // The shaped run retains the pack it used.
+        font.close()
+        try
+            xge.run(func() as c_int
+                text.draw(20,30,c_uint(0xffffffff),c_uint(xge.XGE_DRAW_SCREEN_SPACE))
+                return c_int(1)
+            end)
+        finally
+            xge.setFrameCallback(null)
+            text.close()
+        end
+    finally
+        xge.unit()
+    end
+    return 0
+end

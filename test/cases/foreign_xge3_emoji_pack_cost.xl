@@ -1,0 +1,62 @@
+import xge
+
+extern "fixtureEmojiBegin" @header("test/cases/foreign_xge3_emoji_pack_cost.h") @no_raise func beginHeap() as c_int
+extern "fixtureEmojiEnd" @header("test/cases/foreign_xge3_emoji_pack_cost.h") @no_raise func endHeap() as c_int
+extern "fixtureEmojiNative" @header("test/cases/foreign_xge3_emoji_pack_cost.h") @no_raise func nativeFind(xge.EmojiPack pack) as c_int
+extern "fixtureEmojiFail" @header("test/cases/foreign_xge3_emoji_pack_cost.h") @no_raise func failAlloc(c_int budget) as c_int
+extern "fixtureEmojiClear" @header("test/cases/foreign_xge3_emoji_pack_cost.h") @no_raise func clearAlloc()
+
+func languageFind(xge.EmojiPack pack,string text) as int
+    int bytesMatched = 0
+    for i in range(1000)
+        auto found, prefix = pack.find(text)
+        assert found == c_int(1)
+        bytesMatched += int(prefix.iTextSize)
+    end
+    return bytesMatched
+end
+
+func checkWarm(xge.EmojiPack pack)
+    string text = "😀!"
+    assert nativeFind(pack)==c_int(4000) and languageFind(pack,text)==4000, "Warm match results"
+    assert beginHeap()==c_int(1), "Native warm heap tracking"
+    auto expected = nativeFind(pack)
+    assert endHeap()==c_int(1), "Native warm match allocated"
+    assert beginHeap()==c_int(1), "Language warm heap tracking"
+    auto actual = languageFind(pack,text)
+    assert endHeap()==c_int(1) and actual==int(expected), "Language warm match allocated or disagreed with C"
+end
+
+func main(...) as int
+    assert beginHeap()==c_int(1), "OOM heap tracking"
+    assert failAlloc(c_int(0))==c_int(1), "OOM injection admission"
+    bool rejected = false
+    try
+        auto failed = xge.createEmojiPack()
+        failed.close()
+    catch error
+        clearAlloc()
+        rejected = true
+    end
+    clearAlloc()
+    assert rejected, "Emoji factory did not report allocation failure"
+    try
+        auto pack = xge.createEmojiPack()
+        pack.addSvg("😀",b"<svg width='2' height='2'/>")
+        try
+            checkWarm(pack)
+        finally
+            pack.close()
+        end
+        auto builtin = xge.loadBuiltinEmojiPack()
+        try
+            checkWarm(builtin)
+        finally
+            builtin.close()
+        end
+    finally
+        xge.unit()
+    end
+    println("EMOJI_PACK_NATIVE_AND_XLANG_WARM_HEAP_ZERO")
+    return 0
+end

@@ -26,6 +26,7 @@ $env:XLANG_PACKAGE_PATH = "$runtime\extlibs"
 | `gui_shapes.xl` | Interactive desktop and working 2D graphics backend. Opens the native default window and draws a rectangle/circle until the user closes it. `begin`/`nativeEnd` must succeed. | Clears the persistent frame callback, then checked engine shutdown. |
 | `offscreen_pass.xl` | A working desktop graphics backend. Creates a 2x2 texture target, clears through a Pass, prints its RGBA bytes and exits after one frame. | Closes Pass and target, then clears the callback and calls checked `unit()`. |
 | `nine_patch.xl` | A working desktop graphics backend. Draws a stretched panel on the left and a tiled panel on the right from the same texture, then exits. | Clears the frame callback and closes the texture before checked `unit()`. |
+| `emoji_pack.xl` | A working desktop graphics backend. Matches an Emoji prefix and shapes a custom SVG glyph with the bundled example font. | The shaped run retains the Emoji pack and font. |
 | `textured_quad.xl` | A working desktop graphics backend. Supplies four `Vertex` records, draws a textured quad into a 2×2 target, prints its blue RGBA pixels and exits after one frame. | Closes the Pass, target and texture before checked `unit()`. |
 
 Run the GUI example explicitly:

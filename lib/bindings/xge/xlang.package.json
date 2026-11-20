@@ -33,6 +33,7 @@
       "src/graphics_context.xl",
       "src/backend.xl",
       "src/font_resources.xl",
+      "src/emoji.xl",
       "src/text_resources.xl",
       "src/svg.xl"
     ],

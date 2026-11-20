@@ -1,0 +1,136 @@
+import xge
+
+extern "fixtureEmojiPackReferences" @header("test/cases/foreign_xge3_emoji_pack.h") @no_raise func references() as c_int
+extern "fixtureEmojiDrawPublishedRaster" @header("test/cases/foreign_xge3_emoji_pack.h") @no_raise @c_span(1,"const void*","int") @c_result("status",0) func drawPublishedRaster(xge.Font font,bytes data)
+
+const bytes svg = b"<svg width='16' height='16'><rect width='16' height='16' fill='#ff0000'/></svg>"
+const bytes raster = b"<svg width='16' height='16'><image width='16' height='16' href='data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR4nGP4z8DwHwAFAAH/iZk9HQAAAABJRU5ErkJggg=='/></svg>"
+
+func checkDefault()
+    auto pack = xge.createEmojiPack()
+    auto id = pack.addSvg("AB",svg)
+    xge.setDefaultEmojiPack(pack)
+    pack.close()
+    auto current = xge.getDefaultEmojiPack()
+    auto shared = current.share()
+    current.close()
+    auto hit, prefix = shared.find("AB\0x")
+    assert hit == c_int(1) and prefix.iEmojiId == id and prefix.iTextSize == c_int(2)
+    auto miss, empty = shared.find(b"AB",1)
+    assert miss == c_int(0) and empty.iEmojiId == c_uint(0) and empty.iTextSize == c_int(0)
+    auto zero, unused = shared.find(Buffer())
+    assert zero == c_int(0) and unused.iEmojiId == c_uint(0)
+    bool rejected = false
+    try
+        shared.addSvg("A\0B",svg)
+    catch error
+        rejected = true
+    end
+    assert rejected
+    rejected = false
+    try
+        shared.find("AB",-2)
+    catch error
+        rejected = true
+    end
+    assert rejected
+    xge.unit() // Includes default/built-in state published before Init.
+    auto builtin = xge.getDefaultEmojiPack()
+    auto builtinHit, builtinMatch = builtin.find(b"\xf0\x9f\x98\x80!")
+    assert builtinHit == c_int(1) and builtinMatch.iTextSize == c_int(4)
+    auto retained, retainedMatch = shared.find("AB")
+    assert retained == c_int(1) and retainedMatch.iEmojiId == id
+    builtin.close()
+    shared.close()
+    xge.setDefaultEmojiPack(null)
+    xge.unit()
+end
+
+func paintGlyph()
+    auto pack = xge.getDefaultEmojiPack()
+    auto font = xge.loadFont("lib/bindings/xge/examples/data/font_fixture.ttf",c_float(20))
+    auto empty = xge.shapeText(font,"")
+    assert empty.glyphCount == c_int(0)
+    empty.close()
+    auto run = xge.shapeText(font, "😀", flags = c_uint(xge.XGE_TEXT_SHAPE_EMOJI), emojiPack = pack)
+    pack.close()
+    font.close()
+    try
+        assert run.glyphCount == c_int(1)
+        assert run.glyphs()[0].iEmojiId == c_uint(1)
+        auto target = xge.createRenderTarget(32,32)
+        auto pass = xge.createPass(target,c_uint(xge.XGE_PASS_CLEAR_COLOR),0)
+        try
+            pass.begin()
+            run.draw(5,5,c_uint(0xffffffff),c_uint(xge.XGE_DRAW_SCREEN_SPACE))
+            pass.finish()
+            auto pixels = Buffer()
+            assert pixels.resize(4096)
+            target.readPixels(pixels)
+            assert string.contains(pixels.hex(),"ff0000ff"), "SVG raster glyph pixels"
+        finally
+            pass.close()
+            target.close()
+        end
+    finally
+        run.close()
+    end
+end
+
+func installRasterPack()
+    auto pack = xge.createEmojiPack()
+    xge.EmojiMetrics metrics
+    metrics.fAdvanceEm = c_float(1.25)
+    auto id = pack.addSvg("😀",Buffer(raster),metrics)
+    auto matchCount, prefix = pack.find("😀!")
+    assert matchCount == c_int(1) and prefix.iEmojiId == id
+    assert prefix.tMetrics.fAdvanceEm == c_float(1.25)
+    xge.setDefaultEmojiPack(pack)
+    pack.close()
+end
+
+func checkRendering()
+    xge.init(64,64,"Custom Emoji contract")
+    int frames = 0
+    try
+        installRasterPack()
+        xge.run(func() as c_int
+            if frames == 0 then
+                paintGlyph()
+                auto font = xge.loadFont("lib/bindings/xge/examples/data/font_fixture.ttf",c_float(20))
+                try
+                    drawPublishedRaster(font,raster)
+                finally
+                    font.close()
+                end
+                frames = 1
+                return c_int(0)
+            end
+            auto refs = references()
+            assert refs == c_int(2), f"Expected the publication plus the inspection reference, found {int(refs)}"
+            // The first frame's queued commands have released their texture references.
+            auto pending = xge.graphicsResourceCount()
+            assert pending > uint64(0), "Missing the Emoji cache texture before worker clear"
+            auto worker = thread(func() as int
+                xge.setDefaultEmojiPack(null)
+                return 47
+            end)
+            assert worker.waitTimeout(5000) and worker.wait() and worker.exitCode() == 47, "Worker did not unpublish the default Emoji pack"
+            // The PNG texture is still alive until the graphics thread drains the cache.
+            assert xge.graphicsResourceCount() == pending, "Worker disposed the cached texture before returning to the graphics thread"
+            return c_int(1)
+        end)
+        assert xge.graphicsResourceCount() == uint64(0), "Graphics shutdown left a queued cache texture alive"
+    finally
+        xge.setFrameCallback(null)
+        xge.setDefaultEmojiPack(null)
+        xge.unit()
+    end
+end
+
+func main(...) as int
+    checkDefault()
+    checkRendering()
+    println("EMOJI_PACK_OWNED_GPU_OK")
+    return 0
+end

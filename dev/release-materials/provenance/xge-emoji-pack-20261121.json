@@ -1,0 +1,106 @@
+{
+  "complete": true,
+  "passed": true,
+  "releaseInstalled": false,
+  "sourceParent": "168cb1d4386192c2bccb3329b88e3f260312abec",
+  "nativeCommit": "588a8fbeb7083e87f6e1b271c84deb59c57e80da",
+  "storageReview": {
+    "path": "F:\\xlang-validation\\xge-full-20261110\\emoji-pack-storage-rebase-r1.json",
+    "sha256": "2ba4f41ca37cab6be79c3fd84fec2828cdc2e4c54f6c62e17d973457a7801ff5"
+  },
+  "platforms": {
+    "win": {
+      "sdk": {
+        "path": "F:\\xlang-validation\\xge-full-20261110\\emoji-pack-sdk-win-r2\\results.json",
+        "sha256": "c5acff072e4674fe1a72bd19ae0eea407ae312db6d4beba4eebfa3488bc0584f"
+      },
+      "packages": {
+        "path": "F:\\xlang-validation\\xge-full-20261110\\emoji-pack-packages-win-r4\\results.json",
+        "sha256": "d6b7d3b314f4f8b98880278b6cf155871c757e2106fa1649bbbb454443c2536a"
+      },
+      "native": {
+        "path": "F:\\xlang-validation\\xge-full-20261110\\emoji-pack-native-win-r2\\results.json",
+        "sha256": "eff0855849584a375b5cb04b921f3ee35c682810eeaeede9c10c027c1144228c"
+      },
+      "runtime": {
+        "path": "F:\\xlang-validation\\xge-full-20261110\\emoji-pack-runtime-win-r9\\results.json",
+        "sha256": "7426b45eae3524ba9f29b1be70840c156699aa425968ffd06818b5decf1cc45f"
+      },
+      "graphicsRegression": {
+        "path": "F:\\xlang-validation\\xge-full-20261110\\emoji-pack-context-regression-win-r1\\results.json",
+        "sha256": "5f995ad367da9702677c040cac745c435cd0cb0c52463b28a3b1524bab6c1927"
+      },
+      "audit": {
+        "path": "F:\\xlang-validation\\xge-full-20261110\\emoji-pack-audit-win-r1\\consumers\\results.json",
+        "sha256": "df6fb7dc96ecbcd9e9bbfa7ab62c7c508d6a14019438d06aae5315ee73cf7f66"
+      },
+      "compiler": {
+        "path": "F:\\xlang-validation\\xge-full-20261110\\compiler-existing-root-win-r1\\build.json",
+        "sha256": "107a294cdefd81906f8e3fef6bced071ececaad4bf1837b61a15b1e9c7858a07"
+      },
+      "nativeRows": 20,
+      "languageRows": 10,
+      "graphicsRegressionRows": 15,
+      "unclassifiedByBridgeOrReplacement": {
+        "XGE": 350,
+        "XUI": 398,
+        "Document UI": 2,
+        "Document": 1
+      },
+      "rasterBeforeFix": {
+        "path": "F:\\xlang-validation\\xge-full-20261110\\emoji-pack-raster-baseline-win-r6\\results.json",
+        "sha256": "236e4f98e36ce81a92cf1387992e5ea595086417dc423f791320ca9384b1a517"
+      }
+    },
+    "linux": {
+      "sdk": {
+        "path": "\\\\wsl.localhost\\Ubuntu\\var\\tmp\\xlang-validation\\xge-full-20261110\\emoji-pack-sdk-linux-r2\\results.json",
+        "sha256": "d3dfacf0c559f84032f36fdf880385ceac42fe6feac1adce814e8f6156ca3381"
+      },
+      "packages": {
+        "path": "\\\\wsl.localhost\\Ubuntu\\var\\tmp\\xlang-validation\\xge-full-20261110\\emoji-pack-packages-linux-r4\\results.json",
+        "sha256": "2c61200bf4dcbb5d41bda4392c27a0f16a25e623963caa8b927ac7fcb621c8e7"
+      },
+      "native": {
+        "path": "\\\\wsl.localhost\\Ubuntu\\var\\tmp\\xlang-validation\\xge-full-20261110\\emoji-pack-native-linux-r2\\results.json",
+        "sha256": "a34a332eb5e0dc162eeeed3d75f8a232103d3cb8d3c9d70856e3353f80fa8457"
+      },
+      "runtime": {
+        "path": "\\\\wsl.localhost\\Ubuntu\\var\\tmp\\xlang-validation\\xge-full-20261110\\emoji-pack-runtime-linux-r9\\results.json",
+        "sha256": "52c45f5d47ec085b526255b21ca63546abefbf902083ac9a68e0ac106642f9fd"
+      },
+      "graphicsRegression": {
+        "path": "\\\\wsl.localhost\\Ubuntu\\var\\tmp\\xlang-validation\\xge-full-20261110\\emoji-pack-context-regression-linux-r1\\results.json",
+        "sha256": "1a31ae6be1a8d82601a0c4dd8fc6988f61052620a405d26ead2b712111db2d1b"
+      },
+      "audit": {
+        "path": "\\\\wsl.localhost\\Ubuntu\\var\\tmp\\xlang-validation\\xge-full-20261110\\emoji-pack-audit-linux-r1\\consumers\\results.json",
+        "sha256": "b65f4d4c9291474dc06dabb983bd533570033a6eae830f8ca969aa5c1776dd22"
+      },
+      "compiler": {
+        "path": "\\\\wsl.localhost\\Ubuntu\\var\\tmp\\xlang-validation\\xge-full-20261110\\compiler-existing-root-linux-r1\\build.json",
+        "sha256": "6e729bc793dcd92edcd42f51e244bad799187c32ef82121e8275288a31274b11"
+      },
+      "nativeRows": 25,
+      "languageRows": 10,
+      "graphicsRegressionRows": 16,
+      "unclassifiedByBridgeOrReplacement": {
+        "XGE": 350,
+        "XUI": 398,
+        "Document UI": 2,
+        "Document": 1
+      },
+      "rasterBeforeFix": {
+        "path": "\\\\wsl.localhost\\Ubuntu\\var\\tmp\\xlang-validation\\xge-full-20261110\\emoji-pack-raster-baseline-linux-r6\\results.json",
+        "sha256": "cd21caeff264274e61dae13de6bd89ffc3905472f8d77ec16bf5ed56584b811f"
+      }
+    }
+  },
+  "checks": [
+    "The language exposes native-owned custom, built-in and default EmojiPack objects, independent shares, SVG insert/replace with counted bytes, typed prefix find and explicit pack use by GlyphRun.",
+    "Native tests exercise reference saturation, allocation failures during create, insert, cache load and default initialization, UTF-8 matching, concurrent default mutation and reallocation, SVG provider reentry and draw-thread disposal. Linux additionally ran instrumented aggregate/XRT TSan and aggregate UBSan.",
+    "Graphics tests shape an explicit pack, close its original view and verify the glyph's red PNG pixels with render target readback. A separate C probe in that rendered frame verifies that only the publication reference remains before a worker unpublishes the pack. The graphics thread retains the cached texture until retirement. Windows and Linux pass JIT and standalone dynamic/static AOT. Linux uses Xvfb and software GL.",
+    "The matched native and xlang warm loops each perform 1000 searches on a prebuilt input, produce the same 4000-byte sum and make zero XRT allocations, reallocations or frees, for custom and built-in packs. Constructing the literal in the loop separately measured one string allocation per iteration. The comparison does not measure total call time. Checked view, span and synchronization work remain.",
+    "Custom payload storage adds a reference counter to an existing allocation and the cold renderer cache allocates a retained SVG cache node. The warm draw takes the existing pack mutex on acquire and release. Existing host framebuffer, EGL and shape regressions run against this same candidate."
+  ]
+}

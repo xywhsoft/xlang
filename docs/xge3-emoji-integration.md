@@ -1,8 +1,50 @@
-# Emoji integration prerequisites
+# Owned Emoji packs in XGE
 
-The complete safe Emoji language interface is still open. The current source
-package exposes `emojiPackClearDefault()`; TextShape can also use Emoji through
-the native text engine. This is not a substitute for a complete owned pack API.
+Create an empty pack with `xge.createEmojiPack()`. Add an SVG with
+`pack.addSvg(sequence, svg)` or pass an explicit `EmojiMetrics` value.
+`svg` accepts bytes or a Buffer. XGE copies the exact SVG bytes and the UTF-8
+sequence. Inserting the same sequence replaces its source and metrics while
+keeping its ID. The built-in Twemoji pack is read-only and can be obtained
+through `xge.loadBuiltinEmojiPack()`.
+
+`pack.find(text, size=-1)` returns `(found, match)`. A hit has `found == 1`,
+an ID, metrics and a UTF-8 byte length for the longest matching prefix.
+A miss has `found == 0` and an empty result. The input can be a string,
+bytes or a Buffer. A nonnegative size limits the byte prefix, and `-1` uses
+all available bytes. Checked failures remain separate from a miss.
+
+`pack.share()`, `xge.getDefaultEmojiPack()` and a shaped run each retain
+their own native reference. Set the global default with
+`xge.setDefaultEmojiPack(pack)` and clear it with `null`. The next default
+lookup lazily uses the built-in pack and preserves its initialization error if
+loading fails. Engine shutdown clears both global slots even before engine
+initialization. Independent CPU pack references remain valid.
+
+Pass an explicit pack as the last argument of `xge.shapeText` with
+`XGE_TEXT_SHAPE_EMOJI` enabled. The result retains any pack used for its glyphs.
+Advance and size are captured when shaping. A subsequent replacement of the
+same ID can change what that glyph draws. Reshape after edits to refresh layout
+metrics. The [Emoji example](../lib/bindings/xge/examples/emoji_pack.xl) uses
+a packaged font and draws an SVG-backed glyph.
+
+The binding uses direct C declarations. Built-in matching reads immutable
+source without a mutex. Mutable pack matching and edits share the existing
+cache mutex. SVG parsing runs outside the lock, holds the exact source
+revision, and publishes its cache result only if the entry still uses that
+source. SVG resource providers can query or edit the pack during parsing.
+Recursive loading of the same entry revision reports Busy. The warm draw path
+takes the mutex for cache acquisition and release. Cache eviction or a final
+reference drop on another thread queues previously drawn SVGs for their drawing
+thread. Window frames, host-session frames and context retirement drain that
+work. This keeps cached raster textures alive until their drawing thread can
+release them. End publishing and close retained packs and shaped runs before
+checked engine shutdown. Cold parsing allocates the SVG and one cache-owner
+record. The custom source adds a reference counter to its existing allocation.
+
+## Earlier native prerequisite batch
+
+At that checkpoint the source package only exposed `emojiPackClearDefault()`
+and the native text engine's implicit default shaping.
 
 Native XGE `2574c579` fixes four prerequisites: atomic pack references, UTF-8
 edit transactions that cannot leave orphan payloads, retryable SVG-cache OOM,
