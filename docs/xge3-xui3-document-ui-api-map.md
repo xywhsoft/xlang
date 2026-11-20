@@ -1,7 +1,7 @@
 # Document UI direct declarations
 
 The adjacent JSON pins the current `include/xui_document_ui.h` and lists its
-173 API functions with their logical mappings or C interoperability and
+175 API functions with their logical mappings or C interoperability and
 lifecycle reasons. The initial qualification used the frozen Model Native
 source r5/r6, SHA `e343a8600039805be3c5e481fe1d15dbcd426490ce2ad2b5dca65f78b6574bb2`. The
 additional MessageList `addNode` maps `xuiMessageListAddNode` from `xui.h`;
@@ -49,6 +49,24 @@ recorded no XRT heap allocations, frees or reallocations in either the xlang
 getter or handwritten C. The first managed exposure may allocate its watch
 record. Repeated exposure still checks thread, owner and resource lifetime.
 See the [image poll acceptance record](../dev/release-materials/provenance/xui-document-image-poll-20261120.json).
+
+`xui.loadDocumentImageFileResource()` and `xui.loadDocumentImageMemoryResource()`
+publish a named image and return a watched `Resource?` owned by the Context.
+Use its `name` in a Document or call `surface()` to obtain a separate Surface
+reference. Loader failures raise a checked error. A successful load returns
+`null` if a cleanup callback removes or replaces its exact resource before
+return. If managed view admission fails after publication, the registry entry
+can still be found by name. The original `loadDocumentImageFile()` and
+`loadDocumentImageMemory()` retain their status-only contracts. The loaders
+share their native implementations. Typed resource output adds a native stack
+watch and managed view admission. File loading reads the file once and uses the
+same decoder and publication path as memory loading.
+See the [named image example](../lib/bindings/xui/examples/document_image_resource.xl).
+In a warmed 100-call memory-load loop replacing one PNG entry, xlang recorded
+700 XRT heap allocations and frees. The equivalent handwritten C loop
+recorded 400 allocations and frees. The language path prepares a C string and
+admits a new managed view for each replacement. It passes the encoded bytes
+directly to the native loader. See the [synchronous image acceptance record](../dev/release-materials/provenance/xui-document-image-sync-20261120.json).
 
 Current independent Windows/Linux acceptance uses the frozen R38 successor
 plus 46-frontend nested-pack/NULL overlay, inherited from real full R37.

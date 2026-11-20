@@ -164,10 +164,13 @@ limits=[('iMaxEncodedBytes','uint64 maxEncodedBytes=0','value'),('iMaxPixels','u
 for memory in (False,True):
  for asynchronous in (False,True):
   name='xuiDocumentImageResourceLoad'+('Memory' if memory else 'File')+('Async' if asynchronous else '');mn='loadDocumentImage'+('Memory' if memory else 'File')+('Async' if asynchronous else '');slot=4 if memory else 3;outSlot=slot+1;params='Context context,string resourceName,'+('bytes encoded' if memory else 'string authorizedPath')+','+','.join(x[1] for x in limits);attrs=['@c_cstr(1)',*pack(slot,'xui_doc_image_load_limits_t',3,limits)]
-  attrs+=['@c_span(2,"const void*","size_t")'] if memory else ['@c_cstr(2)']
+  attrs+=['@c_span(2,"const void*","uint64_t")'] if memory else ['@c_cstr(2)']
   if asynchronous:factory(name,mn,params,attrs,'DocumentImageRequest',outSlot,0)
   else:
-   attrs+=['@c_null('+str(outSlot)+',"xui_resource*")','@c_result("status",0)'];globalFunctions.append('export'+decl(name,mn,params,attrs));mapped[name]=[mn];reasons.pop(name,None)
+   statusName=name+'Status';resourceMethod=mn+'Resource'
+   globalFunctions.append('export'+decl(statusName,mn,params,[*attrs,'@c_result("status",0)']))
+   globalFunctions.append('export'+decl(name,resourceMethod,params,[*attrs,'@c_output('+str(outSlot)+',0)','@c_result("owner_view",0)'],'Resource?'))
+   mapped[statusName]=[mn];mapped[name]=[resourceMethod];reasons.pop(statusName,None);reasons.pop(name,None)
 name='xuiDocumentImageResourceGetAsyncStats';globalFunctions.append('export'+decl(name,'documentImageAsyncStats','Context context',['@c_output(1,0)','@c_output_size(1,"iSize")'],'DocumentImageAsyncStats'));mapped[name]=['documentImageAsyncStats'];reasons.pop(name,None)
 
 # Flat image descriptor packing preserves Native copies and caller-provided

@@ -1,0 +1,95 @@
+import xui
+from xui import Context, Proxy, Resource, Surface
+
+extern "fixtureRenderProxy" @header("test/cases/foreign_xui_render_backend.h") @no_raise @c_result("owned_view") @factory(0,0,dropProxy) func cpuProxy() as Proxy
+extern "fixtureRenderBalanced" @no_raise func balanced() as c_int
+extern "fixtureRenderBudget" @no_raise func budget(c_int allowance)
+extern "xuiProxyReleaseChecked" @header("xge3_runtime.h") @no_raise @c_result("status",0) func dropProxy(Proxy value)
+
+func exerciseOutputs(Context ui,Proxy proxy,string input,bytes encoded)
+    auto first = xui.loadDocumentImageMemoryResource(ui,"image",encoded) as Resource
+    assert first.name == "image" and first.kind == xui.XUI_RESOURCE_SURFACE
+    auto generation = first.generation
+    auto surface = first.surface() as Surface
+
+    auto fileImage = xui.loadDocumentImageFileResource(ui,"image",input) as Resource
+    assert fileImage.name == "image" and fileImage.generation != generation
+    bool expired = false
+    try
+        assert first.name != ""
+    catch StateError
+        expired = true
+    end
+    assert expired
+
+    fileImage.remove()
+    assert ui.findResource("image") == null
+    assert proxy.surfaceDesc(surface).iWidth > 0
+    surface.close()
+
+    xui.loadDocumentImageMemory(ui,"status-memory",encoded)
+    xui.loadDocumentImageFile(ui,"status-file",input)
+    assert ui.findResource("status-memory") != null and ui.findResource("status-file") != null
+end
+
+func exerciseFailures(Context ui,string input,bytes encoded)
+    bool memoryLimit = false
+    try
+        xui.loadDocumentImageMemoryResource(ui,"memory-limit",encoded,maxEncodedBytes=1)
+    catch Error error
+        memoryLimit = error.code == int(xui.XUI_DOC_ERROR_LIMIT)
+    end
+    assert memoryLimit and ui.findResource("memory-limit") == null
+
+    bool fileLimit = false
+    try
+        xui.loadDocumentImageFileResource(ui,"file-limit",input,maxEncodedBytes=1)
+    catch Error
+        fileLimit = true
+    end
+    assert fileLimit and ui.findResource("file-limit") == null
+
+    bool noFile = false
+    try
+        xui.loadDocumentImageFileResource(ui,"missing-file",input+".missing")
+    catch Error
+        noFile = true
+    end
+    assert noFile and ui.findResource("missing-file") == null
+
+    bool sawPublishedFailure = false
+    bool sawSuccess = false
+    for allowance in range(64)
+        bool failed = false
+        budget(c_int(allowance))
+        try
+            xui.loadDocumentImageMemoryResource(ui,"oom-image",encoded)
+        catch Error
+            failed = true
+        finally
+            budget(-1)
+        end
+
+        auto entry = ui.findResource("oom-image")
+        if entry != null then
+            if failed then sawPublishedFailure = true else sawSuccess = true end
+            (entry as Resource).remove()
+        end
+        if sawPublishedFailure and sawSuccess then break end
+    end
+    assert sawPublishedFailure and sawSuccess
+end
+
+func main(...) as int
+    auto proxy = cpuProxy()
+    auto ui = xui.create(proxy,xui.XUI_SYSTEM_FONT_DISABLED)
+    string input = env.get("XUI_TEST_IMAGE") as string
+    auto encoded = file.readBytes(input)
+    exerciseOutputs(ui,proxy,input,encoded)
+    exerciseFailures(ui,input,encoded)
+    ui.close()
+    proxy.close()
+    assert balanced() != 0
+    println("XUI_DOCUMENT_IMAGE_SYNC_OK")
+    return 0
+end

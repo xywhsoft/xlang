@@ -1,0 +1,16 @@
+import xui
+from xui import Resource, Widget
+from "./_window.xl" import Window
+
+Window.show("Document / named image", func(xui.Context ui,Widget root)
+    auto image = xui.loadDocumentImageFileResource(ui,"lesson-icon",Window.asset("icon_file.png")) as Resource
+    auto document = xui.createDocument(profile=c_uint(xui.XUI_DOCUMENT_MARKDOWN))
+    try
+        // Markdown 引用 Context 中登记的资源名。
+        document.loadMarkdown("# Document image\n\n![File icon](" + image.name + ")\n")
+        auto view = xui.createDocumentView(ui,document)
+        Window.place(root,view,24,24,480,220)
+    finally
+        document.close()
+    end
+end)

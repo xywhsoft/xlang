@@ -1,0 +1,213 @@
+{
+  "complete": true,
+  "passed": true,
+  "releaseInstalled": false,
+  "sourceParent": "7fe33734a7ab1fefe207f4ac48064a1f17942490",
+  "nativeCommit": "4e2fd33eb55b22f480143b9f4b54b10aa628ecf7",
+  "languageSourcesSha256Lf": {
+    "docs/xge3-xui3-document-ui-api-map.md": "72ca9b40c193497e2a54564f4ea27b279c12d07a861b711cbf83c0e89f35dfda",
+    "test/cases/foreign_xui_document_image_sync.xl": "98691441c093b472ed6d336a72838aed52124ff283f83107b3812b267e70da31",
+    "lib/bindings/xui/examples/document_image_resource.xl": "504efb0b667c73f28450b67a335cbae0d88aa93bdb2ff822a3c495085b5c2368",
+    "docs/xge3-xui3-document-ui-api-map.json": "21e88774b8257841fac467d3c39c1b90fb77df42a0d82eba0b6e71d3e159126d",
+    "lib/bindings/xui/src/document_ui.xl": "5081e297fa562f8deea6eded28839b6cafab38af0b3f60d50a7911045a6aa252",
+    "lib/bindings/xui/examples/README.md": "1b26684cebc93ced1145ed932c7c3144254a841607b06a0f78a2bd66a951e931",
+    "tools/gen_xge3_document_ui_bindings.py": "48d6d706619f7aa61bc2468a1cb821725f200ef3c5bb07edd727acaa48b92aea"
+  },
+  "nativeSourcesSha256Lf": {
+    "include/xui_document_ui.h": "11fe8d572f94b3346f0ebfa281c5713bb69b24b1338553b0b90cd4e1e86cbbdd",
+    "src/xui/document/xui_document_image_resource.c": "046ab601657bd0bcda4f6a216a27fae43311ad5011a16cf5879af01aa5030e26",
+    "tests/xui/xui_owned_image_resource_test.c": "a03e9304178459398cfdefd4e7e288982169f0aa9aa35e3f2f5e583bdedb86e9"
+  },
+  "asyncRegressionSourceSha256Lf": "a3ed88c8cc5f928edc5c1351f49e342d9d0e84cadd4b09a5795c2834900c9a18",
+  "verified": [
+    "The status-only and typed resource endpoints share synchronous native loading and publication.",
+    "File decoding reads encoded bytes once and reuses the memory decode path.",
+    "The native output watches the exact published entry through deferred cleanup.",
+    "A destructor removing the new entry yields a null output in both sync paths. The old memory path fails this check.",
+    "Reentrant Context closure, partial backend output failure and cleanup preserve checked receipts.",
+    "The typed result belongs to the Context. Same-name replacement expires the prior view.",
+    "A retained Surface remains usable after registry removal.",
+    "Byte-limit and missing-file failures leave no named entry.",
+    "Language view-admission OOM may occur after publication and the native entry remains findable.",
+    "The async memory and file regression still passes after the exact uint64_t span mapping.",
+    "The beginner example renders the named resource through a real Markdown DocumentView."
+  ],
+  "evidence": {
+    "win": {
+      "sdk": {
+        "path": "F:\\xlang-validation\\xge-full-20261110\\document-image-sync-sdk-win-r1\\results.json",
+        "sha256": "1d16a0ee29b008e0a74fa043a16fb43a353abbf58d448d054a3aaff202582be9",
+        "checks": 2
+      },
+      "packages": {
+        "path": "F:\\xlang-validation\\xge-full-20261110\\document-image-sync-packages-win-r1\\results.json",
+        "sha256": "c746fe663b9cf9b3ff69d76c6ac70fef9a16499dd3c431e92da0b3f1e61a1d08",
+        "checks": 6
+      },
+      "native": {
+        "path": "F:\\xlang-validation\\xge-full-20261110\\document-image-sync-native-win-r1\\results.json",
+        "sha256": "97fd9dba01d8a7914cf93056e7bd5e5f3385343bf3ee3b30680439edf58b4278",
+        "checks": 6
+      },
+      "language": {
+        "path": "F:\\xlang-validation\\xge-full-20261110\\document-image-sync-language-tests-win-r1\\results.json",
+        "sha256": "284eb83fd744973546eab1ee69aa960b3dd5ffc97a36f3f35ae1106179ce00f3",
+        "checks": 7
+      },
+      "graphics": {
+        "path": "F:\\xlang-validation\\xge-full-20261110\\document-image-sync-example-win-r1\\results.json",
+        "sha256": "fec9e1228bdfff0bbf962a2827fb95ac21a247d684cabe29aba8abdf835e70b5",
+        "checks": 4
+      },
+      "benchmark": {
+        "path": "F:\\xlang-validation\\xge-full-20261110\\document-image-sync-bench-win-r1\\results.json",
+        "sha256": "5e37422baf3129cdb960d0328ce033a8be87319c1e4b5dcfec5a8c8c56434107",
+        "checks": 0
+      },
+      "uiGenerator": {
+        "path": "F:\\xlang-validation\\xge-full-20261110\\document-image-sync-ui-replay-win-r1\\results.json",
+        "sha256": "bf00d4995c7f386ed3f7825079e4e22060d3effc229a54405584cbe484b9f8ba",
+        "checks": 0
+      },
+      "baselineNegative": {
+        "path": "F:\\xlang-validation\\xge-full-20261110\\document-image-sync-native-win-r1\\baseline-run.log",
+        "sha256": "52a43370236d723b9dadcc7f8387a1e8f4c34c95805fd17add92a883b22c6bc6",
+        "exitCode": 3
+      },
+      "decodedImagePixels": {
+        "example-jit": 576,
+        "static-run": 576
+      },
+      "memoryReplacementAllocationCounts": {
+        "language": [
+          700,
+          700,
+          0
+        ],
+        "native": [
+          400,
+          400,
+          0
+        ]
+      },
+      "generatedC": {
+        "path": "F:\\xlang-validation\\xge-full-20261110\\document-image-sync-language-tests-win-r1\\list_callbacks.c",
+        "sha256": "e72ac3d0776a9bf8eead1ce7614e413bdf4ffa2673f661f8c4f8ff028aaa6b6a"
+      },
+      "languageArtifacts": {
+        "host": {
+          "path": "F:\\xlang-validation\\xge-full-20261110\\document-image-sync-language-tests-win-r1\\host.exe",
+          "sha256": "9dccdf8b0c24da7472063cc51ee92742070ddeaca80b7baff940f9ed8b29633c",
+          "imports": [
+            "msvcrt.dll",
+            "xge3_host.dll",
+            "kernel32.dll",
+            "SHELL32.dll",
+            "ws2_32.dll",
+            "IPHLPAPI.dll",
+            "ucrtbase.dll"
+          ]
+        },
+        "static": {
+          "path": "F:\\xlang-validation\\xge-full-20261110\\document-image-sync-language-tests-win-r1\\static.exe",
+          "sha256": "77d6ee796de333a3d229a70ef497474e2d15693685da49238e57b2f26233b86b",
+          "imports": [
+            "msvcrt.dll",
+            "kernel32.dll",
+            "ole32.dll",
+            "SHELL32.dll"
+          ]
+        }
+      }
+    },
+    "linux": {
+      "sdk": {
+        "path": "\\\\wsl.localhost\\Ubuntu\\var\\tmp\\xlang-validation\\xge-full-20261110\\document-image-sync-sdk-linux-r1\\results.json",
+        "sha256": "ea9cab85de5f18349a7d67164bab22379f1634ffca0a30c5256311c45ed3cec1",
+        "checks": 2
+      },
+      "packages": {
+        "path": "\\\\wsl.localhost\\Ubuntu\\var\\tmp\\xlang-validation\\xge-full-20261110\\document-image-sync-packages-linux-r1\\results.json",
+        "sha256": "b73c338b772d75bd6b094bd224352ea029ac6e5e6be2772f5d91620d6d6d8001",
+        "checks": 6
+      },
+      "native": {
+        "path": "\\\\wsl.localhost\\Ubuntu\\var\\tmp\\xlang-validation\\xge-full-20261110\\document-image-sync-native-linux-r1\\results.json",
+        "sha256": "105953913f267bbc2c3d8d3076d69c381999ac23c3ce2dff1980ce2b8fa0a49a",
+        "checks": 6
+      },
+      "language": {
+        "path": "\\\\wsl.localhost\\Ubuntu\\var\\tmp\\xlang-validation\\xge-full-20261110\\document-image-sync-language-tests-linux-r1\\results.json",
+        "sha256": "f5f95c41b1b1d94a5a43120701ee3135fd3ee6a87e36a0c15e758fdd01bc85dc",
+        "checks": 7
+      },
+      "graphics": {
+        "path": "\\\\wsl.localhost\\Ubuntu\\var\\tmp\\xlang-validation\\xge-full-20261110\\document-image-sync-example-linux-r1\\results.json",
+        "sha256": "4fe4a28fdce20b3e25f7781e0c5322685513124e295ecfc112b7df687a8240d3",
+        "checks": 4
+      },
+      "benchmark": {
+        "path": "\\\\wsl.localhost\\Ubuntu\\var\\tmp\\xlang-validation\\xge-full-20261110\\document-image-sync-bench-linux-r1\\results.json",
+        "sha256": "7d0a1f9a7904b65400a4b78a81ee0657c89eb7f75afc520618a50a5a9fbf4e9f",
+        "checks": 0
+      },
+      "uiGenerator": {
+        "path": "\\\\wsl.localhost\\Ubuntu\\var\\tmp\\xlang-validation\\xge-full-20261110\\document-image-sync-ui-replay-linux-r1\\results.json",
+        "sha256": "245f5a6c20ac81e7c066bf6d8980954f47c0de3b24e91561b1fbd2e061855540",
+        "checks": 0
+      },
+      "baselineNegative": {
+        "path": "\\\\wsl.localhost\\Ubuntu\\var\\tmp\\xlang-validation\\xge-full-20261110\\document-image-sync-native-linux-r1\\baseline-run.log",
+        "sha256": "0aad0514565411691c6dc7606c036a54e513dd23311e2e7c6d3431eb07c4ae3e",
+        "exitCode": -6
+      },
+      "decodedImagePixels": {
+        "example-jit": 576,
+        "static-run": 576
+      },
+      "memoryReplacementAllocationCounts": {
+        "language": [
+          700,
+          700,
+          0
+        ],
+        "native": [
+          400,
+          400,
+          0
+        ]
+      },
+      "generatedC": {
+        "path": "\\\\wsl.localhost\\Ubuntu\\var\\tmp\\xlang-validation\\xge-full-20261110\\document-image-sync-language-tests-linux-r1\\list_callbacks.c",
+        "sha256": "e72ac3d0776a9bf8eead1ce7614e413bdf4ffa2673f661f8c4f8ff028aaa6b6a"
+      },
+      "languageArtifacts": {
+        "host": {
+          "path": "\\\\wsl.localhost\\Ubuntu\\var\\tmp\\xlang-validation\\xge-full-20261110\\document-image-sync-language-tests-linux-r1\\host",
+          "sha256": "b84e886352059d6b0ea3b40bcefe6d800ea53db28e8ebc3f4f7d2e295be3d592",
+          "imports": [
+            "libm.so.6",
+            "libmvec.so.1",
+            "libxge3_host.so",
+            "libc.so.6",
+            "ld-linux-x86-64.so.2"
+          ]
+        },
+        "static": {
+          "path": "\\\\wsl.localhost\\Ubuntu\\var\\tmp\\xlang-validation\\xge-full-20261110\\document-image-sync-language-tests-linux-r1\\static",
+          "sha256": "31cbfaebd5fc1ea8bb520ba862515b9060880e273af0dcc5aef11209d5ddb1d0",
+          "imports": [
+            "libm.so.6",
+            "libmvec.so.1",
+            "libX11.so.6",
+            "libXi.so.6",
+            "libXcursor.so.1",
+            "libGL.so.1",
+            "libc.so.6",
+            "ld-linux-x86-64.so.2"
+          ]
+        }
+      }
+    }
+  }
+}

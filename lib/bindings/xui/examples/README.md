@@ -38,6 +38,7 @@
 [list_row_events.xl](list_row_events.xl) 自绘色块、禁用一行，并在按 Enter 或双击时显示激活的行。
 [list_virtual_rows.xl](list_virtual_rows.xl) 创建一百万个虚拟行，滚动时才按索引生成可见行的文字。
 [document_image_async.xl](document_image_async.xl) 在后台解码本地图标，每帧查询状态，完成后显示图片。
+[document_image_resource.xl](document_image_resource.xl) 加载本地图标，并在 Markdown 中用资源名引用它。
 
 [code_assist.xl](code_assist.xl) 读取编辑器的补全位置并打开签名帮助。
 [code_diagnostics.xl](code_diagnostics.xl) 为一段代码发布诊断，在编辑器里标出未知名称，并读取诊断文本。
