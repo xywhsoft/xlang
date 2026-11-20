@@ -7,6 +7,7 @@
 #include <io.h>
 #include <stdarg.h>
 #include <stdlib.h>
+#include <wchar.h>
 #include <windows.h>
 
 static wchar_t *tcc_utf8_to_wide(const char *text)
@@ -36,6 +37,37 @@ static wchar_t *tcc_utf8_to_wide(const char *text)
         return NULL;
     }
     return wide;
+}
+
+void *tcc_utf8_load_dll(const char *path)
+{
+    wchar_t *wide = tcc_utf8_to_wide(path);
+    HMODULE module = NULL;
+    if (wide == NULL)
+        return NULL;
+
+    if (wcspbrk(wide, L"/\\") == NULL && (!wide[0] || wide[1] != L':')) {
+        module = LoadLibraryW(wide);
+    } else {
+        /* An explicit image path supplies a private directory for imports.
+         * Keep that search local to this load and its dependencies. */
+        DWORD capacity = GetFullPathNameW(wide, 0, NULL, NULL);
+        if (capacity) {
+            wchar_t *full = malloc((size_t)capacity * sizeof(*full));
+            if (full != NULL) {
+                DWORD size = GetFullPathNameW(wide, capacity, full, NULL);
+                if (size && size < capacity) {
+                    module = LoadLibraryExW(full, NULL,
+                        LOAD_LIBRARY_SEARCH_DLL_LOAD_DIR | LOAD_LIBRARY_SEARCH_DEFAULT_DIRS);
+                    if (module == NULL && GetLastError() == ERROR_MOD_NOT_FOUND)
+                        module = LoadLibraryW(full);
+                }
+                free(full);
+            }
+        }
+    }
+    free(wide);
+    return module;
 }
 
 int tcc_utf8_open(const char *path, int flags, ...)

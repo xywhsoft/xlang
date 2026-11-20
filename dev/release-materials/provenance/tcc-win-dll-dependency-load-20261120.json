@@ -1,0 +1,32 @@
+{
+  "complete": true,
+  "passed": true,
+  "releaseInstalled": false,
+  "target": "Windows PE_RUN",
+  "sourceParent": "0270343920f50151a3fb0446dd7d65633ce31ccf",
+  "sourceHashesLf": {
+    "lib/tcc/tcc.h": "2f9b759d8d8d852f94a472797193d56edc0416a575b80a10cd539133509d85c7",
+    "lib/tcc/tcc_utf8_io.c": "5e990038a88e8a3d38f0161efeb6a3689d8e96017d659ca50365a8ac0d09b608",
+    "lib/tcc/tcc_utf8_io.h": "fa91f0519fe8635f70afa0007bfdc2c4a0943c600e15878739111c39bef45142",
+    "lib/tcc/tccpe.c": "4156f5258bb3bee293f81a780a02bfade5c0569aa122abdb8e48bfefb2ee03aa"
+  },
+  "checks": [
+    "Old TinyCC cannot relocate the publisher when its DLL dependency is only beside the publisher.",
+    "The new loader resolves an explicit ASCII or UTF-8 path, both relative and absolute.",
+    "Legacy PATH dependency fallback and bare DLL name resolution still work.",
+    "Deleting the state releases the OS module references.",
+    "Existing PE JIT and generated executables preserve import alias and IAT behavior."
+  ],
+  "evidence": {
+    "siblingImports": {
+      "path": "F:\\xlang-validation\\xge-full-20261110\\browser-dll-loader-tcc-dlls-win-r1\\results.json",
+      "sha256": "1afe9ce342d359d46ddef189f9021680893ccd602acdfd43fea20cabf6c81783",
+      "checks": 10
+    },
+    "peIatRegression": {
+      "path": "F:\\xlang-validation\\xge-full-20261110\\browser-dll-loader-pe-iat-win-r1\\results.json",
+      "sha256": "5d8224dbac0e627c72c48ea1dc3f40909ad2ae026610cef79c764dace122ee45",
+      "checks": 22
+    }
+  }
+}

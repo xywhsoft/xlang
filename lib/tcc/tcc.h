@@ -355,6 +355,10 @@ extern long double strtold (const char *__nptr, char **__endptr);
 #define ST_DATA extern
 #endif
 
+#ifdef _WIN32
+# include "tcc_utf8_io.h"
+#endif
+
 #ifdef CONFIG_TCC_BUILTIN_VFS
 # include "tcc_builtin_vfs.h"
 # ifndef TCC_BUILTIN_VFS_NO_REMAP
@@ -366,7 +370,6 @@ extern long double strtold (const char *__nptr, char **__endptr);
 #  define fclose tcc_vfs_fclose
 # endif
 #elif defined(_WIN32)
-# include "tcc_utf8_io.h"
 # ifndef TCC_UTF8_IO_NO_REMAP
 #  define open tcc_utf8_open
 #  define fopen tcc_utf8_fopen

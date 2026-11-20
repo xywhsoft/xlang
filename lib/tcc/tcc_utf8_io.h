@@ -6,5 +6,6 @@
 int tcc_utf8_open(const char *path, int flags, ...);
 FILE *tcc_utf8_fopen(const char *path, const char *mode);
 int tcc_utf8_unlink(const char *path);
+void *tcc_utf8_load_dll(const char *path);
 
 #endif
