@@ -1292,6 +1292,21 @@ METHODS.update({
     'xuiInventoryGridGetScrollSnapshot': (
         'int xuiInventoryGridGetScrollSnapshot(xui_widget pWidget, xui_scroll_model_t* pSnapshot)',
         'InventoryGrid', ['extern "xuiInventoryGridGetScrollSnapshot" @no_raise @c_output(1,0) func scrollSnapshot() as ScrollModel']),
+    'xuiCodeEditGetScrollSnapshot': (
+        'int xuiCodeEditGetScrollSnapshot(xui_widget pWidget, xui_scroll_model_t* pSnapshot)',
+        'CodeEdit', ['extern "xuiCodeEditGetScrollSnapshot" @no_raise @c_output(1,0) func scrollSnapshot() as ScrollModel']),
+    'xuiTextEditGetScrollSnapshot': (
+        'int xuiTextEditGetScrollSnapshot(xui_widget pWidget, xui_scroll_model_t* pSnapshot)',
+        'TextEdit', ['extern "xuiTextEditGetScrollSnapshot" @no_raise @c_output(1,0) func scrollSnapshot() as ScrollModel']),
+    'xuiTerminalGetScrollSnapshot': (
+        'int xuiTerminalGetScrollSnapshot(xui_widget pWidget, xui_scroll_model_t* pSnapshot)',
+        'Terminal', ['extern "xuiTerminalGetScrollSnapshot" @no_raise @c_output(1,0) func scrollSnapshot() as ScrollModel']),
+    'xuiTerminalSetScrollOffset': (
+        'int xuiTerminalSetScrollOffset(xui_widget pWidget, float fOffsetY)',
+        'Terminal', ['extern "xuiTerminalSetScrollOffset" @no_raise @c_result("status",0) func setScrollOffset(c_float y)']),
+    'xuiTerminalScrollBy': (
+        'int xuiTerminalScrollBy(xui_widget pWidget, float fDeltaY)',
+        'Terminal', ['extern "xuiTerminalScrollBy" @no_raise @c_result("status",0) func scrollBy(c_float dy)']),
     'xuiInventoryGridSetScrollOffset': (
         'int xuiInventoryGridSetScrollOffset(xui_widget pWidget, float fX, float fY)',
         'InventoryGrid', ['extern "xuiInventoryGridSetScrollOffset" @no_raise @c_result("status",0) func setScrollOffset(c_float x,c_float y)']),
@@ -1342,6 +1357,9 @@ CALLBACKS.update({
 })
 REPLACED.update({
     'xuiInventoryGridGetScrollModel': ('xui.InventoryGrid.scrollSnapshot','xuiInventoryGridGetScrollSnapshot'),
+    'xuiCodeEditGetScrollModel': ('xui.CodeEdit.scrollSnapshot','xuiCodeEditGetScrollSnapshot'),
+    'xuiTextEditGetScrollModel': ('xui.TextEdit.scrollSnapshot','xuiTextEditGetScrollSnapshot'),
+    'xuiTerminalGetScrollModel': ('xui.Terminal.scrollSnapshot','xuiTerminalGetScrollSnapshot'),
     'xuiInventoryGridSetDragCallback': ('xui.InventoryGrid.setDragCallback','xuiInventoryGridSetDragCallbackOwned'),
     'xuiInventoryGridSetDropCallback': ('xui.InventoryGrid.setDropCallback','xuiInventoryGridSetDropCallbackOwned'),
     'xuiInventoryGridSetTooltipCallback': ('xui.InventoryGrid.setTooltipProvider','xuiInventoryGridSetTooltipCallbackOwned'),

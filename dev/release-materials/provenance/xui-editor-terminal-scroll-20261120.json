@@ -1,0 +1,295 @@
+{
+  "complete": true,
+  "passed": true,
+  "releaseInstalled": false,
+  "sourceParent": "28725ad6c00c287a0d8e94f48077b5190873af44",
+  "nativeCommit": "94a961651168e0c68477981bc5637f23da16da36",
+  "xrtCommit": "804cc769de3030118c2b46ef7af69543d1b82d9d",
+  "nativeSourceHashesLf": {
+    "include/xui.h": "4be37e8ee9a52914c78b213f64df3e984ad437186b5186a2250f1f9caf28f617",
+    "src/xui/code/xui_code_edit.c": "e467756591e42fb892b875e908298739519a46d1b0850daf92027f81286637b0",
+    "src/xui/core/xui_text_edit.c": "df1ad4388896b1e99f27dedd2c4544cbea77b7bac1401585f1d7ac7be2580a79",
+    "src/xui/controls/xui_terminal.c": "52a83df7c45ae3bf7c82aab9f00b67130a9563ccbcc53f21f7b5298d1b25c2e5",
+    "tests/xui/xui_code_edit_test.c": "4ec7d1d47835aeabc65643123e31aded2467c471ce757a707886c2b203bdd3cf",
+    "tests/xui/xui_text_edit_test.c": "2bf9580496e0842a45b4db0a3bbd1989389cfdf8d389208901fe1df7a462bf4f",
+    "tests/xui/xui_terminal_test.c": "f87dfdf456e0db9d3703b26ec17f474a03c47267c2308e4f7d6caeebc281c9d8"
+  },
+  "languageSourceHashesLf": {
+    "docs/xge3-xui3-api-map-storage.json": "4765f97921c61aad8892508624f5a8dd81595ff4fc9537a313da71d47403969e",
+    "lib/bindings/xui/examples/README.md": "9233cef16fa9fdeaf3cfedd9c5d93809a79643c5d1df8d860d79df45e16b1b3f",
+    "lib/bindings/xui/examples/terminal_history.xl": "891d0e1ba1ba7e2e0791a46ecd29216db2e2aa08b2aa5e7532a4d508ccbc1d0a",
+    "lib/bindings/xui/src/managed.xl": "9f0161c1d79535829ef464228baf3efc09416afd2bf57ff98d814bb938f0ec08",
+    "test/cases/foreign_xui_editor_scroll.xl": "e69e5ededd78a199241bf2d72437f16059847646dfbc6158b9bd708c53b52780",
+    "tools/check_xge3_bindings.py": "a345a088d8ee97d070ac69b50361e813a284bf59d58b17c561f8dc349128945c",
+    "tools/xui_managed_contracts.py": "3c6266cb4f027f9fc50074600c69c8f8c0567567eb64e7983a2aa4cde7543556"
+  },
+  "checks": [
+    "CodeEdit and TextEdit snapshots update the arranged scroll model under an XUI call scope; only a successful measurement publishes the independent result.",
+    "The terminal clamps absolute and relative pixel offsets. Effective changes invalidate the render cache, including fractional offsets, and an unchanged or invalid offset retains existing state.",
+    "Scrolling up preserves history across new output. Returning to the latest row restores tail following. The native terminal regression verifies three-row wheel movement against the same model.",
+    "The copied values remain readable after widget and Context retirement. The C generation check verifies the direct native calls, and static AOT has no XGE host-library import.",
+    "The terminal history example renders text with both JIT and static AOT. The separate fixture checks the scroll operations and follow behavior."
+  ],
+  "costs": [
+    "Each snapshot transfers one fixed-size native value. CodeEdit and TextEdit keep the native layout and measurement work, including any allocations required by the existing layout path.",
+    "The managed bindings use the existing owner-view scope and checked status conversion. No new compiler/runtime wrapper or source-level dispatch is introduced.",
+    "The warmed paired terminal test alternates a vertical delta of +8 and -8 pixels for 100 effective changes in each path. Counters cover XRT alloc/free/realloc and exclude rendering and timing."
+  ],
+  "pending": [
+    "Whole-goal XGE, XUI and Document audit and matched release/IDE delivery."
+  ],
+  "platforms": {
+    "win": {
+      "imports": {
+        "host": [
+          "msvcrt.dll",
+          "xge3_host.dll",
+          "kernel32.dll",
+          "SHELL32.dll",
+          "ws2_32.dll",
+          "IPHLPAPI.dll",
+          "ucrtbase.dll"
+        ],
+        "static": [
+          "msvcrt.dll",
+          "kernel32.dll",
+          "USER32.dll",
+          "OLEAUT32.dll",
+          "ole32.dll",
+          "SHELL32.dll"
+        ]
+      },
+      "example": {
+        "example-jit": {
+          "dimensions": [
+            800,
+            600
+          ],
+          "textPixels": {
+            "textInk": 1683
+          }
+        },
+        "static-run": {
+          "dimensions": [
+            800,
+            600
+          ],
+          "textPixels": {
+            "textInk": 1683
+          }
+        }
+      },
+      "heapPer100TerminalChanges": {
+        "native": [
+          0,
+          0,
+          0
+        ],
+        "language": [
+          0,
+          0,
+          0
+        ]
+      }
+    },
+    "linux": {
+      "imports": {
+        "host": [
+          "libm.so.6",
+          "libmvec.so.1",
+          "libxge3_host.so",
+          "libc.so.6",
+          "ld-linux-x86-64.so.2"
+        ],
+        "static": [
+          "libm.so.6",
+          "libmvec.so.1",
+          "libX11.so.6",
+          "libXi.so.6",
+          "libXcursor.so.1",
+          "libGL.so.1",
+          "libc.so.6",
+          "ld-linux-x86-64.so.2"
+        ]
+      },
+      "example": {
+        "example-jit": {
+          "dimensions": [
+            800,
+            600
+          ],
+          "textPixels": {
+            "textInk": 1505
+          }
+        },
+        "static-run": {
+          "dimensions": [
+            800,
+            600
+          ],
+          "textPixels": {
+            "textInk": 1505
+          }
+        }
+      },
+      "heapPer100TerminalChanges": {
+        "native": [
+          0,
+          0,
+          0
+        ],
+        "language": [
+          0,
+          0,
+          0
+        ]
+      }
+    }
+  },
+  "evidence": {
+    "win": {
+      "sdk": {
+        "path": "F:\\xlang-validation\\xge-full-20261110\\editor-scroll-sdk-win-r1\\results.json",
+        "sha256": "7561b0c33bc4c04251fe4fb1ada7412ccfe7edb0ce46ce8089c11a5d86356dd1",
+        "checks": [
+          "host",
+          "static"
+        ]
+      },
+      "packageReplay": {
+        "path": "F:\\xlang-validation\\xge-full-20261110\\editor-scroll-packages-win-r1\\results.json",
+        "sha256": "20bff428c34cc8ce06ef0f2c69add9135f0da84fae264e9929934ff0d973d7ee",
+        "checks": [
+          "generated-declarations",
+          "inventory",
+          "strict-current-storage-replay",
+          "host",
+          "static",
+          "replay"
+        ]
+      },
+      "nativeFixture": {
+        "path": "F:\\xlang-validation\\xge-full-20261110\\editor-scroll-native-static-win-r1\\results.json",
+        "sha256": "eb24379aff53182d0ba45fc25a41c4c467ac0fa9e49157bc5500682d4d813d1c",
+        "checks": [
+          "code_edit-O0-build",
+          "code_edit-O0-run",
+          "code_edit-O2-build",
+          "code_edit-O2-run",
+          "text_edit-O0-build",
+          "text_edit-O0-run",
+          "text_edit-O2-build",
+          "text_edit-O2-run",
+          "terminal-O0-build",
+          "terminal-O0-run",
+          "terminal-O2-build",
+          "terminal-O2-run"
+        ]
+      },
+      "languageFixture": {
+        "path": "F:\\xlang-validation\\xge-full-20261110\\editor-scroll-language-tests-win-r7\\results.json",
+        "sha256": "dc8ca9c33be719d8cd2430e70806749e9985763197bedee1762667e12dd4f4ca",
+        "checks": [
+          "emit",
+          "jit",
+          "example-cgen",
+          "host-build",
+          "host-run",
+          "host-imports",
+          "static-build",
+          "static-run",
+          "static-imports"
+        ]
+      },
+      "example": {
+        "path": "F:\\xlang-validation\\xge-full-20261110\\editor-scroll-example-win-r1\\results.json",
+        "sha256": "2d7093cbf6138ea62714efd6bf4cc85c4694c34bc67a390643192dce1ec44dea",
+        "checks": [
+          "base-emit",
+          "example-jit",
+          "static-build",
+          "static-run"
+        ]
+      },
+      "heapProfile": {
+        "path": "F:\\xlang-validation\\xge-full-20261110\\editor-scroll-profile-win-r1\\results.json",
+        "sha256": "3105a086d17b77f8c83d8bbeee1637c5d4968a36abae0707ad535b71ec1a1108",
+        "checks": [
+          "profile"
+        ]
+      }
+    },
+    "linux": {
+      "sdk": {
+        "path": "\\\\wsl.localhost\\Ubuntu\\var\\tmp\\xlang-validation\\xge-full-20261110\\editor-scroll-sdk-linux-r1\\results.json",
+        "sha256": "ff968e3a733f0a57569a5918d11827c9443c0ea18c5c4e6b5af6147edb48c9d8",
+        "checks": [
+          "host",
+          "static"
+        ]
+      },
+      "packageReplay": {
+        "path": "\\\\wsl.localhost\\Ubuntu\\var\\tmp\\xlang-validation\\xge-full-20261110\\editor-scroll-packages-linux-r1\\results.json",
+        "sha256": "c3fc63599451999170f6243be999d793304d8ff3a5b00da322ade877d8766c02",
+        "checks": [
+          "generated-declarations",
+          "inventory",
+          "strict-current-storage-replay",
+          "host",
+          "static",
+          "replay"
+        ]
+      },
+      "nativeFixture": {
+        "path": "\\\\wsl.localhost\\Ubuntu\\var\\tmp\\xlang-validation\\xge-full-20261110\\editor-scroll-native-static-linux-r2\\results.json",
+        "sha256": "8119db948602b03b7fc70bdd45e67125c5286f144d841a1c60d94358835c9478",
+        "checks": [
+          "code_edit-O0-build",
+          "code_edit-O0-run",
+          "code_edit-O2-build",
+          "code_edit-O2-run",
+          "text_edit-O0-build",
+          "text_edit-O0-run",
+          "text_edit-O2-build",
+          "text_edit-O2-run",
+          "terminal-O0-build",
+          "terminal-O0-run",
+          "terminal-O2-build",
+          "terminal-O2-run"
+        ]
+      },
+      "languageFixture": {
+        "path": "\\\\wsl.localhost\\Ubuntu\\var\\tmp\\xlang-validation\\xge-full-20261110\\editor-scroll-language-tests-linux-r7\\results.json",
+        "sha256": "837e3a8eef79884f2a4311df4f924aa26ffae2b4caa9918ee6b114e6a7d98be3",
+        "checks": [
+          "emit",
+          "jit",
+          "example-cgen",
+          "host-build",
+          "host-run",
+          "host-imports",
+          "static-build",
+          "static-run",
+          "static-imports"
+        ]
+      },
+      "example": {
+        "path": "\\\\wsl.localhost\\Ubuntu\\var\\tmp\\xlang-validation\\xge-full-20261110\\editor-scroll-example-linux-r1\\results.json",
+        "sha256": "c1258da3f49ab92606e4343467965f04a7585a0bb8abcadd3fbac8fe6ee5fe2d",
+        "checks": [
+          "base-emit",
+          "example-jit",
+          "static-build",
+          "static-run"
+        ]
+      },
+      "heapProfile": {
+        "path": "\\\\wsl.localhost\\Ubuntu\\var\\tmp\\xlang-validation\\xge-full-20261110\\editor-scroll-profile-linux-r1\\results.json",
+        "sha256": "08539f7e8e0551274be6452b7089e743f6c8ad702b06143ab28a4e1e8f42302a",
+        "checks": [
+          "profile"
+        ]
+      }
+    }
+  }
+}

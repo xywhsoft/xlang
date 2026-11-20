@@ -1,0 +1,26 @@
+import xui
+from "./_window.xl" import Window
+
+Window.show("终端滚动历史", func(xui.Context ui, xui.Widget root)
+    auto terminal = ui.terminalNative()
+    Window.place(root, terminal, 24, 24, 580, 260)
+    for line in range(40)
+        terminal.writeText("Log entry " + string(line + 1) + "\r\n")
+    end
+    terminal.flush()
+
+    auto first = ui.buttonNative()
+    first.setText("最早记录")
+    Window.place(root, first, 24, 300, 118, 34)
+    first.setClick(func(xui.Widget sender)
+        terminal.setScrollOffset(0)
+    end)
+
+    auto latest = ui.buttonNative()
+    latest.setText("最新记录")
+    Window.place(root, latest, 152, 300, 118, 34)
+    latest.setClick(func(xui.Widget sender)
+        auto lastX, lastY = xui.scrollModelGetMaxOffset(terminal.scrollSnapshot())
+        terminal.setScrollOffset(lastY)
+    end)
+end)

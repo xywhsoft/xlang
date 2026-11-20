@@ -1,0 +1,92 @@
+import xui
+from xui import Font, Proxy, Rect
+
+extern "fixtureRenderProxy" @header("test/cases/foreign_xui_render_backend.h") @no_raise @c_result("owned_view") @factory(0,0,dropProxy) func cpuProxy() as Proxy
+extern "fixtureRenderFont" @no_raise @c_result("owned_view") @factory(1,0,dropFont) func cpuFont(Proxy proxy) as Font
+extern "fixtureRenderBalanced" @no_raise func balanced() as c_int
+extern "xuiProxyReleaseChecked" @header("xge3_runtime.h") @no_raise @c_result("status",0) func dropProxy(Proxy value)
+extern "xuiFontReleaseChecked" @no_raise @c_result("status",0) func dropFont(Font value)
+
+func main(...) as int
+    auto proxy = cpuProxy()
+    auto font = cpuFont(proxy)
+    auto ui = xui.create(proxy,xui.XUI_SYSTEM_FONT_DISABLED)
+    ui.setDefaultFont(font)
+    ui.setViewportSize(480,160)
+    auto root = ui.panelNative()
+    assert ui.setRootWidget(root) == 0, "attach panel"
+
+    auto code = ui.codeEditNative()
+    auto text = ui.textEditNative()
+    auto terminal = ui.terminalNative()
+    auto bounds = Rect()
+    bounds.fW = 140
+    bounds.fH = 72
+    assert code.setRect(bounds) == 0 and root.addChild(code) == 0, "attach code editor"
+    bounds.fX = 155
+    assert text.setRect(bounds) == 0 and root.addChild(text) == 0, "attach text editor"
+    bounds.fX = 310
+    assert terminal.setRect(bounds) == 0 and root.addChild(terminal) == 0, "attach terminal"
+    assert ui.layout() == 0, "layout editor test"
+
+    string document = ""
+    for i in range(20)
+        document = document + "alpha beta gamma delta epsilon zeta\n"
+    end
+    assert code.setText(document) == 0, "set code editor text"
+    assert text.setText(document) == 0, "set text editor text"
+    code.setWordWrap(1)
+    text.setWordWrap(1)
+    assert text.setScroll(0,0) == 0, "start the relative scroll at the top"
+    assert code.setScroll(0,24) == 0 and text.scrollBy(0,24) == 0, "scroll both editors"
+    auto codeOffset = code.scrollSnapshot()
+    auto textOffset = text.scrollSnapshot()
+    auto codeX, codeY = code.getScroll()
+    auto textX, textY = text.getScroll()
+    assert codeOffset.fScrollY == 24 and codeOffset.fScrollY == codeY, "code editor snapshot displays its programmed offset"
+    assert textOffset.fScrollY == 24 and textOffset.fScrollY == textY, "text editor snapshot displays its programmed offset"
+    assert codeOffset.tViewportRect.fH > 0 and textOffset.tViewportRect.fH > 0, "editor snapshots include viewport height"
+    assert codeOffset.fContentHeight > codeOffset.tViewportRect.fH, "code editor content is taller than viewport"
+    assert textOffset.fContentHeight > textOffset.tViewportRect.fH, "text editor content is taller than viewport"
+    assert code.setScroll(0,0) == 0 and text.setScroll(0,0) == 0, "reset editor offsets"
+    assert code.scrollSnapshot().fScrollY == 0 and text.scrollSnapshot().fScrollY == 0, "editor snapshots reflect reset"
+
+    terminal.setMetrics(8,16,0)
+    terminal.resize(17,4)
+    for i in range(15)
+        assert terminal.writeText("entry " + string(i) + "\r\n") == 0, "write terminal history"
+    end
+    assert terminal.flush() == 0, "flush terminal history"
+    auto tail = terminal.scrollSnapshot()
+    auto maxX, maxY = xui.scrollModelGetMaxOffset(tail)
+    assert maxX == 0 and maxY > 48, "terminal has vertical history and no horizontal scroll"
+    assert tail.fScrollY == maxY, "terminal snapshot follows initial tail"
+    int changes = terminal.getChangeCount()
+    terminal.scrollBy(-100000)
+    assert terminal.scrollSnapshot().fScrollY == 0, "terminal moves to oldest history"
+    assert terminal.getChangeCount() == changes + 1, "terminal scroll publishes one render change"
+    terminal.setScrollOffset(-10)
+    assert terminal.getChangeCount() == changes + 1, "terminal no-op does not invalidate"
+    assert terminal.writeText("new entry\r\n") == 0 and terminal.flush() == 0, "append a row while browsing history"
+    assert terminal.scrollSnapshot().fScrollY == 0, "new output preserves the history view"
+    auto currentX, currentY = xui.scrollModelGetMaxOffset(terminal.scrollSnapshot())
+    terminal.setScrollOffset(currentY)
+    assert terminal.writeText("another entry\r\n") == 0 and terminal.flush() == 0, "append a row while following tail"
+    auto followed = terminal.scrollSnapshot()
+    auto nextX, nextY = xui.scrollModelGetMaxOffset(followed)
+    assert nextY > currentY and followed.fScrollY == nextY, "setting the bottom resumes tail follow"
+    bool rejected = false
+    try
+        terminal.scrollBy(c_float(2147483648.0))
+    catch Error
+        rejected = true
+    end
+    assert rejected and terminal.scrollSnapshot().fScrollY == nextY, "invalid terminal delta preserves offset"
+    ui.close()
+    font.close()
+    proxy.close()
+    assert codeOffset.fScrollY == 24 and textOffset.fScrollY == 24 and tail.fScrollY == maxY, "copied snapshots survive context close"
+    assert balanced() != 0, "deterministic proxy resources retire"
+    println("XUI_EDITOR_SCROLL_OK")
+    return 0
+end
