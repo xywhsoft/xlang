@@ -1,0 +1,27 @@
+// 将鼠标停在按钮上，提示里会绘制一个颜色样本。
+import xui
+from "./_window.xl" import Window
+
+Window.showWithProxy("自定义工具提示", func(xui.Context ui, xui.Widget root, xui.Proxy proxy)
+ auto button = ui.buttonNative()
+ button.setText("查看颜色样本")
+ Window.place(root, button, 24, 72, 180, 40)
+
+ auto placement = xui.tooltipPlacementDefault()
+ placement.iAnchor = xui.XUI_TOOLTIP_ANCHOR_WIDGET_RIGHT
+ button.setCustomTooltip(placement,
+  func(xui.CallbackContext context, xui.CallbackWidget owner) as xui.Vec2
+   auto size = xui.Vec2()
+   size.fX = 96
+   size.fY = 40
+   return size
+  end,
+  func(xui.CallbackContext context, xui.CallbackWidget owner, xui.CallbackDrawContext draw, xui.Rect bounds) as c_int
+   bounds.fX = 6
+   bounds.fY = 6
+   bounds.fW = bounds.fW - c_int(12)
+   bounds.fH = bounds.fH - c_int(12)
+   proxy.fillRect(draw, bounds, c_uint(0x2A86B9FF))
+   return xui.XUI_OK
+  end)
+end)

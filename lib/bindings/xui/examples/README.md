@@ -152,6 +152,7 @@ WebView 范例只加载源码中的本地 HTML。它需要启用 WebView2 的 Wi
 | [input.xl](input.xl) | 编辑 UTF-8 文字，点击右侧按钮清空内容。 |
 | [input_decorations.xl](input_decorations.xl) | 为输入框添加文字、纹理和自定义绘制装饰。 |
 | [widget_tooltip.xl](widget_tooltip.xl) | 设置按钮提示的锚点、偏移和显示延迟。 |
+| [custom_tooltip.xl](custom_tooltip.xl) | 用测量与绘制回调在提示中显示颜色样本。 |
 | [listview.xl](listview.xl) | 点击行，改变列表的选中项。 |
 | [menu.xl](menu.xl) | Menu / command selection |
 | [messagelist.xl](messagelist.xl) | 两条聊天消息对应两个 addNode 调用。 |

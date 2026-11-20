@@ -1249,10 +1249,25 @@ RECORDS.update({
                                'float fOffsetX; float fOffsetY; float fDelay; int bFollowCursor; } xui_tooltip_placement_t;',
     'xui_tooltip_info_t': 'typedef struct xui_tooltip_info_t { uint32_t iSize; int iType; const char* sText; '
                           'xui_tooltip_placement_t tPlacement; } xui_tooltip_info_t;',
+    'xui_custom_tooltip_desc_t': 'typedef struct xui_custom_tooltip_desc_t { uint32_t iSize; xui_tooltip_placement_t tPlacement; '
+                                 'xui_tooltip_measure_proc onMeasure; xui_tooltip_paint_proc onPaint; void* pUser; } xui_custom_tooltip_desc_t;',
+})
+CALLBACKS.update({
+    'xui_tooltip_measure_proc': (
+        'typedef xui_vec2_t (*xui_tooltip_measure_proc)(xui_context pContext, xui_widget pOwner, void* pUser);',
+        'export typedef TooltipMeasureProc = func(CallbackContext,CallbackWidget) as Vec2',
+    ),
+    'xui_tooltip_paint_proc': (
+        'typedef int (*xui_tooltip_paint_proc)(xui_context pContext, xui_widget pOwner, xui_draw_context pDraw, xui_rect_t tRect, void* pUser);',
+        'export typedef TooltipPaintProc = func(CallbackContext,CallbackWidget,CallbackDrawContext,Rect) as c_int',
+    ),
 })
 TYPE_SHAPES.update({
     'xui_tooltip_placement_t': '7e392f48a4649b6903a5f310011403fcbcc6c83a0bd0a9211c0de000a51eaeec',
     'xui_tooltip_info_t': '980e18b4dfa23d765168b5b8fd4cfb4163f4b0efbbe32d9639eb6ef73fd22013',
+    'xui_custom_tooltip_desc_t': '819255cc83e84c6a4207d08db88f06a453679532fee06ce97149061b640eac8e',
+    'xui_tooltip_measure_proc': 'ef6ed08d8e94cee3e665bc0bd0a62d5a63013037fae4ced247fe322b159f0380',
+    'xui_tooltip_paint_proc': '6dbc7199687e3bc05cca4077ba96b47b3d3065847e08e3122ed1bf8bb1585092',
 })
 METHODS.update({
     'xuiTooltipPlacementDefault': [
@@ -1263,6 +1278,15 @@ METHODS.update({
         'int xuiWidgetSetTextTooltip(xui_widget pWidget, const char* sText, const xui_tooltip_placement_t* pPlacement)', 'Widget',
         ['extern "xuiWidgetSetTextTooltip" @no_raise @c_cstr(0) @c_ref(1) @c_result("status",0) '
          'func setTooltipText(string text,TooltipPlacement placement)']],
+    'xuiWidgetSetCustomTooltipOwned': [
+        'int xuiWidgetSetCustomTooltipOwned(xui_widget pWidget, const xui_custom_tooltip_desc_t* pDesc, '
+        'const xui_callback_owner_t* pOwner)', 'Widget',
+        ['extern "xuiWidgetSetCustomTooltipOwned" @no_raise @c_pack(1,"xui_custom_tooltip_desc_t",0,3) '
+         '@c_pack_size(1,"iSize","uint32_t") @c_pack_field(1,"tPlacement",0,"value") '
+         '@c_pack_callback_group(1,"pUser",2) @c_pack_field(1,"onMeasure",1,"owned_callback") '
+         '@c_owned_callback(1,-1,"xui_callback_owner_t",0,"last") @c_pack_field(1,"onPaint",2,"owned_callback") '
+         '@c_owned_callback(2,-1,"xui_callback_owner_t",-16,"last") @c_result("status",0) '
+         'func setCustomTooltip(TooltipPlacement placement,TooltipMeasureProc measure,TooltipPaintProc paint)']],
     'xuiWidgetGetTooltipInfo': [
         'int xuiWidgetGetTooltipInfo(xui_widget pWidget, xui_tooltip_info_t* pInfo)', 'Widget',
         ['extern "xuiWidgetGetTooltipInfo" @no_raise @c_output_record(1,"xui_tooltip_info_t","borrowed") '

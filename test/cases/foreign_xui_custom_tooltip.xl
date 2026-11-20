@@ -1,0 +1,128 @@
+import xge
+import xui
+from xui import CallbackWidget,CallbackDrawContext
+
+extern "xrtMemDebugEnabled" @header("xrt_decl.h") @no_raise func memDebugEnabled() as bool
+extern "xrtMemDebugEnable" @header("xrt_decl.h") @no_raise func memDebug(bool enabled) as bool
+extern "xrtMemDebugFailAfter" @header("xrt_decl.h") @no_raise func failAfter(uint64 prefix) as bool
+extern "xrtMemDebugFailClear" @header("xrt_decl.h") @no_raise func failClear()
+
+func exercise(xui.Context ui,xui.Widget widget,xui.Proxy proxy,xui.Surface target)
+ auto placement = xui.tooltipPlacementDefault()
+ placement.iAnchor = xui.XUI_TOOLTIP_ANCHOR_CURSOR
+ placement.fDelay = 0
+ bool replaceInMeasure = true
+ int measureCount = 0
+ int paintCount = 0
+ xui.CallbackWidget? savedOwner = null
+ xui.CallbackDrawContext? savedDraw = null
+ xui.TooltipMeasureProc measure = func(xui.CallbackContext context,xui.CallbackWidget owner) as xui.Vec2
+  measureCount += 1
+  assert owner.rect().fW == c_float(100), "measure received the registered widget"
+  savedOwner = owner
+  if replaceInMeasure then
+   replaceInMeasure = false
+   widget.setTooltipText("replacement",placement)
+  end
+  auto size = xui.Vec2()
+  size.fX = 48
+  size.fY = 26
+  return size
+ end
+ xui.TooltipPaintProc paint = func(xui.CallbackContext context,xui.CallbackWidget owner,xui.CallbackDrawContext draw,xui.Rect bounds) as c_int
+  paintCount += 1
+  assert bounds.fW == c_float(48) and bounds.fH == c_float(26), "paint received the measured dimensions"
+  proxy.fillRect(draw,bounds,c_uint(0x148CB9FF))
+  savedDraw = draw
+  assert widget.clearTooltip() == xui.XUI_OK, "clear during paint"
+  return xui.XUI_OK
+ end
+
+ ui.render(target)
+ widget.setTooltipText("original",placement)
+ if not memDebugEnabled() then assert memDebug(true), "enable allocator diagnostics" end
+ int failures = 0
+ for prefix in range(16)
+  assert failAfter(uint64(prefix)), "arm allocation failure"
+  try
+   widget.setCustomTooltip(placement,measure,paint)
+  catch Error
+   failures += 1
+   failClear()
+   auto kind, text, oldPlacement = widget.tooltipInfo()
+   assert kind == xui.XUI_TOOLTIP_TEXT and text != null and (text as string) == "original", "failed registration preserved the text tooltip"
+  finally
+   failClear()
+  end
+  widget.setTooltipText("original",placement)
+ end
+ assert failures > 0 and failures < 16, "allocation sweep exercised both failure and success"
+ widget.setCustomTooltip(placement,measure,paint)
+ assert ui.inputPointerMove(8,8,0) == 0 and ui.update(0) == 0, "hover for replacement during measure"
+ assert measureCount == 1 and paintCount == 0 and ui.widgetTooltipIsOpen() == 0, "replacement discarded the first measurement"
+ auto kind, text, savedPlacement = widget.tooltipInfo()
+ assert kind == xui.XUI_TOOLTIP_TEXT and text != null and (text as string) == "replacement", "replacement registration is visible"
+ bool expired = false
+ try
+  auto previousOwner = savedOwner as CallbackWidget
+  previousOwner.rect()
+ catch StateError
+  expired = true
+ end
+ assert expired, "escaped widget callback view expired"
+
+ widget.setCustomTooltip(placement,measure,paint)
+ assert ui.inputPointerMove(9,8,0) == 0 and ui.update(0) == 0, "hover for custom painting"
+ assert measureCount == 2 and ui.widgetTooltipIsOpen() != 0, f"custom popup opened after {measureCount} measurements"
+ ui.render(target)
+ assert paintCount == 1 and ui.widgetTooltipIsOpen() == 0, "paint cleared the custom popup"
+ expired = false
+ try
+  proxy.fillRect(savedDraw as CallbackDrawContext,xui.Rect(),0)
+ catch StateError
+  expired = true
+ end
+ assert expired, "escaped drawing view expired"
+
+ widget.setCustomTooltip(placement,func(xui.CallbackContext context,xui.CallbackWidget owner) as xui.Vec2
+  throw "tooltip-measure-failure"
+ end,paint)
+ assert ui.inputPointerMove(10,8,0) == 0, "hover for failing measurement"
+ bool reported = false
+ try
+  ui.update(0)
+ catch Error
+  reported = true
+ end
+ assert reported and ui.widgetTooltipIsOpen() == 0, "checked measurement failure closed the popup"
+ assert widget.clearTooltip() == xui.XUI_OK
+end
+
+func main(...) as int
+ xge.init(100,80,"Custom tooltip qualification",c_int(xge.XGE_INIT_OFFSCREEN))
+ xge.run(func() as c_int
+  assert xge.begin() == 0, "begin graphics frame"
+  auto proxy = xui.createProxy()
+  auto ui = xui.create(proxy,xui.XUI_SYSTEM_FONT_DISABLED)
+  auto widget = ui.widget()
+  auto rect = xui.Rect()
+  rect.fW = 100
+  rect.fH = 80
+  assert widget.setRect(rect) == 0 and ui.setRootWidget(widget) == 0, "attach tooltip fixture"
+  ui.setViewportSize(100,80)
+  auto target = proxy.createSurfaceRGBA(100,80,flags=c_uint(xui.XUI_SURFACE_USAGE_TARGET))
+  try
+   exercise(ui,widget,proxy,target)
+  finally
+   ui.close()
+   target.close()
+   proxy.close()
+   assert xge.nativeEnd() == 0, "end graphics frame"
+  end
+  return c_int(1)
+ end)
+ xge.setFrameCallback(null)
+ xge.unit()
+ println("XUI_CUSTOM_TOOLTIP_OK")
+ return 0
+end

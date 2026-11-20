@@ -1,0 +1,81 @@
+{
+  "complete": true,
+  "passed": true,
+  "releaseInstalled": false,
+  "nativeCommit": "c4c0c8a57a29d77f65f4854ef750e6b2c90709ce",
+  "platforms": {
+    "win": {
+      "sdk": {
+        "path": "F:\\xlang-validation\\xge-full-20261110\\widget-tooltip-custom-sdk-win-r1\\results.json",
+        "sha256": "726b1e41cd7eb06e651dc1cd32ee136dcd5f4d3b4c08d82004e18218236a7812"
+      },
+      "native": {
+        "path": "F:\\xlang-validation\\xge-full-20261110\\widget-tooltip-custom-test-win-r1\\results.json",
+        "sha256": "9ec6a866bb437a6bee8121bfc4130630354f2b1c5951e79832002b91a91b92ec"
+      },
+      "fixturePackages": {
+        "path": "F:\\xlang-validation\\xge-full-20261110\\widget-tooltip-custom-packages-win-r1\\results.json",
+        "sha256": "cccc5ec2288b90308a283c4b3fc2b207aac4c0aae75def49e9ab816abdea9dd9"
+      },
+      "fixtureRuntime": {
+        "path": "F:\\xlang-validation\\xge-full-20261110\\widget-tooltip-custom-runtime-win-r6\\results.json",
+        "sha256": "109966481e5d76bacbdeb6d95cf93bfc6790345d3b920e26c90e9ab8b4d0ad2e"
+      },
+      "fixtureAcceptedRows": 15,
+      "generatedC": {
+        "path": "F:\\xlang-validation\\xge-full-20261110\\widget-tooltip-custom-runtime-win-r6\\tooltip.c",
+        "sha256": "87ff0640194f8c96c61eeb77e005348afb11ff45f5e5f5dd8e3e2fdc7c44be64"
+      },
+      "packages": {
+        "path": "F:\\xlang-validation\\xge-full-20261110\\widget-tooltip-custom-packages-win-r2\\results.json",
+        "sha256": "b6c30cf2257904d3107ba82b390826c941ca89c555dd2c1d579caddae98c2b9b"
+      },
+      "example": {
+        "path": "F:\\xlang-validation\\xge-full-20261110\\widget-tooltip-custom-example-win-r2\\results.json",
+        "sha256": "0231805d0d09c15a6f047762f3076704c375a8acb69fbb602ac7b3bce79634f8"
+      }
+    },
+    "linux": {
+      "sdk": {
+        "path": "\\\\wsl.localhost\\Ubuntu\\var\\tmp\\xlang-validation\\xge-full-20261110\\widget-tooltip-custom-sdk-linux-r1\\results.json",
+        "sha256": "441b8f14f231beb9d8468d8538e11b98c523e9d6668b98c5616f83043270726a"
+      },
+      "native": {
+        "path": "\\\\wsl.localhost\\Ubuntu\\var\\tmp\\xlang-validation\\xge-full-20261110\\widget-tooltip-custom-test-linux-r1\\results.json",
+        "sha256": "8f3d8fc566ed55dc3d7cc6241adba3994043bdc815870d6c9d14d9a40c10b01f"
+      },
+      "fixturePackages": {
+        "path": "\\\\wsl.localhost\\Ubuntu\\var\\tmp\\xlang-validation\\xge-full-20261110\\widget-tooltip-custom-packages-linux-r1\\results.json",
+        "sha256": "7e9facc0ec4edf7f6c7b3b29a960c0626a4e010110bdeae2bd0cb2d52c92d875"
+      },
+      "fixtureRuntime": {
+        "path": "\\\\wsl.localhost\\Ubuntu\\var\\tmp\\xlang-validation\\xge-full-20261110\\widget-tooltip-custom-runtime-linux-r6\\results.json",
+        "sha256": "8c0286ae94cf3bcf099e53f2a881163b3955798c700224f2614efb9a9d159d59"
+      },
+      "fixtureAcceptedRows": 15,
+      "generatedC": {
+        "path": "\\\\wsl.localhost\\Ubuntu\\var\\tmp\\xlang-validation\\xge-full-20261110\\widget-tooltip-custom-runtime-linux-r6\\tooltip.c",
+        "sha256": "87ff0640194f8c96c61eeb77e005348afb11ff45f5e5f5dd8e3e2fdc7c44be64"
+      },
+      "packages": {
+        "path": "\\\\wsl.localhost\\Ubuntu\\var\\tmp\\xlang-validation\\xge-full-20261110\\widget-tooltip-custom-packages-linux-r2\\results.json",
+        "sha256": "9e299fde0c608d368a3ab02f3ab323cfb4c1c679b218e472cfb41edc65eb56ee"
+      },
+      "example": {
+        "path": "\\\\wsl.localhost\\Ubuntu\\var\\tmp\\xlang-validation\\xge-full-20261110\\widget-tooltip-custom-example-linux-r2\\results.json",
+        "sha256": "ce7c0047bd91fc572c1839dee17e43a00cdeee3e3aafdbd81db010f728e20af5"
+      }
+    }
+  },
+  "checks": [
+    "Native reference counts verify one widget owner and temporary Hold/Drop across reentrant replacement and clearing, with widget destruction releasing the registration.",
+    "The binding uses a stack descriptor, one generated callback-group environment and a direct native call. Dispatch adds native Hold/Drop and language callback epoch bookkeeping.",
+    "The managed fixture verifies actual painting, replacement during measurement, clearing during paint, OOM rollback, checked measurement errors and expiry of escaped widget and draw views.",
+    "Host-link executables import xge3_host; static test executables do not.",
+    "The example was restaged after correcting its integer rectangle arithmetic. Comparison proved that the example and staging metadata were the only package changes."
+  ],
+  "pending": [
+    "Owned dynamic tooltip resolver",
+    "Whole-goal API audit and matched release/IDE delivery"
+  ]
+}
