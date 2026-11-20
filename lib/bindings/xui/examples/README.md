@@ -40,6 +40,8 @@
 
 [terminal_history.xl](terminal_history.xl) 在终端的最早记录和最新记录之间切换，也可以用滚轮浏览历史。
 
+[scrollview.xl](scrollview.xl) 把滚动快照作为独立值，计算让最后一行可见所需的偏移，再应用到控件。
+
 [combobox_items.xl](combobox_items.xl) 使用业务值、禁用状态和分隔线配置下拉选项，并读取当前选项。
 
 [timeline_state.xl](timeline_state.xl) 设置一个关键帧并读取区间快照。[message_nodes.xl](message_nodes.xl) 批量加载消息，再读取辅助节点。

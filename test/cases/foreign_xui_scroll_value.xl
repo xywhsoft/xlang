@@ -1,0 +1,85 @@
+import xui
+from xui import Proxy, Rect, Widget
+
+extern "fixtureRenderProxy" @header("test/cases/foreign_xui_render_backend.h") @no_raise @c_result("owned_view") @factory(0,0,dropProxy) func cpuProxy() as Proxy
+extern "fixtureRenderBalanced" @no_raise func balanced() as c_int
+extern "xuiProxyReleaseChecked" @header("xge3_runtime.h") @no_raise @c_result("status",0) func dropProxy(Proxy value)
+
+func main(...) as int
+    auto empty = xui.scrollModelInit()
+    auto viewport = Rect()
+    viewport.fX = 10
+    viewport.fY = 20
+    viewport.fW = 100
+    viewport.fH = 80
+    auto model = xui.scrollModelWithViewport(empty,viewport)
+    model = xui.scrollModelWithContentSize(model,260,180)
+    assert empty.tViewportRect.fH == 0 and model.tViewportRect.fH == 80
+    auto clamped = xui.scrollModelWithOffset(model,-30,200)
+    assert clamped.fScrollX == 0 and clamped.fScrollY == 100 and model.fScrollY == 0
+    auto relative = xui.scrollModelScrolledBy(clamped,10,-20)
+    assert relative.fScrollX == 10 and relative.fScrollY == 80 and clamped.fScrollY == 100
+    auto target = Rect()
+    target.fX = 5
+    target.fY = 30
+    target.fW = 20
+    target.fH = 20
+    auto revealed = xui.scrollModelWithRectVisible(relative,target)
+    assert revealed.fScrollX == 5 and revealed.fScrollY == 30
+    auto contentPoint = xui.scrollModelScreenToContent(revealed,15,25)
+    assert contentPoint.fX == 10 and contentPoint.fY == 35
+    bool rejected = false
+    target.fH = -1
+    try
+        revealed = xui.scrollModelWithRectVisible(revealed,target)
+    catch Error
+        rejected = true
+    end
+    assert rejected and revealed.fScrollY == 30, "failed update preserves the value"
+
+    auto proxy = cpuProxy()
+    auto ui = xui.create(proxy,xui.XUI_SYSTEM_FONT_DISABLED)
+    ui.setViewportSize(400,180)
+    auto root = ui.panelNative()
+    assert ui.setRootWidget(root) == 0
+    auto frame = ui.scrollFrame()
+    auto view = ui.scrollView()
+    viewport.fX = 0
+    viewport.fY = 0
+    viewport.fW = 150
+    viewport.fH = 100
+    assert frame.setRect(viewport) == 0 and root.addChild(frame) == 0
+    viewport.fX = 170
+    assert view.setRect(viewport) == 0 and root.addChild(view) == 0
+    frame.setContentSize(400,600)
+    assert view.setContentSize(350,800) == 0 and ui.layout() == 0, "arrange the two scroll controls"
+    auto frameStart = frame.scrollSnapshot()
+    auto viewStart = view.scrollSnapshot()
+    assert frameStart.fContentWidth == 400 and viewStart.fContentHeight == 800
+    assert frameStart.tViewportRect.fW > 0 and viewStart.tViewportRect.fH > 0
+    int frameCalls = 0
+    int viewCalls = 0
+    frame.setChange(func(Widget sender,c_float x,c_float y)
+        frameCalls += 1
+    end)
+    view.setChange(func(Widget sender,c_float x,c_float y)
+        viewCalls += 1
+    end)
+    assert frame.setOffset(15,24) == 0 and view.setOffset(35,48) == 0, "change both control offsets"
+    assert frameCalls == 0 and viewCalls == 0, "programmatic offsets preserve the native notification contract"
+    auto frameMoved = frame.scrollSnapshot()
+    auto viewMoved = view.scrollSnapshot()
+    assert frameMoved.fScrollX == 15 and frameMoved.fScrollY == 24
+    assert viewMoved.fScrollX == 35 and viewMoved.fScrollY == 48
+    auto preview = xui.scrollModelWithOffset(viewMoved,0,120)
+    assert preview.fScrollY == 120 and view.scrollSnapshot().fScrollY == 48
+    assert frameCalls == 0 and viewCalls == 0, "snapshots do not trigger callbacks"
+    assert view.setOffset(preview.fScrollX,preview.fScrollY) == 0
+    assert view.scrollSnapshot().fScrollY == 120 and viewCalls == 0, "apply the planned offset"
+    ui.close()
+    proxy.close()
+    assert frameStart.fScrollY == 0 and viewStart.fScrollY == 0 and viewMoved.fScrollY == 48
+    assert balanced() != 0
+    println("XUI_SCROLL_VALUE_OK")
+    return 0
+end

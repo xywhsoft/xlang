@@ -1,0 +1,292 @@
+{
+  "complete": true,
+  "passed": true,
+  "releaseInstalled": false,
+  "sourceParent": "3a09229d2a794a83946f1d3b8b82db48215f1963",
+  "nativeCommit": "6d58ce7a88e53399f46766b374d4af53020b931d",
+  "xrtCommit": "804cc769de3030118c2b46ef7af69543d1b82d9d",
+  "nativeSourceHashesLf": {
+    "include/xui.h": "fb30436fec4f2d07cfc376015ea81e3706eab13ded6feb02c833c08db5051c7c",
+    "src/xui/controls/xui_scroll_frame.c": "bba7cc41cb67fde957a494f7bd4894bdcf8b38c9af14a7973a2020cbf4717e73",
+    "src/xui/controls/xui_scroll_view.c": "c0618404d9e0520400069e4c24bcb7bb0146736b83c4a7deeb98a1898fcd5303",
+    "src/xui/core/xui_scroll_model.c": "f84630421e44f566998bd27d6dc07a9c749438996b52ef969150d514e164bf44",
+    "tests/xui/xui_scroll_frame_test.c": "6c4859247d3b28785719cebfe5a91cb5fab49e12f76e4261d582a0f50cfbf8fc",
+    "tests/xui/xui_scroll_view_test.c": "417e08e16de667c0dcf8c4fa7c7b659f4bf5788ec23096e1d7c06b1d44518d92",
+    "tests/xui/xui_scroll_model_test.c": "63e7662a74442949a361663599d99e3701bcd9510dd4ea86b3e3e91b1aabd46e"
+  },
+  "languageSourceHashesLf": {
+    "docs/xge3-xui3-api-map-storage.json": "7e8b98f411a6e125b3daee49f433dd2bd0d14f97a01d21b7914330476360669c",
+    "lib/bindings/xui/examples/README.md": "263e8b55c61911521af46ec03f2c163307f605d32ec3b3b513f2c880279c227a",
+    "lib/bindings/xui/examples/scrollview.xl": "c26e904d4c52ba827eba6baf5ef7f98dd10475bfbe17c271854204f61cc00088",
+    "lib/bindings/xui/src/managed.xl": "b10982fea3034f85fd6b03404bb752244abe9859606ee1e075f4b31f2c4a8d7a",
+    "test/cases/foreign_xui_scroll_value.xl": "46372ec8d3a9b79043dc32b06289beb505bba2227b93d6e258217f4305fd00f1",
+    "tools/check_xge3_bindings.py": "fa74183ae21655afcf43afd66c0878cf899687928b6594b2f7f2e409080e2128",
+    "tools/xui_managed_contracts.py": "fce1442b4043f2e2ae547ca9bbe00b758b0b2def5e77f50df970cc25c48393f6"
+  },
+  "checks": [
+    "ScrollFrame and ScrollView return independent copies of the committed scrolling model. Their getters do not arrange children or call user callbacks.",
+    "The five standalone value functions reuse the original XUI validation and clamping, publish only on success, and allow identical input and output pointers in C. Native tests reject NaN, infinity, invalid ABI size and invalid rectangles while preserving the output.",
+    "The language fixture computes and reapplies an offset, confirms independent input and output values and snapshots surviving Context close, and preserves the no-notify semantics of programmatic setOffset.",
+    "Generated C uses each new native symbol. Static AOT does not import the XGE host library. The ScrollView example renders list content in JIT and static AOT."
+  ],
+  "costs": [
+    "Each control snapshot transfers one 36-byte native record in the qualified ABIs. ScrollView forwards to the native frame getter; the generated C directly calls the declared function.",
+    "Standalone updates work on a local ScrollModel copy and only write the result after the existing scroll operation succeeds. The plan/preview operations preserve value semantics.",
+    "A warmed comparison performs 100 iterations of two snapshots and one standalone relative scroll. Both implementations record zero XRT alloc/free/realloc operations on each platform. The test excludes rendering and elapsed time."
+  ],
+  "pending": [
+    "Whole-goal XGE, XUI and Document audit and matched release/IDE delivery."
+  ],
+  "platforms": {
+    "win": {
+      "imports": {
+        "host": [
+          "msvcrt.dll",
+          "xge3_host.dll",
+          "kernel32.dll",
+          "SHELL32.dll",
+          "ws2_32.dll",
+          "IPHLPAPI.dll",
+          "ucrtbase.dll"
+        ],
+        "static": [
+          "msvcrt.dll",
+          "kernel32.dll",
+          "ole32.dll",
+          "SHELL32.dll"
+        ]
+      },
+      "example": {
+        "example-jit": {
+          "dimensions": [
+            800,
+            600
+          ],
+          "textPixels": {
+            "textInk": 745
+          }
+        },
+        "static-run": {
+          "dimensions": [
+            800,
+            600
+          ],
+          "textPixels": {
+            "textInk": 745
+          }
+        }
+      },
+      "heapPer100ValueIterations": {
+        "native": [
+          0,
+          0,
+          0
+        ],
+        "language": [
+          0,
+          0,
+          0
+        ]
+      }
+    },
+    "linux": {
+      "imports": {
+        "host": [
+          "libm.so.6",
+          "libmvec.so.1",
+          "libxge3_host.so",
+          "libc.so.6",
+          "ld-linux-x86-64.so.2"
+        ],
+        "static": [
+          "libm.so.6",
+          "libmvec.so.1",
+          "libX11.so.6",
+          "libXi.so.6",
+          "libXcursor.so.1",
+          "libGL.so.1",
+          "libc.so.6",
+          "ld-linux-x86-64.so.2"
+        ]
+      },
+      "example": {
+        "example-jit": {
+          "dimensions": [
+            800,
+            600
+          ],
+          "textPixels": {
+            "textInk": 680
+          }
+        },
+        "static-run": {
+          "dimensions": [
+            800,
+            600
+          ],
+          "textPixels": {
+            "textInk": 680
+          }
+        }
+      },
+      "heapPer100ValueIterations": {
+        "native": [
+          0,
+          0,
+          0
+        ],
+        "language": [
+          0,
+          0,
+          0
+        ]
+      }
+    }
+  },
+  "evidence": {
+    "win": {
+      "sdk": {
+        "path": "F:\\xlang-validation\\xge-full-20261110\\scroll-value-sdk-win-r1\\results.json",
+        "sha256": "9aaf04792411ea892b05627dcab1eae0ea25a9b57733e218b6698992e567fedd",
+        "checks": [
+          "host",
+          "static"
+        ]
+      },
+      "packageReplay": {
+        "path": "F:\\xlang-validation\\xge-full-20261110\\scroll-value-packages-win-r1\\results.json",
+        "sha256": "e55c661d0cdbac1b402773a854affc1ced1dca5f5df77fa92d1ce61e36c00a96",
+        "checks": [
+          "generated-declarations",
+          "inventory",
+          "strict-current-storage-replay",
+          "host",
+          "static",
+          "replay"
+        ]
+      },
+      "nativeFixture": {
+        "path": "F:\\xlang-validation\\xge-full-20261110\\scroll-value-native-static-win-r1\\results.json",
+        "sha256": "cd7fc533082c0b54c1c17aaa6978afe68b731fa8fc5e3f8e1afafb3e6eb703f6",
+        "checks": [
+          "scroll_model-O0-build",
+          "scroll_model-O0-run",
+          "scroll_model-O2-build",
+          "scroll_model-O2-run",
+          "scroll_frame-O0-build",
+          "scroll_frame-O0-run",
+          "scroll_frame-O2-build",
+          "scroll_frame-O2-run",
+          "scroll_view-O0-build",
+          "scroll_view-O0-run",
+          "scroll_view-O2-build",
+          "scroll_view-O2-run"
+        ]
+      },
+      "languageFixture": {
+        "path": "F:\\xlang-validation\\xge-full-20261110\\scroll-value-language-tests-win-r2\\results.json",
+        "sha256": "d5ada158dfff8ebcec747a9844c9693da29a686db98d9294f5bd0938f580ad9a",
+        "checks": [
+          "emit",
+          "jit",
+          "example-cgen",
+          "host-build",
+          "host-run",
+          "host-imports",
+          "static-build",
+          "static-run",
+          "static-imports"
+        ]
+      },
+      "example": {
+        "path": "F:\\xlang-validation\\xge-full-20261110\\scroll-value-example-win-r1\\results.json",
+        "sha256": "fa2ea8eb681a8ba8289aeedf9b0ed9cc270d36350aa84a1f6db4f4e6640a23ac",
+        "checks": [
+          "base-emit",
+          "example-jit",
+          "static-build",
+          "static-run"
+        ]
+      },
+      "heapProfile": {
+        "path": "F:\\xlang-validation\\xge-full-20261110\\scroll-value-profile-win-r1\\results.json",
+        "sha256": "20b905a742e79100ba617732e8f8b6d43d63d77cf756ecdbd3e1e946fbdce275",
+        "checks": [
+          "profile"
+        ]
+      }
+    },
+    "linux": {
+      "sdk": {
+        "path": "\\\\wsl.localhost\\Ubuntu\\var\\tmp\\xlang-validation\\xge-full-20261110\\scroll-value-sdk-linux-r1\\results.json",
+        "sha256": "b0748ece82e5028936acaadd68c172e4fd892a613defd1925ebb9511f1534945",
+        "checks": [
+          "host",
+          "static"
+        ]
+      },
+      "packageReplay": {
+        "path": "\\\\wsl.localhost\\Ubuntu\\var\\tmp\\xlang-validation\\xge-full-20261110\\scroll-value-packages-linux-r1\\results.json",
+        "sha256": "9086ef4da46c6dededb72077a1c96ea33571753e86ee2fa696077adc2635916e",
+        "checks": [
+          "generated-declarations",
+          "inventory",
+          "strict-current-storage-replay",
+          "host",
+          "static",
+          "replay"
+        ]
+      },
+      "nativeFixture": {
+        "path": "\\\\wsl.localhost\\Ubuntu\\var\\tmp\\xlang-validation\\xge-full-20261110\\scroll-value-native-static-linux-r1\\results.json",
+        "sha256": "fe75eb0517a0751474458c712c4a324c34540cd679a81d3cf09bf3eb088bd099",
+        "checks": [
+          "scroll_model-O0-build",
+          "scroll_model-O0-run",
+          "scroll_model-O2-build",
+          "scroll_model-O2-run",
+          "scroll_frame-O0-build",
+          "scroll_frame-O0-run",
+          "scroll_frame-O2-build",
+          "scroll_frame-O2-run",
+          "scroll_view-O0-build",
+          "scroll_view-O0-run",
+          "scroll_view-O2-build",
+          "scroll_view-O2-run"
+        ]
+      },
+      "languageFixture": {
+        "path": "\\\\wsl.localhost\\Ubuntu\\var\\tmp\\xlang-validation\\xge-full-20261110\\scroll-value-language-tests-linux-r2\\results.json",
+        "sha256": "23e1a8f03c09564deba0a80daf9decb749c0f0d2ee57b43ddbf5bd8d1f66fb87",
+        "checks": [
+          "emit",
+          "jit",
+          "example-cgen",
+          "host-build",
+          "host-run",
+          "host-imports",
+          "static-build",
+          "static-run",
+          "static-imports"
+        ]
+      },
+      "example": {
+        "path": "\\\\wsl.localhost\\Ubuntu\\var\\tmp\\xlang-validation\\xge-full-20261110\\scroll-value-example-linux-r1\\results.json",
+        "sha256": "32c4c13892bb93a4765b385047bcb1433c7a3772b646d21cf3e2c63be05ba2a0",
+        "checks": [
+          "base-emit",
+          "example-jit",
+          "static-build",
+          "static-run"
+        ]
+      },
+      "heapProfile": {
+        "path": "\\\\wsl.localhost\\Ubuntu\\var\\tmp\\xlang-validation\\xge-full-20261110\\scroll-value-profile-linux-r1\\results.json",
+        "sha256": "a9bbb9355b3c42ef97644f0ed78c68f614d3a937608acf8961f547b60778cc82",
+        "checks": [
+          "profile"
+        ]
+      }
+    }
+  }
+}

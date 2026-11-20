@@ -1,4 +1,4 @@
-// 滚动查看超出窗口的十二行文字。
+// 滚动查看超出窗口的十二行文字，或直接定位最后一行。
 import xui
 from xui import Widget
 from "./_window.xl" import Window
@@ -13,4 +13,17 @@ Window.show("Scroll view / content larger than viewport", func(xui.Context ui, x
   label.setText("Scrollable row "+string(i+1))
   Window.place(content as Widget, label, 20, i*70+20, 1000, 28)
  end
+
+ auto last = ui.buttonNative()
+ last.setText("查看最后一行")
+ Window.place(root, last, 24, 364, 136, 34)
+ last.setClick(func(Widget sender)
+  auto row = xui.Rect()
+  row.fX = 20
+  row.fY = 790
+  row.fW = 100
+  row.fH = 28
+  auto next = xui.scrollModelWithRectVisible(scrollView.scrollSnapshot(), row)
+  scrollView.setOffset(next.fScrollX, next.fScrollY)
+ end)
 end)

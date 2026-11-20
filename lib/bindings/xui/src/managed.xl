@@ -4726,6 +4726,8 @@ export extern "xui_widget_t*" class ScrollFrame @header("xge3_runtime.h") @lifet
 
  extern "xuiScrollFrameSetChangeOwned" @no_raise @c_owned_callback(0,0,"xui_callback_owner_t",0) @c_result("status",0) func setChange(ScrollFrameChangeProc? onChange)
 
+ extern "xuiScrollFrameGetScrollSnapshot" @no_raise @c_output(1,0) func scrollSnapshot() as ScrollModel
+
  extern "xuiScrollFrameGetViewportWidget" @no_raise @c_result("owner_view",0) func getViewportWidget() as Widget?
 
  extern "xuiScrollFrameGetHScrollBarWidget" @no_raise @c_result("owner_view",0) func getHScrollBarWidget() as Widget?
@@ -4815,6 +4817,8 @@ end
 export extern "xui_widget_t*" class ScrollView @header("xge3_runtime.h") @lifetime("owner") @owner(Context) @policy("xl6Xui3WidgetPolicy") @watch("xui_lifetime_link_t") extends Widget
 
  extern "xuiScrollViewSetChangeOwned" @no_raise @c_owned_callback(0,0,"xui_callback_owner_t",0) @c_result("status",0) func setChange(ScrollViewChangeProc? onChange)
+
+ extern "xuiScrollViewGetScrollSnapshot" @no_raise @c_output(1,0) func scrollSnapshot() as ScrollModel
 
  extern "xuiScrollViewGetFrameWidget" @no_raise @c_result("owner_view",0) func getFrameWidget() as Widget?
 
@@ -6842,6 +6846,16 @@ export extern "xuiBuiltinAssetGetRectByIndex" @header("xge3_runtime.h") @no_rais
 export extern "xuiVectorIconGetCount" @header("xge3_runtime.h") @no_raise func vectorIconGetCount() as c_int
 
 export extern "xuiScrollModelInit" @header("xge3_runtime.h") @no_raise @c_output(0) func scrollModelInit() as ScrollModel
+
+export extern "xuiScrollModelWithViewport" @header("xge3_runtime.h") @no_raise @c_ref(0) @c_output(2,0) func scrollModelWithViewport(ScrollModel model,Rect viewport) as ScrollModel
+
+export extern "xuiScrollModelWithContentSize" @header("xge3_runtime.h") @no_raise @c_ref(0) @c_output(3,0) func scrollModelWithContentSize(ScrollModel model,c_float width,c_float height) as ScrollModel
+
+export extern "xuiScrollModelWithOffset" @header("xge3_runtime.h") @no_raise @c_ref(0) @c_output(3,0) func scrollModelWithOffset(ScrollModel model,c_float x,c_float y) as ScrollModel
+
+export extern "xuiScrollModelScrolledBy" @header("xge3_runtime.h") @no_raise @c_ref(0) @c_output(3,0) func scrollModelScrolledBy(ScrollModel model,c_float dx,c_float dy) as ScrollModel
+
+export extern "xuiScrollModelWithRectVisible" @header("xge3_runtime.h") @no_raise @c_ref(0) @c_output(2,0) func scrollModelWithRectVisible(ScrollModel model,Rect contentRect) as ScrollModel
 
 export extern "xuiScrollModelGetViewport" @header("xge3_runtime.h") @no_raise @c_ref(0) func scrollModelGetViewport(ScrollModel pModel) as Rect
 

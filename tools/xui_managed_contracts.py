@@ -1307,6 +1307,27 @@ METHODS.update({
     'xuiTerminalScrollBy': (
         'int xuiTerminalScrollBy(xui_widget pWidget, float fDeltaY)',
         'Terminal', ['extern "xuiTerminalScrollBy" @no_raise @c_result("status",0) func scrollBy(c_float dy)']),
+    'xuiScrollFrameGetScrollSnapshot': (
+        'int xuiScrollFrameGetScrollSnapshot(xui_widget pWidget, xui_scroll_model_t* pSnapshot)',
+        'ScrollFrame', ['extern "xuiScrollFrameGetScrollSnapshot" @no_raise @c_output(1,0) func scrollSnapshot() as ScrollModel']),
+    'xuiScrollViewGetScrollSnapshot': (
+        'int xuiScrollViewGetScrollSnapshot(xui_widget pWidget, xui_scroll_model_t* pSnapshot)',
+        'ScrollView', ['extern "xuiScrollViewGetScrollSnapshot" @no_raise @c_output(1,0) func scrollSnapshot() as ScrollModel']),
+    'xuiScrollModelWithViewport': (
+        'int xuiScrollModelWithViewport(const xui_scroll_model_t* pModel, xui_rect_t tViewport, xui_scroll_model_t* pResult)',
+        None, ['export extern "xuiScrollModelWithViewport" @header("xge3_runtime.h") @no_raise @c_ref(0) @c_output(2,0) func scrollModelWithViewport(ScrollModel model,Rect viewport) as ScrollModel']),
+    'xuiScrollModelWithContentSize': (
+        'int xuiScrollModelWithContentSize(const xui_scroll_model_t* pModel, float fWidth, float fHeight, xui_scroll_model_t* pResult)',
+        None, ['export extern "xuiScrollModelWithContentSize" @header("xge3_runtime.h") @no_raise @c_ref(0) @c_output(3,0) func scrollModelWithContentSize(ScrollModel model,c_float width,c_float height) as ScrollModel']),
+    'xuiScrollModelWithOffset': (
+        'int xuiScrollModelWithOffset(const xui_scroll_model_t* pModel, float fOffsetX, float fOffsetY, xui_scroll_model_t* pResult)',
+        None, ['export extern "xuiScrollModelWithOffset" @header("xge3_runtime.h") @no_raise @c_ref(0) @c_output(3,0) func scrollModelWithOffset(ScrollModel model,c_float x,c_float y) as ScrollModel']),
+    'xuiScrollModelScrolledBy': (
+        'int xuiScrollModelScrolledBy(const xui_scroll_model_t* pModel, float fDeltaX, float fDeltaY, xui_scroll_model_t* pResult)',
+        None, ['export extern "xuiScrollModelScrolledBy" @header("xge3_runtime.h") @no_raise @c_ref(0) @c_output(3,0) func scrollModelScrolledBy(ScrollModel model,c_float dx,c_float dy) as ScrollModel']),
+    'xuiScrollModelWithRectVisible': (
+        'int xuiScrollModelWithRectVisible(const xui_scroll_model_t* pModel, xui_rect_t tContentRect, xui_scroll_model_t* pResult)',
+        None, ['export extern "xuiScrollModelWithRectVisible" @header("xge3_runtime.h") @no_raise @c_ref(0) @c_output(2,0) func scrollModelWithRectVisible(ScrollModel model,Rect contentRect) as ScrollModel']),
     'xuiInventoryGridSetScrollOffset': (
         'int xuiInventoryGridSetScrollOffset(xui_widget pWidget, float fX, float fY)',
         'InventoryGrid', ['extern "xuiInventoryGridSetScrollOffset" @no_raise @c_result("status",0) func setScrollOffset(c_float x,c_float y)']),
@@ -1360,6 +1381,13 @@ REPLACED.update({
     'xuiCodeEditGetScrollModel': ('xui.CodeEdit.scrollSnapshot','xuiCodeEditGetScrollSnapshot'),
     'xuiTextEditGetScrollModel': ('xui.TextEdit.scrollSnapshot','xuiTextEditGetScrollSnapshot'),
     'xuiTerminalGetScrollModel': ('xui.Terminal.scrollSnapshot','xuiTerminalGetScrollSnapshot'),
+    'xuiScrollFrameGetModel': ('xui.ScrollFrame.scrollSnapshot','xuiScrollFrameGetScrollSnapshot'),
+    'xuiScrollViewGetModel': ('xui.ScrollView.scrollSnapshot','xuiScrollViewGetScrollSnapshot'),
+    'xuiScrollModelSetViewport': ('xui.scrollModelWithViewport','xuiScrollModelWithViewport'),
+    'xuiScrollModelSetContentSize': ('xui.scrollModelWithContentSize','xuiScrollModelWithContentSize'),
+    'xuiScrollModelSetOffset': ('xui.scrollModelWithOffset','xuiScrollModelWithOffset'),
+    'xuiScrollModelScrollBy': ('xui.scrollModelScrolledBy','xuiScrollModelScrolledBy'),
+    'xuiScrollModelEnsureRectVisible': ('xui.scrollModelWithRectVisible','xuiScrollModelWithRectVisible'),
     'xuiInventoryGridSetDragCallback': ('xui.InventoryGrid.setDragCallback','xuiInventoryGridSetDragCallbackOwned'),
     'xuiInventoryGridSetDropCallback': ('xui.InventoryGrid.setDropCallback','xuiInventoryGridSetDropCallbackOwned'),
     'xuiInventoryGridSetTooltipCallback': ('xui.InventoryGrid.setTooltipProvider','xuiInventoryGridSetTooltipCallbackOwned'),
