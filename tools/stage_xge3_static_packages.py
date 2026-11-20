@@ -6,6 +6,7 @@ catalog; multiple module witnesses for one symbol are a conjunction.
 """
 from pathlib import Path
 import argparse,hashlib,json,re,shutil
+from xge3_browser_sdk import browser_inputs, engine_runtime_inputs, stage_browser
 
 def sha(path):return hashlib.sha256(Path(path).read_bytes()).hexdigest()
 
@@ -50,13 +51,15 @@ def main():
     if not a.bootstrap_only and 'XGE_ENABLE_3D'in features:packages.append('xge3d')
     if not a.bootstrap_only and metadata['debug_api']:packages.append('xgeDebug')
     sources=root/'lib/bindings';source_paths={name:sources/({'xge3d':'xge/three_d','xgeDebug':'xge/debug'}.get(name,name))for name in packages}
-    inputs={str(v):sha(v)for v in [Path(__file__).resolve(),catalog,root/'lib/xrt/xrt.h',build/'build-report.json',archive]}
+    inputs={str(v):sha(v)for v in [Path(__file__).resolve(),Path(__file__).with_name('xge3_browser_sdk.py'),catalog,root/'lib/xrt/xrt.h',build/'build-report.json',archive]}
     if classification:inputs.update(classification['dllInputs'])
     headers=list((native/'include').glob('*.h'))
     for path in [*headers,native/'extlibs/xrt/xrt_config.h',build/'xge_build_config.h',build/'xge_static_xrt_contract.h']:inputs[str(path)]=sha(path)
     for name,folder in source_paths.items():
         for path in folder.rglob('*'):
             if path.is_file()and not(name=='xge'and path.relative_to(folder).parts[0]in('three_d','debug')):inputs[str(path)]=sha(path)
+    runtime=engine_runtime_inputs(metadata,inputs)
+    browser=browser_inputs(metadata,native,runtime,'xui' in packages,inputs)
     out.mkdir(parents=True)
     for name,folder in source_paths.items():shutil.copytree(folder,out/name,ignore=shutil.ignore_patterns('three_d','debug')if name=='xge'else None)
     private=out/'_xge_native';target=private/'include';native_dir=private/'native';native_dir.mkdir()
@@ -95,16 +98,25 @@ def main():
                     for row in support['artifacts']if Path(row['path']).suffix=='.def'])
             (native_dir/'compiler-support.json').write_text(json.dumps(provenance,indent=2)+'\n',encoding='utf-8',newline='\n')
     for row in metadata.get('external_link_libraries',[]):
-        path=Path(row['path']);assert sha(path)==row['sha256'];inputs[str(path)]=sha(path);shutil.copy2(path,native_dir/path.name);links.append('native/'+path.name)
-    for row in metadata.get('runtime_dependencies',[]):
-        path=Path(row['path']);assert sha(path)==row['sha256'];inputs[str(path)]=sha(path);shutil.copy2(path,native_dir/path.name)
+        path=Path(row['path']);assert sha(path)==row['sha256'];inputs[str(path)]=row['sha256']
+        if browser is not None and path.name.casefold()=='webview2loader.dll.lib':
+            # TinyCC reads exports from the matching DLL. The SDK's MSVC import
+            # archive is a native build input, but is incompatible with this linker.
+            links.append('native/'+runtime['webview2loader.dll'].name)
+        else:
+            shutil.copy2(path,native_dir/path.name);links.append('native/'+path.name)
+    for path in runtime.values():
+        target_path=native_dir/path.name
+        if target_path.exists():raise ValueError('Runtime dependency collides with static link input: '+path.name)
+        shutil.copy2(path,target_path)
+    stage_browser(out,browser)
     manifest_path=private/'xlang.package.json';manifest=json.loads(manifest_path.read_text(encoding='utf-8'))
     manifest['links']=links+([]if metadata['platform']=='win_x64'else metadata['system_libraries']);manifest['loadlibs']=[];manifest['artifact']['xrtModules']=modules
     manifest['artifact']['runtimeSymbols']=[name for name in manifest['artifact'].get('runtimeSymbols',[])if name!='xl6HostXrtResolveV1']
     assert set(manifest['artifact']['runtimeSymbols'])=={'xl6ErrorScopeTryPropagateFailureV1','xl6CallbackFailureRecordV1','xl6ForeignStatusFailureV1'}
     manifest['artifact']['nativeLink']=dict(gcSections=True,functionSections=True,dataSections=True)
     manifest['native'].update(loadName='xge-static-api3',platform=metadata['platform'],linkage='static',sha256=sha(archive))
-    manifest['native']['features']=sorted(set(metadata['features'])|({'XGE_HAS_DEBUGMODE'}if metadata['debug_api']else set()))
+    manifest['native']['features']=sorted(set(metadata['features'])|({'XGE_HAS_DEBUGMODE'}if metadata['debug_api']else set())|({'XUI_ENABLE_WEBVIEW2'}if browser is not None else set()))
     manifest['native'].pop('variants',None)
     if a.dynamic_variant:manifest['native']['variants']={'dynamic':a.dynamic_variant}
     manifest_path.write_text(json.dumps(manifest,indent=2)+'\n',encoding='utf-8',newline='\n')

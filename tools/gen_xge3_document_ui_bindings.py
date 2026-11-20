@@ -82,7 +82,8 @@ for f in h['functions']:
  if name=='xuiDocumentRendererCollectRangeRects':
   add(cl,name,'collectRangeRects','DocumentRange range',['@c_ref(0)','@c_result("owned_view")','@factory(2,0,rollbackDocumentRangeRects)'],'DocumentRangeRects');continue
  if name in ('xuiDocumentHtmlInteractionGetWindow','xuiDocumentHtmlInteractionGetWebView','xuiDocumentEditorGetMenuWidget','xuiDocumentEditorGetFindWindow'):
-  add(cl,name,name[len(prefix):][3:4].lower()+name[len(prefix):][4:],'',['@c_result("owner_view",0)'],'Widget?');continue
+  result='WebView?' if name=='xuiDocumentHtmlInteractionGetWebView' else 'Widget?'
+  add(cl,name,name[len(prefix):][3:4].lower()+name[len(prefix):][4:],'',['@c_result("owner_view",0)'],result);continue
  if name=='xuiDocumentImageResourcePollStatus':add(cl,name,'poll','',[],'c_int');continue
  if name=='xuiDocumentImageResourcePoll':add(cl,name,'pollResource','',['@c_output(1,0)','@c_result("owner_view",0)'],'Resource?');continue
  if name=='xuiDocumentImageResourceCancel':status(cl,name,'cancel');continue

@@ -1,0 +1,23 @@
+// 在 Windows 的 WebView2 扩展包中打开本地 HTML 片段。
+import xui
+from xui import DocumentNodeAttributes, Widget
+from "./_window.xl" import Window
+
+Window.show("Document / local HTML",func(xui.Context ui,Widget root)
+    auto document = xui.createDocument()
+    auto transaction = document.beginTransaction()
+    DocumentNodeAttributes block
+    block.iFlags = c_uint(xui.XUI_DOC_BLOCK)
+    auto node = transaction.insertNodeWithAttributes(1,xui.XUI_DOCUMENT_APPEND,block,"",null,
+        c_uint(xui.XUI_DOC_HTML),"<h1>Hello, Document!</h1><p>This HTML is stored in the document.</p>")
+    transaction.commit().close()
+    transaction.close()
+
+    auto panel = xui.createDocumentHtmlInteraction(ui,document,node,Window.rect(24,24,560,340))
+    panel.show()
+    document.close() // 面板持有自己的 Document 引用。
+    root.setUpdateCallback(func(Widget sender,c_float elapsed) as c_int
+        panel.update()
+        return 0
+    end)
+end)

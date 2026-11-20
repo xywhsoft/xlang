@@ -1,0 +1,122 @@
+{
+  "complete": true,
+  "passed": true,
+  "releaseInstalled": false,
+  "sourceParent": "8f7e2c8bfbc3b1904c478dfbca8021632910c370",
+  "nativeCommit": "bba24bb267c22c82a9a830f7f6c68db81e75cf93",
+  "nativeSourceSha256Lf": "d0c52b303e444913caf085397df889148a0066fbabd50067b7dcf239044df559",
+  "xrtCommit": "804cc769de3030118c2b46ef7af69543d1b82d9d",
+  "sourceHashesLf": {
+    "tools/xge3_browser_sdk.py": "ee6d5c3028ec25a785f82ff9dd0778270e617c8056571f46f4e3a315c13e2422",
+    "tools/stage_xge3_packages.py": "04fca95e2382a2f5c6db852b2bc353f446147aac38f85c340b6e12f3548e1ca7",
+    "tools/stage_xge3_static_packages.py": "eff2f1e47ca5cc50cd7b972329c5fdf859354d683d80a4e44eacdb4e7ff720a7",
+    "tools/gen_xge3_document_ui_bindings.py": "8c9a0383a410069d7df5bb5eadb78a532282af3d49fb150d79bd59a5cb6a7def",
+    "lib/bindings/xui/src/document_ui.xl": "faf4218301ed293fcb17f9dfc8624b02b3a33fc327ab9ca65b89b932e1a7eb99",
+    "lib/bindings/xui/examples/README.md": "fcf16b2d3dc4d090658e5b3531a168aa8c1455fa0b99d126435294ebbf4c3da7",
+    "lib/bindings/xui/examples/document_html_interaction.xl": "92c91f96a8a3a5caa4ec801adba944fc9b1cea15978e1e414724b918d1296644",
+    "docs/xge3-xui3-document-ui-api-map.json": "53c375a8d5a171930a13d78ae7f16634ac07f802f2e70f81603a2cb215eefeaa",
+    "docs/xge3-xui3-document-ui-api-map.md": "d5c5f9467c85e280bc6c34600db0daedd857d04c0631dd050a9d378d83cbc238",
+    "test/cases/foreign_xui_document_browser.c": "5d87c09e19d247afff50f63faa0a776390921f64cec372ff845531d006ffa6e8",
+    "test/cases/foreign_xui_document_browser.h": "502f15ae871909cc02fa8de8e7b4363a7d44c8ad65d6e0228668c99262746010",
+    "test/cases/foreign_xui_document_browser.xl": "cb1dd7338210b245c13f61a99ab8ae0df14cf4154ab912db7f43c47295953547"
+  },
+  "windows": {
+    "backend": "WebView2",
+    "staticImports": [
+      "msvcrt.dll",
+      "kernel32.dll",
+      "USER32.dll",
+      "GDI32.dll",
+      "ole32.dll",
+      "OLEAUT32.dll",
+      "SHELL32.dll",
+      "IMM32.dll",
+      "DWrite.dll",
+      "WebView2Loader.dll"
+    ],
+    "dynamicImports": [
+      "xge3_host.dll",
+      "msvcrt.dll",
+      "kernel32.dll",
+      "Ole32.dll",
+      "ws2_32.dll",
+      "IPHLPAPI.dll",
+      "SHELL32.dll",
+      "ucrtbase.dll"
+    ],
+    "assetFilesPerPackage": 71,
+    "localHtml": true,
+    "localMath": true,
+    "viewExpiration": true
+  },
+  "linux": {
+    "backend": "unsupported",
+    "checkedFailure": true
+  },
+  "remaining": [
+    "Direct managed DocumentRenderer/WebProvider attachment and WebObject drawing",
+    "Matched release and IDE installation"
+  ],
+  "evidence": {
+    "packageContent": {
+      "path": "F:\\xlang-validation\\xge-full-20261110\\document-browser-package-content-r3.json",
+      "sha256": "d8ed14563483a40b8f9907485b81b12ed68acc89b03b0a3e5a52f3fd5a44d719",
+      "checks": 0
+    },
+    "winEngineBuild": {
+      "path": "F:\\xlang-validation\\xge-full-20261110\\document-browser-native-sdk-win-r2\\results.json",
+      "sha256": "73f32236cb27cf059a06768c5566f6f9d221a68a14d3ea6ac46a1c1731a11720",
+      "checks": 2
+    },
+    "winPackage": {
+      "path": "F:\\xlang-validation\\xge-full-20261110\\document-browser-packages-win-r3\\results.json",
+      "sha256": "3ac5f27d8fe586e468dea3c7023d9d7978d0896d2cdacede9c003a42d8615d40",
+      "checks": 6
+    },
+    "winCompiler": {
+      "path": "F:\\xlang-validation\\xge-full-20261110\\compiler-browser-dll-loader-win-r2\\build.json",
+      "sha256": "be16f343718642e88243e413926ab8b488b7b8d2ce4c65d860620283173e73ff",
+      "checks": 0
+    },
+    "winCompilerSdk": {
+      "path": "F:\\xlang-validation\\xge-full-20261110\\browser-dll-loader-compiler-sdk-win-r1\\results.json",
+      "sha256": "96216fbc845c9f767e280cc47218015ee83a413e32f3bf71b2add1ec05940e4e",
+      "checks": 0
+    },
+    "winRuntime": {
+      "path": "F:\\xlang-validation\\xge-full-20261110\\document-browser-runtime-win-r4\\results.json",
+      "sha256": "5639054df71aad8d78d2f57ef2d716aa71665057d9eea8b1118981aaef26970d",
+      "checks": 9
+    },
+    "winNativeFixControl": {
+      "path": "F:\\xlang-validation\\xge-full-20261110\\document-browser-aot-provider-replay-win-r1\\results.json",
+      "sha256": "2db3a7cfea9a81fdcc7a9a9a0bb6b8abef288e929292842a4d198ddde45c5822",
+      "checks": 0
+    },
+    "winStaticImports": {
+      "path": "F:\\xlang-validation\\xge-full-20261110\\document-browser-static-aot-win-r2\\results.json",
+      "sha256": "2bac5d21ce16d5fc0abc328edb757e00c7dc42b87099898fcdd70f3b14a1377a",
+      "checks": 3
+    },
+    "linuxEngineBuild": {
+      "path": "\\\\wsl.localhost\\Ubuntu\\var\\tmp\\xlang-validation\\xge-full-20261110\\document-browser-native-sdk-linux-r2\\results.json",
+      "sha256": "b22edbedd3cd586abd50b6d9ded179051e9e670d47a31ea3b76f1d35ab3a83ec",
+      "checks": 2
+    },
+    "linuxPackage": {
+      "path": "\\\\wsl.localhost\\Ubuntu\\var\\tmp\\xlang-validation\\xge-full-20261110\\document-browser-packages-linux-r4\\results.json",
+      "sha256": "693e033232dc42e026dc13f40ecf4036ef7c6822c5bda65f4653bdb9029f3322",
+      "checks": 6
+    },
+    "linuxRuntime": {
+      "path": "\\\\wsl.localhost\\Ubuntu\\var\\tmp\\xlang-validation\\xge-full-20261110\\document-browser-runtime-linux-r4\\results.json",
+      "sha256": "99fa30ebe877d1957bba00419598ac55727d7216e8e8c6dc8cafceb4179b956d",
+      "checks": 8
+    },
+    "vendorSdk": {
+      "path": "F:\\xlang-validation\\xge-full-20261110\\document-browser-webview2-sdk-verified-r1.json",
+      "sha256": "720e538474cbba5b5cf2fdcc4d48a0b7d3ca317bc002412213a8d3d0cce3211b",
+      "checks": 5
+    }
+  }
+}

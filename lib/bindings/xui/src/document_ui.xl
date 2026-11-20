@@ -181,7 +181,7 @@ export extern "struct xui_doc_html_interaction_t*" class DocumentHtmlInteraction
  extern "xuiDocumentHtmlInteractionUpdate" @no_raise @c_result("status",0) func update()
  extern "xuiDocumentHtmlInteractionShow" @no_raise @c_result("status",0) func show()
  extern "xuiDocumentHtmlInteractionGetWindow" @no_raise @c_result("owner_view",0) func window() as Widget?
- extern "xuiDocumentHtmlInteractionGetWebView" @no_raise @c_result("owner_view",0) func webView() as Widget?
+ extern "xuiDocumentHtmlInteractionGetWebView" @no_raise @c_result("owner_view",0) func webView() as WebView?
  extern "xuiDocumentHtmlInteractionGetContext" @no_raise @c_result("owner_view",0) func context() as Context?
  extern "xuiDocumentHtmlInteractionSetOpenLinkOwned" @no_raise @c_owned_callback(0,0,"xui_callback_owner_t",0) @c_result("status",0) func setOpenLink(DocumentOpenLinkProc? callback)
  extern "xuiDocumentHtmlInteractionReleaseChecked" @no_raise @c_result("status",0) func close()

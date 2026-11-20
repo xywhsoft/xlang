@@ -68,6 +68,20 @@ recorded 400 allocations and frees. The language path prepares a C string and
 admits a new managed view for each replacement. It passes the encoded bytes
 directly to the native loader. See the [synchronous image acceptance record](../dev/release-materials/provenance/xui-document-image-sync-20261120.json).
 
+The optional Windows WebView2 build carries the matching Loader DLL and its
+SDK notices. Its XUI package includes the local math and diagram renderer in
+`xui/resources/document_web`. Pass that directory to
+`xui.createDocumentWebProvider()`. The Windows WebView2 Runtime must also be
+installed. Hosted JIT resolves the Loader from the engine DLL's directory.
+For native Windows deployments, place the Loader beside the executable and
+include the engine DLL when using dynamic linkage.
+
+`DocumentHtmlInteraction.webView()` returns a watched `WebView?` from the same
+Context. Closing the interaction expires that child view. The
+[local HTML example](../lib/bindings/xui/examples/document_html_interaction.xl)
+opens a Document node from memory. Builds without the WebView2 backend report
+`XUI_ERROR_UNSUPPORTED` when initializing the browser.
+
 Current independent Windows/Linux acceptance uses the frozen R38 successor
 plus 46-frontend nested-pack/NULL overlay, inherited from real full R37.
 `document-ui-full-win-r1/results.json` under the shared validation base and
@@ -140,5 +154,6 @@ Context close. A local PNG exercises asynchronous decode, publication and
 cancellation. The renderer test dispatches a drawing callback on an owned CPU
 target, checks expiry of the callback draw view and preserves the original
 error. The DocumentEditor example also renders through the actual graphics
-backend. WebProvider and HtmlInteraction Context lookups have compile and
-link evidence. Browser startup and live browser behavior remain separate.
+backend. The [browser acceptance record](../dev/release-materials/provenance/xui-document-browser-20261120.json)
+covers local HTML navigation, the math provider and watched WebView retirement
+on Windows, plus checked unavailability on Linux.

@@ -1,0 +1,99 @@
+import xge
+import xui
+from xui import Context, DocumentNodeAttributes, DocumentSnapshot, DocumentWebProvider, WebView, Widget
+from "../../lib/bindings/xui/examples/_window.xl" import Window
+
+extern "fixtureMeasureDocumentMath" @header("test/cases/foreign_xui_document_browser.h") @no_raise func measureMath(DocumentWebProvider provider,DocumentSnapshot snapshot,uint64 node) as c_int
+
+string profile = env.get("XUI_BROWSER_PROFILE") as string
+string expectation = env.get("XUI_BROWSER_EXPECTATION") as string
+bool completed = false
+
+Window.show("Document browser verification", func(Context ui,Widget root)
+    auto browser = ui.webView(profile)
+    Window.place(root,browser,12,16,180,160)
+    auto document = xui.createDocument()
+    auto transaction = document.beginTransaction()
+    DocumentNodeAttributes block
+    block.iFlags = c_uint(xui.XUI_DOC_BLOCK)
+    auto html = transaction.insertNodeWithAttributes(1,xui.XUI_DOCUMENT_APPEND,block,"",null,
+        c_uint(xui.XUI_DOC_HTML),"<div style='background:#4c9b65;color:white'>Local document HTML</div>")
+    auto math = transaction.insertNodeWithAttributes(1,xui.XUI_DOCUMENT_APPEND,block,"",null,
+        c_uint(xui.XUI_DOC_MATH),"x^2+1")
+    transaction.commit().close()
+    transaction.close()
+
+    if expectation == "unsupported" then
+        assert browser.initializeAsync() == xui.XUI_ERROR_UNSUPPORTED
+        bool unsupported = false
+        try
+            xui.createDocumentHtmlInteraction(ui,document,html,Window.rect(220,24,450,300))
+        catch Error error
+            unsupported = error.code == int(xui.XUI_ERROR_UNSUPPORTED)
+        end
+        assert unsupported and root.getChildCount() == 1
+        document.close()
+        browser.close()
+        completed = true
+        xge.requestQuit()
+        return
+    end
+
+    bool localNavigation = false
+    browser.setEvent(func(Widget sender,c_int event,c_int nativeError)
+        if event == xui.XUI_WEBVIEW_EVENT_READY then
+            assert browser.loadHtml("<!doctype html><p>Local browser fixture</p>") == 0
+        elseif event == xui.XUI_WEBVIEW_EVENT_NAVIGATION_COMPLETE then
+            localNavigation = true
+        elseif event == xui.XUI_WEBVIEW_EVENT_FAILED or event == xui.XUI_WEBVIEW_EVENT_NAVIGATION_FAILED then
+            throw RuntimeError "WebView2 failed: " + string(int(nativeError))
+        end
+    end)
+    assert browser.initializeAsync() == 0
+
+    auto panel = xui.createDocumentHtmlInteraction(ui,document,html,Window.rect(220,24,450,300))
+    auto embedded = panel.webView() as WebView
+    assert panel.context() != null and panel.window() != null
+    panel.show()
+
+    string assets = env.get("XUI_BROWSER_ASSETS") as string
+    auto provider = xui.createDocumentWebProvider(ui,root,assets,profile,timeoutMs=15000)
+    auto snapshot = document.snapshot()
+    int invalidations = 0
+    provider.setInvalidate(func()
+        invalidations += 1
+    end)
+
+    root.setUpdateCallback(func(Widget sender,c_float elapsed) as c_int
+        panel.update()
+        provider.update()
+        auto stats = provider.stats()
+        assert stats.bWorkerFailed == 0
+        if embedded.getState() == xui.XUI_WEBVIEW_READY and localNavigation then
+            if measureMath(provider,snapshot,math) != 0 or stats.iReady == 0 then return 0 end
+            assert invalidations > 0
+            assert browser.setZoomFactor(c_double(1.25)) == 0
+            assert float(browser.getZoomFactor()) == 1.25
+            sender.setUpdateCallback(null)
+            provider.close()
+            panel.close()
+
+            bool expired = false
+            try
+                embedded.getState()
+            catch StateError
+                expired = true
+            end
+            assert expired
+            browser.closeBrowser()
+            browser.close()
+            snapshot.close()
+            document.close()
+            completed = true
+            xge.requestQuit()
+        end
+        return 0
+    end)
+end)
+assert completed, "Document browser qualification did not reach its terminal state"
+println("XUI_DOCUMENT_BROWSER_OK")

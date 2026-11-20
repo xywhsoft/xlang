@@ -11,6 +11,7 @@ import json
 import re
 import shutil
 from gen_host_xrt_catalog import render_host_catalog
+from xge3_browser_sdk import browser_inputs, engine_runtime_inputs, stage_browser
 
 
 def sha(path):
@@ -126,7 +127,7 @@ def main():
         packages.append('xgeDebug')
     package_sources={name:sources/({'xge3d':'xge/three_d','xgeDebug':'xge/debug'}.get(name,name)) for name in packages}
     xrt_config = native / "extlibs/xrt/xrt_config.h"
-    inputs = {str(p): sha(p) for p in [Path(__file__).resolve(), Path(__file__).with_name('gen_host_xrt_catalog.py'), catalog, resolver_catalog, root / "lib/xrt/xrt.h", xrt_config,*abi_files,
+    inputs = {str(p): sha(p) for p in [Path(__file__).resolve(), Path(__file__).with_name('gen_host_xrt_catalog.py'), Path(__file__).with_name('xge3_browser_sdk.py'), catalog, resolver_catalog, root / "lib/xrt/xrt.h", xrt_config,*abi_files,
                                       engine_report, binary,
                                       build / "xge_build_config.h", *headers, *generated]}
     for package in packages:
@@ -135,6 +136,10 @@ def main():
             raise SystemExit("Package sources are not available: " + package)
         inputs.update({str(p):sha(p) for p in package_source.rglob('*') if p.is_file() and
                        not (package=='xge' and p.relative_to(package_source).parts[0] in ('three_d','debug'))})
+    runtime = engine_runtime_inputs(metadata, inputs)
+    if binary.name.casefold() in runtime:
+        raise SystemExit("An engine runtime dependency collides with the engine image")
+    browser = browser_inputs(metadata, native, runtime, "xui" in packages, inputs)
     # No cleanup of an existing tree is performed, including after a failure.
     out.mkdir(parents=True)
     for package in packages:
@@ -152,17 +157,21 @@ def main():
     (xrt_include / "xrt.h").write_text(
         "/* Shared host XRT declarations; no private implementation. */\n#include <xrt_decl.h>\n", encoding="utf-8")
     shutil.copy2(binary, target / "native" / binary.name)
+    for dependency in runtime.values():
+        shutil.copy2(dependency, target / "native" / dependency.name)
+    stage_browser(out, browser)
     manifest_path = target / "xlang.package.json"
     manifest = json.loads(manifest_path.read_text(encoding="utf-8"))
     # Both the TinyCC loader and GNU ld accept the actual DLL/.so. Using the
     # runtime image avoids an incompatible COFF static/import archive in TCC.
     link = "native/" + binary.name
     manifest["links"] = [link]
-    manifest["loadlibs"] = [link]
+    manifest["loadlibs"] = ["native/" + path.name for path in runtime.values()] + [link]
     manifest["artifact"]["xrtModules"] = modules
     manifest["native"]["linkage"] = "dynamic"
     manifest["native"]["features"] = sorted(set(metadata.get("features", [])) |
-        ({"XGE_HAS_DEBUGMODE"} if debug_flags[0] == '-DXGE_DEBUGMODE=1' else set()))
+        ({"XGE_HAS_DEBUGMODE"} if debug_flags[0] == '-DXGE_DEBUGMODE=1' else set()) |
+        ({"XUI_ENABLE_WEBVIEW2"} if browser is not None else set()))
     manifest["native"].pop("variants", None)
     if args.static_variant:
         manifest["native"]["variants"] = {"static": args.static_variant}
@@ -177,6 +186,7 @@ def main():
                   hostXrtSha256=canonical_xrt, hostSymbolCount=len(slots),
                   nativeAbiFingerprint=actual_abi,
                   nativeImageName=binary.name,
+                  runtimeDependencies=metadata.get("runtime_dependencies", []),
                   xrtModules=modules, engineBuild=str(engine_report),
                   inputs=inputs, outputs=output, inputsUnchanged=True,
                   testsRun=False, shippingDelivery=False)

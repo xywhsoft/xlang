@@ -1,6 +1,6 @@
 {
   "scope": "Generate direct Document UI declarations from one matched Native authority.\n\nOnly explicitly audited ownership/callback/descriptor contracts are added.\nEvery remaining C interface has an individual inventory reason.\n",
-  "authority": "F:\\xlang-validation\\xge-full-20261110\\document-image-sync-sdk-win-r1\\source\\include\\xui_document_ui.h",
+  "authority": "F:\\xlang-validation\\xge-full-20261110\\document-browser-native-sdk-win-r1\\source\\include\\xui_document_ui.h",
   "authoritySha256": "11fe8d572f94b3346f0ebfa281c5713bb69b24b1338553b0b90cd4e1e86cbbdd",
   "functions": [
     {
