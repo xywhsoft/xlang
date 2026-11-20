@@ -1,0 +1,78 @@
+{
+  "complete": true,
+  "passed": true,
+  "releaseInstalled": false,
+  "nativeCommit": "7fd0650aac6a96099a61c8106f216d8ac04b4366",
+  "sourceParent": "6f9dd4ae1caefcd5efb3c9c3ef521e3343c80efb",
+  "compiledBridgeUnclassified": 773,
+  "platforms": {
+    "win": {
+      "packages": {
+        "path": "F:\\xlang-validation\\xge-full-20261110\\document-renderer-watch-packages-win-r2\\results.json",
+        "sha256": "c6fab095761245984fabf582a7aaf1b0c4147388be4b713babf8d8a0efa73449"
+      },
+      "native": {
+        "path": "F:\\xlang-validation\\xge-full-20261110\\document-renderer-watch-native-win-r5\\results.json",
+        "sha256": "9386e57aadf4a484a620dab3b9e677860d9191fbdf199d8062f3b45a2237d72a"
+      },
+      "runtime": {
+        "path": "F:\\xlang-validation\\xge-full-20261110\\document-renderer-watch-runtime-win-r4\\results.json",
+        "sha256": "8f66f2a253cc88d5de8d481aac879644238e210e564678eb740fa5c88b5a5d51"
+      },
+      "consumers": {
+        "path": "F:\\xlang-validation\\xge-full-20261110\\document-renderer-watch-audit-win-r2\\consumers\\results.json",
+        "sha256": "c58ffe31b2d4b878f2032728c95fb7fe95bbc413935fe5527afe416c2358fddd"
+      },
+      "internalNativeEvidence": {
+        "path": "F:\\xlang-validation\\xge-full-20261110\\document-internal-consumers-win-r2\\results.json",
+        "sha256": "5ee23bd92ed11555265f7bb1aab33833a13ad5adc54e561b96741551552ec48f"
+      },
+      "unclassifiedByFamily": {
+        "XGE": 373,
+        "XUI": 398,
+        "Document UI": 1,
+        "Document": 1
+      }
+    },
+    "linux": {
+      "packages": {
+        "path": "\\\\wsl.localhost\\Ubuntu\\var\\tmp\\xlang-validation\\xge-full-20261110\\document-renderer-watch-packages-linux-r2\\results.json",
+        "sha256": "dc3fa522e0c8a5a9a4af1a0aa36798ee37d15c6d353235e7f0575ec0916cca81"
+      },
+      "native": {
+        "path": "\\\\wsl.localhost\\Ubuntu\\var\\tmp\\xlang-validation\\xge-full-20261110\\document-renderer-watch-native-linux-r5\\results.json",
+        "sha256": "8b0fb7fbf31a7da1d7744a5f02dcfd403e2391158613cb171c813c837b23324a"
+      },
+      "runtime": {
+        "path": "\\\\wsl.localhost\\Ubuntu\\var\\tmp\\xlang-validation\\xge-full-20261110\\document-renderer-watch-runtime-linux-r4\\results.json",
+        "sha256": "2b283f6cb720f130d96e38059de5c22c3289e57aae6c95e1c679a634b4a46af7"
+      },
+      "consumers": {
+        "path": "\\\\wsl.localhost\\Ubuntu\\var\\tmp\\xlang-validation\\xge-full-20261110\\document-renderer-watch-audit-linux-r2\\consumers\\results.json",
+        "sha256": "ea8e80603ccba0d5b5b3ee01f8f83d46c0a210ef04a0152ec94189fa7556b5f5"
+      },
+      "internalNativeEvidence": {
+        "path": "\\\\wsl.localhost\\Ubuntu\\var\\tmp\\xlang-validation\\xge-full-20261110\\document-internal-consumers-linux-r2\\results.json",
+        "sha256": "293de37aa2a7df4d4c145ddeea706ab2d073c4c4a88068cea625bbe32f763bbe"
+      },
+      "unclassifiedByFamily": {
+        "XGE": 373,
+        "XUI": 398,
+        "Document UI": 1,
+        "Document": 1
+      }
+    }
+  },
+  "checks": [
+    "The unique managed renderer observes native physical invalidation. Language aliases and a resident active call survive the notification tail without retaining stale native storage.",
+    "Closing a live Context clears the renderer weak link. The renderer watcher stays active until renderer release. The ordinary renderer call scope pins a live Context through result conversion.",
+    "The watch attachment succeeds under a pending next-allocation fault without consuming it. Native deferred paint retry, exact once-only invalidation, and O0/O2 heap retirement pass.",
+    "The real font callback receives freshly initialized output, can retain and release its font, and rejects use of an escaped output. Both optimized archive implementations are checked.",
+    "The extracted static archive members match their frozen build objects. Fragment serialization references xuiDocumentFreeBuffer, whose exact compiled body delegates to xrtFree.",
+    "Model and fragment exports roundtrip under the resident-XRT contract. The checked JIT, dynamic AOT and static AOT fixtures and import tables pass."
+  ],
+  "pending": [
+    "A public managed renderer Context lookup that recovers the live Context root with its original ownership.",
+    "Remaining XGE/XUI coverage and matched release/IDE installation."
+  ]
+}

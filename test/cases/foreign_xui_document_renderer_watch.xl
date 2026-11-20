@@ -1,0 +1,78 @@
+import xui
+from xui import CallbackDocumentFontOutput,Font
+
+extern "xuiDocumentRendererReleaseChecked" @header("xge3_runtime.h") @no_raise @c_result("status",0) func releaseFromNative(xui.DocumentRenderer renderer)
+extern "xrtMemDebugEnabled" @header("xrt_decl.h") @no_raise func memDebugEnabled() as bool
+extern "xrtMemDebugEnable" @header("xrt_decl.h") @no_raise func memDebug(bool enabled) as bool
+extern "xrtMemDebugFailAfter" @header("xrt_decl.h") @no_raise func failAfter(uint64 prefix) as bool
+extern "xrtMemDebugFailClear" @header("xrt_decl.h") @no_raise func failClear()
+
+func main(...) as int
+ auto location = env.get("XUI_RENDERER_FONT")
+ assert location != null
+ auto proxy = xui.createProxy()
+ auto ui = xui.create(proxy,xui.XUI_SYSTEM_FONT_DISABLED)
+ auto font = proxy.loadFont(location as string,c_float(16),c_uint(xui.XUI_FONT_FORMAT_TTF))
+ ui.setDefaultFont(font)
+ auto renderer = xui.createDocumentRenderer(ui)
+ if not memDebugEnabled() then assert memDebug(true) end
+ int failures = 0
+ for prefix in range(20)
+  assert failAfter(uint64(prefix))
+  try
+   auto candidate = xui.createDocumentRenderer(ui)
+   failClear()
+   candidate.close()
+  catch Error
+   failures += 1
+  finally
+   failClear()
+  end
+ end
+ assert failures > 0 and failures < 20, f"renderer allocation fault coverage ({failures} failures)"
+
+ auto document = xui.createDocument(profile=c_uint(xui.XUI_DOCUMENT_MARKDOWN))
+ document.loadMarkdown("text **bold** and *italic*\n")
+ auto snapshot = document.snapshot()
+ renderer.setSnapshot(snapshot,null)
+ int callbacks = 0
+ CallbackDocumentFontOutput? saved = null
+ renderer.setFontResolver(func(xui.CallbackDocumentRenderer source,xui.CString family,c_uint marks,c_float size,CallbackDocumentFontOutput output) as c_int
+  assert output.font() == null, "font resolver output was not initialized empty"
+  output.setFont(font)
+  auto acquired = output.font() as Font
+  acquired.close()
+  saved = output
+  callbacks += 1
+  return c_int(1)
+ end)
+ renderer.layout(c_double(220),c_double(0),c_double(160))
+ assert callbacks > 0 and saved != null, "native font resolution did not run"
+ bool expired = false
+ try
+  auto previous = saved as CallbackDocumentFontOutput
+  previous.font()
+ catch StateError
+  expired = true
+ end
+ assert expired, "font output survived its callback epoch"
+
+ auto alias = renderer
+ releaseFromNative(renderer)
+ expired = false
+ try
+  alias.stats()
+ catch StateError
+  expired = true
+ end
+ assert expired, "externally retired renderer alias was still callable"
+ renderer.close()
+ alias.close()
+ snapshot.close()
+ document.close()
+ ui.close()
+ font.close()
+ proxy.close()
+ println("DOCUMENT_RENDERER_WATCH_OK")
+ return 0
+end

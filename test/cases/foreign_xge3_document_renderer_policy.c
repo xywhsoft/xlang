@@ -23,7 +23,9 @@ static void pureWait(bool oom)
     assert((status==XUI_OK || status==XUI_ERROR_BUSY) && p.shapes>0 && !p.ready);
     xrtClearError();uint64_t pending=0,total=0;assert(xl6CallbackFailureCountV1(&pending,&total));
     const XL6_ForeignViewDescriptorV1* policy=xl6Xui3DocumentRendererPolicyGet();
-    assert(policy && policy->Destroy && !policy->CallBegin && !policy->Watch);
+    assert(policy && policy->Destroy && policy->CallBegin && policy->CallEnd && policy->Watch && policy->Unwatch);
+    assert(policy->watchBytes==sizeof(xui_lifetime_link_t));
+    assert(policy->flags&XL6_FOREIGN_VIEW_RELIABLE_OWNED_WATCH);
     xl6_error_scope scope={0};assert(xl6ErrorScopeBegin(&scope));
     if(oom)assert(xrtMemDebugFailAfter(0));
     assert(!policy->Destroy(renderer));
@@ -40,13 +42,50 @@ static void pureWait(bool oom)
     assert(xuiDestroyChecked(p.context)==XUI_OK && xuiFontReleaseChecked(font)==XUI_OK && p.fontDrops==1);
     assert(xuiProxyReleaseChecked(p.proxy)==XUI_OK && drop(&p.owner));
 }
+static void externalInvalidation(void)
+{
+    LayoutProvider p={0};
+    xui_font font;
+    layoutSetup(&p,&font);
+    xui_document_renderer renderer=NULL;
+    xui_doc_renderer_desc_t desc={.iSize=sizeof(desc),.tFonts={.normal=font}};
+    assert(xuiDocumentRendererCreate(p.context,&desc,&renderer)==XUI_OK);
+    assert(xuiDocumentRendererGetContext(renderer)==p.context);
+
+    const XL6_ForeignViewDescriptorV1* policy=xl6Xui3DocumentRendererPolicyGet();
+    unsigned invalidated=0;
+    xui_lifetime_link_t watch={0};
+    assert(xrtMemDebugFailAfter(0));
+    assert(policy->Watch(renderer,&watch,gone,&invalidated));
+    assert(!xrtMemDebugFailTriggered());
+    xrtMemDebugFailClear();
+
+    XL6_ForeignView* view=xl6ForeignViewCreateRootWithDomainV1(renderer,policy,&xl6Xui3OwnershipDomainV1,NULL);
+    assert(view);
+    assert(xuiDestroyChecked(p.context)==XUI_OK);
+    assert(xuiDocumentRendererGetContext(renderer)==NULL && invalidated==0);
+
+    XL6_ForeignViewCallV1 active={0};
+    xui_call_scope_t scope={0};
+    assert(xl6ForeignViewCallBeginV1(view,&active,&scope,sizeof(scope)));
+    assert(xuiDocumentRendererReleaseChecked(renderer)==XUI_OK);
+    assert(invalidated==1 && !watch.ppPrevious);
+    assert(xl6ForeignViewCallEndV1(&active));
+    assert(!xl6ForeignViewCallBeginV1(view,&active,&scope,sizeof(scope)));
+    assert(xrtGetError());
+    xrtClearError();
+    assert(xl6ForeignViewCloseV1(view));
+    assert(xl6ForeignViewReleaseV1(view) && xl6ForeignViewDrainV1());
+    assert(xuiFontReleaseChecked(font)==XUI_OK && p.fontDrops==1);
+    assert(xuiProxyReleaseChecked(p.proxy)==XUI_OK && drop(&p.owner));
+}
 int main(void)
 {
     assert(xl6Xge3RuntimeBindV1()==0 && xrtMemDebugEnable(true));
     xmemdebugsnapshot before,after;xrtMemDebugSnapshot(&before);
-    pureWait(false);pureWait(true);
+    pureWait(false);pureWait(true);externalInvalidation();
     xrtClearError();xrtMemDebugSnapshot(&after);
     assert(before.LiveCount==after.LiveCount && before.LiveBytes==after.LiveBytes);
-    puts("renderer policy: pure deferred wait stays healthy, OOM NULL stays healthy, creator retry consumes once");
+    puts("renderer policy: deferred retry and external invalidation each consume once");
     return 0;
 }

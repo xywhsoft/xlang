@@ -17,16 +17,24 @@ pointer-free C records and all three enum groups preserve their Native layout
 and values. Font set, renderer, view and editor descriptors use typed nested
 stack packing; they are not fake POD records containing language pointers.
 
-The private renderer policy has no invented native call scope, RC or watch.
-Its real native active-call admission and Resident view pin defer destruction;
-its policy traces the actual Snapshot, Font, Proxy, callback and cache edges.
-Its Context is weak. Keep the Context passed to its constructor when needed.
+The renderer policy watches physical native retirement. A native release
+invalidates every alias of the managed renderer. A regular language call
+opens the current Context's operation scope through result conversion, when
+the weak Context link is live. The renderer's checked release uses its own
+cleanup scope. The policy traces the actual Snapshot, Font, Proxy, callback
+and cache edges. Keep the constructor Context for operations that need it.
+Closing it clears the native link, and the renderer can still be closed.
 The three composite child policies watch identity and use the parent Context
 scope. Their `context()` method returns the original managed Context through
 that owner relationship. The Context traces their native directory.
 Callback outputs expose actual Native set/get/clear or scoped POD fields,
 never their private owning fields. Saved callback Snapshot values require
 Native `share()`; copying counted callback text creates a normal owned string.
+
+The font resolver receives a freshly initialized native output on each call.
+`setFont` retains a font from the renderer's backend. `font()` returns an
+independent retained reference, and the output view expires with the callback.
+[Renderer and font-output evidence](../dev/release-materials/provenance/xui-document-renderer-watch-20261120.json)
 
 `xui.documentViewType(context)` and `xui.documentEditorType(context)` expose the
 Context's WidgetType registry views. The first call can register the type.

@@ -188,6 +188,22 @@ sizeof(xui_lifetime_link_t),_Alignof(xui_lifetime_link_t),watch_##Name,unwatch,d
 0,1,NULL,NULL,NULL,NULL,0,NULL,NULL};return &value;}
 #if XUI_ENABLE_DOCUMENT_VIEW
 XL6_XUI_DOCUMENT_CHILD_POLICY(DocumentImageRequest,xuiDocumentImageResource)
+static bool watch_document_renderer(void* raw,void* storage,void(*invalidate)(void*),void* user)
+{
+    int status=xuiDocumentRendererLifetimeWatch(raw,storage,invalidate,user);
+    if(status!=XUI_OK)report_resource_failure(status,"xuiDocumentRendererLifetimeWatch");
+    return status==XUI_OK;
+}
+static bool document_renderer_begin(void* raw,void* storage)
+{
+    xui_context context=xuiDocumentRendererGetContext(raw);
+    return !context || context_begin(context,storage);
+}
+static bool document_renderer_end(void* storage)
+{
+    xui_call_scope_t* scope=storage;
+    return !scope->pContext || context_end(scope);
+}
 static bool destroy_document_renderer(void* raw)
 {bool consumed=false;int status=xuiDocumentRendererReleaseOwnerChecked(raw,&consumed);if(status!=XUI_STATUS_DEFERRED)report_resource_failure(status,"xuiDocumentRendererReleaseOwnerChecked");return consumed;}
 static bool request_document_renderer(void* raw)
@@ -198,13 +214,14 @@ static bool busy_document_renderer(const void* raw)
 {return xuiDocumentRendererOwnershipBusy((xui_document_renderer)raw);}
 const XL6_ForeignViewDescriptorV1* xl6Xui3DocumentRendererPolicyGet(void)
 {
-    /* Unique ownership transferred to the language, not Context ownership or
-     * native RC. Context is weak and may expire; native operations then reject
-     * admission. Resident active calls defer root destruction; native bodies
-     * pin their own calls, so no synthetic NativeCallBegin/Watch is invented. */
+    /* A language call pins the live weak Context through result conversion.
+     * The renderer's native destroy path takes its own cleanup scope. */
     static const XL6_ForeignViewDescriptorV1 value={sizeof(value),XL6_FOREIGN_VIEW_V1_TAG,"xui.documentRenderer",
-        0,1,NULL,NULL,destroy_document_renderer,0,1,NULL,NULL,trace_document_renderer,busy_document_renderer,
-        XL6_FOREIGN_VIEW_DESTROY_REPORTS_FAILURE|XL6_FOREIGN_VIEW_CONTINUABLE_FINALIZE,NULL,request_document_renderer};
+        sizeof(xui_lifetime_link_t),_Alignof(xui_lifetime_link_t),watch_document_renderer,unwatch,
+        destroy_document_renderer,sizeof(xui_call_scope_t),_Alignof(xui_call_scope_t),
+        document_renderer_begin,document_renderer_end,trace_document_renderer,busy_document_renderer,
+        XL6_FOREIGN_VIEW_RELIABLE_OWNED_WATCH|XL6_FOREIGN_VIEW_DESTROY_OWNS_NATIVE_SCOPE|XL6_FOREIGN_VIEW_DESTROY_REPORTS_FAILURE|
+        XL6_FOREIGN_VIEW_CONTINUABLE_FINALIZE,NULL,request_document_renderer};
     return &value;
 }
 #else
