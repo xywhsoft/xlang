@@ -58,7 +58,12 @@ static int overlayCases(void)
     xlsFrontendInputUsageBegin(&usage);xlsInputTopologyBegin(&scope,32768);xlsFrontendInputUsageBind(&x,1);CHECK(xlsFrontendOverlayLookup(&x,path,&p)==1);
     xl6SourceReportInvalidate(&b,path,"older result changed");CHECK(xlsFrontendInputUsageEnd(&usage,&used) && used==1);topology=xlsInputTopologyEnd(&scope);CHECK(topology && xlsInputTopologyInfo(topology).paths==1);xlsInputTopologyDestroy(topology);
     xlsReferenceSourceReportFree(&b);xlsReferenceSourceReportInit(&b);
+#ifdef _WIN32
     const char bad[]={'C',':','/','\xff',0};
+#else
+    /* POSIX permits non-UTF-8 path bytes. An empty path has no identity. */
+    const char bad[]="";
+#endif
     for(unsigned mode=0;mode<3;++mode){
         if(mode==0){a.complete=b.complete=0;}
         else {xl6SourceReportFree(&a);xlsReferenceSourceReportFree(&b);xl6SourceReportInit(&a);xlsReferenceSourceReportInit(&b);}

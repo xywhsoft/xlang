@@ -697,7 +697,10 @@ def prepare_current_loader_oracles(frontend: Path, output: Path):
     from native_current_context_profile import profile
     profile(frontend)
     headers=['src/compile/xl6_source_report.h','src/compile/xl6_source_overlay.h','src/compile/xl6_imports.h','src/package/xl6_package.h','src/package/xl6_compiled_package.h']
-    names=sorted(set(re.findall(r'\b(xl6(?:SourceReport|SourceOverlay|ImportDeps|Imports|Package|CompiledPackage)\w*)\s*\(', '\n'.join((frontend/p).read_text(encoding='utf8') for p in headers))))
+    declarations='\n'.join((frontend/p).read_text(encoding='utf8') for p in headers)
+    names=sorted(set(re.findall(
+        r'\b(xl6(?:SourceReport|SourceOverlay|ImportDeps|Imports|Package|CompiledPackage|CompiledNativeFeatures)\w*)\s*\(',
+        declarations)))
     folder=output/'loader_oracles';folder.mkdir()
     aliases=folder/'loader_oracle_names.h';aliases.write_text(''.join('#define '+n+' xlsReference'+n.removeprefix('xl6')+'\n' for n in names),encoding='utf8',newline='\n')
     sources=[]
