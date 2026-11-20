@@ -1,0 +1,108 @@
+{
+  "complete": true,
+  "passed": true,
+  "releaseInstalled": false,
+  "sourceParent": "36c8d27a866ba158f0af0795253e5210c264cd13",
+  "nativeCommit": "7578abdb31e332c2ead6422c8d4e6454eb63942c",
+  "storageReview": {
+    "path": "F:\\xlang-validation\\xge-full-20261110\\xui-standalone-find-storage-rebase-r1.json",
+    "sha256": "2f6ae3c2edf20389768e74edac77418003df97dae5d2b0661debd82ce95d08b7"
+  },
+  "platforms": {
+    "win": {
+      "sdk": {
+        "path": "F:\\xlang-validation\\xge-full-20261110\\xui-standalone-find-sdk-win-r1\\results.json",
+        "sha256": "ee33e72132ba513dc4e311cef40fb089f56521e63ba1dc62ac1986c1f95b48a6"
+      },
+      "packages": {
+        "path": "F:\\xlang-validation\\xge-full-20261110\\xui-standalone-find-packages-win-r2\\results.json",
+        "sha256": "73af53ca54e49c7aba59c5e474ea7dc87c027b7e08186e933d013c05d1e338ce"
+      },
+      "native": {
+        "path": "F:\\xlang-validation\\xge-full-20261110\\xui-standalone-find-native-win-r2\\results.json",
+        "sha256": "c666a1054e65f41b5e339db7e335e9b2d0a7794c24b9c411a40a1a9b3dfaf99d"
+      },
+      "runtime": {
+        "path": "F:\\xlang-validation\\xge-full-20261110\\xui-standalone-find-runtime-win-r2\\results.json",
+        "sha256": "1ba5eacba2dfbedf482565cc479bd794e98f28d42d42f87204d2b629d0e7195b"
+      },
+      "nul": {
+        "path": "F:\\xlang-validation\\xge-full-20261110\\xui-standalone-find-nul-win-r1\\results.json",
+        "sha256": "835c36a2d1ce24ec806ded04ed9aa2575190af306a05649503355f148effae7d"
+      },
+      "audit": {
+        "path": "F:\\xlang-validation\\xge-full-20261110\\xui-standalone-find-audit-win-r1\\consumers\\results.json",
+        "sha256": "f5060346b055c275d88b005db6b4ed604c5fed8d851cdb417bf10c21972ed9b5"
+      },
+      "compiler": {
+        "path": "F:\\xlang-validation\\xge-full-20261110\\compiler-existing-root-win-r1\\build.json",
+        "sha256": "107a294cdefd81906f8e3fef6bced071ececaad4bf1837b61a15b1e9c7858a07"
+      },
+      "nativeRows": 12,
+      "languageRows": 35,
+      "generatedFixture": {
+        "path": "F:\\xlang-validation\\xge-full-20261110\\xui-standalone-find-runtime-win-r2\\fixture.c",
+        "sha256": "6616d53c5c426f13d35974cc08cc32443eefcb1f318a8aabaa6e7ed3c587cb7b"
+      },
+      "publicFunctionPopulation": 5717,
+      "directDeclarations": 4643,
+      "unclassifiedByBridgeOrReplacement": {
+        "XGE": 350,
+        "XUI": 393,
+        "Document UI": 2,
+        "Document": 1
+      }
+    },
+    "linux": {
+      "sdk": {
+        "path": "\\\\wsl.localhost\\Ubuntu\\var\\tmp\\xlang-validation\\xge-full-20261110\\xui-standalone-find-sdk-linux-r1\\results.json",
+        "sha256": "7d352207d91aa530c28fb01660888b7924d40eca912409283b0d807025bc8e14"
+      },
+      "packages": {
+        "path": "\\\\wsl.localhost\\Ubuntu\\var\\tmp\\xlang-validation\\xge-full-20261110\\xui-standalone-find-packages-linux-r2\\results.json",
+        "sha256": "b2f35057b9cc95dd4209ad6b2f206d6b6123cd8802a21ea3af1904e581fc8054"
+      },
+      "native": {
+        "path": "\\\\wsl.localhost\\Ubuntu\\var\\tmp\\xlang-validation\\xge-full-20261110\\xui-standalone-find-native-linux-r1\\results.json",
+        "sha256": "4fdd162342c591a8f970e7def0ad734a16cf4fc6de48226f3ba3ec2eca5eee43"
+      },
+      "runtime": {
+        "path": "\\\\wsl.localhost\\Ubuntu\\var\\tmp\\xlang-validation\\xge-full-20261110\\xui-standalone-find-runtime-linux-r2\\results.json",
+        "sha256": "dce47585eacd4e9b0e595473adc851099faae0be851bca0db46334257f691953"
+      },
+      "nul": {
+        "path": "\\\\wsl.localhost\\Ubuntu\\var\\tmp\\xlang-validation\\xge-full-20261110\\xui-standalone-find-nul-linux-r1\\results.json",
+        "sha256": "a7b6067e6802c149fcdabcbfa8f7421b7064dfc546a5cfab0469df626be7c64c"
+      },
+      "audit": {
+        "path": "\\\\wsl.localhost\\Ubuntu\\var\\tmp\\xlang-validation\\xge-full-20261110\\xui-standalone-find-audit-linux-r1\\consumers\\results.json",
+        "sha256": "020104b1d885fe8a9b3946f5de582dda7a547e35503fe9ba297bbd2c232e379c"
+      },
+      "compiler": {
+        "path": "\\\\wsl.localhost\\Ubuntu\\var\\tmp\\xlang-validation\\xge-full-20261110\\compiler-existing-root-linux-r1\\build.json",
+        "sha256": "6e729bc793dcd92edcd42f51e244bad799187c32ef82121e8275288a31274b11"
+      },
+      "nativeRows": 12,
+      "languageRows": 35,
+      "generatedFixture": {
+        "path": "\\\\wsl.localhost\\Ubuntu\\var\\tmp\\xlang-validation\\xge-full-20261110\\xui-standalone-find-runtime-linux-r2\\fixture.c",
+        "sha256": "6616d53c5c426f13d35974cc08cc32443eefcb1f318a8aabaa6e7ed3c587cb7b"
+      },
+      "publicFunctionPopulation": 5717,
+      "directDeclarations": 4643,
+      "unclassifiedByBridgeOrReplacement": {
+        "XGE": 350,
+        "XUI": 393,
+        "Document UI": 2,
+        "Document": 1
+      }
+    }
+  },
+  "checks": [
+    "Standalone search produces an immutable native collection in one scan. Limit 0 stores no records; a positive limit stores only the first N; the total always covers the full range. A retained read-only sequence survives closing the snapshot and editing the source Buffer.",
+    "Native raw and owned collectors agree on matching/capture offsets, including embedded NUL, zero-width matches, ordering, unmatched capture cells, and the full count. The Windows and Linux hosted/static C tests run at O0 and O2 and inject allocation failures during collection growth. Live allocation and invalid/double free counters remain unchanged.",
+    "Single-match replacement uses the existing native producer and matched-XRT owned bytes admission. The fixtures check an inner NUL copied from a regex capture, exact bytes, empty inputs and results, and preservation of the previous bytes value after a failure.",
+    "The language behavior fixture and window-free learning example pass real CLI JIT and standalone dynamic/static AOT; public emitted declarations compile as C11, C++11 and C++17. The standalone binaries do not import a compiler library. The separate performance fixture runs in JIT.",
+    "With prebuilt snapshots and an acquired sequence, 1000 C and xlang iterations each sum the same 15000 captured byte offsets and perform no XRT allocation, reallocation or free. The benchmark excludes snapshot allocation, search, sequence admission and release; native record reads and ordinary lifetime checks remain."
+  ]
+}

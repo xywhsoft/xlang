@@ -2,6 +2,24 @@ export extern "xuiFindLocateText" @header("xge3_runtime.h") @no_raise @c_span(0,
 export extern "xuiFindLocateText" @header("xge3_runtime.h") @no_raise @c_span(0,"const char*","int") @c_cstr(1) @c_outputs(-1,7) @c_span(6,"char*","int") @c_result("integer_min",0) func findText(bytes text,string pattern,c_int start=0,c_int rangeStart=0,c_int rangeEnd=-1,c_uint flags=0,Buffer? error=null) as (c_int,FindResult)
 export extern "xuiFindLocateText" @header("xge3_runtime.h") @no_raise @c_span(0,"const char*","int") @c_cstr(1) @c_outputs(-1,7) @c_span(6,"char*","int") @c_result("integer_min",0) func findText(Buffer text,string pattern,c_int start=0,c_int rangeStart=0,c_int rangeEnd=-1,c_uint flags=0,Buffer? error=null) as (c_int,FindResult)
 
+// A match snapshot owns its records. A sequence retains the snapshot independently.
+export extern "xui_find_matches_t*" class FindMatches @header("xui3_find_matches.h") @lifetime("owned") @policy("xl6Xui3FindMatchesPolicy")
+ native point handle
+ extern "xuiFindMatchesCount" @no_raise @c_const(0) @c_result("integer_min",0) func totalCount() as c_int
+ extern "xuiFindMatchesGet" @no_raise @c_const(0) @c_owned_sequence(1,2,0,"size_t",0) @c_retain(retainFindMatches,"zero",releaseFindMatches) func results() as NativeSequence<FindResult>
+ extern "xl6ForeignViewCloseV1" @no_raise @c_control(0) @c_result("bool_status") func close()
+end
+extern "xuiFindMatchesAddRef" @header("xui3_find_matches.h") @no_raise func retainFindMatches(FindMatches matches) as c_int
+extern "xuiFindMatchesRelease" @header("xui3_find_matches.h") @no_raise func releaseFindMatches(FindMatches matches)
+
+export extern "xuiFindCollectMatches" @header("xui3_find_matches.h") @no_raise @c_span(0,"const char*","int") @c_cstr(1) @c_span(6,"char*","int") @c_result("owned_view") @factory(7,0,releaseFindMatches) func findAllText(string text,string pattern,c_int rangeStart=0,c_int rangeEnd=-1,c_uint flags=0,c_int limit=-1,Buffer? error=null) as FindMatches
+export extern "xuiFindCollectMatches" @header("xui3_find_matches.h") @no_raise @c_span(0,"const char*","int") @c_cstr(1) @c_span(6,"char*","int") @c_result("owned_view") @factory(7,0,releaseFindMatches) func findAllText(bytes text,string pattern,c_int rangeStart=0,c_int rangeEnd=-1,c_uint flags=0,c_int limit=-1,Buffer? error=null) as FindMatches
+export extern "xuiFindCollectMatches" @header("xui3_find_matches.h") @no_raise @c_span(0,"const char*","int") @c_cstr(1) @c_span(6,"char*","int") @c_result("owned_view") @factory(7,0,releaseFindMatches) func findAllText(Buffer text,string pattern,c_int rangeStart=0,c_int rangeEnd=-1,c_uint flags=0,c_int limit=-1,Buffer? error=null) as FindMatches
+
+export extern "xuiFindBuildReplacement" @header("xge3_runtime.h") @no_raise @c_span(0,"const char*","int") @c_cstr(1) @c_cstr(2) @c_ref(4) @c_span(5,"char*","int") @c_output_bytes(6,7,"char*","int","xrt",0) func buildTextReplacement(string text,string pattern,string replacement,c_uint flags,FindResult result,Buffer? error=null) as bytes
+export extern "xuiFindBuildReplacement" @header("xge3_runtime.h") @no_raise @c_span(0,"const char*","int") @c_cstr(1) @c_cstr(2) @c_ref(4) @c_span(5,"char*","int") @c_output_bytes(6,7,"char*","int","xrt",0) func buildTextReplacement(bytes text,string pattern,string replacement,c_uint flags,FindResult result,Buffer? error=null) as bytes
+export extern "xuiFindBuildReplacement" @header("xge3_runtime.h") @no_raise @c_span(0,"const char*","int") @c_cstr(1) @c_cstr(2) @c_ref(4) @c_span(5,"char*","int") @c_output_bytes(6,7,"char*","int","xrt",0) func buildTextReplacement(Buffer text,string pattern,string replacement,c_uint flags,FindResult result,Buffer? error=null) as bytes
+
 // Explicit C-interop pointer identity; no ownership or dereference methods.
 export extern "xui_widget_t*" class NativeWidgetPointer @header("xge3_runtime.h") @lifetime("caller")
  native point handle

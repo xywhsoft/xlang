@@ -1,0 +1,16 @@
+// Search normal text and use the captured number to build a replacement.
+import xui
+
+func main(...) as int
+    string text="项目: item 12, item 34, item 56"
+    string pattern="item ([0-9]+)"
+    auto regex=c_uint(xui.XUI_FIND_REGEX)
+
+    auto search=xui.findAllText(text,pattern,flags=regex,limit=2)
+    println("Total matches:",search.totalCount())
+    for result in search.results()
+        auto replacement=xui.buildTextReplacement(text,pattern,"#$1",regex,result)
+        println("Byte offset:",result.iStart,"Replacement:",encoding.decodeUtf8(replacement))
+    end
+    return 0
+end

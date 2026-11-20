@@ -35,3 +35,30 @@ span and status and delivers numeric/record results by value.
 
 The [window-free example](../lib/bindings/xui/examples/code_search.xl) finds the
 first item after a Chinese prefix and reads the next item's numeric capture.
+
+## Standalone match snapshots and replacement expansion
+
+`xui.findAllText(text, pattern, rangeStart=0, rangeEnd=-1, flags=0, limit=-1)`
+scans the given range once for non-overlapping matches in ascending byte order.
+Like the native collector, it ignores backward and wrap flags. `totalCount()`
+counts the entire range. A positive limit keeps only that many early matches
+in memory, zero retains no records, and `-1` retains all matches.
+
+`FindMatches.results()` returns an immutable `NativeSequence<FindResult>`.
+The sequence retains the native snapshot independently and needs no copy of
+the entire match array. It remains readable after closing the snapshot or
+changing the original input buffer. Publication occurs after the search and
+record storage have succeeded. While collecting, geometric growth may move
+the native allocation. The result records own only byte offsets and captures.
+
+`xui.buildTextReplacement(text, pattern, replacement, flags, result)` expands
+one match to `bytes`. Pass the same contents, pattern and flags used to produce
+the match. Regex capture references use the existing native syntax, such as
+`$1`. The input may be string, bytes or Buffer and is passed with its actual
+byte length. Pattern and replacement are C strings. The output payload uses
+the resident XRT allocator and is adopted without a payload copy. The bytes
+value still allocates its normal owner. Use `encoding.decodeUtf8` when text is
+needed.
+
+The [batch example](../lib/bindings/xui/examples/find_matches.xl) limits retained
+results, displays the full count, and expands a template from each capture.

@@ -1,0 +1,57 @@
+import xui
+
+func main(...) as int
+    auto text=Buffer(b"A\0tag_12 tag tag_3")
+    string pattern="tag(_([0-9]+))?"
+    auto regex=c_uint(xui.XUI_FIND_REGEX)
+    auto diagnostic=Buffer("................................")
+    auto all=xui.findAllText(text,pattern,flags=regex,limit=2,error=diagnostic)
+    auto matches=all.results()
+    assert all.totalCount()==3 and matches.length==2 and diagnostic[0]==uint8(0)
+    all.close()
+    text[2]=uint8(90)
+    assert matches[0].iStart==2 and matches[0].arrCaptures[2].iEnd==8
+    assert matches[1].iStart==9 and matches[1].arrCaptures[2].iStart==-1
+
+    int sum=0
+    for result in matches
+        sum+=int(result.iEnd)
+    end
+    assert sum==20
+
+    auto countOnly=xui.findAllText(b"zzzz","z",rangeStart=1,rangeEnd=3,limit=0)
+    assert countOnly.totalCount()==2 and countOnly.results().length==0
+    countOnly.close()
+    auto miss=xui.findAllText("none","x")
+    assert miss.totalCount()==0 and miss.results().length==0
+    miss.close()
+    auto marker=xui.findAllText(Buffer(),"^",flags=regex)
+    auto single=marker.results()
+    assert marker.totalCount()==1 and single[0].iStart==0 and single[0].iEnd==0
+    marker.close()
+    assert xui.buildTextReplacement(Buffer(),"^","!",regex,single[0])==b"!"
+
+    assert xui.buildTextReplacement(b"A\0tag_12",pattern,"[$2]",regex,matches[0])==b"[12]"
+    assert xui.buildTextReplacement("A\0tag_12",pattern,"$0",regex,matches[0])==b"tag_12"
+    assert xui.buildTextReplacement(Buffer(b"A\0tag_12"),pattern,"",regex,matches[0])==b""
+
+    bool rejected=false
+    try
+        xui.findAllText("x","[",flags=regex,error=diagnostic)
+    catch Error failure
+        rejected=true
+    end
+    assert rejected and diagnostic[0]!=uint8(0)
+    auto invalid=matches[0]
+    invalid.arrCaptures[0].iEnd=900
+    bytes previous=b"unchanged"
+    rejected=false
+    try
+        previous=xui.buildTextReplacement(b"A\0tag_12",pattern,"$0",regex,invalid,error=diagnostic)
+    catch Error failure
+        rejected=true
+    end
+    assert rejected and previous==b"unchanged" and diagnostic[0]!=uint8(0)
+    println("XUI_FIND_MATCHES_DIRECT_OK")
+    return 0
+end

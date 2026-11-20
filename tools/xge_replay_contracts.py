@@ -109,6 +109,7 @@ REPLACED = {
     'xuiCodeSearchFindRegex': ('xui.CodeDocument.findRegex', 'xuiCodeSearchLocateRegex'),
     'xuiCodeSearchFindRegexRange': ('xui.CodeDocument.findRegex', 'xuiCodeSearchLocateRegex'),
     'xuiFindText': ('xui.findText', 'xuiFindLocateText'),
+    'xuiFindCollectText': ('xui.findAllText', 'xuiFindCollectMatches'),
     'xgeActionsReset': ('xge.Actions.reset', 'xgeActionsResetChecked'),
     'xgeAudioClipSamples': ('xge.AudioClip.samples', 'xgeAudioClipGetSamples'),
     'xgeFontGlyphRasterize': ('xge.Font.rasterize', 'xgeFontGlyphRasterizeOwned'),

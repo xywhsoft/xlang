@@ -1,0 +1,30 @@
+import xui
+
+extern "fixtureFindHeapBegin" @header("test/cases/foreign_xui_find_matches_cost.h") @no_raise func beginHeap() as c_int
+extern "fixtureFindHeapUnchanged" @header("test/cases/foreign_xui_find_matches_cost.h") @no_raise func unchangedHeap() as c_int
+extern "fixtureFindNativeLoop" @header("test/cases/foreign_xui_find_matches_cost.h") @no_raise func nativeLoop(xui.FindMatches snapshot) as c_int
+
+func languageLoop(NativeSequence<xui.FindResult> records) as int
+    int total=0
+    for pass in range(1000)
+        for record in records
+            total+=int(record.arrCaptures[1].iEnd)
+        end
+    end
+    return total
+end
+
+func main(...) as int
+    auto snapshot=xui.findAllText("x1 x2 x3","x([0-9])",flags=c_uint(xui.XUI_FIND_REGEX))
+    auto records=snapshot.results()
+    assert nativeLoop(snapshot)==15000 and languageLoop(records)==15000
+    assert beginHeap()==1
+    int expected=nativeLoop(snapshot)
+    assert unchangedHeap()==1
+    assert beginHeap()==1
+    int actual=languageLoop(records)
+    assert unchangedHeap()==1 and actual==expected
+    snapshot.close()
+    println("XUI_FIND_MATCHES_WARM_HEAP_ZERO")
+    return 0
+end

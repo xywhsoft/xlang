@@ -1,0 +1,12 @@
+import xui
+
+func main(...) as int
+    bytes input=b"A\0B"
+    auto regex=c_uint(xui.XUI_FIND_REGEX)
+    auto found,result=xui.findText(input,"(A.B)",flags=regex)
+    assert found==1 and result.arrCaptures[1].iStart==0 and result.arrCaptures[1].iEnd==3
+    bytes replaced=xui.buildTextReplacement(input,"(A.B)","[$1]",regex,result)
+    assert replaced==b"[A\0B]"
+    println("XUI_FIND_REPLACEMENT_COUNTED_NUL_OK")
+    return 0
+end
