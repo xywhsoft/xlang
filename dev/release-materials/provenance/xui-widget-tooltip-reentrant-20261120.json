@@ -1,0 +1,75 @@
+{
+  "complete": true,
+  "passed": true,
+  "releaseInstalled": false,
+  "nativeCommit": "9e24b1772074ac1b0afd92fde799cb139cf3d370",
+  "xlangParent": "bc67a38bf62c02e962e615553817d6b99351631c",
+  "sourceReview": "docs/xge3-xui3-api-map-storage.json",
+  "sourceReviewSha256": "22f5fdff2ab60db8cdc18ee9e49073c69513984ad8b2f01e0b246fdb8bca79bf",
+  "platforms": {
+    "win": {
+      "baseline": {
+        "path": "F:\\xlang-validation\\xge-full-20261110\\widget-tooltip-reentrant-baseline-win-r1\\input-O0-run.log",
+        "sha256": "19dd446fe710fee4d5aed9f94e17ca0c6aa672972b5ae5f12730c5759ff61ef7"
+      },
+      "sdk": {
+        "path": "F:\\xlang-validation\\xge-full-20261110\\widget-tooltip-reentrant-sdk-win-r1\\results.json",
+        "sha256": "fe2913cf198848418dd06f6d4d364ab40431278ba26d7fc1a56fec3bc010502b"
+      },
+      "freeze": {
+        "path": "F:\\xlang-validation\\xge-full-20261110\\widget-tooltip-reentrant-sdk-win-r1\\freeze.json",
+        "sha256": "e15c4d38e1e13d80736dbb5f7e06a2d2c46c836dd21bc7b360fd06334dc9e6c6"
+      },
+      "native": {
+        "path": "F:\\xlang-validation\\xge-full-20261110\\widget-tooltip-reentrant-test-win-r1\\results.json",
+        "sha256": "301a814fe078203b0d5ae8056b88a67df753964bd878921713f6e5ba9b1809fe"
+      },
+      "packages": {
+        "path": "F:\\xlang-validation\\xge-full-20261110\\widget-tooltip-reentrant-packages-win-r1\\results.json",
+        "sha256": "612a229dbd235f29997f56cec85746465057f82f8bb14f2af0b7b58cca0c8dcb"
+      },
+      "runtime": {
+        "path": "F:\\xlang-validation\\xge-full-20261110\\widget-tooltip-reentrant-runtime-win-r1\\results.json",
+        "sha256": "618fefc774b6143ed05e3ce381c27a9a8b6916f349cf72ccdd9419a69c3ea7dc"
+      }
+    },
+    "linux": {
+      "baseline": {
+        "path": "\\\\wsl.localhost\\Ubuntu\\var\\tmp\\xlang-validation\\xge-full-20261110\\widget-tooltip-reentrant-baseline-linux-r1\\input-O0-run.log",
+        "sha256": "64c05adbd7abe1da4341f16a84f7ee3e989b43bb9e4bd8f3862e0eb5cfd249a6"
+      },
+      "sdk": {
+        "path": "\\\\wsl.localhost\\Ubuntu\\var\\tmp\\xlang-validation\\xge-full-20261110\\widget-tooltip-reentrant-sdk-linux-r1\\results.json",
+        "sha256": "ec54febfb5de51ec8f26b1352431cd86fc39cd47c1b2fefe093f8e89b5679200"
+      },
+      "freeze": {
+        "path": "\\\\wsl.localhost\\Ubuntu\\var\\tmp\\xlang-validation\\xge-full-20261110\\widget-tooltip-reentrant-sdk-linux-r1\\freeze.json",
+        "sha256": "59af2a79ac339587d9a8b580f2b8e6f499abd2c9eaf21eb0387507fb608ff40f"
+      },
+      "native": {
+        "path": "\\\\wsl.localhost\\Ubuntu\\var\\tmp\\xlang-validation\\xge-full-20261110\\widget-tooltip-reentrant-test-linux-r1\\results.json",
+        "sha256": "fe2da74326c83cab7ef80288f432318245632a5774bdfe8f0b59da905b53022b"
+      },
+      "packages": {
+        "path": "\\\\wsl.localhost\\Ubuntu\\var\\tmp\\xlang-validation\\xge-full-20261110\\widget-tooltip-reentrant-packages-linux-r1\\results.json",
+        "sha256": "b912a686b3c770232838fb3545244ebdee4389c1cb583c5fe77660b627b6d911"
+      },
+      "runtime": {
+        "path": "\\\\wsl.localhost\\Ubuntu\\var\\tmp\\xlang-validation\\xge-full-20261110\\widget-tooltip-reentrant-runtime-linux-r1\\results.json",
+        "sha256": "d42a8603eb2cb82323f016a20c2b4a4609de30c0193f1626448789411ee57782"
+      }
+    }
+  },
+  "checks": [
+    "Both prior SDKs reproduce a cleared custom tooltip reopening after its measure callback returned.",
+    "Four native cases cover clear, replacement with an independently measured text tooltip, nested update, and popup destruction with recreation.",
+    "Native input tests run at GCC O0 and O2 and retain all existing tooltip text, raw resolver and general input checks.",
+    "Matched host and static rebuilds pass package staging, generated declaration replay and strict storage qualification.",
+    "The existing managed text-tooltip fixture passes JIT, dynamic AOT and static AOT with their expected imports, plus C emission and the bounded graphical example.",
+    "Sixteen storage reviews retain identical reviewed function bodies. Dependencies changed only in the tooltip interaction paths and the private Context layout."
+  ],
+  "pending": [
+    "Managed custom tooltip measure/paint and resolver callbacks.",
+    "Whole-goal API audit and matched release/IDE delivery."
+  ]
+}
