@@ -1,0 +1,268 @@
+{
+  "complete": true,
+  "passed": true,
+  "releaseInstalled": false,
+  "sourceParent": "742d0ffc57e46f27a6aeb8ac3970bc2e9aebee71",
+  "nativeCommit": "f23a9589fa168423543143e57885796eb15700ac",
+  "xrtCommit": "804cc769de3030118c2b46ef7af69543d1b82d9d",
+  "nativeSourceHashesLf": {
+    "include/xui.h": "1b6125aaef4ee4a26058382ad4412eb4fe4d4072cd925aa024477820bb7f03c1",
+    "src/xui/controls/xui_inventory_grid.c": "36e723eadb6f9e57238decc1bc71ac05b3724d07dbfeb7442b3e35dcd2f4e873",
+    "tests/xui/xui_inventory_grid_test.c": "237d4290c18939f2ae51459eacae7fb1b1c13eaeb0f7fc29c9dd31a5d05366e1"
+  },
+  "languageSourceHashesLf": {
+    "docs/xge3-xui3-api-map-storage.json": "80751cec5ded607d5ae44423b0f93422b37b9564bf27dc1581ef07176b3b9ad6",
+    "lib/bindings/xui/examples/README.md": "973d17bd22f994234243cd609eff477b17a8b503d5ab5e1f306ecd843527d212",
+    "lib/bindings/xui/examples/inventory_drag.xl": "54c80c7b04cfc6568c4b2ce808cace803c9e7e7e9a137ec34c6f32e004a85716",
+    "lib/bindings/xui/src/managed.xl": "14c9b64622d651565266c582bbbf33640805ddf4876fd4297e882ac58e408fd2",
+    "test/cases/foreign_xui_inventory_interaction.xl": "1285cfc62767d2cce0a7258d1348c38c447f91b75447f56068947039cf967de8",
+    "tools/check_xge3_bindings.py": "f7ba20899f78b4f1e8c49c911f116b605ba1377bb99b0fd517b5735ff0187da1",
+    "tools/xui_managed_contracts.py": "e1b4fa8c8aab6439c107b899e229e51041625c7c2aefcca345d93cf813401c00"
+  },
+  "checks": [
+    "InventoryGrid drag, drop and tooltip closures are held by the native widget. Each active dispatch retains a reference. Legacy C setters retire matching owned registrations, and Context destruction drops the final registration.",
+    "Injected allocation failure retains the previous tooltip provider. UTF-8 clipping, invalidation after self-removal, expiry of the callback slot and checked exception delivery are exercised through the event queue.",
+    "Input exercises accepted and rejected drops, drop self-removal, exception propagation after capture cleanup, and shrinking the grid during drag.",
+    "Generated calls reach the three owned C setters directly. The hosted and static applications run identical callback tests. Only the hosted binary imports the XGE3 host library.",
+    "The example renders in native graphics windows in Windows and Linux Xvfb. Input and tooltip edge cases are checked by the separate deterministic CPU fixture."
+  ],
+  "costs": [
+    "Registration uses the existing native callback directory and associated language environment. Dispatch holds and drops the selected owner around the call. Drag and drop carry scalar payloads plus a callback-epoch widget view.",
+    "Managed tooltip callbacks take one fixed-size native slot snapshot per invocation for resize safety. Any requested slot text becomes an owned language string. A returned tooltip is copied into the fixed native buffer up to 255 UTF-8 bytes and released.",
+    "The profile compares recorded XRT allocations, frees and reallocations across 100 warmed accepted gestures with two scalar callbacks each. It validates exact callback counts for both native C and xlang. Setup, tooltip copies and event latency are outside this measurement."
+  ],
+  "pending": [
+    "InventoryGrid managed slot icon/animation ownership, scroll model access, and slot render/animation-render callbacks.",
+    "Whole-goal XGE, XUI and Document audit and matched release/IDE delivery."
+  ],
+  "platforms": {
+    "win": {
+      "imports": {
+        "host": [
+          "msvcrt.dll",
+          "xge3_host.dll",
+          "kernel32.dll",
+          "SHELL32.dll",
+          "ws2_32.dll",
+          "IPHLPAPI.dll",
+          "ucrtbase.dll"
+        ],
+        "static": [
+          "msvcrt.dll",
+          "kernel32.dll",
+          "USER32.dll",
+          "OLEAUT32.dll",
+          "ole32.dll",
+          "SHELL32.dll"
+        ]
+      },
+      "example": {
+        "example-jit": {
+          "dimensions": [
+            800,
+            600
+          ],
+          "foregroundPixels": 103
+        },
+        "static-run": {
+          "dimensions": [
+            800,
+            600
+          ],
+          "foregroundPixels": 103
+        }
+      },
+      "heapPer100Gestures": {
+        "native": [
+          0,
+          0,
+          0
+        ],
+        "language": [
+          0,
+          0,
+          0
+        ]
+      }
+    },
+    "linux": {
+      "imports": {
+        "host": [
+          "libm.so.6",
+          "libmvec.so.1",
+          "libxge3_host.so",
+          "libc.so.6",
+          "ld-linux-x86-64.so.2"
+        ],
+        "static": [
+          "libm.so.6",
+          "libmvec.so.1",
+          "libX11.so.6",
+          "libXi.so.6",
+          "libXcursor.so.1",
+          "libGL.so.1",
+          "libc.so.6",
+          "ld-linux-x86-64.so.2"
+        ]
+      },
+      "example": {
+        "example-jit": {
+          "dimensions": [
+            800,
+            600
+          ],
+          "foregroundPixels": 82
+        },
+        "static-run": {
+          "dimensions": [
+            800,
+            600
+          ],
+          "foregroundPixels": 82
+        }
+      },
+      "heapPer100Gestures": {
+        "native": [
+          0,
+          0,
+          0
+        ],
+        "language": [
+          0,
+          0,
+          0
+        ]
+      }
+    }
+  },
+  "evidence": {
+    "win": {
+      "sdk": {
+        "path": "F:\\xlang-validation\\xge-full-20261110\\inventory-interaction-sdk-win-r1\\results.json",
+        "sha256": "b0e4b10f486b57a2252fe6a9612c17a1604ea40d00ed862de217b1952ec4e2c8",
+        "checks": [
+          "host",
+          "static"
+        ]
+      },
+      "packageReplay": {
+        "path": "F:\\xlang-validation\\xge-full-20261110\\inventory-interaction-packages-win-r1\\results.json",
+        "sha256": "06dfcd00a99bc12be96f8504ecc4cc5eae6d6e34199420ac705bb82937475b16",
+        "checks": [
+          "generated-declarations",
+          "inventory",
+          "strict-current-storage-replay",
+          "host",
+          "static",
+          "replay"
+        ]
+      },
+      "nativeFixture": {
+        "path": "F:\\xlang-validation\\xge-full-20261110\\inventory-interaction-native-static-win-r1\\results.json",
+        "sha256": "cc006b834f01f92363a9400e033a5bf971f2370899943388da2c94111dd6b554",
+        "checks": [
+          "O0-build",
+          "O0-run",
+          "O2-build",
+          "O2-run"
+        ]
+      },
+      "languageFixture": {
+        "path": "F:\\xlang-validation\\xge-full-20261110\\inventory-interaction-language-tests-win-r1\\results.json",
+        "sha256": "3487b36a09b9b2376a79216158471bdab4fa868d505abe70a7e024493c729af7",
+        "checks": [
+          "emit",
+          "jit",
+          "example-cgen",
+          "host-build",
+          "host-run",
+          "host-imports",
+          "static-build",
+          "static-run",
+          "static-imports"
+        ]
+      },
+      "example": {
+        "path": "F:\\xlang-validation\\xge-full-20261110\\inventory-interaction-example-win-r1\\results.json",
+        "sha256": "b2fc8f76e40631ab953c4280c89349be242a887337862e4b3971d7d6e4ff431f",
+        "checks": [
+          "base-emit",
+          "example-jit",
+          "static-build",
+          "static-run"
+        ]
+      },
+      "gestureHeapProfile": {
+        "path": "F:\\xlang-validation\\xge-full-20261110\\inventory-interaction-profile-win-r2\\results.json",
+        "sha256": "6d214a2d1aafa1df0ff65d5bf2f1d3b27d74f2a72f7d93a98d196d81504597a8",
+        "checks": [
+          "profile"
+        ]
+      }
+    },
+    "linux": {
+      "sdk": {
+        "path": "\\\\wsl.localhost\\Ubuntu\\var\\tmp\\xlang-validation\\xge-full-20261110\\inventory-interaction-sdk-linux-r1\\results.json",
+        "sha256": "42f19b68918e392d79e604489d58721e456ba6b85309d18aab59ece7c912209d",
+        "checks": [
+          "host",
+          "static"
+        ]
+      },
+      "packageReplay": {
+        "path": "\\\\wsl.localhost\\Ubuntu\\var\\tmp\\xlang-validation\\xge-full-20261110\\inventory-interaction-packages-linux-r1\\results.json",
+        "sha256": "6122ebb5aa7128f7683ed581ad7f8dd917f6fa9c5a0f005be5f4a3dd0618a91f",
+        "checks": [
+          "generated-declarations",
+          "inventory",
+          "strict-current-storage-replay",
+          "host",
+          "static",
+          "replay"
+        ]
+      },
+      "nativeFixture": {
+        "path": "\\\\wsl.localhost\\Ubuntu\\var\\tmp\\xlang-validation\\xge-full-20261110\\inventory-interaction-native-static-linux-r1\\results.json",
+        "sha256": "065066d4077df1c7e29026983f7d6d27a6e93a96db11d8c6b8852d7e2376339c",
+        "checks": [
+          "O0-build",
+          "O0-run",
+          "O2-build",
+          "O2-run"
+        ]
+      },
+      "languageFixture": {
+        "path": "\\\\wsl.localhost\\Ubuntu\\var\\tmp\\xlang-validation\\xge-full-20261110\\inventory-interaction-language-tests-linux-r1\\results.json",
+        "sha256": "2d67477637de793d09d2bef7fab2ee61efc36a92fd14976c87ea8a6e21b179d6",
+        "checks": [
+          "emit",
+          "jit",
+          "example-cgen",
+          "host-build",
+          "host-run",
+          "host-imports",
+          "static-build",
+          "static-run",
+          "static-imports"
+        ]
+      },
+      "example": {
+        "path": "\\\\wsl.localhost\\Ubuntu\\var\\tmp\\xlang-validation\\xge-full-20261110\\inventory-interaction-example-linux-r1\\results.json",
+        "sha256": "20360e1fae5d9756b9742b062a0e0eb44ae5c6b646d8c47166900a13d0e4dab5",
+        "checks": [
+          "base-emit",
+          "example-jit",
+          "static-build",
+          "static-run"
+        ]
+      },
+      "gestureHeapProfile": {
+        "path": "\\\\wsl.localhost\\Ubuntu\\var\\tmp\\xlang-validation\\xge-full-20261110\\inventory-interaction-profile-linux-r2\\results.json",
+        "sha256": "f6f8aee616b19815cbcdcdb46c0c1d652e2d4d178671ad4a4c7b538099a44b78",
+        "checks": [
+          "profile"
+        ]
+      }
+    }
+  }
+}

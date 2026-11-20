@@ -3905,6 +3905,12 @@ export typedef InventoryFilterProc = func(CallbackWidget,c_int,CallbackInventory
 
 export typedef InventoryCompareProc = func(CallbackWidget,c_int,CallbackInventorySlot,c_int,CallbackInventorySlot) as c_int
 
+export typedef InventoryDragProc = func(CallbackWidget,c_int) as c_int
+
+export typedef InventoryDropProc = func(CallbackWidget,c_int,c_int,c_int) as c_int
+
+export typedef InventoryTooltipProc = func(CallbackWidget,c_int,CallbackInventorySlot) as string
+
 export extern "xui_inventory_indices" class InventoryIndices @header("xge3_runtime.h") @lifetime("owned") @policy("xl6Xui3InventoryIndicesPolicy")
  native point handle
  extern "xuiInventoryIndicesGet" @no_raise @c_owned_sequence(1,2,0,"size_t",0) @c_retain(retainInventoryIndices,"zero",releaseInventoryIndices) func indices() as NativeSequence<c_int>
@@ -3978,9 +3984,15 @@ export extern "xui_widget_t*" class InventoryGrid @header("xge3_runtime.h") @lif
 
  extern "xuiInventoryGridSetContextCallbackOwned" @no_raise @c_owned_callback(0,0,"xui_callback_owner_t",0) @c_result("status",0) func setContextCallback(InventoryContextProc? onContext)
 
+ extern "xuiInventoryGridSetDragCallbackOwned" @no_raise @c_owned_callback(0,0,"xui_callback_owner_t",0) @c_result("status",0) func setDragCallback(InventoryDragProc? onDrag)
+
+ extern "xuiInventoryGridSetDropCallbackOwned" @no_raise @c_owned_callback(0,0,"xui_callback_owner_t",0) @c_result("status",0) func setDropCallback(InventoryDropProc? onDrop)
+
  extern "xuiInventoryGridSetSplitCallbackOwned" @no_raise @c_owned_callback(0,0,"xui_callback_owner_t",0) @c_result("status",0) func setSplitCallback(InventorySplitProc? onSplit)
 
  extern "xuiInventoryGridSetTooltipVisible" @no_raise @c_result("status",0) func setTooltipVisible(c_int bVisible)
+
+ extern "xuiInventoryGridSetTooltipCallbackOwned" @no_raise @c_owned_callback(0,0,"xui_callback_owner_t",0,"owned_text") @c_result("status",0) func setTooltipProvider(InventoryTooltipProc? provider)
 
  extern "xuiInventoryGridGetTooltipVisible" @no_raise func getTooltipVisible() as c_int
 

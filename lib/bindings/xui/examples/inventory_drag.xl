@@ -1,0 +1,27 @@
+import xui
+from "./_window.xl" import Window
+
+Window.show("把药水拖到空槽", func(xui.Context ui, xui.Widget root)
+    auto inventory = ui.inventoryGridNative()
+    Window.place(root, inventory, 24, 24, 480, 240)
+    inventory.setSlotCount(8)
+
+    auto potion = xui.InventorySlotSettings()
+    potion.iItemId = 1
+    potion.iCount = 3
+    inventory.setSlotContent(0, potion, "治疗药水")
+
+    inventory.setTooltipProvider(func(xui.CallbackWidget sender, c_int index, xui.CallbackInventorySlot slot) as string
+        return "数量 " + string(int(slot.count)) + "，可拖到空槽"
+    end)
+    inventory.setDropCallback(func(xui.CallbackWidget sender, c_int source, c_int target, c_int mode) as c_int
+        if mode != xui.XUI_INVENTORY_DROP_MOVE then
+            return 0
+        end
+        auto item, name, hotkey = inventory.getSlotContent(source)
+        item.iSlotId = target
+        inventory.setSlotContent(target, item, name, hotkey)
+        inventory.clearSlot(source)
+        return 1
+    end)
+end)

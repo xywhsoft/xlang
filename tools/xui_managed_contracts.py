@@ -1279,6 +1279,34 @@ REPLACED.update({
     "xuiInventoryGridSortSlots": ("xui.InventoryGrid.sortSlots", "xuiInventoryGridSortSlotsOwned"),
 })
 
+METHODS.update({
+    'xuiInventoryGridSetDragCallbackOwned': (
+        'int xuiInventoryGridSetDragCallbackOwned(xui_widget pWidget, xui_inventory_drag_proc onDrag, void* pUser, const xui_callback_owner_t* pOwner)',
+        'InventoryGrid', ['extern "xuiInventoryGridSetDragCallbackOwned" @no_raise @c_owned_callback(0,0,"xui_callback_owner_t",0) @c_result("status",0) func setDragCallback(InventoryDragProc? onDrag)']),
+    'xuiInventoryGridSetDropCallbackOwned': (
+        'int xuiInventoryGridSetDropCallbackOwned(xui_widget pWidget, xui_inventory_drop_proc onDrop, void* pUser, const xui_callback_owner_t* pOwner)',
+        'InventoryGrid', ['extern "xuiInventoryGridSetDropCallbackOwned" @no_raise @c_owned_callback(0,0,"xui_callback_owner_t",0) @c_result("status",0) func setDropCallback(InventoryDropProc? onDrop)']),
+    'xuiInventoryGridSetTooltipCallbackOwned': (
+        'int xuiInventoryGridSetTooltipCallbackOwned(xui_widget pWidget, xui_inventory_tooltip_owned_proc onTooltip, void* pUser, const xui_callback_owner_t* pOwner)',
+        'InventoryGrid', ['extern "xuiInventoryGridSetTooltipCallbackOwned" @no_raise @c_owned_callback(0,0,"xui_callback_owner_t",0,"owned_text") @c_result("status",0) func setTooltipProvider(InventoryTooltipProc? provider)']),
+})
+CALLBACKS.update({
+    'xui_inventory_drag_proc': (
+        'typedef int (*xui_inventory_drag_proc)(xui_widget_t* pWidget, int iSlot, void* pUser);',
+        'export typedef InventoryDragProc = func(CallbackWidget,c_int) as c_int'),
+    'xui_inventory_drop_proc': (
+        'typedef int (*xui_inventory_drop_proc)(xui_widget_t* pWidget, int iFromSlot, int iToSlot, int iDropMode, void* pUser);',
+        'export typedef InventoryDropProc = func(CallbackWidget,c_int,c_int,c_int) as c_int'),
+    'xui_inventory_tooltip_owned_proc': (
+        'typedef xstrview (*xui_inventory_tooltip_owned_proc)(xui_widget_t* pWidget, int iSlot, const xui_inventory_slot_t* pSlot, void* pUser);',
+        'export typedef InventoryTooltipProc = func(CallbackWidget,c_int,CallbackInventorySlot) as string'),
+})
+REPLACED.update({
+    'xuiInventoryGridSetDragCallback': ('xui.InventoryGrid.setDragCallback','xuiInventoryGridSetDragCallbackOwned'),
+    'xuiInventoryGridSetDropCallback': ('xui.InventoryGrid.setDropCallback','xuiInventoryGridSetDropCallbackOwned'),
+    'xuiInventoryGridSetTooltipCallback': ('xui.InventoryGrid.setTooltipProvider','xuiInventoryGridSetTooltipCallbackOwned'),
+})
+
 def validate(root,header,function_sha):
     functions={f['name']:f['declaration']for f in header['functions']}
     types={t['name']:t['declaration']for t in header['types']}

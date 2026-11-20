@@ -1,0 +1,166 @@
+import xui
+from xui import CallbackInventorySlot, CallbackWidget, Context, Font, InventoryGrid, Proxy, Rect, Surface
+
+extern "fixtureRenderProxy" @header("test/cases/foreign_xui_render_backend.h") @no_raise @c_result("owned_view") @factory(0,0,dropProxy) func cpuProxy() as Proxy
+extern "fixtureRenderSurface" @no_raise @c_result("owned_view") @factory(1,0,dropSurface) func cpuSurface(Proxy proxy) as Surface
+extern "fixtureRenderFont" @no_raise @c_result("owned_view") @factory(1,0,dropFont) func cpuFont(Proxy proxy) as Font
+extern "fixtureRenderBalanced" @no_raise func balanced() as c_int
+extern "fixtureRenderBudget" @no_raise func budget(c_int allowance)
+extern "fixtureRenderSawText" @no_raise @c_cstr(0) func sawText(string text) as c_int
+extern "fixtureRenderResetText" @no_raise func resetText()
+extern "xuiProxyReleaseChecked" @header("xge3_runtime.h") @no_raise @c_result("status",0) func dropProxy(Proxy value)
+extern "xuiSurfaceReleaseChecked" @header("xge3_runtime.h") @no_raise @c_result("status",0) func dropSurface(Surface value)
+extern "xuiFontReleaseChecked" @header("xge3_runtime.h") @no_raise @c_result("status",0) func dropFont(Font value)
+
+func hover(Context ui,c_int x,c_int y)
+    assert ui.inputPointerMove(x,y,0) == 0 and ui.dispatchPendingEvents() == 0, "queue and dispatch hover"
+    assert ui.update(0.22) == 0, "advance tooltip timer"
+end
+
+func checkTooltip(Context ui, InventoryGrid grid, Surface target,c_int x,c_int y)
+    int visits = 0
+    CallbackInventorySlot? saved = null
+    string clipped = string.repeat("a",254)
+    grid.setTooltipProvider(func(CallbackWidget sender,c_int index,CallbackInventorySlot slot) as string
+        assert index == 0 and slot.text() == "Potion" and slot.count == 3, "tooltip slot content"
+        visits += 1
+        saved = slot
+        return clipped + "尾"
+    end)
+    xui.InventoryTooltipProc other = func(CallbackWidget sender,c_int index,CallbackInventorySlot slot) as string
+        return "wrong provider"
+    end
+    bool rejected = false
+    budget(0)
+    try
+        grid.setTooltipProvider(other)
+    catch Error
+        rejected = true
+    finally
+        budget(-1)
+    end
+    assert rejected, "registration failed under allocation fault"
+    hover(ui,x,y)
+    ui.render(target)
+    assert visits > 0 and sawText(clipped) != 0 and sawText("wrong provider") == 0, "original tooltip retained and clipped"
+    bool expired = false
+    try
+        string text = (saved as CallbackInventorySlot).text()
+    catch StateError
+        expired = true
+    end
+    assert expired, "tooltip view expires"
+
+    grid.setTooltipProvider(func(CallbackWidget sender,c_int index,CallbackInventorySlot slot) as string
+        grid.setTooltipProvider(null)
+        return "stale tooltip"
+    end)
+    hover(ui,390,250)
+    resetText()
+    hover(ui,x,y)
+    ui.render(target)
+    assert sawText("stale tooltip") == 0, "cleared provider cannot publish"
+    grid.setTooltipProvider(func(CallbackWidget sender,c_int index,CallbackInventorySlot slot) as string
+        throw RuntimeError "inventory tooltip failure"
+    end)
+    hover(ui,390,250)
+    bool raised = false
+    try
+        hover(ui,x,y)
+    catch RuntimeError error
+        raised = error.message == "inventory tooltip failure"
+    end
+    assert raised, "tooltip exception reaches checked update"
+    grid.setTooltipProvider(null)
+    grid.setTooltipVisible(0)
+end
+
+func drag(Context ui,c_int x0,c_int x1,c_int y)
+    assert ui.inputPointerDown(x0,y,xui.XUI_POINTER_BUTTON_LEFT,0) == 0 and ui.dispatchPendingEvents() == 0, "drag down"
+    assert ui.inputPointerMove(x1,y,c_uint(xui.XUI_POINTER_BUTTON_LEFT)) == 0 and ui.dispatchPendingEvents() == 0, "drag move"
+end
+
+func release(Context ui,c_int x,c_int y)
+    assert ui.inputPointerUp(x,y,xui.XUI_POINTER_BUTTON_LEFT,0) == 0 and ui.dispatchPendingEvents() == 0, "drop up"
+end
+
+func checkDragDrop(Context ui,InventoryGrid grid,c_int x0,c_int x1,c_int y)
+    int moves = 0
+    int drops = 0
+    grid.setDragCallback(func(CallbackWidget sender,c_int index) as c_int
+        assert index == 0
+        moves += 1
+        return 1
+    end)
+    grid.setDropCallback(func(CallbackWidget sender,c_int source,c_int target,c_int mode) as c_int
+        assert source == 0 and target == 1 and mode == xui.XUI_INVENTORY_DROP_MOVE
+        drops += 1
+        grid.setDropCallback(null)
+        return 1
+    end)
+    drag(ui,x0,x1,y)
+    assert grid.getDragSource() == 0 and grid.getDropTarget() == 1, "drag target"
+    release(ui,x1,y)
+    drag(ui,x0,x1,y)
+    release(ui,x1,y)
+    assert moves == 2 and drops == 1, "drop callback self-removal"
+
+    grid.setDropCallback(func(CallbackWidget sender,c_int source,c_int target,c_int mode) as c_int
+        throw RuntimeError "inventory drop failure"
+    end)
+    drag(ui,x0,x1,y)
+    bool raised = false
+    try
+        release(ui,x1,y)
+    catch RuntimeError error
+        raised = error.message == "inventory drop failure"
+    end
+    assert raised and grid.getDragSource() == -1, "drop exception after capture cleanup"
+    grid.setDropCallback(null)
+
+    grid.setDragCallback(func(CallbackWidget sender,c_int index) as c_int
+        grid.setSlotCount(1)
+        return 1
+    end)
+    drag(ui,x0,x1,y)
+    release(ui,x1,y)
+    assert grid.getSlotCount() == 1 and grid.getDropTarget() == -1, "resize invalidates hit target"
+end
+
+func main(...) as int
+    auto proxy = cpuProxy()
+    auto target = cpuSurface(proxy)
+    auto font = cpuFont(proxy)
+    auto ui = xui.create(proxy,xui.XUI_SYSTEM_FONT_DISABLED)
+    ui.setDefaultFont(font)
+    ui.setViewportSize(400,260)
+    auto grid = ui.inventoryGridNative()
+    auto bounds = Rect()
+    bounds.fW = 400
+    bounds.fH = 260
+    assert grid.setRect(bounds) == 0 and ui.setRootWidget(grid) == 0
+    auto layout = grid.getLayout()
+    layout.iColumns = 3
+    grid.setLayout(layout)
+    grid.setSlotCount(3)
+    auto item = xui.InventorySlotSettings()
+    item.iItemId = 8
+    item.iCount = 3
+    grid.setSlotContent(0,item,"Potion")
+    assert ui.layout() == 0
+    auto first = grid.getSlotRect(0)
+    auto second = grid.getSlotRect(1)
+    auto world = grid.getWorldRect()
+    c_int x0 = c_int(world.fX + first.fX + first.fW / 2)
+    c_int x1 = c_int(world.fX + second.fX + second.fW / 2)
+    c_int y = c_int(world.fY + first.fY + first.fH / 2)
+    checkTooltip(ui,grid,target,x0,y)
+    checkDragDrop(ui,grid,x0,x1,y)
+    ui.close()
+    font.close()
+    target.close()
+    proxy.close()
+    assert balanced() != 0
+    println("XUI_INVENTORY_INTERACTION_OK")
+    return 0
+end

@@ -30,6 +30,8 @@
 [inventory_content.xl](inventory_content.xl) 写入两个物品，按名称筛选，再按数量从多到少输出。
 查询得到的是当时的槽位下标，关闭控件后仍可遍历。调整网格内容后，需要重新查询才能得到新下标。
 
+[inventory_drag.xl](inventory_drag.xl) 在窗口中显示物品提示，并允许把一组药水拖到任意空槽。
+
 [combobox_items.xl](combobox_items.xl) 使用业务值、禁用状态和分隔线配置下拉选项，并读取当前选项。
 
 [timeline_state.xl](timeline_state.xl) 设置一个关键帧并读取区间快照。[message_nodes.xl](message_nodes.xl) 批量加载消息，再读取辅助节点。
