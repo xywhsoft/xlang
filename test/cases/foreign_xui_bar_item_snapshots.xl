@@ -1,0 +1,110 @@
+import xui
+from xui import Menu,Surface
+
+extern "fixtureRenderProxy" @header("test/cases/foreign_xui_render_backend.h") @no_raise @c_result("owned_view") @factory(0,0,dropProxy) func cpuProxy() as xui.Proxy
+extern "xuiProxyReleaseChecked" @header("xge3_runtime.h") @no_raise @c_result("status",0) func dropProxy(xui.Proxy value)
+extern "fixtureRenderBalanced" @header("test/cases/foreign_xui_render_backend.h") @no_raise func balanced() as c_int
+extern "fixtureRenderBudget" @header("test/cases/foreign_xui_render_backend.h") @no_raise func budget(c_int allowance)
+extern "barItemNativeChecks" @header("test/cases/foreign_xui_bar_item_snapshots.h") @no_raise func nativeChecks(xui.Menu menu,xui.MenuBar menuBar,xui.Toolbar toolbar,xui.StatusBar statusBar)
+extern "barItemBegin" @header("test/cases/foreign_xui_bar_item_snapshots.h") @no_raise func heapBegin()
+extern "barItemCheckBalance" @header("test/cases/foreign_xui_bar_item_snapshots.h") @no_raise func heapBalance()
+
+func toolbarFailures(xui.Toolbar toolbar)
+    auto _, _, kind, state, number, group, _, iconRect, itemRect = toolbar.getItem(0)
+    int failures = 0
+    for allowance in range(16)
+        string? text = "preserve"
+        string? help = "preserve help"
+        Surface? image = null
+        c_int command = -10
+        bool rejected = false
+        budget(c_int(allowance))
+        try
+            text, help, kind, state, command, group, image, iconRect, itemRect = toolbar.getItem(0)
+        catch Error
+            rejected = true
+        finally
+            budget(-1)
+        end
+        if rejected then
+            failures += 1
+            assert (text ?? "") == "preserve" and (help ?? "") == "preserve help" and command == -10 and image == null
+        else
+            assert (text ?? "") == "Build" and (help ?? "") == "Build the project" and command == number and image != null
+            auto surface = image as Surface
+            surface.close()
+        end
+    end
+    assert failures >= 2 and failures < 16
+end
+
+func main(...) as int
+    auto proxy = cpuProxy()
+    auto context = xui.create(proxy,xui.XUI_SYSTEM_FONT_DISABLED)
+    auto recent = context.menuNative()
+    recent.addItem("Project",value=90)
+    auto menu = context.menuNative()
+    menu.addItem("Open","",value=12)
+    menu.addItem("Recent",type=xui.XUI_MENU_ITEM_SUBMENU,submenu=recent)
+    auto bar = context.menuBarNative()
+    assert bar.addItem("&File",recent,19)>=0
+    auto toolbar = context.toolbarNative()
+    assert toolbar.addItem("Build",0,34)>=0
+    toolbar.setItemTooltip(0,"Build the project")
+    auto icon = proxy.createSurfaceRGBA(16,16)
+    xui.Rect iconRect
+    iconRect.fW = 16
+    iconRect.fH = 16
+    toolbar.setItemIcon(0,icon,iconRect)
+    auto status = context.statusBarNative()
+    status.addText(0,"Ready",220,0,1)
+    status.addProgress(0,0,100,65,180)
+    nativeChecks(menu,bar,toolbar,status)
+
+    auto open, emptyShortcut, _, _, openId, _, noSubmenu = menu.getItem(0)
+    assert (open ?? "") == "Open" and (emptyShortcut ?? "missing") == "" and openId == 12 and noSubmenu == null
+    auto recentLabel, noShortcut, _, _, _, _, menuChild = menu.getItem(1)
+    assert (recentLabel ?? "") == "Recent" and noShortcut == null and menuChild != null
+    auto fileLabel, _, fileId, mnemonic, barChild, _ = bar.getItem(0)
+    assert (fileLabel ?? "") == "&File" and fileId == 19 and mnemonic == 0 and barChild != null
+    auto _, _, _, _, _, _, image, source, _ = toolbar.getItem(0)
+    assert image != null and source.fW == 16
+    auto retained = image as Surface
+    auto _, kind, _, _, _, width, _, minimum, maximum, progress, _ = status.getItem(1)
+    assert kind == xui.XUI_STATUSBAR_ITEM_PROGRESS and width == 180 and minimum == 0 and maximum == 100 and progress == 65
+    status.setProgress(1,90)
+    assert progress == 65
+
+    heapBegin()
+    toolbarFailures(toolbar)
+    heapBalance()
+
+    recent.close()
+    auto _, _, _, _, _, _, afterMenu = menu.getItem(1)
+    auto _, _, _, _, afterBar, _ = bar.getItem(0)
+    assert afterMenu == null and afterBar == null
+    int expired = 0
+    try
+        auto expiredMenu = menuChild as Menu
+        expiredMenu.getItemCount()
+    catch StateError
+        expired += 1
+    end
+    try
+        auto expiredBarMenu = barChild as Menu
+        expiredBarMenu.getItemCount()
+    catch StateError
+        expired += 1
+    end
+    assert expired == 2
+    icon.close()
+    context.close()
+    auto liveIcon = proxy.surfaceDesc(retained)
+    assert liveIcon.iWidth == 16 and liveIcon.iHeight == 16
+    retained.close()
+    assert (open ?? "") == "Open" and (recentLabel ?? "") == "Recent" and (fileLabel ?? "") == "&File"
+    proxy.close()
+    assert balanced() == 1
+    println("BAR_ITEM_SNAPSHOTS_OK")
+    return 0
+end

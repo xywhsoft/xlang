@@ -476,6 +476,36 @@ METHODS.update({
         '@c_array_field(1,"sText",0,"c_string") @c_array_field(1,"iValue",1,"value") @c_array_field(1,"bEnabled",2,"value") '
         '@c_array_field(1,"bSeparator",3,"value") @c_array_field(1,"iIcon",4,"value") @c_result("status",0) '
         'func setItemData(array<string?> texts,array<c_int> values,array<c_int> enabled,array<c_int> separators,array<c_int> icons,int size=-1)']],
+    'xuiMenuGetItemDescriptor': [
+        'int xuiMenuGetItemDescriptor(xui_widget pWidget, int iIndex, xui_menu_item_t* pItem)', 'Menu',
+        ['extern "xuiMenuGetItemDescriptor" @no_raise @c_output_record(2,"xui_menu_item_t","borrowed") @c_status(0)'
+         ' @c_output_field(0,"sText","cstring") @c_output_field(1,"sShortcut","cstring") @c_output_field(2,"iType")'
+         ' @c_output_field(3,"iState") @c_output_field(4,"iValue") @c_output_field(5,"iIcon")'
+         ' @c_output_field(6,"pSubmenu","owner_view") func getItem(c_int index) as (string?,string?,c_int,c_uint,c_int,c_int,Menu?)'
+        ]],
+    'xuiMenuBarGetItemDescriptor': [
+        'int xuiMenuBarGetItemDescriptor(xui_widget pWidget, int iIndex, xui_menubar_item_t* pItem)', 'MenuBar',
+        ['extern "xuiMenuBarGetItemDescriptor" @no_raise @c_output_record(2,"xui_menubar_item_t","borrowed") @c_status(0)'
+         ' @c_output_field(0,"sText","cstring") @c_output_field(1,"iState") @c_output_field(2,"iValue")'
+         ' @c_output_field(3,"iMnemonic") @c_output_field(4,"pMenu","owner_view")'
+         ' @c_output_field(5,"tRect") func getItem(c_int index) as (string?,c_int,c_int,c_int,Menu?,Rect)'
+        ]],
+    'xuiToolbarGetItemDescriptor': [
+        'int xuiToolbarGetItemDescriptor(xui_widget pWidget, int iIndex, xui_toolbar_item_t* pItem)', 'Toolbar',
+        ['extern "xuiToolbarGetItemDescriptor" @no_raise @c_output_record(2,"xui_toolbar_item_t","borrowed") @c_status(0)'
+         ' @c_output_field(0,"sText","cstring") @c_output_field(1,"sTooltip","cstring") @c_output_field(2,"iType")'
+         ' @c_output_field(3,"iState") @c_output_field(4,"iValue") @c_output_field(5,"iGroup")'
+         ' @c_output_field(6,"pIcon","retain",retainSurface,"zero",rollbackSurface) @c_output_field(7,"tIconSrc")'
+         ' @c_output_field(8,"tRect") func getItem(c_int index) as (string?,string?,c_int,c_uint,c_int,c_int,Surface?,Rect,Rect)'
+        ]],
+    'xuiStatusBarGetItemDescriptor': [
+        'int xuiStatusBarGetItemDescriptor(xui_widget pWidget, int iIndex, xui_statusbar_item_t* pItem)', 'StatusBar',
+        ['extern "xuiStatusBarGetItemDescriptor" @no_raise @c_output_record(2,"xui_statusbar_item_t","borrowed") @c_status(0)'
+         ' @c_output_field(0,"sText","cstring") @c_output_field(1,"iType") @c_output_field(2,"iSection")'
+         ' @c_output_field(3,"iState") @c_output_field(4,"iValue") @c_output_field(5,"fWidth") @c_output_field(6,"fFlex")'
+         ' @c_output_field(7,"fMin") @c_output_field(8,"fMax") @c_output_field(9,"fValue")'
+         ' @c_output_field(10,"tRect") func getItem(c_int index) as (string?,c_int,c_int,c_uint,c_int,c_float,c_float,c_float,c_float,c_float,Rect)'
+        ]],
     'xuiComboBoxGetItemDescriptor': ['int xuiComboBoxGetItemDescriptor(xui_widget pWidget, int iIndex, xui_combobox_item_t* pItem)',
         'ComboBox', ['extern "xuiComboBoxGetItemDescriptor" @no_raise @c_output_record(2,"xui_combobox_item_t","borrowed") @c_status(0) '
         '@c_output_field(0,"sText","cstring") @c_output_field(1,"iValue") @c_output_field(2,"bEnabled") @c_output_field(3,"bSeparator") '
@@ -1388,6 +1418,10 @@ REPLACED = {
     'xuiButtonSetClick': ('xui.Button.setClick', 'xuiButtonSetClickOwned'),
     'xuiCarouselSetChange': ('xui.Carousel.setChange', 'xuiCarouselSetChangeOwned'),
     'xuiCascaderSetChange': ('xui.Cascader.setChange', 'xuiCascaderSetChangeOwned'),
+    'xuiMenuGetItem': ('xui.Menu.getItem', 'xuiMenuGetItemDescriptor'),
+    'xuiMenuBarGetItem': ('xui.MenuBar.getItem', 'xuiMenuBarGetItemDescriptor'),
+    'xuiToolbarGetItem': ('xui.Toolbar.getItem', 'xuiToolbarGetItemDescriptor'),
+    'xuiStatusBarGetItem': ('xui.StatusBar.getItem', 'xuiStatusBarGetItemDescriptor'),
     'xuiCascaderGetItem': ('xui.Cascader.getItem', 'xuiCascaderGetItemDescriptor'),
     'xuiComboBoxGetItem': ('xui.ComboBox.getItem', 'xuiComboBoxGetItemDescriptor'),
     'xuiCodeLayoutBuildVisibleLines': ('xui.captureCodeLayout', 'xuiCodeLayoutCapture'),

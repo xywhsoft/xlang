@@ -1,5 +1,36 @@
 # Native consumers in the full API inventory
 
+## Menu, menu bar, toolbar and status bar item queries
+
+Each control's `getItem(index)` makes one checked native descriptor query.
+The C result is a fixed-size copy of the item record with borrowed pointers.
+xlang copies text during the call and keeps null distinct from empty text.
+Menu and menu bar results can include a live submenu view watched by the
+Context. The view expires when the submenu closes. A toolbar result can
+include a Surface with its own native reference, so the icon can outlive the
+toolbar and Context. An invalid index or failed conversion leaves the caller's
+assignment targets unchanged and releases any intermediate output.
+The status bar returns progress and geometry by value.
+
+The native fixture called each query 1,000 times with zero XRT allocations,
+frees or reallocations. Language results incur the applicable text copies and
+lifetime bookkeeping. Toolbar paint preparation now checks shared icon
+generations on each visited frame, including when the widget is clean.
+Unchanged generations reuse the existing render cache. The upstream toolbar
+regression reproduced a stale cache before the fix and passed after it on
+Windows and Linux, alongside the other three control regressions.
+
+Windows and Linux ran the language fixture in JIT, dynamic AOT and standalone
+static AOT modes. The fixture exercises watched views, nullable text,
+independent icon ownership, and failure rollback. Generated headers compile
+as C11, C++11 and C++17. The menu example drew a complete frame on both
+platforms.
+
+The native inventory has 339 pending functions, with 139 in XGE and 200
+in XUI. The four existing raw item-pointer functions have typed replacements.
+
+[Validation evidence](../dev/release-materials/provenance/xui-bar-item-snapshots-20261123.json)
+
 ## Code layout and visible rows
 
 `codeLayoutHitTest()` maps a point to a line, grapheme column and UTF-8 byte

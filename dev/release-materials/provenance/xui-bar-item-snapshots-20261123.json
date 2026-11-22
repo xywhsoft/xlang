@@ -1,0 +1,162 @@
+{
+  "complete": true,
+  "passed": true,
+  "releaseInstalled": false,
+  "networkTests": false,
+  "scope": "Typed menu, menu bar, toolbar and status bar item queries",
+  "nativeRevision": "6cbf8894888262c9cfe4fa7fef43d82358d096de",
+  "toolbarFixRevision": "abfcdaf074bebb9b5102f50ea76820ddb6ef0e9d",
+  "nativeBaselineRevision": "5e4064cc7d392404dd9acde540891b41d1d2d7b6",
+  "nativeSourceHashesLf": {
+    "include/xui.h": "3af76b5100e88677b7e4115e1bae5ce1997baf6c41f77e450ad4d4c6711ef4b7",
+    "src/xui/controls/xui_menu.c": "8cbecc764c4a8440b6ad3c264e5b9e544af517a102e50f9559311293f5403c6e",
+    "src/xui/controls/xui_menubar.c": "65940dda1ae8c8d1e18ce5d358f5e9f3be23d735f1ab3fa010ab2c78e8a7f5f8",
+    "src/xui/controls/xui_toolbar.c": "d1ffe68f6f4425a12038304ce973a24a322d2a58280f9951560596ca8d00f3c4",
+    "src/xui/controls/xui_statusbar.c": "f2aab1fa74a3e376b6b8ae9b86e4ad3eab3300e7054f3b49b4dc791b6b33c170"
+  },
+  "xlangSourceParent": "dbc72dff06b30dc03ef9aa0cab7d7d972194ccb3",
+  "platforms": {
+    "Windows x64": {
+      "nativeSource": {
+        "path": "F:\\xlang-validation\\xge-full-20261110\\bar-item-snapshots-stage-win-r2\\audit\\native-source.json",
+        "sha256": "58825984be3e7b2f5cd61bcfe3c568379995289802a04f74edf2c638b8904f71"
+      },
+      "engineBuild": {
+        "path": "F:\\xlang-validation\\xge-full-20261110\\bar-item-snapshots-host-win-r2\\build-report.json",
+        "sha256": "9056932be8ef3d471b54ea569d454d562a70aaa6196efd8d36ffc1912727c81d"
+      },
+      "staticBuild": {
+        "path": "F:\\xlang-validation\\xge-full-20261110\\bar-item-snapshots-static-win-r2\\build-report.json",
+        "sha256": "d80798af1a707e1f42e88c25bb0fe54c194662b2b8fb955a76a0beacdab864f0"
+      },
+      "hostImage": {
+        "path": "F:\\xlang-validation\\xge-full-20261110\\bar-item-snapshots-stage-win-r2\\replay\\host\\_xge_native\\native\\xge3_host.dll",
+        "sha256": "996f8aaa8f21bd15f91709f3c3a7acef9698f92ab95d81e18f68e2046501f4d9"
+      },
+      "replay": {
+        "path": "F:\\xlang-validation\\xge-full-20261110\\bar-item-snapshots-stage-win-r2\\replay\\stage-report.json",
+        "sha256": "be49697cecbcd5be478b90b5d061293eeb90bb513861af13134b563f8a59f562"
+      },
+      "generator": {
+        "path": "F:\\xlang-validation\\xge-full-20261110\\bar-item-snapshots-generator-win-r2\\results.json",
+        "sha256": "f385bd7bf485b192af787ce7dd0e9b3e006b8edded978f9e3d7db8ec518434a3"
+      },
+      "generatorChecks": 1143,
+      "matrix": {
+        "path": "F:\\xlang-validation\\xge-full-20261110\\bar-item-snapshots-tests-win-r2\\results.json",
+        "sha256": "e6651b55de22dd15aa27a564acaac2d302f9b6dfb823ad9ca3ac584ad3e4991f"
+      },
+      "matrixSteps": 13,
+      "graph": {
+        "width": 800,
+        "height": 600,
+        "sha256": "95e0ca0f3fef9d2a64f2d175d34f6dd61c8fdd45a88a9a904f9cd95b2152f428"
+      },
+      "priorAudit": {
+        "path": "F:\\xlang-validation\\xge-full-20261110\\code-layout-snapshot-stage-win-r1\\audit\\consumers\\results.json",
+        "sha256": "b3eaf2093d116d3add721be30c07f5fc51feea8eb586db0d0e7fec4f88306354"
+      },
+      "audit": {
+        "path": "F:\\xlang-validation\\xge-full-20261110\\bar-item-snapshots-stage-win-r2\\audit\\consumers\\results.json",
+        "sha256": "3e091dc1c88324d4e8b30131447a8e8051d9a7ca54e9b05fd9b73d3ba3c66928"
+      },
+      "nativeRegression": {
+        "path": "F:\\xlang-validation\\xge-full-20261110\\bar-item-snapshots-upstream-native-win-r3\\results.json",
+        "sha256": "60dc1c937d11cd7fbedc3f375d02ea627b376b39b6ad7999597a7ebd1d47e43c"
+      },
+      "toolbarBaseline": {
+        "path": "F:\\xlang-validation\\xge-full-20261110\\code-layout-snapshot-upstream-native-win-r2\\results.json",
+        "sha256": "5892c0bbfad5089c48d73c630fcf78440018fc84c0aee1a801a35ef5660dc2df"
+      }
+    },
+    "Linux x64": {
+      "nativeSource": {
+        "path": "\\\\wsl.localhost\\Ubuntu\\var\\tmp\\xlang-validation\\xge-full-20261110\\bar-item-snapshots-stage-linux-r2\\audit\\native-source.json",
+        "sha256": "b997456946162045d948d798aca577b36b080f97be1d47d88155384afe4ddbab"
+      },
+      "engineBuild": {
+        "path": "\\\\wsl.localhost\\Ubuntu\\var\\tmp\\xlang-validation\\xge-full-20261110\\bar-item-snapshots-host-linux-r2\\build-report.json",
+        "sha256": "fcd1d98532b6206b313037b80af7de09406ad39691775e3c951e60cfd501325e"
+      },
+      "staticBuild": {
+        "path": "\\\\wsl.localhost\\Ubuntu\\var\\tmp\\xlang-validation\\xge-full-20261110\\bar-item-snapshots-static-linux-r2\\build-report.json",
+        "sha256": "9dac374df9fe6013553fb02d727af7513b6fe01bc3204932015d670ba3c2f26b"
+      },
+      "hostImage": {
+        "path": "\\\\wsl.localhost\\Ubuntu\\var\\tmp\\xlang-validation\\xge-full-20261110\\bar-item-snapshots-stage-linux-r2\\replay\\host\\_xge_native\\native\\libxge3_host.so",
+        "sha256": "5d06bed6c50064bda8f26289e8ec67cab63a58657b312bdb59a4edfeb8400aed"
+      },
+      "replay": {
+        "path": "\\\\wsl.localhost\\Ubuntu\\var\\tmp\\xlang-validation\\xge-full-20261110\\bar-item-snapshots-stage-linux-r2\\replay\\stage-report.json",
+        "sha256": "9ab22ef42983795ecd0361cdd55dcb455e081cd8a5dc1de0ae6962275d84a8c5"
+      },
+      "generator": {
+        "path": "\\\\wsl.localhost\\Ubuntu\\var\\tmp\\xlang-validation\\xge-full-20261110\\bar-item-snapshots-generator-linux-r2\\results.json",
+        "sha256": "1889a728b9daf2b30f5cee26ca9f0aff62b60e1357e2417be5071c563eafdd49"
+      },
+      "generatorChecks": 1144,
+      "matrix": {
+        "path": "\\\\wsl.localhost\\Ubuntu\\var\\tmp\\xlang-validation\\xge-full-20261110\\bar-item-snapshots-tests-linux-r2\\results.json",
+        "sha256": "42a2989b8b990fb4624fa7f2e4d43cab11773cd809293136e6e4b622d97b58fa"
+      },
+      "matrixSteps": 13,
+      "graph": {
+        "width": 800,
+        "height": 600,
+        "sha256": "f4da44a5397fe2806fe500769cafd286598743310469625aab2a95790cb8f21c"
+      },
+      "priorAudit": {
+        "path": "\\\\wsl.localhost\\Ubuntu\\var\\tmp\\xlang-validation\\xge-full-20261110\\code-layout-snapshot-stage-linux-r1\\audit\\consumers\\results.json",
+        "sha256": "7fa6176176cfc9b2d2713bfab33ec4d26b3876102af3a85e7dce556312feae8f"
+      },
+      "audit": {
+        "path": "\\\\wsl.localhost\\Ubuntu\\var\\tmp\\xlang-validation\\xge-full-20261110\\bar-item-snapshots-stage-linux-r2\\audit\\consumers\\results.json",
+        "sha256": "78cc491ec3f0d0890ef3cb762e845c5d3551b0702b51f362d1cb4721b9536633"
+      },
+      "nativeRegression": {
+        "path": "\\\\wsl.localhost\\Ubuntu\\var\\tmp\\xlang-validation\\xge-full-20261110\\bar-item-snapshots-upstream-native-linux-r3\\results.json",
+        "sha256": "469b55cfa3a94a17e4810752fb74e6e23c84944ae634e740e75acf67abc6238a"
+      },
+      "toolbarBaseline": {
+        "path": "\\\\wsl.localhost\\Ubuntu\\var\\tmp\\xlang-validation\\xge-full-20261110\\code-layout-snapshot-upstream-native-linux-r2\\results.json",
+        "sha256": "fc76e9d970fa82d51ac90b452421773a7a3bd8ead56dba4b29037a2341d93a30"
+      }
+    }
+  },
+  "audit": {
+    "functionPopulation": 5786,
+    "directDeclarations": 4721,
+    "compiledConsumerFunctions": 283,
+    "explicitReplacements": 446,
+    "pending": {
+      "XGE": 139,
+      "XUI": 200,
+      "Document": 0
+    },
+    "apiCompletenessClaim": false,
+    "typedReplacements": [
+      "xuiMenuBarGetItem",
+      "xuiMenuGetItem",
+      "xuiStatusBarGetItem",
+      "xuiToolbarGetItem"
+    ]
+  },
+  "nativeQueryHeap": {
+    "iterationsPerControl": 1000,
+    "allocations": 0,
+    "frees": 0,
+    "reallocations": 0
+  },
+  "languageContract": {
+    "text": "Independent output snapshots preserve null and empty text",
+    "submenu": "Watched optional view expires on submenu close",
+    "icon": "Independent native Surface reference outlives the toolbar and Context",
+    "oom": "16 toolbar query allocation prefixes exercise rollback and heap balance"
+  },
+  "costs": {
+    "nativeQuery": "One fixed-size item record copy",
+    "languageResult": "Applicable text copy plus reference and view bookkeeping",
+    "toolbarPaint": "Polls shared icon generations on prepare traversal and invalidates only on change",
+    "cpuEquivalenceClaim": false
+  }
+}

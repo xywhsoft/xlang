@@ -284,6 +284,15 @@ an explicit nonnegative size uses at most the common prefix. Their O(n)
 temporary records and resource scopes are intentional, with no per-method C
 wrapper. See [projection contracts and costs](../../../../docs/foreign-array-projections.md).
 Ordinary mutable object arrays are not treated as native descriptor storage.
+
+`Menu.getItem(index)`, `MenuBar.getItem(index)`, `Toolbar.getItem(index)`
+and `StatusBar.getItem(index)` return typed item data. Indices are zero-based.
+Text fields are independent snapshots and preserve the distinction between null
+and empty text. Menu and menu bar queries return optional live submenu views.
+Closing the native submenu invalidates those views. A toolbar icon returned by
+the query holds its own Surface reference and remains usable after the toolbar
+is closed. An invalid index raises a checked error.
+
 ## Document UI
 
 `createDocumentView(context, document)` and

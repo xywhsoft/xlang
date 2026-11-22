@@ -16,8 +16,9 @@ Window.show("Menu / item columns and submenu", func(xui.Context ui, xui.Widget r
   [c_int(10), c_int(0), c_int(30)],
   [c_int(0), c_int(0), c_int(0)],
   [null, recent, null])
+ auto firstLabel, firstShortcut, _, _, _, _, _ = menu.getItem(0)
  auto result = ui.labelNative()
- result.setText("选择菜单或子菜单中的命令；这里显示其编号")
+ result.setText((firstLabel ?? "") + "  " + (firstShortcut ?? ""))
  Window.place(root, result, 24, 24, 720, 32)
  auto owner = ui.buttonNative()
  owner.setText("Open menu")
