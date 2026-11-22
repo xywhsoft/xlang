@@ -1,0 +1,199 @@
+{
+  "schema": 1,
+  "date": "2026-11-23",
+  "stage": "M7b7m",
+  "scope": "Local conservative0.109 IDE/service delivery with rollback protection and original-name checks",
+  "sourceProvenance": {
+    "path": "dev/release-materials/provenance/lsp-ir-enum-link-20261123.json",
+    "sha256": "0324137dbf438c6c1bdf05210bbfd61e7bc27f514e98838a2d33b89504fb54a3",
+    "commit": "d0f9e609a284e0a22784fe5ab1578145adc87853"
+  },
+  "material": {
+    "archive": {
+      "path": "dev/release-materials/provenance/lsp-stable-enum-package-20261123/delivery-and-programs-v2.tar.gz",
+      "sha256": "c2cce0accd891d5fa94a8003d8a1464f6e4c04e55bbb55c6087b9fd00d91767b",
+      "bytes": 21901402
+    },
+    "manifest": {
+      "path": "dev/release-materials/provenance/lsp-stable-enum-package-20261123/delivery-and-programs-v2.tar.gz.manifest.json",
+      "sha256": "47ae370e0c139134f973b12323a891c8d214c00d96e4ffc159d49acc88a10f62",
+      "bytes": 25078
+    },
+    "entries": 76,
+    "uniquePayloads": 47
+  },
+  "externalPaths": [
+    "F:\\codex-builds-xlang-lsp-20261123\\ir-enum-link",
+    "F:\\codex-builds-xlang-lsp-20261123\\ir-enum-default-package\\provenance"
+  ],
+  "runtime": {
+    "xlang_ide.exe": "57856d0e1c6a7a07b6ad1c1600436f14b17c5217e7ad80c25f931ea7881da4b0",
+    "xlang-ls.exe": "341c0c5b2c9692cfee68889610eebfa5dec1816d44caa6313a3e2e0fecd2d285",
+    "xlang_ide_xge.dll": "7eba677fddada9b605db2d54dd59ee57a9cfc1caf0b574f6cb206ec9de379418",
+    "update.exe": "4c5266fce0a541b9b96fe92b3d2f7d94598aff3b052e420b08b6d47db5e5c6c2",
+    "xl.exe": "5288c4e8be9f420ef98caeb11be362017be925f2ad81a0d56946cc6a8c721081",
+    "xl.dll": "f31ddbe973ed48d261014ec64fa6b0ba48791fc0313192a19d59467254c0fcd6",
+    "xlc.dll": "64b2e9830569c84580335b0a2b15a59ce13552ba1ba51933fc82cd75808c0728",
+    "xge.dll": "127db42612e8a27c8b1f7f74e4653c25f09140f8baac38d16fc564eb74892ef3"
+  },
+  "verification": {
+    "nativePrograms": 230,
+    "protocolSuites": 33,
+    "pairedGuiSuites": 55,
+    "editorTransactionModes": 47,
+    "preprocessedEquivalenceCases": 4,
+    "actualBuildPreprocessedEquivalenceCases": 4,
+    "originalNameProtocolQueries": 78,
+    "runtimePaths": 7095,
+    "onlyTwoProgramsChanged": true,
+    "defaultExitReuseCodeExcluded": true,
+    "defaultNodeViews": false,
+    "otherDeliveryFieldsBytePreserved": true
+  },
+  "defaultRuntimeReplaced": true,
+  "defaultProfile": "conservative-independent-nodes-and-native-exits",
+  "performanceAdmission": "Retain failed node/exit optimizations,including93/96 and1.94063percent benefit;ship the actual unchanged conservative0.109 code path",
+  "wholeLspPerformanceQualified": false,
+  "frontendRebasedToConcurrentEngine": false,
+  "engineRuntimeReplaced": false,
+  "developerSdkReplaced": false,
+  "externalPublishPerformed": false,
+  "formalRelease": false,
+  "goalComplete": false,
+  "sharedChanges": {
+    "ignoreAnchor": "!/dev/release-materials/provenance/lsp-ir-enum-link-20261123.json",
+    "ignoreLine": "!/dev/release-materials/provenance/lsp-stable-enum-package-20261123.json",
+    "deliveryProperty": "localIdeLspRuntime",
+    "deliveryBefore": {
+      "schema": 1,
+      "stage": "M7b7f",
+      "directory": "release/win_x64",
+      "provenance": "dev/release-materials/provenance/lsp-stable-package-20261123.json",
+      "sourceProvenance": "dev/release-materials/provenance/lsp-ir-exit-production-20261122.json",
+      "sourceCommit": "e63f2bd9da90448a2e043e0065417260a4f37dae",
+      "languageServerVersion": "0.109",
+      "displayVersion": "0.6.2",
+      "ideRuntimeLibrary": "xlang_ide_xge.dll",
+      "profile": "conservative-independent-nodes-and-native-exits",
+      "experimentalNodeViews": false,
+      "experimentalExitReuse": false,
+      "normalExitProductionReuseEnabled": false,
+      "normalSelectiveFinalIrEnabled": false,
+      "runtime": {
+        "xlang_ide.exe": "dcb587fc2d7bec7e1c8eb1a132e3e89411bd469b5ad6b4a8ff30356cf30fd51f",
+        "xlang-ls.exe": "13ab5b9d3cc2122db947545e9d70dca3929546b9d8d0b4e18e3d891e2e6d6d08",
+        "xlang_ide_xge.dll": "7eba677fddada9b605db2d54dd59ee57a9cfc1caf0b574f6cb206ec9de379418",
+        "update.exe": "4c5266fce0a541b9b96fe92b3d2f7d94598aff3b052e420b08b6d47db5e5c6c2"
+      },
+      "preservedEngine": {
+        "xl.exe": "5288c4e8be9f420ef98caeb11be362017be925f2ad81a0d56946cc6a8c721081",
+        "xl.dll": "f31ddbe973ed48d261014ec64fa6b0ba48791fc0313192a19d59467254c0fcd6",
+        "xlc.dll": "64b2e9830569c84580335b0a2b15a59ce13552ba1ba51933fc82cd75808c0728",
+        "xge.dll": "127db42612e8a27c8b1f7f74e4653c25f09140f8baac38d16fc564eb74892ef3"
+      },
+      "functionalAcceptancePassed": true,
+      "originalProgramNamesPaired": true,
+      "defaultProfileCodeEquivalentToQualified108": true,
+      "regressionObservationQualified": false,
+      "wholeLspPerformanceQualified": false,
+      "formalRelease": false,
+      "externalPublishPerformed": false
+    },
+    "deliveryAfter": {
+      "schema": 1,
+      "stage": "M7b7m",
+      "directory": "release/win_x64",
+      "provenance": "dev/release-materials/provenance/lsp-stable-enum-package-20261123.json",
+      "sourceProvenance": "dev/release-materials/provenance/lsp-ir-enum-link-20261123.json",
+      "sourceCommit": "d0f9e609a284e0a22784fe5ab1578145adc87853",
+      "languageServerVersion": "0.109",
+      "displayVersion": "0.6.2",
+      "ideRuntimeLibrary": "xlang_ide_xge.dll",
+      "profile": "conservative-independent-nodes-and-native-exits",
+      "experimentalNodeViews": false,
+      "experimentalExitReuse": false,
+      "normalExitProductionReuseEnabled": false,
+      "normalSelectiveFinalIrEnabled": false,
+      "runtime": {
+        "xlang_ide.exe": "57856d0e1c6a7a07b6ad1c1600436f14b17c5217e7ad80c25f931ea7881da4b0",
+        "xlang-ls.exe": "341c0c5b2c9692cfee68889610eebfa5dec1816d44caa6313a3e2e0fecd2d285",
+        "xlang_ide_xge.dll": "7eba677fddada9b605db2d54dd59ee57a9cfc1caf0b574f6cb206ec9de379418",
+        "update.exe": "4c5266fce0a541b9b96fe92b3d2f7d94598aff3b052e420b08b6d47db5e5c6c2"
+      },
+      "preservedEngine": {
+        "xl.exe": "5288c4e8be9f420ef98caeb11be362017be925f2ad81a0d56946cc6a8c721081",
+        "xl.dll": "f31ddbe973ed48d261014ec64fa6b0ba48791fc0313192a19d59467254c0fcd6",
+        "xlc.dll": "64b2e9830569c84580335b0a2b15a59ce13552ba1ba51933fc82cd75808c0728",
+        "xge.dll": "127db42612e8a27c8b1f7f74e4653c25f09140f8baac38d16fc564eb74892ef3"
+      },
+      "functionalAcceptancePassed": true,
+      "originalProgramNamesPaired": true,
+      "defaultProfileCodeEquivalentToQualified109": true,
+      "regressionObservationQualified": false,
+      "wholeLspPerformanceQualified": false,
+      "formalRelease": false,
+      "externalPublishPerformed": false
+    }
+  },
+  "ownedSources": {
+    "ide/docs/lsp-development.md": "ed22c251cfa1cde4ee3132c3e94d74d55c68933c798516e1dd37cf7303eeab08"
+  },
+  "materials": {
+    "source": {
+      "archive": {
+        "path": "dev/release-materials/sources/lsp-stable-enum-package-20261123/inputs.tar.gz",
+        "sha256": "4c6d1c1b220bbd7ce87ef190d3b25dfea83734795fbd9f8f74c388c345920f1d",
+        "bytes": 59532543
+      },
+      "manifest": {
+        "path": "dev/release-materials/sources/lsp-stable-enum-package-20261123/inputs.tar.gz.manifest.json",
+        "sha256": "64c6ed0f97adeeff56bc91dc54a115f673817db035d39f03e1697a06786ed7ca",
+        "bytes": 4065489
+      },
+      "entries": 12003,
+      "uniquePayloads": 9725
+    },
+    "validation": {
+      "archive": {
+        "path": "dev/release-materials/provenance/lsp-stable-enum-package-20261123/full-validation.tar.gz",
+        "sha256": "d6a39bcfc851db945a7e416a0a77f71e3deaee2fa354be9d34821249d5ef1460",
+        "bytes": 1085619715
+      },
+      "manifest": {
+        "path": "dev/release-materials/provenance/lsp-stable-enum-package-20261123/full-validation.tar.gz.manifest.json",
+        "sha256": "39b987c3f2cf235a563bd9f1851b7ad15f67373c0299c09e4c52ec5fdf9abd4a",
+        "bytes": 4428764
+      },
+      "entries": 10192,
+      "uniquePayloads": 4042
+    },
+    "delivery": {
+      "archive": {
+        "path": "dev/release-materials/provenance/lsp-stable-enum-package-20261123/delivery-and-programs-v2.tar.gz",
+        "sha256": "c2cce0accd891d5fa94a8003d8a1464f6e4c04e55bbb55c6087b9fd00d91767b",
+        "bytes": 21901402
+      },
+      "manifest": {
+        "path": "dev/release-materials/provenance/lsp-stable-enum-package-20261123/delivery-and-programs-v2.tar.gz.manifest.json",
+        "sha256": "47ae370e0c139134f973b12323a891c8d214c00d96e4ffc159d49acc88a10f62",
+        "bytes": 25078
+      },
+      "entries": 76,
+      "uniquePayloads": 47
+    }
+  },
+  "materialDependencies": [
+    "dev/release-materials/provenance/lsp-ir-enum-link-20261123.json",
+    "dev/release-materials/provenance/lsp-ir-exit-performance-20261123.json"
+  ],
+  "fullNativeCompileCommands": 376,
+  "fullNativeMappedObjects": 375,
+  "guiLinkedObjects": 140,
+  "recordLinkEntrypointsAbsent": true,
+  "normalSelectiveFinalIrEnabled": false,
+  "experimentalNodeViews": false,
+  "experimentalExitReuse": false,
+  "correctnessQualified": true,
+  "validationCleanupOnlyChanged": true,
+  "priorGuiCleanupFailureRetained": true
+}
