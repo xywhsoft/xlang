@@ -1,0 +1,18 @@
+import xui
+from "./_window.xl" import Window
+
+Window.showWithProxy("时间线区间自绘", func(xui.Context ui, xui.Widget root, xui.Proxy proxy)
+    auto timeline = ui.timeLineViewNative()
+    Window.place(root, timeline, 24, 24, 640, 260)
+    timeline.setFrameCount(80)
+    auto layer = timeline.addLayer("Animation")
+    timeline.addSpan(layer, 2, 12, 0, "Prepare")
+    auto highlighted = timeline.addSpan(layer, 15, 30, 0, "Move")
+
+    timeline.setRenderers(span=func(xui.CallbackWidget sender, c_int layerIndex, c_int id,
+            xui.CallbackTimelineSpan span, xui.CallbackDrawContext draw, xui.Rect bounds, c_int state) as c_int
+        if id != highlighted then return 0 end
+        proxy.fillRect(draw, bounds, 0x3B82F6FF)
+        return 1
+    end)
+end)

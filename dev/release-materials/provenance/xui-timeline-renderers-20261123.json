@@ -1,0 +1,174 @@
+{
+  "complete": true,
+  "passed": true,
+  "releaseInstalled": false,
+  "networkTests": false,
+  "scope": "Timeline renderer ownership, read-only callback views, and a scroll model value snapshot",
+  "nativeRevision": "949170ce54d8ac0dbfc8538e07b666cffcec6f84",
+  "xlangSourceParent": "093258cd89b5af09ed18b661170ca9dd5704c2bf",
+  "xlangCandidateBase": "4405bac14010bc3db1e1572b105de585b1984c27",
+  "platforms": {
+    "win": {
+      "generator": {
+        "path": "F:\\xlang-validation\\xge-full-20261110\\timeline-renderers-generator-win-r2\\results.json",
+        "sha256": "d4e1872e5a27e35a00adf896ce0a8358e1d792d24f5313aecb034549b07bc7e9"
+      },
+      "inventory": {
+        "path": "F:\\xlang-validation\\xge-full-20261110\\timeline-renderers-stage-win-r2\\audit\\surface\\surface.json",
+        "sha256": "92ff452fec669d5a2324b0d580aed1ba8efa2073ea109e6c808ee782cd87e2ed"
+      },
+      "consumers": {
+        "path": "F:\\xlang-validation\\xge-full-20261110\\timeline-renderers-stage-win-r2\\audit\\consumers\\results.json",
+        "sha256": "8bbdf1a112a33a6afedb5291e9dcaa32dc850678f0185078557a2af572998b84"
+      },
+      "packages": {
+        "path": "F:\\xlang-validation\\xge-full-20261110\\timeline-renderers-stage-win-r2\\replay\\stage-report.json",
+        "sha256": "26063be41b704a86039f775dec3e33962c845a494591cb9f181ab20f0dd62c1c"
+      },
+      "runtime": {
+        "path": "F:\\xlang-validation\\xge-full-20261110\\timeline-renderers-tests-win-r5\\results.json",
+        "sha256": "9fab225eecaac3f0b08f582e4c8a8f97b8690e2d974587c27a66260dec212589"
+      },
+      "runtimeChecks": 11,
+      "nativeRegression": {
+        "path": "F:\\xlang-validation\\xge-full-20261110\\timeline-renderers-native-tests-win-r2\\results.json",
+        "sha256": "5fe860efc8e33f82290d2e54dfe59a2c4473138347ca372b36f9e9e38e5832d5"
+      },
+      "nativeStyleRegression": {
+        "path": "F:\\xlang-validation\\xge-full-20261110\\timeline-style-tests-win-r1\\results.json",
+        "sha256": "aabf93572fd4d6ebe4c69fbb2ae8cef32f16acbe1930ded0285a7a7dd8cadf36"
+      },
+      "hostedBuild": {
+        "path": "F:\\xlang-validation\\xge-full-20261110\\timeline-renderers-host-win-r1\\build-report.json",
+        "sha256": "f65e74f171383ad974e98a8ead00e3b0cf32c60f60ef559613972e28793d20d6"
+      },
+      "staticBuild": {
+        "path": "F:\\xlang-validation\\xge-full-20261110\\timeline-renderers-static-win-r1\\build-report.json",
+        "sha256": "75b5c6718ed93ed84bb3b5e1a6ad78a573abd27f6e30cfdcf19d9760ba4f19fb"
+      },
+      "graphicalExample": {
+        "passed": true,
+        "report": {
+          "path": "F:\\xlang-validation\\xge-full-20261110\\timeline-renderers-example-win-r1\\results.json",
+          "sha256": "7c6b99500880ba19b7f966c81cc83872bff6bb1e2a3d48595be5496f7a76cc28"
+        },
+        "paintedPixels": 2632,
+        "width": 800,
+        "height": 600
+      }
+    },
+    "linux": {
+      "generator": {
+        "path": "\\\\wsl.localhost\\Ubuntu\\var\\tmp\\xlang-validation\\xge-full-20261110\\timeline-renderers-generator-linux-r2\\results.json",
+        "sha256": "f3320b2c41ce428296657e71a51700e4b9c3f58f3990ea1e023be813878b60e4"
+      },
+      "inventory": {
+        "path": "\\\\wsl.localhost\\Ubuntu\\var\\tmp\\xlang-validation\\xge-full-20261110\\timeline-renderers-stage-linux-r1\\audit\\surface\\surface.json",
+        "sha256": "ff96e7950b083e4173ba1487dedcfe92595994d6bf7137ff26557bbc8d7efdcc"
+      },
+      "consumers": {
+        "path": "\\\\wsl.localhost\\Ubuntu\\var\\tmp\\xlang-validation\\xge-full-20261110\\timeline-renderers-stage-linux-r1\\audit\\consumers\\results.json",
+        "sha256": "2ad00abbe26a9082b7dfa2c61669aae0ea88fbe7f9de55074dd9db73c4f33809"
+      },
+      "packages": {
+        "path": "\\\\wsl.localhost\\Ubuntu\\var\\tmp\\xlang-validation\\xge-full-20261110\\timeline-renderers-stage-linux-r1\\replay\\stage-report.json",
+        "sha256": "3f648014c43131c05e80ca8f7cf62a5b76fafb599cd734daf53e1d1a1413607a"
+      },
+      "runtime": {
+        "path": "\\\\wsl.localhost\\Ubuntu\\var\\tmp\\xlang-validation\\xge-full-20261110\\timeline-renderers-tests-linux-r5\\results.json",
+        "sha256": "1ba8bc42ad5d467a803dc8492f864d9adfed5f4192042f4c9e37790f1df635ae"
+      },
+      "runtimeChecks": 11,
+      "nativeRegression": {
+        "path": "\\\\wsl.localhost\\Ubuntu\\var\\tmp\\xlang-validation\\xge-full-20261110\\timeline-renderers-native-tests-linux-r2\\results.json",
+        "sha256": "712a6af861852588ebe29b96c76c1f7769e22d3136a0bcbdfedb39329efc5b11"
+      },
+      "nativeStyleRegression": {
+        "path": "\\\\wsl.localhost\\Ubuntu\\var\\tmp\\xlang-validation\\xge-full-20261110\\timeline-style-tests-linux-r1\\results.json",
+        "sha256": "e374907e3e24085a1e702fc7e773b0739c214909157fae156f5cbbd28a00e90f"
+      },
+      "hostedBuild": {
+        "path": "\\\\wsl.localhost\\Ubuntu\\var\\tmp\\xlang-validation\\xge-full-20261110\\timeline-renderers-host-linux-r1\\build-report.json",
+        "sha256": "c8dfd0b00833574b9a6aa90ede3cf4168fc922e07fa99a20a07db8b3ba05d24e"
+      },
+      "staticBuild": {
+        "path": "\\\\wsl.localhost\\Ubuntu\\var\\tmp\\xlang-validation\\xge-full-20261110\\timeline-renderers-static-linux-r1\\build-report.json",
+        "sha256": "0f1bceeb7178c3d2a7bc4ca0687034c5e7301ed126bbc394c61af9120f99cb14"
+      },
+      "graphicalExample": {
+        "passed": false,
+        "backend": "Xvfb OpenGL llvmpipe",
+        "observed": "Callback entered and issued the draw. The screenshot clips the timeline on both the previous and candidate engine.",
+        "candidate": {
+          "path": "\\\\wsl.localhost\\Ubuntu\\var\\tmp\\xlang-validation\\xge-full-20261110\\timeline-renderers-example-linux-r1\\timeline-renderers.rgba",
+          "sha256": "1375058b21d2910c3f62ecf25abb378f9fd7799045a219c770429d6723f919b1"
+        },
+        "baseline": {
+          "path": "\\\\wsl.localhost\\Ubuntu\\var\\tmp\\xlang-validation\\xge-full-20261110\\timeline-renderers-example-linux-baseline-r1\\baseline.rgba",
+          "sha256": "f27cd46591f8df3a8f73b62fbbac6cc2515621d18731d2e8df6ac736e10675fe"
+        },
+        "baselineNativeRevision": "e8ff772085e4f478dfd64ba304efc11f095e4b7c",
+        "candidateLog": {
+          "path": "\\\\wsl.localhost\\Ubuntu\\var\\tmp\\xlang-validation\\xge-full-20261110\\timeline-renderers-example-linux-r1\\example.log",
+          "sha256": "007ae2c4456c9774dbc3e92f7d0403a45814a28455ed9a96671ddb0013aa0b32"
+        },
+        "baselineLog": {
+          "path": "\\\\wsl.localhost\\Ubuntu\\var\\tmp\\xlang-validation\\xge-full-20261110\\timeline-renderers-example-linux-baseline-r1\\baseline.log",
+          "sha256": "c52171fbd956a7005a88c96b111f3f73eae51ae6f84f5d75c15019f0c8271b5f"
+        },
+        "callbackDiagnostic": {
+          "path": "\\\\wsl.localhost\\Ubuntu\\var\\tmp\\xlang-validation\\xge-full-20261110\\timeline-renderers-example-linux-diagnostic-r1\\diagnostic.log",
+          "sha256": "0ac299195aa4d608db66270cd90c7cde43ff644e4bb20ebfeeed5e3e0636833b"
+        },
+        "visibleBounds": [
+          24,
+          216,
+          663,
+          283
+        ],
+        "width": 800,
+        "height": 600
+      }
+    }
+  },
+  "audit": {
+    "functions": 5775,
+    "directDeclarations": 4709,
+    "compiledNativeConsumers": 282,
+    "explicitReplacements": 349,
+    "pending": {
+      "XGE": 160,
+      "XUI": 278,
+      "Document": 0
+    }
+  },
+  "pendingTimeline": [
+    "xuiTimeLineViewGetFrameUserData",
+    "xuiTimeLineViewGetLayerUserData",
+    "xuiTimeLineViewGetSpanUserData",
+    "xuiTimeLineViewSetFrameUserData",
+    "xuiTimeLineViewSetLayerUserData",
+    "xuiTimeLineViewSetSpanUserData"
+  ],
+  "allocationCheck": {
+    "operation": "read layer index, frame index and frame type from an active callback frame",
+    "iterations": 1000,
+    "native": {
+      "alloc": 0,
+      "free": 0,
+      "realloc": 0
+    },
+    "xlang": {
+      "alloc": 0,
+      "free": 0,
+      "realloc": 0
+    }
+  },
+  "costs": {
+    "registration": "callback environments, native owner slots, and registration mutation gate",
+    "nativeDispatch": "snapshot hold/drop for each active owned callback and one stack record copy for layer, frame or span",
+    "languageDispatch": "compiler callback entry and epoch checks",
+    "textRead": "scan and copy of a requested inline string",
+    "scrollSnapshot": "one native scroll model value copy"
+  }
+}

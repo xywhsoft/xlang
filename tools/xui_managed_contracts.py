@@ -1689,6 +1689,81 @@ REPLACED.update({
     'xuiInventoryGridSetTooltipCallback': ('xui.InventoryGrid.setTooltipProvider','xuiInventoryGridSetTooltipCallbackOwned'),
     'xuiInventoryGridSetRenderCallback': ('xui.InventoryGrid.setSlotRenderer','xuiInventoryGridSetRenderCallbackOwned'),
     'xuiInventoryGridSetAnimationRenderCallback': ('xui.InventoryGrid.setAnimationRenderer','xuiInventoryGridSetAnimationLayerOwned'),
+    'xuiTimeLineViewGetLayer': ('xui.TimeLineView.getLayer', 'xuiTimeLineViewGetLayerDescriptor'),
+    'xuiTimeLineViewGetSpan': ('xui.TimeLineView.getSpan', 'xuiTimeLineViewGetSpanDescriptor'),
+    'xuiTimeLineViewGetModel': ('xui.TimeLineView.scrollSnapshot', 'xuiTimeLineViewGetScrollSnapshot'),
+    'xuiTimeLineViewSetRenderers': ('xui.TimeLineView.setRenderers', 'xuiTimeLineViewSetRenderersOwned'),
+    'xuiTimeLineViewSetCurrentFrameCallbacks': ('xui.TimeLineView.setCurrentFrameCallbacks', 'xuiTimeLineViewSetCurrentFrameCallbacksOwned'),
+    'xuiTimeLineViewSetLayerCallbacks': ('xui.TimeLineView.setLayerCallbacks', 'xuiTimeLineViewSetLayerCallbacksOwned'),
+    'xuiTimeLineViewSetFrameCallbacks': ('xui.TimeLineView.setFrameCallbacks', 'xuiTimeLineViewSetFrameCallbacksOwned'),
+    'xuiTimeLineViewSetSpanCallbacks': ('xui.TimeLineView.setSpanCallbacks', 'xuiTimeLineViewSetSpanCallbacksOwned'),
+    'xuiTimeLineViewSetLayerSelected': ('xui.TimeLineView.setLayerSelected', 'xuiTimeLineViewSetLayerSelectedOwned'),
+    'xuiTimeLineViewSetContextMenu': ('xui.TimeLineView.setContextMenu', 'xuiTimeLineViewSetContextMenuOwned'),
+    'xuiTimeLineViewSetFrameClick': ('xui.TimeLineView.setFrameClick', 'xuiTimeLineViewSetFrameClickOwned'),
+    'xuiTimeLineViewSetSelectionChange': ('xui.TimeLineView.setSelectionChange', 'xuiTimeLineViewSetSelectionChangeOwned'),
+})
+
+METHODS.update({
+    'xuiTimeLineViewGetScrollSnapshot': (
+        'int xuiTimeLineViewGetScrollSnapshot(xui_widget pWidget, xui_scroll_model_t* pSnapshot)',
+        'TimeLineView', ['extern "xuiTimeLineViewGetScrollSnapshot" @no_raise @c_output(1,0) func scrollSnapshot() as ScrollModel']),
+    'xuiTimeLineViewSetRenderersOwned': (
+        'int xuiTimeLineViewSetRenderersOwned(xui_widget pWidget, xui_timeline_layer_renderer_proc onLayer, void* pLayerUser, const xui_callback_owner_t* pLayerOwner, '
+        'xui_timeline_ruler_renderer_proc onRuler, void* pRulerUser, const xui_callback_owner_t* pRulerOwner, '
+        'xui_timeline_frame_renderer_proc onFrame, void* pFrameUser, const xui_callback_owner_t* pFrameOwner, '
+        'xui_timeline_span_renderer_proc onSpan, void* pSpanUser, const xui_callback_owner_t* pSpanOwner)',
+        'TimeLineView', ['extern "xuiTimeLineViewSetRenderersOwned" @no_raise @c_owned_callback(0,0,"xui_callback_owner_t",0) '
+            '@c_owned_callback(1,0,"xui_callback_owner_t",0) @c_owned_callback(2,0,"xui_callback_owner_t",0) '
+            '@c_owned_callback(3,0,"xui_callback_owner_t",0) @c_result("status",0) '
+            'func setRenderers(TimelineLayerRenderProc? layer=null,TimelineRulerRenderProc? ruler=null,TimelineFrameRenderProc? frame=null,TimelineSpanRenderProc? span=null)']),
+})
+
+CALLBACKS.update({
+    'xui_timeline_layer_renderer_proc': (
+        'typedef int (*xui_timeline_layer_renderer_proc)(xui_widget_t* pWidget, int iLayer, const xui_timeline_layer_t* pLayer, xui_draw_context_t* pDraw, xui_rect_t tRect, int iState, void* pUser);',
+        'export typedef TimelineLayerRenderProc = func(CallbackWidget,c_int,CallbackTimelineLayer,CallbackDrawContext,Rect,c_int) as c_int'),
+    'xui_timeline_ruler_renderer_proc': (
+        'typedef int (*xui_timeline_ruler_renderer_proc)(xui_widget_t* pWidget, int iFrame, xui_draw_context_t* pDraw, xui_rect_t tRect, int iState, void* pUser);',
+        'export typedef TimelineRulerRenderProc = func(CallbackWidget,c_int,CallbackDrawContext,Rect,c_int) as c_int'),
+    'xui_timeline_frame_renderer_proc': (
+        'typedef int (*xui_timeline_frame_renderer_proc)(xui_widget_t* pWidget, int iLayer, int iFrame, const xui_timeline_frame_t* pFrame, xui_draw_context_t* pDraw, xui_rect_t tRect, int iState, void* pUser);',
+        'export typedef TimelineFrameRenderProc = func(CallbackWidget,c_int,c_int,CallbackTimelineFrame?,CallbackDrawContext,Rect,c_int) as c_int'),
+    'xui_timeline_span_renderer_proc': (
+        'typedef int (*xui_timeline_span_renderer_proc)(xui_widget_t* pWidget, int iLayer, int iSpanId, const xui_timeline_span_t* pSpan, xui_draw_context_t* pDraw, xui_rect_t tRect, int iState, void* pUser);',
+        'export typedef TimelineSpanRenderProc = func(CallbackWidget,c_int,c_int,CallbackTimelineSpan,CallbackDrawContext,Rect,c_int) as c_int'),
+})
+
+VIEWS.update({
+    'CallbackTimelineLayer': '''
+export extern "const xui_timeline_layer_t*" class CallbackTimelineLayer @header("xge3_runtime.h") @lifetime("callback")
+ native point handle
+ extern "iId" @c_field get id() as c_int
+ extern "bVisible" @c_field get visible() as c_int
+ extern "bLocked" @c_field get locked() as c_int
+ extern "bSelected" @c_field get selected() as c_int
+ extern "fHeight" @c_field get height() as c_float
+ extern "iColor" @c_field get color() as c_uint
+ extern "xl6Xui3TimelineLayerName" @no_raise @c_result("cstring") func name() as string
+end''',
+    'CallbackTimelineFrame': '''
+export extern "const xui_timeline_frame_t*" class CallbackTimelineFrame @header("xge3_runtime.h") @lifetime("callback")
+ native point handle
+ extern "iLayer" @c_field get layer() as c_int
+ extern "iFrame" @c_field get frame() as c_int
+ extern "iType" @c_field get kind() as c_int
+end''',
+    'CallbackTimelineSpan': '''
+export extern "const xui_timeline_span_t*" class CallbackTimelineSpan @header("xge3_runtime.h") @lifetime("callback")
+ native point handle
+ extern "iLayer" @c_field get layer() as c_int
+ extern "iId" @c_field get id() as c_int
+ extern "iStartFrame" @c_field get startFrame() as c_int
+ extern "iEndFrame" @c_field get endFrame() as c_int
+ extern "iType" @c_field get kind() as c_int
+ extern "iColor" @c_field get color() as c_uint
+ extern "xl6Xui3TimelineSpanType" @no_raise @c_result("cstring") func customType() as string
+ extern "xl6Xui3TimelineSpanLabel" @no_raise @c_result("cstring") func label() as string
+end''',
 })
 
 def validate(root,header,function_sha):

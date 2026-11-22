@@ -132,6 +132,21 @@ static inline const char* xl6Xui3InventorySlotHotkey(const xui_inventory_slot_t*
 {
     return slot->sHotkey;
 }
+
+static inline const char* xl6Xui3TimelineLayerName(const xui_timeline_layer_t* layer)
+{
+    return layer->sName;
+}
+
+static inline const char* xl6Xui3TimelineSpanType(const xui_timeline_span_t* span)
+{
+    return span->sCustomType;
+}
+
+static inline const char* xl6Xui3TimelineSpanLabel(const xui_timeline_span_t* span)
+{
+    return span->sLabel;
+}
 #ifdef __cplusplus
 }
 #endif

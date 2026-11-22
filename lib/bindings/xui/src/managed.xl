@@ -783,6 +783,41 @@ export typedef TimelineFrameClickProc = func(Widget,c_int,c_int,c_int,c_int)
 
 export typedef TimelineSelectionProc = func(Widget)
 
+export extern "const xui_timeline_layer_t*" class CallbackTimelineLayer @header("xge3_runtime.h") @lifetime("callback")
+ native point handle
+ extern "iId" @c_field get id() as c_int
+ extern "bVisible" @c_field get visible() as c_int
+ extern "bLocked" @c_field get locked() as c_int
+ extern "bSelected" @c_field get selected() as c_int
+ extern "fHeight" @c_field get height() as c_float
+ extern "iColor" @c_field get color() as c_uint
+ extern "xl6Xui3TimelineLayerName" @no_raise @c_result("cstring") func name() as string
+end
+
+export extern "const xui_timeline_frame_t*" class CallbackTimelineFrame @header("xge3_runtime.h") @lifetime("callback")
+ native point handle
+ extern "iLayer" @c_field get layer() as c_int
+ extern "iFrame" @c_field get frame() as c_int
+ extern "iType" @c_field get kind() as c_int
+end
+
+export extern "const xui_timeline_span_t*" class CallbackTimelineSpan @header("xge3_runtime.h") @lifetime("callback")
+ native point handle
+ extern "iLayer" @c_field get layer() as c_int
+ extern "iId" @c_field get id() as c_int
+ extern "iStartFrame" @c_field get startFrame() as c_int
+ extern "iEndFrame" @c_field get endFrame() as c_int
+ extern "iType" @c_field get kind() as c_int
+ extern "iColor" @c_field get color() as c_uint
+ extern "xl6Xui3TimelineSpanType" @no_raise @c_result("cstring") func customType() as string
+ extern "xl6Xui3TimelineSpanLabel" @no_raise @c_result("cstring") func label() as string
+end
+
+export typedef TimelineLayerRenderProc = func(CallbackWidget,c_int,CallbackTimelineLayer,CallbackDrawContext,Rect,c_int) as c_int
+export typedef TimelineRulerRenderProc = func(CallbackWidget,c_int,CallbackDrawContext,Rect,c_int) as c_int
+export typedef TimelineFrameRenderProc = func(CallbackWidget,c_int,c_int,CallbackTimelineFrame?,CallbackDrawContext,Rect,c_int) as c_int
+export typedef TimelineSpanRenderProc = func(CallbackWidget,c_int,c_int,CallbackTimelineSpan,CallbackDrawContext,Rect,c_int) as c_int
+
 export typedef PropertyGridSelectProc = func(Widget,c_int,CString)
 
 export typedef PropertyGridChangeProc = func(Widget,c_int,CString,CString,c_int)
@@ -5508,6 +5543,8 @@ end
 
 export extern "xui_widget_t*" class TimeLineView @header("xge3_runtime.h") @lifetime("owner") @owner(Context) @policy("xl6Xui3WidgetPolicy") @watch("xui_lifetime_link_t") extends Widget
 
+ extern "xuiTimeLineViewGetScrollSnapshot" @no_raise @c_output(1,0) func scrollSnapshot() as ScrollModel
+
  extern "xuiTimeLineViewGetFrameWidget" @no_raise @c_result("owner_view",0) func getFrameWidget() as Widget?
 
  extern "xuiTimeLineViewGetViewportWidget" @no_raise @c_result("owner_view",0) func getViewportWidget() as Widget?
@@ -5627,6 +5664,8 @@ export extern "xui_widget_t*" class TimeLineView @header("xge3_runtime.h") @life
  extern "xuiTimeLineViewSetFrameClickOwned" @no_raise @c_owned_callback(0,0,"xui_callback_owner_t",0) @c_owned_callback(1,0,"xui_callback_owner_t",0) @c_result("status",0) func setFrameClick(TimelineFrameClickProc? onClick,TimelineFrameClickProc? onDoubleClick)
 
  extern "xuiTimeLineViewSetSelectionChangeOwned" @no_raise @c_owned_callback(0,0,"xui_callback_owner_t",0) @c_result("status",0) func setSelectionChange(TimelineSelectionProc? onSelection)
+
+ extern "xuiTimeLineViewSetRenderersOwned" @no_raise @c_owned_callback(0,0,"xui_callback_owner_t",0) @c_owned_callback(1,0,"xui_callback_owner_t",0) @c_owned_callback(2,0,"xui_callback_owner_t",0) @c_owned_callback(3,0,"xui_callback_owner_t",0) @c_result("status",0) func setRenderers(TimelineLayerRenderProc? layer=null,TimelineRulerRenderProc? ruler=null,TimelineFrameRenderProc? frame=null,TimelineSpanRenderProc? span=null)
 
  extern "xuiTimeLineViewSetColors" @no_raise @c_ref(0) @c_result("status",0) func setColors(TimelineViewColors pColors)
 

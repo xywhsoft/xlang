@@ -1,5 +1,29 @@
 # Native consumers in the full API inventory
 
+## Timeline renderers and scroll state
+
+`TimeLineView.setRenderers()` sets the layer, ruler, frame and span
+renderers as one native callback update. Each installed renderer owns its
+closure. The selected renderer remains live through invocation and cleanup,
+including when it clears the registration from inside the callback. Returning
+zero uses the default drawing and a nonzero result replaces it.
+
+The native layer, frame and span records are stack snapshots. A callback can
+still read the snapshot after editing the timeline. The language views and
+draw context expire on return. Reading a text field copies it to a string
+that can outlive the callback. The paired C and xlang checks each read three
+frame scalars 1,000 times with zero heap operations.
+
+`scrollSnapshot()` returns the complete scroll model by value. Callers can
+keep it after edits or after the widget is closed.
+
+The render fixture passes on Windows and Linux in JIT, dynamic AOT and static
+AOT. The graphical example shows the painted span on Windows. In the Linux
+Xvfb OpenGL run the renderer callback runs, but the capture clips the timeline.
+The preceding engine exhibits the same clipping with built-in span coloring.
+
+[Validation evidence](../dev/release-materials/provenance/xui-timeline-renderers-20261123.json)
+
 ## Icon registration and independent references
 
 `IconCategory` can register an icon with a display name, tags and flags.
