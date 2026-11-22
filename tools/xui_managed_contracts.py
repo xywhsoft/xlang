@@ -1369,6 +1369,22 @@ CLOSE_REPLACEMENTS = {
 
 # Reviewed native entry points with managed replacements.
 REPLACED = {
+    'xuiWidgetDestroy': ('xui.Widget.close', 'xuiWidgetDestroyChecked'),
+    'xuiWidgetGetAccessibleNodeCount': ('xui.Widget.getAccessibleNodeCount', 'xuiWidgetGetAccessibleNodeCountChecked'),
+    'xuiWidgetSetCacheRenderCallback': ('xui.Widget.setCacheRenderCallback', 'xuiWidgetSetCacheRenderCallbackOwned'),
+    'xuiWidgetSetContentMeasureCallback': ('xui.Widget.setContentMeasureCallback', 'xuiWidgetSetContentMeasureCallbackOwned'),
+    'xuiWidgetSetCursorQueryCallback': ('xui.Widget.setCursorQueryCallback', 'xuiWidgetSetCursorQueryCallbackOwned'),
+    'xuiWidgetSetDefaultAction': ('xui.Widget.setDefaultAction', 'xuiWidgetSetDefaultActionOwned'),
+    'xuiWidgetSetCancelAction': ('xui.Widget.setCancelAction', 'xuiWidgetSetCancelActionOwned'),
+    'xuiWidgetSetEventCallback': ('xui.Widget.setEventCallback', 'xuiWidgetSetEventCallbackOwned'),
+    'xuiWidgetSetEventHandler': ('xui.Widget.setEventHandler', 'xuiWidgetSetEventHandlerOwned'),
+    'xuiWidgetSetImeCandidateRect': ('xui.Widget.setImeCandidateRect', 'xuiWidgetSetImeCandidateRectOwned'),
+    'xuiWidgetSetLayoutChildrenCallback': ('xui.Widget.setLayoutChildrenCallback', 'xuiWidgetSetLayoutChildrenCallbackOwned'),
+    'xuiWidgetSetLayoutCompleteCallback': ('xui.Widget.setLayoutCompleteCallback', 'xuiWidgetSetLayoutCompleteCallbackOwned'),
+    'xuiWidgetSetLayoutPrepareCallback': ('xui.Widget.setLayoutPrepareCallback', 'xuiWidgetSetLayoutPrepareCallbackOwned'),
+    'xuiWidgetSetUpdateCallback': ('xui.Widget.setUpdateCallback', 'xuiWidgetSetUpdateCallbackOwned'),
+    'xuiWidgetSetTooltipResolver': ('xui.Widget.setTooltipResolver', 'xuiWidgetSetTooltipResolverOwned'),
+    'xuiWidgetSetAccessibilityProvider': ('xui.Widget.setAccessibilityProvider', 'xuiWidgetSetAccessibilityProviderOwned'),
     'xuiTerminalCreateFakeSession': ('xui.createFakeTerminalSession', 'xuiTerminalCreateFakeSessionOwned'),
     'xuiTerminalCreateProcessSession': ('xui.createProcessTerminalSession', 'xuiTerminalCreateProcessSessionOwned'),
     'xuiTerminalCreateSshSession': ('xui.createSshTerminalSession', 'xuiTerminalCreateSshSessionOwned'),
@@ -1543,6 +1559,24 @@ METHODS.update({
     'xuiTerminalAttachSession': (
         'int xuiTerminalAttachSession(xui_widget pWidget, xui_terminal_session_t* pSession)',
         'Terminal', ['extern "xuiTerminalAttachSession" @no_raise @c_result("status",0) func attachSession(TerminalSession session)']),
+    'xuiWidgetGetAccessibleNodeCountChecked': (
+        'int xuiWidgetGetAccessibleNodeCountChecked(xui_widget pWidget)',
+        'Widget', ['extern "xuiWidgetGetAccessibleNodeCountChecked" @no_raise @c_result("integer_min",0) func getAccessibleNodeCount() as c_int']),
+    'xuiWidgetSetAccessibilityProviderOwned': (
+        'int xuiWidgetSetAccessibilityProviderOwned(xui_widget pWidget, const xui_accessible_provider_desc_t* pDesc, const xui_callback_owner_t* pOwner)',
+        'Widget', ['extern "xuiWidgetSetAccessibilityProviderOwned" @no_raise @c_pack(1,"xui_accessible_provider_desc_t",0,3) @c_pack_size(1,"iSize","uint32_t") @c_pack_callback_group(1,"pUser",2,"optional") @c_pack_field(1,"onCount",0,"owned_callback") @c_owned_callback(0,-1,"xui_callback_owner_t",-16,"last") @c_pack_field(1,"onNode",1,"owned_callback") @c_owned_callback(1,-1,"xui_callback_owner_t",-16,"last") @c_pack_field(1,"onAction",2,"owned_callback") @c_owned_callback(2,-1,"xui_callback_owner_t",-16,"last") @c_result("status",0) func setAccessibilityProvider(AccessibleCountProc? count=null,AccessibleNodeProc? node=null,AccessibleActionProc? action=null)']),
+    'xuiWidgetPerformAccessibleAction': (
+        'int xuiWidgetPerformAccessibleAction(xui_widget pWidget, uint64_t iNodeId, int iAction, const void* pData)',
+        'Widget', ['extern "xuiWidgetPerformAccessibleAction" @no_raise @c_null(3,"const void*") @c_result("status",0) func performAccessibleAction(uint64 nodeId,c_int action)']),
+    'xuiWidgetPerformAccessibleSelection': (
+        'int xuiWidgetPerformAccessibleSelection(xui_widget pWidget, uint64_t iNodeId, int iAnchor, int iCaret)',
+        'Widget', ['extern "xuiWidgetPerformAccessibleSelection" @no_raise @c_result("status",0) func performAccessibleSelection(uint64 nodeId,c_int anchor,c_int caret)']),
+    'xuiWidgetSetAccessibleTextValue': (
+        'int xuiWidgetSetAccessibleTextValue(xui_widget pWidget, uint64_t iNodeId, const char* sText)',
+        'Widget', ['extern "xuiWidgetSetAccessibleTextValue" @no_raise @c_cstr(1) @c_result("status",0) func setAccessibleValue(uint64 nodeId,string value)']),
+    'xuiWidgetSetAccessibleNumberValue': (
+        'int xuiWidgetSetAccessibleNumberValue(xui_widget pWidget, uint64_t iNodeId, double fNumber)',
+        'Widget', ['extern "xuiWidgetSetAccessibleNumberValue" @no_raise @c_result("status",0) func setAccessibleValue(uint64 nodeId,c_double value)']),
     'xuiScrollFrameGetScrollSnapshot': (
         'int xuiScrollFrameGetScrollSnapshot(xui_widget pWidget, xui_scroll_model_t* pSnapshot)',
         'ScrollFrame', ['extern "xuiScrollFrameGetScrollSnapshot" @no_raise @c_output(1,0) func scrollSnapshot() as ScrollModel']),

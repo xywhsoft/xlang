@@ -1782,7 +1782,17 @@ export extern "xui_widget_t*" class Widget @header("xge3_runtime.h") @lifetime("
 
  extern "xuiWidgetGetAccessibleDescription" @no_raise @c_result("cstring") func getAccessibleDescription() as string?
 
- extern "xuiWidgetGetAccessibleNodeCount" @no_raise func getAccessibleNodeCount() as c_int
+ extern "xuiWidgetGetAccessibleNodeCountChecked" @no_raise @c_result("integer_min",0) func getAccessibleNodeCount() as c_int
+
+ extern "xuiWidgetSetAccessibilityProviderOwned" @no_raise @c_pack(1,"xui_accessible_provider_desc_t",0,3) @c_pack_size(1,"iSize","uint32_t") @c_pack_callback_group(1,"pUser",2,"optional") @c_pack_field(1,"onCount",0,"owned_callback") @c_owned_callback(0,-1,"xui_callback_owner_t",-16,"last") @c_pack_field(1,"onNode",1,"owned_callback") @c_owned_callback(1,-1,"xui_callback_owner_t",-16,"last") @c_pack_field(1,"onAction",2,"owned_callback") @c_owned_callback(2,-1,"xui_callback_owner_t",-16,"last") @c_result("status",0) func setAccessibilityProvider(AccessibleCountProc? count=null,AccessibleNodeProc? node=null,AccessibleActionProc? action=null)
+
+ extern "xuiWidgetPerformAccessibleAction" @no_raise @c_null(3,"const void*") @c_result("status",0) func performAccessibleAction(uint64 nodeId,c_int action)
+
+ extern "xuiWidgetPerformAccessibleSelection" @no_raise @c_result("status",0) func performAccessibleSelection(uint64 nodeId,c_int anchor,c_int caret)
+
+ extern "xuiWidgetSetAccessibleTextValue" @no_raise @c_cstr(1) @c_result("status",0) func setAccessibleValue(uint64 nodeId,string value)
+
+ extern "xuiWidgetSetAccessibleNumberValue" @no_raise @c_result("status",0) func setAccessibleValue(uint64 nodeId,c_double value)
 
  extern "xuiWidgetGetAccessibilityRevision" @no_raise func getAccessibilityRevision() as c_uint
 

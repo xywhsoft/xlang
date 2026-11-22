@@ -1,5 +1,27 @@
 # Native consumers in the full API inventory
 
+## Widget accessibility providers
+
+`Widget.setAccessibilityProvider()` registers an owned count, node and
+action callback group. Count and node callbacks are paired. An empty
+group clears the registration. A native callback snapshot protects
+the selected closure through the complete call and checked cleanup,
+including when a callback replaces its own provider.
+
+The node callback fills an `AccessibleNodeOutput`. The native reply
+copies any supplied strings into one allocation and publishes them
+only after the callback and mutation checks succeed. The native
+snapshot remains readable through a failed query while the same
+provider stays registered. xlang reads the result into an independent
+snapshot, preserving empty text and missing text.
+
+Action callbacks receive a callback-scoped payload with an explicit
+kind. The language methods carry selection, numeric and text payloads
+through their typed native entries. The action data and node output
+expire on return, while values already copied to xlang remain usable.
+
+[Validation evidence](../dev/release-materials/provenance/xui-widget-accessibility-20261123.json)
+
 ## Managed terminal sessions
 
 `TerminalSession` can attach to a `Terminal`, echo local input, write

@@ -1,0 +1,141 @@
+{
+  "complete": true,
+  "passed": true,
+  "releaseInstalled": false,
+  "networkTests": false,
+  "scope": "Owned widget accessibility providers, typed actions, and transactional node replies",
+  "nativeRevision": "7e9c7e17770db021c93317eb319d5a246cbcfc7f",
+  "xlangSourceParent": "7a2ee34a370eb9d25578383254b1444c29312fcc",
+  "xlangCandidateBase": "ebb1593b14479b906fad240014713fa31a0b6ee2",
+  "platforms": {
+    "win": {
+      "generator": {
+        "path": "F:\\xlang-validation\\xge-full-20261110\\widget-accessibility-generator-win-r4\\results.json",
+        "sha256": "cbf22563f4857c731e14fc86eb76209b77345da18a698f4b39fb957297202b53"
+      },
+      "inventory": {
+        "path": "F:\\xlang-validation\\xge-full-20261110\\widget-accessibility-stage-win-r2\\audit-r1\\surface\\surface.json",
+        "sha256": "b742bc17e37a97f6e02e2e1eca95921863926b6c173c17b511dc9f599009f75b"
+      },
+      "consumers": {
+        "path": "F:\\xlang-validation\\xge-full-20261110\\widget-accessibility-stage-win-r2\\audit-r1\\consumers\\results.json",
+        "sha256": "63ff69ba3c118b6757e099fcdf7ce4d743f8ff14e1920dce6031190bc4971a43"
+      },
+      "hostedBuild": {
+        "path": "F:\\xlang-validation\\xge-full-20261110\\widget-accessibility-host-win-r2\\build-report.json",
+        "sha256": "85eb708d8fa676803269c57c88fda6926e3dd3d538e4eb101221dc95c498aeef"
+      },
+      "staticBuild": {
+        "path": "F:\\xlang-validation\\xge-full-20261110\\widget-accessibility-static-win-r2\\build-report.json",
+        "sha256": "df515733ec8e2af882a1362edda92bbec7fea786457642488dd63dfb97a8e93d"
+      },
+      "candidatePackages": {
+        "path": "F:\\xlang-validation\\xge-full-20261110\\widget-accessibility-stage-win-r2\\replay\\stage-report.json",
+        "sha256": "37c10a5ad36aa507b29689c1d81c79f59bd72517bc0a7aaeedf904978b94b9c6"
+      },
+      "tests": {
+        "path": "F:\\xlang-validation\\xge-full-20261110\\widget-accessibility-tests-win-r3\\results.json",
+        "sha256": "50608dc2ccb827b8beaf637d380a7bd485c972fbf00ef886e2bf2144d3d5aca9"
+      },
+      "legacyNativeRegression": {
+        "path": "F:\\xlang-validation\\xge-full-20261110\\widget-accessibility-legacy-win-r3\\results.json",
+        "sha256": "fd91ff52397674b83643082d66ead05481cc73e06bb147b291c85abdacbf2ef0"
+      },
+      "sample": {
+        "path": "F:\\xlang-validation\\xge-full-20261110\\widget-accessibility-tests-win-r3\\example.rgba",
+        "sha256": "4b9174ce2330cfd57f1dad0fa5e772b5ae6c0e219f865f79c849988953cfd84e"
+      },
+      "checks": 11,
+      "legacyNativeCases": 64,
+      "directCalls": {
+        "xuiWidgetSetAccessibilityProviderOwned": 4,
+        "xuiWidgetGetAccessibleNodeCountChecked": 4,
+        "xuiWidgetPerformAccessibleAction": 2,
+        "xuiAccessibleNodeOutputSet": 3,
+        "xuiWidgetPerformAccessibleSelection": 1,
+        "xuiWidgetSetAccessibleTextValue": 1,
+        "xuiWidgetSetAccessibleNumberValue": 1,
+        "xuiWidgetGetAccessibleNode": 3
+      }
+    },
+    "linux": {
+      "generator": {
+        "path": "\\\\wsl.localhost\\Ubuntu\\var\\tmp\\xlang-validation\\xge-full-20261110\\widget-accessibility-generator-linux-r4\\results.json",
+        "sha256": "97ea544e776a835b83fc0d9699068ef1f43f0489f00c92935422162631489f01"
+      },
+      "inventory": {
+        "path": "\\\\wsl.localhost\\Ubuntu\\var\\tmp\\xlang-validation\\xge-full-20261110\\widget-accessibility-stage-linux-r2\\audit-r1\\surface\\surface.json",
+        "sha256": "003c3686f09eb9a32998217a143d2d2d2f63b5388e292d00fee7c65ae2ec8c71"
+      },
+      "consumers": {
+        "path": "\\\\wsl.localhost\\Ubuntu\\var\\tmp\\xlang-validation\\xge-full-20261110\\widget-accessibility-stage-linux-r2\\audit-r1\\consumers\\results.json",
+        "sha256": "ca39cc1437f105e4de0e19db9664c155401ec7147fe1a6da94295d997a83faad"
+      },
+      "hostedBuild": {
+        "path": "\\\\wsl.localhost\\Ubuntu\\var\\tmp\\xlang-validation\\xge-full-20261110\\widget-accessibility-host-linux-r2\\build-report.json",
+        "sha256": "3e9c4703603e29490f03218f502119654f770b8c628172be226795cc991a4d27"
+      },
+      "staticBuild": {
+        "path": "\\\\wsl.localhost\\Ubuntu\\var\\tmp\\xlang-validation\\xge-full-20261110\\widget-accessibility-static-linux-r2\\build-report.json",
+        "sha256": "ef2bcff7808647367b4c522c0b9d6244194b844e64869725ca16f2c3bebfb057"
+      },
+      "candidatePackages": {
+        "path": "\\\\wsl.localhost\\Ubuntu\\var\\tmp\\xlang-validation\\xge-full-20261110\\widget-accessibility-stage-linux-r2\\replay\\stage-report.json",
+        "sha256": "08c31e4a1901f7912ae3015749a21c5085ae8a4427dba681f4185432f557cadc"
+      },
+      "tests": {
+        "path": "\\\\wsl.localhost\\Ubuntu\\var\\tmp\\xlang-validation\\xge-full-20261110\\widget-accessibility-tests-linux-r3\\results.json",
+        "sha256": "0cfd51bf7a56b410126e72c15bbdb8f624bb985b0de8abbf55a3917bc6ce5099"
+      },
+      "legacyNativeRegression": {
+        "path": "\\\\wsl.localhost\\Ubuntu\\var\\tmp\\xlang-validation\\xge-full-20261110\\widget-accessibility-legacy-linux-r3\\results.json",
+        "sha256": "5b20e51ba81458481ac9d360dfaa459ff75e555263ab43c0fecd404883eca485"
+      },
+      "sample": {
+        "path": "\\\\wsl.localhost\\Ubuntu\\var\\tmp\\xlang-validation\\xge-full-20261110\\widget-accessibility-tests-linux-r3\\example.rgba",
+        "sha256": "4b9174ce2330cfd57f1dad0fa5e772b5ae6c0e219f865f79c849988953cfd84e"
+      },
+      "checks": 11,
+      "legacyNativeCases": 64,
+      "directCalls": {
+        "xuiWidgetSetAccessibilityProviderOwned": 4,
+        "xuiWidgetGetAccessibleNodeCountChecked": 4,
+        "xuiWidgetPerformAccessibleAction": 2,
+        "xuiAccessibleNodeOutputSet": 3,
+        "xuiWidgetPerformAccessibleSelection": 1,
+        "xuiWidgetSetAccessibleTextValue": 1,
+        "xuiWidgetSetAccessibleNumberValue": 1,
+        "xuiWidgetGetAccessibleNode": 3
+      }
+    }
+  },
+  "audit": {
+    "functions": 5767,
+    "directDeclarations": 4701,
+    "compiledNativeConsumers": 281,
+    "explicitReplacements": 328,
+    "pending": {
+      "XGE": 160,
+      "XUI": 300,
+      "Document": 0
+    }
+  },
+  "allocationCheck": {
+    "operation": "checked node count with no custom provider and a prepared Widget",
+    "iterations": 1000,
+    "native": {
+      "alloc": 0,
+      "free": 0,
+      "realloc": 0
+    },
+    "xlang": {
+      "alloc": 0,
+      "free": 0,
+      "realloc": 0
+    }
+  },
+  "scopeBoundaries": {
+    "customNodeStrings": "one native allocation for supplied strings plus independent xlang snapshots",
+    "nativePlatformBridge": "native generic and observer regressions only"
+  }
+}

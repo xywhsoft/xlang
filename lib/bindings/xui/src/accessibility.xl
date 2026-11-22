@@ -1,0 +1,34 @@
+export extern "xui_accessible_node_values_t" struct AccessibleNodeValues @header("xge3_runtime.h")
+ uint64 iId
+ uint64 iParentId
+ c_int iRole
+ c_uint iState
+ Rect tBounds
+ c_int iTextStart
+ c_int iTextEnd
+ c_int iLevel
+ c_int iRow
+ c_int iColumn
+ c_int iRowCount
+ c_int iColumnCount
+ c_uint iActions
+ AccessibleRange tRange
+end
+
+export extern "xui_accessible_node_output_t*" class AccessibleNodeOutput @header("xge3_runtime.h") @lifetime("callback")
+ native point handle
+ extern "xuiAccessibleNodeOutputSet" @no_raise @c_ref(0) @c_pack(2,"xui_accessible_node_text_t",1,3) @c_pack_field(2,"sName",1,"c_string") @c_pack_field(2,"sValue",2,"c_string") @c_pack_field(2,"sDescription",3,"c_string") @c_result("status",0) func set(AccessibleNodeValues values,string? name=null,string? value=null,string? description=null)
+end
+
+export extern "const xui_accessible_action_data_t*" class AccessibleActionData @header("xge3_runtime.h") @lifetime("callback")
+ native point handle
+ extern "iKind" @c_field get kind() as c_int
+ extern "iAnchor" @c_field get anchor() as c_int
+ extern "iCaret" @c_field get caret() as c_int
+ extern "fNumber" @c_field get number() as c_double
+ extern "sText" @c_field @c_result("cstring") get text() as string?
+end
+
+export typedef AccessibleCountProc = func(CallbackWidget) as c_int
+export typedef AccessibleNodeProc = func(CallbackWidget,c_int,AccessibleNodeOutput) as c_int
+export typedef AccessibleActionProc = func(CallbackWidget,uint64,c_int,AccessibleActionData) as c_int

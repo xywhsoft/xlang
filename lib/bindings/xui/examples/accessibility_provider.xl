@@ -1,0 +1,32 @@
+import xui
+from "./_window.xl" import Window
+
+Window.show("自定义无障碍节点",func(xui.Context ui,xui.Widget root)
+    auto button=ui.buttonNative()
+    button.setText("触发无障碍动作")
+    Window.place(root,button,24,24,240,44)
+
+    // 通知辅助技术，这个控件提供一个可激活的按钮节点。
+    button.setAccessibilityProvider(
+        func(xui.CallbackWidget sender) as c_int
+            return 1
+        end,
+        func(xui.CallbackWidget sender,c_int index,xui.AccessibleNodeOutput reply) as c_int
+            auto node=xui.AccessibleNodeValues()
+            node.iId=uint64(1)
+            node.iRole=xui.XUI_ACCESSIBLE_ROLE_BUTTON
+            node.iActions=c_uint(2)
+            node.tBounds=sender.rect()
+            reply.set(node,"打开范例","", "点击后更新按钮文字")
+            return 0
+        end,
+        func(xui.CallbackWidget sender,uint64 id,c_int action,xui.AccessibleActionData data) as c_int
+            if action!=xui.XUI_ACCESSIBLE_ACTION_ACTIVATE then return xui.XUI_ERROR_UNSUPPORTED end
+            button.setText("无障碍动作已触发")
+            return 0
+        end)
+
+    button.setClick(func(xui.Widget sender)
+        sender.performAccessibleAction(uint64(1),xui.XUI_ACCESSIBLE_ACTION_ACTIVATE)
+    end)
+end)

@@ -1,0 +1,160 @@
+import xui
+from xui import CallbackWidget,AccessibleNodeOutput,AccessibleActionData
+
+extern "fixtureAccessibleHeapBegin" @header("test/cases/foreign_xui_accessibility_provider.h") @no_raise func heapBegin()
+extern "fixtureAccessibleBudget" @no_raise func budget(c_int allowance)
+extern "fixtureAccessibleHeapEnd" @no_raise func heapEnd()
+extern "fixtureAccessibleHotEnd" @no_raise func hotEnd(c_int native)
+extern "fixtureAccessibleNativeCount" @no_raise func nativeCount(xui.Widget widget)
+
+class ProviderProbe
+    bool saveOutput=true
+    bool failCount=false
+    bool failAction=false
+end
+
+func main(...) as int
+    auto proxy=xui.createProxy()
+    auto ui=xui.create(proxy)
+    auto root=ui.widget()
+    assert ui.setRootWidget(root)==0,"set root"
+    auto widget=ui.widget()
+    assert root.addChild(widget)==0,"attach widget"
+    auto keys=xui.AccessibleNodeValues()
+    keys.iId=uint64(42)
+    keys.iRole=xui.XUI_ACCESSIBLE_ROLE_BUTTON
+    keys.iActions=c_uint(2)
+
+    AccessibleNodeOutput? savedOutput=null
+    AccessibleActionData? savedAction=null
+    auto probe=ProviderProbe()
+    int actions=0
+    widget.setAccessibilityProvider(
+        func(CallbackWidget sender) as c_int
+            assert not probe.failCount,"count error"
+            return 2
+        end,
+        func(CallbackWidget sender,c_int index,AccessibleNodeOutput output) as c_int
+            assert index==0 or index==1,"node index"
+            auto node=keys
+            node.iId+=uint64(index)
+            output.set(node,"入口","",null)
+            if probe.saveOutput then savedOutput=output end
+            return 0
+        end,
+        func(CallbackWidget sender,uint64 id,c_int action,AccessibleActionData data) as c_int
+            assert not probe.failAction,"action error"
+            assert id==uint64(42),"action node id"
+            if action==xui.XUI_ACCESSIBLE_ACTION_ACTIVATE then
+                assert data.kind==xui.XUI_ACCESSIBLE_PAYLOAD_NONE,"no payload kind"
+            elseif action==xui.XUI_ACCESSIBLE_ACTION_SET_SELECTION then
+                assert data.kind==xui.XUI_ACCESSIBLE_PAYLOAD_SELECTION,"selection kind"
+                assert data.anchor==1 and data.caret==3,"selection values"
+            elseif data.kind==xui.XUI_ACCESSIBLE_PAYLOAD_NUMBER then
+                assert data.number==c_double(14.5),"numeric payload"
+            else
+                assert data.kind==xui.XUI_ACCESSIBLE_PAYLOAD_TEXT and (data.text ?? "")=="中文","text payload"
+            end
+            savedAction=data
+            actions+=1
+            return 0
+        end)
+
+    int failed=0
+    try
+        widget.setAccessibilityProvider(func(CallbackWidget sender) as c_int
+            return 3
+        end)
+    catch Error
+        failed+=1
+    end
+    assert failed==1,"incomplete callback group rejected"
+    assert widget.getAccessibleNodeCount()==2,"provider count"
+    auto id,parent,role,flags,name,value,description,bounds,textStart,textEnd,level,row,column,rowCount,columnCount,mask,numeric=widget.getAccessibleNode()
+    assert id==uint64(42) and role==xui.XUI_ACCESSIBLE_ROLE_BUTTON,"node id and role"
+    assert (name ?? "")=="入口" and (value ?? "missing")=="" and description==null,"node copied strings"
+    assert (mask & c_uint(2))!=c_uint(0),"activate action exposed"
+    failed=0
+    try
+        (savedOutput as AccessibleNodeOutput).set(keys)
+    catch StateError
+        failed+=1
+    end
+    assert failed==1,"expired node reply"
+    probe.saveOutput=false
+
+    widget.performAccessibleAction(uint64(42),xui.XUI_ACCESSIBLE_ACTION_ACTIVATE)
+    widget.performAccessibleSelection(uint64(42),1,3)
+    widget.setAccessibleValue(uint64(42),c_double(14.5))
+    widget.setAccessibleValue(uint64(42),"中文")
+    assert actions==4,"four actions dispatched"
+    try
+        auto text=(savedAction as AccessibleActionData).text
+    catch StateError
+        failed+=1
+    end
+    assert failed==2,"expired action view"
+
+    probe.failCount=true
+    try
+        widget.getAccessibleNodeCount()
+    catch AssertionError
+        failed+=1
+    end
+    assert failed==3,"count callback failure propagated"
+    probe.failCount=false
+    probe.failAction=true
+    try
+        widget.performAccessibleAction(uint64(42),xui.XUI_ACCESSIBLE_ACTION_ACTIVATE)
+    catch AssertionError
+        failed+=1
+    end
+    probe.failAction=false
+    assert failed==4,"action callback failure propagated"
+
+    failed=0
+    int succeeded=0
+    for allowance in range(24)
+        budget(c_int(allowance))
+        try
+            widget.getAccessibleNode(1)
+            succeeded+=1
+        catch Error
+            failed+=1
+        finally
+            heapEnd()
+        end
+    end
+    assert failed>0 and succeeded>0,"node OOM and retry"
+    assert (name ?? "")=="入口" and (value ?? "missing")=="","previous language snapshot survives later queries"
+
+    widget.setAccessibilityProvider(
+        func(CallbackWidget sender) as c_int
+            return 1
+        end,
+        func(CallbackWidget sender,c_int index,AccessibleNodeOutput output) as c_int
+            widget.setAccessibilityProvider()
+            output.set(keys,"discarded")
+            return 0
+        end)
+    failed=0
+    try
+        widget.getAccessibleNode()
+    catch Error
+        failed+=1
+    end
+    assert failed==1 and widget.getAccessibleNodeCount()==1,"provider replacement discards stale query"
+
+    heapBegin()
+    for index in range(1000)
+        assert widget.getAccessibleNodeCount()==1,"default count"
+    end
+    hotEnd(0)
+    heapBegin()
+    nativeCount(widget)
+    hotEnd(1)
+    ui.close()
+    proxy.close()
+    println("ACCESSIBILITY_PROVIDER_OK")
+    return 0
+end
