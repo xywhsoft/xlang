@@ -1,0 +1,314 @@
+{
+  "complete": true,
+  "passed": true,
+  "releaseInstalled": false,
+  "networkTests": false,
+  "scope": "Column paint callbacks, typed inner table views, nullable cached text, and native lifetime witnesses",
+  "nativeRevision": "2f39051bc22a704c42444eabb254c5c65e79a049",
+  "xlangSourceParent": "45bb48447888bc5adcbd4ee5702344e1cd00228d",
+  "validationBase": "e331f4f7c",
+  "xlangInputs": {
+    "docs/xge3-native-consumer-audit.md": "9ddfddd4b47792bc794edef35acd85dfb6c5b806d8317e9dddb94cd239eee4ab",
+    "docs/xge3-xui3-api-map-storage.json": "fa864c77fc0d1db43b91479b747189217b78d62c47607b893d68aa0a10eb1065",
+    "lib/bindings/xui/examples/tablegrid.xl": "577706ad60b37273cf7ee3b9ae9169be7c2298ddfd0db37902306df78ff6a9c8",
+    "lib/bindings/xui/src/cell.xl": "dcf479868436da25cafc134273527d3600630c19f47bd00cb4f4889ad5bed5b6",
+    "lib/bindings/xui/src/managed.xl": "323a2eb35d30aca12168d10922c2a0e52f7a90fec65f73befb13f23eff8cb18d",
+    "lib/bindings/xui/src/table_columns.xl": "6885f972d4fc03d6f6e71339f0b1cabcf6dc434b48e83f336bf304acf703a891",
+    "test/cases/foreign_xui_table_cell_optional_text.xl": "6a7334465c891640757d1cecc9517526fbf3aa207602707a294504a1b5c42557",
+    "test/cases/foreign_xui_table_column_formatter.c": "1f8c39cd20930ff73fb7f7680179eda8fb1b486c93c714306ca186d189b78ec1",
+    "test/cases/foreign_xui_table_column_formatter.h": "15f93e798da15c50278314fb9aa3bf3d78bef4211b1f827b1e7994a7e77a8bec",
+    "test/cases/foreign_xui_table_column_renderer.xl": "7c2bc41653709787d91022edf7528bbf9e66546cf22c900eceeacdf42feb85d1",
+    "tools/check_xge3_native_consumers.py": "d52812d86d52090f7bdcc981471ce73e3c0244c4884f58bc22d486e782ba364e",
+    "tools/xui_managed_contracts.py": "151e99ba1cdac7182616ee9f833211bb3eb49e4ce528ce713bb965a63f727532"
+  },
+  "helpers": [
+    {
+      "path": "F:/xlang-validation/xge-full-20261110/build-table-column-render-r1.py",
+      "sha256": "50d5edb0a5b8812223f680cf0d67fb4d7dec9cdde343673ff59ef26a0c873e91",
+      "bytes": 2524
+    },
+    {
+      "path": "F:/xlang-validation/xge-full-20261110/freeze-table-column-render-r2.py",
+      "sha256": "49362cbedb248796297f2a209e9627e4b462b33ff761da6b992179b12c230e50",
+      "bytes": 775
+    },
+    {
+      "path": "F:/xlang-validation/xge-full-20261110/freeze-table-column-render-r3.py",
+      "sha256": "57b69955a1c75901da2f574c1b2a180f47c975469f3db5295b7912c6efee38e4",
+      "bytes": 632
+    },
+    {
+      "path": "F:/xlang-validation/xge-full-20261110/stage-table-column-render-r2.py",
+      "sha256": "d11b4e5a9ba2f7acbe7117dbe4f7e8ebc21e5f261a6d8ba4188fd982715b633c",
+      "bytes": 1250
+    },
+    {
+      "path": "F:/xlang-validation/xge-full-20261110/stage-table-column-render-r3.py",
+      "sha256": "dc2efd4a8d2a436be0e9c645a1f004dee2227ca49f4cb4abd4825f3097dd70d8",
+      "bytes": 1250
+    },
+    {
+      "path": "F:/xlang-validation/xge-full-20261110/check-table-column-render-r1.py",
+      "sha256": "b3379789371537b8c347541cebaaf7fd1bf90a80b5d2405f29e2ec0b7da3340d",
+      "bytes": 4832
+    },
+    {
+      "path": "F:/xlang-validation/xge-full-20261110/check-table-column-render-native-r1.py",
+      "sha256": "8b25b04db6d5add7c9f97b2f206933edf3937a56e9da0fad72a4932dee64bf00",
+      "bytes": 2261
+    },
+    {
+      "path": "F:/xlang-validation/xge-full-20261110/check-table-cell-optional-r1.py",
+      "sha256": "3feae62bcc0f90dde3d1aa1b43d66d97c0ab088f4ac8b0df564d2b946cbedf98",
+      "bytes": 3360
+    },
+    {
+      "path": "F:/xlang-validation/xge-full-20261110/audit-table-column-render-r1.py",
+      "sha256": "ed9c896fbf83cf194580f53333319cd237b38ea9852276ff167b378bf9194ade",
+      "bytes": 2541
+    }
+  ],
+  "audit": {
+    "functions": 5747,
+    "directDeclarations": 4682,
+    "compiledNativeConsumers": 223,
+    "explicitReplacements": 293,
+    "pending": {
+      "XGE": 220,
+      "XUI": 332,
+      "Document": 0
+    }
+  },
+  "boundaries": [
+    "Cell, column and table paint priority; zero continues to built-in content.",
+    "Grid part queries and painting with checked expiry at parent destruction.",
+    "Callback replacement under OOM; reentrant column replacement preserves the first error.",
+    "All 128 slots across 64 formatters and 64 renderers are released together.",
+    "The nullable getters preserve absent native text and tooltip spans."
+  ],
+  "performance": {
+    "framesPerSample": 500,
+    "timer": "C clock() with XRT heap instrumentation on",
+    "comparison": "Same CPU target, one visible cell, one owned renderer returning handled; callback does not read text",
+    "nativeAllocationsPerFrame": 2,
+    "xlangAllocationsPerFrame": 2
+  },
+  "example": {
+    "path": "lib/bindings/xui/examples/tablegrid.xl",
+    "sha256": "577706ad60b37273cf7ee3b9ae9169be7c2298ddfd0db37902306df78ff6a9c8",
+    "linuxFrames": 2,
+    "log": {
+      "path": "/var/tmp/xlang-validation/xge-full-20261110/table-column-render-stage-linux-r2/suite-r3/packaged-grid-example.log",
+      "sha256": "8b5396a6cf8653b8a1c9109e43faf0a30dd5d23ab5c5cf0900150b84e7e63afb",
+      "bytes": 117
+    }
+  },
+  "platforms": {
+    "win": {
+      "nativeSource": {
+        "path": "F:/xlang-validation/xge-full-20261110/table-column-render-stage-win-r3/audit-r1/native-source.json",
+        "sha256": "5a56f9a3bbba54337ab0f25bc38d2661398f0f2ad2f069073508a24ad2f9b317",
+        "bytes": 466071
+      },
+      "generator": {
+        "path": "F:/xlang-validation/xge-full-20261110/table-column-render-generator-win-r3/results.json",
+        "sha256": "3ea31bcad3976f69b948fb35b77372d1c3dc3089d0f803c30460d223c5f60731",
+        "bytes": 244398
+      },
+      "inventory": {
+        "path": "F:/xlang-validation/xge-full-20261110/table-column-render-stage-win-r3/audit-r1/surface/surface.json",
+        "sha256": "657dd057f83d8ac6c2cca51d27ac8512c95b08beeaf98635d7b8218435c564b1",
+        "bytes": 5525202
+      },
+      "consumers": {
+        "path": "F:/xlang-validation/xge-full-20261110/table-column-render-stage-win-r3/audit-r1/consumers/results.json",
+        "sha256": "0d4bcaa9f6902eef3d04f65159542ce48b95986961bdee18c18bdc25eb20426e",
+        "bytes": 1341947
+      },
+      "hostedBuild": {
+        "path": "F:/xlang-validation/xge-full-20261110/table-column-render-host-win-r1/build-report.json",
+        "sha256": "1917aae82e0cc57cc6d3b447d78ea598608388063bd838f33c32837f58ee034c",
+        "bytes": 23794
+      },
+      "staticBuild": {
+        "path": "F:/xlang-validation/xge-full-20261110/table-column-render-static-win-r1/build-report.json",
+        "sha256": "a72bfad395462c468f4e40fa013a494a56780e850a3899fc64286209275cf244",
+        "bytes": 10275471
+      },
+      "rendererPackages": {
+        "path": "F:/xlang-validation/xge-full-20261110/table-column-render-stage-win-r2/replay/stage-report.json",
+        "sha256": "3f4eb6f6a08b8b1ed17ef3d3a9358928f2e84a244ec49d3ebb18b5bd22e64bb4",
+        "bytes": 173894
+      },
+      "candidatePackages": {
+        "path": "F:/xlang-validation/xge-full-20261110/table-column-render-stage-win-r3/replay/stage-report.json",
+        "sha256": "dadca20c1d40b5bb8cf1e75d9c811d2d730b0cce7b714434a6c9b6d162323d1f",
+        "bytes": 173894
+      },
+      "rendererTests": {
+        "path": "F:/xlang-validation/xge-full-20261110/table-column-render-stage-win-r2/suite-r3/results.json",
+        "sha256": "af77bfafe8913a95784995202ad1ad4316fb31f5bf425924a42af434eaa3c08c",
+        "bytes": 12303
+      },
+      "optionalTextTests": {
+        "path": "F:/xlang-validation/xge-full-20261110/table-column-render-stage-win-r3/cell-optional-r1/results.json",
+        "sha256": "baeea8cc28a1f663dac9f598b3e77d71dc34fe365f4365fa6cbc0733c580814a",
+        "bytes": 7080
+      },
+      "nativeProviderRegression": {
+        "path": "F:/xlang-validation/xge-full-20261110/table-column-render-native-suite-win-r1/results.json",
+        "sha256": "bc45d43e821848e92344b688f45a8d3e34c11e80f01930a5b446db22357d0fb6",
+        "bytes": 3455
+      },
+      "nativeCases": 996,
+      "nativeAssertions": 11335,
+      "rendererSamples": {
+        "jit": {
+          "native": {
+            "clockMilliseconds": 1.0,
+            "allocations": 1000,
+            "frees": 1000,
+            "reallocations": 0
+          },
+          "language": {
+            "clockMilliseconds": 2.0,
+            "allocations": 1000,
+            "frees": 1000,
+            "reallocations": 0
+          }
+        },
+        "dynamic": {
+          "native": {
+            "clockMilliseconds": 7.0,
+            "allocations": 1000,
+            "frees": 1000,
+            "reallocations": 0
+          },
+          "language": {
+            "clockMilliseconds": 6.0,
+            "allocations": 1000,
+            "frees": 1000,
+            "reallocations": 0
+          }
+        },
+        "static": {
+          "native": {
+            "clockMilliseconds": 4.0,
+            "allocations": 1000,
+            "frees": 1000,
+            "reallocations": 0
+          },
+          "language": {
+            "clockMilliseconds": 0.0,
+            "allocations": 1000,
+            "frees": 1000,
+            "reallocations": 0
+          }
+        }
+      }
+    },
+    "linux": {
+      "nativeSource": {
+        "path": "/var/tmp/xlang-validation/xge-full-20261110/table-column-render-stage-linux-r3/audit-r1/native-source.json",
+        "sha256": "9b6128b71c40a685f34081a0337492da6b9a2a77f4b5e7542dce352c176867dc",
+        "bytes": 462242
+      },
+      "generator": {
+        "path": "/var/tmp/xlang-validation/xge-full-20261110/table-column-render-generator-linux-r3/results.json",
+        "sha256": "6d9a4507a5ea6dc6651ea255292a6d05730dca933cbe620e266603f9ccef9635",
+        "bytes": 252983
+      },
+      "inventory": {
+        "path": "/var/tmp/xlang-validation/xge-full-20261110/table-column-render-stage-linux-r3/audit-r1/surface/surface.json",
+        "sha256": "0f5527c46176bc3a320d2966db44c7e025dee7e748691d7bd8401ba07677f52c",
+        "bytes": 5339947
+      },
+      "consumers": {
+        "path": "/var/tmp/xlang-validation/xge-full-20261110/table-column-render-stage-linux-r3/audit-r1/consumers/results.json",
+        "sha256": "9162036d9304ab999c291b1d84c7d63d24bfd0cdcb2fd4eef3affe7eae92c874",
+        "bytes": 1324496
+      },
+      "hostedBuild": {
+        "path": "/var/tmp/xlang-validation/xge-full-20261110/table-column-render-host-linux-r1/build-report.json",
+        "sha256": "49c3be9d0e74466b5c77b2558053b3225137dc571789a7f3dbfe1f2b930813ef",
+        "bytes": 23067
+      },
+      "staticBuild": {
+        "path": "/var/tmp/xlang-validation/xge-full-20261110/table-column-render-static-linux-r1/build-report.json",
+        "sha256": "67e1e90d4a088f83c7da71a0c01445a9b03410c4c016d042e16843a25a7d4cb6",
+        "bytes": 848667
+      },
+      "rendererPackages": {
+        "path": "/var/tmp/xlang-validation/xge-full-20261110/table-column-render-stage-linux-r2/replay/stage-report.json",
+        "sha256": "5049f078a05d4c80ef0a85e06c303e85e5df95ca6515643e6fa3beb0010f0a4c",
+        "bytes": 170171
+      },
+      "candidatePackages": {
+        "path": "/var/tmp/xlang-validation/xge-full-20261110/table-column-render-stage-linux-r3/replay/stage-report.json",
+        "sha256": "cc507c485d69d61aa19fe98f0296034cf9b8ffe19572af245d3e6cbcb45b7dbe",
+        "bytes": 170171
+      },
+      "rendererTests": {
+        "path": "/var/tmp/xlang-validation/xge-full-20261110/table-column-render-stage-linux-r2/suite-r3/results.json",
+        "sha256": "df9cd8718b055a2a19f64fd185ca537823831b1eb08cddbe20d3207fee326e6e",
+        "bytes": 12940
+      },
+      "optionalTextTests": {
+        "path": "/var/tmp/xlang-validation/xge-full-20261110/table-column-render-stage-linux-r3/cell-optional-r1/results.json",
+        "sha256": "4e56f791cc3e71b88026492186b8f96c779dd0dede0a2d52f726228e632053ce",
+        "bytes": 6902
+      },
+      "nativeProviderRegression": {
+        "path": "/var/tmp/xlang-validation/xge-full-20261110/table-column-render-native-suite-linux-r1/results.json",
+        "sha256": "95c40e9789b0b9e42b8d500f27f4b81d0cf3f84476f39dbf1596027c8b53e711",
+        "bytes": 3261
+      },
+      "nativeCases": 996,
+      "nativeAssertions": 11335,
+      "rendererSamples": {
+        "jit": {
+          "native": {
+            "clockMilliseconds": 2.324,
+            "allocations": 1000,
+            "frees": 1000,
+            "reallocations": 0
+          },
+          "language": {
+            "clockMilliseconds": 2.454,
+            "allocations": 1000,
+            "frees": 1000,
+            "reallocations": 0
+          }
+        },
+        "dynamic": {
+          "native": {
+            "clockMilliseconds": 3.443,
+            "allocations": 1000,
+            "frees": 1000,
+            "reallocations": 0
+          },
+          "language": {
+            "clockMilliseconds": 4.516,
+            "allocations": 1000,
+            "frees": 1000,
+            "reallocations": 0
+          }
+        },
+        "static": {
+          "native": {
+            "clockMilliseconds": 1.462,
+            "allocations": 1000,
+            "frees": 1000,
+            "reallocations": 0
+          },
+          "language": {
+            "clockMilliseconds": 2.05,
+            "allocations": 1000,
+            "frees": 1000,
+            "reallocations": 0
+          }
+        }
+      }
+    }
+  }
+}

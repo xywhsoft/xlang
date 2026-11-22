@@ -1,5 +1,41 @@
 # Native consumers in the full API inventory
 
+## TableView column painters and grid table views
+
+`TableView.setColumnRenderer()` runs after the individual cell renderer and
+before the whole-table renderer. Returning zero continues that sequence.
+A positive result completes the cell paint. Checked errors still reach
+the render caller when a callback rebuilds the columns during dispatch.
+Replacing columns retires their formatters and renderers together. Cell and
+draw views stay valid through the current callback and expire on return.
+
+`xui.tableView(grid)` returns a `TableViewPart` for either a TableGrid or a
+PropertyGrid. It calls the existing native getter and exposes table queries,
+geometry, scroll state, and paint customization. The grid manages its table,
+rows, and editors. Closing the grid invalidates saved part views. The
+original `getTableView()` remains available for callers using `Widget`.
+
+`xui.cellText()` and `xui.cellTooltip()` expose nullable reads from a cached
+cell. An unset or cleared native text span returns `null`. The existing
+non-null `text()` and `tooltip()` methods retain their checked contract.
+
+Passing `--table-engine-build` with the matching hosted report adds COFF and
+ELF evidence for the native cell-output initialization and cleanup, the
+call scope used by `getCell()`, and the initialization of the TableGrid
+editor configuration. The audit reports these as compiled native consumers.
+
+The paired measurements run 500 CPU-rendered frames with one active column
+callback, the same cell and target, and the same return value. The C and
+xlang paths both record two XRT heap allocations and frees per frame. The
+sample callback leaves cell text unread. The local timing samples are kept
+with the allocation results.
+
+The audit now covers 5,747 native functions, with 4,682 direct declarations,
+223 compiled native consumer entries, and 293 explicit replacements. The
+552 outstanding entries include 220 in XGE and 332 in XUI.
+
+[Validation evidence](../dev/release-materials/provenance/xui-table-column-renderer-20261123.json)
+
 ## TableView column formatting and typed rows
 
 `TableView.setColumnFormatter()` supplies text for a column when the cell
@@ -24,9 +60,9 @@ The native formatter recorded no heap allocations. The xlang formatter
 recorded one allocation and free per call. The reports retain the local
 timing samples for each build mode.
 
-The audit now covers 5,746 native functions, with 4,681 direct declarations,
-218 compiled native consumer entries, and 293 explicit replacements. The
-557 outstanding entries include 220 in XGE and 337 in XUI.
+At this milestone, the audit covered 5,746 native functions, with 4,681
+direct declarations, 218 compiled native consumer entries, and 293 explicit
+replacements. The 557 outstanding entries include 220 in XGE and 337 in XUI.
 
 [Validation evidence](../dev/release-materials/provenance/xui-table-column-formatter-20261123.json)
 

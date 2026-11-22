@@ -5338,6 +5338,8 @@ export extern "xui_widget_t*" class TableView @header("xge3_runtime.h") @lifetim
 
  extern "xuiTableViewSetColumnFormatterOwned" @no_raise @c_owned_callback(1,0,"xui_callback_owner_t",-16) @c_result("status",0) func setColumnFormatter(c_int column,TableViewColumnFormatter? formatter)
 
+ extern "xuiTableViewSetColumnRendererOwned" @no_raise @c_owned_callback(1,0,"xui_callback_owner_t",-16) @c_result("status",0) func setColumnRenderer(c_int column,TableViewCellRenderer? renderer)
+
  extern "xuiTableViewSetFont" @no_raise @c_result("status",0) func setFont(Font? pFont)
 
  extern "xuiTableViewGetFont" @no_raise @c_result("retained_view") @c_retain(retainFont,"zero",rollbackFont) func getFont() as Font?

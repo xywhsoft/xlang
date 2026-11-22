@@ -1,0 +1,26 @@
+import xui
+
+func main(...) as int
+    auto cell = xui.createTableCell()
+    assert xui.cellText(cell) == null and xui.cellTooltip(cell) == null
+
+    cell.setText("Table cell")
+    cell.setTooltip("原生提示")
+    assert (xui.cellText(cell) ?? "") == "Table cell"
+    assert (xui.cellTooltip(cell) ?? "") == "原生提示"
+    assert cell.text() == "Table cell" and cell.tooltip() == "原生提示"
+
+    cell.setText("")
+    cell.setTooltip("")
+    assert xui.cellText(cell) == null and xui.cellTooltip(cell) == null
+    cell.close()
+    bool expired = false
+    try
+        xui.cellText(cell)
+    catch StateError
+        expired = true
+    end
+    assert expired
+    println("TABLE_CELL_OPTIONAL_TEXT_OK")
+    return 0
+end

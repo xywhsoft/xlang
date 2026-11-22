@@ -64,3 +64,24 @@ export extern "xui_table_view_format_output_t*" class CallbackTableViewFormatOut
 end
 
 export typedef TableViewColumnFormatter = func(CallbackWidget,c_int,c_int,CallbackTableViewCell,CallbackTableViewFormatOutput) as c_int
+
+// The containing grid owns this table and controls its data and editor lifecycle.
+export extern "xui_widget_t*" class TableViewPart @header("xge3_runtime.h") @lifetime("owner") @owner(Context) @policy("xl6Xui3WidgetPolicy") @watch("xui_lifetime_link_t")
+ native point handle
+ extern "xuiTableViewGetRowCount" @no_raise func getRowCount() as c_int
+ extern "xuiTableViewGetColumnCount" @no_raise func getColumnCount() as c_int
+ extern "xuiTableViewGetColumnDescriptor" @no_raise @c_output_record(2,"xui_table_column_desc_t","borrowed") @c_status(0) @c_output_field(0,"tSettings") @c_output_field(1,"sId","cstring") @c_output_field(2,"sTitle","cstring") @c_output_field(3,"tRect") func getColumn(c_int index) as (TableColumnSettings,string?,string?,Rect)
+ extern "xuiTableViewGetCellOwned" @no_raise @c_result("status",0) func getCell(c_int row,c_int column,TableCellOutput output)
+ extern "xuiTableViewGetCellContentRect" @no_raise @c_output(3,0) func getCellContentRect(c_int row,c_int column) as Rect
+ extern "xuiTableViewGetCellRect" @no_raise @c_output(3,0) func getCellRect(c_int row,c_int column) as Rect
+ extern "xuiTableViewGetItemAt" @no_raise @c_outputs(3,4) @c_status(0) func getItemAt(c_float x,c_float y) as (c_int,c_int)
+ extern "xuiTableViewGetSelectedCell" @no_raise @c_outputs(1,2) @c_status(0) func getSelectedCell() as (c_int,c_int)
+ extern "xuiTableViewGetScrollSnapshot" @no_raise @c_output(1,0) func scrollSnapshot() as ScrollModel
+ extern "xuiTableViewSetHeaderRendererOwned" @no_raise @c_owned_callback(0,0,"xui_callback_owner_t",-16) @c_result("status",0) func setHeaderRenderer(TableViewHeaderRenderer? renderer)
+ extern "xuiTableViewSetCellRendererOwned" @no_raise @c_owned_callback(0,0,"xui_callback_owner_t",-16) @c_result("status",0) func setCellRenderer(TableViewCellRenderer? renderer)
+ extern "xuiTableViewSetColumnRendererOwned" @no_raise @c_owned_callback(1,0,"xui_callback_owner_t",-16) @c_result("status",0) func setColumnRenderer(c_int column,TableViewCellRenderer? renderer)
+ extern "xuiTableViewSetColumnFormatterOwned" @no_raise @c_owned_callback(1,0,"xui_callback_owner_t",-16) @c_result("status",0) func setColumnFormatter(c_int column,TableViewColumnFormatter? formatter)
+end
+
+export extern "xuiTableGridGetTableView" @header("xge3_runtime.h") @no_raise @c_result("owner_view",0) func tableView(TableGrid grid) as TableViewPart?
+export extern "xuiPropertyGridGetTableView" @header("xge3_runtime.h") @no_raise @c_result("owner_view",0) func tableView(PropertyGrid grid) as TableViewPart?

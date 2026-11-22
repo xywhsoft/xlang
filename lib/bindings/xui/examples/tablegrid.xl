@@ -1,8 +1,9 @@
-// 双击单元格编辑；回调把新文字写回 rows。
+// 双击单元格编辑。值列左缘的色条由列绘制回调添加。
 import xui
+from xui import TableViewPart
 from "./_window.xl" import Window
 
-Window.show("Tablegrid / columns and cells", func(xui.Context ui, xui.Widget root)
+Window.showWithProxy("Tablegrid / columns and cells", func(xui.Context ui, xui.Widget root, xui.Proxy proxy)
  auto table = ui.tableGridNative()
  Window.place(root, table, 24, 24, 640, 300)
  table.setColumns(["Name", "Value"], [250, 220])
@@ -14,5 +15,11 @@ Window.show("Tablegrid / columns and cells", func(xui.Context ui, xui.Widget roo
   return 0
  end, func(xui.Widget table, c_int row, c_int column, xui.CString value, c_int type)
   rows[int(row)][int(column)] = value.copy()
+ end)
+ auto body = xui.tableView(table) as TableViewPart
+ body.setColumnRenderer(1,func(xui.CallbackWidget widget,c_int row,c_int column,xui.CallbackTableViewCell cell,xui.CallbackDrawContext draw,xui.Rect area,c_int state) as c_int
+  area.fW = 3
+  proxy.fillRect(draw,area,c_uint(0xFF3076AE))
+  return 0 // 保留表格的默认文字和边线。
  end)
 end)

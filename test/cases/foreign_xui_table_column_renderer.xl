@@ -1,0 +1,192 @@
+import xui
+from xui import CallbackWidget,CallbackTableViewCell,CallbackDrawContext,CallbackConstTableViewCellOutput,Context,Font,Proxy,Rect,Surface,TableView,TableViewPart
+
+extern "fixtureTableMeasureColumnRenderer" @header("test/cases/foreign_xui_table_column_formatter.h") @no_raise func measureRenderer(TableView table,Surface target,c_int native)
+extern "fixtureRenderProxy" @header("test/cases/foreign_xui_render_backend.h") @no_raise @c_result("owned_view") @factory(0,0,dropProxy) func cpuProxy() as Proxy
+extern "fixtureRenderSurface" @no_raise @c_result("owned_view") @factory(1,0,dropSurface) func cpuSurface(Proxy proxy) as Surface
+extern "fixtureRenderFont" @no_raise @c_result("owned_view") @factory(1,0,dropFont) func cpuFont(Proxy proxy) as Font
+extern "fixtureRenderBalanced" @no_raise func balanced() as c_int
+extern "fixtureRenderBudget" @no_raise func budget(c_int allowance)
+extern "fixtureRenderSawText" @no_raise @c_cstr(0) func sawText(string text) as c_int
+extern "fixtureRenderResetText" @no_raise func resetText()
+extern "xuiProxyReleaseChecked" @header("xge3_runtime.h") @no_raise @c_result("status",0) func dropProxy(Proxy value)
+extern "xuiSurfaceReleaseChecked" @no_raise @c_result("status",0) func dropSurface(Surface value)
+extern "xuiFontReleaseChecked" @no_raise @c_result("status",0) func dropFont(Font value)
+
+func checkParts(Context ui,Surface target)
+    auto grid = ui.tableGridNative()
+    Rect bounds
+    bounds.fW = 320
+    bounds.fH = 160
+    assert grid.setRect(bounds) == 0 and ui.setRootWidget(grid) == 0
+    grid.setColumns(["Grid column"],[120])
+    xui.TableViewRow row
+    row.fHeight = 31
+    assert grid.setRows([row]) == 0
+    grid.setAdapter(null,func(xui.Widget widget,c_int row,c_int column,xui.CallbackTableViewCellOutput cell) as c_int
+        cell.setText("Grid data")
+        return 0
+    end,null)
+    assert grid.getTableView() != null
+    auto part = xui.tableView(grid) as TableViewPart
+    assert part.getColumnCount() == 1 and part.getRowCount() == 1
+    auto settings,id,title,columnRect = part.getColumn(0)
+    assert (title ?? "") == "Grid column" and part.getCellContentRect(0,0).fH == 31
+    auto output = xui.createTableCell()
+    part.getCell(0,0,output)
+    assert output.text() == "Grid data"
+    output.close()
+    int paints = 0
+    part.setColumnRenderer(0,func(CallbackWidget widget,c_int row,c_int column,CallbackTableViewCell cell,CallbackDrawContext draw,Rect area,c_int state) as c_int
+        assert row == 0 and column == 0 and area.fH == 31
+        paints += 1
+        return 1
+    end)
+    assert ui.layout() == 0
+    ui.render(target)
+    assert paints == 1
+    grid.close()
+    bool expired = false
+    try
+        part.getRowCount()
+    catch StateError
+        expired = true
+    end
+    assert expired
+
+    auto property = ui.propertyGridNative()
+    assert property.getTableView() != null
+    auto propertyPart = xui.tableView(property) as TableViewPart
+    assert propertyPart.getColumnCount() == 2
+    property.close()
+    expired = false
+    try
+        propertyPart.scrollSnapshot()
+    catch StateError
+        expired = true
+    end
+    assert expired
+end
+
+func checkOrder(Context ui,TableView table,Surface target)
+    auto cache = xui.createTableCell()
+    cache.setText("Built-in text")
+    cache.setTooltip("Valid while painting")
+    string order = ""
+    array<bool> handled = [true,true]
+    cache.setRenderer(func(CallbackWidget widget,c_int row,c_int column,CallbackConstTableViewCellOutput cell,CallbackDrawContext draw,Rect area,c_int state) as c_int
+        order += "cell "
+        if handled[0] then return 1 end
+        return 0
+    end)
+    table.setAdapter(null,func(xui.Widget widget,c_int row,c_int column,xui.CallbackTableViewCellOutput cell) as c_int
+        cell.use(cache)
+        return 0
+    end)
+    CallbackTableViewCell? saved = null
+    table.setColumnRenderer(0,func(CallbackWidget widget,c_int row,c_int column,CallbackTableViewCell cell,CallbackDrawContext draw,Rect area,c_int state) as c_int
+        assert row == 0 and column == 0 and (cell.text ?? "") == "Built-in text"
+        saved = cell
+        order += "column "
+        if handled[1] then return 1 end
+        return 0
+    end)
+    xui.TableViewCellRenderer fallback = func(CallbackWidget widget,c_int row,c_int column,CallbackTableViewCell cell,CallbackDrawContext draw,Rect area,c_int state) as c_int
+        order += "table"
+        return 0
+    end
+    table.setCellRenderer(fallback)
+    ui.render(target)
+    assert order == "cell ","Cell renderer should stop the paint sequence"
+
+    handled[0] = false
+    order = ""
+    table.setCellRenderer(fallback)
+    ui.render(target)
+    assert order == "cell column ","Expected cell then column, observed: "+order
+    bool expired = false
+    try
+        auto text = (saved as CallbackTableViewCell).text
+    catch StateError
+        expired = true
+    end
+    assert expired
+
+    xui.TableViewCellRenderer rejected = func(CallbackWidget widget,c_int row,c_int column,CallbackTableViewCell cell,CallbackDrawContext draw,Rect area,c_int state) as c_int
+        throw RuntimeError "unexpected replacement"
+    end
+    bool failed = false
+    budget(0)
+    try
+        table.setColumnRenderer(0,rejected)
+    catch Error
+        failed = true
+    finally
+        budget(-1)
+    end
+    assert failed
+    order = ""
+    handled[1] = false
+    resetText()
+    table.setCellRenderer(fallback)
+    ui.render(target)
+    assert order == "cell column table" and sawText("Built-in text") != 0,"Default paint must follow all three callbacks"
+
+    table.setColumnRenderer(0,func(CallbackWidget widget,c_int row,c_int column,CallbackTableViewCell cell,CallbackDrawContext draw,Rect area,c_int state) as c_int
+        table.setColumns(["Rebuilt"],[120])
+        assert (cell.tooltip ?? "") == "Valid while painting"
+        throw RuntimeError "column renderer failure"
+    end)
+    failed = false
+    try
+        ui.render(target)
+    catch RuntimeError error
+        failed = error.message == "column renderer failure"
+    end
+    assert failed
+    order = ""
+    table.setCellRenderer(fallback)
+    ui.render(target)
+    assert order == "cell table","Column replacement must retire the old painter"
+    table.setAdapter(null,null)
+    table.setCellRenderer(null)
+    cache.close()
+end
+
+func main(...) as int
+    auto proxy = cpuProxy()
+    auto target = cpuSurface(proxy)
+    auto font = cpuFont(proxy)
+    auto ui = xui.create(proxy,xui.XUI_SYSTEM_FONT_DISABLED)
+    ui.setViewportSize(320,160)
+    checkParts(ui,target)
+
+    auto table = ui.tableViewNative()
+    Rect bounds
+    bounds.fW = 320
+    bounds.fH = 160
+    assert table.setRect(bounds) == 0 and ui.setRootWidget(table) == 0
+    table.setFont(font)
+    table.setColumns(["Column"],[120])
+    xui.TableViewRow row
+    row.fHeight = 24
+    assert table.setRows([row]) == 0
+    assert ui.layout() == 0
+    checkOrder(ui,table,target)
+
+    measureRenderer(table,target,1)
+    int rendered = 0
+    table.setColumnRenderer(0,func(CallbackWidget widget,c_int row,c_int column,CallbackTableViewCell cell,CallbackDrawContext draw,Rect area,c_int state) as c_int
+        rendered += 1
+        return 1
+    end)
+    measureRenderer(table,target,0)
+    assert rendered == 501
+    ui.close()
+    font.close()
+    target.close()
+    proxy.close()
+    assert balanced() != 0
+    println("TABLE_COLUMN_RENDERER_OK")
+    return 0
+end

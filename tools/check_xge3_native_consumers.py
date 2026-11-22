@@ -54,6 +54,18 @@ DOCUMENT_EXPORTS = (
     'xuiDocumentSnapshotCopyRange', 'xuiDocumentSnapshotCopyTableMatrix',
     'xuiDocumentFragmentSerialize', 'xuiDocumentFragmentExportHtml',
 )
+TABLE_VIEW_SOURCE = 'src/xui/controls/xui_table_view.c'
+TABLE_GRID_SOURCE = 'src/xui/controls/xui_table_grid.c'
+TABLE_LIFETIME_CALLS = {
+    TABLE_VIEW_SOURCE: {
+        '__xuiTableViewGetCell': ('xuiTableViewCellOutputInit',),
+        '__xuiTableViewLeaseEnd': ('xuiTableViewCellOutputDisposeChecked',),
+        'xuiTableViewGetCellOwned': ('xuiTableViewCellOutputCallScopeBegin', 'xuiTableViewCellOutputCallScopeEnd'),
+    },
+    TABLE_GRID_SOURCE: {
+        '__xuiTableGridInit': ('xuiTableGridEditorConfigOutputInit',),
+    },
+}
 
 
 def object_relocations(text):
@@ -153,7 +165,7 @@ def compile_3d_policies(view, classes, native_names, flags, tools, out, run, sym
     return evidence, relocations
 
 
-def document_build_inputs(build, audit, packages, gcc, sha):
+def witness_build_inputs(build, audit, packages, gcc, sha, units):
     metadata = json.loads(build.read_text(encoding='utf-8'))
     assert metadata['linked'] and metadata['xrt_mode']=='host'
     assert Path(metadata['compiler'][0]).resolve()==gcc
@@ -165,10 +177,9 @@ def document_build_inputs(build, audit, packages, gcc, sha):
     assert freeze['engineRevision']==audit['nativeRevision'] and Path(freeze['source']).resolve()==source
     image = build.parent/metadata['runtime_image']
     staged_image = packages/'_xge_native/native'/image.name
-    assert sha(image)==sha(staged_image), 'Document witness must match the staged runtime'
+    assert sha(image)==sha(staged_image), 'Native witness must match the staged runtime'
     pins = [build, record, image, build.parent/'xge_build_config.h']
     pins.extend((build.parent/'host-xrt').glob('*.*'))
-    units = {DOCUMENT_RENDERER_SOURCE, DOCUMENT_MODEL_SOURCE}
     for name in units:
         assert name in metadata['sources'], name
     for name, digest in freeze['sourceInputs'].items():
@@ -177,6 +188,24 @@ def document_build_inputs(build, audit, packages, gcc, sha):
             assert path.is_relative_to(source) and sha(path)==digest, name
             pins.append(path)
     return source, metadata['flags'], pins
+
+
+def prove_table_lifetime(source, flags, bound, tools, out, run, sha):
+    assert any(item['language']=='xui.TableView.getCell' for item in bound['xuiTableViewGetCellOwned'])
+    assert any(item['language']=='xui.Context.tableGridNative' for item in bound['xuiTableGridCreate'])
+    evidence = {}
+    for path, expected in TABLE_LIFETIME_CALLS.items():
+        label = Path(path).stem+'-lifetime'
+        obj = out/(label+'.o')
+        run(label+'-compile', [tools['gcc'],*flags,'-O0','-fno-inline','-ffunction-sections',
+            '-fdata-sections','-c',source/path,'-o',obj], cwd=source)
+        relocations = object_relocations(run(label+'-relocations',[tools['objdump'],'-r',obj]))
+        for caller, names in expected.items():
+            refs = relocations.get('.text.'+caller, set()) | relocations.get('.text$'+caller, set())
+            for name in names:
+                assert {'.text.'+name, '.text$'+name, name} & refs, (caller, name)
+        evidence[path] = dict(object=str(obj), objectSha256=sha(obj), nativeCalls=expected)
+    return evidence
 
 
 def prove_document_lifetime(source, flags, view, bound, packages, tools, out, run, sha):
@@ -228,6 +257,8 @@ def main():
         p.add_argument('--'+name,type=Path,required=True)
     p.add_argument('--document-engine-build',type=Path,
         help='Matching hosted engine build-report.json for Document lifetime witnesses')
+    p.add_argument('--table-engine-build',type=Path,
+        help='Matching hosted engine build-report.json for TableView and TableGrid lifetime witnesses')
     a=p.parse_args();surface,cc,build,packages,replay,out=[v.resolve() for v in
         (a.surface,a.compiler,a.compiler_report,a.packages,a.replay_report,a.out)]
     if out.is_relative_to(packages) or out.is_relative_to(cc.parent):
@@ -250,10 +281,16 @@ def main():
         Path(__file__).with_name('check_xge3_bindings.py'),surface,cc,build,*proof,*tools.values()]
     for folder in (sdk,packages):files.extend(f for f in folder.rglob('*') if f.is_file())
     document = None
+    table_build = None
     if a.document_engine_build:
-        document_source, document_flags, evidence_inputs = document_build_inputs(
-            a.document_engine_build.resolve(),audit,packages,tools['gcc'],sha)
+        document_source, document_flags, evidence_inputs = witness_build_inputs(
+            a.document_engine_build.resolve(),audit,packages,tools['gcc'],sha,{DOCUMENT_RENDERER_SOURCE, DOCUMENT_MODEL_SOURCE})
         files.extend(evidence_inputs)
+    if a.table_engine_build:
+        table_source, table_flags, evidence_inputs = witness_build_inputs(
+            a.table_engine_build.resolve(),audit,packages,tools['gcc'],sha,TABLE_LIFETIME_CALLS.keys())
+        files.extend(evidence_inputs)
+        table_build = (table_source, table_flags)
     inputs={str(f):sha(f) for f in files};out.mkdir(parents=True,exist_ok=False)
     report=dict(complete=False,passed=False,scope=__doc__,inputs=inputs,rows=[],objects=[],providerAliases=[],
         runtimeAcceptance=False,apiCompletenessClaim=False,shippingDelivery=False,networkTests=False,graphicsTests=False)
@@ -331,6 +368,12 @@ def main():
             report['documentLifetime'] = document
             for symbol in sorted(DOCUMENT_FONT_TAIL):
                 consumers.setdefault(symbol,[]).append(DOCUMENT_RENDERER_SOURCE)
+        if table_build:
+            report['tableLifetime'] = prove_table_lifetime(*table_build,bound,tools,out,run,sha)
+            for source_path, expected in TABLE_LIFETIME_CALLS.items():
+                for names in expected.values():
+                    for symbol in names:
+                        consumers.setdefault(symbol,[]).append(source_path)
         for symbol,item in sorted(functions.items()):
             if item['declarationPresent']:continue
             replacement=REPLACED.get(symbol)

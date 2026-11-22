@@ -15,4 +15,6 @@ export extern "xui_table_view_cell_output_t*" class TableCellOutput @header("xge
  extern "xl6ForeignViewCloseV1" @no_raise @c_control(0) @c_result("bool_status") func close()
 end
 export extern "xuiTableViewCellOutputCreate" @no_raise @c_result("owned_view") @factory(0,0,rollbackCell) func createTableCell() as TableCellOutput
+export extern "xuiTableViewCellOutputGetText" @header("xge3_runtime.h") @no_raise @c_const(0) @c_result("text_view") func cellText(TableCellOutput cell) as string?
+export extern "xuiTableViewCellOutputGetTooltip" @header("xge3_runtime.h") @no_raise @c_const(0) @c_result("text_view") func cellTooltip(TableCellOutput cell) as string?
 extern "xuiTableViewCellOutputReleaseChecked" @no_raise @c_result("status",0) func rollbackCell(TableCellOutput cell)

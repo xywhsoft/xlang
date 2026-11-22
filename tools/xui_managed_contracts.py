@@ -779,6 +779,8 @@ METHODS.update({
         'TableView', ['extern "xuiTableViewSetCellRendererOwned" @no_raise @c_owned_callback(0,0,"xui_callback_owner_t",-16) @c_result("status",0) func setCellRenderer(TableViewCellRenderer? renderer)']],
     'xuiTableViewSetColumnFormatterOwned': ['int xuiTableViewSetColumnFormatterOwned(xui_widget pWidget, int iColumn, xui_table_view_format_owned_proc onFormat, void* pUser, const xui_callback_owner_t* pOwner)',
         'TableView', ['extern "xuiTableViewSetColumnFormatterOwned" @no_raise @c_owned_callback(1,0,"xui_callback_owner_t",-16) @c_result("status",0) func setColumnFormatter(c_int column,TableViewColumnFormatter? formatter)']],
+    'xuiTableViewSetColumnRendererOwned': ['int xuiTableViewSetColumnRendererOwned(xui_widget pWidget, int iColumn, xui_table_view_cell_renderer_proc onRender, void* pUser, const xui_callback_owner_t* pOwner)',
+        'TableView', ['extern "xuiTableViewSetColumnRendererOwned" @no_raise @c_owned_callback(1,0,"xui_callback_owner_t",-16) @c_result("status",0) func setColumnRenderer(c_int column,TableViewCellRenderer? renderer)']],
     'xuiTableViewSetRows': ['int xuiTableViewSetRows(xui_widget pWidget, const xui_table_view_row_t* arrRows, int iCount)', 'TableView',
         ['extern "xuiTableViewSetRows" @no_raise @c_span(0,"const xui_table_view_row_t*","int") func setRows(Buffer arrRows) as c_int',
          'extern "xuiTableViewSetRows" @no_raise @c_array_group(1,0,1,"int",1) @c_array_input(1,0,"const xui_table_view_row_t*","value") func setRows(array<TableViewRow> rows,int size=-1) as c_int']],
