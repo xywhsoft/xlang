@@ -1,0 +1,25 @@
+// Read the committed scroll state without opening a window.
+import xui
+
+auto proxy = xui.createProxy()
+auto ui = xui.create(proxy, xui.XUI_SYSTEM_FONT_DISABLED)
+auto canvas = ui.canvas()
+
+try
+    xui.Rect viewport
+    viewport.fW = 160
+    viewport.fH = 100
+    assert canvas.setRect(viewport) == 0
+    assert ui.setRootWidget(canvas) == 0
+    ui.setViewportSize(160, 100)
+    canvas.setCanvasSize(640, 480)
+    assert ui.layout() == 0
+    assert canvas.setOffset(20, 60) == 0
+
+    auto scroll = canvas.scrollSnapshot()
+    println("Content size", scroll.fContentWidth, scroll.fContentHeight)
+    println("Scroll offset", scroll.fScrollX, scroll.fScrollY)
+finally
+    ui.close()
+    proxy.close()
+end

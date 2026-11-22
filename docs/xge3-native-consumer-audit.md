@@ -1,5 +1,23 @@
 # Native consumers in the full API inventory
 
+## Canvas, ListView and Popup scroll snapshots
+
+`Canvas.scrollSnapshot()`, `ListView.scrollSnapshot()` and
+`Popup.scrollSnapshot()` return the last committed viewport, content extent
+and offset as a `ScrollModel` value. They call their respective XUI functions
+directly. Each native function uses the control's existing ScrollFrame or
+ScrollView and copies its model once. The query runs on the Context thread and
+does not perform layout or dispatch callbacks. The value stays usable after the
+control closes. Apply deliberate changes through the control's offset and
+content-size methods so its layout and invalidation stay consistent.
+
+The standalone example reads a Canvas at offset (20, 60) without opening a
+window. The broader Canvas test still reports an external-surface cache
+failure on Windows and Linux with the prior SDK and with this SDK. A focused
+ScrollFrame fixture exercises Canvas snapshot behavior without that render
+dependency.
+[Validation evidence](../dev/release-materials/provenance/xui-scroll-control-snapshots-20261122.json)
+
 ## Mini-program initialization and bridge
 
 Call xlang's checked `xge.miniProgramInit()` before the host knows its canvas

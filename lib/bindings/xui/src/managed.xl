@@ -4945,6 +4945,8 @@ export extern "xui_widget_t*" class Canvas @header("xge3_runtime.h") @lifetime("
 
  extern "xuiCanvasSetOffset" @no_raise func setOffset(c_float fOffsetX,c_float fOffsetY) as c_int
 
+ extern "xuiCanvasGetScrollSnapshot" @no_raise @c_output(1,0) func scrollSnapshot() as ScrollModel
+
  extern "xuiCanvasScrollBy" @no_raise func scrollBy(c_float fDeltaX,c_float fDeltaY) as c_int
 
  extern "xuiCanvasEnsureRectVisible" @no_raise func ensureRectVisible(Rect tContentRect) as c_int
@@ -5056,6 +5058,8 @@ export extern "xui_widget_t*" class ListView @header("xge3_runtime.h") @lifetime
  extern "xuiListViewSetScroll" @no_raise func setScroll(c_float fOffsetY) as c_int
 
  extern "xuiListViewGetScroll" @no_raise func getScroll() as c_float
+
+ extern "xuiListViewGetScrollSnapshot" @no_raise @c_output(1,0) func scrollSnapshot() as ScrollModel
 
  extern "xuiListViewEnsureVisible" @no_raise @c_result("status",0) func ensureVisible(c_int iIndex)
 
@@ -5824,6 +5828,8 @@ export extern "xui_widget_t*" class Popup @header("xge3_runtime.h") @lifetime("o
  extern "xuiPopupGetChangeCount" @no_raise func getChangeCount() as c_int
 
  extern "xuiPopupGetScroll" @no_raise @c_outputs(1,2) @c_status(0) func getScroll() as (c_float,c_float)
+
+ extern "xuiPopupGetScrollSnapshot" @no_raise @c_output(1,0) func scrollSnapshot() as ScrollModel
 
  extern "xuiPopupGetScrollbarStyle" @no_raise @c_outputs(1,2) @c_status(0) func getScrollbarStyle() as (c_int,c_float)
 

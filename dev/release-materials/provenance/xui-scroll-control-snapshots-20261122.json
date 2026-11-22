@@ -1,0 +1,217 @@
+{
+  "complete": true,
+  "passed": true,
+  "releaseInstalled": false,
+  "nativeRevision": "573410834eb51119deddb682a064089523310b6e",
+  "scope": "Canvas, ListView and Popup by-value scroll model queries and candidate SDKs",
+  "audit": {
+    "functionPopulation": 5721,
+    "directDeclarations": 4648,
+    "compiledConsumers": 175,
+    "explicitReplacements": 158,
+    "unclassified": {
+      "Document": 1,
+      "Document UI": 2,
+      "XGE": 348,
+      "XUI": 389
+    }
+  },
+  "platforms": {
+    "win": {
+      "packages": {
+        "host": {
+          "path": "F:/xlang-validation/xge-full-20261110/xui-scroll-control-stage-win-host-r1/host.json",
+          "sha256": "e195f86174f8d0ab7cce2b703d2def3a4ca2e780cafb1fad6f5f5fdb1c28a69c"
+        },
+        "static": {
+          "path": "F:/xlang-validation/xge-full-20261110/xui-scroll-control-stage-win-static-r1/static.json",
+          "sha256": "6fbfa6bb58c31f58cdf5bb1257db4a0b6cfce6ccdecf90400c5757353b606f4e"
+        }
+      },
+      "codegenAndImports": {
+        "path": "F:/xlang-validation/xge-full-20261110/xui-scroll-control-codegen-win-r1/results.json",
+        "sha256": "8578494e98cec14fd41e9b295128fdd8143bc694d799247e0ed33ab2378f2005"
+      },
+      "generatorReplay": {
+        "path": "F:/xlang-validation/xge-full-20261110/xui-scroll-control-replay-win-r3/results.json",
+        "sha256": "f0546b247a9055a778f71ff16a3ba3c207f4852df2b0ebad476cbee4c2c100eb",
+        "checks": 944
+      },
+      "nativeConsumers": {
+        "path": "F:/xlang-validation/xge-full-20261110/xui-scroll-control-audit-win-r2/consumers/results.json",
+        "sha256": "78adec8e2c163bf968d788c8b9deffbef6c6f047fd282b58efc62dd5fba3ed1d"
+      },
+      "nativeExecutions": [
+        {
+          "path": "F:/xlang-validation/xge-full-20261110/xui-scroll-control-native-tests-win-host-r3/list_view-O0-run.log",
+          "sha256": "3d91f4360bc52e3404f2baaf25c9467fa99b2b8cf609e3c9761e54b98590151e"
+        },
+        {
+          "path": "F:/xlang-validation/xge-full-20261110/xui-scroll-control-native-tests-win-host-r3/list_view-O2-run.log",
+          "sha256": "3d91f4360bc52e3404f2baaf25c9467fa99b2b8cf609e3c9761e54b98590151e"
+        },
+        {
+          "path": "F:/xlang-validation/xge-full-20261110/xui-scroll-control-native-tests-win-host-r3/popup-O0-run.log",
+          "sha256": "61664a04c77ac18d683b487c1f867e66b3b6a4f8f2de067475b10d67d3e49548"
+        },
+        {
+          "path": "F:/xlang-validation/xge-full-20261110/xui-scroll-control-native-tests-win-host-r3/popup-O2-run.log",
+          "sha256": "61664a04c77ac18d683b487c1f867e66b3b6a4f8f2de067475b10d67d3e49548"
+        },
+        {
+          "path": "F:/xlang-validation/xge-full-20261110/xui-scroll-control-native-tests-win-host-r4/scroll_frame-O0-run.log",
+          "sha256": "59b9b74db8d0fc0bad9b9408cb802a3203602211540a9e7ac426b5497cdf949e"
+        },
+        {
+          "path": "F:/xlang-validation/xge-full-20261110/xui-scroll-control-native-tests-win-host-r4/scroll_frame-O2-run.log",
+          "sha256": "59b9b74db8d0fc0bad9b9408cb802a3203602211540a9e7ac426b5497cdf949e"
+        },
+        {
+          "path": "F:/xlang-validation/xge-full-20261110/xui-scroll-control-native-tests-win-static-r1/scroll_frame-O0-run.log",
+          "sha256": "59b9b74db8d0fc0bad9b9408cb802a3203602211540a9e7ac426b5497cdf949e"
+        },
+        {
+          "path": "F:/xlang-validation/xge-full-20261110/xui-scroll-control-native-tests-win-static-r1/scroll_frame-O2-run.log",
+          "sha256": "59b9b74db8d0fc0bad9b9408cb802a3203602211540a9e7ac426b5497cdf949e"
+        },
+        {
+          "path": "F:/xlang-validation/xge-full-20261110/xui-scroll-control-native-tests-win-static-r1/list_view-O0-run.log",
+          "sha256": "3d91f4360bc52e3404f2baaf25c9467fa99b2b8cf609e3c9761e54b98590151e"
+        },
+        {
+          "path": "F:/xlang-validation/xge-full-20261110/xui-scroll-control-native-tests-win-static-r1/list_view-O2-run.log",
+          "sha256": "3d91f4360bc52e3404f2baaf25c9467fa99b2b8cf609e3c9761e54b98590151e"
+        },
+        {
+          "path": "F:/xlang-validation/xge-full-20261110/xui-scroll-control-native-tests-win-static-r1/popup-O0-run.log",
+          "sha256": "61664a04c77ac18d683b487c1f867e66b3b6a4f8f2de067475b10d67d3e49548"
+        },
+        {
+          "path": "F:/xlang-validation/xge-full-20261110/xui-scroll-control-native-tests-win-static-r1/popup-O2-run.log",
+          "sha256": "61664a04c77ac18d683b487c1f867e66b3b6a4f8f2de067475b10d67d3e49548"
+        }
+      ],
+      "jit": [
+        {
+          "path": "F:/xlang-validation/xge-full-20261110/xui-scroll-control-language-win-host-r2/example-jit.log",
+          "sha256": "1cb365c9c667434042e8badac60f2d25215d47da5d448dad707e01d48476fc8d"
+        },
+        {
+          "path": "F:/xlang-validation/xge-full-20261110/xui-scroll-control-language-win-host-r2/fixture-jit.log",
+          "sha256": "a8ea14942e58ff693ba660df6a82dccdca3d869626ffc3bc282f86e4fba3c4f8"
+        }
+      ],
+      "existingCanvasFailure": {
+        "baseline": {
+          "path": "F:/xlang-validation/xge-full-20261110/xui-scroll-control-native-tests-win-host-baseline/canvas-O0-run.log",
+          "sha256": "e693cafdeeefebe66c666893af0cae637cdd76be67fb7ecc9c231b81472fd1c1"
+        },
+        "withSnapshots": {
+          "path": "F:/xlang-validation/xge-full-20261110/xui-scroll-control-native-tests-win-host-r2/canvas-O0-run.log",
+          "sha256": "e693cafdeeefebe66c666893af0cae637cdd76be67fb7ecc9c231b81472fd1c1"
+        }
+      }
+    },
+    "linux": {
+      "packages": {
+        "host": {
+          "path": "/var/tmp/xlang-validation/xge-full-20261110/xui-scroll-control-stage-linux-host-r1/host.json",
+          "sha256": "78b5aa0e5a9724059d347846f2cfa15d16f0fc43a358db7a69c238185f6076b6"
+        },
+        "static": {
+          "path": "/var/tmp/xlang-validation/xge-full-20261110/xui-scroll-control-stage-linux-static-r1/static.json",
+          "sha256": "b7ef2c8e4aeafe6a94631be9926f880c8586edb1ade3880781f6094bf199de70"
+        }
+      },
+      "codegenAndImports": {
+        "path": "/var/tmp/xlang-validation/xge-full-20261110/xui-scroll-control-codegen-linux-r1/results.json",
+        "sha256": "aed266411aee490a3f267d6f5b15171e288c95e89b6d2cd53a29cb9456d0dd21"
+      },
+      "generatorReplay": {
+        "path": "/var/tmp/xlang-validation/xge-full-20261110/xui-scroll-control-replay-linux-r3/results.json",
+        "sha256": "b6810b096a3f41c9a55b2cfeb4b3e063168b3229bed67336d67ad573a7bfc646",
+        "checks": 945
+      },
+      "nativeConsumers": {
+        "path": "/var/tmp/xlang-validation/xge-full-20261110/xui-scroll-control-audit-linux-r2/consumers/results.json",
+        "sha256": "2e352c6c20462e215bcac633f5950a928a241a11319c1b63f8600518583019bf"
+      },
+      "nativeExecutions": [
+        {
+          "path": "/var/tmp/xlang-validation/xge-full-20261110/xui-scroll-control-native-tests-linux-host-r3/list_view-O0-run.log",
+          "sha256": "4e19245ed4ef4d72bd36759a3e181eec2e734e0bf7d046c2ea289b8e9c5d4534"
+        },
+        {
+          "path": "/var/tmp/xlang-validation/xge-full-20261110/xui-scroll-control-native-tests-linux-host-r3/list_view-O2-run.log",
+          "sha256": "4e19245ed4ef4d72bd36759a3e181eec2e734e0bf7d046c2ea289b8e9c5d4534"
+        },
+        {
+          "path": "/var/tmp/xlang-validation/xge-full-20261110/xui-scroll-control-native-tests-linux-host-r3/popup-O0-run.log",
+          "sha256": "d577704c27f20a919d13bb2a96f674d8a9f36ae64cb148714f55e1915c4cda39"
+        },
+        {
+          "path": "/var/tmp/xlang-validation/xge-full-20261110/xui-scroll-control-native-tests-linux-host-r3/popup-O2-run.log",
+          "sha256": "d577704c27f20a919d13bb2a96f674d8a9f36ae64cb148714f55e1915c4cda39"
+        },
+        {
+          "path": "/var/tmp/xlang-validation/xge-full-20261110/xui-scroll-control-native-tests-linux-host-r4/scroll_frame-O0-run.log",
+          "sha256": "b7306de029b2d4f86774ca0af8ff1cd91367bce9693bf918b4a78ae2abc2f139"
+        },
+        {
+          "path": "/var/tmp/xlang-validation/xge-full-20261110/xui-scroll-control-native-tests-linux-host-r4/scroll_frame-O2-run.log",
+          "sha256": "b7306de029b2d4f86774ca0af8ff1cd91367bce9693bf918b4a78ae2abc2f139"
+        },
+        {
+          "path": "/var/tmp/xlang-validation/xge-full-20261110/xui-scroll-control-native-tests-linux-static-r1/scroll_frame-O0-run.log",
+          "sha256": "b7306de029b2d4f86774ca0af8ff1cd91367bce9693bf918b4a78ae2abc2f139"
+        },
+        {
+          "path": "/var/tmp/xlang-validation/xge-full-20261110/xui-scroll-control-native-tests-linux-static-r1/scroll_frame-O2-run.log",
+          "sha256": "b7306de029b2d4f86774ca0af8ff1cd91367bce9693bf918b4a78ae2abc2f139"
+        },
+        {
+          "path": "/var/tmp/xlang-validation/xge-full-20261110/xui-scroll-control-native-tests-linux-static-r1/list_view-O0-run.log",
+          "sha256": "4e19245ed4ef4d72bd36759a3e181eec2e734e0bf7d046c2ea289b8e9c5d4534"
+        },
+        {
+          "path": "/var/tmp/xlang-validation/xge-full-20261110/xui-scroll-control-native-tests-linux-static-r1/list_view-O2-run.log",
+          "sha256": "4e19245ed4ef4d72bd36759a3e181eec2e734e0bf7d046c2ea289b8e9c5d4534"
+        },
+        {
+          "path": "/var/tmp/xlang-validation/xge-full-20261110/xui-scroll-control-native-tests-linux-static-r1/popup-O0-run.log",
+          "sha256": "d577704c27f20a919d13bb2a96f674d8a9f36ae64cb148714f55e1915c4cda39"
+        },
+        {
+          "path": "/var/tmp/xlang-validation/xge-full-20261110/xui-scroll-control-native-tests-linux-static-r1/popup-O2-run.log",
+          "sha256": "d577704c27f20a919d13bb2a96f674d8a9f36ae64cb148714f55e1915c4cda39"
+        }
+      ],
+      "jit": [
+        {
+          "path": "/var/tmp/xlang-validation/xge-full-20261110/xui-scroll-control-language-linux-host-r2/example-jit.log",
+          "sha256": "1cb365c9c667434042e8badac60f2d25215d47da5d448dad707e01d48476fc8d"
+        },
+        {
+          "path": "/var/tmp/xlang-validation/xge-full-20261110/xui-scroll-control-language-linux-host-r2/fixture-jit.log",
+          "sha256": "a8ea14942e58ff693ba660df6a82dccdca3d869626ffc3bc282f86e4fba3c4f8"
+        }
+      ],
+      "existingCanvasFailure": {
+        "baseline": {
+          "path": "/var/tmp/xlang-validation/xge-full-20261110/xui-scroll-control-native-tests-linux-host-baseline/canvas-O0-run.log",
+          "sha256": "ba354de75bd053bf1d07b1e8cdf741a206d1b448ef9ff8c86089f5116063b0dd"
+        },
+        "withSnapshots": {
+          "path": "/var/tmp/xlang-validation/xge-full-20261110/xui-scroll-control-native-tests-linux-host-r2/canvas-O0-run.log",
+          "sha256": "ba354de75bd053bf1d07b1e8cdf741a206d1b448ef9ff8c86089f5116063b0dd"
+        }
+      }
+    }
+  },
+  "checks": [
+    "Native Windows and Linux hosted and static SDKs rebuilt at O2 with the matching resident XRT.",
+    "Canvas, ListView and Popup snapshot tests passed in C clients at O0 and O2 and in xlang JIT, dynamic AOT and static AOT.",
+    "The legacy Canvas rendering fixture reports the same external-surface cache failure with the prior SDK and the candidate SDK on both platforms. The targeted ScrollFrame fixture tests Canvas scroll snapshots independently.",
+    "The native header changed only by adding three declarations. The ListView implementation added one snapshot function. Other dependency changes in the review registry are CRLF-to-LF normalization."
+  ]
+}

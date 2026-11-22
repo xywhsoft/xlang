@@ -1473,6 +1473,15 @@ METHODS.update({
     'xuiScrollViewGetScrollSnapshot': (
         'int xuiScrollViewGetScrollSnapshot(xui_widget pWidget, xui_scroll_model_t* pSnapshot)',
         'ScrollView', ['extern "xuiScrollViewGetScrollSnapshot" @no_raise @c_output(1,0) func scrollSnapshot() as ScrollModel']),
+    'xuiCanvasGetScrollSnapshot': (
+        'int xuiCanvasGetScrollSnapshot(xui_widget pWidget, xui_scroll_model_t* pSnapshot)',
+        'Canvas', ['extern "xuiCanvasGetScrollSnapshot" @no_raise @c_output(1,0) func scrollSnapshot() as ScrollModel']),
+    'xuiListViewGetScrollSnapshot': (
+        'int xuiListViewGetScrollSnapshot(xui_widget pWidget, xui_scroll_model_t* pSnapshot)',
+        'ListView', ['extern "xuiListViewGetScrollSnapshot" @no_raise @c_output(1,0) func scrollSnapshot() as ScrollModel']),
+    'xuiPopupGetScrollSnapshot': (
+        'int xuiPopupGetScrollSnapshot(xui_widget pWidget, xui_scroll_model_t* pSnapshot)',
+        'Popup', ['extern "xuiPopupGetScrollSnapshot" @no_raise @c_output(1,0) func scrollSnapshot() as ScrollModel']),
     'xuiScrollModelWithViewport': (
         'int xuiScrollModelWithViewport(const xui_scroll_model_t* pModel, xui_rect_t tViewport, xui_scroll_model_t* pResult)',
         None, ['export extern "xuiScrollModelWithViewport" @header("xge3_runtime.h") @no_raise @c_ref(0) @c_output(2,0) func scrollModelWithViewport(ScrollModel model,Rect viewport) as ScrollModel']),
@@ -1543,6 +1552,9 @@ REPLACED.update({
     'xuiTerminalGetScrollModel': ('xui.Terminal.scrollSnapshot','xuiTerminalGetScrollSnapshot'),
     'xuiScrollFrameGetModel': ('xui.ScrollFrame.scrollSnapshot','xuiScrollFrameGetScrollSnapshot'),
     'xuiScrollViewGetModel': ('xui.ScrollView.scrollSnapshot','xuiScrollViewGetScrollSnapshot'),
+    'xuiCanvasGetModel': ('xui.Canvas.scrollSnapshot','xuiCanvasGetScrollSnapshot'),
+    'xuiListViewGetModel': ('xui.ListView.scrollSnapshot','xuiListViewGetScrollSnapshot'),
+    'xuiPopupGetModel': ('xui.Popup.scrollSnapshot','xuiPopupGetScrollSnapshot'),
     'xuiScrollModelSetViewport': ('xui.scrollModelWithViewport','xuiScrollModelWithViewport'),
     'xuiScrollModelSetContentSize': ('xui.scrollModelWithContentSize','xuiScrollModelWithContentSize'),
     'xuiScrollModelSetOffset': ('xui.scrollModelWithOffset','xuiScrollModelWithOffset'),

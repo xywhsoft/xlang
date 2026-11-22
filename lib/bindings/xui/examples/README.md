@@ -44,6 +44,7 @@
 [terminal_history.xl](terminal_history.xl) 在终端的最早记录和最新记录之间切换，也可以用滚轮浏览历史。
 
 [scrollview.xl](scrollview.xl) 把滚动快照作为独立值，计算让最后一行可见所需的偏移，再应用到控件。
+[scroll_snapshot.xl](scroll_snapshot.xl) 无需打开窗口，读取 Canvas 的内容尺寸与偏移。ListView 和 Popup 也提供同样的 `scrollSnapshot()` 方法。
 
 [combobox_items.xl](combobox_items.xl) 使用业务值、禁用状态和分隔线配置下拉选项，并读取当前选项。
 

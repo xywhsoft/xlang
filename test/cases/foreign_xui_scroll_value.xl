@@ -76,10 +76,40 @@ func main(...) as int
     assert frameCalls == 0 and viewCalls == 0, "snapshots do not trigger callbacks"
     assert view.setOffset(preview.fScrollX,preview.fScrollY) == 0
     assert view.scrollSnapshot().fScrollY == 120 and viewCalls == 0, "apply the planned offset"
+
+    auto canvas = ui.canvas()
+    viewport.fX = 0
+    assert canvas.setRect(viewport) == 0 and root.addChild(canvas) == 0, "attach canvas"
+    canvas.setCanvasSize(360,480)
+
+    auto list = ui.listViewNative()
+    viewport.fX = 170
+    assert list.setRect(viewport) == 0 and root.addChild(list) == 0, "attach list view"
+    list.setItems(["1","2","3","4","5","6","7","8","9","10"])
+
+    auto popup = ui.popupNative()
+    popup.setContentSize(360,480)
+    assert popup.setMaxSize(160,100) == 0 and root.addChild(popup) == 0, "attach popup"
+    assert popup.setOpen(1) == 0 and ui.layout() == 0, "open and arrange popup"
+
+    auto canvasStart = canvas.scrollSnapshot()
+    auto listStart = list.scrollSnapshot()
+    auto popupStart = popup.scrollSnapshot()
+    assert canvasStart.fContentHeight == 480, "committed canvas extent"
+    assert popupStart.fContentHeight == 480, "committed popup extent"
+    assert listStart.fContentHeight > listStart.tViewportRect.fH, "list scroll range"
+    auto canvasExpected = xui.scrollModelWithOffset(canvasStart,10,30)
+    auto listExpected = xui.scrollModelWithOffset(listStart,0,35)
+    auto popupExpected = xui.scrollModelWithOffset(popupStart,20,40)
+    assert canvas.setOffset(10,30) == 0 and list.setScroll(35) == 0 and popup.setScroll(20,40) == 0, "set the three offsets"
+    assert canvas.scrollSnapshot().fScrollY == canvasExpected.fScrollY, "committed canvas offset"
+    assert list.scrollSnapshot().fScrollY == listExpected.fScrollY, "committed list offset"
+    assert popup.scrollSnapshot().fScrollY == popupExpected.fScrollY, "committed popup offset"
     ui.close()
     proxy.close()
     assert frameStart.fScrollY == 0 and viewStart.fScrollY == 0 and viewMoved.fScrollY == 48
-    assert balanced() != 0
+    assert canvasStart.fScrollY == 0 and listStart.fScrollY == 0 and popupStart.fScrollY == 0, "snapshots outlive their controls"
+    assert balanced() != 0, "release proxy resources"
     println("XUI_SCROLL_VALUE_OK")
     return 0
 end
