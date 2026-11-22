@@ -5,6 +5,7 @@ extern "fixtureFoldPrefixEnd" @no_raise func prefixEnd()
 extern "fixtureFoldHeapEqual" @no_raise func heapEqual()
 extern "fixtureFoldHotBegin" @no_raise func hotBegin()
 extern "fixtureFoldHotReport" @no_raise func hotReport(c_int kind)
+extern "fixtureFoldHotAssertZero" @no_raise func hotAssertZero()
 extern "fixtureFoldNativeHot" @no_raise func nativeHot(xui.CodeFoldState state)
 extern "fixtureFoldNativeCreate" @no_raise func nativeCreate()
 extern "fixtureFoldNativeSet" @no_raise func nativeSet(xui.CodeFoldState state)
@@ -15,7 +16,74 @@ func createAndClose()
  value.close()
 end
 
+func checkBulkFolds()
+ auto source="{\nx;\n}\n\0{\ny;\n}\n"
+ auto prefix=Buffer()
+ auto records=Buffer()
+ assert prefix.resize(20) and records.resize(60,90)
+ assert xui.buildCFoldRanges(source)==2
+ assert xui.buildCFoldRanges(source,prefix,6)==1
+ assert xui.buildCFoldRanges(source,records)==2
+ assert records.toBytes(20)==prefix.toBytes() and records.byteAt(40)==90
+ auto document=xui.createCodeDocument()
+ try
+  document.setText(source)
+  assert document.buildCFoldRanges(prefix)==2
+  assert records.toBytes(20)==prefix.toBytes()
+ finally
+  document.close()
+ end
+
+ auto first=xui.CodeFoldRange()
+ first.iStartLine=0
+ first.iEndLine=2
+ first.iFlags=c_uint(xui.XUI_CODE_FOLD_COLLAPSED)
+ auto second=first
+ second.iStartLine=4
+ second.iEndLine=6
+ array<xui.CodeFoldRange> ranges=[first,second]
+ auto folds=xui.createCodeFoldState()
+ auto lines=Buffer()
+ assert lines.resize(8)
+ try
+  folds.setRanges(ranges)
+  assert folds.copyRanges()==2 and folds.copyRanges(prefix)==2
+  assert prefix.toBytes()==b"\x14\0\0\0\0\0\0\0\x02\0\0\0\0\0\0\0\x03\0\0\0"
+  assert folds.copyVisibleLines(7)==3
+  assert folds.copyVisibleLines(7,lines)==3
+  assert lines.toBytes()==b"\0\0\0\0\x03\0\0\0"
+  assert xui.buildCodeVisibleLines(7,ranges,output=lines)==3
+  assert lines.toBytes()==b"\0\0\0\0\x03\0\0\0"
+  assert xui.buildCodeVisibleLines(7,ranges,1)==5
+
+  auto malformed=Buffer(b"abc")
+  c_int count=91
+  try
+   count=folds.copyVisibleLines(7,malformed)
+  catch Error
+   assert count==91 and malformed.toBytes()==b"abc"
+  end
+  assert count==91
+
+  hotBegin()
+  budget(0)
+  try
+   for i in range(1000)
+    assert folds.copyRanges(prefix)==2
+    assert folds.copyVisibleLines(7,lines)==3
+    assert xui.buildCFoldRanges(source,prefix)==2
+   end
+  finally
+   budget(-1)
+  end
+  hotAssertZero()
+ finally
+  folds.close()
+ end
+end
+
 func main(...) as int
+ checkBulkFolds()
  auto first=xui.CodeFoldRange()
  first.iStartLine=0
  first.iEndLine=2

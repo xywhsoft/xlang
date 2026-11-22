@@ -7,6 +7,7 @@ void fixtureFoldPrefixEnd(void);
 void fixtureFoldHeapEqual(void);
 void fixtureFoldHotBegin(void);
 void fixtureFoldHotReport(int);
+void fixtureFoldHotAssertZero(void);
 void fixtureFoldNativeHot(xui_code_fold_state);
 void fixtureFoldNativeCreate(void);
 void fixtureFoldNativeSet(xui_code_fold_state);

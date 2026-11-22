@@ -1,5 +1,24 @@
 # Native consumers in the full API inventory
 
+## Bulk code-fold queries
+
+The C-language fold scanner writes ranges from source text or a standalone or
+CodeEdit-owned document. Fold states copy ranges and visible row mappings
+directly into a reusable Buffer. All five native queries preserve the
+count-only and bounded-prefix contracts. The Buffer uses whole native
+records or integers. The stateless visible-line function accepts a typed
+range array and projects it before the call.
+
+Independent native C and xlang fixtures measured zero XRT heap operations
+over 1,000 rounds of three queries with pre-sized buffers and a prepared fold
+state. The measured queries cover range output, visible-line output and the
+source scanner. Generated code calls the five original XGE functions.
+Windows and Linux passed JIT, dynamic AOT and standalone static AOT for
+both independent fold models and live CodeEdit views.
+The audit has 334 pending functions, with 139 in XGE and 195 in XUI.
+
+[Validation evidence](../dev/release-materials/provenance/xui-code-fold-bulk-20261123.json)
+
 ## Menu, menu bar, toolbar and status bar item queries
 
 Each control's `getItem(index)` makes one checked native descriptor query.

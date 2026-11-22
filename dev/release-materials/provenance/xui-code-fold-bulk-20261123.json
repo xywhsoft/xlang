@@ -1,0 +1,165 @@
+{
+  "complete": true,
+  "passed": true,
+  "releaseInstalled": false,
+  "networkTests": false,
+  "scope": "C fold scanners and visible-line/range bulk bindings using bounded output buffers",
+  "nativeRevision": "6cbf8894888262c9cfe4fa7fef43d82358d096de",
+  "nativePackagesReused": true,
+  "xlangSourceBaseline": "c5ba7a5decbf13b21362ae5be2f333557c1a97f6",
+  "xlangCommitParent": "95a796b33b054f1ee1971b16ea752c6f4e5a7ccf",
+  "nativeOracleSource": {
+    "path": "F:\\xlang-validation\\xge-full-20261110\\code-fold-bulk-native-r2.c",
+    "sha256": "55b0d2006d4e9a478056c00ef86cc5156d40ed2169bbb49fb476bcfde4f2bea1"
+  },
+  "platforms": {
+    "Windows x64": {
+      "hostImage": {
+        "path": "F:\\xlang-validation\\xge-full-20261110\\code-fold-bulk-stage-win-r1\\replay\\host\\_xge_native\\native\\xge3_host.dll",
+        "sha256": "996f8aaa8f21bd15f91709f3c3a7acef9698f92ab95d81e18f68e2046501f4d9"
+      },
+      "staticManifest": {
+        "path": "F:\\xlang-validation\\xge-full-20261110\\code-fold-bulk-stage-win-r1\\static.json",
+        "sha256": "65a0de65142b3cb1cf376a59ac5bdfc93d7e9d54a91c748afa49ab01b01ab98f"
+      },
+      "replay": {
+        "path": "F:\\xlang-validation\\xge-full-20261110\\code-fold-bulk-stage-win-r1\\replay\\stage-report.json",
+        "sha256": "2b05c9312589c5806a8bb9c462e0232c45d92e344e4b6f1338c9b223ebd81cba"
+      },
+      "generator": {
+        "path": "F:\\xlang-validation\\xge-full-20261110\\code-fold-bulk-generator-win-r1\\results.json",
+        "sha256": "56b18784745fa396e3830c5f574af696d6ef8d22c2e3508f37e2e80a10712b07"
+      },
+      "nativeOracle": {
+        "path": "F:\\xlang-validation\\xge-full-20261110\\code-fold-bulk-native-win-r2\\test.log",
+        "sha256": "8389f0e3c84d5a23c43216998640f72d21f7a5dd1279741d1fc63fa13a181656"
+      },
+      "priorAudit": {
+        "path": "F:\\xlang-validation\\xge-full-20261110\\bar-item-snapshots-stage-win-r2\\audit\\consumers\\results.json",
+        "sha256": "3e091dc1c88324d4e8b30131447a8e8051d9a7ca54e9b05fd9b73d3ba3c66928"
+      },
+      "consumerAudit": {
+        "path": "F:\\xlang-validation\\xge-full-20261110\\code-fold-bulk-stage-win-r1\\audit\\consumers\\results.json",
+        "sha256": "f949001ed8e3665557d381a8da692103b0f9c016f8699888f1bff41705d741b3"
+      },
+      "matrices": {
+        "core": {
+          "report": {
+            "path": "F:\\xlang-validation\\xge-full-20261110\\code-fold-bulk-core-win-r1\\results.json",
+            "sha256": "56b0a344434dcb660b02656f91f2a152dc356f2030d0b7b82000dd6093c14128"
+          },
+          "steps": 11,
+          "generatedCalls": {
+            "xuiCodeFoldCBuildRanges": 4,
+            "xuiCodeFoldCBuildDocumentRanges": 1,
+            "xuiCodeFoldBuildVisibleLines": 2,
+            "xuiCodeFoldStateGetRanges": 3,
+            "xuiCodeFoldStateBuildVisibleLines": 4
+          }
+        },
+        "editor": {
+          "report": {
+            "path": "F:\\xlang-validation\\xge-full-20261110\\code-fold-bulk-editor-win-r2\\results.json",
+            "sha256": "384d7ea24ea1d2882541857541cdcf28de2674a3b987fa18ee213cf1cc596dab"
+          },
+          "steps": 11,
+          "generatedCalls": {
+            "xuiCodeFoldCBuildDocumentRanges": 1,
+            "xuiCodeFoldStateGetRanges": 1,
+            "xuiCodeFoldStateBuildVisibleLines": 1
+          }
+        }
+      }
+    },
+    "Linux x64": {
+      "hostImage": {
+        "path": "\\\\wsl.localhost\\Ubuntu\\var\\tmp\\xlang-validation\\xge-full-20261110\\code-fold-bulk-stage-linux-r1\\replay\\host\\_xge_native\\native\\libxge3_host.so",
+        "sha256": "5d06bed6c50064bda8f26289e8ec67cab63a58657b312bdb59a4edfeb8400aed"
+      },
+      "staticManifest": {
+        "path": "\\\\wsl.localhost\\Ubuntu\\var\\tmp\\xlang-validation\\xge-full-20261110\\code-fold-bulk-stage-linux-r1\\static.json",
+        "sha256": "0faac5648d0a150d9693e02aaee02f1859f98ef30665cc176b3e6ee8781623b1"
+      },
+      "replay": {
+        "path": "\\\\wsl.localhost\\Ubuntu\\var\\tmp\\xlang-validation\\xge-full-20261110\\code-fold-bulk-stage-linux-r1\\replay\\stage-report.json",
+        "sha256": "5f105e0d0236d2f6b613cd99465e93237c8cc89809a35eec68cdc800bc636227"
+      },
+      "generator": {
+        "path": "\\\\wsl.localhost\\Ubuntu\\var\\tmp\\xlang-validation\\xge-full-20261110\\code-fold-bulk-generator-linux-r1\\results.json",
+        "sha256": "7ea3e43b27ad3467c705da7abfb01a3f95c7348c55b9c3509728929766d39a7b"
+      },
+      "nativeOracle": {
+        "path": "\\\\wsl.localhost\\Ubuntu\\var\\tmp\\xlang-validation\\xge-full-20261110\\code-fold-bulk-native-linux-r2\\test.log",
+        "sha256": "7acb52615bf1a40e6a3c43bbe73dfc58b991b4fa16003560cdc694c4f2a738bc"
+      },
+      "priorAudit": {
+        "path": "\\\\wsl.localhost\\Ubuntu\\var\\tmp\\xlang-validation\\xge-full-20261110\\bar-item-snapshots-stage-linux-r2\\audit\\consumers\\results.json",
+        "sha256": "78cc491ec3f0d0890ef3cb762e845c5d3551b0702b51f362d1cb4721b9536633"
+      },
+      "consumerAudit": {
+        "path": "\\\\wsl.localhost\\Ubuntu\\var\\tmp\\xlang-validation\\xge-full-20261110\\code-fold-bulk-stage-linux-r1\\audit\\consumers\\results.json",
+        "sha256": "17305a9329883afab4c08491d50147880a041b367f9436cc1bfd0d8199ece717"
+      },
+      "matrices": {
+        "core": {
+          "report": {
+            "path": "\\\\wsl.localhost\\Ubuntu\\var\\tmp\\xlang-validation\\xge-full-20261110\\code-fold-bulk-core-linux-r1\\results.json",
+            "sha256": "fcd00a747d2fd3e43625a6e6f1625749dc6fa9d257bb8ad2f3624ee19bb822cb"
+          },
+          "steps": 11,
+          "generatedCalls": {
+            "xuiCodeFoldCBuildRanges": 4,
+            "xuiCodeFoldCBuildDocumentRanges": 1,
+            "xuiCodeFoldBuildVisibleLines": 2,
+            "xuiCodeFoldStateGetRanges": 3,
+            "xuiCodeFoldStateBuildVisibleLines": 4
+          }
+        },
+        "editor": {
+          "report": {
+            "path": "\\\\wsl.localhost\\Ubuntu\\var\\tmp\\xlang-validation\\xge-full-20261110\\code-fold-bulk-editor-linux-r2\\results.json",
+            "sha256": "b38e1dd72339e882dcea207529aa0121ab9e3ae08d3f53086bc245bd087b2457"
+          },
+          "steps": 11,
+          "generatedCalls": {
+            "xuiCodeFoldCBuildDocumentRanges": 1,
+            "xuiCodeFoldStateGetRanges": 1,
+            "xuiCodeFoldStateBuildVisibleLines": 1
+          }
+        }
+      }
+    }
+  },
+  "audit": {
+    "functionPopulation": 5786,
+    "directDeclarations": 4726,
+    "compiledConsumerFunctions": 283,
+    "explicitReplacements": 446,
+    "pending": {
+      "XGE": 139,
+      "XUI": 195,
+      "Document": 0
+    },
+    "newDirectDeclarations": [
+      "xuiCodeFoldBuildVisibleLines",
+      "xuiCodeFoldCBuildDocumentRanges",
+      "xuiCodeFoldCBuildRanges",
+      "xuiCodeFoldStateBuildVisibleLines",
+      "xuiCodeFoldStateGetRanges"
+    ],
+    "apiCompletenessClaim": false
+  },
+  "warmedBulkQueries": {
+    "rounds": 1000,
+    "queriesPerRound": 3,
+    "allocations": 0,
+    "frees": 0,
+    "reallocations": 0,
+    "scope": "State range output, state visible-line output and source scanner; same bounded prefix and cohort"
+  },
+  "costs": {
+    "output": "Checked caller-owned Buffer, no temporary output allocation",
+    "statelessVisibleLines": "Typed input projection and native hidden-range merge",
+    "cpuEquivalenceClaim": false
+  }
+}

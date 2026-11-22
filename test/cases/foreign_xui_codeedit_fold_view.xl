@@ -19,6 +19,10 @@ func exercise(xui.Context ui,xui.CodeEdit editor)
  folds.toggleLine(0)
  assert alias.isLineVisible(0)==1 and alias.isLineVisible(1)==0
  assert alias.visibleLineCount(4)==2 and alias.visibleRowToLine(4,1)==3
+ auto visible=Buffer()
+ assert visible.resize(8)
+ assert alias.copyRanges()==1 and alias.copyVisibleLines(4,visible)==2
+ assert visible.toBytes()==b"\0\0\0\0\x03\0\0\0"
  assert alias.lineToVisibleRow(3)==1 and editor.getOffsetRect(16).fY<original.fY
 
  bool failed=false
@@ -37,6 +41,7 @@ func exercise(xui.Context ui,xui.CodeEdit editor)
  assert folds.visibleLineCount(4)==2
 
  auto doc=editor.document()
+ assert doc.buildCFoldRanges()==0
  doc.insert(7,"inner\n")
  assert folds.getRange(0).iEndLine==3 and folds.visibleLineCount(5)==2
  doc.insert(0,"!")

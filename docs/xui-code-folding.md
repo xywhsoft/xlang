@@ -14,12 +14,14 @@ fake activity callback or per-method C forwarding layer is introduced.
 | `clear()` | `xuiCodeFoldStateClear`; retains allocated capacity |
 | `setRanges(ranges,size=-1)` | `xuiCodeFoldStateSetRanges`; typed const-record array projection |
 | `getCount()` / `getRange(index)` | `xuiCodeFoldStateGetCount` / `GetRange`; independent 20-byte record |
+| `copyRanges(output=null)` | `xuiCodeFoldStateGetRanges` |
 | `trackEdit(startLine,endLine,newEndLine)` | `xuiCodeFoldStateTrackEdit` |
 | `toggleLine(line)` / `foldAll()` / `unfoldAll()` | Same native fold-state functions |
 | `isLineVisible(line)` | `xuiCodeFoldStateIsLineVisible`; checked integer output |
 | `visibleLineCount(lineCount)` | `xuiCodeFoldStateGetVisibleLineCount` |
 | `lineToVisibleRow(line)` | `xuiCodeFoldStateLineToVisibleRow` |
 | `visibleRowToLine(lineCount,row)` | `xuiCodeFoldStateVisibleRowToLine` |
+| `copyVisibleLines(lineCount,output=null)` | `xuiCodeFoldStateBuildVisibleLines` |
 | `close()` | Checked generic view close; native Destroy after active calls finish |
 
 All indices are zero-based logical lines or visible rows, not byte positions.
@@ -88,9 +90,30 @@ See `dev/release-materials/provenance/xui-code-folding-20261114.json`.
 line count 3 and row 2 mapping to line 5, then unfolds and closes in `finally`.
 It needs no engine, font, window, file or service.
 
-This independent root is not an alias of a CodeEdit's internal model. That
-getter awaits the general existing-owner alias contract. Native bulk GetRanges,
-BuildVisibleLines and writable provider callbacks still need the general
-writable-array/output contracts; no raw pointer placeholders are exported.
-Final matched SDK/compiler/IDE delivery and full XGE/XUI/Document integration
-remain separate work.
+## Bulk queries
+
+The same bulk queries are available on the live view returned by
+`CodeEdit.foldState()`. `CodeDocument.buildCFoldRanges(output=null)` and
+`CodeEditDocument.buildCFoldRanges(output=null)` scan a document.
+`xui.buildCFoldRanges(source,output=null,size=-1)` scans an explicit UTF-8
+byte span, including embedded NUL. `size` selects a byte prefix.
+`xui.buildCodeVisibleLines(lineCount,ranges,size=-1,output=null)` uses a
+prefix of a typed `array<CodeFoldRange>` to compute the visible line numbers.
+
+Omit the Buffer to query the count. To receive data, resize a reusable
+Buffer to a whole number of native records or integers. On Windows and
+Linux x64 these are 20 and 4 bytes respectively. Each method returns the
+full item count and writes only the prefix that fits. Excess bytes stay
+untouched. Buffers use native layout and byte order.
+
+Each query calls the original native function once. The compiler validates
+Buffer alignment and whole-element sizing, then derives the native capacity
+from its actual byte length. Native code writes directly to that Buffer.
+`buildCodeVisibleLines` projects its typed input into temporary native
+records. The first folded-state query may still allocate its native
+hidden-line cache. If a checked call fails, no count is returned. The
+C text scanner can write a partial prefix before detecting a native parser
+limit, so callers should use the output only after a successful return.
+
+The provider callback that writes caller-supplied ranges still needs a
+separate callback contract.

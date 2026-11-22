@@ -7,6 +7,8 @@ export extern "xui_code_fold_state" class CodeFoldState @header("xui3_code_fold_
  extern "xuiCodeFoldStateTrackEdit" @no_raise @c_result("status",0) func trackEdit(c_int startLine,c_int endLine,c_int newEndLine)
  extern "xuiCodeFoldStateGetCount" @no_raise @c_result("integer_min",0) func getCount() as c_int
  extern "xuiCodeFoldStateGetRange" @no_raise @c_output(2,0) func getRange(c_int index) as CodeFoldRange
+ // A short buffer receives a prefix. The result is the full range count.
+ extern "xuiCodeFoldStateGetRanges" @no_raise @c_span(0,"xui_code_fold_range_t*","int") @c_output(3,0) func copyRanges(Buffer? output=null) as c_int
  extern "xuiCodeFoldStateToggleLine" @no_raise @c_result("status",0) func toggleLine(c_int line)
  extern "xuiCodeFoldStateFoldAll" @no_raise @c_result("status",0) func foldAll()
  extern "xuiCodeFoldStateUnfoldAll" @no_raise @c_result("status",0) func unfoldAll()
@@ -14,6 +16,7 @@ export extern "xui_code_fold_state" class CodeFoldState @header("xui3_code_fold_
  extern "xuiCodeFoldStateGetVisibleLineCount" @no_raise @c_output(2,0) func visibleLineCount(c_int lineCount) as c_int
  extern "xuiCodeFoldStateLineToVisibleRow" @no_raise @c_output(2,0) func lineToVisibleRow(c_int line) as c_int
  extern "xuiCodeFoldStateVisibleRowToLine" @no_raise @c_output(3,0) func visibleRowToLine(c_int lineCount,c_int row) as c_int
+ extern "xuiCodeFoldStateBuildVisibleLines" @no_raise @c_span(1,"int*","int") @c_output(4,0) func copyVisibleLines(c_int lineCount,Buffer? output=null) as c_int
  extern "xl6ForeignViewCloseV1" @no_raise @c_control(0) @c_result("bool_status") func close()
 end
 extern "xuiCodeFoldStateDestroy" @header("xui3_code_fold_state.h") @no_raise func rollbackCodeFoldState(CodeFoldState state)
@@ -26,6 +29,7 @@ export extern "xui_code_fold_state" class CodeEditFoldState @header("xge3_runtim
  extern "xuiCodeFoldStateSetRanges" @no_raise @c_array_group(1,0,1,"int",1) @c_array_input(1,0,"const xui_code_fold_range_t*","value") @c_result("status",0) func setRanges(array<CodeFoldRange> ranges,int size=-1)
  extern "xuiCodeFoldStateGetCount" @no_raise @c_result("integer_min",0) func getCount() as c_int
  extern "xuiCodeFoldStateGetRange" @no_raise @c_output(2,0) func getRange(c_int index) as CodeFoldRange
+ extern "xuiCodeFoldStateGetRanges" @no_raise @c_span(0,"xui_code_fold_range_t*","int") @c_output(3,0) func copyRanges(Buffer? output=null) as c_int
  extern "xuiCodeFoldStateToggleLine" @no_raise @c_result("status",0) func toggleLine(c_int line)
  extern "xuiCodeFoldStateFoldAll" @no_raise @c_result("status",0) func foldAll()
  extern "xuiCodeFoldStateUnfoldAll" @no_raise @c_result("status",0) func unfoldAll()
@@ -33,5 +37,10 @@ export extern "xui_code_fold_state" class CodeEditFoldState @header("xge3_runtim
  extern "xuiCodeFoldStateGetVisibleLineCount" @no_raise @c_output(2,0) func visibleLineCount(c_int lineCount) as c_int
  extern "xuiCodeFoldStateLineToVisibleRow" @no_raise @c_output(2,0) func lineToVisibleRow(c_int line) as c_int
  extern "xuiCodeFoldStateVisibleRowToLine" @no_raise @c_output(3,0) func visibleRowToLine(c_int lineCount,c_int row) as c_int
+ extern "xuiCodeFoldStateBuildVisibleLines" @no_raise @c_span(1,"int*","int") @c_output(4,0) func copyVisibleLines(c_int lineCount,Buffer? output=null) as c_int
  extern "xl6ForeignViewCloseV1" @no_raise @c_control(0) @c_result("bool_status") func close()
 end
+
+// Return the full count, including when the caller only requests a prefix.
+export extern "xuiCodeFoldCBuildRanges" @header("xui3_code_fold_state.h") @no_raise @c_span(0,"const char*","int",2) @c_span(1,"xui_code_fold_range_t*","int") @c_output(4,0) func buildCFoldRanges(string source,Buffer? output=null,int size=-1) as c_int
+export extern "xuiCodeFoldBuildVisibleLines" @header("xui3_code_fold_state.h") @no_raise @c_array_group(1,1,1,"int",2) @c_array_input(1,0,"const xui_code_fold_range_t*","value") @c_span(3,"int*","int") @c_output(5,0) func buildCodeVisibleLines(c_int lineCount,array<CodeFoldRange> ranges,int size=-1,Buffer? output=null) as c_int

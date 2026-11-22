@@ -25,6 +25,12 @@ void fixtureFoldHotReport(int kind)
   (unsigned long long)(after.AllocCount-hot.AllocCount),(unsigned long long)(after.FreeCount-hot.FreeCount),
   (unsigned long long)(after.ReallocCount-hot.ReallocCount));
 }
+void fixtureFoldHotAssertZero(void)
+{
+ xmemdebugsnapshot after;
+ xrtMemDebugSnapshot(&after);
+ assert(after.AllocCount==hot.AllocCount && after.FreeCount==hot.FreeCount && after.ReallocCount==hot.ReallocCount);
+}
 void fixtureFoldNativeHot(xui_code_fold_state state)
 {
  for(int i=0;i<1000;++i){
