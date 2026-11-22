@@ -1,5 +1,29 @@
 # Native consumers in the full API inventory
 
+## Canvas invalidation and verified replacements
+
+XUI skips clean subtrees during render preparation. Canvas must still check the
+generation of its backing surface because the application can update it
+through the active Proxy. Canvas now opts into frame-dependent preparation.
+An external update invalidates its viewport cache and triggers a repaint.
+Subsequent prepares reuse the cache while the generation stays the same.
+The complete native Canvas fixture and the xlang Proxy write regression
+exercise both cases.
+
+The audit records 18 additional public API mappings:
+
+- `Shape` returns owned snapshots of paths, fill and stroke gradients, and
+  dash patterns. The gradient's info record identifies its kind and includes
+  the focal radius. Native sequences retain the snapshot for independent use.
+- 3D scene queries use managed result buffers and expose the written and
+  required counts. Shape settings preserve the scalar defaults, and the
+  checked debug renderer accepts a managed mesh explicitly.
+- `Texture.drawNinePatch` uses the same native geometry and queue as the old
+  draw call. `CodeEdit.hitTestDiagnostic` reports a regular miss with index -1
+  and returns independent string snapshots for a matching diagnostic.
+
+[Validation evidence](../dev/release-materials/provenance/xui-canvas-frame-prepare-20261122.json)
+
 ## Canvas, ListView and Popup scroll snapshots
 
 `Canvas.scrollSnapshot()`, `ListView.scrollSnapshot()` and
@@ -12,10 +36,8 @@ control closes. Apply deliberate changes through the control's offset and
 content-size methods so its layout and invalidation stay consistent.
 
 The standalone example reads a Canvas at offset (20, 60) without opening a
-window. The broader Canvas test still reports an external-surface cache
-failure on Windows and Linux with the prior SDK and with this SDK. A focused
-ScrollFrame fixture exercises Canvas snapshot behavior without that render
-dependency.
+window. The initial snapshot SDK reproduced the earlier external-surface
+cache failure on Windows and Linux. The subsequent fix is recorded above.
 [Validation evidence](../dev/release-materials/provenance/xui-scroll-control-snapshots-20261122.json)
 
 ## Mini-program initialization and bridge

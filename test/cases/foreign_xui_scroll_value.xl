@@ -1,9 +1,47 @@
 import xui
-from xui import Proxy, Rect, Widget
+from xui import Proxy, Rect, Surface, Widget
 
 extern "fixtureRenderProxy" @header("test/cases/foreign_xui_render_backend.h") @no_raise @c_result("owned_view") @factory(0,0,dropProxy) func cpuProxy() as Proxy
+extern "fixtureRenderSurface" @header("test/cases/foreign_xui_render_backend.h") @no_raise @c_result("owned_view") @factory(1,0,dropSurface) func cpuTarget(Proxy proxy) as Surface
 extern "fixtureRenderBalanced" @no_raise func balanced() as c_int
 extern "xuiProxyReleaseChecked" @header("xge3_runtime.h") @no_raise @c_result("status",0) func dropProxy(Proxy value)
+extern "xuiSurfaceReleaseChecked" @header("xge3_runtime.h") @no_raise @c_result("status",0) func dropSurface(Surface value)
+
+func checkCanvasSurfaceInvalidation()
+    auto proxy = cpuProxy()
+    auto ui = xui.create(proxy,xui.XUI_SYSTEM_FONT_DISABLED)
+    auto root = ui.widget()
+    auto canvas = ui.canvas()
+    xui.Rect bounds
+    bounds.fW = 240
+    bounds.fH = 180
+    assert root.setRect(bounds) == 0 and ui.setRootWidget(root) == 0
+    bounds.fW = 160
+    bounds.fH = 100
+    assert canvas.setRect(bounds) == 0 and root.addChild(canvas) == 0
+    ui.setViewportSize(240,180)
+    canvas.setCanvasSize(640,480)
+    assert ui.layout() == 0 and ui.update(c_float(0.016)) == 0
+
+    auto target = cpuTarget(proxy)
+    auto surface = canvas.getSurface()
+    try
+        ui.render(target)
+        assert ui.renderPrepare() == 0 and ui.getRenderStats().iUpdatedCaches == 0, "clean Canvas reuses the cache"
+        xui.RectI pixel
+        pixel.iW = 1
+        pixel.iH = 1
+        proxy.updateSurfaceRGBA(surface,pixel,b"\x40\x20\x10\xff")
+        assert ui.renderPrepare() == 0 and ui.getRenderStats().iUpdatedCaches > 0, "external Surface write repaints Canvas"
+        assert ui.renderPrepare() == 0 and ui.getRenderStats().iUpdatedCaches == 0, "repaint settles when the generation is unchanged"
+    finally
+        surface.close()
+        target.close()
+        ui.close()
+        proxy.close()
+    end
+    assert balanced() != 0
+end
 
 func main(...) as int
     auto empty = xui.scrollModelInit()
@@ -110,6 +148,7 @@ func main(...) as int
     assert frameStart.fScrollY == 0 and viewStart.fScrollY == 0 and viewMoved.fScrollY == 48
     assert canvasStart.fScrollY == 0 and listStart.fScrollY == 0 and popupStart.fScrollY == 0, "snapshots outlive their controls"
     assert balanced() != 0, "release proxy resources"
+    checkCanvasSurfaceInvalidation()
     println("XUI_SCROLL_VALUE_OK")
     return 0
 end

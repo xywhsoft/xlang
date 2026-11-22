@@ -1334,6 +1334,7 @@ METHODS.update({
 
 # Reviewed native entry points with managed replacements.
 REPLACED = {
+    'xuiCodeEditHitTestDiagnostic': ('xui.CodeEdit.hitTestDiagnostic', 'xuiCodeEditFindDiagnostic'),
     'xuiEditGetText': ('xui.Widget.editGetText','xuiEditGetTextView'),
     'xuiCodeEditGetText': ('xui.CodeEdit.getText','xuiCodeEditGetTextView'),
     'xuiCodeEditSetDiagnosticHover': ('xui.CodeEdit.setDiagnosticHover','xuiCodeEditSetDiagnosticHoverOwned'),

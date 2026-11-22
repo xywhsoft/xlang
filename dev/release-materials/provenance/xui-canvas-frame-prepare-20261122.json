@@ -1,0 +1,369 @@
+{
+  "complete": true,
+  "passed": true,
+  "releaseInstalled": false,
+  "nativeRevision": "e14590d75c893b99c934f6101d6f11dce815e1fe",
+  "sourceParent": "a63cc017e",
+  "caseSourceSha256": "adfad55fad100279784f950ce3bab11e225efaa88e3825153e6a02ea7704b749",
+  "scope": "Frame-dependent Canvas surface invalidation and current native replacement audit",
+  "audit": {
+    "functionPopulation": 5721,
+    "directDeclarations": 4648,
+    "compiledConsumerFunctions": 175,
+    "explicitReplacements": 176,
+    "newlyVerifiedMappings": [
+      "xge3dDebugShape",
+      "xge3dSceneContactShape",
+      "xge3dSceneMoveShape",
+      "xge3dSceneOverlapShape",
+      "xge3dSceneQueryAabb",
+      "xge3dSceneQueryAabbEx",
+      "xge3dSceneSweepShape",
+      "xge3dShapeDefault",
+      "xgeNinePatchDraw",
+      "xgeShapeExFillLinearGradientGet",
+      "xgeShapeExFillRadialGradientGet",
+      "xgeShapeExFillRadialGradientGetEx",
+      "xgeShapeExGetPath",
+      "xgeShapeExStrokeDashGet",
+      "xgeShapeExStrokeLinearGradientGet",
+      "xgeShapeExStrokeRadialGradientGet",
+      "xgeShapeExStrokeRadialGradientGetEx",
+      "xuiCodeEditHitTestDiagnostic"
+    ],
+    "unclassified": {
+      "Document": 1,
+      "Document UI": 2,
+      "XGE": 331,
+      "XUI": 388
+    }
+  },
+  "platforms": {
+    "win": {
+      "builds": {
+        "host": {
+          "path": "F:/xlang-validation/xge-full-20261110/xui-canvas-frame-prepare-host-win-r2/build-report.json",
+          "sha256": "3494e693ad21ac7e8d7ef905b3ab3d42508de936b41e4240cad3130d3159e468",
+          "recompiled": [
+            "src/xui/controls/xui_canvas.c",
+            "extlibs/harfbuzz/src/harfbuzz.cc"
+          ],
+          "reused": 162
+        },
+        "static": {
+          "path": "F:/xlang-validation/xge-full-20261110/xui-canvas-frame-prepare-static-win-r1/build-report.json",
+          "sha256": "3c3303d73fd74b665b25dc3b400e463d038274993fea5a16adab753e69ad3a17",
+          "recompiled": [
+            "src\\xui\\controls\\xui_canvas.c",
+            "F:\\xlang-validation\\xge-full-20261110\\xui-canvas-frame-prepare-static-win-r1\\xge_static_contract.c"
+          ],
+          "reused": 164
+        }
+      },
+      "nativeTests": {
+        "host-canvas-O0": {
+          "path": "F:/xlang-validation/xge-full-20261110/xui-canvas-frame-prepare-tests-win-host-r1/canvas-O0-run.log",
+          "sha256": "c8a022eeef1ad89939bde133ac1e83fd5a9b7ff6c568f183569b93432f6a3ddc"
+        },
+        "host-canvas-O2": {
+          "path": "F:/xlang-validation/xge-full-20261110/xui-canvas-frame-prepare-tests-win-host-r1/canvas-O2-run.log",
+          "sha256": "c8a022eeef1ad89939bde133ac1e83fd5a9b7ff6c568f183569b93432f6a3ddc"
+        },
+        "host-scroll_frame-O0": {
+          "path": "F:/xlang-validation/xge-full-20261110/xui-canvas-frame-prepare-tests-win-host-r1/scroll_frame-O0-run.log",
+          "sha256": "59b9b74db8d0fc0bad9b9408cb802a3203602211540a9e7ac426b5497cdf949e"
+        },
+        "host-scroll_frame-O2": {
+          "path": "F:/xlang-validation/xge-full-20261110/xui-canvas-frame-prepare-tests-win-host-r1/scroll_frame-O2-run.log",
+          "sha256": "59b9b74db8d0fc0bad9b9408cb802a3203602211540a9e7ac426b5497cdf949e"
+        },
+        "host-cache_transition-O0": {
+          "path": "F:/xlang-validation/xge-full-20261110/xui-canvas-frame-prepare-tests-win-host-r2/cache_transition-O0-run.log",
+          "sha256": "4b3f3438b87a3d0921f6b9a5c8f2c739fff2a71b769eaaaed29e93eefe62ec6c"
+        },
+        "host-cache_transition-O2": {
+          "path": "F:/xlang-validation/xge-full-20261110/xui-canvas-frame-prepare-tests-win-host-r2/cache_transition-O2-run.log",
+          "sha256": "4b3f3438b87a3d0921f6b9a5c8f2c739fff2a71b769eaaaed29e93eefe62ec6c"
+        },
+        "host-cache_render_outcome-O0": {
+          "path": "F:/xlang-validation/xge-full-20261110/xui-canvas-frame-prepare-tests-win-host-r2/cache_render_outcome-O0-run.log",
+          "sha256": "bff45bc3184eb6fbefc9a4248da1709592434c7c57f3c9e472c1889b9a53be1b"
+        },
+        "host-cache_render_outcome-O2": {
+          "path": "F:/xlang-validation/xge-full-20261110/xui-canvas-frame-prepare-tests-win-host-r2/cache_render_outcome-O2-run.log",
+          "sha256": "bff45bc3184eb6fbefc9a4248da1709592434c7c57f3c9e472c1889b9a53be1b"
+        },
+        "host-incremental_render-O0": {
+          "path": "F:/xlang-validation/xge-full-20261110/xui-canvas-frame-prepare-tests-win-host-r2/incremental_render-O0-run.log",
+          "sha256": "697b40c1bd645021e2fe32691371726d1301609989b24933b540e549e84a5712"
+        },
+        "host-incremental_render-O2": {
+          "path": "F:/xlang-validation/xge-full-20261110/xui-canvas-frame-prepare-tests-win-host-r2/incremental_render-O2-run.log",
+          "sha256": "697b40c1bd645021e2fe32691371726d1301609989b24933b540e549e84a5712"
+        },
+        "static-canvas-O0": {
+          "path": "F:/xlang-validation/xge-full-20261110/xui-canvas-frame-prepare-tests-win-static-r1/canvas-O0-run.log",
+          "sha256": "c8a022eeef1ad89939bde133ac1e83fd5a9b7ff6c568f183569b93432f6a3ddc"
+        },
+        "static-canvas-O2": {
+          "path": "F:/xlang-validation/xge-full-20261110/xui-canvas-frame-prepare-tests-win-static-r1/canvas-O2-run.log",
+          "sha256": "c8a022eeef1ad89939bde133ac1e83fd5a9b7ff6c568f183569b93432f6a3ddc"
+        },
+        "static-scroll_frame-O0": {
+          "path": "F:/xlang-validation/xge-full-20261110/xui-canvas-frame-prepare-tests-win-static-r1/scroll_frame-O0-run.log",
+          "sha256": "59b9b74db8d0fc0bad9b9408cb802a3203602211540a9e7ac426b5497cdf949e"
+        },
+        "static-scroll_frame-O2": {
+          "path": "F:/xlang-validation/xge-full-20261110/xui-canvas-frame-prepare-tests-win-static-r1/scroll_frame-O2-run.log",
+          "sha256": "59b9b74db8d0fc0bad9b9408cb802a3203602211540a9e7ac426b5497cdf949e"
+        },
+        "static-cache_transition-O0": {
+          "path": "F:/xlang-validation/xge-full-20261110/xui-canvas-frame-prepare-tests-win-static-r2/cache_transition-O0-run.log",
+          "sha256": "4b3f3438b87a3d0921f6b9a5c8f2c739fff2a71b769eaaaed29e93eefe62ec6c"
+        },
+        "static-cache_transition-O2": {
+          "path": "F:/xlang-validation/xge-full-20261110/xui-canvas-frame-prepare-tests-win-static-r2/cache_transition-O2-run.log",
+          "sha256": "4b3f3438b87a3d0921f6b9a5c8f2c739fff2a71b769eaaaed29e93eefe62ec6c"
+        },
+        "static-cache_render_outcome-O0": {
+          "path": "F:/xlang-validation/xge-full-20261110/xui-canvas-frame-prepare-tests-win-static-r2/cache_render_outcome-O0-run.log",
+          "sha256": "bff45bc3184eb6fbefc9a4248da1709592434c7c57f3c9e472c1889b9a53be1b"
+        },
+        "static-cache_render_outcome-O2": {
+          "path": "F:/xlang-validation/xge-full-20261110/xui-canvas-frame-prepare-tests-win-static-r2/cache_render_outcome-O2-run.log",
+          "sha256": "bff45bc3184eb6fbefc9a4248da1709592434c7c57f3c9e472c1889b9a53be1b"
+        },
+        "static-incremental_render-O0": {
+          "path": "F:/xlang-validation/xge-full-20261110/xui-canvas-frame-prepare-tests-win-static-r2/incremental_render-O0-run.log",
+          "sha256": "697b40c1bd645021e2fe32691371726d1301609989b24933b540e549e84a5712"
+        },
+        "static-incremental_render-O2": {
+          "path": "F:/xlang-validation/xge-full-20261110/xui-canvas-frame-prepare-tests-win-static-r2/incremental_render-O2-run.log",
+          "sha256": "697b40c1bd645021e2fe32691371726d1301609989b24933b540e549e84a5712"
+        }
+      },
+      "languageTests": {
+        "host-example-jit": {
+          "path": "F:/xlang-validation/xge-full-20261110/xui-canvas-frame-prepare-language-win-host-r1/example-jit.log",
+          "sha256": "1cb365c9c667434042e8badac60f2d25215d47da5d448dad707e01d48476fc8d"
+        },
+        "host-example-run": {
+          "path": "F:/xlang-validation/xge-full-20261110/xui-canvas-frame-prepare-language-win-host-r1/example-run.log",
+          "sha256": "1cb365c9c667434042e8badac60f2d25215d47da5d448dad707e01d48476fc8d"
+        },
+        "host-fixture-jit": {
+          "path": "F:/xlang-validation/xge-full-20261110/xui-canvas-frame-prepare-language-win-host-r1/fixture-jit.log",
+          "sha256": "a8ea14942e58ff693ba660df6a82dccdca3d869626ffc3bc282f86e4fba3c4f8"
+        },
+        "host-fixture-run": {
+          "path": "F:/xlang-validation/xge-full-20261110/xui-canvas-frame-prepare-language-win-host-r1/fixture-run.log",
+          "sha256": "a8ea14942e58ff693ba660df6a82dccdca3d869626ffc3bc282f86e4fba3c4f8"
+        },
+        "static-example-run": {
+          "path": "F:/xlang-validation/xge-full-20261110/xui-canvas-frame-prepare-language-win-static-r1/example-run.log",
+          "sha256": "1cb365c9c667434042e8badac60f2d25215d47da5d448dad707e01d48476fc8d"
+        },
+        "static-fixture-run": {
+          "path": "F:/xlang-validation/xge-full-20261110/xui-canvas-frame-prepare-language-win-static-r1/fixture-run.log",
+          "sha256": "a8ea14942e58ff693ba660df6a82dccdca3d869626ffc3bc282f86e4fba3c4f8"
+        }
+      },
+      "packageReplay": {
+        "path": "F:/xlang-validation/xge-full-20261110/xui-canvas-frame-prepare-packages-win-r1/packages/stage-report.json",
+        "sha256": "c3a95b045e4ff37c23e32ae92212c9b276d7a97d65bbc5a9024b2341919ada86"
+      },
+      "baselineLanguageFailure": {
+        "path": "F:/xlang-validation/xge-full-20261110/xui-canvas-frame-prepare-advanced-win-baseline-r1/canvas-baseline.log",
+        "sha256": "a8d43a75548f73a227574b97f5137f5f8dd52fb2d95db9b6d8713084e8614d23"
+      },
+      "mappedApiTests": {
+        "shape-snapshots": {
+          "path": "F:/xlang-validation/xge-full-20261110/xui-canvas-frame-prepare-advanced-win-current-r2/shape-snapshots.log",
+          "sha256": "d5c77939fc3520273eb4aba3337b9031ecc48e040d5fc05139240e80be20bbe3"
+        },
+        "edit-diagnostics": {
+          "path": "F:/xlang-validation/xge-full-20261110/xui-canvas-frame-prepare-advanced-win-current-r2/edit-diagnostics.log",
+          "sha256": "5483fcd89d3f2bf8e4a5f3f3038e27c3e06d526388b2a7510cbc428068d73f1d"
+        },
+        "terrain-collision": {
+          "path": "F:/xlang-validation/xge-full-20261110/xui-canvas-frame-prepare-advanced-win-current-r2/terrain-collision.log",
+          "sha256": "259c786bc8c8073a44a4ff81a2060f177d723a206352adc313dd934d1618e90a"
+        },
+        "nine-patch": {
+          "path": "F:/xlang-validation/xge-full-20261110/xui-canvas-frame-prepare-advanced-win-nine-r2/nine-patch.log",
+          "sha256": "c96c00a1547d628ee8741c85e9f46b12ed91694b1feef3cede6066d11e4d64ec"
+        }
+      },
+      "nativeConsumers": {
+        "path": "F:/xlang-validation/xge-full-20261110/xui-canvas-frame-prepare-audit-win-r1/consumers/results.json",
+        "sha256": "d3289b57c9da92c7e67d7743950ee9373b551957494c73c7165473b4a651be95"
+      }
+    },
+    "linux": {
+      "builds": {
+        "host": {
+          "path": "/var/tmp/xlang-validation/xge-full-20261110/xui-canvas-frame-prepare-host-linux-r1/build-report.json",
+          "sha256": "b09edf88c5a9d9384e92970592ec0325c2913091ecc44ea0ea10e8e1e04f6631",
+          "recompiled": [
+            "src/xui/controls/xui_canvas.c"
+          ],
+          "reused": 163
+        },
+        "static": {
+          "path": "/var/tmp/xlang-validation/xge-full-20261110/xui-canvas-frame-prepare-static-linux-r1/build-report.json",
+          "sha256": "a459f6e408d43dbaa3ba4b2e04cae435501f2b2632e2ba67bd469ddb24af777c",
+          "recompiled": [
+            "src/xui/controls/xui_canvas.c",
+            "/var/tmp/xlang-validation/xge-full-20261110/xui-canvas-frame-prepare-static-linux-r1/xge_static_contract.c"
+          ],
+          "reused": 164
+        }
+      },
+      "nativeTests": {
+        "host-canvas-O0": {
+          "path": "/var/tmp/xlang-validation/xge-full-20261110/xui-canvas-frame-prepare-tests-linux-host-r1/canvas-O0-run.log",
+          "sha256": "5370d9a157667ab113ab92e18e1025f893588e18012deec0de1c4f659478eacd"
+        },
+        "host-canvas-O2": {
+          "path": "/var/tmp/xlang-validation/xge-full-20261110/xui-canvas-frame-prepare-tests-linux-host-r1/canvas-O2-run.log",
+          "sha256": "5370d9a157667ab113ab92e18e1025f893588e18012deec0de1c4f659478eacd"
+        },
+        "host-scroll_frame-O0": {
+          "path": "/var/tmp/xlang-validation/xge-full-20261110/xui-canvas-frame-prepare-tests-linux-host-r1/scroll_frame-O0-run.log",
+          "sha256": "b7306de029b2d4f86774ca0af8ff1cd91367bce9693bf918b4a78ae2abc2f139"
+        },
+        "host-scroll_frame-O2": {
+          "path": "/var/tmp/xlang-validation/xge-full-20261110/xui-canvas-frame-prepare-tests-linux-host-r1/scroll_frame-O2-run.log",
+          "sha256": "b7306de029b2d4f86774ca0af8ff1cd91367bce9693bf918b4a78ae2abc2f139"
+        },
+        "host-cache_transition-O0": {
+          "path": "/var/tmp/xlang-validation/xge-full-20261110/xui-canvas-frame-prepare-tests-linux-host-r2/cache_transition-O0-run.log",
+          "sha256": "0a39c4f06083a31c49bf0c91d0422e080f0c9caf3a4053ddd84d2959bdf3e05d"
+        },
+        "host-cache_transition-O2": {
+          "path": "/var/tmp/xlang-validation/xge-full-20261110/xui-canvas-frame-prepare-tests-linux-host-r2/cache_transition-O2-run.log",
+          "sha256": "0a39c4f06083a31c49bf0c91d0422e080f0c9caf3a4053ddd84d2959bdf3e05d"
+        },
+        "host-cache_render_outcome-O0": {
+          "path": "/var/tmp/xlang-validation/xge-full-20261110/xui-canvas-frame-prepare-tests-linux-host-r2/cache_render_outcome-O0-run.log",
+          "sha256": "55236e267dd1b9d6d377b65b17dcde2693acecd7adc91a3739be1a49ba0b3c24"
+        },
+        "host-cache_render_outcome-O2": {
+          "path": "/var/tmp/xlang-validation/xge-full-20261110/xui-canvas-frame-prepare-tests-linux-host-r2/cache_render_outcome-O2-run.log",
+          "sha256": "55236e267dd1b9d6d377b65b17dcde2693acecd7adc91a3739be1a49ba0b3c24"
+        },
+        "host-incremental_render-O0": {
+          "path": "/var/tmp/xlang-validation/xge-full-20261110/xui-canvas-frame-prepare-tests-linux-host-r2/incremental_render-O0-run.log",
+          "sha256": "9f81084ede2774b9d0055fa0609812e5184e1c643994746f293fe6ffbb118b4f"
+        },
+        "host-incremental_render-O2": {
+          "path": "/var/tmp/xlang-validation/xge-full-20261110/xui-canvas-frame-prepare-tests-linux-host-r2/incremental_render-O2-run.log",
+          "sha256": "9f81084ede2774b9d0055fa0609812e5184e1c643994746f293fe6ffbb118b4f"
+        },
+        "static-canvas-O0": {
+          "path": "/var/tmp/xlang-validation/xge-full-20261110/xui-canvas-frame-prepare-tests-linux-static-r1/canvas-O0-run.log",
+          "sha256": "5370d9a157667ab113ab92e18e1025f893588e18012deec0de1c4f659478eacd"
+        },
+        "static-canvas-O2": {
+          "path": "/var/tmp/xlang-validation/xge-full-20261110/xui-canvas-frame-prepare-tests-linux-static-r1/canvas-O2-run.log",
+          "sha256": "5370d9a157667ab113ab92e18e1025f893588e18012deec0de1c4f659478eacd"
+        },
+        "static-scroll_frame-O0": {
+          "path": "/var/tmp/xlang-validation/xge-full-20261110/xui-canvas-frame-prepare-tests-linux-static-r1/scroll_frame-O0-run.log",
+          "sha256": "b7306de029b2d4f86774ca0af8ff1cd91367bce9693bf918b4a78ae2abc2f139"
+        },
+        "static-scroll_frame-O2": {
+          "path": "/var/tmp/xlang-validation/xge-full-20261110/xui-canvas-frame-prepare-tests-linux-static-r1/scroll_frame-O2-run.log",
+          "sha256": "b7306de029b2d4f86774ca0af8ff1cd91367bce9693bf918b4a78ae2abc2f139"
+        },
+        "static-cache_transition-O0": {
+          "path": "/var/tmp/xlang-validation/xge-full-20261110/xui-canvas-frame-prepare-tests-linux-static-r2/cache_transition-O0-run.log",
+          "sha256": "0a39c4f06083a31c49bf0c91d0422e080f0c9caf3a4053ddd84d2959bdf3e05d"
+        },
+        "static-cache_transition-O2": {
+          "path": "/var/tmp/xlang-validation/xge-full-20261110/xui-canvas-frame-prepare-tests-linux-static-r2/cache_transition-O2-run.log",
+          "sha256": "0a39c4f06083a31c49bf0c91d0422e080f0c9caf3a4053ddd84d2959bdf3e05d"
+        },
+        "static-cache_render_outcome-O0": {
+          "path": "/var/tmp/xlang-validation/xge-full-20261110/xui-canvas-frame-prepare-tests-linux-static-r2/cache_render_outcome-O0-run.log",
+          "sha256": "55236e267dd1b9d6d377b65b17dcde2693acecd7adc91a3739be1a49ba0b3c24"
+        },
+        "static-cache_render_outcome-O2": {
+          "path": "/var/tmp/xlang-validation/xge-full-20261110/xui-canvas-frame-prepare-tests-linux-static-r2/cache_render_outcome-O2-run.log",
+          "sha256": "55236e267dd1b9d6d377b65b17dcde2693acecd7adc91a3739be1a49ba0b3c24"
+        },
+        "static-incremental_render-O0": {
+          "path": "/var/tmp/xlang-validation/xge-full-20261110/xui-canvas-frame-prepare-tests-linux-static-r2/incremental_render-O0-run.log",
+          "sha256": "9f81084ede2774b9d0055fa0609812e5184e1c643994746f293fe6ffbb118b4f"
+        },
+        "static-incremental_render-O2": {
+          "path": "/var/tmp/xlang-validation/xge-full-20261110/xui-canvas-frame-prepare-tests-linux-static-r2/incremental_render-O2-run.log",
+          "sha256": "9f81084ede2774b9d0055fa0609812e5184e1c643994746f293fe6ffbb118b4f"
+        }
+      },
+      "languageTests": {
+        "host-example-jit": {
+          "path": "/var/tmp/xlang-validation/xge-full-20261110/xui-canvas-frame-prepare-language-linux-host-r1/example-jit.log",
+          "sha256": "1cb365c9c667434042e8badac60f2d25215d47da5d448dad707e01d48476fc8d"
+        },
+        "host-example-run": {
+          "path": "/var/tmp/xlang-validation/xge-full-20261110/xui-canvas-frame-prepare-language-linux-host-r1/example-run.log",
+          "sha256": "1cb365c9c667434042e8badac60f2d25215d47da5d448dad707e01d48476fc8d"
+        },
+        "host-fixture-jit": {
+          "path": "/var/tmp/xlang-validation/xge-full-20261110/xui-canvas-frame-prepare-language-linux-host-r1/fixture-jit.log",
+          "sha256": "a8ea14942e58ff693ba660df6a82dccdca3d869626ffc3bc282f86e4fba3c4f8"
+        },
+        "host-fixture-run": {
+          "path": "/var/tmp/xlang-validation/xge-full-20261110/xui-canvas-frame-prepare-language-linux-host-r1/fixture-run.log",
+          "sha256": "a8ea14942e58ff693ba660df6a82dccdca3d869626ffc3bc282f86e4fba3c4f8"
+        },
+        "static-example-run": {
+          "path": "/var/tmp/xlang-validation/xge-full-20261110/xui-canvas-frame-prepare-language-linux-static-r1/example-run.log",
+          "sha256": "1cb365c9c667434042e8badac60f2d25215d47da5d448dad707e01d48476fc8d"
+        },
+        "static-fixture-run": {
+          "path": "/var/tmp/xlang-validation/xge-full-20261110/xui-canvas-frame-prepare-language-linux-static-r1/fixture-run.log",
+          "sha256": "a8ea14942e58ff693ba660df6a82dccdca3d869626ffc3bc282f86e4fba3c4f8"
+        }
+      },
+      "packageReplay": {
+        "path": "/var/tmp/xlang-validation/xge-full-20261110/xui-canvas-frame-prepare-packages-linux-r1/packages/stage-report.json",
+        "sha256": "3502942268e543eef32432f6336ffe8981d7cd21a6acfd1b20fb9f9906107baf"
+      },
+      "baselineLanguageFailure": {
+        "path": "/var/tmp/xlang-validation/xge-full-20261110/xui-canvas-frame-prepare-advanced-linux-baseline-r1/canvas-baseline.log",
+        "sha256": "a8d43a75548f73a227574b97f5137f5f8dd52fb2d95db9b6d8713084e8614d23"
+      },
+      "mappedApiTests": {
+        "shape-snapshots": {
+          "path": "/var/tmp/xlang-validation/xge-full-20261110/xui-canvas-frame-prepare-advanced-linux-current-r2/shape-snapshots.log",
+          "sha256": "d5c77939fc3520273eb4aba3337b9031ecc48e040d5fc05139240e80be20bbe3"
+        },
+        "edit-diagnostics": {
+          "path": "/var/tmp/xlang-validation/xge-full-20261110/xui-canvas-frame-prepare-advanced-linux-current-r2/edit-diagnostics.log",
+          "sha256": "5e5d569006552f6cee15677f609198d161641b8a9fae8cb0511a5788ab35d2e7"
+        },
+        "terrain-collision": {
+          "path": "/var/tmp/xlang-validation/xge-full-20261110/xui-canvas-frame-prepare-advanced-linux-current-r2/terrain-collision.log",
+          "sha256": "4bf477d10e3e0d09a7a5ec3cf89ccfecaac0d6282f69169f6b80b34900428c88"
+        },
+        "nine-patch": {
+          "path": "/var/tmp/xlang-validation/xge-full-20261110/xui-canvas-frame-prepare-advanced-linux-nine-r2/nine-patch.log",
+          "sha256": "895baab197e77afb4ebfa30a348ff985f03b20507756d006e24b419803f1da48"
+        }
+      },
+      "nativeConsumers": {
+        "path": "/var/tmp/xlang-validation/xge-full-20261110/xui-canvas-frame-prepare-audit-linux-r1/consumers/results.json",
+        "sha256": "345b292991091272fce5a3a14e0db26b54ae67c796ef2cce76e3932e78bb341e"
+      }
+    }
+  },
+  "checks": [
+    "Unchanged surfaces reuse the cache. External RGBA writes trigger a refresh and subsequent stable prepares reuse that refreshed cache.",
+    "Native baseline failures were reproduced on Windows and Linux. The language negative control reproduces the same missing refresh through an owned Proxy.",
+    "Five native suites passed in hosted and static clients at O0/O2 on both platforms. The new language regression passed in JIT and both AOT modes.",
+    "Shape, CodeEdit diagnostics, 3D terrain/collision and nine-patch JIT probes passed in the matched SDK. Linux graphic probes ran under Xvfb.",
+    "Runtime SDKs use the same public headers and resident XRT as the previous candidate. Qualification is for staged candidate packages."
+  ]
+}
