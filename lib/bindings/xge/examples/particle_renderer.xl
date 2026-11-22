@@ -10,7 +10,7 @@ func main(...) as int
 
     array<xge.ParticleEmitter> emitters = [emitter]
     auto definition = xge.createParticleDefinition(emitters)
-    auto world = xge.createParticleWorld()
+    auto world = xge.createDefaultParticleWorld()
     xge.init(320, 200, "Particle burst")
     auto renderer = xge.createParticleRenderer(128, 64)
     try

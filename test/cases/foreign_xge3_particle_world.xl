@@ -11,7 +11,18 @@ extern "fixtureWorldNativeCollision" @no_raise func nativeCollision(xge.Particle
 extern "fixtureWorldNativeCollisionHot" @no_raise func nativeCollisionHot(xge.ParticleWorld world)
 extern "fixtureWorldNativeCollisionCalls" @no_raise func nativeCalls() as c_int
 extern "fixtureWorldRefs" @no_raise func nativeRefs(xge.ParticleWorld world) as c_int
+extern "fixtureWorldCheckDefaults" @no_raise func checkDefaults(c_uint effects,c_uint particles,c_uint events,c_uint spawn,c_uint substeps,c_float step)
 func main(...) as int
+ auto effects,particles,events,spawn,substeps,step=xge.particleWorldDefaults()
+ checkDefaults(effects,particles,events,spawn,substeps,step)
+ auto defaults=xge.createDefaultParticleWorld()
+ assert nativeRefs(defaults)==1
+ defaults.update(c_double(step))
+ assert defaults.stats().iSteps==1
+ defaults.close()
+ auto noEvents=xge.createParticleWorld(maxEvents=0)
+ assert nativeRefs(noEvents)==1
+ noEvents.close()
  auto emitter=xge.particleEmitterInit()
  emitter.bAutomatic=0
  emitter.fRate=c_float(0)
@@ -151,7 +162,7 @@ func main(...) as int
  world.release(hotEffect)
  int failures=0
  int successes=0
- for operation in range(3)
+ for operation in range(4)
   for allowance in range(32)
    prefixBegin(c_int(allowance))
    try
@@ -160,6 +171,9 @@ func main(...) as int
      value.close()
     elseif operation==1 then
      auto value=world.share()
+     value.close()
+    elseif operation==2 then
+     auto value=xge.createDefaultParticleWorld()
      value.close()
     else
      world.onCollision(miss)

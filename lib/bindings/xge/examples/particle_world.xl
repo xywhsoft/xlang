@@ -13,7 +13,8 @@ func main(...) as int
  emitter.iCollision=xge.XGE_PARTICLE_COLLISION_KILL
  array<xge.ParticleEmitter> emitters=[emitter]
  auto definition=xge.createParticleDefinition(emitters)
- auto world=xge.createParticleWorld(4,16,8,8,8,c_float(0.015625))
+ // Use a small world with a fixed step of 1/64 second for the example.
+ auto world=xge.createParticleWorld(maxEffects=4,maxParticles=16,maxEvents=8,maxSpawnPerStep=8,maxSubsteps=8,fixedStep=c_float(0.015625))
  try
   auto effect=world.play(definition)
   xge.Vec2 normal

@@ -12,4 +12,5 @@ void fixtureWorldNativeCollision(xge_particle_world,int);
 void fixtureWorldNativeCollisionHot(xge_particle_world);
 int fixtureWorldNativeCollisionCalls(void);
 int fixtureWorldRefs(xge_particle_world);
+void fixtureWorldCheckDefaults(uint32_t,uint32_t,uint32_t,uint32_t,uint32_t,float);
 #endif

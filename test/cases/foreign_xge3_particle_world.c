@@ -44,3 +44,12 @@ void fixtureWorldNativeCollisionHot(xge_particle_world world)
 {for(int i=0;i<1000;++i)assert(xgeParticleUpdate(world,1.0/64)==XGE_OK);}
 int fixtureWorldRefs(xge_particle_world world)
 {xrtownershipref ref=xgeParticleWorldOwnership(world);size_t refs=0;assert(ref.Ops && ref.Ops->Count(ref.Data,&refs));return (int)refs;}
+void fixtureWorldCheckDefaults(uint32_t effects, uint32_t particles, uint32_t events,
+    uint32_t spawn, uint32_t substeps, float step)
+{
+ xge_particle_world_desc_t native;
+ xgeParticleWorldDescInit(&native);
+ assert(effects==native.iMaxEffects && particles==native.iMaxParticles && events==native.iMaxEvents);
+ assert(spawn==native.iMaxSpawnPerStep && substeps==native.iMaxSubsteps && step==native.fFixedStep);
+ assert(native.pCollision==NULL && native.pCollisionUser==NULL);
+}

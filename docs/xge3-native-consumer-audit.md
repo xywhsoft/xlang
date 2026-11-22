@@ -1,5 +1,32 @@
 # Native consumers in the full API inventory
 
+## Particle world defaults and owned factories
+
+`particleWorldDefaults()` makes one call to `xgeParticleWorldDescInit` and
+returns its five capacity limits and fixed step. `createDefaultParticleWorld()`
+passes a typed NULL descriptor to the existing world factory. The native
+constructor chooses the defaults. The explicit options factory still packs
+its selected values on the stack. Both paths retain code through the same
+world owner and install collision callbacks with `ParticleWorld.onCollision()`.
+
+The compiled adapter has a relocation from its factory to
+`xgeParticleWorldCreateOwnedWithCode` and uses the code-lease acquire and
+release functions in that same section. `createParticleRenderer()` calls
+`xgeParticleRendererCreateOwned` directly and keeps a native graphics lifetime
+reservation until checked close.
+
+Windows and Linux passed JIT, dynamic AOT, and standalone static AOT for
+the world and renderer. The world test checks all six returned defaults
+against C and exercises 32 allocation-failure prefixes for the default
+factory. The renderer test reads back pixels, checks the shutdown Busy
+result while a renderer is alive, and retries after closing it. Its warmed
+render loop used zero XRT heap operations in both C and xlang.
+
+The inventory has 326 entries without a direct declaration, compiled consumer
+or explicit replacement. XGE accounts for 133 and XUI for 193.
+
+[Validation evidence](../dev/release-materials/provenance/xge-particle-world-defaults-20261123.json)
+
 ## Numeric input formatter
 
 `NumericInput.setFormatter()` declares the native owned callback directly.

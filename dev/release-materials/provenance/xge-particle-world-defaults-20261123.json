@@ -1,0 +1,161 @@
+{
+  "schema": 1,
+  "date": "2026-11-23",
+  "complete": true,
+  "passed": true,
+  "nativeRevision": "371148426d6c2780ec9390d8f39675263a90b96a",
+  "nativeSourceChanged": false,
+  "scope": "ParticleWorld native defaults and traced factory, renderer factory and lifetime regression",
+  "shippingDelivery": false,
+  "networkTests": false,
+  "apiCompletenessClaim": false,
+  "audit": {
+    "functionPopulation": 5789,
+    "directDeclarations": 4729,
+    "compiledConsumerFunctions": 283,
+    "explicitReplacements": 454,
+    "pending": {
+      "XGE": 133,
+      "XUI": 193,
+      "Document": 0
+    },
+    "removedFromPending": [
+      "xgeParticleRendererCreate",
+      "xgeParticleWorldCreate",
+      "xgeParticleWorldCreateOwned",
+      "xgeParticleWorldDescInit"
+    ]
+  },
+  "sources": {
+    "lib/bindings/xge/src/particle_world.xl": {
+      "path": "D:\\GIT\\x-lang\\lib\\bindings\\xge\\src\\particle_world.xl",
+      "sha256": "6341e4d0be76c131e2d7ee81e1d35c52f850082f3a3aaaf229a2fa3e36b1994e"
+    },
+    "lib/bindings/xge/examples/particle_world.xl": {
+      "path": "D:\\GIT\\x-lang\\lib\\bindings\\xge\\examples\\particle_world.xl",
+      "sha256": "fc801c6e83ec167a3c586afa7f2912b7d1874035dd5cc9c26ddc825760e4f870"
+    },
+    "lib/bindings/xge/examples/particle_renderer.xl": {
+      "path": "D:\\GIT\\x-lang\\lib\\bindings\\xge\\examples\\particle_renderer.xl",
+      "sha256": "1d47f943a357a016df7c5ca71dbce05e4dd1839168143294a6e78c2cd2350315"
+    },
+    "test/cases/foreign_xge3_particle_world.xl": {
+      "path": "D:\\GIT\\x-lang\\test\\cases\\foreign_xge3_particle_world.xl",
+      "sha256": "8d5d4966ec967f5e3ada0ec1efd260428c9ca3bfba621d4651c96c7a575869d4"
+    },
+    "test/cases/foreign_xge3_particle_world.c": {
+      "path": "D:\\GIT\\x-lang\\test\\cases\\foreign_xge3_particle_world.c",
+      "sha256": "67fda043ff1961e6b04048890a1cd2ae3858563377be92e0573d24b4f9b12918"
+    },
+    "test/cases/foreign_xge3_particle_world.h": {
+      "path": "D:\\GIT\\x-lang\\test\\cases\\foreign_xge3_particle_world.h",
+      "sha256": "0fac587041ddf07d77d49160ea46a96ff23da7d4bd5a082d7bbe4c84790347b4"
+    },
+    "test/cases/foreign_xge_particle_renderer.xl": {
+      "path": "D:\\GIT\\x-lang\\test\\cases\\foreign_xge_particle_renderer.xl",
+      "sha256": "e90dc6e7c652b0232d1d63ad4eab952e72ea615294a0a2f09db591d3035f7720"
+    },
+    "test/cases/foreign_xge_particle_renderer.c": {
+      "path": "D:\\GIT\\x-lang\\test\\cases\\foreign_xge_particle_renderer.c",
+      "sha256": "75f392c23abbfb7dffcf7cb0a2bd176c0702c68367539fa3acb7ef7a60535b73"
+    },
+    "test/cases/foreign_xge_particle_renderer.h": {
+      "path": "D:\\GIT\\x-lang\\test\\cases\\foreign_xge_particle_renderer.h",
+      "sha256": "91e2d2c0463a3478e16ad6f25af86df4abbbf31f444b3d3c0068b1090ab68099"
+    },
+    "tools/check_xge3_particle_world.py": {
+      "path": "D:\\GIT\\x-lang\\tools\\check_xge3_particle_world.py",
+      "sha256": "7178bb817ff8a0ed4357309f1461414acd5622990af2e5b5775690c4cb91fd22"
+    },
+    "tools/check_xge3_native_consumers.py": {
+      "path": "D:\\GIT\\x-lang\\tools\\check_xge3_native_consumers.py",
+      "sha256": "8ad1acdc04c5312e67e00c725318dd57906844a66c762ce7b7c9bed0d3280fd7"
+    },
+    "tools/xge_replay_contracts.py": {
+      "path": "D:\\GIT\\x-lang\\tools\\xge_replay_contracts.py",
+      "sha256": "ce215671216ac8e76a60b3a47a31eba5eac85da3cf490825f35cb2f081dd2837"
+    }
+  },
+  "platforms": {
+    "Windows x64": {
+      "nativeSource": {
+        "path": "F:\\xlang-validation\\xge-full-20261110\\numeric-format-owned-stage-win-r2\\audit\\native-source.json",
+        "sha256": "f2daf7ae01e2b055677f276795300cce7ccd338acffa0a13e4498b4f3a04f570"
+      },
+      "hostStage": {
+        "path": "F:\\xlang-validation\\xge-full-20261110\\particle-world-defaults-stage-win-r2\\host.json",
+        "sha256": "c944bbbd6630b2df5288e14bf39d1038408537627a8772711cd92943d014a4a8"
+      },
+      "staticStage": {
+        "path": "F:\\xlang-validation\\xge-full-20261110\\particle-world-defaults-stage-win-r2\\static.json",
+        "sha256": "3bd1caf9fe3a0db0f81fdbea3d3b74c5f5259a3305d384cc00dad24d9332abbd"
+      },
+      "stagedReplay": {
+        "path": "F:\\xlang-validation\\xge-full-20261110\\particle-world-defaults-stage-win-r2\\replay\\stage-report.json",
+        "sha256": "9eb1cba486d68a569ccefbee56c1b440f86cd1cc57679c7d2b3e9805421861d1"
+      },
+      "surface": {
+        "path": "F:\\xlang-validation\\xge-full-20261110\\particle-world-defaults-stage-win-r2\\surface\\surface.json",
+        "sha256": "9ddacfbabc1a46f0c12b622a35d3c541a05bf1fe516ab7e6d277023eb46b3c7d"
+      },
+      "consumerAudit": {
+        "path": "F:\\xlang-validation\\xge-full-20261110\\particle-world-defaults-stage-win-r2\\consumers\\results.json",
+        "sha256": "881f8e30668567b0848bd0ff088a91d88bbe5302ffad8583b4f5e82b44fbc38e"
+      },
+      "world": {
+        "path": "F:\\xlang-validation\\xge-full-20261110\\particle-world-defaults-stage-win-r2\\world-tests\\results.json",
+        "sha256": "f493d71c7368767226e5f7a1cfd827aca027efc8949f30d1d35e409d646e9e5b"
+      },
+      "renderer": {
+        "path": "F:\\xlang-validation\\xge-full-20261110\\particle-world-defaults-renderer-tests-win-r1\\results.json",
+        "sha256": "6d310eeb57c77c3acce64344fb3574f4724bc9e5aa262e3b80af1529f0752ff1"
+      },
+      "worldSteps": 24,
+      "rendererSteps": 14,
+      "rendererExample": {
+        "sha256": "b86c9635f0166ffa1faaed04c81bcb4a46ad5238bedceefd7859bbdb9246f318",
+        "bytes": 4204544
+      }
+    },
+    "Linux x64": {
+      "nativeSource": {
+        "path": "\\\\wsl.localhost\\Ubuntu\\var\\tmp\\xlang-validation\\xge-full-20261110\\numeric-format-owned-stage-linux-r2\\audit\\native-source.json",
+        "sha256": "7c7ee622910464f21f5790a8972757ff6e9320a1c60e0e039b5be1d511cd4205"
+      },
+      "hostStage": {
+        "path": "\\\\wsl.localhost\\Ubuntu\\var\\tmp\\xlang-validation\\xge-full-20261110\\particle-world-defaults-stage-linux-r2\\host.json",
+        "sha256": "27662b443926b83c1e062c4f0451f9c23ec235c01f06cc03a2ff39ed3bbc851a"
+      },
+      "staticStage": {
+        "path": "\\\\wsl.localhost\\Ubuntu\\var\\tmp\\xlang-validation\\xge-full-20261110\\particle-world-defaults-stage-linux-r2\\static.json",
+        "sha256": "e20abbae04d41c4ccca64bb1c314b5b02b5509ca32a6c43c2206d1427197602a"
+      },
+      "stagedReplay": {
+        "path": "\\\\wsl.localhost\\Ubuntu\\var\\tmp\\xlang-validation\\xge-full-20261110\\particle-world-defaults-stage-linux-r2\\replay\\stage-report.json",
+        "sha256": "def698e982dfb6e56ac95275bb84ea9a8263895657965d1f2f051cee419c1d0f"
+      },
+      "surface": {
+        "path": "\\\\wsl.localhost\\Ubuntu\\var\\tmp\\xlang-validation\\xge-full-20261110\\particle-world-defaults-stage-linux-r2\\surface\\surface.json",
+        "sha256": "938d7962ff81e2dc200de5edf7528428c56da03ff229069ac6e534ddcdba4107"
+      },
+      "consumerAudit": {
+        "path": "\\\\wsl.localhost\\Ubuntu\\var\\tmp\\xlang-validation\\xge-full-20261110\\particle-world-defaults-stage-linux-r2\\consumers\\results.json",
+        "sha256": "b7800aa1f35708b4942f4cd94956c2abd593e61aaf1ac6c374f323e3c65cb9aa"
+      },
+      "world": {
+        "path": "\\\\wsl.localhost\\Ubuntu\\var\\tmp\\xlang-validation\\xge-full-20261110\\particle-world-defaults-stage-linux-r2\\world-tests\\results.json",
+        "sha256": "6af375cc93a5a0c56fdbf15bbbede7532ceac3d105a139124d8f8c95f2bbbe10"
+      },
+      "renderer": {
+        "path": "\\\\wsl.localhost\\Ubuntu\\var\\tmp\\xlang-validation\\xge-full-20261110\\particle-world-defaults-renderer-tests-linux-r1\\results.json",
+        "sha256": "f817facfebecace7b8687b43c0bb6a0c63f133bca474688daed5ff7dbda12443"
+      },
+      "worldSteps": 24,
+      "rendererSteps": 14,
+      "rendererExample": {
+        "sha256": "9ce869d338d1388886c7cbe88de6742fb06f683136577bee5734db7837fb982d",
+        "bytes": 1733731
+      }
+    }
+  }
+}

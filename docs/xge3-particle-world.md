@@ -7,6 +7,8 @@ or second simulation implementation is involved.
 
 | Language API | Native operation |
 | --- | --- |
+| `particleWorldDefaults()` | `xgeParticleWorldDescInit`, with the five capacities and step returned as scalar values |
+| `createDefaultParticleWorld()` | Native default configuration, passed as a typed NULL descriptor through the owned factory |
 | `createParticleWorld(maxEffects,maxParticles,maxEvents,maxSpawnPerStep,maxSubsteps,fixedStep)` | Stack `xge_particle_world_desc_t`, cold CodeLease admission, native `CreateOwnedWithCode` |
 | `share()` / `close()` | Real native shared reference / checked language owner release |
 | `reserve(definition,count)` | `xgeParticleWorldReserve` |
@@ -21,11 +23,14 @@ or second simulation implementation is involved.
 | `visit(visitor)` | Synchronous native visitor; 0 stops, nonzero continues |
 | `onCollision(callback)` / `onCollision()` | Direct owned native registration / clear |
 
-Factory defaults are the native defaults: 128 effects, 32768 particles, 4096
-events, 4096 spawns per step, 64 substeps and a 1/120-second step. Time is in
-seconds, not the platform deadline ABI's milliseconds. Emitter indices are
-zero-based. Use `particleEmitterInit()` and `particlePlayInit()` for native
-defaults; zero POD constructors do not supply those defaults.
+The current native defaults are 128 effects, 32768 particles, 4096 events,
+4096 spawns per step, 64 substeps and a 1/120-second step. Use
+`createDefaultParticleWorld()` to obtain the defaults of the loaded native
+engine. The options factory continues to accept positional and named arguments
+with the same default values as before. Install a collision callback on the
+resulting world with `onCollision()`. Time is in seconds and emitter indices
+start at zero. Use `particleEmitterInit()` and `particlePlayInit()` for their
+native defaults.
 
 `pollEvent()` reads the world queue in FIFO order. When `available` is false,
 ignore the zero-initialized event. Copied events remain readable after the

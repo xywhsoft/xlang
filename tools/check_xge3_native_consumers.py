@@ -63,6 +63,9 @@ CORE_HEADER_CLOSES = {
     'xgeParticleRendererFree': ('ParticleRenderer', 'ParticleRenderer', 'xgeParticleRendererReleaseOwnerChecked'),
     'xgeParticleRendererFreeChecked': ('ParticleRenderer', 'ParticleRenderer', 'xgeParticleRendererReleaseOwnerChecked'),
 }
+PARTICLE_WORLD_FACTORIES = {'xgeParticleWorldCreate', 'xgeParticleWorldCreateOwned'}
+PARTICLE_WORLD_BRIDGE = 'xl6Xge3ParticleWorldCreateOwned'
+PARTICLE_WORLD_PRODUCER = 'xgeParticleWorldCreateOwnedWithCode'
 HEADER_CLOSE_REPLACEMENTS.update({
     old: (f'xge.{owner}.close', release)
     for old, (owner, _, release) in CORE_HEADER_CLOSES.items()
@@ -355,6 +358,7 @@ def main():
         if any(artifact.get('nativeLink', {}).values()):
             flags.append('-DXL6_NATIVE_LINK_SCHEMA=1')
         policy_relocations={}
+        particle_factory=None
         for number,source in enumerate(sources):
             name='unit-'+str(number);obj=out/(name+'.o')
             run(name+'-compile',[tools['gcc'],*flags,'-c',core/source,'-o',obj])
@@ -362,6 +366,23 @@ def main():
             defined=symbols(run(name+'-defined',[tools['nm'],'--defined-only','-g',obj]))
             if source=='src/runtime.c' and CLOSE_REPLACEMENTS.keys() & functions.keys():
                 policy_relocations=object_relocations(run(name+'-relocations',[tools['objdump'],'-r',obj]))
+            if source=='src/particle_world.c' and PARTICLE_WORLD_FACTORIES & functions.keys():
+                assert PARTICLE_WORLD_BRIDGE in defined and PARTICLE_WORLD_PRODUCER in functions
+                relocations=object_relocations(run(name+'-relocations',[tools['objdump'],'-r',obj]))
+                targets={PARTICLE_WORLD_PRODUCER,'xl6CodeLeaseAcquireScoped','xl6CodeLeaseRelease'}
+                sections=[section for section in ('.text.', '.text$')
+                          if targets <= relocations.get(section+PARTICLE_WORLD_BRIDGE,set())]
+                assert len(sections)==1,(source,targets,relocations)
+                call_section=sections[0]+PARTICLE_WORLD_BRIDGE
+                bindings=bound[PARTICLE_WORLD_BRIDGE]
+                factories={row['language'] for row in bindings if '@c_code_owner(2)' in
+                    (view/row['source']).read_text(encoding='utf-8-sig').splitlines()[row['line']-1]}
+                assert 'xge.createParticleWorld' in factories,bindings
+                particle_factory=dict(language='xge.createParticleWorld',
+                    native=PARTICLE_WORLD_PRODUCER, adapter=PARTICLE_WORLD_BRIDGE, source=source,
+                    relocationPath=[call_section,PARTICLE_WORLD_PRODUCER])
+                if 'xge.createDefaultParticleWorld' in factories:
+                    particle_factory['defaultFactory']='xge.createDefaultParticleWorld'
             for group in groups:
                 if group['source']!=source:continue
                 for alias in set(group['providedSymbols'])-defined:
@@ -424,6 +445,9 @@ def main():
                 assert replacement[1] in functions and functions[replacement[1]]['declarationPresent'],symbol
                 assert any(r['language']==replacement[0] for r in bound[replacement[1]]),replacement
                 evidence=dict(language=replacement[0],native=replacement[1])
+            elif symbol in PARTICLE_WORLD_FACTORIES:
+                assert particle_factory is not None,symbol
+                evidence=particle_factory
             elif symbol in CLOSE_REPLACEMENTS:
                 logical,policy,destroy,release=CLOSE_REPLACEMENTS[symbol]
                 owner=class_bindings[logical.rsplit('.',1)[0]]

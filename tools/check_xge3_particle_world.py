@@ -65,9 +65,11 @@ def main():
             run(name+'-emit',[compiler,'cgen',source,'--emit',c,'--emit-header',header,*includes],dynamic)
             generated=c.read_text(encoding='utf-8-sig')
             symbols=['xgeParticlePlay','xgeParticleEmit','xgeParticleUpdate','xgeParticleStats','xgeParticleWorldSetCollisionOwned']
-            if not lesson:symbols+=['xgeParticleVisit','xgeParticlePrewarm','xgeParticleWorldShareOwned','xgeParticleWorldReserve']
+            if not lesson:symbols+=['xgeParticleVisit','xgeParticlePrewarm','xgeParticleWorldShareOwned',
+                'xgeParticleWorldReserve','xgeParticleWorldDescInit']
             for symbol in symbols:assert re.search(r'\b'+symbol+r'\(',generated),symbol
             if not lesson:
+                assert re.search(r'\bxl6Xge3ParticleWorldCreateOwned\([^\n;]*\(const xge_particle_world_desc_t\*\)(?:0|NULL)\s*,',generated)
                 assert 'xl6ForeignViewCloseV1('in generated
                 assert 'xl6ForeignScopeViewDeriveV2('in generated
                 assert 'xl6ForeignScopeViewMakeV2('in generated
@@ -95,7 +97,7 @@ def main():
                     counts=re.findall(rb'ParticleWorld heap kind=(\d+) alloc=(\d+) free=(\d+) realloc=(\d+)',output)
                     assert len(counts)==4 and {int(row[0])for row in counts}=={0,1,2,3}
                     assert all(tuple(map(int,row[1:]))==(0,0,0)for row in counts)
-                    report['heap'].append(dict(mode=kind,rounds=1000,allocationPrefixes=96,
+                    report['heap'].append(dict(mode=kind,rounds=1000,allocationPrefixes=128,
                         counts={row[0].decode():dict(zip(('alloc','free','realloc'),map(int,row[1:])))for row in counts}))
                 save()
         report.update(complete=True,inputsUnchanged=all(sha(v)==digest for v,digest in inputs.items()))

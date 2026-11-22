@@ -147,6 +147,10 @@ the native immutable copy is still required. Owned serialization adopts the
 native allocation; string output validates UTF-8. Neither definition examples
 nor allocation measurements certify whole-engine performance.
 
+`createDefaultParticleWorld()` uses the native engine's defaults.
+`particleWorldDefaults()` reads the five capacity limits and fixed step, in
+the same order as the optional arguments to `createParticleWorld()`.
+
 `examples/particle_world.xl` runs the CPU simulation without a window. An owned
 `ParticleWorld` supports reserve/play, effect mutation, emit, update/prewarm,
 bounds/stats and synchronous visit. `share()` retains the same native world;
