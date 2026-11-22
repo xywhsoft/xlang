@@ -64,6 +64,11 @@ class Counters:
         self.kernel.GlobalMemoryStatusEx.restype = w.BOOL
         self.psapi.GetProcessMemoryInfo.argtypes = [w.HANDLE, ctypes.POINTER(ProcessMemory), w.DWORD]
         self.psapi.GetProcessMemoryInfo.restype = w.BOOL
+        self.kernel.GetProcessAffinityMask.argtypes = [w.HANDLE,ctypes.POINTER(ctypes.c_size_t),ctypes.POINTER(ctypes.c_size_t)]
+        self.kernel.GetProcessAffinityMask.restype = w.BOOL
+        self.kernel.SetProcessAffinityMask.argtypes = [w.HANDLE,ctypes.c_size_t]
+        self.kernel.SetProcessAffinityMask.restype = w.BOOL
+        self.kernel.GetCurrentProcess.restype = w.HANDLE
 
     @staticmethod
     def require(okay):
@@ -85,6 +90,22 @@ class Counters:
         self.require(self.psapi.GetProcessMemoryInfo(int(client.process._handle), ctypes.byref(value), value.cb))
         return {name: int(getattr(value, name)) for name in
                 ('workingSet', 'peakWorkingSet', 'private', 'peakPagefile')}
+
+    def affinity(self,client=None):
+        handle=int(client.process._handle)if client else self.kernel.GetCurrentProcess()
+        process,system=ctypes.c_size_t(),ctypes.c_size_t()
+        self.require(self.kernel.GetProcessAffinityMask(handle,ctypes.byref(process),ctypes.byref(system)))
+        return dict(processMask=process.value,systemMask=system.value)
+
+    def set_affinity(self,mask,client=None):
+        before=self.affinity(client)
+        if type(mask)!=int or mask<=0 or mask&~before['systemMask']:
+            raise ValueError('CPU mask must be a positive subset of the reported single-group system mask')
+        handle=int(client.process._handle)if client else self.kernel.GetCurrentProcess()
+        self.require(self.kernel.SetProcessAffinityMask(handle,mask))
+        after=self.affinity(client)
+        if after['processMask']!=mask:raise RuntimeError('CPU affinity did not take effect')
+        return dict(before=before,after=after)
 
     def qualify(self, rows, minimum, **details):
         value = SystemMemory()
@@ -110,6 +131,13 @@ def make_body(count, generation, topology, edit):
     if edit == 'trailing-comment':
         body += f'\n// trailing editor comment {generation}\n'
     return body
+
+
+def validate_affinity_options(server,client,isolated):
+    if server is None and client is None:return
+    if not isolated or any(type(v)!=int or v<=0 for v in(server,client)):
+        raise ValueError('CPU affinity requires isolated processes and both positive server/client masks')
+    if server&client:raise ValueError('server and client CPU masks must be disjoint')
 
 
 def summarize(rows, cases):
@@ -192,6 +220,9 @@ def main():
     parser.add_argument('--output', type=Path, required=True)
     parser.add_argument('--pairs', type=int, default=4, help='Independent process pairs per case, 2..32.')
     parser.add_argument('--isolated-processes', action='store_true', help='Run each complete process chain alone; prevent the peer LS background worker from competing with the measured LS.')
+    parser.add_argument('--server-cpu-mask',type=lambda v:int(v,0),help='Optional single-group Windows CPU mask; requires a disjoint client mask and isolated processes')
+    parser.add_argument('--client-cpu-mask',type=lambda v:int(v,0),help='Optional mask for this driver only; its original mask is restored on success or failure')
+    parser.add_argument('--background-workspace-symbols',choices=('default','on','off'),default='default',help='Explicit indexing control for diagnostic attribution; default preserves the server default')
     parser.add_argument('--idle-between-generations-ms', type=int, default=0, help='Fixed unmeasured idle before each changed generation, isolated mode only. Zero measures continuous requests.')
     parser.add_argument('--cpu-interaction-chains', action='store_true', help='Isolated mode: compare CPU of complete changed-version chains, including prescribed idle work, normalized per change. Require >=1s CPU per process; retain raw per-query CPU gates as diagnostics.')
     parser.add_argument('--small-generations', type=int, default=0, help='Isolated mode only: fixed 32-function generation count, 4..256. Long chains improve CPU timing resolution.')
@@ -207,6 +238,9 @@ def main():
     args = parser.parse_args()
     if os.name != 'nt':
         parser.error('this process-counter backend requires Windows')
+    try:validate_affinity_options(args.server_cpu_mask,args.client_cpu_mask,args.isolated_processes)
+    except ValueError as error:parser.error(str(error))
+    background={'default':None,'on':True,'off':False}[args.background_workspace_symbols]
     if not 2 <= args.pairs <= 32 or not 4 <= args.generations <= 64:
         parser.error('use 2..32 pairs and 4..64 generations')
     try:
@@ -288,6 +322,8 @@ def main():
         expectedProcesses=len(cases)*args.pairs*2,
         order='Complete A then B chains, reversing by pair parity; no live peer LS.' if args.isolated_processes else 'Start AB/BA by pair parity. Alternate AB/BA before EVERY query generation.',
         isolatedProcesses=args.isolated_processes, idleBetweenGenerationsMs=args.idle_between_generations_ms,
+        backgroundWorkspaceSymbols=background,
+        cpuAffinity=dict(serverMask=args.server_cpu_mask,clientMask=args.client_cpu_mask,scope='Optional own-process affinity only; no system power/priority change. Applied before initialization,not before process creation.'),
         clock='didOpen/didChange through complete checked stdio reply; source generation excluded',
         classifications=dict(cold='generation0', first='generation1', hot='generation2..last', exact='unchanged last-generation repeat'),
         resourceFloorGiB=args.minimum_available_gib, initialHeadroomGiB=args.initial_available_gib,
@@ -313,8 +349,14 @@ def main():
             encoding='utf8',newline='\n')
 
     counters, answers = Counters(), {}
+    original_affinity=None
     removed = {name: os.environ.pop(name, None) for name in ('XLS_CHECK_PHASE_TRACE', 'XLS_FUNCTION_STAGE_VALIDATE')}
     try:
+        if args.client_cpu_mask is not None:
+            original_affinity=counters.affinity()
+            if (args.server_cpu_mask|args.client_cpu_mask)&~original_affinity['systemMask']:
+                raise ValueError('CPU masks exceed the reported single-group system mask')
+            record['driverAffinity']=counters.set_affinity(args.client_cpu_mask)
         counters.qualify(record['resources'], args.initial_available_gib, phase='initial')
         publish()
         for case, (count, topology, edit) in cases.items():
@@ -325,10 +367,12 @@ def main():
                     for variant in variants[::1 if pair%2 == 0 else -1]:
                         counters.qualify(record['resources'], args.minimum_available_gib, phase='process', case=case, pair=pair, variant=variant)
                         client = AutomaticClient(servers[variant], output/'absent/xl.exe', folder)
+                        process_affinity=None
                         chain_begin, cpu_chain = None, None
                         cadence_chain, extension_chain = None, None
                         try:
-                            initialize(client, entry, members, folder)
+                            if args.server_cpu_mask is not None:process_affinity=counters.set_affinity(args.server_cpu_mask,client)
+                            initialize(client, entry, members, folder,background_workspace_symbols=background)
                             if topology == 'imported':
                                 client.open(entry, 'import dep\nfunc main(...) as int\n return dep.compute(3)\nend\n', 1)
                             generations = plan['caseGenerations'][case]
@@ -422,6 +466,7 @@ def main():
                             record['processes'].append(dict(case=case,pair=pair,variant=variant,
                                 pid=client.process.pid,exit=client.process.returncode,stderr=str(sp),transcript=str(tp),
                                 cpuChain=cpu_chain,cpuCadenceChain=cadence_chain,cpuExtensionChain=extension_chain,
+                                affinity=process_affinity,
                                 cleanupErrors=errors,stderrSha256=sha(sp) if sp.exists() else None,
                                 transcriptSha256=sha(tp) if tp.exists() else None))
                             publish()
@@ -437,7 +482,7 @@ def main():
                         counters.qualify(record['resources'], args.minimum_available_gib, phase='process', case=case, pair=pair, variant=variant)
                         client = AutomaticClient(servers[variant], output/'absent/xl.exe', folder)
                         clients[variant] = client
-                        initialize(client, entry, members, folder)
+                        initialize(client, entry, members, folder,background_workspace_symbols=background)
                         if topology == 'imported':
                             client.open(entry, 'import dep\nfunc main(...) as int\n return dep.compute(3)\nend\n', 1)
                     for step, generation in enumerate(plan['generations']):
@@ -530,9 +575,18 @@ def main():
         publish()
         raise
     finally:
-        for name, value in removed.items():
-            if value is not None:
-                os.environ[name] = value
+        try:
+            if original_affinity is not None:
+                counters.set_affinity(original_affinity['processMask'])
+                record['driverAffinityRestored']=counters.affinity()==original_affinity
+                if not record['driverAffinityRestored']:raise RuntimeError('driver CPU affinity was not restored')
+                publish()
+        except BaseException as error:
+            record.update(status='failed',error=repr(error));publish();raise
+        finally:
+            for name, value in removed.items():
+                if value is not None:
+                    os.environ[name] = value
 
 
 if __name__ == '__main__':

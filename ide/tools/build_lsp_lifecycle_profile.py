@@ -8,7 +8,7 @@ from pathlib import Path
 import argparse,hashlib,json,os,re,subprocess
 from check_native_bridge_catalog import function
 from build_lsp_core import dependencies
-from lsp_profile_inputs import profile_inputs
+from lsp_profile_inputs import profile_inputs,verify_native_runs
 
 
 def sha(path):
@@ -17,27 +17,32 @@ def sha(path):
 
 
 def read(path):
-    return json.loads(Path(path).read_text('utf8'))
+    return json.loads(Path(path).read_text('utf-8-sig'))
 
 
-def verify_build(build,root):
-    if build['status']!='passed' or not build['runs']:
+def verify_build(build,root,acceptance=None):
+    if build['status']!='passed' or (not build.get('runs') and acceptance is None):
         raise ValueError('a complete passed normal build with native runs is required')
     for path,digest in build['inputs'].items():
         if sha(path)!=digest:raise ValueError('normal build input changed: '+path)
     for name,digest in build['outputs'].items():
         path=Path(name) if Path(name).is_absolute() else root/name
         if sha(path)!=digest:raise ValueError('normal build output changed: '+str(path))
+    if acceptance is not None:verify_native_runs(build,root,read(acceptance))
 
 
 def main():
     parser=argparse.ArgumentParser(description=__doc__)
     parser.add_argument('--build',type=Path,required=True,help='intact passed normal build directory')
+    parser.add_argument('--build-metadata',type=Path,help='explicit qualified recipe file; defaults to build-result.json')
+    parser.add_argument('--native-acceptance',type=Path,help='complete identity-bound native receipt for a build-only build')
     parser.add_argument('--output',type=Path,required=True,help='fresh private output directory')
     parser.add_argument('--ir-verifier-detail',action='store_true',help='diagnostic-only inclusive timings for direct native verifier helpers; does not qualify performance')
     parser.add_argument('--preflight-only',action='store_true',help='verify archive/linked object recipes and source identities without compiling or running a probe')
     args=parser.parse_args();B=args.build.resolve(strict=True);O=args.output.resolve()
-    b=read(B/'build-result.json');verify_build(b,B)
+    metadata=args.build_metadata.resolve(strict=True) if args.build_metadata else B/'build-result.json'
+    acceptance=args.native_acceptance.resolve(strict=True) if args.native_acceptance else None
+    b=read(metadata);verify_build(b,B,acceptance)
     originalBindings={v['original']:v['sha256'] for v in b.get('sourceRebinding',{}).get('bindings',[])}
     for k,v in b.items():
      if k.endswith('Extension') and isinstance(v,dict):
@@ -45,6 +50,10 @@ def main():
     O.mkdir(parents=True,exist_ok=False);temporary=O/'compiler-temp';temporary.mkdir()
     rec=dict(status='running',accepted=False,scope='Diagnostic inclusive per-thread worker/session/adapter/projection/retirement timings;not formal performance or a per-query retirement binding.',commands=[],inputs={str(Path(__file__).resolve()):sha(__file__),str(Path(__file__).with_name('check_native_bridge_catalog.py')):sha(Path(__file__).with_name('check_native_bridge_catalog.py')),str(B/'build-result.json'):sha(B/'build-result.json'),str(Path(__file__).with_name('lsp_profile_inputs.py')):sha(Path(__file__).with_name('lsp_profile_inputs.py'))},programs={},normalBuild=str(B),normalBuildInputs=len(b['inputs']),normalBuildOutputs=len(b['outputs']))
     labels=[];copies={};host={};env=dict(os.environ,TMP=str(temporary),TEMP=str(temporary))
+    rec['normalBuildReceipt']=str(metadata)
+    rec['inputs'][str(metadata)]=sha(metadata)
+    if acceptance is not None:
+     rec['normalAcceptance']=str(acceptance);rec['inputs'][str(acceptance)]=sha(acceptance)
     env['PATH']=str(Path(b['compiler']).parent)+os.pathsep+env.get('PATH','')
     def slot(label):
      if label not in labels:labels.append(label)
@@ -84,7 +93,7 @@ def main():
      for name in names:
       c=units[name];p=Path(c[c.index('-c')+1]);copies[name]=p.read_text('utf8');assert ({str(Path(q).resolve()):h for q,h in originalBindings.items()} | {str(Path(q).resolve()):h for q,h in b['inputs'].items()}).get(str(p.resolve()))==sha(p),p;rec['inputs'][str(p)]=sha(p)
      if args.preflight_only:
-      verify_build(b,B);rec['status']='preflight-passed';rec['programs']=dict(normal=dict(path=str(B/'xlang-ls.exe'),sha256=sha(B/'xlang-ls.exe')));return
+      verify_build(b,B,acceptance);rec['status']='preflight-passed';rec['programs']=dict(normal=dict(path=str(B/'xlang-ls.exe'),sha256=sha(B/'xlang-ls.exe')));return
      def session(body):
       body=body.replace('{','{\n    double lifecycleTotal=xrtTimer();',1)
       body=calls(body,{'xlsInputBatchCreateInContext','xlsSyntaxBuild','xlsSemanticCheckCreateBatch','xlsSemanticCheckValidate','xlsSemanticCheckInputUsage'},'session.')
@@ -223,7 +232,7 @@ void xlsLifecycleBegin(void);void xlsLifecycleAdd(size_t,double);void xlsLifecyc
      rec['programs']=dict(diagnostic=dict(path=str(exe),sha256=sha(exe)),normal=dict(path=str(B/'xlang-ls.exe'),sha256=sha(B/'xlang-ls.exe')));rec['labels']=labels
      for p,h in rec['inputs'].items():assert sha(p)==h,p
      for path,h in rec['linkedInputs'].items():assert sha(path)==h,path
-     verify_build(b,B)
+     verify_build(b,B,acceptance)
      rec['outputs']={str(p):sha(p) for p in O.iterdir() if p.is_file() and p.suffix in ('.exe','.a','.o','.h','.c')}
      rec['status']='built'
     except BaseException as e:rec.update(status='failed',error=repr(e));raise
