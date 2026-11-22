@@ -1,5 +1,23 @@
 # Native consumers in the full API inventory
 
+## XGE clipboard text snapshots
+
+`xge.clipboardGetText()` directly calls `xgeClipboardGetTextOwned` and adopts
+the resulting XRT buffer. Windows converts its UTF-16 input into that buffer.
+X11 copies the returned selection once and tries the UTF-8 MIME target only
+when the owner explicitly refuses `UTF8_STRING`. Missing formatted data now
+reaches XUI as `XUI_ERROR_NOT_FOUND`, so Document can try plain text.
+
+The X11 fixture observed one allocation and one free per nonempty read in
+equivalent C and xlang loops. Generated C adopts the pointer and validates
+UTF-8. The bridge also runs the checked-call machinery. The Windows native
+fixture substitutes deterministic clipboard data at the link boundary, and
+the Windows language fixture checks cold errors. Linux uses an isolated X11
+server for native and language success cases. The wider Document fixture
+still includes older expectations that X11 rejects formatted writes.
+
+[Validation evidence](../dev/release-materials/provenance/xge-clipboard-text-20261122.json)
+
 ## CodeEdit shared find scope
 
 `CodeEdit.setFindScope` joins, switches or leaves the native find scope. XUI

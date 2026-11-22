@@ -1,0 +1,24 @@
+// Run with xl run clipboard_text.xl. Press Enter to read or Esc to close.
+import xge
+
+func main(...) as int
+    xge.init(480, 240, "Clipboard text - Enter to read, Esc to close")
+    try
+        xge.run(func() as c_int
+            if xge.keyPressed(xge.XGE_KEY_ESCAPE) != 0 then
+                xge.quit()
+            elseif xge.keyPressed(xge.XGE_KEY_ENTER) != 0 then
+                try
+                    println(xge.clipboardGetText())
+                catch error
+                    println("Clipboard read failed.", error.message)
+                end
+            end
+            return xge.XGE_OK
+        end)
+    finally
+        xge.setFrameCallback(null)
+        xge.unit()
+    end
+    return 0
+end

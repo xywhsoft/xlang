@@ -166,6 +166,17 @@ Renderer/GPU ownership, conditional event outputs and some value/error results
 remain separate work. See `docs/xge3-particle-world.md` for exact coverage,
 failure semantics and measured limits; this is not a whole-engine completion.
 
+## Clipboard text
+
+`clipboardGetText()` reads one UTF-8 snapshot on the engine creator thread.
+The returned string stays valid after clipboard changes or engine shutdown.
+An empty clipboard yields an empty string. Backend errors, invalid text and
+allocation failures are checked. On Linux/X11 the read needs a running XGE
+window with clipboard support. Windows also allows reads after `init`.
+The language adopts the XRT buffer and validates UTF-8 before publishing the
+string. The example reads only when the user presses Enter.
+See [clipboard_text.xl](examples/clipboard_text.xl).
+
 ## Window title snapshots
 
 `getTitle()` directly calls `xgeGetTitle` and returns an independent `string?`

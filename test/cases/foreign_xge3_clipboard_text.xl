@@ -1,0 +1,61 @@
+import xge
+
+extern "clipboardFixtureRealDisplay" @no_raise func realDisplay() as c_int
+extern "clipboardFixtureBudget" @no_raise func budget(c_int count)
+extern "clipboardFixtureHeapBegin" @no_raise func heapBegin()
+extern "clipboardFixtureHeapEnd" @no_raise func heapEnd()
+extern "clipboardFixtureNativeReadLoop" @no_raise func nativeReadLoop()
+
+func main(...) as int
+    string retained = "unchanged"
+    bool rejected = false
+    try
+        retained = xge.clipboardGetText()
+    catch error
+        assert error.code == xge.XGE_ERROR_NOT_INITIALIZED
+        rejected = true
+    end
+    assert rejected and retained == "unchanged"
+    // Only enable clipboard writes on the Xvfb display created by the driver.
+    if realDisplay() != 0 then
+        xge.init(64,64,"Owned clipboard fixture",xge.XGE_INIT_OFFSCREEN)
+        try
+            xge.run(func() as c_int
+                assert xge.clipboardGetText() == ""
+                xge.clipboardSetText("中文 😀")
+                retained = xge.clipboardGetText()
+                assert retained == "中文 😀"
+                xge.clipboardSetText("next")
+                assert xge.clipboardGetText() == "next" and retained == "中文 😀"
+                rejected = false
+                budget(0)
+                try
+                    retained = xge.clipboardGetText()
+                catch Error
+                    rejected = true
+                finally
+                    budget(-1)
+                end
+                assert rejected and retained == "中文 😀"
+                nativeReadLoop()
+                heapBegin()
+                int i = 0
+                while i < 100
+                    xge.clipboardGetText()
+                    i += 1
+                end
+                heapEnd()
+                xge.clipboardSetText("")
+                assert xge.clipboardGetText() == "" and retained == "中文 😀"
+                xge.quit()
+                return xge.XGE_OK
+            end)
+        finally
+            xge.setFrameCallback(null)
+            xge.unit()
+        end
+        assert retained == "中文 😀"
+    end
+    println("XGE_CLIPBOARD_LANGUAGE_OK")
+    return 0
+end

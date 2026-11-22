@@ -29,6 +29,9 @@ CONTRACTS = {
     'xgeClipboardGetData': (
         'int xgeClipboardGetData(const char* sFormat, void* pData, size_t iCapacity)',
         'export extern "xgeClipboardGetData" @header("xge3_runtime.h") @c_cstr(0) @c_span(1,"void*","size_t") func clipboardGetData(string sFormat,Buffer pData) as c_int'),
+    'xgeClipboardGetTextOwned': (
+        'int xgeClipboardGetTextOwned(char** psText, size_t* piLength)',
+        'export extern "xgeClipboardGetTextOwned" @header("xge3_runtime.h") @no_raise @c_output_text(0,1,"char*","size_t","xrt",0) func clipboardGetText() as string'),
     'xgeGamepadGetState': (
         'int xgeGamepadGetState(int iGamepad, xge_gamepad_state_t* pState)',
         'export extern "xgeGamepadGetState" @header("xge3_runtime.h") @no_raise @c_output(1,0) func gamepadGetState(c_int iGamepad) as GamepadState'),
@@ -86,6 +89,7 @@ CONTRACTS = {
 }
 
 REPLACED = {
+    'xgeClipboardGetText': ('xge.clipboardGetText','xgeClipboardGetTextOwned'),
     'xgeSetTitle': ('xge.setTitle', 'xgeSetTitleChecked'),
     'xgeMiniProgramSetBridge': ('xge.setMiniProgramBridge', 'xgeMiniProgramSetBridgeOwned'),
     'xgeResourceProviderClear': ('xge.resourceProviderClear', 'xgeResourceProviderClearChecked'),
