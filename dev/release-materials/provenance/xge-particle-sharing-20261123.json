@@ -1,0 +1,109 @@
+{
+  "complete": true,
+  "passed": true,
+  "releaseInstalled": false,
+  "networkTests": false,
+  "scope": "Immutable particle definition sharing and native paths for selected XGE ownership policies",
+  "nativeRevision": "49458d6bdb59673d96bc65313706805dece5d3a8",
+  "xlangSourceParent": "78dc194055430e5c7ac097a6ec7e9bff22844b1e",
+  "platforms": {
+    "win": {
+      "generator": {
+        "path": "F:\\xlang-validation\\xge-full-20261110\\particle-sharing-generator-win-r2\\results.json",
+        "sha256": "f0066143a6313adc262504fb5450d800519057d90ffa38404df2b86c1064f196"
+      },
+      "inventory": {
+        "path": "F:\\xlang-validation\\xge-full-20261110\\particle-sharing-stage-win-r1\\audit-r1\\surface\\surface.json",
+        "sha256": "84450d06eeb000c98eb9f9a6b55f2de41e2dc4bade4062af81f369591db966a2"
+      },
+      "consumers": {
+        "path": "F:\\xlang-validation\\xge-full-20261110\\particle-sharing-stage-win-r1\\audit-r1\\consumers\\results.json",
+        "sha256": "d631faafb2a5e5630bc52b473d5a9023ef90b90a52cc80d82c86edfffc67fc1b"
+      },
+      "hostedBuild": {
+        "path": "F:\\xlang-validation\\xge-full-20261110\\particle-sharing-host-win-r1\\build-report.json",
+        "sha256": "5a7655ff6af1a029eb61ad1681da06c0bad2bafd5989f8afc91e509f395dca8a"
+      },
+      "staticBuild": {
+        "path": "F:\\xlang-validation\\xge-full-20261110\\particle-sharing-static-win-r1\\build-report.json",
+        "sha256": "6ff4efdf69a6a5191b17269aaac4d3e55a09c0cbdf206ece04c0c29540e19bff"
+      },
+      "candidatePackages": {
+        "path": "F:\\xlang-validation\\xge-full-20261110\\particle-sharing-stage-win-r1\\replay\\stage-report.json",
+        "sha256": "8bd47ff4bdf2055f4550e2a352a1a7644c715edfa53ad0194c0b273c3a184721"
+      },
+      "particleTests": {
+        "path": "F:\\xlang-validation\\xge-full-20261110\\particle-sharing-tests-win-r1\\results.json",
+        "sha256": "35f6cf6617b70f77de423cb1ecd041c227420cc11c9fb77d83f2d73c63b1bfcc"
+      },
+      "relatedJitSmoke": {
+        "path": "F:\\xlang-validation\\xge-full-20261110\\particle-sharing-smoke-win-r2\\results.json",
+        "sha256": "eb7585664b92227946f4896ef3bfbccf7c6aab26bd0283171c5f83d3ed399e7e"
+      },
+      "particleChecks": 30,
+      "coreHeaderConsumers": 50
+    },
+    "linux": {
+      "generator": {
+        "path": "\\\\wsl.localhost\\Ubuntu\\var\\tmp\\xlang-validation\\xge-full-20261110\\particle-sharing-generator-linux-r2\\results.json",
+        "sha256": "300eea32fb5d5486053142c47645bccb7092b72e9f4f6a55d0bfe908ce1e7674"
+      },
+      "inventory": {
+        "path": "\\\\wsl.localhost\\Ubuntu\\var\\tmp\\xlang-validation\\xge-full-20261110\\particle-sharing-stage-linux-r1\\audit-r1\\surface\\surface.json",
+        "sha256": "4ee02d15eb50c4de667e0a4d0cd186581b533c2b0004ca9e4b612a193b7f0237"
+      },
+      "consumers": {
+        "path": "\\\\wsl.localhost\\Ubuntu\\var\\tmp\\xlang-validation\\xge-full-20261110\\particle-sharing-stage-linux-r1\\audit-r1\\consumers\\results.json",
+        "sha256": "66715bbb35a619ef7d848c2a7060022faf59153533c88f4dbaf7f6ef151d6d5b"
+      },
+      "hostedBuild": {
+        "path": "\\\\wsl.localhost\\Ubuntu\\var\\tmp\\xlang-validation\\xge-full-20261110\\particle-sharing-host-linux-r1\\build-report.json",
+        "sha256": "913ff9f0ac73615bbb6a724d29aca5e3ab0f35064f373b691c293a0aa2a3ac18"
+      },
+      "staticBuild": {
+        "path": "\\\\wsl.localhost\\Ubuntu\\var\\tmp\\xlang-validation\\xge-full-20261110\\particle-sharing-static-linux-r1\\build-report.json",
+        "sha256": "855076d2a0f0f7d2f5358ff2c3ac0efd98d47a4b81ec8cb8026f1f6747e0204f"
+      },
+      "candidatePackages": {
+        "path": "\\\\wsl.localhost\\Ubuntu\\var\\tmp\\xlang-validation\\xge-full-20261110\\particle-sharing-stage-linux-r1\\replay\\stage-report.json",
+        "sha256": "e4c70b872587566188c138801d8b080574de7fe2bc03a66ffa36646a3ede3ab2"
+      },
+      "particleTests": {
+        "path": "\\\\wsl.localhost\\Ubuntu\\var\\tmp\\xlang-validation\\xge-full-20261110\\particle-sharing-tests-linux-r1\\results.json",
+        "sha256": "b353ad244808ce0e38924aed17bcb4fe59960e7dcf75e7fe613b91115ad38db0"
+      },
+      "relatedJitSmoke": {
+        "path": "\\\\wsl.localhost\\Ubuntu\\var\\tmp\\xlang-validation\\xge-full-20261110\\particle-sharing-smoke-linux-r2\\results.json",
+        "sha256": "c5b99bd10c5a789eb516864529767859c42a3ecf6ee6bac83e765aeb8d997113"
+      },
+      "particleChecks": 30,
+      "coreHeaderConsumers": 50
+    }
+  },
+  "audit": {
+    "functions": 5748,
+    "directDeclarations": 4683,
+    "compiledNativeConsumers": 273,
+    "explicitReplacements": 303,
+    "pending": {
+      "XGE": 160,
+      "XUI": 332,
+      "Document": 0
+    }
+  },
+  "share": {
+    "nativeCallsPerShare": 1,
+    "copies": 0,
+    "pairsPerPlatformAndMode": 1000,
+    "native": {
+      "alloc": 0,
+      "free": 0,
+      "realloc": 0
+    },
+    "xlang": {
+      "alloc": 2000,
+      "free": 2000,
+      "realloc": 0
+    }
+  }
+}

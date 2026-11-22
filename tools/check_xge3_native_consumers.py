@@ -46,6 +46,26 @@ HEADER_CLOSE_REPLACEMENTS = {
 }
 HEADER_CLOSE_REPLACEMENTS['xge3dQueryResultsReleaseChecked'] = (
     'xge3d.QueryResults.close', 'xge3dQueryResultsRelease')
+CORE_POLICY_CLASSES = {
+    'xge.Scene', 'xge.PlatformBackend', 'xge.GraphicsBackend', 'xge.HostSession',
+    'xge.ImageLoad', 'xge.TextureLoad', 'xge.FontLoad', 'xge.SoundLoad',
+    'xge.ParticleWorld', 'xge.ParticleDefinition', 'xge.ParticleRenderer',
+}
+CORE_HEADER_CLOSES = {
+    'xgeSceneReleaseChecked': ('Scene', 'Scene', 'xgeSceneReleaseOwnerChecked'),
+    'xgePlatformBackendReleaseChecked': ('PlatformBackend', 'PlatformBackend', 'xgePlatformBackendReleaseOwnerChecked'),
+    'xgeGraphicsBackendReleaseChecked': ('GraphicsBackend', 'GraphicsBackend', 'xgeGraphicsBackendReleaseOwnerChecked'),
+    'xgeHostSessionReleaseChecked': ('HostSession', 'HostSession', 'xgeHostSessionReleaseOwnerChecked'),
+    'xgeAsyncLoadReleaseChecked': ('ImageLoad', 'AsyncLoad', 'xgeAsyncLoadReleaseOwnerChecked'),
+    'xgeParticleWorldFree': ('ParticleWorld', 'ParticleWorld', 'xgeParticleWorldReleaseOwnerChecked'),
+    'xgeParticleWorldFreeChecked': ('ParticleWorld', 'ParticleWorld', 'xgeParticleWorldReleaseOwnerChecked'),
+    'xgeParticleRendererFree': ('ParticleRenderer', 'ParticleRenderer', 'xgeParticleRendererReleaseOwnerChecked'),
+    'xgeParticleRendererFreeChecked': ('ParticleRenderer', 'ParticleRenderer', 'xgeParticleRendererReleaseOwnerChecked'),
+}
+HEADER_CLOSE_REPLACEMENTS.update({
+    old: (f'xge.{owner}.close', release)
+    for old, (owner, _, release) in CORE_HEADER_CLOSES.items()
+})
 DOCUMENT_RENDERER_SOURCE = 'src/xui/document/xui_document_renderer.c'
 DOCUMENT_MODEL_SOURCE = 'src/xui/document/xui_document.c'
 DOCUMENT_FONT_TAIL = {'xuiDocumentFontOutputInit', 'xuiDocumentFontOutputDisposeChecked'}
@@ -120,12 +140,10 @@ def reachable_relocations(relocations, name):
     return reachable
 
 
-def compile_3d_policies(view, classes, native_names, flags, tools, out, run, symbols, sha):
+def compile_header_policies(name, view, classes, native_names, flags, tools, out, run, symbols, sha):
     headers = set()
     selectors = {}
     for logical, binding in sorted(classes.items()):
-        if binding['package']!='xge3d':
-            continue
         lines = class_lines(view, binding)
         declaration = lines[0]
         policy = re.search(r'@policy\("(\w+)"\)', declaration)
@@ -143,7 +161,6 @@ def compile_3d_policies(view, classes, native_names, flags, tools, out, run, sym
 
     # Each witness references the descriptor selected by an actual declaration.
     # Keeping the getter and callbacks out of line preserves their object edges.
-    name = 'xge3d-header-policies'
     source = out/(name+'.c')
     obj = out/(name+'.o')
     includes = [f'#include <{header}>' for header in sorted(headers)]
@@ -357,12 +374,22 @@ def main():
                 otherUndefinedSymbols=sorted(undefined-set(functions))));save()
         rows=[]
         class_bindings={r['language']:r for group in bound_types.values() for r in group}
-        header_policies, header_relocations = compile_3d_policies(view,class_bindings,set(functions),
-            flags,tools,out,run,symbols,sha)
-        report['headerPolicies'] = header_policies
-        header_imports = {symbol for imports in header_policies['headerSelectors'].values() for symbol in imports}
-        for symbol in sorted(header_imports):
-            consumers.setdefault(symbol,[]).append('xge3d-header-policies')
+        assert CORE_POLICY_CLASSES <= class_bindings.keys()
+        policy_groups = {
+            'headerPolicies': ('xge3d-header-policies',
+                {name: binding for name, binding in class_bindings.items() if binding['package']=='xge3d'}),
+            'coreHeaderPolicies': ('xge-header-policies',
+                {name: class_bindings[name] for name in CORE_POLICY_CLASSES}),
+        }
+        header_relocations = {}
+        for key, (name, classes) in policy_groups.items():
+            evidence, relocations = compile_header_policies(name,view,classes,set(functions),
+                flags,tools,out,run,symbols,sha)
+            report[key] = evidence
+            header_relocations[key] = relocations
+            imports = {symbol for names in evidence['headerSelectors'].values() for symbol in names}
+            for symbol in sorted(imports):
+                consumers.setdefault(symbol,[]).append(name)
         if a.document_engine_build:
             document = prove_document_lifetime(document_source,document_flags,view,bound,packages,tools,out,run,sha)
             report['documentLifetime'] = document
@@ -393,10 +420,15 @@ def main():
                 logical,release=HEADER_CLOSE_REPLACEMENTS[symbol]
                 owner=class_bindings[logical.rsplit('.',1)[0]]
                 policy=re.search(r'@policy\("(\w+)"\)',class_lines(view,owner)[0])[1]
-                destroy='xl6Xge3dSceneDestroy' if policy=='xl6Xge3dScenePolicy' else policy+'Destroy'
-                assert release in header_policies['headerSelectors'][policy],(logical,release)
+                if symbol in CORE_HEADER_CLOSES:
+                    key='coreHeaderPolicies'
+                    destroy='xl6Xge3'+CORE_HEADER_CLOSES[symbol][1]+'Destroy'
+                else:
+                    key='headerPolicies'
+                    destroy='xl6Xge3dSceneDestroy' if policy=='xl6Xge3dScenePolicy' else policy+'Destroy'
+                assert release in report[key]['headerSelectors'][policy],(logical,release)
                 evidence=dict(language=logical,native=release,policy=policy,
-                    relocationPath=close_relocation_path(header_relocations,policy,destroy,release))
+                    relocationPath=close_relocation_path(header_relocations[key],policy,destroy,release))
             elif document and symbol=='xuiDocumentFreeBuffer':
                 evidence=document['bufferReplacement']
             rows.append(dict(id=item['id'],symbol=symbol,family=item['family'],conditions=item['conditions'],

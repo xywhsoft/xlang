@@ -1,6 +1,7 @@
 // CPU definitions own immutable copies of emitter records. No engine is needed.
 export extern "xge_particle_definition" class ParticleDefinition @header("xge3_particle_definition.h") @lifetime("owned") @policy("xl6Xge3ParticleDefinitionPolicy")
  native point handle
+ extern "xgeParticleDefinitionShareOwned" @no_raise @c_result("owned_view") @factory(1,0,freeParticleDefinition) func share() as ParticleDefinition
  extern "xgeParticleDefinitionCount" @no_raise func count() as c_int
  extern "xgeParticleDefinitionGet" @no_raise @c_output(2,0) func get(c_int index) as ParticleEmitter
  // The exact resident XRT allocation is adopted; no serialized-payload copy.

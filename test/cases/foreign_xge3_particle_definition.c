@@ -58,6 +58,33 @@ double fixtureDefinitionNativeHot(xge_particle_definition definition)
 }
 void fixtureDefinitionKeep(xge_particle_definition definition)
 {assert(!kept && definition && definition->iRefs==1);xgeParticleDefinitionAddRef(definition);kept=definition;assert(kept->iRefs==2);}
+void fixtureDefinitionCheckShare(xge_particle_definition definition,xge_particle_definition shared)
+{
+ assert(definition && shared==definition && definition->iRefs==2);
+}
+int fixtureDefinitionReferences(xge_particle_definition definition)
+{
+ assert(definition);
+ return definition->iRefs;
+}
+void fixtureDefinitionNativeShares(xge_particle_definition definition)
+{
+ xge_particle_definition shared=definition;
+ assert(xgeParticleDefinitionShareOwned(NULL,&shared)==XGE_ERROR_INVALID_ARGUMENT && !shared);
+ assert(xgeParticleDefinitionShareOwned(definition,NULL)==XGE_ERROR_INVALID_ARGUMENT);
+ assert(definition->iRefs==1);
+ definition->iRefs=INT32_MAX;
+ shared=definition;
+ assert(xgeParticleDefinitionShareOwned(definition,&shared)==XGE_ERROR_INVALID_STATE && !shared);
+ assert(definition->iRefs==INT32_MAX);
+ definition->iRefs=1;
+ for(int i=0;i<1000;++i){
+  assert(xgeParticleDefinitionShareOwned(definition,&shared)==XGE_OK);
+  fixtureDefinitionCheckShare(definition,shared);
+  xgeParticleDefinitionFree(shared);
+ }
+ assert(definition->iRefs==1);
+}
 void fixtureDefinitionCheckKept(void)
 {xge_particle_emitter_t e;assert(kept && kept->iRefs==1 && xgeParticleDefinitionCount(kept)==2);assert(xgeParticleDefinitionGet(kept,1,&e)==XGE_OK && e.fRate==17);}
 void fixtureDefinitionReleaseKept(void){xgeParticleDefinitionFree(kept);kept=NULL;}
@@ -80,6 +107,7 @@ void fixtureDefinitionNativeValidation(void)
  emitters[0].iBurstCount=1;emitters[0].arrBursts[0]=(xge_particle_burst_t){0.5f,3};
  emitters[0].arrSubEmitters[0]=(xge_particle_subemitter_t){1,2,0.5f};
  xge_particle_definition definition=NULL;assert(xgeParticleDefinitionCreate(&definition,emitters,2)==XGE_OK);
+ fixtureDefinitionNativeShares(definition);
  assert(xgeParticleDefinitionGet(definition,2,&read)==XGE_ERROR_INVALID_ARGUMENT);
  assert(xgeParticleDefinitionGet(definition,-1,&read)==XGE_ERROR_INVALID_ARGUMENT);
  for(int xlon=0;xlon<2;++xlon){

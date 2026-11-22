@@ -67,7 +67,8 @@ def main():
             name=source.stem;lesson=source==example;c=out/(name+'.c');header=out/(name+'.h')
             run(name+'-emit',[compiler,'cgen',source,'--emit',c,'--emit-header',header,*includes],dynamic)
             generated=c.read_text(encoding='utf-8-sig')
-            symbols=['xgeParticleDefinitionCreate','xgeParticleDefinitionGet','xgeParticleDefinitionCount','xgeParticleDefinitionParse','xgeParticleDefinitionStringify']
+            symbols=['xgeParticleDefinitionCreate','xgeParticleDefinitionShareOwned','xgeParticleDefinitionGet',
+                'xgeParticleDefinitionCount','xgeParticleDefinitionParse','xgeParticleDefinitionStringify']
             if not lesson:symbols+=['xgeParticleDefinitionLoad']
             for symbol in symbols:assert re.search(r'\b'+symbol+r'\(',generated),symbol
             if not lesson:
@@ -89,12 +90,14 @@ def main():
                     report['programs'].append(dict(path=str(binary),sha256=sha(binary),bytes=binary.stat().st_size,imports=[v.decode()for v in imports]))
                 if not lesson:
                     assert b'ParticleDefinition: typed arrays, JSON/XLON, counted inputs, provider, OOM, thread, native refs and expiry passed'in output
+                    assert b'ParticleDefinition independent share and rollback passed'in output
                     counts=re.findall(rb'ParticleDefinition heap (language|native): alloc=(\d+) free=(\d+) realloc=(\d+)',output)
                     assert len(counts)==2 and all(tuple(map(int,row[1:]))==(0,0,0)for row in counts)
                     report['heap'].append(dict(mode=kind,rounds=1000,preparedDefinition=True,
                         counts={row[0].decode():dict(zip(('alloc','free','realloc'),map(int,row[1:])))for row in counts}))
                     cold=re.findall(rb'ParticleDefinition cold operation=(\d+) alloc=(\d+) free=(\d+) realloc=(\d+)',output)
-                    assert len(cold)==4
+                    assert len(cold)==6
+                    assert tuple(map(int,cold[-1][1:]))==(0,0,0), 'Native sharing must be allocation-free'
                     report['cold'].append(dict(mode=kind,preparedArray=True,counts={row[0].decode():dict(zip(('alloc','free','realloc'),map(int,row[1:])))for row in cold}))
                 else:assert b'JSON round trip passed'in output
                 save()

@@ -8,6 +8,9 @@ extern "fixtureDefinitionHotBegin" @no_raise func hotBegin()
 extern "fixtureDefinitionHotEnd" @no_raise func hotEnd(c_int native)
 extern "fixtureDefinitionNativeHot" @no_raise func nativeHot(xge.ParticleDefinition definition) as float
 extern "fixtureDefinitionKeep" @no_raise func keep(xge.ParticleDefinition definition)
+extern "fixtureDefinitionCheckShare" @no_raise func checkShare(xge.ParticleDefinition definition,xge.ParticleDefinition shared)
+extern "fixtureDefinitionReferences" @no_raise func references(xge.ParticleDefinition definition) as c_int
+extern "fixtureDefinitionNativeShares" @no_raise func nativeShares(xge.ParticleDefinition definition)
 extern "fixtureDefinitionCheckKept" @no_raise func checkKept()
 extern "fixtureDefinitionReleaseKept" @no_raise func releaseKept()
 extern "fixtureDefinitionSerializationOperations" @no_raise func serializationOperations(xge.ParticleDefinition definition,c_int xlon) as c_int
@@ -211,6 +214,34 @@ func main(...) as int
  hotBegin()
  assert nativeHot(definition)==result
  hotEnd(1)
+ int shareFailures=0
+ int shareSuccesses=0
+ for allowance in range(12)
+  prefixBegin(c_int(allowance))
+  try
+   auto shared=definition.share()
+   checkShare(definition,shared)
+   shared.close()
+   shareSuccesses+=1
+  catch Error
+   shareFailures+=1
+  finally
+   prefixEnd()
+  end
+  heapEqual()
+  assert references(definition)==1,"share failure retains no native reference"
+ end
+ assert shareFailures>0 and shareSuccesses>0
+ hotBegin()
+ for i in range(1000)
+  auto shared=definition.share()
+  checkShare(definition,shared)
+  shared.close()
+ end
+ coldEnd(4)
+ hotBegin()
+ nativeShares(definition)
+ coldEnd(5)
  func() as c_int count=definition.count
  func(c_int) as xge.ParticleEmitter readEmitter=definition.get
  func(c_int) as string stringify=definition.stringify
@@ -221,6 +252,13 @@ func main(...) as int
  definition.close()
  checkKept()
  releaseKept()
+ auto original=xge.createParticleDefinition(emitters)
+ auto shared=original.share()
+ checkShare(original,shared)
+ original.close()
+ assert references(shared)==1 and shared.get(1).fRate==c_float(17)
+ shared.close()
+ println("ParticleDefinition independent share and rollback passed")
  rejected=0
  try
   auto value=readEmitter(0)

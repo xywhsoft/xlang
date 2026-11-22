@@ -1,5 +1,26 @@
 # Native consumers in the full API inventory
 
+## Shared particle definitions and XGE header policies
+
+`ParticleDefinition.share()` calls `xgeParticleDefinitionShareOwned` directly.
+The engine retains the same immutable emitter data once. The new xlang
+view has its own close obligation, so closing the original leaves the
+shared view usable. If creating the language view fails, the compiler
+releases the acquired native reference before reporting the error.
+
+The consumer audit now compiles policies selected by eleven package
+classes for scenes, backends, host sessions, asynchronous loads, and
+particles. COFF and ELF relocations lead from each declaration's policy
+or ownership domain to the actual native consumers. The checked-close
+evidence follows the descriptor's consuming callback specifically.
+This verifies the existing ownership paths and identifies the matching
+language entry for the legacy releases.
+
+One thousand native share-and-release pairs used zero allocations, frees
+or reallocations. One thousand xlang pairs used 2,000 allocations and
+2,000 frees for the independently owned language views. Both share
+the original emitter data. [Validation evidence](../dev/release-materials/provenance/xge-particle-sharing-20261123.json)
+
 ## TableView column painters and grid table views
 
 `TableView.setColumnRenderer()` runs after the individual cell renderer and

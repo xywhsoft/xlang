@@ -6,10 +6,12 @@ auto emitter=xge.particleEmitterInit()
 emitter.fRate=c_float(60)
 array<xge.ParticleEmitter> emitters=[emitter]
 auto definition=xge.createParticleDefinition(emitters)
+auto shared=definition.share()
+definition.close()
 try
- println("Emitter count: ",definition.count())
- println("Emission rate: ",definition.get(0).fRate)
- auto json=definition.stringify()
+ println("Emitter count: ",shared.count())
+ println("Emission rate: ",shared.get(0).fRate)
+ auto json=shared.stringify()
  auto restored=xge.parseParticleDefinition(json)
  try
   assert restored.count()==1 and restored.get(0).fRate==c_float(60)
@@ -18,5 +20,5 @@ try
   restored.close()
  end
 finally
- definition.close()
+ shared.close()
 end

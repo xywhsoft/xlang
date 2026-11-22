@@ -189,6 +189,7 @@ REPLACED = {
     'xgeParticleCollidePlane': ('xge.particleSweepPlane', 'xgeParticleSweepPlane'),
     'xgeParticleCollideRect': ('xge.particleSweepRect', 'xgeParticleSweepRect'),
     'xgeParticleEventPoll': ('xge.ParticleWorld.pollEvent', 'xgeParticleWorldPollEvent'),
+    'xgeParticleDefinitionAddRef': ('xge.ParticleDefinition.share', 'xgeParticleDefinitionShareOwned'),
     'xgeShaderVariantGet': ('xge.ShaderVariants.get', 'xgeShaderVariantGetOwned'),
     'xgeShapeExClipShapeGetAt': ('xge.Shape.clipShapeAt', 'xgeShapeExClipShapeGetAtEx'),
     'xgeShapeExSceneClipShapeGetAt': ('xge.ShapeScene.clipShapeAt', 'xgeShapeExSceneClipShapeGetAtEx'),
