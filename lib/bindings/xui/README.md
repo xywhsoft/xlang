@@ -293,6 +293,15 @@ Closing the native submenu invalidates those views. A toolbar icon returned by
 the query holds its own Surface reference and remains usable after the toolbar
 is closed. An invalid index raises a checked error.
 
+`NumericInput.setFormatter(formatter)` accepts a closure from `c_float` to
+`string`. The control holds the closure until it is replaced, cleared with
+`setFormatter(null)`, or destroyed. It formats the current value during
+registration and updates the text when the value is edited or restored.
+Return up to 95 bytes of UTF-8 without embedded NUL. An empty string clears
+the displayed text. Recursive value or text edits on the same control return
+`Busy`. The numeric parser keeps its existing input rules.
+See [the numeric input example](examples/numericinput.xl).
+
 `Toolbar.setOverflow(enabled, buttonSize, onOverflow=null)` sets the
 overflow button and its optional handler. The callback receives a
 `CallbackWidget` and the first index and count of hidden items. Read those

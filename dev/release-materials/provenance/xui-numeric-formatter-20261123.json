@@ -1,0 +1,173 @@
+{
+  "schema": 1,
+  "date": "2026-11-23",
+  "complete": true,
+  "passed": true,
+  "scope": "NumericInput retained formatter, value and error notifications",
+  "nativeRevision": "371148426d6c2780ec9390d8f39675263a90b96a",
+  "nativeSources": {
+    "include/xui.h": "962df4aac801f074b8968fc16e9330724cbfb2f0e818638f573e85b1b10e417f",
+    "src/xui/controls/xui_numeric_input.c": "11892a43701c7b9492b831ef8e1dbab22618dbb5bd2df8927d0b313118da207c",
+    "src/xui/core/xui_callback_owned.c": "3a2ff3441a18b72f9352ea08dac2e94546a545f6d19cdb9db6e9972cfeec9d17",
+    "src/xui/core/xui_internal.h": "e9fe6962f4b206644db85d411cb0772565a41aa21f0793930b7c38eb303a9790",
+    "tests/xui/xui_numeric_input_test.c": "f75ffa485bc53300e6229a31b5fcee98e7c3597ef7877b3bad9826c28dc607fd"
+  },
+  "languageInputs": {
+    "lib/bindings/xui/src/managed.xl": {
+      "path": "D:\\GIT\\x-lang\\lib\\bindings\\xui\\src\\managed.xl",
+      "sha256": "293701e53d2892a5dcbcfb435f18dc0b097fce8b043c69f9f6aef9a78c2b271f"
+    },
+    "tools/xui_managed_contracts.py": {
+      "path": "D:\\GIT\\x-lang\\tools\\xui_managed_contracts.py",
+      "sha256": "ea01c7092d5f0982cd550629503327ccb6ea81b77fc6f047bc4ab5bf935464c2"
+    },
+    "docs/xge3-xui3-api-map-storage.json": {
+      "path": "D:\\GIT\\x-lang\\docs\\xge3-xui3-api-map-storage.json",
+      "sha256": "38a064a6e6536d5e7d7980ba28169b14ed511827072688f1575ad8758416ddd6"
+    },
+    "test/cases/foreign_xui_numeric_formatter.xl": {
+      "path": "D:\\GIT\\x-lang\\test\\cases\\foreign_xui_numeric_formatter.xl",
+      "sha256": "19f8c3b63057969b4668f8d37d7e87af6a56b31bfc077b47505b651bb7d65040"
+    },
+    "lib/bindings/xui/examples/numericinput.xl": {
+      "path": "D:\\GIT\\x-lang\\lib\\bindings\\xui\\examples\\numericinput.xl",
+      "sha256": "b327f1b42fd772897536572d164a99e40f9d0b156f402bd3229a07d8895af1c1"
+    }
+  },
+  "audit": {
+    "functionPopulation": 5789,
+    "directDeclarations": 4728,
+    "compiledConsumerFunctions": 283,
+    "explicitReplacements": 451,
+    "pending": {
+      "XGE": 137,
+      "XUI": 193,
+      "Document": 0
+    },
+    "apiCompletenessClaim": false
+  },
+  "performance": {
+    "measuredComparison": true,
+    "measurement": "XRT heap counts for 1,000 warmed value writes to the same control through the same native owned formatter contract",
+    "includesRegistration": false,
+    "includesCpuTiming": false,
+    "graphicsCallbackPerFrame": false,
+    "contract": "One typed callback. The native formatter validates UTF-8 and embedded NUL, copies at most 95 bytes to the stack, and transfers those bytes through the existing Input text setter. The callback returns an owned span and its text allocation is released by XGE."
+  },
+  "shippingDelivery": false,
+  "networkTests": false,
+  "platforms": {
+    "Windows x64": {
+      "nativeSource": {
+        "path": "F:\\xlang-validation\\xge-full-20261110\\numeric-format-owned-stage-win-r2\\audit\\native-source.json",
+        "sha256": "f2daf7ae01e2b055677f276795300cce7ccd338acffa0a13e4498b4f3a04f570"
+      },
+      "nativeRegression": {
+        "path": "F:\\xlang-validation\\xge-full-20261110\\numeric-format-owned-upstream-native-win-r4\\results.json",
+        "sha256": "9a83cb9da51b760ad7df0360178fa7838853d92c3e38e93e5e53e964c47d555b"
+      },
+      "generator": {
+        "path": "F:\\xlang-validation\\xge-full-20261110\\numeric-format-owned-generator-win-r2\\results.json",
+        "sha256": "50989e2535717dcb8fa5dcf8de43d1fe4d33c94ee7bf3545ef80270491b3eb77"
+      },
+      "hostBuild": {
+        "path": "F:\\xlang-validation\\xge-full-20261110\\numeric-format-owned-host-win-r1\\build-report.json",
+        "sha256": "3e190ef66ce342a399445b035057da20540e5a5ea2187b0147c20cfe2c92086c"
+      },
+      "staticBuild": {
+        "path": "F:\\xlang-validation\\xge-full-20261110\\numeric-format-owned-static-win-r1\\build-report.json",
+        "sha256": "43bb0024e41372e81add624761af8c3e63f0b4ad1db918788a44a444186a9eb7"
+      },
+      "matchedPackages": {
+        "path": "F:\\xlang-validation\\xge-full-20261110\\numeric-format-owned-stage-win-r2\\replay\\stage-report.json",
+        "sha256": "13d4b42bd258cdc21f3de1a553bb186adaec55f317ebadd02e7196cfda0d9160"
+      },
+      "consumerAudit": {
+        "path": "F:\\xlang-validation\\xge-full-20261110\\numeric-format-owned-stage-win-r2\\audit\\consumers-r3\\results.json",
+        "sha256": "e42b9e56ffc8b4d62045b1d52e8d7904a8655acea4960774c920d281c683a4cb"
+      },
+      "matrix": {
+        "path": "F:\\xlang-validation\\xge-full-20261110\\numeric-format-owned-tests-win-r3\\results.json",
+        "sha256": "abf733491f29d12b340cc4124d37fd49aaaeb5ff5e1752628e7a7ce0e94c6160"
+      },
+      "heapComparison": {
+        "path": "F:\\xlang-validation\\xge-full-20261110\\numeric-format-owned-heap-win-r1\\results.json",
+        "sha256": "1a4424d9836278b80af80c13188e3af1cb6f9a62b0d6b7af5e87f2da13ab5b09"
+      },
+      "heapCounts": {
+        "language": {
+          "allocations": 1000,
+          "frees": 1000,
+          "reallocations": 0
+        },
+        "native": {
+          "allocations": 1000,
+          "frees": 1000,
+          "reallocations": 0
+        }
+      },
+      "matrixSteps": 13,
+      "example": {
+        "width": 800,
+        "height": 600,
+        "sha256": "a27804755c788d1e27cbccae900cf5bc36faa0207bf36a4030eba2e381791b6e"
+      }
+    },
+    "Linux x64": {
+      "nativeSource": {
+        "path": "\\\\wsl.localhost\\Ubuntu\\var\\tmp\\xlang-validation\\xge-full-20261110\\numeric-format-owned-stage-linux-r2\\audit\\native-source.json",
+        "sha256": "7c7ee622910464f21f5790a8972757ff6e9320a1c60e0e039b5be1d511cd4205"
+      },
+      "nativeRegression": {
+        "path": "\\\\wsl.localhost\\Ubuntu\\var\\tmp\\xlang-validation\\xge-full-20261110\\numeric-format-owned-upstream-native-linux-r4\\results.json",
+        "sha256": "888db2f93523409de97973320d45b5cbd77dd10b52bef56ddca912ac64221886"
+      },
+      "generator": {
+        "path": "\\\\wsl.localhost\\Ubuntu\\var\\tmp\\xlang-validation\\xge-full-20261110\\numeric-format-owned-generator-linux-r2\\results.json",
+        "sha256": "a7102014e862f26f3c3a7c75f5981260bfc0b80b44155a9ba095b3b6dee5dcaa"
+      },
+      "hostBuild": {
+        "path": "\\\\wsl.localhost\\Ubuntu\\var\\tmp\\xlang-validation\\xge-full-20261110\\numeric-format-owned-host-linux-r1\\build-report.json",
+        "sha256": "165a60351570d2b9b77e21d163aab200c2b040782fa204ee0fe1a666268a74d6"
+      },
+      "staticBuild": {
+        "path": "\\\\wsl.localhost\\Ubuntu\\var\\tmp\\xlang-validation\\xge-full-20261110\\numeric-format-owned-static-linux-r1\\build-report.json",
+        "sha256": "bf0329b5bee7a7237d5ee6e5dd04325c227b7d9ec988de76ab9101d70c4de9eb"
+      },
+      "matchedPackages": {
+        "path": "\\\\wsl.localhost\\Ubuntu\\var\\tmp\\xlang-validation\\xge-full-20261110\\numeric-format-owned-stage-linux-r2\\replay\\stage-report.json",
+        "sha256": "e1980381903a1f1b65e4682460562748c00ae3b2c558a826721c3b5e31ec7bb7"
+      },
+      "consumerAudit": {
+        "path": "\\\\wsl.localhost\\Ubuntu\\var\\tmp\\xlang-validation\\xge-full-20261110\\numeric-format-owned-stage-linux-r2\\audit\\consumers-r3\\results.json",
+        "sha256": "42d6a91d7971055182350c410a03e59f163fe0add435e5a53e2227e710e8bea7"
+      },
+      "matrix": {
+        "path": "\\\\wsl.localhost\\Ubuntu\\var\\tmp\\xlang-validation\\xge-full-20261110\\numeric-format-owned-tests-linux-r3\\results.json",
+        "sha256": "f39e770fd4e915213ecb981d33b969f6f4f54d54818aad586521b68719fed38f"
+      },
+      "heapComparison": {
+        "path": "\\\\wsl.localhost\\Ubuntu\\var\\tmp\\xlang-validation\\xge-full-20261110\\numeric-format-owned-heap-linux-r1\\results.json",
+        "sha256": "dead962d7959f230fbf0d8db49aaa6d580289e6cfab8976bf976407ae7236eb9"
+      },
+      "heapCounts": {
+        "language": {
+          "allocations": 1000,
+          "frees": 1000,
+          "reallocations": 0
+        },
+        "native": {
+          "allocations": 1000,
+          "frees": 1000,
+          "reallocations": 0
+        }
+      },
+      "matrixSteps": 13,
+      "example": {
+        "width": 800,
+        "height": 600,
+        "sha256": "76c711272a35ba0b6d54a3f1136268958e366aa54584dd561c95d99daf568b63"
+      }
+    }
+  }
+}

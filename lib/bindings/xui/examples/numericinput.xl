@@ -1,4 +1,4 @@
-// 输入数字，或用增减按钮调整数值。
+// 输入数字，或用增减按钮调整数值。显示保留三位小数。
 import xui
 from "./_window.xl" import Window
 
@@ -6,5 +6,8 @@ Window.show("Numeric input / limits and step", func(xui.Context ui, xui.Widget r
  auto numberInput = ui.numericInputNative()
  Window.place(root, numberInput, 24, 24, 640, 44)
  numberInput.setRange(-100, 100)
+ numberInput.setFormatter(func(c_float value) as string
+  return float.format(float(value), ".3f")
+ end)
  numberInput.setValue(12.5)
 end)

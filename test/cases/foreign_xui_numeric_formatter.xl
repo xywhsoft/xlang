@@ -1,0 +1,91 @@
+import xui
+
+extern "fixtureRenderProxy" @header("test/cases/foreign_xui_render_backend.h") @no_raise @c_result("owned_view") @factory(0,0,dropProxy) func cpuProxy() as xui.Proxy
+extern "xuiProxyReleaseChecked" @header("xge3_runtime.h") @no_raise @c_result("status",0) func dropProxy(xui.Proxy value)
+extern "fixtureRenderBalanced" @header("test/cases/foreign_xui_render_backend.h") @no_raise func balanced() as c_int
+extern "fixtureRenderBudget" @header("test/cases/foreign_xui_render_backend.h") @no_raise func budget(c_int allowance)
+
+func main(...) as int
+    auto proxy = cpuProxy()
+    auto ui = xui.create(proxy, xui.XUI_SYSTEM_FONT_DISABLED)
+    auto input = ui.numericInputNative()
+    assert ui.setRootWidget(input) == xui.XUI_OK
+    input.setPrecision(2)
+    assert input.setValue(12.5) == 0
+    int changeCalls = 0
+    int errorCalls = 0
+    input.setChange(func(xui.Widget sender, c_float value)
+        changeCalls += 1
+    end)
+    input.setErrorChange(func(xui.Widget sender, c_int invalid)
+        errorCalls += 1
+    end)
+
+    int calls = 0
+    xui.NumericInputFormatter formatter = func(c_float value) as string
+        calls += 1
+        assert input.setValue(value) == xui.XUI_ERROR_BUSY, "recursive edit must return Busy"
+        assert value < c_float(40.0), "formatting failed"
+        return float.format(float(value), ".3f")
+    end
+    input.setFormatter(formatter)
+    assert calls == 1 and (input.getText() as string) == "12.500", "registration must format immediately"
+    assert input.step(1) == 0 and changeCalls == 1 and (input.getText() as string) == "13.500", "stepping uses the formatter and change callback"
+    assert input.setText("bad") == 0 and input.commit() == 0 and errorCalls == 1, "invalid text notifies the error callback"
+    assert input.setText("13.5") == 0 and input.commit() == 0 and errorCalls == 2, "valid text clears the reported error"
+
+    bool threw = false
+    try
+        input.setFormatter(func(c_float value) as string
+            assert false, "registration failed"
+            return ""
+        end)
+    catch AssertionError
+        threw = true
+    end
+    assert threw and (input.getText() as string) == "13.500", "registration exception must retain previous text"
+    threw = false
+    try
+        input.setValue(40.0)
+    catch AssertionError
+        threw = true
+    end
+    assert threw and input.getValue() == c_float(13.5) and (input.getText() as string) == "13.500", "value exception must retain previous state"
+    xui.NumericInputFormatter replacement = func(c_float value) as string
+        return float.format(float(value), ".1f")
+    end
+    int failures = 0
+    for allowance in range(24)
+        bool rejected = false
+        budget(c_int(allowance))
+        try
+            input.setFormatter(replacement)
+        catch Error
+            rejected = true
+        finally
+            budget(-1)
+        end
+        if rejected
+            failures += 1
+            assert (input.getText() as string) == "13.500", "failed allocation must leave previous text"
+        else
+            assert (input.getText() as string) == "13.5", "successful replacement must publish its text"
+            input.setFormatter(formatter)
+        end
+    end
+    assert failures > 0 and failures < 24, "allocation sweep must include failures and success"
+
+    input.setFormatter(func(c_float value) as string
+        return ""
+    end)
+    assert (input.getText() as string) == "", "empty formatter output is valid"
+    input.setFormatter(null)
+    assert (input.getText() as string) == "13.50", "clearing the formatter restores default text"
+    input.setChange(null)
+    input.setErrorChange(null)
+    ui.close()
+    proxy.close()
+    assert balanced() == 1
+    println("XUI_NUMERIC_FORMATTER_OK")
+    return 0
+end

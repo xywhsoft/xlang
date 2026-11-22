@@ -1,5 +1,34 @@
 # Native consumers in the full API inventory
 
+## Numeric input formatter
+
+`NumericInput.setFormatter()` declares the native owned callback directly.
+The callback returns an owned span. The control checks for NUL and validates
+UTF-8 before copying at most 95 bytes into a stack buffer and freeing the
+span. The existing Input setter copies the formatted text into editor storage.
+The renderer reads the editor text and does not invoke the formatter.
+Registration retains the candidate and reserves the owner slot before
+formatting. Callback or allocation failure during preparation leaves the
+prior formatter and text in place. The UI thread holds the active callback
+through the result transfer. Recursive edits to the same numeric control
+are rejected with `Busy`.
+
+The native NumericInput regression passed on Windows and Linux. The same
+platforms passed JIT, dynamic AOT, and standalone static AOT for the xlang
+fixture and rendered the accompanying example.
+
+Windows and Linux JIT both measured 1,000 allocations, 1,000 frees, and
+zero reallocations over 1,000 warmed writes for each of two providers. The
+generated xlang callback and handwritten C callback return the same six
+bytes to the same native formatter slot. This measures heap operations on
+the edit path. Registration and CPU timing are outside the measurement.
+
+The native inventory has 330 entries without direct declarations, a
+compiled consumer, or an explicit replacement. XGE accounts for 137 and
+XUI for 193.
+
+[Validation evidence](../dev/release-materials/provenance/xui-numeric-formatter-20261123.json)
+
 ## Toolbar overflow callback
 
 `Toolbar.setOverflow()` configures the overflow button and a retained

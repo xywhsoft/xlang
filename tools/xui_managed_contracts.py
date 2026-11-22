@@ -637,6 +637,10 @@ CALLBACKS = {'xui_accessibility_event_proc': ('typedef void (*xui_accessibility_
                                  'export typedef RadioGroupChangeProc = func(Widget,Widget?,c_int)')}
 
 CALLBACKS.update({
+    'xui_numeric_input_text_owned_proc': (
+        'typedef xstrview (*xui_numeric_input_text_owned_proc)(float fValue, void* pUser);',
+        'export typedef NumericInputFormatter = func(c_float) as string',
+    ),
     'xui_toolbar_overflow_proc': (
         'typedef void (*xui_toolbar_overflow_proc)(xui_widget_t* pWidget, int iFirst, int iCount, void* pUser);',
         'export typedef ToolbarOverflowProc = func(CallbackWidget,c_int,c_int)',
@@ -815,6 +819,11 @@ TYPE_SHAPES.update({
 })
 
 METHODS.update({
+    'xuiNumericInputSetFormatterOwned': [
+        'int xuiNumericInputSetFormatterOwned(xui_widget pWidget, xui_numeric_input_text_owned_proc onFormat, '
+        'void* pUser, const xui_callback_owner_t* pOwner)', 'NumericInput',
+        ['extern "xuiNumericInputSetFormatterOwned" @no_raise @c_owned_callback(0,0,"xui_callback_owner_t",0,"owned_text") '
+         '@c_result("status",0) func setFormatter(NumericInputFormatter? formatter)']],
     'xuiTableViewGetColumnDescriptor': ['int xuiTableViewGetColumnDescriptor(xui_widget pWidget, int iColumn, xui_table_column_desc_t* pColumn)',
         'TableView', ['extern "xuiTableViewGetColumnDescriptor" @no_raise @c_output_record(2,"xui_table_column_desc_t","borrowed") @c_status(0) @c_output_field(0,"tSettings") @c_output_field(1,"sId","cstring") @c_output_field(2,"sTitle","cstring") @c_output_field(3,"tRect") func getColumn(c_int index) as (TableColumnSettings,string?,string?,Rect)']],
     'xuiTableViewSetColumnDescriptors': ['int xuiTableViewSetColumnDescriptors(xui_widget pWidget, const xui_table_column_desc_t* pColumns, int iCount)',
@@ -1463,6 +1472,7 @@ REPLACED = {
     'xuiMsgTipSetClose': ('xui.MsgTip.setDismissed', 'xuiMsgTipSetCloseOwned'),
     'xuiNumericInputSetChange': ('xui.NumericInput.setChange', 'xuiNumericInputSetChangeOwned'),
     'xuiNumericInputSetErrorChange': ('xui.NumericInput.setErrorChange', 'xuiNumericInputSetErrorChangeOwned'),
+    'xuiNumericInputSetFormatter': ('xui.NumericInput.setFormatter', 'xuiNumericInputSetFormatterOwned'),
     'xuiPageSetChange': ('xui.Page.setChange', 'xuiPageSetChangeOwned'),
     'xuiPopupSetChange': ('xui.Popup.setChange', 'xuiPopupSetChangeOwned'),
     'xuiPropertyGridSetChange': ('xui.PropertyGrid.setChange', 'xuiPropertyGridSetChangeOwned'),
