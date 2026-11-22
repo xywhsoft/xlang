@@ -1,0 +1,149 @@
+{
+  "schema": 1,
+  "date": "2026-11-23",
+  "stage": "M7b7k",
+  "scope": "M7b7k full changed opt-in image native stdio admission; not whole-goal, UI latency, endurance or platform qualification",
+  "ownedSources": {
+    "ide/docs/lsp-ir-exit-performance.md": "96401a0703f6211025222f70f9974979d55ec285037ed33763e1ebb2cd669609",
+    "ide/docs/lsp-development.md": "20b2168b66d1c5b968cc5ac69066f3bac886081226b27b637e99d32d47349944"
+  },
+  "materials": {
+    "source": {
+      "archive": {
+        "path": "dev/release-materials/sources/lsp-ir-exit-performance-20261123/inputs.tar.gz",
+        "sha256": "cb74c98c08e936408ef79d287a2621b54ae619cc6b09ab98aa6fc90fc5f18bfb",
+        "bytes": 28946466
+      },
+      "manifest": {
+        "path": "dev/release-materials/sources/lsp-ir-exit-performance-20261123/inputs.tar.gz.manifest.json",
+        "sha256": "c8c5a4b7e8faff36c4c873f9b23d174579a9a9b4ff33ebddd81a84d6b61b036f",
+        "bytes": 1026777
+      },
+      "entries": 3003,
+      "uniquePayloads": 1942
+    },
+    "validation": {
+      "archive": {
+        "path": "dev/release-materials/provenance/lsp-ir-exit-performance-20261123/validation.tar.gz",
+        "sha256": "b7dee386625a2fe7047a6a2e39d53bdf5177f932192dc195d17ee9dee3f74110",
+        "bytes": 33281907
+      },
+      "manifest": {
+        "path": "dev/release-materials/provenance/lsp-ir-exit-performance-20261123/validation.tar.gz.manifest.json",
+        "sha256": "8ce446653d63c57a434d0863aa5cc415bbd3c716efca17d7abeffcffb9824692",
+        "bytes": 61923
+      },
+      "entries": 151,
+      "uniquePayloads": 77
+    }
+  },
+  "externalPaths": [
+    "F:\\codex-builds-xlang-lsp-20261123\\exit-hotpath-qualified",
+    "F:\\codex-builds-xlang-lsp-20261123\\exit-hotpath-performance-materials"
+  ],
+  "materialDependencies": [
+    "dev/release-materials/provenance/lsp-ir-exit-qualification-20261123.json",
+    "dev/release-materials/provenance/lsp-ir-exit-cadence-20261123.json"
+  ],
+  "verification": {
+    "processes": 64,
+    "latencyQueries": 4608,
+    "cpuExtensionQueries": 12288,
+    "gates": 96,
+    "passedGates": 93,
+    "failedGates": 3,
+    "inputGuardPassed": true,
+    "runtimeGuardPassed": true,
+    "driverAffinityRestored": true
+  },
+  "result": "rejected",
+  "failedGates": [
+    {
+      "name": "32-single-literal/hot/wireP95",
+      "actual": 11.1257,
+      "limit": 10.883985000000001,
+      "passed": false,
+      "baseline": 10.3657
+    },
+    {
+      "name": "32-single-literal/cadence/cpuPerChangeP50",
+      "actual": 6.274606299212598,
+      "limit": 5.038139763779528,
+      "passed": false,
+      "baseline": 4.798228346456693
+    },
+    {
+      "name": "32-imported-literal/cold/wireP50",
+      "actual": 52.405,
+      "limit": 52.37379000000001,
+      "passed": false,
+      "baseline": 49.8798,
+      "ratio": 1.05
+    }
+  ],
+  "largeCpuRatios": {
+    "512-single-literal": 0.9772727272727273,
+    "512-single-declaration": 1.0,
+    "512-imported-literal": 0.9461077844311377,
+    "512-imported-declaration": 1.0
+  },
+  "largeCpuGeomeanRatio": 0.9805937000196092,
+  "requiredLargeCpuGeomeanRatio": 0.98,
+  "benefitPassed": false,
+  "conditions": {
+    "pairs": 4,
+    "generations": 14,
+    "smallGenerations": 128,
+    "smallCpuExtension": 384,
+    "functions": [
+      32,
+      512
+    ],
+    "topologies": [
+      "single",
+      "imported"
+    ],
+    "edits": [
+      "literal",
+      "declaration"
+    ],
+    "idleBetweenPrimaryVersionsMs": 500,
+    "backgroundWorkspaceSymbols": "default",
+    "serverMask": 340,
+    "clientMask": 1025
+  },
+  "baseline": {
+    "path": "F:\\codex-builds-xlang-lsp-20261122\\exit-production\\native-stable-v1\\xlang-ls.exe",
+    "sha256": "13ab5b9d3cc2122db947545e9d70dca3929546b9d8d0b4e18e3d891e2e6d6d08"
+  },
+  "candidate": {
+    "path": "F:\\codex-builds-xlang-lsp-20261123\\exit-hotpath-qualified\\native-v1\\xlang-ls.exe",
+    "sha256": "bfb13766f8db6779f8d347b3f26b6aec00ecba41c4a9dd8d9f854d2030f4b043"
+  },
+  "elapsedSeconds": 2744.0383455753326,
+  "runtimeBeforeAndAfter": {
+    "xlang_ide.exe": "dcb587fc2d7bec7e1c8eb1a132e3e89411bd469b5ad6b4a8ff30356cf30fd51f",
+    "xlang-ls.exe": "13ab5b9d3cc2122db947545e9d70dca3929546b9d8d0b4e18e3d891e2e6d6d08",
+    "xlang_ide_xge.dll": "7eba677fddada9b605db2d54dd59ee57a9cfc1caf0b574f6cb206ec9de379418",
+    "update.exe": "4c5266fce0a541b9b96fe92b3d2f7d94598aff3b052e420b08b6d47db5e5c6c2",
+    "xl.exe": "5288c4e8be9f420ef98caeb11be362017be925f2ad81a0d56946cc6a8c721081",
+    "xl.dll": "f31ddbe973ed48d261014ec64fa6b0ba48791fc0313192a19d59467254c0fcd6",
+    "xlc.dll": "64b2e9830569c84580335b0a2b15a59ce13552ba1ba51933fc82cd75808c0728",
+    "xge.dll": "127db42612e8a27c8b1f7f74e4653c25f09140f8baac38d16fc564eb74892ef3"
+  },
+  "correctnessQualified": true,
+  "experimentalExitReuseDefault": false,
+  "defaultRuntimeReplaced": false,
+  "performanceQualified": false,
+  "wholeGoalPerformanceQualified": false,
+  "goalComplete": false,
+  "externalPublishPerformed": false,
+  "limits": [
+    "Retain all observations and failed prior images; no identical-image rerun to erase failures.",
+    "New full imagebfb1 differs from component0bec; single-case component screen does not admit it.",
+    "Process-only affinity as in successful original-cadence calibration;shared host, no OS-wide power or priority change.",
+    "Do not run builds, QA, compression, heavy hashes, Git or edits during this timing sequence.",
+    "The separate small-file cadence windows may be below1s; their original nonregression gates were retained,not removed or reclassified after seeing the result.",
+    "No causal attribution from the failure alone and no identical-image rerun to erase it."
+  ]
+}
