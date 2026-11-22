@@ -1,30 +1,35 @@
 #ifndef XLS_IR_CALL_LINK_H
 #define XLS_IR_CALL_LINK_H
-#include "analysis/ir_table_graph.h"
-#include <stdint.h>
-
-typedef enum xls_ir_call_domain {
- XLS_CALL_SITE,XLS_CALL_ARGUMENT,XLS_CALL_DYNAMIC_SITE,XLS_CALL_DYNAMIC_ARGUMENT,
- XLS_CALL_METHOD,XLS_CALL_PARAMETER,XLS_CALL_INTRINSIC,XLS_CALL_OPERAND,
- XLS_CALL_NODE,XLS_CALL_TYPE,XLS_CALL_SYMBOL,XLS_CALL_CLASS_SLOT,
- XLS_CALL_PROTOCOL_SLOT,XLS_CALL_RUNTIME_TAG,XLS_CALL_FUNCTION,XLS_CALL_CODEC,
- XLS_CALL_DOMAIN_COUNT
-} xls_ir_call_domain;
-typedef struct xls_ir_call_binding {
- xls_ir_table_unit* unit;const void* producer;
- /* Pure deterministic explicit map. Table rows/slices use zero-based IDs;
-  * other domains use one-based IDs,with zero bypassing the callback. */
- int(*map)(void*,xls_ir_call_domain,uint64_t,uint64_t*);void* user;
-} xls_ir_call_binding;
-typedef enum xls_ir_call_reason {
- XLS_CALL_NONE,XLS_CALL_INPUT,XLS_CALL_NAMESPACE,XLS_CALL_UNMAPPED,
- XLS_CALL_RANGE,XLS_CALL_DUPLICATE,XLS_CALL_DIFFERENT
-} xls_ir_call_reason;
-typedef struct xls_ir_call_error {
- xls_ir_call_reason reason;size_t binding;const char* field;
- xls_ir_call_domain domain;uint64_t value;
-} xls_ir_call_error;
-typedef struct xls_ir_call_link xls_ir_call_link;
+#include "analysis/ir_record_link.h"
+typedef xls_ir_record_domain xls_ir_call_domain;
+typedef xls_ir_record_binding xls_ir_call_binding;
+typedef xls_ir_record_reason xls_ir_call_reason;
+typedef xls_ir_record_error xls_ir_call_error;
+typedef xls_ir_record_link xls_ir_call_link;
+#define XLS_CALL_SITE XLS_RECORD_SITE
+#define XLS_CALL_ARGUMENT XLS_RECORD_ARGUMENT
+#define XLS_CALL_DYNAMIC_SITE XLS_RECORD_DYNAMIC_SITE
+#define XLS_CALL_DYNAMIC_ARGUMENT XLS_RECORD_DYNAMIC_ARGUMENT
+#define XLS_CALL_METHOD XLS_RECORD_METHOD
+#define XLS_CALL_PARAMETER XLS_RECORD_PARAMETER
+#define XLS_CALL_INTRINSIC XLS_RECORD_INTRINSIC
+#define XLS_CALL_OPERAND XLS_RECORD_OPERAND
+#define XLS_CALL_NODE XLS_RECORD_NODE
+#define XLS_CALL_TYPE XLS_RECORD_TYPE
+#define XLS_CALL_SYMBOL XLS_RECORD_SYMBOL
+#define XLS_CALL_CLASS_SLOT XLS_RECORD_CLASS_SLOT
+#define XLS_CALL_PROTOCOL_SLOT XLS_RECORD_PROTOCOL_SLOT
+#define XLS_CALL_RUNTIME_TAG XLS_RECORD_RUNTIME_TAG
+#define XLS_CALL_FUNCTION XLS_RECORD_FUNCTION
+#define XLS_CALL_CODEC XLS_RECORD_CODEC
+#define XLS_CALL_NONE XLS_RECORD_NONE
+#define XLS_CALL_INPUT XLS_RECORD_INPUT
+#define XLS_CALL_NAMESPACE XLS_RECORD_NAMESPACE
+#define XLS_CALL_UNMAPPED XLS_RECORD_UNMAPPED
+#define XLS_CALL_RANGE XLS_RECORD_RANGE
+#define XLS_CALL_DUPLICATE XLS_RECORD_DUPLICATE
+#define XLS_CALL_DIFFERENT XLS_RECORD_DIFFERENT
+#define XLS_CALL_DOMAIN_COUNT XLS_RECORD_CLEANUP
 /* Link all rows of the eight call-related tables from independent units.
  * Exact current validated metadata is a call borrow and comparison oracle,
  * not an input/dependency certificate. Map every reference explicitly;

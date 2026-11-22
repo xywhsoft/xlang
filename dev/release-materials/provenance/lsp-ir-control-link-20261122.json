@@ -1,0 +1,133 @@
+{
+  "schema": 1,
+  "date": "2026-11-22",
+  "stage": "M7b7d",
+  "scope": "Shared independent IR record linker;initialization,cleanup and exit-plan relocation",
+  "base": "a63cc017e4faf9af7e44f1d9aea0c69df57a91e7",
+  "ownedSources": {
+    "ide/src/analysis/ir_call_link.c": "4f25eba8e034fd7a47f5804bddd2d7af78f4c59df4957fd60a7ba1c629ff349f",
+    "ide/src/analysis/ir_call_link.h": "17ff888f9c71b7ba88b9b7a07fddab106a8468491f0555443eea29122778e3e8",
+    "ide/src/analysis/ir_record_link.c": "a0005ac8b7afc9ca72ee452d14be772365268d0d8fdd864440a567ccd5d45e13",
+    "ide/src/analysis/ir_record_link.h": "b8efd55e1d2061bb9a1094d6f240c8c36f9f7a29c489712ce8fe689e112d6c82",
+    "ide/src/analysis/ir_control_link.c": "5af3d2e622504274aae7350ad1d263165b3e3780055b8ee6e07fb6766d773e81",
+    "ide/src/analysis/ir_control_link.h": "f1a0af97dcfa2818b933bb5ba9c597dad3fca3ac372ebea2c20411878de385c5",
+    "ide/tests/analysis_ir_call_link_test.c": "d35c9164f5a8f82b92cd271d4f83b8d588fb85f6c267b13bf5c517e910b5b02e",
+    "ide/tests/analysis_ir_control_link_test.c": "9d7bc1d82137ed8511b756d5bfdfa5cdffe37e939d21a3ca753d047da74e11cf",
+    "ide/tools/build_lsp_core.py": "1c985d402edbff2d291fff92507f9c968b5dc2ce764b1248fa826ed8dff3cfde",
+    "ide/tools/ir_call_schema.py": "bdf68fa53bd61fd48a97e93eae45fe4229d2cd93d8ced3b9bf850fcaf9786b7d",
+    "ide/tools/ir_record_schema.py": "d3528284b7b827c3d8654cf424397ca9e0488ce87b6e683567af41bdb3c0ba6f",
+    "ide/tools/check_ir_call_link.py": "d43dc866ee8b3096080967b1520b5833a5c9ded84449a16f499d0d098993e453",
+    "ide/tools/check_ir_record_link.py": "87e8bef9736d91ab7abcf420a594b6adeeef147e41dee54ffa18bd55f821fd15",
+    "ide/docs/lsp-ir-control-link.md": "42031eac0fde718d157eddb058abc99a8e0d1e5e7b196f8557b2126f31b58288",
+    "ide/docs/lsp-development.md": "543d7610b045d90adfcda9e9359ae27a2303f23f4040901c9081a877a8b75a8f"
+  },
+  "materials": {
+    "source": {
+      "archive": {
+        "path": "dev/release-materials/sources/lsp-ir-control-link-20261122/inputs.tar.gz",
+        "sha256": "82c0fb475ed17324cac1fee6fbe41b06898ad62c1f9bd0547937efd32e6fa168",
+        "bytes": 11392962
+      },
+      "manifest": {
+        "path": "dev/release-materials/sources/lsp-ir-control-link-20261122/inputs.tar.gz.manifest.json",
+        "sha256": "41e056ae3d3d5b1150b367121643cb0d4eeed981b6f96c6e11ef0d7c520c82b0",
+        "bytes": 567541
+      },
+      "entries": 1710,
+      "uniquePayloads": 1196
+    },
+    "validation": {
+      "archive": {
+        "path": "dev/release-materials/provenance/lsp-ir-control-link-20261122/validation.tar.gz",
+        "sha256": "1fc7d65f5368e89a47b4356ba1aa3fde37e4aa97b1cacfee77b112a66cacd5f7",
+        "bytes": 140761182
+      },
+      "manifest": {
+        "path": "dev/release-materials/provenance/lsp-ir-control-link-20261122/validation.tar.gz.manifest.json",
+        "sha256": "84583150a55e4384801bbd958cd32324f0038cc7533e249198c6a56c406128b3",
+        "bytes": 996465
+      },
+      "entries": 2826,
+      "uniquePayloads": 1530
+    }
+  },
+  "externalPaths": [
+    "F:\\codex-builds-xlang-lsp-20261122\\control-link",
+    "F:\\codex-builds-xlang-lsp-20261122\\control-link-materials"
+  ],
+  "baseQualification": {
+    "index": "dev/release-materials/provenance/lsp-ir-call-link-20261122.json",
+    "sha256": "e402c4ebc81ebdba2ef60034f66a29b891696e5005bd514c373869fc1f5f36b3"
+  },
+  "verification": {
+    "tables": 12,
+    "controlTables": 4,
+    "nativeFields": 144,
+    "controlFields": 37,
+    "referenceRoles": 59,
+    "controlRoles": 18,
+    "fullNativeTables": 108,
+    "freshPhysicalObjects": 373,
+    "mappedObjects": 372,
+    "guardedInputs": 1695,
+    "nativeProgramsBuilt": 228,
+    "nativeProgramsRun": 228,
+    "protocolSuites": 33,
+    "installedConservativeServiceSmokeSuites": 2,
+    "controlChecks": 314113,
+    "callChecks": 163659,
+    "controlNativeModules": 134,
+    "controlNativeVerifierJsonOracles": 268,
+    "mixedOldRecords": 192,
+    "mixedNewRecords": 23,
+    "movedNodes": 70,
+    "movedPlanRegions": 33,
+    "compiledCallDefects": 47,
+    "compiledControlDefects": 23,
+    "positiveControls": 4,
+    "schemaMutationCasesPerFamily": 8,
+    "nativeVerifierIndependentlyRejectedStaleOrigins": true,
+    "readerThreads": 4,
+    "generations": 32,
+    "blocksPerControlGeneration": 25,
+    "allControlFieldsChangedIndividually": 37,
+    "onlyQualityToolChangedAfterFreeze": [
+      "ide\\tools\\check_ir_record_link.py"
+    ],
+    "qualityToolChange": "Explicitly discard unused comparison borrow in the intentionally broken native-only initializer driver;product sources and headers unchanged",
+    "priorFailedQualityAttemptPreserved": true
+  },
+  "candidate": {
+    "path": "F:\\codex-builds-xlang-lsp-20261122\\control-link\\native-v1\\xlang-ls.exe",
+    "sha256": "6df638c90b4b83c070f0d5a5f903555ec6a9ef49d66156288bb21f64992877bd",
+    "version": "0.108",
+    "installed": false
+  },
+  "runtime": {
+    "mdo.exe": "9219de70911e1f02d8e54eadc77c257369e4ea637e5202fcbb04854a29893044",
+    "update.exe": "4c5266fce0a541b9b96fe92b3d2f7d94598aff3b052e420b08b6d47db5e5c6c2",
+    "xge.dll": "127db42612e8a27c8b1f7f74e4653c25f09140f8baac38d16fc564eb74892ef3",
+    "xl.dll": "f31ddbe973ed48d261014ec64fa6b0ba48791fc0313192a19d59467254c0fcd6",
+    "xl.exe": "5288c4e8be9f420ef98caeb11be362017be925f2ad81a0d56946cc6a8c721081",
+    "xlang-ls.exe": "a1ac7527301e48ea114a9016d7a4a7fd15d69f080d7c0c6f57b63569833af972",
+    "xlang_ide.exe": "7164c29f45c438f7d788457283ae6404178e0d2b779c3cd151eb374b75a02cf1",
+    "xlang_ide_xge.dll": "7eba677fddada9b605db2d54dd59ee57a9cfc1caf0b574f6cb206ec9de379418",
+    "xlc.dll": "64b2e9830569c84580335b0a2b15a59ce13552ba1ba51933fc82cd75808c0728"
+  },
+  "defaultRuntimeReplaced": false,
+  "normalAnalysisIntegrationEnabled": false,
+  "performanceQualified": false,
+  "goalComplete": false,
+  "externalPublishPerformed": false,
+  "deliveryIndexUnmodifiedByThisTask": true,
+  "deliveryIndexCurrentSha256": "3e9c519da965cde25ac258ab79730fe701a8dfd76d92aa51c6d8d45ad1afee3c",
+  "limits": [
+    "Current metadata still comes from full native production;controlled fixture correspondence is not a production eligibility proof.",
+    "Installed0.108/matched IDE is preserved;this phase has not rebuilt/replaced the GUI or qualified a new matched delivery.",
+    "Other final IR families,semantic/dependency eligibility,selective production,large/endurance/platform and end-to-end performance acceptance remain."
+  ],
+  "sharedIgnore": {
+    "anchor": "!/dev/release-materials/provenance/lsp-ir-call-link-20261122.json",
+    "line": "!/dev/release-materials/provenance/lsp-ir-control-link-20261122.json"
+  }
+}

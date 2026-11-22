@@ -122,7 +122,10 @@ static int callOracle(const XL6_IrModule* source)
 {
  capture_view base;CHECK(captureView(source,&base));xls_ir_call_link* link=callNativeLink(source);CHECK(link);CHECK(xlsIrCallLinkApply(link,&base.module));char* expected=captureDump(source);CHECK(expected && verifyCapture(&base.module,expected));xrtFree(expected);xlsIrCallLinkDestroy(link);captureViewFree(&base);return 1;
 }
-void __wrap_xl6IrDumpModuleJson(XL6_Output* out,const XL6_IrModule* module)
+#ifndef XLS_CALL_LINK_DUMP_NAME
+#define XLS_CALL_LINK_DUMP_NAME __wrap_xl6IrDumpModuleJson
+#endif
+void XLS_CALL_LINK_DUMP_NAME(XL6_Output* out,const XL6_IrModule* module)
 {
  if(xrtAtomic32Load(&oracleActive,XMEMORY_ACQUIRE)&&!oracleRecursing){oracleRecursing=1;xrtAtomic32FetchAdd(&oracleRuns,1,XMEMORY_RELAXED);if(!callOracle(module))xrtAtomic32FetchAdd(&oracleErrors,1,XMEMORY_RELAXED);oracleRecursing=0;}__real_xl6IrDumpModuleJson(out,module);
 }
@@ -223,4 +226,8 @@ static int callNativeTests(void)
  printf("analysis_ir_call_link_test passed: %u checks;%u complete native verifier/JSON oracles;8tables,explicit references,slices,mixed units,retirement,OOM,cancellation\n",xrtAtomic32Load(&checks,XMEMORY_RELAXED),xrtAtomic32Load(&oracleRuns,XMEMORY_RELAXED));return 1;
 }
 
+#ifdef XLS_IR_CALL_LINK_LIBRARY
+int xlsIrCallLinkFixtureMain(void){return callNativeTests()?0:1;}
+#else
 int main(void){return callNativeTests()?0:1;}
+#endif
