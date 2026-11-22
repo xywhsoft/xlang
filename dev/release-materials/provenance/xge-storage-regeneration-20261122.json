@@ -1,0 +1,186 @@
+{
+  "complete": true,
+  "passed": true,
+  "releaseInstalled": false,
+  "networkTests": false,
+  "nativeRevision": "bf81cd9c64666d3df667a9ae2a74d6ed0bec1652",
+  "scope": "Current strict native-storage review, deterministic full regeneration and staged package regression",
+  "inputs": [
+    {
+      "path": "docs/xge3-xui3-api-map-storage.json",
+      "sha256": "d80d31ec6ecb3a52f09393c8b3e3abb50471b56183c3c990e970c822bdf5d42e"
+    },
+    {
+      "path": "tools/check_xge3_storage_reviews.py",
+      "sha256": "70c662d3f5e7fdc14f57127dde2abc494df3bf7bcf1324eba70256863cc95777"
+    },
+    {
+      "path": "tools/check_xui_code_annotations.py",
+      "sha256": "3f6cfb5db80e580fe8fb2552bf114ea08898e0e290670bb86682caee04929cf2"
+    },
+    {
+      "path": "docs/xge3-storage-reviews.md",
+      "sha256": "f9326730530487303bdb693ed22cd6c52817ae016775dce63966900e1acb8717"
+    },
+    {
+      "path": "tools/stage_xge3_replay_contracts.py",
+      "sha256": "0c09b3f4cdde13ab1f6dd0d501be3a14eb1484266b256e9633278645299d66c4"
+    },
+    {
+      "path": "tools/check_xge3_native_consumers.py",
+      "sha256": "dfd62410e5d15a686240356fcc70ddcd9e66cbcc35061af01bb7604a6f964546"
+    }
+  ],
+  "reviewed": {
+    "tables": {
+      "entries": 124,
+      "fieldEntries": 20,
+      "fixedOutputEntries": 2
+    },
+    "changed": 46,
+    "changedEntryBodies": [
+      "xgeClipboardGetData",
+      "xui_proxy_t.clipboardGetData"
+    ],
+    "historicalSourceFiles": 6,
+    "baselineHashes": {
+      "path": "F:/xlang-validation/xge-full-20261110/storage-current-review-20261122-r1/baseline.json",
+      "sha256": "0e25a5b39f9fc42a2e32082900c78fb8132973706db914fa26c11bd8a3a55b82"
+    },
+    "entryReviews": {
+      "path": "F:/xlang-validation/xge-full-20261110/storage-current-review-20261122-r1/reviewed-entries.json",
+      "sha256": "a03a54f1b073e766c46c260abdc6098fee933cd120f741556d7a87b84fa6146f"
+    },
+    "sourceDiffs": [
+      {
+        "path": "F:/xlang-validation/xge-full-20261110/storage-current-review-20261122-r1/xge.h-588a8fbe.diff",
+        "sha256": "777f3b6eec65f8a7ca799749ed4c1ca768dacf11d469c117f70b67825d203d7a"
+      },
+      {
+        "path": "F:/xlang-validation/xge-full-20261110/storage-current-review-20261122-r1/xge_render.c-594aebca.diff",
+        "sha256": "c0087844f176ba1b82ad3bbf613b9e901770350da28955b32f7399450e47db55"
+      },
+      {
+        "path": "F:/xlang-validation/xge-full-20261110/storage-current-review-20261122-r1/xui.h-57341083.diff",
+        "sha256": "a925cb6c1e3d3ae0e9453b659e8d2c93e3a18e5f594f41b45548af0111e7b119"
+      },
+      {
+        "path": "F:/xlang-validation/xge-full-20261110/storage-current-review-20261122-r1/xui_code_edit.c-94a96165.diff",
+        "sha256": "de794dfb9812f162155896a4a37a1d80bca921d488bd4b57a5a3fbbe0ad258c5"
+      },
+      {
+        "path": "F:/xlang-validation/xge-full-20261110/storage-current-review-20261122-r1/xui_code_search.c-e978890e.diff",
+        "sha256": "8fd72612f180b383608529d2837587eb289142f8c36f3f94cd77c0c9ae0a5acd"
+      },
+      {
+        "path": "F:/xlang-validation/xge-full-20261110/storage-current-review-20261122-r1/xui_proxy_xge.c-58f7264e.diff",
+        "sha256": "42a29ead883a24854bb6aeb357095be7de02127757df1191968ebc4284196c23"
+      }
+    ]
+  },
+  "platforms": {
+    "win": {
+      "checks": 1080,
+      "skippedChecks": [
+        {
+          "name": "reject-external-symlink",
+          "reason": "[WinError 1314] 客户端没有所需的特权。: 'F:\\\\xlang-validation\\\\xge-full-20261110\\\\storage-current-review-20261122-r1\\\\gate-win-r1\\\\external.inl' -> 'F:\\\\xlang-validation\\\\xge-full-20261110\\\\storage-current-review-20261122-r1\\\\gate-win-r1\\\\fixture\\\\src\\\\external.inl'"
+        }
+      ],
+      "storageGate": {
+        "path": "F:/xlang-validation/xge-full-20261110/storage-current-review-20261122-r1/gate-win-r1/results.json",
+        "sha256": "8713b2193e248c1f2f8b5bb2f109e46da544e52af77f675295f314b6e24563cd"
+      },
+      "generatedChanges": [
+        "lib/bindings/xge/src/constants.xl",
+        "lib/bindings/xge/src/functions.xl",
+        "lib/bindings/xge/src/records.xl",
+        "lib/bindings/xge/three_d/src/functions.xl",
+        "lib/bindings/xui/src/managed.xl",
+        "lib/bindings/xui/src/records.xl"
+      ],
+      "nativeSource": {
+        "path": "F:/xlang-validation/xge-full-20261110/code-edit-providers-check-win-r1/audit-r1/native-source.json",
+        "sha256": "944b7bc2b8b88a76b4dbb0939ccdf2bba355b0557fe67435de49cdb0fbc55f85"
+      },
+      "replay": {
+        "path": "F:/xlang-validation/xge-full-20261110/storage-current-review-20261122-r1/replay-win-r1/stage-report.json",
+        "sha256": "033735f8ec550fd73205be302b06be5c6e13f657eda9cd740da60ffb3e501a18"
+      },
+      "consumers": {
+        "path": "F:/xlang-validation/xge-full-20261110/storage-current-review-20261122-r1/consumers-win-r1/results.json",
+        "sha256": "37d789772524a7c75d9f9cb75f33e9d8a10283916dd26ce776a19de95712868a"
+      },
+      "fixedOutput": {
+        "path": "F:/xlang-validation/xge-full-20261110/storage-current-review-20261122-r1/fixed-output-win-r1/results.json",
+        "sha256": "d930cd9ab91b7ecb9cbec80543685d95d4038512aab116b4110a85e144f634b3"
+      },
+      "annotation": {
+        "path": "F:/xlang-validation/xge-full-20261110/storage-current-review-20261122-r1/annotations-win-r2/results.json",
+        "sha256": "118098a924484ff1b889fe34442ffea5e27db4d327d6fbbc7af2ab34d65f6b05"
+      },
+      "smoke": {
+        "path": "F:/xlang-validation/xge-full-20261110/storage-current-review-20261122-r1/smoke-win-r1/results.json",
+        "sha256": "e7b90262a38b398b5ca3bc7508209a3bba30fafad486c490cbb74d5dd8b2c425"
+      },
+      "runtimeCommandCount": 47,
+      "symbolAudit": {
+        "functionPopulation": 5736,
+        "directDeclarations": 4671,
+        "compiledConsumers": 184,
+        "explicitReplacements": 193
+      }
+    },
+    "linux": {
+      "checks": 1081,
+      "skippedChecks": [],
+      "storageGate": {
+        "path": "/var/tmp/xlang-validation/xge-full-20261110/storage-current-review-20261122-linux-r1/results.json",
+        "sha256": "1ec2367889ec8cf285bbe82dc32a7a7dc7b69cab724d2deb4af35179faa9fd9a"
+      },
+      "generatedChanges": [
+        "lib/bindings/xui/src/managed.xl",
+        "lib/bindings/xui/src/records.xl",
+        "lib/bindings/xge/src/functions.xl",
+        "lib/bindings/xge/src/constants.xl",
+        "lib/bindings/xge/src/records.xl",
+        "lib/bindings/xge/three_d/src/functions.xl"
+      ],
+      "nativeSource": {
+        "path": "/var/tmp/xlang-validation/xge-full-20261110/code-edit-providers-check-linux-r1/audit-r1/native-source.json",
+        "sha256": "1bb38d3066d0758941b97a6d20be6cb699d8a641c0976cea13fc5bc7f32ac94e"
+      },
+      "replay": {
+        "path": "/var/tmp/xlang-validation/xge-full-20261110/storage-current-replay-linux-r1/stage-report.json",
+        "sha256": "b240e41494ea95800ef9290cffa66757f3b23315060c33415ed6fb1b7e430516"
+      },
+      "consumers": {
+        "path": "/var/tmp/xlang-validation/xge-full-20261110/storage-current-consumers-linux-r1/results.json",
+        "sha256": "746f4f76a4df5248d9eeed80e45092db8cdb097f4c5fc3604dac22a2b38ffec8"
+      },
+      "fixedOutput": {
+        "path": "/var/tmp/xlang-validation/xge-full-20261110/storage-current-fixed-output-linux-r1/results.json",
+        "sha256": "f7e31075e2bafb43c6ca55696ed57f3d0e68e8bf3d73dda07d0386435e5adf3a"
+      },
+      "annotation": {
+        "path": "/var/tmp/xlang-validation/xge-full-20261110/storage-current-annotations-linux-r2/results.json",
+        "sha256": "bb16e9044215a183125da2bfa3d56d910164db25255016f45fa50553789c6702"
+      },
+      "smoke": {
+        "path": "/var/tmp/xlang-validation/xge-full-20261110/storage-current-smoke-linux-r1/results.json",
+        "sha256": "2250b0c341a3de365e33275082373f45e523ce79079d518fc8a525b4456f66fa"
+      },
+      "runtimeCommandCount": 47,
+      "symbolAudit": {
+        "functionPopulation": 5736,
+        "directDeclarations": 4671,
+        "compiledConsumers": 184,
+        "explicitReplacements": 193
+      }
+    }
+  },
+  "limits": [
+    "Staged candidates passed this suite. The full engine feature inventory and release remain open.",
+    "Windows exercised the clipboard initialization guard. Linux exercised clipboard reads on a private X11 server."
+  ]
+}

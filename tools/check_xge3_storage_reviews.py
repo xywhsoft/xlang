@@ -22,17 +22,17 @@ def main():
     out.mkdir(parents=True,exist_ok=False)
     sha=lambda path:hashlib.sha256(Path(path).read_bytes()).hexdigest()
     catalog=root/'docs/xge3-xui3-api-map-storage.json';reviews=json.loads(catalog.read_text(encoding='utf8'))
+    tables=('entries','fieldEntries','fixedOutputEntries')
     files=[Path(__file__).resolve(),Path(__file__).with_name('check_xge3_bindings.py'),catalog,root/'src/lexer/xl6_lexer_gen.c']
     files.extend(Path(__file__).with_name(name+'.py')for name in('xui_gallery_contracts','xui_geometry_contracts','xui_snapshot_contracts','xui_managed_contracts','xge_replay_contracts','stage_xge3_replay_contracts'))
     import pycparser
     files.extend(Path(pycparser.__file__).parent.rglob('*.py'));files.append(Path(sys.executable))
     files.extend(f for f in(root/'lib/bindings').rglob('*')if f.is_file())
     files.extend(p for p in(native/'include').rglob('*')if p.is_file())
-    files.extend(native/r['sourceFile']for r in reviews['entries'].values())
-    for item in reviews.get('fixedOutputEntries',{}).values():
-        files.append(native/item['sourceFile']);files.extend(native/d['sourceFile']for d in item.get('dependencies',[]))
-    for review in reviews['fieldEntries'].values():
-        files.append(native/review['sourceFile']);files.extend(native/d['sourceFile']for d in review.get('dependencies',[]))
+    for table in tables:
+        for item in reviews.get(table,{}).values():
+            files.append(native/item['sourceFile'])
+            files.extend(native/dependency['sourceFile']for dependency in item.get('dependencies',[]))
     inputs={str(path):sha(path)for path in files}
     report=dict(complete=False,passed=False,scope=__doc__,shippingDelivery=False,runtimeQualification=False,candidateReadyForDelivery=False,generatedOutputsPromoted=False,pythonVersion=sys.version,pycparserVersion=pycparser.__version__,inputs=inputs,checks=[])
     def save():
@@ -164,8 +164,12 @@ def main():
         # The current reviewed entry, all 14 dependencies and each independent
         # mutation are tested against the exact native source cohort.
         actual=reviews['fieldEntries']['xui_proxy_t.textDraw']
-        for name,item in reviews['fieldEntries'].items():
-            check('native-field-'+name,lambda v=item:require(storage_review_match(native,v)==(True,None)))
+        for table in tables:
+            for name,item in reviews.get(table,{}).items():
+                def verify_live_review():
+                    matched,reason=storage_review_match(native,item,name)
+                    require(matched,f'{table}.{name}: {reason}')
+                check('native-review-'+name,verify_live_review)
         mutated=out/'native-mutations'
         for rel in{actual['sourceFile'],*[d['sourceFile']for d in actual['dependencies']]}:
             dest=mutated/rel;dest.parent.mkdir(parents=True,exist_ok=True);shutil.copy2(native/rel,dest)

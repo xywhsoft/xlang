@@ -6,7 +6,8 @@ The review catalog is `xge3-xui3-api-map-storage.json`.
 
 `storage_review_match` checks the reviewed entry function and optional
 `dependencies`. A dependency contains a portable repository-relative
-`sourceFile` and a byte-exact SHA-256. Missing, changed, malformed, duplicate,
+`sourceFile` and a SHA-256 over either the exact bytes or LF-normalized text.
+Missing, changed, malformed, duplicate,
 absolute, parent-relative and external symlink/junction paths are rejected.
 Both free-function span generation and callable-field annotation use this
 checker. Non-strict inventory records a changed review and removes any prior
@@ -14,9 +15,33 @@ matching storage contract; strict generation fails.
 
 These fingerprints detect changes to manually reviewed code. They do not
 infer ownership, discover every transitive dependency, prove ABI correctness,
-or certify executable behavior. Eighteen legacy callable-field reviews still
-check the entry body only; their historical `sourceHeaderSha256` is metadata,
-not an enforced current-header assertion. They have not been silently refreshed.
+or certify executable behavior. Seventeen legacy callable-field reviews still
+check the entry body only. Their historical `sourceHeaderSha256` remains
+provenance metadata.
+
+## Full strict regeneration at XGE bf81cd9c
+
+Forty-six records required review against this revision. Historical witnesses
+resolved to six native files. The XGE header adds clipboard declarations, and
+the XUI header adds find-scope and provider declarations. The related types
+and existing callable signatures are preserved. The CodeEdit source changes
+find-scope attachment and command registration. The search source changes
+range lookup; MarkAllRegex still uses the unchanged, capacity-checked error
+writer. The text-draw dependencies changed only in the clipboard paths.
+
+The two changed entry bodies are the caller-buffer clipboard reader and its
+XUI proxy. The platform readers consume the destination synchronously and
+limit writes to its supplied capacity. The proxy preserves byte counts and
+maps the missing-format and short-buffer error codes to XUI. The refreshed
+proxy review pins the platform-reader implementation and both public headers.
+
+The source gate checks all 146 current records and locks every listed
+dependency through the end of the run. Repeated generation was byte-identical
+on each platform. All nine selected files preserve their
+reviewed declarations, and the four package manifests remain byte-identical.
+Matching hosted and static packages were staged outside the release tree.
+
+[Validation evidence](../dev/release-materials/provenance/xge-storage-regeneration-20261122.json)
 
 ## Reviewed range drawing paths
 
@@ -69,13 +94,10 @@ may lack permission to create symlinks; that individual case is reported as
 skipped and is exercised on Linux instead.
 
 Passing this source gate **does not make the generated package deliverable**.
-The initial isolated replay differed in ten binding source files. The fixed
-OBB output follow-up below removes that regression; nine files still differ,
-including checked title/provider APIs, callback views, snapshot records and
-explicit constants. Those candidates remain external;
-none is copied over the existing bindings or into `release/`. The next step
-is to preserve and qualify these independently reviewed contracts in the
-generator before any regenerated package can replace the current library.
+The initial isolated replay differed in ten binding source files, including
+checked title/provider APIs, callback views, snapshot records and explicit
+constants. The fixed OBB output work below addressed one early discrepancy.
+Current preservation results are recorded in the strict regeneration section.
 
 ## Fixed output cardinality
 

@@ -103,7 +103,8 @@ def main():
                     report['heap'].append(dict(mode=kind,rounds=1000,callsPerRound=2,allocationPrefixes=96,
                         counts={str(k):dict(zip(('alloc','free','realloc'),v))for k,v in values.items()}))
                 else:
-                    assert b'Marked matches: 2'in output and b'Diagnostics: 1'in output
+                    assert b'Marked matches: 2' in output
+                    assert re.search(rb'(?m)^W001\s*:\s*Complete this task\s*;\s*source:\s*lesson\r?$',output)
                 save()
         report.update(complete=True,inputsUnchanged=all(sha(v)==h for v,h in inputs.items()));report['passed']=report['inputsUnchanged'];assert report['passed']
     except Exception as error:report.update(complete=True,passed=False,error=str(error));raise
