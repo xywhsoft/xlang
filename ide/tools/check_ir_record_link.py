@@ -1,4 +1,4 @@
-"""Compile call/control metadata omissions against a matching native build and current fixture."""
+"""Compile metadata omissions against a matching native build and current fixture."""
 from pathlib import Path
 import argparse,hashlib,json,os,re,shutil,subprocess
 from build_lsp_core import dependencies
@@ -8,7 +8,7 @@ def sha(p):
  with Path(p).open('rb')as f:return hashlib.file_digest(f,'sha256').hexdigest()
 
 def main():
- p=argparse.ArgumentParser(description=__doc__);p.add_argument('--build',type=Path,required=True);p.add_argument('--output',type=Path,required=True);p.add_argument('--runtime',type=Path,required=True);p.add_argument('--family',choices=('calls','control'),default='calls');args=p.parse_args();fixture='analysis_ir_'+('call'if args.family=='calls'else'control')+'_link_test'
+ p=argparse.ArgumentParser(description=__doc__);p.add_argument('--build',type=Path,required=True);p.add_argument('--output',type=Path,required=True);p.add_argument('--runtime',type=Path,required=True);p.add_argument('--family',choices=('calls','control','enums'),default='calls');args=p.parse_args();fixture='analysis_ir_'+{'calls':'call','control':'control','enums':'enum'}[args.family]+'_link_test'
  r=Path(__file__).resolve().parents[2];out=args.output.resolve();out.mkdir(parents=True,exist_ok=False);b=json.loads(args.build.read_text());assert b['status']=='passed'
  for path,h in b['inputs'].items():assert sha(path)==h,path
  cc=next(c for c in b['commands']if '-c'in c and Path(c[c.index('-c')+1]).stem=='ir_record_link')
@@ -27,10 +27,11 @@ def main():
     frozen=Path(tc[tc.index('-c')+1]).parents[1]/'src'/path.relative_to(r/'ide/src');assert sha(frozen)==sha(path),path
   target=out/(label+'.o');v=run(label+'-compile',[*flags,'-c',str(source),'-o',str(target)]);assert not v.returncode,(label,v.stderr.decode(errors='replace')[-2000:]);return target
  test=r/'ide/tests'/(fixture+'.c');testObject=compile('current-fixture',tc[:tc.index('-c')],test)
- entry='callNativeTests'if args.family=='calls'else'controlTests';mixed='mixedNativeCalls'if args.family=='calls'else'mixedNativeControl';private=out/'native-only.c';text=test.read_text(encoding='utf8').replace('static int '+entry+'(void)','int '+entry+'(void)').replace('int main(void){return '+entry+'()?0:1;}','int main(void){xrtAtomic32Init(&checks,0);return '+mixed+'()?0:1;}');private.write_text(text,encoding='utf8')
+ entry={'calls':'callNativeTests','control':'controlTests','enums':'enumTests'}[args.family];mixed={'calls':'mixedNativeCalls','control':'mixedNativeControl','enums':'mixedNativeEnums'}[args.family];private=out/'native-only.c';text=test.read_text(encoding='utf8').replace('static int '+entry+'(void)','int '+entry+'(void)').replace('int main(void){return '+entry+'()?0:1;}','int main(void){xrtAtomic32Init(&checks,0);return '+mixed+'()?0:1;}');private.write_text(text,encoding='utf8')
  nativeTest=compile('native-only',[*tc[:tc.index('-c')],'-I'+str(test.parent)],private)
  cases=[('positive',native,generated,testObject)]
- roles=[role for role in schema['roles']if (role[0]in('CLEANUP','EXIT_STEP','EXIT_PLAN','INITIALIZER'))==(args.family=='control')]
+ family_tags={'calls':{'SITE','ARGUMENT','DYNAMIC_SITE','DYNAMIC_ARGUMENT','METHOD','PARAMETER','INTRINSIC','OPERAND'},'control':{'CLEANUP','EXIT_STEP','EXIT_PLAN','INITIALIZER'},'enums':{'ENUM_LAYOUT','ENUM_VARIANT','ENUM_PAYLOAD'}}
+ roles=[role for role in schema['roles']if role[0]in family_tags[args.family]]
  for i,(tag,field,domain)in enumerate(roles):
   start=generated.index('static int relocate_'+tag+'(');end=generated.index('static const void* read_'+tag,start);part=generated[start:end]
   expression=re.compile(r'dst->'+re.escape(field)+r'=(?:\(size_t\)|\(uint32\))?mapped;');assert len(expression.findall(part))==1,(tag,field)
@@ -42,7 +43,7 @@ def main():
  if args.family=='calls':change('wrong-dispatch-domain','XLS_RECORD_CLASS_SLOT,"dispatchSlot"','XLS_RECORD_PROTOCOL_SLOT,"dispatchSlot"')
  change('missing-namespace','b->producer!=xlsIrTableUnitProducer(b->unit)','(b->producer!=xlsIrTableUnitProducer(b->unit) && 0)')
  change('leaked-retain','xlsIrTableUnitRetain(image->units[i]);++image->retained;','xlsIrTableUnitRetain(image->units[i]);xlsIrTableUnitRetain(image->units[i]);++image->retained;')
- nativeTag='SITE'if args.family=='calls'else'INITIALIZER';nativeField='origin'if args.family=='calls'else'declaration'
+ nativeTag={'calls':'SITE','control':'INITIALIZER','enums':'ENUM_VARIANT'}[args.family];nativeField='origin'if args.family=='calls'else'declaration'
  start=generated.index('static int relocate_'+nativeTag+'(');end=generated.index('static const void* read_'+nativeTag,start);part=generated[start:end];assert part.count('dst->'+nativeField+'=mapped;')==1
  broken=part.replace('dst->'+nativeField+'=mapped;','(void)mapped;').replace('return equal_'+nativeTag+'(dst,current) || fail(s,XLS_RECORD_DIFFERENT,"record",XLS_RECORD_'+nativeTag+',0);','(void)current;return ((void)equal_'+nativeTag+',1);')
  cases.extend([('native-positive',native,generated,nativeTest),('native-stale-origin',native,generated[:start]+broken+generated[end:],nativeTest)])
@@ -57,7 +58,7 @@ def main():
    else:assert v.returncode and b'analysis_ir_memo_test:'in v.stderr,(label,v.returncode,v.stderr)
    if label=='native-stale-origin':assert b'xl6IrVerifyModule(module,&diags)'in v.stderr,v.stderr
   headers={str(path):path.read_text()for path in dependencies((args.build.parent/'ir-table-schema-deps.log').read_text())if path.suffix=='.h'and path.name.startswith('xl6_')};header=next(k for k in headers if Path(k).name=='xl6_ir.h')
-  for label,ty,old,new in [('added','XL6_IrCallSite','XL6_IrNodeId origin;','XL6_IrNodeId origin; XL6_IrTypeId unaudited;'),('alias','XL6_IrCallSite','XL6_IrNodeId origin;','uint32 origin;'),('pointer','XL6_IrCallArgument','char* name;','char** name;'),('extent','XL6_IrIntrinsicOperand','XL6_IrNodeId expression;','XL6_IrNodeId expression[2];'),('abi','XL6_IrDynamicMethod','uint64 variadicElementIdentity;','XL6_IrTypeId variadicElementIdentity;'),('control-depth','XL6_IrExitPlan','uint32 targetScopeDepth;','XL6_IrNodeId targetScopeDepth;'),('control-region','XL6_IrExitStep','uint32 failureRegion;','size_t failureRegion;'),('control-new','XL6_IrCleanupAction','XL6_IrTypeId type;','XL6_IrTypeId type; uint32 unaudited;')]:
+  for label,ty,old,new in [('added','XL6_IrCallSite','XL6_IrNodeId origin;','XL6_IrNodeId origin; XL6_IrTypeId unaudited;'),('alias','XL6_IrCallSite','XL6_IrNodeId origin;','uint32 origin;'),('pointer','XL6_IrCallArgument','char* name;','char** name;'),('extent','XL6_IrIntrinsicOperand','XL6_IrNodeId expression;','XL6_IrNodeId expression[2];'),('abi','XL6_IrDynamicMethod','uint64 variadicElementIdentity;','XL6_IrTypeId variadicElementIdentity;'),('control-depth','XL6_IrExitPlan','uint32 targetScopeDepth;','XL6_IrNodeId targetScopeDepth;'),('control-region','XL6_IrExitStep','uint32 failureRegion;','size_t failureRegion;'),('control-new','XL6_IrCleanupAction','XL6_IrTypeId type;','XL6_IrTypeId type; uint32 unaudited;'),('enum-type','XL6_IrEnumLayout','XL6_IrTypeId type;','uint32 type;'),('enum-slice','XL6_IrEnumLayout','size_t firstVariant;','uint32 firstVariant;'),('enum-node','XL6_IrEnumVariant','XL6_IrNodeId valueExpression;','uint32 valueExpression;'),('enum-tag','XL6_IrEnumVariant','uint32 tag;','XL6_SymbolId tag;'),('enum-name','XL6_IrEnumPayload','char* name;','char** name;'),('enum-new','XL6_IrEnumPayload','XL6_IrEnumPayloadAbi abi;','XL6_IrEnumPayloadAbi abi; uint32 unaudited;')]:
    changed=headers.copy();pattern=re.compile(r'(typedef struct '+ty+r'\s*\{)(.*?)(\}\s*'+ty+r'\s*;)',re.S);match=pattern.search(changed[header]);assert match and match[2].count(old)==1,label
    changed[header]=changed[header][:match.start(2)]+match[2].replace(old,new,1)+changed[header][match.end(2):]
    try:generate(changed,out/('schema-'+label))

@@ -1,4 +1,4 @@
-"""Closed call and lifetime metadata roles from actual selected native declarations."""
+"""Closed call, lifetime and enum roles from actual native declarations."""
 from pathlib import Path
 from ir_table_schema import Schema
 
@@ -31,6 +31,19 @@ FIELDS.update({
 REFS.update(CLEANUP=dict(type='TYPE',targetSymbol='SYMBOL',ownerDeclaration='NODE',calleeSymbol='SYMBOL',origin='NODE'),EXIT_STEP=dict(origin='NODE',failureTarget='NODE',failureRegion='REGION'),EXIT_PLAN=dict(origin='NODE',targetRegion='REGION'),INITIALIZER=dict(declaration='NODE',type='TYPE',expression='NODE',payloadType='TYPE',runtimeResourceKeyType='TYPE'))
 SLICES.update(EXIT_STEP=dict(firstCleanup=('cleanupCount','CLEANUP')),EXIT_PLAN=dict(firstCleanup=('cleanupCount','CLEANUP'),firstStep=('stepCount','EXIT_STEP')))
 TABLES=TABLES+CONTROL_TABLES
+ENUM_TABLES=(('ENUM_LAYOUT','XL6_IrEnumLayout','enumLayouts'),
+ ('ENUM_VARIANT','XL6_IrEnumVariant','enumVariants'),
+ ('ENUM_PAYLOAD','XL6_IrEnumPayload','enumPayloads'))
+FIELDS.update({
+ 'XL6_IrEnumLayout':'type:XL6_IrTypeId:0 declaration:XL6_IrNodeId:0 firstVariant:size_t:0 variantCount:size_t:0',
+ 'XL6_IrEnumVariant':'ownerType:XL6_IrTypeId:0 declaration:XL6_IrNodeId:0 symbol:XL6_SymbolId:0 tag:uint32:0 valueExpression:XL6_IrNodeId:0 firstPayload:size_t:0 payloadCount:size_t:0 name:char:1',
+ 'XL6_IrEnumPayload':'ownerType:XL6_IrTypeId:0 type:XL6_IrTypeId:0 declaration:XL6_IrNodeId:0 abi:XL6_IrEnumPayloadAbi:0 name:char:1'})
+REFS.update(ENUM_LAYOUT=dict(type='TYPE',declaration='NODE'),
+ ENUM_VARIANT=dict(ownerType='TYPE',declaration='NODE',symbol='SYMBOL',valueExpression='NODE'),
+ ENUM_PAYLOAD=dict(ownerType='TYPE',type='TYPE',declaration='NODE'))
+SLICES.update(ENUM_LAYOUT=dict(firstVariant=('variantCount','ENUM_VARIANT')),
+ ENUM_VARIANT=dict(firstPayload=('payloadCount','ENUM_PAYLOAD')))
+TABLES=TABLES+ENUM_TABLES
 
 def generate(headers,directory):
  schema=Schema(headers);metadata=schema.build();lines=['/* Actual native declarations;closed reviewed field roles. */'];roles=[]
@@ -63,7 +76,9 @@ def generate(headers,directory):
    'static const void* read_'+tag+'(const XL6_IrModule* m,size_t* count,size_t* capacity){*count=m->'+table['count']+';*capacity=m->'+table['capacity']+';return m->'+field+';}',
    'static void set_'+tag+'(XL6_IrModule* m,void* p,size_t n){m->'+field+'=p;m->'+table['count']+'=m->'+table['capacity']+'=n;}']
  lines+=['static const record_descriptor descriptors[]={']
- for tag,ty,field in TABLES:lines.append('{"'+field+'",XLS_RECORD_'+tag+',XLS_RECORD_'+("CONTROL"if(tag,ty,field)in CONTROL_TABLES else"CALLS")+',sizeof('+ty+'),_Alignof('+ty+'),read_'+tag+',set_'+tag+',relocate_'+tag+'},')
+ for tag,ty,field in TABLES:
+  family='ENUMS'if(tag,ty,field)in ENUM_TABLES else'CONTROL'if(tag,ty,field)in CONTROL_TABLES else'CALLS'
+  lines.append('{"'+field+'",XLS_RECORD_'+tag+',XLS_RECORD_'+family+',sizeof('+ty+'),_Alignof('+ty+'),read_'+tag+',set_'+tag+',relocate_'+tag+'},')
  lines+=['};']
  directory=Path(directory);directory.mkdir(parents=True,exist_ok=True);(directory/'ir-record-records.inc').write_text('\n'.join(lines).replace('return 0;dst->','{return 0;}dst->')+'\n',encoding='utf8')
  return dict(schema=1,tables=[t[2]for t in TABLES],records={ty:schema.record(ty)for _,ty,_ in TABLES},roles=roles,fields=sum(len(schema.record(ty))for _,ty,_ in TABLES),nativeTables=len(metadata['tables']))

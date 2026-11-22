@@ -59,6 +59,7 @@ static int dispatch(record_state* s,XL6_IrCallDispatchKind kind,uint32 value,uin
 }
 static int textEqual(const char* a,const char* b){return (!a&&!b)||(a&&b&&!strcmp(a,b));}
 #include "ir-record-records.inc"
+enum {RECORD_TABLE_COUNT=sizeof(descriptors)/sizeof(descriptors[0])};
 void xlsIrRecordLinkDestroy(xls_ir_record_link* image)
 {if(image){for(size_t i=0;i<image->retained;++i)xlsIrTableUnitRelease(image->units[i]);xrtFree(image);}}
 xls_ir_record_link* xlsIrRecordLink(const XL6_IrModule* current,const xls_ir_record_binding* bindings,
@@ -67,8 +68,8 @@ xls_ir_record_link* xlsIrRecordLink(const XL6_IrModule* current,const xls_ir_rec
  xls_ir_record_link* image=NULL;placement* places=NULL;xls_ir_graph_status result=XLS_IR_GRAPH_INVALID;
  record_state s={.current=current,.cancelled=cancelled,.user=user,.error=error};if(error)*error=(xls_ir_record_error){0};
  if(!current || (count&&!bindings) || !families || (families&~(unsigned)XLS_RECORD_ALL)){fail(&s,XLS_RECORD_INPUT,"input",XLS_RECORD_SITE,0);goto failed;}
- size_t bytes=sizeof(*image),at[12]={0},starts[12]={0},total=0,units,scratch,peak;
- for(size_t i=0;i<12;++i){size_t n,c;const record_descriptor* d=&descriptors[i];const void* p=d->read(current,&n,&c);
+ size_t bytes=sizeof(*image),at[RECORD_TABLE_COUNT]={0},starts[RECORD_TABLE_COUNT]={0},total=0,units,scratch,peak;
+ for(size_t i=0;i<RECORD_TABLE_COUNT;++i){size_t n,c;const record_descriptor* d=&descriptors[i];const void* p=d->read(current,&n,&c);
   s.limits[d->domain]=n;s.indexed[d->domain]=1;
   if(!(d->family&families))continue;
   starts[i]=total;
@@ -90,13 +91,13 @@ xls_ir_record_link* xlsIrRecordLink(const XL6_IrModule* current,const xls_ir_rec
  result=XLS_IR_GRAPH_MEMORY;image=xrtCalloc(1,bytes);if(!image)goto failed;
  if(scratch){places=xrtMalloc(scratch);if(!places)goto failed;}
  image->families=families;image->bytes=bytes;image->peak=peak;image->units=(void*)((unsigned char*)image+units);
- for(size_t i=0;i<12;++i){const record_descriptor* d=&descriptors[i];size_t n=s.limits[d->domain];if(d->family&families)d->set(&image->tables,n?(unsigned char*)image+at[i]:NULL,n);}
+ for(size_t i=0;i<RECORD_TABLE_COUNT;++i){const record_descriptor* d=&descriptors[i];size_t n=s.limits[d->domain];if(d->family&families)d->set(&image->tables,n?(unsigned char*)image+at[i]:NULL,n);}
  for(size_t i=0;i<count;++i){
   s.index=i;s.binding=&bindings[i];if(!(i%64)&&stopped(&s)){result=XLS_IR_GRAPH_CANCELLED;goto failed;}
   const xls_ir_record_binding* b=&bindings[i];result=XLS_IR_GRAPH_INVALID;
   if(!b->unit||!b->map||xlsIrTableUnitRows(b->unit)!=1){fail(&s,XLS_RECORD_INPUT,"unit",XLS_RECORD_SITE,0);goto failed;}
-  size_t table=0;while(table<12 && strcmp(xlsIrTableUnitName(b->unit),descriptors[table].name))++table;
-  if(table==12||!(descriptors[table].family&families)||xlsIrTableUnitRowBytes(b->unit)!=descriptors[table].width){fail(&s,XLS_RECORD_INPUT,"schema",XLS_RECORD_SITE,0);goto failed;}
+  size_t table=0;while(table<RECORD_TABLE_COUNT && strcmp(xlsIrTableUnitName(b->unit),descriptors[table].name))++table;
+  if(table==RECORD_TABLE_COUNT||!(descriptors[table].family&families)||xlsIrTableUnitRowBytes(b->unit)!=descriptors[table].width){fail(&s,XLS_RECORD_INPUT,"schema",XLS_RECORD_SITE,0);goto failed;}
   if(!b->producer||b->producer!=xlsIrTableUnitProducer(b->unit)){fail(&s,XLS_RECORD_NAMESPACE,"producer",descriptors[table].domain,0);goto failed;}
   uint64_t dest;if(!mapOne(&s,descriptors[table].domain,"row",xlsIrTableUnitFirstRow(b->unit),&dest))goto failed;
   size_t flat=starts[table]+(size_t)dest;if(image->units[flat]){fail(&s,XLS_RECORD_DUPLICATE,"row",descriptors[table].domain,dest);goto failed;}
@@ -118,7 +119,7 @@ xls_ir_record_link* xlsIrRecordLink(const XL6_IrModule* current,const xls_ir_rec
 failed:xrtFree(places);xlsIrRecordLinkDestroy(image);if(status)*status=result;return NULL;
 }
 int xlsIrRecordLinkApply(const xls_ir_record_link* image,XL6_IrModule* view)
-{if(!image||!view)return 0;for(size_t i=0;i<12;++i)if(descriptors[i].family&image->families){size_t n,c;const void* p=descriptors[i].read(&image->tables,&n,&c);descriptors[i].set(view,(void*)p,n);}return 1;}
+{if(!image||!view)return 0;for(size_t i=0;i<RECORD_TABLE_COUNT;++i)if(descriptors[i].family&image->families){size_t n,c;const void* p=descriptors[i].read(&image->tables,&n,&c);descriptors[i].set(view,(void*)p,n);}return 1;}
 size_t xlsIrRecordLinkBytes(const xls_ir_record_link* p){return p?p->bytes:0;}
 size_t xlsIrRecordLinkPeakBytes(const xls_ir_record_link* p){return p?p->peak:0;}
 

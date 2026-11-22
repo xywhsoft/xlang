@@ -120,7 +120,7 @@ CORE_TESTS = ("analysis_ir_sparse_decode_test", *CORE_TESTS)
 CORE_TESTS = ("analysis_ir_node_graph_test", *CORE_TESTS)
 CORE_TESTS = ("analysis_ir_table_graph_test", *CORE_TESTS)
 CORE_TESTS = ("analysis_ir_node_link_test", *CORE_TESTS)
-CORE_TESTS = ("analysis_ir_control_link_test", "analysis_ir_call_link_test", "analysis_ir_type_link_test", *CORE_TESTS)
+CORE_TESTS = ("analysis_ir_enum_link_test", "analysis_ir_control_link_test", "analysis_ir_call_link_test", "analysis_ir_type_link_test", *CORE_TESTS)
 CORE_TESTS = ("analysis_ir_unit_capture_test", *CORE_TESTS)
 CORE_TESTS = ("analysis_typed_identity_test", *CORE_TESTS)
 CORE_TESTS = ("analysis_composite_function_test", "analysis_typed_function_test", *CORE_TESTS)
@@ -783,7 +783,7 @@ def main() -> None:
     sources += [(ide / "src/analysis/ir_table_graph.c", True)]
     sources += [(ide / "src/analysis/ir_node_link.c", True)]
     sources += [(ide / "src/analysis/ir_type_link.c", True)]
-    sources += [(ide / "src/analysis/ir_call_link.c", True), (ide / "src/analysis/ir_record_link.c", True), (ide / "src/analysis/ir_control_link.c", True)]
+    sources += [(ide / "src/analysis/ir_call_link.c", True), (ide / "src/analysis/ir_record_link.c", True), (ide / "src/analysis/ir_control_link.c", True), (ide / "src/analysis/ir_enum_link.c", True)]
     if not args.skip_tests:
         sources += [(ide / "src/protocol/document_sync.c", True)]
         # These private fixtures include the exact generated native TUs; use
@@ -999,7 +999,7 @@ def main() -> None:
             if not owner_coordinator:
                 raise ValueError('missing owner publication fixture target')
             flags += ['-DXIDE_OWNER_REFERENCE_FIXTURE="' + owner_coordinator.as_posix() + '"']
-        if source.stem in ('ir_table_graph','analysis_ir_table_graph_test','analysis_ir_unit_capture_test','analysis_ir_call_link_test','analysis_ir_control_link_test'):
+        if source.stem in ('ir_table_graph','analysis_ir_table_graph_test','analysis_ir_unit_capture_test','analysis_ir_call_link_test','analysis_ir_control_link_test','analysis_ir_enum_link_test'):
             flags += ['-I'+str(output/'ir_tables')]
         if source.stem in ('ir_node_link','analysis_ir_node_link_test'):
             flags += ['-I'+str(output/'ir_node_link')]
@@ -1113,7 +1113,7 @@ def main() -> None:
         core_names.add("ir_table_graph")
         core_names.add("ir_node_link")
         core_names.add("ir_type_link")
-        core_names.update(("ir_call_link","ir_record_link","ir_control_link"))
+        core_names.update(("ir_call_link","ir_record_link","ir_control_link","ir_enum_link"))
         members = [target for name, target in objects.items() if name in core_names]
         members.append(objects["semantic_tokens"])
         run([str(ar), "rcs", str(core), *map(str, members)], "archive")
@@ -1128,7 +1128,7 @@ def main() -> None:
             extra = [str(objects["document_sync"])] if name in ("document_sync_test", "diagnostic_stream_test") else []
             if name == 'analysis_ir_node_graph_test':
                 extra += ['-Wl,--wrap='+f for f in ('xrtMalloc','xrtCalloc','xrtFree')]
-            if name in ('analysis_ir_table_graph_test','analysis_ir_node_link_test','analysis_ir_type_link_test','analysis_ir_unit_capture_test','analysis_ir_call_link_test','analysis_ir_control_link_test'):
+            if name in ('analysis_ir_table_graph_test','analysis_ir_node_link_test','analysis_ir_type_link_test','analysis_ir_unit_capture_test','analysis_ir_call_link_test','analysis_ir_control_link_test','analysis_ir_enum_link_test'):
                 extra += ['-Wl,--wrap='+f for f in ('xrtMalloc','xrtCalloc','xrtFree','xl6IrDumpModuleJson')]
             if name in ("file_watch_test", "file_watch_lease_test"):extra += [str(objects["file_watch"])]
             if name == "file_watch_lease_test":extra += ["-Wl,--wrap="+f for f in ("malloc", "free", "__imp_ReadFile")]

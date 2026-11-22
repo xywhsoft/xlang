@@ -2,6 +2,7 @@
 #define XLS_CALL_LINK_DUMP_NAME priorCallLinkDump
 #include "analysis_ir_call_link_test.c"
 #include "analysis/ir_control_link.h"
+#include "ir_enum_fixture.inc"
 
 static const char* controlNames[4]={"cleanupActions","exitSteps","exitPlans","valueInitializers"};
 static const size_t controlWidths[4]={sizeof(XL6_IrCleanupAction),sizeof(XL6_IrExitStep),sizeof(XL6_IrExitPlan),sizeof(XL6_IrValueInitializer)};
@@ -76,7 +77,7 @@ static int controlFailures(void)
  for(size_t i=0;i<sizeof(controlFields)/sizeof(*controlFields);++i){const control_field* field=&controlFields[i];unsigned char* target=(unsigned char*)f.arrays[field->table]+controlWidths[field->table]+field->offset;unsigned char saved=*target;*target^=1;
   CHECK(!xlsIrControlLink(&f.current,f.bindings,12,SIZE_MAX,NULL,NULL,&status,&error)&&status==XLS_IR_GRAPH_INVALID);*target=saved;
  }
- XL6_IrModule empty={0};CHECK(!xlsIrRecordLink(&empty,NULL,0,0,SIZE_MAX,NULL,NULL,&status,&error)&&status==XLS_IR_GRAPH_INVALID);CHECK(!xlsIrRecordLink(&empty,NULL,0,4,SIZE_MAX,NULL,NULL,&status,&error)&&status==XLS_IR_GRAPH_INVALID);
+ XL6_IrModule empty={0};CHECK(!xlsIrRecordLink(&empty,NULL,0,0,SIZE_MAX,NULL,NULL,&status,&error)&&status==XLS_IR_GRAPH_INVALID);CHECK(!xlsIrRecordLink(&empty,NULL,0,8,SIZE_MAX,NULL,NULL,&status,&error)&&status==XLS_IR_GRAPH_INVALID);
  CHECK(!xlsIrControlLink(NULL,NULL,0,SIZE_MAX,NULL,NULL,&status,&error));CHECK(!xlsIrControlLink(&f.current,NULL,12,SIZE_MAX,NULL,NULL,&status,&error));CHECK(!xlsIrControlLinkApply(NULL,&empty)&&!xlsIrCallLinkApply(NULL,&empty)&&!xlsIrRecordLinkApply(NULL,&empty));
  xstrbuf expected={0},actual={0};CHECK(controlBook(&expected,&f.current));p=xlsIrControlLink(&f.current,f.bindings,12,SIZE_MAX,NULL,NULL,&status,&error);CHECK(p);XL6_IrModule view={0};view.callSiteCount=21;view.callSites=(void*)&view;
  CHECK(!xlsIrCallLinkApply(p,&view)&&xlsIrControlLinkApply(p,&view)&&view.callSiteCount==21&&view.callSites==(void*)&view);controlFixtureFree(&f);CHECK(controlBook(&actual,&view)&&tableBooksEqual(&expected,&actual));xrtStrBufFree(&expected);xrtStrBufFree(&actual);xlsIrControlLinkDestroy(p);
@@ -95,9 +96,9 @@ static int controlCombined(void)
 }
 static xls_ir_record_link* controlNativeLink(const XL6_IrModule* source,unsigned families)
 {
- size_t total=0;for(size_t t=0;t<12;++t)if((t<8?XLS_RECORD_CALLS:XLS_RECORD_CONTROL)&families){size_t n;if(t<8)callRows((XL6_IrModule*)source,t,&n);else controlRows((XL6_IrModule*)source,t-8,&n);total+=n;}
+ size_t total=0;for(size_t t=0;t<15;++t)if((t<8?XLS_RECORD_CALLS:t<12?XLS_RECORD_CONTROL:XLS_RECORD_ENUMS)&families){size_t n;if(t<8)callRows((XL6_IrModule*)source,t,&n);else if(t<12)controlRows((XL6_IrModule*)source,t-8,&n);else enumRecordRows((XL6_IrModule*)source,t-12,&n);total+=n;}
  xls_ir_record_binding* bindings=xrtCalloc(total?total:1,sizeof(*bindings));if(!bindings)return NULL;size_t used=0;xls_ir_graph_status status;
- for(size_t t=0;t<12;++t)if((t<8?XLS_RECORD_CALLS:XLS_RECORD_CONTROL)&families){size_t n;char* rows=t<8?callRows((XL6_IrModule*)source,t,&n):controlRows((XL6_IrModule*)source,t-8,&n);size_t width=t<8?callWidths[t]:controlWidths[t-8];const char* name=t<8?callNames[t]:controlNames[t-8];
+ for(size_t t=0;t<15;++t)if((t<8?XLS_RECORD_CALLS:t<12?XLS_RECORD_CONTROL:XLS_RECORD_ENUMS)&families){size_t n;char* rows=t<8?callRows((XL6_IrModule*)source,t,&n):t<12?controlRows((XL6_IrModule*)source,t-8,&n):enumRecordRows((XL6_IrModule*)source,t-12,&n);size_t width=t<8?callWidths[t]:t<12?controlWidths[t-8]:enumRecordWidths[t-12];const char* name=t<8?callNames[t]:t<12?controlNames[t-8]:enumRecordNames[t-12];
   for(size_t i=0;i<n;++i){xls_ir_table_capture_input input={.table=xlsIrTableSchemaFind(name),.first=i,.count=1,.rows=rows+i*width};xls_ir_table_unit* unit=xlsIrTableUnitCapture(&input,NULL,SIZE_MAX,NULL,NULL,&status,NULL);if(!unit)goto failed;bindings[used++]=(xls_ir_record_binding){unit,xlsIrTableUnitProducer(unit),callIdentity,NULL};}}
  {xls_ir_record_error error;xls_ir_record_link* result=xlsIrRecordLink(source,bindings,total,families,SIZE_MAX,NULL,NULL,&status,&error);for(size_t i=0;i<used;++i)xlsIrTableUnitRelease(bindings[i].unit);xrtFree(bindings);return result;}
 failed:for(size_t i=0;i<used;++i)xlsIrTableUnitRelease(bindings[i].unit);xrtFree(bindings);return NULL;
@@ -156,6 +157,10 @@ static int controlTests(void)
 {
  xrtAtomic32Init(&checks,0);xrtAtomic32Init(&oracleRuns,0);xrtAtomic32Init(&oracleErrors,0);xrtAtomic32Init(&oracleActive,0);CHECK(controlFailures()&&controlGaps()&&controlCombined()&&controlLifetimes()&&mixedNativeControl());
  char* path=xrtPathAbs("ir-control-link-中文.xl");CHECK(path);xrtAtomic32Store(&oracleActive,1,XMEMORY_RELEASE);int okay=corpus(path)&&regionCorpus(path);xrtAtomic32Store(&oracleActive,0,XMEMORY_RELEASE);CHECK(okay&&!xrtAtomic32Load(&oracleErrors,XMEMORY_RELAXED)&&xrtAtomic32Load(&oracleRuns,XMEMORY_RELAXED)==134);xrtFree(path);
- printf("analysis_ir_control_link_test passed: %u checks;%u native modules,CONTROL+ALL verifier/JSON oracles\n",xrtAtomic32Load(&checks,XMEMORY_RELAXED),xrtAtomic32Load(&oracleRuns,XMEMORY_RELAXED));return 1;
+ printf("analysis_ir_control_link_test passed: %u checks;%u native modules,six CONTROL/ENUMS/CALLS combinations,complete verifier/JSON oracles\n",xrtAtomic32Load(&checks,XMEMORY_RELAXED),xrtAtomic32Load(&oracleRuns,XMEMORY_RELAXED));return 1;
 }
+#ifdef XLS_IR_CONTROL_LINK_LIBRARY
+int xlsIrControlLinkFixtureMain(void){return controlTests()?0:1;}
+#else
 int main(void){return controlTests()?0:1;}
+#endif
