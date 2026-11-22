@@ -1,0 +1,31 @@
+// Run with xl run clipboard_formats.xl. Press Enter to publish text and HTML.
+import xge
+
+func main(...) as int
+    xge.init(480, 240, "Clipboard formats - Enter to copy, Esc to close")
+    try
+        xge.run(func() as c_int
+            if xge.keyPressed(xge.XGE_KEY_ESCAPE) != 0 then
+                xge.quit()
+            elseif xge.keyPressed(xge.XGE_KEY_ENTER) != 0 then
+                auto data = xge.createDataObject()
+                try
+                    data.set(xge.XGE_CLIPBOARD_FORMAT_TEXT_UTF8, "Hello, xlang!")
+                    data.set(xge.XGE_CLIPBOARD_FORMAT_HTML, "<b>Hello, xlang!</b>")
+                    data.copyToClipboard()
+                    auto html = xge.clipboardReadData(xge.XGE_CLIPBOARD_FORMAT_HTML)
+                    println(encoding.decodeUtf8(html))
+                catch error
+                    println("Clipboard operation failed.", error.message)
+                finally
+                    data.close()
+                end
+            end
+            return xge.XGE_OK
+        end)
+    finally
+        xge.setFrameCallback(null)
+        xge.unit()
+    end
+    return 0
+end

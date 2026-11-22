@@ -32,6 +32,9 @@ CONTRACTS = {
     'xgeClipboardGetTextOwned': (
         'int xgeClipboardGetTextOwned(char** psText, size_t* piLength)',
         'export extern "xgeClipboardGetTextOwned" @header("xge3_runtime.h") @no_raise @c_output_text(0,1,"char*","size_t","xrt",0) func clipboardGetText() as string'),
+    'xgeClipboardGetDataOwned': (
+        'int xgeClipboardGetDataOwned(const char* sFormat, void** ppData, size_t* piLength)',
+        'export extern "xgeClipboardGetDataOwned" @header("xge3_runtime.h") @no_raise @c_cstr(0) @c_output_bytes(1,2,"void*","size_t","xrt",0) func clipboardReadData(string format) as bytes'),
     'xgeGamepadGetState': (
         'int xgeGamepadGetState(int iGamepad, xge_gamepad_state_t* pState)',
         'export extern "xgeGamepadGetState" @header("xge3_runtime.h") @no_raise @c_output(1,0) func gamepadGetState(c_int iGamepad) as GamepadState'),

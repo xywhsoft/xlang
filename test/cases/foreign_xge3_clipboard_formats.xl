@@ -1,0 +1,92 @@
+import xge
+
+extern "clipboardFixtureRealDisplay" @no_raise func realDisplay() as c_int
+extern "clipboardFixtureBudget" @no_raise func budget(c_int count)
+extern "clipboardFixtureHeapBegin" @no_raise func heapBegin()
+extern "clipboardFixtureDataHeapEnd" @no_raise func dataHeapEnd(c_int managed)
+extern "clipboardFixtureNativeDataLoop" @no_raise func nativeDataLoop()
+
+const string binaryFormat = "application/x-xlang-clipboard-test"
+const string emptyFormat = "application/x-xlang-clipboard-empty"
+
+func main(...) as int
+    bool rejected = false
+    try
+        xge.clipboardReadData(binaryFormat)
+    catch error
+        assert error.code == xge.XGE_ERROR_NOT_INITIALIZED
+        rejected = true
+    end
+    assert rejected
+
+    if realDisplay() != 0 then
+        xge.init(64,64,"Owned formatted clipboard fixture",xge.XGE_INIT_OFFSCREEN)
+        bytes retained = b"\x11\0\x22\xff"
+        try
+            xge.run(func() as c_int
+                auto data = xge.createDataObject()
+                try
+                    data.set(xge.XGE_CLIPBOARD_FORMAT_TEXT_UTF8,"中文")
+                    data.set(xge.XGE_CLIPBOARD_FORMAT_HTML,"<b>中文</b>")
+                    data.set(binaryFormat,retained)
+                    data.set(emptyFormat,"")
+                    data.copyToClipboard()
+                finally
+                    data.close()
+                end
+                assert encoding.decodeUtf8(xge.clipboardReadData(xge.XGE_CLIPBOARD_FORMAT_TEXT_UTF8)) == "中文"
+                assert encoding.decodeUtf8(xge.clipboardReadData(xge.XGE_CLIPBOARD_FORMAT_HTML)) == "<b>中文</b>"
+                assert xge.clipboardReadData(emptyFormat) == b""
+                retained = xge.clipboardReadData(binaryFormat)
+                assert retained == b"\x11\0\x22\xff"
+                rejected = false
+                try
+                    xge.clipboardReadData("application/x-xlang-clipboard-missing")
+                catch error
+                    assert error.code == xge.XGE_ERROR_NOT_FOUND
+                    rejected = true
+                end
+                assert rejected
+
+                bytes output = b"\xff"
+                for allowed in range(3)
+                    rejected = false
+                    budget(c_int(allowed))
+                    try
+                        output = xge.clipboardReadData("application/x-xlang-clipboard-test")
+                    catch Error
+                        rejected = true
+                    finally
+                        budget(-1)
+                    end
+                    assert rejected and output == b"\xff"
+                end
+                nativeDataLoop()
+                heapBegin()
+                int count = 0
+                while count < 100
+                    xge.clipboardReadData(binaryFormat)
+                    count += 1
+                end
+                dataHeapEnd(1)
+                count = 0
+                heapBegin()
+                while count < 100
+                    xge.clipboardReadData("application/x-xlang-clipboard-test")
+                    count += 1
+                end
+                dataHeapEnd(2)
+                xge.clipboardSetText("replacement")
+                assert retained == b"\x11\0\x22\xff"
+                xge.quit()
+                return xge.XGE_OK
+            end)
+        finally
+            xge.setFrameCallback(null)
+            xge.unit()
+        end
+        assert retained == b"\x11\0\x22\xff"
+    end
+    println("XGE_CLIPBOARD_FORMATS_LANGUAGE_OK")
+    return 0
+end

@@ -1,5 +1,27 @@
 # Native consumers in the full API inventory
 
+## XGE formatted clipboard snapshots
+
+`xge.clipboardReadData(format)` calls `xgeClipboardGetDataOwned` once.
+It adopts the returned payload as `bytes`. Windows reuses the existing HTML
+fragment extraction and PNG conversion. An independently owned PNG from a
+matching DIB cache can be handed to the caller directly. X11 copies the
+selection property into XRT storage once. Binary formats distinguish an
+empty representation from a missing format.
+
+The X11 comparison measured 100 allocations and frees for 100 C reads.
+The same xlang reads used 300 allocations and frees. Generated C shows that
+the caller materializes the format string and that the bridge creates one
+`bytes` value around the native payload. The fixtures inject allocation
+failure at all three stages.
+
+The 34-case Document clipboard suite now verifies rich copy and cut on
+an isolated X11 server. A second X11 client compares the published HTML and
+native fragment against exports captured before the edit. Cut tests also
+verify undo, redo and dirty state.
+
+[Validation evidence](../dev/release-materials/provenance/xge-clipboard-formats-20261122.json)
+
 ## XGE clipboard text snapshots
 
 `xge.clipboardGetText()` directly calls `xgeClipboardGetTextOwned` and adopts

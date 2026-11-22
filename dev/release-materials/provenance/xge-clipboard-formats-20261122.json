@@ -1,0 +1,236 @@
+{
+  "complete": true,
+  "passed": true,
+  "releaseInstalled": false,
+  "nativeRevision": "4a39a3b6a42936290e98c21d07bb796ebf1eb05e",
+  "scope": "Native owned binary clipboard reads and current X11 Document formatted clipboard regression",
+  "inputs": {
+    "lib/bindings/xge/src/functions.xl": "3f11a10952449c2271c78027bf45209d1382f482dd92e8b0c98025b784afedce",
+    "lib/bindings/xge/examples/clipboard_formats.xl": "cd2c27991ff52cfe40002d6d3ed73d1f345fde004bbece6fc859dffd1a2df3a8",
+    "test/cases/foreign_xge3_clipboard_formats.xl": "fdc9fa321600e97914aa4cf6856f88b5db0e27eb6c8836724e96c371965fb836",
+    "test/cases/foreign_xge3_clipboard_text.c": "e8e056c717950ef371675305fb3259dcf8a082286944e197462b542e9ee5ac62",
+    "tools/xge_replay_contracts.py": "f84fdd90a3179b0b823a16acc897b03418a91fcb09b41c18bc01468fea704f97"
+  },
+  "performance": {
+    "platform": "isolated X11",
+    "reads": 100,
+    "nativeHeapAllocations": 100,
+    "languageHeapAllocations": 300,
+    "languageAdditionalAllocations": [
+      "format string temporary",
+      "bytes value"
+    ],
+    "balancedFrees": true,
+    "reallocations": 0,
+    "additionalLanguagePayloadCopy": false,
+    "timingCompared": false
+  },
+  "platforms": {
+    "win": {
+      "compiler": {
+        "path": "F:/xlang-validation/xge-full-20261110/existing-root-compiler-sdk-win-r1/win_x64/xl.exe",
+        "sha256": "b3257b8e81b92e69e4678aeab21a88910fcf31055c60e13d7e4fceef43e87890"
+      },
+      "nativeInputs": {
+        "path": "F:/xlang-validation/xge-full-20261110/xge-clipboard-formats-audit-win-r1/native-source.json",
+        "sha256": "a421c91834bdf3d666387628b4f0f4959250e3340459cb3ffd20d61b8fd9d509"
+      },
+      "surface": {
+        "path": "F:/xlang-validation/xge-full-20261110/xge-clipboard-formats-audit-win-r1/surface/surface.json",
+        "sha256": "19952d48ddf9abc0ff83bb4e131a39d0f1272d321f52fe382c46f92d3ba6084d"
+      },
+      "replay": {
+        "path": "F:/xlang-validation/xge-full-20261110/xge-clipboard-formats-audit-win-r1/packages/stage-report.json",
+        "sha256": "2a8200aac9dea5f82a37b4c624b525239ad2906065d4320a8e7c3c6d1a3a5123"
+      },
+      "consumers": {
+        "path": "F:/xlang-validation/xge-full-20261110/xge-clipboard-formats-audit-win-r1/consumers/results.json",
+        "sha256": "252d5270c3b787493bee26aba1b89b9e8726d3ae46d66b2551f03451daf23489"
+      },
+      "generator": {
+        "path": "F:/xlang-validation/xge-full-20261110/xge-clipboard-formats-audit-win-r1/generator-contracts.log",
+        "sha256": "bb88f4d40a7b9af84442833d17b3f3dfb1fadc9d8e6894305c7ec174a57467d7"
+      },
+      "candidates": {
+        "host": {
+          "nativeBuild": {
+            "path": "F:/xlang-validation/xge-full-20261110/xge-clipboard-formats-host-win-r1/build-report.json",
+            "sha256": "25753d152fcb63ebf6b2c79747ad2b66d6d3f3b3542a48c757d40aa2310e4998"
+          },
+          "package": {
+            "path": "F:/xlang-validation/xge-full-20261110/xge-clipboard-formats-host-qualification-win-r4/stage.json",
+            "sha256": "420d7b7b2593bd4830fcd96d7ac42748c9783c50ae132cb3bee93af6435883c1"
+          },
+          "example": {
+            "path": "F:/xlang-validation/xge-full-20261110/xge-clipboard-formats-host-qualification-win-r4/example.exe",
+            "sha256": "3e6e08caadff9298a57571feba97d1f55b0161744c90fe31bb2c9f840c6ac1d6"
+          },
+          "jit": {
+            "path": "F:/xlang-validation/xge-full-20261110/xge-clipboard-formats-host-qualification-win-r4/jit.log",
+            "sha256": "3bd71e16851b14d9e0ad35d4feb5f1d412f8ce9cfab6463eb441741f1dfc8f60"
+          },
+          "language-run": {
+            "path": "F:/xlang-validation/xge-full-20261110/xge-clipboard-formats-host-qualification-win-r4/language-run.log",
+            "sha256": "3bd71e16851b14d9e0ad35d4feb5f1d412f8ce9cfab6463eb441741f1dfc8f60"
+          },
+          "imports": {
+            "path": "F:/xlang-validation/xge-full-20261110/xge-clipboard-formats-host-qualification-win-r4/language-imports.log",
+            "sha256": "48e8ea1d04cfddb819c618b9cdd33efdaa6762cbc6bd572ff586653c675a2084"
+          },
+          "image": {
+            "path": "F:/xlang-validation/xge-full-20261110/xge-clipboard-formats-host-qualification-win-r4/fixture.exe",
+            "sha256": "da901f8f9130dc97ebd579ada01d716f90f6387b56656a3b543d9b093d0eeac6"
+          }
+        },
+        "static": {
+          "nativeBuild": {
+            "path": "F:/xlang-validation/xge-full-20261110/xge-clipboard-formats-static-win-r1/build-report.json",
+            "sha256": "cac6b71f63060bfe8e5885701f73e76686bfaa1a807100e8ba2f72ce47875121"
+          },
+          "package": {
+            "path": "F:/xlang-validation/xge-full-20261110/xge-clipboard-formats-static-qualification-win-r4/stage.json",
+            "sha256": "1ff48460cb616caee8a11de8ea87e0b02b96462c1bb3bbbab26d48ab9a925e10"
+          },
+          "example": {
+            "path": "F:/xlang-validation/xge-full-20261110/xge-clipboard-formats-static-qualification-win-r4/example.exe",
+            "sha256": "cfbfbdeb1d1952ab0025b0e4b51bedb4b09f72e316225c5a25dc6abbf86e1c57"
+          },
+          "nativeWin32Shim": {
+            "path": "F:/xlang-validation/xge-full-20261110/xge-clipboard-formats-static-qualification-win-r4/native-run.log",
+            "sha256": "fa41745920eb959b5f628babf0f72c85a623ed2933a7f82ec3ce3811eb9aaf33"
+          },
+          "shimImports": {
+            "path": "F:/xlang-validation/xge-full-20261110/xge-clipboard-formats-static-qualification-win-r4/native-imports.log",
+            "sha256": "cef9fe25af8dff60a5ee693b862f625e953c3990b5475e2aafa880ba2ac8c629"
+          },
+          "language-run": {
+            "path": "F:/xlang-validation/xge-full-20261110/xge-clipboard-formats-static-qualification-win-r4/language-run.log",
+            "sha256": "3bd71e16851b14d9e0ad35d4feb5f1d412f8ce9cfab6463eb441741f1dfc8f60"
+          },
+          "imports": {
+            "path": "F:/xlang-validation/xge-full-20261110/xge-clipboard-formats-static-qualification-win-r4/language-imports.log",
+            "sha256": "41b244ceed64d94713d87375b7f8689c0e84b0229b88c6cb76641c989610b083"
+          },
+          "image": {
+            "path": "F:/xlang-validation/xge-full-20261110/xge-clipboard-formats-static-qualification-win-r4/fixture.exe",
+            "sha256": "e0729c599b47ae51000e65719c7c4fda9c0fd44d7984165eed97033ef0c6bd17"
+          }
+        }
+      },
+      "testScope": "native linked clipboard shim plus language failure checks without user clipboard access"
+    },
+    "linux": {
+      "compiler": {
+        "path": "/var/tmp/xlang-validation/xge-full-20261110/existing-root-compiler-sdk-linux-r1/linux_x64/xl",
+        "sha256": "e5ea845bb32f4575dac6b204377dd1b9a1e6f469e66e8da5736fbaf93a238862"
+      },
+      "nativeInputs": {
+        "path": "/var/tmp/xlang-validation/xge-full-20261110/xge-clipboard-formats-audit-linux-r1/native-source.json",
+        "sha256": "c25d9196fb4385513bae461431eabd53b6d1c89090792746df3fcef7d6cee30e"
+      },
+      "surface": {
+        "path": "/var/tmp/xlang-validation/xge-full-20261110/xge-clipboard-formats-audit-linux-r1/surface/surface.json",
+        "sha256": "74576b7bf34b5d0f6c28352f7efe46aa79c1e74a5e8ef2c093d0f5cfc2f7fca1"
+      },
+      "replay": {
+        "path": "/var/tmp/xlang-validation/xge-full-20261110/xge-clipboard-formats-audit-linux-r1/packages/stage-report.json",
+        "sha256": "410676b312b1fe0d8754fd6457842de6075a18227bdb1997c03e99efa8dd4915"
+      },
+      "consumers": {
+        "path": "/var/tmp/xlang-validation/xge-full-20261110/xge-clipboard-formats-audit-linux-r1/consumers/results.json",
+        "sha256": "d623c0449c537a9ba2c2315f0b65b01cabbc75d2d49b5859f0da01cf1b0c6d91"
+      },
+      "generator": {
+        "path": "/var/tmp/xlang-validation/xge-full-20261110/xge-clipboard-formats-audit-linux-r1/generator-contracts.log",
+        "sha256": "b4474488e260f2969dccee9ae0496d374b0ed606664ec6201488924c830acf3e"
+      },
+      "candidates": {
+        "host": {
+          "nativeBuild": {
+            "path": "/var/tmp/xlang-validation/xge-full-20261110/xge-clipboard-formats-host-linux-r1/build-report.json",
+            "sha256": "2126bbe045598cc1d6ace50d2bee2d7c6423d5910a7925e606b10f1b3a593be6"
+          },
+          "package": {
+            "path": "/var/tmp/xlang-validation/xge-full-20261110/xge-clipboard-formats-host-qualification-linux-r4/stage.json",
+            "sha256": "50af2d171d06a5df23a8e9f4c2534c0782f321e1448df659cea068a37c97bd12"
+          },
+          "example": {
+            "path": "/var/tmp/xlang-validation/xge-full-20261110/xge-clipboard-formats-host-qualification-linux-r4/example",
+            "sha256": "e5f3194efb0f80f6462c420dec80ab9159de4dcf7d26cd3910f28dd8fdc7391d"
+          },
+          "nativeXvfb": {
+            "path": "/var/tmp/xlang-validation/xge-full-20261110/xge-clipboard-formats-host-qualification-linux-r4/native-run.log",
+            "sha256": "0ee56ddd79a3af7a7b9810cac074adca6e914ee167b2a984b45a4148f8725efa"
+          },
+          "documentXvfb": {
+            "path": "/var/tmp/xlang-validation/xge-full-20261110/xge-clipboard-formats-host-qualification-linux-r4/document-run.log",
+            "sha256": "7108af1b32968f24befabecf952137cbdf277d2efaf755f8211b48c08a140a68"
+          },
+          "jit": {
+            "path": "/var/tmp/xlang-validation/xge-full-20261110/xge-clipboard-formats-host-qualification-linux-r4/jit.log",
+            "sha256": "634cbe8d71afdbff7c6d7b1b8dd316ac54b69d28e6c30f9e4a1916d9af6b11b4"
+          },
+          "language-run": {
+            "path": "/var/tmp/xlang-validation/xge-full-20261110/xge-clipboard-formats-host-qualification-linux-r4/language-run.log",
+            "sha256": "634cbe8d71afdbff7c6d7b1b8dd316ac54b69d28e6c30f9e4a1916d9af6b11b4"
+          },
+          "imports": {
+            "path": "/var/tmp/xlang-validation/xge-full-20261110/xge-clipboard-formats-host-qualification-linux-r4/language-imports.log",
+            "sha256": "e6f14a96d24d43832eedd382a21696b28fe5f9eb13de5f18c0f4e2e8b1232bbe"
+          },
+          "image": {
+            "path": "/var/tmp/xlang-validation/xge-full-20261110/xge-clipboard-formats-host-qualification-linux-r4/fixture",
+            "sha256": "fd396c03bbec6caa7a46488e1a8b45dfe4b97dffe291d4101801454c45102e21"
+          }
+        },
+        "static": {
+          "nativeBuild": {
+            "path": "/var/tmp/xlang-validation/xge-full-20261110/xge-clipboard-formats-static-linux-r1/build-report.json",
+            "sha256": "26aa5fc1faf717a5ab924a3081b0c2d42268b38165f343911e5d3b64ea98ed63"
+          },
+          "package": {
+            "path": "/var/tmp/xlang-validation/xge-full-20261110/xge-clipboard-formats-static-qualification-linux-r4/stage.json",
+            "sha256": "0477c5fdb1c39ab1df2809b30285eb662281fe0cb80be7f54d8667dbff2bf0e1"
+          },
+          "example": {
+            "path": "/var/tmp/xlang-validation/xge-full-20261110/xge-clipboard-formats-static-qualification-linux-r4/example",
+            "sha256": "f73c19fb80a682924d0cb96c4286b131ae303df164d775ba415cd714777d8a3c"
+          },
+          "nativeXvfb": {
+            "path": "/var/tmp/xlang-validation/xge-full-20261110/xge-clipboard-formats-static-qualification-linux-r4/native-run.log",
+            "sha256": "0ee56ddd79a3af7a7b9810cac074adca6e914ee167b2a984b45a4148f8725efa"
+          },
+          "documentXvfb": {
+            "path": "/var/tmp/xlang-validation/xge-full-20261110/xge-clipboard-formats-static-qualification-linux-r4/document-run.log",
+            "sha256": "7108af1b32968f24befabecf952137cbdf277d2efaf755f8211b48c08a140a68"
+          },
+          "language-run": {
+            "path": "/var/tmp/xlang-validation/xge-full-20261110/xge-clipboard-formats-static-qualification-linux-r4/language-run.log",
+            "sha256": "634cbe8d71afdbff7c6d7b1b8dd316ac54b69d28e6c30f9e4a1916d9af6b11b4"
+          },
+          "imports": {
+            "path": "/var/tmp/xlang-validation/xge-full-20261110/xge-clipboard-formats-static-qualification-linux-r4/language-imports.log",
+            "sha256": "ec3070810ac941a3f9df7cc1c1339b30f830c19ca1833e33ffa4bd9685d471b9"
+          },
+          "image": {
+            "path": "/var/tmp/xlang-validation/xge-full-20261110/xge-clipboard-formats-static-qualification-linux-r4/fixture",
+            "sha256": "02dcd6ecde1494cc64a9b47ee1abe6bd5a1e5f149eb01ceb74c452533a4b9602"
+          }
+        }
+      },
+      "testScope": "isolated Xvfb including external selection clients"
+    }
+  },
+  "audit": {
+    "functionPopulation": 5724,
+    "directDeclarations": 4652,
+    "compiledConsumerFunctions": 175,
+    "explicitReplacements": 178,
+    "pendingClassification": {
+      "XGE": 330,
+      "XUI": 386,
+      "Document UI": 2,
+      "Document": 1
+    }
+  }
+}
