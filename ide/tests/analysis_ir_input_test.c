@@ -3,6 +3,30 @@
 #ifdef XLS_NATIVE_AST_PACKAGE_FIELDS
 /* Actual generated IR TU; this private object never enters the product. */
 #include "xl6_ir.c"
+#if XLS_EXPERIMENTAL_IR_EXIT_REUSE
+/* Independent pre-cache header shape. New optional state must not displace
+ * legacy hot fields or increase the previous opt-in allocation size. */
+typedef struct xls_legacy_ir_memo_layout {
+ xstrbuf context;xarray entries;size_t bytes;xls_entity_view* entities;
+ xarray inputs;xls_ir_input_work inputWork;
+#ifdef XLS_NATIVE_IR_DERIVED_PHASES
+ xls_ir_derived_cache* derived;xls_ir_derived_work derivedWork;
+#endif
+} xls_legacy_ir_memo_layout;
+typedef struct xls_prefixed_ir_memo_layout {
+ xls_exit_asset* exits;xls_exit_result_work exitStats;
+ xls_legacy_ir_memo_layout legacy;
+} xls_prefixed_ir_memo_layout;
+#define XLS_ASSERT_HOT_OFFSET(field) _Static_assert(offsetof(xls_ir_memo,field)==offsetof(xls_legacy_ir_memo_layout,field),"IR memo hot offset: " #field)
+XLS_ASSERT_HOT_OFFSET(context);XLS_ASSERT_HOT_OFFSET(entries);XLS_ASSERT_HOT_OFFSET(bytes);XLS_ASSERT_HOT_OFFSET(entities);
+XLS_ASSERT_HOT_OFFSET(inputs);XLS_ASSERT_HOT_OFFSET(inputWork);
+#ifdef XLS_NATIVE_IR_DERIVED_PHASES
+XLS_ASSERT_HOT_OFFSET(derived);XLS_ASSERT_HOT_OFFSET(derivedWork);
+#endif
+_Static_assert(offsetof(xls_ir_memo,exits)==sizeof(xls_legacy_ir_memo_layout),"IR memo optional state must follow legacy fields");
+_Static_assert(sizeof(xls_ir_memo)==sizeof(xls_prefixed_ir_memo_layout),"IR memo opt-in allocation must not grow");
+#undef XLS_ASSERT_HOT_OFFSET
+#endif
 #include "analysis/module_store.h"
 #include "analysis/worker_modules.h"
 #define main inputWorkerBaseMain

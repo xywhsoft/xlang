@@ -94,7 +94,9 @@ static int memoTypeStats(xvalue* stats,xls_ast_intern_work work)
 }
 #if XLS_EXPERIMENTAL_IR_EXIT_REUSE
 static int exitIrStats(xvalue* stats,const xls_semantic_check* check)
-{xls_exit_result_work work=xlsExitCheckWork(check);xvalue* value=xrtValueObject();int okay=value!=NULL;
+{xls_exit_result_work work=xlsExitCheckWork(check);
+if(!work.queried&&!work.knownBytes)return 1;
+xvalue* value=xrtValueObject();int okay=value!=NULL;
 #define EXIT_FIELD(field) okay=okay&&put(value,#field,xrtValueInt((int64)work.field))
 EXIT_FIELD(queried);EXIT_FIELD(reused);EXIT_FIELD(captured);EXIT_FIELD(declined);EXIT_FIELD(originals);EXIT_FIELD(keyBytes);EXIT_FIELD(knownBytes);EXIT_FIELD(limitBytes);
 #undef EXIT_FIELD

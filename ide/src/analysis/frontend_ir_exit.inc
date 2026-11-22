@@ -9,6 +9,8 @@ void xlsExitTestReset(void){exitWork=(xls_exit_test_work){0};}
 xls_exit_test_work xlsExitTestWork(void){return exitWork;}
 void xlsExitTestLimit(size_t bytes){exitLimit=bytes<8u*1024u*1024u?bytes:8u*1024u*1024u;exitRoot=NULL;}
 #if XLS_EXPERIMENTAL_IR_EXIT_REUSE && defined(XLS_NATIVE_IR_EXIT_PRODUCTION) && XLS_NATIVE_IR_EXIT_PRODUCTION
+static int xlsExitEnabled(void)
+{if(exitLimit)return 1;++exitWork.originals;return 0;}
 struct xls_exit_asset {
  xatomic32 refs;xstrbuf key;size_t bytes,nodes,plans,cleanups,steps;
  XL6_IrGeneratorClosePointAbi* close;XL6_IrExitPlan* plan;XL6_IrCleanupAction* cleanup;XL6_IrExitStep* step;
@@ -92,6 +94,7 @@ static void xlsExitCloneMemo(xls_ir_memo* memo,const xls_ir_memo* previous,const
 {if(previous->exits&&previous->exits->bytes<=exitLimit&&(!exitRoot||exitRoot==root)){memo->exits=xlsExitRetain(previous->exits);memo->exitStats.limitBytes=exitLimit;}}
 int xlsFrontendIrExitAvailable(void){return 1;}
 #else
+static int xlsExitEnabled(void){return 0;}
 static void xlsExitRelease(xls_exit_asset* p){(void)p;}
 static int xlsExitTry(XL6_IrModule* m,xls_exit_pending* p){(void)m;(void)p;return 0;}
 static void xlsExitFinish(XL6_IrModule* m,xls_exit_pending* p,int okay){(void)m;(void)p;(void)okay;}

@@ -28,15 +28,16 @@ typedef struct xls_ir_derived_cache xls_ir_derived_cache;
 typedef struct xls_exit_asset xls_exit_asset;
 #endif
 struct xls_ir_memo {
-#if XLS_EXPERIMENTAL_IR_EXIT_REUSE
-    xls_exit_asset* exits;xls_exit_result_work exitStats;
-#endif
     xstrbuf context;xarray entries;size_t bytes;xls_entity_view* entities;
 #ifdef XLS_NATIVE_AST_PACKAGE_FIELDS
     xarray inputs;xls_ir_input_work inputWork;
 #ifdef XLS_NATIVE_IR_DERIVED_PHASES
     xls_ir_derived_cache* derived;xls_ir_derived_work derivedWork;
 #endif
+#endif
+#if XLS_EXPERIMENTAL_IR_EXIT_REUSE
+    /* Preserve every existing hot-field offset in the opt-in profile. */
+    xls_exit_asset* exits;xls_exit_result_work exitStats;
 #endif
 };
 typedef struct xls_ir_capture {xls_ir_unit* unit;xmap dependencies,writes,globals;int okay;const xls_lexical_symbols* symbols;const xls_entity_view* entities;} xls_ir_capture;

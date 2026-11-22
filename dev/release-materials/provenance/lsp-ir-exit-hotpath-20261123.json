@@ -1,0 +1,133 @@
+{
+  "schema": 1,
+  "date": "2026-11-23",
+  "stage": "M7b7h",
+  "scope": "Opt-in exit-cache hot-field layout preservation,native budget-zero branch isolation and unused telemetry elision",
+  "ownedSources": {
+    "ide/src/analysis/frontend_ir_memo.inc": "938cd914f4d60f91bcf97c3b9a1fdd60bd0a0ce291ce37f54b08b4b2bbd426b6",
+    "ide/src/analysis/frontend_ir.inc": "4d19153359e392a395e2bbd4e65caf6e5ea2af940e3690f86336db0f36968da4",
+    "ide/src/analysis/frontend_ir_exit_scope.h": "b1c9a3614f6a3b92d373a1663bd9205f7e431bd97494e82713fc7484d008648f",
+    "ide/src/analysis/frontend_ir_exit.inc": "ee8890fdd2755d71bdd3cf48d9ff212a82d4f3526b02f6608fa165aebafffe32",
+    "ide/src/services/language_snapshot.c": "d0c4135d837122998b3cfb55e466c22d7dc8eec739943df65e0b5f481aa2e002",
+    "ide/tests/analysis_ir_input_test.c": "a9abb4584a2fe20b92014efc5616bdf9676692314894894986ed575f913963dc",
+    "ide/docs/lsp-ir-exit-hotpath.md": "3da8524aabb6ae98aae9ee3983c2464e5c3b34034163861a2f181a5185341ded",
+    "ide/docs/lsp-ir-exit-production.md": "301944b4f3641f87bebbdac617d83c7767a7e8cb7cee089990aad4eb124310d1",
+    "ide/docs/lsp-development.md": "a7269f00edd441bf3d1d9578968d018a3308e8c741506c7b20e4f3ca0f7adfe9"
+  },
+  "materials": {
+    "source": {
+      "archive": {
+        "path": "dev/release-materials/sources/lsp-ir-exit-hotpath-20261123/inputs.tar.gz",
+        "sha256": "48b0c23f31ceb24aa8446f8b206a74256ebf43d6fd6ccee0768e5e4ef4d54c6c",
+        "bytes": 12170821
+      },
+      "manifest": {
+        "path": "dev/release-materials/sources/lsp-ir-exit-hotpath-20261123/inputs.tar.gz.manifest.json",
+        "sha256": "daa57ae88c66b806d81bf52a1e4379373e66bbf4f7c13cabe2cbff7d2627a598",
+        "bytes": 720264
+      },
+      "entries": 2181,
+      "uniquePayloads": 1520
+    },
+    "validation": {
+      "archive": {
+        "path": "dev/release-materials/provenance/lsp-ir-exit-hotpath-20261123/validation.tar.gz",
+        "sha256": "317cb0301731d01dc36d73c9aa1d054c7df3af653a66b0bb62f98729539004c2",
+        "bytes": 56632354
+      },
+      "manifest": {
+        "path": "dev/release-materials/provenance/lsp-ir-exit-hotpath-20261123/validation.tar.gz.manifest.json",
+        "sha256": "740f5d2298000fb4e9c2903dd3177a9b6eb42ba590e625590bef40a8bae93b0a",
+        "bytes": 102319
+      },
+      "entries": 287,
+      "uniquePayloads": 173
+    }
+  },
+  "externalPaths": [
+    "F:\\codex-builds-xlang-lsp-20261123\\exit-hotpath",
+    "F:\\codex-builds-xlang-lsp-20261123\\exit-hotpath-materials"
+  ],
+  "baseBuild": "F:\\codex-builds-xlang-lsp-20261122\\exit-production\\native-stable-v1\\build-result.json",
+  "materialDependencies": [
+    "dev/release-materials/provenance/lsp-ir-exit-production-20261122.json",
+    "dev/release-materials/provenance/lsp-exit-lifecycle-20261123.json"
+  ],
+  "verification": {
+    "selectedNativePrograms": 8,
+    "exitNormalAssertions": 2523,
+    "exitFaultTotalAssertions": 2556,
+    "faultAssertionsIncludeNormal": true,
+    "inputCompleteKeyOracles": 217,
+    "hotLayoutStaticAssertions": 10,
+    "actualCPrefixRegressionRejected": true,
+    "defaultPreprocessedUnits": 4,
+    "defaultTokensEqualWithoutNormalization": true,
+    "functionalMatrixProcesses": 32,
+    "functionalMatrixQueries": 160,
+    "smallResultsOmittingUnusedStats": 40,
+    "largeHotResultsProvingReuse": 16,
+    "targetedProtocolSuites": 7
+  },
+  "objectCodeBytes": {
+    "xlsFrontendIrBuildMemo": {
+      "conservative": 2208,
+      "previous-on": 2272,
+      "current-on": 2208
+    },
+    "xlsIrDerivedEnd": {
+      "conservative": 1648,
+      "previous-on": 1664,
+      "current-on": 1648
+    },
+    "xlsIrInputKeyPublish": {
+      "conservative": 720,
+      "previous-on": 752,
+      "current-on": 720
+    },
+    "xlsFrontendIrRefreshRegionBudget": {
+      "conservative": 560,
+      "previous-on": 2848,
+      "current-on": 64
+    },
+    "xlsIrRefreshRegionNative": {
+      "conservative": null,
+      "previous-on": null,
+      "current-on": 560
+    },
+    "xlsIrRefreshRegionCached": {
+      "conservative": null,
+      "previous-on": null,
+      "current-on": 2544
+    }
+  },
+  "sizeObservationScope": "Selected compiler object code footprint,not a CPU-time or performance-admission result",
+  "selectedCandidate": {
+    "path": "F:\\codex-builds-xlang-lsp-20261123\\exit-hotpath\\component-v1\\xlang-ls.exe",
+    "sha256": "0becb1a7b35d68399bf1393eb85154cf070dba20eb4eae3ba33a99d2619946ce",
+    "experimentalExitReuse": true
+  },
+  "defaultRuntimeReplaced": false,
+  "runtimeBeforeAndAfter": {
+    "xlang_ide.exe": "dcb587fc2d7bec7e1c8eb1a132e3e89411bd469b5ad6b4a8ff30356cf30fd51f",
+    "xlang-ls.exe": "13ab5b9d3cc2122db947545e9d70dca3929546b9d8d0b4e18e3d891e2e6d6d08",
+    "xlang_ide_xge.dll": "7eba677fddada9b605db2d54dd59ee57a9cfc1caf0b574f6cb206ec9de379418",
+    "update.exe": "4c5266fce0a541b9b96fe92b3d2f7d94598aff3b052e420b08b6d47db5e5c6c2",
+    "xl.exe": "5288c4e8be9f420ef98caeb11be362017be925f2ad81a0d56946cc6a8c721081",
+    "xl.dll": "f31ddbe973ed48d261014ec64fa6b0ba48791fc0313192a19d59467254c0fcd6",
+    "xlc.dll": "64b2e9830569c84580335b0a2b15a59ce13552ba1ba51933fc82cd75808c0728",
+    "xge.dll": "127db42612e8a27c8b1f7f74e4653c25f09140f8baac38d16fc564eb74892ef3"
+  },
+  "experimentalExitReuseDefault": false,
+  "fullNativeGuiReleaseRebuildPerformed": false,
+  "performanceQualified": false,
+  "wholeGoalPerformanceQualified": false,
+  "goalComplete": false,
+  "externalPublishPerformed": false,
+  "limits": [
+    "Component reuses other qualified opaque-ABI objects;not a full new release build.",
+    "Code size,layout invariants and functional reuse do not establish CPU or end-to-end latency improvement.",
+    "Default0.109 pair remains;no optimization promotion or online update.",
+    "Original-cadence calibration,full comparison,real projects,endurance and other targets remain."
+  ]
+}

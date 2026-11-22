@@ -537,21 +537,39 @@ static XL6_IrNodeId xlsIrPreviousCandidate(const XL6_IrModule* module,
 }
 int xl6IrRefreshExitPlans(XL6_IrModule* module)
 { return xlsFrontendIrRefreshRegionBudget(module,XLS_IR_REGION_BYTES); }
-int xlsFrontendIrRefreshRegionBudget(XL6_IrModule* module,size_t bytes)
-{
 #if XLS_EXPERIMENTAL_IR_EXIT_REUSE
-    xls_exit_pending pending={0};if(xlsExitTry(module,&pending))return 1;
+static int xlsIrRefreshRegionNative(XL6_IrModule* module,size_t bytes)
+#else
+int xlsFrontendIrRefreshRegionBudget(XL6_IrModule* module,size_t bytes)
 #endif
+{
     xls_ir_initializer_scope initializers;xlsFrontendIrInitializerBegin(&initializers,module);
     xls_ir_call_scan calls; xlsIrCallScanBegin(&calls,module,XLS_IR_CALL_BYTES);
     xls_ir_scan scan; xlsIrScanInit(&scan,module); scan.regionBudget=bytes; xlsActiveIrScan=&scan;
     int okay=xlsIrRefreshExitPlansOriginal(module);xlsIrScanDone(&scan); xlsIrCallScanDone(&calls);
     xlsFrontendIrInitializerEnd(&initializers);
-#if XLS_EXPERIMENTAL_IR_EXIT_REUSE
-    xlsExitFinish(module,&pending,okay);
-#endif
     return okay;
 }
+#if XLS_EXPERIMENTAL_IR_EXIT_REUSE
+#if defined(_MSC_VER)
+#define XLS_IR_EXIT_NOINLINE __declspec(noinline)
+#elif defined(__GNUC__) || defined(__clang__)
+#define XLS_IR_EXIT_NOINLINE __attribute__((noinline))
+#else
+#define XLS_IR_EXIT_NOINLINE
+#endif
+static XLS_IR_EXIT_NOINLINE int xlsIrRefreshRegionCached(XL6_IrModule* module,size_t bytes)
+{
+    xls_exit_pending pending={0};if(xlsExitTry(module,&pending))return 1;
+    int okay=xlsIrRefreshRegionNative(module,bytes);xlsExitFinish(module,&pending,okay);return okay;
+}
+#undef XLS_IR_EXIT_NOINLINE
+int xlsFrontendIrRefreshRegionBudget(XL6_IrModule* module,size_t bytes)
+{
+    if(xlsExitEnabled())return xlsIrRefreshRegionCached(module,bytes);
+    return xlsIrRefreshRegionNative(module,bytes);
+}
+#endif
 static int xlsIrVerifyBudgets(const XL6_IrModule* module,XL6_DiagList* diags,size_t bytes,size_t regionBytes,size_t directBytes)
 {
     xls_ir_initializer_scope initializers;xlsFrontendIrInitializerBegin(&initializers,module);
