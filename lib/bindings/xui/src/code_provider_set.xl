@@ -1,0 +1,36 @@
+// Immutable replies own the native callback's data, independently of its provider.
+export extern "struct xui_code_completion_snapshot_t*" class CodeCompletionSnapshot @header("xge3_runtime.h") @lifetime("owned") @policy("xl6Xui3CodeCompletionSnapshotPolicy")
+ native point handle
+ extern "xuiCodeCompletionSnapshotGetCount" @no_raise @c_const(0) @c_result("integer_min",0) func count() as c_int
+ // Label, insert text, detail, documentation, kind, sort order, user data, filter text, sort text, commit characters, flags.
+ extern "xuiCodeCompletionSnapshotGetItem" @no_raise @c_const(0) @c_output_record(2,"xui_code_completion_item_t","borrowed") @c_status(0) @c_output_field(0,"sLabel","cstring") @c_output_field(1,"sInsertText","cstring") @c_output_field(2,"sDetail","cstring") @c_output_field(3,"sDocumentation","cstring") @c_output_field(4,"iKind") @c_output_field(5,"iSortOrder") @c_output_field(6,"iUserData") @c_output_field(7,"sFilterText","cstring") @c_output_field(8,"sSortText","cstring") @c_output_field(9,"sCommitCharacters","cstring") @c_output_field(10,"iFlags") func item(c_int index) as (string,string?,string?,string?,c_int,c_int,c_uintptr,string?,string?,string?,c_uint)
+ extern "xl6ForeignViewCloseV1" @no_raise @c_control(0) @c_result("bool_status") func close()
+end
+extern "xuiCodeCompletionSnapshotDestroy" @header("xge3_runtime.h") @no_raise func releaseCodeCompletionSnapshot(CodeCompletionSnapshot snapshot)
+
+export extern "struct xui_code_signature_snapshot_t*" class CodeSignatureSnapshot @header("xge3_runtime.h") @lifetime("owned") @policy("xl6Xui3CodeSignatureSnapshotPolicy")
+ native point handle
+ // Label, documentation, parameter count, active parameter, user data.
+ extern "xuiCodeSignatureSnapshotGetInfo" @no_raise @c_const(0) @c_output_record(1,"xui_code_signature_help_t","borrowed") @c_status(0) @c_output_field(0,"sLabel","cstring") @c_output_field(1,"sDocumentation","cstring") @c_output_field(2,"iParameterCount") @c_output_field(3,"iActiveParameter") @c_output_field(4,"iUserData") func info() as (string?,string?,c_int,c_int,c_uintptr)
+ extern "xuiCodeSignatureSnapshotGetParameter" @no_raise @c_const(0) @c_output_record(2,"xui_code_signature_parameter_t","borrowed") @c_status(0) @c_output_field(0,"sLabel","cstring") @c_output_field(1,"sDocumentation","cstring") @c_output_field(2,"tLabelRange") func parameter(c_int index) as (string?,string?,CodeRange)
+ extern "xl6ForeignViewCloseV1" @no_raise @c_control(0) @c_result("bool_status") func close()
+end
+extern "xuiCodeSignatureSnapshotDestroy" @header("xge3_runtime.h") @no_raise func releaseCodeSignatureSnapshot(CodeSignatureSnapshot snapshot)
+
+export extern "xui_code_provider_set" class CodeProviderSet @header("xge3_runtime.h") @lifetime("owned") @policy("xl6Xui3CodeProviderSetPolicy") @watch("xui_lifetime_link_t") @scope("xui_code_provider_scope_t") @domain("xl6Xui3OwnershipDomainV1")
+ native point handle
+ extern "xuiCodeProviderSetCompletionReplyOwned" @no_raise @c_owned_callback(0,-1,"xui_callback_owner_t",-16) @c_result("status",0) func setCompletionProvider(CodeCompletionProvider? callback)
+ extern "xuiCodeProviderSetHoverReplyOwned" @no_raise @c_owned_callback(0,-1,"xui_callback_owner_t",-16) @c_result("status",0) func setHoverProvider(CodeHoverProvider? callback)
+ extern "xuiCodeProviderSetSignatureReplyOwned" @no_raise @c_owned_callback(0,-1,"xui_callback_owner_t",-16) @c_result("status",0) func setSignatureProvider(CodeSignatureProvider? callback)
+ extern "xuiCodeProviderSetCommandHandlerOwned" @no_raise @c_owned_callback(0,-1,"xui_callback_owner_t",-16) @c_result("status",0) func setCommandProvider(CodeEditorCommand? callback)
+ extern "xuiCodeProviderSetCommandEnabledOwned" @no_raise @c_owned_callback(0,-1,"xui_callback_owner_t",-16) @c_result("status",0) func setCommandEnabledProvider(CodeEditorCommand? callback)
+ extern "xuiCodeProviderCaptureCompletion" @no_raise @c_cstr(2) @c_result("owned_view") @factory(5,0,releaseCodeCompletionSnapshot) func requestCompletion(Widget editor,c_int offset,string prefix,c_int capacity=32) as CodeCompletionSnapshot
+ extern "xuiCodeProviderRequestHover" @no_raise @c_output_record(3,"xui_code_hover_t","borrowed") @c_status(0) @c_output_field(0,"tRange") @c_output_field(1,"sText","cstring") @c_output_field(2,"sContentType","cstring") @c_output_field(3,"iUserData") func requestHover(Widget editor,c_int offset) as (CodeRange,string?,string?,c_uintptr)
+ extern "xuiCodeProviderCaptureSignature" @no_raise @c_result("owned_view") @factory(3,0,releaseCodeSignatureSnapshot) func requestSignature(Widget editor,c_int offset) as CodeSignatureSnapshot
+ extern "xuiCodeProviderCanExecuteCommand" @no_raise @c_output(3,0) func canExecuteCommand(Widget editor,c_int command) as c_int
+ extern "xuiCodeProviderExecuteCommand" @no_raise @c_null(3,"const void*") @c_output(4,0) func executeCommand(Widget editor,c_int command) as c_int
+ extern "xuiCodeProviderSetClearChecked" @no_raise @c_result("status",0) func clear()
+ extern "xl6ForeignViewCloseV1" @no_raise @c_control(0) @c_result("bool_status") func close()
+end
+extern "xuiCodeProviderSetDestroyChecked" @header("xge3_runtime.h") @no_raise @c_result("status",0) func rollbackCodeProviderSet(CodeProviderSet providers)
+export extern "xuiCodeProviderSetCreate" @header("xge3_runtime.h") @no_raise @c_result("owned_view") @factory(0,0,rollbackCodeProviderSet) func createCodeProviderSet() as CodeProviderSet

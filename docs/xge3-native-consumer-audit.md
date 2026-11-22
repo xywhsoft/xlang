@@ -1,5 +1,29 @@
 # Native consumers in the full API inventory
 
+## Standalone XUI code providers
+
+`xui.createCodeProviderSet()` owns five callbacks for completion, hover,
+signature help, command execution and command enablement. The native scope
+keeps registrations alive through invocation and delivers checked errors.
+Completion and signature snapshots take the existing native reply storage.
+They stay readable after the provider or editor closes. A single item or
+parameter read copies the returned text into language strings.
+
+Windows and Linux ran the same provider fixture through JIT, dynamic AOT and
+static AOT. Each mode measured no heap operations in 1,000 warmed commands in
+both xlang and C. The managed path still enters the owner, widget and checked
+callback scopes. The fixtures also verify callback errors, allocation failure
+and prior result preservation. The native owned-provider regression passed 46
+checks per platform, including the existing CodeEdit consumers.
+
+The matched inventory has 5,733 native functions and 4,668 direct language
+declarations. There are 183 non-direct functions with compiled consumer
+evidence and 192 with explicit replacements. These groups can overlap. The
+692 remaining functions have neither kind of evidence. The CodeEdit-owned
+provider set borrow is still a separate lifetime contract.
+
+[Validation evidence](../dev/release-materials/provenance/xui-code-provider-set-20261122.json)
+
 ## XGE formatted clipboard snapshots
 
 `xge.clipboardReadData(format)` calls `xgeClipboardGetDataOwned` once.

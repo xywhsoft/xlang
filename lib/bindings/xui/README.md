@@ -305,6 +305,29 @@ selection, and Editor `replaceAll` / `replaceAllEx` without a scope use the
 Native NULL branches directly. Ordinary View selection and Renderer active
 position still require real positions: their Native APIs reject NULL.
 
+## Standalone code providers
+
+Use `createCodeProviderSet()` when an application wants to issue code service
+requests directly. A set owns five independent provider registrations. Passing
+`null` removes one registration, and `clear()` removes all five. The callbacks
+run synchronously on the set's creating thread. They use the same completion,
+hover, signature and command callback types as CodeEdit. Request offsets are
+UTF-8 byte offsets. The `Widget` argument supplies the callback's widget view.
+
+Use `requestCompletion(editor,offset,prefix,capacity=32)` and
+`requestSignature(editor,offset)` to retain results after the set or editor
+closes. Completion snapshots expose `count()` and `item(index)`. Signature
+snapshots expose `info()` and `parameter(index)`. These native snapshots acquire
+the reply storage directly. Reading an item copies each requested text field
+into an independent language string. `requestHover(editor,offset)` returns those
+string snapshots immediately. Empty strings and absent fields remain distinct.
+
+`canExecuteCommand(editor,command)` and `executeCommand(editor,command)` return
+`1` for a positive decision and `0` for a negative one. Calling a role with no
+registered provider raises a checked error. The widget and reply views passed
+to a callback expire when it returns. See `examples/code_provider_set.xl` for a
+headless example.
+
 ## Shared native find and current engine capabilities
 
 `createCodeFindScope()` creates an independent native search scope. Add existing

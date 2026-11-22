@@ -1,0 +1,140 @@
+import xui
+extern "fixtureCodeProviderBudget" @header("test/cases/foreign_xui_code_provider_set.h") @no_raise func budget(c_int allowance)
+extern "fixtureCodeProviderBegin" @no_raise func beginHeap()
+extern "fixtureCodeProviderEnd" @no_raise func endHeap(c_int native)
+extern "fixtureCodeProviderNative" @no_raise func nativeProvider(xui.Widget editor)
+
+func main(...) as int
+ auto proxy=xui.createProxy()
+ auto ui=xui.create(proxy)
+ auto editor=ui.codeEditNative()
+ auto providers=xui.createCodeProviderSet()
+ c_int move=xui.XUI_CODE_COMMAND_MOVE_RIGHT
+ providers.setCommandProvider(func(xui.CallbackWidget widget,c_int command,xui.CallbackInt handled) as c_int
+  handled.value=c_int(command==move ? 1 : 0)
+  return xui.XUI_OK
+ end)
+ providers.setCommandEnabledProvider(func(xui.CallbackWidget widget,c_int command,xui.CallbackInt enabled) as c_int
+  enabled.value=c_int(command==move ? 1 : 0)
+  return xui.XUI_OK
+ end)
+ assert providers.executeCommand(editor,move)==1
+ assert providers.canExecuteCommand(editor,move)==1
+ assert providers.executeCommand(editor,move+1)==0
+ assert providers.canExecuteCommand(editor,move+1)==0
+ beginHeap()
+ for i in range(1000)
+  assert providers.executeCommand(editor,move)==1
+ end
+ endHeap(0)
+ nativeProvider(editor)
+
+ bool rejected=false
+ budget(0)
+ try
+  providers.setCommandProvider(func(xui.CallbackWidget widget,c_int command,xui.CallbackInt handled) as c_int
+   handled.value=0
+   return xui.XUI_OK
+  end)
+ catch Error failure
+  rejected=true
+ finally
+  budget(-1)
+ end
+ assert rejected and providers.executeCommand(editor,move)==1
+
+ providers.setCommandProvider(func(xui.CallbackWidget widget,c_int command,xui.CallbackInt handled) as c_int
+  handled.value=1
+  throw RangeError "provider failed after setting its output"
+ end)
+ c_int assigned=7
+ rejected=false
+ try
+  assigned=providers.executeCommand(editor,move)
+ catch RangeError
+  rejected=true
+ end
+ assert rejected and assigned==7
+
+ int completionCalls=0
+ providers.setCompletionProvider(func(xui.CallbackWidget widget,c_int offset,xui.CodeCompletionReply reply) as c_int
+  completionCalls+=1
+  assert reply.prefix()=="pr" and offset==2
+  if reply.remaining()>0 then
+   reply.add("print",insertText="print()",detail="",kind=3,userData=41)
+  end
+  return xui.XUI_OK
+ end)
+ auto empty=providers.requestCompletion(editor,2,"pr",0)
+ assert empty.count()==0
+ empty.close()
+ auto completion=providers.requestCompletion(editor,2,"pr",4)
+ assert completion.count()==1 and completionCalls==2
+ auto label,insertion,detail,doc,kind,_,tag,_,_,_,_=completion.item(0)
+ assert label=="print" and (insertion??"")=="print()" and (detail??"missing")=="" and doc==null and kind==3 and tag==41
+ rejected=false
+ try
+  label,insertion,detail,doc,kind,_,tag,_,_,_,_=completion.item(1)
+ catch Error failure
+  rejected=true
+ end
+ assert rejected and label=="print" and tag==41
+ rejected=false
+ budget(1)
+ try
+  label,insertion,detail,doc,kind,_,tag,_,_,_,_=completion.item(0)
+ catch Error failure
+  rejected=true
+ finally
+  budget(-1)
+ end
+ assert rejected and label=="print" and (insertion??"")=="print()" and tag==41
+
+ providers.setHoverProvider(func(xui.CallbackWidget widget,c_int offset,xui.CodeHoverReply reply) as c_int
+  auto span=xui.CodeRange()
+  span.iStart=offset
+  span.iEnd=offset+3
+  reply.set(span,"说明",contentType="",userData=42)
+  providers.setHoverProvider(null)
+  return xui.XUI_OK
+ end)
+ auto span,info,contentType,userData=providers.requestHover(editor,2)
+ assert span.iStart==2 and span.iEnd==5 and (info??"")=="说明" and (contentType??"missing")=="" and userData==42
+ rejected=false
+ try
+  span,info,contentType,userData=providers.requestHover(editor,2)
+ catch Error failure
+  rejected=true
+ end
+ assert rejected and (info??"")=="说明"
+
+ providers.setSignatureProvider(func(xui.CallbackWidget widget,c_int offset,xui.CodeSignatureReply reply) as c_int
+  auto parameter=xui.CodeRange()
+  parameter.iStart=6
+  parameter.iEnd=11
+  reply.set("print(value)",activeParameter=0,parameterLabels=["value"],parameterDocumentation=[null],parameterRanges=[parameter],userData=43)
+  return xui.XUI_OK
+ end)
+ auto signature=providers.requestSignature(editor,6)
+ providers.clear()
+ providers.close()
+ ui.close()
+ proxy.close()
+ assert completion.count()==1
+ auto signatureLabel,signatureDoc,count,active,signatureTag=signature.info()
+ assert (signatureLabel??"")=="print(value)" and signatureDoc==null and count==1 and active==0 and signatureTag==43
+ auto parameterName,parameterDoc,parameterRange=signature.parameter(0)
+ assert (parameterName??"")=="value" and parameterDoc==null and parameterRange.iStart==6 and parameterRange.iEnd==11
+ completion.close()
+ signature.close()
+ assert (info??"")=="说明" and (parameterName??"")=="value"
+ rejected=false
+ try
+  auto invalid=completion.count()
+ catch StateError
+  rejected=true
+ end
+ assert rejected
+ println("CodeProviderSet: commands, completion, hover, signature, OOM and independent replies passed")
+ return 0
+end

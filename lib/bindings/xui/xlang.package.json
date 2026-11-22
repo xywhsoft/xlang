@@ -29,6 +29,7 @@
       "src/code_annotations.xl",
       "src/code_models.xl",
       "src/code_margin.xl",
+      "src/code_provider_set.xl",
       "src/code_fold_state.xl",
       "src/code_language_registry.xl",
       "src/code_token_buffer.xl",

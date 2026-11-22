@@ -1,0 +1,27 @@
+// Run: xl run code_provider_set.xl
+// Ask a language service for completion without opening a window.
+import xui
+
+func main(...) as int
+ auto proxy=xui.createProxy()
+ auto ui=xui.create(proxy)
+ auto editor=ui.codeEditNative()
+ auto providers=xui.createCodeProviderSet()
+ providers.setCompletionProvider(func(xui.CallbackWidget widget,c_int offset,xui.CodeCompletionReply reply) as c_int
+  if reply.prefix()=="pr" and offset==2 then
+   reply.add("print",insertText="print()",detail="Display a value")
+  end
+  return xui.XUI_OK
+ end)
+
+ auto results=providers.requestCompletion(editor,2,"pr",8)
+ providers.close()
+ assert results.count()==1
+ auto label,insertion,detail,_,_,_,_,_,_,_,_=results.item(0)
+ assert label=="print" and (insertion??"")=="print()"
+ println(label," — ",detail??"")
+ results.close()
+ ui.close()
+ proxy.close()
+ return 0
+end

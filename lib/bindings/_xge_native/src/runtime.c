@@ -895,6 +895,67 @@ const XL6_ForeignViewDescriptorV1* xl6Xui3CodeMarginPolicyGet(void)
         XL6_FOREIGN_VIEW_DESTROY_OWNS_NATIVE_SCOPE|XL6_FOREIGN_VIEW_DESTROY_REPORTS_FAILURE,NULL,NULL};return &value;
 }
 #endif
+/* Standalone providers own closures. Snapshots hold only native reply data. */
+#if XUI_ENABLE_CODE_EDIT
+static bool watch_code_providers(void* raw,void* storage,void(*invalidate)(void*),void* user)
+{
+    int status=xuiCodeProviderSetLifetimeWatch(raw,storage,invalidate,user);
+    report_resource_failure(status,"xuiCodeProviderSetLifetimeWatch");
+    return status==XUI_OK;
+}
+static bool begin_code_providers(void* raw,void* storage)
+{
+    int status=xuiCodeProviderSetCallBegin(raw,storage);
+    report_resource_failure(status,"xuiCodeProviderSetCallBegin");
+    return status==XUI_OK;
+}
+static bool end_code_providers(void* storage)
+{
+    int status=xuiCodeProviderSetCallEnd(storage);
+    report_resource_failure(status,"xuiCodeProviderSetCallEnd");
+    return status==XUI_OK;
+}
+static bool destroy_code_providers(void* raw)
+{
+    bool consumed=false;
+    int status=xuiCodeProviderSetDestroyOwnerChecked(raw,&consumed);
+    report_resource_failure(status,"xuiCodeProviderSetDestroyOwnerChecked");
+    return consumed;
+}
+static bool trace_code_providers(const void* raw,XL6_ModuleOwnershipVisit visit,void* user)
+{return xuiCodeProviderSetTraceOwnership((xui_code_provider_set)raw,visit,user);}
+static bool busy_code_providers(const void* raw)
+{return xuiCodeProviderSetOwnershipBusy((xui_code_provider_set)raw);}
+const XL6_ForeignViewDescriptorV1* xl6Xui3CodeProviderSetPolicyGet(void)
+{
+    static const XL6_ForeignViewDescriptorV1 value={sizeof(value),XL6_FOREIGN_VIEW_V1_TAG,"xui.codeProviders",
+        sizeof(xui_lifetime_link_t),_Alignof(xui_lifetime_link_t),watch_code_providers,unwatch,destroy_code_providers,
+        sizeof(xui_code_provider_scope_t),_Alignof(xui_code_provider_scope_t),begin_code_providers,end_code_providers,
+        trace_code_providers,busy_code_providers,XL6_FOREIGN_VIEW_RELIABLE_OWNED_WATCH|
+        XL6_FOREIGN_VIEW_DESTROY_OWNS_NATIVE_SCOPE|XL6_FOREIGN_VIEW_DESTROY_REPORTS_FAILURE,NULL,NULL};
+    return &value;
+}
+static bool destroy_completion_snapshot(void* raw)
+{xuiCodeCompletionSnapshotDestroy(raw);return true;}
+const XL6_ForeignViewDescriptorV1* xl6Xui3CodeCompletionSnapshotPolicyGet(void)
+{
+    static const XL6_ForeignViewDescriptorV1 value={sizeof(value),XL6_FOREIGN_VIEW_V1_TAG,"xui.codeCompletionSnapshot",
+        0,1,NULL,NULL,destroy_completion_snapshot,0,1,NULL,NULL,NULL,NULL,0,NULL,NULL};
+    return &value;
+}
+static bool destroy_signature_snapshot(void* raw)
+{xuiCodeSignatureSnapshotDestroy(raw);return true;}
+const XL6_ForeignViewDescriptorV1* xl6Xui3CodeSignatureSnapshotPolicyGet(void)
+{
+    static const XL6_ForeignViewDescriptorV1 value={sizeof(value),XL6_FOREIGN_VIEW_V1_TAG,"xui.codeSignatureSnapshot",
+        0,1,NULL,NULL,destroy_signature_snapshot,0,1,NULL,NULL,NULL,NULL,0,NULL,NULL};
+    return &value;
+}
+#else
+const XL6_ForeignViewDescriptorV1* xl6Xui3CodeProviderSetPolicyGet(void){return NULL;}
+const XL6_ForeignViewDescriptorV1* xl6Xui3CodeCompletionSnapshotPolicyGet(void){return NULL;}
+const XL6_ForeignViewDescriptorV1* xl6Xui3CodeSignatureSnapshotPolicyGet(void){return NULL;}
+#endif
 /* Pure numeric leaf models: unique language roots, no callbacks, native
  * watches, retained language edges or borrowed child roots. No fake scopes. */
 #if XUI_ENABLE_CODE_EDIT

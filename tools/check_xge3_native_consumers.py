@@ -10,13 +10,14 @@ from full_compiler_qualification import verify_full_compiler
 from stage_xge3_replay_contracts import verify_replay_package
 from check_xge3_full_surface import source_bindings
 from xge_replay_contracts import REPLACED as XGE_REPLACEMENTS
-from xui_document_replacements import CLOSE_REPLACEMENTS,LIFECYCLE_REPLACEMENTS,REPLACEMENTS as DOCUMENT_REPLACEMENTS
-from xui_managed_contracts import REPLACED as XUI_REPLACEMENTS
+from xui_document_replacements import CLOSE_REPLACEMENTS as DOCUMENT_CLOSE_REPLACEMENTS,LIFECYCLE_REPLACEMENTS,REPLACEMENTS as DOCUMENT_REPLACEMENTS
+from xui_managed_contracts import CLOSE_REPLACEMENTS as XUI_CLOSE_REPLACEMENTS,REPLACED as XUI_REPLACEMENTS
 
 # Logical source-group selectors may name an object-like header alias. Prove
 # this one against an actual C relocation, rather than assuming a name suffix.
 PROVIDER_ALIASES={'xl6Xge3InitPacked':('xge3_init.h','xl6Xge3InitWithCode')}
 REPLACED = {**XGE_REPLACEMENTS, **XUI_REPLACEMENTS, **DOCUMENT_REPLACEMENTS, **LIFECYCLE_REPLACEMENTS}
+CLOSE_REPLACEMENTS = {**DOCUMENT_CLOSE_REPLACEMENTS, **XUI_CLOSE_REPLACEMENTS}
 
 
 def object_relocations(text):

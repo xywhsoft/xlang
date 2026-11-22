@@ -1336,8 +1336,30 @@ METHODS.update({
          'func tooltipInfo() as (c_int,string?,TooltipPlacement)']],
 })
 
+# Provider snapshots and sets close through their ownership descriptors.
+CLOSE_REPLACEMENTS = {
+    'xuiCodeProviderSetDestroy': ('xui.CodeProviderSet.close', 'xl6Xui3CodeProviderSetPolicy',
+        'destroy_code_providers', 'xuiCodeProviderSetDestroyOwnerChecked'),
+    'xuiCodeProviderSetDestroyChecked': ('xui.CodeProviderSet.close', 'xl6Xui3CodeProviderSetPolicy',
+        'destroy_code_providers', 'xuiCodeProviderSetDestroyOwnerChecked'),
+    'xuiCodeCompletionSnapshotDestroy': ('xui.CodeCompletionSnapshot.close', 'xl6Xui3CodeCompletionSnapshotPolicy',
+        'destroy_completion_snapshot', 'xuiCodeCompletionSnapshotDestroy'),
+    'xuiCodeSignatureSnapshotDestroy': ('xui.CodeSignatureSnapshot.close', 'xl6Xui3CodeSignatureSnapshotPolicy',
+        'destroy_signature_snapshot', 'xuiCodeSignatureSnapshotDestroy'),
+}
+
 # Reviewed native entry points with managed replacements.
 REPLACED = {
+    'xuiCodeProviderSetClear': ('xui.CodeProviderSet.clear', 'xuiCodeProviderSetClearChecked'),
+    'xuiCodeProviderSetCompletion': ('xui.CodeProviderSet.setCompletionProvider', 'xuiCodeProviderSetCompletionReplyOwned'),
+    'xuiCodeProviderSetCompletionOwned': ('xui.CodeProviderSet.setCompletionProvider', 'xuiCodeProviderSetCompletionReplyOwned'),
+    'xuiCodeProviderSetHover': ('xui.CodeProviderSet.setHoverProvider', 'xuiCodeProviderSetHoverReplyOwned'),
+    'xuiCodeProviderSetHoverOwned': ('xui.CodeProviderSet.setHoverProvider', 'xuiCodeProviderSetHoverReplyOwned'),
+    'xuiCodeProviderSetSignature': ('xui.CodeProviderSet.setSignatureProvider', 'xuiCodeProviderSetSignatureReplyOwned'),
+    'xuiCodeProviderSetSignatureOwned': ('xui.CodeProviderSet.setSignatureProvider', 'xuiCodeProviderSetSignatureReplyOwned'),
+    'xuiCodeProviderSetCommandEnabled': ('xui.CodeProviderSet.setCommandEnabledProvider', 'xuiCodeProviderSetCommandEnabledOwned'),
+    'xuiCodeProviderRequestCompletion': ('xui.CodeProviderSet.requestCompletion', 'xuiCodeProviderCaptureCompletion'),
+    'xuiCodeProviderRequestSignature': ('xui.CodeProviderSet.requestSignature', 'xuiCodeProviderCaptureSignature'),
     'xuiCodeEditHitTestDiagnostic': ('xui.CodeEdit.hitTestDiagnostic', 'xuiCodeEditFindDiagnostic'),
     'xuiCodeEditGetFindScope': ('xui.Context.getCodeFindScope', 'xuiContextGetCodeFindScope'),
     'xuiEditGetText': ('xui.Widget.editGetText','xuiEditGetTextView'),
