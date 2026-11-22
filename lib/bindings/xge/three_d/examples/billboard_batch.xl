@@ -7,6 +7,8 @@ left.position.z = c_float(-2)
 auto right = left
 right.position.x = c_float(0.75)
 auto batch = xge3d.createBillboardBatch([left, right])
+auto renderBatch = batch.share() // 独立引用，复用同一份几何数据。
+batch.close()
 
 xge.init(480, 320, "两张公告板")
 xge.run(func() as c_int
@@ -15,7 +17,7 @@ xge.run(func() as c_int
     auto renderer = xge3d.createRenderer()
     auto red = xge3d.createTexture(c_int(1), c_int(1), codec.hexDecode("FF0000FF"))
     array<xge3d.Texture3D?> textures = [red, null]
-    renderer.setBillboards(batch, textures) // 左边使用红色纹理，右边为白色。
+    renderer.setBillboards(renderBatch, textures) // 左边使用红色纹理，右边为白色。
     red.close() // 渲染器持有队列引用。
 
     auto camera = xge3d.orthographicCamera(c_float(4), c_float(3), c_float(0.1), c_float(10))
@@ -30,4 +32,4 @@ xge.run(func() as c_int
 end)
 xge.setFrameCallback(null)
 xge.unit()
-batch.close()
+renderBatch.close()

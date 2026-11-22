@@ -83,6 +83,9 @@ or cleared. See [billboards.xl](examples/billboards.xl) and
 [offscreen.xl](examples/offscreen.xl) shows how to render to a
 `RenderTarget3D`, read a pixel, and use the target as a billboard texture.
 Pass separate geometry and nullable texture arrays for a mixed-texture queue.
+`BillboardBatch.share()` gives a separate handle to the same immutable CPU
+geometry. Each handle can close independently. A `geometry()` sequence also
+holds its own reference. See [billboard_batch.xl](examples/billboard_batch.xl).
 
 [debug_draw.xl](examples/debug_draw.xl) draws a persistent debug line and
 prints the last frame's CPU time. The renderer also exposes

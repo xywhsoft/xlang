@@ -1,5 +1,30 @@
 # Native consumers in the full API inventory
 
+## Shared 3D billboard batches and environment light
+
+`BillboardBatch.share()` obtains another native reference to the same immutable
+batch. Closing one handle closes its language aliases and leaves other shares
+and `geometry()` sequences usable. The CPU batch can outlive the engine.
+Submitting it to a renderer still retains the queue's textures separately.
+
+The language call directly invokes `xge3dBillboardBatchShareOwned`. In 1,000
+share-and-close cycles the C path used no heap allocations. xlang allocated and
+freed 2,000 owner-side blocks and kept the same native geometry pointer. Two
+injected allocation failures rolled back without leaking a reference. These
+results matched in Windows and Linux JIT, dynamic AOT and static AOT.
+
+The Linux software-rendering tests cover the updated example, mixed textures,
+offscreen target readback, and image-based lighting. The image-based lighting
+test verifies that a live environment blocks shutdown with `XGE_ERROR_BUSY`.
+`setIBLImages()` accepts the same face and mip data as the original C descriptor.
+Use `clearIBL()` for the native null-descriptor case.
+
+The current inventory contains 5,739 native functions and 4,674 direct language
+declarations. Five legacy functions now have explicit replacements, leaving
+679 functions without a direct declaration, compiled consumer or replacement.
+
+[Validation evidence](../dev/release-materials/provenance/xge3d-billboard-share-20261122.json)
+
 ## Reusable 3D animation settings
 
 `xge3d.animationOptions()` initializes a value record with the native defaults.

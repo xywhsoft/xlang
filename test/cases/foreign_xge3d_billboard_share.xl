@@ -1,0 +1,75 @@
+import xge
+import xge3d
+
+extern "fixtureBillboardHeapBegin" @header("test/cases/foreign_xge3d_billboard_share.h") @no_raise func beginHeap()
+extern "fixtureBillboardHeapEnd" @no_raise func endHeap(c_int native)
+extern "fixtureBillboardHold" @no_raise func holdNative(xge3d.BillboardBatch batch)
+extern "fixtureBillboardSameStorage" @no_raise func sameStorage(xge3d.BillboardBatch first,xge3d.BillboardBatch second)
+extern "fixtureBillboardDropLast" @no_raise func dropLast()
+extern "fixtureBillboardFail" @no_raise func failHeap(c_int prefix)
+
+func exerciseShares()
+    auto item = xge3d.billboardDefault()
+    assert item.width == 1 and item.height == 1 and item.color.a == 1
+    assert item.uv.width == 1 and item.uv.height == 1 and item.depth_test == 1
+    item.position.x = c_float(2)
+    auto batch = xge3d.createBillboardBatch([item])
+    holdNative(batch)
+
+    auto shared = batch.share()
+    sameStorage(batch, shared)
+    beginHeap()
+    for i in range(1000)
+        auto view = batch.share()
+        view.close()
+    end
+    endHeap(0)
+
+    int denied = 0
+    bool published = false
+    for prefix in range(16)
+        failHeap(c_int(prefix))
+        try
+            auto view = batch.share()
+            failHeap(-1)
+            view.close()
+            published = true
+        catch Error
+            denied += 1
+        finally
+            failHeap(-1)
+        end
+        if published then break end
+        sameStorage(batch, shared)
+    end
+    assert denied > 0 and published
+    println("Billboard share allocation prefixes:", denied)
+
+    auto aliasOfBatch = batch
+    auto geometry = batch.geometry()
+    batch.close()
+    bool aliasClosed = false
+    try
+        aliasOfBatch.share()
+    catch Error
+        aliasClosed = true
+    end
+    assert aliasClosed
+    assert shared.geometry()[0].position.x == c_float(2)
+    shared.close()
+    assert xge.graphicsResourceCount() == uint64(0)
+    xge.unit()
+    assert geometry[0].position.x == c_float(2)
+end
+
+func main(...) as int
+    exerciseShares()
+    dropLast()
+    auto empty = xge3d.createBillboardBatch([])
+    auto sharedEmpty = empty.share()
+    empty.close()
+    sharedEmpty.geometry()
+    sharedEmpty.close()
+    println("BILLBOARD_SHARE_OK")
+    return 0
+end

@@ -1,0 +1,261 @@
+{
+  "complete": true,
+  "passed": true,
+  "releaseInstalled": false,
+  "networkTests": false,
+  "scope": "Independent shared 3D billboard batch ownership, rendering regression and IBL API review",
+  "nativeRevision": "22f288eca67d0b6c6e38adcd6565b0899bc39d9d",
+  "xlangSourceParent": "de91c3bda14147d0988db255bdeb0494a4b1a94f",
+  "sourceFiles": {
+    "test/cases/foreign_xge3d_billboard_share.xl": "d87f49c2f82d171f958b125a4246db20dbd7c030a43415e42a6ebc168241ac24",
+    "test/cases/foreign_xge3d_billboard_share.h": "2bfb94b2425aa539ffc3dca8546a4afcb4d495c0b9ac0af72251df122abf1ab8",
+    "test/cases/foreign_xge3d_billboard_share.c": "82fb590195ef3897878249c41bdc9360a417b7252616789a913ccb426275aea3",
+    "test/cases/foreign_xge3d_environment_owned.xl": "6611e9fd2e78d5546182fbe7446643498f2fe5ba9c9b856896fb1d3841b28248",
+    "lib/bindings/xge/three_d/src/renderer.xl": "da7c92f3019fe5f47340601c0e962ef55f82e3b0f4bdc9ff29b2131b6933d9fb",
+    "lib/bindings/xge/three_d/examples/billboard_batch.xl": "c83373ab71803ccbc9a9f6eef85495dba31859d9246bbe6827e671a47b54b592",
+    "lib/bindings/xge/three_d/README.md": "900cb40c646d549d30be33dc70370914922099e5f5f4fb54b6c28a7f401414c5",
+    "docs/xge3-xui3-api-map-storage.json": "3488819660b15262f8fb4831d4d255edf7058efade647d3b8ade52b37f01ccca",
+    "docs/xge3-native-consumer-audit.md": "3e6feab6925dabe73eef747204ea1ae6f9595fdfccc20f9bd48b727e48b49c0e",
+    "tools/xge_replay_contracts.py": "7286b955b0ef983439eaf0c0d446c227bf505124259daa645579d9c6829a3def"
+  },
+  "separateInputs": {
+    "test/cases/foreign_xge3d_target_billboards.xl": "57f9c79a2f742af1fe3482b6c5789498d22d84db72e52ef991f3ac191794e320"
+  },
+  "scripts": [
+    {
+      "path": "F:/xlang-validation/xge-full-20261110/build-billboard-share-r1.py",
+      "sha256": "3c5edb3286f28748408e1dc8354baeb3de7a81c6eb9438d713eb8456ea587d97",
+      "bytes": 2070
+    },
+    {
+      "path": "F:/xlang-validation/xge-full-20261110/stage-billboard-share-r1.py",
+      "sha256": "7e2e11e3b66cefea23ab32edcad1f822429817e8b5ac3d7e65b58f94c352e265",
+      "bytes": 1856
+    },
+    {
+      "path": "F:/xlang-validation/xge-full-20261110/check-billboard-share-r1.py",
+      "sha256": "06447f475758a77de0f972fb3a0a713fc871ec2d1457dc9639212935f5712159",
+      "bytes": 5297
+    },
+    {
+      "path": "F:/xlang-validation/xge-full-20261110/audit-billboard-share-r1.py",
+      "sha256": "425000f52dbb6ff032887f8636779a5580ac3575ea451ac0af425cb1a640b17c",
+      "bytes": 2407
+    }
+  ],
+  "lifetime": {
+    "sharedGeometry": true,
+    "independentOwners": true,
+    "retainedSequence": true,
+    "lastNativeDropVerified": true,
+    "gpuEnvironmentBusyCodeVerifiedOnLinux": true
+  },
+  "performance": {
+    "cpuTimingCompared": false,
+    "comparison": "1000 warmed shares closed immediately, one immutable native batch",
+    "perPlatformAndLinkage": {
+      "rounds": 1000,
+      "allocFreeRealloc": {
+        "native": [
+          0,
+          0,
+          0
+        ],
+        "language": [
+          2000,
+          2000,
+          0
+        ]
+      },
+      "allocationFailurePrefixes": 2
+    },
+    "costs": [
+      "The same native refcount protects the same geometry.",
+      "The xlang path also reserves and publishes a new logical owner. It uses two heap allocations per share.",
+      "Subsequent renderer submission retains the texture queue separately."
+    ]
+  },
+  "audit": {
+    "functionPopulation": 5739,
+    "directDeclarations": 4674,
+    "compiledConsumerFunctions": 184,
+    "explicitReplacements": 205,
+    "pendingClassification": {
+      "Document": 1,
+      "Document UI": 2,
+      "XGE": 318,
+      "XUI": 358
+    },
+    "verifiedReplacements": {
+      "xge3dBillboardBatchAddRef": "xge3dBillboardBatchShareOwned",
+      "xge3dBillboardDefault": "xge3dBillboardGeometryDefault",
+      "xge3dBillboardsSet": "xge3dBillboardsSetTexturedGeometry",
+      "xge3dEnvironmentCreate": "xge3dEnvironmentCreateImagesOwned",
+      "xge3dEnvironmentSetIBL": "xge3dEnvironmentSetIBLImages"
+    },
+    "clearIBL": "Environment3D.clearIBL preserves the native null-descriptor case."
+  },
+  "platforms": {
+    "win": {
+      "commands": 14,
+      "regenerationChecks": 1080,
+      "evidence": {
+        "compilerBuild": {
+          "path": "F:/xlang-validation/xge-full-20261110/compiler-existing-root-win-r1/build.json",
+          "sha256": "107a294cdefd81906f8e3fef6bced071ececaad4bf1837b61a15b1e9c7858a07",
+          "bytes": 1618
+        },
+        "hostedBuild": {
+          "path": "F:/xlang-validation/xge-full-20261110/billboard-share-host-win-r1/build-report.json",
+          "sha256": "171d3633e7108e1d256f1173ca027df437fd09f6be10afca7e29313406ec9ed0",
+          "bytes": 23781
+        },
+        "staticBuild": {
+          "path": "F:/xlang-validation/xge-full-20261110/billboard-share-static-win-r1/build-report.json",
+          "sha256": "d33acac3a9d6234191862a14f7007dcf5b62c448392b69a1230599347cea2500",
+          "bytes": 10262839
+        },
+        "hostedStage": {
+          "path": "F:/xlang-validation/xge-full-20261110/billboard-share-test-win-r1/host.json",
+          "sha256": "aa1819db87db1d61fbc8a3b51266f69bbb725f74d1c5290922e36b4f640f5e7b",
+          "bytes": 129660
+        },
+        "staticStage": {
+          "path": "F:/xlang-validation/xge-full-20261110/billboard-share-test-win-r1/static.json",
+          "sha256": "13834541ff38d9dc0ea2f34514f19eaf9e6003d18faa94d555b3a116335bbaf5",
+          "bytes": 9307835
+        },
+        "strictRegeneration": {
+          "path": "F:/xlang-validation/xge-full-20261110/billboard-share-generator-win-r1/results.json",
+          "sha256": "5aa73cb6e3057a10a308b5c1b8a69e7cdf6e2848eaf51105a7e094e19d11293f",
+          "bytes": 239234
+        },
+        "declarationReplay": {
+          "path": "F:/xlang-validation/xge-full-20261110/billboard-share-test-win-r1/replay/stage-report.json",
+          "sha256": "cbc41feb9ca78c9e271ce8cf174ba56f1a6398fa8690f7c2979f3f01febb8328",
+          "bytes": 169036
+        },
+        "nativeSource": {
+          "path": "F:/xlang-validation/xge-full-20261110/billboard-share-test-win-r1/audit-r1/native-source.json",
+          "sha256": "944bf85f049ee360034817b155fea66d096e955acdbcc6de04d27c04c630f634",
+          "bytes": 465947
+        },
+        "surface": {
+          "path": "F:/xlang-validation/xge-full-20261110/billboard-share-test-win-r1/audit-r1/surface/surface.json",
+          "sha256": "faffbe066882dfffa9a29d484c49b1dd4fdd1f70aeac9c1d879a4efdff03aed5",
+          "bytes": 5514668
+        },
+        "consumerAudit": {
+          "path": "F:/xlang-validation/xge-full-20261110/billboard-share-test-win-r1/audit-r1/consumers/results.json",
+          "sha256": "0bbe242bde06919905e0e22d283969f5e5cdf82c05458f6d911b3cc9350b211c",
+          "bytes": 1199752
+        },
+        "languageChecks": {
+          "path": "F:/xlang-validation/xge-full-20261110/billboard-share-test-win-r1/suite-r2/results.json",
+          "sha256": "ca1d6109c35e08ca8b3086627c94a6dc20facc593017423cc8f8646cd5c8898c",
+          "bytes": 12008
+        },
+        "generatedC": {
+          "path": "F:/xlang-validation/xge-full-20261110/billboard-share-test-win-r1/suite-r2/billboard.c",
+          "sha256": "6f184de57e1c0035f2a8eea2865967f4d3c7b3ee2d34991eefb4e856ee350480",
+          "bytes": 697971
+        }
+      }
+    },
+    "linux": {
+      "commands": 19,
+      "regenerationChecks": 1081,
+      "evidence": {
+        "compilerBuild": {
+          "path": "/var/tmp/xlang-validation/xge-full-20261110/compiler-existing-root-linux-r1/build.json",
+          "sha256": "6e729bc793dcd92edcd42f51e244bad799187c32ef82121e8275288a31274b11",
+          "bytes": 1585
+        },
+        "hostedBuild": {
+          "path": "/var/tmp/xlang-validation/xge-full-20261110/billboard-share-host-linux-r1/build-report.json",
+          "sha256": "6daa528620ec409bc26d183d0c8e30a2928e98131dd6072e43b06e0ad6a0e20a",
+          "bytes": 23054
+        },
+        "staticBuild": {
+          "path": "/var/tmp/xlang-validation/xge-full-20261110/billboard-share-static-linux-r1/build-report.json",
+          "sha256": "45e5f9c04e37794bd6d7410abcb9fbe684303a2715028dd30883d7148c7eddd4",
+          "bytes": 840649
+        },
+        "hostedStage": {
+          "path": "/var/tmp/xlang-validation/xge-full-20261110/billboard-share-test-linux-r1/host.json",
+          "sha256": "9f36402dadb6a0df4ca39505e310ac875bd45ee918d571905e811f4b8d685d67",
+          "bytes": 126168
+        },
+        "staticStage": {
+          "path": "/var/tmp/xlang-validation/xge-full-20261110/billboard-share-test-linux-r1/static.json",
+          "sha256": "90bd8884c324d947b9c9f92f401f48abbb390770816315e1a06c6b67337dd360",
+          "bytes": 143311
+        },
+        "strictRegeneration": {
+          "path": "/var/tmp/xlang-validation/xge-full-20261110/billboard-share-generator-linux-r1/results.json",
+          "sha256": "35bb8170bd989322f3daf426ad15cfdff2e8f8a8f8711aaf7c3a55fbddd152cf",
+          "bytes": 248562
+        },
+        "declarationReplay": {
+          "path": "/var/tmp/xlang-validation/xge-full-20261110/billboard-share-test-linux-r1/replay/stage-report.json",
+          "sha256": "0fcc61f9a8bf4223706d6f109b7c544c9f6807210e63ede977154a424f6faa55",
+          "bytes": 165398
+        },
+        "nativeSource": {
+          "path": "/var/tmp/xlang-validation/xge-full-20261110/billboard-share-test-linux-r1/audit-r1/native-source.json",
+          "sha256": "673dda75d1285d81b2f189e0c5aedd0b742cb54b75d7d0da34b6e64b9bf8c347",
+          "bytes": 462119
+        },
+        "surface": {
+          "path": "/var/tmp/xlang-validation/xge-full-20261110/billboard-share-test-linux-r1/audit-r1/surface/surface.json",
+          "sha256": "83a836d57db35813b07217f988fb439c493a5d2d8fefbee2324cd0f585fc6cd7",
+          "bytes": 5329756
+        },
+        "consumerAudit": {
+          "path": "/var/tmp/xlang-validation/xge-full-20261110/billboard-share-test-linux-r1/audit-r1/consumers/results.json",
+          "sha256": "4fcf64b4886c71a20322313e23687a83512f281ce69891ba81739bbaae855700",
+          "bytes": 1183513
+        },
+        "languageChecks": {
+          "path": "/var/tmp/xlang-validation/xge-full-20261110/billboard-share-test-linux-r1/suite-r2/results.json",
+          "sha256": "d7779ebdc21d592d95c2007cc8b20dba54e88c57fe74c64608cb5db426d4ea3f",
+          "bytes": 15010
+        },
+        "generatedC": {
+          "path": "/var/tmp/xlang-validation/xge-full-20261110/billboard-share-test-linux-r1/suite-r2/billboard.c",
+          "sha256": "6f184de57e1c0035f2a8eea2865967f4d3c7b3ee2d34991eefb4e856ee350480",
+          "bytes": 697971
+        },
+        "billboardGpu": {
+          "path": "/var/tmp/xlang-validation/xge-full-20261110/billboard-share-test-linux-r1/suite-r2/billboards-gpu-jit.log",
+          "sha256": "641dd9e7dccbcd1fb825425b8224ce59f11d11b2c799bdf0fc51f6e627a9dd12",
+          "bytes": 140
+        },
+        "environmentGpu": {
+          "path": "/var/tmp/xlang-validation/xge-full-20261110/billboard-share-test-linux-r1/suite-r2/environment-gpu-jit.log",
+          "sha256": "acc717e7b980e641768918bc0cfe62d6bd5bb1d5047a775055a8ae4b664520ce",
+          "bytes": 147
+        },
+        "exampleGpuJit": {
+          "path": "/var/tmp/xlang-validation/xge-full-20261110/billboard-share-test-linux-r1/suite-r2/example-jit.log",
+          "sha256": "121397ebec22760e195743b2c7558a2f2fa5c33b2735107507540ec734d07bee",
+          "bytes": 141
+        },
+        "exampleGpuDynamic": {
+          "path": "/var/tmp/xlang-validation/xge-full-20261110/billboard-share-test-linux-r1/suite-r2/example-dynamic-run.log",
+          "sha256": "121397ebec22760e195743b2c7558a2f2fa5c33b2735107507540ec734d07bee",
+          "bytes": 141
+        },
+        "exampleGpuStatic": {
+          "path": "/var/tmp/xlang-validation/xge-full-20261110/billboard-share-test-linux-r1/suite-r2/example-static-run.log",
+          "sha256": "121397ebec22760e195743b2c7558a2f2fa5c33b2735107507540ec734d07bee",
+          "bytes": 141
+        }
+      }
+    }
+  },
+  "limits": [
+    "Windows GUI examples were compiled and import-checked. Rendering was exercised on Linux with Xvfb and llvmpipe.",
+    "Publication and installation are separate from these isolated candidate checks."
+  ]
+}

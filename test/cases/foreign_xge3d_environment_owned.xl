@@ -115,7 +115,8 @@ func main(...) as int
  bool busy=false
  try
   xge.unit()
- catch Error
+ catch error
+  assert error.code==xge.XGE_ERROR_BUSY
   busy=true
  end
  assert busy
