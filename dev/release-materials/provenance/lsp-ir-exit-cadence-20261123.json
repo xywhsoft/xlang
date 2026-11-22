@@ -1,0 +1,98 @@
+{
+  "schema": 1,
+  "date": "2026-11-23",
+  "stage": "M7b7i",
+  "scope": "M7b7i original500ms one-case screen; no optimization or release admission",
+  "ownedSources": {
+    "ide/docs/lsp-ir-exit-cadence.md": "d706e87ed7ae540c8719fc5b1d30fecf108090010371cc7bb8535b9923629508",
+    "ide/docs/lsp-development.md": "40294051647f8691def4a16ad87ad053454832a9c7c33cbc89cbd1d8b5bd8c6d"
+  },
+  "materials": {
+    "source": {
+      "archive": {
+        "path": "dev/release-materials/sources/lsp-ir-exit-cadence-20261123/inputs.tar.gz",
+        "sha256": "806780f0905d3b8b7d7160725863c16d2aa57d2458e8b808597cb05ba24629ac",
+        "bytes": 2687643
+      },
+      "manifest": {
+        "path": "dev/release-materials/sources/lsp-ir-exit-cadence-20261123/inputs.tar.gz.manifest.json",
+        "sha256": "e61dd2058ba4bab15c301d12588c95d4094ccc0eada907c00a9fd310798e4709",
+        "bytes": 243643
+      },
+      "entries": 955,
+      "uniquePayloads": 955
+    },
+    "validation": {
+      "archive": {
+        "path": "dev/release-materials/provenance/lsp-ir-exit-cadence-20261123/validation.tar.gz",
+        "sha256": "8026866851a9c02f2fa7e7923ac8ebfb1d9c80c22acda5005adc59ec5d31f89f",
+        "bytes": 18549924
+      },
+      "manifest": {
+        "path": "dev/release-materials/provenance/lsp-ir-exit-cadence-20261123/validation.tar.gz.manifest.json",
+        "sha256": "bdce8da68d93039a2b2f73ecc0d9b646236650e4ce89b3446ff646512d6c9a6b",
+        "bytes": 17205
+      },
+      "entries": 50,
+      "uniquePayloads": 33
+    }
+  },
+  "externalPaths": [
+    "F:\\codex-builds-xlang-lsp-20261123\\exit-hotpath",
+    "F:\\codex-builds-xlang-lsp-20261123\\exit-cadence-materials"
+  ],
+  "materialDependencies": [
+    "dev/release-materials/provenance/lsp-ir-exit-hotpath-20261123.json",
+    "dev/release-materials/provenance/lsp-exit-lifecycle-20261123.json"
+  ],
+  "verification": {
+    "phases": 2,
+    "processes": 16,
+    "latencyQueries": 2064,
+    "cpuExtensionQueries": 6144,
+    "gatesPerPhase": 14,
+    "failedGates": 0,
+    "inputGuardPassed": true,
+    "runtimeGuardPassed": true
+  },
+  "conditions": {
+    "case": "32-single-declaration",
+    "pairs": 4,
+    "smallGenerations": 128,
+    "smallCpuExtension": 384,
+    "idleMs": 500,
+    "backgroundWorkspaceSymbols": "default",
+    "serverMask": 340,
+    "clientMask": 1025
+  },
+  "baseline": {
+    "path": "F:\\codex-builds-xlang-lsp-20261122\\exit-production\\native-stable-v1\\xlang-ls.exe",
+    "sha256": "13ab5b9d3cc2122db947545e9d70dca3929546b9d8d0b4e18e3d891e2e6d6d08"
+  },
+  "candidate": {
+    "path": "F:\\codex-builds-xlang-lsp-20261123\\exit-hotpath\\component-v1\\xlang-ls.exe",
+    "sha256": "0becb1a7b35d68399bf1393eb85154cf070dba20eb4eae3ba33a99d2619946ce"
+  },
+  "runtimeBeforeAndAfter": {
+    "xlang_ide.exe": "dcb587fc2d7bec7e1c8eb1a132e3e89411bd469b5ad6b4a8ff30356cf30fd51f",
+    "xlang-ls.exe": "13ab5b9d3cc2122db947545e9d70dca3929546b9d8d0b4e18e3d891e2e6d6d08",
+    "xlang_ide_xge.dll": "7eba677fddada9b605db2d54dd59ee57a9cfc1caf0b574f6cb206ec9de379418",
+    "update.exe": "4c5266fce0a541b9b96fe92b3d2f7d94598aff3b052e420b08b6d47db5e5c6c2",
+    "xl.exe": "5288c4e8be9f420ef98caeb11be362017be925f2ad81a0d56946cc6a8c721081",
+    "xl.dll": "f31ddbe973ed48d261014ec64fa6b0ba48791fc0313192a19d59467254c0fcd6",
+    "xlc.dll": "64b2e9830569c84580335b0a2b15a59ce13552ba1ba51933fc82cd75808c0728",
+    "xge.dll": "127db42612e8a27c8b1f7f74e4653c25f09140f8baac38d16fc564eb74892ef3"
+  },
+  "defaultRuntimeReplaced": false,
+  "experimentalExitReuseDefault": false,
+  "performanceQualified": false,
+  "wholeGoalPerformanceQualified": false,
+  "goalComplete": false,
+  "externalPublishPerformed": false,
+  "limits": [
+    "Original benchmark limits unchanged; retain all samples and failed gates.",
+    "One-case screening cannot qualify all inputs, large files or a release.",
+    "If AA fails, AB is diagnostic only; no causal performance inference.",
+    "Shared host, process-only affinity; no machine-wide power or priority changes."
+  ]
+}
