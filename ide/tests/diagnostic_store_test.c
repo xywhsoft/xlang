@@ -9,6 +9,24 @@
 
 static unsigned checks;
 #define CHECK(v) do { ++checks; if(!(v)) { fprintf(stderr,"diagnostic_store_test:%d: %s\n",__LINE__,#v); return 0; } } while(0)
+
+#ifdef XLS_COMPILER_XRT
+/* Hold one actual worker read until queue/cancel assertions finish. A fast
+ * disk hash can otherwise finish between observing running and pending. */
+static xevent *diskReadArrived,*diskReadRelease;
+static xatomic32 diskReadArmed,diskReadWaitOkay;
+bool __real_xrtReadFull(xfile,ptr,size_t,size_t*);
+bool __wrap_xrtReadFull(xfile file,ptr bytes,size_t size,size_t* done)
+{
+ if(size && xrtAtomic32Exchange(&diskReadArmed,0,XMEMORY_ACQ_REL)) {
+  xrtEventSet(diskReadArrived);
+  int okay=xrtEventWaitFor(diskReadRelease,15000)==XWAIT_OK;
+  xrtAtomic32Store(&diskReadWaitOkay,okay ? 1 : -1,XMEMORY_RELEASE);
+  if(!okay)return false;
+ }
+ return __real_xrtReadFull(file,bytes,size,done);
+}
+#endif
 typedef struct fixture { xide_language_input_guard* guard; xvalue* result; } fixture;
 static const xvalue* get(const xvalue* object,const char* key) { return xrtValueObjectGet(object,xrtStrView(key)); }
 static const char* string(const xvalue* value) { xstrview text={0}; return xrtValueGetString(value,&text) ? text.Data : NULL; }
@@ -212,22 +230,43 @@ static int run(void)
  CHECK(writeText(common,good)); query=xideDiagnosticStoreSweep(store);
  CHECK(query && waitFor(query,&snapshot)==XIDE_DIAGNOSTIC_READY && !snapshot.records && invalidated(snapshot.invalidated,"disk") && !xrtValueCount(snapshot.documents)); xideDiagnosticQueryDestroy(query); xideDiagnosticStoreDestroy(store);
 
- /* Real 4MiB disk hashing holds the single observer busy: prove bounded
-    queuing/cancel isolation using its actual running state, without hooks. */
+ /* Keep the real 4MiB validation read in flight while checking the queue.
+    The native fixture gates only that read, then delegates to actual I/O. */
  size_t largeSize=4u*1024u*1024u; char* large=xrtMalloc(largeSize+strlen(good)+2); CHECK(large);
  memset(large,'a',largeSize); large[0]='/'; large[1]='/'; large[largeSize]='\n'; memcpy(large+largeSize+1,good,strlen(good)+1);
  CHECK(writeText(common,large)); xrtFree(large);
  store=xideDiagnosticStoreCreate(&(xide_diagnostic_limits){64,32u*1024u*1024u,4u*1024u*1024u,1});
  value=capture(root,first,&diskInput,1,1); CHECK(store && value.guard); query=insert(store,"large-disk",value);
  CHECK(query && waitFor(query,&snapshot)==XIDE_DIAGNOSTIC_READY && snapshot.records==1); xideDiagnosticQueryDestroy(query);
+ #ifdef XLS_COMPILER_XRT
+ diskReadArrived=xrtEventCreate(false,false);diskReadRelease=xrtEventCreate(false,false);
+ CHECK(diskReadArrived && diskReadRelease);
+ xrtAtomic32Init(&diskReadWaitOkay,0);xrtAtomic32Store(&diskReadArmed,1,XMEMORY_RELEASE);
+ #endif
  query=xideDiagnosticStoreSweep(store); CHECK(query);
- xide_diagnostic_load load={0}; uint64_t began=xlsTestClockMicros();
+ xide_diagnostic_load load={0};
+ #ifdef XLS_COMPILER_XRT
+ CHECK(xrtEventWaitFor(diskReadArrived,15000)==XWAIT_OK);
+ CHECK(xideDiagnosticStoreLoad(store,&load));
+ #else
+ uint64_t began=xlsTestClockMicros();
  do { CHECK(xideDiagnosticStoreLoad(store,&load)); if(load.running) break; xrtSleep(1); } while(xlsTestClockMicros()-began<15000000);
+ #endif
  CHECK(load.running==1 && xideDiagnosticQueryResult(query,&snapshot)==XIDE_DIAGNOSTIC_PENDING);
  xide_diagnostic_query* queued=xideDiagnosticStoreSnapshot(store); CHECK(queued);
  xide_diagnostic_query* overflow=xideDiagnosticStoreSnapshot(store); CHECK(!overflow);
- xideDiagnosticQueryCancel(queued); CHECK(waitFor(queued,&snapshot)==XIDE_DIAGNOSTIC_CANCELLED && !snapshot.documents && !snapshot.invalidated); xideDiagnosticQueryDestroy(queued);
+ xideDiagnosticQueryCancel(queued);
+ #ifdef XLS_COMPILER_XRT
+ /* The actor acknowledges queued cancellation after its running task exits. */
+ CHECK(xrtEventSet(diskReadRelease));
+ #endif
+ CHECK(waitFor(queued,&snapshot)==XIDE_DIAGNOSTIC_CANCELLED && !snapshot.documents && !snapshot.invalidated); xideDiagnosticQueryDestroy(queued);
  CHECK(waitFor(query,&snapshot)==XIDE_DIAGNOSTIC_READY && snapshot.records==1); xideDiagnosticQueryDestroy(query);
+ #ifdef XLS_COMPILER_XRT
+ CHECK(xrtAtomic32Load(&diskReadWaitOkay,XMEMORY_ACQUIRE)==1);
+ CHECK(xrtEventDestroy(diskReadArrived) && xrtEventDestroy(diskReadRelease));
+ diskReadArrived=diskReadRelease=NULL;
+ #endif
  query=xideDiagnosticStoreSnapshot(store); CHECK(query && waitFor(query,&snapshot)==XIDE_DIAGNOSTIC_READY && snapshot.records==1 && snapshot.workerThreadId!=xrtThreadCurrentId()); xideDiagnosticQueryDestroy(query);
  CHECK(xideDiagnosticStoreLoad(store,&load) && load.rejected>=1 && load.cancelled>=1);
  query=xideDiagnosticStoreSweep(store); CHECK(query); xideDiagnosticStoreDestroy(store);

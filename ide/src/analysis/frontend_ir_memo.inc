@@ -3,6 +3,7 @@
  * transformations and verification still run on independent mutable arenas. */
 #include "analysis/frontend_ir_memo.h"
 #include "analysis/frontend_sem.h"
+#include "analysis/frontend_ir_exit.h"
 #include "analysis/frontend_cancel.h"
 #include "analysis/index_entities.h"
 #define XLS_IR_MEMO_BYTES (32u*1024u*1024u)
@@ -23,7 +24,14 @@ static void xlsIrInputProofRelease(xls_ir_input_proof*);
 typedef struct xls_ir_derived_cache xls_ir_derived_cache;
 #endif
 #endif
-struct xls_ir_memo {xstrbuf context;xarray entries;size_t bytes;xls_entity_view* entities;
+#if XLS_EXPERIMENTAL_IR_EXIT_REUSE
+typedef struct xls_exit_asset xls_exit_asset;
+#endif
+struct xls_ir_memo {
+#if XLS_EXPERIMENTAL_IR_EXIT_REUSE
+    xls_exit_asset* exits;xls_exit_result_work exitStats;
+#endif
+    xstrbuf context;xarray entries;size_t bytes;xls_entity_view* entities;
 #ifdef XLS_NATIVE_AST_PACKAGE_FIELDS
     xarray inputs;xls_ir_input_work inputWork;
 #ifdef XLS_NATIVE_IR_DERIVED_PHASES
@@ -62,10 +70,22 @@ static int xlsIrMemoData(xstrbuf* b,const void* data,size_t size,size_t limit)
     }
     return b->Capacity<=limit;
 }
+#if XLS_EXPERIMENTAL_IR_EXIT_REUSE
+static size_t xlsIrMemoNumberBytes(unsigned char bytes[10],uint64_t value)
+{
+    size_t n=0;
+    do{unsigned char part=(unsigned char)(value&127u);value>>=7;bytes[n++]=(unsigned char)(part|(value ? 128u : 0u));}while(value);
+    return n;
+}
+#endif
 static int xlsIrMemoNumber(xstrbuf* b,uint64_t value,size_t limit)
 {
+#if XLS_EXPERIMENTAL_IR_EXIT_REUSE
+    unsigned char bytes[10];size_t n=xlsIrMemoNumberBytes(bytes,value);
+#else
     unsigned char bytes[10];size_t n=0;
     do{unsigned char part=(unsigned char)(value&127u);value>>=7;bytes[n++]=(unsigned char)(part|(value ? 128u : 0u));}while(value);
+#endif
     return xlsIrMemoData(b,bytes,n,limit);
 }
 static int xlsIrMemoString(xstrbuf* b,const char* text,size_t limit)
@@ -201,6 +221,9 @@ static void xlsIrUnitRelease(xls_ir_unit* unit)
 #ifdef XLS_NATIVE_IR_DERIVED_PHASES
 #include "analysis/frontend_ir_derived.inc"
 #endif
+#if XLS_EXPERIMENTAL_IR_EXIT_REUSE
+#include "analysis/frontend_ir_exit.inc"
+#endif
 static void xlsIrOwnerReset(const XL6_IrModule* module)
 {
     xls_ir_result* owner=xlsActiveIrOwner;if(!owner || &owner->module!=module)return;
@@ -243,6 +266,9 @@ static int xlsIrOwnerMark(XL6_IrModule* module,const xls_ir_unit* unit)
 void xlsFrontendIrMemoDestroy(xls_ir_memo* memo)
 {
     if(!memo)return;
+#if XLS_EXPERIMENTAL_IR_EXIT_REUSE
+    xlsExitRelease(memo->exits);
+#endif
     for(size_t i=0;i<memo->entries.Count;++i)xlsIrUnitRelease(*(xls_ir_unit**)xrtArrayGet(&memo->entries,i));
 #ifdef XLS_NATIVE_AST_PACKAGE_FIELDS
 #ifdef XLS_NATIVE_IR_DERIVED_PHASES

@@ -7,6 +7,7 @@
 #include "analysis/frontend_cancel.h"
 #include "analysis/frontend_ir_plan_direct.h"
 #include "analysis/frontend_ir_initializers.inc"
+#include "analysis/frontend_ir_exit_scope.h"
 
 #define XLS_IR_SCAN_BYTES (16u*1024u*1024u)
 #define XLS_IR_PLAN_BYTES (8u*1024u*1024u)
@@ -538,11 +539,18 @@ int xl6IrRefreshExitPlans(XL6_IrModule* module)
 { return xlsFrontendIrRefreshRegionBudget(module,XLS_IR_REGION_BYTES); }
 int xlsFrontendIrRefreshRegionBudget(XL6_IrModule* module,size_t bytes)
 {
+#if XLS_EXPERIMENTAL_IR_EXIT_REUSE
+    xls_exit_pending pending={0};if(xlsExitTry(module,&pending))return 1;
+#endif
     xls_ir_initializer_scope initializers;xlsFrontendIrInitializerBegin(&initializers,module);
     xls_ir_call_scan calls; xlsIrCallScanBegin(&calls,module,XLS_IR_CALL_BYTES);
     xls_ir_scan scan; xlsIrScanInit(&scan,module); scan.regionBudget=bytes; xlsActiveIrScan=&scan;
-    int okay=xlsIrRefreshExitPlansOriginal(module); xlsIrScanDone(&scan); xlsIrCallScanDone(&calls);
-    xlsFrontendIrInitializerEnd(&initializers);return okay;
+    int okay=xlsIrRefreshExitPlansOriginal(module);xlsIrScanDone(&scan); xlsIrCallScanDone(&calls);
+    xlsFrontendIrInitializerEnd(&initializers);
+#if XLS_EXPERIMENTAL_IR_EXIT_REUSE
+    xlsExitFinish(module,&pending,okay);
+#endif
+    return okay;
 }
 static int xlsIrVerifyBudgets(const XL6_IrModule* module,XL6_DiagList* diags,size_t bytes,size_t regionBytes,size_t directBytes)
 {

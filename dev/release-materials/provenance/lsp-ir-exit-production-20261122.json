@@ -1,0 +1,183 @@
+{
+  "schema": 1,
+  "date": "2026-11-23",
+  "phaseStarted": "2026-11-22",
+  "stage": "M7b7e",
+  "scope": "Audited exit-production result reuse retained behind a default-off compile-time profile; conservative0.109 qualification",
+  "ownedSources": {
+    "ide/src/analysis/check.c": "3b0bc18b164f7b96e959b45c255a1752eb7cf3f1db56c5422da4e728ab071269",
+    "ide/src/analysis/frontend_ir.inc": "da8f374a6f6630ed4fd0e507701edf36f2fc7eb6b4f9f911fca3dca7cbef6a11",
+    "ide/src/analysis/frontend_ir_memo.inc": "c5f166c92146966858c1fb4df41dc9a8f81e7c2edf08dfad4309967d542322f3",
+    "ide/src/analysis/frontend_ir_persistent.inc": "eca51f4f11a9613bf4bdc178f87916cbb96c340f4139d4ee64ea729af71284cb",
+    "ide/src/analysis/frontend_ir_exit.h": "7172acf71202c66c9b04a227e0aa2caa87af3d8c4f86926bed00619fca459755",
+    "ide/src/analysis/frontend_ir_exit_scope.h": "f614210627a68f76b19f0ac831f7eb78be083cc4f88e089b9fcbd1b435499586",
+    "ide/src/analysis/frontend_ir_exit.inc": "dc589094a4522e6f56ba3edc68c314321134a4abeccd62ff6a58e4633d53a8a2",
+    "ide/src/analysis/frontend_ir_exit_key.inc": "6f8fd828274bf82b4f36e8ceb8f3396d1e09395b2426662a37fe86f702825e15",
+    "ide/src/analysis/ir_profile.h": "539cd7574ee7c1e3a0ad125a4029a34e1428a7b3ef9a33a6f0545cbec03e722e",
+    "ide/src/server/xlang_ls.c": "278a8eece9f4a1aeeb9b4cb81c668deda8f2dce0091b8d9a5d48b172460e81e5",
+    "ide/src/services/language_snapshot.c": "cd9af959026d115c1916ae869d043ff9f6f662e210b2a1a1f5cae1b68cfd0d30",
+    "ide/tests/analysis_ir_exit_test.c": "23bdaa9cd8b01a9ec181d979eb757bf38d1e53f0e200b0cd3108a201762a109c",
+    "ide/tests/analysis_ir_exit_fault.inc": "2b02f71aef1891135d394e8951197a21c9fdf8bdc19ed872d39aa667b3c64927",
+    "ide/tests/analysis_ir_input_test.c": "4bfbe13e115ed80e42ca9f1833eb950cb5d903d963f17ff5fb34012a6987fda7",
+    "ide/tests/diagnostic_store_test.c": "b2b463adfa3f8f3060cd77cf6bdec4c44b48c0867560462a1ca74d92658250c5",
+    "ide/tools/build_lsp_core.py": "041de0bb29835e6d26da9d429e0000fa7e3d4e6894498b860f3549f5de142264",
+    "ide/tools/native_current_ir_overlay.py": "449995330eda8188eb81a625ed122fe1d0ca45beac26815f24bcea076dc4f236",
+    "ide/tools/native_ir_exit_profile.py": "89af10cc2122b04b673b0ccb3326eb6eea35d01ba9754516527c895dd18abac9",
+    "ide/tools/check_ir_exit_reuse.py": "0f41819b6b79fa6e5489357ced5b3b4867c4399aaca5b3ecdc94f79fc561a026",
+    "ide/tools/check_ir_exit_profile.py": "5b5d7626373547cd4ce8c69fcadac722169058ee08641bb13eceed914e6aa69b",
+    "ide/tools/benchmark_lsp_analysis.py": "925d96ec5a4449923d2fad17125b3a143490efb2ffffabdf155beed81af55a14",
+    "ide/docs/lsp-ir-exit-production.md": "902cdf1742db9572562cec3f12731049e06391f157c1f9063ade988101f5390c",
+    "ide/docs/lsp-development.md": "6d422e18b80ee63c231599fdc1b9adc97d33e2e249e7a6f73cdc91e0342f31a7"
+  },
+  "materials": {
+    "source": {
+      "archive": {
+        "path": "dev/release-materials/sources/lsp-ir-exit-production-20261122/inputs.tar.gz",
+        "sha256": "44187a02963af6e129ecbf63555456f3c4d8a4a2b788e0ff2786247ddcb0bfc2",
+        "bytes": 34289785
+      },
+      "manifest": {
+        "path": "dev/release-materials/sources/lsp-ir-exit-production-20261122/inputs.tar.gz.manifest.json",
+        "sha256": "004244e512c510dc7b7e75e6a27178c59cf50ced62ac62bf95a2376fec59aa2d",
+        "bytes": 3321849
+      },
+      "entries": 10143,
+      "uniquePayloads": 8788
+    },
+    "validation": {
+      "archive": {
+        "path": "dev/release-materials/provenance/lsp-ir-exit-production-20261122/validation.tar.gz",
+        "sha256": "02694de0bbb75274766cffac642756da03eeadfb707dc4e4c9e0b595b2efa9ef",
+        "bytes": 422214650
+      },
+      "manifest": {
+        "path": "dev/release-materials/provenance/lsp-ir-exit-production-20261122/validation.tar.gz.manifest.json",
+        "sha256": "ca33039e2c10cbfac8a196db80ba3e11d2e8ef10ef12cf07c12a9d80238f83d1",
+        "bytes": 4415229
+      },
+      "entries": 11054,
+      "uniquePayloads": 5101
+    }
+  },
+  "externalPaths": [
+    "F:\\codex-builds-xlang-lsp-20261122\\exit-production",
+    "F:\\codex-builds-xlang-lsp-20261122\\exit-production-materials"
+  ],
+  "verification": {
+    "defaultNativePrograms": 229,
+    "defaultProtocolSuites": 33,
+    "defaultGuiSuites": 55,
+    "defaultEditorTransactionModes": 47,
+    "freshNativeCompileInvocations": 374,
+    "qualifiedNativeObjects": 373,
+    "preprocessedEquivalenceCases": 8,
+    "defaultProfileReference": "same-cohort qualified0.108; only service version string normalized",
+    "explicitProfileReference": "functionally qualified0.109 candidate470841ad",
+    "producerFunctions": 44,
+    "optInSourceAdmissionMinimumBytes": 65536,
+    "optInCacheMaximumKnownBytes": 8388608,
+    "profileGuardCases": 7,
+    "explicitProfileFaultReceipt": "F:\\codex-builds-xlang-lsp-20261122\\exit-production\\fault-explicit-v1\\result.json",
+    "retainedOriginalFaultAssertions": 2556
+  },
+  "performance": {
+    "status": "optimization-held",
+    "originalImagePassedGates": 94,
+    "sourceAdmissionImagePassedGates": 88,
+    "totalGates": 96,
+    "sourceAdmissionLargeCpuGeomeanRatio": 0.9795623648036317,
+    "failedSourceAdmissionGates": [
+      {
+        "name": "32-single-literal/first/wireP50",
+        "actual": 11.2767,
+        "limit": 11.224605,
+        "passed": false,
+        "baseline": 10.6901,
+        "ratio": 1.05
+      },
+      {
+        "name": "32-single-literal/cadence/cpuPerChangeP50",
+        "actual": 6.766732283464567,
+        "limit": 6.588336614173229,
+        "passed": false,
+        "baseline": 6.274606299212598
+      },
+      {
+        "name": "32-single-declaration/hot/wireP95",
+        "actual": 17.7151,
+        "limit": 16.53414,
+        "passed": false,
+        "baseline": 15.7468
+      },
+      {
+        "name": "32-single-declaration/interaction/cpuPerChangeP50",
+        "actual": 10.518590998043052,
+        "limit": 9.98501712328767,
+        "passed": false,
+        "baseline": 9.50954011741683
+      },
+      {
+        "name": "32-single-declaration/cadence/cpuPerChangeP50",
+        "actual": 7.381889763779528,
+        "limit": 6.975885826771654,
+        "passed": false,
+        "baseline": 6.643700787401575
+      },
+      {
+        "name": "32-single-declaration/extension/cpuPerChangeP50",
+        "actual": 11.71875,
+        "limit": 10.7666015625,
+        "passed": false,
+        "baseline": 10.25390625
+      },
+      {
+        "name": "32-imported-literal/first/wireP50",
+        "actual": 13.7601,
+        "limit": 13.319880000000001,
+        "passed": false,
+        "baseline": 12.6856,
+        "ratio": 1.05
+      },
+      {
+        "name": "32-imported-literal/hot/wireP95",
+        "actual": 18.7288,
+        "limit": 18.073545000000003,
+        "passed": false,
+        "baseline": 17.2129
+      }
+    ],
+    "mainQueriesPerCompleteRun": 4608,
+    "supplementalCpuQueriesPerCompleteRun": 12288,
+    "processesPerCompleteRun": 64,
+    "defaultRuntimePolicy": "Code-equivalent conservative producer plus fresh functional qualification; do not claim the rejected performance gates passed"
+  },
+  "selectedRuntime": {
+    "service": "F:\\codex-builds-xlang-lsp-20261122\\exit-production\\native-stable-v1\\xlang-ls.exe",
+    "serviceSha256": "13ab5b9d3cc2122db947545e9d70dca3929546b9d8d0b4e18e3d891e2e6d6d08",
+    "gui": "F:\\codex-builds-xlang-lsp-20261122\\exit-production\\gui-source-stable-v1\\ide\\build\\Release\\xlang_ide.link.exe",
+    "guiSha256": "dcb587fc2d7bec7e1c8eb1a132e3e89411bd469b5ad6b4a8ff30356cf30fd51f",
+    "privateGuiDllSha256": "7eba677fddada9b605db2d54dd59ee57a9cfc1caf0b574f6cb206ec9de379418"
+  },
+  "defaultRuntimeReplaced": false,
+  "experimentalExitReuseDefault": false,
+  "experimentalNodeViews": false,
+  "normalExitProductionReuseEnabled": false,
+  "normalSelectiveFunctionFinalIrEnabled": false,
+  "wholeGoalPerformanceQualified": false,
+  "goalComplete": false,
+  "externalPublishPerformed": false,
+  "retainedFailures": [
+    "screen-v6 cold/first gates",
+    "performance-current-v1 insufficient CPU precision and controlled owned-test termination",
+    "performance-current-v2 94/96",
+    "performance-current-v3 88/96",
+    "obsolete observation/scheduling/admission fixture attempts",
+    "profile-v1 include-order mismatch; profile-v2 standalone macro-check include dependencies; both corrected in profile-v3"
+  ],
+  "limits": [
+    "No arbitrary per-function final IR production.",
+    "No whole-goal,big real project,endurance or other-platform performance qualification.",
+    "Private opt-in component QA is not a complete experimental service rebuild.",
+    "Installed0.108pair remains until a separately recorded local publication."
+  ]
+}

@@ -104,6 +104,11 @@ def derive(frontend:Path,output:Path,*,phases=False,ir_source=None):
         source,topology_overlay=topology(source,frontend,hashlib.sha256(selected.read_bytes()).hexdigest(),audited[str(frontend/'src/ir/xl6_ir.h')])
         dependency=Path(__file__).with_name('native_ir_topology_overlay.py')
         audited[str(dependency)]=hashlib.sha256(dependency.read_bytes()).hexdigest()
+    from native_ir_exit_profile import qualify as qualify_exits
+    exit_production=qualify_exits(frontend) if phases else dict(enabled=False,reason='Unaudited production phase target')
+    if exit_production['enabled']:source='#define XLS_NATIVE_IR_EXIT_PRODUCTION 1\n'+source
+    dependency=Path(__file__).with_name('native_ir_exit_profile.py')
+    audited[str(dependency)]=hashlib.sha256(dependency.read_bytes()).hexdigest()
     compiled=output/'frontend/xl6_ir.c';compiled.parent.mkdir(parents=True,exist_ok=True)
     compiled.write_text(source,encoding='utf8',newline='\n')
     return selected,compiled,dict(source=str(selected),sourceSha256=hashlib.sha256(selected.read_bytes()).hexdigest(),
@@ -112,6 +117,7 @@ def derive(frontend:Path,output:Path,*,phases=False,ir_source=None):
         auditedDependencies=audited,phaseQualification=phases,
         irDependencyCohort=dependency_cohort,
         derivedPhases=derived_overlay if phases else None,
+        exitProduction=exit_production,
         parameterMasks=parameter_overlay,
         classifierAdmission=classifier_overlay,
         topologyObserver=topology_overlay,

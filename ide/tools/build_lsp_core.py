@@ -100,7 +100,7 @@ CORE_TESTS = ("analysis_ast_intern_test", *CORE_TESTS)
 CORE_TESTS = ("analysis_frontend_cancel_test", *CORE_TESTS)
 CORE_TESTS = ("analysis_dependency_session_test", "analysis_dependency_worker_test", *CORE_TESTS)
 CORE_TESTS = ("analysis_overlay_owner_test", *CORE_TESTS)
-CORE_TESTS = ("analysis_ir_memo_test", "analysis_projection_test", *CORE_TESTS)
+CORE_TESTS = ("analysis_ir_exit_test", "analysis_ir_memo_test", "analysis_projection_test", *CORE_TESTS)
 CORE_TESTS = ("analysis_completion_body_failure_test", *CORE_TESTS)
 CORE_TESTS = ("analysis_semantic_proof_test", *CORE_TESTS)
 CORE_TESTS = ("analysis_semantic_headers_test", *CORE_TESTS)
@@ -934,6 +934,7 @@ def main() -> None:
     inputs[str(Path(__file__).with_name('native_ir_scan_overlay.py').resolve())] = sha(Path(__file__).with_name('native_ir_scan_overlay.py'))
     inputs[str(Path(__file__).with_name('native_current_ir_overlay.py').resolve())] = sha(Path(__file__).with_name('native_current_ir_overlay.py'))
     inputs[str(Path(__file__).with_name('native_ir_derived_overlay.py').resolve())] = sha(Path(__file__).with_name('native_ir_derived_overlay.py'))
+    inputs[str(Path(__file__).with_name('native_ir_exit_profile.py').resolve())] = sha(Path(__file__).with_name('native_ir_exit_profile.py'))
     inputs[str(Path(__file__).with_name('native_current_ir_profile.py').resolve())] = sha(Path(__file__).with_name('native_current_ir_profile.py'))
     inputs[str(Path(__file__).with_name('native_current_retirement_profile.py').resolve())] = sha(Path(__file__).with_name('native_current_retirement_profile.py'))
     for name in ('native_frontend_inputs.py','native_c_interop_profile.py','native_current_unified_profile.py','native_current_semantic_profile.py','native_semantic_effects_overlay.py','native_current_stdlib_profile.py','native_current_context_profile.py','native_type_constructor_overlay.py','native_aggregate_completion_overlay.py','native_completion_errors_overlay.py'):
@@ -1167,6 +1168,7 @@ def main() -> None:
             if name in ('navigation_cache_test','navigation_function_reuse_test'):extra+=['-Wl,--wrap='+function for function in ('xrtCalloc','xrtStrDup','xlsSemanticCheckRetain','malloc','calloc','free','xrtMalloc','xrtRealloc','xrtArrayInit','xrtArrayReserve','xrtArrayResize','xrtStrBufAppend','xlsTextCreate','xlsSemanticIndexPointFact')]
             if name=='analysis_selection_test':extra+=['-Wl,--wrap=xrtCalloc','-Wl,--wrap=xrtArrayInit','-Wl,--wrap=xrtArrayPush']
             if name == "semantic_callable_family_test":extra.append("-Wl,--wrap=xrtMalloc")
+            if name == "diagnostic_store_test":extra.append("-Wl,--wrap=xrtReadFull")
             if name == "semantic_reference_graph_test":extra += ["-Wl,--wrap=xrtMalloc","-Wl,--wrap=xrtFree"]
             if name == "analysis_index_limit_test":
                 extra.append(str(limited_index))
@@ -1199,7 +1201,7 @@ def main() -> None:
                           "-Wl,--wrap=xrtStrBufReserve", "-Wl,--wrap=xrtStrBufFree"]
             if name == "analysis_ir_input_test":
                 extra += ["-Wl,--wrap=" + function for function in (
-                    "xlsFrontendIrResultBuildTypedChecked", "xrtCalloc", "xrtFree", "xrtArrayResize",
+                    "xlsFrontendIrResultBuildTypedCheckedExits", "xlsFrontendIrResultBuildTypedChecked", "xrtCalloc", "xrtFree", "xrtArrayResize",
                     "xrtArrayUnit", "xrtStrBufReserve", "xrtStrBufFree", "xrtMapSet")]
             if name == "analysis_semantic_alias_reads_test":
                 extra += ["-Wl,--wrap=" + function for function in (

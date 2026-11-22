@@ -156,6 +156,24 @@ def evaluate(rows, cases, declaration_ratios, cpu_chains=None):
                     a, b = [means[v]['p50'] for v in ('baseline','candidate')]
                     data[phase]['cpuInteractionChainMeanMs'] = means
                     gate(case+'/interaction/cpuPerChangeP50',b,a*1.05,baseline=a)
+                    extended = [p for p in cpu_chains if p['case']==case and p.get('cpuExtensionChain')]
+                    if extended:
+                        if len(extended) != len([p for p in cpu_chains if p['case']==case]):
+                            raise RuntimeError('incomplete CPU extension set')
+                        for field, label in (('cpuCadenceChain','cadence'), ('cpuExtensionChain','extension')):
+                            windows = {}
+                            for variant in ('baseline','candidate'):
+                                chains = [p[field] for p in extended if p['variant']==variant]
+                                if any(not c or c['queries']<=0 for c in chains):
+                                    raise RuntimeError('missing CPU extension window')
+                                windows[variant] = distribution([c['cpuMs']/c['queries'] for c in chains])
+                                if field == 'cpuExtensionChain':
+                                    minimum = min(c['cpuMs'] for c in chains)
+                                    gates.append(dict(name=case+'/'+variant+'/extensionCpuPrecisionFloor',
+                                                      actual=minimum,minimum=1000,passed=minimum>=1000))
+                            a,b = [windows[v]['p50'] for v in ('baseline','candidate')]
+                            data[phase][label+'CpuPerChangeMs'] = windows
+                            gate(case+'/'+label+'/cpuPerChangeP50',b,a*1.05,baseline=a)
             if phase == 'exact':
                 gate(case+'/exact/absoluteP50', after['p50'], 10)
         a, b = [max(row['memory']['private'] for row in selected if row['variant'] == v)
@@ -177,6 +195,7 @@ def main():
     parser.add_argument('--idle-between-generations-ms', type=int, default=0, help='Fixed unmeasured idle before each changed generation, isolated mode only. Zero measures continuous requests.')
     parser.add_argument('--cpu-interaction-chains', action='store_true', help='Isolated mode: compare CPU of complete changed-version chains, including prescribed idle work, normalized per change. Require >=1s CPU per process; retain raw per-query CPU gates as diagnostics.')
     parser.add_argument('--small-generations', type=int, default=0, help='Isolated mode only: fixed 32-function generation count, 4..256. Long chains improve CPU timing resolution.')
+    parser.add_argument('--small-cpu-extension', type=int, default=0, help='Isolated CPU-chain mode only: append 16..2048 real changed versions to each 32-function process after all timed latency queries. No added idle; retain the original cadence CPU gate and add extension gates.')
     parser.add_argument('--generations', type=int, default=14, help='Cold plus changed versions, 4..64; then one exact repeat.')
     parser.add_argument('--functions', default='32,512')
     parser.add_argument('--topologies', default='single,imported')
@@ -228,6 +247,9 @@ def main():
         parser.error('CPU interaction chains/small generations require isolated processes')
     if args.small_generations and not 4 <= args.small_generations <= 256:
         parser.error('small generations must be 4..256')
+    if args.small_cpu_extension and (not args.isolated_processes or not args.cpu_interaction_chains or
+                                    not 16 <= args.small_cpu_extension <= 2048 or 32 not in functions):
+        parser.error('small CPU extension requires isolated CPU chains, 32-function cases and 16..2048 queries')
     output = args.output.resolve()
     output.mkdir(parents=True, exist_ok=False)
     protected = {str(p): sha(p) for p in [*servers.values(), Path(__file__), *[
@@ -259,6 +281,9 @@ def main():
         declarationRatios=ratios, protected=protected,
         caseGenerations={name:list(range(n))+[n-1] for name,n in case_generations.items()},
         cpuInteractionChains=args.cpu_interaction_chains, cpuPrecisionMinimumMs=1000,
+        smallCpuExtension=args.small_cpu_extension,
+        cpuExtensionScope='After the unchanged latency/exact sequence, append fixed real edits without idle. Combined CPU includes the intervening exact repeat; denominator counts changed versions. Original cadence and extension CPU ratios remain additional 5percent gates; extension itself also needs >=1s CPU.',
+        expectedCpuQueries=sum(1 for count,_,_ in cases.values() if count==32)*args.pairs*2*args.small_cpu_extension,
         expectedQueries=sum(n+1 for n in case_generations.values())*args.pairs*2,
         expectedProcesses=len(cases)*args.pairs*2,
         order='Complete A then B chains, reversing by pair parity; no live peer LS.' if args.isolated_processes else 'Start AB/BA by pair parity. Alternate AB/BA before EVERY query generation.',
@@ -278,10 +303,14 @@ def main():
     plan_path = output/'plan.json'
     plan_path.write_text(json.dumps(plan, indent=2)+'\n', encoding='utf8', newline='\n')
     record = dict(status='running', accepted=False, plan=str(plan_path), planSha256=sha(plan_path),
-                  resources=[], queries=[], processes=[])
+                  resources=[], queries=[], cpuQueries=[], processes=[])
 
     def publish():
         (output/'result.json').write_text(json.dumps(record, ensure_ascii=False, indent=2)+'\n', encoding='utf8', newline='\n')
+        (output/'progress.json').write_text(json.dumps(dict(status=record['status'],
+            processes=len(record['processes']),queries=len(record['queries']),
+            cpuQueries=len(record['cpuQueries']),lastCase=record['queries'][-1]['case'] if record['queries'] else None))+'\n',
+            encoding='utf8',newline='\n')
 
     counters, answers = Counters(), {}
     removed = {name: os.environ.pop(name, None) for name in ('XLS_CHECK_PHASE_TRACE', 'XLS_FUNCTION_STAGE_VALIDATE')}
@@ -297,6 +326,7 @@ def main():
                         counters.qualify(record['resources'], args.minimum_available_gib, phase='process', case=case, pair=pair, variant=variant)
                         client = AutomaticClient(servers[variant], output/'absent/xl.exe', folder)
                         chain_begin, cpu_chain = None, None
+                        cadence_chain, extension_chain = None, None
                         try:
                             initialize(client, entry, members, folder)
                             if topology == 'imported':
@@ -337,6 +367,39 @@ def main():
                                 if step == len(generations)-2 and args.cpu_interaction_chains:
                                     end_cpu,end_cycles = counters.cpu(client)
                                     cpu_chain = dict(cpuMs=end_cpu-chain_begin[0],cycles=end_cycles-chain_begin[1],queries=step)
+                            if count == 32 and args.small_cpu_extension:
+                                cadence_chain = cpu_chain
+                                extension_begin = counters.cpu(client)
+                                first = case_generations[case]
+                                for generation in range(first,first+args.small_cpu_extension):
+                                    body = make_body(count,generation,topology,edit)
+                                    counters.qualify(record['resources'],args.minimum_available_gib,
+                                        phase='cpu-extension',case=case,pair=pair,variant=variant,generation=generation)
+                                    before_cpu,before_cycles = counters.cpu(client)
+                                    started = time.perf_counter_ns()
+                                    client.change(dep,body,generation+1)
+                                    value = checked(client,entry,generation+1 if topology=='single' else 1)
+                                    elapsed = (time.perf_counter_ns()-started)/1e6
+                                    after_cpu,after_cycles = counters.cpu(client)
+                                    if not (value['ok'] and not value['count'] and value['semanticDefinitions']):
+                                        raise RuntimeError('CPU extension native check failed: '+json.dumps(value))
+                                    if value['analysis']['workerThreadId']==value['analysis']['captureThreadId']:
+                                        raise RuntimeError('CPU extension bypassed native worker')
+                                    facts = {k:v for k,v in value.items() if k not in ('analysis','durationMs')}
+                                    key = case,generation,False
+                                    if key in answers and answers[key]!=facts:
+                                        raise RuntimeError(f'CPU extension result mismatch: {key}, {variant}')
+                                    answers.setdefault(key,facts)
+                                    record['cpuQueries'].append(dict(case=case,pair=pair,variant=variant,
+                                        generation=generation,phase='cpu-extension',ms=elapsed,
+                                        cpuMs=after_cpu-before_cpu,cycles=after_cycles-before_cycles,
+                                        memory=counters.memory(client),result=value))
+                                end_cpu,end_cycles = counters.cpu(client)
+                                extension_chain = dict(cpuMs=end_cpu-extension_begin[0],
+                                    cycles=end_cycles-extension_begin[1],queries=args.small_cpu_extension)
+                                cpu_chain = dict(cpuMs=end_cpu-chain_begin[0],cycles=end_cycles-chain_begin[1],
+                                    queries=cadence_chain['queries']+args.small_cpu_extension,
+                                    interveningExactQueries=1)
                         finally:
                             # Join every process before launching its peer, including on failure.
                             original_error = sys.exc_info()[1]
@@ -358,7 +421,8 @@ def main():
                                 errors.append(repr(error))
                             record['processes'].append(dict(case=case,pair=pair,variant=variant,
                                 pid=client.process.pid,exit=client.process.returncode,stderr=str(sp),transcript=str(tp),
-                                cpuChain=cpu_chain,cleanupErrors=errors,stderrSha256=sha(sp) if sp.exists() else None,
+                                cpuChain=cpu_chain,cpuCadenceChain=cadence_chain,cpuExtensionChain=extension_chain,
+                                cleanupErrors=errors,stderrSha256=sha(sp) if sp.exists() else None,
                                 transcriptSha256=sha(tp) if tp.exists() else None))
                             publish()
                             if not original_error and (errors or client.process.returncode or stderr):
@@ -441,6 +505,8 @@ def main():
                 print(case, pair, 'pair complete', flush=True)
         if len(record['queries']) != plan['expectedQueries'] or len(record['processes']) != plan['expectedProcesses']:
             raise RuntimeError('incomplete measurement set')
+        if len(record['cpuQueries']) != plan['expectedCpuQueries']:
+            raise RuntimeError('incomplete CPU extension set')
         for row in record['processes']:
             row['stderrSha256'], row['transcriptSha256'] = sha(row['stderr']), sha(row['transcript'])
         if any(sha(p) != digest for p, digest in protected.items()) or sha(plan_path) != record['planSha256']:
@@ -450,13 +516,13 @@ def main():
         else:
             if args.cpu_interaction_chains:
                 record['perQueryCpuDiagnostics'] = [g for g in evaluate(record['queries'],cases,ratios)[1] if g['name'].endswith('/hot/cpuP50')]
-            record['summary'], record['gates'] = evaluate(record['queries'], cases, ratios,record['processes'] if args.cpu_interaction_chains else None)
+            record['summary'], record['gates'] = evaluate(record['queries']+record['cpuQueries'], cases, ratios,record['processes'] if args.cpu_interaction_chains else None)
         failed = sum(not row['passed'] for row in record['gates'])
         record['status'] = ('calibration-failed' if args.calibrate else 'gates-failed') if failed else 'passed'
         record['failedGates'] = failed
         publish()
         print(json.dumps(dict(status=record['status'], queries=len(record['queries']),
-            processes=len(record['processes']), gates=len(record['gates']), failed=failed,
+            processes=len(record['processes']),cpuQueries=len(record['cpuQueries']),gates=len(record['gates']), failed=failed,
             result=str(output/'result.json'))), flush=True)
         return 2 if failed else 0
     except BaseException as error:

@@ -17,6 +17,7 @@
 #include "analysis/frontend_model_source.h"
 #include "analysis/frontend_cancel.h"
 #include "analysis/frontend_ir_memo.h"
+#include "analysis/frontend_ir_exit.h"
 #include "analysis/typed_module_internal.h"
 #include "analysis/index_entities.h"
 #include "src/parser/xl6_parser_api.h"
@@ -223,8 +224,14 @@ static xls_semantic_check* createBody(xls_context* context,const char* entry,
                 prepared=xlsFrontendIrResultPreparePersistent((xls_ir_result*)irBaseline,32u*1024u*1024u);
             r->irPrepared=prepared==2;
 #ifdef XLS_NATIVE_AST_PACKAGE_FIELDS
+#if XLS_EXPERIMENTAL_IR_EXIT_REUSE
+            r->cachedIr=r->typedModule ? xlsFrontendIrResultBuildTypedCheckedExits(r->typedModule,&attempted,irBaseline,32u*1024u*1024u,
+                xlsSemanticIndexEntities(r->typedIndex),prepared ? 32u*1024u*1024u : 0,r->memo,
+                r->report.bytes>=64u*1024u ? 8u*1024u*1024u : 0) :
+#else
             r->cachedIr=r->typedModule ? xlsFrontendIrResultBuildTypedChecked(r->typedModule,&attempted,irBaseline,32u*1024u*1024u,
                 xlsSemanticIndexEntities(r->typedIndex),prepared ? 32u*1024u*1024u : 0,r->memo) :
+#endif
 #else
             r->cachedIr=r->typedModule ? xlsFrontendIrResultBuildTyped(r->typedModule,&attempted,irBaseline,32u*1024u*1024u,
                 xlsSemanticIndexEntities(r->typedIndex),prepared ? 32u*1024u*1024u : 0) :
@@ -607,3 +614,8 @@ static char* reportJson(xls_semantic_check* r,size_t* size,int includeIndex)
 }
 char* xlsSemanticCheckJson(xls_semantic_check* r,size_t* size) { return reportJson(r,size,1); }
 char* xlsSemanticCheckReportJson(xls_semantic_check* r,size_t* size) { return reportJson(r,size,0); }
+
+#if XLS_EXPERIMENTAL_IR_EXIT_REUSE
+xls_exit_result_work xlsExitCheckWork(const xls_semantic_check* r)
+{return r&&!invalid(r)?xlsExitResultWork(r->cachedIr):(xls_exit_result_work){0};}
+#endif

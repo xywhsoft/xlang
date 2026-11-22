@@ -32,12 +32,21 @@ bool __wrap_xrtMapSet(xmap* m,xbytesview k,const void* v){if(refuse())return fal
 
 static xls_ir_input_work lastInput;
 static unsigned inputBuilds,keyOracles,badKeys;
+#if XLS_EXPERIMENTAL_IR_EXIT_REUSE
+xls_ir_result* __real_xlsFrontendIrResultBuildTypedCheckedExits(xls_typed_module*,XL6_DiagList*,
+ const xls_ir_result*,size_t,const xls_entity_view*,size_t,xls_sem_memo*,size_t);
+xls_ir_result* __wrap_xlsFrontendIrResultBuildTypedCheckedExits(xls_typed_module* input,XL6_DiagList* diags,
+ const xls_ir_result* previous,size_t bytes,const xls_entity_view* entities,size_t persistent,xls_sem_memo* memo,size_t exitBytes)
+{
+ xls_ir_result* result=__real_xlsFrontendIrResultBuildTypedCheckedExits(input,diags,previous,bytes,entities,persistent,memo,exitBytes);
+#else
 xls_ir_result* __real_xlsFrontendIrResultBuildTypedChecked(xls_typed_module*,XL6_DiagList*,
  const xls_ir_result*,size_t,const xls_entity_view*,size_t,xls_sem_memo*);
 xls_ir_result* __wrap_xlsFrontendIrResultBuildTypedChecked(xls_typed_module* input,XL6_DiagList* diags,
  const xls_ir_result* previous,size_t bytes,const xls_entity_view* entities,size_t persistent,xls_sem_memo* memo)
 {
  xls_ir_result* result=__real_xlsFrontendIrResultBuildTypedChecked(input,diags,previous,bytes,entities,persistent,memo);
+#endif
  ++inputBuilds;lastInput=xlsFrontendIrResultInputWork(result);
  const XL6_AstNode* root=xlsTypedModuleRoot(input);
  if(result && result->memo)for(size_t i=0;i<result->memo->entries.Count;++i){

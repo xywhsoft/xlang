@@ -17,6 +17,7 @@
 #include <limits.h>
 #ifdef XLS_COMPILER_XRT
 #include "analysis/semantic.h"
+#include "analysis/frontend_ir_exit.h"
 #include "analysis/completion_unit.h"
 #include "analysis/check.h"
 #include "analysis/check_ir.h"
@@ -91,6 +92,14 @@ static int memoTypeStats(xvalue* stats,xls_ast_intern_work work)
 #undef MEMO_TYPE_FIELD
  if(okay){okay=put(stats,"memoTypes",value);value=NULL;}xrtValueRelease(value);return okay;
 }
+#if XLS_EXPERIMENTAL_IR_EXIT_REUSE
+static int exitIrStats(xvalue* stats,const xls_semantic_check* check)
+{xls_exit_result_work work=xlsExitCheckWork(check);xvalue* value=xrtValueObject();int okay=value!=NULL;
+#define EXIT_FIELD(field) okay=okay&&put(value,#field,xrtValueInt((int64)work.field))
+EXIT_FIELD(queried);EXIT_FIELD(reused);EXIT_FIELD(captured);EXIT_FIELD(declined);EXIT_FIELD(originals);EXIT_FIELD(keyBytes);EXIT_FIELD(knownBytes);EXIT_FIELD(limitBytes);
+#undef EXIT_FIELD
+if(okay){okay=put(stats,"irExit",value);value=NULL;}xrtValueRelease(value);return okay;}
+#endif
 static int irFragmentStats(xvalue* stats,xls_check_ir_work work)
 {
  xvalue* value=xrtValueObject();int okay=value!=NULL;
@@ -981,7 +990,11 @@ analysed:
    put(stats,"semanticFunctionsChecked",xrtValueInt((int64)q->semanticStats.semanticFunctionsChecked)) &&
    put(stats,"semanticFunctionsReused",xrtValueInt((int64)q->semanticStats.semanticFunctionsReused)) &&
    put(stats,"semanticContextHits",xrtValueInt((int64)q->semanticStats.semanticContextHits)) &&
-   put(stats,"semanticMemoBytes",xrtValueInt((int64)q->semanticStats.semanticMemoBytes)) && sessionCacheStats(stats,q) && memoTypeStats(stats,xlsSemanticCheckMemoTypes(nativeCheck)) && irFragmentStats(stats,xlsSemanticCheckIrWork(nativeCheck)) && persistentIrStats(stats,xlsSemanticCheckIrPersistentWork(nativeCheck)) && derivedIrStats(stats,xlsSemanticCheckIrDerivedWork(nativeCheck)) && entityInterfaceStats(stats,nativeCheck) && semanticReadStats(stats,nativeCheck) && moduleSyntaxStats(stats,nativeCheck) && checkMaterializationStats(stats,nativeCheck) && checkCanonicalStats(stats,nativeCheck);
+   put(stats,"semanticMemoBytes",xrtValueInt((int64)q->semanticStats.semanticMemoBytes)) && sessionCacheStats(stats,q) && memoTypeStats(stats,xlsSemanticCheckMemoTypes(nativeCheck)) &&
+#if XLS_EXPERIMENTAL_IR_EXIT_REUSE
+   exitIrStats(stats,nativeCheck) &&
+#endif
+   irFragmentStats(stats,xlsSemanticCheckIrWork(nativeCheck)) && persistentIrStats(stats,xlsSemanticCheckIrPersistentWork(nativeCheck)) && derivedIrStats(stats,xlsSemanticCheckIrDerivedWork(nativeCheck)) && entityInterfaceStats(stats,nativeCheck) && semanticReadStats(stats,nativeCheck) && moduleSyntaxStats(stats,nativeCheck) && checkMaterializationStats(stats,nativeCheck) && checkCanonicalStats(stats,nativeCheck);
   xvalue* entryWork=xrtValueObject();
   okayStats=okayStats && entryWork && put(entryWork,"parsed",xrtValueInt((int64)q->entryParseWork.parsed)) &&
    put(entryWork,"reused",xrtValueInt((int64)q->entryParseWork.reused)) && put(entryWork,"declined",xrtValueInt((int64)q->entryParseWork.declined)) &&

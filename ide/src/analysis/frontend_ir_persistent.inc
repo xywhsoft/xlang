@@ -167,6 +167,9 @@ static xls_ir_memo* xlsIrPersistentMemo(const xls_ir_memo* previous,const XL6_As
         if(unit){if(unit->bytes>bytes-memo->bytes)goto failed;memo->bytes+=unit->bytes;}
         *(xls_ir_unit**)xrtArrayGet(&memo->entries,i)=xlsIrUnitRetain(unit);
     }
+#if XLS_EXPERIMENTAL_IR_EXIT_REUSE
+    xlsExitCloneMemo(memo,previous,root);
+#endif
     memo->entities=xlsEntityViewRetain((xls_entity_view*)entities);return memo;
 failed:xlsFrontendIrMemoDestroy(memo);return NULL;
 }
@@ -302,4 +305,11 @@ xls_ir_result* xlsFrontendIrResultBuildTypedChecked(xls_typed_module* input,XL6_
 }
 xls_ir_input_work xlsFrontendIrResultInputWork(const xls_ir_result* result)
 {return result && result->memo ? result->memo->inputWork : (xls_ir_input_work){0};}
+#endif
+
+#if defined(XLS_NATIVE_AST_PACKAGE_FIELDS) && XLS_EXPERIMENTAL_IR_EXIT_REUSE
+xls_ir_result* xlsFrontendIrResultBuildTypedCheckedExits(xls_typed_module* input,XL6_DiagList* diags,const xls_ir_result* previous,size_t rawBytes,const xls_entity_view* entities,size_t persistentBytes,xls_sem_memo* semantic,size_t exitBytes)
+{
+ size_t before=exitLimit;const XL6_AstNode* oldRoot=exitRoot;exitRoot=xlsTypedModuleRoot(input);exitLimit=exitBytes<8u*1024u*1024u?exitBytes:8u*1024u*1024u;xls_ir_result* result=xlsFrontendIrResultBuildTypedChecked(input,diags,previous,rawBytes,entities,persistentBytes,semantic);exitLimit=before;exitRoot=oldRoot;return result;
+}
 #endif
