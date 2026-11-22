@@ -1,5 +1,33 @@
 # Native consumers in the full API inventory
 
+## Reusable 3D animation settings
+
+`xge3d.animationOptions()` initializes a value record with the native defaults.
+`Animator.playConfigured()` accepts that record along with an optional mask and
+bone mapping. These calls use a C output pointer and a read-only input pointer.
+The earlier by-value return worked in Windows JIT but returned incorrect
+defaults in Linux JIT. The new and existing playback methods share the same
+native implementation.
+
+Windows and Linux passed the animation fixture and bundled example in JIT,
+dynamic AOT and static AOT. The fixture covers retained clips, copied masks and
+bone maps, playback rollback at three allocation failures, and checked engine
+shutdown with live resources. The existing animation rendering fixture also
+passed on Linux with Xvfb and llvmpipe.
+
+Both paths made one native playback call per iteration. Across 1,000 warm
+calls, C recorded 2,000 allocations and xlang recorded 3,000. Each allocation
+was freed. The mask array is borrowed. The extra allocation holds an O(n)
+projection of the bone mapping records. CPU time was not measured.
+
+The matched inventory contains 5,738 native functions, including 4,673 direct
+language declarations. Seven legacy animation functions now have verified
+replacement entries. There are 684 functions still without direct, compiled
+consumer or replacement evidence, including 323 in XGE, 358 in XUI and three
+across Document and Document UI.
+
+[Validation evidence](../dev/release-materials/provenance/xge3d-animation-options-20261122.json)
+
 ## CodeEdit's provider view and hover snapshots
 
 `CodeEdit.providers()` borrows the provider set already owned by the editor,

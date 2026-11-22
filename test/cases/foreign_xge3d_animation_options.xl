@@ -1,0 +1,116 @@
+import xge
+import xge3d
+
+extern "fixtureAnimationOptionsBegin" @header("test/cases/foreign_xge3d_animation_options.h") @no_raise func beginHeap()
+extern "fixtureAnimationOptionsEnd" @no_raise func endHeap(c_int native)
+extern "fixtureAnimationOptionsNative" @no_raise func testNative(xge3d.Animator animator,xge3d.AnimationClip clip)
+extern "fixtureAnimationOptionsFail" @no_raise func budget(c_int prefix)
+
+func main(...) as int
+    auto options=xge3d.animationOptions()
+    assert options.time==0 and options.speed==1 and options.weight==1 and options.loop==1, "native animation defaults"
+    auto rig=xge3d.loadModel("animation-rig.gltf")
+    auto motionModel=xge3d.loadModel("animation-motion.gltf")
+    auto fromModel=motionModel.clip()
+    motionModel.close()
+    auto name,duration,trackCount,nodeCount=fromModel.info()
+    assert (name??"")=="linear" and duration==1 and trackCount==1 and nodeCount==2, "model's retained clip info"
+    assert (fromModel.nodeName(c_size(1))??"")=="Tip" and fromModel.nodeName(c_size(2))==null, "clip node names"
+    fromModel.close()
+
+    auto quota=xge3d.createDecodeBudget(uint64(1))
+    bool rejectedLoad=false
+    try
+        xge3d.loadClip("animation-motion.gltf",budget=quota)
+    catch Error
+        rejectedLoad=true
+    end
+    assert rejectedLoad and quota.info().live_bytes==0, "failed decode must release the quota"
+    quota.setLimit(uint64(1024*1024))
+    auto clip=xge3d.loadClip("animation-motion.gltf",budget=quota)
+    auto scene=xge3d.createScene()
+    auto configured=scene.animator(scene.instantiate(rig))
+    auto mapped=scene.animator(scene.instantiate(rig))
+    rig.close()
+    scene.close()
+    auto binding=xge3d.Xge3dBoneBinding()
+    binding.source=c_size(1)
+    binding.target=c_size(3)
+    array<xge3d.Xge3dBoneBinding> bindings=[binding]
+    array<c_float> weights=[c_float(1),c_float(1),c_float(1),c_float(0.5)]
+    testNative(mapped,clip)
+    configured.playConfigured(0,clip,options,mask=weights,bindings=bindings)
+    beginHeap()
+    for i in range(1000)
+        configured.playConfigured(0,clip,options,mask=weights,bindings=bindings)
+    end
+    endHeap(0)
+
+    options.time=c_float(0.125)
+    options.speed=c_float(0.5)
+    options.weight=c_float(0.75)
+    options.loop=0
+    configured.playConfigured(0,clip,options,mask=weights,bindings=bindings)
+    mapped.playMapped(0,clip,time=options.time,speed=options.speed,weight=options.weight,loop=options.loop,mask=weights,bindings=bindings)
+    weights[3]=c_float(0)
+    binding.target=c_size(0)
+    bindings[0]=binding
+    configured.update(c_float(0.25))
+    mapped.update(c_float(0.25))
+    assert configured.layerTime(0)==c_float(0.25) and mapped.layerTime(0)==configured.layerTime(0)
+    assert configured.pose(c_size(3)).position.x==c_float(1.1875)
+    assert configured.pose(c_size(3)).position.x==mapped.pose(c_size(3)).position.x
+
+    bool invalid=false
+    try
+        configured.playConfigured(0,clip,options,mask=weights,maskSize=3)
+    catch error
+        assert error.code==xge.XGE_ERROR_INVALID_ARGUMENT
+        invalid=true
+    end
+    assert invalid and configured.layerTime(0)==c_float(0.25)
+
+    options.time=c_float(0.5)
+    weights[3]=c_float(0.5)
+    binding.target=c_size(3)
+    bindings[0]=binding
+    int denied=0
+    bool published=false
+    for prefix in range(16)
+        budget(c_int(prefix))
+        try
+            configured.playConfigured(0,clip,options,mask=weights,bindings=bindings)
+            published=true
+        catch Error
+            denied+=1
+        finally
+            budget(-1)
+        end
+        if published then break end
+        assert configured.layerTime(0)==c_float(0.25)
+    end
+    assert published and denied>=2 and configured.layerTime(0)==c_float(0.5)
+    println("Animation options allocation prefixes:",denied)
+
+    configured.playConfigured(0,null,options,fade=c_float(0.25))
+    clip.close()
+    assert configured.playback(0).stopping==1
+    configured.update(c_float(0.25))
+    assert configured.playback(0).active==0
+    bool busy=false
+    try
+        xge.unit()
+    catch error
+        assert error.code==xge.XGE_ERROR_BUSY
+        busy=true
+    end
+    assert busy
+    configured.close()
+    mapped.close()
+    assert quota.info().live_bytes==0
+    quota.close()
+    assert xge.graphicsResourceCount()==uint64(0)
+    xge.unit()
+    println("3D animation options: defaults, mapped playback, OOM and engine lifetime passed")
+    return 0
+end

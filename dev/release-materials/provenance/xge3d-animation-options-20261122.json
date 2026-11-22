@@ -1,0 +1,251 @@
+{
+  "complete": true,
+  "passed": true,
+  "releaseInstalled": false,
+  "networkTests": false,
+  "scope": "Reusable 3D animation settings, managed playback, and matching native declaration audit",
+  "nativeRevision": "c0e8a5596f2f67328a4be99ec7ab8b8519cc9723",
+  "xlangSourceParent": "7d5a3f6db05b98211027901fb8aa45ab53d90c49",
+  "inputs": {
+    "test/cases/foreign_xge3d_animation_options.xl": "be20196eca84d0f0c1044f3dd905762b0375f154d6c82d9c9b34769af06975cb",
+    "test/cases/foreign_xge3d_animation_options.h": "504f7add0809af0b4691ccbb22c68f0035c879ea9159c13bd28de119a3710d62",
+    "test/cases/foreign_xge3d_animation_options.c": "9fee72f54d7d20199f9d7dfd2b0f16eded9d3c8907335e0b40e1102a6075c51d",
+    "lib/bindings/xge/three_d/src/animation.xl": "d60daff2286f475525147efce25ddd8dd7f34ca0ab839f3142af64ba730f36a6",
+    "lib/bindings/xge/three_d/examples/animation.xl": "7a5d376bff338f9f7c5526cea9bdfcd757810100368864059e7f6176c6bbde53",
+    "lib/bindings/xge/three_d/README.md": "20243ef4c3b3f45ee8f286ecb03ac91fa6d3bffa10bb089cae405f20068ee33f",
+    "docs/xge3-xui3-api-map-storage.json": "acd56293bb5f1c00f1efc1137f642c174283605abd74231cb6c72360471491cc",
+    "docs/xge3-native-consumer-audit.md": "a4a94ebaab8d1024674e49d7b51c006f3d62c3c3a7a97701d0b8c6a7414345df",
+    "tools/xge_replay_contracts.py": "50aba9d66bc80fadfad06da97c138fd2ab1bae5a6fab90a659d5fbb8181e09f5"
+  },
+  "scripts": [
+    {
+      "path": "F:/xlang-validation/xge-full-20261110/check-animation-options-r2.py",
+      "sha256": "39c244f94a4f94e1b1082a68ce6e3d3c6ce3732fc17de8a7cc13496384a0197b",
+      "bytes": 4590
+    },
+    {
+      "path": "F:/xlang-validation/xge-full-20261110/audit-animation-options-r2.py",
+      "sha256": "94dc7323457dd9b4b68d4e6b7d85a285e9aaf960a4d8174f308d4859a640d9ae",
+      "bytes": 2436
+    }
+  ],
+  "configurations": {
+    "physicalABI": "Native defaults through an output pointer; one call with a const settings pointer for playback",
+    "compatibility": "New and existing entry points share native playback; previous nullable options retained for PlayArrays",
+    "earlierChecks": {
+      "sameSymbolContract": {
+        "path": "F:/xlang-validation/xge-full-20261110/animation-options-admission-win-r1/results.log",
+        "sha256": "86155fccbdf5a59b0d6dd7ed9a7ec5a55c7464323a5b39b77007f85efd5392ec",
+        "bytes": 203
+      },
+      "byValueLinuxJit": {
+        "path": "/var/tmp/xlang-validation/xge-full-20261110/animation-options-test-linux-r1/byvalue-jit.log",
+        "sha256": "e4047b8a0f9f976036119102318926e8e4dd2a84d93ee124fde20b9586a38975",
+        "bytes": 646
+      },
+      "byValueLinuxGnuC": {
+        "path": "/var/tmp/xlang-validation/xge-full-20261110/animation-options-test-linux-r1/byvalue-gnu.log",
+        "sha256": "56f9b554a268200921a9d8e770fa32b0588e973bfe8a47778f9a9636c37835c1",
+        "bytes": 31
+      }
+    }
+  },
+  "performance": {
+    "comparison": "Equivalent C and xlang clips, target rigs, masks and one bone mapping, over 1000 warm layer replacements",
+    "cpuTimingCompared": false,
+    "perPlatformAndLinkage": {
+      "rounds": 1000,
+      "allocFreeRealloc": {
+        "native": [
+          2000,
+          2000,
+          0
+        ],
+        "language": [
+          3000,
+          3000,
+          0
+        ]
+      },
+      "allocationFailurePrefixes": 3
+    },
+    "costs": [
+      "The options record is passed through typed storage and the mask is pinned and borrowed for the call.",
+      "The binding array requires one temporary allocation and O(n) projection of the native bone mapping records.",
+      "Managed owner scopes and checked status handling remain on the language path.",
+      "Native playback allocates its resolved mapping and copies the mask on both paths."
+    ]
+  },
+  "platforms": {
+    "win": {
+      "commands": 17,
+      "regenerationChecks": 1080,
+      "compilerBuild": {
+        "path": "F:/xlang-validation/xge-full-20261110/compiler-existing-root-win-r1/build.json",
+        "sha256": "107a294cdefd81906f8e3fef6bced071ececaad4bf1837b61a15b1e9c7858a07",
+        "bytes": 1618
+      },
+      "hostedNativeBuild": {
+        "path": "F:/xlang-validation/xge-full-20261110/animation-options-host-win-r2/build-report.json",
+        "sha256": "db7ed9d651d6ff8ba07aedc722b8c5f4a799e5b8e1bf199e90ccfb227c50e105",
+        "bytes": 23784
+      },
+      "staticNativeBuild": {
+        "path": "F:/xlang-validation/xge-full-20261110/animation-options-static-win-r2/build-report.json",
+        "sha256": "7ac181c595ac797c12329fa25d1c10e905e0dfa8d78f0a2b462c77f04eae6d18",
+        "bytes": 10265319
+      },
+      "hostedStage": {
+        "path": "F:/xlang-validation/xge-full-20261110/animation-options-test-win-r2/stage.json",
+        "sha256": "d1781c7025bbbfb17b26666d6248814648f0f4994cbf5a149850f34fd65772b8",
+        "bytes": 130488
+      },
+      "staticStage": {
+        "path": "F:/xlang-validation/xge-full-20261110/animation-options-test-win-r2/static-stage.json",
+        "sha256": "0522edd7efdfb6ac10b07abdf7c070929fe7f6809551cd81612f97752057c86a",
+        "bytes": 9310947
+      },
+      "strictRegeneration": {
+        "path": "F:/xlang-validation/xge-full-20261110/animation-options-generator-win-r2/results.json",
+        "sha256": "1322a20b77598ca0ac71ae557b1e61776c998c5aa1f350681e7ef280ca242e10",
+        "bytes": 240329
+      },
+      "declarationReplay": {
+        "path": "F:/xlang-validation/xge-full-20261110/animation-options-test-win-r2/replay/stage-report.json",
+        "sha256": "8c58982da009a05ad9819e695f1701e9786dd22b5efcdeabe79d4b56c3a15784",
+        "bytes": 176553
+      },
+      "nativeSource": {
+        "path": "F:/xlang-validation/xge-full-20261110/animation-options-test-win-r2/audit-r2/native-source.json",
+        "sha256": "68d13fb673a72d795372fa6fd05b765dc0868d76b6ad6e6f1fe4b822a3149448",
+        "bytes": 466054
+      },
+      "surface": {
+        "path": "F:/xlang-validation/xge-full-20261110/animation-options-test-win-r2/audit-r2/surface/surface.json",
+        "sha256": "73d280100d43d5ac3f3a5e014a85651943f0cb78f440c5d703312a6eee718ccc",
+        "bytes": 5514124
+      },
+      "consumerAudit": {
+        "path": "F:/xlang-validation/xge-full-20261110/animation-options-test-win-r2/audit-r2/consumers/results.json",
+        "sha256": "7c9be2949e465361a098e1c399b4b8ffe2ee862882e7e926da18db51379ab3bd",
+        "bytes": 1207713
+      },
+      "languageRuntime": {
+        "path": "F:/xlang-validation/xge-full-20261110/animation-options-test-win-r2/suite-r1/results.json",
+        "sha256": "1710b56d273bb672f2a6678c3dd49a60ff497637b55dedac9daa27c182410647",
+        "bytes": 13927
+      },
+      "generatedC": {
+        "path": "F:/xlang-validation/xge-full-20261110/animation-options-test-win-r2/suite-r1/options.c",
+        "sha256": "1727b3e3df5db1441101ee0258d2d1f5b7678a7c3c14f2911eb041028c0fc8e7",
+        "bytes": 1394491
+      },
+      "exampleExecution": {
+        "path": "F:/xlang-validation/xge-full-20261110/animation-options-test-win-r2/suite-r1/example-jit.log",
+        "sha256": "c97a9cbed9d3836fc486da242c98bfd9f7bf18f445ac7b031d2167eff5bcc87b",
+        "bytes": 40
+      }
+    },
+    "linux": {
+      "commands": 17,
+      "regenerationChecks": 1081,
+      "compilerBuild": {
+        "path": "/var/tmp/xlang-validation/xge-full-20261110/compiler-existing-root-linux-r1/build.json",
+        "sha256": "6e729bc793dcd92edcd42f51e244bad799187c32ef82121e8275288a31274b11",
+        "bytes": 1585
+      },
+      "hostedNativeBuild": {
+        "path": "/var/tmp/xlang-validation/xge-full-20261110/animation-options-host-linux-r2/build-report.json",
+        "sha256": "d49e57a0cb2b30f749cdc1885dfab44e3fe404c36a7a1b9f0596c9b3a5f8e74a",
+        "bytes": 23061
+      },
+      "staticNativeBuild": {
+        "path": "/var/tmp/xlang-validation/xge-full-20261110/animation-options-static-linux-r2/build-report.json",
+        "sha256": "b3f85b71a4ddf6c408c4d6c0941a03cbc229928fa088b8f9632535dd11abc80d",
+        "bytes": 845486
+      },
+      "hostedStage": {
+        "path": "/var/tmp/xlang-validation/xge-full-20261110/animation-options-test-linux-r2/stage.json",
+        "sha256": "d1c03da47550fa13eed6ebc9b309e49f869c50264afb305f94b0dc31244d5387",
+        "bytes": 127036
+      },
+      "staticStage": {
+        "path": "/var/tmp/xlang-validation/xge-full-20261110/animation-options-test-linux-r2/static-stage.json",
+        "sha256": "e451b1d89014545b9ea94cf5fb46a28246fb8ddfb42824dee6bc4a6dcc46205a",
+        "bytes": 144173
+      },
+      "strictRegeneration": {
+        "path": "/var/tmp/xlang-validation/xge-full-20261110/animation-options-generator-linux-r2/results.json",
+        "sha256": "f66a528edec8eacbd520fa4b380f421e9ca5eb1ad27abb6a121776758806fb11",
+        "bytes": 249527
+      },
+      "declarationReplay": {
+        "path": "/var/tmp/xlang-validation/xge-full-20261110/animation-options-test-linux-r2/replay/stage-report.json",
+        "sha256": "faad1078d094af8916b1dd1052b412a452e3fbea358aace6ea751308fbcd7796",
+        "bytes": 172728
+      },
+      "nativeSource": {
+        "path": "/var/tmp/xlang-validation/xge-full-20261110/animation-options-test-linux-r2/audit-r2/native-source.json",
+        "sha256": "26f548f4688fcd3f966a09bc5710512024a4a85f8b0ad9ffa6ea0381a362ee05",
+        "bytes": 462229
+      },
+      "surface": {
+        "path": "/var/tmp/xlang-validation/xge-full-20261110/animation-options-test-linux-r2/audit-r2/surface/surface.json",
+        "sha256": "e302cac9a89c33551537082716f0e1488e9a05685534b1c644c3c25362e87842",
+        "bytes": 5329233
+      },
+      "consumerAudit": {
+        "path": "/var/tmp/xlang-validation/xge-full-20261110/animation-options-test-linux-r2/audit-r2/consumers/results.json",
+        "sha256": "ac512e66c5fa9ea5bbac4eb31f012b71f13bca657faa8403cdb8310ef8a68cd1",
+        "bytes": 1191320
+      },
+      "languageRuntime": {
+        "path": "/var/tmp/xlang-validation/xge-full-20261110/animation-options-test-linux-r2/suite-r1/results.json",
+        "sha256": "2181435017c7ac2433d929211f40993105a90bf3e8e96794fe8017d6bfabec57",
+        "bytes": 13606
+      },
+      "generatedC": {
+        "path": "/var/tmp/xlang-validation/xge-full-20261110/animation-options-test-linux-r2/suite-r1/options.c",
+        "sha256": "1727b3e3df5db1441101ee0258d2d1f5b7678a7c3c14f2911eb041028c0fc8e7",
+        "bytes": 1394491
+      },
+      "exampleExecution": {
+        "path": "/var/tmp/xlang-validation/xge-full-20261110/animation-options-test-linux-r2/suite-r1/example-jit.log",
+        "sha256": "c97a9cbed9d3836fc486da242c98bfd9f7bf18f445ac7b031d2167eff5bcc87b",
+        "bytes": 40
+      },
+      "softwareRendering": {
+        "path": "/var/tmp/xlang-validation/xge-full-20261110/animation-options-test-linux-r2/gpu-animation-r2.log",
+        "sha256": "cbe66b86fc0db57bc2694501b970f900441c56df0e3cbc733f3d3e88a0f55187",
+        "bytes": 145
+      }
+    }
+  },
+  "audit": {
+    "functionPopulation": 5738,
+    "directDeclarations": 4673,
+    "compiledConsumerFunctions": 184,
+    "explicitReplacements": 200,
+    "pendingClassification": {
+      "Document": 1,
+      "Document UI": 2,
+      "XGE": 323,
+      "XUI": 358
+    },
+    "verifiedNewReplacements": {
+      "xge3dAnimationLayerDefault": "xge3dAnimationOptionsDefaultInto",
+      "xge3dAnimatorCreate": "xge3dAnimatorCreateOwned",
+      "xge3dClipFromModel": "xge3dClipFromModelOwned",
+      "xge3dClipInfo": "xge3dClipInfoChecked",
+      "xge3dClipLoad": "xge3dClipLoadOwned",
+      "xge3dClipLoadBudget": "xge3dClipLoadOwned",
+      "xge3dClipNodeName": "xge3dClipNodeNameChecked"
+    }
+  },
+  "limits": [
+    "Windows rendering and hardware OpenGL were outside this targeted cohort.",
+    "Linux rendering uses an isolated Xvfb display and llvmpipe.",
+    "The audit proves declarations, compiled consumers and reviewed replacement mappings at this source revision.",
+    "These matched candidates were qualified outside the runtime release tree."
+  ]
+}

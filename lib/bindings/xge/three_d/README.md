@@ -49,6 +49,20 @@ place. A sequence stays readable after its palette, scene and engine close.
 For a single matrix, use `scene.skinMatrix(node, joint)`. See the procedurally
 skinned triangle in [skin_palette.xl](examples/skin_palette.xl).
 
+`animationOptions()` returns the native defaults for time, speed, weight and
+looping. Change any field and pass the same record to `Animator.playConfigured()`
+on any layer. Optional masks follow the target model's source-node order.
+Optional `Xge3dBoneBinding` entries map clip source indices to target indices.
+The animator retains the clip and copies the mask and resolved binding data
+before returning. Optional `fade` is in seconds. A null clip clears the layer
+immediately at zero fade, or stops it after the requested fade.
+
+The options record crosses the C boundary as typed storage. The existing
+`playMapped()` method still accepts individual options. Both methods run the
+same native playback code. Use [animation.xl](examples/animation.xl) from the
+examples directory to load the bundled assets and sample a pose without
+opening a window.
+
 `createParticles(threeDParticlesDefault())` creates an independent CPU emitter.
 Its `setPosition`, `emit`, `update` and sized `info` methods call the native
 functions directly. Closing it invalidates its language aliases; generic call

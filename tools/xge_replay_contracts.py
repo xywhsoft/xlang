@@ -92,6 +92,13 @@ CONTRACTS = {
 }
 
 REPLACED = {
+    'xge3dAnimationLayerDefault': ('xge3d.animationOptions','xge3dAnimationOptionsDefaultInto'),
+    'xge3dAnimatorCreate': ('xge3d.Scene.animator','xge3dAnimatorCreateOwned'),
+    'xge3dClipFromModel': ('xge3d.Model3D.clip','xge3dClipFromModelOwned'),
+    'xge3dClipInfo': ('xge3d.AnimationClip.info','xge3dClipInfoChecked'),
+    'xge3dClipLoad': ('xge3d.loadClip','xge3dClipLoadOwned'),
+    'xge3dClipLoadBudget': ('xge3d.loadClip','xge3dClipLoadOwned'),
+    'xge3dClipNodeName': ('xge3d.AnimationClip.nodeName','xge3dClipNodeNameChecked'),
     'xgeClipboardGetText': ('xge.clipboardGetText','xgeClipboardGetTextOwned'),
     'xgeSetTitle': ('xge.setTitle', 'xgeSetTitleChecked'),
     'xgeMiniProgramSetBridge': ('xge.setMiniProgramBridge', 'xgeMiniProgramSetBridgeOwned'),

@@ -7,8 +7,10 @@ auto root = scene.instantiate(rig)
 rig.close()
 
 auto animator = scene.animator(root)
-animator.setLayer(0, motion, loop=0)
-motion.close() // 动画层已持有剪辑。
+auto playback = xge3d.animationOptions()
+playback.loop = 0
+animator.playConfigured(0, motion, playback)
+motion.close() // 动画层持有剪辑，释放本地引用后仍可播放。
 
 animator.update(c_float(0.5))
 auto status, tip = animator.bone("Tip")
