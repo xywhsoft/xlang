@@ -5,8 +5,7 @@ from "./_window.xl" import Window
 Window.show("图标选择",func(xui.Context ui,xui.Widget root)
  auto category=xui.createIconCategory(ui,"shapes",xui.iconCategoryDescDefault())
  auto box=Window.rect(0,0,16,16)
- auto triangle=category.addSvgPath("triangle","M0 0 L16 0 L8 16 Z",box)
- triangle.setMetadata("三角形","几何 图形")
+ auto triangle=category.addSvgPathWithMetadata("triangle","M0 0 L16 0 L8 16 Z",box,displayName="三角形",tags="几何 图形")
  category.addSvgPath("正方形","M0 0 H16 V16 H0 Z",box)
  category.addSvgPath("菱形","M8 0 L16 8 L8 16 L0 8 Z",box)
 

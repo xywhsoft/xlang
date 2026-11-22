@@ -11,12 +11,22 @@ export extern "xui_icon_t*" class CallbackIcon @header("xge3_runtime.h") @lifeti
 end
 export typedef IconPickerTextProc = func(CallbackWidget,CallbackIcon) as string
 
+// Retains one native icon or category after it leaves its registry.
+// Closing the Context invalidates it, even if the reference is still held.
+export extern "xui_icon_reference_t*" class IconReference @header("xui3_icon_reference.h") @lifetime("owned") @policy("xl6Xui3IconReferencePolicy")
+ native point handle
+ extern "xuiIconReferenceIsLive" @no_raise @c_const(0) func isLive() as bool
+ extern "xl6ForeignViewCloseV1" @no_raise @c_control(0) @c_result("bool_status") func close()
+end
+
 export extern "xui_icon_category_t*" class IconCategory @header("xge3_runtime.h") @lifetime("owner") @owner(Context) @policy("xl6Xui3IconCategoryPolicy") @watch("xui_lifetime_link_t")
  native point handle
  extern "xuiIconCategoryGetName" @no_raise @c_result("cstring") get name() as string
  extern "xuiIconCategoryGetGeneration" @no_raise get generation() as c_uint
  extern "xuiIconCategoryGetIconCount" @no_raise get count() as c_int
  extern "xuiIconCategoryGetIconSlotCount" @no_raise get slotCount() as c_uint
+ extern "xuiIconCategoryGetRefCount" @no_raise get referenceCount() as c_int
+ extern "xuiIconCategoryRetainReference" @no_raise @c_result("owned_view") @factory(1,0,rollbackIconReference) func retain() as IconReference
  extern "xuiIconCategoryGetDesc" @no_raise @c_output(1,0) func description() as IconCategoryDesc
  extern "xuiIconCategorySetDesc" @no_raise @c_ref(0) @c_result("status",0) func setDescription(IconCategoryDesc description)
  extern "xuiIconCategoryPreload" @no_raise @c_result("status",0) func preload(c_float width=0,c_float height=0)
@@ -25,14 +35,25 @@ export extern "xui_icon_category_t*" class IconCategory @header("xge3_runtime.h"
  extern "xuiIconCategoryGetIconAt" @no_raise @c_result("owner_view",0) func iconAt(c_int index) as Icon?
  extern "xuiIconFind" @no_raise @c_cstr(0) @c_result("owner_view",0) func find(string name) as Icon?
  extern "xuiIconFindById" @no_raise @c_result("owner_view",0) func findById(c_uint id) as Icon?
+ extern "xuiIconAddSvgPath" @no_raise @c_cstr(0) @c_cstr(1) @c_null(4,"const xui_path_style_t*") @c_pack(5,"xui_icon_desc_t",3,3) @c_pack_size(5,"iSize","uint32_t") @c_pack_field(5,"sDisplayName",3,"c_string") @c_pack_field(5,"sTags",4,"c_string") @c_pack_field(5,"iFlags",5,"value") @c_result("owner_view",0) @factory(6,0,rollbackIcon) func addSvgPathWithMetadata(string name,string path,Rect viewBox,string? displayName=null,string? tags=null,c_uint flags=0) as Icon
  extern "xuiIconAddSvgPath" @no_raise @c_cstr(0) @c_cstr(1) @c_null(4,"const xui_path_style_t*") @c_null(5,"const xui_icon_desc_t*") @c_result("owner_view",0) @factory(6,0,rollbackIcon) func addSvgPath(string name,string path,Rect viewBox) as Icon
+ extern "xuiIconAddSvgPath" @no_raise @c_cstr(0) @c_cstr(1) @c_pack(4,"xui_path_style_t",3,8) @c_pack_size(4,"iSize","uint32_t") @c_pack_field(4,"pDashPattern",3,"span_data") @c_pack_field(4,"iDashCount",3,"span_count") @c_pack_field(4,"iFillColor",4,"value") @c_pack_field(4,"iStrokeColor",5,"value") @c_pack_field(4,"fStrokeWidth",6,"value") @c_pack_field(4,"iFillRule",7,"value") @c_pack_field(4,"iLineJoin",8,"value") @c_pack_field(4,"iLineCap",9,"value") @c_pack_field(4,"fDashOffset",10,"value") @c_span(3,"const float*","int") @c_pack(5,"xui_icon_desc_t",11,3) @c_pack_size(5,"iSize","uint32_t") @c_pack_field(5,"sDisplayName",11,"c_string") @c_pack_field(5,"sTags",12,"c_string") @c_pack_field(5,"iFlags",13,"value") @c_result("owner_view",0) @factory(6,0,rollbackIcon) func addStyledSvgPath(string name,string path,Rect viewBox,bytes dashes=b"",c_uint fillColor=0xFFFFFFFF,c_uint strokeColor=0xFFFFFFFF,c_float strokeWidth=0,c_int fillRule=0,c_int lineJoin=0,c_int lineCap=0,c_float dashOffset=0,string? displayName=null,string? tags=null,c_uint flags=0) as Icon
+ extern "xuiIconAddSvgPath" @no_raise @c_cstr(0) @c_cstr(1) @c_pack(4,"xui_path_style_t",3,8) @c_pack_size(4,"iSize","uint32_t") @c_pack_field(4,"pDashPattern",3,"span_data") @c_pack_field(4,"iDashCount",3,"span_count") @c_pack_field(4,"iFillColor",4,"value") @c_pack_field(4,"iStrokeColor",5,"value") @c_pack_field(4,"fStrokeWidth",6,"value") @c_pack_field(4,"iFillRule",7,"value") @c_pack_field(4,"iLineJoin",8,"value") @c_pack_field(4,"iLineCap",9,"value") @c_pack_field(4,"fDashOffset",10,"value") @c_span(3,"const float*","int") @c_pack(5,"xui_icon_desc_t",11,3) @c_pack_size(5,"iSize","uint32_t") @c_pack_field(5,"sDisplayName",11,"c_string") @c_pack_field(5,"sTags",12,"c_string") @c_pack_field(5,"iFlags",13,"value") @c_result("owner_view",0) @factory(6,0,rollbackIcon) func addStyledSvgPath(string name,string path,Rect viewBox,Buffer dashes,c_uint fillColor=0xFFFFFFFF,c_uint strokeColor=0xFFFFFFFF,c_float strokeWidth=0,c_int fillRule=0,c_int lineJoin=0,c_int lineCap=0,c_float dashOffset=0,string? displayName=null,string? tags=null,c_uint flags=0) as Icon
+ extern "xuiIconAddSvgFile" @no_raise @c_cstr(0) @c_cstr(1) @c_pack(3,"xui_icon_desc_t",2,3) @c_pack_size(3,"iSize","uint32_t") @c_pack_field(3,"sDisplayName",2,"c_string") @c_pack_field(3,"sTags",3,"c_string") @c_pack_field(3,"iFlags",4,"value") @c_result("owner_view",0) @factory(4,0,rollbackIcon) func addSvgFileWithMetadata(string name,string path,string? displayName=null,string? tags=null,c_uint flags=0) as Icon
  extern "xuiIconAddSvgFile" @no_raise @c_cstr(0) @c_cstr(1) @c_null(3,"const xui_icon_desc_t*") @c_result("owner_view",0) @factory(4,0,rollbackIcon) func addSvgFile(string name,string path) as Icon
+ extern "xuiIconAddSvgMemory" @no_raise @c_cstr(0) @c_span(1,"const void*","int") @c_pack(4,"xui_icon_desc_t",2,3) @c_pack_size(4,"iSize","uint32_t") @c_pack_field(4,"sDisplayName",2,"c_string") @c_pack_field(4,"sTags",3,"c_string") @c_pack_field(4,"iFlags",4,"value") @c_result("owner_view",0) @factory(5,0,rollbackIcon) func addSvgMemoryWithMetadata(string name,bytes data,string? displayName=null,string? tags=null,c_uint flags=0) as Icon
  extern "xuiIconAddSvgMemory" @no_raise @c_cstr(0) @c_span(1,"const void*","int") @c_null(4,"const xui_icon_desc_t*") @c_result("owner_view",0) @factory(5,0,rollbackIcon) func addSvgMemory(string name,bytes data) as Icon
+ extern "xuiIconAddRasterMemory" @no_raise @c_cstr(0) @c_span(1,"const void*","int") @c_pack(4,"xui_icon_desc_t",2,3) @c_pack_size(4,"iSize","uint32_t") @c_pack_field(4,"sDisplayName",2,"c_string") @c_pack_field(4,"sTags",3,"c_string") @c_pack_field(4,"iFlags",4,"value") @c_result("owner_view",0) @factory(5,0,rollbackIcon) func addRasterMemoryWithMetadata(string name,bytes data,string? displayName=null,string? tags=null,c_uint flags=0) as Icon
  extern "xuiIconAddRasterMemory" @no_raise @c_cstr(0) @c_span(1,"const void*","int") @c_null(4,"const xui_icon_desc_t*") @c_result("owner_view",0) @factory(5,0,rollbackIcon) func addRasterMemory(string name,bytes data) as Icon
+ extern "xuiIconAddRasterFile" @no_raise @c_cstr(0) @c_cstr(1) @c_pack(3,"xui_icon_desc_t",2,3) @c_pack_size(3,"iSize","uint32_t") @c_pack_field(3,"sDisplayName",2,"c_string") @c_pack_field(3,"sTags",3,"c_string") @c_pack_field(3,"iFlags",4,"value") @c_result("owner_view",0) @factory(4,0,rollbackIcon) func addRasterFileWithMetadata(string name,string path,string? displayName=null,string? tags=null,c_uint flags=0) as Icon
  extern "xuiIconAddRasterFile" @no_raise @c_cstr(0) @c_cstr(1) @c_null(3,"const xui_icon_desc_t*") @c_result("owner_view",0) @factory(4,0,rollbackIcon) func addRasterFile(string name,string path) as Icon
+ extern "xuiIconAddSurfaceShared" @no_raise @c_cstr(0) @c_pack(4,"xui_icon_desc_t",3,3) @c_pack_size(4,"iSize","uint32_t") @c_pack_field(4,"sDisplayName",3,"c_string") @c_pack_field(4,"sTags",4,"c_string") @c_pack_field(4,"iFlags",5,"value") @c_result("owner_view",0) @factory(5,0,rollbackIcon) func addSurfaceWithMetadata(string name,Surface surface,Rect source,string? displayName=null,string? tags=null,c_uint flags=0) as Icon
  extern "xuiIconAddSurfaceShared" @no_raise @c_cstr(0) @c_null(4,"const xui_icon_desc_t*") @c_result("owner_view",0) @factory(5,0,rollbackIcon) func addSurface(string name,Surface surface,Rect source) as Icon
+ extern "xuiIconAddResource" @no_raise @c_cstr(0) @c_pack(4,"xui_icon_desc_t",3,3) @c_pack_size(4,"iSize","uint32_t") @c_pack_field(4,"sDisplayName",3,"c_string") @c_pack_field(4,"sTags",4,"c_string") @c_pack_field(4,"iFlags",5,"value") @c_result("owner_view",0) @factory(5,0,rollbackIcon) func addResourceWithMetadata(string name,Resource resource,Rect source,string? displayName=null,string? tags=null,c_uint flags=0) as Icon
  extern "xuiIconAddResource" @no_raise @c_cstr(0) @c_null(4,"const xui_icon_desc_t*") @c_result("owner_view",0) @factory(5,0,rollbackIcon) func addResource(string name,Resource resource,Rect source) as Icon
+ extern "xuiIconAddAlias" @no_raise @c_cstr(0) @c_pack(3,"xui_icon_desc_t",2,3) @c_pack_size(3,"iSize","uint32_t") @c_pack_field(3,"sDisplayName",2,"c_string") @c_pack_field(3,"sTags",3,"c_string") @c_pack_field(3,"iFlags",4,"value") @c_result("owner_view",0) @factory(4,0,rollbackIcon) func addAliasWithMetadata(string name,Icon target,string? displayName=null,string? tags=null,c_uint flags=0) as Icon
  extern "xuiIconAddAlias" @no_raise @c_cstr(0) @c_null(3,"const xui_icon_desc_t*") @c_result("owner_view",0) @factory(4,0,rollbackIcon) func addAlias(string name,Icon target) as Icon
+ extern "xuiIconAddCustomOwned" @no_raise @c_cstr(0) @c_owned_callback(1,-1,"xui_callback_owner_t",-16) @c_owned_callback(2,-1,"xui_callback_owner_t",-16) @c_owned_callback(3,-1,"xui_callback_owner_t",-16) @c_owned_callback(4,-1,"xui_callback_owner_t",0) @c_pack(14,"xui_icon_desc_t",5,3) @c_pack_size(14,"iSize","uint32_t") @c_pack_field(14,"sDisplayName",5,"c_string") @c_pack_field(14,"sTags",6,"c_string") @c_pack_field(14,"iFlags",7,"value") @c_result("owner_view",0) @factory(15,0,rollbackIcon) func addCustomWithMetadata(string name,IconDrawProc draw,IconMeasureProc? measure=null,IconPrepareProc? prepare=null,IconDestroyProc? destroy=null,string? displayName=null,string? tags=null,c_uint flags=0) as Icon
  extern "xuiIconAddCustomOwned" @no_raise @c_cstr(0) @c_owned_callback(1,-1,"xui_callback_owner_t",-16) @c_owned_callback(2,-1,"xui_callback_owner_t",-16) @c_owned_callback(3,-1,"xui_callback_owner_t",-16) @c_owned_callback(4,-1,"xui_callback_owner_t",0) @c_null(14,"const xui_icon_desc_t*") @c_result("owner_view",0) @factory(15,0,rollbackIcon) func addCustom(string name,IconDrawProc draw,IconMeasureProc? measure=null,IconPrepareProc? prepare=null,IconDestroyProc? destroy=null) as Icon
  extern "xuiIconRemove" @no_raise @c_cstr(0) @c_result("status",0) func remove(string name)
  extern "xuiIconRemoveById" @no_raise @c_result("status",0) func removeById(c_uint id)
@@ -48,6 +69,9 @@ export extern "xui_icon_t*" class Icon @header("xge3_runtime.h") @lifetime("owne
  extern "xuiIconGetId" @no_raise get id() as c_uint
  extern "xuiIconGetSourceType" @no_raise get sourceType() as c_int
  extern "xuiIconGetGeneration" @no_raise get generation() as c_uint
+ extern "xuiIconGetFlags" @no_raise get flags() as c_uint
+ extern "xuiIconGetRefCount" @no_raise get referenceCount() as c_int
+ extern "xuiIconRetainReference" @no_raise @c_result("owned_view") @factory(1,0,rollbackIconReference) func retain() as IconReference
  // XUI copies both optional strings before changing the icon's metadata.
  extern "xuiIconSetMetadata" @no_raise @c_pack(1,"xui_icon_desc_t",0,3) @c_pack_size(1,"iSize","uint32_t") @c_pack_field(1,"sDisplayName",0,"c_string") @c_pack_field(1,"sTags",1,"c_string") @c_pack_field(1,"iFlags",2,"value") @c_result("status",0) func setMetadata(string? displayName=null,string? tags=null,c_uint flags=0)
  extern "xuiIconGetIntrinsicSize" @no_raise @c_output(1,0) func intrinsicSize() as Vec2
@@ -61,3 +85,4 @@ export extern "xuiIconCategoryGetAt" @header("xge3_runtime.h") @no_raise @c_resu
 export extern "xuiIconPickerCreate" @header("xge3_runtime.h") @no_raise @c_null(2,"const xui_icon_picker_desc_t*") @c_result("owner_view",0) @factory(1,0,rollbackIconPicker) func createIconPicker(Context context) as IconPicker
 extern "xl6Xui3RollbackIconCategory" @header("xge3_runtime.h") @no_raise func rollbackIconCategory(IconCategory value)
 extern "xl6Xui3RollbackIcon" @header("xge3_runtime.h") @no_raise func rollbackIcon(Icon value)
+extern "xuiIconReferenceRelease" @header("xui3_icon_reference.h") @no_raise @c_result("status",0) func rollbackIconReference(IconReference value)

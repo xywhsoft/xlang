@@ -1,11 +1,10 @@
 """XUI registry-owned Icon/Category views and typed IconPicker model edges.
 
 An explicit full compiler, matched native SDK and CPU test Proxy are required.
-Checks expiry/aliases/Context retention/cross-Context rejection, 3000 zero-heap
-typed query/prepare/preload calls and 96 factory
-OOM budgets in JIT and independent dynamic/static programs. The graphical
-learning example is emitted and its public header checked, not executed here.
-Retained custom callbacks and every same-object reentry path are separate work.
+Checks registry aliases, independent native references, styled registration,
+checked custom cleanup, cross-Context rejection, zero-heap queries and
+factory OOM budgets in JIT and independent dynamic/static programs. This
+runner also emits the learning example and checks its public header.
 """
 from pathlib import Path
 import argparse,hashlib,json,os,re,shutil,subprocess,time
@@ -24,7 +23,9 @@ def main():
     case=root/'test/cases/foreign_xui_icon_models.xl';example=root/'lib/bindings/xui/examples/icon_picker.xl'
     files=[compiler,build,Path(__file__),case,example,example.with_name('_window.xl'),*extra,*tools.values(),
         Path(__file__).with_name('foreign_compiler_cohort.py'),Path(__file__).with_name('full_compiler_qualification.py'),
-        case.with_suffix('.h'),case.with_suffix('.c'),native/'tests/xui/xui_test_proxy.c',native/'tests/xui/xui_test_proxy.h']
+        case.with_suffix('.h'),case.with_suffix('.c'),case.with_name('foreign_xui_render_backend.c'),
+        case.with_name('foreign_xui_render_backend.h'),case.with_name('foreign_xui_render_adapters.inc'),
+        native/'tests/xui/xui_test_proxy.c',native/'tests/xui/xui_test_proxy.h']
     files.extend(compiler.parent/n for n in (('xl.dll','xlc.dll')if win else('libxl.so','libxlc.so')))
     for directory in (sdk,dynamic,static):files.extend(p for p in directory.rglob('*')if p.is_file())
     sha=lambda p:hashlib.sha256(Path(p).read_bytes()).hexdigest()
@@ -50,7 +51,9 @@ def main():
             for symbol in ('xuiIconCategoryCreate','xuiIconAddSvgPath','xuiIconPickerCreate','xuiIconPickerSetCategory'):
                 assert re.search(r'\b'+symbol+r'\(',text),symbol
             if source==case:
-                for symbol in ('xuiIconGetIntrinsicSize','xuiIconPrepare','xuiIconCategoryPreload'):
+                for symbol in ('xuiIconGetIntrinsicSize','xuiIconPrepare','xuiIconCategoryPreload',
+                        'xuiIconRetainReference','xuiIconCategoryRetainReference',
+                        'xuiIconReferenceIsLive','xuiIconGetFlags','xuiIconGetRefCount'):
                     assert re.search(r'\b'+symbol+r'\(',text),symbol
                 for kind,packages in (('jit',dynamic),('dynamic',dynamic),('static',static)):
                     if kind=='jit':output=run(name+'-'+kind,[compiler,'run',source,*includes],packages)
@@ -66,6 +69,7 @@ def main():
                         report['programs'].append(dict(path=str(program),sha256=sha(program),bytes=program.stat().st_size,imports=[n.decode()for n in imports]))
                     assert b'Icon models: registry views, picker ownership, expiry and 96 OOM budgets passed'in output
                     assert b'Icon model queries: 3000 zero-heap calls passed'in output
+                    assert b'Icon references: expiry, style, paired C/xlang zero-heap queries and OOM passed'in output
             native_includes=['-I'+str(p)for p in(root,sdk,sdk/'include',*sorted(dynamic.glob('*/include')))]
             for standard,tool,language in (('c11','gcc','c'),('c++11','g++','c++'),('c++17','g++','c++')):
                 run(name+'-public-header-'+standard,[tools[tool],'-std='+standard,'-Wall','-Wextra','-Werror',*native_includes,'-x',language,'-fsyntax-only',header],dynamic)

@@ -1369,6 +1369,12 @@ CLOSE_REPLACEMENTS = {
 
 # Reviewed native entry points with managed replacements.
 REPLACED = {
+    'xuiIconAddCustom': ('xui.IconCategory.addCustom', 'xuiIconAddCustomOwned'),
+    'xuiIconAddSurface': ('xui.IconCategory.addSurface', 'xuiIconAddSurfaceShared'),
+    'xuiIconAddRef': ('xui.Icon.retain', 'xuiIconRetainReference'),
+    'xuiIconCategoryAddRef': ('xui.IconCategory.retain', 'xuiIconCategoryRetainReference'),
+    'xuiIconPickerSetChange': ('xui.IconPicker.setChange', 'xuiIconPickerSetChangeOwned'),
+    'xuiIconPickerSetFormatter': ('xui.IconPicker.setFormatter', 'xuiIconPickerSetFormatterOwned'),
     'xuiWidgetDestroy': ('xui.Widget.close', 'xuiWidgetDestroyChecked'),
     'xuiWidgetGetAccessibleNodeCount': ('xui.Widget.getAccessibleNodeCount', 'xuiWidgetGetAccessibleNodeCountChecked'),
     'xuiWidgetSetCacheRenderCallback': ('xui.Widget.setCacheRenderCallback', 'xuiWidgetSetCacheRenderCallbackOwned'),

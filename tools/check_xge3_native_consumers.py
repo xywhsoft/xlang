@@ -68,6 +68,11 @@ HEADER_CLOSE_REPLACEMENTS.update({
 })
 HEADER_CLOSE_REPLACEMENTS['xuiTerminalSessionDestroy'] = (
     'xui.TerminalSession.close', 'xuiTerminalSessionReleaseOwnerChecked')
+ICON_REFERENCE_RELEASES = {'xuiIconRelease', 'xuiIconCategoryRelease', 'xuiIconReferenceRelease'}
+HEADER_CLOSE_REPLACEMENTS.update({
+    name: ('xui.IconReference.close', 'xuiIconReferenceReleaseOwnerChecked')
+    for name in ICON_REFERENCE_RELEASES
+})
 DOCUMENT_RENDERER_SOURCE = 'src/xui/document/xui_document_renderer.c'
 DOCUMENT_MODEL_SOURCE = 'src/xui/document/xui_document.c'
 DOCUMENT_FONT_TAIL = {'xuiDocumentFontOutputInit', 'xuiDocumentFontOutputDisposeChecked'}
@@ -384,6 +389,8 @@ def main():
                 {name: class_bindings[name] for name in CORE_POLICY_CLASSES}),
             'terminalHeaderPolicies': ('xui-terminal-header-policies',
                 {'xui.TerminalSession': class_bindings['xui.TerminalSession']}),
+            'iconHeaderPolicies': ('xui-icon-header-policies',
+                {'xui.IconReference': class_bindings['xui.IconReference']}),
         }
         header_relocations = {}
         for key, (name, classes) in policy_groups.items():
@@ -430,6 +437,9 @@ def main():
                 elif symbol=='xuiTerminalSessionDestroy':
                     key='terminalHeaderPolicies'
                     destroy='xl6Xui3TerminalSessionDestroy'
+                elif symbol in ICON_REFERENCE_RELEASES:
+                    key='iconHeaderPolicies'
+                    destroy='xl6Xui3IconReferenceDestroy'
                 else:
                     key='headerPolicies'
                     destroy='xl6Xge3dSceneDestroy' if policy=='xl6Xge3dScenePolicy' else policy+'Destroy'

@@ -1,5 +1,27 @@
 # Native consumers in the full API inventory
 
+## Icon registration and independent references
+
+`IconCategory` can register an icon with a display name, tags and flags.
+`addStyledSvgPath()` also accepts fill and stroke settings and a counted
+dash pattern in `bytes` or `Buffer`. The generated call validates the
+pattern length and alignment and passes the native descriptions directly.
+XUI copies the metadata and the dash pattern it keeps. A null tag remains
+distinct from an empty tag.
+
+`Icon.retain()` and `IconCategory.retain()` take independent native
+references. Unregistering removes the registry entry immediately and the
+retained object stays usable. Closing the originating `Context` expires
+both its ordinary views and its retained references. `IconReference.close()`
+releases its own reference and reports a checked error if that final
+release runs a failing custom destroy callback.
+
+Retaining an object allocates a native reference holder and registers an
+observer. Prepared liveness and reference-count queries use no heap
+operations in the paired C and xlang checks.
+
+[Validation evidence](../dev/release-materials/provenance/xui-icon-registration-20261123.json)
+
 ## Widget accessibility providers
 
 `Widget.setAccessibilityProvider()` registers an owned count, node and

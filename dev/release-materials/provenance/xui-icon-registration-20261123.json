@@ -1,0 +1,129 @@
+{
+  "complete": true,
+  "passed": true,
+  "releaseInstalled": false,
+  "networkTests": false,
+  "scope": "XUI icon metadata and SVG styles, independent registry references, and checked consuming cleanup",
+  "nativeRevision": "e8ff772085e4f478dfd64ba304efc11f095e4b7c",
+  "xlangSourceParent": "d08dce5d1ff0412c72f8c93c6c89c35bbe98214f",
+  "xlangCandidateBase": "a51241bf405cf48f43f8b2d2108aa5f2cd3a869f",
+  "platforms": {
+    "win": {
+      "generator": {
+        "path": "F:\\xlang-validation\\xge-full-20261110\\icon-registration-generator-win-r3\\results.json",
+        "sha256": "b7153ee0b658e76668aeb1713d687697c593546a377ec9e15d9de6487883b0bc"
+      },
+      "inventory": {
+        "path": "F:\\xlang-validation\\xge-full-20261110\\icon-registration-stage-win-r2\\audit\\surface\\surface.json",
+        "sha256": "faa7f5ec313fcba5c0133b03a64e4657d2aa78968ae4db1f1307ded27cb02493"
+      },
+      "consumers": {
+        "path": "F:\\xlang-validation\\xge-full-20261110\\icon-registration-stage-win-r2\\audit\\consumers\\results.json",
+        "sha256": "243554a317d6c2641e739cf598a5e62c82f4f134ca1a86c6556f4a0bee3e9c6c"
+      },
+      "hostedBuild": {
+        "path": "F:\\xlang-validation\\xge-full-20261110\\icon-registration-host-win-r1\\build-report.json",
+        "sha256": "332f4bd502466953ed6175164cd13c21b1f157fae2027c02247bf861d8c999f0"
+      },
+      "staticBuild": {
+        "path": "F:\\xlang-validation\\xge-full-20261110\\icon-registration-static-win-r1\\build-report.json",
+        "sha256": "ab00e46480b9fedeae3c7cef6a2cca5e68f9b23aead4e7a514a8cc7b1ede0536"
+      },
+      "candidatePackages": {
+        "path": "F:\\xlang-validation\\xge-full-20261110\\icon-registration-stage-win-r2\\replay\\stage-report.json",
+        "sha256": "b56bccafb2d49a3292ccc2b1f28e49b391f2d106877a242057863d89245f9806"
+      },
+      "tests": {
+        "path": "F:\\xlang-validation\\xge-full-20261110\\icon-registration-model-tests-win-r4\\results.json",
+        "sha256": "b67ced601d18d688cbf2d2abb6962c032691849d41f2cd3fe157591ec520d725"
+      },
+      "nativeRegression": {
+        "path": "F:\\xlang-validation\\xge-full-20261110\\icon-registration-native-tests-win-r1\\results.json",
+        "sha256": "6128acb159d70f102517659dbcc1b77d46f0f71bc177ffb2a90b618871a4c77f"
+      },
+      "sample": {
+        "path": "F:\\xlang-validation\\xge-full-20261110\\icon-registration-example-win-r1\\results.json",
+        "sha256": "3d99d1ea4a406bbc5bc835e1d260e7d949584ec88756a33470ac07c1e4956f1d"
+      },
+      "checks": 15,
+      "nativeGroups": 4,
+      "sampleWidth": 800,
+      "sampleHeight": 600
+    },
+    "linux": {
+      "generator": {
+        "path": "\\\\wsl.localhost\\Ubuntu\\var\\tmp\\xlang-validation\\xge-full-20261110\\icon-registration-generator-linux-r3\\results.json",
+        "sha256": "8bd84b5da340155b426f5dbda24784c8a9e399d822912ae4109443e64869fda1"
+      },
+      "inventory": {
+        "path": "\\\\wsl.localhost\\Ubuntu\\var\\tmp\\xlang-validation\\xge-full-20261110\\icon-registration-stage-linux-r2\\audit\\surface\\surface.json",
+        "sha256": "448837302a8ce3a94815f05943d7c3b271df331e74515eb58d2b3690ed7e30ae"
+      },
+      "consumers": {
+        "path": "\\\\wsl.localhost\\Ubuntu\\var\\tmp\\xlang-validation\\xge-full-20261110\\icon-registration-stage-linux-r2\\audit\\consumers\\results.json",
+        "sha256": "4d7e202a2a7be9252c95642feeb4d4303cacbb6f1cca2c39bff8da3999d17482"
+      },
+      "hostedBuild": {
+        "path": "\\\\wsl.localhost\\Ubuntu\\var\\tmp\\xlang-validation\\xge-full-20261110\\icon-registration-host-linux-r1\\build-report.json",
+        "sha256": "a869705981c5b5e0d75dd5af9e6ea892f586a0fb270fb247eab17b83732fbde5"
+      },
+      "staticBuild": {
+        "path": "\\\\wsl.localhost\\Ubuntu\\var\\tmp\\xlang-validation\\xge-full-20261110\\icon-registration-static-linux-r1\\build-report.json",
+        "sha256": "9cfc4ce7a6a8a8a344b6ee13bd73632702384e1bd3b27273c421ad458d10082b"
+      },
+      "candidatePackages": {
+        "path": "\\\\wsl.localhost\\Ubuntu\\var\\tmp\\xlang-validation\\xge-full-20261110\\icon-registration-stage-linux-r2\\replay\\stage-report.json",
+        "sha256": "e97431e06ab9eb07c7f448668c78e7bf21001fc4aa9708f98627aabb522cff06"
+      },
+      "tests": {
+        "path": "\\\\wsl.localhost\\Ubuntu\\var\\tmp\\xlang-validation\\xge-full-20261110\\icon-registration-model-tests-linux-r4\\results.json",
+        "sha256": "58c180152e461a41448ce50a17dbb4918a6bb40f004a939c43d92b35ddb99115"
+      },
+      "nativeRegression": {
+        "path": "\\\\wsl.localhost\\Ubuntu\\var\\tmp\\xlang-validation\\xge-full-20261110\\icon-registration-native-tests-linux-r1\\results.json",
+        "sha256": "7f821ded5b2b92c2739d49b9234978a66d2e73c20ce088219fb7fb087c32ce99"
+      },
+      "sample": {
+        "path": "\\\\wsl.localhost\\Ubuntu\\var\\tmp\\xlang-validation\\xge-full-20261110\\icon-registration-example-linux-r1\\results.json",
+        "sha256": "1ae8f0cbbbe02650141ba7ee32aa9bf6ac13748169fc5872ed3dfcc0d5216445"
+      },
+      "checks": 15,
+      "nativeGroups": 4,
+      "sampleWidth": 800,
+      "sampleHeight": 600
+    }
+  },
+  "audit": {
+    "functions": 5773,
+    "directDeclarations": 4707,
+    "compiledNativeConsumers": 282,
+    "explicitReplacements": 337,
+    "pending": {
+      "XGE": 160,
+      "XUI": 290,
+      "Document": 0
+    }
+  },
+  "allocationCheck": {
+    "operation": "liveness and reference count on a retained and prepared icon",
+    "iterations": 1000,
+    "native": {
+      "alloc": 0,
+      "free": 0,
+      "realloc": 0
+    },
+    "xlang": {
+      "alloc": 0,
+      "free": 0,
+      "realloc": 0
+    }
+  },
+  "scopeBoundaries": {
+    "retain": "one native holder allocation and an observer, plus the managed language view",
+    "registration": "native registration copies strings and dash spans it stores",
+    "pendingRawIconFunctions": [
+      "xuiIconDescDefault",
+      "xuiIconGetUser"
+    ]
+  }
+}

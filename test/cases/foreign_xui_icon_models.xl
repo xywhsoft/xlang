@@ -4,9 +4,114 @@ from xui import IconCategory as IconCategoryModel
 extern "fixtureIconProxy" @header("test/cases/foreign_xui_icon_models.h") @no_raise @c_result("owned_view") @factory(0,0,dropProxy) func cpuProxy() as xui.Proxy
 extern "xuiProxyReleaseChecked" @header("xge3_runtime.h") @no_raise @c_result("status",0) func dropProxy(xui.Proxy value)
 extern "fixtureIconBudget" @no_raise func budget(c_int allowance)
-extern "fixtureIconHostReferences" @no_raise func hostReferences() as c_int
+extern "fixtureRenderBalanced" @no_raise func backendBalanced() as c_int
 extern "fixtureIconHeapBegin" @no_raise func heapBegin()
 extern "fixtureIconHeapUnchanged" @no_raise func heapUnchanged() as c_int
+extern "fixtureIconLiveHeapUnchanged" @no_raise func liveHeapUnchanged() as c_int
+extern "fixtureIconDashes" @no_raise @c_span(0,"void*","size_t") func fillDashes(Buffer output)
+extern "fixtureIconDrawStyled" @no_raise func drawStyled(xui.Context context,xui.Surface surface,IconModel icon)
+extern "fixtureIconReferenceHot" @no_raise func nativeReferenceHot(xui.IconReference reference,IconModel icon)
+
+func verifyReferences(xui.Context context,xui.Proxy proxy,IconCategoryModel category,xui.Rect box)
+    auto dashes=Buffer()
+    assert dashes.resize(8)
+    fillDashes(dashes)
+    auto icon=category.addStyledSvgPath("styled","M0 0 L16 0 L8 16 Z",box,dashes,
+        fillColor=0x10A030FF,strokeColor=0x4040FFFF,strokeWidth=1.5,dashOffset=0.5,
+        displayName="描边",tags="",flags=37)
+    assert icon.displayName=="描边" and (icon.tags ?? "missing")=="" and icon.flags==37
+    for i in range(8)
+        dashes[i]=uint8(0)
+    end
+    assert dashes.resize(0)
+    auto target=proxy.createSurfaceRGBA(16,16,flags=c_uint(xui.XUI_SURFACE_USAGE_TARGET))
+    drawStyled(context,target,icon)
+    target.close()
+    assert icon.referenceCount==1 and category.referenceCount==1
+    auto reference=icon.retain()
+    assert reference.isLive() and icon.referenceCount==2
+    assert icon.unregister() and category.find("styled")==null
+    assert reference.isLive() and icon.name=="styled" and icon.referenceCount==1
+    reference.close()
+    bool expired=false
+    try
+        auto value=icon.referenceCount
+    catch StateError
+        expired=true
+    end
+    assert expired
+
+    icon=category.addSvgPath("loan","M0 0 H16 V16 H0 Z",box)
+    reference=icon.retain()
+    budget(0)
+    heapBegin()
+    for i in range(1000)
+        assert reference.isLive() and icon.referenceCount==2
+    end
+    assert heapUnchanged()==1,"language reference queries allocate nothing"
+    heapBegin()
+    nativeReferenceHot(reference,icon)
+    assert heapUnchanged()==1,"C reference queries allocate nothing"
+    budget(-1)
+    reference.close()
+    assert icon.referenceCount==1
+
+    int failures=0
+    int successes=0
+    for allowance in range(12)
+        heapBegin()
+        budget(c_int(allowance))
+        try
+            auto candidate=icon.retain()
+            candidate.close()
+            successes+=1
+        catch Error
+            failures+=1
+        finally
+            budget(-1)
+        end
+        assert icon.referenceCount==1 and liveHeapUnchanged()==1,"reference admission rollback"
+    end
+    assert failures>0 and successes>0
+    assert icon.unregister()
+    auto source=proxy.createSurfaceRGBA(16,16)
+    auto surfaceIcon=category.addSurfaceWithMetadata("surface",source,box,displayName="Surface",flags=12)
+    source.close()
+    assert surfaceIcon.displayName=="Surface" and surfaceIcon.flags==12
+    assert surfaceIcon.intrinsicSize().fX==16
+    assert surfaceIcon.unregister()
+
+    auto custom=category.addCustomWithMetadata("custom",
+        func(xui.CallbackIcon sender,xui.CallbackPainter painter,xui.Rect rectangle,xui.CallbackIconDrawDesc? style) as c_int
+            return 0
+        end,
+        destroy=func(xui.CallbackIcon sender)
+            assert sender.displayName=="Custom"
+            assert false,"retained icon cleanup failure"
+        end,
+        displayName="Custom")
+    auto customReference=custom.retain()
+    assert custom.unregister()
+    bool reported=false
+    try
+        customReference.close()
+    catch AssertionError
+        reported=true
+    end
+    assert reported,"last icon reference reports its consuming callback failure"
+    auto categoryReference=category.retain()
+    assert category.referenceCount==2
+    assert category.unregister() and xui.findIconCategory(context,"output")==null
+    assert categoryReference.isLive() and category.name=="output" and category.referenceCount==1
+    categoryReference.close()
+    expired=false
+    try
+        auto value=category.referenceCount
+    catch StateError
+        expired=true
+    end
+    assert expired
+end
 
 func main(...) as int
     auto proxy=cpuProxy()
@@ -184,7 +289,7 @@ func main(...) as int
         rejected=false
         budget(allowance)
         try
-            result=category.addSvgPath("allocation","M0 0 L16 0 L8 16 Z",box)
+            result=category.addSvgPathWithMetadata("allocation","M0 0 L16 0 L8 16 Z",box,displayName="分配",tags="图标",flags=9)
         catch error
             rejected=true
         end
@@ -195,14 +300,22 @@ func main(...) as int
             assert category.find("allocation")==null
         else
             successes+=1
+            assert (result as IconModel).displayName=="分配" and (result as IconModel).flags==9
             assert (result as IconModel).unregister()
         end
         assert category.count==0
         allowance+=1
     end
     assert failures>0 and successes>0
+    verifyReferences(context,proxy,category,box)
+    category=xui.createIconCategory(context,"closing",description)
     icon=category.addSvgPath("last","M0 0 L16 0 L8 16 Z",box)
+    auto finalIconReference=icon.retain()
+    auto finalCategoryReference=category.retain()
     context.close()
+    assert not finalIconReference.isLive() and not finalCategoryReference.isLive()
+    finalIconReference.close()
+    finalCategoryReference.close()
     expired=false
     try
         auto gone=icon.name
@@ -211,7 +324,8 @@ func main(...) as int
     end
     assert expired
     proxy.close()
-    assert hostReferences()==1
+    assert backendBalanced()==1
     println("Icon models: registry views, picker ownership, expiry and 96 OOM budgets passed")
+    println("Icon references: expiry, style, paired C/xlang zero-heap queries and OOM passed")
     return 0
 end
