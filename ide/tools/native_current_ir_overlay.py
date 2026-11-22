@@ -110,6 +110,10 @@ def derive(frontend:Path,output:Path,*,phases=False,ir_source=None):
     dependency=Path(__file__).with_name('native_ir_exit_profile.py')
     audited[str(dependency)]=hashlib.sha256(dependency.read_bytes()).hexdigest()
     compiled=output/'frontend/xl6_ir.c';compiled.parent.mkdir(parents=True,exist_ok=True)
+    from native_ir_exit_range import derive as derive_exit_range
+    source,exit_range=derive_exit_range(source,frontend,output)
+    dependency=Path(__file__).with_name('native_ir_exit_range.py')
+    audited[str(dependency)]=hashlib.sha256(dependency.read_bytes()).hexdigest()
     compiled.write_text(source,encoding='utf8',newline='\n')
     return selected,compiled,dict(source=str(selected),sourceSha256=hashlib.sha256(selected.read_bytes()).hexdigest(),
         baseFrontendSource=str(original),baseFrontendSourceSha256=audited[str(original)],
@@ -118,6 +122,7 @@ def derive(frontend:Path,output:Path,*,phases=False,ir_source=None):
         irDependencyCohort=dependency_cohort,
         derivedPhases=derived_overlay if phases else None,
         exitProduction=exit_production,
+        exitRangeProduction=exit_range,
         parameterMasks=parameter_overlay,
         classifierAdmission=classifier_overlay,
         topologyObserver=topology_overlay,

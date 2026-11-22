@@ -101,6 +101,7 @@ CORE_TESTS = ("analysis_frontend_cancel_test", *CORE_TESTS)
 CORE_TESTS = ("analysis_dependency_session_test", "analysis_dependency_worker_test", *CORE_TESTS)
 CORE_TESTS = ("analysis_overlay_owner_test", *CORE_TESTS)
 CORE_TESTS = ("analysis_ir_exit_test", "analysis_ir_memo_test", "analysis_projection_test", *CORE_TESTS)
+CORE_TESTS = ("analysis_ir_exit_range_test", *CORE_TESTS)
 CORE_TESTS = ("analysis_completion_body_failure_test", *CORE_TESTS)
 CORE_TESTS = ("analysis_semantic_proof_test", *CORE_TESTS)
 CORE_TESTS = ("analysis_semantic_headers_test", *CORE_TESTS)
@@ -225,6 +226,7 @@ def prepare_native_ir(frontend: Path, output: Path) -> tuple[Path, Path, dict]:
     source = ir_cancellation(source)
     source = derive_initializer_index(source)
     source = derive_ir_memo(source)
+    source += '\n#include "analysis/frontend_ir_exit_range.inc"\n'
     compiled.write_text(source, encoding='utf-8', newline='\n')
     return original, compiled, dict(source=str(original), sourceSha256=hashlib.sha256(body).hexdigest(),
         compiledSource=str(compiled), compiledSha256=sha(compiled),
@@ -999,7 +1001,7 @@ def main() -> None:
             if not owner_coordinator:
                 raise ValueError('missing owner publication fixture target')
             flags += ['-DXIDE_OWNER_REFERENCE_FIXTURE="' + owner_coordinator.as_posix() + '"']
-        if source.stem in ('ir_table_graph','analysis_ir_table_graph_test','analysis_ir_unit_capture_test','analysis_ir_call_link_test','analysis_ir_control_link_test','analysis_ir_enum_link_test'):
+        if source.stem in ('ir_table_graph','analysis_ir_table_graph_test','analysis_ir_unit_capture_test','analysis_ir_call_link_test','analysis_ir_control_link_test','analysis_ir_enum_link_test','analysis_ir_exit_range_test'):
             flags += ['-I'+str(output/'ir_tables')]
         if source.stem in ('ir_node_link','analysis_ir_node_link_test'):
             flags += ['-I'+str(output/'ir_node_link')]
@@ -1128,8 +1130,9 @@ def main() -> None:
             extra = [str(objects["document_sync"])] if name in ("document_sync_test", "diagnostic_stream_test") else []
             if name == 'analysis_ir_node_graph_test':
                 extra += ['-Wl,--wrap='+f for f in ('xrtMalloc','xrtCalloc','xrtFree')]
-            if name in ('analysis_ir_table_graph_test','analysis_ir_node_link_test','analysis_ir_type_link_test','analysis_ir_unit_capture_test','analysis_ir_call_link_test','analysis_ir_control_link_test','analysis_ir_enum_link_test'):
+            if name in ('analysis_ir_table_graph_test','analysis_ir_node_link_test','analysis_ir_type_link_test','analysis_ir_unit_capture_test','analysis_ir_call_link_test','analysis_ir_control_link_test','analysis_ir_enum_link_test','analysis_ir_exit_range_test'):
                 extra += ['-Wl,--wrap='+f for f in ('xrtMalloc','xrtCalloc','xrtFree','xl6IrDumpModuleJson')]
+            if name=='analysis_ir_exit_range_test':extra+=['-Wl,--wrap=xrtRealloc']
             if name in ("file_watch_test", "file_watch_lease_test"):extra += [str(objects["file_watch"])]
             if name == "file_watch_lease_test":extra += ["-Wl,--wrap="+f for f in ("malloc", "free", "__imp_ReadFile")]
             if name == "workspace_edit_select_test":extra += ["-Wl,--wrap="+f for f in ("malloc","xrtCalloc","xrtArrayResize","xlsTextCreate","xlsTextData")]

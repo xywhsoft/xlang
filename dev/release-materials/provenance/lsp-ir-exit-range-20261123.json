@@ -1,0 +1,109 @@
+{
+  "schema": 1,
+  "date": "2026-11-23",
+  "stage": "M7b7n",
+  "scope": "Hash-qualified fresh selected-node native exit production; no cross-generation eligibility, cache admission or ordinary analysis integration",
+  "ownedSources": {
+    "ide/src/analysis/ir_exit_range.h": "f75e604a7938deb0ebf011d1d376752107b9ebe79ad88e3dc52939a2e7744638",
+    "ide/src/analysis/frontend_ir_exit_range.inc": "58ee0664c6d8d315fd02dbd05dd625ceb38b8b8fcd4baae148f073f8476d4485",
+    "ide/tools/native_ir_exit_range.py": "5a76a1320c3ef877fa8e1d513bb28deec10f52aa09aec101ea5481b950191c63",
+    "ide/tools/native_current_ir_overlay.py": "be414f36972d16dcd0b09f9e6e20898d52a9c084c0ca7777549c7a37efa8eda6",
+    "ide/tools/build_lsp_core.py": "34ed1d5fed7bb07eb3da8c2612b80b72690e0e48e9a6d83a7baa86c3d2b8b0d6",
+    "ide/tests/analysis_ir_exit_range_test.c": "e0ac9ecc3059fbe2a66698905f43e88cd10d4899c4764e0bb6c57dfb5ff5bfeb",
+    "ide/docs/lsp-ir-exit-range.md": "e30831f3b406357259acdd8eb256114972408eaf0a44c3d65de86b8203625ab4",
+    "ide/docs/lsp-development.md": "86715931d138bf25bbab4d60f1d32e00dfaa94827af85b4b061fbce4fac32561"
+  },
+  "materials": {
+    "source": {
+      "archive": {
+        "path": "dev/release-materials/sources/lsp-ir-exit-range-20261123/inputs.tar.gz",
+        "sha256": "a414ecb19e3bccbbdac9dc2c147a31377e2ab44da7137eda191caf6f963ca905",
+        "bytes": 8885453
+      },
+      "manifest": {
+        "path": "dev/release-materials/sources/lsp-ir-exit-range-20261123/inputs.tar.gz.manifest.json",
+        "sha256": "781c6864cc178bea28d598bd82dacb391b7c8ed175dd63f6134434ce89a49c1d",
+        "bytes": 1885707
+      },
+      "entries": 6098,
+      "uniquePayloads": 1630
+    },
+    "validation": {
+      "archive": {
+        "path": "dev/release-materials/provenance/lsp-ir-exit-range-20261123/validation.tar.gz",
+        "sha256": "88ff19ec7b1b0ad5e2dd0258875a1020a71cd52849254d0d7d2abbe3976c78b8",
+        "bytes": 115757636
+      },
+      "manifest": {
+        "path": "dev/release-materials/provenance/lsp-ir-exit-range-20261123/validation.tar.gz.manifest.json",
+        "sha256": "c065496f604533558cd8501ea04b67ff6b431213072c3a349c835f9d725778c2",
+        "bytes": 51239
+      },
+      "entries": 156,
+      "uniquePayloads": 94
+    }
+  },
+  "externalPaths": [
+    "F:\\codex-builds-xlang-lsp-20261123\\ir-exit-range",
+    "F:\\codex-builds-xlang-lsp-20261123\\ir-exit-range-materials"
+  ],
+  "materialDependencies": [
+    "dev/release-materials/provenance/lsp-stable-enum-package-20261123.json"
+  ],
+  "baseBuild": "F:\\codex-builds-xlang-lsp-20261123\\ir-enum-link\\native-v2\\build-result.json",
+  "componentBuild": "component-v4/build-result.json",
+  "verification": {
+    "checks": 394023,
+    "sharedChecksNotDisjoint": true,
+    "nativeModules": 134,
+    "partitions": [
+      1,
+      17
+    ],
+    "completeNativeVerifierJsonComparisons": 268,
+    "selectedFunction": {
+      "name": "f128",
+      "closeNodes": 16,
+      "planNodes": 16,
+      "moduleNodes": 4112,
+      "routePlans": 6,
+      "modulePlans": 1540,
+      "outsideDependencyReadsAllowed": true
+    },
+    "allocationRejectionPoints": 6,
+    "cancellationPoints": 156,
+    "exactRetainedBudgetBoundary": true,
+    "inputHeaderAndNodeBytesUnchanged": true,
+    "sourceModelsRetired": true,
+    "pipelineAndSourceCases": 6,
+    "standardPipelineExactlyOldNativeSourcePlusNewTail": true,
+    "compiledDefects": 8,
+    "positiveControls": 1,
+    "sourceSnapshotGuardPassed": true,
+    "runtimeGuardPassed": true
+  },
+  "predecessorFailuresPreserved": true,
+  "ordinaryAnalysisIntegrated": false,
+  "performanceQualified": false,
+  "wholeGoalPerformanceQualified": false,
+  "defaultRuntimeReplaced": false,
+  "runtimeBeforeAndAfter": {
+    "D:\\GIT\\x-lang\\release\\win_x64\\mdo.exe": "9219de70911e1f02d8e54eadc77c257369e4ea637e5202fcbb04854a29893044",
+    "D:\\GIT\\x-lang\\release\\win_x64\\update.exe": "4c5266fce0a541b9b96fe92b3d2f7d94598aff3b052e420b08b6d47db5e5c6c2",
+    "D:\\GIT\\x-lang\\release\\win_x64\\xge.dll": "127db42612e8a27c8b1f7f74e4653c25f09140f8baac38d16fc564eb74892ef3",
+    "D:\\GIT\\x-lang\\release\\win_x64\\xl.dll": "f31ddbe973ed48d261014ec64fa6b0ba48791fc0313192a19d59467254c0fcd6",
+    "D:\\GIT\\x-lang\\release\\win_x64\\xl.exe": "5288c4e8be9f420ef98caeb11be362017be925f2ad81a0d56946cc6a8c721081",
+    "D:\\GIT\\x-lang\\release\\win_x64\\xlang-ls.exe": "341c0c5b2c9692cfee68889610eebfa5dec1816d44caa6313a3e2e0fecd2d285",
+    "D:\\GIT\\x-lang\\release\\win_x64\\xlang_ide.exe": "57856d0e1c6a7a07b6ad1c1600436f14b17c5217e7ad80c25f931ea7881da4b0",
+    "D:\\GIT\\x-lang\\release\\win_x64\\xlang_ide_xge.dll": "7eba677fddada9b605db2d54dd59ee57a9cfc1caf0b574f6cb206ec9de379418",
+    "D:\\GIT\\x-lang\\release\\win_x64\\xlc.dll": "64b2e9830569c84580335b0a2b15a59ce13552ba1ba51933fc82cd75808c0728"
+  },
+  "goalComplete": false,
+  "externalPublishPerformed": false,
+  "limits": [
+    "Other unchanged opaque-ABI objects reused from qualified conservative0.109; native IR and the new direct header consumer compiled together.",
+    "Only selected outer producer loops are restricted; original native dependency lookups may read outside a function.",
+    "Retained byte limit excludes transient realloc peaks, allocator metadata and RSS; helpers are not byte-preemptible.",
+    "A complete applicable LSP/static-analysis/incremental-production/performance/IDE/platform goal remains active."
+  ]
+}
