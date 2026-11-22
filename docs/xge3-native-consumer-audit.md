@@ -1,5 +1,27 @@
 # Native consumers in the full API inventory
 
+## TableView header rendering and shared cell outputs
+
+`TableView.setHeaderRenderer()` accepts an owned callback. Returning zero lets
+the built-in renderer draw the title and sort indicator. The callback can
+replace columns or unregister itself. Its column descriptor and backing text
+stay valid through the current call, and saved descriptors report expiration
+after it returns. ID and title reads copy their text into independent strings.
+
+`TableCellOutput.share()` retains the same native heap cell on its creator
+thread. Each returned handle closes independently. Native sharing allocates
+no memory and copies no payload. In 1,000 paired calls with the same native
+cell, the language path allocated and freed 2,000 ownership blocks. The
+allocation-failure checks cover both blocks and confirm rollback without
+losing the original cell. This comparison measures allocation counts.
+
+The Windows and Linux consumer audits found 5,741 native functions, including
+4,676 with direct declarations, 218 with compiled native consumer evidence,
+and 289 with explicit replacements. Another 561 have none of these entries
+yet, with 220 in XGE and 341 in XUI.
+
+[Validation evidence](../dev/release-materials/provenance/xui-tableview-owned-20261123.json)
+
 ## Document Font replacement and export cleanup
 
 The renderer keeps the previous selection if releasing its Font owner is
@@ -16,7 +38,7 @@ the allocator marker and the owning declarations of all seven byte/text export
 producers in the staged package.
 
 Document and Document UI now have evidence or explicit replacements for every
-remaining function in this inventory. The outstanding count is 578, with 220
+remaining function in this inventory. The outstanding count at that milestone was 578, with 220
 in XGE and 358 in XUI.
 
 [Validation evidence](../dev/release-materials/provenance/xui-document-font-replace-20261122.json)

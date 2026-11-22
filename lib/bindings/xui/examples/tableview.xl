@@ -2,10 +2,18 @@
 import xui
 from "./_window.xl" import Window
 
-Window.show("Tableview / columns and cells", func(xui.Context ui, xui.Widget root)
+Window.showWithProxy("Tableview / columns and cells", func(xui.Context ui, xui.Widget root, xui.Proxy proxy)
  auto table = ui.tableViewNative()
  Window.place(root, table, 24, 24, 640, 300)
  table.setColumns(["Name", "Value"], [250, 220])
+ table.setHeaderRenderer(func(xui.CallbackWidget widget,c_int index,xui.CallbackTableViewColumn column,xui.CallbackDrawContext draw,xui.Rect area,c_int state) as c_int
+  if index==0 then
+   area.fY+=area.fH-2
+   area.fH=2
+   proxy.fillRect(draw,area,c_uint(0xFF3076AE))
+  end
+  return 0 // 保留默认的表头标题和排序标记。
+ end)
  array<array<string>> rows = [["Alpha", "10"], ["Beta", "20"], ["Gamma", "30"]]
  table.setAdapter(func(xui.Widget table) as c_int
   return c_int(rows.length)

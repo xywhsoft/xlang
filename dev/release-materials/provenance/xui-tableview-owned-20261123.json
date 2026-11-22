@@ -1,0 +1,287 @@
+{
+  "complete": true,
+  "passed": true,
+  "releaseInstalled": false,
+  "networkTests": false,
+  "scope": "Owned TableView header paint callbacks and independently shared TableCellOutput handles",
+  "nativeRevision": "1b0b96a6105e6667f08dc3611103ebf358cbdaca",
+  "xlangSourceParent": "a3ec5dd081f362032e468824d607f05c0894067c",
+  "xlangInputs": {
+    "docs/xge3-native-consumer-audit.md": "cb0e279b887a79a090c734ec2e2d5eda707ad820463c45c4b523d9ccb223dc6c",
+    "docs/xge3-xui3-api-map-storage.json": "0c4b883b60e5ababe52afdfdb9f44917420e7f318b7ab7aa0fc070d16447132b",
+    "lib/bindings/xui/examples/headless_cell.xl": "b95b06968d22f8adaa48cc284632435ead78abcecc55e32c6b1f1cc28ef10473",
+    "lib/bindings/xui/examples/tableview.xl": "c7387cd5fe3490f247ce51276c996a3666bb9cfc37a2954de6d1744e56aa8c57",
+    "lib/bindings/xui/src/cell.xl": "0d51e65d2a50cbcbf630698da44b604931af5f30c334e8db4e4721fa3eb04b0b",
+    "lib/bindings/xui/src/managed.xl": "4be85e695e0887f6ba010ca7adf2bedd26a6f50f28fb053e581594fa8376a63b",
+    "lib/bindings/xui/src/table_columns.xl": "3f7cb11214797e21f921ac854ac33185d26c177ebc712f83546c794ee37e00f8",
+    "test/cases/foreign_xui_table_header_owned.c": "a32a7f92cb396830412e7005875d1b74a350c05e2480dd2484edb4a047f81f5b",
+    "test/cases/foreign_xui_table_header_owned.h": "ea935a7a8458b0b1f26552c86ffa52406c96d0bb7350a613d48a378c1f069385",
+    "test/cases/foreign_xui_table_header_owned.xl": "9e80d780dfc00b5915c38296ed871a931bdec81d1691dea847f14ce15b935dc2",
+    "tools/xui_managed_contracts.py": "3ed04a628df944796622ccb2550c7f2f73cc75bc1cca7e15ef48495a6cd1e956"
+  },
+  "helpers": [
+    {
+      "path": "F:/xlang-validation/xge-full-20261110/build-tableview-owned-r1.py",
+      "sha256": "bcf8ed3c952da67e520c6d7c0eb542862c1da7915c1d38ec0070537f937492db",
+      "bytes": 1998
+    },
+    {
+      "path": "F:/xlang-validation/xge-full-20261110/stage-tableview-owned-r1.py",
+      "sha256": "3eebd63fb71a823e3651ee83ed5ecb482482bd9dff3ad9a129d2dd7a8879eefc",
+      "bytes": 1226
+    },
+    {
+      "path": "F:/xlang-validation/xge-full-20261110/check-tableview-owned-r1.py",
+      "sha256": "2b67c15d7552751b2b7094610852fbb0ff6bfc602893ec2497539b5e27e9a019",
+      "bytes": 4924
+    },
+    {
+      "path": "F:/xlang-validation/xge-full-20261110/audit-tableview-owned-r1.py",
+      "sha256": "462bdd148cfdf65ef09180e1f464855a5350c1fa9ad6c0f78444cd3d0cfb47f7",
+      "bytes": 2527
+    },
+    {
+      "path": "F:/xlang-validation/xge-full-20261110/check-tableview-owned-tail-r3.py",
+      "sha256": "c649cf13ae63e81bbb64b07b6caaf4e81d462e4c680873ce124cde30a47f4a9c",
+      "bytes": 4587
+    }
+  ],
+  "audit": {
+    "functions": 5741,
+    "directDeclarations": 4676,
+    "compiledNativeConsumers": 218,
+    "explicitReplacements": 289,
+    "pending": {
+      "XGE": 220,
+      "XUI": 341,
+      "Document": 0
+    }
+  },
+  "performance": {
+    "cpuTimingCompared": false,
+    "payloadCopiedOnShare": false,
+    "nativeShareAllocationCount": 0,
+    "xlangShareAllocationCount": 2
+  },
+  "gridFixture": "The original standalone fixture lacked explicit imports. The second runner prepended imports in its isolated directory and used the existing Proxy-bound fixture without modifying the checkout.",
+  "platforms": {
+    "win": {
+      "nativeSource": {
+        "path": "F:/xlang-validation/xge-full-20261110/tableview-owned-stage-win-r1/audit-r1/native-source.json",
+        "sha256": "9f1bc7db9473b9d020c7d418cdf963cdd2b33141de3bdb4f84b5021eb4a6293a",
+        "bytes": 466184
+      },
+      "generator": {
+        "path": "F:/xlang-validation/xge-full-20261110/tableview-owned-generator-win-r3/results.json",
+        "sha256": "c5612b3f842652b4e0ef9222b0b0945d4345495dc4135b7b66a3d02587ccdd3f",
+        "bytes": 239623
+      },
+      "listedFunctions": {
+        "path": "F:/xlang-validation/xge-full-20261110/tableview-owned-stage-win-r1/audit-r1/surface/surface.json",
+        "sha256": "7855b1afd1d95ef5ff6528873c16128196089ff07290e1d282cd7d57f1f6158d",
+        "bytes": 5516321
+      },
+      "consumers": {
+        "path": "F:/xlang-validation/xge-full-20261110/tableview-owned-stage-win-r1/audit-r1/consumers/results.json",
+        "sha256": "6f0e4fb7bf68a0d1e132cbe212c7263e5cd0e053fddb91421014924b3336ff9b",
+        "bytes": 1326305
+      },
+      "hostedBuild": {
+        "path": "F:/xlang-validation/xge-full-20261110/tableview-owned-host-win-r1/build-report.json",
+        "sha256": "a55bb9f89430fe44b123bd494e9f185e1a35442eba030b075119a2f28263f927",
+        "bytes": 23782
+      },
+      "staticBuild": {
+        "path": "F:/xlang-validation/xge-full-20261110/tableview-owned-static-win-r1/build-report.json",
+        "sha256": "12048bccd9e8fc88dee6b88c88db7a83c8bc43a97f51754c89e9f6fe05e4faf9",
+        "bytes": 10262841
+      },
+      "hostedStage": {
+        "path": "F:/xlang-validation/xge-full-20261110/tableview-owned-stage-win-r1/host.json",
+        "sha256": "1f80df8e1f56f8a09f2bb6f161a1b5bfc27b67fa7625fd3831a54d73fb2f407e",
+        "bytes": 129660
+      },
+      "staticStage": {
+        "path": "F:/xlang-validation/xge-full-20261110/tableview-owned-stage-win-r1/static.json",
+        "sha256": "41fa7f0a59ba743e6be207042de8610f5491492cffe58f9e0836cfde18ef076f",
+        "bytes": 9307835
+      },
+      "pairedPackages": {
+        "path": "F:/xlang-validation/xge-full-20261110/tableview-owned-stage-win-r1/replay/stage-report.json",
+        "sha256": "425a228206e943d0e0799adda28dccbb1793789ee7737e04da12a7f6523eae06",
+        "bytes": 169910
+      },
+      "primaryRun": {
+        "path": "F:/xlang-validation/xge-full-20261110/tableview-owned-stage-win-r1/suite-r1/results.json",
+        "sha256": "9730023594556923abac28dbbf3f2cbb948d1c4402d4a0816b3d6326f9c27703",
+        "bytes": 16803
+      },
+      "primarySuccessfulRows": 24,
+      "correctedGridAndExampleRun": {
+        "path": "F:/xlang-validation/xge-full-20261110/tableview-owned-stage-win-r1/tail-r3/results.json",
+        "sha256": "816351ca181ef8416461cc423283cb834548870d23af3722f831fbc7ff2124ec",
+        "bytes": 8758
+      },
+      "additionalSuccessfulRows": 14,
+      "shares": {
+        "jit": {
+          "rounds": 1000,
+          "counts": {
+            "native": [
+              0,
+              0,
+              0
+            ],
+            "language": [
+              2000,
+              2000,
+              0
+            ]
+          },
+          "oomPrefixes": 2
+        },
+        "dynamic": {
+          "rounds": 1000,
+          "counts": {
+            "native": [
+              0,
+              0,
+              0
+            ],
+            "language": [
+              2000,
+              2000,
+              0
+            ]
+          },
+          "oomPrefixes": 2
+        },
+        "static": {
+          "rounds": 1000,
+          "counts": {
+            "native": [
+              0,
+              0,
+              0
+            ],
+            "language": [
+              2000,
+              2000,
+              0
+            ]
+          },
+          "oomPrefixes": 2
+        }
+      }
+    },
+    "linux": {
+      "nativeSource": {
+        "path": "/var/tmp/xlang-validation/xge-full-20261110/tableview-owned-stage-linux-r1/audit-r1/native-source.json",
+        "sha256": "7fd4f4e92bc48da9a1462ea385c3992d6f8b78cb49130b2153e82d24d61e58b2",
+        "bytes": 462354
+      },
+      "generator": {
+        "path": "/var/tmp/xlang-validation/xge-full-20261110/tableview-owned-generator-linux-r5/results.json",
+        "sha256": "d7bbac32767bad5749ad7750dbb4bc81b20c508c15e2655d7d96ba2ff8954374",
+        "bytes": 248904
+      },
+      "listedFunctions": {
+        "path": "/var/tmp/xlang-validation/xge-full-20261110/tableview-owned-stage-linux-r1/audit-r1/surface/surface.json",
+        "sha256": "e4887800bc40aa1c168294623504d4ade299cf5f4ec4027bbfdea3d783cc5ef7",
+        "bytes": 5331357
+      },
+      "consumers": {
+        "path": "/var/tmp/xlang-validation/xge-full-20261110/tableview-owned-stage-linux-r1/audit-r1/consumers/results.json",
+        "sha256": "e5f6af65286d3ef9e3ffe6ccfb2e7de413f3498f362ac5f4e260540eccf92ded",
+        "bytes": 1309090
+      },
+      "hostedBuild": {
+        "path": "/var/tmp/xlang-validation/xge-full-20261110/tableview-owned-host-linux-r1/build-report.json",
+        "sha256": "6421b0a1a79850e57c947ded1e725bdc031f1b74f6caa47efd6f57e578fd7519",
+        "bytes": 23055
+      },
+      "staticBuild": {
+        "path": "/var/tmp/xlang-validation/xge-full-20261110/tableview-owned-static-linux-r1/build-report.json",
+        "sha256": "108d77345e6edc9eb967551811d4582372b4a9a726244642aa41c0a46c20a7a0",
+        "bytes": 840654
+      },
+      "hostedStage": {
+        "path": "/var/tmp/xlang-validation/xge-full-20261110/tableview-owned-stage-linux-r1/host.json",
+        "sha256": "0e50eb134a709eac8d3c316fece1a2172fbb2c3a8823fdcb36aee5b6033ac5ae",
+        "bytes": 126168
+      },
+      "staticStage": {
+        "path": "/var/tmp/xlang-validation/xge-full-20261110/tableview-owned-stage-linux-r1/static.json",
+        "sha256": "7f6099fbf84e607a52c26d0bbfdb5edfa56bf6c01287750eb10812b6bea107bc",
+        "bytes": 143311
+      },
+      "pairedPackages": {
+        "path": "/var/tmp/xlang-validation/xge-full-20261110/tableview-owned-stage-linux-r1/replay/stage-report.json",
+        "sha256": "c17c1b231cf4a2545a000a870aa08a532f7eae95af995b2e2224c46c70614407",
+        "bytes": 166255
+      },
+      "primaryRun": {
+        "path": "/var/tmp/xlang-validation/xge-full-20261110/tableview-owned-stage-linux-r1/suite-r1/results.json",
+        "sha256": "fd5e9c9d5d05be299f639833eeec76f298cab36dd663f2209906d3ab46a02833",
+        "bytes": 16602
+      },
+      "primarySuccessfulRows": 24,
+      "correctedGridAndExampleRun": {
+        "path": "/var/tmp/xlang-validation/xge-full-20261110/tableview-owned-stage-linux-r1/tail-r3/results.json",
+        "sha256": "535279d855cf7225b3722727f1306939ac87aaf802a5ba9d96af0bef143990c9",
+        "bytes": 9249
+      },
+      "additionalSuccessfulRows": 15,
+      "shares": {
+        "jit": {
+          "rounds": 1000,
+          "counts": {
+            "native": [
+              0,
+              0,
+              0
+            ],
+            "language": [
+              2000,
+              2000,
+              0
+            ]
+          },
+          "oomPrefixes": 2
+        },
+        "dynamic": {
+          "rounds": 1000,
+          "counts": {
+            "native": [
+              0,
+              0,
+              0
+            ],
+            "language": [
+              2000,
+              2000,
+              0
+            ]
+          },
+          "oomPrefixes": 2
+        },
+        "static": {
+          "rounds": 1000,
+          "counts": {
+            "native": [
+              0,
+              0,
+              0
+            ],
+            "language": [
+              2000,
+              2000,
+              0
+            ]
+          },
+          "oomPrefixes": 2
+        }
+      }
+    }
+  }
+}

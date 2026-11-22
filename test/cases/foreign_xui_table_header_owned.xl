@@ -1,0 +1,148 @@
+import xge
+import xui
+from xui import CallbackTableViewColumn
+
+extern "fixtureTableShareMeasureNative" @header("test/cases/foreign_xui_table_header_owned.h") @no_raise func measureNative(xui.TableCellOutput cell)
+extern "fixtureTableShareBegin" @no_raise func beginHeap()
+extern "fixtureTableShareEnd" @no_raise func endHeap(c_int native)
+extern "fixtureTableShareSameCell" @no_raise func sameCell(xui.TableCellOutput a,xui.TableCellOutput b)
+extern "fixtureTableShareDropLast" @no_raise func dropLast()
+extern "fixtureTableHeaderFailAllocation" @no_raise func failAllocation(c_int allowance)
+
+func shares()
+    auto cell = xui.createTableCell()
+    cell.setText("owned cell")
+    measureNative(cell)
+    auto shared = cell.share()
+    sameCell(cell, shared)
+    beginHeap()
+    for i in range(1000)
+        auto view = shared.share()
+        view.close()
+    end
+    endHeap(0)
+
+    int denied = 0
+    bool complete = false
+    for prefix in range(16)
+        failAllocation(c_int(prefix))
+        try
+            auto view = cell.share()
+            failAllocation(-1)
+            view.close()
+            complete = true
+        catch Error
+            denied += 1
+        finally
+            failAllocation(-1)
+        end
+        if complete then break end
+        assert shared.text() == "owned cell"
+    end
+    assert complete and denied > 0
+    println("Table cell share allocation prefixes:", denied)
+    auto aliasOfCell = cell
+    cell.close()
+    bool expired = false
+    try
+        aliasOfCell.share()
+    catch StateError
+        expired = true
+    end
+    assert expired and shared.text() == "owned cell"
+    shared.close()
+    dropLast()
+end
+
+func paintHeader(xui.Context context,xui.Proxy proxy,xui.TableView table,xui.Surface target)
+    auto settings = xui.TableColumnSettings()
+    settings.iId = 7
+    settings.fWidth = 180
+    array<string?> ids = ["first"]
+    array<string?> titles = ["Original"]
+    table.setColumnsDetailed([settings],ids,titles)
+    int rendered = 0
+    xui.CallbackTableViewColumn? savedColumn = null
+    table.setHeaderRenderer(func(xui.CallbackWidget widget,c_int index,xui.CallbackTableViewColumn column,xui.CallbackDrawContext draw,xui.Rect bounds,c_int state) as c_int
+        assert index == 0 and column.numericId == 7 and (column.title ?? "") == "Original"
+        assert (column.id ?? "") == "first" and column.bounds.fW == 180 and column.width == 180
+        proxy.fillRect(draw,bounds,c_uint(0xFF3076AE))
+        rendered += 1
+        savedColumn = column
+        table.setColumns(["Replacement"],[c_float(150)])
+        assert (column.id ?? "") == "first" and (column.title ?? "") == "Original"
+        table.setHeaderRenderer(null)
+        return 1
+    end)
+    bool rejected = false
+    xui.TableViewHeaderRenderer replacement = func(xui.CallbackWidget widget,c_int index,xui.CallbackTableViewColumn column,xui.CallbackDrawContext draw,xui.Rect bounds,c_int state) as c_int
+        throw RuntimeError "unexpected replacement callback"
+    end
+    failAllocation(0)
+    try
+        table.setHeaderRenderer(replacement)
+    catch Error
+        rejected = true
+    finally
+        failAllocation(-1)
+    end
+    assert rejected
+    assert context.update(c_float(0.016)) == 0
+    context.render(target)
+    assert rendered == 1
+    bool expired = false
+    try
+        auto titleAfterReturn = (savedColumn as CallbackTableViewColumn).title
+    catch StateError
+        expired = true
+    end
+    assert expired
+    auto now,id,title,rect = table.getColumn(0)
+    assert (title ?? "") == "Replacement"
+
+    table.setHeaderRenderer(func(xui.CallbackWidget widget,c_int index,xui.CallbackTableViewColumn column,xui.CallbackDrawContext draw,xui.Rect bounds,c_int state) as c_int
+        throw RuntimeError "table header callback failure"
+    end)
+    bool checked = false
+    try
+        assert context.update(c_float(0.016)) == 0
+        context.render(target)
+    catch RuntimeError failure
+        checked = failure.message == "table header callback failure"
+    end
+    assert checked
+    table.setHeaderRenderer(null)
+    assert context.update(c_float(0.016)) == 0
+    context.render(target)
+end
+
+func main(...) as int
+    shares()
+    if env.get("XUI_TABLE_HEADER_PAINT") != null then
+        xge.init(320,180,"Managed TableView header",c_int(xge.XGE_INIT_OFFSCREEN))
+        xge.run(func() as c_int
+            assert xge.begin() == 0
+            auto proxy = xui.createProxy()
+            auto context = xui.create(proxy,xui.XUI_SYSTEM_FONT_DISABLED)
+            auto table = context.tableViewNative()
+            xui.Rect bounds
+            bounds.fW = 320
+            bounds.fH = 180
+            assert table.setRect(bounds) == 0 and context.setRootWidget(table) == 0
+            table.setDefaultMetrics(100,20,26)
+            context.setViewportSize(320,180)
+            auto target = proxy.createSurfaceRGBA(320,180,flags=c_uint(xui.XUI_SURFACE_USAGE_TARGET))
+            paintHeader(context,proxy,table,target)
+            context.close()
+            target.close()
+            proxy.close()
+            assert xge.nativeEnd() == 0
+            return 1
+        end)
+        xge.setFrameCallback(null)
+        xge.unit()
+        println("TABLE_HEADER_PAINT_OK")
+    end
+    println("TABLE_CELL_SHARE_OK")
+    return 0
+end

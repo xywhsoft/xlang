@@ -773,6 +773,8 @@ METHODS.update({
         'TableView', ['extern "xuiTableViewGetColumnDescriptor" @no_raise @c_output_record(2,"xui_table_column_desc_t","borrowed") @c_status(0) @c_output_field(0,"tSettings") @c_output_field(1,"sId","cstring") @c_output_field(2,"sTitle","cstring") @c_output_field(3,"tRect") func getColumn(c_int index) as (TableColumnSettings,string?,string?,Rect)']],
     'xuiTableViewSetColumnDescriptors': ['int xuiTableViewSetColumnDescriptors(xui_widget pWidget, const xui_table_column_desc_t* pColumns, int iCount)',
         'TableView', ['extern "xuiTableViewSetColumnDescriptors" @no_raise @c_array_group(1,0,3,"int",3) @c_array_record(1,"xui_table_column_desc_t") @c_array_field(1,"tSettings",0,"value") @c_array_field(1,"sId",1,"c_string") @c_array_field(1,"sTitle",2,"c_string") @c_result("status",0) func setColumnsDetailed(array<TableColumnSettings> settings,array<string?> ids,array<string?> titles,int size=-1)']],
+    'xuiTableViewSetHeaderRendererOwned': ['int xuiTableViewSetHeaderRendererOwned(xui_widget pWidget, xui_table_view_header_renderer_proc onRender, void* pUser, const xui_callback_owner_t* pOwner)',
+        'TableView', ['extern "xuiTableViewSetHeaderRendererOwned" @no_raise @c_owned_callback(0,0,"xui_callback_owner_t",-16) @c_result("status",0) func setHeaderRenderer(TableViewHeaderRenderer? renderer)']],
     'xuiTableGridGetColumnDescriptor': ['int xuiTableGridGetColumnDescriptor(xui_widget pWidget, int iColumn, xui_table_column_desc_t* pColumn)',
         'TableGrid', ['extern "xuiTableGridGetColumnDescriptor" @no_raise @c_output_record(2,"xui_table_column_desc_t","borrowed") @c_status(0) @c_output_field(0,"tSettings") @c_output_field(1,"sId","cstring") @c_output_field(2,"sTitle","cstring") @c_output_field(3,"tRect") func getColumn(c_int index) as (TableColumnSettings,string?,string?,Rect)']],
     'xuiTableGridSetColumnDescriptors': ['int xuiTableGridSetColumnDescriptors(xui_widget pWidget, const xui_table_column_desc_t* pColumns, int iCount)',
@@ -1339,6 +1341,8 @@ METHODS.update({
 
 # Provider snapshots and sets close through their ownership descriptors.
 CLOSE_REPLACEMENTS = {
+    'xuiTableViewCellOutputReleaseChecked': ('xui.TableCellOutput.close', 'xl6Xui3TableCellOutputPolicy',
+        'destroy_cell', 'xuiTableViewCellOutputReleaseOwnerChecked'),
     'xuiCodeProviderSetDestroy': ('xui.CodeProviderSet.close', 'xl6Xui3CodeProviderSetPolicy',
         'destroy_code_providers', 'xuiCodeProviderSetDestroyOwnerChecked'),
     'xuiCodeProviderSetDestroyChecked': ('xui.CodeProviderSet.close', 'xl6Xui3CodeProviderSetPolicy',
@@ -1353,6 +1357,22 @@ CLOSE_REPLACEMENTS = {
 
 # Reviewed native entry points with managed replacements.
 REPLACED = {
+    'xuiTableViewCellOutputAddRef': ('xui.TableCellOutput.share','xuiTableViewCellOutputShareOwned'),
+    'xuiTableViewSetHeaderRenderer': ('xui.TableView.setHeaderRenderer','xuiTableViewSetHeaderRendererOwned'),
+    'xuiTableViewGetColumn': ('xui.TableView.getColumn','xuiTableViewGetColumnDescriptor'),
+    'xuiTableViewSetAdapter': ('xui.TableView.setAdapter','xuiTableViewSetAdapterOwned'),
+    'xuiTableViewSetColumnResize': ('xui.TableView.setColumnResize','xuiTableViewSetColumnResizeOwned'),
+    'xuiTableViewSetContextMenu': ('xui.TableView.setContextMenu','xuiTableViewSetContextMenuOwned'),
+    'xuiTableViewSetHover': ('xui.TableView.setHover','xuiTableViewSetHoverOwned'),
+    'xuiTableViewSetMergeProvider': ('xui.TableView.setMergeProvider','xuiTableViewSetMergeProviderOwned'),
+    'xuiTableViewSetSelect': ('xui.TableView.setSelect','xuiTableViewSetSelectOwned'),
+    'xuiTableViewSetSort': ('xui.TableView.setSort','xuiTableViewSetSortOwned'),
+    'xuiTableGridSetAdapter': ('xui.TableGrid.setAdapter','xuiTableGridSetAdapterOwned'),
+    'xuiTableGridSetChange': ('xui.TableGrid.setChange','xuiTableGridSetChangeOwned'),
+    'xuiTableGridSetContextMenu': ('xui.TableGrid.setContextMenu','xuiTableGridSetContextMenuOwned'),
+    'xuiTableGridSetEditor': ('xui.TableGrid.setEditor','xuiTableGridSetEditorOwned'),
+    'xuiTableGridSetEditorConfig': ('xui.TableGrid.setEditorConfig','xuiTableGridSetEditorConfigOwned'),
+    'xuiTableGridSetValidate': ('xui.TableGrid.setValidate','xuiTableGridSetValidateOwned'),
     'xuiCodeProviderSetClear': ('xui.CodeProviderSet.clear', 'xuiCodeProviderSetClearChecked'),
     'xuiCodeProviderSetCompletion': ('xui.CodeProviderSet.setCompletionProvider', 'xuiCodeProviderSetCompletionReplyOwned'),
     'xuiCodeProviderSetCompletionOwned': ('xui.CodeProviderSet.setCompletionProvider', 'xuiCodeProviderSetCompletionReplyOwned'),

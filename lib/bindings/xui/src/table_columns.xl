@@ -14,3 +14,26 @@ export extern "xui_table_column_settings_t" struct TableColumnSettings @header("
  c_uint iTextColor
  c_uint iGridColor
 end
+
+export extern "const xui_table_view_column_t*" class CallbackTableViewColumn @header("xge3_runtime.h") @lifetime("callback")
+ native point handle
+ extern "iId" @c_field get numericId() as c_int
+ extern "sId" @c_field @c_result("cstring") get id() as string?
+ extern "sTitle" @c_field @c_result("cstring") get title() as string?
+ extern "fWidth" @c_field get width() as c_float
+ extern "fMinWidth" @c_field get minWidth() as c_float
+ extern "fMaxWidth" @c_field get maxWidth() as c_float
+ extern "bVisible" @c_field get visible() as c_int
+ extern "bVisibleSet" @c_field get visibleSet() as c_int
+ extern "bResizable" @c_field get resizable() as c_int
+ extern "bResizableSet" @c_field get resizableSet() as c_int
+ extern "iAlign" @c_field get alignment() as c_int
+ extern "iType" @c_field get cellType() as c_int
+ extern "bHasStyle" @c_field get hasStyle() as c_int
+ extern "iBackgroundColor" @c_field get backgroundColor() as c_uint
+ extern "iTextColor" @c_field get textColor() as c_uint
+ extern "iGridColor" @c_field get gridColor() as c_uint
+ extern "tRect" @c_field get bounds() as Rect
+end
+
+export typedef TableViewHeaderRenderer = func(CallbackWidget,c_int,CallbackTableViewColumn,CallbackDrawContext,Rect,c_int) as c_int

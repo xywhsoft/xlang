@@ -2,6 +2,7 @@
 // A callback can use(cache) without cloning cached text; setters reject read pins.
 export extern "xui_table_view_cell_output_t*" class TableCellOutput @header("xge3_runtime.h") @lifetime("owned") @policy("xl6Xui3TableCellOutputPolicy") @domain("xl6Xui3OwnershipDomainV1")
  native point handle
+ extern "xuiTableViewCellOutputShareOwned" @no_raise @c_result("owned_view") @factory(1,0,rollbackCell) func share() as TableCellOutput
  extern "xuiTableViewCellOutputSetText" @no_raise @c_text_view(0) @c_result("status",0) func setText(string text)
  extern "xuiTableViewCellOutputGetText" @no_raise @c_const(0) @c_result("text_view") func text() as string
  extern "xuiTableViewCellOutputSetTooltip" @no_raise @c_text_view(0) @c_result("status",0) func setTooltip(string text)
