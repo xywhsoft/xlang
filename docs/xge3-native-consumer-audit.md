@@ -1,5 +1,38 @@
 # Native consumers in the full API inventory
 
+## Render target readback and managed replacements
+
+The timeline capture failure also occurred in a dynamic AOT program. Under
+single-worker llvmpipe the compositor received complete source and target
+rectangles, but the original OpenGL pixel read returned a stale image. In the
+same process configuration, waiting for the draw queue before the raw pixel read
+restored the highlight. XGE commit `a7eaa14b` adds that wait to synchronous
+OpenGL render target readback. The CPU shadow path and ordinary drawing and
+presentation keep their existing behavior.
+
+The matched Windows and Linux packages passed the JIT, dynamic AOT and static
+AOT renderer fixture. Both platforms captured all 2,632 highlight pixels in the
+graphical JIT and standalone static examples. The Linux dynamic example
+produced the same full image in six single-worker runs. The existing typed GL
+loader test passed on both platforms with and without 3D. The Linux C readback
+probe reported pooled medians of 1.060 and 1.061 ms before and after the change
+for an 800 × 600 target under two-worker llvmpipe. The three runs in each group
+varied more than this difference. Hardware readback latency still depends on the
+driver and queued work.
+
+The same review recorded 90 already available managed replacements. XGE
+replacements cover owned font loading and creation, font fallback and family
+resolution, FontLoad and SoundLoad requests, PNG output and owned SVG textures.
+The XUI entries pair legacy callback registration with the managed method for the
+same native hook. The native-consumer checker resolves each public language name
+in the staged package and verifies the checked request close through the
+descriptor and consuming release relocations. The audit now has 348 functions
+without a declaration, compiled consumer or recorded replacement, with 139 in
+XGE and 209 in XUI. The review records interface paths. Per-interface runtime
+qualification and the final matching release remain separate work.
+
+[Validation evidence](../dev/release-materials/provenance/xge-render-target-readback-20261123.json)
+
 ## Timeline renderers and scroll state
 
 `TimeLineView.setRenderers()` sets the layer, ruler, frame and span

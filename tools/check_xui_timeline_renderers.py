@@ -16,6 +16,7 @@ def main():
     keys = ('root', 'compiler', 'compiler-report', 'native-root', 'dynamic-packages', 'static-packages', 'out')
     for key in keys:
         parser.add_argument('--' + key, type=Path, required=True)
+    parser.add_argument('--render-example', action='store_true', help='Check the visible highlight in a two-frame capture')
     args = parser.parse_args()
     root, compiler, build, native, dynamic, static, out = (
         getattr(args, key.replace('-', '_')).resolve() for key in keys
@@ -29,6 +30,10 @@ def main():
     files.extend(case.with_name('foreign_xui_render_' + name) for name in ('backend.c', 'backend.h', 'adapters.inc'))
     files.extend(native / 'tests/xui' / name for name in ('xui_test_proxy.c', 'xui_test_proxy.h'))
     files.extend(compiler.parent / name for name in (('xl.dll', 'xlc.dll') if win else ('libxl.so', 'libxlc.so')))
+    example = dynamic / 'xui/examples/timeline_renderers.xl'
+    font = root / 'lib/bindings/xge/examples/data/font_fixture.ttf'
+    if args.render_example:
+        files.append(font)
     for directory in (sdk, dynamic, static):
         files.extend(path for path in directory.rglob('*') if path.is_file())
 
@@ -44,11 +49,17 @@ def main():
         temporary.write_text(json.dumps(report, indent=2) + '\n', encoding='utf-8')
         temporary.replace(out / 'results.json')
 
-    def run(label, command, packages):
+    def run(label, command, packages, render=False):
         env = {key: value for key, value in os.environ.items() if not key.startswith('XL6_')}
         env['XLANG_PACKAGE_PATH'] = str(packages)
         key = 'PATH' if win else 'LD_LIBRARY_PATH'
         env[key] = os.pathsep.join((str(packages/'_xge_native/native'), str(compiler.parent), env.get(key, '')))
+        if render:
+            env.update(XUI_EXAMPLE_FRAMES='2', XUI_EXAMPLE_FONT=str(font), XUI_EXAMPLE_DUMP=str(out/'example.rgba'),
+                XDG_CACHE_HOME=str(out/'cache'))
+            if not win:
+                env.update(LIBGL_ALWAYS_SOFTWARE='1', GALLIUM_DRIVER='llvmpipe', LP_NUM_THREADS='1')
+                command = ['xvfb-run', '-a', '-s', '-screen 0 1024x768x24 -nolisten tcp', *command]
         command = list(map(str, command))
         process = subprocess.run(command, cwd=out, env=env, capture_output=True, timeout=300)
         output = process.stdout + process.stderr
@@ -89,6 +100,18 @@ def main():
                 assert not {'xl.dll', 'xlc.dll', 'libxl.so', 'libxlc.so', 'libtcc.dll', 'libtcc.so'}.intersection(imports)
                 report['programs'].append(dict(mode=mode, bytes=binary.stat().st_size, sha256=digest(binary), imports=imports))
             assert b'TIMELINE_RENDERERS_OK' in output and b'TIMELINE_FRAME_FIELDS_OK' in output
+        if args.render_example:
+            output = run('render-example', [compiler, 'run', example, *includes], dynamic, render=True)
+            match = re.search(rb'RGBA (\d+) (\d+)', output)
+            assert match, 'The example did not capture a frame'
+            width, height = map(int, match.groups())
+            pixels = out / 'example.rgba'
+            data = pixels.read_bytes()
+            assert len(data) == width * height * 4
+            color = bytes.fromhex('3B82F6FF')
+            highlighted = sum(data[index:index+4] == color for index in range(0, len(data), 4))
+            assert highlighted >= 100, 'The timeline highlight is missing from the captured frame'
+            report['graphicalExample'] = dict(width=width, height=height, highlightedPixels=highlighted, sha256=digest(pixels))
         report['inputsUnchanged'] = all(digest(path) == sha for path, sha in inputs.items())
         assert report['inputsUnchanged']
         report['passed'] = True

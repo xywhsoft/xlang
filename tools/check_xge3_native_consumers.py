@@ -57,6 +57,7 @@ CORE_HEADER_CLOSES = {
     'xgeGraphicsBackendReleaseChecked': ('GraphicsBackend', 'GraphicsBackend', 'xgeGraphicsBackendReleaseOwnerChecked'),
     'xgeHostSessionReleaseChecked': ('HostSession', 'HostSession', 'xgeHostSessionReleaseOwnerChecked'),
     'xgeAsyncLoadReleaseChecked': ('ImageLoad', 'AsyncLoad', 'xgeAsyncLoadReleaseOwnerChecked'),
+    'xgeAsyncRequestFree': ('ImageLoad', 'AsyncLoad', 'xgeAsyncLoadReleaseOwnerChecked'),
     'xgeParticleWorldFree': ('ParticleWorld', 'ParticleWorld', 'xgeParticleWorldReleaseOwnerChecked'),
     'xgeParticleWorldFreeChecked': ('ParticleWorld', 'ParticleWorld', 'xgeParticleWorldReleaseOwnerChecked'),
     'xgeParticleRendererFree': ('ParticleRenderer', 'ParticleRenderer', 'xgeParticleRendererReleaseOwnerChecked'),
