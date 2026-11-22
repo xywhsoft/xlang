@@ -1,0 +1,242 @@
+{
+  "complete": true,
+  "passed": true,
+  "releaseInstalled": false,
+  "networkTests": false,
+  "gpuTests": false,
+  "scope": "Preserve Document font output ownership and qualify the final three Document function inventory entries",
+  "nativeRevision": "5737b482bf449748ac2930a9706b574479c73bdd",
+  "xlangSourceParent": "9713d557bc4d35eefe1b623e025416b681370a74",
+  "xlangInputs": {
+    "tools/check_xge3_native_consumers.py": "a96428b214727162a8fae074f4869344c4acc73d0efe61eaf7467f81087c382e",
+    "docs/xge3-native-consumer-audit.md": "de5844c1e7c5b5db0231ddf0cf82d625a85631ef9cac0c2e859c048483d0020e"
+  },
+  "nativeInputs": {
+    "src/xui/document/xui_document_renderer.c": "9a96cc50f70597cd1efae61b86a33d093e568d69aad609b6170ce7d5ed81a36d",
+    "tests/xui/xui_owned_renderer_test.c": "2a553e662c75ee23d7c04a16446393e6be8cf6a97aad8a9573915ce483a470d1"
+  },
+  "helpers": [
+    {
+      "path": "F:/xlang-validation/xge-full-20261110/build-document-font-replace-r1.py",
+      "sha256": "0df5e944b770993b825de1b0378a375020850bc0f81dbe6901c9140010f10f84",
+      "bytes": 2129
+    },
+    {
+      "path": "F:/xlang-validation/xge-full-20261110/check-document-font-replace-native-r1.py",
+      "sha256": "2728d78d9dc7027d3389de9b84b4b6c4a4b3b95a5939b53d62d1b6c29c7970a3",
+      "bytes": 3766
+    },
+    {
+      "path": "F:/xlang-validation/xge-full-20261110/stage-document-font-replace-r1.py",
+      "sha256": "e297a502b54c842dee05e2cdf1853052e5005f4e268bfb38c15e35221caa078c",
+      "bytes": 1216
+    },
+    {
+      "path": "F:/xlang-validation/xge-full-20261110/check-document-font-replace-runtime-r1.py",
+      "sha256": "515406889d246407e7d004631b8c1f3a8b9e06789709e10b5ca855582ef00d7f",
+      "bytes": 5582
+    },
+    {
+      "path": "F:/xlang-validation/xge-full-20261110/audit-document-font-replace-r1.py",
+      "sha256": "a3557c53c40c0e0690fd294822b4e49bc8df37ac6d8794ecf5b14606b7ed6cd4",
+      "bytes": 2687
+    }
+  ],
+  "baseline": {
+    "result": {
+      "path": "/var/tmp/xlang-validation/xge-full-20261110/document-font-replace-baseline-linux-r1/results.json",
+      "sha256": "2a202e004dba921e9431242319755f477cd4a2d884c41d35a0a59da507c2197c",
+      "bytes": 3610
+    },
+    "refusedReplacementRegression": {
+      "path": "/var/tmp/xlang-validation/xge-full-20261110/document-font-replace-baseline-linux-r1/host-O2-run.log",
+      "sha256": "058d09091428bbc212d006c7ab21726f6b096082c831ff321dad8333569ac66a",
+      "bytes": 226
+    }
+  },
+  "cases": [
+    "A rejected previous Font release leaves the previous selection and the candidate reference count intact.",
+    "A consuming backend failure preserves the new selection and returns the original checked failure.",
+    "The same slot refuses reentrant set, clear and dispose while a Font is being released.",
+    "The native test releases its Context/proxy and compares live heap count and bytes.",
+    "The language retains a font across clear, rejects expired slot views and exercises all seven exports."
+  ],
+  "performance": {
+    "cpuTimingCompared": false,
+    "rounds": 100,
+    "nativeAllocFreeRealloc": [
+      600,
+      600,
+      0
+    ],
+    "languageAllocFreeRealloc": [
+      600,
+      600,
+      0
+    ],
+    "languageAllocationFailureBudgets": 448,
+    "scope": "Equivalent counted text exports. Font mutation timing was outside this cohort."
+  },
+  "audit": {
+    "functionPopulation": 5739,
+    "directDeclarations": 4674,
+    "compiledConsumerFunctions": 218,
+    "explicitReplacements": 272,
+    "remaining": {
+      "XGE": 220,
+      "XUI": 358
+    },
+    "outputRelease": {
+      "language": "Owned Document export values",
+      "native": "xrtFree",
+      "allocatorMarker": "XUI_DOCUMENT_EXPORT_XRT_ALLOCATOR",
+      "owningExports": [
+        "xui.DocumentFragment.exportHtml",
+        "xui.DocumentFragment.exportHtmlBytes",
+        "xui.DocumentFragment.serialize",
+        "xui.DocumentSnapshot.exportHtml",
+        "xui.DocumentSnapshot.exportHtmlBytes",
+        "xui.DocumentSnapshot.plainText",
+        "xui.DocumentSnapshot.plainTextBytes",
+        "xui.DocumentSnapshot.range",
+        "xui.DocumentSnapshot.rangeBytes",
+        "xui.DocumentSnapshot.serialize",
+        "xui.DocumentSnapshot.tableMatrix",
+        "xui.DocumentSnapshot.tableMatrixBytes"
+      ]
+    },
+    "fontTail": [
+      "xuiDocumentFontOutputDisposeChecked",
+      "xuiDocumentFontOutputInit"
+    ]
+  },
+  "platforms": {
+    "win": {
+      "nativeChecks": 12,
+      "languageChecks": 31,
+      "files": {
+        "nativeSource": {
+          "path": "F:/xlang-validation/xge-full-20261110/document-font-replace-stage-win-r1/audit-r2/native-source.json",
+          "sha256": "9097903fe45c0ab32dd95ff9e24ca75454f02347d73431a233b659fef1e075fa",
+          "bytes": 465990
+        },
+        "hostedBuild": {
+          "path": "F:/xlang-validation/xge-full-20261110/document-font-replace-host-win-r1/build-report.json",
+          "sha256": "677ed420af5cafe0f35b9dff444e0be06f0de57c9fc870e8d01096dbc037441e",
+          "bytes": 700571
+        },
+        "staticBuild": {
+          "path": "F:/xlang-validation/xge-full-20261110/document-font-replace-static-win-r1/build-report.json",
+          "sha256": "ba0263ada83fdd13b65b36ae306094751f66d3533097f35910a56b5bbe8c45fd",
+          "bytes": 9971633
+        },
+        "hostedStage": {
+          "path": "F:/xlang-validation/xge-full-20261110/document-font-replace-stage-win-r1/host.json",
+          "sha256": "c5c54444e10b7c1916adfd7e491fe005fc6644bad667dbd3ea74f842db954bc6",
+          "bytes": 129762
+        },
+        "staticStage": {
+          "path": "F:/xlang-validation/xge-full-20261110/document-font-replace-stage-win-r1/static.json",
+          "sha256": "fa198461ff147bf2f11ad679840b04bb4644b6e5b208c58ddb4c0e4ffd30506b",
+          "bytes": 9314783
+        },
+        "replay": {
+          "path": "F:/xlang-validation/xge-full-20261110/document-font-replace-stage-win-r1/replay/stage-report.json",
+          "sha256": "fbabed144a56d0e6513aafdee22905fc7c9726759aa69502061aaa735460a569",
+          "bytes": 175208
+        },
+        "nativeTests": {
+          "path": "F:/xlang-validation/xge-full-20261110/document-font-replace-native-test-win-r1/results.json",
+          "sha256": "45f1b2c5652a0d761a3cf8bb848f36431b85d8b468a45f0d9a077ef8f6082423",
+          "bytes": 12384
+        },
+        "languageTests": {
+          "path": "F:/xlang-validation/xge-full-20261110/document-font-replace-stage-win-r1/suite-r1/results.json",
+          "sha256": "58010b5cdda38bb7bed84d21e562478eb9014e58f56c79ad3c5d21f95f6241c6",
+          "bytes": 24516
+        },
+        "audit": {
+          "path": "F:/xlang-validation/xge-full-20261110/document-font-replace-stage-win-r1/audit-r2/consumers-r2/results.json",
+          "sha256": "8b7045e198bab4a3999893d42d29576c4d8faca2d6dd8164ecdce80356812cc0",
+          "bytes": 1335755
+        },
+        "fontRelocations": {
+          "path": "F:/xlang-validation/xge-full-20261110/document-font-replace-stage-win-r1/audit-r2/consumers-r2/document-renderer-lifetime-relocations.log",
+          "sha256": "687209038a50fe69174a4539ac4e73f3b91b5e74531db2addabc6c381ec5f23f",
+          "bytes": 206451
+        },
+        "allocatorRelocations": {
+          "path": "F:/xlang-validation/xge-full-20261110/document-font-replace-stage-win-r1/audit-r2/consumers-r2/document-model-lifetime-relocations.log",
+          "sha256": "3740698cbc2b4f75a828f2b6a2edfe8f04bdb848b1e7b6733ccb10783f9e7a01",
+          "bytes": 92000
+        },
+        "rejectedStaleEngine": {
+          "path": "F:/xlang-validation/xge-full-20261110/document-font-replace-stage-win-r1/audit-r2/mismatched-engine.log",
+          "sha256": "b3753ab60cbe1d4110066c5b84a8fffad78b9a35c60f1df944c9fa2d5dc7cc5e",
+          "bytes": 757
+        }
+      }
+    },
+    "linux": {
+      "nativeChecks": 12,
+      "languageChecks": 31,
+      "files": {
+        "nativeSource": {
+          "path": "/var/tmp/xlang-validation/xge-full-20261110/document-font-replace-stage-linux-r1/audit-r2/native-source.json",
+          "sha256": "885b567344502d21f6df2c83d510414f1d4659dea36e07733a6ddd638225684a",
+          "bytes": 462162
+        },
+        "hostedBuild": {
+          "path": "/var/tmp/xlang-validation/xge-full-20261110/document-font-replace-host-linux-r1/build-report.json",
+          "sha256": "d96267fb22cc72fa1512d09f39cfee1e992e665716e2ed76b10994bd4372cbc1",
+          "bytes": 629007
+        },
+        "staticBuild": {
+          "path": "/var/tmp/xlang-validation/xge-full-20261110/document-font-replace-static-linux-r1/build-report.json",
+          "sha256": "3466f9ac4f43a3723f06e01309b1f98d6065a2c568fa974c347fe0a9a7efba51",
+          "bytes": 544472
+        },
+        "hostedStage": {
+          "path": "/var/tmp/xlang-validation/xge-full-20261110/document-font-replace-stage-linux-r1/host.json",
+          "sha256": "8ab98e79ce7ae936824a9c9b91fdec84a8d370674ad5f880a5084030a5b24af2",
+          "bytes": 126270
+        },
+        "staticStage": {
+          "path": "/var/tmp/xlang-validation/xge-full-20261110/document-font-replace-stage-linux-r1/static.json",
+          "sha256": "446ab86011a0e5b0d1db03a275f451513ffe317615d2c8229be6b528a50e80aa",
+          "bytes": 143401
+        },
+        "replay": {
+          "path": "/var/tmp/xlang-validation/xge-full-20261110/document-font-replace-stage-linux-r1/replay/stage-report.json",
+          "sha256": "8e20f7422afb69298dd8f5f6718fbba1dde44bd3a7bd801b826e7441a477c54b",
+          "bytes": 171451
+        },
+        "nativeTests": {
+          "path": "/var/tmp/xlang-validation/xge-full-20261110/document-font-replace-native-test-linux-r1/results.json",
+          "sha256": "8142f0b08050c95ff2c61d4232727e33b37fbb60e24a8330e0bc1e09725cbd6d",
+          "bytes": 12043
+        },
+        "languageTests": {
+          "path": "/var/tmp/xlang-validation/xge-full-20261110/document-font-replace-stage-linux-r1/suite-r1/results.json",
+          "sha256": "51285341a0fae2006f2db7faa68e9ee05e70b13f7c7511ba2b968a9344502bf9",
+          "bytes": 23919
+        },
+        "audit": {
+          "path": "/var/tmp/xlang-validation/xge-full-20261110/document-font-replace-stage-linux-r1/audit-r2/consumers-r2/results.json",
+          "sha256": "0b970972cc9d1b90b43dfc9ce6e6ab082875880df4dae891d0914b9a21c501b9",
+          "bytes": 1318422
+        },
+        "fontRelocations": {
+          "path": "/var/tmp/xlang-validation/xge-full-20261110/document-font-replace-stage-linux-r1/audit-r2/consumers-r2/document-renderer-lifetime-relocations.log",
+          "sha256": "8e570d5f6bed78f7107be0cd78dbd50bdb08b2ff8e4b01e145834f23ae4bb513",
+          "bytes": 157916
+        },
+        "allocatorRelocations": {
+          "path": "/var/tmp/xlang-validation/xge-full-20261110/document-font-replace-stage-linux-r1/audit-r2/consumers-r2/document-model-lifetime-relocations.log",
+          "sha256": "fb07964296d056f828ceadd10031869d713b5c0ebee540b5653709f5348d850d",
+          "bytes": 67413
+        }
+      }
+    }
+  }
+}

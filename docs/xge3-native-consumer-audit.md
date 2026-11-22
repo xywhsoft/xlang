@@ -1,5 +1,26 @@
 # Native consumers in the full API inventory
 
+## Document Font replacement and export cleanup
+
+The renderer keeps the previous selection if releasing its Font owner is
+refused. The pending selection's retained reference is rolled back. When a
+finalizer consumes the old owner and then reports a failure, the new selection
+stays in place and the failure reaches the caller. Reentrant mutations of the
+same output return `Busy` while the native release is running.
+
+Passing the matched hosted engine build record with `--document-engine-build`
+adds two native compilation witnesses. COFF and ELF relocations show the
+renderer initializing and disposing the callback's Font output and the raw
+Document buffer release calling the host's `xrtFree` slot. The audit also checks
+the allocator marker and the owning declarations of all seven byte/text export
+producers in the staged package.
+
+Document and Document UI now have evidence or explicit replacements for every
+remaining function in this inventory. The outstanding count is 578, with 220
+in XGE and 358 in XUI.
+
+[Validation evidence](../dev/release-materials/provenance/xui-document-font-replace-20261122.json)
+
 ## 3D ownership policies and checked close
 
 The audit compiles a reference to each `@policy` and `@domain` selected by the
@@ -248,8 +269,14 @@ Each font resolver invocation receives an empty output initialized by
 `output.clear()` releases its selection through the checked native
 `xuiDocumentFontOutputClear` operation and leaves the slot usable for another
 selection during that callback. If native release refuses the owner, the slot
-keeps the selected Font so the caller can retry. The renderer disposes the
-output with `xuiDocumentFontOutputDisposeChecked` when the callback returns.
+keeps the selected Font so the caller can retry. `output.setFont()` also
+keeps the prior selection if release refuses it and drops the temporary
+incoming reference. If the previous owner is consumed and its finalizer
+reports an error, the incoming Font becomes the selection and the error is
+delivered to the caller. Mutating the same slot from that finalizer returns
+`Busy` and reading it produces null until the release finishes. The renderer
+disposes the output with `xuiDocumentFontOutputDisposeChecked` when the callback
+returns.
 The language view expires at the callback boundary. A Font obtained with
 `output.font()` owns its own reference.
 

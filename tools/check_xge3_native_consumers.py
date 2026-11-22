@@ -46,6 +46,14 @@ HEADER_CLOSE_REPLACEMENTS = {
 }
 HEADER_CLOSE_REPLACEMENTS['xge3dQueryResultsReleaseChecked'] = (
     'xge3d.QueryResults.close', 'xge3dQueryResultsRelease')
+DOCUMENT_RENDERER_SOURCE = 'src/xui/document/xui_document_renderer.c'
+DOCUMENT_MODEL_SOURCE = 'src/xui/document/xui_document.c'
+DOCUMENT_FONT_TAIL = {'xuiDocumentFontOutputInit', 'xuiDocumentFontOutputDisposeChecked'}
+DOCUMENT_EXPORTS = (
+    'xuiDocumentSerialize', 'xuiDocumentExportHtml', 'xuiDocumentSnapshotCopyPlainText',
+    'xuiDocumentSnapshotCopyRange', 'xuiDocumentSnapshotCopyTableMatrix',
+    'xuiDocumentFragmentSerialize', 'xuiDocumentFragmentExportHtml',
+)
 
 
 def object_relocations(text):
@@ -145,10 +153,81 @@ def compile_3d_policies(view, classes, native_names, flags, tools, out, run, sym
     return evidence, relocations
 
 
+def document_build_inputs(build, audit, packages, gcc, sha):
+    metadata = json.loads(build.read_text(encoding='utf-8'))
+    assert metadata['linked'] and metadata['xrt_mode']=='host'
+    assert Path(metadata['compiler'][0]).resolve()==gcc
+    source = Path(metadata['source_root']).resolve()
+    snapshot = audit['nativeSourceSnapshot']
+    record = Path(snapshot['sourceRecord'])
+    assert sha(record)==snapshot['sourceRecordSha256']
+    freeze = json.loads(record.read_text(encoding='utf-8'))
+    assert freeze['engineRevision']==audit['nativeRevision'] and Path(freeze['source']).resolve()==source
+    image = build.parent/metadata['runtime_image']
+    staged_image = packages/'_xge_native/native'/image.name
+    assert sha(image)==sha(staged_image), 'Document witness must match the staged runtime'
+    pins = [build, record, image, build.parent/'xge_build_config.h']
+    pins.extend((build.parent/'host-xrt').glob('*.*'))
+    units = {DOCUMENT_RENDERER_SOURCE, DOCUMENT_MODEL_SOURCE}
+    for name in units:
+        assert name in metadata['sources'], name
+    for name, digest in freeze['sourceInputs'].items():
+        if name in units or Path(name).suffix in ('.h','.inc'):
+            path = (source/name).resolve()
+            assert path.is_relative_to(source) and sha(path)==digest, name
+            pins.append(path)
+    return source, metadata['flags'], pins
+
+
+def prove_document_lifetime(source, flags, view, bound, packages, tools, out, run, sha):
+    evidence = {}
+    for name, path in (('renderer', DOCUMENT_RENDERER_SOURCE), ('model', DOCUMENT_MODEL_SOURCE)):
+        label = 'document-'+name+'-lifetime'
+        obj = out/(label+'.o')
+        # Retain local calls as section relocations while using the same
+        # production feature flags and hosted-XRT import definitions.
+        run(label+'-compile', [tools['gcc'],*flags,'-O0','-fno-inline','-ffunction-sections',
+            '-fdata-sections','-c',source/path,'-o',obj], cwd=source)
+        relocations = object_relocations(run(label+'-relocations',[tools['objdump'],'-r',obj]))
+        evidence[name] = dict(source=path, object=str(obj), objectSha256=sha(obj))
+        if name=='renderer':
+            target = 'doc_render_resolve_font'
+            references = relocations.get('.text.'+target, set()) | relocations.get('.text$'+target, set())
+            for function in sorted(DOCUMENT_FONT_TAIL):
+                assert {'.text.'+function,'.text$'+function,function} & references, (target,function)
+            evidence[name].update(consumer=target, nativeCalls=sorted(DOCUMENT_FONT_TAIL))
+        else:
+            target = 'xuiDocumentFreeBuffer'
+            references = reachable_relocations(relocations,'.text.'+target) | reachable_relocations(relocations,'.text$'+target)
+            slot = 'XgeHostXrtSlot_xrtFree'
+            pointer = '.refptr.'+slot
+            if slot in references:
+                path = [slot]
+            else:
+                assert pointer in references and slot in relocations.get('.rdata$'+pointer,set()), (target,references)
+                path = [pointer,slot]
+            evidence[name].update(consumer=target, allocatorPath=path)
+    marker = (packages/'_xge_native/include/xui_document.h').read_text(encoding='utf-8')
+    assert re.search(r'^#define XUI_DOCUMENT_EXPORT_XRT_ALLOCATOR 1u$', marker, re.M)
+    owners = []
+    for producer in DOCUMENT_EXPORTS:
+        for binding in bound[producer]:
+            path = view/binding['source']
+            line = path.read_text(encoding='utf-8-sig').splitlines()[binding['line']-1]
+            assert '@header("xge3_document_xrt.h")' in line, binding
+            assert re.search(r'@c_output_(?:bytes|text)\([^)]*,"xrt",0\)',line), binding
+            owners.append(binding['language'])
+    evidence['bufferReplacement'] = dict(language='Owned Document export values', native='xrtFree',
+        allocatorMarker='XUI_DOCUMENT_EXPORT_XRT_ALLOCATOR', owningExports=sorted(set(owners)))
+    return evidence
+
+
 def main():
     p=argparse.ArgumentParser(description=__doc__)
     for name in ('surface','compiler','compiler-report','packages','replay-report','out'):
         p.add_argument('--'+name,type=Path,required=True)
+    p.add_argument('--document-engine-build',type=Path,
+        help='Matching hosted engine build-report.json for Document lifetime witnesses')
     a=p.parse_args();surface,cc,build,packages,replay,out=[v.resolve() for v in
         (a.surface,a.compiler,a.compiler_report,a.packages,a.replay_report,a.out)]
     if out.is_relative_to(packages) or out.is_relative_to(cc.parent):
@@ -170,15 +249,20 @@ def main():
         Path(__file__).with_name('xui_managed_contracts.py'),Path(__file__).with_name('xui_document_replacements.py'),
         Path(__file__).with_name('check_xge3_bindings.py'),surface,cc,build,*proof,*tools.values()]
     for folder in (sdk,packages):files.extend(f for f in folder.rglob('*') if f.is_file())
+    document = None
+    if a.document_engine_build:
+        document_source, document_flags, evidence_inputs = document_build_inputs(
+            a.document_engine_build.resolve(),audit,packages,tools['gcc'],sha)
+        files.extend(evidence_inputs)
     inputs={str(f):sha(f) for f in files};out.mkdir(parents=True,exist_ok=False)
     report=dict(complete=False,passed=False,scope=__doc__,inputs=inputs,rows=[],objects=[],providerAliases=[],
         runtimeAcceptance=False,apiCompletenessClaim=False,shippingDelivery=False,networkTests=False,graphicsTests=False)
     def save():(out/'results.json').write_text(json.dumps(report,indent=2)+'\n',encoding='utf8')
-    def run(name,command):
-        command=list(map(str,command));start=time.monotonic();z=subprocess.run(command,capture_output=True,timeout=180)
+    def run(name,command,cwd=None):
+        command=list(map(str,command));start=time.monotonic();z=subprocess.run(command,cwd=cwd,capture_output=True,timeout=180)
         data=z.stdout+z.stderr;log=out/(name+'.log');log.write_bytes(data)
         report['rows'].append(dict(name=name,command=command,exitCode=z.returncode,seconds=time.monotonic()-start,
-            logSha256=sha(log)));save();print(name,z.returncode,flush=True)
+            logSha256=sha(log),cwd=str(cwd) if cwd else None));save();print(name,z.returncode,flush=True)
         assert not z.returncode,log
         return data.decode('utf8')
     def symbols(text):
@@ -242,6 +326,11 @@ def main():
         header_imports = {symbol for imports in header_policies['headerSelectors'].values() for symbol in imports}
         for symbol in sorted(header_imports):
             consumers.setdefault(symbol,[]).append('xge3d-header-policies')
+        if a.document_engine_build:
+            document = prove_document_lifetime(document_source,document_flags,view,bound,packages,tools,out,run,sha)
+            report['documentLifetime'] = document
+            for symbol in sorted(DOCUMENT_FONT_TAIL):
+                consumers.setdefault(symbol,[]).append(DOCUMENT_RENDERER_SOURCE)
         for symbol,item in sorted(functions.items()):
             if item['declarationPresent']:continue
             replacement=REPLACED.get(symbol)
@@ -265,6 +354,8 @@ def main():
                 assert release in header_policies['headerSelectors'][policy],(logical,release)
                 evidence=dict(language=logical,native=release,policy=policy,
                     relocationPath=close_relocation_path(header_relocations,policy,destroy,release))
+            elif document and symbol=='xuiDocumentFreeBuffer':
+                evidence=document['bufferReplacement']
             rows.append(dict(id=item['id'],symbol=symbol,family=item['family'],conditions=item['conditions'],
                 publicDeclarationPresent=False,compiledNativeConsumers=consumers.get(symbol,[]),
                 explicitReplacement=evidence,
