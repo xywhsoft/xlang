@@ -257,7 +257,11 @@ static int captureLifetimes(void)
  memset(&fixture,0,sizeof(fixture));for(size_t i=32;i--;){xstrbuf book={0};CHECK(nodeBook(&book,units[i]) && tableBooksEqual(&book,&expected));xrtStrBufFree(&book);xlsIrNodeUnitRelease(units[i]);}
  CHECK(!live && !liveBytes);xrtStrBufFree(&expected);return 1;
 }
+#ifdef XLS_IR_UNIT_CAPTURE_LIBRARY
+int xlsIrUnitCaptureFixtureMain(void)
+#else
 int main(void)
+#endif
 {
  xrtAtomic32Init(&checks,0);xrtAtomic32Init(&oracleRuns,0);xrtAtomic32Init(&oracleErrors,0);xrtAtomic32Init(&oracleActive,0);
  if(!captureTables() || !tableCaptureFailures() || !nodeCaptureFailures() || !rootCapture() || !captureNative() || !captureLifetimes())return 1;

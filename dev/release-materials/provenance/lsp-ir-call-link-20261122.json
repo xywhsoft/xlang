@@ -1,0 +1,131 @@
+{
+  "schema": 1,
+  "date": "2026-11-22",
+  "stage": "M7b7c",
+  "scope": "Explicit relocation and linking of eight native call metadata tables",
+  "base": "853a49606e411b71dfa9e6131586347c2af9201d",
+  "ownedSources": {
+    "ide/src/analysis/ir_call_link.c": "db3186b419b2507d1c1f4c916ea58bd012b767ada2f5ae5f9a41849965b66121",
+    "ide/src/analysis/ir_call_link.h": "befa7a60448628d4cad05fa89422c8e4ba0ad9324b1c7400be8d8b5599360a56",
+    "ide/tests/analysis_ir_call_link_test.c": "f344c773dbc4f741131cf4fb6b0de38c7042e27ac724f717152fadb6b0bd0f50",
+    "ide/tests/analysis_ir_unit_capture_test.c": "ee831d6f3c90606f76b9c2c7b45ed3c2092e91e0dc37f701d985ebdcaa619239",
+    "ide/tools/build_lsp_core.py": "ac2ec2f1991ca90cdb143dec58d1b26d5ad4b7321895347ba28112a7902cac53",
+    "ide/tools/ir_call_schema.py": "11c84c04885179ea9347d1749d6592d981a5921efde9ed61a40e0fb441736402",
+    "ide/tools/check_ir_call_link.py": "73e233e0406517f8863d4e86594496ba2bff5892b4ddbbc8a016ed9a791488b9",
+    "ide/docs/lsp-ir-call-link.md": "a57f97971362dfe2ba94351771456406635b29aa8b639763870d03a848bb04b6",
+    "ide/docs/lsp-development.md": "4f5864623f400cbe703ac734751f05b6422bb676659176611e587bbc65fb3243"
+  },
+  "materials": {
+    "source": {
+      "archive": {
+        "path": "dev/release-materials/sources/lsp-ir-call-link-20261122/inputs.tar.gz",
+        "sha256": "8b6ec8ba23fed48d31aa68c4544e40a8a3efa37f5e0cfcc6c26588ad3cfb732e",
+        "bytes": 11390812
+      },
+      "manifest": {
+        "path": "dev/release-materials/sources/lsp-ir-call-link-20261122/inputs.tar.gz.manifest.json",
+        "sha256": "6231e6e2830345a8c97d69255801add777f792683f53413465224afac16ef787",
+        "bytes": 563392
+      },
+      "entries": 1699,
+      "uniquePayloads": 1190
+    },
+    "validation": {
+      "archive": {
+        "path": "dev/release-materials/provenance/lsp-ir-call-link-20261122/validation.tar.gz",
+        "sha256": "8f4507e2183e46cfc127f43a592dc2091fc24f2e57072bb9b55ee3aafede1508",
+        "bytes": 137169889
+      },
+      "manifest": {
+        "path": "dev/release-materials/provenance/lsp-ir-call-link-20261122/validation.tar.gz.manifest.json",
+        "sha256": "bca88e2546aeb981239950a3dfb97b7f141e13ca8fa59a42ec9acdddc7090789",
+        "bytes": 559042
+      },
+      "entries": 1708,
+      "uniquePayloads": 847
+    },
+    "concurrentIntegration": {
+      "archive": {
+        "path": "dev/release-materials/provenance/lsp-ir-call-link-20261122/concurrent-integration.tar.gz",
+        "sha256": "906671e39c33aa39207d44076d3c96c8c960cfa586e8c8a412770b5fb84bbc7b",
+        "bytes": 5229
+      },
+      "manifest": {
+        "path": "dev/release-materials/provenance/lsp-ir-call-link-20261122/concurrent-integration.tar.gz.manifest.json",
+        "sha256": "444164624ce8444d5af981f4fd91bffefe76442fd490270a80f0b07a492744a2",
+        "bytes": 432
+      }
+    }
+  },
+  "externalPaths": [
+    "F:\\codex-builds-xlang-lsp-20261122\\call-link",
+    "F:\\codex-builds-xlang-lsp-20261122\\call-link-materials"
+  ],
+  "baseQualification": {
+    "index": "dev/release-materials/provenance/xge-ide-frontend-candidate-20261121.json",
+    "sha256": "d41f903fe5610f9a94e412f33423df1e3f6d8a02e07842bffea40be342d4365c"
+  },
+  "verification": {
+    "nativeFields": 107,
+    "referenceRoles": 41,
+    "tables": 8,
+    "fullNativeTables": 108,
+    "freshPhysicalObjects": 370,
+    "mappedObjects": 369,
+    "guardedInputs": 1690,
+    "programsBuilt": 227,
+    "relatedProgramsRun": 8,
+    "currentFixtureChecks": 163659,
+    "nativeVerifierJsonOracles": 134,
+    "mixedOldRecords": 77,
+    "mixedNewRecords": 2,
+    "movedNodes": 387,
+    "movedTypes": 5,
+    "compiledDefects": 47,
+    "positiveControls": 2,
+    "schemaMutationCases": 5,
+    "nativeVerifierIndependentlyRejectedStaleOrigin": true,
+    "readerThreads": 4,
+    "generations": 32,
+    "blocksPerIndependentGeneration": 49,
+    "largeRepeatedBindings": 256,
+    "largeCancellationPoints": 14,
+    "onlyCanonicalFixtureChangedAfterFrozenBuild": [
+      "ide\\tests\\analysis_ir_call_link_test.c"
+    ],
+    "currentFixtureIndependentlyRecompiledAgainstMatchingHeadersAndCore": true,
+    "concurrentDriverImportAlreadyInFrozenBuild": {
+      "status": "passed",
+      "adoptedCommit": "4e8ca5d6446c1e31aac908dd11fa380500598c1a",
+      "byteIdenticalToFrozenBuild": true,
+      "currentSha256": "ac2ec2f1991ca90cdb143dec58d1b26d5ad4b7321895347ba28112a7902cac53",
+      "frozenSha256": "ac2ec2f1991ca90cdb143dec58d1b26d5ad4b7321895347ba28112a7902cac53"
+    }
+  },
+  "runtime": {
+    "mdo.exe": "9219de70911e1f02d8e54eadc77c257369e4ea637e5202fcbb04854a29893044",
+    "update.exe": "4c5266fce0a541b9b96fe92b3d2f7d94598aff3b052e420b08b6d47db5e5c6c2",
+    "xge.dll": "127db42612e8a27c8b1f7f74e4653c25f09140f8baac38d16fc564eb74892ef3",
+    "xl.dll": "f31ddbe973ed48d261014ec64fa6b0ba48791fc0313192a19d59467254c0fcd6",
+    "xl.exe": "5288c4e8be9f420ef98caeb11be362017be925f2ad81a0d56946cc6a8c721081",
+    "xlang-ls.exe": "a1ac7527301e48ea114a9016d7a4a7fd15d69f080d7c0c6f57b63569833af972",
+    "xlang_ide.exe": "7164c29f45c438f7d788457283ae6404178e0d2b779c3cd151eb374b75a02cf1",
+    "xlang_ide_xge.dll": "7eba677fddada9b605db2d54dd59ee57a9cfc1caf0b574f6cb206ec9de379418",
+    "xlc.dll": "64b2e9830569c84580335b0a2b15a59ce13552ba1ba51933fc82cd75808c0728"
+  },
+  "defaultRuntimeReplaced": false,
+  "normalAnalysisIntegrationEnabled": false,
+  "performanceQualified": false,
+  "goalComplete": false,
+  "externalPublishPerformed": false,
+  "deliveryIndexUnmodifiedByThisTask": true,
+  "deliveryIndexCurrentSha256": "3e9c519da965cde25ac258ab79730fe701a8dfd76d92aa51c6d8d45ad1afee3c",
+  "limits": [
+    "Current metadata still comes from native full production;this is not a semantic/input eligibility matcher or a performance admission.",
+    "Other final IR table families and selective native production remain unfinished;applicable protocol,IDE,large/endurance/platform and end-to-end performance acceptance continue."
+  ],
+  "sharedIgnore": {
+    "anchor": "!/dev/release-materials/provenance/lsp-stable-package-20261116.json",
+    "line": "!/dev/release-materials/provenance/lsp-ir-call-link-20261122.json"
+  }
+}
