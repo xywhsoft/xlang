@@ -1,5 +1,32 @@
 # Native consumers in the full API inventory
 
+## 3D ownership policies and checked close
+
+The audit compiles a reference to each `@policy` and `@domain` selected by the
+3D package. COFF and ELF relocations trace those references through the
+descriptor to the native release or scene ownership operations. The checked
+`close()` replacements require a verified path through the registered
+consuming callback.
+
+The policy audit provides compiled evidence for 32 additional native functions.
+Another 66 entries gained explicit replacements across checked close, resource
+creation, shared references, geometry snapshots and rendering. The native
+population and direct declarations remain 5,739 and 4,674. The outstanding
+function review is now 581 entries, including six in the 3D group.
+
+The managed model-retirement token needs the sole model reference when it
+starts. It reports `Busy` if other owners remain and holds the model through
+incremental retirement. `Scene.collider()` and `Scene.colliderMesh()` expose
+shape settings and the independently owned mesh. `Mesh3D.geometry()` keeps
+retained geometry readable across updates and mesh shutdown.
+
+The recorded runtime cohort exercises checked close, failed allocations,
+retained snapshots and GPU shutdown on the same SDK builds. Warm scene and
+scene-controls queries still show zero XRT heap allocations in JIT, dynamic
+AOT and static AOT on both platforms.
+
+[Validation evidence](../dev/release-materials/provenance/xge3d-owner-audit-20261122.json)
+
 ## Shared 3D billboard batches and environment light
 
 `BillboardBatch.share()` obtains another native reference to the same immutable

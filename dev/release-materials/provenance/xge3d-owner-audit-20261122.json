@@ -1,0 +1,225 @@
+{
+  "complete": true,
+  "passed": true,
+  "releaseInstalled": false,
+  "networkTests": false,
+  "scope": "3D declaration-selected ownership policies, checked close mapping, and matched runtime qualification",
+  "nativeRevision": "22f288eca67d0b6c6e38adcd6565b0899bc39d9d",
+  "xlangSourceParent": "f08ea6764a77b3a1ef29a222ec98cf5a97659c27",
+  "inputs": {
+    "tools/check_xge3_native_consumers.py": "2af266b956e41be7a7338ff96db4aeb5949f89d3c8182951a5a5c3219f827046",
+    "tools/xge_replay_contracts.py": "0b8358fba719deba4c91fa9ee08ce1f876aa11b1b69495fd73c227a14d2b487b",
+    "docs/xge3-native-consumer-audit.md": "32fc6a54d2c8e550656c52e3d91df2c6d90472cd59df3dd48cab4b828830e52c"
+  },
+  "runtimeScript": {
+    "path": "F:/xlang-validation/xge-full-20261110/check-xge3d-owner-replay-r1.py",
+    "sha256": "8c54120a87aabbb62a5fd6ba29c7bab2e27a37cec78be1310776031192900101",
+    "bytes": 5602
+  },
+  "platforms": {
+    "win": {
+      "runtimeChecks": 35,
+      "regenerationChecks": 1080,
+      "auditChecks": 28,
+      "nativeSource": {
+        "path": "F:/xlang-validation/xge-full-20261110/billboard-share-test-win-r1/audit-r1/native-source.json",
+        "sha256": "944bf85f049ee360034817b155fea66d096e955acdbcc6de04d27c04c630f634",
+        "bytes": 465947
+      },
+      "surface": {
+        "path": "F:/xlang-validation/xge-full-20261110/billboard-share-test-win-r1/audit-r1/surface/surface.json",
+        "sha256": "faffbe066882dfffa9a29d484c49b1dd4fdd1f70aeac9c1d879a4efdff03aed5",
+        "bytes": 5514668
+      },
+      "compilerBuild": {
+        "path": "F:/xlang-validation/xge-full-20261110/compiler-existing-root-win-r1/build.json",
+        "sha256": "107a294cdefd81906f8e3fef6bced071ececaad4bf1837b61a15b1e9c7858a07",
+        "bytes": 1618
+      },
+      "hostedBuild": {
+        "path": "F:/xlang-validation/xge-full-20261110/billboard-share-host-win-r1/build-report.json",
+        "sha256": "171d3633e7108e1d256f1173ca027df437fd09f6be10afca7e29313406ec9ed0",
+        "bytes": 23781
+      },
+      "staticBuild": {
+        "path": "F:/xlang-validation/xge-full-20261110/billboard-share-static-win-r1/build-report.json",
+        "sha256": "d33acac3a9d6234191862a14f7007dcf5b62c448392b69a1230599347cea2500",
+        "bytes": 10262839
+      },
+      "replay": {
+        "path": "F:/xlang-validation/xge-full-20261110/billboard-share-test-win-r1/replay/stage-report.json",
+        "sha256": "cbc41feb9ca78c9e271ce8cf174ba56f1a6398fa8690f7c2979f3f01febb8328",
+        "bytes": 169036
+      },
+      "audit": {
+        "path": "F:/xlang-validation/xge-full-20261110/billboard-share-test-win-r1/owner-audit-r2/results.json",
+        "sha256": "cd8bdf5e5f4047a0ec0ee01394c8d04df7c6dd78c0fe9babe47a787532673232",
+        "bytes": 1220718
+      },
+      "policyWitnessSource": {
+        "path": "F:/xlang-validation/xge-full-20261110/billboard-share-test-win-r1/owner-audit-r2/xge3d-header-policies.c",
+        "sha256": "393914e5fb13ffcc7796913346360d50ec7ea357d56eb52456e403d2acf8e938",
+        "bytes": 2743
+      },
+      "policyWitnessObject": {
+        "path": "F:/xlang-validation/xge-full-20261110/billboard-share-test-win-r1/owner-audit-r2/xge3d-header-policies.o",
+        "sha256": "721b81e5acd5622ddccf993908a414ac0762b68d653751c3ee28fd0c926ae1d6",
+        "bytes": 61989
+      },
+      "policyRelocations": {
+        "path": "F:/xlang-validation/xge-full-20261110/billboard-share-test-win-r1/owner-audit-r2/xge3d-header-policies-relocations.log",
+        "sha256": "0b2b8e963396b22a0bff25c878c16cbfa31b9f3f0681eedc0f52f12ccda325c0",
+        "bytes": 53041
+      },
+      "declarationRegeneration": {
+        "path": "F:/xlang-validation/xge-full-20261110/billboard-share-owner-generator-win-r1/results.json",
+        "sha256": "abe7959f7a5aef65940eefe437bad471b6677b34d2d8fc1f1d89723e7fad51e7",
+        "bytes": 239397
+      },
+      "runtime": {
+        "path": "F:/xlang-validation/xge-full-20261110/billboard-share-test-win-r1/owner-runtime-r1/results.json",
+        "sha256": "796c3ee54af2b7593cf08a5c48002c908d1ec08bcaf83634897bf3d7f244ec00",
+        "bytes": 28659
+      }
+    },
+    "linux": {
+      "runtimeChecks": 68,
+      "regenerationChecks": 1081,
+      "auditChecks": 28,
+      "nativeSource": {
+        "path": "/var/tmp/xlang-validation/xge-full-20261110/billboard-share-test-linux-r1/audit-r1/native-source.json",
+        "sha256": "673dda75d1285d81b2f189e0c5aedd0b742cb54b75d7d0da34b6e64b9bf8c347",
+        "bytes": 462119
+      },
+      "surface": {
+        "path": "/var/tmp/xlang-validation/xge-full-20261110/billboard-share-test-linux-r1/audit-r1/surface/surface.json",
+        "sha256": "83a836d57db35813b07217f988fb439c493a5d2d8fefbee2324cd0f585fc6cd7",
+        "bytes": 5329756
+      },
+      "compilerBuild": {
+        "path": "/var/tmp/xlang-validation/xge-full-20261110/compiler-existing-root-linux-r1/build.json",
+        "sha256": "6e729bc793dcd92edcd42f51e244bad799187c32ef82121e8275288a31274b11",
+        "bytes": 1585
+      },
+      "hostedBuild": {
+        "path": "/var/tmp/xlang-validation/xge-full-20261110/billboard-share-host-linux-r1/build-report.json",
+        "sha256": "6daa528620ec409bc26d183d0c8e30a2928e98131dd6072e43b06e0ad6a0e20a",
+        "bytes": 23054
+      },
+      "staticBuild": {
+        "path": "/var/tmp/xlang-validation/xge-full-20261110/billboard-share-static-linux-r1/build-report.json",
+        "sha256": "45e5f9c04e37794bd6d7410abcb9fbe684303a2715028dd30883d7148c7eddd4",
+        "bytes": 840649
+      },
+      "replay": {
+        "path": "/var/tmp/xlang-validation/xge-full-20261110/billboard-share-test-linux-r1/replay/stage-report.json",
+        "sha256": "0fcc61f9a8bf4223706d6f109b7c544c9f6807210e63ede977154a424f6faa55",
+        "bytes": 165398
+      },
+      "audit": {
+        "path": "/var/tmp/xlang-validation/xge-full-20261110/billboard-share-test-linux-r1/owner-audit-r2/results.json",
+        "sha256": "ea4904423b15b509b09eeabc22e1dd8e4779baa852b78061e3e3d9b76bd3987b",
+        "bytes": 1204306
+      },
+      "policyWitnessSource": {
+        "path": "/var/tmp/xlang-validation/xge-full-20261110/billboard-share-test-linux-r1/owner-audit-r2/xge3d-header-policies.c",
+        "sha256": "afdb3612db337d1c157f3a5250491743d1867bf050ce3c5dafb39d0c48fa955f",
+        "bytes": 2715
+      },
+      "policyWitnessObject": {
+        "path": "/var/tmp/xlang-validation/xge-full-20261110/billboard-share-test-linux-r1/owner-audit-r2/xge3d-header-policies.o",
+        "sha256": "d1d3657088cab25cc8af435859c96f88a0856c0337a490e5f7a78c056a8a230a",
+        "bytes": 46720
+      },
+      "policyRelocations": {
+        "path": "/var/tmp/xlang-validation/xge-full-20261110/billboard-share-test-linux-r1/owner-audit-r2/xge3d-header-policies-relocations.log",
+        "sha256": "31c1b19817ad5a81492f7bc38907ec258199610359d3b332ab52924e800b4fbc",
+        "bytes": 33927
+      },
+      "declarationRegeneration": {
+        "path": "/var/tmp/xlang-validation/xge-full-20261110/billboard-share-owner-generator-linux-r1/results.json",
+        "sha256": "0dd6e1c8fc6207518f2f1b72e243eda8ac37a0a04e59f1914c0408dcee659200",
+        "bytes": 248582
+      },
+      "runtime": {
+        "path": "/var/tmp/xlang-validation/xge-full-20261110/billboard-share-test-linux-r1/owner-runtime-r1/results.json",
+        "sha256": "1afba7f5b30503d7ac26ec086909a5626a12778a4de48d223d102daf33408591",
+        "bytes": 52534
+      }
+    }
+  },
+  "audit": {
+    "functionPopulation": 5739,
+    "directDeclarations": 4674,
+    "compiledConsumerFunctions": 216,
+    "explicitReplacements": 271,
+    "newlyCompiledNames": [
+      "xge3dAnimatorReleaseOwnerChecked",
+      "xge3dBillboardBatchFree",
+      "xge3dCacheReleaseOwnerChecked",
+      "xge3dClipReleaseOwnerChecked",
+      "xge3dDecodeBudgetFree",
+      "xge3dEnvironmentReleaseOwnerChecked",
+      "xge3dLoaderReleaseOwnerChecked",
+      "xge3dMaterialReleaseOwnerChecked",
+      "xge3dMaterialSnapshotReleaseOwnerChecked",
+      "xge3dMeshGeometryReleaseChecked",
+      "xge3dMeshReleaseOwnerChecked",
+      "xge3dModelInstanceReleaseOwnerChecked",
+      "xge3dModelReleaseOwnerChecked",
+      "xge3dModelRetireReleaseOwnerChecked",
+      "xge3dParticlesFree",
+      "xge3dQueryResultsRelease",
+      "xge3dRendererReleaseOwnerChecked",
+      "xge3dSceneAccessBegin",
+      "xge3dSceneAccessEnd",
+      "xge3dSceneOwnership",
+      "xge3dSceneOwnershipAdapterV1",
+      "xge3dSceneOwnershipCompletionV2",
+      "xge3dSceneOwnershipFinalizationV1",
+      "xge3dSceneOwnershipPreparationV1",
+      "xge3dSceneOwnershipQuiescenceV1",
+      "xge3dSceneOwnershipReadReady",
+      "xge3dSceneReleaseOwnerChecked",
+      "xge3dShaderReleaseOwnerChecked",
+      "xge3dSkinPaletteReleaseChecked",
+      "xge3dTargetReleaseOwnerChecked",
+      "xge3dTerrainReleaseOwnerChecked",
+      "xge3dTextureReleaseOwnerChecked"
+    ],
+    "checkedCloseEntries": 31,
+    "otherReplacements": 35,
+    "pendingClassification": {
+      "Document": 1,
+      "Document UI": 2,
+      "XGE": 220,
+      "XUI": 358
+    },
+    "remaining3d": [
+      "xge3dMeshGeometryAddRef",
+      "xge3dNodeSetUserData",
+      "xge3dNodeUserData",
+      "xge3dSceneLoad",
+      "xge3dSceneNodeDefault",
+      "xge3dSkinPaletteAddRef"
+    ]
+  },
+  "performance": {
+    "cpuTimingCompared": false,
+    "monitoredQueries": [
+      "Scene",
+      "Scene controls"
+    ],
+    "warmXrtAllocations": 0,
+    "paths": [
+      "Windows and Linux JIT",
+      "Windows and Linux dynamic AOT",
+      "Windows and Linux static AOT"
+    ]
+  },
+  "limits": [
+    "The inventory classifies already existing declarations and checked C consumers.",
+    "GPU coverage was exercised on Linux by llvmpipe under Xvfb.",
+    "Code and SDK products remain isolated release candidates."
+  ]
+}

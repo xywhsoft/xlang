@@ -19,6 +19,34 @@ PROVIDER_ALIASES={'xl6Xge3InitPacked':('xge3_init.h','xl6Xge3InitWithCode')}
 REPLACED = {**XGE_REPLACEMENTS, **XUI_REPLACEMENTS, **DOCUMENT_REPLACEMENTS, **LIFECYCLE_REPLACEMENTS}
 CLOSE_REPLACEMENTS = {**DOCUMENT_CLOSE_REPLACEMENTS, **XUI_CLOSE_REPLACEMENTS}
 
+# The old releases consume the same owner as the checked release in close().
+# These policies live in the package headers, so runtime.c cannot prove them.
+CHECKED_3D_CLOSES = (
+    ('Animator', 'Animator', ('Free', 'ReleaseChecked')),
+    ('AnimationClip', 'Clip', ('Free', 'ReleaseChecked')),
+    ('Environment3D', 'Environment', ('Free', 'ReleaseChecked')),
+    ('Material3D', 'Material', ('Free', 'ReleaseChecked')),
+    ('MaterialSnapshot3D', 'MaterialSnapshot', ('ReleaseChecked',)),
+    ('Mesh3D', 'Mesh', ('Free', 'ReleaseChecked')),
+    ('Model3D', 'Model', ('Free', 'ReleaseChecked')),
+    ('ModelCache3D', 'Cache', ('Free',)),
+    ('ModelInstanceBuilder', 'ModelInstance', ('Free', 'ReleaseChecked')),
+    ('ModelLoader3D', 'Loader', ('Free',)),
+    ('ModelRetirement', 'ModelRetire', ('Free',)),
+    ('Renderer', 'Renderer', ('Free', 'ReleaseChecked')),
+    ('RenderTarget3D', 'Target', ('Free', 'ReleaseChecked')),
+    ('Scene', 'Scene', ('Free', 'ReleaseChecked')),
+    ('Shader3D', 'Shader', ('Free', 'ReleaseChecked')),
+    ('Terrain', 'Terrain', ('Free', 'ReleaseChecked')),
+    ('Texture3D', 'Texture', ('Free', 'ReleaseChecked')),
+)
+HEADER_CLOSE_REPLACEMENTS = {
+    f'xge3d{family}{old}': (f'xge3d.{owner}.close', f'xge3d{family}ReleaseOwnerChecked')
+    for owner, family, variants in CHECKED_3D_CLOSES for old in variants
+}
+HEADER_CLOSE_REPLACEMENTS['xge3dQueryResultsReleaseChecked'] = (
+    'xge3d.QueryResults.close', 'xge3dQueryResultsRelease')
+
 
 def object_relocations(text):
     """Read GNU objdump section relocations in COFF and ELF objects."""
@@ -48,6 +76,73 @@ def close_relocation_path(relocations,policy,destroy,release):
                 paths.append((getter,descriptor,consumer,release))
     assert len(paths)==1,(policy,destroy,release,paths)
     return paths[0]
+
+
+def class_lines(view, binding):
+    return (view/binding['source']).read_text(encoding='utf-8-sig').splitlines()[binding['line']-1:]
+
+
+def require_close(lines, policy, logical):
+    assert '@lifetime("owned")' in lines[0] and f'@policy("{policy}")' in lines[0], logical
+    class_end = next(i for i,line in enumerate(lines) if line.strip()=='end')
+    close = 'extern "xl6ForeignViewCloseV1" @no_raise @c_control(0) @c_result("bool_status") func close()'
+    assert any(line.strip()==close for line in lines[1:class_end]), logical
+
+
+def reachable_relocations(relocations, name):
+    reachable = set()
+    pending = [name]
+    while pending:
+        target = pending.pop()
+        if target not in reachable:
+            reachable.add(target)
+            pending.extend(relocations.get(target, ()))
+    return reachable
+
+
+def compile_3d_policies(view, classes, native_names, flags, tools, out, run, symbols, sha):
+    headers = set()
+    selectors = {}
+    for logical, binding in sorted(classes.items()):
+        if binding['package']!='xge3d':
+            continue
+        lines = class_lines(view, binding)
+        declaration = lines[0]
+        policy = re.search(r'@policy\("(\w+)"\)', declaration)
+        if not policy:
+            continue
+        header = re.search(r'@header\("(\w+\.h)"\)', declaration)
+        assert header, declaration
+        headers.add(header[1])
+        require_close(lines, policy[1], logical)
+        selectors[policy[1]] = 'XL6_ForeignViewDescriptorV1'
+        domain = re.search(r'@domain\("(\w+)"\)', declaration)
+        if domain:
+            selectors[domain[1]] = 'XL6_OwnershipDomainV1'
+    assert selectors
+
+    # Each witness references the descriptor selected by an actual declaration.
+    # Keeping the getter and callbacks out of line preserves their object edges.
+    name = 'xge3d-header-policies'
+    source = out/(name+'.c')
+    obj = out/(name+'.o')
+    includes = [f'#include <{header}>' for header in sorted(headers)]
+    accessors = [f'const {kind} *audit_{selector}(void) {{ return &{selector}; }}'
+        for selector,kind in sorted(selectors.items())]
+    source.write_text('\n'.join(includes+accessors)+'\n', encoding='utf-8')
+    run(name+'-compile', [tools['gcc'],*flags,'-O0','-fno-inline','-c',source,'-o',obj])
+    undefined = symbols(run(name+'-undefined', [tools['nm'],'-u',obj]))
+    relocations = object_relocations(run(name+'-relocations', [tools['objdump'],'-r',obj]))
+    imports = {}
+    for selector in sorted(selectors):
+        getters = [prefix+selector+'Get' for prefix in ('.text.','.text$')
+            if prefix+selector+'Get' in relocations.get(prefix+'audit_'+selector, ())]
+        assert len(getters)==1, (selector, getters)
+        imports[selector] = sorted(reachable_relocations(relocations,getters[0]) & native_names)
+        assert imports[selector] and set(imports[selector])<=undefined, (selector, imports[selector])
+    evidence = dict(source=str(source), sha256=sha(source), object=str(obj), objectSha256=sha(obj),
+        headerSelectors=imports)
+    return evidence, relocations
 
 
 def main():
@@ -141,6 +236,12 @@ def main():
                 otherUndefinedSymbols=sorted(undefined-set(functions))));save()
         rows=[]
         class_bindings={r['language']:r for group in bound_types.values() for r in group}
+        header_policies, header_relocations = compile_3d_policies(view,class_bindings,set(functions),
+            flags,tools,out,run,symbols,sha)
+        report['headerPolicies'] = header_policies
+        header_imports = {symbol for imports in header_policies['headerSelectors'].values() for symbol in imports}
+        for symbol in sorted(header_imports):
+            consumers.setdefault(symbol,[]).append('xge3d-header-policies')
         for symbol,item in sorted(functions.items()):
             if item['declarationPresent']:continue
             replacement=REPLACED.get(symbol)
@@ -152,14 +253,18 @@ def main():
             elif symbol in CLOSE_REPLACEMENTS:
                 logical,policy,destroy,release=CLOSE_REPLACEMENTS[symbol]
                 owner=class_bindings[logical.rsplit('.',1)[0]]
-                lines=(view/owner['source']).read_text(encoding='utf-8-sig').splitlines()[owner['line']-1:]
-                assert '@lifetime("owned")' in lines[0] and f'@policy("{policy}")' in lines[0],logical
-                class_end=next(i for i,line in enumerate(lines) if line.strip()=='end')
-                close='extern "xl6ForeignViewCloseV1" @no_raise @c_control(0) @c_result("bool_status") func close()'
-                assert any(line.strip()==close for line in lines[1:class_end]),logical
+                require_close(class_lines(view,owner),policy,logical)
                 assert release in functions and 'src/runtime.c' in consumers.get(release,()),release
                 evidence=dict(language=logical,native=release,policy=policy,
                     relocationPath=close_relocation_path(policy_relocations,policy,destroy,release))
+            elif symbol in HEADER_CLOSE_REPLACEMENTS:
+                logical,release=HEADER_CLOSE_REPLACEMENTS[symbol]
+                owner=class_bindings[logical.rsplit('.',1)[0]]
+                policy=re.search(r'@policy\("(\w+)"\)',class_lines(view,owner)[0])[1]
+                destroy='xl6Xge3dSceneDestroy' if policy=='xl6Xge3dScenePolicy' else policy+'Destroy'
+                assert release in header_policies['headerSelectors'][policy],(logical,release)
+                evidence=dict(language=logical,native=release,policy=policy,
+                    relocationPath=close_relocation_path(header_relocations,policy,destroy,release))
             rows.append(dict(id=item['id'],symbol=symbol,family=item['family'],conditions=item['conditions'],
                 publicDeclarationPresent=False,compiledNativeConsumers=consumers.get(symbol,[]),
                 explicitReplacement=evidence,
