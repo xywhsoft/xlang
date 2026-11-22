@@ -1,5 +1,29 @@
 # Native consumers in the full API inventory
 
+## TableView body rendering and scroll snapshots
+
+`TableView.setCellRenderer()` owns the callback and keeps it live during
+paint. The table passes read-only cell data and a draw context for that call. A
+callback can remove itself or change columns. The current paint pass then
+stops, and a thrown error still reaches the caller of `render()`. Returning
+zero without changing the layout continues with built-in cell drawing.
+Reading the cell's C strings produces independent text snapshots.
+
+`TableView.scrollSnapshot()` and `TreeView.scrollSnapshot()` return the
+viewport, content size, and offset by value. The snapshot remains readable
+after the widget closes. Both return the same values as their native model
+getters. The tests run 1,000 reads of each widget from C and xlang under a
+zero-allocation budget. The existing native provider tests exercise raw cell
+and header rendering, replacement, and destruction from callbacks. These
+tests passed 996 cases on each platform. JIT, dynamic AOT, and static AOT
+also passed on Windows and Linux.
+
+The audit now covers 5,744 native functions. There are 4,679 direct
+declarations, 218 compiled native consumer entries, and 292 explicit
+replacements. The 558 outstanding entries include 220 in XGE and 338 in XUI.
+
+[Validation evidence](../dev/release-materials/provenance/xui-table-render-scroll-20261123.json)
+
 ## TableView header rendering and shared cell outputs
 
 `TableView.setHeaderRenderer()` accepts an owned callback. Returning zero lets
@@ -15,8 +39,8 @@ cell, the language path allocated and freed 2,000 ownership blocks. The
 allocation-failure checks cover both blocks and confirm rollback without
 losing the original cell. This comparison measures allocation counts.
 
-The Windows and Linux consumer audits found 5,741 native functions, including
-4,676 with direct declarations, 218 with compiled native consumer evidence,
+At this milestone, the Windows and Linux audits found 5,741 native functions,
+including 4,676 with direct declarations, 218 with compiled native consumer evidence,
 and 289 with explicit replacements. Another 561 have none of these entries
 yet, with 220 in XGE and 341 in XUI.
 

@@ -5292,6 +5292,8 @@ export extern "xui_widget_t*" class TreeView @header("xge3_runtime.h") @lifetime
 
  extern "xuiTreeViewGetViewportRect" @no_raise func getViewportRect() as Rect
 
+ extern "xuiTreeViewGetScrollSnapshot" @no_raise @c_output(1,0) func scrollSnapshot() as ScrollModel
+
  extern "xuiTreeViewGetItemRect" @no_raise func getItemRect(c_int iVisible) as Rect
 
  extern "xuiTreeViewGetItemAt" @no_raise func getItemAt(c_float fX,c_float fY) as c_int
@@ -5330,6 +5332,8 @@ export extern "xui_widget_t*" class TableView @header("xge3_runtime.h") @lifetim
 
  extern "xuiTableViewSetHeaderRendererOwned" @no_raise @c_owned_callback(0,0,"xui_callback_owner_t",-16) @c_result("status",0) func setHeaderRenderer(TableViewHeaderRenderer? renderer)
 
+ extern "xuiTableViewSetCellRendererOwned" @no_raise @c_owned_callback(0,0,"xui_callback_owner_t",-16) @c_result("status",0) func setCellRenderer(TableViewCellRenderer? renderer)
+
  extern "xuiTableViewSetFont" @no_raise @c_result("status",0) func setFont(Font? pFont)
 
  extern "xuiTableViewGetFont" @no_raise @c_result("retained_view") @c_retain(retainFont,"zero",rollbackFont) func getFont() as Font?
@@ -5353,6 +5357,8 @@ export extern "xui_widget_t*" class TableView @header("xge3_runtime.h") @lifetim
  extern "xuiTableViewSetOffset" @no_raise func setOffset(c_float fOffsetX,c_float fOffsetY) as c_int
 
  extern "xuiTableViewGetOffset" @no_raise @c_outputs(1,2) @c_status(0) func getOffset() as (c_float,c_float)
+
+ extern "xuiTableViewGetScrollSnapshot" @no_raise @c_output(1,0) func scrollSnapshot() as ScrollModel
 
  extern "xuiTableViewGetCellContentRect" @no_raise @c_output(3,0) func getCellContentRect(c_int row,c_int column) as Rect
 

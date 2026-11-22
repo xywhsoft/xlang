@@ -21,6 +21,13 @@ Window.showWithProxy("Tableview / columns and cells", func(xui.Context ui, xui.W
   cell.setText(rows[int(row)][int(column)])
   return 0
  end)
+ table.setCellRenderer(func(xui.CallbackWidget widget,c_int row,c_int column,xui.CallbackTableViewCell cell,xui.CallbackDrawContext draw,xui.Rect area,c_int state) as c_int
+  if column==1 then
+   area.fW=3
+   proxy.fillRect(draw,area,c_uint(0xFF3076AE))
+  end
+  return 0 // 色条画完后，仍由表格绘制文字和边线。
+ end)
  auto details=ui.labelNative()
  details.setText("Click a cell to inspect its content rectangle.")
  Window.place(root,details,24,336,640,32)
@@ -28,7 +35,8 @@ Window.showWithProxy("Tableview / columns and cells", func(xui.Context ui, xui.W
  table.setSelect(func(xui.Widget sender,c_int row,c_int column,c_int selected)
   if selected!=0 and row>=0 and column>=0 then
    auto rectangle=table.getCellContentRect(row,column)
-   details.setText("Content: x="+string(int(rectangle.fX))+", y="+string(int(rectangle.fY))+", width="+string(int(rectangle.fW))+", height="+string(int(rectangle.fH)))
+   auto scroll=table.scrollSnapshot()
+   details.setText("Cell: ("+string(int(rectangle.fX))+", "+string(int(rectangle.fY))+")   Scroll Y: "+string(int(scroll.fScrollY)))
   end
  end)
 end)

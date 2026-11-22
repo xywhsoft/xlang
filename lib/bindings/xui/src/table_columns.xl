@@ -37,3 +37,23 @@ export extern "const xui_table_view_column_t*" class CallbackTableViewColumn @he
 end
 
 export typedef TableViewHeaderRenderer = func(CallbackWidget,c_int,CallbackTableViewColumn,CallbackDrawContext,Rect,c_int) as c_int
+
+export extern "const xui_table_view_cell_t*" class CallbackTableViewCell @header("xge3_runtime.h") @lifetime("callback")
+ native point handle
+ extern "sText" @c_field @c_result("cstring") get text() as string?
+ extern "sTooltip" @c_field @c_result("cstring") get tooltip() as string?
+ extern "iType" @c_field get cellType() as c_int
+ extern "iRowSpan" @c_field get rowSpan() as c_int
+ extern "iColSpan" @c_field get columnSpan() as c_int
+ extern "bDisabled" @c_field get disabled() as c_int
+ extern "bEditing" @c_field get editing() as c_int
+ extern "bInvalid" @c_field get invalid() as c_int
+ extern "bDirty" @c_field get dirty() as c_int
+ extern "bHasStyle" @c_field get hasStyle() as c_int
+ extern "iBackgroundColor" @c_field get backgroundColor() as c_uint
+ extern "iTextColor" @c_field get textColor() as c_uint
+ extern "iGridColor" @c_field get gridColor() as c_uint
+ extern "bReadOnly" @c_field get readOnly() as c_int
+end
+
+export typedef TableViewCellRenderer = func(CallbackWidget,c_int,c_int,CallbackTableViewCell,CallbackDrawContext,Rect,c_int) as c_int

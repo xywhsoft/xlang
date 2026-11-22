@@ -1,0 +1,143 @@
+import xge
+import xui
+from xui import CallbackTableViewCell
+
+extern "fixtureCompareTableScroll" @header("test/cases/foreign_xui_table_render_scroll.h") @no_raise func compareNative(xui.TableView table,xui.TreeView tree)
+extern "fixtureStartScrollAllocationCheck" @no_raise func forbidAllocations()
+extern "fixtureFinishScrollAllocationCheck" @no_raise func verifyNoAllocations()
+
+func makeBounds(c_int width,c_int height) as xui.Rect
+    xui.Rect bounds
+    bounds.fW = width
+    bounds.fH = height
+    return bounds
+end
+
+func checkScroll()
+    auto proxy = xui.createProxy()
+    auto ui = xui.create(proxy,xui.XUI_SYSTEM_FONT_DISABLED)
+    auto table = ui.tableViewNative()
+    auto tree = ui.treeViewNative()
+    auto root = ui.widget()
+    assert ui.setRootWidget(root) == 0
+    assert root.setRect(makeBounds(150,120)) == 0
+    assert root.addChild(table) == 0 and root.addChild(tree) == 0
+    assert table.setRect(makeBounds(120,80)) == 0 and tree.setRect(makeBounds(120,80)) == 0
+    table.setColumns(["First", "Second"],[160,140])
+    table.setAdapter(func(xui.Widget widget) as c_int
+        return 40
+    end,null)
+    for i in range(24)
+        assert tree.addNode(c_int(i+1),-1,"Row") >= 0
+    end
+    ui.setViewportSize(150,120)
+    ui.layout()
+    assert table.setOffset(25,50) == 0
+    auto oldTable = table.scrollSnapshot()
+    auto oldTree = tree.scrollSnapshot()
+    assert oldTable.fScrollX == 25 and oldTable.fScrollY == 50 and oldTable.fContentWidth == 300
+    assert oldTree.fContentHeight > oldTree.tViewportRect.fH and oldTree.fScrollY == 0
+
+    forbidAllocations()
+    try
+        compareNative(table,tree)
+        for i in range(1000)
+            auto tableState = table.scrollSnapshot()
+            auto treeState = tree.scrollSnapshot()
+            assert tableState.fScrollY == 50 and treeState.fContentHeight == oldTree.fContentHeight
+        end
+    finally
+        verifyNoAllocations()
+    end
+    assert table.setOffset(32,64) == 0
+    assert table.scrollSnapshot().fScrollY == 64
+    auto expired = table
+    ui.close()
+    assert oldTable.fScrollY == 50 and oldTree.fContentHeight > 0
+    bool refused = false
+    try
+        oldTable = expired.scrollSnapshot()
+    catch StateError
+        refused = true
+    end
+    assert refused and oldTable.fScrollY == 50
+    proxy.close()
+end
+
+func checkCellPaint(xui.Context ui,xui.Proxy proxy,xui.TableView table,xui.Surface target)
+    table.setColumns(["Cell"],[180])
+    table.setAdapter(func(xui.Widget widget) as c_int
+        return 2
+    end,func(xui.Widget widget,c_int row,c_int column,xui.CallbackTableViewCellOutput cell) as c_int
+        cell.setText("Payload")
+        cell.setTooltip("Tooltip")
+        cell.bReadOnly = 1
+        return 0
+    end)
+
+    int calls = 0
+    CallbackTableViewCell? saved = null
+    table.setCellRenderer(func(xui.CallbackWidget widget,c_int row,c_int column,CallbackTableViewCell cell,xui.CallbackDrawContext draw,xui.Rect bounds,c_int state) as c_int
+        assert row == 0 and column == 0 and cell.rowSpan == 1 and cell.columnSpan == 1
+        assert cell.readOnly == 1 and (cell.text ?? "") == "Payload"
+        proxy.fillRect(draw,bounds,c_uint(0xFF3076AE))
+        calls += 1
+        saved = cell
+        table.setCellRenderer(null)
+        table.setColumns(["Changed"],[160])
+        assert (cell.tooltip ?? "") == "Tooltip"
+        return 1
+    end)
+    assert ui.update(c_float(0.016)) == 0
+    ui.render(target)
+    assert calls == 1
+    bool expired = false
+    try
+        auto text = (saved as CallbackTableViewCell).text
+    catch StateError
+        expired = true
+    end
+    assert expired
+
+    table.setCellRenderer(func(xui.CallbackWidget widget,c_int row,c_int column,CallbackTableViewCell cell,xui.CallbackDrawContext draw,xui.Rect bounds,c_int state) as c_int
+        table.setCellRenderer(null)
+        throw RuntimeError "table cell callback failure"
+    end)
+    bool checked = false
+    try
+        assert ui.update(c_float(0.016)) == 0
+        ui.render(target)
+    catch RuntimeError failure
+        checked = failure.message == "table cell callback failure"
+    end
+    assert checked
+    assert ui.update(c_float(0.016)) == 0
+    ui.render(target)
+end
+
+func main(...) as int
+    checkScroll()
+    println("TABLE_SCROLL_SNAPSHOT_OK")
+    if env.get("XUI_TABLE_CELL_PAINT") != null then
+        xge.init(320,180,"Managed TableView cell",c_int(xge.XGE_INIT_OFFSCREEN))
+        xge.run(func() as c_int
+            assert xge.begin() == 0
+            auto proxy = xui.createProxy()
+            auto ui = xui.create(proxy,xui.XUI_SYSTEM_FONT_DISABLED)
+            auto table = ui.tableViewNative()
+            assert table.setRect(makeBounds(320,180)) == 0 and ui.setRootWidget(table) == 0
+            ui.setViewportSize(320,180)
+            auto target = proxy.createSurfaceRGBA(320,180,flags=c_uint(xui.XUI_SURFACE_USAGE_TARGET))
+            checkCellPaint(ui,proxy,table,target)
+            ui.close()
+            target.close()
+            proxy.close()
+            assert xge.nativeEnd() == 0
+            return 1
+        end)
+        xge.setFrameCallback(null)
+        xge.unit()
+        println("TABLE_CELL_PAINT_OK")
+    end
+    return 0
+end

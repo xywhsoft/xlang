@@ -775,6 +775,8 @@ METHODS.update({
         'TableView', ['extern "xuiTableViewSetColumnDescriptors" @no_raise @c_array_group(1,0,3,"int",3) @c_array_record(1,"xui_table_column_desc_t") @c_array_field(1,"tSettings",0,"value") @c_array_field(1,"sId",1,"c_string") @c_array_field(1,"sTitle",2,"c_string") @c_result("status",0) func setColumnsDetailed(array<TableColumnSettings> settings,array<string?> ids,array<string?> titles,int size=-1)']],
     'xuiTableViewSetHeaderRendererOwned': ['int xuiTableViewSetHeaderRendererOwned(xui_widget pWidget, xui_table_view_header_renderer_proc onRender, void* pUser, const xui_callback_owner_t* pOwner)',
         'TableView', ['extern "xuiTableViewSetHeaderRendererOwned" @no_raise @c_owned_callback(0,0,"xui_callback_owner_t",-16) @c_result("status",0) func setHeaderRenderer(TableViewHeaderRenderer? renderer)']],
+    'xuiTableViewSetCellRendererOwned': ['int xuiTableViewSetCellRendererOwned(xui_widget pWidget, xui_table_view_cell_renderer_proc onRender, void* pUser, const xui_callback_owner_t* pOwner)',
+        'TableView', ['extern "xuiTableViewSetCellRendererOwned" @no_raise @c_owned_callback(0,0,"xui_callback_owner_t",-16) @c_result("status",0) func setCellRenderer(TableViewCellRenderer? renderer)']],
     'xuiTableGridGetColumnDescriptor': ['int xuiTableGridGetColumnDescriptor(xui_widget pWidget, int iColumn, xui_table_column_desc_t* pColumn)',
         'TableGrid', ['extern "xuiTableGridGetColumnDescriptor" @no_raise @c_output_record(2,"xui_table_column_desc_t","borrowed") @c_status(0) @c_output_field(0,"tSettings") @c_output_field(1,"sId","cstring") @c_output_field(2,"sTitle","cstring") @c_output_field(3,"tRect") func getColumn(c_int index) as (TableColumnSettings,string?,string?,Rect)']],
     'xuiTableGridSetColumnDescriptors': ['int xuiTableGridSetColumnDescriptors(xui_widget pWidget, const xui_table_column_desc_t* pColumns, int iCount)',
@@ -1359,6 +1361,7 @@ CLOSE_REPLACEMENTS = {
 REPLACED = {
     'xuiTableViewCellOutputAddRef': ('xui.TableCellOutput.share','xuiTableViewCellOutputShareOwned'),
     'xuiTableViewSetHeaderRenderer': ('xui.TableView.setHeaderRenderer','xuiTableViewSetHeaderRendererOwned'),
+    'xuiTableViewSetCellRenderer': ('xui.TableView.setCellRenderer','xuiTableViewSetCellRendererOwned'),
     'xuiTableViewGetColumn': ('xui.TableView.getColumn','xuiTableViewGetColumnDescriptor'),
     'xuiTableViewSetAdapter': ('xui.TableView.setAdapter','xuiTableViewSetAdapterOwned'),
     'xuiTableViewSetColumnResize': ('xui.TableView.setColumnResize','xuiTableViewSetColumnResizeOwned'),
@@ -1530,6 +1533,12 @@ METHODS.update({
     'xuiListViewGetScrollSnapshot': (
         'int xuiListViewGetScrollSnapshot(xui_widget pWidget, xui_scroll_model_t* pSnapshot)',
         'ListView', ['extern "xuiListViewGetScrollSnapshot" @no_raise @c_output(1,0) func scrollSnapshot() as ScrollModel']),
+    'xuiTreeViewGetScrollSnapshot': (
+        'int xuiTreeViewGetScrollSnapshot(xui_widget pWidget, xui_scroll_model_t* pSnapshot)',
+        'TreeView', ['extern "xuiTreeViewGetScrollSnapshot" @no_raise @c_output(1,0) func scrollSnapshot() as ScrollModel']),
+    'xuiTableViewGetScrollSnapshot': (
+        'int xuiTableViewGetScrollSnapshot(xui_widget pWidget, xui_scroll_model_t* pSnapshot)',
+        'TableView', ['extern "xuiTableViewGetScrollSnapshot" @no_raise @c_output(1,0) func scrollSnapshot() as ScrollModel']),
     'xuiPopupGetScrollSnapshot': (
         'int xuiPopupGetScrollSnapshot(xui_widget pWidget, xui_scroll_model_t* pSnapshot)',
         'Popup', ['extern "xuiPopupGetScrollSnapshot" @no_raise @c_output(1,0) func scrollSnapshot() as ScrollModel']),
@@ -1605,6 +1614,8 @@ REPLACED.update({
     'xuiScrollViewGetModel': ('xui.ScrollView.scrollSnapshot','xuiScrollViewGetScrollSnapshot'),
     'xuiCanvasGetModel': ('xui.Canvas.scrollSnapshot','xuiCanvasGetScrollSnapshot'),
     'xuiListViewGetModel': ('xui.ListView.scrollSnapshot','xuiListViewGetScrollSnapshot'),
+    'xuiTreeViewGetModel': ('xui.TreeView.scrollSnapshot','xuiTreeViewGetScrollSnapshot'),
+    'xuiTableViewGetModel': ('xui.TableView.scrollSnapshot','xuiTableViewGetScrollSnapshot'),
     'xuiPopupGetModel': ('xui.Popup.scrollSnapshot','xuiPopupGetScrollSnapshot'),
     'xuiScrollModelSetViewport': ('xui.scrollModelWithViewport','xuiScrollModelWithViewport'),
     'xuiScrollModelSetContentSize': ('xui.scrollModelWithContentSize','xuiScrollModelWithContentSize'),

@@ -1,0 +1,185 @@
+{
+  "complete": true,
+  "passed": true,
+  "releaseInstalled": false,
+  "networkTests": false,
+  "scope": "Owned TableView body renderer and allocation-free TableView/TreeView scroll snapshots",
+  "nativeRevision": "85c880d9cdd1603e2e37b0d4dfd29fc5040d94f2",
+  "xlangSourceParent": "4a5df6cf43bf67a76829280da8b6cd3af1e67b3d",
+  "xlangInputs": {
+    "docs/xge3-native-consumer-audit.md": "17da13238c42a7c6fe52408061805930bd39204cef3a91d18741440f13ca38f1",
+    "docs/xge3-xui3-api-map-storage.json": "33eb0ae401a2fffcac1ae78133bb3d9fe6bb1129f6455ab2988c3e7e282dcea5",
+    "lib/bindings/xui/examples/tableview.xl": "3a3a98573a6b239a625bad1ef2c5c84a82c20ec2b69765d666ad62f2cedf09c0",
+    "lib/bindings/xui/src/managed.xl": "9c4197d70f0dae62d7badfaec01a3ee870d7909e6a95c56912b7b161c01104e0",
+    "lib/bindings/xui/src/table_columns.xl": "a8ac158992217c96472305a90f69b70f7ce12ef0867739fa201da42e68aac429",
+    "test/cases/foreign_xui_table_render_scroll.c": "eccf70f215ff3447a2af429ba1734cc2558e0b3fc3d2221f74e54915f4cb7909",
+    "test/cases/foreign_xui_table_render_scroll.h": "733b54f7603ffdb67119e9e087a1e4756959c4431c300b7cc088fbc7a94b898b",
+    "test/cases/foreign_xui_table_render_scroll.xl": "b2740d9a0a0ca490e34fc189010e7583d70032611289d59cee78ce227d7a80f4",
+    "tools/xui_managed_contracts.py": "944e12b9c7ccfb4ae14c26f690c6cb652b83ff514787733b7c6f35c16fb9c0f9"
+  },
+  "helpers": [
+    {
+      "path": "F:/xlang-validation/xge-full-20261110/build-table-render-scroll-r1.py",
+      "sha256": "ec1fee498f331f5b681289fd5f434183ee64e1842106d550da829a995585d239",
+      "bytes": 2785
+    },
+    {
+      "path": "F:/xlang-validation/xge-full-20261110/freeze-table-render-scroll-r1.py",
+      "sha256": "573290379c0057f40e8b6bb7f2204208d5f06e8b617810e71904591a04c8654e",
+      "bytes": 725
+    },
+    {
+      "path": "F:/xlang-validation/xge-full-20261110/stage-table-render-scroll-r1.py",
+      "sha256": "5aed0bd2227d898750a48aadf599d68f4d8e69d3c2823b76478d0dc20bef298d",
+      "bytes": 1242
+    },
+    {
+      "path": "F:/xlang-validation/xge-full-20261110/check-table-render-scroll-r1.py",
+      "sha256": "57c46d6c055f1c9868206350df86a27122d419f3575aed7dfa3de4a9a43fe23b",
+      "bytes": 3915
+    },
+    {
+      "path": "F:/xlang-validation/xge-full-20261110/check-table-render-scroll-native-r1.py",
+      "sha256": "e4d561c2af0802b0546c785432896a3472e15838c0ef9e8a698b9f46a531a1be",
+      "bytes": 2261
+    },
+    {
+      "path": "F:/xlang-validation/xge-full-20261110/audit-table-render-scroll-r1.py",
+      "sha256": "cd049831ead73c808bbd6def5059feb45b0b8a43cf263c6cabf863d110fa2b52",
+      "bytes": 2546
+    }
+  ],
+  "audit": {
+    "functions": 5744,
+    "directDeclarations": 4679,
+    "compiledNativeConsumers": 218,
+    "explicitReplacements": 292,
+    "pending": {
+      "XGE": 220,
+      "XUI": 338,
+      "Document": 0
+    }
+  },
+  "views": {
+    "expiryChecked": true,
+    "reentrantReplacementChecked": true,
+    "cStringReadCopies": true
+  },
+  "performance": {
+    "cpuTimingCompared": false,
+    "scrollReadsPerWidgetPerLanguage": 1000,
+    "scrollAllocations": 0,
+    "scrollFrees": 0,
+    "scrollReallocations": 0
+  },
+  "linuxExample": {
+    "languageSource": "lib/bindings/xui/examples/tableview.xl",
+    "log": {
+      "path": "/var/tmp/xlang-validation/xge-full-20261110/table-render-scroll-stage-linux-r1/example-r1/example.log",
+      "sha256": "8b5396a6cf8653b8a1c9109e43faf0a30dd5d23ab5c5cf0900150b84e7e63afb",
+      "bytes": 117
+    },
+    "maxFrames": 2,
+    "exitCode": 0
+  },
+  "platforms": {
+    "win": {
+      "nativeSource": {
+        "path": "F:/xlang-validation/xge-full-20261110/table-render-scroll-stage-win-r1/audit-r2/native-source.json",
+        "sha256": "20c0410cd03899739fbd9439898bede1e671684070ae1ce5a7c554db5c7c54e2",
+        "bytes": 466180
+      },
+      "generator": {
+        "path": "F:/xlang-validation/xge-full-20261110/table-render-scroll-generator-win-r1/results.json",
+        "sha256": "f99e48c4cdbd9702fa13ea763067db2d78ac8998d8a6b8d063e01413e95db682",
+        "bytes": 243108
+      },
+      "inventory": {
+        "path": "F:/xlang-validation/xge-full-20261110/table-render-scroll-stage-win-r1/audit-r2/surface/surface.json",
+        "sha256": "567641afb33c2581a641725017329d3a427076f5ecc73f263c49f03b96a94f45",
+        "bytes": 5518491
+      },
+      "consumers": {
+        "path": "F:/xlang-validation/xge-full-20261110/table-render-scroll-stage-win-r1/audit-r2/consumers/results.json",
+        "sha256": "00ef560d583a2f3c334aa252c222331f2018bd3fa5b88768260cd115e01a99a4",
+        "bytes": 1334178
+      },
+      "hostedBuild": {
+        "path": "F:/xlang-validation/xge-full-20261110/table-render-scroll-host-win-r1/build-report.json",
+        "sha256": "5f6c0c9d6627aface39e2923faff063f3a59d001f2219892c1b66f2db4300e25",
+        "bytes": 23793
+      },
+      "staticBuild": {
+        "path": "F:/xlang-validation/xge-full-20261110/table-render-scroll-static-win-r1/build-report.json",
+        "sha256": "12446a53970632c0a7b173adb41656c2f40d859bc56ed4d1e0d0f1fce4d8664b",
+        "bytes": 10275476
+      },
+      "pairedPackages": {
+        "path": "F:/xlang-validation/xge-full-20261110/table-render-scroll-stage-win-r1/replay/stage-report.json",
+        "sha256": "72e5610910280b5f255d671411a8a7ed2a8f28cc4118be698a0ccb3606fad7c4",
+        "bytes": 173502
+      },
+      "runtime": {
+        "path": "F:/xlang-validation/xge-full-20261110/table-render-scroll-stage-win-r1/suite-r2/results.json",
+        "sha256": "71a3d545291c848cab71716e3dbc156679f544f110d16b423cbfd56280703a15",
+        "bytes": 7316
+      },
+      "nativeProviderRegression": {
+        "path": "F:/xlang-validation/xge-full-20261110/table-render-scroll-stage-win-r1/native-suite-r1/results.json",
+        "sha256": "1a82a39057dddee2867a6f04ed9c815af00c27a140013a3ec61a0024a8ef2a06",
+        "bytes": 3475
+      },
+      "nativeCases": 996,
+      "nativeAssertions": 11335
+    },
+    "linux": {
+      "nativeSource": {
+        "path": "/var/tmp/xlang-validation/xge-full-20261110/table-render-scroll-stage-linux-r1/audit-r2/native-source.json",
+        "sha256": "18c3d2f3447dc7ca27d401b4579d1e3387266fa08ca7fae8b25864d1249fe812",
+        "bytes": 462350
+      },
+      "generator": {
+        "path": "/var/tmp/xlang-validation/xge-full-20261110/table-render-scroll-generator-linux-r1/results.json",
+        "sha256": "d6978d00c8cdd8e4d55973bb7eaf8cb857acea6669374f14a84832970f4321cc",
+        "bytes": 251546
+      },
+      "inventory": {
+        "path": "/var/tmp/xlang-validation/xge-full-20261110/table-render-scroll-stage-linux-r1/audit-r2/surface/surface.json",
+        "sha256": "2cf2769774dbb42abbc217ca08a1104b35fbc8eaea768d261ea230138b70fc14",
+        "bytes": 5333454
+      },
+      "consumers": {
+        "path": "/var/tmp/xlang-validation/xge-full-20261110/table-render-scroll-stage-linux-r1/audit-r2/consumers/results.json",
+        "sha256": "501ad64737f6a345e99407ebd7d6aba597f85b73d1d21ce4baf7838a13b1d7b0",
+        "bytes": 1316980
+      },
+      "hostedBuild": {
+        "path": "/var/tmp/xlang-validation/xge-full-20261110/table-render-scroll-host-linux-r1/build-report.json",
+        "sha256": "e20c0cc0183787eafb1235c2c4ef32906969544610c3b39f2879da0aced911fc",
+        "bytes": 23066
+      },
+      "staticBuild": {
+        "path": "/var/tmp/xlang-validation/xge-full-20261110/table-render-scroll-static-linux-r1/build-report.json",
+        "sha256": "5a9b250ef57472c232fb2fdd53914763b87abbedbd6184927a70c1e2bba899b7",
+        "bytes": 848664
+      },
+      "pairedPackages": {
+        "path": "/var/tmp/xlang-validation/xge-full-20261110/table-render-scroll-stage-linux-r1/replay/stage-report.json",
+        "sha256": "7912e73902b96783cfb65358ea25f67e982b4cacfca1a27a82eef5dd5d147d43",
+        "bytes": 169779
+      },
+      "runtime": {
+        "path": "/var/tmp/xlang-validation/xge-full-20261110/table-render-scroll-stage-linux-r1/suite-r2/results.json",
+        "sha256": "bd925ba92f9d8323a7ed2a9c3435062cf5e843d3c43db058e3fc3efed332ca3e",
+        "bytes": 7414
+      },
+      "nativeProviderRegression": {
+        "path": "/var/tmp/xlang-validation/xge-full-20261110/table-render-scroll-stage-linux-r1/native-suite-r1/results.json",
+        "sha256": "2993d38db70561850e5fc973d0735979df160fc53030e7459a543d1339891553",
+        "bytes": 3279
+      },
+      "nativeCases": 996,
+      "nativeAssertions": 11335
+    }
+  }
+}
