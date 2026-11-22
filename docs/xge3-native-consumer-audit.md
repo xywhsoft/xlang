@@ -1,5 +1,27 @@
 # Native consumers in the full API inventory
 
+## 3D scene node data
+
+`Scene.setUserData()` produces one independent public-data snapshot and
+calls `xge3dNodeSetUserValueSnapshot`. The native call retains that graph in
+the scene ownership table. `Scene.userData()` returns a copy that can be
+changed independently and outlives the node. The raw C pointer slot has a
+language alternative using plain data with checked lifetime and errors.
+
+The native test measures 1,000 replacements with already prepared data and an
+existing slot, with zero XRT allocations, frees or reallocations. First
+insertion under allocation failure leaves the slot empty. A caller can release
+its own prepared reference after publication.
+
+Windows and Linux passed JIT, dynamic AOT, independent static AOT and the
+node data example. In 1,000 writes of a one-key object to an existing slot,
+the old binding made 8,000 XRT allocations and frees and the new binding
+made 4,000. The comparison changes only the declared native setter symbol.
+
+The audit has 332 pending functions, with 137 in XGE and 195 in XUI.
+
+[Validation evidence](../dev/release-materials/provenance/xge3d-node-user-snapshot-20261123.json)
+
 ## Bulk code-fold queries
 
 The C-language fold scanner writes ranges from source text or a standalone or

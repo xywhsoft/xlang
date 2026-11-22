@@ -1,0 +1,159 @@
+{
+  "complete": true,
+  "passed": true,
+  "releaseInstalled": false,
+  "networkTests": false,
+  "scope": "One writable scene node snapshot, checked ownership and bounded failure rollback",
+  "nativeRevision": "7f904c063eb26f6ab749b432ac2e50af67826f50",
+  "nativeParent": "6cbf8894888262c9cfe4fa7fef43d82358d096de",
+  "nativeSourceHashesLf": {
+    "include/xge.h": "10b58c8a8bcf42ac303bb71ebf44479a4bd669791d518f9a3e470d8016224951",
+    "src/xge/3d/xge3d_nodes.c": "9ad0f31145d5f1f1a29313891f9eab7edd74162e4653df0c8d59588ad43d32a6",
+    "tests/xge/test_3d_node_user_value.c": "38a318df487cb003e7d1be7e5a8c68b828036fc08967ae4e5c59c3a1a4e8fb11"
+  },
+  "xlangSourceBaseline": "446dc7b0aa86c5a408d7f2bc5cba14a0dd70aeff",
+  "xlangCommitParent": "446dc7b0aa86c5a408d7f2bc5cba14a0dd70aeff",
+  "platforms": {
+    "Windows x64": {
+      "nativeSources": {
+        "path": "F:\\xlang-validation\\xge-full-20261110\\node-user-snapshot-stage-win-r1\\audit\\native-source.json",
+        "sha256": "b44c98e9e69cb4222cb118f352cf608365e871cd9b3ad5b876603cde19dbc864"
+      },
+      "generator": {
+        "path": "F:\\xlang-validation\\xge-full-20261110\\node-user-snapshot-generator-win-r1\\results.json",
+        "sha256": "abeec654361640cde7544a9a7f2c468e806075ae54aecb57de03d9dae112e4f8"
+      },
+      "hostBuild": {
+        "path": "F:\\xlang-validation\\xge-full-20261110\\node-user-snapshot-host-win-r1\\build-report.json",
+        "sha256": "dd89c01a57f8876f21de65a135762dc91df5878d3ec2b258eb307cd3d7170852"
+      },
+      "staticBuild": {
+        "path": "F:\\xlang-validation\\xge-full-20261110\\node-user-snapshot-static-win-r1\\build-report.json",
+        "sha256": "5702282af6e74dd9b7b43d22f779957e937fad775995e7dfa8e5a9dc4a9251a6"
+      },
+      "hostImage": {
+        "path": "F:\\xlang-validation\\xge-full-20261110\\node-user-snapshot-stage-win-r1\\replay\\host\\_xge_native\\native\\xge3_host.dll",
+        "sha256": "902dfd740d6b63e3c92f80db0ce8da9820d5c365080ec6240a557158c52576c3"
+      },
+      "nativeRegression": {
+        "path": "F:\\xlang-validation\\xge-full-20261110\\node-user-snapshot-upstream-native-win-r2\\results.json",
+        "sha256": "0c3636500ce1d0948ea71ebe2036dcf0573f0e5a6d1863d3d77cb71accbd8a41"
+      },
+      "replay": {
+        "path": "F:\\xlang-validation\\xge-full-20261110\\node-user-snapshot-stage-win-r1\\replay\\stage-report.json",
+        "sha256": "f4a4f8c425e5d076a0e6df961dfc6dff3374856665ddf92165272074e92e4218"
+      },
+      "consumerAudit": {
+        "path": "F:\\xlang-validation\\xge-full-20261110\\node-user-snapshot-stage-win-r1\\audit\\consumers\\results.json",
+        "sha256": "1d1e67afa9cc09d899141e8581d30c855bbc08d7cbe2b7c66dc078e444c33670"
+      },
+      "priorAudit": {
+        "path": "F:\\xlang-validation\\xge-full-20261110\\code-fold-bulk-stage-win-r1\\audit\\consumers\\results.json",
+        "sha256": "f949001ed8e3665557d381a8da692103b0f9c016f8699888f1bff41705d741b3"
+      },
+      "reports": {
+        "api": {
+          "path": "F:\\xlang-validation\\xge-full-20261110\\node-user-snapshot-api-win-r2\\results.json",
+          "sha256": "f56cfd8dadf0e90d68ae34ac158b095ed1c4cd14dc18d0b7b3118d7860146cab"
+        },
+        "before": {
+          "path": "F:\\xlang-validation\\xge-full-20261110\\node-user-snapshot-before-win-r2\\results.json",
+          "sha256": "9536e9fa111380b52943520dbb3dd09a7e8502769ff34631913c0ffe1cdb9b75"
+        },
+        "example": {
+          "path": "F:\\xlang-validation\\xge-full-20261110\\node-user-snapshot-example-win-r2\\results.json",
+          "sha256": "836308d3e60429df385c6392384f3a6f70b7f842e9f7eb9e1d39248ec5b86323"
+        }
+      }
+    },
+    "Linux x64": {
+      "nativeSources": {
+        "path": "\\\\wsl.localhost\\Ubuntu\\var\\tmp\\xlang-validation\\xge-full-20261110\\node-user-snapshot-stage-linux-r1\\audit\\native-source.json",
+        "sha256": "62d861e097146f5d76094dcc9f78c3763da7a4613a3f8877b62f522a4d8f1fa0"
+      },
+      "generator": {
+        "path": "\\\\wsl.localhost\\Ubuntu\\var\\tmp\\xlang-validation\\xge-full-20261110\\node-user-snapshot-generator-linux-r1\\results.json",
+        "sha256": "84c6ec7f6c8eb56f544fa8e406ed4f06f5c4b6a8802f56c36bbdbcd3f591fb6c"
+      },
+      "hostBuild": {
+        "path": "\\\\wsl.localhost\\Ubuntu\\var\\tmp\\xlang-validation\\xge-full-20261110\\node-user-snapshot-host-linux-r1\\build-report.json",
+        "sha256": "eb9a3c37c5c6f56d76a9f664198a57f0a1a477a63be665c7ea6be4e8e61efe02"
+      },
+      "staticBuild": {
+        "path": "\\\\wsl.localhost\\Ubuntu\\var\\tmp\\xlang-validation\\xge-full-20261110\\node-user-snapshot-static-linux-r1\\build-report.json",
+        "sha256": "3f82e647d55da740f6362a19469375a3fcc7ded1cd44981e699071be01615464"
+      },
+      "hostImage": {
+        "path": "\\\\wsl.localhost\\Ubuntu\\var\\tmp\\xlang-validation\\xge-full-20261110\\node-user-snapshot-stage-linux-r1\\replay\\host\\_xge_native\\native\\libxge3_host.so",
+        "sha256": "8714e779c8d3007d6e72c71e70357d361b857cd52fcd7dbc05a860870b1b5765"
+      },
+      "nativeRegression": {
+        "path": "\\\\wsl.localhost\\Ubuntu\\var\\tmp\\xlang-validation\\xge-full-20261110\\node-user-snapshot-upstream-native-linux-r2\\results.json",
+        "sha256": "310d29ac07e497deb92ef59fee5830c0d01d60545e59c998e269f846d57f1b52"
+      },
+      "replay": {
+        "path": "\\\\wsl.localhost\\Ubuntu\\var\\tmp\\xlang-validation\\xge-full-20261110\\node-user-snapshot-stage-linux-r1\\replay\\stage-report.json",
+        "sha256": "f3b461a69d9194f697de21145863df6f92b4b1e14bbc60e32004b8fbdba3bce2"
+      },
+      "consumerAudit": {
+        "path": "\\\\wsl.localhost\\Ubuntu\\var\\tmp\\xlang-validation\\xge-full-20261110\\node-user-snapshot-stage-linux-r1\\audit\\consumers\\results.json",
+        "sha256": "3392caa8d0e685de6b28ca96a3fd6fc8ad364515e9e97fc6a5b55114bf50ba66"
+      },
+      "priorAudit": {
+        "path": "\\\\wsl.localhost\\Ubuntu\\var\\tmp\\xlang-validation\\xge-full-20261110\\code-fold-bulk-stage-linux-r1\\audit\\consumers\\results.json",
+        "sha256": "17305a9329883afab4c08491d50147880a041b367f9436cc1bfd0d8199ece717"
+      },
+      "reports": {
+        "api": {
+          "path": "\\\\wsl.localhost\\Ubuntu\\var\\tmp\\xlang-validation\\xge-full-20261110\\node-user-snapshot-api-linux-r2\\results.json",
+          "sha256": "661d8d702fefdc42a70b1dc4df931ef8c7c8df04af0f752624e6ea0dc290914c"
+        },
+        "before": {
+          "path": "\\\\wsl.localhost\\Ubuntu\\var\\tmp\\xlang-validation\\xge-full-20261110\\node-user-snapshot-before-linux-r2\\results.json",
+          "sha256": "c31efe957ad92ccacc102a6bcf4e7492468b6fe07dd91e98ec5f1e639b047f8d"
+        },
+        "example": {
+          "path": "\\\\wsl.localhost\\Ubuntu\\var\\tmp\\xlang-validation\\xge-full-20261110\\node-user-snapshot-example-linux-r2\\results.json",
+          "sha256": "d941fb2d3ad6f517be28b9d74425437f767d6ca4cfd82f98c82b946804a8a693"
+        }
+      }
+    }
+  },
+  "audit": {
+    "functionPopulation": 5787,
+    "directDeclarations": 4726,
+    "compiledConsumerFunctions": 283,
+    "explicitReplacements": 449,
+    "pending": {
+      "XGE": 137,
+      "XUI": 195,
+      "Document": 0
+    },
+    "apiCompletenessClaim": false
+  },
+  "heap": {
+    "iterations": 1000,
+    "workload": "One-key public-data object, replacing an existing node slot",
+    "baselineBindingSameNativeImage": {
+      "alloc": 8000,
+      "free": 8000,
+      "realloc": 0
+    },
+    "preparedSnapshotBinding": {
+      "alloc": 4000,
+      "free": 4000,
+      "realloc": 0
+    },
+    "nativePreparedReplacement": {
+      "alloc": 0,
+      "free": 0,
+      "realloc": 0
+    },
+    "cpuEquivalenceClaim": false
+  },
+  "tests": {
+    "failure": "First native insertion and the language allocation prefixes preserve publication state",
+    "ownership": "Native scene retains the prepared graph. Original class and returned copies remain independent.",
+    "projection": "One strict public-field projection. The native storage path retains the result."
+  }
+}

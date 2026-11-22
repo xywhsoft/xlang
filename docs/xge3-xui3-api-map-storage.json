@@ -4,6 +4,24 @@
   "sourceRoot": "D:\\GIT\\xge",
   "runtimeAcceptance": false,
   "entries": {
+    "xge3dNodeSetUserValueSnapshot": {
+      "bindingFile": "lib\\bindings\\xge\\three_d\\src\\scene.xl",
+      "declaration": "extern \"xge3dNodeSetUserValueSnapshot\" @no_raise @c_const(2) @c_data_snapshot(1) @c_result(\"status\",0) func setUserData(Xge3dNode node,var value)",
+      "storage": "native-retains-prepared-snapshot",
+      "sourceFile": "src/xge/3d/xge3d_nodes.c",
+      "line": 99,
+      "functionSha256": "c9a782cd21b36bf00d4a1daf66b133400d2edd7c69f56e0f6da2ec2de831f91a",
+      "dependencies": [
+        {
+          "sourceFile": "src/xge/3d/xge3d_nodes.c",
+          "lfSha256": "9ad0f31145d5f1f1a29313891f9eab7edd74162e4653df0c8d59588ad43d32a6"
+        },
+        {
+          "sourceFile": "src/xge/3d/xge3d_scene.c",
+          "lfSha256": "efb3a00574860ebe246fe2f09e0d72f30c0db004d42f6a3da16258bf7e114eec"
+        }
+      ]
+    },
     "xuiMessageListSetNodeRendererOwned": {
       "bindingFile": "lib\\bindings\\xui\\src\\managed.xl",
       "declaration": "extern \"xuiMessageListSetNodeRendererOwned\" @no_raise @c_owned_callback(0,0,\"xui_callback_owner_t\",-16) @c_result(\"status\",0) func setNodeRenderer(MessageNodeRenderProc? renderer)",
@@ -530,7 +548,7 @@
       "dependencies": [
         {
           "sourceFile": "include/xge.h",
-          "lfSha256": "4a4ba2a6b67e492f415a969f6241e34b59f2712fa7aaa220ecc1383b01336a8b"
+          "lfSha256": "10b58c8a8bcf42ac303bb71ebf44479a4bd669791d518f9a3e470d8016224951"
         }
       ]
     },
@@ -596,7 +614,7 @@
       "dependencies": [
         {
           "sourceFile": "include/xge.h",
-          "lfSha256": "4a4ba2a6b67e492f415a969f6241e34b59f2712fa7aaa220ecc1383b01336a8b"
+          "lfSha256": "10b58c8a8bcf42ac303bb71ebf44479a4bd669791d518f9a3e470d8016224951"
         },
         {
           "sourceFile": "src/xge/render/xge_render.c",
@@ -1183,7 +1201,7 @@
       "dependencies": [
         {
           "sourceFile": "include/xge.h",
-          "lfSha256": "4a4ba2a6b67e492f415a969f6241e34b59f2712fa7aaa220ecc1383b01336a8b"
+          "lfSha256": "10b58c8a8bcf42ac303bb71ebf44479a4bd669791d518f9a3e470d8016224951"
         },
         {
           "sourceFile": "src/xge/core/xge_debug.c",
@@ -2015,7 +2033,7 @@
       "dependencies": [
         {
           "sourceFile": "include/xge.h",
-          "lfSha256": "4a4ba2a6b67e492f415a969f6241e34b59f2712fa7aaa220ecc1383b01336a8b"
+          "lfSha256": "10b58c8a8bcf42ac303bb71ebf44479a4bd669791d518f9a3e470d8016224951"
         },
         {
           "sourceFile": "include/xui.h",
@@ -2304,7 +2322,7 @@
       "dependencies": [
         {
           "sourceFile": "include/xge.h",
-          "lfSha256": "4a4ba2a6b67e492f415a969f6241e34b59f2712fa7aaa220ecc1383b01336a8b"
+          "lfSha256": "10b58c8a8bcf42ac303bb71ebf44479a4bd669791d518f9a3e470d8016224951"
         },
         {
           "sourceFile": "src/xge/render/xge_shape_ex.c",
@@ -2324,7 +2342,7 @@
       "dependencies": [
         {
           "sourceFile": "include/xge.h",
-          "lfSha256": "4a4ba2a6b67e492f415a969f6241e34b59f2712fa7aaa220ecc1383b01336a8b"
+          "lfSha256": "10b58c8a8bcf42ac303bb71ebf44479a4bd669791d518f9a3e470d8016224951"
         },
         {
           "sourceFile": "src/xge/render/xge_shape_ex.c",

@@ -388,13 +388,16 @@ attachment intact.
 
 The native API keeps the borrowed C pointer slot and the owned XRT value
 slot separate. Managed scenes trace all occupied value slots, including
-slots awaiting physical destruction after a budgeted delete. The native
-setter copies plain XRT data. The language setter first projects the
-input to public data, then calls that same setter.
+slots awaiting physical destruction after a budgeted delete. The C setter
+`xge3dNodeSetUserValue` copies plain XRT data. The language setter projects
+the public data once and calls `xge3dNodeSetUserValueSnapshot`, which retains
+the prepared graph. Native code using that entry must supply an independent
+plain-data snapshot and treat its graph as immutable after publication.
+The language getter uses the native snapshot copy and owns the result.
 
-For 128 warmed operations on a one-key object, writing from xlang took
-eight XRT allocations and frees per operation. Writing plain data directly
-from C took four. Reading a private snapshot took four on both paths.
-These counts were identical on Windows and Linux.
+On a one-key object, 1,000 updates of an existing slot took 8,000 XRT
+allocations and frees with the previous binding and 4,000 with the new
+binding. Both used the same compiler and native library on Windows and
+Linux. The new count also held in dynamic and static AOT.
 
 [Scene node data example](../lib/bindings/xge/three_d/examples/node_user_data.xl)
