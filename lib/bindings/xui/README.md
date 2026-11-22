@@ -15,6 +15,13 @@ The callback document view expires on return; copy its text for later use.
 See [CodeDocument contracts](../../../docs/xui-code-document.md) and
 [the console lesson](examples/code_document.xl).
 
+`captureCodeLayout(document, viewport)` captures the visible code rows and
+the content geometry. `codeLayoutHitTest()` resolves screen coordinates to a
+document position, and `codeLayoutCaretRect()` resolves a position to a
+rectangle. The folded variants accept typed fold columns. The results work
+with an independent document or a document owned by CodeEdit. See
+[the code layout lesson](examples/code_layout.xl).
+
 `createCodeSelection()` and `createCodeTheme()` own independent numeric models.
 Selection movement uses native grapheme boundaries and UTF-8 byte positions;
 theme styles are typed records. `CodeEdit.setTheme()` copies the native theme,

@@ -1,0 +1,137 @@
+{
+  "complete": true,
+  "passed": true,
+  "releaseInstalled": false,
+  "networkTests": false,
+  "scope": "Code layout hit testing, caret geometry and owned visible rows",
+  "nativeRevision": "5e4064cc7d392404dd9acde540891b41d1d2d7b6",
+  "nativeSourceHashesLf": {
+    "include/xui.h": "c3cd7c5c20f98c02116554e4187363f31f463417b25f95d66dd3297c45596cfb",
+    "src/xui/code/xui_code_layout.c": "421b758098f95b2ac7dc12ed0dd93b62546d714849db161056f09b5cc2c50db1"
+  },
+  "xlangSourceParent": "d0f9e609a284e0a22784fe5ab1578145adc87853",
+  "platforms": {
+    "Windows x64": {
+      "nativeSource": {
+        "path": "F:\\xlang-validation\\xge-full-20261110\\code-layout-snapshot-stage-win-r1\\audit\\native-source.json",
+        "sha256": "fadb266e69980411fa6ba998401674295dc99dc8b087180a6de6cedbd4505bc6"
+      },
+      "engineBuild": {
+        "path": "F:\\xlang-validation\\xge-full-20261110\\code-layout-snapshot-host-win-r1\\build-report.json",
+        "sha256": "21aa11353c8e082e67a2eaeed5ae9e4aa7db58b7b729feb04b5894881e04b7df"
+      },
+      "staticBuild": {
+        "path": "F:\\xlang-validation\\xge-full-20261110\\code-layout-snapshot-static-win-r1\\build-report.json",
+        "sha256": "4e85f855a790219c14c470bbf8745ee3ac71a9f0f1785a6ff95902a72faf15a6"
+      },
+      "hostImage": {
+        "path": "F:\\xlang-validation\\xge-full-20261110\\code-layout-snapshot-stage-win-r1\\replay\\host\\_xge_native\\native\\xge3_host.dll",
+        "sha256": "fea8b00a879e20a5d574cafb2d6e7f72e906273d55a0df857284e0a502cc8bfe"
+      },
+      "replay": {
+        "path": "F:\\xlang-validation\\xge-full-20261110\\code-layout-snapshot-stage-win-r1\\replay\\stage-report.json",
+        "sha256": "ced1d4b90d70e70c15200b0de31f86af2a29ffe493560b2aa9f43b8b81f94c5d"
+      },
+      "generator": {
+        "path": "F:\\xlang-validation\\xge-full-20261110\\code-layout-snapshot-generator-win-r2\\results.json",
+        "sha256": "bedf677200e9f40af68856066da5551d9abe2343a7ffbeff78b6c72e5953551f"
+      },
+      "generatorChecks": 1131,
+      "matrix": {
+        "path": "F:\\xlang-validation\\xge-full-20261110\\code-layout-snapshot-tests-win-r2\\outcome-verification.json",
+        "sha256": "fd5ea221cdf64fe457972a197a15a288d1b5be917ed160098283aa858eac7da6"
+      },
+      "aliases": {
+        "path": "F:\\xlang-validation\\xge-full-20261110\\code-layout-snapshot-alias-proof-win-r2\\results.json",
+        "sha256": "74a8e6707d4253b95af089385716ddf59311cc17bde7ce786cc475fa75539e87"
+      },
+      "nativeTest": {
+        "path": "F:\\xlang-validation\\xge-full-20261110\\code-layout-snapshot-upstream-native-win-r1\\test.log",
+        "sha256": "33c68539e3c8790a7d3c829675aef10ba820bde69a948a0f0f8d648349943d40"
+      },
+      "surfaceAudit": {
+        "path": "F:\\xlang-validation\\xge-full-20261110\\code-layout-snapshot-stage-win-r1\\audit\\surface\\surface.json",
+        "sha256": "526486606df2682159adeda1725f22142dc7e6c5785880b14a81de26d22e6856"
+      },
+      "consumerAudit": {
+        "path": "F:\\xlang-validation\\xge-full-20261110\\code-layout-snapshot-stage-win-r1\\audit\\consumers\\results.json",
+        "sha256": "b3eaf2093d116d3add721be30c07f5fc51feea8eb586db0d0e7fec4f88306354"
+      }
+    },
+    "Linux x64": {
+      "nativeSource": {
+        "path": "\\\\wsl.localhost\\Ubuntu\\var\\tmp\\xlang-validation\\xge-full-20261110\\code-layout-snapshot-stage-linux-r1\\audit\\native-source.json",
+        "sha256": "e1f3cf7cf51b23f6a78331a1d62bd159e9b89c000a9ccf9642f296f54647ac42"
+      },
+      "engineBuild": {
+        "path": "\\\\wsl.localhost\\Ubuntu\\var\\tmp\\xlang-validation\\xge-full-20261110\\code-layout-snapshot-host-linux-r1\\build-report.json",
+        "sha256": "4c34d451fdc6b5f1e24cc2d380d8e8ebd85bd8f723afd9717d40d7d188713c52"
+      },
+      "staticBuild": {
+        "path": "\\\\wsl.localhost\\Ubuntu\\var\\tmp\\xlang-validation\\xge-full-20261110\\code-layout-snapshot-static-linux-r1\\build-report.json",
+        "sha256": "dbedb8e5b9184a0d304eb12dc2adebf6cd68d273467e3db3a6e81433724fe76c"
+      },
+      "hostImage": {
+        "path": "\\\\wsl.localhost\\Ubuntu\\var\\tmp\\xlang-validation\\xge-full-20261110\\code-layout-snapshot-stage-linux-r1\\replay\\host\\_xge_native\\native\\libxge3_host.so",
+        "sha256": "a04add726d194e6c5a592c81105c7784c85800a6d29c3333c012a8abbe743bf9"
+      },
+      "replay": {
+        "path": "\\\\wsl.localhost\\Ubuntu\\var\\tmp\\xlang-validation\\xge-full-20261110\\code-layout-snapshot-stage-linux-r1\\replay\\stage-report.json",
+        "sha256": "16674d7629e5229dbfa4a9b403fd56796cb38b9fec4f2c2213e6b80f86f21bba"
+      },
+      "generator": {
+        "path": "\\\\wsl.localhost\\Ubuntu\\var\\tmp\\xlang-validation\\xge-full-20261110\\code-layout-snapshot-generator-linux-r2\\results.json",
+        "sha256": "cad5cc82678a7d2ebb3b7adf7e346db4f2fa74075b0511bcd9f3f70380b5bd76"
+      },
+      "generatorChecks": 1132,
+      "matrix": {
+        "path": "\\\\wsl.localhost\\Ubuntu\\var\\tmp\\xlang-validation\\xge-full-20261110\\code-layout-snapshot-tests-linux-r2\\outcome-verification.json",
+        "sha256": "2b0e00b484a28e20cb79c2e86543420946eab0dd70b657157b065c4f27e84110"
+      },
+      "aliases": {
+        "path": "\\\\wsl.localhost\\Ubuntu\\var\\tmp\\xlang-validation\\xge-full-20261110\\code-layout-snapshot-alias-proof-linux-r2\\results.json",
+        "sha256": "a2a7096e87ef98a179a4d8c2a44b575fb1ec730e17f2cb5ce5d78202a3662f46"
+      },
+      "nativeTest": {
+        "path": "\\\\wsl.localhost\\Ubuntu\\var\\tmp\\xlang-validation\\xge-full-20261110\\code-layout-snapshot-upstream-native-linux-r1\\test.log",
+        "sha256": "a265bdeb62803d8da9ef096518751fa9edfbc662cdec476154cfa0fdb8285812"
+      },
+      "surfaceAudit": {
+        "path": "\\\\wsl.localhost\\Ubuntu\\var\\tmp\\xlang-validation\\xge-full-20261110\\code-layout-snapshot-stage-linux-r1\\audit\\surface\\surface.json",
+        "sha256": "e3cb0b593fd7196c94bfbaee2a3ed598243a008437024d3359c6626537448f89"
+      },
+      "consumerAudit": {
+        "path": "\\\\wsl.localhost\\Ubuntu\\var\\tmp\\xlang-validation\\xge-full-20261110\\code-layout-snapshot-stage-linux-r1\\audit\\consumers\\results.json",
+        "sha256": "7fa6176176cfc9b2d2713bfab33ec4d26b3876102af3a85e7dce556312feae8f"
+      }
+    }
+  },
+  "audit": {
+    "previous": {
+      "path": "F:\\xlang-validation\\xge-full-20261110\\cascader-path-stage-win-r1\\audit\\consumers\\results.json",
+      "sha256": "403c357c087d7ce493c4eed9c90712e62e034c455004d919a4a72be42f2015f5"
+    },
+    "functions": 5782,
+    "directDeclarations": 4717,
+    "compiledNativeConsumers": 283,
+    "explicitReplacements": 442,
+    "pending": {
+      "XGE": 139,
+      "XUI": 204,
+      "Document": 0
+    },
+    "apiCompletenessClaim": false,
+    "retainWitness": "The generated-call proof shows xuiCodeLayoutSnapshotAddRef behind lines()."
+  },
+  "heap": {
+    "visibleRowIterations": 3000,
+    "alloc": 0,
+    "free": 0,
+    "realloc": 0
+  },
+  "costs": {
+    "capture": "Native snapshot allocation and amortized growth of the visible row array.",
+    "folded": "Typed fold columns build temporary C records. Layout keeps the existing visibility workspace.",
+    "aliases": "Compile-time C spelling aliases only. The generated C calls native APIs directly."
+  }
+}

@@ -1,5 +1,37 @@
 # Native consumers in the full API inventory
 
+## Code layout and visible rows
+
+`codeLayoutHitTest()` maps a point to a line, grapheme column and UTF-8 byte
+offset. `codeLayoutCaretRect()` returns the rectangle for a document position.
+They use the native scroll, margin, tab and wrapping rules. The folded variants
+pass start, end, level and flag columns as one counted native record array.
+The packed description borrows both the document and the fold data for the
+duration of the call.
+
+`captureCodeLayout()` and `captureFoldedCodeLayout()` use the same native
+visible-row traversal as the C buffer API. Capture grows its result storage
+as needed during that traversal. It returns an independent snapshot with
+content geometry and an immutable row array. `lines()` retains the allocation
+for its read-only sequence. The sequence survives changes to the document and
+closing the document or the snapshot. Capture failure releases partial results.
+
+The no-fold calls avoid projecting fold columns. Folded calls build temporary
+native records. Capture allocates a snapshot and grows the visible-row array.
+Iteration reads those records directly. Compile-time C aliases make the
+standalone and CodeEdit document projections call the same native functions.
+
+The original C layout regression and the xlang JIT, dynamic AOT and standalone
+static AOT cases passed on Windows and Linux. The native fixture compares the
+complete snapshot with the caller-buffer result and injects allocation failure
+during row-array growth. The xlang fixture checks the retained rows after
+closing both the document and the snapshot. Reading 3,000 rows with the
+sequence already acquired used zero XRT heap operations in each execution mode.
+The native inventory has 343 pending rows, including the snapshot retain
+helper whose generated call is recorded separately.
+
+[Validation evidence](../dev/release-materials/provenance/xui-code-layout-snapshot-20261123.json)
+
 ## Cascader items and selection paths
 
 `Cascader.setSelectedPath(values)` projects a typed array directly to the

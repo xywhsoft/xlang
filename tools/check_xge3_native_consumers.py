@@ -393,6 +393,9 @@ def main():
             'iconHeaderPolicies': ('xui-icon-header-policies',
                 {'xui.IconReference': class_bindings['xui.IconReference']}),
         }
+        if 'xui.CodeLayoutSnapshot' in class_bindings:
+            policy_groups['codeLayoutHeaderPolicies'] = ('xui-code-layout-header-policies',
+                {'xui.CodeLayoutSnapshot': class_bindings['xui.CodeLayoutSnapshot']})
         header_relocations = {}
         for key, (name, classes) in policy_groups.items():
             evidence, relocations = compile_header_policies(name,view,classes,set(functions),

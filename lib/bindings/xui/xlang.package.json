@@ -28,6 +28,7 @@
       "src/text_shape.xl",
       "src/text_layout.xl",
       "src/code_document.xl",
+      "src/code_layout.xl",
       "src/code_annotations.xl",
       "src/code_models.xl",
       "src/code_margin.xl",

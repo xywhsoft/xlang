@@ -1,0 +1,113 @@
+import xui
+
+extern "fixtureRenderProxy" @header("test/cases/foreign_xui_render_backend.h") @no_raise @c_result("owned_view") @factory(0,0,dropProxy) func cpuProxy() as xui.Proxy
+extern "xuiProxyReleaseChecked" @header("xge3_runtime.h") @no_raise @c_result("status",0) func dropProxy(xui.Proxy value)
+extern "fixtureRenderBalanced" @header("test/cases/foreign_xui_render_backend.h") @no_raise func balanced() as c_int
+extern "fixtureRenderBudget" @header("test/cases/foreign_xui_render_backend.h") @no_raise func budget(c_int allowance)
+extern "codeLayoutCheckNative" @header("test/cases/foreign_xui_code_layout_snapshot.h") @no_raise func checkNative()
+extern "codeLayoutHeapBegin" @header("test/cases/foreign_xui_code_layout_snapshot.h") @no_raise func heapBegin()
+extern "codeLayoutCheckHeap" @header("test/cases/foreign_xui_code_layout_snapshot.h") @no_raise func checkHeap()
+
+func main(...) as int
+    checkNative()
+    auto document = xui.createCodeDocument()
+    document.setText("alpha\nbeta\ngamma\ndelta\n")
+    xui.Rect viewport
+    viewport.fX = 10
+    viewport.fY = 20
+    viewport.fW = 200
+    viewport.fH = 48
+    auto hit = xui.codeLayoutHitTest(66,37,document,viewport,lineHeight=16,charWidth=8,marginWidth=40)
+    assert hit.iLine == 1 and hit.iColumn == 2 and hit.iOffset == 8
+    auto caret = xui.codeLayoutCaretRect(2,2,document,viewport,lineHeight=16,charWidth=8,marginWidth=40)
+    assert caret.fX == 66 and caret.fY == 52
+    array<c_int> starts = [0]
+    array<c_int> ends = [2]
+    array<c_int> levels = [0]
+    array<c_uint> flags = [c_uint(xui.XUI_CODE_FOLD_COLLAPSED | xui.XUI_CODE_FOLD_HEADER)]
+    auto snapshot = xui.captureFoldedCodeLayout(document,viewport,starts,ends,levels,flags,1,lineHeight=16,charWidth=8,marginWidth=40)
+    auto size, textRect = snapshot.geometry()
+    assert size.fY == 48 and textRect.fX == 50 and textRect.fW == 160
+    auto folded = xui.foldedCodeLayoutHitTest(50,20,document,viewport,starts,ends,levels,flags,1,scrollY=16,lineHeight=16,charWidth=8,marginWidth=40)
+    assert folded.iLine == 3
+    bool hiddenRejected = false
+    try
+        xui.foldedCodeLayoutCaretRect(1,0,document,viewport,starts,ends,levels,flags,1,lineHeight=16)
+    catch Error
+        hiddenRejected = true
+    end
+    assert hiddenRejected
+
+    int rejected = 0
+    for allowance in range(12)
+        budget(c_int(allowance))
+        try
+            auto candidate = xui.captureCodeLayout(document,viewport)
+            budget(-1)
+            candidate.close()
+        catch Error
+            rejected += 1
+        finally
+            budget(-1)
+        end
+    end
+    assert rejected > 1 and rejected < 12
+
+    document.setText("alpha beta gamma")
+    viewport.fW = 88
+    auto wrapped = xui.captureCodeLayout(document,viewport,lineHeight=16,charWidth=8,marginWidth=40,wordWrap=1)
+    auto wrappedLines = wrapped.lines()
+    int byteCount = 0
+    int rows = 0
+    for line in wrappedLines
+        assert line.iStartOffset == byteCount and line.iLine == 0
+        byteCount = int(line.iEndOffset)
+        rows += 1
+    end
+    assert rows == 3 and byteCount == 16
+    wrapped.close()
+
+    auto lines = snapshot.lines()
+    document.close()
+    snapshot.close()
+    heapBegin()
+    int observed = 0
+    for round in range(1000)
+        for line in lines
+            assert line.iLine == 0 or line.iLine == 3 or line.iLine == 4
+            observed += 1
+        end
+    end
+    checkHeap()
+    assert observed == 3000
+
+    auto proxy = cpuProxy()
+    auto context = xui.create(proxy,xui.XUI_SYSTEM_FONT_DISABLED)
+    auto editor = context.codeEditNative()
+    auto editorDocument = editor.document()
+    editorDocument.setText("first\nsecond")
+    auto editorSnapshot = xui.captureCodeLayout(editorDocument,viewport)
+    assert xui.codeLayoutCaretRect(0,0,editorDocument,viewport).fX == 10
+    array<c_int> editorFoldEnd = [1]
+    auto editorFolded = xui.captureFoldedCodeLayout(editorDocument,viewport,starts,editorFoldEnd,levels,flags,1)
+    auto editorFoldedSize, _ = editorFolded.geometry()
+    assert editorFoldedSize.fY == 18
+    assert xui.foldedCodeLayoutHitTest(10,20,editorDocument,viewport,starts,editorFoldEnd,levels,flags,1).iLine == 0
+    assert xui.foldedCodeLayoutCaretRect(0,1,editorDocument,viewport,starts,editorFoldEnd,levels,flags,1).fX == 18
+    editorFolded.close()
+    context.close()
+    bool expired = false
+    try
+        xui.codeLayoutHitTest(10,20,editorDocument,viewport)
+    catch StateError
+        expired = true
+    end
+    assert expired
+    auto editorSize, _ = editorSnapshot.geometry()
+    assert editorSize.fY == 36
+    editorSnapshot.close()
+    proxy.close()
+    assert balanced() == 1
+    println("CODE_LAYOUT_SNAPSHOT_OK")
+    return 0
+end

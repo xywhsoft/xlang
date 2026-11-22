@@ -1,0 +1,19 @@
+import xui
+
+auto document = xui.createCodeDocument()
+document.setText("one\ntwo\nthree")
+
+xui.Rect viewport
+viewport.fW = 320
+viewport.fH = 36
+auto layout = xui.captureCodeLayout(document,viewport,lineHeight=18,charWidth=8)
+
+// The snapshot covers the first two rows visible in the 36-pixel viewport.
+for line in layout.lines()
+    println("Line ",int(line.iLine),", byte offsets ",int(line.iStartOffset),"–",int(line.iEndOffset))
+end
+
+auto caret = xui.codeLayoutCaretRect(1,2,document,viewport,lineHeight=18,charWidth=8)
+println("Caret: ",float(caret.fX),", ",float(caret.fY))
+layout.close()
+document.close()

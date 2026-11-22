@@ -1390,6 +1390,7 @@ REPLACED = {
     'xuiCascaderSetChange': ('xui.Cascader.setChange', 'xuiCascaderSetChangeOwned'),
     'xuiCascaderGetItem': ('xui.Cascader.getItem', 'xuiCascaderGetItemDescriptor'),
     'xuiComboBoxGetItem': ('xui.ComboBox.getItem', 'xuiComboBoxGetItemDescriptor'),
+    'xuiCodeLayoutBuildVisibleLines': ('xui.captureCodeLayout', 'xuiCodeLayoutCapture'),
     'xuiCheckBoxSetChange': ('xui.CheckBox.setChange', 'xuiCheckBoxSetChangeOwned'),
     'xuiCheckCardSetChange': ('xui.CheckCard.setChange', 'xuiCheckCardSetChangeOwned'),
     'xuiColorPickerSetChange': ('xui.ColorPicker.setChange', 'xuiColorPickerSetChangeOwned'),

@@ -222,6 +222,7 @@ WebView 范例只加载源码中的本地 HTML。它需要启用 WebView2 的 Wi
 | [document_ui_headless.xl](document_ui_headless.xl) | 只读状态 1，以及文档身份比较 true |
 | [data_object.xl](data_object.xl) | 二进制长度 3，以及十六进制 610062 |
 | [code_document.xl](code_document.xl) | 创建文本模型、合并两次编辑为一个撤销步骤，并观察变更回调、撤销和重做。 |
+| [code_layout.xl](code_layout.xl) | 查询视口里的代码行和 UTF-8 字节范围，计算指定位置的光标矩形。 |
 | [code_models.xl](code_models.xl) | 选中 xlang 一词，输出字节范围 6—11；设置关键字样式，输出颜色已保存 true。 |
 | [code_edit_models.xl](code_edit_models.xl) | 写入编辑器正在显示的文档，选中“你好”，并输出选区的字节范围。 |
 | [code_edit_margin.xl](code_edit_margin.xl) | 给编辑器添加自定义边栏，点击第一行旁的色块可切换颜色。 |
