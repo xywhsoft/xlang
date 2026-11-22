@@ -1,5 +1,23 @@
 # Native consumers in the full API inventory
 
+## Mini-program initialization and bridge
+
+Call xlang's checked `xge.miniProgramInit()` before the host knows its canvas
+size. Use `xge.miniProgramResize()` when the host provides the dimensions and
+pixel ratio. Passing positive dimensions to `miniProgramInit` sets the size
+immediately. XGE normalizes a finite nonpositive pixel ratio to 1 and rejects
+framebuffer sizes that would overflow. The declaration builds one stack
+descriptor and calls XGE directly. The platform-reserved canvas, context and
+userdata pointers are zeroed. Host callbacks use the owned bridge interface.
+
+An empty `xge.setMiniProgramBridge()` detaches the bridge with a null callback
+owner. The fixture observes zero XRT heap operations when clearing an already
+empty bridge. The nonempty path retains its callbacks and tests OOM rollback.
+The local host example exercises deferred size, frame requests, a resource
+provider and audio delivery without opening a window. Real WeChat/WebGL
+execution is outside this desktop fixture.
+[Validation evidence](../dev/release-materials/provenance/xge-miniprogram-init-20261122.json)
+
 ## Document callback output and export ownership
 
 Each font resolver invocation receives an empty output initialized by

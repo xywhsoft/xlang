@@ -29,7 +29,29 @@ func main(...) as int
     end
     xge.setMiniProgramBridge(frame, load, audio)
     try
-        assert xge.miniProgramInitSimple(80, 60, c_float(2)) == xge.XGE_OK
+        budget(0)
+        bool initRejected = false
+        try
+            xge.miniProgramInit()
+        catch Error
+            initRejected = true
+        finally
+            budget(-1)
+        end
+        assert initRejected
+
+        xge.miniProgramInit()
+        assert xge.miniProgramResize(80, 60, c_float(2)) == xge.XGE_OK
+        assert xge.getWidth() == 160 and xge.getHeight() == 120
+        initRejected = false
+        try
+            xge.miniProgramInit(2147483647, 60, c_float(2))
+        catch Error
+            initRejected = true
+        end
+        assert initRejected and xge.getWidth() == 160 and xge.getHeight() == 120
+        xge.miniProgramInit(80, 60, c_float(0))
+        assert xge.getWidth() == 80 and xge.getHeight() == 60
         auto resource = xge.loadResource("res://bytes")
         try
             assert xge.miniProgramRequestFrame() == 7 and frames == 1
@@ -90,6 +112,10 @@ func main(...) as int
     finally
         xge.miniProgramUnitChecked()
     end
+    heapBegin()
+    xge.setMiniProgramBridge()
+    heapEnd(0)
+    assert xge.miniProgramRequestFrame() == xge.XGE_ERROR_UNSUPPORTED
     println("XGE_MINIPROGRAM_BRIDGE_OK")
     return 0
 end

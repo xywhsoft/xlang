@@ -1,0 +1,54 @@
+{
+  "complete": true,
+  "passed": true,
+  "releaseInstalled": false,
+  "sourceParent": "853a49606",
+  "nativeRevision": "77be7ba891489232ead6f1f7d942c3ab54478293",
+  "scope": "Desktop mini-program host bridge, direct checked initialization, optional callbacks and deterministic package replay",
+  "windows": {
+    "runtime": {
+      "path": "F:/xlang-validation/xge-full-20261110/miniprogram-init-runtime-win-r1/results.json",
+      "sha256": "be58fd774a50d90f07b4ec0d98b68839d91916515c8d0bc528554bb87661ca06",
+      "steps": 33
+    },
+    "packageReplay": {
+      "path": "F:/xlang-validation/xge-full-20261110/miniprogram-init-staging-win-r1/packages/stage-report.json",
+      "sha256": "3ff55eed555892df0ac131fb9ef4ffab1a226be69691da0ed048f97b67a93535"
+    },
+    "storageReview": {
+      "path": "F:/xlang-validation/xge-full-20261110/miniprogram-init-staging-win-r1/review/results.json",
+      "sha256": "b40b8de6b24001d649a9837717e65b15bf963cb6e23a2cd3f3f84008f90209be",
+      "checks": 938
+    },
+    "nativeConsumers": {
+      "path": "F:/xlang-validation/xge-full-20261110/miniprogram-init-staging-win-r1/consumers-current/results.json",
+      "sha256": "2e57e7c3e65836abf9e2cfa1d0c3b710f0f8117b0c952cd2e54190092a35ebee"
+    }
+  },
+  "linux": {
+    "runtime": {
+      "path": "/var/tmp/xlang-validation/xge-full-20261110/miniprogram-init-runtime-linux-r1/results.json",
+      "sha256": "6a8e25d7d20bb89112bf8243f2033bec6ff8c1cedd98a93b31e99aaa2c9c0e2d",
+      "steps": 33
+    }
+  },
+  "audit": {
+    "functionPopulation": 5718,
+    "directDeclarations": 4645,
+    "compiledConsumers": 175,
+    "explicitReplacements": 155,
+    "unclassified": {
+      "XGE": 348,
+      "XUI": 392,
+      "Document UI": 2,
+      "Document": 1
+    }
+  },
+  "checks": [
+    "Deferred dimensions, resize, finite nonpositive DPR normalization, overflow rejection and initialization OOM followed by retry",
+    "Nonempty bridge replacement rollback, callback lifetime, resource and audio payloads with NUL bytes, and reentrant detachment",
+    "Zero XRT allocations, frees and reallocations when clearing an empty bridge and while dispatching 1,000 warmed audio calls without copying bytes",
+    "One native initialization call per call site and C11, C++11 and C++17 headers",
+    "Standalone dynamic and static executables omit the compiler libraries; only dynamic executables load the hosted XGE library"
+  ]
+}

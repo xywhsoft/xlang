@@ -22,8 +22,11 @@ xge.setMiniProgramBridge(
     end)
 
 try
-    assert xge.miniProgramInitSimple(160, 120, c_float(1)) == xge.XGE_OK
+    xge.miniProgramInit()
     assert xge.miniProgramRequestFrame() == xge.XGE_OK and requested == 1
+    // The host supplies the canvas dimensions when they become available.
+    assert xge.miniProgramResize(160, 120, c_float(2)) == xge.XGE_OK
+    assert xge.getWidth() == 320 and xge.getHeight() == 240
     auto greeting = xge.loadResource("res://greeting")
     try
         assert greeting.bytes == b"hello"

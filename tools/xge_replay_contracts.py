@@ -35,6 +35,12 @@ CONTRACTS = {
     'xgeGamepadSetState': (
         'int xgeGamepadSetState(int iGamepad, const xge_gamepad_state_t* pState)',
         'export extern "xgeGamepadSetState" @header("xge3_runtime.h") @no_raise @c_ref(1) @c_result("status",0) func gamepadSetState(c_int iGamepad,GamepadState state)'),
+    'xgeMiniProgramInit': (
+        'int xgeMiniProgramInit(const xge_miniprogram_desc_t* pDesc)',
+        'export extern "xgeMiniProgramInit" @header("xge3_runtime.h") @no_raise @c_result("status",0) '
+        '@c_pack(0,"xge_miniprogram_desc_t",0,3) @c_pack_field(0,"iWidth",0,"value") '
+        '@c_pack_field(0,"iHeight",1,"value") @c_pack_field(0,"fDevicePixelRatio",2,"value") '
+        'func miniProgramInit(c_int width=0,c_int height=0,c_float devicePixelRatio=1)'),
     'xgeMiniProgramTouch': (
         'int xgeMiniProgramTouch(int iPhase, const xge_miniprogram_touch_t* pTouches, int iCount)',
         'export extern "xgeMiniProgramTouch" @header("xge3_runtime.h") @no_raise @c_array_group(1,1,1,"int",2) '
@@ -81,6 +87,7 @@ CONTRACTS = {
 
 REPLACED = {
     'xgeSetTitle': ('xge.setTitle', 'xgeSetTitleChecked'),
+    'xgeMiniProgramSetBridge': ('xge.setMiniProgramBridge', 'xgeMiniProgramSetBridgeOwned'),
     'xgeResourceProviderClear': ('xge.resourceProviderClear', 'xgeResourceProviderClearChecked'),
     'xgeAudioUnit': ('xge.audioUnit', 'xgeAudioUnitChecked'),
     'xgeSvgCacheInvalidate': ('xge.SvgCache.remove', 'xgeSvgCacheRemove'),
