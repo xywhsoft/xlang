@@ -1,0 +1,83 @@
+import xui
+from xui import CallbackWidget
+
+extern "fixtureRenderProxy" @header("test/cases/foreign_xui_render_backend.h") @no_raise @c_result("owned_view") @factory(0,0,dropProxy) func cpuProxy() as xui.Proxy
+extern "xuiProxyReleaseChecked" @header("xge3_runtime.h") @no_raise @c_result("status",0) func dropProxy(xui.Proxy value)
+extern "fixtureRenderBalanced" @header("test/cases/foreign_xui_render_backend.h") @no_raise func balanced() as c_int
+extern "fixtureRenderBudget" @header("test/cases/foreign_xui_render_backend.h") @no_raise func budget(c_int allowance)
+
+func main(...) as int
+    auto proxy = cpuProxy()
+    auto ui = xui.create(proxy, xui.XUI_SYSTEM_FONT_DISABLED)
+    auto toolbar = ui.toolbarNative()
+    assert ui.setRootWidget(toolbar) == xui.XUI_OK
+    ui.setViewportSize(100, 40)
+    for label in ["New", "Build", "Run", "Export", "Clean"]
+        toolbar.addItem(label, xui.XUI_TOOLBAR_ITEM_BUTTON, 1)
+    end
+
+    CallbackWidget? saved = null
+    int calls = 0
+    auto handler = func(CallbackWidget sender, c_int first, c_int count)
+        assert sender.rect().fW > 0
+        assert first == toolbar.getOverflowFirst() and count == toolbar.getOverflowCount()
+        calls += 1
+        saved = sender
+        toolbar.setOverflow(1, 24)
+    end
+
+    int failures = 0
+    for allowance in range(24)
+        bool rejected = false
+        budget(c_int(allowance))
+        try
+            toolbar.setOverflow(1, 24, handler)
+        catch Error
+            rejected = true
+        finally
+            budget(-1)
+        end
+        if rejected then
+            failures += 1
+            assert toolbar.isOverflowEnabled() == 0
+        else
+            toolbar.setOverflow(0, 24)
+        end
+    end
+    assert failures > 0 and failures < 24
+
+    toolbar.setOverflow(1, 24, handler)
+    assert ui.layout() == xui.XUI_OK and toolbar.getOverflowCount() > 0
+    auto id, _, role, _, _, _, _, _, _, _, _, _, _, _, _, _, _ = toolbar.getAccessibleNode(toolbar.getAccessibleNodeCount() - c_int(1))
+    assert role == xui.XUI_ACCESSIBLE_ROLE_BUTTON
+    toolbar.performAccessibleAction(id, xui.XUI_ACCESSIBLE_ACTION_ACTIVATE)
+    assert calls == 1 and toolbar.isOverflowEnabled() == 1
+
+    int checked = 0
+    try
+        (saved as CallbackWidget).rect()
+    catch StateError
+        checked += 1
+    end
+    try
+        toolbar.performAccessibleAction(id, xui.XUI_ACCESSIBLE_ACTION_ACTIVATE)
+    catch Error
+        checked += 1
+    end
+    assert checked == 2 and calls == 1
+
+    toolbar.setOverflow(1, 24, func(CallbackWidget sender, c_int first, c_int count)
+        assert false, "overflow callback failure"
+    end)
+    try
+        toolbar.performAccessibleAction(id, xui.XUI_ACCESSIBLE_ACTION_ACTIVATE)
+    catch AssertionError
+        checked += 1
+    end
+    assert checked == 3
+    ui.close()
+    proxy.close()
+    assert balanced() == 1
+    println("XUI_TOOLBAR_OVERFLOW_OK")
+    return 0
+end

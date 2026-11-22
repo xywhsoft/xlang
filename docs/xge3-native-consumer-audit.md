@@ -1,5 +1,28 @@
 # Native consumers in the full API inventory
 
+## Toolbar overflow callback
+
+`Toolbar.setOverflow()` configures the overflow button and a retained
+handler. Dispatch passes the first hidden index and item count by value
+with a callback-scoped sender view. The native dispatcher retains the
+selected callback through its return. The handler can clear itself
+without invalidating its active invocation. Callback failures reach
+the calling event or accessibility operation through the checked
+boundary.
+
+Registration uses the existing widget callback ownership table and
+invalidates layout before publishing the new configuration. Dispatch
+does the callback ownership hold and drop around one typed call. The
+example opens a menu listing the hidden commands.
+
+Windows and Linux passed JIT, dynamic AOT and standalone static AOT,
+and rendered the toolbar example.
+
+The native inventory has 331 pending functions, with 137 in XGE and
+194 in XUI.
+
+[Validation evidence](../dev/release-materials/provenance/xui-toolbar-overflow-owned-20261123.json)
+
 ## 3D scene node data
 
 `Scene.setUserData()` produces one independent public-data snapshot and

@@ -293,6 +293,14 @@ Closing the native submenu invalidates those views. A toolbar icon returned by
 the query holds its own Surface reference and remains usable after the toolbar
 is closed. An invalid index raises a checked error.
 
+`Toolbar.setOverflow(enabled, buttonSize, onOverflow=null)` sets the
+overflow button and its optional handler. The callback receives a
+`CallbackWidget` and the first index and count of hidden items. Read those
+items through `Toolbar.getItem()`. The sender view is valid during the
+call. The toolbar retains the handler until it is replaced, cleared, or
+destroyed. See [the toolbar example](examples/toolbar.xl) for opening a menu
+with the hidden commands.
+
 ## Document UI
 
 `createDocumentView(context, document)` and

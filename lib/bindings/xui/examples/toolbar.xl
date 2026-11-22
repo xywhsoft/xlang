@@ -1,13 +1,38 @@
-// 工具栏中依次放置 New、Build、分隔线和 Run。
+// 工具栏放不下的命令可以从末尾的溢出按钮打开。
 import xui
 from "./_window.xl" import Window
 
-Window.show("Toolbar / commands and tooltips", func(xui.Context ui, xui.Widget root)
+Window.show("Toolbar / hidden commands", func(xui.Context ui, xui.Widget root)
  auto toolbar = ui.toolbarNative()
- Window.place(root, toolbar, 24, 24, 640, 48)
+ Window.place(root, toolbar, 24, 24, 180, 48)
  toolbar.addItem("New", 0, 1)
  toolbar.addItem("Build", 0, 2)
  toolbar.addSeparator()
  toolbar.addItem("Run", 0, 3)
+ toolbar.addItem("Export", 0, 4)
+ toolbar.addItem("Clean", 0, 5)
  toolbar.setItemTooltip(1, "Build the current project")
+
+ auto selected = ui.labelNative()
+ selected.setText("选择工具栏命令")
+ Window.place(root, selected, 24, 96, 280, 32)
+ auto select = func(xui.Widget sender, c_int index, c_int value)
+  selected.setText("命令编号：" + string(int(value)))
+ end
+ toolbar.setSelect(select)
+
+ auto menu = ui.menuNative()
+ menu.setSelect(select)
+ toolbar.setOverflow(1, 28, func(xui.CallbackWidget sender, c_int first, c_int count)
+  menu.clear()
+  for offset in range(int(count))
+   auto label, _, _, _, command, _, _, _, _ = toolbar.getItem(first + c_int(offset))
+   if label != null then
+    menu.addItem(label as string, value = command)
+   end
+  end
+  auto bar = toolbar.getWorldRect()
+  auto button = toolbar.getOverflowRect()
+  menu.openAt(toolbar, c_float(bar.fX + button.fX), c_float(bar.fY + button.fY + button.fH))
+ end)
 end)

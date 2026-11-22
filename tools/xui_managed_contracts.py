@@ -637,6 +637,10 @@ CALLBACKS = {'xui_accessibility_event_proc': ('typedef void (*xui_accessibility_
                                  'export typedef RadioGroupChangeProc = func(Widget,Widget?,c_int)')}
 
 CALLBACKS.update({
+    'xui_toolbar_overflow_proc': (
+        'typedef void (*xui_toolbar_overflow_proc)(xui_widget_t* pWidget, int iFirst, int iCount, void* pUser);',
+        'export typedef ToolbarOverflowProc = func(CallbackWidget,c_int,c_int)',
+    ),
     'xui_chart_tooltip_owned_proc': (
         'typedef xstrview (*xui_chart_tooltip_owned_proc)(xui_widget_t* pWidget, int iSeries, int iItem, void* pUser);',
         'export typedef ChartTooltipProc = func(CallbackWidget,c_int,c_int) as string',
@@ -1359,6 +1363,11 @@ TYPE_SHAPES.update({
     'xui_tooltip_resolver_desc_t': 'a1b7eaa329d11595afca1001a1a9f952dc258b54c426e75496a3f5c26fa2d119',
 })
 METHODS.update({
+    'xuiToolbarSetOverflowOwned': [
+        'int xuiToolbarSetOverflowOwned(xui_widget pWidget, int bEnabled, float fButtonSize, '
+        'xui_toolbar_overflow_proc onOverflow, void* pUser, const xui_callback_owner_t* pOwner)', 'Toolbar',
+        ['extern "xuiToolbarSetOverflowOwned" @no_raise @c_owned_callback(2,0,"xui_callback_owner_t",0) '
+         '@c_result("status",0) func setOverflow(c_int enabled,c_float buttonSize,ToolbarOverflowProc? onOverflow=null)']],
     'xuiTooltipPlacementDefault': [
         'xui_tooltip_placement_t xuiTooltipPlacementDefault(void)', None,
         ['export extern "xuiTooltipPlacementDefault" @header("xge3_runtime.h") @pure @no_raise '
@@ -1480,6 +1489,7 @@ REPLACED = {
     'xuiToastShow': ('xui.Toast.show', 'xuiToastShowOwned'),
     'xuiToggleSetChange': ('xui.Toggle.setChange', 'xuiToggleSetChangeOwned'),
     'xuiToolbarSetContextMenu': ('xui.Toolbar.setContextMenu', 'xuiToolbarSetContextMenuOwned'),
+    'xuiToolbarSetOverflow': ('xui.Toolbar.setOverflow', 'xuiToolbarSetOverflowOwned'),
     'xuiToolbarSetSelect': ('xui.Toolbar.setSelect', 'xuiToolbarSetSelectOwned'),
     'xuiTreeViewSetContextMenu': ('xui.TreeView.setContextMenu', 'xuiTreeViewSetContextMenuOwned'),
     'xuiTreeViewSetSelect': ('xui.TreeView.setSelect', 'xuiTreeViewSetSelectOwned'),

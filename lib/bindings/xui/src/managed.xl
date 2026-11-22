@@ -829,6 +829,7 @@ export typedef PopupChangeProc = func(Widget,c_int)
 export typedef MenuSelectProc = func(Widget,c_int,c_int)
 
 export typedef ToolbarSelectProc = func(Widget,c_int,c_int)
+export typedef ToolbarOverflowProc = func(CallbackWidget,c_int,c_int)
 
 export typedef ToolbarContextProc = func(Widget,c_int,c_int,c_float,c_float) as c_int
 
@@ -6032,6 +6033,7 @@ export extern "xui_widget_t*" class Toolbar @header("xge3_runtime.h") @lifetime(
  extern "xuiToolbarSetSelectOwned" @no_raise @c_owned_callback(0,0,"xui_callback_owner_t",0) @c_result("status",0) func setSelect(ToolbarSelectProc? onSelect)
 
  extern "xuiToolbarSetContextMenuOwned" @no_raise @c_owned_callback(0,0,"xui_callback_owner_t",-16) @c_result("status",0) func setContextMenu(ToolbarContextProc? onContext)
+ extern "xuiToolbarSetOverflowOwned" @no_raise @c_owned_callback(2,0,"xui_callback_owner_t",0) @c_result("status",0) func setOverflow(c_int enabled,c_float buttonSize,ToolbarOverflowProc? onOverflow=null)
 
  extern "xuiToolbarIsOverflowEnabled" @no_raise func isOverflowEnabled() as c_int
 

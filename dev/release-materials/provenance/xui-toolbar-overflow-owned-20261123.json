@@ -1,0 +1,144 @@
+{
+  "complete": true,
+  "passed": true,
+  "releaseInstalled": false,
+  "networkTests": false,
+  "scope": "Retained toolbar overflow handlers and callback-scoped sender views",
+  "nativeRevision": "ee59b9f2043cbb37f618ff28d58bcceb0d093a3a",
+  "nativeParent": "7f904c063eb26f6ab749b432ac2e50af67826f50",
+  "nativeSourceHashesLf": {
+    "include/xui.h": "851494fd2d8510d958d1bcdf4fe9d97f1da6420b1ba02766f9e74997571f1fef",
+    "src/xui/controls/xui_toolbar.c": "44024b9c1ec9f09d5add39f6cec1db88ec97ec992f859c0e04a9e755e7be432c",
+    "tests/xui/xui_toolbar_test.c": "0013b84775817d81309de811571f09d56957ce06ceae026df18c8174fb1bc7df"
+  },
+  "xlangSourceBaseline": "0261d489da8e24829922760e533759111361edd0",
+  "xlangCommitParent": "1fbf0c65ea2960a939ecf24a9bd363be5d1c97f6",
+  "platforms": {
+    "Windows x64": {
+      "nativeSource": {
+        "path": "F:\\xlang-validation\\xge-full-20261110\\toolbar-overflow-owned-stage-win-r1\\audit\\native-source.json",
+        "sha256": "b668da151d31879f8681dd4d3ac9df0675a243b8a1ed7bbc668acb997c230d7a"
+      },
+      "nativeRegression": {
+        "path": "F:\\xlang-validation\\xge-full-20261110\\toolbar-overflow-owned-upstream-native-win-r2\\results.json",
+        "sha256": "ffe91ed811a70e883a1f5cc6913e6b6b425d0c89ae68477c56074424d3587ffc"
+      },
+      "nativeFixture": {
+        "path": "F:\\xlang-validation\\xge-full-20261110\\toolbar-overflow-owned-upstream-native-win-r2\\xui_toolbar_test.c",
+        "sha256": "0013b84775817d81309de811571f09d56957ce06ceae026df18c8174fb1bc7df"
+      },
+      "generator": {
+        "path": "F:\\xlang-validation\\xge-full-20261110\\toolbar-overflow-owned-generator-win-r1\\results.json",
+        "sha256": "e8b51146563d7836c253f2f35074a0ef13101ad82518a9b60094f730d86f6b2e"
+      },
+      "hostBuild": {
+        "path": "F:\\xlang-validation\\xge-full-20261110\\toolbar-overflow-owned-host-win-r1\\build-report.json",
+        "sha256": "c53cdec45625370959573d0434d579800938e20bd29ecef13f41542d5c5260a2"
+      },
+      "staticBuild": {
+        "path": "F:\\xlang-validation\\xge-full-20261110\\toolbar-overflow-owned-static-win-r1\\build-report.json",
+        "sha256": "f6781b1229e9c480931b155b167d929af6dd0025ad0c7daca5604f88bf1702ff"
+      },
+      "hostImage": {
+        "path": "F:\\xlang-validation\\xge-full-20261110\\toolbar-overflow-owned-stage-win-r1\\replay\\host\\_xge_native\\native\\xge3_host.dll",
+        "sha256": "63f31ecd3653937aa6826c6029d6e90efb90df1776fb9ffa23af6eba2788de94"
+      },
+      "replay": {
+        "path": "F:\\xlang-validation\\xge-full-20261110\\toolbar-overflow-owned-stage-win-r1\\replay\\stage-report.json",
+        "sha256": "bc5a763219de5275e797e25ee2ce949ff34819feb56e565e8b48824e18f9b969"
+      },
+      "matrix": {
+        "path": "F:\\xlang-validation\\xge-full-20261110\\toolbar-overflow-owned-tests-win-r2\\results.json",
+        "sha256": "469a246752616fab5f0e8da9fcde32f085bcf95b2228e4bb762822057a26461f"
+      },
+      "matrixSteps": 13,
+      "example": {
+        "width": 800,
+        "height": 600,
+        "sha256": "0954032fa52872e493adc2e98db5c523db624851c0f822f7356cb06fd2765bf0"
+      },
+      "priorAudit": {
+        "path": "F:\\xlang-validation\\xge-full-20261110\\node-user-snapshot-stage-win-r1\\audit\\consumers\\results.json",
+        "sha256": "1d1e67afa9cc09d899141e8581d30c855bbc08d7cbe2b7c66dc078e444c33670"
+      },
+      "consumerAudit": {
+        "path": "F:\\xlang-validation\\xge-full-20261110\\toolbar-overflow-owned-stage-win-r1\\audit\\consumers\\results.json",
+        "sha256": "0541f21189176448c3a34b307b54342dea59588e9b8391f5ddc197ce71ecfef7"
+      }
+    },
+    "Linux x64": {
+      "nativeSource": {
+        "path": "\\\\wsl.localhost\\Ubuntu\\var\\tmp\\xlang-validation\\xge-full-20261110\\toolbar-overflow-owned-stage-linux-r1\\audit\\native-source.json",
+        "sha256": "14c987e9445eb3353ac3cd1bcd17162e5aefc2ac5d93ec00ab4417c06b77afbf"
+      },
+      "nativeRegression": {
+        "path": "\\\\wsl.localhost\\Ubuntu\\var\\tmp\\xlang-validation\\xge-full-20261110\\toolbar-overflow-owned-upstream-native-linux-r2\\results.json",
+        "sha256": "f60f910773ccbb77944e60dc5b94fcc971e5a7f4aa52420bc5b68abd5f13e092"
+      },
+      "nativeFixture": {
+        "path": "\\\\wsl.localhost\\Ubuntu\\var\\tmp\\xlang-validation\\xge-full-20261110\\toolbar-overflow-owned-upstream-native-linux-r2\\xui_toolbar_test.c",
+        "sha256": "0013b84775817d81309de811571f09d56957ce06ceae026df18c8174fb1bc7df"
+      },
+      "generator": {
+        "path": "\\\\wsl.localhost\\Ubuntu\\var\\tmp\\xlang-validation\\xge-full-20261110\\toolbar-overflow-owned-generator-linux-r1\\results.json",
+        "sha256": "be2d00c0bc5f1f8df3e9e9071fa2032d52fe15c0919a7c80d2e0d2e8bbaf97f1"
+      },
+      "hostBuild": {
+        "path": "\\\\wsl.localhost\\Ubuntu\\var\\tmp\\xlang-validation\\xge-full-20261110\\toolbar-overflow-owned-host-linux-r1\\build-report.json",
+        "sha256": "05cdd080a242e8630f75a6194115944c56b3e0986fcbe4360159392d394ff20c"
+      },
+      "staticBuild": {
+        "path": "\\\\wsl.localhost\\Ubuntu\\var\\tmp\\xlang-validation\\xge-full-20261110\\toolbar-overflow-owned-static-linux-r1\\build-report.json",
+        "sha256": "5ade6c2d0a7cc3f574ab73e66d3ca33afaba5c542eb91a5d06a8a850326087e8"
+      },
+      "hostImage": {
+        "path": "\\\\wsl.localhost\\Ubuntu\\var\\tmp\\xlang-validation\\xge-full-20261110\\toolbar-overflow-owned-stage-linux-r1\\replay\\host\\_xge_native\\native\\libxge3_host.so",
+        "sha256": "76bfa7b3246bcab15644e2b0a6d18389b1dafac38f94ba8cea6b3dc59d0d986e"
+      },
+      "replay": {
+        "path": "\\\\wsl.localhost\\Ubuntu\\var\\tmp\\xlang-validation\\xge-full-20261110\\toolbar-overflow-owned-stage-linux-r1\\replay\\stage-report.json",
+        "sha256": "012a0aeb8725ff5d9fcbef76020de7ef7c315a636108d5988e9f595002389373"
+      },
+      "matrix": {
+        "path": "\\\\wsl.localhost\\Ubuntu\\var\\tmp\\xlang-validation\\xge-full-20261110\\toolbar-overflow-owned-tests-linux-r2\\results.json",
+        "sha256": "bd09f6ea4ae71290acdd78fe993dcbfb7ab66a71689069e9bd7ccb712268439d"
+      },
+      "matrixSteps": 13,
+      "example": {
+        "width": 800,
+        "height": 600,
+        "sha256": "5c2b3a8b0efb118885afaf07ca4dfae7250f72416a43bc53653436f373933a9d"
+      },
+      "priorAudit": {
+        "path": "\\\\wsl.localhost\\Ubuntu\\var\\tmp\\xlang-validation\\xge-full-20261110\\node-user-snapshot-stage-linux-r1\\audit\\consumers\\results.json",
+        "sha256": "3392caa8d0e685de6b28ca96a3fd6fc8ad364515e9e97fc6a5b55114bf50ba66"
+      },
+      "consumerAudit": {
+        "path": "\\\\wsl.localhost\\Ubuntu\\var\\tmp\\xlang-validation\\xge-full-20261110\\toolbar-overflow-owned-stage-linux-r1\\audit\\consumers\\results.json",
+        "sha256": "2b02706d3aaf65c1418940d1d6a25762e0fb5dfb18deff122b14463d6a52c80a"
+      }
+    }
+  },
+  "audit": {
+    "functionPopulation": 5788,
+    "directDeclarations": 4727,
+    "compiledConsumerFunctions": 283,
+    "explicitReplacements": 450,
+    "pending": {
+      "XGE": 137,
+      "XUI": 194,
+      "Document": 0
+    },
+    "apiCompletenessClaim": false
+  },
+  "tests": {
+    "ownership": "The selected callback remains pinned while it unregisters itself.",
+    "errors": "Allocation prefixes preserve overflow settings before publication. A callback assertion returns through the checked boundary.",
+    "view": "Saved callback sender rejects access after return."
+  },
+  "costs": {
+    "registration": "Existing callback owner directory and display invalidation",
+    "callback": "One typed call with owner hold/drop and language view admission",
+    "cpuEquivalenceClaim": false
+  }
+}
