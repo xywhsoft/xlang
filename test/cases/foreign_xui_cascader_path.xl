@@ -1,0 +1,77 @@
+import xui
+
+extern "fixtureRenderProxy" @header("test/cases/foreign_xui_render_backend.h") @no_raise @c_result("owned_view") @factory(0,0,dropProxy) func cpuProxy() as xui.Proxy
+extern "xuiProxyReleaseChecked" @header("xge3_runtime.h") @no_raise @c_result("status",0) func dropProxy(xui.Proxy value)
+extern "fixtureRenderBalanced" @no_raise func balanced() as c_int
+extern "fixtureRenderBudget" @no_raise func budget(c_int allowance)
+extern "cascaderHeapBegin" @header("test/cases/foreign_xui_cascader_path.h") @no_raise func heapBegin()
+extern "cascaderHeapCheck" @header("test/cases/foreign_xui_cascader_path.h") @no_raise func heapCheck()
+extern "cascaderNativeQueries" @header("test/cases/foreign_xui_cascader_path.h") @no_raise func nativeQueries(xui.Cascader categories)
+
+func main(...) as int
+    auto proxy = cpuProxy()
+    auto context = xui.create(proxy, xui.XUI_SYSTEM_FONT_DISABLED)
+    auto categories = context.cascaderNative()
+    c_uint leaf = c_uint(xui.XUI_CASCADER_ITEM_LEAF)
+    c_uint disabled = c_uint(xui.XUI_CASCADER_ITEM_DISABLED)
+    categories.setItems(["Guide", "Docs", "Disabled"], [c_int(10), c_int(11), c_int(12)],
+        [c_int(-1), c_int(0), c_int(0)], [c_uint(0), leaf, leaf | disabled])
+    array<c_int> path = [10, 11, 99]
+    categories.setSelectedPath(path, 2)
+    auto selected = categories.selectedPath()
+    assert selected.iDepth == 2 and selected.arrValues[0] == 10 and selected.arrValues[1] == 11
+    assert selected.arrValues[2] == 0 and categories.getSelectedLeaf() == 1
+    nativeQueries(categories)
+
+    heapBegin()
+    for iteration in range(1000)
+        auto current = categories.selectedPath()
+        assert current.iDepth == 2 and current.arrValues[1] == 11
+    end
+    heapCheck()
+
+    for invalid in [[c_int(999)], [c_int(10), c_int(12)], path]
+        bool rejected = false
+        try
+            categories.setSelectedPath(invalid)
+        catch Error
+            rejected = true
+        end
+        assert rejected and categories.selectedPath().arrValues[1] == 11
+    end
+
+    auto text, value, parent, flags = categories.getItem(1)
+    assert text == "Docs" and value == 11 and parent == 0 and flags == leaf
+    for index in [-1, 0]
+        bool rejected = false
+        if index == 0 then budget(0) end
+        try
+            text, value, parent, flags = categories.getItem(c_int(index))
+        catch Error
+            rejected = true
+        finally
+            budget(-1)
+        end
+        assert rejected and text == "Docs" and value == 11 and parent == 0 and flags == leaf
+    end
+
+    array<c_int> empty = []
+    categories.setSelectedPath(empty)
+    assert categories.selectedPath().iDepth == 0 and categories.getSelectedLeaf() == -1
+    categories.setItems(["New"], [c_int(20)], [c_int(-1)], [leaf])
+    categories.setSelectedPath([c_int(20)])
+    assert categories.selectedPath().arrValues[0] == 20
+    context.close()
+    bool expired = false
+    try
+        categories.selectedPath()
+    catch StateError
+        expired = true
+    end
+    assert expired
+    assert text == "Docs" and selected.iDepth == 2 and selected.arrValues[1] == 11
+    proxy.close()
+    assert balanced() == 1
+    println("CASCADER_PATH_OK")
+    return 0
+end

@@ -450,6 +450,11 @@ export extern "xui_code_layout_line_t" struct CodeLayoutLine @header("xge3_runti
  Rect tRect
 end
 
+export extern "xui_cascader_path_t" struct CascaderPath @header("xge3_runtime.h")
+ c_int iDepth
+ c_int arrValues[8]
+end
+
 export extern "xui_code_hit_t" struct CodeHit @header("xge3_runtime.h")
  c_uint iSize
  c_int iPart

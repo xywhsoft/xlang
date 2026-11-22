@@ -480,6 +480,18 @@ METHODS.update({
         'ComboBox', ['extern "xuiComboBoxGetItemDescriptor" @no_raise @c_output_record(2,"xui_combobox_item_t","borrowed") @c_status(0) '
         '@c_output_field(0,"sText","cstring") @c_output_field(1,"iValue") @c_output_field(2,"bEnabled") @c_output_field(3,"bSeparator") '
         '@c_output_field(4,"iIcon") func getItem(c_int index) as (string,c_int,c_int,c_int,c_int)']],
+    'xuiCascaderGetItemDescriptor': [
+        'int xuiCascaderGetItemDescriptor(xui_widget pWidget, int iIndex, xui_cascader_item_t* pItem)', 'Cascader',
+        ['extern "xuiCascaderGetItemDescriptor" @no_raise @c_output_record(2,"xui_cascader_item_t","borrowed") @c_status(0) '
+         '@c_output_field(0,"sText","cstring") @c_output_field(1,"iValue") @c_output_field(2,"iParent") @c_output_field(3,"iFlags") '
+         'func getItem(c_int index) as (string,c_int,c_int,c_uint)']],
+    'xuiCascaderSetSelectedPath': [
+        'int xuiCascaderSetSelectedPath(xui_widget pWidget, const int* arrValues, int iDepth)', 'Cascader',
+        ['extern "xuiCascaderSetSelectedPath" @no_raise @c_result("status",0) @c_array_group(1,0,1,"int",1) '
+         '@c_array_input(1,0,"const int*","value") func setSelectedPath(array<c_int> values,int size=-1)']],
+    'xuiCascaderGetSelectedPathSnapshot': [
+        'int xuiCascaderGetSelectedPathSnapshot(xui_widget pWidget, xui_cascader_path_t* pPath)', 'Cascader',
+        ['extern "xuiCascaderGetSelectedPathSnapshot" @no_raise @c_output(1,0) func selectedPath() as CascaderPath']],
     'xuiWorkflowWidgetGetWorkflowOwned': ['int xuiWorkflowWidgetGetWorkflowOwned(xui_widget widget,xui_workflow* output)', "WorkflowWidget", ['extern "xuiWorkflowWidgetGetWorkflowOwned" @no_raise @c_result("owned_view") @factory(1,0,rollbackWorkflow) func getWorkflow() as Workflow']],
     'xuiWorkflowWidgetSetWorkflowShared': ['int xuiWorkflowWidgetSetWorkflowShared(xui_widget widget,xui_workflow workflow)', "WorkflowWidget", ['extern "xuiWorkflowWidgetSetWorkflowShared" @no_raise @c_result("status",0) func setWorkflow(Workflow workflow)']],
     'xuiDebugEventTrace': [
@@ -1376,6 +1388,8 @@ REPLACED = {
     'xuiButtonSetClick': ('xui.Button.setClick', 'xuiButtonSetClickOwned'),
     'xuiCarouselSetChange': ('xui.Carousel.setChange', 'xuiCarouselSetChangeOwned'),
     'xuiCascaderSetChange': ('xui.Cascader.setChange', 'xuiCascaderSetChangeOwned'),
+    'xuiCascaderGetItem': ('xui.Cascader.getItem', 'xuiCascaderGetItemDescriptor'),
+    'xuiComboBoxGetItem': ('xui.ComboBox.getItem', 'xuiComboBoxGetItemDescriptor'),
     'xuiCheckBoxSetChange': ('xui.CheckBox.setChange', 'xuiCheckBoxSetChangeOwned'),
     'xuiCheckCardSetChange': ('xui.CheckCard.setChange', 'xuiCheckCardSetChangeOwned'),
     'xuiColorPickerSetChange': ('xui.ColorPicker.setChange', 'xuiColorPickerSetChangeOwned'),

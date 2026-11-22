@@ -1,4 +1,4 @@
-// parent 是父项的数组下标，-1 表示根；点击选择“开发 / 编辑器”。
+// parents 是父项的数组下标，-1 表示根。选中路径使用各项的值。
 import xui
 from "./_window.xl" import Window
 
@@ -12,4 +12,6 @@ Window.show("级联选择", func(xui.Context ui, xui.Widget root)
  c_uint leaf = c_uint(xui.XUI_CASCADER_ITEM_LEAF)
  array<c_uint> flags = [0, 0, leaf, leaf, leaf]
  categories.setItems(names, values, parents, flags)
+ array<c_int> path = [10, 11]
+ categories.setSelectedPath(path)
 end)

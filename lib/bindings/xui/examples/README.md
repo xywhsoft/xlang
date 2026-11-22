@@ -195,7 +195,7 @@ WebView 范例只加载源码中的本地 HTML。它需要启用 WebView2 的 Wi
 | [inventorygrid.xl](inventorygrid.xl) | 创建十二个空槽；点击或用方向键切换，下面显示当前槽号。 |
 | [scrollframe.xl](scrollframe.xl) | ScrollFrame 提供视口和滚动条；文字放在视口中，内容高度为 900。 |
 | [menubar.xl](menubar.xl) | 点击“文件”展开菜单；选择项目后，下方显示命令编号。 |
-| [cascader.xl](cascader.xl) | parent 是父项的数组下标，-1 表示根；点击选择“开发 / 编辑器”。 |
+| [cascader.xl](cascader.xl) | 按父项下标建立选择树，用各项的值选中“开发 / 编辑器”。 |
 | [widget.xl](widget.xl) | Widget 是透明的布局节点；移动 group 的位置会一起移动它的子控件。 |
 | [label.xl](label.xl) | 两个 Label 对应两行文字；Label 用于显示文字，不接收文本输入。 |
 | [documenteditor.xl](documenteditor.xl) | 点击文档编辑文字；事务先创建初始段落，编辑器随后持有文档。 |

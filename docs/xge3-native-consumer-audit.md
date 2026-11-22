@@ -1,5 +1,32 @@
 # Native consumers in the full API inventory
 
+## Cascader items and selection paths
+
+`Cascader.setSelectedPath(values)` projects a typed array directly to the
+native path setter. Its elements are values at each level. The parent column
+of `setItems()` holds indices. The optional count selects a prefix. An empty
+path clears the selection, and a missing or disabled item reports a checked
+error and keeps the previous path. Programmatic selection follows the native
+setter's callback behavior.
+
+`selectedPath()` returns the depth and eight inline integers as a value.
+Unused slots are zero. `getItem(index)` returns copied text, value, parent
+index and flags. The existing C item pointer carries a native user pointer.
+The language query projects the four data fields. Both results survive control
+destruction, and an invalid index or failed text copy leaves the assignment
+targets unchanged. The existing Buffer path getter keeps its prefix and depth
+behavior. Each query calls one native entry. The numeric snapshot performs
+zero XRT heap operations over 1,000 queries in the paired C and xlang fixture.
+The setter projects its input array and the item getter copies its text.
+
+Windows and Linux ran the upstream Cascader regression and the xlang fixture
+in JIT, dynamic AOT and independent static AOT. Both platforms also ran the
+graphical lesson. The native audit also records the already available ComboBox
+item query as a replacement for the legacy borrowed pointer. This brings the
+unmapped function count to 345, with 139 in XGE and 206 in XUI.
+
+[Validation evidence](../dev/release-materials/provenance/xui-cascader-path-20261123.json)
+
 ## Render target readback and managed replacements
 
 The timeline capture failure also occurred in a dynamic AOT program. Under

@@ -1,0 +1,151 @@
+{
+  "complete": true,
+  "passed": true,
+  "releaseInstalled": false,
+  "networkTests": false,
+  "scope": "Cascader path selection and typed item/path queries",
+  "nativeRevision": "cd9a46af5f79188cee05fff10907e73b6c16958d",
+  "nativeSourceHashesLf": {
+    "include/xui.h": "594bd52fa21717f96fb7dbfa31c7c72df04b85b4bee44cd8ab3d19cadb58f1f6",
+    "src/xui/controls/xui_cascader.c": "80b493b93c3badc19575cdd29715195332d2e31556c6e103fad4da3b14842977"
+  },
+  "xlangSourceParent": "18fda80bab0c5bf92ba32790773335902d64ddd3",
+  "platforms": {
+    "Windows x64": {
+      "nativeSource": {
+        "path": "F:\\xlang-validation\\xge-full-20261110\\cascader-path-stage-win-r1\\audit\\native-source.json",
+        "sha256": "51e8a5611b451a9c33ee401017ff7dea7f17c175a23c0aad149adb8f0fa76022"
+      },
+      "engineBuild": {
+        "path": "F:\\xlang-validation\\xge-full-20261110\\cascader-path-host-win-r1\\build-report.json",
+        "sha256": "5b72a426d94a42860aff6db3ccd4c2ac83e82eb5b0a8ff229611616e77a9ced5"
+      },
+      "staticBuild": {
+        "path": "F:\\xlang-validation\\xge-full-20261110\\cascader-path-static-win-r1\\build-report.json",
+        "sha256": "4cc7c0b3bc1414a6a7faac96a68c3a58f4c229550012667a5e755467f6377404"
+      },
+      "hostImage": {
+        "path": "F:\\xlang-validation\\xge-full-20261110\\cascader-path-stage-win-r1\\replay\\host\\_xge_native\\native\\xge3_host.dll",
+        "sha256": "3ff067e653e0d75ef946154950f503907624e4dffd3ffe4fbafa31b933d1c06f"
+      },
+      "replay": {
+        "path": "F:\\xlang-validation\\xge-full-20261110\\cascader-path-stage-win-r1\\replay\\stage-report.json",
+        "sha256": "39a07aba9cfd48b94faff9399219417a6f04278d78f426a9be58b5272e09c069"
+      },
+      "generator": {
+        "path": "F:\\xlang-validation\\xge-full-20261110\\cascader-path-generator-win-r3\\results.json",
+        "sha256": "1f04b376dbdf3a555729207209f3c1f9f18a9e0431ef803f0eff07db80e9bc67"
+      },
+      "generatorChecks": 1131,
+      "matrix": {
+        "path": "F:\\xlang-validation\\xge-full-20261110\\cascader-path-tests-win-r2\\results.json",
+        "sha256": "5c5e759a06ac65055ac1a08602ff6321c231541d85ab82994e11999d161a93e7"
+      },
+      "graph": {
+        "width": 800,
+        "height": 600,
+        "sha256": "b3de16ce6f94f32175f38ae2d3400d3b6b94b6c39d092fdf277245ae668a54bc"
+      },
+      "matrixSteps": 13,
+      "nativeTest": {
+        "path": "F:\\xlang-validation\\xge-full-20261110\\cascader-path-upstream-native-win-r2\\test.log",
+        "sha256": "f89948e6c9801e88f0901fe5b32923e5f0563ed5a7b0854d84a3d5efd448af7a"
+      },
+      "surface": {
+        "path": "F:\\xlang-validation\\xge-full-20261110\\cascader-path-stage-win-r1\\audit\\surface\\surface.json",
+        "sha256": "7312ef045466850067fb350be9b530b1d1fb55de576064aaebd11f4e163904c6"
+      },
+      "consumerAudit": {
+        "path": "F:\\xlang-validation\\xge-full-20261110\\cascader-path-stage-win-r1\\audit\\consumers\\results.json",
+        "sha256": "403c357c087d7ce493c4eed9c90712e62e034c455004d919a4a72be42f2015f5"
+      }
+    },
+    "Linux x64": {
+      "nativeSource": {
+        "path": "\\\\wsl.localhost\\Ubuntu\\var\\tmp\\xlang-validation\\xge-full-20261110\\cascader-path-stage-linux-r1\\audit\\native-source.json",
+        "sha256": "61fb3f453f5127198d053ca8e0b28f6bf219682262267ca5f4396090562dbe0d"
+      },
+      "engineBuild": {
+        "path": "\\\\wsl.localhost\\Ubuntu\\var\\tmp\\xlang-validation\\xge-full-20261110\\cascader-path-host-linux-r1\\build-report.json",
+        "sha256": "fc1e136eddf416f9fa8b84de7cd75c7f55f7b934d28f358c645a033c64478832"
+      },
+      "staticBuild": {
+        "path": "\\\\wsl.localhost\\Ubuntu\\var\\tmp\\xlang-validation\\xge-full-20261110\\cascader-path-static-linux-r1\\build-report.json",
+        "sha256": "42a58f6a4462ce96c43e607e6dab3517acd739b5946dba783aeb74d6cfc5c156"
+      },
+      "hostImage": {
+        "path": "\\\\wsl.localhost\\Ubuntu\\var\\tmp\\xlang-validation\\xge-full-20261110\\cascader-path-stage-linux-r1\\replay\\host\\_xge_native\\native\\libxge3_host.so",
+        "sha256": "ff7c188a370f31568100cde7dbae7ce863e30291153c65b6eb8d94f7fcfeb579"
+      },
+      "replay": {
+        "path": "\\\\wsl.localhost\\Ubuntu\\var\\tmp\\xlang-validation\\xge-full-20261110\\cascader-path-stage-linux-r1\\replay\\stage-report.json",
+        "sha256": "b8efcd546e073d807884f223ef71b4fa01ecab26c199e8a0c880f1ca56924ca8"
+      },
+      "generator": {
+        "path": "\\\\wsl.localhost\\Ubuntu\\var\\tmp\\xlang-validation\\xge-full-20261110\\cascader-path-generator-linux-r3\\results.json",
+        "sha256": "f4876ae2159edee91d62d5871e548ac71759a97d7c641bcd2644f4b5975ee7cb"
+      },
+      "generatorChecks": 1132,
+      "matrix": {
+        "path": "\\\\wsl.localhost\\Ubuntu\\var\\tmp\\xlang-validation\\xge-full-20261110\\cascader-path-tests-linux-r2\\results.json",
+        "sha256": "ebc1f4e30834ef32bb3d77f1976113d54d9c377b60db94e944f83df380737379"
+      },
+      "graph": {
+        "width": 800,
+        "height": 600,
+        "sha256": "c7b0723c9ac66c0e4eaec9ab226e16c8d29c3810cafe623bdaae203a5a6f5313"
+      },
+      "matrixSteps": 13,
+      "nativeTest": {
+        "path": "\\\\wsl.localhost\\Ubuntu\\var\\tmp\\xlang-validation\\xge-full-20261110\\cascader-path-upstream-native-linux-r2\\test.log",
+        "sha256": "f9350a00519589f65c82fed46fb2989a7e87d4db340d3027b97e58a24a42afc8"
+      },
+      "surface": {
+        "path": "\\\\wsl.localhost\\Ubuntu\\var\\tmp\\xlang-validation\\xge-full-20261110\\cascader-path-stage-linux-r1\\audit\\surface\\surface.json",
+        "sha256": "3d585b3186be81c0c0dbdbd9efabb3e78923d0de6efd536e84045b9f4477efd1"
+      },
+      "consumerAudit": {
+        "path": "\\\\wsl.localhost\\Ubuntu\\var\\tmp\\xlang-validation\\xge-full-20261110\\cascader-path-stage-linux-r1\\audit\\consumers\\results.json",
+        "sha256": "6f785a595466021f7f2a5affed6c0fb329a4cdbecfa04ef528fabef5ebe7fb16"
+      }
+    }
+  },
+  "audit": {
+    "previous": {
+      "path": "F:\\xlang-validation\\xge-full-20261110\\render-target-readback-stage-win-r1\\audit\\consumers\\results.json",
+      "sha256": "5eacaab47383e7e1fc8f68e238a86211a5854092080cd2d626da55aa7556e449"
+    },
+    "functions": 5777,
+    "directDeclarations": 4712,
+    "compiledNativeConsumers": 282,
+    "explicitReplacements": 441,
+    "pending": {
+      "XGE": 139,
+      "XUI": 206,
+      "Document": 0
+    },
+    "apiCompletenessClaim": false
+  },
+  "snapshotHeap": {
+    "iterations": 1000,
+    "c": {
+      "alloc": 0,
+      "free": 0,
+      "realloc": 0
+    },
+    "xlang": {
+      "alloc": 0,
+      "free": 0,
+      "realloc": 0
+    }
+  },
+  "costs": {
+    "setSelectedPath": "synchronous typed array projection",
+    "selectedPath": "one fixed native record value copy",
+    "getItem": "one native descriptor copy and one language text snapshot"
+  },
+  "tests": {
+    "allocationFailure": "item text copy rolls back the complete language result",
+    "lifetime": "item text and path snapshot survive source context retirement"
+  }
+}

@@ -41,6 +41,13 @@ queried values. Negative native errors reject the entire result. Disabled
 options can retain their configured values; inspect the flag separately.
 See `docs/xui-chart-queries.md` and `examples/chart.xl`.
 
+`Cascader.setSelectedPath(values)` selects a path by item value at each level.
+The `parents` column in `setItems()` uses item indices. An empty path clears the
+selection. `selectedPath()` returns the depth and an independent fixed-size
+array of values. Read only the entries before the depth. `getItem(index)`
+returns independent text with the item's value, parent index and flags. See
+[the Cascader example](examples/cascader.xl).
+
 `Context.styleSetDefault`, `styleSetNamed`, `styleSetClass` and
 `styleSetStateClass` install batches of rules. `Widget.setInlineStyle`
 targets one control. The columns share one count. Use a registered property ID
