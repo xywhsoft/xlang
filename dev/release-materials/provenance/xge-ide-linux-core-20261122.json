@@ -1,0 +1,23 @@
+{
+  "complete": true,
+  "passed": true,
+  "releaseInstalled": false,
+  "scope": "Frozen Linux Release analysis core and its complete standalone regression set",
+  "ideRevision": "4e8ca5d64",
+  "frontendRevision": "a52bf66d1fc39a6d344c8f20ed1bae7dee2bcecc",
+  "xrtRevision": "804cc769de3030118c2b46ef7af69543d1b82d9d",
+  "report": {
+    "path": "/var/tmp/xlang-validation/xge-full-20261110/lsp-xge-current-linux-r9/build-result.json",
+    "sha256": "d26d4ec933d37d94d5fba25c3d1e71474ec604cca9a7af84eb986acbd55562bb",
+    "inputs": 1432,
+    "passedFixtures": 134,
+    "coreArchiveSha256": "21d2a447253898eb7d01f8c415b378e3af506d105c9b9964bc529fb678d50c78"
+  },
+  "priorCandidate": "dev/release-materials/provenance/xge-ide-frontend-candidate-20261121.json",
+  "checks": [
+    "The entry cache fixture passed 2083 checks under the original per-fixture timeout",
+    "The imported-body fixture's PASS receipt was accepted and its 216 checks passed",
+    "The normal builder rechecked all exact inputs before accepting the finished archive",
+    "Linux verification covers the standalone core. The server executable uses Windows transport and process adapters."
+  ]
+}
