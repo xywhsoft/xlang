@@ -1,5 +1,26 @@
 # Native consumers in the full API inventory
 
+## CodeEdit's provider view and hover snapshots
+
+`CodeEdit.providers()` borrows the provider set already owned by the editor,
+with native lifetime observation. The view exposes direct requests for all
+five provider roles and checked clearing. Registrations use the existing
+CodeEdit methods, preserving the editor-specific hover and command behavior.
+
+`captureHover` transfers the native reply block into one additional snapshot
+object. The snapshot can outlive the editor and Context. `info()` copies
+the text and optional content type when requested. The fixture verifies
+that a callback can clear its own registration, that callback-only views
+expire, and that a valid reply is discarded when its editor closes during
+the request. Native allocation failure leaves an empty output handle.
+
+Windows and Linux passed JIT, dynamic AOT and static AOT. The 1,000-command
+comparison reported zero heap operations in both C and xlang on each path.
+The hosted and static packages also passed the existing provider lifecycle
+and ownership regression on both platforms.
+
+[Validation evidence](../dev/release-materials/provenance/xui-code-edit-providers-20261122.json)
+
 ## Standalone XUI code providers
 
 `xui.createCodeProviderSet()` owns five callbacks for completion, hover,

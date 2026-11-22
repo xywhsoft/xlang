@@ -104,7 +104,9 @@ const XL6_ForeignViewDescriptorV1* xl6Xui3CodeEditTokenBufferPolicyGet(void);
 const XL6_ForeignViewDescriptorV1* xl6Xui3CodeEditMarginsPolicyGet(void);
 const XL6_ForeignViewDescriptorV1* xl6Xui3CodeMarginPolicyGet(void);
 const XL6_ForeignViewDescriptorV1* xl6Xui3CodeProviderSetPolicyGet(void);
+const XL6_ForeignViewDescriptorV1* xl6Xui3CodeEditProvidersPolicyGet(void);
 const XL6_ForeignViewDescriptorV1* xl6Xui3CodeCompletionSnapshotPolicyGet(void);
+const XL6_ForeignViewDescriptorV1* xl6Xui3CodeHoverSnapshotPolicyGet(void);
 const XL6_ForeignViewDescriptorV1* xl6Xui3CodeSignatureSnapshotPolicyGet(void);
 const XL6_ForeignViewDescriptorV1* xl6Xge3FontPolicyGet(void);
 const XL6_ForeignViewDescriptorV1* xl6Xge3TexturePolicyGet(void);
@@ -158,7 +160,9 @@ static inline const char* xl6Xui3InventorySlotHotkey(const xui_inventory_slot_t*
 #define xl6Xui3CodeEditMarginsPolicy (*xl6Xui3CodeEditMarginsPolicyGet())
 #define xl6Xui3CodeMarginPolicy (*xl6Xui3CodeMarginPolicyGet())
 #define xl6Xui3CodeProviderSetPolicy (*xl6Xui3CodeProviderSetPolicyGet())
+#define xl6Xui3CodeEditProvidersPolicy (*xl6Xui3CodeEditProvidersPolicyGet())
 #define xl6Xui3CodeCompletionSnapshotPolicy (*xl6Xui3CodeCompletionSnapshotPolicyGet())
+#define xl6Xui3CodeHoverSnapshotPolicy (*xl6Xui3CodeHoverSnapshotPolicyGet())
 #define xl6Xui3CodeSignatureSnapshotPolicy (*xl6Xui3CodeSignatureSnapshotPolicyGet())
 #define xl6Xui3MsgBoxPolicy (*xl6Xui3MsgBoxPolicyGet())
 #define xl6Xui3ToastPolicy (*xl6Xui3ToastPolicyGet())

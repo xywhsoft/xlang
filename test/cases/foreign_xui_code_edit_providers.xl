@@ -1,0 +1,106 @@
+import xui
+from xui import CodeHoverReply
+extern "fixtureEditorProvidersNative" @header("test/cases/foreign_xui_code_edit_providers.h") @no_raise func testNative(xui.Widget editor)
+extern "fixtureEditorProvidersBegin" @no_raise func beginHeap()
+extern "fixtureEditorProvidersEnd" @no_raise func endHeap(c_int native)
+
+func main(...) as int
+ auto proxy=xui.createProxy()
+ auto ui=xui.create(proxy)
+ auto editor=ui.codeEditNative()
+ auto providers=editor.providers()
+ auto alias=editor.providers()
+ assert editor.setText("print")==xui.XUI_OK
+ testNative(editor)
+
+ editor.setCommandProvider(func(xui.CallbackWidget widget,c_int command,xui.CallbackInt handled) as c_int
+  handled.value=c_int(command==xui.XUI_CODE_COMMAND_MOVE_RIGHT ? 1 : 0)
+  return xui.XUI_OK
+ end)
+ editor.setCommandEnabledProvider(func(xui.CallbackWidget widget,c_int command,xui.CallbackInt enabled) as c_int
+  enabled.value=c_int(command==xui.XUI_CODE_COMMAND_MOVE_RIGHT ? 1 : 0)
+  return xui.XUI_OK
+ end)
+ c_int move=xui.XUI_CODE_COMMAND_MOVE_RIGHT
+ assert providers.canExecuteCommand(editor,move)==1 and alias.canExecuteCommand(editor,move+1)==0
+ assert alias.executeCommand(editor,move)==1 and providers.executeCommand(editor,move+1)==0
+ beginHeap()
+ for i in range(1000)
+  assert providers.executeCommand(editor,move)==1
+ end
+ endHeap(0)
+
+ editor.setCompletionProvider(func(xui.CallbackWidget widget,c_int offset,xui.CodeCompletionReply reply) as c_int
+  assert reply.prefix()=="pr" and offset==2
+  reply.add("print")
+  return xui.XUI_OK
+ end)
+ auto completions=providers.requestCompletion(editor,2,"pr",2)
+ editor.setSignatureProvider(func(xui.CallbackWidget widget,c_int offset,xui.CodeSignatureReply reply) as c_int
+  reply.set("print(value)")
+  return xui.XUI_OK
+ end)
+ auto signature=alias.requestSignature(editor,2)
+
+ xui.CodeHoverReply? saved=null
+ editor.setHoverProvider(func(xui.CallbackWidget widget,c_int offset,xui.CodeHoverReply reply) as c_int
+  saved=reply
+  auto range=xui.CodeRange()
+  range.iStart=offset
+  range.iEnd=5
+  reply.set(range,"输出一个值",contentType="",userData=42)
+  alias.clear()
+  return xui.XUI_OK
+ end)
+ auto hover=providers.captureHover(editor,1)
+ assert saved!=null
+ bool rejected=false
+ try
+  (saved as CodeHoverReply).set(xui.CodeRange(),"expired")
+ catch StateError
+  rejected=true
+ end
+ assert rejected
+ rejected=false
+ try
+  auto missing=alias.requestSignature(editor,2)
+ catch Error failure
+  rejected=true
+ end
+ assert rejected
+
+ // A provider cannot publish an otherwise valid result after closing its editor.
+ editor.setHoverProvider(func(xui.CallbackWidget widget,c_int offset,xui.CodeHoverReply reply) as c_int
+  reply.set(xui.CodeRange(),"closed during request")
+  editor.close()
+  return xui.XUI_OK
+ end)
+ rejected=false
+ try
+  hover=providers.captureHover(editor,1)
+ catch Error failure
+  rejected=true
+ end
+ assert rejected
+ rejected=false
+ try
+  alias.clear()
+ catch StateError
+  rejected=true
+ end
+ assert rejected
+
+ ui.close()
+ proxy.close()
+ assert completions.count()==1
+ auto label,_,_,_,_,_,_,_,_,_,_=completions.item(0)
+ auto signatureLabel,_,parameterCount,_,_=signature.info()
+ auto range,doc,format,tag=hover.info()
+ assert label=="print" and (signatureLabel??"")=="print(value)" and parameterCount==0
+ assert range.iStart==1 and range.iEnd==5 and doc=="输出一个值" and (format??"missing")=="" and tag==42
+ completions.close()
+ signature.close()
+ hover.close()
+ println("CodeEdit providers: shared view, five requests, OOM and checked retirement passed")
+ return 0
+end

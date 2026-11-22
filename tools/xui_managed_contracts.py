@@ -951,6 +951,7 @@ METHODS.update({
 })
 METHODS.update({
     'xuiCodeEditGetMargins': ['xui_code_margin_model xuiCodeEditGetMargins(xui_widget pWidget)', 'CodeEdit', ['extern "xuiCodeEditGetMargins" @no_raise @c_result("owner_view",0) func margins() as CodeEditMargins']],
+    'xuiCodeEditGetProviders': ['xui_code_provider_set xuiCodeEditGetProviders(xui_widget pWidget)', 'CodeEdit', ['extern "xuiCodeEditGetProviders" @no_raise @c_result("owner_view",0) func providers() as CodeEditProviders']],
     'xuiCodeEditSetMarginRenderCallbackOwned': ['int xuiCodeEditSetMarginRenderCallbackOwned(xui_widget pWidget, int iId, xui_code_margin_render_proc onRender, void* pUser, const xui_callback_owner_t* pOwner)', 'CodeEdit', ['extern "xuiCodeEditSetMarginRenderCallbackOwned" @no_raise @c_owned_callback(1,0,"xui_callback_owner_t",-16) @c_result("status",0) func setMarginRenderCallback(c_int id,CodeMarginRenderProc? callback)']],
     'xuiCodeEditSetMarginEventCallbackOwned': ['int xuiCodeEditSetMarginEventCallbackOwned(xui_widget pWidget, int iId, xui_code_margin_event_proc onEvent, void* pUser, const xui_callback_owner_t* pOwner)', 'CodeEdit', ['extern "xuiCodeEditSetMarginEventCallbackOwned" @no_raise @c_owned_callback(1,0,"xui_callback_owner_t",-16) @c_result("status",0) func setMarginEventCallback(c_int id,CodeMarginEventProc? callback)']],
 })
@@ -1344,6 +1345,8 @@ CLOSE_REPLACEMENTS = {
         'destroy_code_providers', 'xuiCodeProviderSetDestroyOwnerChecked'),
     'xuiCodeCompletionSnapshotDestroy': ('xui.CodeCompletionSnapshot.close', 'xl6Xui3CodeCompletionSnapshotPolicy',
         'destroy_completion_snapshot', 'xuiCodeCompletionSnapshotDestroy'),
+    'xuiCodeHoverSnapshotDestroy': ('xui.CodeHoverSnapshot.close', 'xl6Xui3CodeHoverSnapshotPolicy',
+        'destroy_hover_snapshot', 'xuiCodeHoverSnapshotDestroy'),
     'xuiCodeSignatureSnapshotDestroy': ('xui.CodeSignatureSnapshot.close', 'xl6Xui3CodeSignatureSnapshotPolicy',
         'destroy_signature_snapshot', 'xuiCodeSignatureSnapshotDestroy'),
 }

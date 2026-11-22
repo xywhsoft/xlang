@@ -903,6 +903,13 @@ static bool watch_code_providers(void* raw,void* storage,void(*invalidate)(void*
     report_resource_failure(status,"xuiCodeProviderSetLifetimeWatch");
     return status==XUI_OK;
 }
+const XL6_ForeignViewDescriptorV1* xl6Xui3CodeEditProvidersPolicyGet(void)
+{
+    static const XL6_ForeignViewDescriptorV1 value={sizeof(value),XL6_FOREIGN_VIEW_V1_TAG,"xui.codeEdit.providers",
+        sizeof(xui_lifetime_link_t),_Alignof(xui_lifetime_link_t),watch_code_providers,unwatch,
+        NULL,0,1,NULL,NULL,NULL,NULL,0,NULL,NULL};
+    return &value;
+}
 static bool begin_code_providers(void* raw,void* storage)
 {
     int status=xuiCodeProviderSetCallBegin(raw,storage);
@@ -943,6 +950,14 @@ const XL6_ForeignViewDescriptorV1* xl6Xui3CodeCompletionSnapshotPolicyGet(void)
         0,1,NULL,NULL,destroy_completion_snapshot,0,1,NULL,NULL,NULL,NULL,0,NULL,NULL};
     return &value;
 }
+static bool destroy_hover_snapshot(void* raw)
+{xuiCodeHoverSnapshotDestroy(raw);return true;}
+const XL6_ForeignViewDescriptorV1* xl6Xui3CodeHoverSnapshotPolicyGet(void)
+{
+    static const XL6_ForeignViewDescriptorV1 value={sizeof(value),XL6_FOREIGN_VIEW_V1_TAG,"xui.codeHoverSnapshot",
+        0,1,NULL,NULL,destroy_hover_snapshot,0,1,NULL,NULL,NULL,NULL,0,NULL,NULL};
+    return &value;
+}
 static bool destroy_signature_snapshot(void* raw)
 {xuiCodeSignatureSnapshotDestroy(raw);return true;}
 const XL6_ForeignViewDescriptorV1* xl6Xui3CodeSignatureSnapshotPolicyGet(void)
@@ -953,7 +968,9 @@ const XL6_ForeignViewDescriptorV1* xl6Xui3CodeSignatureSnapshotPolicyGet(void)
 }
 #else
 const XL6_ForeignViewDescriptorV1* xl6Xui3CodeProviderSetPolicyGet(void){return NULL;}
+const XL6_ForeignViewDescriptorV1* xl6Xui3CodeEditProvidersPolicyGet(void){return NULL;}
 const XL6_ForeignViewDescriptorV1* xl6Xui3CodeCompletionSnapshotPolicyGet(void){return NULL;}
+const XL6_ForeignViewDescriptorV1* xl6Xui3CodeHoverSnapshotPolicyGet(void){return NULL;}
 const XL6_ForeignViewDescriptorV1* xl6Xui3CodeSignatureSnapshotPolicyGet(void){return NULL;}
 #endif
 /* Pure numeric leaf models: unique language roots, no callbacks, native

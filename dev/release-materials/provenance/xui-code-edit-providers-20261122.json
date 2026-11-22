@@ -1,0 +1,289 @@
+{
+  "complete": true,
+  "passed": true,
+  "releaseInstalled": false,
+  "networkTests": false,
+  "nativeRevision": "bf81cd9c64666d3df667a9ae2a74d6ed0bec1652",
+  "scope": "CodeEdit-owned provider views, direct provider requests and independent hover snapshots",
+  "inputs": {
+    "test/cases/foreign_xui_code_edit_providers.xl": "842884c538822b58ce1d31e38bfa7fbc7d355c21634b76817cb70323e6ad41ae",
+    "test/cases/foreign_xui_code_edit_providers.h": "e435f68403e8cc4d165b105e3d9df83b0fda52e593b2135d783e5bf8cdb9ebc7",
+    "test/cases/foreign_xui_code_edit_providers.c": "27729861ea8bbd71df9f1e9014a68301c1f6cf855446673905a44af8c189b44d",
+    "lib/bindings/xui/src/code_provider_set.xl": "f882314fb72ac98195817ee56ead620a4cf94ac0b4c069601890cffbe279c722",
+    "lib/bindings/xui/src/managed.xl": "1658d7c67c41d9d3735012a214bc1c062ef43d576bae516fb78bac0123d484e5",
+    "lib/bindings/xui/examples/code_edit_provider_snapshot.xl": "1fe7ba46f9d417d3ee3505af66b9d7321ced5a2ef5e27b6e63902f0246956b6f",
+    "lib/bindings/xui/README.md": "f36c7e9908268e13b56ba832245b4b68dd54c9ea287688bc21ea365236102978",
+    "lib/bindings/_xge_native/src/runtime.c": "4639dfa6ef02f6742f36f6418c5971ca3d9d7727944665a02cdc5db10d9b6fc5",
+    "lib/bindings/_xge_native/include/xge3_runtime.h": "fa262832e3a35103de488d12737a00fb5fd58ea47260844094921ffd98fcf23c",
+    "tools/xui_managed_contracts.py": "844ea3fc4e243449464063eb40101051baa4181c6203c0a416a2f2a950e7315e"
+  },
+  "scripts": [
+    {
+      "path": "F:/xlang-validation/xge-full-20261110/check-code-edit-providers-r1.py",
+      "sha256": "f5729ecfdfe781683f6650ea5e942ea650c2efd72f06bf4ac607847aaec81e5b"
+    },
+    {
+      "path": "F:/xlang-validation/xge-full-20261110/audit-code-edit-providers-r1.py",
+      "sha256": "19363c239dea9d4abe38f02afd170db1faddf308397ee2b279b91eaa490406e0"
+    }
+  ],
+  "performance": {
+    "cpuTimingCompared": false,
+    "comparison": "Warm C/xlang direct command request with the same editor and equivalent callback",
+    "costs": [
+      "First editor provider view registration allocates language lifetime storage and adds a Context directory entry.",
+      "Calls use managed lifetime and checked callback scopes.",
+      "The hover snapshot adds a native object and a language owner. It acquires the existing reply block.",
+      "Snapshot info copies each present text field as a language string."
+    ]
+  },
+  "platforms": {
+    "win": {
+      "languageRuntime": {
+        "path": "F:/xlang-validation/xge-full-20261110/code-edit-providers-check-win-r1/suite-r1/results.json",
+        "sha256": "8adc120c1ccfeda7ac9bd2902e99f970ba494585a823d40d2d1b48ccf9e2be5c"
+      },
+      "exampleExecution": {
+        "path": "F:/xlang-validation/xge-full-20261110/code-edit-providers-check-win-r1/suite-r1/example-jit.log",
+        "sha256": "fb071d0c2f46c9ab3d17f40fbd2baa2b9c34a44333e4ab4d046d4570197eb3c5"
+      },
+      "nativeRegression": {
+        "path": "F:/xlang-validation/xge-full-20261110/code-edit-providers-check-win-r1/native-regression-r1/results.json",
+        "sha256": "f9d8b5ac63674325c3823f0042e5de73a1ebf5fe4d3f49811846bdae0008fd3e"
+      },
+      "compilerBuild": {
+        "path": "F:/xlang-validation/xge-full-20261110/compiler-existing-root-win-r1/build.json",
+        "sha256": "107a294cdefd81906f8e3fef6bced071ececaad4bf1837b61a15b1e9c7858a07"
+      },
+      "hostedNativeBuild": {
+        "path": "F:/xlang-validation/xge-full-20261110/code-edit-providers-host-win-r1/build-report.json",
+        "sha256": "4cf9bfae346dc6dae52f0e8ac259b17df4fee534bd852c44dc4ade2e619e80c1"
+      },
+      "staticNativeBuild": {
+        "path": "F:/xlang-validation/xge-full-20261110/code-edit-providers-static-win-r1/build-report.json",
+        "sha256": "6db9debb8d4f37ceca6c601e952d2aac78fc35149e6d7601cf66f48f65c5cdd7"
+      },
+      "hostedStage": {
+        "path": "F:/xlang-validation/xge-full-20261110/code-edit-providers-check-win-r1/stage.json",
+        "sha256": "a395ae0eeffe11622a367ebe07292e1f8e734aab100f3bd513f9ac6208241aa1"
+      },
+      "staticStage": {
+        "path": "F:/xlang-validation/xge-full-20261110/code-edit-providers-check-win-r1/static-stage.json",
+        "sha256": "2f420a99f5649a0f94f8e09eb30d6a870116cc19103782463e38723f5b67ecb7"
+      },
+      "generatedC": {
+        "path": "F:/xlang-validation/xge-full-20261110/code-edit-providers-check-win-r1/suite-r1/generated.c",
+        "sha256": "4998f4124f7f3e1ff6b718e2c2de4e6de8d61229fa40ebac1d7e544318b307a9"
+      },
+      "nativeSource": {
+        "path": "F:/xlang-validation/xge-full-20261110/code-edit-providers-check-win-r1/audit-r1/native-source.json",
+        "sha256": "944b7bc2b8b88a76b4dbb0939ccdf2bba355b0557fe67435de49cdb0fbc55f85"
+      },
+      "surface": {
+        "path": "F:/xlang-validation/xge-full-20261110/code-edit-providers-check-win-r1/audit-r1/surface/surface.json",
+        "sha256": "0b60ae9dc20a4fc9d6dd644442f73c63c275e1f0faff298608f98efe0f273560"
+      },
+      "replay": {
+        "path": "F:/xlang-validation/xge-full-20261110/code-edit-providers-check-win-r1/audit-r1/replay/stage-report.json",
+        "sha256": "78bb4a1e3026692763aaf904e216cc914a8e7b18da9ef80c405ab1080f2f7857"
+      },
+      "consumerAudit": {
+        "path": "F:/xlang-validation/xge-full-20261110/code-edit-providers-check-win-r1/audit-r1/consumers/results.json",
+        "sha256": "8519034c76bf21d29a4f8a65de21a96cfa7f258839a02d7d04b503aa50bfcadd"
+      },
+      "executions": [
+        {
+          "mode": "jit",
+          "output": {
+            "path": "F:/xlang-validation/xge-full-20261110/code-edit-providers-check-win-r1/suite-r1/jit.log",
+            "sha256": "2b7e234b9f4803ecc0fef69e65c2d5b1b95f34c2dc8087f2229298e235d11765"
+          },
+          "iterationsPerClient": 1000,
+          "allocationsPerClient": 0,
+          "freesPerClient": 0,
+          "reallocationsPerClient": 0
+        },
+        {
+          "mode": "dynamicAot",
+          "output": {
+            "path": "F:/xlang-validation/xge-full-20261110/code-edit-providers-check-win-r1/suite-r1/dynamic-execute.log",
+            "sha256": "2b7e234b9f4803ecc0fef69e65c2d5b1b95f34c2dc8087f2229298e235d11765"
+          },
+          "iterationsPerClient": 1000,
+          "allocationsPerClient": 0,
+          "freesPerClient": 0,
+          "reallocationsPerClient": 0,
+          "imports": {
+            "path": "F:/xlang-validation/xge-full-20261110/code-edit-providers-check-win-r1/suite-r1/dynamic-imports.log",
+            "sha256": "5c1e7f2a7dcbaaa1799b4737167ef8f0bdde0507b7cae7a07e2593a64b1aac07"
+          },
+          "nativeLibraries": [
+            "msvcrt.dll",
+            "xge3_host.dll",
+            "kernel32.dll",
+            "SHELL32.dll",
+            "ws2_32.dll",
+            "IPHLPAPI.dll",
+            "ucrtbase.dll"
+          ]
+        },
+        {
+          "mode": "staticAot",
+          "output": {
+            "path": "F:/xlang-validation/xge-full-20261110/code-edit-providers-check-win-r1/suite-r1/static-execute.log",
+            "sha256": "2b7e234b9f4803ecc0fef69e65c2d5b1b95f34c2dc8087f2229298e235d11765"
+          },
+          "iterationsPerClient": 1000,
+          "allocationsPerClient": 0,
+          "freesPerClient": 0,
+          "reallocationsPerClient": 0,
+          "imports": {
+            "path": "F:/xlang-validation/xge-full-20261110/code-edit-providers-check-win-r1/suite-r1/static-imports.log",
+            "sha256": "47141783db5d8738ba11e3f87450860821f6ef2da0dd4b449fe73d607c55ce02"
+          },
+          "nativeLibraries": [
+            "msvcrt.dll",
+            "kernel32.dll",
+            "USER32.dll",
+            "ole32.dll",
+            "OLEAUT32.dll",
+            "SHELL32.dll",
+            "GDI32.dll",
+            "IMM32.dll",
+            "DWrite.dll"
+          ]
+        }
+      ]
+    },
+    "linux": {
+      "languageRuntime": {
+        "path": "/var/tmp/xlang-validation/xge-full-20261110/code-edit-providers-check-linux-r1/suite-r1/results.json",
+        "sha256": "ed2c916ec768c257982de2fb81b89d195f08d9a4561cdaad68128ecfc0f03b83"
+      },
+      "exampleExecution": {
+        "path": "/var/tmp/xlang-validation/xge-full-20261110/code-edit-providers-check-linux-r1/suite-r1/example-jit.log",
+        "sha256": "fb071d0c2f46c9ab3d17f40fbd2baa2b9c34a44333e4ab4d046d4570197eb3c5"
+      },
+      "nativeRegression": {
+        "path": "/var/tmp/xlang-validation/xge-full-20261110/code-edit-providers-check-linux-r1/native-regression-r1/results.json",
+        "sha256": "2622c8cb1685e37490a28be4bae7ecc4f7cb6e976e7e7b6e6e40d689754351f5"
+      },
+      "compilerBuild": {
+        "path": "/var/tmp/xlang-validation/xge-full-20261110/compiler-existing-root-linux-r1/build.json",
+        "sha256": "6e729bc793dcd92edcd42f51e244bad799187c32ef82121e8275288a31274b11"
+      },
+      "hostedNativeBuild": {
+        "path": "/var/tmp/xlang-validation/xge-full-20261110/code-edit-providers-host-linux-r1/build-report.json",
+        "sha256": "4c58966a4f8f55faa70f0298c7a71f8aa995c16f52ba228e90889784ffa31307"
+      },
+      "staticNativeBuild": {
+        "path": "/var/tmp/xlang-validation/xge-full-20261110/code-edit-providers-static-linux-r1/build-report.json",
+        "sha256": "ebd2f8c2018a936d9429329eb8a55004e0494bc549407f89a3b541a8e325acae"
+      },
+      "hostedStage": {
+        "path": "/var/tmp/xlang-validation/xge-full-20261110/code-edit-providers-check-linux-r1/stage.json",
+        "sha256": "6963bcfe15a8e304da26c4a640e3e019b8b04e15bb1b4ddad517166e5d4cad89"
+      },
+      "staticStage": {
+        "path": "/var/tmp/xlang-validation/xge-full-20261110/code-edit-providers-check-linux-r1/static-stage.json",
+        "sha256": "21d9b27420bd65ba0366bdcb1f0f62b57b50663fecf49032bca62f111344ca4b"
+      },
+      "generatedC": {
+        "path": "/var/tmp/xlang-validation/xge-full-20261110/code-edit-providers-check-linux-r1/suite-r1/generated.c",
+        "sha256": "4998f4124f7f3e1ff6b718e2c2de4e6de8d61229fa40ebac1d7e544318b307a9"
+      },
+      "nativeSource": {
+        "path": "/var/tmp/xlang-validation/xge-full-20261110/code-edit-providers-check-linux-r1/audit-r1/native-source.json",
+        "sha256": "1bb38d3066d0758941b97a6d20be6cb699d8a641c0976cea13fc5bc7f32ac94e"
+      },
+      "surface": {
+        "path": "/var/tmp/xlang-validation/xge-full-20261110/code-edit-providers-check-linux-r1/audit-r1/surface/surface.json",
+        "sha256": "8eb2a291d50c316c5618bb818e2df5f3460eeced6ec75cacc2e0710e542f23c1"
+      },
+      "replay": {
+        "path": "/var/tmp/xlang-validation/xge-full-20261110/code-edit-providers-check-linux-r1/audit-r1/replay/stage-report.json",
+        "sha256": "41f8720467c986a22292457964a6ec49318d86b3c6ce22e5dd5d235d41af6feb"
+      },
+      "consumerAudit": {
+        "path": "/var/tmp/xlang-validation/xge-full-20261110/code-edit-providers-check-linux-r1/audit-r1/consumers/results.json",
+        "sha256": "cf193f7a3c4e5d9fb834f90e8721f59055b5318086b9f25e196b430940e6f45d"
+      },
+      "executions": [
+        {
+          "mode": "jit",
+          "output": {
+            "path": "/var/tmp/xlang-validation/xge-full-20261110/code-edit-providers-check-linux-r1/suite-r1/jit.log",
+            "sha256": "64969e1d1672cbb4b3ab625b4aa66e033143a95ba32953b3bc1ccf2a10ef4515"
+          },
+          "iterationsPerClient": 1000,
+          "allocationsPerClient": 0,
+          "freesPerClient": 0,
+          "reallocationsPerClient": 0
+        },
+        {
+          "mode": "dynamicAot",
+          "output": {
+            "path": "/var/tmp/xlang-validation/xge-full-20261110/code-edit-providers-check-linux-r1/suite-r1/dynamic-execute.log",
+            "sha256": "64969e1d1672cbb4b3ab625b4aa66e033143a95ba32953b3bc1ccf2a10ef4515"
+          },
+          "iterationsPerClient": 1000,
+          "allocationsPerClient": 0,
+          "freesPerClient": 0,
+          "reallocationsPerClient": 0,
+          "imports": {
+            "path": "/var/tmp/xlang-validation/xge-full-20261110/code-edit-providers-check-linux-r1/suite-r1/dynamic-imports.log",
+            "sha256": "208d79ebfc4eb9bacdaed24436daf9e09c0b55dc5b3ffec4958ebbf428ba1f3c"
+          },
+          "nativeLibraries": [
+            "libm.so.6",
+            "libmvec.so.1",
+            "libxge3_host.so",
+            "libc.so.6",
+            "ld-linux-x86-64.so.2"
+          ]
+        },
+        {
+          "mode": "staticAot",
+          "output": {
+            "path": "/var/tmp/xlang-validation/xge-full-20261110/code-edit-providers-check-linux-r1/suite-r1/static-execute.log",
+            "sha256": "64969e1d1672cbb4b3ab625b4aa66e033143a95ba32953b3bc1ccf2a10ef4515"
+          },
+          "iterationsPerClient": 1000,
+          "allocationsPerClient": 0,
+          "freesPerClient": 0,
+          "reallocationsPerClient": 0,
+          "imports": {
+            "path": "/var/tmp/xlang-validation/xge-full-20261110/code-edit-providers-check-linux-r1/suite-r1/static-imports.log",
+            "sha256": "45e63dfef79a9b6b12dc64ab8cbfa54e768b81b54283d782dd61b28b69e41ad4"
+          },
+          "nativeLibraries": [
+            "libm.so.6",
+            "libmvec.so.1",
+            "libX11.so.6",
+            "libXi.so.6",
+            "libXcursor.so.1",
+            "libGL.so.1",
+            "libc.so.6",
+            "ld-linux-x86-64.so.2"
+          ]
+        }
+      ]
+    }
+  },
+  "audit": {
+    "functionPopulation": 5736,
+    "directDeclarations": 4671,
+    "compiledConsumerFunctions": 184,
+    "explicitReplacements": 193,
+    "pendingClassification": {
+      "XGE": 330,
+      "XUI": 358,
+      "Document UI": 2,
+      "Document": 1
+    }
+  },
+  "limits": [
+    "The stage preserves the reviewed declaration replay. Full generator storage reviews are pending.",
+    "Paired packages were staged and qualified outside release/."
+  ]
+}

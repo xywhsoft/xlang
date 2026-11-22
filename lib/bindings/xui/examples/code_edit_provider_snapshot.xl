@@ -1,0 +1,27 @@
+// Run: xl run code_edit_provider_snapshot.xl
+// Read a CodeEdit hover response as data without opening a popup.
+import xui
+
+func main(...) as int
+ auto proxy=xui.createProxy()
+ auto ui=xui.create(proxy)
+ auto editor=ui.codeEditNative()
+ assert editor.setText("print")==xui.XUI_OK
+ editor.setHoverProvider(func(xui.CallbackWidget widget,c_int offset,xui.CodeHoverReply reply) as c_int
+  auto word=xui.CodeRange()
+  word.iStart=0
+  word.iEnd=5
+  reply.set(word,"print displays a value")
+  return xui.XUI_OK
+ end)
+
+ auto hover=editor.providers().captureHover(editor,1)
+ editor.close()
+ auto word,description,_,_=hover.info()
+ assert word.iStart==0 and word.iEnd==5
+ println(description)
+ hover.close()
+ ui.close()
+ proxy.close()
+ return 0
+end

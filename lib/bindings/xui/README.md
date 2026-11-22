@@ -305,7 +305,20 @@ selection, and Editor `replaceAll` / `replaceAllEx` without a scope use the
 Native NULL branches directly. Ordinary View selection and Renderer active
 position still require real positions: their Native APIs reject NULL.
 
-## Standalone code providers
+## Code providers
+
+`editor.providers()` observes the provider set owned by that CodeEdit. Use the
+editor's `set…Provider` methods to register callbacks, and the view's `clear()`
+to remove them together. Use the view to request results directly, passing the
+editor as the callback target. It also supports invoking and querying command
+providers directly. `CodeEdit.executeCommand` and `queryCommandEnabled` run the
+editor's own command dispatch, including its built-in behavior.
+
+The view expires when the editor or its Context closes. `captureHover`,
+`requestCompletion` and `requestSignature` return independent snapshots that
+can outlive both. `captureHover` also works on standalone sets. It owns the
+reply block until closed and `info()` returns the range, text, optional content
+type and user data. See `examples/code_edit_provider_snapshot.xl`.
 
 Use `createCodeProviderSet()` when an application wants to issue code service
 requests directly. A set owns five independent provider registrations. Passing
