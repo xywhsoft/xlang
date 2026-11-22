@@ -14,7 +14,8 @@ try
   auto search = xui.createCodeFindScope()
   try
    search.addEditorNamed(first, "first.xl")
-   search.addEditorNamed(second, "second.xl")
+   second.setFindScope(search)
+   search.setEditorName(second, "second.xl")
    auto count = search.findAll("alpha")
    for index in range(int(count))
     auto start, finish, line, column, preview = search.getResult(c_int(index))

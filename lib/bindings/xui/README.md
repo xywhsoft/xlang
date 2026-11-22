@@ -312,7 +312,12 @@ CodeEdit instances with `addEditorNamed`, select the current target with
 `setActiveEditor`, and use `findAll`, `findNext` and `refresh`. The editors share
 one native find/replace window; the Context still owns every editor and window.
 Closing a scope detaches its editors, and native editor/Context destruction
-removes entries automatically. Results can be inspected and explicitly
+removes entries automatically. Use `editor.setFindScope(scope)` to join or
+switch scopes and `editor.setFindScope(null)` to leave. A failed switch
+preserves the previous membership. `context.getCodeFindScope(editor)` returns
+the existing managed scope, or `null` for an unattached editor. It checks
+Context identity and rejects scopes created only through unmanaged C.
+Results can be inspected and explicitly
 activated. `getEditor`, `getActiveEditor`, `getResultEditor` and `getFindWindow`
 take the owning `Context` and return checked optional widget views. Editor
 references remain usable after scope closure while their Context is open.

@@ -1,0 +1,385 @@
+{
+  "complete": true,
+  "passed": true,
+  "releaseInstalled": false,
+  "nativeRevision": "bc1403a2ffa1449d42ed93c98b14965d22108e90",
+  "scope": "CodeEdit shared find scope membership and existing managed owner lookup",
+  "inputs": {
+    "lib/bindings/xui/src/managed.xl": "d9fa6a2e99082523ff7eeb74526a7d86d6439fbc227012aa6aeded8bc1fbf010",
+    "lib/bindings/xui/examples/shared_find.xl": "661b3c73c6d5b99c19ba419ca0a7133c7fbffe6de457bcd17fe5b7a5ee152054",
+    "test/cases/foreign_xui_find_views.xl": "8a20577cfcfba4aecdebc3e205e808696c21d633d39e0126bb51476a8b58aa27",
+    "test/cases/foreign_xui_find_views_native.c": "8076ed07a5d31590a11db2bd295251d7d7ae8792609d9c24e2b19f8a40404e15",
+    "test/cases/foreign_xui_find_views.h": "5f1c7fc54d2098519a742e983bc60e095f27c1dd7972252f5d250b0f0052d720",
+    "test/cases/foreign_xui_render_backend.c": "2311913d1190e99b9c2ccb942ed0e2c95c519fcec9abe3be16517b4566ca183c",
+    "tools/xui_managed_contracts.py": "c3d2eddd9690fed3b4e5c6b13ba918e60b8db7fc177fbac38822c071ddbf35f2"
+  },
+  "performance": {
+    "iterationsPerMode": 1000,
+    "heapOperationsNative": 0,
+    "heapOperationsXlang": 0,
+    "languageExtraWork": "managed call and Context protection, synchronized existing-root search, retained owner",
+    "timingCompared": false
+  },
+  "platforms": {
+    "win": {
+      "compiler": {
+        "path": "F:/xlang-validation/xge-full-20261110/existing-root-compiler-sdk-win-r1/win_x64/xl.exe",
+        "sha256": "b3257b8e81b92e69e4678aeab21a88910fcf31055c60e13d7e4fceef43e87890"
+      },
+      "runtimeBuilds": {
+        "host": {
+          "path": "F:/xlang-validation/xge-full-20261110/xui-code-find-association-host-win-r1/build-report.json",
+          "sha256": "c091643a2159c24870df3c016986fedd39e4f045a470ea74b22dec417a3b3982"
+        },
+        "static": {
+          "path": "F:/xlang-validation/xge-full-20261110/xui-code-find-association-static-win-r2/build-report.json",
+          "sha256": "4dfb35f18b2a17e27b812b76bf487e0fac70bfacfb56a87ae8fa1a2de191ebd8"
+        }
+      },
+      "packageReplay": {
+        "path": "F:/xlang-validation/xge-full-20261110/xui-code-find-association-packages-win-r2/packages/stage-report.json",
+        "sha256": "9676f351713ed567a9b467c82997615ea99bdc9c5d694a099b00e8c3d519b229"
+      },
+      "nativeInput": {
+        "path": "F:/xlang-validation/xge-full-20261110/xui-code-find-association-audit-win-r1/native-source.json",
+        "sha256": "8035fd74b6d97d34f6006caef35b314f2efdd0d69e0ddd0ad06ea037392730b6"
+      },
+      "surface": {
+        "path": "F:/xlang-validation/xge-full-20261110/xui-code-find-association-audit-win-r1/surface/surface.json",
+        "sha256": "0a39798f8081ea61765ba07ab06f0681c8de18674aa949b5668ec2b2986feb5d"
+      },
+      "generatorContracts": {
+        "path": "F:/xlang-validation/xge-full-20261110/xui-code-find-association-audit-win-r1/generator-contracts.json",
+        "sha256": "34c572481593ce6338bf09693e7fddd16d0d22b49b2ac1893637f9a1e88f1536"
+      },
+      "nativeConsumers": {
+        "path": "F:/xlang-validation/xge-full-20261110/xui-code-find-association-audit-win-r1/consumers/results.json",
+        "sha256": "ff17f91bd689887d2284c1be654db69311659a81d89a0ec6a0cb2f9e5c6f7da8"
+      },
+      "baselineFailure": [
+        {
+          "path": "F:/xlang-validation/xge-full-20261110/xui-code-find-association-c-baseline-win-r1/O0-run.log",
+          "sha256": "0409a18aec0f3cc1dbbbd1f921b55885c29a8f437c3ee184c943f859e34e9ea0"
+        },
+        {
+          "path": "F:/xlang-validation/xge-full-20261110/xui-code-find-association-c-baseline-win-r1/O2-run.log",
+          "sha256": "0409a18aec0f3cc1dbbbd1f921b55885c29a8f437c3ee184c943f859e34e9ea0"
+        }
+      ],
+      "nativeTests": {
+        "host": [
+          {
+            "path": "F:/xlang-validation/xge-full-20261110/xui-code-find-association-c-host-win-r3/O0-run.log",
+            "sha256": "bdb4ee7bcb23dd4243d14fa12b048a61998c1d5a6fed7bf147d76748670c0be5"
+          },
+          {
+            "path": "F:/xlang-validation/xge-full-20261110/xui-code-find-association-c-host-win-r3/O2-run.log",
+            "sha256": "bdb4ee7bcb23dd4243d14fa12b048a61998c1d5a6fed7bf147d76748670c0be5"
+          }
+        ],
+        "static": [
+          {
+            "path": "F:/xlang-validation/xge-full-20261110/xui-code-find-association-c-static-win-r3/O0-run.log",
+            "sha256": "66292626b57d26a9f5037b5da2b6d8f9207ad92eb4a9323e3c7f0a64a90fc9d1"
+          },
+          {
+            "path": "F:/xlang-validation/xge-full-20261110/xui-code-find-association-c-static-win-r3/O2-run.log",
+            "sha256": "66292626b57d26a9f5037b5da2b6d8f9207ad92eb4a9323e3c7f0a64a90fc9d1"
+          }
+        ]
+      },
+      "languageTests": {
+        "jit": {
+          "fixture": {
+            "path": "F:/xlang-validation/xge-full-20261110/xui-code-find-association-xl-host-win-r3/fixture-jit.log",
+            "sha256": "d489a5ee338c1a649444c7a144c6e5ec2c80a34dd6bb1e43a6585cdd2c8dd461"
+          },
+          "example": {
+            "path": "F:/xlang-validation/xge-full-20261110/xui-code-find-association-xl-host-win-r3/example-jit.log",
+            "sha256": "828be8df58923a36f7e411df2bb586a8fa84976cc58e90eaaf47ce84f266aefe"
+          }
+        },
+        "dynamic-aot": {
+          "fixture": {
+            "path": "F:/xlang-validation/xge-full-20261110/xui-code-find-association-xl-host-win-r3/fixture-run.log",
+            "sha256": "d489a5ee338c1a649444c7a144c6e5ec2c80a34dd6bb1e43a6585cdd2c8dd461"
+          },
+          "example": {
+            "path": "F:/xlang-validation/xge-full-20261110/xui-code-find-association-xl-host-win-r3/example-run.log",
+            "sha256": "828be8df58923a36f7e411df2bb586a8fa84976cc58e90eaaf47ce84f266aefe"
+          },
+          "fixtureImage": {
+            "image": {
+              "path": "F:/xlang-validation/xge-full-20261110/xui-code-find-association-xl-host-win-r3/fixture.exe",
+              "sha256": "3e568808a706b6ebdb552c0fde2fb42c4214b30a5e48b47cdfc0e1ae23903db4"
+            },
+            "importLog": {
+              "path": "F:/xlang-validation/xge-full-20261110/xui-code-find-association-xl-host-win-r3/fixture-imports.log",
+              "sha256": "50622cfac38680961ad675fe7241571dbdd1873085fce89c47e9fbbaa174e6ef"
+            },
+            "dependencies": [
+              "msvcrt.dll",
+              "xge3_host.dll",
+              "kernel32.dll",
+              "SHELL32.dll",
+              "ws2_32.dll",
+              "IPHLPAPI.dll",
+              "ucrtbase.dll"
+            ]
+          },
+          "exampleImage": {
+            "image": {
+              "path": "F:/xlang-validation/xge-full-20261110/xui-code-find-association-xl-host-win-r3/example.exe",
+              "sha256": "49a461aad40a3e0d1e8786311ea35220eeaf596994eb481e177f1a0f9d28d182"
+            },
+            "importLog": {
+              "path": "F:/xlang-validation/xge-full-20261110/xui-code-find-association-xl-host-win-r3/example-imports.log",
+              "sha256": "500147ceacde737ca6efd3980d2b8ccd5919fe804dc17f7a017006ad0c3b7102"
+            },
+            "dependencies": [
+              "msvcrt.dll",
+              "xge3_host.dll",
+              "kernel32.dll",
+              "ucrtbase.dll"
+            ]
+          }
+        },
+        "static-aot": {
+          "fixture": {
+            "path": "F:/xlang-validation/xge-full-20261110/xui-code-find-association-xl-static-win-r3/fixture-run.log",
+            "sha256": "d489a5ee338c1a649444c7a144c6e5ec2c80a34dd6bb1e43a6585cdd2c8dd461"
+          },
+          "example": {
+            "path": "F:/xlang-validation/xge-full-20261110/xui-code-find-association-xl-static-win-r3/example-run.log",
+            "sha256": "828be8df58923a36f7e411df2bb586a8fa84976cc58e90eaaf47ce84f266aefe"
+          },
+          "fixtureImage": {
+            "image": {
+              "path": "F:/xlang-validation/xge-full-20261110/xui-code-find-association-xl-static-win-r3/fixture.exe",
+              "sha256": "9a8a9820a5cdd117193441e9540b65247a40007680bf3d62a7406f5506bdf087"
+            },
+            "importLog": {
+              "path": "F:/xlang-validation/xge-full-20261110/xui-code-find-association-xl-static-win-r3/fixture-imports.log",
+              "sha256": "f376b5ceba31493d2c4214520a59342972950164228997deec167396cec8772d"
+            },
+            "dependencies": [
+              "msvcrt.dll",
+              "kernel32.dll",
+              "USER32.dll",
+              "OLEAUT32.dll",
+              "ole32.dll",
+              "SHELL32.dll"
+            ]
+          },
+          "exampleImage": {
+            "image": {
+              "path": "F:/xlang-validation/xge-full-20261110/xui-code-find-association-xl-static-win-r3/example.exe",
+              "sha256": "a743d576c5dcb4176e4ee2cc092fdf1f27bf0c74e98c3ee4242d71f454c1ac70"
+            },
+            "importLog": {
+              "path": "F:/xlang-validation/xge-full-20261110/xui-code-find-association-xl-static-win-r3/example-imports.log",
+              "sha256": "5e35192d695bf6926d1a9900721a6518949ffac245e98962cd217de9e2128854"
+            },
+            "dependencies": [
+              "msvcrt.dll",
+              "kernel32.dll",
+              "USER32.dll",
+              "ole32.dll",
+              "OLEAUT32.dll",
+              "SHELL32.dll",
+              "GDI32.dll",
+              "IMM32.dll",
+              "DWrite.dll"
+            ]
+          }
+        }
+      }
+    },
+    "linux": {
+      "compiler": {
+        "path": "/var/tmp/xlang-validation/xge-full-20261110/existing-root-compiler-sdk-linux-r1/linux_x64/xl",
+        "sha256": "e5ea845bb32f4575dac6b204377dd1b9a1e6f469e66e8da5736fbaf93a238862"
+      },
+      "runtimeBuilds": {
+        "host": {
+          "path": "/var/tmp/xlang-validation/xge-full-20261110/xui-code-find-association-host-linux-r1/build-report.json",
+          "sha256": "990a9873567a4735e57414622520511aee56f7d6b6acedc668afe90df79a6d1f"
+        },
+        "static": {
+          "path": "/var/tmp/xlang-validation/xge-full-20261110/xui-code-find-association-static-linux-r2/build-report.json",
+          "sha256": "2fd86197c2633334f930a0f50a2a38f1d50220a8d3fdbb69f499f0d7731e4b2b"
+        }
+      },
+      "packageReplay": {
+        "path": "/var/tmp/xlang-validation/xge-full-20261110/xui-code-find-association-packages-linux-r2/packages/stage-report.json",
+        "sha256": "10ead690029ab33f60f65a19a443e8fa240ffecc01b8f4322446eb32823bc438"
+      },
+      "nativeInput": {
+        "path": "/var/tmp/xlang-validation/xge-full-20261110/xui-code-find-association-audit-linux-r1/native-source.json",
+        "sha256": "03f9c21eee3a8eb66e47eccf56b87c60956f5a5e864fbbda30f82a0031c5a5fa"
+      },
+      "surface": {
+        "path": "/var/tmp/xlang-validation/xge-full-20261110/xui-code-find-association-audit-linux-r1/surface/surface.json",
+        "sha256": "5a602da95102c80ab7a0f427fc40e5c01978664c4889c970a6287774751139b0"
+      },
+      "generatorContracts": {
+        "path": "/var/tmp/xlang-validation/xge-full-20261110/xui-code-find-association-audit-linux-r1/generator-contracts.json",
+        "sha256": "68d2c78a9361d5cff065652e10476f9da58a7a8454fc44317ec566e072a7b500"
+      },
+      "nativeConsumers": {
+        "path": "/var/tmp/xlang-validation/xge-full-20261110/xui-code-find-association-audit-linux-r1/consumers/results.json",
+        "sha256": "fbd685b428201e35ffb73b8bca4073c778611499188b680daa9db97be4fbef40"
+      },
+      "baselineFailure": [
+        {
+          "path": "/var/tmp/xlang-validation/xge-full-20261110/xui-code-find-association-c-baseline-linux-r1/O0-run.log",
+          "sha256": "a7804574b531fb01342e78e1b37385ec1ce8b3100b27a51620ec85103c9f183b"
+        },
+        {
+          "path": "/var/tmp/xlang-validation/xge-full-20261110/xui-code-find-association-c-baseline-linux-r1/O2-run.log",
+          "sha256": "a7804574b531fb01342e78e1b37385ec1ce8b3100b27a51620ec85103c9f183b"
+        }
+      ],
+      "nativeTests": {
+        "host": [
+          {
+            "path": "/var/tmp/xlang-validation/xge-full-20261110/xui-code-find-association-c-host-linux-r3/O0-run.log",
+            "sha256": "7359d0f9f028ec709f5c2395bf415d312a9fee93a170b733bec077f82550ceb1"
+          },
+          {
+            "path": "/var/tmp/xlang-validation/xge-full-20261110/xui-code-find-association-c-host-linux-r3/O2-run.log",
+            "sha256": "7359d0f9f028ec709f5c2395bf415d312a9fee93a170b733bec077f82550ceb1"
+          }
+        ],
+        "static": [
+          {
+            "path": "/var/tmp/xlang-validation/xge-full-20261110/xui-code-find-association-c-static-linux-r3/O0-run.log",
+            "sha256": "b5db84165270f2ea16a8797102f9fadd2aa16d94c225dfd13fe45cd572c03e32"
+          },
+          {
+            "path": "/var/tmp/xlang-validation/xge-full-20261110/xui-code-find-association-c-static-linux-r3/O2-run.log",
+            "sha256": "b5db84165270f2ea16a8797102f9fadd2aa16d94c225dfd13fe45cd572c03e32"
+          }
+        ]
+      },
+      "languageTests": {
+        "jit": {
+          "fixture": {
+            "path": "/var/tmp/xlang-validation/xge-full-20261110/xui-code-find-association-xl-host-linux-r3/fixture-jit.log",
+            "sha256": "737c275815c77527ed6a3c7d82a427a3b2af11ed2ad0049797b17ad5cd7e254d"
+          },
+          "example": {
+            "path": "/var/tmp/xlang-validation/xge-full-20261110/xui-code-find-association-xl-host-linux-r3/example-jit.log",
+            "sha256": "828be8df58923a36f7e411df2bb586a8fa84976cc58e90eaaf47ce84f266aefe"
+          }
+        },
+        "dynamic-aot": {
+          "fixture": {
+            "path": "/var/tmp/xlang-validation/xge-full-20261110/xui-code-find-association-xl-host-linux-r3/fixture-run.log",
+            "sha256": "737c275815c77527ed6a3c7d82a427a3b2af11ed2ad0049797b17ad5cd7e254d"
+          },
+          "example": {
+            "path": "/var/tmp/xlang-validation/xge-full-20261110/xui-code-find-association-xl-host-linux-r3/example-run.log",
+            "sha256": "828be8df58923a36f7e411df2bb586a8fa84976cc58e90eaaf47ce84f266aefe"
+          },
+          "fixtureImage": {
+            "image": {
+              "path": "/var/tmp/xlang-validation/xge-full-20261110/xui-code-find-association-xl-host-linux-r3/fixture",
+              "sha256": "beb48e8f42b71ae1248090a106ed2a32ca093f1b2fd8287462df8883904562be"
+            },
+            "importLog": {
+              "path": "/var/tmp/xlang-validation/xge-full-20261110/xui-code-find-association-xl-host-linux-r3/fixture-imports.log",
+              "sha256": "4f912a8c216d7bed8797c40b0fd02e890f4314c6ea131a549e7ae41f59b1cb3d"
+            },
+            "dependencies": [
+              "libm.so.6",
+              "libmvec.so.1",
+              "libxge3_host.so",
+              "libc.so.6",
+              "ld-linux-x86-64.so.2"
+            ]
+          },
+          "exampleImage": {
+            "image": {
+              "path": "/var/tmp/xlang-validation/xge-full-20261110/xui-code-find-association-xl-host-linux-r3/example",
+              "sha256": "2be97c83532578bd446539ce966d991c70027d8776c90b17b8a0c62bcfefc6b5"
+            },
+            "importLog": {
+              "path": "/var/tmp/xlang-validation/xge-full-20261110/xui-code-find-association-xl-host-linux-r3/example-imports.log",
+              "sha256": "14ac2a6590d44cc05e1a7c35308bae253e766cd5d8acedf1aa1a78ee529f1b25"
+            },
+            "dependencies": [
+              "libm.so.6",
+              "libmvec.so.1",
+              "libxge3_host.so",
+              "libc.so.6",
+              "ld-linux-x86-64.so.2"
+            ]
+          }
+        },
+        "static-aot": {
+          "fixture": {
+            "path": "/var/tmp/xlang-validation/xge-full-20261110/xui-code-find-association-xl-static-linux-r3/fixture-run.log",
+            "sha256": "737c275815c77527ed6a3c7d82a427a3b2af11ed2ad0049797b17ad5cd7e254d"
+          },
+          "example": {
+            "path": "/var/tmp/xlang-validation/xge-full-20261110/xui-code-find-association-xl-static-linux-r3/example-run.log",
+            "sha256": "828be8df58923a36f7e411df2bb586a8fa84976cc58e90eaaf47ce84f266aefe"
+          },
+          "fixtureImage": {
+            "image": {
+              "path": "/var/tmp/xlang-validation/xge-full-20261110/xui-code-find-association-xl-static-linux-r3/fixture",
+              "sha256": "cf026df1d120e98cce21e0b57f013490015df5c07ba561f903a4fa04554f245a"
+            },
+            "importLog": {
+              "path": "/var/tmp/xlang-validation/xge-full-20261110/xui-code-find-association-xl-static-linux-r3/fixture-imports.log",
+              "sha256": "5a75b51d73b90d5becca057f88cce5f7fe906552323ed3f01991b90dd6af560c"
+            },
+            "dependencies": [
+              "libm.so.6",
+              "libmvec.so.1",
+              "libX11.so.6",
+              "libXi.so.6",
+              "libXcursor.so.1",
+              "libGL.so.1",
+              "libc.so.6",
+              "ld-linux-x86-64.so.2"
+            ]
+          },
+          "exampleImage": {
+            "image": {
+              "path": "/var/tmp/xlang-validation/xge-full-20261110/xui-code-find-association-xl-static-linux-r3/example",
+              "sha256": "59f545d524667996709395027313fedf5f2b51280e1fc1945c08ff2972600026"
+            },
+            "importLog": {
+              "path": "/var/tmp/xlang-validation/xge-full-20261110/xui-code-find-association-xl-static-linux-r3/example-imports.log",
+              "sha256": "d3133d234cebd73cfc9f7091815a43f0f339f0487081cae06ffbb5ac034a7aac"
+            },
+            "dependencies": [
+              "libm.so.6",
+              "libmvec.so.1",
+              "libX11.so.6",
+              "libXi.so.6",
+              "libXcursor.so.1",
+              "libGL.so.1",
+              "libc.so.6",
+              "ld-linux-x86-64.so.2"
+            ]
+          }
+        }
+      }
+    }
+  },
+  "audit": {
+    "functionPopulation": 5722,
+    "directDeclarations": 4650,
+    "compiledConsumerFunctions": 175,
+    "explicitReplacements": 177,
+    "pendingClassification": {
+      "XGE": 331,
+      "XUI": 386,
+      "Document UI": 2,
+      "Document": 1
+    }
+  }
+}

@@ -26,6 +26,25 @@ void findViewsHeapEnd(int expected)
     assert(after.ReallocCount == before.ReallocCount && after.LiveCount == before.LiveCount);
 }
 
+void findViewsNativeScopeHot(xui_code_find_scope scope, xui_context context, xui_widget editor)
+{
+    findViewsHeapBegin();
+    for (int i = 0; i < 1000; ++i)
+        assert(xuiContextGetCodeFindScope(context, editor) == scope);
+    findViewsHeapEnd(0);
+}
+
+int findViewsSetRawScope(xui_widget editor, int attached)
+{
+    if (!attached) return xuiCodeFindScopeDestroyChecked(xuiCodeEditGetFindScope(editor));
+    xui_code_find_scope scope = NULL;
+    int status = xuiCodeFindScopeCreate(&scope);
+    if (status != XUI_OK) return status;
+    status = xuiCodeEditSetFindScope(editor, scope);
+    if (status != XUI_OK) xuiCodeFindScopeDestroy(scope);
+    return status;
+}
+
 void findViewsNativeHot(xui_code_find_scope scope, xui_context context,
     xui_widget editor, xui_widget window)
 {

@@ -1,5 +1,5 @@
 import xui
-from xui import CodeEdit,Window
+from xui import CodeEdit,Window,CodeFindScope
 
 extern "fixtureRenderProxy" @header("test/cases/foreign_xui_render_backend.h") @no_raise @c_result("owned_view") @factory(0,0,dropProxy) func cpuProxy() as xui.Proxy
 extern "fixtureRenderFont" @header("test/cases/foreign_xui_render_backend.h") @no_raise @c_result("owned_view") @factory(1,0,dropFont) func cpuFont(xui.Proxy proxy) as xui.Font
@@ -9,6 +9,8 @@ extern "fixtureRenderBudget" @header("test/cases/foreign_xui_render_backend.h") 
 extern "fixtureRenderBalanced" @header("test/cases/foreign_xui_render_backend.h") @no_raise func balanced() as c_int
 extern "findViewsHeapBegin" @header("test/cases/foreign_xui_find_views.h") @no_raise func heapBegin()
 extern "findViewsHeapEnd" @header("test/cases/foreign_xui_find_views.h") @no_raise func heapEnd(c_int expected)
+extern "findViewsNativeScopeHot" @header("test/cases/foreign_xui_find_views.h") @no_raise func nativeScopeHot(xui.CodeFindScope scope,xui.Context context,xui.CodeEdit editor)
+extern "findViewsSetRawScope" @header("test/cases/foreign_xui_find_views.h") @no_raise func setRawScope(xui.CodeEdit editor,c_int attached) as c_int
 extern "findViewsNativeHot" @header("test/cases/foreign_xui_find_views.h") @no_raise func nativeHot(xui.CodeFindScope scope,xui.Context context,xui.CodeEdit editor,xui.Window window)
 
 func expired(xui.Widget widget) as bool
@@ -17,6 +19,86 @@ func expired(xui.Widget widget) as bool
         return false
     catch Error
         return true
+    end
+end
+
+func attachFindScope(xui.Context context,xui.CodeEdit editor) as CodeFindScope
+    auto scope = xui.createCodeFindScope()
+    editor.setFindScope(scope)
+    auto alias = context.getCodeFindScope(editor) as CodeFindScope
+    assert alias == scope
+    return alias
+end
+
+func checkAssociation(xui.Context context,xui.Context other)
+    auto editor = context.codeEditNative()
+    assert context.getCodeFindScope(editor) == null
+    auto original = attachFindScope(context,editor)
+    auto target = xui.createCodeFindScope()
+    try
+        assert original.editorCount() == 1
+        assert (context.getCodeFindScope(editor) as CodeFindScope) == original
+        bool rejected = false
+        try
+            other.getCodeFindScope(editor)
+        catch Error
+            rejected = true
+        end
+        assert rejected
+
+        rejected = false
+        budget(0)
+        try
+            editor.setFindScope(target)
+        catch Error
+            rejected = true
+        finally
+            budget(-1)
+        end
+        assert rejected and original.editorCount() == 1 and target.editorCount() == 0
+        editor.setFindScope(target)
+        assert original.editorCount() == 0 and target.editorCount() == 1
+
+        auto alias = context.getCodeFindScope(editor) as CodeFindScope
+        heapBegin()
+        budget(0)
+        try
+            for i in range(1000)
+                assert (context.getCodeFindScope(editor) as CodeFindScope) == alias
+            end
+        finally
+            budget(-1)
+        end
+        heapEnd(0)
+        nativeScopeHot(target,context,editor)
+
+        editor.setFindScope(null)
+        assert target.editorCount() == 0 and context.getCodeFindScope(editor) == null
+        editor.setFindScope(target)
+        alias.close()
+        assert context.getCodeFindScope(editor) == null
+        rejected = false
+        try
+            target.editorCount()
+        catch Error
+            rejected = true
+        end
+        assert rejected
+
+        assert setRawScope(editor,1) == xui.XUI_OK
+        rejected = false
+        try
+            context.getCodeFindScope(editor)
+        catch Error
+            rejected = true
+        finally
+            assert setRawScope(editor,0) == xui.XUI_OK
+        end
+        assert rejected and context.getCodeFindScope(editor) == null
+    finally
+        target.close()
+        original.close()
+        editor.close()
     end
 end
 
@@ -132,6 +214,7 @@ func main(...) as int
     auto other = xui.create(proxy,xui.XUI_SYSTEM_FONT_DISABLED)
     try
         ui.setDefaultFont(font)
+        checkAssociation(ui,other)
         checkLookups(ui,other)
         checkContextFirst(ui,other)
     finally

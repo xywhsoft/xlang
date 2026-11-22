@@ -993,6 +993,7 @@ export typedef TreeViewIconRenderProc = func(CallbackWidget,c_int,CallbackDrawCo
 export extern "xui_context_t*" class Context @header("xge3_runtime.h") @lifetime("owned") @policy("xl6Xui3ContextPolicy") @scope("xui_call_scope_t") @watch("xui_lifetime_link_t") @domain("xl6Xui3OwnershipDomainV1")
 
  native point handle
+ extern "xuiContextGetCodeFindScope" @no_raise @c_result("existing_root") func getCodeFindScope(CodeEdit editor) as CodeFindScope?
 
  extern "xuiLabelCreate" @no_raise @c_result("owner_view",0) @factory(1,0,rollbackLabel) func labelNative(NativeConstXuiLabelDescTPointer? pDesc=null) as Label
 
@@ -2769,6 +2770,7 @@ export extern "xui_widget_t*" class CodeEdit @header("xge3_runtime.h") @lifetime
 
  extern "xuiCodeEditReplaceAllRegex" @no_raise @c_cstr(0) @c_cstr(1) @c_output(4,0) func replaceAllRegex(string query,string replacement,c_uint flags=0) as c_int
 
+ extern "xuiCodeEditSetFindScope" @no_raise @c_result("status",0) func setFindScope(CodeFindScope? scope)
  extern "xuiCodeEditOpenFind" @no_raise func openFind() as c_int
 
  extern "xuiCodeEditOpenReplace" @no_raise func openReplace() as c_int

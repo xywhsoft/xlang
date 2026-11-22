@@ -1,5 +1,23 @@
 # Native consumers in the full API inventory
 
+## CodeEdit shared find scope
+
+`CodeEdit.setFindScope` joins, switches or leaves the native find scope. XUI
+updates both the editor and the scope's member list. It validates the target
+and allocates new member storage before detaching the editor from its old
+scope. Scope destruction clears the back-reference even when the editor's
+Context is already closing. Membership changes schedule the existing find
+window refresh.
+
+`Context.getCodeFindScope` verifies the editor's Context and returns the
+existing managed `CodeFindScope` or null. The language retains that owner
+through its existing native identity registry. The lookup adds a scope check,
+registry synchronization and a search across registered roots. The warmed
+lookup requires no heap allocation in the checked fixtures. A scope created
+solely in C has no language owner and produces a checked error on lookup.
+
+[Validation evidence](../dev/release-materials/provenance/xui-code-find-association-20261122.json)
+
 ## Canvas invalidation and verified replacements
 
 XUI skips clean subtrees during render preparation. Canvas must still check the

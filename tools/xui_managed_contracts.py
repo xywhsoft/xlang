@@ -858,6 +858,10 @@ METHODS.update({
         ['extern "xuiCodeEditGetDiagnosticCount" @no_raise @c_result("integer_min",0) func diagnosticCount() as c_int']],
     'xuiCodeEditGetDiagnostic': ['int xuiCodeEditGetDiagnostic(xui_widget widget, int index, xui_code_diagnostic_t* diagnostic)', 'CodeEdit',
         ['extern "xuiCodeEditGetDiagnostic" @no_raise @c_output_record(2,"xui_code_diagnostic_t","borrowed") @c_status(0) @c_output_field(0,"tRange") @c_output_field(1,"iSeverity") @c_output_field(2,"sCode","cstring") @c_output_field(3,"sMessage","cstring") @c_output_field(4,"sSource","cstring") @c_output_field(5,"iUserData") func getDiagnostic(c_int index) as (CodeRange,c_int,string?,string?,string?,c_uintptr)']],
+    'xuiCodeEditSetFindScope': ['int xuiCodeEditSetFindScope(xui_widget pWidget, xui_code_find_scope pScope)', 'CodeEdit',
+        ['extern "xuiCodeEditSetFindScope" @no_raise @c_result("status",0) func setFindScope(CodeFindScope? scope)']],
+    'xuiContextGetCodeFindScope': ['xui_code_find_scope xuiContextGetCodeFindScope(xui_context pContext, xui_widget pWidget)', 'Context',
+        ['extern "xuiContextGetCodeFindScope" @no_raise @c_result("existing_root") func getCodeFindScope(CodeEdit editor) as CodeFindScope?']],
     'xuiCodeEditFindDiagnostic': ['int xuiCodeEditFindDiagnostic(xui_widget widget, float x, float y, xui_code_diagnostic_hit_t* hit)', 'CodeEdit',
         ['extern "xuiCodeEditFindDiagnostic" @no_raise @c_output_record(3,"xui_code_diagnostic_hit_t","borrowed") @c_status(0) @c_output_field(0,"iIndex") @c_output_field(1,"tRect") @c_output_field(2,"tDiagnostic.tRange") @c_output_field(3,"tDiagnostic.iSeverity") @c_output_field(4,"tDiagnostic.sCode","cstring") @c_output_field(5,"tDiagnostic.sMessage","cstring") @c_output_field(6,"tDiagnostic.sSource","cstring") @c_output_field(7,"tDiagnostic.iUserData") func hitTestDiagnostic(c_float contextX,c_float contextY) as (c_int,Rect,CodeRange,c_int,string?,string?,string?,c_uintptr)']],
 })
@@ -1335,6 +1339,7 @@ METHODS.update({
 # Reviewed native entry points with managed replacements.
 REPLACED = {
     'xuiCodeEditHitTestDiagnostic': ('xui.CodeEdit.hitTestDiagnostic', 'xuiCodeEditFindDiagnostic'),
+    'xuiCodeEditGetFindScope': ('xui.Context.getCodeFindScope', 'xuiContextGetCodeFindScope'),
     'xuiEditGetText': ('xui.Widget.editGetText','xuiEditGetTextView'),
     'xuiCodeEditGetText': ('xui.CodeEdit.getText','xuiCodeEditGetTextView'),
     'xuiCodeEditSetDiagnosticHover': ('xui.CodeEdit.setDiagnosticHover','xuiCodeEditSetDiagnosticHoverOwned'),
