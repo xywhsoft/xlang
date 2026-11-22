@@ -19,6 +19,7 @@
       "src/icons.xl",
       "src/cell.xl",
       "src/table_columns.xl",
+      "src/terminal_session.xl",
       "src/tree_nodes.xl",
       "src/proxy.xl",
       "src/draw.xl",

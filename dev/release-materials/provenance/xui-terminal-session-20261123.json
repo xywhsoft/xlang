@@ -1,0 +1,138 @@
+{
+  "complete": true,
+  "passed": true,
+  "releaseInstalled": false,
+  "networkTests": false,
+  "scope": "Managed TerminalSession, native resize ownership, platform transport limits and checked teardown",
+  "nativeRevision": "543a819d8e3b1142b1814e2949032689847f9daa",
+  "xlangSourceParent": "fa75cdc6f2a0db211a68ee565b73b0306084a6cd",
+  "xlangCandidateBase": "3a40446ac2699777c135503c2434cf0742d814b0",
+  "platforms": {
+    "win": {
+      "generator": {
+        "path": "F:\\xlang-validation\\xge-full-20261110\\terminal-session-generator-win-r3\\results.json",
+        "sha256": "45532e7cbfdd4236ad405ad51515b0a1d34e94ce060f6fdc573eb34bc6486c3e"
+      },
+      "inventory": {
+        "path": "F:\\xlang-validation\\xge-full-20261110\\terminal-session-stage-win-r1\\audit-r1\\surface\\surface.json",
+        "sha256": "698dba6b9b7b395d526379b5b14633d8486d322f25518b68cee06d5487e8945b"
+      },
+      "consumers": {
+        "path": "F:\\xlang-validation\\xge-full-20261110\\terminal-session-stage-win-r1\\audit-r1\\consumers\\results.json",
+        "sha256": "24b4c4a994022fc5b78fb6fda348ecb33c994d3a0759ccfa353ddb9d70044d50"
+      },
+      "hostedBuild": {
+        "path": "F:\\xlang-validation\\xge-full-20261110\\terminal-session-host-win-r2\\build-report.json",
+        "sha256": "ce658b4f335bb5031cfcee8ea9018f981061ea88e3497a861d9e7bf84cacb8e3"
+      },
+      "staticBuild": {
+        "path": "F:\\xlang-validation\\xge-full-20261110\\terminal-session-static-win-r2\\build-report.json",
+        "sha256": "528502b64de46fc823466a3660d387c9e95b75b7d623b823eabb94217fc32176"
+      },
+      "candidatePackages": {
+        "path": "F:\\xlang-validation\\xge-full-20261110\\terminal-session-stage-win-r1\\replay\\stage-report.json",
+        "sha256": "fecb603024b29e5f733ad76b64850ccaaa5df5221e74694f1dc6c47109bee408"
+      },
+      "tests": {
+        "path": "F:\\xlang-validation\\xge-full-20261110\\terminal-session-tests-win-r1\\results.json",
+        "sha256": "569de1af2e49824de129aca8e74e582a8ecadebc3fc80767b9cfd791b4865fe3"
+      },
+      "legacyNativeRegression": {
+        "path": "F:\\xlang-validation\\xge-full-20261110\\terminal-session-legacy-win-r2\\results.json",
+        "sha256": "9219eaf61ec62660afe59db5067d77cb6552878fe7e2c2b1efd62ed8278fdb97"
+      },
+      "sample": {
+        "path": "F:\\xlang-validation\\xge-full-20261110\\terminal-session-tests-win-r1\\example.rgba",
+        "sha256": "61e09ccce9681c5d2f527387b4d02bce301add82033b3c3b8ea5684329013115"
+      },
+      "checks": 11,
+      "localProcessSupported": true,
+      "directCalls": {
+        "xuiTerminalCreateFakeSessionOwned": 3,
+        "xuiTerminalAttachSession": 4,
+        "xuiTerminalSessionShareOwned": 1,
+        "xuiTerminalSessionSetResizeCallbackOwned": 4,
+        "xuiTerminalSessionResize": 3,
+        "xuiTerminalSessionWrite": 3,
+        "xuiTerminalBuildSshCommand": 2,
+        "xuiTerminalCreateProcessSessionOwned": 2
+      }
+    },
+    "linux": {
+      "generator": {
+        "path": "\\\\wsl.localhost\\Ubuntu\\var\\tmp\\xlang-validation\\xge-full-20261110\\terminal-session-generator-linux-r3\\results.json",
+        "sha256": "acc5610726d31371c305d8f495d3d43c03194260f23ee1ea8b7e6fee9ac10d4f"
+      },
+      "inventory": {
+        "path": "\\\\wsl.localhost\\Ubuntu\\var\\tmp\\xlang-validation\\xge-full-20261110\\terminal-session-stage-linux-r1\\audit-r1\\surface\\surface.json",
+        "sha256": "fbfdd65ce03b8b5a48985ea9d2031e30fb277240affdfba4627e7f7f6a8e762f"
+      },
+      "consumers": {
+        "path": "\\\\wsl.localhost\\Ubuntu\\var\\tmp\\xlang-validation\\xge-full-20261110\\terminal-session-stage-linux-r1\\audit-r1\\consumers\\results.json",
+        "sha256": "c72eddbebff5e789203cfea1194014f587e60cdd283e02a57bb1088d35c39b12"
+      },
+      "hostedBuild": {
+        "path": "\\\\wsl.localhost\\Ubuntu\\var\\tmp\\xlang-validation\\xge-full-20261110\\terminal-session-host-linux-r2\\build-report.json",
+        "sha256": "a23a925e05834157d14239c635afe3a0b8dffceb4bf3c923750fcb2e621ea53e"
+      },
+      "staticBuild": {
+        "path": "\\\\wsl.localhost\\Ubuntu\\var\\tmp\\xlang-validation\\xge-full-20261110\\terminal-session-static-linux-r2\\build-report.json",
+        "sha256": "e8c91559abee919d7bbaf069fa5a611b9d9cd8c67a4c0cd31de7e42dcd2dbc60"
+      },
+      "candidatePackages": {
+        "path": "\\\\wsl.localhost\\Ubuntu\\var\\tmp\\xlang-validation\\xge-full-20261110\\terminal-session-stage-linux-r1\\replay\\stage-report.json",
+        "sha256": "78433cf6ae2c8735237a7f77e8c415f7ebaa528c3240417ef4193158a458fae5"
+      },
+      "tests": {
+        "path": "\\\\wsl.localhost\\Ubuntu\\var\\tmp\\xlang-validation\\xge-full-20261110\\terminal-session-tests-linux-r1\\results.json",
+        "sha256": "531b10a91a793d750e2c016f7b88d61934b4951375fd18b0f10f64da7523dd20"
+      },
+      "legacyNativeRegression": {
+        "path": "\\\\wsl.localhost\\Ubuntu\\var\\tmp\\xlang-validation\\xge-full-20261110\\terminal-session-legacy-linux-r2\\results.json",
+        "sha256": "957d5c0c0d2da884370431b9fd2a838e524a9c90d795960a2170cba785f80a53"
+      },
+      "sample": {
+        "path": "\\\\wsl.localhost\\Ubuntu\\var\\tmp\\xlang-validation\\xge-full-20261110\\terminal-session-tests-linux-r1\\example.rgba",
+        "sha256": "caf9af59e75d95fb78a67441053f2f15cd9a58aa8f649ede28e14e163359760c"
+      },
+      "checks": 11,
+      "localProcessSupported": false,
+      "directCalls": {
+        "xuiTerminalCreateFakeSessionOwned": 3,
+        "xuiTerminalAttachSession": 4,
+        "xuiTerminalSessionShareOwned": 1,
+        "xuiTerminalSessionSetResizeCallbackOwned": 4,
+        "xuiTerminalSessionResize": 3,
+        "xuiTerminalSessionWrite": 3,
+        "xuiTerminalBuildSshCommand": 2,
+        "xuiTerminalCreateProcessSessionOwned": 2
+      }
+    }
+  },
+  "audit": {
+    "functions": 5761,
+    "directDeclarations": 4695,
+    "compiledNativeConsumers": 281,
+    "explicitReplacements": 312,
+    "pending": {
+      "XGE": 160,
+      "XUI": 316,
+      "Document": 0
+    }
+  },
+  "allocationCheck": {
+    "operation": "resize and poll with no callback and a prepared fake session",
+    "iterations": 1000,
+    "native": {
+      "alloc": 0,
+      "free": 0,
+      "realloc": 0
+    },
+    "xlang": {
+      "alloc": 0,
+      "free": 0,
+      "realloc": 0
+    }
+  },
+  "remainingTerminalNativeEntry": "xuiTerminalSetImageCallback returns XUI_ERROR_UNSUPPORTED"
+}

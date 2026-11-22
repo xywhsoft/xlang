@@ -66,6 +66,8 @@ HEADER_CLOSE_REPLACEMENTS.update({
     old: (f'xge.{owner}.close', release)
     for old, (owner, _, release) in CORE_HEADER_CLOSES.items()
 })
+HEADER_CLOSE_REPLACEMENTS['xuiTerminalSessionDestroy'] = (
+    'xui.TerminalSession.close', 'xuiTerminalSessionReleaseOwnerChecked')
 DOCUMENT_RENDERER_SOURCE = 'src/xui/document/xui_document_renderer.c'
 DOCUMENT_MODEL_SOURCE = 'src/xui/document/xui_document.c'
 DOCUMENT_FONT_TAIL = {'xuiDocumentFontOutputInit', 'xuiDocumentFontOutputDisposeChecked'}
@@ -380,6 +382,8 @@ def main():
                 {name: binding for name, binding in class_bindings.items() if binding['package']=='xge3d'}),
             'coreHeaderPolicies': ('xge-header-policies',
                 {name: class_bindings[name] for name in CORE_POLICY_CLASSES}),
+            'terminalHeaderPolicies': ('xui-terminal-header-policies',
+                {'xui.TerminalSession': class_bindings['xui.TerminalSession']}),
         }
         header_relocations = {}
         for key, (name, classes) in policy_groups.items():
@@ -423,6 +427,9 @@ def main():
                 if symbol in CORE_HEADER_CLOSES:
                     key='coreHeaderPolicies'
                     destroy='xl6Xge3'+CORE_HEADER_CLOSES[symbol][1]+'Destroy'
+                elif symbol=='xuiTerminalSessionDestroy':
+                    key='terminalHeaderPolicies'
+                    destroy='xl6Xui3TerminalSessionDestroy'
                 else:
                     key='headerPolicies'
                     destroy='xl6Xge3dSceneDestroy' if policy=='xl6Xge3dScenePolicy' else policy+'Destroy'

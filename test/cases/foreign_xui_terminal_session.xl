@@ -1,0 +1,156 @@
+import xui
+from xui import CallbackTerminalSession
+
+extern "fixtureTerminalSessionBudget" @header("test/cases/foreign_xui_terminal_session.h") @no_raise func budget(c_int allowance)
+extern "fixtureTerminalSessionRollback" @no_raise func rollback()
+extern "fixtureTerminalSessionBegin" @no_raise func heapBegin()
+extern "fixtureTerminalSessionEnd" @no_raise func heapEnd(c_int native)
+extern "fixtureTerminalSessionNativeHot" @no_raise func nativeHot(xui.TerminalSession session)
+extern "fixtureTerminalSessionEdges" @no_raise func edges(xui.TerminalSession session) as c_int
+
+func main(...) as int
+    int failed = 0
+    int succeeded = 0
+    for allowance in range(12)
+        budget(c_int(allowance))
+        try
+            auto candidate = xui.createFakeTerminalSession("> ")
+            candidate.close()
+            succeeded += 1
+        catch Error
+            failed += 1
+        finally
+            rollback()
+        end
+    end
+    assert failed > 0 and succeeded > 0
+
+    auto session = xui.createFakeTerminalSession("> ")
+    assert session.isRunning() == 1
+    auto shared = session.share()
+    session.close()
+    assert shared.isRunning() == 1
+
+    int resized = 0
+    int busy = 0
+    CallbackTerminalSession? saved = null
+    shared.setResizeCallback(func(CallbackTerminalSession current, c_int columns, c_int rows)
+        assert current.isRunning() == 1 and columns > 0 and rows > 0
+        saved = current
+        resized += 1
+        try
+            shared.close()
+        catch Error
+            busy += 1
+        end
+        try
+            shared.setResizeCallback(null)
+        catch Error
+            busy += 1
+        end
+    end)
+    assert edges(shared) == 1
+    shared.resize(24,5)
+    assert resized == 1 and busy == 2 and shared.isRunning() == 1
+    failed = 0
+    try
+        (saved as CallbackTerminalSession).isRunning()
+    catch StateError
+        failed += 1
+    end
+    assert failed == 1
+
+    shared.setResizeCallback(func(CallbackTerminalSession current, c_int columns, c_int rows)
+        assert false, "session callback failure"
+    end)
+    failed = 0
+    try
+        shared.resize(24,5)
+    catch AssertionError
+        failed += 1
+    end
+    assert failed == 1
+    shared.setResizeCallback(null)
+    assert edges(shared) == 0
+
+    auto worker = thread(func() as int
+        try
+            shared.isRunning()
+        catch StateError
+            return 1
+        end
+        return 0
+    end)
+    assert worker.waitTimeout(30000) and worker.exitCode() == 1
+
+    heapBegin()
+    for i in range(1000)
+        shared.resize(24,5)
+        assert shared.poll() == 0
+    end
+    heapEnd(0)
+    heapBegin()
+    nativeHot(shared)
+    heapEnd(1)
+
+    auto proxy = xui.createProxy()
+    auto ui = xui.create(proxy)
+    auto terminal = ui.terminalNative()
+    terminal.resize(24,5)
+    terminal.attachSession(shared)
+    shared.write(b"hello")
+    assert terminal.getCell(2,0).iCodepoint == 104
+    terminal.detachSession()
+    auto column, row = terminal.getCursor()
+    shared.write(Buffer("detached"))
+    auto nextColumn, nextRow = terminal.getCursor()
+    assert column == nextColumn and row == nextRow
+    terminal.attachSession(shared)
+    shared.terminate()
+    assert shared.isRunning() == 0
+    shared.close()
+    assert terminal.inputText("detached on close") == 0
+
+    auto closedWidgetSession = xui.createFakeTerminalSession()
+    terminal.attachSession(closedWidgetSession)
+    terminal.close()
+    closedWidgetSession.write("widget already closed")
+    closedWidgetSession.close()
+
+    auto output = Buffer()
+    assert output.resize(4)
+    auto needed = xui.buildSshTerminalCommand("offline-test", "demo", 2222)
+    assert needed > 4
+    assert xui.buildSshTerminalCommand("offline-test", "demo", 2222, output=output) == needed
+    assert output[3] == uint8(0)
+
+    if os.platform() == "windows" then
+        auto localChild = xui.createProcessTerminalSession("cmd.exe /d /q /c echo local")
+        auto target = ui.terminalNative()
+        target.resize(24,5)
+        target.attachSession(localChild)
+        int received = 0
+        for i in range(100)
+            received += int(localChild.poll())
+            if received > 0 then break end
+            time.sleep(10)
+        end
+        assert received >= 5 and target.getCell(0,0).iCodepoint == 108
+        localChild.close()
+        target.close()
+        println("TerminalSession local Windows process passed")
+    else
+        failed = 0
+        try
+            auto unsupported = xui.createProcessTerminalSession("local")
+            unsupported.close()
+        catch Error
+            failed += 1
+        end
+        assert failed == 1
+    end
+    ui.close()
+    proxy.close()
+    println("TERMINAL_SESSION_OK")
+    return 0
+end

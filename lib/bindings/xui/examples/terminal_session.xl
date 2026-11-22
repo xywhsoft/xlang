@@ -1,0 +1,16 @@
+import xui
+from "./_window.xl" import Window
+
+// This local session echoes typing without starting a shell.
+auto session = xui.createFakeTerminalSession("> ")
+try
+    Window.show("Terminal / local echo", func(xui.Context ui, xui.Widget root)
+        auto terminal = ui.terminalNative()
+        Window.place(root, terminal, 24, 24, 640, 320)
+        terminal.attachSession(session)
+        session.write("Type here to try the local echo.\r")
+        assert ui.setFocusWidget(terminal) == 0
+    end)
+finally
+    session.close()
+end

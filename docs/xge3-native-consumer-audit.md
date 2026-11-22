@@ -1,5 +1,32 @@
 # Native consumers in the full API inventory
 
+## Managed terminal sessions
+
+`TerminalSession` can attach to a `Terminal`, echo local input, write
+counted bytes, poll, resize, and terminate. The attachment is weak.
+An owned session view keeps it live, `share()` creates an independent
+owner, and final release detaches and retires the transport. The
+creator thread owns session operations and finalization.
+
+The resize registration owns its language closure in the native
+ownership graph. It pins the session through the callback and its
+cleanup. During the callback, explicit close and replacement of that
+registration report Busy. The callback session view expires on
+return. Errors from the callback cross the checked language boundary.
+
+The fake session works on Windows and Linux. The existing process
+transport, including SSH via a child process, is Windows-only.
+The SSH command formatter can run on both. The validation uses a
+local Windows child and checks command formatting with a dummy
+host value. Sixel and iTerm2 image handling is still an unsupported
+native stub.
+
+The generated calls select the native functions directly. In 1,000
+resize and poll pairs with a prepared fake session and no callback,
+both xlang and C used zero allocations, frees, and reallocations.
+
+[Validation evidence](../dev/release-materials/provenance/xui-terminal-session-20261123.json)
+
 ## Shared particle definitions and XGE header policies
 
 `ParticleDefinition.share()` calls `xgeParticleDefinitionShareOwned` directly.

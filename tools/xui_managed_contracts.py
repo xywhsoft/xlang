@@ -1369,6 +1369,14 @@ CLOSE_REPLACEMENTS = {
 
 # Reviewed native entry points with managed replacements.
 REPLACED = {
+    'xuiTerminalCreateFakeSession': ('xui.createFakeTerminalSession', 'xuiTerminalCreateFakeSessionOwned'),
+    'xuiTerminalCreateProcessSession': ('xui.createProcessTerminalSession', 'xuiTerminalCreateProcessSessionOwned'),
+    'xuiTerminalCreateSshSession': ('xui.createSshTerminalSession', 'xuiTerminalCreateSshSessionOwned'),
+    'xuiTerminalSessionSetResizeCallback': ('xui.TerminalSession.setResizeCallback', 'xuiTerminalSessionSetResizeCallbackOwned'),
+    'xuiTerminalSetInputCallback': ('xui.Terminal.setInputCallback', 'xuiTerminalSetInputCallbackOwned'),
+    'xuiTerminalSetResizeCallback': ('xui.Terminal.setResizeCallback', 'xuiTerminalSetResizeCallbackOwned'),
+    'xuiTerminalSetTitleCallback': ('xui.Terminal.setTitleCallback', 'xuiTerminalSetTitleCallbackOwned'),
+    'xuiTerminalSetLinkCallback': ('xui.Terminal.setLinkCallback', 'xuiTerminalSetLinkCallbackOwned'),
     'xuiTableViewCellOutputAddRef': ('xui.TableCellOutput.share','xuiTableViewCellOutputShareOwned'),
     'xuiTableViewSetHeaderRenderer': ('xui.TableView.setHeaderRenderer','xuiTableViewSetHeaderRendererOwned'),
     'xuiTableViewSetCellRenderer': ('xui.TableView.setCellRenderer','xuiTableViewSetCellRendererOwned'),
@@ -1532,6 +1540,9 @@ METHODS.update({
     'xuiTerminalScrollBy': (
         'int xuiTerminalScrollBy(xui_widget pWidget, float fDeltaY)',
         'Terminal', ['extern "xuiTerminalScrollBy" @no_raise @c_result("status",0) func scrollBy(c_float dy)']),
+    'xuiTerminalAttachSession': (
+        'int xuiTerminalAttachSession(xui_widget pWidget, xui_terminal_session_t* pSession)',
+        'Terminal', ['extern "xuiTerminalAttachSession" @no_raise @c_result("status",0) func attachSession(TerminalSession session)']),
     'xuiScrollFrameGetScrollSnapshot': (
         'int xuiScrollFrameGetScrollSnapshot(xui_widget pWidget, xui_scroll_model_t* pSnapshot)',
         'ScrollFrame', ['extern "xuiScrollFrameGetScrollSnapshot" @no_raise @c_output(1,0) func scrollSnapshot() as ScrollModel']),

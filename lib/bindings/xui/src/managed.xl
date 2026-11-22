@@ -4221,6 +4221,8 @@ export extern "xui_widget_t*" class Terminal @header("xge3_runtime.h") @lifetime
 
  extern "xuiTerminalDetachSession" @no_raise @c_result("status",0) func detachSession()
 
+ extern "xuiTerminalAttachSession" @no_raise @c_result("status",0) func attachSession(TerminalSession session)
+
  extern "xuiTerminalGetChangeCount" @no_raise func getChangeCount() as c_int
 
  extern "xuiTerminalGetStats" @no_raise @c_output(1,0) func getStats() as TerminalStats

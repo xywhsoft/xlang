@@ -1,0 +1,33 @@
+export extern "xui_terminal_session_t*" class CallbackTerminalSession @header("xui3_terminal_session.h") @lifetime("callback")
+ native point handle
+ extern "xuiTerminalSessionIsRunning" @no_raise @c_result("integer_min",0) func isRunning() as c_int
+ extern "xuiTerminalSessionShareOwned" @no_raise @c_result("owned_view") @factory(1,0,rollbackTerminalSession) func share() as TerminalSession
+end
+
+export typedef TerminalSessionResizeProc = func(CallbackTerminalSession,c_int,c_int)
+
+// Keep an owned view alive while the terminal is attached. Closing the
+// final view detaches the session and stops its process, if any.
+export extern "xui_terminal_session_t*" class TerminalSession @header("xui3_terminal_session.h") @lifetime("owned") @policy("xl6Xui3TerminalSessionPolicy") @domain("xl6Xui3TerminalSessionDomainV1")
+ native point handle
+ extern "xuiTerminalSessionShareOwned" @no_raise @c_result("owned_view") @factory(1,0,rollbackTerminalSession) func share() as TerminalSession
+ extern "xuiTerminalSessionWrite" @no_raise @c_span(0,"const void*","int") @c_result("status",0) func write(string data)
+ extern "xuiTerminalSessionWrite" @no_raise @c_span(0,"const void*","int") @c_result("status",0) func write(bytes data)
+ extern "xuiTerminalSessionWrite" @no_raise @c_span(0,"const void*","int") @c_result("status",0) func write(Buffer data)
+ extern "xuiTerminalSessionPoll" @no_raise @c_result("integer_min",0) func poll() as c_int
+ extern "xuiTerminalSessionIsRunning" @no_raise @c_result("integer_min",0) func isRunning() as c_int
+ extern "xuiTerminalSessionTerminate" @no_raise @c_result("status",0) func terminate()
+ extern "xuiTerminalSessionResize" @no_raise @c_result("status",0) func resize(c_int columns,c_int rows)
+ extern "xuiTerminalSessionSetResizeCallbackOwned" @no_raise @c_owned_callback(0,0,"xui_callback_owner_t",0) @c_result("status",0) func setResizeCallback(TerminalSessionResizeProc? callback)
+ extern "xl6ForeignViewCloseV1" @no_raise @c_control(0) @c_result("bool_status") func close()
+end
+
+extern "xuiTerminalSessionDestroy" @header("xui3_terminal_session.h") @no_raise func rollbackTerminalSession(TerminalSession value)
+
+export extern "xuiTerminalCreateFakeSessionOwned" @header("xui3_terminal_session.h") @no_raise @c_pack(1,"xui_terminal_session_desc_t",0,2) @c_pack_size(1,"iSize","uint32_t") @c_pack_field(1,"sPrompt",0,"c_string") @c_pack_field(1,"bEcho",1,"value") @c_result("owned_view") @factory(0,0,rollbackTerminalSession) func createFakeTerminalSession(string prompt="",c_int echo=1) as TerminalSession
+
+export extern "xuiTerminalCreateProcessSessionOwned" @header("xui3_terminal_session.h") @no_raise @c_pack(1,"xui_terminal_process_desc_t",0,5) @c_pack_size(1,"iSize","uint32_t") @c_pack_field(1,"sCommandLine",0,"c_string") @c_pack_field(1,"sWorkingDirectory",1,"c_string") @c_pack_field(1,"iFlags",2,"value") @c_pack_field(1,"iColumns",3,"value") @c_pack_field(1,"iRows",4,"value") @c_result("owned_view") @factory(0,0,rollbackTerminalSession) func createProcessTerminalSession(string commandLine,string? workingDirectory=null,c_uint flags=0,c_int columns=0,c_int rows=0) as TerminalSession
+
+export extern "xuiTerminalCreateSshSessionOwned" @header("xui3_terminal_session.h") @no_raise @c_pack(1,"xui_terminal_ssh_desc_t",0,12) @c_pack_size(1,"iSize","uint32_t") @c_pack_field(1,"sHost",0,"c_string") @c_pack_field(1,"sUser",1,"c_string") @c_pack_field(1,"iPort",2,"value") @c_pack_field(1,"sCommand",3,"c_string") @c_pack_field(1,"sIdentityFile",4,"c_string") @c_pack_field(1,"sExtraOptions",5,"c_string") @c_pack_field(1,"sExecutable",6,"c_string") @c_pack_field(1,"sWorkingDirectory",7,"c_string") @c_pack_field(1,"iFlags",8,"value") @c_pack_field(1,"iProcessFlags",9,"value") @c_pack_field(1,"iColumns",10,"value") @c_pack_field(1,"iRows",11,"value") @c_result("owned_view") @factory(0,0,rollbackTerminalSession) func createSshTerminalSession(string host,string? user=null,c_int port=0,string? command=null,string? identityFile=null,string? extraOptions=null,string? executable=null,string? workingDirectory=null,c_uint flags=0,c_uint processFlags=0,c_int columns=0,c_int rows=0) as TerminalSession
+
+export extern "xuiTerminalBuildSshCommand" @header("xui3_terminal_session.h") @no_raise @c_pack(0,"xui_terminal_ssh_desc_t",0,8) @c_pack_size(0,"iSize","uint32_t") @c_pack_field(0,"sHost",0,"c_string") @c_pack_field(0,"sUser",1,"c_string") @c_pack_field(0,"iPort",2,"value") @c_pack_field(0,"sCommand",3,"c_string") @c_pack_field(0,"sIdentityFile",4,"c_string") @c_pack_field(0,"sExtraOptions",5,"c_string") @c_pack_field(0,"sExecutable",6,"c_string") @c_pack_field(0,"iFlags",7,"value") @c_span(8,"char*","int") @c_result("integer_min",0) func buildSshTerminalCommand(string host,string? user=null,c_int port=0,string? command=null,string? identityFile=null,string? extraOptions=null,string? executable=null,c_uint flags=0,Buffer? output=null) as c_int
