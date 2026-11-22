@@ -1,0 +1,298 @@
+{
+  "complete": true,
+  "passed": true,
+  "releaseInstalled": false,
+  "networkTests": false,
+  "scope": "Owned per-column TableView formatters and typed TableView/TableGrid row arrays",
+  "nativeRevision": "e2019fd28343d79a8d1db8ae9c3e367d90c6e344",
+  "xlangSourceParent": "d25b24f665d0c1dbab60c4623b5be6d8ae20c782",
+  "xlangInputs": {
+    "docs/xge3-native-consumer-audit.md": "561067222a1aad2b504b425aa3691eaf8b90484c563e2f18fda3b0d4bc5b262b",
+    "docs/xge3-xui3-api-map-storage.json": "635eee2ca415bed528b87cb5f0d6c77131d8124a71665e5bb0a9072bc114890c",
+    "lib/bindings/xui/examples/table_column_format.xl": "0930c91d221fa6d7cdeb5b9b028cb74e76813225724c95a3551c3f191ea76380",
+    "lib/bindings/xui/src/managed.xl": "40ca390ae181425a517ad24a5df9139b47f90fe36c2bc87222ec7210103c7e3e",
+    "lib/bindings/xui/src/table_columns.xl": "95c55ae22abd226d10e7cd3cf7edb6ac5bc1877f71741c4e3aedd4da39f54519",
+    "test/cases/foreign_xui_table_column_formatter.c": "7501cd3e8a195047afbf3caf244b31eba4827933985e636ae4be3370bdd16c30",
+    "test/cases/foreign_xui_table_column_formatter.h": "ae5c2d60162b64212619a1d350de09a9c83473d0ba21dbb5813fe8df911b1591",
+    "test/cases/foreign_xui_table_column_formatter.xl": "6bdc421ec68464889a4465fce2360041cbf40a8ddc1aad10e8fceb1d0c202c5d",
+    "tools/xui_managed_contracts.py": "85893d1bbcccf1efbb5f431eb3257db94246132bab8ded7acfdf401793ecad29"
+  },
+  "helpers": [
+    {
+      "path": "F:/xlang-validation/xge-full-20261110/build-table-formatter-r1.py",
+      "sha256": "94201292d9e89eb0792777c4df84821a11bc6adc7f4e05baa65c67f978ae5650",
+      "bytes": 2728
+    },
+    {
+      "path": "F:/xlang-validation/xge-full-20261110/freeze-table-formatter-r1.py",
+      "sha256": "f7f3d30e1faf5c739e84ff31ada7a0014d3e8818c82b34f7b4c5dcd2a5ef52f1",
+      "bytes": 725
+    },
+    {
+      "path": "F:/xlang-validation/xge-full-20261110/stage-table-formatter-r1.py",
+      "sha256": "821f78e590286784e9bcb635356dbf7ab388be4272c257f86746faa2521be9c2",
+      "bytes": 1226
+    },
+    {
+      "path": "F:/xlang-validation/xge-full-20261110/check-table-formatter-r3.py",
+      "sha256": "311f734b96fc98707e4928bc0ea012427725c62154ec1f48658d6d0784f39b01",
+      "bytes": 3820
+    },
+    {
+      "path": "F:/xlang-validation/xge-full-20261110/check-table-formatter-native-r1.py",
+      "sha256": "dd39eeec725fd7e19c2a995e5697a59b552eac8e9815ea7699b891d7bf3c2e2c",
+      "bytes": 2253
+    },
+    {
+      "path": "F:/xlang-validation/xge-full-20261110/audit-table-formatter-r1.py",
+      "sha256": "21fd6a8dd84c5471ba64b21f6cfaa6e970807cdf9989dd15108adb34b7d6712a",
+      "bytes": 2566
+    },
+    {
+      "path": "F:/xlang-validation/xge-full-20261110/freeze-table-formatter-example-r1.py",
+      "sha256": "74822ad0c5dfcbb37d974ead50ee71fd7aeb20e6ecacfd14b9c7dbe615b402ee",
+      "bytes": 644
+    },
+    {
+      "path": "F:/xlang-validation/xge-full-20261110/stage-table-formatter-r2.py",
+      "sha256": "2e0aa5fa179990c6cedbbfa3b099b3fc89a1ebc6a3861768f0b3b30b9bc1cf19",
+      "bytes": 1234
+    }
+  ],
+  "audit": {
+    "functions": 5746,
+    "directDeclarations": 4681,
+    "compiledNativeConsumers": 218,
+    "explicitReplacements": 293,
+    "pending": {
+      "XGE": 220,
+      "XUI": 337,
+      "Document": 0
+    }
+  },
+  "boundaries": [
+    "Both callback view types expire on return.",
+    "A 255-byte buffer truncates without splitting UTF-8.",
+    "Raw C formatting still replaces an existing managed column formatter.",
+    "OOM rolls back typed rows, formatter registration, and column allocation.",
+    "All 64 callback slots are retired on column replacement.",
+    "Owner Hold may reenter; outer registration is rejected.",
+    "A formatter can replace columns and still report the original checked error."
+  ],
+  "performance": {
+    "roundsPerSample": 5000,
+    "timer": "C clock() with XRT heap instrumentation on",
+    "comparison": "Same native accessibility read and same text from a C callback and an xlang callback",
+    "nativeAllocationsPerCall": 0,
+    "xlangAllocationsPerCall": 1
+  },
+  "linuxExample": {
+    "languageSource": "lib/bindings/xui/examples/table_column_format.xl",
+    "sourceSha256": "0930c91d221fa6d7cdeb5b9b028cb74e76813225724c95a3551c3f191ea76380",
+    "log": {
+      "path": "/var/tmp/xlang-validation/xge-full-20261110/table-formatter-stage-linux-r2/example-r1/example.log",
+      "sha256": "8b5396a6cf8653b8a1c9109e43faf0a30dd5d23ab5c5cf0900150b84e7e63afb",
+      "bytes": 117
+    },
+    "maxFrames": 2,
+    "exitCode": 0
+  },
+  "platforms": {
+    "win": {
+      "nativeSource": {
+        "path": "F:/xlang-validation/xge-full-20261110/table-formatter-stage-win-r1/audit-r1/native-source.json",
+        "sha256": "d7beb9ec060807e78a95b41f0839147a903e8cbcdb53e9cb69d9aa7337a059ef",
+        "bytes": 466177
+      },
+      "generator": {
+        "path": "F:/xlang-validation/xge-full-20261110/table-formatter-generator-win-r1/results.json",
+        "sha256": "7b67c08cc26f00417848fbe836b33468c735c55bf42ab62b4606d55baade0e12",
+        "bytes": 241627
+      },
+      "inventory": {
+        "path": "F:/xlang-validation/xge-full-20261110/table-formatter-stage-win-r1/audit-r1/surface/surface.json",
+        "sha256": "d49dd8064a91f59107551b95a38a6afd4209b0146fd9e4524aca8a0d82d24617",
+        "bytes": 5521243
+      },
+      "consumers": {
+        "path": "F:/xlang-validation/xge-full-20261110/table-formatter-stage-win-r1/audit-r1/consumers/results.json",
+        "sha256": "0bdf6eea11e0fc2c1eff3419539aff85621f3c72c97a532564539b77d50210dd",
+        "bytes": 1326821
+      },
+      "hostedBuild": {
+        "path": "F:/xlang-validation/xge-full-20261110/table-formatter-host-win-r1/build-report.json",
+        "sha256": "20d9dafde8593055d4f70942006bf27d107b64f17c428dcde8753a6747bc33b5",
+        "bytes": 23780
+      },
+      "staticBuild": {
+        "path": "F:/xlang-validation/xge-full-20261110/table-formatter-static-win-r1/build-report.json",
+        "sha256": "0a395bfce23db57e5498588f9246940b2a99739780c81655525a207d4867c845",
+        "bytes": 10262844
+      },
+      "runtimePackages": {
+        "path": "F:/xlang-validation/xge-full-20261110/table-formatter-stage-win-r1/replay/stage-report.json",
+        "sha256": "da6906c85403983e0404663d49200b50e7e718b4f1aaa50c9906e95f7d845982",
+        "bytes": 169910
+      },
+      "candidateWithExample": {
+        "path": "F:/xlang-validation/xge-full-20261110/table-formatter-stage-win-r2/replay/stage-report.json",
+        "sha256": "004877607f485e8db524b7a4fd5fda63d425ed2cb3c8a40076758fa0e2630d4d",
+        "bytes": 170294
+      },
+      "runtime": {
+        "path": "F:/xlang-validation/xge-full-20261110/table-formatter-stage-win-r1/suite-r4/results.json",
+        "sha256": "9e57137a7c0236524c187d79fbfde620d75579fb50c4c78b0ea7447dca9271b7",
+        "bytes": 8521
+      },
+      "nativeProviderRegression": {
+        "path": "F:/xlang-validation/xge-full-20261110/table-formatter-stage-win-r1/native-suite-r1/results.json",
+        "sha256": "1ad5246868ec21ff629982dbfc2d68695a658be74836298b2109048203e71edf",
+        "bytes": 3439
+      },
+      "nativeCases": 996,
+      "nativeAssertions": 11335,
+      "pairedFormatterSamples": {
+        "jit": {
+          "native": {
+            "clockMilliseconds": 2.0,
+            "allocations": 0,
+            "frees": 0,
+            "reallocations": 0
+          },
+          "language": {
+            "clockMilliseconds": 9.0,
+            "allocations": 5000,
+            "frees": 5000,
+            "reallocations": 0
+          }
+        },
+        "dynamic": {
+          "native": {
+            "clockMilliseconds": 3.0,
+            "allocations": 0,
+            "frees": 0,
+            "reallocations": 0
+          },
+          "language": {
+            "clockMilliseconds": 31.0,
+            "allocations": 5000,
+            "frees": 5000,
+            "reallocations": 0
+          }
+        },
+        "static": {
+          "native": {
+            "clockMilliseconds": 5.0,
+            "allocations": 0,
+            "frees": 0,
+            "reallocations": 0
+          },
+          "language": {
+            "clockMilliseconds": 23.0,
+            "allocations": 5000,
+            "frees": 5000,
+            "reallocations": 0
+          }
+        }
+      }
+    },
+    "linux": {
+      "nativeSource": {
+        "path": "/var/tmp/xlang-validation/xge-full-20261110/table-formatter-stage-linux-r1/audit-r1/native-source.json",
+        "sha256": "91005aa86f388a51be89440b27e20d4266795febf7384e7edb6f3e46115a2c2c",
+        "bytes": 462347
+      },
+      "generator": {
+        "path": "/var/tmp/xlang-validation/xge-full-20261110/table-formatter-generator-linux-r1/results.json",
+        "sha256": "5a2292ff7964df4f4d68d0a3389fec4b3c66412a3dbb785dae69ab79abfaca1e",
+        "bytes": 250662
+      },
+      "inventory": {
+        "path": "/var/tmp/xlang-validation/xge-full-20261110/table-formatter-stage-linux-r1/audit-r1/surface/surface.json",
+        "sha256": "0a93fbab40d684323e71bf48cc89650bc6ae9a7b96f7e02fb1a0537abd617056",
+        "bytes": 5336117
+      },
+      "consumers": {
+        "path": "/var/tmp/xlang-validation/xge-full-20261110/table-formatter-stage-linux-r1/audit-r1/consumers/results.json",
+        "sha256": "fd22bc2a1ee5224fe7c5d3192549c03b54ef3b22bb8f83a81371b050d27fbc4f",
+        "bytes": 1309528
+      },
+      "hostedBuild": {
+        "path": "/var/tmp/xlang-validation/xge-full-20261110/table-formatter-host-linux-r1/build-report.json",
+        "sha256": "493e584f83187bf12c57f7ddd8cfcc0440a329125cddbaaa04b6fbdf12448b0a",
+        "bytes": 23055
+      },
+      "staticBuild": {
+        "path": "/var/tmp/xlang-validation/xge-full-20261110/table-formatter-static-linux-r1/build-report.json",
+        "sha256": "ba9b46ce752482ca6ce272fa36d45e605fd74c2de4b517faf0236385ed0d8ce1",
+        "bytes": 840655
+      },
+      "runtimePackages": {
+        "path": "/var/tmp/xlang-validation/xge-full-20261110/table-formatter-stage-linux-r1/replay/stage-report.json",
+        "sha256": "c3a7eb0267302d051100415263169d1260358c976c94c30374becf49f2128b29",
+        "bytes": 166255
+      },
+      "candidateWithExample": {
+        "path": "/var/tmp/xlang-validation/xge-full-20261110/table-formatter-stage-linux-r2/replay/stage-report.json",
+        "sha256": "e5688b82edac1a96f1fc658b4f22cb58da32511476d96c954e0704dbfa2291a2",
+        "bytes": 166639
+      },
+      "runtime": {
+        "path": "/var/tmp/xlang-validation/xge-full-20261110/table-formatter-stage-linux-r1/suite-r4/results.json",
+        "sha256": "8103cb891874b99fe0aab970d8be7f285880f1d7d40c7f52ff06646fd5eccef1",
+        "bytes": 8339
+      },
+      "nativeProviderRegression": {
+        "path": "/var/tmp/xlang-validation/xge-full-20261110/table-formatter-stage-linux-r1/native-suite-r1/results.json",
+        "sha256": "904f06e77dee5fe744689871759df6d2f82f3ab99a199c2aa5335c4c358346db",
+        "bytes": 3243
+      },
+      "nativeCases": 996,
+      "nativeAssertions": 11335,
+      "pairedFormatterSamples": {
+        "jit": {
+          "native": {
+            "clockMilliseconds": 2.717,
+            "allocations": 0,
+            "frees": 0,
+            "reallocations": 0
+          },
+          "language": {
+            "clockMilliseconds": 10.041,
+            "allocations": 5000,
+            "frees": 5000,
+            "reallocations": 0
+          }
+        },
+        "dynamic": {
+          "native": {
+            "clockMilliseconds": 3.051,
+            "allocations": 0,
+            "frees": 0,
+            "reallocations": 0
+          },
+          "language": {
+            "clockMilliseconds": 22.522,
+            "allocations": 5000,
+            "frees": 5000,
+            "reallocations": 0
+          }
+        },
+        "static": {
+          "native": {
+            "clockMilliseconds": 2.64,
+            "allocations": 0,
+            "frees": 0,
+            "reallocations": 0
+          },
+          "language": {
+            "clockMilliseconds": 10.324,
+            "allocations": 5000,
+            "frees": 5000,
+            "reallocations": 0
+          }
+        }
+      }
+    }
+  }
+}

@@ -5312,6 +5312,8 @@ export extern "xui_widget_t*" class TableView @header("xge3_runtime.h") @lifetim
 
  extern "xuiTableViewSetRows" @no_raise @c_span(0,"const xui_table_view_row_t*","int") func setRows(Buffer arrRows) as c_int
 
+ extern "xuiTableViewSetRows" @no_raise @c_array_group(1,0,1,"int",1) @c_array_input(1,0,"const xui_table_view_row_t*","value") func setRows(array<TableViewRow> rows,int size=-1) as c_int
+
  extern "xuiTableViewSetAdapterOwned" @no_raise @c_owned_callback(0,0,"xui_callback_owner_t",-16) @c_owned_callback(1,0,"xui_callback_owner_t",-16) @c_result("status",0) func setAdapter(TableViewCountProc? onCount,TableViewCellOwnedProc? onCell)
 
  extern "xuiTableViewGetCellOwned" @no_raise @c_result("status",0) func getCell(c_int iRow,c_int iColumn,TableCellOutput pCell)
@@ -5333,6 +5335,8 @@ export extern "xui_widget_t*" class TableView @header("xge3_runtime.h") @lifetim
  extern "xuiTableViewSetHeaderRendererOwned" @no_raise @c_owned_callback(0,0,"xui_callback_owner_t",-16) @c_result("status",0) func setHeaderRenderer(TableViewHeaderRenderer? renderer)
 
  extern "xuiTableViewSetCellRendererOwned" @no_raise @c_owned_callback(0,0,"xui_callback_owner_t",-16) @c_result("status",0) func setCellRenderer(TableViewCellRenderer? renderer)
+
+ extern "xuiTableViewSetColumnFormatterOwned" @no_raise @c_owned_callback(1,0,"xui_callback_owner_t",-16) @c_result("status",0) func setColumnFormatter(c_int column,TableViewColumnFormatter? formatter)
 
  extern "xuiTableViewSetFont" @no_raise @c_result("status",0) func setFont(Font? pFont)
 
@@ -5433,6 +5437,8 @@ export extern "xui_widget_t*" class TableGrid @header("xge3_runtime.h") @lifetim
  extern "xuiTableGridGetTableView" @no_raise @c_result("owner_view",0) func getTableView() as Widget?
 
  extern "xuiTableGridSetRows" @no_raise @c_span(0,"const xui_table_view_row_t*","int") func setRows(Buffer arrRows) as c_int
+
+ extern "xuiTableGridSetRows" @no_raise @c_array_group(1,0,1,"int",1) @c_array_input(1,0,"const xui_table_view_row_t*","value") func setRows(array<TableViewRow> rows,int size=-1) as c_int
 
  extern "xuiTableGridSetAdapterOwned" @no_raise @c_owned_callback(0,0,"xui_callback_owner_t",-16) @c_owned_callback(1,0,"xui_callback_owner_t",-16) @c_owned_callback(2,0,"xui_callback_owner_t",0) @c_result("status",0) func setAdapter(TableViewCountProc? onCount,TableViewCellOwnedProc? onCell,TableGridSetProc? onSet)
 

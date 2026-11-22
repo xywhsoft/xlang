@@ -1,0 +1,30 @@
+// 行记录控制高度和底色，分数列在绘制时补上单位。
+import xui
+from "./_window.xl" import Window
+
+Window.show("TableView / row styles and score formatting",func(xui.Context ui,xui.Widget root)
+ auto table = ui.tableViewNative()
+ Window.place(root,table,24,24,440,240)
+ table.setColumns(["Name", "Score"],[240,160])
+
+ xui.TableViewRow normal
+ normal.fHeight = 26
+ xui.TableViewRow highlight
+ highlight.fHeight = 36
+ highlight.bHasStyle = 1
+ highlight.iBackgroundColor = c_uint(0xFFD9EDF7)
+ if table.setRows([normal,highlight,normal]) != 0 then
+  throw RuntimeError "Could not set the table rows"
+ end
+
+ array<string> names = ["Anna","Ben","Chen"]
+ array<int> scores = [85,100,92]
+ table.setAdapter(null,func(xui.Widget widget,c_int row,c_int column,xui.CallbackTableViewCellOutput cell) as c_int
+  if column == 0 then cell.setText(names[int(row)]) end
+  return 0
+ end)
+ table.setColumnFormatter(1,func(xui.CallbackWidget widget,c_int row,c_int column,xui.CallbackTableViewCell cell,xui.CallbackTableViewFormatOutput output) as c_int
+  output.setText(string(scores[int(row)])+" pts")
+  return 0
+ end)
+end)

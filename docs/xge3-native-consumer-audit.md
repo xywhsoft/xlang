@@ -1,5 +1,35 @@
 # Native consumers in the full API inventory
 
+## TableView column formatting and typed rows
+
+`TableView.setColumnFormatter()` supplies text for a column when the cell
+has empty text and no formatter of its own. The callback writes
+directly to the table's existing output buffer. Text beyond its 255-byte
+limit is truncated without splitting a UTF-8 character. The cell and output
+views expire on callback return. A new column configuration releases the
+old formatters together. Failure before publication preserves the old
+configuration. An error from retiring an old callback reaches the caller
+after the new configuration is in place.
+
+`TableView.setRows()` and `TableGrid.setRows()` accept `array<TableViewRow>`.
+The compiler projects the array into temporary C records for the call. XUI
+copies the row data into its own storage. The Buffer overload still calls
+the same native entry point. The return value is the native status.
+
+The tests verify that replacing a full 64-column configuration releases its
+registered callbacks, failed registration or column allocation preserves the
+previous state, and a reentrant change keeps its result when the outer
+registration is rejected. Each matched sample reads 5,000 accessible cells.
+The native formatter recorded no heap allocations. The xlang formatter
+recorded one allocation and free per call. The reports retain the local
+timing samples for each build mode.
+
+The audit now covers 5,746 native functions, with 4,681 direct declarations,
+218 compiled native consumer entries, and 293 explicit replacements. The
+557 outstanding entries include 220 in XGE and 337 in XUI.
+
+[Validation evidence](../dev/release-materials/provenance/xui-table-column-formatter-20261123.json)
+
 ## TableView body rendering and scroll snapshots
 
 `TableView.setCellRenderer()` owns the callback and keeps it live during
@@ -18,7 +48,7 @@ and header rendering, replacement, and destruction from callbacks. These
 tests passed 996 cases on each platform. JIT, dynamic AOT, and static AOT
 also passed on Windows and Linux.
 
-The audit now covers 5,744 native functions. There are 4,679 direct
+At this milestone, the audit covered 5,744 native functions, with 4,679 direct
 declarations, 218 compiled native consumer entries, and 292 explicit
 replacements. The 558 outstanding entries include 220 in XGE and 338 in XUI.
 

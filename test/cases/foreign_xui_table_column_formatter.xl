@@ -1,0 +1,169 @@
+import xui
+from xui import CallbackWidget,CallbackTableViewCell,CallbackTableViewFormatOutput,Proxy,Surface,Font,TableView,TableViewRow,Context
+
+extern "fixtureTableCheckGridRows" @header("test/cases/foreign_xui_table_column_formatter.h") @no_raise func gridRows(xui.TableGrid grid,c_int count,c_int firstHeight)
+extern "fixtureTableUseRawFormatter" @no_raise func useRawFormatter(TableView table)
+extern "fixtureTableCheckFormatterOwners" @no_raise func checkFormatterOwners(TableView table)
+extern "fixtureTableMeasureFormatter" @no_raise func measureFormatter(TableView table,c_int native)
+extern "fixtureRenderProxy" @header("test/cases/foreign_xui_render_backend.h") @no_raise @c_result("owned_view") @factory(0,0,dropProxy) func cpuProxy() as Proxy
+extern "fixtureRenderSurface" @no_raise @c_result("owned_view") @factory(1,0,dropSurface) func cpuSurface(Proxy proxy) as Surface
+extern "fixtureRenderFont" @no_raise @c_result("owned_view") @factory(1,0,dropFont) func cpuFont(Proxy proxy) as Font
+extern "fixtureRenderBalanced" @no_raise func balanced() as c_int
+extern "fixtureRenderSawText" @no_raise @c_cstr(0) func sawText(string text) as c_int
+extern "fixtureRenderBudget" @no_raise func budget(c_int allowance)
+extern "xuiProxyReleaseChecked" @header("xge3_runtime.h") @no_raise @c_result("status",0) func dropProxy(Proxy value)
+extern "xuiSurfaceReleaseChecked" @no_raise @c_result("status",0) func dropSurface(Surface value)
+extern "xuiFontReleaseChecked" @no_raise @c_result("status",0) func dropFont(Font value)
+
+func cellName(TableView table,c_int index) as string
+    auto id,parent,role,state,name,value,description,bounds,start,finish,level,row,column,rows,columns,actions,rangeInfo = table.getAccessibleNode(index)
+    return name ?? ""
+end
+
+func checkRows(Context ui,TableView table)
+    TableViewRow red
+    red.fHeight = 23
+    red.bSelected = 1
+    red.bHasStyle = 1
+    red.iBackgroundColor = c_uint(0xFF123456)
+    TableViewRow tall
+    tall.fHeight = 37
+    tall.bDisabled = 1
+    array<TableViewRow> rows = [red,tall]
+    assert table.setRows(rows) == 0 and table.getRowCount() == 2
+    assert table.getCellContentRect(0,0).fH == 23
+    assert table.getCellContentRect(1,0).fY == 23 and table.getCellContentRect(1,0).fH == 37
+    rows[0] = tall
+    assert table.getCellContentRect(0,0).fH == 23
+
+    bool replaced = false
+    int refused = 0
+    for allowance in range(20)
+        budget(c_int(allowance))
+        try
+            replaced = table.setRows(rows,1) == 0
+        catch Error
+            replaced = false
+        finally
+            budget(-1)
+        end
+        if replaced then break end
+        refused += 1
+        assert table.getRowCount() == 2 and table.getCellContentRect(0,0).fH == 23
+    end
+    assert replaced and refused >= 2
+    assert table.getRowCount() == 1 and table.getCellContentRect(0,0).fH == 37
+
+    auto grid = ui.tableGridNative()
+    grid.setColumns(["Typed grid"],[120])
+    assert grid.setRows(rows,1) == 0
+    gridRows(grid,1,37)
+    array<TableViewRow> empty = []
+    assert grid.setRows(empty) == 0
+    gridRows(grid,0,0)
+    assert table.setRows(empty) == 0 and table.getRowCount() == 0
+    assert table.setRows(rows,1) == 0
+    grid.close()
+end
+
+func checkFormatting(Context ui,TableView table,Surface target)
+    CallbackTableViewFormatOutput? savedOutput = null
+    CallbackTableViewCell? savedCell = null
+    table.setColumnFormatter(0,func(CallbackWidget widget,c_int row,c_int column,CallbackTableViewCell cell,CallbackTableViewFormatOutput output) as c_int
+        assert row == 0 and column == 0 and cell.rowSpan == 1
+        savedOutput = output
+        savedCell = cell
+        output.setText("Managed text")
+        return 0
+    end)
+    assert cellName(table,1) == "Managed text" and cellName(table,2) == "Row 1, column 2"
+    bool expired = false
+    try
+        (savedOutput as CallbackTableViewFormatOutput).setText("expired")
+    catch StateError
+        expired = true
+    end
+    assert expired
+    expired = false
+    try
+        auto height = (savedCell as CallbackTableViewCell).rowSpan
+    catch StateError
+        expired = true
+    end
+    assert expired
+
+    xui.TableViewColumnFormatter replacement = func(CallbackWidget widget,c_int row,c_int column,CallbackTableViewCell cell,CallbackTableViewFormatOutput output) as c_int
+        output.setText("Unexpected")
+        return 0
+    end
+    bool refused = false
+    budget(0)
+    try
+        table.setColumnFormatter(0,replacement)
+    catch Error
+        refused = true
+    finally
+        budget(-1)
+    end
+    assert refused and cellName(table,1) == "Managed text"
+    ui.layout()
+    ui.render(target)
+    assert sawText("Managed text") != 0
+    useRawFormatter(table)
+    assert cellName(table,1) == "Raw text"
+
+    string prefix = ""
+    for i in range(254)
+        prefix += "a"
+    end
+    string longText = prefix+"界"
+    table.setColumnFormatter(0,func(CallbackWidget widget,c_int row,c_int column,CallbackTableViewCell cell,CallbackTableViewFormatOutput output) as c_int
+        output.setText(longText)
+        return 0
+    end)
+    assert cellName(table,1) == prefix
+
+    table.setColumnFormatter(0,func(CallbackWidget widget,c_int row,c_int column,CallbackTableViewCell cell,CallbackTableViewFormatOutput output) as c_int
+        table.setColumns(["New column"],[120])
+        output.setText("Still writable in the current call")
+        throw RuntimeError "column formatter failure"
+    end)
+    refused = false
+    try
+        ui.render(target)
+    catch RuntimeError failure
+        refused = failure.message == "column formatter failure"
+    end
+    assert refused and cellName(table,1) == "Row 1, column 1"
+end
+
+func main(...) as int
+    auto proxy = cpuProxy()
+    auto target = cpuSurface(proxy)
+    auto font = cpuFont(proxy)
+    auto ui = xui.create(proxy,xui.XUI_SYSTEM_FONT_DISABLED)
+    auto table = ui.tableViewNative()
+    xui.Rect bounds
+    bounds.fW = 400
+    bounds.fH = 200
+    assert table.setRect(bounds) == 0 and ui.setRootWidget(table) == 0
+    ui.setViewportSize(400,200)
+    table.setFont(font)
+    table.setColumns(["First", "Second"],[120,120])
+    checkRows(ui,table)
+    checkFormatting(ui,table,target)
+    checkFormatterOwners(table)
+    measureFormatter(table,1)
+    table.setColumnFormatter(0,func(CallbackWidget widget,c_int row,c_int column,CallbackTableViewCell cell,CallbackTableViewFormatOutput output) as c_int
+        output.setText("measured")
+        return 0
+    end)
+    measureFormatter(table,0)
+    ui.close()
+    font.close()
+    target.close()
+    proxy.close()
+    assert balanced() != 0
+    println("TABLE_COLUMN_FORMATTER_OK")
+    return 0
+end

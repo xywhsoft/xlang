@@ -57,3 +57,10 @@ export extern "const xui_table_view_cell_t*" class CallbackTableViewCell @header
 end
 
 export typedef TableViewCellRenderer = func(CallbackWidget,c_int,c_int,CallbackTableViewCell,CallbackDrawContext,Rect,c_int) as c_int
+
+export extern "xui_table_view_format_output_t*" class CallbackTableViewFormatOutput @header("xge3_runtime.h") @lifetime("callback")
+ native point handle
+ extern "xuiTableViewFormatOutputSetText" @no_raise @c_text_view(0) @c_result("status",0) func setText(string text)
+end
+
+export typedef TableViewColumnFormatter = func(CallbackWidget,c_int,c_int,CallbackTableViewCell,CallbackTableViewFormatOutput) as c_int
