@@ -22,3 +22,20 @@ static int xlsIrInputRegion(size_t* bytes,size_t count,size_t width,size_t align
  if(count>(SIZE_MAX-*bytes)/width)return 0;
  *bytes+=count*width;return 1;
 }
+
+typedef struct xls_ir_read_log {
+ xls_ir_input_trace input;uint64_t *nodes,*types;
+ size_t first,end,covered;
+} xls_ir_read_log;
+static void xlsIrInputRecord(xls_ir_read_log* trace,uint32_t kind,uint32_t id)
+{
+ xls_ir_input_trace* t=&trace->input;if(t->failed)return;
+ uint64_t* slot=kind==1?(id&&id<=t->module->types.count?trace->types+id-1:NULL):trace->nodes+id-1;
+ if(slot&&(*slot>>32)==t->epoch){
+  size_t at=(uint32_t)*slot-1;if(kind==0)t->ids[at].kind=0;return;
+ }
+ if(t->reads>=t->readCapacity||t->reads>=UINT32_MAX){t->failed=1;return;}
+ t->ids[t->reads++]=(xls_ir_input_read){kind,id};
+ if(slot)*slot=((uint64_t)t->epoch<<32)|(uint32_t)t->reads;
+ if(kind!=1&&id>trace->first&&id<=trace->end)++trace->covered;
+}

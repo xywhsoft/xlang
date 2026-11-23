@@ -75,7 +75,10 @@ def derive(source:str,frontend:Path,output:Path):
     from native_ir_name_cache_overlay import derive as derive_names
     helper=Path(__file__).resolve().parent.parent/'src/analysis/frontend_field_ir.inc'
     names,name_metadata=derive_names(ir_text(source),(frontend/'src/ir/xl6_ir.h').read_text(encoding='utf8'),helper.read_text(encoding='utf8'))
-    generated=prefix+phase+nodes+calls+names+final+'\nstatic const char* const xlsIrPipelineNames[]={\n'+''.join(' "'+n+'",\n'for n in(*PHASES,'xl6IrVerifyModule'))+'};\n'
+    from native_ir_handle_group_overlay import derive as derive_handles
+    resource=helper.with_name('frontend_ir_type_resource.inc')
+    handles,handle_metadata=derive_handles(source,(frontend/'src/ir/xl6_ir.h').read_text(encoding='utf8'),resource.read_text(encoding='utf8'))
+    generated=prefix+phase+nodes+calls+names+handles+final+'\nstatic const char* const xlsIrPipelineNames[]={\n'+''.join(' "'+n+'",\n'for n in(*PHASES,'xl6IrVerifyModule'))+'};\n'
     target=output/'frontend/ir_native_pipeline_generated.inc';target.parent.mkdir(parents=True,exist_ok=True);target.write_text(generated,encoding='utf8',newline='\n')
     return source+'\n#define XLS_NATIVE_IR_PIPELINE_SOURCE 1\n'+include,dict(
-        enabled=True,originalBuilderSha256=BODY_SHA,generated=str(target),generatedSha256=hashlib.sha256(target.read_bytes()).hexdigest(),phases=list(PHASES),nodeRanges=node_metadata,callCache=call_metadata,nameCache=name_metadata,finalStep='Original statistics and complete native verification',dependencyContractSha256=policy['dependencyContractSha256'],scope='Fresh raw preparation and complete native pipeline;no ordinary integration')
+        enabled=True,originalBuilderSha256=BODY_SHA,generated=str(target),generatedSha256=hashlib.sha256(target.read_bytes()).hexdigest(),phases=list(PHASES),nodeRanges=node_metadata,callCache=call_metadata,nameCache=name_metadata,handleGroup=handle_metadata,finalStep='Original statistics and complete native verification',dependencyContractSha256=policy['dependencyContractSha256'],scope='Fresh raw preparation and complete native pipeline;no ordinary integration')

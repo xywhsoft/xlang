@@ -1,0 +1,337 @@
+{
+  "schema": 1,
+  "date": "2026-11-23",
+  "stage": "M7b7x",
+  "scope": "One shared exact input validation for two adjacent actual native handle producers;original global phase order;no ordinary integration",
+  "ownedSources": {
+    "ide/src/analysis/frontend_ir_input_bytes.inc": "c7dbb3581e38e279344d15eea56a0186b0da92eb7c40e0b03bc29c9d4dab28c3",
+    "ide/src/analysis/frontend_ir_name_cache.inc": "57220c10462a7e1bc75ac3712c4dd82242acb06a2f834e6a8d988b5134e26ab6",
+    "ide/src/analysis/frontend_ir_pipeline.inc": "16a17562ae62c4376d55788a698d76faff2aeb0e287fca08085fbd4880ef0839",
+    "ide/src/analysis/frontend_ir_handle_group.inc": "1c13dfeb022942f8fad7c39113ad348e95272f4adc9d8487b9d02b91143a59ba",
+    "ide/src/analysis/ir_native_handle_group.h": "1deca86c6a1d946b30b4a5e85ea79e8883fb48551b538964ccaa367f9f8d7b23",
+    "ide/tools/native_ir_handle_group_overlay.py": "8d686ec4811c994f260b6caeb17c070d4065134a12c17d7b34666ba3b9854de0",
+    "ide/tools/native_ir_pipeline_overlay.py": "bf50e8a21158e2dda75f8181453eb7b33281f08f47488de49e50b38fe3e0539b",
+    "ide/tools/native_current_ir_overlay.py": "89f9a7b9454730205d86b4aca3c5f2e7f9a1dded806c7706615945dcd6c2ff5c",
+    "ide/tools/build_lsp_core.py": "4e1802cd6e185748954f7819d3c4e9f68e8d601c6a1de70f17811071e4b206b0",
+    "ide/tools/check_ir_pipeline_profile.py": "171084a442ec5c3dbcc158f5489aaea240c2fd53af1d7665ec9a961c42e043cb",
+    "ide/tests/analysis_ir_handle_group_test.c": "5dfefd15e99263b91a20090a92c1cf803d0b81210494ae8ae8867d5bc9e9893a",
+    "ide/tests/analysis_ir_handle_group_contract_test.c": "29f2be09337a606ade5bf876e9c06ecd333c00be84bdc836c85c18976fe53946",
+    "ide/docs/lsp-native-handle-group.md": "5dcf07b0bdac598977bfecaf4e8d3db07cdea4dda77f54cc6ec3d697a73336dc",
+    "ide/docs/lsp-development.md": "d1d30d67ed927d87065afce3697e37946862756962edfe4f36403726242f1779"
+  },
+  "materials": {
+    "sources": {
+      "archive": {
+        "path": "dev/release-materials/sources/lsp-native-handle-group-20261123/sources.tar.gz",
+        "sha256": "b8a46c9a95a6e4450d59c7507a52b04815c95f65354b418d6a0c202993366cc6",
+        "bytes": 17107535
+      },
+      "manifest": {
+        "path": "dev/release-materials/sources/lsp-native-handle-group-20261123/sources.tar.gz.manifest.json",
+        "sha256": "a3e756c358775fa479c56f293c09d1017d609441a59e239d434180ebc25954f2",
+        "bytes": 5403414
+      },
+      "entries": 10961,
+      "uniquePayloads": 2090
+    },
+    "validation": {
+      "archive": {
+        "path": "dev/release-materials/provenance/lsp-native-handle-group-20261123/validation.tar.gz",
+        "sha256": "83dab3ad67fec15a063618a11090c1725136f16f265538038cd08b6233f122ed",
+        "bytes": 179785772
+      },
+      "manifest": {
+        "path": "dev/release-materials/provenance/lsp-native-handle-group-20261123/validation.tar.gz.manifest.json",
+        "sha256": "62386418b23a8affbe7f600fdb3726573001c936205a3957d72fa1e77b519bd7",
+        "bytes": 342976
+      },
+      "entries": 966,
+      "uniquePayloads": 279
+    }
+  },
+  "materialDependencies": [
+    "dev/release-materials/provenance/lsp-name-input-cost-20261123.json",
+    "dev/release-materials/provenance/lsp-stable-resource-package-20261123.json"
+  ],
+  "sourceContract": {
+    "functions": {
+      "xl6IrBuildNativeHandleProjects": "3254ce2deca373cd5a200bdb683cc592866456b71f6c32221a29108879d702de",
+      "xl6IrBuildFindNativeHandleField": "b5b5536ce330a56b039d223ab7cf1786c305bab6e78e015a9cc83d1ff57df6b4",
+      "xl6IrNodeGet": "a1d6375145b7123c25224c480e656eac97cf0e136d27f16c0fe07193023de520",
+      "xl6IrSymbolNodeGet": "c56567357d2b623c7a7609dc67866723f087653831307aa8e35790e425112676",
+      "xl6IrTypeGet": "753e997667f51bbbff554f5ed70be9664f33f94390926062ef81546c5e185dd5",
+      "xlsIrTypeGrow": "0db57dec2868dad547a396eb3fc4b2c201f77947792234b6b7ee690a06fc5446",
+      "xl6IrGrow": "8c42062ff6f5d3469924af9d9122176b0652ef123229e738750d8fee0d460cf5",
+      "xlsIrTypeRealloc": "63fd46eb47b72d51bb9bae9f2833a19cf1c2f2e8db567396cb5d1b108fd66453",
+      "xlsIrTypePointer": "80daad1d33ee99a20c6ead98fed1f0df7a5e1e28f0a480fd893394a1bf29b65e",
+      "xl6IrBuildNativeHandleBinds": "c64166bd35ea2e4f40415ca254f2724c5e3aaba40ee28daacfce0f8fc6f61b90",
+      "xl6IrNativeHandleDestroySymbol": "60802f902ca95d3e33e7ee837070be69c24870a61a08bf95e48c3a57b70cff90",
+      "xl6IrManagedNativeConstructorField": "a118f4940dad5581a21afa11f53e44282aeadb7f229947e9e0aebf4a448f9d39",
+      "xl6IrManagedNativeField": "1e8c617b3a5c0770fcdc142db02f67651131c69428ad07fb3f779b461e14e538",
+      "xl6IrBuildClassLayoutByType": "d351bedb32fd51b7d6c0b5bd40716b4e14bfb2c31906effb40cde3e8cc2dc375"
+    },
+    "nodeFields": [
+      "callKind",
+      "childCount",
+      "firstChild",
+      "flags",
+      "kind",
+      "parent",
+      "sourceKind",
+      "storageType",
+      "symbol",
+      "targetSymbol",
+      "text",
+      "type",
+      "valueCategory"
+    ],
+    "queriedTypeFields": [
+      "cAbi",
+      "kind",
+      "nominalSymbol",
+      "ownershipAbi",
+      "paramCount",
+      "params"
+    ],
+    "phases": [
+      28,
+      29
+    ],
+    "inputsStableAcrossBothPhases": true,
+    "independentScalarOutputs": true,
+    "nativeOrder": "All bind ranges,then all project ranges",
+    "lifecycleScanProof": "Common ordered native-special candidates including child/name facts;native ancestor/type reads traced",
+    "scope": "One exact input validation per range shared by two actual producers;no ordinary integration"
+  },
+  "qualification": {
+    "semanticInputs": 49,
+    "additionalPositiveHandleModule": true,
+    "positiveNativeBinds": 1,
+    "positiveNativeProjects": 1,
+    "normalChecks": 8745,
+    "contractChecksIncludingNormal": 8976,
+    "poisonedRetiredUnits": 2450,
+    "concurrentReaders": 4,
+    "readerGenerations": 3,
+    "coldAllocationApiRejectionPoints": 223,
+    "hotAllocationApiRejectionPoints": 203,
+    "coldCancellationPoints": 128,
+    "hotCancellationPoints": 120,
+    "actualDependencyRecords": 407,
+    "repeatedInvalidTypePresenceReads": 12,
+    "sharedProofChecksPerPositiveWarmModule": 10,
+    "stableEditReusedRanges": 9,
+    "totalStableEditRanges": 10,
+    "stableEditNativeNodesPerPhase": 23,
+    "totalStableEditNodes": 385,
+    "coordinateOnlyNativeNodesBothPhases": 0,
+    "structuralEditFullNativeFallback": true,
+    "queriedTypeAndWholeNodeLifecycleInvalidation": true,
+    "projectOnlyMismatchComparedWithIndependentActualNative": true,
+    "retainedBudgetReservationBeforeSecondPhase": true,
+    "sourcePolicyCases": 28,
+    "relatedNativePrograms": 8,
+    "ordinaryUnavailableFixtures": 4,
+    "compiledDefects": 6,
+    "compiledPositiveControls": 2,
+    "defaultExistingFunctions": 1862,
+    "unchangedPrivateLayouts": 2,
+    "finalNativeCoreObjectsReusedExactDependencies": 80,
+    "finalFreshQaPrograms": 1,
+    "originalNativeCoreMembersFreshInQualifiedPriorPass": 1,
+    "nativeIrReuseProof": {
+      "originalBuild": "F:\\codex-builds-xlang-lsp-20261123\\native-handle-group\\component-v4\\build-result.json",
+      "exactActualDependencyBytes": true,
+      "sourceAndIncludeRecipeMappedOnly": true,
+      "outputSha256": "5e351b017d41ede7f866fa0a4f386c562d8d94e5291392d8a00a032049f550fc"
+    },
+    "nameChecksRerun": [
+      8526,
+      9998
+    ],
+    "callChecksRerun": [
+      6803,
+      6924
+    ],
+    "finalCompilerWarnings": 0,
+    "standardBuilderRegistrationAndWarningProfilesPassed": true,
+    "carriedSameImageQaPrograms": 5,
+    "retainedBytesIndependentlyTotaled": true,
+    "strengthenedContractOrdinarySupplementPassed": true
+  },
+  "retainedMetadataBytesMax": 16777216,
+  "combinedProvisionalAndScratchBytesMax": 16777216,
+  "profile": {
+    "componentMacro": "XLS_NATIVE_IR_PIPELINE_COMPONENT",
+    "ordinaryEnabled": false,
+    "nodeViews": false,
+    "exitReuse": false,
+    "functionExits": false
+  },
+  "runtimePreserved": {
+    "D:\\GIT\\x-lang\\release\\win_x64\\mdo.exe": "9219de70911e1f02d8e54eadc77c257369e4ea637e5202fcbb04854a29893044",
+    "D:\\GIT\\x-lang\\release\\win_x64\\update.exe": "4c5266fce0a541b9b96fe92b3d2f7d94598aff3b052e420b08b6d47db5e5c6c2",
+    "D:\\GIT\\x-lang\\release\\win_x64\\xge.dll": "127db42612e8a27c8b1f7f74e4653c25f09140f8baac38d16fc564eb74892ef3",
+    "D:\\GIT\\x-lang\\release\\win_x64\\xl.dll": "f31ddbe973ed48d261014ec64fa6b0ba48791fc0313192a19d59467254c0fcd6",
+    "D:\\GIT\\x-lang\\release\\win_x64\\xl.exe": "5288c4e8be9f420ef98caeb11be362017be925f2ad81a0d56946cc6a8c721081",
+    "D:\\GIT\\x-lang\\release\\win_x64\\xlang-ls.exe": "db50f21702ec1aec2423b49274c10884b098f20dbc041f7fe9c301b62feaecd5",
+    "D:\\GIT\\x-lang\\release\\win_x64\\xlang_ide.exe": "a146c451b35aa7284293b185123a9a276bf9e4764f926c266567133386c8d806",
+    "D:\\GIT\\x-lang\\release\\win_x64\\xlang_ide_xge.dll": "7eba677fddada9b605db2d54dd59ee57a9cfc1caf0b574f6cb206ec9de379418",
+    "D:\\GIT\\x-lang\\release\\win_x64\\xlc.dll": "64b2e9830569c84580335b0a2b15a59ce13552ba1ba51933fc82cd75808c0728"
+  },
+  "compiledDefectCases": [
+    {
+      "name": "positive-control",
+      "kind": "positive-control",
+      "exit": 0,
+      "programSha256": "ae8caaab93a58657acb2fa732d672f80736867d00448fd37b9ef3c259d2e15ff"
+    },
+    {
+      "name": "ignore-common-context",
+      "kind": "compiled-defect",
+      "exit": 1,
+      "programSha256": "22da95f8f42d4cf3a1713fde076eeb4415c46aad38b925dfb3cb3d6bebc47f1d"
+    },
+    {
+      "name": "omit-node-key",
+      "kind": "compiled-defect",
+      "exit": 1,
+      "programSha256": "d11844b4df030dd0872e6c8dfe74301f117f02a4ab7e3f18afdc208f6a67e92c"
+    },
+    {
+      "name": "omit-type-records",
+      "kind": "compiled-defect",
+      "exit": 1,
+      "programSha256": "d347d9dec71d1070e7785ad31c44123061710ec97d9bcba128a1632384f57cef"
+    },
+    {
+      "name": "omit-project-restore",
+      "kind": "compiled-defect",
+      "exit": 1,
+      "programSha256": "49446ba4f8be47d8883fb3cc433092bb062881fd73ff906e69b009085a29f04a"
+    },
+    {
+      "name": "positive-control",
+      "kind": "positive-control",
+      "exit": 0,
+      "programSha256": "e8966af141c952874c3a3c22968a96d7c7d13093c37d6ceda328b2224ccf2380"
+    },
+    {
+      "name": "omit-retained-reservation",
+      "kind": "compiled-defect",
+      "exit": 1,
+      "programSha256": "6419f3e5f10cf473e16a1271143f84b438b50c64eef1798349ab69855bb6df89"
+    },
+    {
+      "name": "leak-provisional-ids",
+      "kind": "compiled-defect",
+      "exit": 1,
+      "programSha256": "549b41ffb468a8d87eccba3c093988f6d3cae33b9a25a5e0da4313cb381a9829"
+    }
+  ],
+  "timing": {
+    "scope": "One process,24rotating rounds;32functions each with actual native bind+project;stable-ID call-target edit;fresh typed-AST IR preparation+all native phases/verifier;no parsing/semantic checking/LSP/GUI;cleanup outside timing",
+    "programSha256": "bfe687fbc726532862587325c76a5fc900a3c7ffb8c529bbb590af0882e39fe8",
+    "samples": 72,
+    "statistics": {
+      "0": {
+        "samples": 24,
+        "median": 0.0018029,
+        "p95": 0.0027643
+      },
+      "1": {
+        "samples": 24,
+        "median": 0.00182605,
+        "p95": 0.002442
+      },
+      "2": {
+        "samples": 24,
+        "median": 0.00181215,
+        "p95": 0.0029517
+      }
+    },
+    "ratios": {
+      "firstCapture": 1.0128404237617172,
+      "crossGeneration": 1.0051306228853514
+    },
+    "thresholds": {
+      "firstCaptureMedianRatioMax": 1.15,
+      "crossGenerationMedianRatioMax": 0.98
+    },
+    "screeningPassed": false,
+    "sameImageRetried": false,
+    "wholeLspPerformanceQualified": false,
+    "plainFileControl": {
+      "scope": "One process,24rotating rounds;Plain-file control:32functions with repeated direct calls;fresh typed-AST IR preparation+all native phases/verifier;no parsing/semantic checking/LSP/GUI;cleanup outside timing",
+      "programSha256": "450e6babae27f6cb9cba655a670cd6297ffc1c932ee7d8c08b1750975d5261dc",
+      "samples": 72,
+      "statistics": {
+        "0": {
+          "samples": 24,
+          "median": 0.004738,
+          "p95": 0.0062946
+        },
+        "1": {
+          "samples": 24,
+          "median": 0.00502825,
+          "p95": 0.0063398
+        },
+        "2": {
+          "samples": 24,
+          "median": 0.0049648999999999995,
+          "p95": 0.0061063
+        }
+      },
+      "ratios": {
+        "firstCapture": 1.0612600253271423,
+        "crossGeneration": 1.047889404812157
+      },
+      "thresholds": {
+        "firstCaptureMedianRatioMax": 1.02,
+        "crossGenerationMedianRatioMax": 1.02
+      },
+      "screeningPassed": false,
+      "sameImageRetried": false
+    },
+    "nativeCoreIdentity": {
+      "status": "passed",
+      "archive5Sha256": "d00e35ae776162d6a24c186244b2c4c9298e69fac8f34645265aba8a865d0627",
+      "archive6Sha256": "5df7f8a72da4c3c5c252a2e39bb9578ebf2c34a576c77ac9fc0331d89a0b24e0",
+      "wholeArchiveByteIdentical": false,
+      "memberHeadersExceptTimestampsAndPayloadsIdentical": true,
+      "members": 82,
+      "timestampChanges": [
+        {
+          "name": "/",
+          "before": "1795418722",
+          "after": "1795419463"
+        }
+      ]
+    }
+  },
+  "retainedFailures": [
+    "Initial source used only managed class,producing bind but no native-handle projection;replaced with additional caller-lifetime external class and both outputs required.",
+    "Second contract incorrectly required invalid type queries to deduplicate;invalid queries have no index slot. Final contract allows only repeated invalid presence reads,still rejects duplicate valid node/type IDs;actual12such repeats recorded.",
+    "Third fixture renamed reserved native point handle field and was rejected by existing semantics;retained and replaced with valid added-function structural change.",
+    "First source-policy invocation used default Windows text encoding and failed;explicit UTF-8 source reading now passes.",
+    "Private fixture misleading-indentation warning retained in early build;final candidate warning-free.",
+    "All earlier failed timing screens remain failed.",
+    "A real reservation omission initially passed the weak budget assertion:small scratch independently forced a miss. Actual passing faulty PE/hash/log retained in retained-budget-gap.json,not counted as rejected. Strengthened test independently totals retained objects;cold,mixed,limited and four-reader warm results pass;the same omission is now rejected by the new contract.",
+    "First compiled-defect harness invocation stopped on Windows default text decoding before compiling a case;retained and rerun in a new directory with explicit UTF-8 interpreter mode."
+  ],
+  "languageServerVersion": "0.110",
+  "runtimeReplaced": false,
+  "serviceRebuilt": false,
+  "ideRebuilt": false,
+  "externalPublishPerformed": false,
+  "wholeLspPerformanceQualified": false,
+  "goalComplete": false,
+  "limits": [
+    "Two adjacent actual producers only;other stages/global finalization still native.",
+    "Exact IDs and global input can reject broad edits;current ID/type/coordinate mapping still incomplete.",
+    "No full-function final IR selective production or ordinary aggregate cache budget.",
+    "Metadata and work caps are not native analysis or process memory caps.",
+    "External API rejection coverage does not enumerate allocator internals.",
+    "One-process IR constructor screening excludes parse,semantic checking,cleanup,LSP and IDE;no full performance qualification."
+  ]
+}

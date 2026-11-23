@@ -6,6 +6,7 @@ import native_ir_pipeline_overlay as adapter
 import native_ir_pipeline_nodes as node_adapter
 import native_ir_call_cache_overlay as call_adapter
 import native_ir_name_cache_overlay as name_adapter
+import native_ir_handle_group_overlay as handle_adapter
 from check_native_bridge_catalog import function
 from build_lsp_core import prepare_native_ir
 
@@ -15,10 +16,10 @@ def main():
     try:
         _,compiled,meta=prepare_native_ir(args.frontend.resolve(),out)
         pipeline=meta['nativePipeline'];assert pipeline['enabled']and pipeline['phases']==list(adapter.PHASES)and len(adapter.PHASES)==38
-        text=Path(pipeline['generated']).read_text();assert function(text,'xlsIrPipelinePhaseOriginal').count('case ')==38 and text.count('xl6IrVerifyModule(module, diags)')==1
+        text=Path(pipeline['generated']).read_text(encoding='utf8');assert function(text,'xlsIrPipelinePhaseOriginal').count('case ')==38 and text.count('xl6IrVerifyModule(module, diags)')==1
         assert function(text,'xlsIrPipelinePhaseNodesOriginal').count('case ')==15 and pipeline['nodeRanges']['phases']==list(node_adapter.PHASES)
         record['cases'].append('actual-standard-pipeline-38-phases-and-mandatory-complete-verifier')
-        source=compiled.read_text();original=source[:source.index('\n#define XLS_NATIVE_IR_PIPELINE_SOURCE 1\n')]
+        source=compiled.read_text(encoding='utf8');original=source[:source.index('\n#define XLS_NATIVE_IR_PIPELINE_SOURCE 1\n')]
         changed=original.replace('    xlsIrDerivedActivate(module);','    /* changed native ordering */',1)
         try:adapter.derive(changed,args.frontend,out)
         except ValueError:pass
@@ -116,6 +117,33 @@ def main():
             except ValueError:pass
             else:raise AssertionError('Changed scalar/nonempty name entry projection admitted')
         record['cases'].append('changed-name-entry-projection-rejected')
+        handles=pipeline['handleGroup'];assert len(handles['functions'])==14 and handles['phases']==[28,29]
+        assert handles['inputsStableAcrossBothPhases']and handles['independentScalarOutputs']
+        assert set(handles['nodeFields'])==handle_adapter.NODE_FIELDS and set(handles['queriedTypeFields'])==handle_adapter.TYPE_FIELDS
+        assert 'xlsHGEntryGet'in function(text,'xlsHGNativexl6IrBuildNativeHandleBinds')and 'xlsHGEntryGet'in function(text,'xlsHGNativexl6IrBuildNativeHandleProjects')
+        record['cases'].append('complete-shared-two-phase-handle-input-output-closure')
+        for attribute,value,label in(
+            ('PINS',{k:v for k,v in handle_adapter.PINS.items()if k!='xl6IrNativeHandleDestroySymbol'},'missing-whole-node-lifecycle-dependency-rejected'),
+            ('PINS',{**handle_adapter.PINS,'xlsIrTypeGrow':'0'*64},'changed-native-required-allocation-guard-rejected'),
+            ('NODE_FIELDS',handle_adapter.NODE_FIELDS-{'storageType'},'missing-handle-storage-type-input-rejected'),
+            ('TYPE_FIELDS',handle_adapter.TYPE_FIELDS-{'ownershipAbi'},'missing-handle-type-ownership-input-rejected')):
+            with patch.object(handle_adapter,attribute,value):
+                try:adapter.derive(original,args.frontend,out)
+                except ValueError:pass
+                else:raise AssertionError('Handle proof dependency admitted: '+label)
+            record['cases'].append(label)
+        original_record=handle_adapter.record
+        with patch.object(handle_adapter,'record',lambda h,n:[dict(f,pointers=1)if n=='XL6_IrNativeHandleProject'and f['name']=='origin'else f for f in original_record(h,n)]):
+            try:adapter.derive(original,args.frontend,out)
+            except ValueError:pass
+            else:raise AssertionError('Borrowed pointer in handle output admitted')
+        record['cases'].append('non-scalar-handle-output-rejected')
+        body=function(original,'xl6IrBuildNativeHandleProjects');bad=body.replace('{','{ (void)module->nativeHandleBindCount;',1)
+        with patch.object(handle_adapter,'PINS',{**handle_adapter.PINS,'xl6IrBuildNativeHandleProjects':hashlib.sha256(bad.encode()).hexdigest()}):
+            try:adapter.derive(original.replace(body,bad,1),args.frontend,out)
+            except ValueError:pass
+            else:raise AssertionError('Cross-output dependency in shared group admitted')
+        record['cases'].append('cross-output-dependency-in-shared-group-rejected')
         record.update(status='passed',generatedSha256=hashlib.sha256(Path(pipeline['generated']).read_bytes()).hexdigest());print(json.dumps(dict(status='passed',cases=len(record['cases']))))
     finally:(out/'result.json').write_text(json.dumps(record,indent=2)+'\n')
 if __name__=='__main__':main()

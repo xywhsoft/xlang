@@ -11,10 +11,7 @@ struct xls_name_build {
  const xls_ir_name_cache* previous;xls_ir_name_cache* next;
  size_t limit;xls_ir_name_cache_work work;
 };
-typedef struct xls_name_trace {
- xls_ir_input_trace input;uint64_t *nodes,*types;
- size_t first,end,covered;
-} xls_name_trace;
+typedef xls_ir_read_log xls_name_trace;
 static _Thread_local xls_name_trace* xlsNamesActiveTrace;
 static void xlsNameUnitRelease(xls_name_unit* u)
 {
@@ -62,18 +59,8 @@ static int xlsNameEntryKey(xls_ir_input_trace* t,XL6_IrNodeId id)
 /* The phase never writes these inputs. Log unique IDs now;materialize their
  * exact values after native production. A full read upgrades an entry record
  * in place,including one first observed through an ancestor/field lookup. */
-static void xlsNameRecord(xls_name_trace* trace,uint32_t kind,uint32_t id)
-{
- xls_ir_input_trace* t=&trace->input;if(t->failed)return;
- uint64_t* slot=kind==1?(id&&id<=t->module->types.count?trace->types+id-1:NULL):trace->nodes+id-1;
- if(slot&&(*slot>>32)==t->epoch){
-  size_t at=(uint32_t)*slot-1;if(kind==0)t->ids[at].kind=0;return;
- }
- if(t->reads>=t->readCapacity||t->reads>=UINT32_MAX){t->failed=1;return;}
- t->ids[t->reads++]=(xls_ir_input_read){kind,id};
- if(slot)*slot=((uint64_t)t->epoch<<32)|(uint32_t)t->reads;
- if(kind!=1&&id>trace->first&&id<=trace->end)++trace->covered;
-}
+static void xlsNameRecord(xls_name_trace* t,uint32_t kind,uint32_t id)
+{xlsIrInputRecord(t,kind,id);}
 static const XL6_IrNode* xlsNamesNodeGet(const XL6_IrModule* m,XL6_IrNodeId id)
 {
  const XL6_IrNode* n=xl6IrNodeGet(m,id);xls_name_trace* t=xlsNamesActiveTrace;
