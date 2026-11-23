@@ -135,6 +135,13 @@ C 记录，原生端保存自己的副本。范围无效或内存分配失败时
 回调通过有界输出追加记录。一次调用会统计全部结果，只写入缓冲区容得下的前缀。
 文档视图和输出视图只在当前调用中有效。文档被修改或关闭时，调用会拒绝结果。
 
+`registerRegexWithCallbacks` 将正则规则和回调保存在同一个语言定义中。
+只传 `folder` 时，正则负责高亮，回调负责生成折叠范围。传入 `lexer` 后，词法分析由
+该回调负责，失败时直接交付错误。注册表仍保存正则规则，便于通过查询接口读取。
+至少提供一条正则规则。省略两个回调时，只安装正则规则。注册时复制规则，并为非空回调建立共享的拥有环境。
+仅使用正则分析时，运行路径与 `registerRegex` 相同。
+
+[正则高亮与自定义折叠范例](../lib/bindings/xui/examples/code_language_regex_folding.xl) ·
 [自定义词法回调范例](../lib/bindings/xui/examples/code_language_callbacks.xl) ·
 [无窗口词法与折叠范例](../lib/bindings/xui/examples/code_language_tools.xl) ·
 [高亮范例](../lib/bindings/xui/examples/code_editor_language.xl) ·

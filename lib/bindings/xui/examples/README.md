@@ -234,6 +234,7 @@ WebView 范例只加载源码中的本地 HTML。它需要启用 WebView2 的 Wi
 | [code_editor_language.xl](code_editor_language.xl) | 注册 Notes 语言的正则高亮规则，用关键字样式显示标题。 |
 | [code_language_tools.xl](code_language_tools.xl) | 在无窗口程序中统计 C 源码的词法标记和折叠区间。 |
 | [code_language_callbacks.xl](code_language_callbacks.xl) | 注册自定义词法回调，把源文本开头标记为关键词。 |
+| [code_language_regex_folding.xl](code_language_regex_folding.xl) | 在同一个语言定义中用正则高亮章节标题，并用回调生成折叠区间。 |
 | [code_fold_provider.xl](code_fold_provider.xl) | 用同步回调生成折叠区间，折叠时保留章节标题。 |
 | [code_editor_annotations.xl](code_editor_annotations.xl) | 在编辑器中添加书签并高亮 TODO，读取书签提示。 |
 | [code_editor_tokens.xl](code_editor_tokens.xl) | 为当前文本发布高亮 token，遍历保留的只读序列。 |

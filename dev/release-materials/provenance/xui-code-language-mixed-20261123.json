@@ -1,0 +1,658 @@
+{
+  "schema": 1,
+  "date": "2026-11-23",
+  "complete": true,
+  "passed": true,
+  "shippingDelivery": false,
+  "networkTests": false,
+  "scope": "Regex language definitions with optional typed lexer and fold callbacks and compatible C descriptors",
+  "nativeRevision": "492ed45d5b58143d0113100d8b7935b61d7bd9cc",
+  "nativeSourceLF": {
+    "include/xui.h": "4d0e0bf35b4cb52921276095ba3e7d00d7834bbe5a096f7dc22fa492b07f5021",
+    "src/xui/code/xui_code_language.c": "7ac19aadbc4eec5fe52534bd94c3c56c65fb602f65c9d3af099e630e536463ea",
+    "tests/xui/xui_code_language_registry_test.c": "c7269b40806527543d963601ebad62591bf663200bb429b9858f634abbee48cb"
+  },
+  "sourceLF": {
+    "docs/xge3-xui3-api-map-storage.json": "fb1a6fe687c3d9cc61894be49cae22af6989c07e599611ad072a53849c922fb8",
+    "docs/xui-code-assist.md": "83d283344de9ed3a0af718b2ef73029f0c2940d43e6a399c51ac136a9dfcfe49",
+    "lib/bindings/xui/src/code_language_registry.xl": "f5625d6f6d455b0c7cf693529538e8ac484e3017328932b96acc7da95d101e04",
+    "lib/bindings/xui/examples/README.md": "1416f81d75badeee1bd36b6c0984389cdb5982a73433ea2306519948ae4cf7f0",
+    "lib/bindings/xui/examples/code_language_regex_folding.xl": "aec258324ecc109cab41e6e36e8dd2b46ca58e4c6a7f5110d60e6e81940718e2",
+    "test/cases/foreign_xui_code_language_mixed.xl": "d148a743e9c01feb55b6ee91d9bc349307f8e1b0b75a15a49102e0732251fda3"
+  },
+  "platforms": {
+    "Windows x64": {
+      "evidence": {
+        "source": {
+          "path": "F:\\xlang-validation\\xge-full-20261110\\code-language-mixed-audit-win-r5\\native-source.json",
+          "sha256": "40a0fc2f4116de366c39c52fbe7689395787e17ca64062027215250fb42fd5b5"
+        },
+        "host": {
+          "path": "F:\\xlang-validation\\xge-full-20261110\\code-language-mixed-host-win-r3\\build-report.json",
+          "sha256": "1034f2f871e4a3c38858e09948c00d6c611a778d2ac3f17a7f718cffe8e34369"
+        },
+        "static": {
+          "path": "F:\\xlang-validation\\xge-full-20261110\\code-language-mixed-static-win-r3\\build-report.json",
+          "sha256": "4939c47bcdd75d25c9476f279aaee653f77edaabbdde810d12b4b748c9d8e030"
+        },
+        "compiler": {
+          "path": "F:\\xlang-validation\\xge-full-20261110\\compiler-egl-image-win-r1\\build.json",
+          "sha256": "79eca7fd3680d6eff32497ae07da75ad074c18c9c642d95eacbd663abb9d6bb8"
+        },
+        "generator": {
+          "path": "F:\\xlang-validation\\xge-full-20261110\\code-language-mixed-generator-win-r5\\results.json",
+          "sha256": "c21089760bdde9489cca3de503cbb1ee0b3382d0fb479b1d879b1b12a440ded0"
+        },
+        "packages": {
+          "path": "F:\\xlang-validation\\xge-full-20261110\\code-language-mixed-stage-win-r4\\replay\\stage-report.json",
+          "sha256": "20550a84093961ade6c134d95fc86430738bfca6082f5d9ce620b10f023d987b"
+        },
+        "surface": {
+          "path": "F:\\xlang-validation\\xge-full-20261110\\code-language-mixed-audit-win-r5\\surface\\surface.json",
+          "sha256": "a30ef036eb6780c8cfe92b605866f6b7739bbfaaa440f00fb522bb54f1f26afb"
+        },
+        "consumers": {
+          "path": "F:\\xlang-validation\\xge-full-20261110\\code-language-mixed-audit-win-r5\\consumers\\results.json",
+          "sha256": "9ebeb88db5bcbdc6eef6985ddf882b629176e13446ff59518e1efbbe3783387f"
+        },
+        "tests": {
+          "path": "F:\\xlang-validation\\xge-full-20261110\\code-language-mixed-verify-win-r4\\results.json",
+          "sha256": "a25f8fb811f4e2ed224124d4b34c965eefc5fa8177fc508b125b5f55edf330ad"
+        },
+        "nativeTests": {
+          "path": "F:\\xlang-validation\\xge-full-20261110\\code-language-mixed-native-test-win-r3\\results.json",
+          "sha256": "d20f86835d8ca55f31ef87374434483e648b1177c118b2da510227dafd5fea42"
+        },
+        "legacyNativeTests": {
+          "path": "F:\\xlang-validation\\xge-full-20261110\\code-language-mixed-legacy-native-test-win-r3\\results.json",
+          "sha256": "f8524d1196f3142ead9b4d4f89d9a82bc37f8d8285228482cc4ffda83f7d6525"
+        },
+        "benchmark": {
+          "path": "F:\\xlang-validation\\xge-full-20261110\\code-language-mixed-bench-win-r2\\results.json",
+          "sha256": "c4100fd22b6a545538b9b66b81562978a4b128d712df9a6ba4eeb6d9a58184e7"
+        },
+        "rejectedOptionalArrayBenchmark": {
+          "path": "F:\\xlang-validation\\xge-full-20261110\\code-language-mixed-bench-win-r1\\results.json",
+          "sha256": "7f1a5fc1148790f5e16c6cc05c0b256ea5c8d105aafc3fc45128e3fde1c239a3"
+        }
+      },
+      "nativeSteps": [
+        "host-O0-build",
+        "host-O0-run",
+        "host-O2-build",
+        "host-O2-run",
+        "static-O0-build",
+        "static-O0-run",
+        "static-O2-build",
+        "static-O2-run"
+      ],
+      "legacyNativeSteps": [
+        "host-O0-build",
+        "host-O0-run",
+        "host-O2-build",
+        "host-O2-run",
+        "static-O0-build",
+        "static-O0-run",
+        "static-O2-build",
+        "static-O2-run"
+      ],
+      "languageSteps": [
+        "emit",
+        "fixture-jit",
+        "fixture-dynamic-build",
+        "fixture-dynamic-run",
+        "fixture-dynamic-imports",
+        "fixture-static-build",
+        "fixture-static-run",
+        "fixture-static-imports",
+        "lesson-jit",
+        "lesson-dynamic-build",
+        "lesson-dynamic-run",
+        "lesson-dynamic-imports",
+        "lesson-static-build",
+        "lesson-static-run",
+        "lesson-static-imports",
+        "callback-only-jit",
+        "callback-only-dynamic-build",
+        "callback-only-dynamic-run",
+        "callback-only-dynamic-imports",
+        "callback-only-static-build",
+        "callback-only-static-run",
+        "callback-only-static-imports"
+      ],
+      "directCalls": {
+        "xuiCodeLanguageRegistryRegisterRegexCallbacks": 4,
+        "xuiCodeTokenOutputAppend": 1,
+        "xuiCodeFoldOutputAppend": 1,
+        "xuiCodeLanguageRegistryLex": 3,
+        "xl6Xui3LexEditorDocument": 1
+      },
+      "programs": [
+        {
+          "name": "fixture",
+          "mode": "dynamic",
+          "bytes": 5248512,
+          "sha256": "b16073a9ab9c60736dd95059499922227457094b5aeaee364646bc4bbb503c7f",
+          "imports": [
+            "msvcrt.dll",
+            "xge3_host.dll",
+            "kernel32.dll",
+            "shell32.dll",
+            "ws2_32.dll",
+            "iphlpapi.dll",
+            "ucrtbase.dll"
+          ]
+        },
+        {
+          "name": "fixture",
+          "mode": "static",
+          "bytes": 7605760,
+          "sha256": "4e45edaf0a2dcb271b43930dd0426a23c83785836e3201598f4caeb1de9e478e",
+          "imports": [
+            "msvcrt.dll",
+            "kernel32.dll",
+            "user32.dll",
+            "ole32.dll",
+            "oleaut32.dll",
+            "shell32.dll",
+            "gdi32.dll",
+            "imm32.dll",
+            "dwrite.dll"
+          ]
+        },
+        {
+          "name": "lesson",
+          "mode": "dynamic",
+          "bytes": 1713152,
+          "sha256": "ef21dfb4bf49ecd9b12a519a1cfb7131bc075ee5423d36fb2cb15deffe69ed7b",
+          "imports": [
+            "msvcrt.dll",
+            "xge3_host.dll",
+            "kernel32.dll",
+            "shell32.dll",
+            "ucrtbase.dll"
+          ]
+        },
+        {
+          "name": "lesson",
+          "mode": "static",
+          "bytes": 2449408,
+          "sha256": "051f53c5bea3c3a1a361bae13cf38e3944adb223d23e4fa928f82fa36c9aa88d",
+          "imports": [
+            "msvcrt.dll",
+            "kernel32.dll",
+            "user32.dll",
+            "oleaut32.dll",
+            "ole32.dll",
+            "shell32.dll"
+          ]
+        },
+        {
+          "name": "callback-only",
+          "mode": "dynamic",
+          "bytes": 5073408,
+          "sha256": "758676170485f197b1ab3f01acbe15bf922e3116f3e18dbab6ad9f01f6b08cd8",
+          "imports": [
+            "msvcrt.dll",
+            "xge3_host.dll",
+            "kernel32.dll",
+            "shell32.dll",
+            "ws2_32.dll",
+            "iphlpapi.dll",
+            "ucrtbase.dll"
+          ]
+        },
+        {
+          "name": "callback-only",
+          "mode": "static",
+          "bytes": 7388672,
+          "sha256": "4cb0b62fa01ffb71be50e92cb55e958708c36b48e9aa273eef972e211cc5bd62",
+          "imports": [
+            "msvcrt.dll",
+            "kernel32.dll",
+            "user32.dll",
+            "ole32.dll",
+            "oleaut32.dll",
+            "shell32.dll",
+            "gdi32.dll",
+            "imm32.dll",
+            "dwrite.dll"
+          ]
+        }
+      ],
+      "benchmarks": {
+        "linkage": "dynamic AOT",
+        "lexRuns": 20000,
+        "heapRuns": 1000,
+        "inputBytes": 3,
+        "results": {
+          "before": {
+            "heap": [
+              [
+                [
+                  0,
+                  13000,
+                  13000,
+                  0
+                ]
+              ],
+              [
+                [
+                  0,
+                  13000,
+                  13000,
+                  0
+                ]
+              ]
+            ],
+            "timings": []
+          },
+          "after": {
+            "heap": [
+              [
+                [
+                  0,
+                  13000,
+                  13000,
+                  0
+                ],
+                [
+                  1,
+                  46000,
+                  46000,
+                  19000
+                ],
+                [
+                  2,
+                  46000,
+                  46000,
+                  19000
+                ]
+              ],
+              [
+                [
+                  0,
+                  13000,
+                  13000,
+                  0
+                ],
+                [
+                  1,
+                  46000,
+                  46000,
+                  19000
+                ],
+                [
+                  2,
+                  46000,
+                  46000,
+                  19000
+                ]
+              ]
+            ],
+            "timings": [
+              [
+                969,
+                924
+              ],
+              [
+                1056,
+                1272
+              ],
+              [
+                1062,
+                1069
+              ],
+              [
+                1013,
+                1033
+              ],
+              [
+                934,
+                947
+              ],
+              [
+                952,
+                999
+              ],
+              [
+                1204,
+                915
+              ],
+              [
+                893,
+                888
+              ]
+            ],
+            "medianMs": {
+              "regex": 991.0,
+              "mixed": 973.0
+            }
+          }
+        }
+      }
+    },
+    "Linux x64": {
+      "evidence": {
+        "source": {
+          "path": "\\\\wsl.localhost\\Ubuntu\\var\\tmp\\xlang-validation\\xge-full-20261110\\code-language-mixed-audit-linux-r5\\native-source.json",
+          "sha256": "7501bb6e5c1ff23f48b44659c11fa71cfea99079c5fce87cde8957ab4eb12a20"
+        },
+        "host": {
+          "path": "\\\\wsl.localhost\\Ubuntu\\var\\tmp\\xlang-validation\\xge-full-20261110\\code-language-mixed-host-linux-r3\\build-report.json",
+          "sha256": "1a169d84ff25521503308992ea0561de386c795fa859e39c07d0aaec5d5803ee"
+        },
+        "static": {
+          "path": "\\\\wsl.localhost\\Ubuntu\\var\\tmp\\xlang-validation\\xge-full-20261110\\code-language-mixed-static-linux-r3\\build-report.json",
+          "sha256": "67099b569977c7cb5a7520e3150da3cba462c1b4aab5276de93bdaec0e5b8b6a"
+        },
+        "compiler": {
+          "path": "\\\\wsl.localhost\\Ubuntu\\var\\tmp\\xlang-validation\\xge-full-20261110\\compiler-egl-image-linux-r1\\build.json",
+          "sha256": "df9e82649546cb57c9433e191c8f4b66489feeb4e2a01002ebe67e9df325e1a1"
+        },
+        "generator": {
+          "path": "\\\\wsl.localhost\\Ubuntu\\var\\tmp\\xlang-validation\\xge-full-20261110\\code-language-mixed-generator-linux-r5\\results.json",
+          "sha256": "cd36625fa23aa3aa12ae39f62b9ecd2e3e0e8189ddccdf94f3659d4c6e2d36dd"
+        },
+        "packages": {
+          "path": "\\\\wsl.localhost\\Ubuntu\\var\\tmp\\xlang-validation\\xge-full-20261110\\code-language-mixed-stage-linux-r4\\replay\\stage-report.json",
+          "sha256": "49ec594c712222c193eab87e701fc3512a7356b7e0ee57b1187aa7b08d9d654e"
+        },
+        "surface": {
+          "path": "\\\\wsl.localhost\\Ubuntu\\var\\tmp\\xlang-validation\\xge-full-20261110\\code-language-mixed-audit-linux-r5\\surface\\surface.json",
+          "sha256": "40182bf61f3bfdef188551198b75c3f8562baea4143ac8ebc7510e35557fcc7b"
+        },
+        "consumers": {
+          "path": "\\\\wsl.localhost\\Ubuntu\\var\\tmp\\xlang-validation\\xge-full-20261110\\code-language-mixed-audit-linux-r5\\consumers\\results.json",
+          "sha256": "3a29849447571fbbead319d853a7ccab6cbe8e017cc350bbceaee5f642f9851c"
+        },
+        "tests": {
+          "path": "\\\\wsl.localhost\\Ubuntu\\var\\tmp\\xlang-validation\\xge-full-20261110\\code-language-mixed-verify-linux-r4\\results.json",
+          "sha256": "114fffbb42ba31932f82e06105fda2774c8b4a4d56e09716630243195d019306"
+        },
+        "nativeTests": {
+          "path": "\\\\wsl.localhost\\Ubuntu\\var\\tmp\\xlang-validation\\xge-full-20261110\\code-language-mixed-native-test-linux-r3\\results.json",
+          "sha256": "895a18ea99453289db34fe26a5f64d8c7a00a479378a61a8e1419f87427ee759"
+        },
+        "legacyNativeTests": {
+          "path": "\\\\wsl.localhost\\Ubuntu\\var\\tmp\\xlang-validation\\xge-full-20261110\\code-language-mixed-legacy-native-test-linux-r3\\results.json",
+          "sha256": "9e853515ca0b0bd6adcb0e024f2c50b6f127666b20bd54a6493ed8f421876b3f"
+        },
+        "benchmark": {
+          "path": "\\\\wsl.localhost\\Ubuntu\\var\\tmp\\xlang-validation\\xge-full-20261110\\code-language-mixed-bench-linux-r2\\results.json",
+          "sha256": "ae8c69c04aa271ca5006510e68afadc80863052cbbee6d7d946acf13885a5653"
+        },
+        "rejectedOptionalArrayBenchmark": {
+          "path": "\\\\wsl.localhost\\Ubuntu\\var\\tmp\\xlang-validation\\xge-full-20261110\\code-language-mixed-bench-linux-r1\\results.json",
+          "sha256": "f15c7f8a1c2d2b2a98a035a30d9e14651c804b37c20b7b6eab660da6dea759ab"
+        }
+      },
+      "nativeSteps": [
+        "host-O0-build",
+        "host-O0-run",
+        "host-O2-build",
+        "host-O2-run",
+        "static-O0-build",
+        "static-O0-run",
+        "static-O2-build",
+        "static-O2-run"
+      ],
+      "legacyNativeSteps": [
+        "host-O0-build",
+        "host-O0-run",
+        "host-O2-build",
+        "host-O2-run",
+        "static-O0-build",
+        "static-O0-run",
+        "static-O2-build",
+        "static-O2-run"
+      ],
+      "languageSteps": [
+        "emit",
+        "fixture-jit",
+        "fixture-dynamic-build",
+        "fixture-dynamic-run",
+        "fixture-dynamic-imports",
+        "fixture-static-build",
+        "fixture-static-run",
+        "fixture-static-imports",
+        "lesson-jit",
+        "lesson-dynamic-build",
+        "lesson-dynamic-run",
+        "lesson-dynamic-imports",
+        "lesson-static-build",
+        "lesson-static-run",
+        "lesson-static-imports",
+        "callback-only-jit",
+        "callback-only-dynamic-build",
+        "callback-only-dynamic-run",
+        "callback-only-dynamic-imports",
+        "callback-only-static-build",
+        "callback-only-static-run",
+        "callback-only-static-imports"
+      ],
+      "directCalls": {
+        "xuiCodeLanguageRegistryRegisterRegexCallbacks": 4,
+        "xuiCodeTokenOutputAppend": 1,
+        "xuiCodeFoldOutputAppend": 1,
+        "xuiCodeLanguageRegistryLex": 3,
+        "xl6Xui3LexEditorDocument": 1
+      },
+      "programs": [
+        {
+          "name": "fixture",
+          "mode": "dynamic",
+          "bytes": 5439445,
+          "sha256": "857d3f4bc5de8b1db29d61694dea8bf6cef00419352123425620644ffec27e9b",
+          "imports": [
+            "libm.so.6",
+            "libmvec.so.1",
+            "libxge3_host.so",
+            "libc.so.6",
+            "ld-linux-x86-64.so.2"
+          ]
+        },
+        {
+          "name": "fixture",
+          "mode": "static",
+          "bytes": 6748250,
+          "sha256": "10076d95fa3626b99263c9dda9b39cb5a44d8818c928cec7699d95b7697a431f",
+          "imports": [
+            "libm.so.6",
+            "libmvec.so.1",
+            "libx11.so.6",
+            "libxi.so.6",
+            "libxcursor.so.1",
+            "libgl.so.1",
+            "libc.so.6",
+            "ld-linux-x86-64.so.2"
+          ]
+        },
+        {
+          "name": "lesson",
+          "mode": "dynamic",
+          "bytes": 1791231,
+          "sha256": "175bf3583fa8098e62ca576d7b845e66afbed27b81e1e1631e801f8460e0d4cf",
+          "imports": [
+            "libm.so.6",
+            "libmvec.so.1",
+            "libxge3_host.so",
+            "libc.so.6",
+            "ld-linux-x86-64.so.2"
+          ]
+        },
+        {
+          "name": "lesson",
+          "mode": "static",
+          "bytes": 1690408,
+          "sha256": "874a9f7f814afd8feef762d132c1288f644fbf6baa461576c1b3cc7b4c70caf4",
+          "imports": [
+            "libm.so.6",
+            "libmvec.so.1",
+            "libx11.so.6",
+            "libxi.so.6",
+            "libxcursor.so.1",
+            "libgl.so.1",
+            "libc.so.6",
+            "ld-linux-x86-64.so.2"
+          ]
+        },
+        {
+          "name": "callback-only",
+          "mode": "dynamic",
+          "bytes": 5278578,
+          "sha256": "4fe1e24c247051f669326906da294ad1d0f2c48985aa6303977c1a0a5c4178fd",
+          "imports": [
+            "libm.so.6",
+            "libmvec.so.1",
+            "libxge3_host.so",
+            "libc.so.6",
+            "ld-linux-x86-64.so.2"
+          ]
+        },
+        {
+          "name": "callback-only",
+          "mode": "static",
+          "bytes": 6552193,
+          "sha256": "a609a67af6007a86b669ae7fcd325a8feb48adaa5ec42bb8f87be1ecbb3dd34e",
+          "imports": [
+            "libm.so.6",
+            "libmvec.so.1",
+            "libx11.so.6",
+            "libxi.so.6",
+            "libxcursor.so.1",
+            "libgl.so.1",
+            "libc.so.6",
+            "ld-linux-x86-64.so.2"
+          ]
+        }
+      ],
+      "benchmarks": {
+        "linkage": "dynamic AOT",
+        "lexRuns": 20000,
+        "heapRuns": 1000,
+        "inputBytes": 3,
+        "results": {
+          "before": {
+            "heap": [
+              [
+                [
+                  0,
+                  13000,
+                  13000,
+                  0
+                ]
+              ],
+              [
+                [
+                  0,
+                  13000,
+                  13000,
+                  0
+                ]
+              ]
+            ],
+            "timings": []
+          },
+          "after": {
+            "heap": [
+              [
+                [
+                  0,
+                  13000,
+                  13000,
+                  0
+                ],
+                [
+                  1,
+                  46000,
+                  46000,
+                  19000
+                ],
+                [
+                  2,
+                  46000,
+                  46000,
+                  19000
+                ]
+              ],
+              [
+                [
+                  0,
+                  13000,
+                  13000,
+                  0
+                ],
+                [
+                  1,
+                  46000,
+                  46000,
+                  19000
+                ],
+                [
+                  2,
+                  46000,
+                  46000,
+                  19000
+                ]
+              ]
+            ],
+            "timings": [
+              [
+                1157,
+                992
+              ],
+              [
+                1019,
+                965
+              ],
+              [
+                1000,
+                945
+              ],
+              [
+                974,
+                963
+              ],
+              [
+                1038,
+                989
+              ],
+              [
+                1118,
+                1081
+              ],
+              [
+                985,
+                958
+              ],
+              [
+                987,
+                994
+              ]
+            ],
+            "medianMs": {
+              "regex": 1009.5,
+              "mixed": 977.0
+            }
+          }
+        }
+      }
+    }
+  },
+  "remaining": [
+    "Review the remaining raw pointer descriptors and alternate native lifecycle APIs individually.",
+    "Continue other engine and UI families and perform combined shipping qualification."
+  ],
+  "audit": {
+    "functionPopulation": 5823,
+    "directDeclarations": 4761,
+    "compiledConsumerFunctions": 330,
+    "explicitReplacements": 527,
+    "pending": {
+      "XGE": 84,
+      "XUI": 132,
+      "Document": 0
+    }
+  }
+}

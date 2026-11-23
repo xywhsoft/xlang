@@ -1,0 +1,92 @@
+import xui
+from xui import CallbackCodeDocument, CallbackCodeFoldOutput, CallbackCodeTokenOutput, CodeFoldRange, CodeToken
+
+extern "fixtureDiagnosticBudget" @header("test/cases/foreign_xui_codeedit_diagnostics_heap.h") @no_raise func budget(c_int allowance)
+
+func main(...) as int
+ auto registry = xui.createCodeLanguageRegistry()
+ auto document = xui.createCodeDocument()
+ auto proxy = xui.createProxy()
+ auto context = xui.create(proxy, xui.XUI_SYSTEM_FONT_DISABLED)
+ auto editor = context.codeEditNative()
+ assert context.setRootWidget(editor) == xui.XUI_OK
+ auto live = editor.languageRegistry()
+ auto observed = editor.document()
+ int foldCalls = 0
+ xui.CodeFoldProvider folder = func(CallbackCodeDocument source, CallbackCodeFoldOutput output) as c_int
+  auto range = CodeFoldRange()
+  range.iStartLine = 0
+  range.iEndLine = source.getLineCount() - 1
+  output.append(range)
+  foldCalls += 1
+  return xui.XUI_OK
+ end
+ xui.CodeLexerProvider lexer = func(CallbackCodeDocument source, c_int first, c_int last, CallbackCodeTokenOutput output) as c_int
+  assert source.getLineCount() == 3 and first == 2 and last == 2
+  auto token = CodeToken()
+  token.iStartOffset = 10
+  token.iEndOffset = 11
+  token.iKind = xui.XUI_CODE_TOKEN_NUMBER
+  token.iStyle = xui.XUI_CODE_STYLE_NUMBER
+  output.append(token)
+  return xui.XUI_OK
+ end
+
+ try
+  document.setText("abc\nnext\nabc")
+  observed.setText("abc\nnext\nabc")
+  array<string?> names = ["word"]
+  array<string> patterns = ["abc"]
+  array<c_int> kinds = [xui.XUI_CODE_TOKEN_KEYWORD]
+  array<c_int> styles = [xui.XUI_CODE_STYLE_KEYWORD]
+  array<c_uint> flags = [c_uint(0)]
+  registry.registerRegexWithCallbacks("mixed", "Mixed", ["mix"], -1, names, patterns, kinds, styles, flags, folder=folder)
+  live.registerRegexWithCallbacks("mixed", "Mixed", ["mix"], -1, names, patterns, kinds, styles, flags, folder=folder, lexer=lexer)
+  assert editor.setLanguage("mixed") == xui.XUI_OK
+  patterns[0] = "zzz"
+  auto id, name, _, _, _, kind, extensions, rules = registry.findByExtension(".MIX")
+  auto _, stored, _, _, _ = registry.getRegexRule(0, 0)
+  assert id == "mixed" and name == "Mixed" and kind == xui.XUI_CODE_LEXER_REGEX
+  assert extensions == 1 and rules == 1 and stored == "abc"
+  auto token = Buffer()
+  assert token.resize(20)
+  assert registry.lex("mixed", document, 2, 2, token) == 1
+  assert token.toBytes(8) == b"\x09\0\0\0\x0c\0\0\0"
+  assert live.lex("mixed", observed, 2, 2, token) == 1
+  assert token.toBytes(8) == b"\x0a\0\0\0\x0b\0\0\0"
+  assert registry.fold("mixed", document) == 1 and live.fold("mixed", observed) == 1 and foldCalls == 2
+
+  bool rejected = false
+  budget(0)
+  try
+   registry.registerRegexWithCallbacks("mixed", "Replacement", ["mix"], -1, names, patterns, kinds, styles, flags, folder=folder)
+  catch Error
+   rejected = true
+  finally
+   budget(-1)
+  end
+  assert rejected and registry.fold("mixed", document) == 1
+  assert registry.lex("mixed", document, 2, 2, token) == 1
+  assert token.toBytes(8) == b"\x09\0\0\0\x0c\0\0\0"
+
+  // Replacing with a regex-only definition retires the registered folder.
+  registry.registerRegexWithCallbacks("mixed", "Regex only", ["mix"], -1, names, ["abc"], kinds, styles, flags)
+  assert registry.lex("mixed", document, 2, 2) == 1
+  rejected = false
+  try
+   auto count = registry.fold("mixed", document)
+  catch Error
+   rejected = true
+  end
+  assert rejected and foldCalls == 3
+  live.close()
+  assert editor.languageRegistry().fold("mixed", observed) == 1 and foldCalls == 4
+ finally
+  context.close()
+  proxy.close()
+  document.close()
+  registry.close()
+ end
+ println("XUI_CODE_LANGUAGE_MIXED_OK")
+ return 0
+end

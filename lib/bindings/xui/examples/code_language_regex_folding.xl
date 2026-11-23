@@ -1,0 +1,29 @@
+import xui
+from xui import CallbackCodeDocument, CallbackCodeFoldOutput, CodeFoldRange
+
+func foldSection(CallbackCodeDocument document, CallbackCodeFoldOutput output) as c_int
+ // The heading remains visible when the rest of the section is folded.
+ auto section = CodeFoldRange()
+ section.iStartLine = 0
+ section.iEndLine = document.getLineCount() - 1
+ output.append(section)
+ return xui.XUI_OK
+end
+
+func main(...) as int
+ auto languages = xui.createCodeLanguageRegistry()
+ auto document = xui.createCodeDocument()
+ try
+  document.setText("Section 1\nfirst paragraph\nsecond paragraph")
+  // Each column describes the same highlighting rule, here for the word Section.
+  languages.registerRegexWithCallbacks("notes", "Notes", ["note"], -1,
+   ruleNames=["heading"], patterns=["Section"], kinds=[xui.XUI_CODE_TOKEN_KEYWORD], folder=foldSection,
+   styles=[xui.XUI_CODE_STYLE_KEYWORD], flags=[c_uint(0)])
+  println("Tokens:", languages.lex("notes", document))
+  println("Fold ranges:", languages.fold("notes", document))
+ finally
+  document.close()
+  languages.close()
+ end
+ return 0
+end
