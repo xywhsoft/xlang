@@ -1,5 +1,22 @@
 # Native consumers in the full API inventory
 
+## Audio resource entry points
+
+The old caller-storage load and open functions map to `loadSound()`,
+`loadMusic()` and `openAudioStream()`. Their owned factories call the same
+native loaders with the requested group. `loadFallbackSound()`,
+`createSoundFromClip()` and `Sound.share()` cover the fallback, clip playback
+and retain entries.
+
+The compiled header policies verify the `AudioGroup`, `Sound`, `Music` and
+`AudioStream` close paths. Music and stream release use the same checked
+voice release as sound. This adds 15 mappings to the matched platform audits.
+Of 5,863 native functions, 161 still lack a declaration, compiled consumer or
+explicit replacement. XGE accounts for 59 and XUI for 102.
+
+[Audio resource audit evidence](../dev/release-materials/provenance/xge-audio-resource-audit-20261123.json) ·
+[Audio runtime acceptance](xge3-audio-integration.md)
+
 ## GPU resource sharing
 
 `Texture.share()`, `Shader.share()` and `RenderTarget.share()` call the

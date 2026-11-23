@@ -54,8 +54,25 @@ RENDER_RESOURCE_CLOSES = {
     'xgePassFree': ('xge.Pass.close', 'xl6Xge3PassDestroy', 'xgePassReleaseOwnerChecked'),
     'xgePassReleaseOwnerChecked': ('xge.Pass.close', 'xl6Xge3PassDestroy', 'xgePassReleaseOwnerChecked'),
 }
+AUDIO_RESOURCE_CLOSES = {
+    'xgeAudioGroupFree': ('xge.AudioGroup.close', 'xl6Xge3AudioGroupDestroy', 'xgeAudioGroupFreeChecked'),
+    'xgeAudioGroupFreeChecked': ('xge.AudioGroup.close', 'xl6Xge3AudioGroupDestroy', 'xgeAudioGroupFreeChecked'),
+    'xgeSoundFree': ('xge.Sound.close', 'xl6Xge3SoundDestroy', 'xgeSoundFreeChecked'),
+    'xgeSoundFreeChecked': ('xge.Sound.close', 'xl6Xge3SoundDestroy', 'xgeSoundFreeChecked'),
+    'xgeMusicFree': ('xge.Music.close', 'xl6Xge3SoundDestroy', 'xgeSoundFreeChecked'),
+    'xgeStreamClose': ('xge.AudioStream.close', 'xl6Xge3SoundDestroy', 'xgeSoundFreeChecked'),
+}
+RESOURCE_CLOSE_GROUPS = {
+    'renderResourceHeaderPolicies': ('xge-render-resource-header-policies', RENDER_RESOURCE_CLOSES),
+    'audioResourceHeaderPolicies': ('xge-audio-resource-header-policies', AUDIO_RESOURCE_CLOSES),
+}
+RESOURCE_CLOSES = {
+    symbol: (group, logical, destroy, release)
+    for group, (_, entries) in RESOURCE_CLOSE_GROUPS.items()
+    for symbol, (logical, destroy, release) in entries.items()
+}
 HEADER_CLOSE_REPLACEMENTS.update({symbol: (logical, release)
-    for symbol, (logical, _, release) in RENDER_RESOURCE_CLOSES.items()})
+    for symbol, (_, logical, _, release) in RESOURCE_CLOSES.items()})
 CORE_POLICY_CLASSES = {
     'xge.Scene', 'xge.PlatformBackend', 'xge.GraphicsBackend', 'xge.GraphicsContext', 'xge.HostSession',
     'xge.ImageLoad', 'xge.TextureLoad', 'xge.FontLoad', 'xge.SoundLoad',
@@ -581,9 +598,9 @@ def main():
             'iconHeaderPolicies': ('xui-icon-header-policies',
                 {'xui.IconReference': class_bindings['xui.IconReference']}),
         }
-        render_classes = {logical.rsplit('.', 1)[0] for logical, _, _ in RENDER_RESOURCE_CLOSES.values()}
-        policy_groups['renderResourceHeaderPolicies'] = ('xge-render-resource-header-policies',
-            {name: class_bindings[name] for name in sorted(render_classes)})
+        for key, (label, entries) in RESOURCE_CLOSE_GROUPS.items():
+            owners = {logical.rsplit('.', 1)[0] for logical, _, _ in entries.values()}
+            policy_groups[key] = (label, {name: class_bindings[name] for name in sorted(owners)})
         if 'xui.CodeLayoutSnapshot' in class_bindings:
             policy_groups['codeLayoutHeaderPolicies'] = ('xui-code-layout-header-policies',
                 {'xui.CodeLayoutSnapshot': class_bindings['xui.CodeLayoutSnapshot']})
@@ -651,9 +668,8 @@ def main():
                 logical,release=HEADER_CLOSE_REPLACEMENTS[symbol]
                 owner=class_bindings[logical.rsplit('.',1)[0]]
                 policy=re.search(r'@policy\("(\w+)"\)',class_lines(view,owner)[0])[1]
-                if symbol in RENDER_RESOURCE_CLOSES:
-                    key='renderResourceHeaderPolicies'
-                    destroy=RENDER_RESOURCE_CLOSES[symbol][1]
+                if symbol in RESOURCE_CLOSES:
+                    key, _, destroy, _ = RESOURCE_CLOSES[symbol]
                     require_close(class_lines(view,owner),policy,logical)
                 elif symbol in CORE_HEADER_CLOSES:
                     key='coreHeaderPolicies'

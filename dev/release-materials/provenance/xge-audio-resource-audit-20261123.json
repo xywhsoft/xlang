@@ -1,0 +1,130 @@
+{
+  "schema": 1,
+  "scope": "Legacy audio resource declarations and compiled managed close policies",
+  "nativeCommit": "a5a94d579e4d3328fb4742719f5bbc16ed92f198",
+  "runtimeRetestedInThisBatch": false,
+  "shippingDelivery": false,
+  "audioSourceMatchesLatestRuntimeQualification": true,
+  "runtimeEvidence": [
+    {
+      "path": "dev/release-materials/provenance/xge-audio-resources-20261111.json",
+      "sha256": "ece287602918d5036e2fd516352152217946e116cc74fd834d6197cdc0e62ed7"
+    },
+    {
+      "path": "dev/release-materials/provenance/xge-audio-fallback-20261111.json",
+      "sha256": "f489fa4a6abd1dfe57e29c88bfc75c352d774e1db452ffee52c275aa9130edce"
+    },
+    {
+      "path": "dev/release-materials/provenance/xge-audio-playback-share-20261119.json",
+      "sha256": "faf3653c5e433eff5b94b05780862c1bad34cf2f4700a308295fe134ac0857b2"
+    },
+    {
+      "path": "dev/release-materials/provenance/xge-public-audio-clip-20261119.json",
+      "sha256": "96e806c5a8a135ee935b84d408d4c13c9f722f91e17993d5eba2bebffda68f16"
+    }
+  ],
+  "platforms": {
+    "win": {
+      "audit": {
+        "path": "F:/xlang-validation/xge-full-20261110/audio-resource-consumers-win-r1/results.json",
+        "sha256": "3c1d064e1d5b6ee62e821596cbfc713f76a62e7ce02df3870349759c84f4d277"
+      },
+      "previousAudit": {
+        "path": "F:/xlang-validation/xge-full-20261110/gpu-resource-sharing-consumers-win-r2/results.json",
+        "sha256": "ed6941264d91b2fa50afcbce541b9b237e1594a6fde25cb186782880d41ebf27"
+      },
+      "sourceContracts": {
+        "path": "F:/xlang-validation/xge-full-20261110/audio-resource-consumers-win-r1/xge-audio-resource-header-policies.c",
+        "sha256": "01533f5307b703073461b6a510cf48606f79e2ae658ae857ac1d8d3ee544e043"
+      },
+      "functionPopulation": 5863,
+      "directDeclarations": 4798,
+      "pendingConsumerOrReplacement": {
+        "XGE": 59,
+        "XUI": 102
+      }
+    },
+    "linux": {
+      "audit": {
+        "path": "//wsl.localhost/Ubuntu/var/tmp/xlang-validation/xge-full-20261110/audio-resource-consumers-linux-r1/results.json",
+        "sha256": "dcf25ecefc0cdb2600935fbe4c48199f02a8c18427b0835feab81ec3d9893add"
+      },
+      "previousAudit": {
+        "path": "//wsl.localhost/Ubuntu/var/tmp/xlang-validation/xge-full-20261110/gpu-resource-sharing-consumers-linux-r2/results.json",
+        "sha256": "a17508931086f6ad7722025be5de96d360dee7e06d383701a243e7f2e9f9a313"
+      },
+      "sourceContracts": {
+        "path": "//wsl.localhost/Ubuntu/var/tmp/xlang-validation/xge-full-20261110/audio-resource-consumers-linux-r1/xge-audio-resource-header-policies.c",
+        "sha256": "3f24883136695c0bc1d8a72989879283adaada59ed0ac85e2fdd77c685910fce"
+      },
+      "functionPopulation": 5863,
+      "directDeclarations": 4798,
+      "pendingConsumerOrReplacement": {
+        "XGE": 59,
+        "XUI": 102
+      }
+    }
+  },
+  "mappings": {
+    "xgeAudioGroupFree": {
+      "language": "xge.AudioGroup.close",
+      "native": "xgeAudioGroupFreeChecked"
+    },
+    "xgeAudioGroupFreeChecked": {
+      "language": "xge.AudioGroup.close",
+      "native": "xgeAudioGroupFreeChecked"
+    },
+    "xgeMusicFree": {
+      "language": "xge.Music.close",
+      "native": "xgeSoundFreeChecked"
+    },
+    "xgeMusicLoad": {
+      "language": "xge.loadMusic",
+      "native": "xgeMusicCreateOwned"
+    },
+    "xgeMusicLoadGroup": {
+      "language": "xge.loadMusic",
+      "native": "xgeMusicCreateOwned"
+    },
+    "xgeSoundAddRef": {
+      "language": "xge.Sound.share",
+      "native": "xgeSoundShareOwned"
+    },
+    "xgeSoundFallbackGet": {
+      "language": "xge.loadFallbackSound",
+      "native": "xgeSoundFallbackCreateOwned"
+    },
+    "xgeSoundFree": {
+      "language": "xge.Sound.close",
+      "native": "xgeSoundFreeChecked"
+    },
+    "xgeSoundFreeChecked": {
+      "language": "xge.Sound.close",
+      "native": "xgeSoundFreeChecked"
+    },
+    "xgeSoundFromClip": {
+      "language": "xge.createSoundFromClip",
+      "native": "xgeSoundCreateFromClipOwned"
+    },
+    "xgeSoundLoad": {
+      "language": "xge.loadSound",
+      "native": "xgeSoundCreateOwned"
+    },
+    "xgeSoundLoadGroup": {
+      "language": "xge.loadSound",
+      "native": "xgeSoundCreateOwned"
+    },
+    "xgeStreamClose": {
+      "language": "xge.AudioStream.close",
+      "native": "xgeSoundFreeChecked"
+    },
+    "xgeStreamOpen": {
+      "language": "xge.openAudioStream",
+      "native": "xgeStreamCreateOwned"
+    },
+    "xgeStreamOpenGroup": {
+      "language": "xge.openAudioStream",
+      "native": "xgeStreamCreateOwned"
+    }
+  }
+}
