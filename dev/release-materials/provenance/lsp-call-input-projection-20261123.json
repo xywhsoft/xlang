@@ -1,0 +1,269 @@
+{
+  "schema": 1,
+  "date": "2026-11-23",
+  "stage": "M7b7u",
+  "scope": "Audited consumed-node input projections and duplicate-read elimination for actual native call-table reuse;IR-constructor-only screening",
+  "ownedSources": {
+    "ide/src/analysis/frontend_ir_call_cache.inc": "a38258997b97f6d6fbdea1456d2e929085bc0c64636b7471d899f8cd0abc8a75",
+    "ide/tools/native_ir_call_cache_overlay.py": "bc4ee0475134a869683da868b1401728c36ab0bdac4083ad70baa207ce093bdd",
+    "ide/tools/native_ir_pipeline_overlay.py": "bbf465c6cae6b4e0cae7ecc68d2ec9f4f47ccab1351063fff8464f2c14755fb7",
+    "ide/tools/native_current_ir_overlay.py": "94ebfcaa6647c8657364ff987f93dd2b0645681c8bb6a0792c233797cf26bdc9",
+    "ide/tools/check_ir_pipeline_profile.py": "fde59c5e9957b487ad9b07e3e1e99910825ee92264092015c939b2d6afbe40ba",
+    "ide/tests/analysis_ir_call_cache_test.c": "0382bdf91c80577789c1fd84e6084029a0da92523d22728b5c9b608103ce7dcb",
+    "ide/docs/lsp-call-input-projection.md": "93be2491e2aa7cbb88ac992941e5a574b673650a052ebb9cd547fe375cfa215e",
+    "ide/docs/lsp-native-call-cache.md": "9e5614b342fa4fe52bd0523033f56b9a8367db63c4f735a278c670b7aad3b18c",
+    "ide/docs/lsp-development.md": "250710f073c038d23f70d5e5d50551c6f764de1f40aadb11241f7081bbcc9e8d"
+  },
+  "materials": {
+    "sources": {
+      "archive": {
+        "path": "dev/release-materials/sources/lsp-call-input-projection-20261123/sources.tar.gz",
+        "sha256": "290c46040257779ca0d05074143e6a3c4d5dd89d5d57f571760d0c787223c0f7",
+        "bytes": 16650063
+      },
+      "manifest": {
+        "path": "dev/release-materials/sources/lsp-call-input-projection-20261123/sources.tar.gz.manifest.json",
+        "sha256": "3f378b06598c69da732d1a55cbf9883e6c5fe51572ca3a424a394b983d6a5d40",
+        "bytes": 2335503
+      },
+      "entries": 4964,
+      "uniquePayloads": 2060
+    },
+    "validation": {
+      "archive": {
+        "path": "dev/release-materials/provenance/lsp-call-input-projection-20261123/validation.tar.gz",
+        "sha256": "5063b8ff093a400dbd2d03517516d074296ddd9b499e63897390bbcc9ef30836",
+        "bytes": 113290192
+      },
+      "manifest": {
+        "path": "dev/release-materials/provenance/lsp-call-input-projection-20261123/validation.tar.gz.manifest.json",
+        "sha256": "185d99cdd6893d36a004a7541892d4cad28a4053d7338e854da89aa2ff57fe2b",
+        "bytes": 129389
+      },
+      "entries": 377,
+      "uniquePayloads": 203
+    }
+  },
+  "materialDependencies": [
+    "dev/release-materials/provenance/lsp-native-call-cache-20261123.json",
+    "dev/release-materials/provenance/lsp-stable-resource-package-20261123.json"
+  ],
+  "qualification": {
+    "nativeCoreMembersFresh": 1,
+    "coreObjectsReusedExactDependencies": 79,
+    "semanticInputs": 49,
+    "normalChecks": 6803,
+    "contractChecksIncludingNormal": 6924,
+    "poisonedRetiredUnits": 676,
+    "concurrentReaders": 4,
+    "readerGenerations": 3,
+    "helperNodeFields": 14,
+    "entryFields": 5,
+    "coordinateOnlyEditReusedRanges": 19,
+    "coordinateOnlyEditNativeNodes": 0,
+    "coldAllocationApiRejectionPoints": 52,
+    "hotAllocationApiRejectionPoints": 46,
+    "coldCancellationPoints": 45,
+    "hotCancellationPoints": 48,
+    "sourcePolicyCases": 16,
+    "relatedNativePrograms": 8,
+    "ordinaryUnavailableFixtures": 2,
+    "compiledDefects": 8,
+    "positiveControls": 1,
+    "defaultExistingFunctions": 1862,
+    "unchangedPrivateLayouts": 2,
+    "sourceHeaderCompilerRuntimeGuardsPassed": true
+  },
+  "sourceContract": {
+    "functions": {
+      "xl6IrBuildCallSites": "39432f3f294f03ecb8092654e944305e4f9c1f4c42db5b9b615cc27c578889b2",
+      "xl6IrBuildSyntaxCallSite": "895a00e2cd4849ff070daf530e182dc3747d9e378865097a6831ffa75662d2d3",
+      "xl6IrSyntaxIndexArgumentAt": "dcd265a657c9afd740b70ee0527ed5666fbd2545a8ddb6837eb86f955101d662",
+      "xl6IrNodeGet": "a1d6375145b7123c25224c480e656eac97cf0e136d27f16c0fe07193023de520",
+      "xl6IrBuildCallSiteDispatchSlot": "440aca2e949ccecd85ef65620c8fd3f7eeca2eca6bbda72f6a612746ddd0fd7a",
+      "xl6IrTypeGet": "753e997667f51bbbff554f5ed70be9664f33f94390926062ef81546c5e185dd5",
+      "xl6IrNodeIsPropertyUpdate": "d4e0e086d0f7353194404008739e7914c450ba8187c5e98416c2cfbdedf180a1",
+      "xl6IrCallVariadicAbiForParameter": "43135c562a52dd7fa937648c9ef70b5e2af113d7845b003fe776db426d6a0ec3",
+      "xl6IrSyntaxIndexArgumentCount": "a1c73b87cc63bafa2ade69af5c29541b7b6d519bea0e19833e6de90d3531ea39",
+      "xl6IrCallParameterListGet": "19a297c997d0547f0be1eb1a5c4d721c595bc3ac5ca670aa47766c9bca7e66cf",
+      "xl6IrBuildCallTargetNeedsReceiver": "6cefbf7ead7be65532bfbdc21743a973c27a3866ce7dc0185b3bc03820329fdb",
+      "xl6IrBuildEnclosingClass": "b4c23140b0a3a145eb738874463c384cf9acdcb400340d9fd5b59e3166989a87",
+      "xl6IrNodeIsResolvedSyntaxCall": "be380478f5504624e5a1a5833c67423005f93bdfdf51f6709d6f92c65284e465",
+      "xl6IrBuildCallSite": "8210edeea32a23d47e362467084aa2540ce9863373838d5c6681a95d6003d8a4",
+      "xl6IrBuildFunctionValueCallSite": "9956efbc0716250142c36dc06b67e280bf14f9b56ba94e275da7018e736cc2db",
+      "xl6IrBuildCallableVariadicAbi": "d9058fea8640cdd44dc49ae16a970e922c1084b1e7d9ab77255e8af236b2f01a",
+      "xl6IrIntrinsicCallGet": "326e56d70701a2903a93a06bccf16e05745e89ecda1a477431f6e4e887497057"
+    },
+    "nodeGateway": "xlsCallsNodeGet",
+    "typeGateway": "xlsCallsTypeGet",
+    "entryFields": [
+      "callKind",
+      "kind",
+      "lvalueKind",
+      "opcode",
+      "targetSymbol"
+    ],
+    "helperNodeFields": [
+      "callKind",
+      "childCount",
+      "firstChild",
+      "flags",
+      "implicitNameAbi",
+      "kind",
+      "lvalueKind",
+      "opcode",
+      "parent",
+      "sourceKind",
+      "storageType",
+      "targetSymbol",
+      "text",
+      "type"
+    ],
+    "queriedTypeFields": [
+      "cAbi",
+      "callableErasureAbi",
+      "kind",
+      "paramCount",
+      "parameterAbis",
+      "parameterModes",
+      "params"
+    ],
+    "directNodeReaders": [
+      "xl6IrBuildCallSites",
+      "xl6IrNodeGet"
+    ],
+    "readSet": "Five entry fields;14audited helper node fields/text/children;actual queried type projection;symbol map,intrinsic origins,class/protocol dispatch projection,initial call rows",
+    "output": "Independent call sites/arguments;relative argument slices;original final contracts",
+    "scope": "Call-table phase only,exact IDs;no ordinary integration"
+  },
+  "profile": {
+    "componentMacro": "XLS_NATIVE_IR_PIPELINE_COMPONENT",
+    "ordinaryEnabled": false,
+    "nodeViews": false,
+    "exitReuse": false,
+    "functionExits": false
+  },
+  "runtimePreserved": {
+    "D:\\GIT\\x-lang\\release\\win_x64\\mdo.exe": "9219de70911e1f02d8e54eadc77c257369e4ea637e5202fcbb04854a29893044",
+    "D:\\GIT\\x-lang\\release\\win_x64\\update.exe": "4c5266fce0a541b9b96fe92b3d2f7d94598aff3b052e420b08b6d47db5e5c6c2",
+    "D:\\GIT\\x-lang\\release\\win_x64\\xge.dll": "127db42612e8a27c8b1f7f74e4653c25f09140f8baac38d16fc564eb74892ef3",
+    "D:\\GIT\\x-lang\\release\\win_x64\\xl.dll": "f31ddbe973ed48d261014ec64fa6b0ba48791fc0313192a19d59467254c0fcd6",
+    "D:\\GIT\\x-lang\\release\\win_x64\\xl.exe": "5288c4e8be9f420ef98caeb11be362017be925f2ad81a0d56946cc6a8c721081",
+    "D:\\GIT\\x-lang\\release\\win_x64\\xlang-ls.exe": "db50f21702ec1aec2423b49274c10884b098f20dbc041f7fe9c301b62feaecd5",
+    "D:\\GIT\\x-lang\\release\\win_x64\\xlang_ide.exe": "a146c451b35aa7284293b185123a9a276bf9e4764f926c266567133386c8d806",
+    "D:\\GIT\\x-lang\\release\\win_x64\\xlang_ide_xge.dll": "7eba677fddada9b605db2d54dd59ee57a9cfc1caf0b574f6cb206ec9de379418",
+    "D:\\GIT\\x-lang\\release\\win_x64\\xlc.dll": "64b2e9830569c84580335b0a2b15a59ce13552ba1ba51933fc82cd75808c0728"
+  },
+  "compiledDefectCases": [
+    {
+      "name": "omit-helper-text",
+      "exit": 1
+    },
+    {
+      "name": "ignore-common-context",
+      "exit": 1
+    },
+    {
+      "name": "omit-type-reads",
+      "exit": 1
+    },
+    {
+      "name": "omit-node-values",
+      "exit": 1
+    },
+    {
+      "name": "omit-argument-rebase",
+      "exit": 1
+    },
+    {
+      "name": "borrow-unit-names",
+      "exit": 1
+    },
+    {
+      "name": "omit-final-contracts",
+      "exit": 1
+    },
+    {
+      "name": "publish-failed-cache",
+      "exit": 1
+    }
+  ],
+  "timing": {
+    "status": "screening-passed",
+    "scope": "One process,24rotating rounds;fresh typed-AST IR preparation+all native phases/verifier;no parsing/semantic checking/LSP/GUI;cleanup outside timing",
+    "samples": 72,
+    "statistics": {
+      "0": {
+        "samples": 24,
+        "median": 0.0054449500000000005,
+        "p95": 0.0078531
+      },
+      "1": {
+        "samples": 24,
+        "median": 0.005531100000000001,
+        "p95": 0.0068901
+      },
+      "2": {
+        "samples": 24,
+        "median": 0.0052528,
+        "p95": 0.0075476
+      }
+    },
+    "ratios": {
+      "firstCapture": 1.0158220002020222,
+      "crossGeneration": 0.9647104197467378
+    },
+    "thresholds": {
+      "firstCaptureMedianRatioMax": 1.15,
+      "crossGenerationMedianRatioMax": 0.98
+    },
+    "programSha256": "ca68a16f3be8d16561e2861be0fcbb1c4196ec6ecb03b40dade2c1a08a771640",
+    "previousFullNodeImage": {
+      "screeningPassed": false,
+      "programSha256": "82dbaaf5104b51465c71f88858d8586376780f5f86d0fb27607e977c579814fd",
+      "statistics": {
+        "0": {
+          "samples": 24,
+          "median": 0.00487635,
+          "p95": 0.0056911
+        },
+        "1": {
+          "samples": 24,
+          "median": 0.0053520500000000006,
+          "p95": 0.0062603
+        },
+        "2": {
+          "samples": 24,
+          "median": 0.0050443,
+          "p95": 0.0073134
+        }
+      },
+      "ratios": {
+        "firstCapture": 1.0975524726486001,
+        "crossGeneration": 1.0344417443374656
+      },
+      "originalResultPath": "F:\\codex-builds-xlang-lsp-20261123\\native-call-cache\\constructor-observation-v1\\result.json"
+    },
+    "sameImageRetried": false,
+    "wholeLspPerformanceQualified": false
+  },
+  "retainedFailures": [
+    "Earlier full-node-key image constructor screening failed;raw result,commands,logs and executable included without changing thresholds or retesting that image.",
+    "All earlier rejected exit and final-IR performance qualifications remain rejected."
+  ],
+  "defaultRuntimeReplaced": false,
+  "serviceRebuilt": false,
+  "ideRebuilt": false,
+  "languageServerVersion": "0.110",
+  "formalRelease": false,
+  "externalPublishPerformed": false,
+  "wholeLspPerformanceQualified": false,
+  "goalComplete": false,
+  "limits": [
+    "Call/argument tables only;raw IR,other phases and final complete verifier still run.",
+    "Exact native IDs/common node and child counts/full symbol map still restrict structural edit reuse.",
+    "Scratch and retained cache each have16MiB caps,not a whole-analysis/process memory limit.",
+    "External API rejection enumeration does not cover every allocator-internal call.",
+    "Single-process typed-AST IR constructor observation excludes parsing,semantic checking,cleanup,LSP and IDE;not a release performance qualification."
+  ]
+}

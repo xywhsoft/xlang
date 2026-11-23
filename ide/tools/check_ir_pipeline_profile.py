@@ -55,6 +55,8 @@ def main():
             else:raise AssertionError('Multiple dependent node loops admitted')
         record['cases'].append('multiple-node-loops-rejected')
         assert len(pipeline['callCache']['functions'])==17 and len(pipeline['callCache']['entryFields'])==5 and len(pipeline['callCache']['queriedTypeFields'])==7
+        assert set(pipeline['callCache']['helperNodeFields'])==call_adapter.NODE_FIELDS and len(call_adapter.NODE_FIELDS)==14
+        assert set(pipeline['callCache']['entryFields'])<=call_adapter.NODE_FIELDS
         record['cases'].append('complete-call-read-gateways-and-projections')
         with patch.object(call_adapter,'PINS',{k:v for k,v in call_adapter.PINS.items()if k!='xl6IrTypeGet'}):
             try:adapter.derive(original,args.frontend,out)
@@ -72,6 +74,23 @@ def main():
                 except ValueError:pass
                 else:raise AssertionError(label)
             record['cases'].append(label)
+        with patch.object(call_adapter,'NODE_FIELDS',call_adapter.NODE_FIELDS-{'parent'}):
+            try:adapter.derive(original,args.frontend,out)
+            except ValueError:pass
+            else:raise AssertionError('Incomplete helper node projection admitted')
+        record['cases'].append('incomplete-helper-node-projection-rejected')
+        header=(args.frontend/'src/ir/xl6_ir.h').read_text(encoding='utf8')
+        with patch.object(call_adapter,'record',return_value=[dict(v,extent='2')if v['name']=='text'else v for v in call_adapter.record(call_adapter.clean(header),'XL6_IrNode')]):
+            try:adapter.derive(original,args.frontend,out)
+            except ValueError:pass
+            else:raise AssertionError('Changed projected native field shape admitted')
+        record['cases'].append('changed-helper-node-field-shape-rejected')
+        body=function(original,'xl6IrBuildCallSites');bad=body.replace('module->nodes[i].kind','module->nodes[i].flags',1)
+        with patch.object(call_adapter,'PINS',{**call_adapter.PINS,'xl6IrBuildCallSites':hashlib.sha256(bad.encode()).hexdigest()}):
+            try:adapter.derive(original.replace(body,bad,1),args.frontend,out)
+            except ValueError:pass
+            else:raise AssertionError('Changed direct entry projection admitted')
+        record['cases'].append('changed-direct-entry-projection-rejected')
         record.update(status='passed',generatedSha256=hashlib.sha256(Path(pipeline['generated']).read_bytes()).hexdigest());print(json.dumps(dict(status='passed',cases=len(record['cases']))))
     finally:(out/'result.json').write_text(json.dumps(record,indent=2)+'\n')
 if __name__=='__main__':main()

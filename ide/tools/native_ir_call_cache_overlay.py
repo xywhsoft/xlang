@@ -2,12 +2,14 @@
 
 The cached phase never executes the original producer to qualify a hit.
 All17transitive native bodies and the complete source/header cohort must match.
-Only NodeGet is a trace gateway;the entry's three direct node reads are routed
-through it too. Every children read belongs to a traced node's complete slice.
+NodeGet and TypeGet are trace gateways;the entry has its own smaller projection.
+Every children read belongs to a traced node's complete slice. The helper node
+projection is derived from the real declaration and all pinned producer bodies.
 The common context covers all other semantic reads;final contracts always run.
 """
 import hashlib,re
 from check_native_bridge_catalog import function
+from ir_node_graph_schema import record,clean
 
 PINS={
  'xl6IrBuildCallSites':'39432f3f294f03ecb8092654e944305e4f9c1f4c42db5b9b615cc27c578889b2',
@@ -30,10 +32,11 @@ PINS={
 }
 ENTRY_FIELDS={'kind','targetSymbol','callKind','opcode','lvalueKind'}
 TYPE_FIELDS={'kind','cAbi','callableErasureAbi','paramCount','params','parameterModes','parameterAbis'}
+NODE_FIELDS={'callKind','childCount','firstChild','flags','implicitNameAbi','kind','lvalueKind','opcode','parent','sourceKind','storageType','targetSymbol','text','type'}
 def once(s,a,b):
  if s.count(a)!=1:raise ValueError('Native call cache seam changed: '+a)
  return s.replace(a,b,1)
-def derive(source):
+def derive(source,header):
  bodies={n:function(source,n)for n in PINS}
  for n,b in bodies.items():
   if hashlib.sha256(b.encode()).hexdigest()!=PINS[n]:raise ValueError('Native call cache dependency changed: '+n)
@@ -47,6 +50,13 @@ def derive(source):
   for alias in re.findall(r'const\s+XL6_IrType\s*\*\s*(\w+)',b):
    observed.update(re.findall(r'\b'+re.escape(alias)+r'->(\w+)',b))
  if observed!=TYPE_FIELDS:raise ValueError('Native queried-type field projection changed')
+ fields={v['name']:v for v in record(clean(header),'XL6_IrNode')}
+ node_reads=set(re.findall(r'->(\w+)', '\n'.join(bodies.values())))&fields.keys()
+ if node_reads!=NODE_FIELDS:raise ValueError('Native helper node field projection changed')
+ for name in NODE_FIELDS:
+  row=fields[name]
+  if row['extent']is not None or(row['pointers']and(name!='text'or row['pointers']!=1 or row['type']!='char')):
+   raise ValueError('Native node projection value shape changed: '+name)
  direct={n for n,b in bodies.items()if '->nodes'in b}
  if direct!={'xl6IrBuildCallSites','xl6IrNodeGet'}:raise ValueError('Untraced native node alias')
  names={n:'xlsCallsNative'+n.removeprefix('xl6Ir')for n in PINS}
@@ -58,10 +68,12 @@ def derive(source):
   if n=='xl6IrBuildCallSites':
    b=once(b,'(XL6_IrModule* module)','(XL6_IrModule* module,size_t first,size_t end,uint64_t* visited)')
    b=once(b,'for ( i = 0; i < module->nodeCount; ++i ) {','for (i=first;i<end;++i) {\n        if(xlsFrontendCancelPoint(XLS_CANCEL_IR_PHASE,0))return 0;\n        ++*visited;')
-   if b.count('module->nodes[i]')!=3:raise ValueError('Untraced native entry read')
+   if (b.count('module->nodes[i]')!=3 or b.count('module->nodes[i].kind')!=2 or
+       b.count('&module->nodes[i]')!=1):raise ValueError('Untraced native entry read')
    b=b.replace('&module->nodes[i]','xlsCallsEntryGet(module,(XL6_IrNodeId)(i+1))').replace('module->nodes[i].','xlsCallsEntryGet(module,(XL6_IrNodeId)(i+1))->')
    b=once(b,'return xl6IrBuildCallSiteContracts(module);','return 1;')
   b=re.sub(r'\b('+'|'.join(PINS)+r')(?=\s*\()',lambda m:names[m[1]],b)
   if not b.startswith('static '):b='static '+b
   prototypes.append(b[:b.index('{')].rstrip()+';');generated.append(b)
- return '\n'.join(prototypes+generated)+'\n',dict(functions=PINS,nodeGateway='xlsCallsNodeGet',typeGateway='xlsCallsTypeGet',entryFields=sorted(ENTRY_FIELDS),queriedTypeFields=sorted(TYPE_FIELDS),directNodeReaders=sorted(direct),readSet='Five entry fields;complete traced helper node values/children;actual queried type projection;symbol map,intrinsic origins,class/protocol dispatch projection,initial call rows',output='Independent call sites/arguments;relative argument slices;original final contracts',scope='Call-table phase only,exact IDs;no ordinary integration')
+ projection='#define XLS_CALL_CACHE_NODE_FIELDS(V,T) '+''.join(('T'if n=='text'else'V')+'('+n+') 'for n in sorted(NODE_FIELDS))+'\n'
+ return projection+'\n'.join(prototypes+generated)+'\n',dict(functions=PINS,nodeGateway='xlsCallsNodeGet',typeGateway='xlsCallsTypeGet',entryFields=sorted(ENTRY_FIELDS),helperNodeFields=sorted(NODE_FIELDS),queriedTypeFields=sorted(TYPE_FIELDS),directNodeReaders=sorted(direct),readSet='Five entry fields;14audited helper node fields/text/children;actual queried type projection;symbol map,intrinsic origins,class/protocol dispatch projection,initial call rows',output='Independent call sites/arguments;relative argument slices;original final contracts',scope='Call-table phase only,exact IDs;no ordinary integration')

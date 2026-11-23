@@ -48,19 +48,14 @@ static int xlsCallNodeKey(xls_call_trace* t,XL6_IrNodeId id)
 {
  const XL6_IrModule* m=t->module;const XL6_IrNode* n=xl6IrNodeGet(m,id);if(!n)return 0;
  if(n->firstChild>m->childCount||n->childCount>m->childCount-n->firstChild)return 0;
- XL6_IrNode value;memcpy(&value,n,sizeof(value));value.text=NULL;value.literalData=NULL;
-#ifdef XLS_NATIVE_AST_PACKAGE_FIELDS
- value.compiledPackageLink=NULL;
-#endif
- /* Exact in-process values,not hashes. Padding can only cause a miss. The
-  * complete pinned native schema has exactly these owned pointer fields. */
- if(!xlsCallPut(t,&value,sizeof(value))||!xlsCallText(t,n->text))return 0;
- unsigned present=n->literalData!=NULL;
- if(!xlsCallPut(t,&present,sizeof(present)))return 0;
- if(present&&(n->literalSize==SIZE_MAX||!xlsCallPut(t,n->literalData,n->literalSize+1)))return 0;
-#ifdef XLS_NATIVE_AST_PACKAGE_FIELDS
- if(!xlsCallText(t,n->compiledPackageLink))return 0;
-#endif
+ /* Derived from all17pinned bodies and the real native declaration. Source
+  * coordinates,literal payloads and unrelated ABI outputs are not read by
+  * this producer. Every consumed numeric value and full text is exact. */
+#define CALL_NODE_VALUE(f) if(!xlsCallPut(t,&n->f,sizeof(n->f)))return 0;
+#define CALL_NODE_TEXT(f) if(!xlsCallText(t,n->f))return 0;
+ XLS_CALL_CACHE_NODE_FIELDS(CALL_NODE_VALUE,CALL_NODE_TEXT)
+#undef CALL_NODE_VALUE
+#undef CALL_NODE_TEXT
  return n->childCount<=SIZE_MAX/sizeof(*m->children)&&xlsCallPut(t,
   n->childCount?m->children+n->firstChild:NULL,n->childCount*sizeof(*m->children));
 }
@@ -95,8 +90,8 @@ static int xlsCallRead(xls_call_trace* t,uint32_t kind,uint32_t id)
 static const XL6_IrNode* xlsCallsNodeGet(const XL6_IrModule* m,XL6_IrNodeId id)
 {
  const XL6_IrNode* n=xl6IrNodeGet(m,id);xls_call_trace* t=xlsCallsActiveTrace;
- if(n&&t&&m==t->module&&!t->failed&&t->seen[id-1]!=t->epoch){
-  t->seen[id-1]=t->epoch;
+ if(n&&t&&m==t->module&&!t->failed&&t->seen[id-1]!=(t->epoch|1u)){
+  t->seen[id-1]=t->epoch|1u;
   if(!xlsCallRead(t,0,id))t->failed=1;
  }
  return n;
@@ -104,7 +99,9 @@ static const XL6_IrNode* xlsCallsNodeGet(const XL6_IrModule* m,XL6_IrNodeId id)
 static const XL6_IrNode* xlsCallsEntryGet(const XL6_IrModule* m,XL6_IrNodeId id)
 {
  const XL6_IrNode* n=xl6IrNodeGet(m,id);xls_call_trace* t=xlsCallsActiveTrace;
- if(n&&t&&m==t->module&&!t->failed&&!xlsCallRead(t,2,id))t->failed=1;
+ if(n&&t&&m==t->module&&!t->failed&&t->seen[id-1]!=t->epoch&&t->seen[id-1]!=(t->epoch|1u)){
+  t->seen[id-1]=t->epoch;if(!xlsCallRead(t,2,id))t->failed=1;
+ }
  return n;
 }
 static const XL6_IrType* xlsCallsTypeGet(const XL6_IrTypePool* pool,XL6_IrTypeId id)
@@ -228,7 +225,7 @@ static int xlsCallPhase(XL6_IrModule* m,xls_call_build* build)
    build->work.restoredSites+=prior->sites;build->work.restoredArguments+=prior->args;
   }else{
    ++build->work.checked;trace.reads=trace.used=0;trace.failed=0;
-   if(!++trace.epoch){memset(trace.seen,0,seenBytes);++trace.epoch;}
+   trace.epoch+=2;if(!trace.epoch){memset(trace.seen,0,seenBytes);trace.epoch=2;}
    size_t site=m->callSiteCount,arg=m->callArgumentCount;
    xls_call_trace* outer=xlsCallsActiveTrace;xlsCallsActiveTrace=&trace;
    int okay=xlsCallsNativeBuildCallSites(m,first,end,&build->work.nativeNodes);xlsCallsActiveTrace=outer;

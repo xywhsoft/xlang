@@ -70,7 +70,7 @@ def derive(source:str,frontend:Path,output:Path):
     from native_ir_pipeline_nodes import derive as derive_nodes
     nodes,node_metadata=derive_nodes(source,cases,PHASES)
     from native_ir_call_cache_overlay import derive as derive_calls
-    calls,call_metadata=derive_calls(source)
+    calls,call_metadata=derive_calls(source,(frontend/'src/ir/xl6_ir.h').read_text(encoding='utf8'))
     generated=prefix+phase+nodes+calls+final+'\nstatic const char* const xlsIrPipelineNames[]={\n'+''.join(' "'+n+'",\n'for n in(*PHASES,'xl6IrVerifyModule'))+'};\n'
     target=output/'frontend/ir_native_pipeline_generated.inc';target.parent.mkdir(parents=True,exist_ok=True);target.write_text(generated,encoding='utf8',newline='\n')
     return source+'\n#define XLS_NATIVE_IR_PIPELINE_SOURCE 1\n'+include,dict(

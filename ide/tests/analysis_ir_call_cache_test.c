@@ -33,23 +33,25 @@ static int callPrepared(xls_ir_native_pipeline* b,const XL6_AstNode* root,XL6_Di
 }
 static char* callSource(unsigned edit)
 {
- xstrbuf b={0};if(!xrtStrBufAppendFormat(&b,"func targetA(int value,int extra=%u) as int\n return value+extra\nend\nfunc targetB(int value) as int\n return value+2\nend\n",edit==2?8:4))goto failed;
- for(unsigned i=0;i<16;++i)if(!xrtStrBufAppendFormat(&b,"func f%u(int value) as int\n int result=%s(value)\n return result+%u\nend\n",i,i==4&&edit==1?"targetB":"targetA",i))goto failed;
+ xstrbuf b={0};
+ if(edit==3&&!xrtStrBufAppend(&b,xrtStrView("// moved source 中文\n\n")))goto failed;
+ if(!xrtStrBufAppendFormat(&b,"func targetA(int value,int extra=%u) as int\n return value+extra\nend\nfunc targetB(int value) as int\n return value+2\nend\n",edit==2?8:4))goto failed;
+ for(unsigned i=0;i<16;++i)if(!xrtStrBufAppendFormat(&b,"func f%u(int value) as int\n int result=%s(value)\n return result+%u\nend\n",i,i==4&&(edit==1||edit==3)?"targetB":"targetA",i))goto failed;
  return xrtStrBufTake(&b);
 failed:xrtStrBufFree(&b);return NULL;
 }
 static int generations(const char* path)
 {
  xls_ir_call_cache* previous=NULL;uint64_t restored=0;
- for(unsigned generation=0;generation<5;++generation){
-  char* source=callSource(generation%3);CHECK(source);++probePaused;xls_semantic_check* model=checked(path,source);--probePaused;xrtFree(source);CHECK(model&&xlsSemanticCheckInfo(model).accepted);
+ for(unsigned generation=0;generation<6;++generation){
+  char* source=callSource(generation==5?3:generation%3);CHECK(source);++probePaused;xls_semantic_check* model=checked(path,source);--probePaused;xrtFree(source);CHECK(model&&xlsSemanticCheckInfo(model).accepted);
   XL6_DiagList d;xl6DiagInit(&d);xls_ir_pipeline_status status;xls_ir_native_pipeline* b=xlsIrNativePipelineCreate(&status);CHECK(b);xls_ir_call_cache* next=NULL;xls_ir_call_cache_work work;
   CHECK(xlsIrNativePipelinePrepare(b,xlsSemanticCheckAst(model),&d,0,&status));
   CHECK(xlsIrNativePipelineFinishCachedCalls(b,&d,previous,16u*1024u*1024u,&next,&work,&status)&&status==XLS_PIPELINE_OK&&!d.count&&next);
   xlsIrCallCacheDestroy(previous);previous=next;
   if(generation){
    CHECK(work.reused&&work.restoredSites&&work.nativeNodes<xlsSemanticCheckIr(model)->nodeCount);
-   if(generation==3)CHECK(!work.checked&&!work.nativeNodes);else CHECK(work.checked);
+   if(generation==3||generation==5)CHECK(!work.checked&&!work.nativeNodes);else CHECK(work.checked);
    restored+=work.restoredSites;
   }
   char* expected=dump(xlsSemanticCheckIr(model));xlsSemanticCheckDestroy(model);char* actual=dump(xlsIrNativePipelineModule(b));CHECK(expected&&actual&&!strcmp(expected,actual));
