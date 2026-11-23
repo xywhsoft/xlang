@@ -1,0 +1,41 @@
+{
+  "schema": 1,
+  "scope": "Repeated replacement of a PropertyGrid enum configuration with two labels and one date format",
+  "bindingCommit": "47b32f91e",
+  "shippingDelivery": false,
+  "paths": [
+    "handwritten C loop",
+    "xlang binding"
+  ],
+  "iterationsPerTiming": 50000,
+  "timingSamples": 7,
+  "iterationsPerAllocationCount": 1000,
+  "xrtAllocationsPerCall": [
+    3,
+    6
+  ],
+  "xrtReallocationsPerCall": [
+    0,
+    0
+  ],
+  "netLiveAllocationChange": 0,
+  "platforms": {
+    "win": {
+      "path": "F:/xlang-validation/xge-full-20261110/property-grid-config-bench-win-r1/results.json",
+      "sha256": "26b687138556a5868d60608ea61294baf280aa6ade60cff98e32e5dd645ba01f",
+      "medianMilliseconds": [
+        111,
+        491
+      ]
+    },
+    "linux": {
+      "path": "//wsl.localhost/Ubuntu/var/tmp/xlang-validation/xge-full-20261110/property-grid-config-bench-linux-r1/results.json",
+      "sha256": "d37b130f92c2534e707b2ebca65d7f81d2f230dc94054f5579001ae7e57f3b6b",
+      "medianMilliseconds": [
+        117,
+        447
+      ]
+    }
+  },
+  "qualificationBoundary": "Same process and same hosted XGE in dynamic AOT. Includes setup of each call and iteration. Does not measure drawing or interactive response."
+}
