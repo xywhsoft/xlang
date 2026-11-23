@@ -1,0 +1,214 @@
+{
+  "schema": 1,
+  "scope": "Typed FlowGraph and Workflow canvas creation with model and eight colors",
+  "nativeCommit": "1c9ca2c31e5f16b7ee2a1537e9c692784cdb6dcb",
+  "shippingDelivery": false,
+  "networkTests": false,
+  "sourceSha256NormalizedLf": {
+    "docs/xge3-xui3-api-map-storage.json": "25e6318e0652a3a528b5ab2af81d6f46bdde5dbd913a2317e507ce3ea048f8b5",
+    "lib/bindings/xui/src/managed.xl": "3f68a1334c231cb0767cd76aeae3bb8c7269315e13ccd2f8f9292e14665dbe1a",
+    "lib/bindings/xui/examples/flow_canvas.xl": "269efeace2819a0f5c4676a2c48ff6f17d916bdd3df4a84dd6f483a8f47a7344",
+    "lib/bindings/xui/examples/workflow_canvas.xl": "e53dd2ff0b96cd5dfddae033028d00bff41b72825ec38ffedf2ac35699f25f2a",
+    "tools/xui_gallery_contracts.py": "6852c00e7f5d39deea0e92cbda2da131fcc2245ede30107fed52a6bf5c808b2c",
+    "test/cases/foreign_xui_canvas_create_shared.xl": "a27b8126b4b3b5d550120fd81316d0188b30c762b369852957383c9840566e47"
+  },
+  "validation": {
+    "independentModelOwner": true,
+    "ownedDefaultModel": true,
+    "existingCConstructorPreservesBorrowing": true,
+    "wrongThreadRejected": true,
+    "allocationFailurePrefixesPerCanvas": 48,
+    "nativeCanvasBackgroundColorChecked": true,
+    "nestedWorkflowColorsProjected": true,
+    "staticAotHasNoEngineOrCompilerLibraryImport": true
+  },
+  "allocationComparison": "200 warmed pairs of create and close, with one canvas of each type per pair. Both paths use the same native constructors, prepared empty models and identical colors. The C fixture creates an independent, identically configured context before measurement. CPU milliseconds are single local samples of construction and retirement.",
+  "platforms": {
+    "win": {
+      "nativeSource": {
+        "path": "F:/xlang-validation/xge-full-20261110/flow-canvas-create-native-source-win-r2.json",
+        "sha256": "8e01e56a851a24b8a7a1bb4ec5726c01696e5a0f8d61a325b4f5d4acb2064ac3"
+      },
+      "nativeSharedO0O2": {
+        "path": "F:/xlang-validation/xge-full-20261110/flow-canvas-create-native-test-win-r4/results.json",
+        "sha256": "dd2f37e707e4632ee4618d0931ffe2d2be8bdbb6a9282517a71f138c3285ba9b"
+      },
+      "existingGraphWidgetO0O2": {
+        "path": "F:/xlang-validation/xge-full-20261110/flow-canvas-create-native-test-win-r2/results.json",
+        "sha256": "f5cb0e6a0417693a639f36eeee25b1e9d57ea817e18aba819137e60bcd1bdbff"
+      },
+      "existingWorkflowWidgetO0O2": {
+        "path": "F:/xlang-validation/xge-full-20261110/flow-canvas-create-native-test-win-r3/results.json",
+        "sha256": "547e08429dab210e294b10feefe2648ccb9085185548a721a2832041e566d3a2"
+      },
+      "languageJitDynamicStaticAot": {
+        "path": "F:/xlang-validation/xge-full-20261110/flow-canvas-create-verify-win-r1/results.json",
+        "sha256": "8be591ddccfb857cfc43cb2d97723203058461cc892c00477e89603d52eaad21"
+      },
+      "examples": {
+        "path": "F:/xlang-validation/xge-full-20261110/flow-canvas-create-examples-win-r2/results.json",
+        "sha256": "8a3ad8d8869dd75a766a3fb93b3fcfa0e619d2e4d7a726de03f3c99a766917a0"
+      },
+      "declarationReplay": {
+        "path": "F:/xlang-validation/xge-full-20261110/flow-canvas-create-generator-win-r3/results.json",
+        "sha256": "9aab33c12b4fc750450b5c34b561fd91ae423abea80b8eb7360596113a57eb87"
+      },
+      "nativeConsumerAudit": {
+        "path": "F:/xlang-validation/xge-full-20261110/flow-canvas-create-consumers-win-r2/results.json",
+        "sha256": "58fe5ac619986c034b60ae93012590a90d1988f3d37a6c5a25b7343e28643c95"
+      },
+      "functionPopulation": 5870,
+      "directDeclarations": 4805,
+      "pendingConsumerOrReplacement": {
+        "XGE": 59,
+        "XUI": 74
+      },
+      "allocationAndCpuSample": {
+        "path": "F:/xlang-validation/xge-full-20261110/flow-canvas-create-perf-win-r2/results.json",
+        "sha256": "3712b364a5e648469eddcbf0ef980d02a8c137246decaaa154ca205135fe1045"
+      },
+      "measurements": {
+        "xlang": {
+          "rounds": 200,
+          "alloc": 2400,
+          "free": 2400,
+          "realloc": 0,
+          "cpuMs": 6.0
+        },
+        "C": {
+          "rounds": 200,
+          "alloc": 1200,
+          "free": 1200,
+          "realloc": 0,
+          "cpuMs": 5.0
+        }
+      },
+      "matchedPackages": {
+        "path": "F:/xlang-validation/xge-full-20261110/flow-canvas-create-stage-win-r3/replay/stage-report.json",
+        "sha256": "3694c8bacaaea735cb6f7f0e187f4321282d7aee5c7ce4868061c994d5ad3789"
+      },
+      "staticO2Build": {
+        "path": "F:/xlang-validation/xge-full-20261110/flow-canvas-create-static-win-r2/build-report.json",
+        "sha256": "bce0feaef010bbc10075a92f8948b7b4e5a726833b1e9c4cac6a5eb2403688ee"
+      },
+      "hostO2Build": {
+        "path": "F:/xlang-validation/xge-full-20261110/flow-canvas-create-host-win-r2/build-report.json",
+        "sha256": "1db6b1fcef36cf5087a9d621bf1d8b41d9a093e0b51be32d00c67c029e06b93d"
+      },
+      "publicSurface": {
+        "path": "F:/xlang-validation/xge-full-20261110/flow-canvas-create-inventory-win-r3/surface.json",
+        "sha256": "d3a07dbb70bdb47881a73f585184e4ba4587c999d3f90df0c91733a3b2faa088"
+      }
+    },
+    "linux": {
+      "nativeSource": {
+        "path": "//wsl.localhost/Ubuntu/var/tmp/xlang-validation/xge-full-20261110/flow-canvas-create-native-source-linux-r2.json",
+        "sha256": "6cab9c8da4e0fea82e3ad731aee6215121703a6ded4f278fdee23ec8f577fb29"
+      },
+      "nativeSharedO0O2": {
+        "path": "//wsl.localhost/Ubuntu/var/tmp/xlang-validation/xge-full-20261110/flow-canvas-create-native-test-linux-r4/results.json",
+        "sha256": "9f4ed564257f8fc7627404cfeed7353baaa7d24488f55b34869e8bd5768d725b"
+      },
+      "existingGraphWidgetO0O2": {
+        "path": "//wsl.localhost/Ubuntu/var/tmp/xlang-validation/xge-full-20261110/flow-canvas-create-native-test-linux-r2/results.json",
+        "sha256": "483777c9b6758ff641e34282745aa4c3f482db37e31073d55d89b935e8c51186"
+      },
+      "existingWorkflowWidgetO0O2": {
+        "path": "//wsl.localhost/Ubuntu/var/tmp/xlang-validation/xge-full-20261110/flow-canvas-create-native-test-linux-r3/results.json",
+        "sha256": "de01ebd44cbce39fd4e7eb9622043128a118a281409d372411c69e9a7b1397f7"
+      },
+      "languageJitDynamicStaticAot": {
+        "path": "//wsl.localhost/Ubuntu/var/tmp/xlang-validation/xge-full-20261110/flow-canvas-create-verify-linux-r1/results.json",
+        "sha256": "7faa644c3742fdd29d3f5cea41b5b2e4decab534aeaf7cb269ea7cb3f490824a"
+      },
+      "examples": {
+        "path": "//wsl.localhost/Ubuntu/var/tmp/xlang-validation/xge-full-20261110/flow-canvas-create-examples-linux-r2/results.json",
+        "sha256": "50952e95bd93b1ea2c7d396ce81a3b0c663c9bdfdd47d86a5e43de57a13bac26"
+      },
+      "renderedExampleReadbacks": {
+        "flow_canvas": [
+          {
+            "path": "/var/tmp/xlang-validation/xge-full-20261110/flow-canvas-create-examples-linux-r2/flow_canvas-jit-run.rgba",
+            "sha256": "1ebf7a621286d3e3967f4fec3cb7395db7ea70fe62537d6b1ccdc14417423758"
+          },
+          {
+            "path": "/var/tmp/xlang-validation/xge-full-20261110/flow-canvas-create-examples-linux-r2/flow_canvas-dynamic-run.rgba",
+            "sha256": "1ebf7a621286d3e3967f4fec3cb7395db7ea70fe62537d6b1ccdc14417423758"
+          },
+          {
+            "path": "/var/tmp/xlang-validation/xge-full-20261110/flow-canvas-create-examples-linux-r2/flow_canvas-static-run.rgba",
+            "sha256": "1ebf7a621286d3e3967f4fec3cb7395db7ea70fe62537d6b1ccdc14417423758"
+          }
+        ],
+        "workflow_canvas": [
+          {
+            "path": "/var/tmp/xlang-validation/xge-full-20261110/flow-canvas-create-examples-linux-r2/workflow_canvas-jit-run.rgba",
+            "sha256": "c33f6dfe4dfa7b353895ef8d422b9b7a2a7914049bbc46312ae2992aa610413b"
+          },
+          {
+            "path": "/var/tmp/xlang-validation/xge-full-20261110/flow-canvas-create-examples-linux-r2/workflow_canvas-dynamic-run.rgba",
+            "sha256": "c33f6dfe4dfa7b353895ef8d422b9b7a2a7914049bbc46312ae2992aa610413b"
+          },
+          {
+            "path": "/var/tmp/xlang-validation/xge-full-20261110/flow-canvas-create-examples-linux-r2/workflow_canvas-static-run.rgba",
+            "sha256": "c33f6dfe4dfa7b353895ef8d422b9b7a2a7914049bbc46312ae2992aa610413b"
+          }
+        ]
+      },
+      "declarationReplay": {
+        "path": "//wsl.localhost/Ubuntu/var/tmp/xlang-validation/xge-full-20261110/flow-canvas-create-generator-linux-r3/results.json",
+        "sha256": "a653cbad85a3dd9e917ff726bf2eeb14d44ef6c7403ca6b205ead2deb2fcb8cd"
+      },
+      "nativeConsumerAudit": {
+        "path": "//wsl.localhost/Ubuntu/var/tmp/xlang-validation/xge-full-20261110/flow-canvas-create-consumers-linux-r2/results.json",
+        "sha256": "2afaca1491333f1d198486b7020ff7a52fe11ab5a81505bd0a33b18efae69dd6"
+      },
+      "functionPopulation": 5870,
+      "directDeclarations": 4805,
+      "pendingConsumerOrReplacement": {
+        "XGE": 59,
+        "XUI": 74
+      },
+      "allocationAndCpuSample": {
+        "path": "//wsl.localhost/Ubuntu/var/tmp/xlang-validation/xge-full-20261110/flow-canvas-create-perf-linux-r2/results.json",
+        "sha256": "15dd1b5060d8339fe0f3e72f3306d1e7a83152220ad351de42914fbd8a9d3125"
+      },
+      "measurements": {
+        "xlang": {
+          "rounds": 200,
+          "alloc": 2400,
+          "free": 2400,
+          "realloc": 0,
+          "cpuMs": 3.942
+        },
+        "C": {
+          "rounds": 200,
+          "alloc": 1200,
+          "free": 1200,
+          "realloc": 0,
+          "cpuMs": 2.35
+        }
+      },
+      "matchedPackages": {
+        "path": "//wsl.localhost/Ubuntu/var/tmp/xlang-validation/xge-full-20261110/flow-canvas-create-stage-linux-r3/replay/stage-report.json",
+        "sha256": "d1b878b8f6aa31789fa95750d278d611da0cfbe58dbb28e6909817b555c84bab"
+      },
+      "staticO2Build": {
+        "path": "//wsl.localhost/Ubuntu/var/tmp/xlang-validation/xge-full-20261110/flow-canvas-create-static-linux-r2/build-report.json",
+        "sha256": "4811287df3f0cabe2fe549199a65d5fef52a84e413c4730e2cdb9be5a655f53d"
+      },
+      "hostO2Build": {
+        "path": "//wsl.localhost/Ubuntu/var/tmp/xlang-validation/xge-full-20261110/flow-canvas-create-host-linux-r2/build-report.json",
+        "sha256": "8351d60e281634618072790e3589a84fe5674be8da91ea4b5a71a5f301d8c7b9"
+      },
+      "publicSurface": {
+        "path": "//wsl.localhost/Ubuntu/var/tmp/xlang-validation/xge-full-20261110/flow-canvas-create-inventory-linux-r3/surface.json",
+        "sha256": "e2d0955903f7ce69374ad71d13b2cd5d6eb4d542913d3ead2eb738400404faa0"
+      }
+    }
+  },
+  "legacyExplicitNullCall": {
+    "path": "F:/xlang-validation/xge-full-20261110/flow-canvas-create-old-call-overload-win-r2/generated.c",
+    "sha256": "5c80692df6becfd5ef91dc79d9462dea4a742e439e10140ce8a728d8ab720726"
+  }
+}

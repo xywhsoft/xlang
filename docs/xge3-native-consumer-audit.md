@@ -1,5 +1,15 @@
 # Native consumers in the full API inventory
 
+## Shared FlowGraph and Workflow canvas construction
+
+The model overloads of `Context.flowGraphWidget()` and `workflowWidget()`
+directly call the new native shared constructors. Both can bind a model and
+set colors in one creation call. Workflow projects the colors into its
+nested graph descriptor. The matched inventories cover 5,870 native functions,
+including 4,805 direct declarations. XGE has 59 unresolved entries and XUI has 74.
+
+[Canvas constructor verification](../dev/release-materials/provenance/xui-flow-canvas-create-20261123.json)
+
 ## FlowGraph and Workflow model ownership
 
 The managed factories create shared model records. `FlowGraphWidget.getGraph()`,

@@ -7,7 +7,7 @@ Window.show("工作流画布", func(xui.Context ui,xui.Widget root)
  status.setText("在工作流画布中右键单击，查看坐标。")
  Window.place(root,status,24,16,720,28)
 
- auto workflow=ui.workflowWidget()
+ auto workflow=ui.workflowWidget(model=null,backgroundColor=0xEDF5FCFF)
  Window.place(root,workflow,24,56,720,420)
  workflow.setContextMenu(func(xui.Widget sender,xui.CallbackConstFlowHit hit,c_float x,c_float y) as c_int
   status.setText(f"右键位置：{int(x)}, {int(y)}")

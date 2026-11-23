@@ -1,0 +1,72 @@
+import xui
+
+extern "xrtMemDebugFailAfter" @header("xrt_decl.h") @no_raise func failAfter(c_size allowance) as bool
+extern "xrtMemDebugFailTriggered" @header("xrt_decl.h") @no_raise func failTriggered() as bool
+extern "xrtMemDebugFailClear" @header("xrt_decl.h") @no_raise func clearBudget()
+
+func expectOom(func() operation)
+    bool failed = false
+    bool injected = false
+    assert failAfter(0)
+    try
+        operation()
+    catch Error
+        failed = true
+    finally
+        injected = failTriggered()
+        clearBudget()
+    end
+    assert failed and injected
+end
+
+func main(...) as int
+    auto proxy = xui.createProxy()
+    auto ui = xui.create(proxy, xui.XUI_SYSTEM_FONT_DISABLED)
+
+    auto graph = xui.createFlowGraph()
+    graph.addNode("start", title="Start")
+    auto canvas = ui.flowGraphWidget(graph, backgroundColor=0x2c1207ff, gridColor=0x203040ff,
+        nodeColor=0x103050ff, selectedNodeColor=0x182838ff, nodeBorderColor=0x405060ff,
+        portColor=0x506070ff, edgeColor=0x607080ff, selectedEdgeColor=0x708090ff)
+    expectOom(func()
+        auto unexpected = ui.flowGraphWidget(graph)
+        unexpected.close()
+    end)
+    auto retained = canvas.getGraph()
+    graph.addNode("end", title="End")
+    graph.close()
+    canvas.close()
+    assert retained.findNode("end") == 1
+    retained.close()
+
+    auto workflow = xui.createWorkflow()
+    workflow.addVariable("name", null, "string", null, "first")
+    auto workflowCanvas = ui.workflowWidget(workflow, backgroundColor=0x14562aff, gridColor=0x203040ff,
+        nodeColor=0x103050ff, selectedNodeColor=0x182838ff, nodeBorderColor=0x405060ff,
+        portColor=0x506070ff, edgeColor=0x607080ff, selectedEdgeColor=0x708090ff)
+    expectOom(func()
+        auto unexpected = ui.workflowWidget(workflow)
+        unexpected.close()
+    end)
+    auto installed = workflowCanvas.getWorkflow()
+    workflow.close()
+    workflowCanvas.close()
+    auto id,title,kind,scope,value = installed.getVariable(c_int(0))
+    assert id == "name" and value == "first"
+    installed.close()
+
+    auto blank = ui.flowGraphWidget(model=null, backgroundColor=0x0f2030ff)
+    auto blankWorkflow = ui.workflowWidget(model=null, backgroundColor=0x302010ff)
+    auto blankGraph = blank.getGraph()
+    auto blankModel = blankWorkflow.getWorkflow()
+    blank.close()
+    blankWorkflow.close()
+    assert blankGraph.nodeCount == 0 and blankModel.nodeCount == 0
+    blankGraph.close()
+    blankModel.close()
+
+    ui.close()
+    proxy.close()
+    println("XUI_CANVAS_CREATE_SHARED_OK")
+    return 0
+end

@@ -7,11 +7,11 @@ Window.show("流程画布", func(xui.Context ui,xui.Widget root)
  status.setText("在节点或空白处右键单击。")
  Window.place(root,status,24,16,720,28)
 
- auto canvas=ui.flowGraphWidget()
- Window.place(root,canvas,24,56,720,420)
- auto graph=canvas.getGraph()
+ auto graph=xui.createFlowGraph()
  graph.addNode("start",title="开始",x=50,y=40,width=140,height=72)
+ auto canvas=ui.flowGraphWidget(graph,backgroundColor=0xEDF5FCFF)
  graph.close()
+ Window.place(root,canvas,24,56,720,420)
 
  canvas.setContextMenu(func(xui.Widget sender,xui.CallbackConstFlowHit eventHit,c_float x,c_float y) as c_int
   auto hit=canvas.selectAt(x,y)

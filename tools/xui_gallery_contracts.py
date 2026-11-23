@@ -34,6 +34,29 @@ for native,method,kind,descriptor in (
  ('xuiWorkflowWidgetCreate','workflowWidget','WorkflowWidget','NativeConstXuiWorkflowDescTPointer'),
 ):
  METHODS['Context'].append('extern "'+native+'" @no_raise @c_result("owner_view",0) @factory(1,0,rollback'+kind+') func '+method+'('+descriptor+'? descriptor=null) as '+kind)
+
+CANVAS_COLORS = (
+ ('iBackgroundColor','backgroundColor'), ('iGridColor','gridColor'),
+ ('iNodeColor','nodeColor'), ('iSelectedNodeColor','selectedNodeColor'),
+ ('iNodeBorderColor','nodeBorderColor'), ('iPortColor','portColor'),
+ ('iEdgeColor','edgeColor'), ('iSelectedEdgeColor','selectedEdgeColor'),
+)
+for model,method,descriptor,field,color_path in (
+ ('FlowGraph','flowGraphWidget','xui_flow_graph_desc_t','pGraph',''),
+ ('Workflow','workflowWidget','xui_workflow_desc_t','pWorkflow','tGraph.'),
+):
+ widget = model+'Widget'
+ pack = [f'@c_pack(2,"{descriptor}",0,9)', '@c_pack_size(2,"iSize","uint32_t")']
+ if color_path:
+  pack += ['@c_pack_record(2,"tGraph","xui_flow_graph_desc_t")',
+      '@c_pack_size(2,"tGraph.iSize","uint32_t","tGraph")']
+ pack += [f'@c_pack_field(2,"{field}",0,"view_raw")']
+ pack += [f'@c_pack_field(2,"{color_path}{native}",{i},"value")'
+     for i,(native,_) in enumerate(CANVAS_COLORS,1)]
+ params = ','.join([model+'? model', *(f'c_uint {name}=0' for _,name in CANVAS_COLORS)])
+ METHODS['Context'].append(f'extern "xui{widget}CreateShared" @no_raise @c_result("owner_view",0) '
+     f'@factory(1,0,rollback{widget}) '+ ' '.join(pack)+f' func {method}({params}) as {widget}')
+
 METHODS['Cascader']=['extern "xuiCascaderSetItems" @no_raise @c_result("status",0) @c_array_group(1,0,4,"int",4) @c_array_record(1,"xui_cascader_item_t") @c_array_field(1,"sText",0,"c_string") @c_array_field(1,"iValue",1,"value") @c_array_field(1,"iParent",2,"value") @c_array_field(1,"iFlags",3,"value") func setItems(array<string> titles,array<c_int> values,array<c_int> parents,array<c_uint> flags,int size=-1)']
 METHODS['DockPanel'].append('extern "xuiDockPanelDockWindow" @no_raise @c_output(5,0) func dockWindow(c_int window,c_int region,c_int side,c_float ratio=0) as c_int')
 

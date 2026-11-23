@@ -9,18 +9,39 @@ No new compiler rule or product-specific C forwarding layer was added.
 
 The previous `flowGraphWidgetNative` / `workflowWidgetNative` names are replaced
 by those two names. Advanced C interop can still pass the declared nullable
-native descriptor pointer. This is not a new safe model-descriptor API.
+native descriptor pointer.
+
+The model overloads accept `FlowGraph?` or `Workflow?` and eight named colors.
+Pass `model=null` to create an owned default model with custom colors. The
+compiler builds the native descriptor on the stack and calls the shared
+constructor directly. The canvas takes its own reference during initialization
+and retires it through checked widget cleanup if a later stage fails.
+
+```xl
+auto graph = xui.createFlowGraph()
+graph.addNode("start", title="Start")
+auto canvas = ui.flowGraphWidget(graph, backgroundColor=0xEDF5FCFF)
+graph.close()
+```
 
 Use `FlowGraphWidget.setGraph()` or `WorkflowWidget.setWorkflow()` to install
 an existing managed model. The canvas takes its own reference, so the caller
 can close its reference after installation. `getGraph()` and `getWorkflow()`
 return independent references that survive canvas closure. `Workflow.graph()`
-also returns an independent graph reference. The creation-time C descriptors
-remain available for advanced interop.
+also returns an independent graph reference.
 
 The current Windows and Linux SDKs passed the ownership and diagnostics tests
 in JIT, dynamic AOT and static AOT. See the
 [current verification record](../dev/release-materials/provenance/xui-flow-workflow-audit-20261123.json).
+
+The shared constructors passed native O0/O2 and language JIT/dynamic/static
+AOT on Windows and Linux. Both constructor tests cover reference rollback at
+48 allocation-failure prefixes and use the actual canvas render path to check
+the background color. In a warmed comparison of 200 pairs of creations and
+closes, C used 1,200 XRT allocations and xlang used 2,400 on each platform.
+The language path adds three allocations per widget in that workload. The
+models retain their identity and their nodes and configuration are shared.
+[Shared constructor verification](../dev/release-materials/provenance/xui-flow-canvas-create-20261123.json)
 
 The short examples are [flow_canvas.xl](../lib/bindings/xui/examples/flow_canvas.xl)
 and [workflow_canvas.xl](../lib/bindings/xui/examples/workflow_canvas.xl). Each
