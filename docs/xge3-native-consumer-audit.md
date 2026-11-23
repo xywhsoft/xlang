@@ -1,5 +1,23 @@
 # Native consumers in the full API inventory
 
+## CodeEdit margin layout
+
+`CodeMarginModel.captureLayout()` and `CodeEditMargins.captureLayout()` return
+a read-only numeric snapshot with an optional entry cap. The snapshot keeps
+the full text rectangle and total visible count. Entries survive model changes
+and editor closure through their own native reference. Native capture reads
+numeric margin state with the same pixel rounding as the per-margin queries.
+
+The audit maps the raw clear, query, hit-test, layout and two destroy entries
+to their managed APIs. Compiled header policy evidence covers release of the
+new layout. The inventory has 5,796 native functions, 4,734 direct declarations,
+and 314 rows without a direct declaration, compiled consumer or explicit
+replacement. XGE accounts for 126 and XUI for 188. The new layout retain helper
+appears in the generated-C runtime test and still needs an entry in the shared
+compiled-consumer audit.
+
+[Validation evidence](../dev/release-materials/provenance/xui-code-margin-layout-20261123.json)
+
 ## Scene model resolver
 
 `Scene.loadColumnsWithResolver()` projects typed node columns and calls

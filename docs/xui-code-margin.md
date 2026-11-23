@@ -17,6 +17,21 @@ See [the custom margin lesson](../lib/bindings/xui/examples/code_edit_margin.xl)
 raises a checked error. Both queries also work with owned callbacks installed.
 Use `getState` and `getRect` to inspect individual margins.
 
+`captureLayout(viewport, limit=-1)` captures the visible margins in display
+order. Use a nonnegative limit for a prefix. `layout.getState()` always
+returns the full visible count and text rectangle, including with a limit of
+zero. `layout.entries()` returns a read-only sequence of numeric states and
+rectangles. It holds its own reference to the captured storage, so you can
+close the layout and continue reading the sequence after the model changes or
+the editor closes. The snapshot contains only numeric geometry.
+For only the count and text rectangle, use the allocation-free `measureLayout()`.
+Native capture validates the full layout, then writes the selected entries into
+one allocation. Reading entries from the snapshot shares this storage. In a
+1,000-iteration capture, state read, traversal and release comparison, C used
+1,000 XRT allocations and frees and xlang used 8,000. Traversing the same
+already-acquired language sequence 1,000 times used zero allocations, frees
+and reallocations. These measurements count heap operations.
+
 Windows and Linux acceptance exercises real render and pointer callbacks, with
 JIT and standalone dynamic/static builds. The same CPU-rendering workload
 performs three XRT allocations and frees per frame with either callback.

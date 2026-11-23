@@ -1,0 +1,98 @@
+import xui
+from xui import CodeMarginGeometry, CodeMarginModel, Rect
+
+extern "fixtureMarginLayoutProbe" @header("test/cases/foreign_xui_code_margin_layout.h") @no_raise func nativeProbe(CodeMarginModel model,Rect viewport)
+extern "fixtureMarginLayoutBegin" @no_raise func beginHeap()
+extern "fixtureMarginLayoutReport" @no_raise func reportHeap(c_int mode)
+extern "fixtureMarginLayoutBudget" @no_raise func budget(c_int value)
+
+func checkEntries(NativeSequence<CodeMarginGeometry> entries)
+    int index = 0
+    for entry in entries
+        if index == 0 then
+            assert entry.tState.iId == 10 and entry.tRect.fX == 3 and entry.tRect.fW == 20
+        else
+            assert entry.tState.iId == 30 and entry.tRect.fX == 23
+        end
+        index += 1
+    end
+    assert index == 2
+end
+
+func captureAndRead(CodeMarginModel model,Rect viewport)
+    auto snapshot = model.captureLayout(viewport)
+    auto count, text = snapshot.getState()
+    assert count == 2 and text.fX == 41 and text.fW == 4
+    auto entries = snapshot.entries()
+    snapshot.close()
+    checkEntries(entries)
+end
+
+func main(...) as int
+    auto model = xui.createCodeMargin()
+    model.add(10,xui.XUI_CODE_MARGIN_CUSTOM,20)
+    model.add(20,xui.XUI_CODE_MARGIN_CUSTOM,100)
+    model.setVisible(20,0)
+    model.add(30,xui.XUI_CODE_MARGIN_LINE_NUMBER,c_float(17.5))
+    model.setRenderCallback(10,func(xui.CallbackWidget widget,c_int id,c_int line,xui.CallbackDrawContext draw,Rect area) as c_int
+        throw RuntimeError "a geometry query must never render"
+    end)
+
+    Rect viewport
+    viewport.fX = 3
+    viewport.fW = 42
+    viewport.fH = 60
+    nativeProbe(model,viewport)
+
+    captureAndRead(model,viewport)
+    beginHeap()
+    for iteration in range(1000)
+        captureAndRead(model,viewport)
+    end
+    reportHeap(1)
+
+    auto head = model.captureLayout(viewport,1)
+    auto total, text = head.getState()
+    assert total == 2 and text.fX == 41
+    int visible = 0
+    for entry in head.entries()
+        assert entry.tState.iId == 10
+        visible += 1
+    end
+    assert visible == 1
+    head.close()
+
+    auto metadata = model.captureLayout(viewport,0)
+    auto all, textArea = metadata.getState()
+    assert all == 2 and textArea.fW == 4
+    for entry in metadata.entries()
+        assert false
+    end
+    metadata.close()
+
+    bool rejected = false
+    budget(0)
+    try
+        model.captureLayout(viewport)
+    catch Error
+        rejected = true
+    finally
+        budget(-1)
+    end
+    assert rejected and model.getCount() == 3
+
+    auto snapshot = model.captureLayout(viewport)
+    auto held = snapshot.entries()
+    snapshot.close()
+    model.clear()
+    model.close()
+    beginHeap()
+    budget(0)
+    for iteration in range(1000)
+        checkEntries(held)
+    end
+    budget(-1)
+    reportHeap(2)
+    println("XUI_CODE_MARGIN_LAYOUT_OK")
+    return 0
+end

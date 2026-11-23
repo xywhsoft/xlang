@@ -1,0 +1,243 @@
+{
+  "schema": 1,
+  "date": "2026-11-23",
+  "complete": true,
+  "passed": true,
+  "scope": "Pointer-free standalone and editor margin geometry, checked ownership, snapshot retention and heap counts",
+  "nativeRevision": "f0f5c5d4de9ca8efada6e48c08fbc296a02b3ed0",
+  "shippingDelivery": false,
+  "networkTests": false,
+  "apiCompletenessClaim": false,
+  "sourceLF": {
+    "lib/bindings/xui/src/code_margin.xl": "b223b64a15ca67e2bd48ccac446655235d5a3d04ba9d3e466e0ce37f1c33355b",
+    "lib/bindings/_xge_native/include/xui3_code_margin.h": "9cae50ae4e2a1aa3806486e565268fe9ba491d8075246416ba44ea824e97d2d1",
+    "lib/bindings/xui/examples/code_margin.xl": "9eb97fd1794fc042f76da91c1d7a866b4ae4caae1482e08fcab7d3ead3c6ae7c",
+    "test/cases/foreign_xui_code_margin_layout.xl": "5e7f1cb6f799685791dd88b5ce0deecc6927d053b4acf78cbe01ebca8253d341",
+    "test/cases/foreign_xui_code_margin_layout.c": "4999b80b8b06ea2e61b2061e5e650c7bd607d3071ad2d35413a32b9caec97d7a",
+    "test/cases/foreign_xui_code_margin_layout.h": "6c4766c820943f63016d746f25e5b9ccb79412204ee3cc4fe830a5efd119b3f9",
+    "test/cases/foreign_xui_codeedit_margin.xl": "3d119a3d7d5b3999653edcce1759048d0c1a0d8cf3f90140b6c126705ec55da6",
+    "docs/xge3-xui3-api-map-storage.json": "831afc30d8633839098063b4a5f5dc9529edfde96c640ca7948bddba359b93f5"
+  },
+  "audit": {
+    "functionPopulation": 5796,
+    "directDeclarations": 4734,
+    "compiledConsumerFunctions": 285,
+    "explicitReplacements": 467,
+    "resolved": [
+      "xuiCodeMarginModelClear",
+      "xuiCodeMarginModelDestroy",
+      "xuiCodeMarginModelDestroyChecked",
+      "xuiCodeMarginModelGet",
+      "xuiCodeMarginModelHitTest",
+      "xuiCodeMarginModelLayout"
+    ],
+    "newPending": [
+      "xuiCodeMarginLayoutAddRef"
+    ],
+    "pending": {
+      "XGE": 126,
+      "XUI": 188,
+      "Document": 0
+    }
+  },
+  "platforms": {
+    "Windows x64": {
+      "engine": {
+        "host": {
+          "path": "F:\\xlang-validation\\xge-full-20261110\\margin-layout-host-win-r2\\build-report.json",
+          "sha256": "3b54f3723f72494ef06a3f048948f14d84fbe36c71039f3dc9788494978a8bf6"
+        },
+        "static": {
+          "path": "F:\\xlang-validation\\xge-full-20261110\\margin-layout-static-win-r2\\build-report.json",
+          "sha256": "8ada11fc966a3610e63e4a6d96e38a5ec79587e7f570b3b914fc2bf9b128f0e1"
+        }
+      },
+      "nativeSource": {
+        "path": "F:\\xlang-validation\\xge-full-20261110\\margin-layout-audit-win-r1\\native-source.json",
+        "sha256": "04e33395ab6de9c65ad220402409aeff7ae859e7ca6b144926d98cea7d74af2a"
+      },
+      "apiSurface": {
+        "path": "F:\\xlang-validation\\xge-full-20261110\\margin-layout-audit-win-r1\\surface\\surface.json",
+        "sha256": "fa1404540f54b143548934e8a5f0c978604368036aedc97b864bc427a55da4d0"
+      },
+      "previousAudit": {
+        "path": "F:\\xlang-validation\\xge-full-20261110\\scene-resolver-audit-win-r1\\consumers\\results.json",
+        "sha256": "f6392eb3a0f256d5f75cc6e194a4123343b3406337132b9984e6e3caae8e1a73"
+      },
+      "consumerAudit": {
+        "path": "F:\\xlang-validation\\xge-full-20261110\\margin-layout-audit-win-r1\\consumers\\results.json",
+        "sha256": "029db2d3be23b84f2405bd1f4f581d125ae0722ae518d08d64be14fde9a8d9c3"
+      },
+      "generator": {
+        "path": "F:\\xlang-validation\\xge-full-20261110\\margin-layout-generator-win-r3\\results.json",
+        "sha256": "df9e4878618a68a6312389e5c5986633051f78b42d32018273e3c3eee9ef2a32"
+      },
+      "matchedPackages": {
+        "path": "F:\\xlang-validation\\xge-full-20261110\\margin-layout-stage-win-r3\\replay\\stage-report.json",
+        "sha256": "7ee1d96cd3dfb02342e37f0ec3d4ca916da8186cabc8af1c996514362a3edce9"
+      },
+      "runtime": {
+        "path": "F:\\xlang-validation\\xge-full-20261110\\margin-layout-tests-win-r2\\results.json",
+        "sha256": "9e4d53c6f08854cbe13c19109c0b8e164a9df91f4fa53c9fa81edfdf64c54885"
+      },
+      "generatedC": {
+        "path": "F:\\xlang-validation\\xge-full-20261110\\margin-layout-tests-win-r1\\generated.c",
+        "sha256": "4e43bb124a2f1791d523265bbd329c72354913dc00b7a8bce7a00c3ddcde2dd7"
+      },
+      "steps": 18,
+      "heapLoops": 1000,
+      "heapCounts": {
+        "jit": {
+          "nativeCapture": [
+            1000,
+            1000,
+            0
+          ],
+          "languageCapture": [
+            8000,
+            8000,
+            0
+          ],
+          "sequenceTraversal": [
+            0,
+            0,
+            0
+          ]
+        },
+        "dynamic": {
+          "nativeCapture": [
+            1000,
+            1000,
+            0
+          ],
+          "languageCapture": [
+            8000,
+            8000,
+            0
+          ],
+          "sequenceTraversal": [
+            0,
+            0,
+            0
+          ]
+        },
+        "static": {
+          "nativeCapture": [
+            1000,
+            1000,
+            0
+          ],
+          "languageCapture": [
+            8000,
+            8000,
+            0
+          ],
+          "sequenceTraversal": [
+            0,
+            0,
+            0
+          ]
+        }
+      }
+    },
+    "Linux x64": {
+      "engine": {
+        "host": {
+          "path": "\\\\wsl.localhost\\Ubuntu\\var\\tmp\\xlang-validation\\xge-full-20261110\\margin-layout-host-linux-r2\\build-report.json",
+          "sha256": "5eb8699d44f3aa54ddbb8c3a688da535fad4ecdafe7752ca69251df120807029"
+        },
+        "static": {
+          "path": "\\\\wsl.localhost\\Ubuntu\\var\\tmp\\xlang-validation\\xge-full-20261110\\margin-layout-static-linux-r2\\build-report.json",
+          "sha256": "28d9803ac6c59f6967c375248b2d84c83363624086952abfe27e7ab5f9189ccf"
+        }
+      },
+      "nativeSource": {
+        "path": "\\\\wsl.localhost\\Ubuntu\\var\\tmp\\xlang-validation\\xge-full-20261110\\margin-layout-audit-linux-r1\\native-source.json",
+        "sha256": "b1398e2806e660c86e024a48f3f980c1eb4fa27ec93e5e8a6738816915e0d386"
+      },
+      "apiSurface": {
+        "path": "\\\\wsl.localhost\\Ubuntu\\var\\tmp\\xlang-validation\\xge-full-20261110\\margin-layout-audit-linux-r1\\surface\\surface.json",
+        "sha256": "746cf8aa1ee8ceb1a68d51e75a37eb5faed73c52e990e4b23f82eee6d5e5cd09"
+      },
+      "previousAudit": {
+        "path": "\\\\wsl.localhost\\Ubuntu\\var\\tmp\\xlang-validation\\xge-full-20261110\\scene-resolver-audit-linux-r1\\consumers\\results.json",
+        "sha256": "68b14c68f05c9d056770e77b9fd23876b4634afebf665d4133f1f898cd8f0ddc"
+      },
+      "consumerAudit": {
+        "path": "\\\\wsl.localhost\\Ubuntu\\var\\tmp\\xlang-validation\\xge-full-20261110\\margin-layout-audit-linux-r1\\consumers\\results.json",
+        "sha256": "0c384348aeac80fe094a26e9040feaf1717900bc262b42c15566428fc64dd81b"
+      },
+      "generator": {
+        "path": "\\\\wsl.localhost\\Ubuntu\\var\\tmp\\xlang-validation\\xge-full-20261110\\margin-layout-generator-linux-r3\\results.json",
+        "sha256": "3a7c1cef2a8c404b49a4b4e613d1029a596260aba65e5211752c6f72550ce5bd"
+      },
+      "matchedPackages": {
+        "path": "\\\\wsl.localhost\\Ubuntu\\var\\tmp\\xlang-validation\\xge-full-20261110\\margin-layout-stage-linux-r3\\replay\\stage-report.json",
+        "sha256": "6bf77fede1af2df74a7ca5c2ec5f21c90169f173da8287747cfbdd252435b08b"
+      },
+      "runtime": {
+        "path": "\\\\wsl.localhost\\Ubuntu\\var\\tmp\\xlang-validation\\xge-full-20261110\\margin-layout-tests-linux-r2\\results.json",
+        "sha256": "a02aef596af737b7a0563da1e0c1ffd8d4576db3034c7c30bde76ee77b70ef6e"
+      },
+      "generatedC": {
+        "path": "\\\\wsl.localhost\\Ubuntu\\var\\tmp\\xlang-validation\\xge-full-20261110\\margin-layout-tests-linux-r1\\generated.c",
+        "sha256": "4e43bb124a2f1791d523265bbd329c72354913dc00b7a8bce7a00c3ddcde2dd7"
+      },
+      "steps": 18,
+      "heapLoops": 1000,
+      "heapCounts": {
+        "jit": {
+          "nativeCapture": [
+            1000,
+            1000,
+            0
+          ],
+          "languageCapture": [
+            8000,
+            8000,
+            0
+          ],
+          "sequenceTraversal": [
+            0,
+            0,
+            0
+          ]
+        },
+        "dynamic": {
+          "nativeCapture": [
+            1000,
+            1000,
+            0
+          ],
+          "languageCapture": [
+            8000,
+            8000,
+            0
+          ],
+          "sequenceTraversal": [
+            0,
+            0,
+            0
+          ]
+        },
+        "static": {
+          "nativeCapture": [
+            1000,
+            1000,
+            0
+          ],
+          "languageCapture": [
+            8000,
+            8000,
+            0
+          ],
+          "sequenceTraversal": [
+            0,
+            0,
+            0
+          ]
+        }
+      }
+    }
+  }
+}

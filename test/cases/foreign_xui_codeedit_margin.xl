@@ -50,6 +50,11 @@ func exercise(xui.Context context,xui.CodeEdit editor,xui.Proxy proxy,xui.Surfac
  assert oom
  visible,text=margins.measureLayout(viewport)
  assert visible==1 and text.fX==24
+ auto layout=margins.captureLayout(viewport)
+ auto captured,body=layout.getState()
+ assert captured==1 and body.fX==24
+ auto geometry=layout.entries()
+ layout.close()
  auto alias=editor.margins()
  margins.close()
  bool stale=false
@@ -59,6 +64,9 @@ func exercise(xui.Context context,xui.CodeEdit editor,xui.Proxy proxy,xui.Surfac
   stale=true
  end
  assert stale
+ for entry in geometry
+  assert entry.tState.iId==10 and entry.tRect.fW==24
+ end
 
  context.render(target)
  assert rendered>0

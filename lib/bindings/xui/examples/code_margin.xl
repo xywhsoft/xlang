@@ -10,12 +10,14 @@ func main(...) as int
  auto viewport=xui.Rect()
  viewport.fW=640
  viewport.fH=480
- auto custom=margins.getRect(2,viewport)
- assert custom.fX==44 and custom.fW==16
- println("Visible margin width: ",margins.getTotalWidth())
-
- margins.setVisible(2,0)
- assert margins.getTotalWidth()==c_float(44)
+ auto layout=margins.captureLayout(viewport)
+ auto count,text=layout.getState()
+ assert count==2 and text.fX==60
+ for margin in layout.entries()
+  println("Margin ",margin.tState.iId," at ",margin.tRect.fX," px")
+ end
+ println("Text starts at ",text.fX," px")
+ layout.close()
  margins.close()
  return 0
 end

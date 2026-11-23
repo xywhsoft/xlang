@@ -418,6 +418,9 @@ def main():
         if 'xui.CodeLayoutSnapshot' in class_bindings:
             policy_groups['codeLayoutHeaderPolicies'] = ('xui-code-layout-header-policies',
                 {'xui.CodeLayoutSnapshot': class_bindings['xui.CodeLayoutSnapshot']})
+        if 'xui.CodeMarginLayout' in class_bindings:
+            policy_groups['codeMarginHeaderPolicies'] = ('xui-code-margin-header-policies',
+                {'xui.CodeMarginLayout': class_bindings['xui.CodeMarginLayout']})
         header_relocations = {}
         for key, (name, classes) in policy_groups.items():
             evidence, relocations = compile_header_policies(name,view,classes,set(functions),

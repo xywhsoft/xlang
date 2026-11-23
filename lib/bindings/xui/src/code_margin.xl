@@ -6,6 +6,21 @@ export extern "xui_code_margin_state_t" struct CodeMarginState @header("xge3_run
  c_float fWidth
  c_uint iFlags
 end
+export extern "xui_code_margin_geometry_t" struct CodeMarginGeometry @header("xui3_code_margin.h")
+ CodeMarginState tState
+ Rect tRect
+end
+
+// A geometry-only snapshot detached from the editor and its callbacks.
+export extern "xui_code_margin_layout_t*" class CodeMarginLayout @header("xui3_code_margin.h") @lifetime("owned") @policy("xl6Xui3CodeMarginLayoutPolicy")
+ native point handle
+ extern "xuiCodeMarginLayoutGetState" @no_raise @c_const(0) @c_outputs(1,2) @c_status(0) func getState() as (c_int,Rect)
+ extern "xuiCodeMarginLayoutGetEntries" @no_raise @c_const(0) @c_owned_sequence(1,2,0,"size_t",0) @c_retain(retainCodeMarginLayout,"zero",releaseCodeMarginLayout) func entries() as NativeSequence<CodeMarginGeometry>
+ extern "xl6ForeignViewCloseV1" @no_raise @c_control(0) @c_result("bool_status") func close()
+end
+extern "xuiCodeMarginLayoutAddRef" @header("xui3_code_margin.h") @no_raise func retainCodeMarginLayout(CodeMarginLayout layout) as c_int
+extern "xuiCodeMarginLayoutRelease" @header("xui3_code_margin.h") @no_raise func releaseCodeMarginLayout(CodeMarginLayout layout)
+
 export extern "xui_code_margin_model_t*" class CodeMarginModel @header("xge3_runtime.h") @lifetime("owned") @policy("xl6Xui3CodeMarginPolicy") @watch("xui_lifetime_link_t") @scope("xui_code_margin_scope_t") @domain("xl6Xui3OwnershipDomainV1")
  native point handle
  extern "xuiCodeMarginModelClearChecked" @no_raise @c_result("status",0) func clear()
@@ -20,6 +35,7 @@ export extern "xui_code_margin_model_t*" class CodeMarginModel @header("xge3_run
  extern "xuiCodeMarginModelGetTotalWidth" @no_raise @c_output(1,0) func getTotalWidth() as c_float
  extern "xuiCodeMarginModelGetRect" @no_raise @c_output(3,0) func getRect(c_int id,Rect viewport) as Rect
  extern "xuiCodeMarginModelMeasureLayout" @no_raise @c_outputs(2,3) @c_status(0) func measureLayout(Rect viewport) as (c_int,Rect)
+ extern "xuiCodeMarginModelCaptureLayout" @no_raise @c_result("owned_view") @factory(3,0,releaseCodeMarginLayout) func captureLayout(Rect viewport,c_int limit=-1) as CodeMarginLayout
  extern "xuiCodeMarginModelFindHit" @no_raise @c_output(6,0) func findHit(Rect viewport,c_float x,c_float y,c_float lineHeight,c_float scrollY=0) as CodeMarginHit
  extern "xuiCodeMarginModelSetRenderCallbackOwned" @no_raise @c_owned_callback(1,-1,"xui_callback_owner_t",-16) @c_result("status",0) func setRenderCallback(c_int id,CodeMarginRenderProc? callback)
  extern "xuiCodeMarginModelSetEventCallbackOwned" @no_raise @c_owned_callback(1,-1,"xui_callback_owner_t",-16) @c_result("status",0) func setEventCallback(c_int id,CodeMarginEventProc? callback)
@@ -43,6 +59,7 @@ export extern "xui_code_margin_model_t*" class CodeEditMargins @header("xge3_run
  extern "xuiCodeMarginModelGetTotalWidth" @no_raise @c_output(1,0) func getTotalWidth() as c_float
  extern "xuiCodeMarginModelGetRect" @no_raise @c_output(3,0) func getRect(c_int id,Rect viewport) as Rect
  extern "xuiCodeMarginModelMeasureLayout" @no_raise @c_outputs(2,3) @c_status(0) func measureLayout(Rect viewport) as (c_int,Rect)
+ extern "xuiCodeMarginModelCaptureLayout" @no_raise @c_result("owned_view") @factory(3,0,releaseCodeMarginLayout) func captureLayout(Rect viewport,c_int limit=-1) as CodeMarginLayout
  extern "xuiCodeMarginModelFindHit" @no_raise @c_output(6,0) func findHit(Rect viewport,c_float x,c_float y,c_float lineHeight,c_float scrollY=0) as CodeMarginHit
  extern "xl6ForeignViewCloseV1" @no_raise @c_control(0) @c_result("bool_status") func close()
 end
