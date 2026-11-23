@@ -462,6 +462,18 @@ METHODS.update({
         '@c_output_field(3,"sTime","cstring") @c_output_field(4,"sParentId","cstring") @c_output_field(5,"sTitle","cstring") '
         '@c_output_field(6,"iType") @c_output_field(7,"iFlags") @c_output_field(8,"iAuxiliaryKind") '
         'func getNode(c_int index) as (string,string,string,string,string,string,c_int,c_int,c_int)']],
+    'xuiTimeLineViewSetLayerValue': ['int xuiTimeLineViewSetLayerValue(xui_widget pWidget, int iLayer, xvalue* pValue)',
+        'TimeLineView', ['extern "xuiTimeLineViewSetLayerValue" @no_raise @c_data_snapshot(1) @c_result("status",0) func setLayerData(c_int layer,var value)']],
+    'xuiTimeLineViewGetLayerValue': ['int xuiTimeLineViewGetLayerValue(xui_widget pWidget, int iLayer, xvalue** ppValue)',
+        'TimeLineView', ['extern "xuiTimeLineViewGetLayerValue" @no_raise @c_output(2,0) @c_output_view(2,"owned_value") @c_data_snapshot_result(0) func getLayerData(c_int layer) as var']],
+    'xuiTimeLineViewSetFrameValue': ['int xuiTimeLineViewSetFrameValue(xui_widget pWidget, int iLayer, int iFrame, xvalue* pValue)',
+        'TimeLineView', ['extern "xuiTimeLineViewSetFrameValue" @no_raise @c_data_snapshot(2) @c_result("status",0) func setFrameData(c_int layer,c_int frame,var value)']],
+    'xuiTimeLineViewGetFrameValue': ['int xuiTimeLineViewGetFrameValue(xui_widget pWidget, int iLayer, int iFrame, xvalue** ppValue)',
+        'TimeLineView', ['extern "xuiTimeLineViewGetFrameValue" @no_raise @c_output(3,0) @c_output_view(3,"owned_value") @c_data_snapshot_result(0) func getFrameData(c_int layer,c_int frame) as var']],
+    'xuiTimeLineViewSetSpanValue': ['int xuiTimeLineViewSetSpanValue(xui_widget pWidget, int iSpanId, xvalue* pValue)',
+        'TimeLineView', ['extern "xuiTimeLineViewSetSpanValue" @no_raise @c_data_snapshot(1) @c_result("status",0) func setSpanData(c_int span,var value)']],
+    'xuiTimeLineViewGetSpanValue': ['int xuiTimeLineViewGetSpanValue(xui_widget pWidget, int iSpanId, xvalue** ppValue)',
+        'TimeLineView', ['extern "xuiTimeLineViewGetSpanValue" @no_raise @c_output(2,0) @c_output_view(2,"owned_value") @c_data_snapshot_result(0) func getSpanData(c_int span) as var']],
     'xuiTimeLineViewGetLayerDescriptor': ['int xuiTimeLineViewGetLayerDescriptor(xui_widget pWidget, int iLayer, xui_timeline_layer_desc_t* pLayer)',
         'TimeLineView', ['extern "xuiTimeLineViewGetLayerDescriptor" @no_raise @c_output_record(2,"xui_timeline_layer_desc_t","borrowed") @c_status(0) '
         '@c_output_field(0,"iId") @c_output_field(1,"sName","cstring") @c_output_field(2,"bVisible") @c_output_field(3,"bLocked") '
@@ -1966,6 +1978,12 @@ REPLACED.update({
     'xuiTimeLineViewGetLayer': ('xui.TimeLineView.getLayer', 'xuiTimeLineViewGetLayerDescriptor'),
     'xuiTimeLineViewGetSpan': ('xui.TimeLineView.getSpan', 'xuiTimeLineViewGetSpanDescriptor'),
     'xuiTimeLineViewGetModel': ('xui.TimeLineView.scrollSnapshot', 'xuiTimeLineViewGetScrollSnapshot'),
+    'xuiTimeLineViewSetLayerUserData': ('xui.TimeLineView.setLayerData', 'xuiTimeLineViewSetLayerValue'),
+    'xuiTimeLineViewGetLayerUserData': ('xui.TimeLineView.getLayerData', 'xuiTimeLineViewGetLayerValue'),
+    'xuiTimeLineViewSetFrameUserData': ('xui.TimeLineView.setFrameData', 'xuiTimeLineViewSetFrameValue'),
+    'xuiTimeLineViewGetFrameUserData': ('xui.TimeLineView.getFrameData', 'xuiTimeLineViewGetFrameValue'),
+    'xuiTimeLineViewSetSpanUserData': ('xui.TimeLineView.setSpanData', 'xuiTimeLineViewSetSpanValue'),
+    'xuiTimeLineViewGetSpanUserData': ('xui.TimeLineView.getSpanData', 'xuiTimeLineViewGetSpanValue'),
     'xuiTimeLineViewSetRenderers': ('xui.TimeLineView.setRenderers', 'xuiTimeLineViewSetRenderersOwned'),
     'xuiTimeLineViewSetCurrentFrameCallbacks': ('xui.TimeLineView.setCurrentFrameCallbacks', 'xuiTimeLineViewSetCurrentFrameCallbacksOwned'),
     'xuiTimeLineViewSetLayerCallbacks': ('xui.TimeLineView.setLayerCallbacks', 'xuiTimeLineViewSetLayerCallbacksOwned'),

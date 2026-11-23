@@ -110,7 +110,7 @@
       "dependencies": [
         {
           "sourceFile": "src/xui/controls/xui_timeline_view.c",
-          "lfSha256": "fefbab23f7ff55ec356ec02b4f7621ed06f786adee82512aa6dff56428cbf757"
+          "lfSha256": "e63103f65a7ff900183d1ca6ca70afa952f89b77a30f54a6693dff329e12c04c"
         }
       ]
     },
@@ -124,7 +124,7 @@
       "dependencies": [
         {
           "sourceFile": "src/xui/controls/xui_timeline_view.c",
-          "lfSha256": "fefbab23f7ff55ec356ec02b4f7621ed06f786adee82512aa6dff56428cbf757"
+          "lfSha256": "e63103f65a7ff900183d1ca6ca70afa952f89b77a30f54a6693dff329e12c04c"
         }
       ]
     },
@@ -138,7 +138,7 @@
       "dependencies": [
         {
           "sourceFile": "src/xui/controls/xui_timeline_view.c",
-          "lfSha256": "fefbab23f7ff55ec356ec02b4f7621ed06f786adee82512aa6dff56428cbf757"
+          "lfSha256": "e63103f65a7ff900183d1ca6ca70afa952f89b77a30f54a6693dff329e12c04c"
         }
       ]
     },
@@ -1027,7 +1027,7 @@
         },
         {
           "sourceFile": "include/xui.h",
-          "lfSha256": "b879559455e1c28fedf39e3a78021705355e4d834ffba70ae88986638a96230d"
+          "lfSha256": "a933daeba903740d6900e8d913d537c5eef667965261980f38eb9e1a09e8173f"
         }
       ]
     },
@@ -1289,7 +1289,7 @@
         },
         {
           "sourceFile": "include/xui.h",
-          "lfSha256": "b879559455e1c28fedf39e3a78021705355e4d834ffba70ae88986638a96230d"
+          "lfSha256": "a933daeba903740d6900e8d913d537c5eef667965261980f38eb9e1a09e8173f"
         }
       ],
       "note": "Copies extensions, regex records and their text before publication. Both callbacks use one retained and traced owner, and invocation views are scoped. Regex-only registration holds no owner."
@@ -1391,7 +1391,7 @@
         },
         {
           "sourceFile": "include/xui.h",
-          "lfSha256": "b879559455e1c28fedf39e3a78021705355e4d834ffba70ae88986638a96230d"
+          "lfSha256": "a933daeba903740d6900e8d913d537c5eef667965261980f38eb9e1a09e8173f"
         }
       ]
     },
@@ -1413,7 +1413,7 @@
         },
         {
           "sourceFile": "include/xui.h",
-          "lfSha256": "b879559455e1c28fedf39e3a78021705355e4d834ffba70ae88986638a96230d"
+          "lfSha256": "a933daeba903740d6900e8d913d537c5eef667965261980f38eb9e1a09e8173f"
         }
       ]
     },
@@ -1435,7 +1435,7 @@
         },
         {
           "sourceFile": "include/xui.h",
-          "lfSha256": "b879559455e1c28fedf39e3a78021705355e4d834ffba70ae88986638a96230d"
+          "lfSha256": "a933daeba903740d6900e8d913d537c5eef667965261980f38eb9e1a09e8173f"
         }
       ]
     },
@@ -1457,7 +1457,7 @@
         },
         {
           "sourceFile": "include/xui.h",
-          "lfSha256": "b879559455e1c28fedf39e3a78021705355e4d834ffba70ae88986638a96230d"
+          "lfSha256": "a933daeba903740d6900e8d913d537c5eef667965261980f38eb9e1a09e8173f"
         }
       ]
     },
@@ -1479,7 +1479,7 @@
         },
         {
           "sourceFile": "include/xui.h",
-          "lfSha256": "b879559455e1c28fedf39e3a78021705355e4d834ffba70ae88986638a96230d"
+          "lfSha256": "a933daeba903740d6900e8d913d537c5eef667965261980f38eb9e1a09e8173f"
         }
       ]
     },
@@ -1501,7 +1501,7 @@
         },
         {
           "sourceFile": "include/xui.h",
-          "lfSha256": "b879559455e1c28fedf39e3a78021705355e4d834ffba70ae88986638a96230d"
+          "lfSha256": "a933daeba903740d6900e8d913d537c5eef667965261980f38eb9e1a09e8173f"
         }
       ]
     },
@@ -1523,7 +1523,7 @@
         },
         {
           "sourceFile": "include/xui.h",
-          "lfSha256": "b879559455e1c28fedf39e3a78021705355e4d834ffba70ae88986638a96230d"
+          "lfSha256": "a933daeba903740d6900e8d913d537c5eef667965261980f38eb9e1a09e8173f"
         }
       ]
     },
@@ -1545,7 +1545,7 @@
         },
         {
           "sourceFile": "include/xui.h",
-          "lfSha256": "b879559455e1c28fedf39e3a78021705355e4d834ffba70ae88986638a96230d"
+          "lfSha256": "a933daeba903740d6900e8d913d537c5eef667965261980f38eb9e1a09e8173f"
         }
       ]
     },
@@ -1567,7 +1567,7 @@
         },
         {
           "sourceFile": "include/xui.h",
-          "lfSha256": "b879559455e1c28fedf39e3a78021705355e4d834ffba70ae88986638a96230d"
+          "lfSha256": "a933daeba903740d6900e8d913d537c5eef667965261980f38eb9e1a09e8173f"
         }
       ]
     },
@@ -1589,7 +1589,7 @@
         },
         {
           "sourceFile": "include/xui.h",
-          "lfSha256": "b879559455e1c28fedf39e3a78021705355e4d834ffba70ae88986638a96230d"
+          "lfSha256": "a933daeba903740d6900e8d913d537c5eef667965261980f38eb9e1a09e8173f"
         }
       ]
     },
@@ -1611,7 +1611,7 @@
         },
         {
           "sourceFile": "include/xui.h",
-          "lfSha256": "b879559455e1c28fedf39e3a78021705355e4d834ffba70ae88986638a96230d"
+          "lfSha256": "a933daeba903740d6900e8d913d537c5eef667965261980f38eb9e1a09e8173f"
         }
       ]
     },
@@ -1637,7 +1637,7 @@
         },
         {
           "sourceFile": "include/xui.h",
-          "lfSha256": "b879559455e1c28fedf39e3a78021705355e4d834ffba70ae88986638a96230d"
+          "lfSha256": "a933daeba903740d6900e8d913d537c5eef667965261980f38eb9e1a09e8173f"
         }
       ]
     },
@@ -1663,7 +1663,7 @@
         },
         {
           "sourceFile": "include/xui.h",
-          "lfSha256": "b879559455e1c28fedf39e3a78021705355e4d834ffba70ae88986638a96230d"
+          "lfSha256": "a933daeba903740d6900e8d913d537c5eef667965261980f38eb9e1a09e8173f"
         }
       ]
     },
@@ -1689,7 +1689,7 @@
         },
         {
           "sourceFile": "include/xui.h",
-          "lfSha256": "b879559455e1c28fedf39e3a78021705355e4d834ffba70ae88986638a96230d"
+          "lfSha256": "a933daeba903740d6900e8d913d537c5eef667965261980f38eb9e1a09e8173f"
         }
       ]
     },
@@ -1715,7 +1715,7 @@
         },
         {
           "sourceFile": "include/xui.h",
-          "lfSha256": "b879559455e1c28fedf39e3a78021705355e4d834ffba70ae88986638a96230d"
+          "lfSha256": "a933daeba903740d6900e8d913d537c5eef667965261980f38eb9e1a09e8173f"
         }
       ]
     },
@@ -1741,7 +1741,7 @@
         },
         {
           "sourceFile": "include/xui.h",
-          "lfSha256": "b879559455e1c28fedf39e3a78021705355e4d834ffba70ae88986638a96230d"
+          "lfSha256": "a933daeba903740d6900e8d913d537c5eef667965261980f38eb9e1a09e8173f"
         }
       ]
     },
@@ -1771,7 +1771,7 @@
         },
         {
           "sourceFile": "include/xui.h",
-          "lfSha256": "b879559455e1c28fedf39e3a78021705355e4d834ffba70ae88986638a96230d"
+          "lfSha256": "a933daeba903740d6900e8d913d537c5eef667965261980f38eb9e1a09e8173f"
         }
       ]
     },
@@ -1801,7 +1801,7 @@
         },
         {
           "sourceFile": "include/xui.h",
-          "lfSha256": "b879559455e1c28fedf39e3a78021705355e4d834ffba70ae88986638a96230d"
+          "lfSha256": "a933daeba903740d6900e8d913d537c5eef667965261980f38eb9e1a09e8173f"
         }
       ]
     },
@@ -1827,7 +1827,7 @@
         },
         {
           "sourceFile": "include/xui.h",
-          "lfSha256": "b879559455e1c28fedf39e3a78021705355e4d834ffba70ae88986638a96230d"
+          "lfSha256": "a933daeba903740d6900e8d913d537c5eef667965261980f38eb9e1a09e8173f"
         }
       ]
     },
@@ -1853,7 +1853,7 @@
         },
         {
           "sourceFile": "include/xui.h",
-          "lfSha256": "b879559455e1c28fedf39e3a78021705355e4d834ffba70ae88986638a96230d"
+          "lfSha256": "a933daeba903740d6900e8d913d537c5eef667965261980f38eb9e1a09e8173f"
         }
       ]
     },
@@ -1879,7 +1879,7 @@
         },
         {
           "sourceFile": "include/xui.h",
-          "lfSha256": "b879559455e1c28fedf39e3a78021705355e4d834ffba70ae88986638a96230d"
+          "lfSha256": "a933daeba903740d6900e8d913d537c5eef667965261980f38eb9e1a09e8173f"
         }
       ]
     },
@@ -1905,7 +1905,7 @@
         },
         {
           "sourceFile": "include/xui.h",
-          "lfSha256": "b879559455e1c28fedf39e3a78021705355e4d834ffba70ae88986638a96230d"
+          "lfSha256": "a933daeba903740d6900e8d913d537c5eef667965261980f38eb9e1a09e8173f"
         }
       ]
     },
@@ -1927,7 +1927,7 @@
         },
         {
           "sourceFile": "include/xui.h",
-          "lfSha256": "b879559455e1c28fedf39e3a78021705355e4d834ffba70ae88986638a96230d"
+          "lfSha256": "a933daeba903740d6900e8d913d537c5eef667965261980f38eb9e1a09e8173f"
         }
       ]
     },
@@ -1953,7 +1953,7 @@
         },
         {
           "sourceFile": "include/xui.h",
-          "lfSha256": "b879559455e1c28fedf39e3a78021705355e4d834ffba70ae88986638a96230d"
+          "lfSha256": "a933daeba903740d6900e8d913d537c5eef667965261980f38eb9e1a09e8173f"
         }
       ]
     },
@@ -1971,7 +1971,7 @@
         },
         {
           "sourceFile": "include/xui.h",
-          "lfSha256": "b879559455e1c28fedf39e3a78021705355e4d834ffba70ae88986638a96230d"
+          "lfSha256": "a933daeba903740d6900e8d913d537c5eef667965261980f38eb9e1a09e8173f"
         }
       ]
     },
@@ -1989,7 +1989,7 @@
         },
         {
           "sourceFile": "include/xui.h",
-          "lfSha256": "b879559455e1c28fedf39e3a78021705355e4d834ffba70ae88986638a96230d"
+          "lfSha256": "a933daeba903740d6900e8d913d537c5eef667965261980f38eb9e1a09e8173f"
         }
       ]
     },
@@ -2007,7 +2007,7 @@
         },
         {
           "sourceFile": "include/xui.h",
-          "lfSha256": "b879559455e1c28fedf39e3a78021705355e4d834ffba70ae88986638a96230d"
+          "lfSha256": "a933daeba903740d6900e8d913d537c5eef667965261980f38eb9e1a09e8173f"
         }
       ]
     },
@@ -2025,7 +2025,7 @@
         },
         {
           "sourceFile": "include/xui.h",
-          "lfSha256": "b879559455e1c28fedf39e3a78021705355e4d834ffba70ae88986638a96230d"
+          "lfSha256": "a933daeba903740d6900e8d913d537c5eef667965261980f38eb9e1a09e8173f"
         }
       ]
     },
@@ -2043,7 +2043,7 @@
         },
         {
           "sourceFile": "include/xui.h",
-          "lfSha256": "b879559455e1c28fedf39e3a78021705355e4d834ffba70ae88986638a96230d"
+          "lfSha256": "a933daeba903740d6900e8d913d537c5eef667965261980f38eb9e1a09e8173f"
         }
       ]
     },
@@ -2057,7 +2057,7 @@
       "dependencies": [
         {
           "sourceFile": "include/xui.h",
-          "lfSha256": "b879559455e1c28fedf39e3a78021705355e4d834ffba70ae88986638a96230d"
+          "lfSha256": "a933daeba903740d6900e8d913d537c5eef667965261980f38eb9e1a09e8173f"
         },
         {
           "sourceFile": "src/xui/core/xui_widget.c",
@@ -2075,7 +2075,7 @@
       "dependencies": [
         {
           "sourceFile": "include/xui.h",
-          "lfSha256": "b879559455e1c28fedf39e3a78021705355e4d834ffba70ae88986638a96230d"
+          "lfSha256": "a933daeba903740d6900e8d913d537c5eef667965261980f38eb9e1a09e8173f"
         },
         {
           "sourceFile": "src/xui/core/xui_widget.c",
@@ -2107,7 +2107,7 @@
         },
         {
           "sourceFile": "include/xui.h",
-          "lfSha256": "b879559455e1c28fedf39e3a78021705355e4d834ffba70ae88986638a96230d"
+          "lfSha256": "a933daeba903740d6900e8d913d537c5eef667965261980f38eb9e1a09e8173f"
         },
         {
           "sourceFile": "src/xge/render/xge_render.c",
@@ -2225,7 +2225,7 @@
       "dependencies": [
         {
           "sourceFile": "include/xui.h",
-          "lfSha256": "b879559455e1c28fedf39e3a78021705355e4d834ffba70ae88986638a96230d"
+          "lfSha256": "a933daeba903740d6900e8d913d537c5eef667965261980f38eb9e1a09e8173f"
         },
         {
           "sourceFile": "src/xui/core/xui_proxy_xge.c",
@@ -2323,7 +2323,7 @@
       "dependencies": [
         {
           "sourceFile": "include/xui.h",
-          "lfSha256": "b879559455e1c28fedf39e3a78021705355e4d834ffba70ae88986638a96230d"
+          "lfSha256": "a933daeba903740d6900e8d913d537c5eef667965261980f38eb9e1a09e8173f"
         },
         {
           "sourceFile": "src/xui/core/xui_proxy_xge.c",

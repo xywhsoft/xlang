@@ -9,3 +9,13 @@
 每个方法生成一次直接原生调用。写入消息前构造临时记录数组，检查文本中的 NUL，原生复制文本并建立节点索引。快照复制读取所需的字符串，标量按值返回。
 
 [时间轴范例](../lib/bindings/xui/examples/timeline_state.xl) 输出 `Move 4 12`。[消息列表范例](../lib/bindings/xui/examples/message_nodes.xl) 输出 `review Note`。两者均无需打开窗口。
+
+## 附加数据
+
+TimeLineView 的 `setLayerData`、`setFrameData` 和 `setSpanData` 接收 `var`，保存独立数据快照。对应的 `get*Data` 返回独立快照，未设置返回 `null`。传 `null` 清除数据。写入关键帧数据前先用 `setFrame` 创建帧。轨道移动会保留数据，删除轨道也会移除其帧和区段的数据。缩短时间轴时，被删除的帧和区段随之释放，保留的区段继续携带数据。
+
+每个语言方法直接调用一次原生函数。控件第一次设置数据时分配槽表，第一次填入某个槽时分配一条记录。预热后的标量替换和读取在 Windows、Linux 的 2,000 轮对比中没有堆分配。容器快照的复制与分配随数据量增长。计时与验收口径见专项记录。
+
+[Timeline 附加数据验收](../dev/release-materials/provenance/xui-timeline-values-20261123.json)
+
+[Timeline 附加数据范例](../lib/bindings/xui/examples/timeline_state.xl)

@@ -1,5 +1,16 @@
 # Native consumers in the full API inventory
 
+## Timeline record values
+
+The six legacy layer, frame and span userdata entries map to the checked
+`setLayerData` / `getLayerData`, `setFrameData` / `getFrameData` and
+`setSpanData` / `getSpanData` methods in both matched package audits.
+The methods call the native retained-value slots directly and project
+independent data on input and output. Tests cover layer movement, frame
+and span truncation, slot removal, clear-time reentry and ownership release.
+
+[Timeline value evidence](../dev/release-materials/provenance/xui-timeline-values-20261123.json)
+
 ## CodeDocument batch transactions
 
 The package binds synchronous preparation, both native commit entry points,

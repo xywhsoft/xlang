@@ -1,0 +1,177 @@
+{
+  "schema": 1,
+  "scope": "Timeline retained layer, frame and span values and xlang data snapshots",
+  "nativeCommit": "6e732f8402c9dfc8aa46ff6e60251d61984462da",
+  "shippingDelivery": false,
+  "graphicsTests": false,
+  "networkTests": false,
+  "nativeEntryPoints": [
+    "xuiTimeLineViewSetLayerValue",
+    "xuiTimeLineViewGetLayerValue",
+    "xuiTimeLineViewSetFrameValue",
+    "xuiTimeLineViewGetFrameValue",
+    "xuiTimeLineViewSetSpanValue",
+    "xuiTimeLineViewGetSpanValue"
+  ],
+  "sourceSha256NormalizedLf": {
+    "docs/xge3-xui3-api-map-storage.json": "1bba969d80840dc6ca00ff2023297266512ca284221254e41bb25042f26c8225",
+    "lib/bindings/xui/src/managed.xl": "2249dbb94a6226ca12034d069398ee4446a818747c6d4df8734bac46703e3445",
+    "lib/bindings/xui/examples/timeline_state.xl": "21941b1a09abf235c257c60fa3254a867b862e469a9a2e99541117bd8ab55a14",
+    "test/cases/foreign_xui_timeline_values.xl": "f0c650a80065093c750b5b59d9ef0fda296da56ab4f116084b47833c9e1158c7",
+    "tools/xui_managed_contracts.py": "b2bfe0a7f06a8440e4b738c23230b060b629cf2e772d5d55fb9519e3576ffd6a"
+  },
+  "verification": {
+    "nativePointerUserDataRemainsIndependent": true,
+    "inputAndOutputSnapshotsAreIndependent": true,
+    "nulAndBinaryDataPreserved": true,
+    "creatorThreadEnforced": true,
+    "firstSlotAllocationFailuresPreserveState": true,
+    "snapshotAllocationFailuresPreserveStateAndDestination": true,
+    "layerMovesCarryValuesAndTimelineTrimRetiresRemovedRecords": true,
+    "clearDetachesAllOldSlotsBeforeDropMayReenter": true,
+    "destroyReleasesLastOwnedValue": true,
+    "sampleQualification": "A single warmed JIT sample per platform. Each of 2,000 rounds replaces a layer slot with 7 and 9 and verifies both reads. The xlang loop includes checked scopes, snapshot checks, reference operations, and var comparisons. The C loop uses the same native layer and scalar inputs with direct C result checks. Standard C clock() timing is platform-specific and does not isolate individual bridge costs. The first populated slot allocates a 6,656-byte pointer table on x64 and a 16-byte record. One record is allocated per newly populated slot. Container snapshots can copy and allocate according to the value tree.",
+    "platforms": {
+      "win": {
+        "jitDynamicStaticAot": {
+          "path": "F:/xlang-validation/xge-full-20261110/timeline-values-verify-win-r1/results.json",
+          "sha256": "5987543a883b093f963ec1ea989b4d865f6628315a9084f23fecf61a31ac9a4d"
+        },
+        "exampleJitDynamicStaticAot": {
+          "path": "F:/xlang-validation/xge-full-20261110/timeline-values-verify-win-r3/results.json",
+          "sha256": "debd72996bf85dc4bf18615148c3ae26f8bc7c5988901e90ac56c156a6cc24d4"
+        },
+        "nativeO0O2": {
+          "path": "F:/xlang-validation/xge-full-20261110/timeline-values-native-test-win-r3/results.json",
+          "sha256": "866e30f2122c28c523d314b68cafc42c299031d0088407f44b0c893888250caf"
+        },
+        "rawTimelineRegressionO0O2": {
+          "path": "F:/xlang-validation/xge-full-20261110/timeline-values-native-test-win-r4/results.json",
+          "sha256": "211b8d54199845e7a40cd8e3c856113525647485994a03a1d97eafd7673e2d06"
+        },
+        "strictDeclarationReplay": {
+          "path": "F:/xlang-validation/xge-full-20261110/timeline-values-generator-win-r2/results.json",
+          "sha256": "73c2e25abd53bbe0d7c2722d43ddcbf822afb4358eaa51e20089bf71a4ff8cab"
+        },
+        "stagedPackages": {
+          "path": "F:/xlang-validation/xge-full-20261110/timeline-values-stage-win-r2/replay/stage-report.json",
+          "sha256": "d5f38169203493a1d1edfeb9ca40cd20f37b8dca143f2e5135adee3e2095dece"
+        },
+        "scopedNativeSource": {
+          "path": "F:/xlang-validation/xge-full-20261110/timeline-values-native-source-win-r1.json",
+          "sha256": "2b998578a70a9886e61931559f3b7a844a635e921d3ce0bc40c13ea909e5d891"
+        },
+        "publicSurfaceInventory": {
+          "path": "F:/xlang-validation/xge-full-20261110/timeline-values-inventory-win-r1/surface.json",
+          "sha256": "95abecd104932f82b7855130f46aa74179159fc67852d4bb6d58133a04204e5d"
+        },
+        "matchedConsumerAudit": {
+          "path": "F:/xlang-validation/xge-full-20261110/timeline-values-consumers-win-r1/results.json",
+          "sha256": "f70e3def8e72240b49620ab0f11dcc8b2f67a8fcee483e9bd96911cce1791091"
+        },
+        "performance": {
+          "report": {
+            "path": "F:/xlang-validation/xge-full-20261110/timeline-values-perf-win-r2/results.json",
+            "sha256": "d77c53faccf1db9c75d5a2d2cb24a128c24709363b2772b6ad17451bdd900a32"
+          },
+          "sample": {
+            "xlang": {
+              "rounds": 2000,
+              "alloc": 0,
+              "free": 0,
+              "realloc": 0,
+              "clockMs": 20.0
+            },
+            "C": {
+              "rounds": 2000,
+              "alloc": 0,
+              "free": 0,
+              "realloc": 0,
+              "clockMs": 3.0
+            }
+          }
+        },
+        "nativeO2Builds": {
+          "host": {
+            "path": "F:/xlang-validation/xge-full-20261110/timeline-values-host-win-r1/build-report.json",
+            "sha256": "5a18f9d5f1cc6fa0ec6c65c17d1be1d108318ecf45afe6513b8a50cf9a43e3e0"
+          },
+          "static": {
+            "path": "F:/xlang-validation/xge-full-20261110/timeline-values-static-win-r1/build-report.json",
+            "sha256": "ea68bce73394773f74afe3a8648bdec946b0a6ba83098c440016bf14829f656b"
+          }
+        }
+      },
+      "linux": {
+        "jitDynamicStaticAot": {
+          "path": "//wsl.localhost/Ubuntu/var/tmp/xlang-validation/xge-full-20261110/timeline-values-verify-linux-r1/results.json",
+          "sha256": "5d3f49ac2a1cba814eb415554ebb31ba4dfbf83327728e71647f1f9de63303bd"
+        },
+        "exampleJitDynamicStaticAot": {
+          "path": "//wsl.localhost/Ubuntu/var/tmp/xlang-validation/xge-full-20261110/timeline-values-verify-linux-r3/results.json",
+          "sha256": "91e1905446baa91b62c34027917598f09844b08e65b1fede3a02a294808d8e1d"
+        },
+        "nativeO0O2": {
+          "path": "//wsl.localhost/Ubuntu/var/tmp/xlang-validation/xge-full-20261110/timeline-values-native-test-linux-r3/results.json",
+          "sha256": "0503a6b4d3a23fe3ddd1e13af098247cf60a41e71bff875b046206758ac4766e"
+        },
+        "rawTimelineRegressionO0O2": {
+          "path": "//wsl.localhost/Ubuntu/var/tmp/xlang-validation/xge-full-20261110/timeline-values-native-test-linux-r4/results.json",
+          "sha256": "7a7244c601ee94a376a7e53c56d7db4a339496df977769344f5633e986768582"
+        },
+        "strictDeclarationReplay": {
+          "path": "//wsl.localhost/Ubuntu/var/tmp/xlang-validation/xge-full-20261110/timeline-values-generator-linux-r2/results.json",
+          "sha256": "aaad4e07400c22525c5426e8f7ac95a71a59477fb1198466d5762f9ab424de76"
+        },
+        "stagedPackages": {
+          "path": "//wsl.localhost/Ubuntu/var/tmp/xlang-validation/xge-full-20261110/timeline-values-stage-linux-r2/replay/stage-report.json",
+          "sha256": "d5afd6f17ba8fe5c05512887fa8e35c69cb3da5e46212a312d9e4620ad3ef571"
+        },
+        "scopedNativeSource": {
+          "path": "//wsl.localhost/Ubuntu/var/tmp/xlang-validation/xge-full-20261110/timeline-values-native-source-linux-r1.json",
+          "sha256": "e19a03cd252d1e12ea0fe2340e3e6c178f2bdf490ce88ba8db6c25968cdcb275"
+        },
+        "publicSurfaceInventory": {
+          "path": "//wsl.localhost/Ubuntu/var/tmp/xlang-validation/xge-full-20261110/timeline-values-inventory-linux-r1/surface.json",
+          "sha256": "ca781ed831cddc499b868ee0beb022cc036ef28130d3272cfcdd649ba0e4db3b"
+        },
+        "matchedConsumerAudit": {
+          "path": "//wsl.localhost/Ubuntu/var/tmp/xlang-validation/xge-full-20261110/timeline-values-consumers-linux-r1/results.json",
+          "sha256": "020bcebf614ab41487da64e1d2b0f3ce9a6d7fb238233afca9bc9f4da22fd8ac"
+        },
+        "performance": {
+          "report": {
+            "path": "//wsl.localhost/Ubuntu/var/tmp/xlang-validation/xge-full-20261110/timeline-values-perf-linux-r2/results.json",
+            "sha256": "08a460898c4bd20407cc1ab5f3c00cb6e16e850df25998b24bb091376304347c"
+          },
+          "sample": {
+            "xlang": {
+              "rounds": 2000,
+              "alloc": 0,
+              "free": 0,
+              "realloc": 0,
+              "clockMs": 15.489
+            },
+            "C": {
+              "rounds": 2000,
+              "alloc": 0,
+              "free": 0,
+              "realloc": 0,
+              "clockMs": 2.553
+            }
+          }
+        },
+        "nativeO2Builds": {
+          "host": {
+            "path": "//wsl.localhost/Ubuntu/var/tmp/xlang-validation/xge-full-20261110/timeline-values-host-linux-r1/build-report.json",
+            "sha256": "2d65dbfad5e69a6a6eb4aa40d672b1db0cd70e15f4fd8a46eec8fc3ab3459026"
+          },
+          "static": {
+            "path": "//wsl.localhost/Ubuntu/var/tmp/xlang-validation/xge-full-20261110/timeline-values-static-linux-r1/build-report.json",
+            "sha256": "b42f4cd57443e8a22e9c305c15cc0016edab96faae7ba2e5b6692ea6cdb5f762"
+          }
+        }
+      }
+    }
+  }
+}

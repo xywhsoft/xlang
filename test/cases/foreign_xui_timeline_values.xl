@@ -1,0 +1,97 @@
+import xui
+
+extern "fixtureTimelineBudget" @header("test/cases/foreign_xui_timeline_queries.h") @no_raise func budget(c_int count)
+
+func main(...) as int
+    auto proxy = xui.createProxy()
+    auto ui = xui.create(proxy, xui.XUI_SYSTEM_FONT_DISABLED)
+    try
+        auto timeline = ui.timeLineViewNative()
+        assert timeline.setFrameCount(24) == 0
+        auto cue = timeline.addLayer("Cues")
+        auto art = timeline.addLayer("Art")
+        auto key = xui.XUI_TIMELINE_FRAME_KEY
+        assert timeline.getLayerData(cue) == null and timeline.getFrameData(art, 4) == null
+        timeline.setFrame(art, 4, key)
+        timeline.setFrame(art, 19, key)
+        auto move = timeline.addSpan(art, 3, 20, xui.XUI_TIMELINE_SPAN_MOTION, "Move")
+        auto trim = timeline.addSpan(art, 18, 20, xui.XUI_TIMELINE_SPAN_MOTION, "Trim")
+
+        var source = {"id": 7, "metadata": {"text": "a\0b", "bytes": b"\0\xff"}}
+        timeline.setLayerData(art, source)
+        source["id"] = 9
+        var read = timeline.getLayerData(art)
+        assert read["id"] == 7 and read["metadata"]["text"] == "a\0b"
+        assert read["metadata"]["bytes"] == b"\0\xff"
+        read["id"] = -2
+        assert timeline.getLayerData(art)["id"] == 7
+
+        bool failed = false
+        budget(0)
+        try
+            timeline.setLayerData(art, source)
+        catch Error
+            failed = true
+        finally
+            budget(-1)
+        end
+        assert failed and timeline.getLayerData(art)["id"] == 7
+        read = timeline.getLayerData(art)
+        failed = false
+        budget(0)
+        try
+            read = timeline.getLayerData(art)
+        catch Error
+            failed = true
+        finally
+            budget(-1)
+        end
+        assert failed and read["id"] == 7 and timeline.getLayerData(art)["id"] == 7
+
+        timeline.setLayerData(cue, "music")
+        timeline.setFrameData(art, 4, "pose")
+        timeline.setFrameData(art, 19, "trimmed frame")
+        timeline.setSpanData(move, "motion")
+        timeline.setSpanData(trim, "trimmed span")
+        timeline.moveLayer(art, cue)
+        assert timeline.getLayerData(cue)["id"] == 7 and timeline.getLayerData(art) == "music"
+        assert timeline.getFrameData(cue, 4) == "pose" and timeline.getSpanData(move) == "motion"
+        assert timeline.setFrameCount(12) == 0 and timeline.getSpanData(move) == "motion"
+        assert timeline.setFrameCount(24) == 0 and timeline.getFrameData(cue, 19) == null
+        failed = false
+        try
+            auto removed = timeline.getSpanData(trim)
+        catch Error
+            failed = true
+        end
+        assert failed
+
+        auto worker = thread(func() as int
+            try
+                auto value = timeline.getFrameData(cue, 4)
+            catch StateError
+                return 1
+            end
+            return 0
+        end)
+        assert worker.waitTimeout(30000) and worker.exitCode() == 1
+
+        timeline.setSpanData(move, null)
+        assert timeline.getSpanData(move) == null
+        timeline.clearFrame(cue, 4)
+        assert timeline.getFrameData(cue, 4) == null
+        timeline.setFrame(cue, 4, key)
+        assert timeline.getFrameData(cue, 4) == null
+        assert timeline.removeLayer(cue) == 0 and timeline.getLayerData(cue) == "music"
+        timeline.clear()
+        auto reused = timeline.addLayer("New")
+        assert reused == cue and timeline.getLayerData(reused) == null
+        timeline.close()
+        assert read["id"] == 7
+    finally
+        ui.close()
+        proxy.close()
+    end
+    println("TIMELINE_VALUES_OK")
+    return 0
+end

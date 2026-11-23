@@ -9,8 +9,15 @@ try
     timeline.setFrame(layer, 4, xui.XUI_TIMELINE_FRAME_KEY)
     auto span = timeline.addSpan(layer, 4, 12, xui.XUI_TIMELINE_SPAN_MOTION, "Move")
 
+    // Attach project data to the timeline records.
+    timeline.setLayerData(layer, "Character")
+    timeline.setFrameData(layer, 4, "Starting pose")
+    timeline.setSpanData(span, {"easing": "linear"})
+
     auto _, _, first, last, _, _, label, _ = timeline.getSpan(span)
     println(label, first, last)
+    println(timeline.getLayerData(layer), timeline.getFrameData(layer, 4))
+    println("Easing: ", timeline.getSpanData(span)["easing"])
 finally
     ui.close()
     proxy.close()
