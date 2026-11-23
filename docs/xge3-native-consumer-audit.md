@@ -15,11 +15,18 @@ unchanged results, captures, range-restricted replacement, invalid patterns,
 and allocation failures. The find example also prints the replacements and
 their count.
 
-The Windows and Linux preflight compilers pass JIT, dynamic AOT and static AOT
-for both the focused test and the example. Both IR probes reject 28 invalid
-contracts before C or public-header emission. Full O2 compiler acceptance is
-tracked separately.
+The matched Windows and Linux O2 toolchains pass JIT, dynamic AOT and static AOT
+for both the focused test and the example. Nested EXE and shared library builds
+pass on both platforms. Each IR probe rejects 28 invalid contracts before C
+or public-header emission. The remaining 91 native functions with no direct
+declaration, compiled consumer or verified replacement comprise 26 XGE and 65
+XUI entries out of 5,884.
 
+For 1,000 warmed literal replacements, each C sample performs 3,000 XRT
+allocations and frees. Each xlang sample performs 7,000 allocations and frees.
+Neither loop reallocates. The adapted result reuses the native payload block.
+
+[Full replace-all evidence](../dev/release-materials/provenance/xui-find-replace-all-20261124.json)
 [Replace-all preflight evidence](../dev/release-materials/provenance/xui-find-replace-preflight-20261124.json)
 
 ## Engine startup, scene ownership and global callbacks

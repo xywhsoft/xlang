@@ -1,0 +1,193 @@
+{
+  "schema": 1,
+  "scope": "Paired exact C int with resident-XRT owned output, and XUI replaceAllText",
+  "nativeCommit": "e3da78355aaa958669d157576d9c65c4f657593c",
+  "nativeSourceSha256NormalizedLf": {
+    "include/xui.h": "7e448a7aed9b7fe6b56c183f80373e41ded2059d3dba6fb33cfdce19a6c12609",
+    "src/xui/controls/xui_find.c": "8d2f4b9360d8894555e348efba25e61fe2642aa0d25cefda5ba65774abe9bc2e"
+  },
+  "shippingDelivery": false,
+  "networkTests": false,
+  "validation": {
+    "oneNativeCall": true,
+    "outputPayloadPointerIdentity": true,
+    "replacementCount": true,
+    "stringBytesBuffer": true,
+    "rangeAndEmbeddedNul": true,
+    "regexCaptureAndDiagnostics": true,
+    "signedLengthAndStatusPriority": true,
+    "errorLeavesBothDestinations": true,
+    "partialAllocationRollback": true,
+    "functionValue": true,
+    "trueNestedCompiler": true,
+    "irFixtureMutations": 28,
+    "ownedContractBytes": 28
+  },
+  "performanceScope": "One warmed JIT comparison on each host. Both paths perform 1000 validated literal replacements on the same data with the same matched XGE/XRT build. Counts are XRT heap operations across each loop, not isolated encoder, C string or compiler costs.",
+  "platforms": {
+    "win": {
+      "compiler": {
+        "path": "F:/xlang-validation/xge-full-20261110/compiler-owned-output-pair-win-r2/build.json",
+        "sha256": "41596d3515fdf8c1f5194838396e40b1d84ecb013557b7f7aadbe352315593a3"
+      },
+      "runtimeSdk": {
+        "path": "F:/xlang-validation/xge-full-20261110/owned-output-pair-compiler-sdk-win-r2/results.json",
+        "sha256": "0378c6380c02e95812c879094ea2836fed7f6bdccc41fd6a223e16192c0f56ed"
+      },
+      "nativeSource": {
+        "path": "F:/xlang-validation/xge-full-20261110/doc-edit-notice-checked-native-source-win-r2.json",
+        "sha256": "8fc1b92432afc585b1ac31499910360039095ee87a15c5b49d6044656fbe57d9"
+      },
+      "declarationReplay": {
+        "path": "F:/xlang-validation/xge-full-20261110/xui-find-replace-stage-win-r5/replay/stage-report.json",
+        "sha256": "a9b83d2a08e011e4e783747f701497e5633c2d38b218912ee4ec5cde3793b720"
+      },
+      "irMutationProbe": {
+        "path": "F:/xlang-validation/xge-full-20261110/owned-output-pair-ir-win-r6/results.json",
+        "sha256": "9816a85619b135536787c4b8b87a6b43118d6a324f96b2489452e27f417c03a1"
+      },
+      "nativeFind": {
+        "path": "F:/xlang-validation/xge-full-20261110/doc-edit-notice-checked-native-xui_find_test-win-r1/results.json",
+        "sha256": "40d7afe63ff54edc41dae30eabc1cb5faf05a252f3317126d654192628539d9e"
+      },
+      "ffiAndNestedCompiler": {
+        "path": "F:/xlang-validation/xge-full-20261110/owned-output-pair-signed-win-r2/results.json",
+        "sha256": "046c863acb257024465d32d14995d6ab287bf6e0b67eda351bb886f9ed5be87e"
+      },
+      "jitAndAotWithImports": {
+        "path": "F:/xlang-validation/xge-full-20261110/xui-find-replace-verify-win-r2/results.json",
+        "sha256": "926647f4e9d8eaba1d680a6f9d933cc04527a22735e50ecd5e6e1d8cbea79ac6"
+      },
+      "consumerAudit": {
+        "path": "F:/xlang-validation/xge-full-20261110/xui-find-replace-consumers-win-r2/results.json",
+        "sha256": "7cd13e4485e892c59200cd59eca186e450a4a93c4ffb40a800760f89d4e09466"
+      },
+      "previousConsumerAudit": {
+        "path": "F:/xlang-validation/xge-full-20261110/engine-controls-consumers-win-r1/results.json",
+        "sha256": "55bacba6b284f59d8042cca4fbe58072059f58865fd6a10a4ce03c86490f5c23"
+      },
+      "functionPopulation": 5884,
+      "directDeclarations": 4823,
+      "remaining": {
+        "XGE": 26,
+        "XUI": 65
+      },
+      "performance": {
+        "path": "F:/xlang-validation/xge-full-20261110/xui-find-paired-cost-win-r2/results.json",
+        "sha256": "79082653ca124f4029dde3dc2155e7eec0bc2fa68a9f3934dc842e0e63621f47"
+      },
+      "heapAndElapsedSamples": [
+        {
+          "language": "C",
+          "alloc": 3000,
+          "free": 3000,
+          "realloc": 0,
+          "elapsedMs": 0.729
+        },
+        {
+          "language": "xlang",
+          "alloc": 7000,
+          "free": 7000,
+          "realloc": 0,
+          "elapsedMs": 3.289
+        }
+      ]
+    },
+    "linux": {
+      "compiler": {
+        "path": "//wsl.localhost/Ubuntu/var/tmp/xlang-validation/xge-full-20261110/compiler-owned-output-pair-linux-r2/build.json",
+        "sha256": "bb4ad4330abb14095a0dc59233ed6e265033b4498b8f779a11ca4d0b9b176099"
+      },
+      "runtimeSdk": {
+        "path": "//wsl.localhost/Ubuntu/var/tmp/xlang-validation/xge-full-20261110/owned-output-pair-compiler-sdk-linux-r2/results.json",
+        "sha256": "afbecddf1439d0739b1f540d8077b46754af2024268d3b914b133e086c2ad06e"
+      },
+      "nativeSource": {
+        "path": "//wsl.localhost/Ubuntu/var/tmp/xlang-validation/xge-full-20261110/doc-edit-notice-checked-native-source-linux-r2.json",
+        "sha256": "3d0f7b7da090fae7d98e3b7542219083c063dd1b986e8f2d08f62b31c307469c"
+      },
+      "declarationReplay": {
+        "path": "//wsl.localhost/Ubuntu/var/tmp/xlang-validation/xge-full-20261110/xui-find-replace-stage-linux-r5/replay/stage-report.json",
+        "sha256": "d10557655aff7d19a2deebb524dd3802d98a1b99584a9ffb266cbacccba75508"
+      },
+      "irMutationProbe": {
+        "path": "//wsl.localhost/Ubuntu/var/tmp/xlang-validation/xge-full-20261110/owned-output-pair-ir-linux-r1/results.json",
+        "sha256": "67fe460fab990ef449b752d585615f0f9be9ef15b5b68658a79974513411f523"
+      },
+      "nativeFind": {
+        "path": "//wsl.localhost/Ubuntu/var/tmp/xlang-validation/xge-full-20261110/doc-edit-notice-checked-native-xui_find_test-linux-r1/results.json",
+        "sha256": "c62056edb86263cce626adfb525958925d7f5d79b1f6f7fa8c33a9e953b5c5cc"
+      },
+      "ffiAndNestedCompiler": {
+        "path": "//wsl.localhost/Ubuntu/var/tmp/xlang-validation/xge-full-20261110/owned-output-pair-signed-linux-r2/results.json",
+        "sha256": "8697b23abd6cbd65756210f4e6420c349d3c6d4b9411bfcf889187c6949673f1"
+      },
+      "jitAndAotWithImports": {
+        "path": "//wsl.localhost/Ubuntu/var/tmp/xlang-validation/xge-full-20261110/xui-find-replace-verify-linux-r2/results.json",
+        "sha256": "aff5907c5135edbe18d522c3615f4f29aada7462d41cd38fe236a1a8d1d6547a"
+      },
+      "consumerAudit": {
+        "path": "//wsl.localhost/Ubuntu/var/tmp/xlang-validation/xge-full-20261110/xui-find-replace-consumers-linux-r2/results.json",
+        "sha256": "8b1022b8f95de058a83724eef0311e7f009bf7f067f62e7ea887263a413e2b41"
+      },
+      "previousConsumerAudit": {
+        "path": "//wsl.localhost/Ubuntu/var/tmp/xlang-validation/xge-full-20261110/engine-controls-consumers-linux-r1/results.json",
+        "sha256": "65a1ce7c2dba46635aa472c9add2483f3c1930a2ce572c954a876ca9c348a853"
+      },
+      "functionPopulation": 5884,
+      "directDeclarations": 4823,
+      "remaining": {
+        "XGE": 26,
+        "XUI": 65
+      },
+      "performance": {
+        "path": "//wsl.localhost/Ubuntu/var/tmp/xlang-validation/xge-full-20261110/xui-find-paired-cost-linux-r2/results.json",
+        "sha256": "86bf0bde0226a6d003d8d874a75a34105cf620e63f6ca84303f61a0ceb99cf86"
+      },
+      "heapAndElapsedSamples": [
+        {
+          "language": "C",
+          "alloc": 3000,
+          "free": 3000,
+          "realloc": 0,
+          "elapsedMs": 0.675
+        },
+        {
+          "language": "xlang",
+          "alloc": 7000,
+          "free": 7000,
+          "realloc": 0,
+          "elapsedMs": 2.022
+        }
+      ]
+    }
+  },
+  "sourceSha256NormalizedLf": {
+    "docs/foreign-owned-bytes-output.md": "70dbe3b18acdb929c88b495cf0820b1587bc8c1a43d7f125fbe48b46cbbd8456",
+    "docs/foreign-owned-text-output.md": "a520fc6101eaebe37be19f47d2f27e0a8fdf1974b59390f9a43c5893bfabc4b3",
+    "lib/bindings/xui/examples/README.md": "f92e2b29f5a898fd72221a301735c7cf74d9ae52218d7245147636e5e9c6063d",
+    "lib/bindings/xui/examples/find_matches.xl": "ff29a47da04757acfe579f39509e849a43e40f7d5c98873cb1388ec8df5e8cf7",
+    "lib/bindings/xui/src/find.xl": "f1ce0a55cad7e2f0d5c051e0867bf1fd0ee71fff9c14c87c13e2ce828e91dcad",
+    "src/cgen/xl6_ir_cgen_foreign_output_view.c": "85a59d7245249c8bdfba3d3b8a7a5eaeeb38f8592a6439fc45ac437a4693c3c6",
+    "src/ir/xl6_ir.c": "ccffb4bbc372308bea8d20b22ef5f900bc59784a8ddb7bcc6df2827e41d9b19f",
+    "src/ir/xl6_ir_foreign_compat.c": "f4e1706822a7b5ed43b422fc760432d30da84895172e9d564de611cba388e535",
+    "src/ir/xl6_ir_foreign_owned_output.c": "461ce7861edc23867fc6c0f2c4ef9aa753909c851774d3cb54f5b16d9992b835",
+    "src/ir/xl6_ir_foreign_pack.c": "76fe2f898387455e96a4457ac383db69691279153292ce8b7ab7269f8ed5c418",
+    "src/ir/xl6_ir_foreign_parameter.c": "af89775c740604c51b25fd63f05eacde74a6d921421f08ae0048c4d6a75af745",
+    "src/ir/xl6_ir_lower.c": "31de265714173698a333babb88b315ee152361579dcc66688ca0e9358246f096",
+    "src/sem/xl6_sem.c": "61d101509c93cbc120887cd5b6a4b86cbe86e7f0c65456a1199f10ea8de607d5",
+    "src/sem/xl6_sem_foreign_owned_output.c": "886bd66a3c8f263ee9937ef56eaf9def6bcf6dfefddee4fd4845b3c4adef6701",
+    "src/sem/xl6_sem_foreign_owned_output_compat.c": "d82415232a325b44169c4a68120313d53bffa9e2d9f39c3e0df4700f2526df73",
+    "src/type/xl6_foreign_owned_output_contract.h": "3bf35ec2b3d96020430968e6532320836195131b9cb799c137e307ecd559c817",
+    "src/type/xl6_foreign_owned_output_decl.h": "923c9dc350ed004b7c253807abb1a8d1ac03554b73a3a1b1ddbe9be419c06ac6",
+    "src/type/xl6_foreign_pack_decl.h": "020a26608ca1aa5717bcf035d9f7546b7151135b48780cd19fbe3f7664f916a9",
+    "test/cases/foreign_owned_signed_output.c": "56e7c3114f81e7ff5e6a33b0730357c6f456cf2ffba16e61f3a2bacba635c483",
+    "test/cases/foreign_owned_signed_output.h": "0d2c4db5d0a1999daabfa3670346033c06c490d1ec0e43b317d82143bcd7605b",
+    "test/cases/foreign_owned_signed_output.xl": "a820f617a10121cf13d0360450315eadc8b6d440fd90416ee95f8e21474783f0",
+    "test/cases/foreign_owned_signed_output_ir.c": "0609a4066f3a6204b3c14b7147b0038ee34d9c4a09ca81ff9b3bf0d0401c999e",
+    "test/cases/foreign_xui_find_replace.c": "06af46a2e26c3e1e14f276ffbeba665951d3f4ec8111298c6e37d5fff864f95c",
+    "test/cases/foreign_xui_find_replace.xl": "99fe24c8f0fc00ad11cb1e47aa23ddebd771a28d5e8fb225f23626628e6ade74",
+    "tools/check_foreign_owned_signed_output.py": "70e531df1f9cb63be283f415f245a653393d6e3e738ac14255f0e3bfdce4ae0a",
+    "tools/xui_managed_contracts.py": "bcd43bbc5975b5a17072f3e8a6e237cf58864e81c8ba4dfd29a6f2c23f9d2ece"
+  }
+}
