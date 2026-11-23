@@ -24,6 +24,9 @@ func main(...) as int
     println("Layout phase: state")
     auto size,lines,truncated=layout.getState()
     assert size.fX==24 and size.fY==16 and lines==1 and truncated==0
+    auto contentSize=layout.getSize()
+    assert contentSize.fX==size.fX and contentSize.fY==size.fY
+    assert layout.getLineCount()==lines and layout.getTruncated()==truncated
     println("Layout phase: line")
     auto line=layout.getLine(0)
     assert line.iTextOffset==0 and line.iTextSize==3 and line.fW==24
@@ -57,6 +60,25 @@ func main(...) as int
         budget(-1)
     end
     assert rejected and size.fX==24 and size.fY==16 and lines==1 and truncated==0
+    int failedReads=0
+    for query in range(3)
+        budget(0)
+        try
+            if query==0
+                contentSize=layout.getSize()
+            elseif query==1
+                lines=layout.getLineCount()
+            else
+                truncated=layout.getTruncated()
+            end
+        catch Error
+            failedReads+=1
+        finally
+            budget(-1)
+        end
+    end
+    assert failedReads==3
+    assert contentSize.fX==24 and contentSize.fY==16 and lines==1 and truncated==0
     context.setVirtualDpi(1)
     size,lines,truncated=layout.getState()
     rejected=false

@@ -12,6 +12,7 @@ pointer.
 | createTextLayout | xuiTextLayoutCreate, owned TextLayout |
 | reset | xuiTextLayoutReset, checked status |
 | getState | xuiTextLayoutGetState, (Vec2 size, c_int lines, c_int truncated) |
+| getSize / getLineCount / getTruncated | xuiTextLayoutGetState, one checked output |
 | getLine | xuiTextLayoutGetLine, TextLine with complete byte offset/length and metrics |
 | getText | xuiTextLayoutGetTextView, independent string snapshot |
 | draw | xuiTextLayoutDraw, checked status, owned Surface target |
@@ -25,9 +26,10 @@ Native zero width/height means unbounded; use positive dimensions for a draw
 rectangle. Wrapping uses the existing `XUI_TEXT_WRAP_*` constants. Metrics and
 gaps retain native float precision; byte offsets are not character indexes.
 `getState()` refreshes DPI once and delivers all three outputs atomically.
-The old native scalar getters silently return zero on failure and are not
-used as safe language reads. No C forwarding method or dynamic dispatcher is
-introduced.
+Use `getSize()`, `getLineCount()`, or `getTruncated()` to read a single
+value. Each emits one direct call to the same checked native query and passes
+null for the unused outputs. DPI refresh failures propagate through all four
+forms.
 
 `getText()` uses the general status + `xstrview*` output contract already used
 by CodeEdit. Native failure is checked before reading the output; copying
@@ -61,8 +63,5 @@ handwritten C allocation counters, and can run the real window lesson with a
 pinned font in JIT/dynamic/static modes. Zero heap operations do not prove
 equal CPU time or cold-path costs.
 
-`TextLayout.getContext()` still requires the pending general existing-owner
-alias-result decision. The weak native Context must share its actual managed
-owner and close state if exposed; it cannot become another unique root. This
-batch does not claim complete XGE/XUI/Document coverage or final SDK/IDE
-installation.
+The remaining native Context query needs to keep the weak Context valid
+through lookup of its existing language owner.

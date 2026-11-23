@@ -1,0 +1,35 @@
+import xge3d
+from xge3d import Mesh3D, Material3D, Xge3dNode
+
+extern "fixtureSceneNodeDefaults" @header("test/cases/foreign_xge3d_scene_defaults.h") @no_raise func checkNativeDefaults()
+
+func main(...) as int
+    checkNativeDefaults()
+    auto defaults=xge3d.sceneNodeDefaults()
+    assert defaults.parent==xge3d.sceneRootParent() and defaults.flags==0
+    assert defaults.transform.position.x==0 and defaults.transform.position.y==0
+    assert defaults.transform.position.z==0 and defaults.transform.rotation.w==1
+    assert defaults.transform.scale.x==1 and defaults.transform.scale.y==1 and defaults.transform.scale.z==1
+    auto placed=defaults.transform
+    placed.position.x=c_float(3)
+
+    auto scene=xge3d.createScene()
+    try
+        array<string?> names=["first","child"]
+        array<c_size> parents=[defaults.parent,c_size(0)]
+        array<Mesh3D?> meshes=[null,null]
+        array<Material3D?> materials=[null,null]
+        array<c_uint> flags=[defaults.flags,defaults.flags]
+        array<string?> modelUris=[null,null]
+        auto root=scene.loadColumns(Xge3dNode(),names,parents,[defaults.transform,placed],meshes,materials,flags,modelUris)
+        auto firstStatus,first=scene.find(root,"first")
+        auto childStatus,child=scene.find(root,"child")
+        assert firstStatus==0 and childStatus==0
+        assert scene.parent(child).slot==first.slot
+        assert scene.transform(first).position.x==0 and scene.transform(child).position.x==3
+    finally
+        scene.close()
+    end
+    println("XGE3D_SCENE_NODE_DEFAULTS_OK")
+    return 0
+end

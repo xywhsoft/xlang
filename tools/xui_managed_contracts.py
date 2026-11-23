@@ -1419,6 +1419,10 @@ METHODS.update({
 
 # Provider snapshots and sets close through their ownership descriptors.
 CLOSE_REPLACEMENTS = {
+    'xuiTextLayoutDestroy': ('xui.TextLayout.close', 'xl6Xui3TextLayoutPolicy',
+        'destroy_text_layout', 'xuiTextLayoutDestroyOwnerChecked'),
+    'xuiTextLayoutDestroyChecked': ('xui.TextLayout.close', 'xl6Xui3TextLayoutPolicy',
+        'destroy_text_layout', 'xuiTextLayoutDestroyOwnerChecked'),
     'xuiCodeDocumentBatchDestroy': ('xui.CodeDocumentBatch.close', 'xl6Xui3CodeDocumentBatchPolicy',
         'destroy_code_document_batch', 'xuiCodeDocumentBatchDestroy'),
     'xuiCodeDocumentBatchSnapshotDestroy': ('xui.CodeDocumentBatchSnapshot.close', 'xl6Xui3CodeDocumentBatchSnapshotPolicy',
@@ -1443,6 +1447,10 @@ CLOSE_REPLACEMENTS = {
 
 # Reviewed native entry points with managed replacements.
 REPLACED = {
+    'xuiTextLayoutGetSize': ('xui.TextLayout.getState', 'xuiTextLayoutGetState'),
+    'xuiTextLayoutGetLineCount': ('xui.TextLayout.getState', 'xuiTextLayoutGetState'),
+    'xuiTextLayoutGetTruncated': ('xui.TextLayout.getState', 'xuiTextLayoutGetState'),
+    'xuiTextLayoutGetText': ('xui.TextLayout.getText', 'xuiTextLayoutGetTextView'),
     'xuiCodeDocumentBatchDescribe': ('xui.CodeDocumentBatch.describe', 'xuiCodeDocumentBatchDescribeSnapshot'),
     'xuiCodeDocumentBatchStage': ('xui.CodeDocumentBatchSnapshot.stage', 'xuiCodeDocumentBatchSnapshotStage'),
     'xuiCodeDocumentBatchAccept': ('xui.CodeDocumentBatch.accept', 'xuiCodeDocumentBatchAcceptPayload'),

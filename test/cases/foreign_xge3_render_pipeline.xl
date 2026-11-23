@@ -34,12 +34,19 @@ func main(...) as int
  auto output=Buffer()
  assert output.resize(36)
  assert output.len()==36
- target.readPixels(output)
+ // Render-target pixels require the graphics backend, even with enough space.
+ failed=false
+ try
+  target.readPixels(output)
+ catch error
+  failed=error.code==xge.XGE_ERROR_INVALID_STATE
+ end
+ assert failed and output.len()==36
  failed=false
  try
   target.readPixels(Buffer(b"small"))
  catch error
-  failed=true
+  failed=error.code==xge.XGE_ERROR_INVALID_ARGUMENT
  end
  assert failed and target.width==c_int(3)
  texture=target.texture
@@ -89,14 +96,17 @@ func main(...) as int
  assert material.shader==null
  material.setShader(null)
  auto shared=xge.createTexture(1,1)
+ material.setTexture(shared)
  material.setTexture2(shared)
  material.setTexture3(shared)
  shared.close()
+ auto first=material.texture
  auto second=material.texture2
  auto third=material.texture3
  material.close()
- if second!=null and third!=null then
-  assert second.width==c_int(1) and third.width==c_int(1)
+ if first!=null and second!=null and third!=null then
+  assert first.width==c_int(1) and second.width==c_int(1) and third.width==c_int(1)
+  first.close()
   second.close()
   assert third.width==c_int(1)
   third.close()

@@ -1,0 +1,335 @@
+{
+  "schema": 1,
+  "date": "2026-11-23",
+  "complete": true,
+  "passed": true,
+  "shippingDelivery": false,
+  "networkTests": false,
+  "scope": "Pointer-free scene node defaults, checked single-output text layout reads, and reviewed managed scene and graphics replacements",
+  "nativeRevision": "7e5e48eef6e19d4b8ff6f762377c5162390e530b",
+  "nativeSourceLF": {
+    "include/xge.h": "bb6b426a845904093f6ccd40e00c43b219238f31c8a991b77662a9795e587d02",
+    "src/xge/3d/xge3d_nodes.c": "8dd85ed855a636f65ad4801eff86a817d2aa4bf0e07a348f79bf5e3dec50b47e"
+  },
+  "sourceLF": {
+    "docs/xge3-xui3-api-map-storage.json": "254c7ce29dd52da0cfc5fe0406833719beca604e5969cabf437fedbfbc106423",
+    "docs/xge3-model.md": "269bdde201cb466da65b6d0e5e5e05b7d2f48759d31c130c8c9d852b2da3b336",
+    "docs/xui-text-layout.md": "ec8af2c4d8078da0f4b47dab56359ce339f4130c732f719daefab3b1b379d854",
+    "lib/bindings/_xge_native/include/xge3_runtime.h": "2344374949c77c03c584f7ad02a46764e86554eea521a5d8d60607a8db93d15a",
+    "lib/bindings/xge/three_d/src/scene.xl": "144217db905db47807abeba2287f6ce4ae441e3e7533cfba96bd738ba656e83b",
+    "lib/bindings/xge/three_d/examples/scene_load.xl": "da955dfe90369c5fcf915de0dbbab4108652d70ed664318276348637ae061890",
+    "lib/bindings/xge/three_d/examples/assets/model-triangle.gltf": "5c874086740e45bc2413edb3d43a5704f456a6492f2edd0adc1b5b2772349525",
+    "lib/bindings/xui/src/text_layout.xl": "c8b92e87e5b601fb935ca3634c9a518d7ace5b5f34811d9f35c5be8f882737d2",
+    "test/cases/foreign_xge3d_scene_defaults.xl": "7234a7f75a8a3d36e55848a4b243ebabc9bea2d1c8a6d00250402ce33880d76f",
+    "test/cases/foreign_xge3d_scene_defaults.c": "3ba164639e9137316df05586ffa8270766ed806804873ec238d426340ed5b0e9",
+    "test/cases/foreign_xge3d_scene_defaults.h": "233a03a7abc4cf39b5e3de99ad050ead83c9e9be3f3ca12d8242e978e138d869",
+    "test/cases/foreign_xge3_render_pipeline.xl": "e65cebe77143e09f494294cd2566d52981014e428339f873111721aab28aa185",
+    "test/cases/foreign_xui_text_layout.xl": "b420c90361ff2459dc85687a94daad7222f31e0e7608b8dce42f91c6b9c75b91",
+    "test/cases/foreign_xui_text_layout.c": "92666a4192e4ecafcdc8c9b70649112b03a13a712e671b90fca2ed255cd7a7c9",
+    "test/cases/foreign_xui_text_layout.h": "cfc28b0715e82c407df9dc7fbf28c71d7d66a190b2f6eb8b8b7fd7fee9569ae1",
+    "tools/xge_replay_contracts.py": "2bc248c9ff8697aba5cc67a5268c32e4b5f4f99d78e8e927fa9bc305bf62fe4b",
+    "tools/xui_managed_contracts.py": "2773f141802eef9a339b11a4b9b195c529532af99bae6f37b8c9a07362827263"
+  },
+  "audit": {
+    "functionPopulation": 5807,
+    "directDeclarations": 4747,
+    "compiledConsumerFunctions": 324,
+    "explicitReplacements": 496,
+    "pending": {
+      "XGE": 89,
+      "XUI": 162,
+      "Document": 0
+    }
+  },
+  "performance": {
+    "legacyAndNewNativeDefaultsCallsInLinuxO2Host": 0,
+    "disassembly": {
+      "path": "F:\\xlang-validation\\xge-full-20261110\\scene-layout-reads-native-default-disassembly-r2.log",
+      "sha256": "12cdeb9c70d4ef436ad797605ce2f93d1dbb9f3e294f9fad7c27b40e5c1ddb0d"
+    }
+  },
+  "platforms": {
+    "Windows x64": {
+      "records": {
+        "source": {
+          "path": "F:\\xlang-validation\\xge-full-20261110\\scene-layout-reads-audit-win-r5\\native-source.json",
+          "sha256": "7ec6fa6a4fc24bf6507e5e72342d4580a5055ff3631e9ec30e1bec681970a8ec"
+        },
+        "nativeHost": {
+          "path": "F:\\xlang-validation\\xge-full-20261110\\scene-layout-reads-host-win-r2\\build-report.json",
+          "sha256": "aedc773219d83616ec2ea3d7049ed2d4997a1c6a07efd0f25c600dc87377c7d4"
+        },
+        "nativeStatic": {
+          "path": "F:\\xlang-validation\\xge-full-20261110\\scene-layout-reads-static-win-r2\\build-report.json",
+          "sha256": "5a03af31b797fc28794b3e60524c6479144c4cb1738cb7b04b1a2e310455e056"
+        },
+        "compiler": {
+          "path": "F:\\xlang-validation\\xge-full-20261110\\compiler-egl-image-win-r1\\build.json",
+          "sha256": "79eca7fd3680d6eff32497ae07da75ad074c18c9c642d95eacbd663abb9d6bb8"
+        },
+        "generator": {
+          "path": "F:\\xlang-validation\\xge-full-20261110\\scene-layout-reads-generator-win-r5\\results.json",
+          "sha256": "e46521287436c784db23795d247f7d3cfdba15d4950a02d18c38d3386df2a065"
+        },
+        "packages": {
+          "path": "F:\\xlang-validation\\xge-full-20261110\\scene-layout-reads-stage-win-r5\\replay\\stage-report.json",
+          "sha256": "3ef4f5f0c8d20cba5ec2e28d4a9797a0bc8ae71bb2b2112249943ef6a3934983"
+        },
+        "inventory": {
+          "path": "F:\\xlang-validation\\xge-full-20261110\\scene-layout-reads-audit-win-r5\\surface\\surface.json",
+          "sha256": "fac10fcd02255628e194238f2992476e0d4393c8fd4b9abfa8a48b2105a7c76c"
+        },
+        "consumers": {
+          "path": "F:\\xlang-validation\\xge-full-20261110\\scene-layout-reads-audit-win-r5\\consumers\\results.json",
+          "sha256": "886ab834861131a2a60bba9055b1f9822c267df42cf78a4cc776f703cfa3dded"
+        },
+        "scene": {
+          "path": "F:\\xlang-validation\\xge-full-20261110\\scene-layout-reads-scene-win-r5\\results.json",
+          "sha256": "e7264c42ecf2356ac940e9f4340df8804c755e0db4d4079c6a2562b180ca38ae"
+        },
+        "layout": {
+          "path": "F:\\xlang-validation\\xge-full-20261110\\scene-layout-reads-layout-win-r5\\results.json",
+          "sha256": "ef61b5e5258786bca44535476a65332d84edf9ac000e45d3ac3b735e6e39da9c"
+        },
+        "example": {
+          "path": "F:\\xlang-validation\\xge-full-20261110\\scene-layout-reads-example-win-r5\\results.json",
+          "sha256": "2ff22ccc94ece77622b367f684319407fe000d9c25b20e2474280245685535d4"
+        },
+        "existingSceneAndRender": {
+          "path": "F:\\xlang-validation\\xge-full-20261110\\scene-layout-reads-existing-win-r6\\results.json",
+          "sha256": "59db04f27e36b7a1c596913aab59efc6b89177255df4f753b03bb88410cb0840"
+        },
+        "previousCpuReadbackExpectationBefore": {
+          "path": "F:\\xlang-validation\\xge-full-20261110\\scene-layout-reads-existing-win-r5\\render-diagnose-before.log",
+          "sha256": "c91ee8a0a2d351d653b8826bc9d770d59695b2e2470dcdad1ab58e0c8ddbba1a"
+        },
+        "previousCpuReadbackExpectationAfter": {
+          "path": "F:\\xlang-validation\\xge-full-20261110\\scene-layout-reads-existing-win-r5\\render-diagnose-after.log",
+          "sha256": "c91ee8a0a2d351d653b8826bc9d770d59695b2e2470dcdad1ab58e0c8ddbba1a"
+        }
+      },
+      "tests": {
+        "scene": {
+          "steps": 8,
+          "directCalls": {
+            "xge3dSceneNodeDefaultsGet": 1,
+            "xge3dSceneLoadOwned": 1
+          },
+          "imports": {
+            "dynamic": [
+              "xge3_host.dll",
+              "msvcrt.dll",
+              "kernel32.dll",
+              "shell32.dll",
+              "ws2_32.dll",
+              "iphlpapi.dll",
+              "ucrtbase.dll"
+            ],
+            "static": [
+              "msvcrt.dll",
+              "kernel32.dll",
+              "user32.dll",
+              "ole32.dll",
+              "oleaut32.dll",
+              "shell32.dll",
+              "gdi32.dll",
+              "imm32.dll"
+            ]
+          }
+        },
+        "layout": {
+          "steps": 8,
+          "directCalls": {
+            "xuiTextLayoutGetState": 4,
+            "xuiTextLayoutGetTextView": 8,
+            "xl6Xui3TextLayoutGetSize": 2,
+            "xl6Xui3TextLayoutGetLineCount": 2,
+            "xl6Xui3TextLayoutGetTruncated": 2
+          },
+          "imports": {
+            "dynamic": [
+              "msvcrt.dll",
+              "xge3_host.dll",
+              "kernel32.dll",
+              "shell32.dll",
+              "ws2_32.dll",
+              "iphlpapi.dll",
+              "ucrtbase.dll"
+            ],
+            "static": [
+              "msvcrt.dll",
+              "kernel32.dll",
+              "ole32.dll",
+              "shell32.dll"
+            ]
+          }
+        },
+        "example": {
+          "steps": 3,
+          "directCalls": {},
+          "imports": {
+            "static": [
+              "msvcrt.dll",
+              "kernel32.dll",
+              "user32.dll",
+              "ole32.dll",
+              "oleaut32.dll",
+              "shell32.dll",
+              "gdi32.dll",
+              "imm32.dll"
+            ]
+          }
+        },
+        "existingSceneAndRender": {
+          "steps": 2,
+          "execution": "JIT"
+        }
+      }
+    },
+    "Linux x64": {
+      "records": {
+        "source": {
+          "path": "\\\\wsl.localhost\\Ubuntu\\var\\tmp\\xlang-validation\\xge-full-20261110\\scene-layout-reads-audit-linux-r5\\native-source.json",
+          "sha256": "8dc52c984e3aebde946cc522b1e263417acb22813f82b6eba263a5e4edc89f28"
+        },
+        "nativeHost": {
+          "path": "\\\\wsl.localhost\\Ubuntu\\var\\tmp\\xlang-validation\\xge-full-20261110\\scene-layout-reads-host-linux-r2\\build-report.json",
+          "sha256": "c77d0ff05318c8bec5bf73262773df0a677bf8fa059fff315887779542f05660"
+        },
+        "nativeStatic": {
+          "path": "\\\\wsl.localhost\\Ubuntu\\var\\tmp\\xlang-validation\\xge-full-20261110\\scene-layout-reads-static-linux-r2\\build-report.json",
+          "sha256": "99e4b898446da67e46c985f74c4b109a25aca07295c8b6c9f665e9fa18746829"
+        },
+        "compiler": {
+          "path": "\\\\wsl.localhost\\Ubuntu\\var\\tmp\\xlang-validation\\xge-full-20261110\\compiler-egl-image-linux-r1\\build.json",
+          "sha256": "df9e82649546cb57c9433e191c8f4b66489feeb4e2a01002ebe67e9df325e1a1"
+        },
+        "generator": {
+          "path": "\\\\wsl.localhost\\Ubuntu\\var\\tmp\\xlang-validation\\xge-full-20261110\\scene-layout-reads-generator-linux-r5\\results.json",
+          "sha256": "c31b7ec6ac4c78794d10a531971705525715be72917bc7fb9c19b3209a784d5d"
+        },
+        "packages": {
+          "path": "\\\\wsl.localhost\\Ubuntu\\var\\tmp\\xlang-validation\\xge-full-20261110\\scene-layout-reads-stage-linux-r5\\replay\\stage-report.json",
+          "sha256": "18fd4f23c4dc13cf8c093ffbc80ba145e1ca508b4a4a0ebc4b6a37d36f232412"
+        },
+        "inventory": {
+          "path": "\\\\wsl.localhost\\Ubuntu\\var\\tmp\\xlang-validation\\xge-full-20261110\\scene-layout-reads-audit-linux-r5\\surface\\surface.json",
+          "sha256": "1cb2c2e60d9bd54026fd5f0c6b425f92c5e65d7ddfbadf9dd67083ca17bf309d"
+        },
+        "consumers": {
+          "path": "\\\\wsl.localhost\\Ubuntu\\var\\tmp\\xlang-validation\\xge-full-20261110\\scene-layout-reads-audit-linux-r5\\consumers\\results.json",
+          "sha256": "851fde1e0600edade075da9bf8cd8776a8cfad6b4c8278367acbc4c8c7bee95b"
+        },
+        "scene": {
+          "path": "\\\\wsl.localhost\\Ubuntu\\var\\tmp\\xlang-validation\\xge-full-20261110\\scene-layout-reads-scene-linux-r5\\results.json",
+          "sha256": "c0f379b70e4f47ff70d2c6a9e21b96fbd507aef25a3eae785e10f822d33d8c0b"
+        },
+        "layout": {
+          "path": "\\\\wsl.localhost\\Ubuntu\\var\\tmp\\xlang-validation\\xge-full-20261110\\scene-layout-reads-layout-linux-r5\\results.json",
+          "sha256": "d01d041dab9ff0d41d606d2f88b04e759e291f1133e9a9f587b36cebb2c2fc1a"
+        },
+        "example": {
+          "path": "\\\\wsl.localhost\\Ubuntu\\var\\tmp\\xlang-validation\\xge-full-20261110\\scene-layout-reads-example-linux-r5\\results.json",
+          "sha256": "1adbfc25d34330fed2a396abccc658c2bfb142a64499af198ca9786774a384af"
+        },
+        "existingSceneAndRender": {
+          "path": "\\\\wsl.localhost\\Ubuntu\\var\\tmp\\xlang-validation\\xge-full-20261110\\scene-layout-reads-existing-linux-r6\\results.json",
+          "sha256": "e07aa0f042ede880210ee1f4f9d5988c5153e5b24a1d49bb20875beff041febc"
+        },
+        "previousCpuReadbackExpectationBefore": {
+          "path": "\\\\wsl.localhost\\Ubuntu\\var\\tmp\\xlang-validation\\xge-full-20261110\\scene-layout-reads-existing-linux-r5\\render-diagnose-before.log",
+          "sha256": "c91ee8a0a2d351d653b8826bc9d770d59695b2e2470dcdad1ab58e0c8ddbba1a"
+        },
+        "previousCpuReadbackExpectationAfter": {
+          "path": "\\\\wsl.localhost\\Ubuntu\\var\\tmp\\xlang-validation\\xge-full-20261110\\scene-layout-reads-existing-linux-r5\\render-diagnose-after.log",
+          "sha256": "c91ee8a0a2d351d653b8826bc9d770d59695b2e2470dcdad1ab58e0c8ddbba1a"
+        }
+      },
+      "tests": {
+        "scene": {
+          "steps": 8,
+          "directCalls": {
+            "xge3dSceneNodeDefaultsGet": 1,
+            "xge3dSceneLoadOwned": 1
+          },
+          "imports": {
+            "dynamic": [
+              "libm.so.6",
+              "libmvec.so.1",
+              "libxge3_host.so",
+              "libc.so.6",
+              "ld-linux-x86-64.so.2"
+            ],
+            "static": [
+              "libm.so.6",
+              "libmvec.so.1",
+              "libx11.so.6",
+              "libxi.so.6",
+              "libxcursor.so.1",
+              "libgl.so.1",
+              "libegl.so.1",
+              "libc.so.6",
+              "ld-linux-x86-64.so.2"
+            ]
+          }
+        },
+        "layout": {
+          "steps": 8,
+          "directCalls": {
+            "xuiTextLayoutGetState": 4,
+            "xuiTextLayoutGetTextView": 8,
+            "xl6Xui3TextLayoutGetSize": 2,
+            "xl6Xui3TextLayoutGetLineCount": 2,
+            "xl6Xui3TextLayoutGetTruncated": 2
+          },
+          "imports": {
+            "dynamic": [
+              "libm.so.6",
+              "libmvec.so.1",
+              "libxge3_host.so",
+              "libc.so.6",
+              "ld-linux-x86-64.so.2"
+            ],
+            "static": [
+              "libm.so.6",
+              "libmvec.so.1",
+              "libx11.so.6",
+              "libxi.so.6",
+              "libxcursor.so.1",
+              "libgl.so.1",
+              "libegl.so.1",
+              "libc.so.6",
+              "ld-linux-x86-64.so.2"
+            ]
+          }
+        },
+        "example": {
+          "steps": 3,
+          "directCalls": {},
+          "imports": {
+            "static": [
+              "libm.so.6",
+              "libmvec.so.1",
+              "libx11.so.6",
+              "libxi.so.6",
+              "libxcursor.so.1",
+              "libgl.so.1",
+              "libegl.so.1",
+              "libc.so.6",
+              "ld-linux-x86-64.so.2"
+            ]
+          }
+        },
+        "existingSceneAndRender": {
+          "steps": 2,
+          "execution": "JIT"
+        }
+      }
+    }
+  },
+  "remaining": [
+    "Other XGE and XUI surface reviews and runtime qualification.",
+    "Existing Context lookup from the weak TextLayout owner.",
+    "Matching shipping SDK, compiler, IDE and extension packages."
+  ]
+}

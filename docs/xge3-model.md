@@ -260,10 +260,11 @@ cached model on a hit. The measurement counts heap operations.
 ## Declarative scene loading
 
 `Scene.loadColumns()` loads a hierarchy from typed columns. Parent indices
-must point to an earlier row. `sceneRootParent()` places a row immediately
-under the returned group root, and `sceneNodeTransform()` supplies identity.
-Nullable names, meshes, materials and model URIs allow plain grouping rows.
-The hidden flag controls initial visibility.
+must point to an earlier row. `sceneNodeDefaults()` returns the root-parent
+sentinel, identity transform and zero flags in one pointer-free native value.
+Use those values for grouping rows or adjust the transform before loading.
+Names, meshes, materials and model URIs are separate nullable columns. The
+hidden flag controls initial visibility.
 
 A row may name a model URI or use a preloaded `Model3D` in the optional
 resolved-model column. The latter lets the application apply its own lookup

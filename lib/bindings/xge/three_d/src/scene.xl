@@ -84,5 +84,13 @@ export extern "xge3d_scene*" class Scene @header("xge3d_scene.h") @lifetime("own
 end
 extern "xge3dSceneReleaseChecked" @header("xge3d_scene.h") @no_raise @c_result("status",0) func releaseScene(Scene value)
 export extern "xge3dSceneCreateOwned" @header("xge3d_scene.h") @no_raise @c_result("owned_view") @factory(0,0,releaseScene) func createScene() as Scene
+// Scene loading takes separately typed name and asset columns.
+export extern "xge3d_scene_node_defaults_t" struct Xge3dSceneNodeDefaults @header("xge3_runtime.h")
+ c_size parent
+ Xge3dTransform transform
+ c_uint flags
+end
+
 export extern "xge3dSceneRootParent" @header("xge3_runtime.h") @pure @no_raise @nonblocking func sceneRootParent() as c_size
 export extern "xge3dSceneNodeTransformDefault" @header("xge3_runtime.h") @pure @no_raise @nonblocking @c_output(0) func sceneNodeTransform() as Xge3dTransform
+export extern "xge3dSceneNodeDefaultsGet" @header("xge3_runtime.h") @pure @no_raise @nonblocking func sceneNodeDefaults() as Xge3dSceneNodeDefaults
