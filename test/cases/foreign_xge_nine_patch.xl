@@ -1,6 +1,6 @@
 import xge
 
-extern "fixtureNinePatchLegacy" @header("test/cases/foreign_xge_nine_patch.h") @no_raise @c_ref(1) func legacy(xge.Texture texture,xge.NinePatchStyle style,xge.Rect dst)
+extern "fixtureNinePatchLegacy" @header("test/cases/foreign_xge_nine_patch.h") @no_raise @c_ref(1) func legacy(xge.Texture texture,xge.NinePatchStyle style,xge.Rect dst,bool simple)
 extern "fixtureNinePatchHeapBegin" @header("test/cases/foreign_xge_nine_patch.h") @no_raise func heapBegin()
 extern "fixtureNinePatchHeapEnd" @header("test/cases/foreign_xge_nine_patch.h") @no_raise func heapEnd(c_int mode)
 extern "fixtureNinePatchNativeHot" @header("test/cases/foreign_xge_nine_patch.h") @no_raise @c_ref(1) func nativeHot(xge.Texture texture,xge.NinePatchStyle style,xge.Rect dst)
@@ -10,9 +10,9 @@ func pixel(bytes pixels,int x,int y,int r,int g,int b)
     assert pixels[at] == r and pixels[at + 1] == g and pixels[at + 2] == b and pixels[at + 3] == 255
 end
 
-func drawAndCompare(xge.Texture texture,xge.RenderTarget target,xge.Pass pass,Buffer bytesOut,xge.NinePatchStyle style,xge.Rect dst) as bytes
+func drawAndCompare(xge.Texture texture,xge.RenderTarget target,xge.Pass pass,Buffer bytesOut,xge.NinePatchStyle style,xge.Rect dst,bool simple=false) as bytes
     pass.begin()
-    legacy(texture,style,dst)
+    legacy(texture,style,dst,simple)
     pass.finish()
     target.readPixels(bytesOut)
     auto reference = bytesOut.toBytes()
@@ -89,6 +89,15 @@ func exercise()
     assert rejected
 
     auto plain = xge.ninePatchStyleDefault()
+    auto simple = drawAndCompare(texture,target,pass,bytesOut,plain,dst,true)
+    pixel(simple,3,8,255,255,0)
+    auto crop = plain
+    crop.tSource.fX = c_float(1)
+    crop.tSource.fW = c_float(2)
+    crop.tSource.fH = c_float(4)
+    auto cropped = drawAndCompare(texture,target,pass,bytesOut,crop,dst,true)
+    pixel(cropped,3,8,255,0,0)
+    pixel(cropped,12,8,0,0,255)
     pass.begin()
     texture.drawNinePatch(plain,dst,c_uint(xge.XGE_DRAW_SCREEN_SPACE))
     heapBegin()

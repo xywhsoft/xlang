@@ -276,6 +276,11 @@ REPLACED = {
     'xgeShapeExStrokeRadialGradientGet': ('xge.Shape.captureStrokeGradient', 'xgeShapeExCaptureStrokeGradient'),
     'xgeShapeExStrokeRadialGradientGetEx': ('xge.Shape.captureStrokeGradient', 'xgeShapeExCaptureStrokeGradient'),
     'xgeShapeExStrokeDashGet': ('xge.Shape.captureStrokeDash', 'xgeShapeExCaptureStrokeDash'),
+    # The independent value style carries the crop, cuts, mode and tint.
+    'xgeNinePatchInitSimple': ('xge.ninePatchStyleDefault', 'xgeNinePatchStyleDefault'),
+    'xgeNinePatchInit': ('xge.Texture.drawNinePatch', 'xgeTextureDrawNinePatch'),
+    'xgeNinePatchSetMode': ('xge.Texture.drawNinePatch', 'xgeTextureDrawNinePatch'),
+    'xgeNinePatchSetColor': ('xge.Texture.drawNinePatch', 'xgeTextureDrawNinePatch'),
     'xgeNinePatchDraw': ('xge.Texture.drawNinePatch', 'xgeTextureDrawNinePatch'),
     'xgeMaterialSetShader': ('xge.Material.setShader', 'xgeMaterialSetShaderChecked'),
     'xgeMaterialSetTexture': ('xge.Material.setTexture', 'xgeMaterialSetTextureChecked'),

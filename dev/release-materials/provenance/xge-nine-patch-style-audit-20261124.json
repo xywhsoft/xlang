@@ -1,0 +1,108 @@
+{
+  "schema": 1,
+  "scope": "Pixel-equivalence evidence for legacy nine-patch style operations",
+  "nativeCommit": "b3cf0b2fb2658730f9bf3e08cefbe87f7c2dcff8",
+  "shippingDelivery": false,
+  "networkTests": false,
+  "sourceSha256NormalizedLf": {
+    "tools/xge_replay_contracts.py": "f52fd16038ccde5a322c56ff4438812ef1d3387c1d1a65bdd29fbc660224fb96",
+    "test/cases/foreign_xge_nine_patch.xl": "1e90dffc6979ef46b737091f5a3cd5f147034fa06fa0e81fb8f3cc3be90d67a6",
+    "test/cases/foreign_xge_nine_patch.c": "3fce97943d310a2c6e15482be5ae5d21160dd0a6cafe36d97f1c83f32f7758d6",
+    "test/cases/foreign_xge_nine_patch.h": "86b4b87f5d3ef5b6041a07f5208f2865bd6cac61602b39cf48fa2e9d16aaaaa3"
+  },
+  "validation": {
+    "pixelEquivalent": [
+      "whole texture simple",
+      "cropped simple",
+      "custom cuts",
+      "stretch",
+      "tile",
+      "tint"
+    ],
+    "invalidModesChecked": true,
+    "measurements": {
+      "warmQueueCallsPerLanguage": 20,
+      "xrtAlloc": 0,
+      "xrtFree": 0,
+      "xrtRealloc": 0
+    }
+  },
+  "platforms": {
+    "win": {
+      "packageReplay": {
+        "path": "F:/xlang-validation/xge-full-20261110/tabs-add-page-stage-win-r5/replay/stage-report.json",
+        "sha256": "6e2cc2b248742ef183743335bcf43a0cbe4a3f46a4e1ecae502a6111ebb3a1bd"
+      },
+      "jitAndAotWithImports": {
+        "path": "F:/xlang-validation/xge-full-20261110/nine-patch-legacy-verify-win-r1/results.json",
+        "sha256": "1a4e4024d285b3b5e8c8748921ebdd892e9b2bffe0c88f7764d9892fdea8b2b3"
+      },
+      "nativeConsumerAudit": {
+        "path": "F:/xlang-validation/xge-full-20261110/nine-patch-legacy-consumers-win-r1/results.json",
+        "sha256": "bdfcc73fa92b0e1f9d6464deb468dc567474620418a5beba117751d32ed25b4f"
+      },
+      "replacements": {
+        "xgeNinePatchInit": {
+          "language": "xge.Texture.drawNinePatch",
+          "native": "xgeTextureDrawNinePatch"
+        },
+        "xgeNinePatchInitSimple": {
+          "language": "xge.ninePatchStyleDefault",
+          "native": "xgeNinePatchStyleDefault"
+        },
+        "xgeNinePatchSetColor": {
+          "language": "xge.Texture.drawNinePatch",
+          "native": "xgeTextureDrawNinePatch"
+        },
+        "xgeNinePatchSetMode": {
+          "language": "xge.Texture.drawNinePatch",
+          "native": "xgeTextureDrawNinePatch"
+        }
+      },
+      "functionPopulation": 5882,
+      "directDeclarations": 4820,
+      "pendingConsumerOrReplacement": {
+        "XGE": 34,
+        "XUI": 68
+      }
+    },
+    "linux": {
+      "packageReplay": {
+        "path": "//wsl.localhost/Ubuntu/var/tmp/xlang-validation/xge-full-20261110/tabs-add-page-stage-linux-r5/replay/stage-report.json",
+        "sha256": "e583d89f55952a40ec42d0ea71a08b4d07e66f3525e365c4d557e410a7067f11"
+      },
+      "jitAndAotWithImports": {
+        "path": "//wsl.localhost/Ubuntu/var/tmp/xlang-validation/xge-full-20261110/nine-patch-legacy-verify-linux-r1/results.json",
+        "sha256": "b99983def3ef4561e8534ae18ad7d7fcc8eebd3d6e4dd4a1286877e282b4ec22"
+      },
+      "nativeConsumerAudit": {
+        "path": "//wsl.localhost/Ubuntu/var/tmp/xlang-validation/xge-full-20261110/nine-patch-legacy-consumers-linux-r1/results.json",
+        "sha256": "746d2c09dd0bd394810b309ca0ea54554697de0eef30062a129f29b290185f19"
+      },
+      "replacements": {
+        "xgeNinePatchInit": {
+          "language": "xge.Texture.drawNinePatch",
+          "native": "xgeTextureDrawNinePatch"
+        },
+        "xgeNinePatchInitSimple": {
+          "language": "xge.ninePatchStyleDefault",
+          "native": "xgeNinePatchStyleDefault"
+        },
+        "xgeNinePatchSetColor": {
+          "language": "xge.Texture.drawNinePatch",
+          "native": "xgeTextureDrawNinePatch"
+        },
+        "xgeNinePatchSetMode": {
+          "language": "xge.Texture.drawNinePatch",
+          "native": "xgeTextureDrawNinePatch"
+        }
+      },
+      "functionPopulation": 5882,
+      "directDeclarations": 4820,
+      "pendingConsumerOrReplacement": {
+        "XGE": 34,
+        "XUI": 68
+      }
+    }
+  }
+}

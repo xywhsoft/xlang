@@ -1,5 +1,24 @@
 # Native consumers in the full API inventory
 
+## Nine-patch style
+
+`xge.ninePatchStyleDefault()` provides the defaults of
+`xgeNinePatchInitSimple`. Set `tSource` to supply a crop. The four cut fields
+carry the arguments of `xgeNinePatchInit`, and `iMode` and `iColor` carry the
+legacy mode and tint. `Texture.drawNinePatch()` passes the style and managed
+texture directly to the checked native renderer.
+
+The pixel comparisons exercise full-texture and cropped simple draws, custom
+cuts, stretch, tile, and tint against the legacy C rendering path. Windows
+and Linux pass JIT and dynamic and static AOT. The warm queue sample records
+zero XRT heap operations for 20 draws in each language. The checked API
+rejects invalid modes.
+
+With these four replacements recorded, the 102 pending entries comprise
+34 XGE and 68 XUI functions out of 5,882.
+
+[Nine-patch style evidence](../dev/release-materials/provenance/xge-nine-patch-style-audit-20261124.json)
+
 ## Dynamic tab pages
 
 `Tabs.addPage(title)` appends one page through `xuiTabsAddPage`, with a

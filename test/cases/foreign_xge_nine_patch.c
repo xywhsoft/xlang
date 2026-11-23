@@ -5,12 +5,16 @@
 
 static xmemdebugsnapshot before;
 
-void fixtureNinePatchLegacy(xge_texture texture, const xge_nine_patch_style_t* style, xge_rect_t dst)
+void fixtureNinePatchLegacy(xge_texture texture, const xge_nine_patch_style_t* style, xge_rect_t dst, bool simple)
 {
     xge_nine_patch_t patch;
-    xgeNinePatchInit(&patch, texture, style->tSource, style->fX1, style->fY1, style->fX2, style->fY2);
-    xgeNinePatchSetMode(&patch, style->iMode);
-    xgeNinePatchSetColor(&patch, style->iColor);
+    if (simple) {
+        xgeNinePatchInitSimple(&patch, texture, style->tSource);
+    } else {
+        xgeNinePatchInit(&patch, texture, style->tSource, style->fX1, style->fY1, style->fX2, style->fY2);
+        xgeNinePatchSetMode(&patch, style->iMode);
+        xgeNinePatchSetColor(&patch, style->iColor);
+    }
     xgeNinePatchDraw(&patch, dst, XGE_DRAW_SCREEN_SPACE);
 }
 
