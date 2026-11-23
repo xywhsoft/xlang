@@ -12,10 +12,12 @@ Window.show("Dock state / save and restore",func(xui.Context ui,xui.Widget root)
  c_int properties=dock.addWindow("属性",inspector)
  dock.dockWindow(document,xui.XUI_DOCK_PANEL_REGION_DOCUMENT,xui.XUI_DOCK_PANEL_SIDE_FILL)
  dock.dockWindow(properties,xui.XUI_DOCK_PANEL_REGION_RIGHT,xui.XUI_DOCK_PANEL_SIDE_FILL)
+ dock.setWindowData(properties,{"role": "inspector"})
 
  var saved=dock.saveState()
  dock.hideWindow(properties)
  dock.loadState(saved)
+ assert dock.getWindowData(properties)["role"] == "inspector"
  auto regions,windows,floating=xui.dockStateCounts(saved)
  assert windows==2 and floating==0
  println("Dock state: ",regions," 个区域，",windows," 个窗口，",floating," 个浮动窗口")

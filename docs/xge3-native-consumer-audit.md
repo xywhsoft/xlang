@@ -1,5 +1,20 @@
 # Native consumers in the full API inventory
 
+## DockPanel window data
+
+The two raw window user-data functions map to `DockPanel.setWindowData()`
+and `getWindowData()`. Each language method directly calls the native
+retained-value entry. Input and output use the existing independent data
+snapshot rules. Data follows the window through layout changes and stays
+outside layout serialization. Clearing the panel detaches its old values
+before release, so native finalizers can reuse indices safely.
+
+Both platform audits cover 5,842 native functions. The two new declarations
+replace the two raw window data entries. There are 206 entries without a
+direct declaration, compiled consumer or explicit replacement in this audit.
+
+[DockPanel data evidence](../dev/release-materials/provenance/xui-dock-window-values-20261123.json)
+
 ## InventoryGrid per-slot animation
 
 The legacy slot animation setter and query map to `setSlotAnimation()` and

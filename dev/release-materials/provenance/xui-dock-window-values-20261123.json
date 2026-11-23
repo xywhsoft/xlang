@@ -1,0 +1,263 @@
+{
+  "schema": 1,
+  "scope": "DockPanel window data snapshots",
+  "nativeCommit": "59641b5bedbfd90d31d12e1e1289696df407f9ba",
+  "engineBaseCommit": "61d050bb13a7fb803731595b5fcc95599bb6f82b",
+  "shippingDelivery": false,
+  "networkTests": false,
+  "nativeEntryPoints": [
+    "xuiDockPanelSetWindowValue",
+    "xuiDockPanelGetWindowValue"
+  ],
+  "replacementForRawUserPointer": {
+    "xuiDockPanelSetWindowUserData": "xuiDockPanelSetWindowValue",
+    "xuiDockPanelGetWindowUserData": "xuiDockPanelGetWindowValue"
+  },
+  "sourceSha256NormalizedLf": {
+    "docs/xge3-xui3-api-map-storage.json": "c56c5ec4e9ac7b87f59301f83deebd570d999545ffbd3ea526ded282df4580b1",
+    "lib/bindings/xui/src/managed.xl": "e9e99b2ed5d1e596468520fb52bc8918e8efa0f0765605de5a5b7347a7f6a3d2",
+    "lib/bindings/xui/examples/dock_state.xl": "9497caf66fdb36f99f3a5e8d94a708bead3ef99e52bc6be9548298611f5cb931",
+    "test/cases/foreign_xui_dock_window_values.xl": "01f0e8fd91ba4a0ddb3b32d2a51ac145b32e5868a6eb2100d1701bce802439d8",
+    "tools/xui_managed_contracts.py": "a57f89926257cc0f94de1e2026f9e4a4ba4500705be04becceaf33819c884797"
+  },
+  "verification": {
+    "retainedSlotAndIndependentLanguageSnapshots": true,
+    "copiedTextAndBytesPreserveEmbeddedNul": true,
+    "floatingHidingAndLayoutRestorationPreserveData": true,
+    "savedLayoutDoesNotRestoreClearedValues": true,
+    "allocationFailureRollsBackTableAndLanguageSnapshots": true,
+    "wrongThreadAndRemovedWindowAreChecked": true,
+    "clearPublishesEmptyPanelBeforeOwnedValuesDrop": true,
+    "dropMayPopulateReusedIndex": true,
+    "checkedWidgetDestroyRetiresWindowOwnership": true,
+    "sampleQualification": "One JIT timing sample for each input shape per platform with XRT allocation monitoring enabled. Each round uses two setter/getter pairs alternating preformed integers or preformed two-field objects. C retains, validates and releases the values. The public xlang methods apply the data snapshot contract in both directions. CPU timing includes both API costs and loop work.",
+    "platforms": {
+      "win": {
+        "languageJitDynamicStaticAot": {
+          "path": "F:/xlang-validation/xge-full-20261110/dock-window-values-verify-win-r4/results.json",
+          "sha256": "a8da587ee6598f76861bab645c173699b30cd04bc9833d0c649087e1e64a701d"
+        },
+        "nativeO0O2": {
+          "path": "F:/xlang-validation/xge-full-20261110/dock-window-values-native-test-win-r2/results.json",
+          "sha256": "30520f17f153057d79379aeb69383c3f570020c4c9a5117819f83437d6043cef"
+        },
+        "existingDockPanelO0O2": {
+          "path": "F:/xlang-validation/xge-full-20261110/dock-window-values-native-test-win-r3/results.json",
+          "sha256": "9b45048a0e27f2af07392ab8270c50ff72f6fac0b8521f47158e0934555220ae"
+        },
+        "example": {
+          "report": {
+            "path": "F:/xlang-validation/xge-full-20261110/dock-window-values-example-win-r1/results.json",
+            "sha256": "db23017c35fe1a1be39e984f9ef083ef6d3ec705b9414fa623a3fa1c27b66333"
+          },
+          "frames": {},
+          "scope": "AOT build and import checks"
+        },
+        "strictDeclarationReplay": {
+          "path": "F:/xlang-validation/xge-full-20261110/dock-window-values-generator-win-r4/results.json",
+          "sha256": "5175e7feaf2d7857eefca9695f00880fb94b49608ddaaf191b6092bd11ba2c1f"
+        },
+        "matchedPackages": {
+          "path": "F:/xlang-validation/xge-full-20261110/dock-window-values-stage-win-r4/replay/stage-report.json",
+          "sha256": "d44bce827f52579c41f8e193520819c82d69b356390417cf1071de2e76279771"
+        },
+        "scopedNativeSource": {
+          "path": "F:/xlang-validation/xge-full-20261110/dock-window-values-native-source-win-r2.json",
+          "sha256": "81de115c13e767541e26fbf59a7c675c91d7823fb875b6cdcb1938b431ccbfe7"
+        },
+        "hostO2Build": {
+          "path": "F:/xlang-validation/xge-full-20261110/dock-window-values-host-win-r2/build-report.json",
+          "sha256": "81ea19c54acced46a65ca5625fece8d236b6c3b05502aa889ec36a11264bd8b4"
+        },
+        "staticO2Build": {
+          "path": "F:/xlang-validation/xge-full-20261110/dock-window-values-static-win-r2/build-report.json",
+          "sha256": "d23ba9262dfaedef56d781accdcde20a21446c517d5ec4c5cd1d7951059545e8"
+        },
+        "surface": {
+          "path": "F:/xlang-validation/xge-full-20261110/dock-window-values-inventory-win-r1/surface.json",
+          "sha256": "86228cf7edbeb0722c934122ca1e99578ea83bf1ba59336ea8adc9e52390a2c3"
+        },
+        "consumerAudit": {
+          "path": "F:/xlang-validation/xge-full-20261110/dock-window-values-consumers-win-r2/results.json",
+          "sha256": "8aa18e1544482a29c0f825ad81328dfc808f8b9e58035c5f15efdc50487df6ab"
+        },
+        "functions": 5842,
+        "directDeclarations": 4779,
+        "pendingConsumerOrReplacement": {
+          "XGE": 84,
+          "XUI": 119,
+          "Document UI": 2,
+          "Document": 1
+        },
+        "scalarRoundTrip": {
+          "report": {
+            "path": "F:/xlang-validation/xge-full-20261110/dock-window-values-perf-win-r2/results.json",
+            "sha256": "fd30a7df9a82cee9712547112c1bd1fdb15dc242cb570bc74ada261238b7efa8"
+          },
+          "sample": {
+            "xlang": {
+              "rounds": 2000,
+              "alloc": 0,
+              "free": 0,
+              "realloc": 0,
+              "cpuMs": 17.0
+            },
+            "C": {
+              "rounds": 2000,
+              "alloc": 0,
+              "free": 0,
+              "realloc": 0,
+              "cpuMs": 1.0
+            }
+          }
+        },
+        "objectRoundTrip": {
+          "report": {
+            "path": "F:/xlang-validation/xge-full-20261110/dock-window-values-perf-win-r5/results.json",
+            "sha256": "850e93044e6ee184b8ed676179b4abc7d877da31dc40d643b9daae281bc826c3"
+          },
+          "sample": {
+            "xlang": {
+              "rounds": 2000,
+              "alloc": 52000,
+              "free": 52000,
+              "realloc": 0,
+              "cpuMs": 31.0
+            },
+            "C": {
+              "rounds": 2000,
+              "alloc": 0,
+              "free": 0,
+              "realloc": 0,
+              "cpuMs": 1.0
+            }
+          }
+        }
+      },
+      "linux": {
+        "languageJitDynamicStaticAot": {
+          "path": "//wsl.localhost/Ubuntu/var/tmp/xlang-validation/xge-full-20261110/dock-window-values-verify-linux-r4/results.json",
+          "sha256": "dd00e828d1f7e0b372d6f60a35fc68ff2d2696af5263de3de89e1d4ef0470c7b"
+        },
+        "nativeO0O2": {
+          "path": "//wsl.localhost/Ubuntu/var/tmp/xlang-validation/xge-full-20261110/dock-window-values-native-test-linux-r2/results.json",
+          "sha256": "fbc82cdc86c8da686a8c4450f39b1f7df9828065e016887593117f609f5373f4"
+        },
+        "existingDockPanelO0O2": {
+          "path": "//wsl.localhost/Ubuntu/var/tmp/xlang-validation/xge-full-20261110/dock-window-values-native-test-linux-r3/results.json",
+          "sha256": "b19483421aa645fc0243f82496bae73d46c8457cdd9cffb2722e784df187ba89"
+        },
+        "example": {
+          "report": {
+            "path": "//wsl.localhost/Ubuntu/var/tmp/xlang-validation/xge-full-20261110/dock-window-values-example-linux-r1/results.json",
+            "sha256": "274989642a7ce354afaddda11c9543ab3c39b41b892183b36afd7ee1d3d7b79c"
+          },
+          "frames": {
+            "jit": {
+              "path": "/var/tmp/xlang-validation/xge-full-20261110/dock-window-values-example-linux-r1/jit.rgba",
+              "sha256": "5e071b946c01e573daf0ab74667c735e5ce65e1a1235021ab4287274ec688448",
+              "width": 800,
+              "height": 600,
+              "colors": 26
+            },
+            "dynamic": {
+              "path": "/var/tmp/xlang-validation/xge-full-20261110/dock-window-values-example-linux-r1/dynamic.rgba",
+              "sha256": "5e071b946c01e573daf0ab74667c735e5ce65e1a1235021ab4287274ec688448",
+              "width": 800,
+              "height": 600,
+              "colors": 26
+            },
+            "static": {
+              "path": "/var/tmp/xlang-validation/xge-full-20261110/dock-window-values-example-linux-r1/static.rgba",
+              "sha256": "5e071b946c01e573daf0ab74667c735e5ce65e1a1235021ab4287274ec688448",
+              "width": 800,
+              "height": 600,
+              "colors": 26
+            }
+          },
+          "scope": "Xvfb/Mesa JIT and dynamic/static AOT"
+        },
+        "strictDeclarationReplay": {
+          "path": "//wsl.localhost/Ubuntu/var/tmp/xlang-validation/xge-full-20261110/dock-window-values-generator-linux-r4/results.json",
+          "sha256": "987a7e113d6d99e4be253ddfed698cc41f0b0d45bc0d008a89c02be7426142c9"
+        },
+        "matchedPackages": {
+          "path": "//wsl.localhost/Ubuntu/var/tmp/xlang-validation/xge-full-20261110/dock-window-values-stage-linux-r4/replay/stage-report.json",
+          "sha256": "2e0495d66130917b848d828ca119df46b93f9123941289319178cb357a67b894"
+        },
+        "scopedNativeSource": {
+          "path": "//wsl.localhost/Ubuntu/var/tmp/xlang-validation/xge-full-20261110/dock-window-values-native-source-linux-r2.json",
+          "sha256": "9000dbdfcd3f30c0b3ac6b946b0076a1ca17100304756d647a478b33739672c4"
+        },
+        "hostO2Build": {
+          "path": "//wsl.localhost/Ubuntu/var/tmp/xlang-validation/xge-full-20261110/dock-window-values-host-linux-r2/build-report.json",
+          "sha256": "78cb5ee68e1d1508eb6bacfa58cfcae24018ae07f08df1284cfdf5f6174da36a"
+        },
+        "staticO2Build": {
+          "path": "//wsl.localhost/Ubuntu/var/tmp/xlang-validation/xge-full-20261110/dock-window-values-static-linux-r2/build-report.json",
+          "sha256": "53b1eabba337fd4da0a681d59b2fea740cd22466d9861fd2f5ebdc975f774966"
+        },
+        "surface": {
+          "path": "//wsl.localhost/Ubuntu/var/tmp/xlang-validation/xge-full-20261110/dock-window-values-inventory-linux-r1/surface.json",
+          "sha256": "fcc73f6cb992725fe0d5d91994fc2b120f26690a14b30536278a586408a6d33f"
+        },
+        "consumerAudit": {
+          "path": "//wsl.localhost/Ubuntu/var/tmp/xlang-validation/xge-full-20261110/dock-window-values-consumers-linux-r2/results.json",
+          "sha256": "50d6a03e716dce0b3bc0ea934a1eeecb53128fbe7596c0431eadb237dd17ebab"
+        },
+        "functions": 5842,
+        "directDeclarations": 4779,
+        "pendingConsumerOrReplacement": {
+          "XGE": 84,
+          "XUI": 119,
+          "Document UI": 2,
+          "Document": 1
+        },
+        "scalarRoundTrip": {
+          "report": {
+            "path": "//wsl.localhost/Ubuntu/var/tmp/xlang-validation/xge-full-20261110/dock-window-values-perf-linux-r2/results.json",
+            "sha256": "52c38cdd6cff2a18dcc0b03401dbe2f54a916f2f52fac3437be5adcf9b4e5e50"
+          },
+          "sample": {
+            "xlang": {
+              "rounds": 2000,
+              "alloc": 0,
+              "free": 0,
+              "realloc": 0,
+              "cpuMs": 10.598
+            },
+            "C": {
+              "rounds": 2000,
+              "alloc": 0,
+              "free": 0,
+              "realloc": 0,
+              "cpuMs": 2.372
+            }
+          }
+        },
+        "objectRoundTrip": {
+          "report": {
+            "path": "//wsl.localhost/Ubuntu/var/tmp/xlang-validation/xge-full-20261110/dock-window-values-perf-linux-r5/results.json",
+            "sha256": "485d2035a9a7474c186d61c9ae6bb5cbb04276304d2191da0438bd4d75de07b2"
+          },
+          "sample": {
+            "xlang": {
+              "rounds": 2000,
+              "alloc": 52000,
+              "free": 52000,
+              "realloc": 0,
+              "cpuMs": 30.597
+            },
+            "C": {
+              "rounds": 2000,
+              "alloc": 0,
+              "free": 0,
+              "realloc": 0,
+              "cpuMs": 1.278
+            }
+          }
+        }
+      }
+    }
+  }
+}

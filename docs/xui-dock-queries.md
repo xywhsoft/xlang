@@ -32,3 +32,27 @@ records, misses, C parity, invalid inputs, checked output preservation,
 wrong-thread and expired views. Its gate checks C/C++ headers and executes
 JIT, dynamic AOT and static AOT on matched SDKs. This is CPU geometry
 qualification, not interactive drag rendering or final IDE delivery.
+
+## Window data
+
+Use `DockPanel.setWindowData(window, value)` to attach a data snapshot and
+`getWindowData(window)` to read an independent snapshot. A valid window without
+data returns `null`. Assigning `null` clears it. Invalid window indices and
+failed snapshot conversions report checked errors. Input projection reads
+public storage fields and preserves embedded NUL and binary data.
+
+The value stays with its window through docking, floating, hiding and layout
+restoration. `saveState()` records layout only. Clearing the panel releases
+its window data. Reused indices start empty, and any snapshot already returned
+to the caller stays usable. The example `dock_state.xl` assigns an inspector
+role and checks it after restoring the layout.
+
+Both methods call the native retained-value API directly. The native table is
+allocated lazily, and prepared native values can be replaced or retained for
+output without allocating. Language snapshots traverse and copy data on each
+call. The existing raw C user pointer has independent storage and ownership.
+
+In the warmed JIT sample, 4,000 integer set/get pairs incurred zero XRT
+allocations in both C and xlang on Windows and Linux. The two-field object
+sample incurred 52,000 balanced allocations in xlang and zero in the native
+retain/read loop. The sample includes result lookup and validation.

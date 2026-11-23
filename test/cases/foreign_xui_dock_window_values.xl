@@ -1,0 +1,87 @@
+import xui
+
+extern "fixtureRenderBudget" @header("test/cases/foreign_xui_render_backend.h") @no_raise func budget(c_int count)
+
+func main(...) as int
+    auto proxy = xui.createProxy()
+    auto ui = xui.create(proxy, xui.XUI_SYSTEM_FONT_DISABLED)
+    try
+        auto dock = ui.dockPanelNative()
+        auto editor = ui.panelNative()
+        auto inspector = ui.panelNative()
+        auto document = dock.addWindow("Document", editor)
+        auto tools = dock.addWindow("Inspector", inspector)
+        dock.dockWindow(document, xui.XUI_DOCK_PANEL_REGION_DOCUMENT, xui.XUI_DOCK_PANEL_SIDE_FILL)
+        dock.dockWindow(tools, xui.XUI_DOCK_PANEL_REGION_RIGHT, xui.XUI_DOCK_PANEL_SIDE_FILL)
+        assert dock.getWindowData(document) == null and dock.getWindowData(tools) == null
+
+        var original = {"id": 7, "metadata": {"text": "a\0b", "bytes": b"\0\xff"}}
+        dock.setWindowData(tools, original)
+        original["id"] = 9
+        var snapshot = dock.getWindowData(tools)
+        assert snapshot["id"] == 7 and snapshot["metadata"]["text"] == "a\0b"
+        assert snapshot["metadata"]["bytes"] == b"\0\xff"
+        snapshot["id"] = -2
+        assert dock.getWindowData(tools)["id"] == 7
+
+        bool failed = false
+        budget(0)
+        try
+            dock.setWindowData(tools, original)
+        catch Error
+            failed = true
+        finally
+            budget(-1)
+        end
+        assert failed and dock.getWindowData(tools)["id"] == 7
+
+        failed = false
+        budget(0)
+        try
+            snapshot = dock.getWindowData(tools)
+        catch Error
+            failed = true
+        finally
+            budget(-1)
+        end
+        assert failed and snapshot["id"] == -2 and dock.getWindowData(tools)["id"] == 7
+
+        var layout = dock.saveState()
+        assert dock.hideWindow(tools) == 0 and dock.getWindowData(tools)["id"] == 7
+        dock.loadState(layout)
+        assert dock.getWindowData(tools)["id"] == 7
+
+        auto worker = thread(func() as int
+            try
+                auto wrongThread = dock.getWindowData(tools)
+            catch StateError
+                return 1
+            end
+            return 0
+        end)
+        assert worker.waitTimeout(30000) and worker.exitCode() == 1
+
+        dock.setWindowData(tools, null)
+        dock.loadState(layout)
+        assert dock.getWindowData(tools) == null
+        dock.setWindowData(document, "old window")
+        assert dock.clear() == 0
+        auto replacement = ui.panelNative()
+        auto reused = dock.addWindow("Replacement", replacement)
+        assert reused == document and dock.getWindowData(reused) == null
+        failed = false
+        try
+            auto removed = dock.getWindowData(tools)
+        catch Error
+            failed = true
+        end
+        assert failed
+        dock.close()
+        assert snapshot["metadata"]["bytes"] == b"\0\xff"
+    finally
+        ui.close()
+        proxy.close()
+    end
+    println("XUI_DOCK_WINDOW_VALUES_OK")
+    return 0
+end
