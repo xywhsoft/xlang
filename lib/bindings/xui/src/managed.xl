@@ -5802,6 +5802,9 @@ export extern "xui_widget_t*" class PropertyGrid @header("xge3_runtime.h") @life
  extern "xuiPropertyGridSetGlobalActionOwned" @no_raise @c_owned_callback(0,0,"xui_callback_owner_t",-16) @c_result("status",0) func setGlobalAction(PropertyGridActionProc? onAction)
  // 返回 0 使用默认绘制，返回正值表示已绘制。传 null 取消注册。
  extern "xuiPropertyGridSetGlobalRendererOwned" @no_raise @c_owned_callback(0,0,"xui_callback_owner_t",-16) @c_result("status",0) func setGlobalRenderer(TableViewCellRenderer? onRender)
+ // 单项注册优先于全局回调。传 null 恢复全局回调。
+ extern "xuiPropertyGridSetActionOwned" @no_raise @c_owned_callback(1,0,"xui_callback_owner_t",-16) @c_result("status",0) func setAction(c_int property,PropertyGridActionProc? onAction)
+ extern "xuiPropertyGridSetRendererOwned" @no_raise @c_owned_callback(1,0,"xui_callback_owner_t",-16) @c_result("status",0) func setRenderer(c_int property,TableViewCellRenderer? onRender)
 
  extern "xuiPropertyGridSetChangeOwned" @no_raise @c_owned_callback(0,0,"xui_callback_owner_t",0) @c_result("status",0) func setChange(PropertyGridChangeProc? onChange)
 

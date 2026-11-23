@@ -1,0 +1,95 @@
+{
+  "schema": 1,
+  "scope": "PropertyGrid per-property action and render callbacks",
+  "nativeCommit": "d7cec9cef57ae6ddf0955dc1d570776f6779f288",
+  "shippingDelivery": false,
+  "sourceSha256NormalizedLf": {
+    "docs/xge3-xui3-api-map-storage.json": "93ecafdaf03bf8b6f84cef5cd5541eb4273a06878c13260cc786fb5ad0c06790",
+    "lib/bindings/xui/src/managed.xl": "763a729a61344c9803a6eb5991d5f7041fd2d90d14f18fe2394df3a42f679086",
+    "test/cases/foreign_xui_property_grid_callbacks.xl": "6be563f007203d2e94474cedc50d00f0f6e3165bd5d3f01834633d341196453a",
+    "tools/xui_managed_contracts.py": "f65418040d779a8e4907d4a2c1dde1763e338f81ad63c82e125c493e88604048"
+  },
+  "verification": {
+    "callbackSelfRemovalAndGlobalFallback": true,
+    "clearDetachesAllMembersBeforeDroppingCallbacks": true,
+    "retainTimeIndexReuseRejectsStaleRegistration": true,
+    "callbackRegistrationOomPreservesPriorState": true,
+    "nativeReplacementOfExistingSlotDoesNotAllocate": true,
+    "nativeStatusOnlyFailurePreserved": true,
+    "renderBackend": "headless CPU fixture",
+    "platforms": {
+      "win": {
+        "jitDynamicStaticAot": {
+          "path": "F:/xlang-validation/xge-full-20261110/property-grid-member-callbacks-verify-win-r2/results.json",
+          "sha256": "28d9ab0108f39d6ed0ecfe013ce6489ed26085ae13445c15559b1f42a4706bc9"
+        },
+        "nativeO0O2": {
+          "path": "F:/xlang-validation/xge-full-20261110/property-grid-member-callbacks-native-test-win-r3/results.json",
+          "sha256": "2232d1b1561a75822aac541bdf7c055e1b6a5bc3548f47707851f2c3f421f01a"
+        },
+        "legacyPropertyGridO0O2": {
+          "path": "F:/xlang-validation/xge-full-20261110/property-grid-member-callbacks-native-test-win-r4/results.json",
+          "sha256": "657dab00e40fba9d16e7001454019d08763b8785b42255fa9d2e1caaf239201e"
+        },
+        "strictDeclarationReplay": {
+          "path": "F:/xlang-validation/xge-full-20261110/property-grid-member-callbacks-generator-win-r2/results.json",
+          "sha256": "b4d16896da255fb84ccc5dfefd9f396bd3501b45519054b68b98fbf5fb9bc49d"
+        },
+        "stagedPackages": {
+          "path": "F:/xlang-validation/xge-full-20261110/property-grid-member-callbacks-stage-win-r2/replay/stage-report.json",
+          "sha256": "f9b7492fa31e30eabb0313b166eb91a18b5df9a4d7d56430b0b5e519e0dfc9e1"
+        },
+        "scopedNativeSource": {
+          "path": "F:/xlang-validation/xge-full-20261110/property-grid-member-callbacks-native-source-win-r1.json",
+          "sha256": "431baca6ec969075bed4e57fa54d6fc746d0545306285c54fe58c660a98a26c4"
+        },
+        "nativeO2Builds": {
+          "host": {
+            "path": "F:/xlang-validation/xge-full-20261110/property-grid-member-callbacks-host-win-r1/build-report.json",
+            "sha256": "68d8a4c22d487d4cda6d596eea382eb0f64b554e75c43785f532a76874a9542f"
+          },
+          "static": {
+            "path": "F:/xlang-validation/xge-full-20261110/property-grid-member-callbacks-static-win-r1/build-report.json",
+            "sha256": "1fccd736ff8a18072744bf27906ac3942e1430a7032bf4c6afd4c579f214c340"
+          }
+        }
+      },
+      "linux": {
+        "jitDynamicStaticAot": {
+          "path": "//wsl.localhost/Ubuntu/var/tmp/xlang-validation/xge-full-20261110/property-grid-member-callbacks-verify-linux-r2/results.json",
+          "sha256": "87294cbb690ccc0f9b7928689c5056880db6bc764eeaa40d90c8f3731a35322e"
+        },
+        "nativeO0O2": {
+          "path": "//wsl.localhost/Ubuntu/var/tmp/xlang-validation/xge-full-20261110/property-grid-member-callbacks-native-test-linux-r3/results.json",
+          "sha256": "aba45c9f61057efefd21e415bb2040ac3150ad8b0818894857f0d554b92f723b"
+        },
+        "legacyPropertyGridO0O2": {
+          "path": "//wsl.localhost/Ubuntu/var/tmp/xlang-validation/xge-full-20261110/property-grid-member-callbacks-native-test-linux-r4/results.json",
+          "sha256": "9831d653fb348666eb178d3af67f5fa9ad7486381ce86958966028ccdb143e5f"
+        },
+        "strictDeclarationReplay": {
+          "path": "//wsl.localhost/Ubuntu/var/tmp/xlang-validation/xge-full-20261110/property-grid-member-callbacks-generator-linux-r2/results.json",
+          "sha256": "0045dccdc106c2fc96f84dd115947e6b259dc0b983c277dfd0b305ac89bd6a1f"
+        },
+        "stagedPackages": {
+          "path": "//wsl.localhost/Ubuntu/var/tmp/xlang-validation/xge-full-20261110/property-grid-member-callbacks-stage-linux-r2/replay/stage-report.json",
+          "sha256": "037da621ae5d165488fc08a9a93d042b24ab5c3c65f9557f73058f581c4651bf"
+        },
+        "scopedNativeSource": {
+          "path": "//wsl.localhost/Ubuntu/var/tmp/xlang-validation/xge-full-20261110/property-grid-member-callbacks-native-source-linux-r1.json",
+          "sha256": "94a73c41659ee1d35b463bc055d1a7d6eeda9fc11e757bfc8ce91144b969f67c"
+        },
+        "nativeO2Builds": {
+          "host": {
+            "path": "//wsl.localhost/Ubuntu/var/tmp/xlang-validation/xge-full-20261110/property-grid-member-callbacks-host-linux-r1/build-report.json",
+            "sha256": "59afd0b686d02924f56334ec353d35c94c8155986389ce835b09a806ab1ebec0"
+          },
+          "static": {
+            "path": "//wsl.localhost/Ubuntu/var/tmp/xlang-validation/xge-full-20261110/property-grid-member-callbacks-static-linux-r1/build-report.json",
+            "sha256": "a4cd4d57977f4558fd8da1388c739fde46a68c716e10a4203288c34beebfd923"
+          }
+        }
+      }
+    }
+  }
+}

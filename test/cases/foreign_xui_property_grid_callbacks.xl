@@ -71,7 +71,41 @@ func editProperties(Context ui,Surface target)
  int previousPaints = paints
  ui.render(target)
  assert paints == previousPaints
+
+ int globalActions = 0
+ grid.setGlobalAction(func(Widget widget,c_int property,CString id,Rect area) as c_int
+  globalActions += 1
+  return 1
+ end)
+ int memberActions = 0
+ grid.setAction(asset,func(Widget widget,c_int property,CString id,Rect area) as c_int
+  assert property == asset and id.copy() == "asset"
+  memberActions += 1
+  grid.setAction(asset,null)
+  return 1
+ end)
+ assert grid.beginEdit(asset) == 1 and memberActions == 1 and globalActions == 0
+ assert grid.beginEdit(asset) == 1 and memberActions == 1 and globalActions == 1
+ grid.setAction(asset,func(Widget widget,c_int property,CString id,Rect area) as c_int
+  throw "cleared property action ran after reuse"
+ end)
+ int memberPaints = 0
+ grid.setRenderer(asset,func(CallbackWidget widget,c_int property,c_int column,CallbackTableViewCell cell,CallbackDrawContext draw,Rect area,c_int flags) as c_int
+  assert property == asset and column == 1
+  memberPaints += 1
+  return 0
+ end)
+ ui.render(target)
+ assert memberPaints > 0
+ int finalMemberPaints = memberPaints
  grid.clear()
+ category = grid.addCategory("new", "New category", 1)
+ grid.addProperty(category,"first","First",value="other")
+ auto replacement = grid.addProperty(category,"replacement","Replacement",type=xui.XUI_TABLE_CELL_TYPE_FILE,value="new.txt")
+ assert replacement == asset and ui.layout() == 0
+ assert grid.beginEdit(replacement) == 1 and globalActions == 2
+ ui.render(target)
+ assert memberPaints == finalMemberPaints, "reuse must not restore cleared render callbacks"
  grid.close()
 end
 

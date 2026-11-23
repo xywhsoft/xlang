@@ -12,4 +12,6 @@
 
 `beginEdit()` 和 `endEdit()` 返回 `0` 或 `1` 表示编辑结果，回调失败时抛出异常。回调得到的 `CString`、单元格和绘制上下文只在本次调用内有效，需要长期保存文本时调用 `copy()`。
 
+`setAction(property, callback)` 和 `setRenderer(property, callback)` 为单项属性注册回调。单项回调优先，传 `null` 后恢复全局回调。`clear()` 释放所有单项注册，之后复用的属性索引拥有独立的回调。正在执行的回调会保留到本次调用结束。
+
 [属性表格范例](../lib/bindings/xui/examples/propertygrid.xl)

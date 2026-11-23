@@ -868,6 +868,16 @@ METHODS.update({
         'xui_property_grid_render_proc onRender, void* pUser, const xui_callback_owner_t* pOwner)', 'PropertyGrid',
         ['extern "xuiPropertyGridSetGlobalRendererOwned" @no_raise @c_owned_callback(0,0,"xui_callback_owner_t",-16) '
          '@c_result("status",0) func setGlobalRenderer(TableViewCellRenderer? onRender)']],
+    'xuiPropertyGridSetActionOwned': ['int xuiPropertyGridSetActionOwned(xui_widget pWidget, int iProperty, '
+        'xui_property_grid_action_proc onAction, void* pUser, const xui_callback_owner_t* pOwner)', 'PropertyGrid',
+        ['extern "xuiPropertyGridSetActionOwned" @no_raise @c_owned_callback(1,0,"xui_callback_owner_t",-16) '
+         '@c_result("status",0) func setAction(c_int property,PropertyGridActionProc? onAction)']],
+    'xuiPropertyGridSetRendererOwned': ['int xuiPropertyGridSetRendererOwned(xui_widget pWidget, int iProperty, '
+        'xui_property_grid_render_proc onRender, void* pUser, const xui_callback_owner_t* pOwner)', 'PropertyGrid',
+        ['extern "xuiPropertyGridSetRendererOwned" @no_raise @c_owned_callback(1,0,"xui_callback_owner_t",-16) '
+         '@c_result("status",0) func setRenderer(c_int property,TableViewCellRenderer? onRender)']],
+    'xuiPropertyGridClear': ['int xuiPropertyGridClear(xui_widget pWidget)', 'PropertyGrid',
+        ['extern "xuiPropertyGridClear" @no_raise @c_result("status",0) func clear()']],
     'xuiPropertyGridBeginEditChecked': ['int xuiPropertyGridBeginEditChecked(xui_widget widget, int property)', 'PropertyGrid',
         ['extern "xuiPropertyGridBeginEditChecked" @no_raise @c_result("integer_min",0) func beginEdit(c_int iProperty) as c_int']],
     'xuiPropertyGridEndEditChecked': ['int xuiPropertyGridEndEditChecked(xui_widget widget, int commit)', 'PropertyGrid',
@@ -1599,6 +1609,8 @@ REPLACED = {
     'xuiPropertyGridSetContextMenu': ('xui.PropertyGrid.setContextMenu', 'xuiPropertyGridSetContextMenuOwned'),
     'xuiPropertyGridSetGlobalAction': ('xui.PropertyGrid.setGlobalAction', 'xuiPropertyGridSetGlobalActionOwned'),
     'xuiPropertyGridSetGlobalRenderer': ('xui.PropertyGrid.setGlobalRenderer', 'xuiPropertyGridSetGlobalRendererOwned'),
+    'xuiPropertyGridSetAction': ('xui.PropertyGrid.setAction', 'xuiPropertyGridSetActionOwned'),
+    'xuiPropertyGridSetRenderer': ('xui.PropertyGrid.setRenderer', 'xuiPropertyGridSetRendererOwned'),
     'xuiPropertyGridSetSelect': ('xui.PropertyGrid.setSelect', 'xuiPropertyGridSetSelectOwned'),
     'xuiPropertyGridSetValidate': ('xui.PropertyGrid.setValidate', 'xuiPropertyGridSetValidateOwned'),
     'xuiRadioGroupSetChange': ('xui.RadioGroup.setChange', 'xuiRadioGroupSetChangeOwned'),
