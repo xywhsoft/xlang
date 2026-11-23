@@ -1,0 +1,114 @@
+import xui
+from xui import CallbackWidget, CallbackConstEditEvent
+
+extern "fixtureEditUseLegacy" @header("test/cases/foreign_xui_edit_event_owned.h") @no_raise func useLegacy(xui.Input input) as c_int
+extern "fixtureEditLegacyCalls" @no_raise func legacyCalls() as c_int
+extern "xrtMemDebugEnable" @header("xrt_decl.h") @no_raise func memDebug(bool enabled) as bool
+extern "xrtMemDebugEnabled" @header("xrt_decl.h") @no_raise func memDebugEnabled() as bool
+extern "xrtMemDebugFailAfter" @header("xrt_decl.h") @no_raise func failAfter(uint64 prefix) as bool
+extern "xrtMemDebugFailTriggered" @header("xrt_decl.h") @no_raise func failureTriggered() as bool
+extern "xrtMemDebugFailClear" @header("xrt_decl.h") @no_raise func failClear()
+
+func checkInput(xui.Input input)
+    assert input.setText("a中b") == xui.XUI_OK
+    CallbackConstEditEvent? saved = null
+    string text = ""
+    input.setEditEvent(true, func(CallbackWidget widget, CallbackConstEditEvent event) as c_int
+        assert event.kind == xui.XUI_EDIT_EVENT_VALIDATION_CHANGED and event.valid == c_int(0)
+        assert event.textSize == c_int(5)
+        saved = event
+        input.setEditEvent(false, null)
+        assert input.setText(string.repeat("replace", 100)) == xui.XUI_OK, "callback can replace itself and edit text"
+        text = event.text() as string
+        return xui.XUI_OK
+    end)
+    input.setError(1)
+    assert text == "a中b", "captured event keeps the original text"
+    bool expired = false
+    try
+        auto kind = (saved as CallbackConstEditEvent).kind
+    catch StateError
+        expired = true
+    end
+    assert expired and text == "a中b", "only copied string survives callback return"
+
+    input.setEditEvent(false, func(CallbackWidget widget, CallbackConstEditEvent event) as c_int
+        assert event.kind == xui.XUI_EDIT_EVENT_SELECTION_CHANGED
+        assert event.textSize == c_int(700) and event.text() == null, "metadata-only event exposes the byte count"
+        assert event.selectionStart == c_int(0) and event.selectionEnd == c_int(4)
+        throw RangeError "edit callback failed"
+    end)
+    bool received = false
+    try
+        auto status = input.editSetSelection(0, 4)
+    catch RangeError failure
+        received = failure.message == "edit callback failed"
+    end
+    assert received, "a producer that ignores the event status still reports the original exception"
+    assert useLegacy(input) == xui.XUI_OK
+    input.setError(0)
+    assert legacyCalls() == c_int(1), "legacy C registration replaces an owned slot"
+end
+
+func checkCodeEdit(xui.CodeEdit editor)
+    int calls = 0
+    editor.setEditEvent(true, func(CallbackWidget widget, CallbackConstEditEvent event) as c_int
+        assert event.kind == xui.XUI_EDIT_EVENT_TEXT_CHANGED
+        assert event.textSize == c_int(5) and event.text() == null, "CodeEdit reports length without flattening its document"
+        calls += 1
+        return xui.XUI_OK
+    end)
+    assert editor.editSetText("a中b") == xui.XUI_OK and calls == 1
+end
+
+func checkTextEdit(xui.TextEdit editor)
+    assert editor.setText("a中b") == xui.XUI_OK
+    int calls = 0
+    editor.setEditEvent(true, func(CallbackWidget widget, CallbackConstEditEvent event) as c_int
+        assert event.kind == xui.XUI_EDIT_EVENT_SELECTION_CHANGED
+        assert event.selectionStart == c_int(1) and event.selectionEnd == c_int(4)
+        assert (event.text() as string) == "a中b"
+        calls += 1
+        return xui.XUI_OK
+    end)
+    assert editor.editSetSelection(1, 4) == xui.XUI_OK and calls == 1
+end
+
+func checkCaptureOom(xui.Input input)
+    assert input.setText(string.repeat("a", 1024)) == xui.XUI_OK
+    int calls = 0
+    input.setEditEvent(true, func(CallbackWidget widget, CallbackConstEditEvent event) as c_int
+        assert event.textSize == c_int(1024)
+        calls += 1
+        return xui.XUI_OK
+    end)
+    bool rejected = false
+    bool hit = false
+    assert failAfter(0)
+    try
+        input.setError(1)
+    catch Error
+        rejected = true
+    finally
+        hit = failureTriggered()
+        failClear()
+    end
+    assert rejected and hit and calls == 0, "capture OOM skips the callback and reports failure"
+    assert input.getError() == c_int(1), "the completed validation change is still visible"
+    input.setError(0)
+    assert calls == 1, "the owned registration can still receive notifications"
+end
+
+func main(...) as int
+    assert memDebugEnabled() or memDebug(true)
+    auto proxy = xui.createProxy()
+    auto ui = xui.create(proxy, xui.XUI_SYSTEM_FONT_DISABLED)
+    checkInput(ui.inputNative())
+    checkTextEdit(ui.textEditNative())
+    checkCodeEdit(ui.codeEditNative())
+    checkCaptureOom(ui.inputNative())
+    ui.close()
+    proxy.close()
+    println("XUI_EDIT_EVENT_OWNED_OK")
+    return 0
+end

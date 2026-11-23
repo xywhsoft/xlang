@@ -1,0 +1,19 @@
+// Observe an Input selection without opening a window.
+import xui
+from xui import CallbackWidget, CallbackConstEditEvent
+
+auto proxy = xui.createProxy()
+auto ui = xui.create(proxy, xui.XUI_SYSTEM_FONT_DISABLED)
+auto input = ui.inputNative()
+assert input.setText("a中b") == xui.XUI_OK
+
+// Request metadata only. The offsets refer to UTF-8 bytes.
+input.setEditEvent(false, func(CallbackWidget widget, CallbackConstEditEvent event) as c_int
+ if event.kind == xui.XUI_EDIT_EVENT_SELECTION_CHANGED then
+  println("Selected bytes", int(event.selectionStart), int(event.selectionEnd))
+ end
+ return xui.XUI_OK
+end)
+assert input.editSetSelection(1, 4) == xui.XUI_OK
+ui.close()
+proxy.close()

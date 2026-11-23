@@ -154,6 +154,7 @@ WebView 范例只加载源码中的本地 HTML。它需要启用 WebView2 的 Wi
 | [hyperlink.xl](hyperlink.xl) | Hyperlink / local click callback |
 | [image.xl](image.xl) | 把一张橙色原生 Surface 放大显示为图片。 |
 | [input.xl](input.xl) | 编辑 UTF-8 文字，点击右侧按钮清空内容。 |
+| [edit_events.xl](edit_events.xl) | 订阅编辑事件，读取 UTF-8 选区偏移。 |
 | [input_decorations.xl](input_decorations.xl) | 为输入框添加文字、纹理和自定义绘制装饰。 |
 | [widget_tooltip.xl](widget_tooltip.xl) | 设置按钮提示的锚点、偏移和显示延迟。 |
 | [custom_tooltip.xl](custom_tooltip.xl) | 用测量与绘制回调在提示中显示颜色样本。 |

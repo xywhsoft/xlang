@@ -1,0 +1,171 @@
+{
+  "schema": 1,
+  "scope": "Managed edit event registration and optional stable text",
+  "nativeCommit": "7f34d09847e1c0d173a40c51ed3cfa0f627e7426",
+  "nativeOverlayParent": "b3cf0b2fb2658730f9bf3e08cefbe87f7c2dcff8",
+  "nativeSourceSha256NormalizedLf": {
+    "include/xui.h": "7e448a7aed9b7fe6b56c183f80373e41ded2059d3dba6fb33cfdce19a6c12609",
+    "src/xui/core/xui_edit.c": "94dabb741601d34e65493c7e42da4342dc216cbc89463e2b8256929d3364345d",
+    "src/xui/core/xui_internal.h": "33dec01f84dd6b41f87ce22417649101816cdccf1e81b497211261f3ab578e0e"
+  },
+  "shippingDelivery": false,
+  "networkTests": false,
+  "sourceSha256NormalizedLf": {
+    "lib/bindings/xui/src/managed.xl": "59c32255c1bba6fd521b960ad81437c443b2fba38b2b0004ed5437edc7775ae3",
+    "lib/bindings/xui/examples/README.md": "34875225c3a7e8ec5c7261929eb444df8882e712448ee7195d0b25bd563c53d0",
+    "lib/bindings/xui/examples/edit_events.xl": "ff853207a8ef743ce9bba5000df9a5588c7e7fd5ffbf0bb387e4731700c7bf3e",
+    "tools/xui_managed_contracts.py": "af9a8300a230cc0e70ca18d758c8d3ed9141688f66869f0433ace75f367755c9",
+    "docs/xge3-xui3-api-map-storage.json": "aab65a222f96aa1fdb8afc1195c8c1970e0d53d66b8b6305c642140599bb8ca5",
+    "test/cases/foreign_xui_edit_event_owned.xl": "0a8c0a199f1edfcebb0c1df0f09039cabf77c4f34ea9854871567ab8b973e2f2",
+    "test/cases/foreign_xui_edit_event_owned.c": "fada92d7c3d77265c56380682b563f9b9f716e511b178a8b69580102866bd1cd",
+    "test/cases/foreign_xui_edit_event_owned.h": "b1941dc1d40b6079d252c850f45b8d509f12b44af4f40aaafb9efe8ae0ffa742"
+  },
+  "validation": {
+    "ownedCallbackReplacement": true,
+    "legacyReplacement": true,
+    "inputValidationAndSelection": true,
+    "textEditSelection": true,
+    "codeEditCountWithoutText": true,
+    "stableTextAfterNestedEdit": true,
+    "expiredCallbackViewsRejected": true,
+    "checkedOriginalException": true,
+    "largeCaptureOomRetainsSubscription": true
+  },
+  "metadataPerformanceScope": "One warm JIT sample per platform. Each language toggles Input validation 1000 times on the same widget with a registered owner and 256 bytes of text. Timings include the loop, callback, and assertions. Registration and text capture are outside the sample.",
+  "metadataPerformanceInputs": {
+    "sample.c": {
+      "path": "F:/xlang-validation/xge-full-20261110/edit-event-metadata-performance-r1/sample.c",
+      "sha256": "3659867babaa4374c6abba8bffc6597541c9509acb69613fced3d9f94e21ef0c"
+    },
+    "sample.h": {
+      "path": "F:/xlang-validation/xge-full-20261110/edit-event-metadata-performance-r1/sample.h",
+      "sha256": "d114f8c651efec422be43cf78ad4b0ae69d43026a15350de5c1dbb67fdfdb718"
+    },
+    "sample.xl": {
+      "path": "F:/xlang-validation/xge-full-20261110/edit-event-metadata-performance-r1/sample.xl",
+      "sha256": "28d29611f049140dd19c317aa7cbbc2ccbe320df34c89681bdc460344cb11354"
+    }
+  },
+  "platforms": {
+    "win": {
+      "nativeSource": {
+        "path": "F:/xlang-validation/xge-full-20261110/edit-event-native-source-win-r2.json",
+        "sha256": "902ff479783d6527aeeac3c8ce954e374a49519bf26822a854f88d611a4279a0"
+      },
+      "declarationReplay": {
+        "path": "F:/xlang-validation/xge-full-20261110/edit-event-stage-win-r5/replay/stage-report.json",
+        "sha256": "c3c610bb2c1a190651f736be6dd128bad5530dba780472a6f82a9119b2ae2720"
+      },
+      "jitAndAotWithImports": {
+        "path": "F:/xlang-validation/xge-full-20261110/edit-event-verify-win-r1/results.json",
+        "sha256": "77bd269cea9538341cc423332b5a60646e643e064d3d39f80bd6a10119c0e1bf"
+      },
+      "nativeLegacyContractO0O2": {
+        "path": "F:/xlang-validation/xge-full-20261110/edit-event-native-verify-win-r1/results.json",
+        "sha256": "2b19ac308f3863528381651cba806fb96788c896964504be61bf247a600acc01"
+      },
+      "nativeConsumerAudit": {
+        "path": "F:/xlang-validation/xge-full-20261110/edit-event-consumers-win-r3/results.json",
+        "sha256": "59f4309f3b2621634d0997e71f6563cd2532d0ee45701b54dd80e4084d35b38b"
+      },
+      "example": {
+        "path": "F:/xlang-validation/xge-full-20261110/edit-event-example-win-r1.log",
+        "sha256": "0cb81ce680e318457224129164aace667107ca58f17be32285a936a39b62322a"
+      },
+      "metadataPerformanceLog": {
+        "path": "F:/xlang-validation/xge-full-20261110/edit-event-metadata-performance-r1/win/results.log",
+        "sha256": "0b69dae9cab4c6fd1ee7c46f466029822a3c4fa9af573ae5627486e6f04da88d"
+      },
+      "metadataPerformanceSamples": [
+        {
+          "language": "C",
+          "xrtAlloc": 0,
+          "xrtFree": 0,
+          "xrtRealloc": 0,
+          "wallMs": 0.3885
+        },
+        {
+          "language": "xlang",
+          "xrtAlloc": 0,
+          "xrtFree": 0,
+          "xrtRealloc": 0,
+          "wallMs": 3.1417
+        }
+      ],
+      "widgetLayoutLogs": [
+        {
+          "path": "F:/xlang-validation/xge-full-20261110/edit-event-widget-layout-r1/tabs-close-win.log",
+          "sha256": "fabdf3a951a39c3de650e89302d836464cba2c5b00d263807803fb1d7389f5de"
+        },
+        {
+          "path": "F:/xlang-validation/xge-full-20261110/edit-event-widget-layout-r1/edit-event-win.log",
+          "sha256": "fabdf3a951a39c3de650e89302d836464cba2c5b00d263807803fb1d7389f5de"
+        }
+      ],
+      "functionPopulation": 5884,
+      "directDeclarations": 4822,
+      "pendingConsumerOrReplacement": {
+        "XGE": 34,
+        "XUI": 67
+      }
+    },
+    "linux": {
+      "nativeSource": {
+        "path": "//wsl.localhost/Ubuntu/var/tmp/xlang-validation/xge-full-20261110/edit-event-native-source-linux-r2.json",
+        "sha256": "612e8980cb425676542307386f68c3a13d0c9badd237d0700286a6399bdf6236"
+      },
+      "declarationReplay": {
+        "path": "//wsl.localhost/Ubuntu/var/tmp/xlang-validation/xge-full-20261110/edit-event-stage-linux-r5/replay/stage-report.json",
+        "sha256": "3e0f40270b384364bafbbe0255f53e33362d962a897c408475cec90fdfa687aa"
+      },
+      "jitAndAotWithImports": {
+        "path": "//wsl.localhost/Ubuntu/var/tmp/xlang-validation/xge-full-20261110/edit-event-verify-linux-r1/results.json",
+        "sha256": "bf2c6e1d3b666ce66f33209087fa3271602b19cfdc823981003ec2365d79e1a0"
+      },
+      "nativeLegacyContractO0O2": {
+        "path": "//wsl.localhost/Ubuntu/var/tmp/xlang-validation/xge-full-20261110/edit-event-native-verify-linux-r1/results.json",
+        "sha256": "ac1dade446f6fc62b44dc6a87b468cd5cfe30eae9278b6ae041b979dd977f816"
+      },
+      "nativeConsumerAudit": {
+        "path": "//wsl.localhost/Ubuntu/var/tmp/xlang-validation/xge-full-20261110/edit-event-consumers-linux-r3/results.json",
+        "sha256": "e2c4b6c383e524e30db0c6a8808af6a7af3f9c03c00f1ad6a27898ce6ad81b3b"
+      },
+      "example": {
+        "path": "F:/xlang-validation/xge-full-20261110/edit-event-example-linux-r1.log",
+        "sha256": "0cb81ce680e318457224129164aace667107ca58f17be32285a936a39b62322a"
+      },
+      "metadataPerformanceLog": {
+        "path": "//wsl.localhost/Ubuntu/var/tmp/xlang-validation/xge-full-20261110/edit-event-metadata-performance-linux-r1/results.log",
+        "sha256": "273e85396a28cbe5397f8f7f05af37bf53fa74d6ffa1747da8aedada939aa51c"
+      },
+      "metadataPerformanceSamples": [
+        {
+          "language": "C",
+          "xrtAlloc": 0,
+          "xrtFree": 0,
+          "xrtRealloc": 0,
+          "wallMs": 0.1788
+        },
+        {
+          "language": "xlang",
+          "xrtAlloc": 0,
+          "xrtFree": 0,
+          "xrtRealloc": 0,
+          "wallMs": 2.2119
+        }
+      ],
+      "widgetLayoutLogs": [
+        {
+          "path": "F:/xlang-validation/xge-full-20261110/edit-event-widget-layout-r1/linux.log",
+          "sha256": "b96ea89ec1b3d4678a5aff4012fd580b6d10aab065b029d801c7324c3f24928f"
+        }
+      ],
+      "functionPopulation": 5884,
+      "directDeclarations": 4822,
+      "pendingConsumerOrReplacement": {
+        "XGE": 34,
+        "XUI": 67
+      }
+    }
+  }
+}

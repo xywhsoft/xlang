@@ -1,5 +1,37 @@
 # Native consumers in the full API inventory
 
+## Managed edit notifications
+
+`Widget.setEditEvent(captureText, callback)` registers an owned native
+notification handler. It covers changes to text, selection, validation,
+commit, cancel and composition as exposed by the widget's editing adapter.
+Event views expire at callback return. A handler can replace its registration
+while the original closure remains alive for the current call.
+
+The callback sees byte counts and selection and composition offsets. For
+Input and TextEdit, opt-in capture stabilizes the available text before the
+callback runs, and `text()` copies it to an independent string. A CodeEdit
+event can report its document byte count with absent text. It does not
+flatten its document for this callback.
+
+The tests cover exceptions from notifications whose producers ignore the
+return status, allocation failure for a large capture, and replacement
+with a legacy C handler. The supplied example observes an Input selection
+without opening a window. Native Widget layout probes retain the original
+2,208-byte size on Windows and Linux x64.
+
+Windows and Linux pass JIT and dynamic and static AOT. In each warm JIT
+sample, 1,000 Input validation notifications with metadata only perform
+zero XRT heap operations in either language. Including the loop and
+callback, C/xlang take 0.39/3.14 ms on Windows and 0.18/2.21 ms on Linux.
+The Document projection and Terminal input paths require separate runtime
+coverage.
+
+The matched inventories cover 5,884 functions with 4,822 direct declarations.
+The remaining 101 entries comprise 34 XGE and 67 XUI functions.
+
+[Managed edit notification evidence](../dev/release-materials/provenance/xui-edit-event-owned-20261124.json)
+
 ## Nine-patch style
 
 `xge.ninePatchStyleDefault()` provides the defaults of

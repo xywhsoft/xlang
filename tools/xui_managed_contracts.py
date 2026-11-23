@@ -162,6 +162,9 @@ METHODS = {'xuiResourceFind': ['xui_resource xuiResourceFind(xui_context pContex
  'xuiEditGetSelection': ['int xuiEditGetSelection(xui_widget pWidget, int* pStart, int* pEnd)',
                          'Widget',
                          ['extern "xuiEditGetSelection" @no_raise @c_outputs(1,2) @c_status(0) func editGetSelection() as (c_int,c_int)']],
+ 'xuiEditSetEventOwned': ['int xuiEditSetEventOwned(xui_widget widget, bool captureText, xui_edit_event_proc callback, void* user, const xui_callback_owner_t* owner)',
+                          'Widget',
+                          ['extern "xuiEditSetEventOwned" @no_raise @c_owned_callback(1,0,"xui_callback_owner_t",-16) @c_result("status",0) func setEditEvent(bool captureText,EditEventProc? callback)']],
  'xuiTabsAddPage': ['int xuiTabsAddPage(xui_widget pWidget, const char* sTitle, xui_widget* ppPage)',
                     'Tabs',
                     ['extern "xuiTabsAddPage" @no_raise @c_cstr(0) @c_result("status",0) @c_null(2,"xui_widget*") func addPage(string title)']],
@@ -665,6 +668,10 @@ CALLBACKS = {'xui_accessibility_event_proc': ('typedef void (*xui_accessibility_
                                  'export typedef RadioGroupChangeProc = func(Widget,Widget?,c_int)')}
 
 CALLBACKS.update({
+    'xui_edit_event_proc': (
+        'typedef int (*xui_edit_event_proc)(xui_widget_t* pWidget, const xui_edit_event_t* pEvent, void* pUser);',
+        'export typedef EditEventProc = func(CallbackWidget,CallbackConstEditEvent) as c_int',
+    ),
     'xui_tabs_close_proc': (
         'typedef void (*xui_tabs_close_proc)(xui_widget_t* pWidget, int iIndex, void* pUser);',
         'export typedef TabsCloseProc = func(CallbackWidget,c_int)',
@@ -1437,6 +1444,21 @@ METHODS["xuiWidgetRegisterTypeOwned"] = ['int xuiWidgetRegisterTypeOwned(xui_con
     ['extern "xuiWidgetRegisterTypeOwned" @no_raise @c_pack(2,"xui_widget_type_desc_t",0,12) @c_pack_size(2,"iSize","uint32_t") @c_pack_callback_group(2,"pUser",3,"optional") @c_pack_field(2,"sName",0,"c_string") @c_pack_field(2,"pParent",1,"view_raw") @c_pack_field(2,"iFlags",2,"value") @c_pack_field(2,"onInit",3,"owned_callback") @c_owned_callback(3,-1,"xui_callback_owner_t",-16,"last") @c_pack_field(2,"onDestroy",4,"owned_callback") @c_owned_callback(4,-1,"xui_callback_owner_t",0,"last") @c_pack_field(2,"onContentMeasure",5,"owned_callback") @c_owned_callback(5,-1,"xui_callback_owner_t",-16,"last") @c_pack_field(2,"onLayoutPrepare",6,"owned_callback") @c_owned_callback(6,-1,"xui_callback_owner_t",-16,"last") @c_pack_field(2,"onLayoutChildren",7,"owned_callback") @c_owned_callback(7,-1,"xui_callback_owner_t",-16,"last") @c_pack_field(2,"onLayoutComplete",8,"owned_callback") @c_owned_callback(8,-1,"xui_callback_owner_t",-16,"last") @c_pack_field(2,"onCacheRender",9,"owned_callback") @c_owned_callback(9,-1,"xui_callback_owner_t",-16,"last") @c_pack_field(2,"onUpdate",10,"owned_callback") @c_owned_callback(10,-1,"xui_callback_owner_t",-16,"last") @c_pack_field(2,"onQueryCursor",11,"owned_callback") @c_owned_callback(11,-1,"xui_callback_owner_t",-16,"last") @c_result("owner_view",0) @factory(1,0,rollbackWidgetType) func registerWidgetTypeWithCallbacks(string name,WidgetType? parent=null,c_uint flags=0,WidgetTypeInitProc? initialize=null,WidgetTypeDestroyProc? destroy=null,WidgetTypeMeasureProc? measure=null,WidgetTypeLayoutPrepareProc? prepareLayout=null,WidgetTypeLayoutChildrenProc? layoutChildren=null,WidgetTypeLayoutCompleteProc? completeLayout=null,WidgetTypeRenderProc? render=null,WidgetTypeUpdateProc? update=null,WidgetTypeCursorProc? queryCursor=null) as WidgetType']]
 
 VIEW_FUNCTIONS = {'xuiGetLanguage': 'int xuiGetLanguage(xui_context pContext)', 'xuiRequestClose': 'int xuiRequestClose(xui_context pContext)'}
+VIEW_FUNCTIONS['xuiEditEventGetTextView'] = 'int xuiEditEventGetTextView(const xui_edit_event_t* event, xstrview* output)'
+
+VIEWS['CallbackConstEditEvent'] = """
+export extern "const xui_edit_event_t*" class CallbackConstEditEvent @header("xge3_runtime.h") @lifetime("callback")
+ native point handle
+ extern "iType" @c_field get kind() as c_int
+ extern "iTextSize" @c_field get textSize() as c_int
+ extern "iSelectionStart" @c_field get selectionStart() as c_int
+ extern "iSelectionEnd" @c_field get selectionEnd() as c_int
+ extern "iCompositionStart" @c_field get compositionStart() as c_int
+ extern "iCompositionEnd" @c_field get compositionEnd() as c_int
+ extern "bValid" @c_field get valid() as c_int
+ extern "xuiEditEventGetTextView" @no_raise @c_output(1,0) @c_output_view(1,"text") func text() as string?
+end
+""".strip()
 VIEW_FUNCTIONS['xuiTreeViewValueOutputSet'] = 'int xuiTreeViewValueOutputSet(xui_tree_view_value_output_t* pOutput, xvalue* pValue)'
 VIEWS['CallbackTreeViewValueOutput'] = '''export extern "xui_tree_view_value_output_t*" class CallbackTreeViewValueOutput @header("xge3_runtime.h") @lifetime("callback")
  native point handle
@@ -1816,6 +1838,7 @@ REPLACED = {
     'xuiCodeEditHitTestDiagnostic': ('xui.CodeEdit.hitTestDiagnostic', 'xuiCodeEditFindDiagnostic'),
     'xuiCodeEditGetFindScope': ('xui.Context.getCodeFindScope', 'xuiContextGetCodeFindScope'),
     'xuiEditGetText': ('xui.Widget.editGetText','xuiEditGetTextView'),
+    'xuiEditSetEvent': ('xui.Widget.setEditEvent','xuiEditSetEventOwned'),
     'xuiCodeEditGetText': ('xui.CodeEdit.getText','xuiCodeEditGetTextView'),
     'xuiCodeEditSetDiagnosticHover': ('xui.CodeEdit.setDiagnosticHover','xuiCodeEditSetDiagnosticHoverOwned'),
     'xuiCodeEditSetTokenStyleResolver': ('xui.CodeEdit.setTokenStyleResolver','xuiCodeEditSetTokenStyleResolverOwned'),
@@ -2267,6 +2290,7 @@ def extend(context,classes,free,callback_declarations,mapped):
     mapped['xuiTableColumnSetupSetFormatter']='xui.CallbackTableColumnSetup.setFormatter'
     mapped['xuiTableColumnSetupSetRenderer']='xui.CallbackTableColumnSetup.setRenderer'
     mapped.update(xuiEventDragData='xui.CallbackConstEvent.dragData',xuiRequestClose='xui.CallbackContext.requestClose')
+    mapped['xuiEditEventGetTextView']='xui.CallbackConstEditEvent.text'
 
 
 def managed_units(path):

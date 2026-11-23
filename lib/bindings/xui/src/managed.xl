@@ -473,6 +473,20 @@ export typedef SplitLayoutChangeProc = func(Widget,c_int)
 export typedef TabsSelectProc = func(Widget,c_int)
 export typedef TabsCloseProc = func(CallbackWidget,c_int)
 
+export extern "const xui_edit_event_t*" class CallbackConstEditEvent @header("xge3_runtime.h") @lifetime("callback")
+ native point handle
+ extern "iType" @c_field get kind() as c_int
+ extern "iTextSize" @c_field get textSize() as c_int
+ extern "iSelectionStart" @c_field get selectionStart() as c_int
+ extern "iSelectionEnd" @c_field get selectionEnd() as c_int
+ extern "iCompositionStart" @c_field get compositionStart() as c_int
+ extern "iCompositionEnd" @c_field get compositionEnd() as c_int
+ extern "bValid" @c_field get valid() as c_int
+ extern "xuiEditEventGetTextView" @no_raise @c_output(1,0) @c_output_view(1,"text") func text() as string?
+end
+
+export typedef EditEventProc = func(CallbackWidget,CallbackConstEditEvent) as c_int
+
 export typedef TabsContextProc = func(Widget,c_int,c_float,c_float) as c_int
 
 export typedef AccordionSelectProc = func(Widget,c_int,c_int)
@@ -1613,6 +1627,8 @@ export extern "xui_widget_t*" class Widget @header("xge3_runtime.h") @lifetime("
  extern "xuiEditSetText" @no_raise @c_cstr(0) func editSetText(string sText) as c_int
 
  extern "xuiEditGetTextView" @no_raise @c_output(1,0) @c_output_view(1,"text") func editGetText() as string?
+
+ extern "xuiEditSetEventOwned" @no_raise @c_owned_callback(1,0,"xui_callback_owner_t",-16) @c_result("status",0) func setEditEvent(bool captureText,EditEventProc? callback)
 
  extern "xuiEditSetSelection" @no_raise func editSetSelection(c_int iStart,c_int iEnd) as c_int
 
