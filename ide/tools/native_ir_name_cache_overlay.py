@@ -19,7 +19,8 @@ PINS={
  'xl6IrCleanupEnclosingCallable':'28761d28fc4a81ddb99e5b02b6555a83c973e1ba712aa0a7f7ee119b5b9b037e',
  'xlsIrImplicitTargetAllowed':'2c3f0ef1a15887bc3049968bf92fcb24a99221a960dad992ca7c6f3cf369a5f8',
 }
-NODE_FIELDS={'declarationOwnerType','flags','kind','parent','sourceKind','storageType','symbol','targetSymbol','text','type','typeValueTarget','valueCategory'}
+NODE_FIELDS={'declarationOwnerType','flags','kind','parent','sourceKind','storageType','symbol','targetSymbol','text','typeValueTarget','valueCategory'}
+ENTRY_FIELDS={'kind','symbol','targetSymbol','typeValueTarget','valueCategory','storageType','text'}
 TYPE_FIELDS={'kind','nominalSymbol'}
 OUTPUT_FIELDS={'implicitNameAbi','implicitReceiverType','implicitFieldDeclaration'}
 
@@ -41,8 +42,14 @@ def derive(source,header,field_helper):
  if calls!=PINS.keys():raise ValueError('Native name-cache transitive closure changed')
  fields={v['name']:v for v in record(clean(header),'XL6_IrNode')}
  helpers='\n'.join(b for n,b in bodies.items()if n!='xl6IrBuildImplicitNameAbis')
- observed=set(re.findall(r'->(\w+)',helpers))&fields.keys()
+ observed=set()
+ for name,b in bodies.items():
+  if name=='xl6IrBuildImplicitNameAbis':continue
+  for alias in re.findall(r'const\s+XL6_IrNode\s*\*\s*(\w+)',b):observed.update(re.findall(r'\b'+alias+r'->(\w+)',b))
  if observed!=NODE_FIELDS or OUTPUT_FIELDS&observed:raise ValueError('Native name input/output disjointness changed')
+ entry=bodies['xl6IrClassifyImplicitNameAbi']+'\n'+bodies['xlsIrImplicitTargetAllowed']
+ if set(re.findall(r'\bname->(\w+)',entry))!=ENTRY_FIELDS or 'name->text[0]'not in entry:
+  raise ValueError('Native name entry projection changed')
  for name in NODE_FIELDS|OUTPUT_FIELDS:
   f=fields[name]
   if f['extent']is not None or(f['pointers']and(name!='text'or f['pointers']!=1 or f['type']!='char')):raise ValueError('Native name field shape changed: '+name)
@@ -64,8 +71,12 @@ def derive(source,header,field_helper):
   if name in('xl6IrClassifyImplicitNameAbi','xlsClassifyOriginal_xl6IrClassifyImplicitNameAbi'):
    if 'const XL6_IrNode* name = xl6IrNodeGet(module, id);'in body:body=once(body,'const XL6_IrNode* name = xl6IrNodeGet(module, id);','const XL6_IrNode* name = xlsNamesEntryGet(module,id);')
    else:body=once(body,'const XL6_IrNode* name = xl6IrNodeGet(module,id);','const XL6_IrNode* name = xlsNamesEntryGet(module,id);')
+  if name=='xlsClassifyOriginal_xl6IrClassifyImplicitNameAbi':
+   # The entry only consumes scalar admission facts and text nonemptiness.
+   # Upgrade before any ancestor/full-spelling/class-field-dependent work.
+   body=once(body,'    callableId = xl6IrCleanupEnclosingCallable(module, id);','    name = xlsNamesNodeGet(module,id);\n    callableId = xl6IrCleanupEnclosingCallable(module, id);')
   body=re.sub(r'\b('+'|'.join(PINS)+r')(?=\s*\()',lambda m:names[m[1]],body)
   if not body.startswith('static '):body='static '+body
   prototypes.append(body[:body.index('{')].rstrip()+';');generated.append(body)
  projection='#define XLS_NAME_CACHE_NODE_FIELDS(V,T) '+''.join(('T'if n=='text'else'V')+'('+n+') 'for n in sorted(NODE_FIELDS))+'\n'
- return projection+'\n'.join(prototypes+generated)+'\n',dict(functions=PINS,nodeFields=sorted(NODE_FIELDS),queriedTypeFields=sorted(TYPE_FIELDS),outputFields=sorted(OUTPUT_FIELDS),outputsDisjointFromInputs=True,directNodeReaders=sorted(direct),scope='Post-field-binding native implicit-name phase;exact IDs;no ordinary integration')
+ return projection+'\n'.join(prototypes+generated)+'\n',dict(functions=PINS,nodeFields=sorted(NODE_FIELDS),entryFields=sorted(ENTRY_FIELDS),entryText='nonempty only;heavy path upgrades to full projection',queriedTypeFields=sorted(TYPE_FIELDS),outputFields=sorted(OUTPUT_FIELDS),outputsDisjointFromInputs=True,inputsStableDuringPhase=True,directNodeReaders=sorted(direct),scope='Post-field-binding native implicit-name phase;exact IDs;no ordinary integration')

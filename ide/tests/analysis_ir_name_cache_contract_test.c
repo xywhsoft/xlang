@@ -38,9 +38,9 @@ static int nameReaderCheck(name_reader* reader)
  for(unsigned pass=0;pass<3;++pass){
   XL6_DiagList d;xl6DiagInit(&d);xls_ir_pipeline_status status;xls_ir_native_pipeline* b=xlsIrNativePipelineCreate(&status);CHECK(b);xls_ir_name_cache* next=NULL;xls_ir_name_cache_work work;
   CHECK(!xlsNamesActiveTrace&&xlsIrNativePipelinePrepare(b,reader->root,&d,0,&status));
-  xls_ir_input_trace outer={.failed=1,.reads=123};xlsNamesActiveTrace=&outer;
+  xls_name_trace outer={.input={.failed=1,.reads=123}};xlsNamesActiveTrace=&outer;
   int okay=xlsIrNativePipelineFinishCachedNames(b,&d,reader->previous,16u*1024u*1024u,&next,&work,&status);
-  CHECK(xlsNamesActiveTrace==&outer&&outer.failed==1&&outer.reads==123&&!b->names);xlsNamesActiveTrace=NULL;
+  CHECK(xlsNamesActiveTrace==&outer&&outer.input.failed==1&&outer.input.reads==123&&!b->names);xlsNamesActiveTrace=NULL;
   CHECK(okay&&next&&work.reused&&!d.count);char* actual=dump(&b->module);CHECK(actual&&!strcmp(actual,reader->expected));xrtFree(actual);xlsIrNameCacheDestroy(next);xlsIrNativePipelineDestroy(b);xl6DiagFree(&d);
  }
  return 1;
@@ -91,9 +91,54 @@ static int layoutInputs(const char* path)
  xrtFree(expected);xrtFree(actual);xlsIrNativePipelineDestroy(b[0]);xl6DiagFree(&d);return 1;
 }
 
+static int lateMismatch(const char* path)
+{
+ ++probePaused;xls_semantic_check* model=checked(path,nameResourceSource);--probePaused;CHECK(model&&xlsSemanticCheckInfo(model).accepted);
+ XL6_DiagList d;xl6DiagInit(&d);xls_ir_pipeline_status status;xls_ir_native_pipeline* b[2];xls_ir_name_cache* previous=NULL;
+ b[0]=xlsIrNativePipelineCreate(&status);CHECK(b[0]&&xlsIrNativePipelinePrepare(b[0],xlsSemanticCheckAst(model),&d,0,&status)&&xlsIrNativePipelineFinishCachedNames(b[0],&d,NULL,16u*1024u*1024u,&previous,NULL,&status)&&previous);xlsIrNativePipelineReset(b[0]);
+ const XL6_IrModule* reference=xlsSemanticCheckIr(model);XL6_IrNodeId id=0;
+ for(size_t i=0;i<reference->nodeCount;++i)if(reference->nodes[i].implicitNameAbi==XL6_IR_IMPLICIT_NAME_CLASS_FIELD&&reference->nodes[i].text&&!strcmp(reference->nodes[i].text,"item"))id=(XL6_IrNodeId)(i+1);
+ CHECK(id);const xls_name_unit* selected=NULL;size_t typeReads=0;
+ for(size_t i=0;i<previous->units.Count;++i){
+  const xls_name_unit* u=*(xls_name_unit*const*)xrtArrayConstGet(&previous->units,i);CHECK(u);
+  unsigned char* nodes=xrtCalloc(reference->nodeCount+1,1);unsigned char* types=xrtCalloc(reference->types.count+1,1);CHECK(nodes&&types);size_t covered=0;
+  for(size_t j=0;j<u->reads;++j){xls_ir_input_read v=u->ids[j];
+   if(v.kind==1){if(v.id&&v.id<=reference->types.count){CHECK(!types[v.id]);types[v.id]=1;++typeReads;}}
+   else{CHECK(v.id&&v.id<=reference->nodeCount&&!nodes[v.id]);nodes[v.id]=1;if(v.id>u->first&&v.id<=u->end)++covered;}
+  }
+  CHECK(covered==u->end-u->first);xrtFree(nodes);xrtFree(types);
+  if(id>u->first&&id<=u->end)selected=u;
+ }
+ CHECK(selected&&selected->reads>64&&typeReads);
+ b[1]=xlsIrNativePipelineCreate(&status);CHECK(b[1]);
+ for(unsigned k=0;k<2;++k){CHECK(xlsIrNativePipelinePrepare(b[k],xlsSemanticCheckAst(model),&d,0,&status));while(xlsIrNativePipelinePhase(b[k])<18)CHECK(xlsIrNativePipelineAdvance(b[k],&d,&status));}
+ char* saved[2];for(unsigned k=0;k<2;++k){saved[k]=b[k]->module.nodes[id-1].text;b[k]->module.nodes[id-1].text="faux";}
+ for(size_t i=selected->first;i<selected->end;++i){b[0]->module.nodes[i].implicitNameAbi=(XL6_IrImplicitNameAbi)UINT32_MAX;b[0]->module.nodes[i].implicitReceiverType=UINT32_MAX;b[0]->module.nodes[i].implicitFieldDeclaration=UINT32_MAX;}
+ unsigned char* key=xrtMalloc(16u*1024u*1024u);CHECK(key);xls_ir_input_trace trace={.module=&b[0]->module,.key=key,.capacity=16u*1024u*1024u};
+ /* Same-sized changed spelling is rejected by the final input comparison,
+  * after restored values have actually overwritten the sentinel slots. */
+ CHECK(!xlsNameMatchesApply(&trace,selected,selected->first,selected->end,&b[0]->module));size_t touched=0;
+ for(size_t i=selected->first;i<selected->end;++i)touched+=b[0]->module.nodes[i].implicitNameAbi!=(XL6_IrImplicitNameAbi)UINT32_MAX;
+ CHECK(touched&&b[0]->module.nodes[id-1].implicitNameAbi==reference->nodes[id-1].implicitNameAbi);
+ xls_name_build cached={.previous=previous,.limit=16u*1024u*1024u};xls_ir_type_resource_scope resources={.previous=xlsActiveTypeResource};xlsActiveTypeResource=&resources;
+ int okay=xlsNamePhase(&b[0]->module,&cached);xlsActiveTypeResource=resources.previous;CHECK(okay&&!resources.failed&&cached.next&&cached.work.checked&&cached.work.reused);
+ CHECK(xl6IrBuildImplicitNameAbis(&b[1]->module));size_t changed=0;
+ for(size_t i=0;i<reference->nodeCount;++i){const XL6_IrNode* a=b[0]->module.nodes+i;const XL6_IrNode* c=b[1]->module.nodes+i;
+  CHECK(a->implicitNameAbi==c->implicitNameAbi&&a->implicitReceiverType==c->implicitReceiverType&&a->implicitFieldDeclaration==c->implicitFieldDeclaration);
+  changed+=a->implicitNameAbi!=reference->nodes[i].implicitNameAbi||a->implicitReceiverType!=reference->nodes[i].implicitReceiverType||a->implicitFieldDeclaration!=reference->nodes[i].implicitFieldDeclaration;
+ }
+ CHECK(changed);xlsIrNameCacheDestroy(cached.next);xrtFree(key);
+ for(unsigned k=0;k<2;++k){b[k]->module.nodes[id-1].text=saved[k];xlsIrNativePipelineDestroy(b[k]);}
+ /* The borrowed cache remains usable after a failed fused match and miss. */
+ b[0]=xlsIrNativePipelineCreate(&status);CHECK(b[0]&&xlsIrNativePipelinePrepare(b[0],xlsSemanticCheckAst(model),&d,0,&status));xls_ir_name_cache* next=NULL;xls_ir_name_cache_work work;
+ CHECK(xlsIrNativePipelineFinishCachedNames(b[0],&d,previous,16u*1024u*1024u,&next,&work,&status)&&next&&work.reused&&!work.checked&&!d.count);
+ char* expected=dump(reference);xlsSemanticCheckDestroy(model);xlsIrNameCacheDestroy(previous);xlsIrNameCacheDestroy(next);char* actual=dump(&b[0]->module);CHECK(expected&&actual&&!strcmp(expected,actual));
+ xrtFree(expected);xrtFree(actual);xlsIrNativePipelineDestroy(b[0]);xl6DiagFree(&d);return 1;
+}
+
 static int contractTests(void)
 {
- CHECK(!xlsIrNameCacheFixtureMain());char* path=xrtPathAbs("call-cache-contract-中文.xl");CHECK(path);CHECK(privateContexts(path));CHECK(layoutInputs(path));CHECK(concurrent(path));xrtFree(path);CHECK(xrtAtomic32Load(&poisoned,XMEMORY_RELAXED)>0);return 1;
+ CHECK(!xlsIrNameCacheFixtureMain());char* path=xrtPathAbs("name-cache-contract-中文.xl");CHECK(path);CHECK(privateContexts(path));CHECK(layoutInputs(path));CHECK(lateMismatch(path));CHECK(concurrent(path));xrtFree(path);CHECK(xrtAtomic32Load(&poisoned,XMEMORY_RELAXED)>0);return 1;
 }
 #else
 static int contractTests(void){return 1;}

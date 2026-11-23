@@ -12,6 +12,8 @@ typedef struct xls_ir_name_cache_work {
  * *out must be NULL;publication requires the complete native verifier.
  * Retained metadata and separate phase scratch each have limit<=16MiB.
  * Zero disables caching;optional allocation failures use native production.
+ * No class layouts uses native production without cache metadata. Scratch is
+ * shape-sized within the cap;oversized input keys may decline capture.
  * Exact IDs/common structure may reject reuse. Not full final-function IR. */
 int xlsIrNativePipelineFinishCachedNames(xls_ir_native_pipeline*,XL6_DiagList*,
  const xls_ir_name_cache*,size_t limit,xls_ir_name_cache** out,

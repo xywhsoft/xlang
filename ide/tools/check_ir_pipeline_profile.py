@@ -92,7 +92,8 @@ def main():
             except ValueError:pass
             else:raise AssertionError('Changed direct entry projection admitted')
         record['cases'].append('changed-direct-entry-projection-rejected')
-        names=pipeline['nameCache'];assert len(names['functions'])==10 and len(names['nodeFields'])==12 and len(names['queriedTypeFields'])==2
+        names=pipeline['nameCache'];assert len(names['functions'])==10 and len(names['nodeFields'])==11 and len(names['queriedTypeFields'])==2
+        assert set(names['entryFields'])==name_adapter.ENTRY_FIELDS and names['inputsStableDuringPhase']
         assert set(names['outputFields'])==name_adapter.OUTPUT_FIELDS and names['outputsDisjointFromInputs']
         record['cases'].append('complete-post-field-name-read-write-closure')
         with patch.object(name_adapter,'PINS',{k:v for k,v in name_adapter.PINS.items()if k!='xlsIrImplicitTargetAllowed'}):
@@ -110,6 +111,11 @@ def main():
             except ValueError:pass
             else:raise AssertionError('Changed classifier wrapper admitted')
         record['cases'].append('changed-name-classifier-wrapper-rejected')
+        with patch.object(name_adapter,'ENTRY_FIELDS',name_adapter.ENTRY_FIELDS|{'parent'}):
+            try:adapter.derive(original,args.frontend,out)
+            except ValueError:pass
+            else:raise AssertionError('Changed scalar/nonempty name entry projection admitted')
+        record['cases'].append('changed-name-entry-projection-rejected')
         record.update(status='passed',generatedSha256=hashlib.sha256(Path(pipeline['generated']).read_bytes()).hexdigest());print(json.dumps(dict(status='passed',cases=len(record['cases']))))
     finally:(out/'result.json').write_text(json.dumps(record,indent=2)+'\n')
 if __name__=='__main__':main()
