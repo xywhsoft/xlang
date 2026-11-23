@@ -1,5 +1,6 @@
 // 点击文档编辑文字；事务先创建初始段落，编辑器随后持有文档。
 import xui
+from xui import CallbackWidget, CallbackConstEditEvent
 from "./_window.xl" import Window
 
 Window.show("文档编辑器", func(xui.Context ui, xui.Widget root)
@@ -17,6 +18,17 @@ Window.show("文档编辑器", func(xui.Context ui, xui.Widget root)
 
   auto editor = xui.createDocumentEditor(ui, document)
   Window.place(root, editor, 24, 24, 680, 360)
+
+  auto status = ui.labelNative()
+  status.setText("编辑文档后，这里会显示 UTF-8 字节数。")
+  Window.place(root, status, 24, 400, 680, 32)
+  // 只读取字节数，编辑事件无需复制文档正文。
+  editor.setEditEvent(false, func(CallbackWidget widget, CallbackConstEditEvent event) as c_int
+   if event.kind == xui.XUI_EDIT_EVENT_TEXT_CHANGED then
+    status.setText("文档字节数：" + string(int(event.textSize)))
+   end
+   return xui.XUI_OK
+  end)
  finally
   // 编辑器保留原生文档引用；这里释放创建者自己的引用。
   document.close()

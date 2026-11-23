@@ -199,7 +199,7 @@ WebView 范例只加载源码中的本地 HTML。它需要启用 WebView2 的 Wi
 | [cascader.xl](cascader.xl) | 按父项下标建立选择树，用各项的值选中“开发 / 编辑器”。 |
 | [widget.xl](widget.xl) | Widget 是透明的布局节点；移动 group 的位置会一起移动它的子控件。 |
 | [label.xl](label.xl) | 两个 Label 对应两行文字；Label 用于显示文字，不接收文本输入。 |
-| [documenteditor.xl](documenteditor.xl) | 点击文档编辑文字；事务先创建初始段落，编辑器随后持有文档。 |
+| [documenteditor.xl](documenteditor.xl) | 编辑文字、选择和撤销；通过编辑事件更新 UTF-8 字节数。 |
 | [msgbox.xl](msgbox.xl) | 打开确认框；点击确定或取消，结果显示在窗口中。 |
 | [msgtip.xl](msgtip.xl) | 点击按钮，短提示显示两秒后自行消失。 |
 | [toast.xl](toast.xl) | 每次点击增加一条通知；通知可以堆叠，也可点击关闭。 |

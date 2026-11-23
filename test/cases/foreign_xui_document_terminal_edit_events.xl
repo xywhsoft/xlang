@@ -1,0 +1,191 @@
+import xui
+from xui import CallbackWidget, CallbackConstEditEvent
+
+extern "fixtureInputProxy" @header("test/cases/foreign_xui_input_extended.h") @no_raise @c_result("owned_view") @factory(0,0,releaseProxy) func cpuProxy() as xui.Proxy
+extern "xuiProxyReleaseChecked" @header("xge3_runtime.h") @no_raise @c_result("status",0) func releaseProxy(xui.Proxy proxy)
+extern "fixtureLayoutFont" @no_raise @c_result("owned_view") @factory(1,0,releaseFont) func cpuFont(xui.Proxy proxy) as xui.Font
+extern "xuiFontReleaseChecked" @header("xge3_runtime.h") @no_raise @c_result("status",0) func releaseFont(xui.Font font)
+extern "fixtureInputBudget" @no_raise func budget(c_int allowance)
+extern "fixtureInputCleanupCheck" @no_raise func checkCleanup()
+extern "xrtMemDebugFailTriggered" @header("xrt_decl.h") @no_raise func failureTriggered() as bool
+
+func checkExpired(CallbackConstEditEvent event)
+    bool expired = false
+    try
+        auto result = event.text()
+    catch StateError
+        expired = true
+    end
+    assert expired, "the saved event view expires"
+end
+
+func checkDocument(xui.Context ui)
+    auto document = xui.createDocument(profile=c_uint(xui.XUI_DOCUMENT_MARKDOWN))
+    document.loadMarkdown("a中b\n")
+    auto editor = xui.createDocumentEditor(ui, document, mode=xui.XUI_DOC_SOURCE_TEXT)
+    assert ui.setRootWidget(editor) == xui.XUI_OK
+    assert ui.update(0) == xui.XUI_OK
+
+    int selections = 0
+    editor.setEditEvent(false, func(CallbackWidget widget, CallbackConstEditEvent event) as c_int
+        if event.kind == xui.XUI_EDIT_EVENT_SELECTION_CHANGED then
+            assert event.selectionStart == c_int(1) and event.selectionEnd == c_int(4), "source selection uses byte offsets"
+            assert event.textSize == c_int(6) and event.text() == null, "source byte count is available without capture"
+            selections += 1
+        end
+        return xui.XUI_OK
+    end)
+    assert editor.editSetSelection(1, 4) == xui.XUI_OK
+    assert ui.update(0) == xui.XUI_OK and selections == 1, "Document update dispatches the selection notification"
+
+    CallbackConstEditEvent? saved = null
+    string captured = ""
+    string replacement = "A\0中B\n"
+    editor.setEditEvent(true, func(CallbackWidget widget, CallbackConstEditEvent event) as c_int
+        if event.kind == xui.XUI_EDIT_EVENT_TEXT_CHANGED then
+            assert event.textSize == c_int(7), "the captured source length includes NUL"
+            saved = event
+            editor.setEditEvent(false, null)
+            document.loadMarkdown("changed again\n")
+            auto first, last = editor.editGetSelection()
+            captured = event.text() as string
+        end
+        return xui.XUI_OK
+    end)
+    assert editor.editSetSelection(0, 6) == xui.XUI_OK
+    editor.insertText(replacement)
+    assert ui.update(0) == xui.XUI_OK
+    assert captured == replacement, "reentrant Document edits preserve the counted snapshot"
+    checkExpired(saved as CallbackConstEditEvent)
+    assert ui.update(0) == xui.XUI_OK
+
+    auto warm = editor.editGetText()
+    assert (warm as string) == "changed again\n"
+    int captures = 0
+    editor.setEditEvent(true, func(CallbackWidget widget, CallbackConstEditEvent event) as c_int
+        assert (event.text() as string) == "changed again\n"
+        captures += 1
+        return xui.XUI_OK
+    end)
+    assert editor.editSetSelection(1, 2) == xui.XUI_OK
+    bool rejected = false
+    bool hit = false
+    budget(0)
+    try
+        auto status = ui.update(0)
+    catch Error
+        rejected = true
+    finally
+        hit = failureTriggered()
+        budget(-1)
+    end
+    assert rejected and hit and captures == 0, "Document capture allocation failure is reported before notification"
+    assert ui.update(0) == xui.XUI_OK and captures == 1, "the failed capture is retried on the next update"
+
+    editor.setEditEvent(false, func(CallbackWidget widget, CallbackConstEditEvent event) as c_int
+        throw RangeError "document edit event failed"
+    end)
+    assert editor.editSetSelection(0, 1) == xui.XUI_OK
+    bool received = false
+    try
+        auto status = ui.update(0)
+    catch RangeError failure
+        received = failure.message == "document edit event failed"
+    end
+    assert received, "Document update preserves the original callback error"
+    editor.close()
+    document.close()
+end
+
+func checkVisualDocument(xui.Context ui)
+    auto document = xui.createDocument(profile=c_uint(xui.XUI_DOCUMENT_MARKDOWN))
+    document.loadMarkdown("a中b\n")
+    auto editor = xui.createDocumentEditor(ui, document)
+    assert ui.setRootWidget(editor) == xui.XUI_OK
+    assert ui.update(0) == xui.XUI_OK
+    int selections = 0
+    editor.setEditEvent(false, func(CallbackWidget widget, CallbackConstEditEvent event) as c_int
+        if event.kind == xui.XUI_EDIT_EVENT_SELECTION_CHANGED then
+            assert event.selectionStart == c_int(1) and event.selectionEnd == c_int(4)
+            assert event.textSize >= c_int(5) and event.text() == null
+            selections += 1
+        end
+        return xui.XUI_OK
+    end)
+    assert editor.editSetSelection(1, 4) == xui.XUI_OK
+    assert ui.update(0) == xui.XUI_OK and selections == 1, "visual Document reports metadata from its plain-text projection"
+    editor.close()
+    document.close()
+end
+
+func checkTerminal(xui.Context ui)
+    auto terminal = ui.terminalNative()
+    terminal.resize(8, 3)
+    assert terminal.writeText("ab中\r\ncd") == xui.XUI_OK
+    assert terminal.flush() == xui.XUI_OK
+    assert ui.setRootWidget(terminal) == xui.XUI_OK
+    assert ui.setFocusWidget(terminal) == xui.XUI_OK
+    assert ui.dispatchPendingEvents() == xui.XUI_OK
+
+    int selections = 0
+    CallbackConstEditEvent? saved = null
+    terminal.setEditEvent(true, func(CallbackWidget widget, CallbackConstEditEvent event) as c_int
+        if event.kind == xui.XUI_EDIT_EVENT_SELECTION_CHANGED then
+            assert event.selectionStart == c_int(2) and event.selectionEnd == c_int(10)
+            assert event.textSize == c_int(0) and event.text() == null
+            saved = event
+            selections += 1
+        end
+        return xui.XUI_OK
+    end)
+    assert terminal.editSetSelection(2, 10) == xui.XUI_OK and selections == 1, "Terminal selection offsets are row times columns plus column"
+    auto first, last = terminal.editGetSelection()
+    assert first == c_int(2) and last == c_int(10)
+    checkExpired(saved as CallbackConstEditEvent)
+
+    int compositions = 0
+    terminal.setEditEvent(true, func(CallbackWidget widget, CallbackConstEditEvent event) as c_int
+        assert event.kind == xui.XUI_EDIT_EVENT_COMPOSITION_CHANGED
+        if compositions == 0 then
+            assert event.textSize == c_int(3) and event.compositionEnd == c_int(3)
+            assert (event.text() as string) == "中"
+        else
+            assert event.textSize == c_int(0) and event.text() == null
+        end
+        compositions += 1
+        return xui.XUI_OK
+    end)
+    ui.inputImeCompositionEx("中", 1, 3, 0, 3)
+    assert ui.dispatchPendingEvents() == xui.XUI_OK and compositions == 1, "real IME input queue delivers the preedit text"
+    ui.inputImeCompositionEx("", 0)
+    assert ui.dispatchPendingEvents() == xui.XUI_OK and compositions == 2, "IME cancel clears the preedit"
+
+    terminal.setEditEvent(false, func(CallbackWidget widget, CallbackConstEditEvent event) as c_int
+        throw RangeError "terminal edit event failed"
+    end)
+    bool received = false
+    try
+        terminal.clearSelection()
+    catch RangeError failure
+        received = failure.message == "terminal edit event failed"
+    end
+    assert received, "Terminal selection operation delivers the original exception"
+    terminal.close()
+end
+
+func main(...) as int
+    auto proxy = cpuProxy()
+    auto ui = xui.create(proxy, xui.XUI_SYSTEM_FONT_DISABLED)
+    auto font = cpuFont(proxy)
+    ui.setDefaultFont(font)
+    ui.setViewportSize(480, 320)
+    checkDocument(ui)
+    checkVisualDocument(ui)
+    checkTerminal(ui)
+    ui.close()
+    font.close()
+    proxy.close()
+    checkCleanup()
+    println("XUI_DOCUMENT_TERMINAL_EDIT_EVENTS_OK")
+    return 0
+end

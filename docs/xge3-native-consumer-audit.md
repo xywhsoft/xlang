@@ -24,8 +24,20 @@ Windows and Linux pass JIT and dynamic and static AOT. In each warm JIT
 sample, 1,000 Input validation notifications with metadata only perform
 zero XRT heap operations in either language. Including the loop and
 callback, C/xlang take 0.39/3.14 ms on Windows and 0.18/2.21 ms on Linux.
-The Document projection and Terminal input paths require separate runtime
-coverage.
+
+Document source-mode metadata uses the source byte count and selection offsets
+without flattening the source. Visual mode uses the plain-text projection.
+Opt-in capture keeps one counted copy for the update's notifications, including
+embedded NUL bytes. The snapshot stays readable if the handler replaces itself
+and edits the document again. If capture cannot allocate, the pending notification
+is retried on the next update and the failure reaches the checked caller.
+
+The Terminal adapter reports selection offsets as row times the column count
+plus column. The input queue sends counted IME preedit text and clears it on
+cancel. The Document and Terminal tests also cover expired views and propagation
+of the original callback error. Both platforms pass JIT and dynamic and static AOT.
+
+[Document and Terminal event evidence](../dev/release-materials/provenance/xui-document-terminal-edit-events-20261124.json)
 
 The matched inventories cover 5,884 functions with 4,822 direct declarations.
 The remaining 101 entries comprise 34 XGE and 67 XUI functions.
