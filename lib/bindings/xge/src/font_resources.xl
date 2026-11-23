@@ -2,6 +2,7 @@
 // independent native refs; closing one view cannot invalidate another owner.
 export extern "xge_font_face" class FontFace @header("xge3_font_resources.h") @lifetime("owned") @policy("xl6Xge3FontFacePolicy")
  native point handle
+ extern "xgeFontFaceShareOwned" @no_raise @c_result("owned_view") @factory(1,0,freeFontFace) func share() as FontFace
  extern "xgeFontFaceGetInfo" @no_raise @c_output(1,0) @c_output_size(1,"iSize") func info() as FontFaceInfo
  extern "xgeFontCreateOwned" @no_raise @c_result("owned_view") @factory(0,0,freeFont) @c_pack(2,"xge_font_instance_desc_t",0,2) @c_pack_size(2,"iSize","uint32_t") @c_pack_field(2,"fPixelSize",0,"value") @c_pack_field(2,"iFlags",1,"value") func createFont(c_float size,c_uint flags=0) as Font
  extern "xl6ForeignViewCloseV1" @no_raise @c_control(0) @c_result("bool_status") func close()

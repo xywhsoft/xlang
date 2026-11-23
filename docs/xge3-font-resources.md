@@ -13,7 +13,7 @@ Font 的度量、缓存、字形索引／码点查询、图集查询、测量／
 Family 的 `addFace` 保留原生引用；`resolve(weight=400,stretch=100,slant=0)` 直接
 调用 ResolveEx 并取得新的原生引用。正常 stretch 的调用覆盖旧 Resolve 的功能。
 关闭输入 Face、Family 或已解析 Face，都不会提前释放 Font 仍在使用的数据。
-原生 add-ref/free 由资源合同承接，不额外公开重复的手动引用计数方法。
+公开的共享引用可以通过 `share()` 取得，由 `close()` 释放。
 
 Font 增加 `metrics/cacheStats/clearCache/glyph/glyphByIndex/atlasGlyph/atlasGlyphByIndex`，
 查询结果是独立的精确值记录。`measureText/drawTextRect` 沿用原生 C 字符串语义；
@@ -57,6 +57,21 @@ provider 回调失败、状态错误及非预期诊断不能变成成功；调�
 字节的自行生成字体，无系统字体依赖。它从示例目录运行，观察输出并显式清理。
 验收夹具还在禁止新 XRT 分配的条件下重复进行度量和字形查询。
 最终源码和构建／运行证据见 `xge-font-resources-20261111.json` 小索引。
+
+## 字体引用共享
+
+`FontFace.share()` 和 `Font.share()` 返回指向同一原生对象的独立拥有视图。
+任一视图关闭后，其余视图仍可使用。Font 的原生共享入口在引用计数变更前检查
+图形资源归属和创建线程。同一个 Font 只计为一个引擎资源，最后一份原生引用
+释放后可重试 `xge.unit()`。FontFace 使用原子引用计数，并独立于引擎。
+
+生成代码直接调用 `xgeFontFaceShareOwned` 和 `xgeFontShareOwned`。故障注入
+验证了创建语言视图失败时源引用仍可用，且引擎资源计数能归零。Linux 的专项
+用例和字体示例通过完整 O2 编译器的 JIT、动态 AOT 和静态 AOT。一次热 JIT
+对照中，两条路径各执行 256 次循环，每次共享并关闭一份 FontFace 和一份 Font。
+C 循环无 XRT 堆操作，xlang 循环共分配并释放 1,024 次。两条路径均无重分配。
+
+[Linux 共享引用验收](../dev/release-materials/provenance/xge-font-share-linux-20261124.json)
 
 ## 单字形矢量轮廓
 

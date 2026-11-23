@@ -12,8 +12,11 @@ func main(...) as int
 
  auto selected=family.resolve()
  family.close()
- auto font=selected.createFont(c_float(20))
+ auto original=selected.createFont(c_float(20))
  selected.close() // The font now keeps the font data alive.
+
+ auto font=original.share()
+ original.close() // The second reference keeps the same font instance alive.
 
  auto metrics=font.metrics()
  auto letter=font.glyph(c_uint(65)) // Unicode code point for A.

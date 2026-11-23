@@ -57,6 +57,10 @@ treating it as fully qualified. The normal runtime/IDE has not been replaced.
 
 `examples/font_faces.xl` uses the bundled generated font to show native Face,
 Family, Font creation and value queries. Run it from the examples directory.
+`FontFace.share()` and `Font.share()` create independently closeable views of
+the same native objects. The native functions retain the existing object.
+`Font` remains graphics-thread bound. Shared views of one Font keep its single
+engine shutdown obligation alive until the last native reference is released.
 Family stretch uses the native percentage scale (normal=100). Font bytes are
 copied once by the native loader; the language adds its common checked resource
 control. Glyph-run/bitmap and full audio acceptance remain separate work; see

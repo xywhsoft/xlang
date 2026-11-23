@@ -1,5 +1,17 @@
 # Native consumers in the full API inventory
 
+## Shared font references
+
+`Font.share()` and `FontFace.share()` directly call the checked native sharing
+functions. FontFace and FontFamily close policies call their native release
+entries. The Linux O2 candidate passes JIT, dynamic AOT, static AOT and the
+font example. Its inventory has 5,886 functions and 4,825 direct declarations.
+The remaining entries comprise 22 XGE and 65 XUI functions. Windows acceptance
+is pending for this candidate.
+
+[Font ownership and costs](xge3-font-resources.md)
+[Linux font sharing evidence](../dev/release-materials/provenance/xge-font-share-linux-20261124.json)
+
 ## Counted find and replace
 
 `xui.replaceAllText()` takes a string, bytes or Buffer and returns the complete

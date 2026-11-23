@@ -51,6 +51,8 @@ export extern "xge_texture_t*" class Texture @header("xge3_runtime.h") @lifetime
 end
 export extern "xge_font" class Font @header("xge3_runtime.h") @lifetime("owned") @policy("xl6Xge3FontPolicy")
  native point handle
+ // The returned view owns another reference to this same graphics-thread Font.
+ extern "xgeFontShareOwned" @no_raise @c_result("owned_view") @factory(1,0,freeFont) func share() as Font
  extern "fSize" @c_field get size() as c_float
  extern "xgeTextDraw" @c_cstr(0) func drawText(string text,c_float x,c_float y,c_uint color)
  extern "xgeTextMeasure" @no_raise @c_cstr(0) func measureText(string text) as Vec2

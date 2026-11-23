@@ -116,6 +116,8 @@ REPLACED = {
     'xgeImeSetTextClient': ('xge.setImeTextClient', 'xgeImeSetTextClientOwned'),
     'xgeInputEventPost': ('xge.postInputEvent', 'xgeInputEventPostData'),
     'xgeTextureAddRef': ('xge.Texture.share', 'xgeTextureShareOwned'),
+    'xgeFontAddRef': ('xge.Font.share', 'xgeFontShareOwned'),
+    'xgeFontFaceAddRef': ('xge.FontFace.share', 'xgeFontFaceShareOwned'),
     'xgeShaderAddRef': ('xge.Shader.share', 'xgeShaderShareOwned'),
     'xgeRenderTargetAddRef': ('xge.RenderTarget.share', 'xgeRenderTargetShareOwned'),
     'xgeShaderCreate': ('xge.createShader', 'xgeShaderCreateOwned'),

@@ -64,6 +64,10 @@ AUDIO_RESOURCE_CLOSES = {
     'xgeMusicFree': ('xge.Music.close', 'xl6Xge3SoundDestroy', 'xgeSoundFreeChecked'),
     'xgeStreamClose': ('xge.AudioStream.close', 'xl6Xge3SoundDestroy', 'xgeSoundFreeChecked'),
 }
+FONT_RESOURCE_CLOSES = {
+    'xgeFontFaceFree': ('xge.FontFace.close', 'xl6Xge3FontFacePolicyDestroy', 'xgeFontFaceFree'),
+    'xgeFontFamilyFree': ('xge.FontFamily.close', 'xl6Xge3FontFamilyPolicyDestroy', 'xgeFontFamilyFree'),
+}
 INPUT_ACTION_CLOSES = {
     symbol: ('xge.Actions.close', 'xl6Xge3ActionsDestroy', 'xgeActionsFreeChecked')
     for symbol in ('xgeActionsFree', 'xgeActionsFreeChecked')
@@ -71,6 +75,7 @@ INPUT_ACTION_CLOSES = {
 RESOURCE_CLOSE_GROUPS = {
     'renderResourceHeaderPolicies': ('xge-render-resource-header-policies', RENDER_RESOURCE_CLOSES),
     'audioResourceHeaderPolicies': ('xge-audio-resource-header-policies', AUDIO_RESOURCE_CLOSES),
+    'fontResourceHeaderPolicies': ('xge-font-resource-header-policies', FONT_RESOURCE_CLOSES),
     'inputActionHeaderPolicies': ('xge-input-action-header-policies', INPUT_ACTION_CLOSES),
 }
 RESOURCE_CLOSES = {

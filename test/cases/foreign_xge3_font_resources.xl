@@ -5,6 +5,9 @@ extern "fixtureXgeFontPath" @header("test/cases/foreign_xge3_font_resources.h") 
 extern "fixtureXgeFontTemp" @header("test/cases/foreign_xge3_font_resources.h") func fixtureTemp() as string
 extern "fixtureXgeFontHotBegin" @header("test/cases/foreign_xge3_font_resources.h") @no_raise func hotBegin() as c_int
 extern "fixtureXgeFontHotEnd" @header("test/cases/foreign_xge3_font_resources.h") @no_raise func hotEnd() as c_int
+extern "fixtureXgeFontShareSampleBegin" @header("test/cases/foreign_xge3_font_resources.h") @no_raise func shareSampleBegin()
+extern "fixtureXgeFontShareSampleEnd" @header("test/cases/foreign_xge3_font_resources.h") @no_raise func shareSampleEnd(c_int language)
+extern "fixtureXgeFontShareSampleC" @header("test/cases/foreign_xge3_font_resources.h") @no_raise func shareSampleC(xge.FontFace face,xge.Font font)
 func checkDrawing(string path)
  auto context=xge.createEglContext(64,64,true)
  auto face=xge.loadFontFace(path)
@@ -39,6 +42,58 @@ func checkDrawing(string path)
  assert xge.graphicsResourceCount()==uint64(0)
  println("font queued GPU rendering passed: ",painted)
 end
+func checkFontShares(string path)
+ auto face=xge.loadFontFace(path)
+ auto sourceHash=face.info().iSourceHash
+ bool faceOOM=false
+ assert hotBegin()==c_int(1)
+ try
+  auto unexpected=face.share()
+  unexpected.close()
+ catch Error
+  faceOOM=true
+ end
+ assert hotEnd()==c_int(0) and faceOOM
+ auto retainedFace=face.share()
+ face.close()
+ assert retainedFace.info().iSourceHash==sourceHash
+
+ auto font=retainedFace.createFont(c_float(18))
+ shareSampleC(retainedFace,font)
+ shareSampleBegin()
+ for i in range(256)
+  auto faceRef=retainedFace.share()
+  faceRef.close()
+  auto fontRef=font.share()
+  fontRef.close()
+ end
+ shareSampleEnd(c_int(1))
+ retainedFace.close()
+ bool fontOOM=false
+ assert hotBegin()==c_int(1)
+ try
+  auto unexpected=font.share()
+  unexpected.close()
+ catch Error
+  fontOOM=true
+ end
+ assert hotEnd()==c_int(0) and fontOOM
+ auto retainedFont=font.share()
+ font.close()
+ assert xge.graphicsResourceCount()==uint64(1)
+ bool busy=false
+ try
+  xge.unit()
+ catch error
+  assert error.code==xge.XGE_ERROR_BUSY
+  busy=true
+ end
+ assert busy and retainedFont.metrics().fPixelSize==c_float(18)
+ retainedFont.close()
+ assert xge.graphicsResourceCount()==uint64(0)
+ println("XGE_FONT_SHARE_OK")
+end
+
 func main(...) as int
  string path=fixturePath()
  assert path.length>0
@@ -127,6 +182,7 @@ func main(...) as int
  assert sized.metrics().fPixelSize==c_float(24)
  sized.close()
  assert xge.graphicsResourceCount()==uint64(0)
+ checkFontShares(path)
  if xge.eglCapsGet().bCompiled!=c_int(0) then
   checkDrawing(path)
  end
