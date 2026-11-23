@@ -11,6 +11,17 @@ The previous `flowGraphWidgetNative` / `workflowWidgetNative` names are replaced
 by those two names. Advanced C interop can still pass the declared nullable
 native descriptor pointer. This is not a new safe model-descriptor API.
 
+Use `FlowGraphWidget.setGraph()` or `WorkflowWidget.setWorkflow()` to install
+an existing managed model. The canvas takes its own reference, so the caller
+can close its reference after installation. `getGraph()` and `getWorkflow()`
+return independent references that survive canvas closure. `Workflow.graph()`
+also returns an independent graph reference. The creation-time C descriptors
+remain available for advanced interop.
+
+The current Windows and Linux SDKs passed the ownership and diagnostics tests
+in JIT, dynamic AOT and static AOT. See the
+[current verification record](../dev/release-materials/provenance/xui-flow-workflow-audit-20261123.json).
+
 The short examples are [flow_canvas.xl](../lib/bindings/xui/examples/flow_canvas.xl)
 and [workflow_canvas.xl](../lib/bindings/xui/examples/workflow_canvas.xl). Each
 creates a label and a canvas; a right click updates the label with coordinates.
@@ -79,7 +90,7 @@ on the actual operating systems. This is a qualified delta, not a new full
 native rebuild. The pinned XRT is the qualified `41bc2457…` header; it does not
 establish that the latest upstream XRT working tree has been synchronized.
 
-## Remaining integration boundaries
+## Remaining integration boundaries at the initial canvas qualification
 
 Standalone safe Graph/Workflow model objects, shared model references,
 long-lived model aliases, implicit reference-cycle retirement and safe owning

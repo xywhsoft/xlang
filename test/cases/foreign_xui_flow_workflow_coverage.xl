@@ -1,0 +1,92 @@
+import xui
+
+extern "flowWorkflowCompareDiagnostics" @header("foreign_xui_flow_workflow_coverage.h") @no_raise @c_cstr(1) @c_data_snapshot(2) func compareDiagnostics(xui.Workflow workflow,string kind,var config,var report) as c_int
+extern "xrtMemDebugFailAfter" @header("xrt_decl.h") @no_raise func failAfter(c_size allowance) as bool
+extern "xrtMemDebugFailTriggered" @header("xrt_decl.h") @no_raise func failTriggered() as bool
+extern "xrtMemDebugFailClear" @header("xrt_decl.h") @no_raise func clearBudget()
+
+func checkOom(func() action)
+    bool failed = false
+    bool injected = false
+    assert failAfter(0)
+    try
+        action()
+    catch Error
+        failed = true
+    finally
+        injected = failTriggered()
+        clearBudget()
+    end
+    assert failed and injected
+end
+
+func checkFlowGraph(xui.Context context)
+    auto canvas = context.flowGraphWidget()
+    auto original = canvas.getGraph()
+    auto replacement = xui.createFlowGraph()
+    assert replacement.addNode("replacement") == 0
+    canvas.setGraph(replacement)
+    replacement.close()
+    checkOom(func()
+        auto unexpected = canvas.getGraph()
+        unexpected.close()
+    end)
+    auto installed = canvas.getGraph()
+    canvas.close()
+    assert original.nodeCount == 0 and installed.findNode("replacement") == 0
+    original.close()
+    installed.close()
+end
+
+func checkWorkflow(xui.Context context)
+    auto canvas = context.workflowWidget()
+    auto original = canvas.getWorkflow()
+    auto replacement = xui.createWorkflow()
+    var schema = xui.createWorkflowSchema()
+    xui.addWorkflowSchemaField(schema,"quantity","Quantity",xui.XUI_WORKFLOW_CONFIG_FIELD_INT,1,0,null,1,10)
+    xui.addWorkflowSchemaField(schema,"label","Label",xui.XUI_WORKFLOW_CONFIG_FIELD_STRING,1)
+    array<string> ids = []
+    array<string?> labels = []
+    array<c_int> values = []
+    replacement.registerNodeType("order",1,"Order",null,null,null,
+        ids,labels,labels,values,values,values,values,values,0,
+        ids,labels,labels,values,values,values,values,values,0,schema)
+    assert replacement.addNode("order","n1") == 0
+    canvas.setWorkflow(replacement)
+    replacement.close()
+    checkOom(func()
+        auto unexpected = canvas.getWorkflow()
+        unexpected.close()
+    end)
+    auto installed = canvas.getWorkflow()
+    checkOom(func()
+        auto unexpected = installed.graph()
+        unexpected.close()
+    end)
+    auto graph = installed.graph()
+    var config = {"quantity":5}
+    checkOom(func()
+        installed.validateConfigReport("order",config)
+    end)
+    var report = installed.validateConfigReport("order",config)
+    assert installed.validateConfig("order",config) == compareDiagnostics(installed,"order",config,report)
+    canvas.close()
+    assert original.nodeCount == 0 and installed.nodeCount == 1
+    original.close()
+    installed.close()
+    assert graph.findNode("n1") == 0
+    graph.close()
+    assert report[0].path == "quantity" and report[0].code == "range.min"
+    assert report[1].path == "label" and report[1].code == "required"
+end
+
+func main(...) as int
+    auto proxy = xui.createProxy()
+    auto context = xui.create(proxy,xui.XUI_SYSTEM_FONT_DISABLED)
+    checkFlowGraph(context)
+    checkWorkflow(context)
+    context.close()
+    proxy.close()
+    println("XUI_FLOW_WORKFLOW_COVERAGE_OK")
+    return 0
+end

@@ -1,5 +1,25 @@
 # Native consumers in the full API inventory
 
+## FlowGraph and Workflow model ownership
+
+The managed factories create shared model records. `FlowGraphWidget.getGraph()`,
+`WorkflowWidget.getWorkflow()` and `Workflow.graph()` return independent owners.
+The canvas setters acquire their own references. The compiled close policies
+call the checked owner-release entries. The compiled canvas trace code visits
+one edge for a managed model and traces the values of a legacy owning slot
+before promotion.
+
+`Workflow.validateConfigReport()` returns owned diagnostics in schema order.
+The runtime fixture compares paths, codes and messages against the fixed-array
+C API and checks the legacy capacity limit. It also exercises both model
+replacements, independent release and failed allocations on the managed paths.
+
+These findings cover 18 previously unresolved entries. The matched inventories
+cover 5,868 native functions, with 133 entries still outstanding. XGE accounts
+for 59 and XUI for 74.
+
+[FlowGraph and Workflow verification](../dev/release-materials/provenance/xui-flow-workflow-audit-20261123.json)
+
 ## XUI resource sharing
 
 `Proxy`, `Font`, `Surface`, `TextShape` and `DrawContext` expose a checked

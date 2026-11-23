@@ -1,0 +1,162 @@
+{
+  "schema": 1,
+  "scope": "FlowGraph and Workflow owned models, canvas slots and config diagnostics",
+  "nativeCommit": "3d0ac21d0cde9b531ec42f92a2419f65de30e3e2",
+  "shippingDelivery": false,
+  "networkTests": false,
+  "checks": {
+    "canvasReferenceSurvivesClosingCaller": true,
+    "aliasSurvivesClosingCanvas": true,
+    "graphSurvivesClosingWorkflow": true,
+    "oomPreservesModels": true,
+    "diagnosticsMatchLegacyPathCodeMessageAndOrder": true,
+    "fixedCapacityLegacyCountVerified": true,
+    "staticAotHasNoEngineOrCompilerLibraryImport": true
+  },
+  "languageSources": {
+    "tools/check_xge3_native_consumers.py": "6e8dcad8d684e5eedaea2a8c07b60e8b19843eec1b7acb729bfcc2a528a4d516",
+    "tools/xui_managed_contracts.py": "206578c1d12ab225906b3a5559268a032bdcf34a223ca9c51a9dd640ab3eaa80",
+    "test/cases/foreign_xui_flow_workflow_coverage.xl": "3ffd817dfd58b799f254447ded81417c02ad1e38de1cf143baf04caffcfe6361",
+    "test/cases/foreign_xui_flow_workflow_coverage.c": "eec65d5e91328280f56fe890c8ad79d0b799ddc394fe10f52a24b9d52a141e1d",
+    "test/cases/foreign_xui_flow_workflow_coverage.h": "c3b54078cc44cff5e296f77b17c9b9b112970bf0c20b58fffc34b6b7230dab74",
+    "lib/bindings/xui/examples/workflow_model.xl": "f88f1a7239449c2f9fa4d25cc79c141b65780f2ec5aeb6f81f3f6d48e235762e"
+  },
+  "platforms": {
+    "win": {
+      "nativeConsumerAudit": {
+        "path": "F:/xlang-validation/xge-full-20261110/flow-workflow-consumers-win-r1/results.json",
+        "sha256": "dbf15243da40fac9869779f5b831ae1c81dbfa525f8ad505e8a2b31a93912a0a"
+      },
+      "previousAudit": {
+        "path": "F:/xlang-validation/xge-full-20261110/xui-resource-sharing-consumers-win-r2/results.json",
+        "sha256": "c9489c6372b9105bcd5a11f08cdd4a36ed8298c53f9c18cd1607fd06763a0138"
+      },
+      "languageJitDynamicStaticAot": {
+        "path": "F:/xlang-validation/xge-full-20261110/flow-workflow-verify-win-r3/results.json",
+        "sha256": "87be20397dc2947c11559cdf5f2f240cedcea4bbb4a6a1e932e011ce864a0742"
+      },
+      "exampleJitDynamicStaticAot": {
+        "path": "F:/xlang-validation/xge-full-20261110/flow-workflow-verify-win-r2/results.json",
+        "sha256": "1270ac2231d7feddb1f5e1beae0903917c4dec449864bfc229411727114f8c4b"
+      },
+      "functions": 5868,
+      "directDeclarations": 4803,
+      "pendingConsumerOrReplacement": {
+        "XGE": 59,
+        "XUI": 74
+      },
+      "ownershipWitnesses": {
+        "src/xui/workflow/xui_flow_graph_widget.c": {
+          "object": "F:\\xlang-validation\\xge-full-20261110\\flow-workflow-consumers-win-r1\\xui_flow_graph_widget-lifetime.o",
+          "objectSha256": "59e0b7bf561961d193440b3269997e4877428ad5103269785985e2045f8e6872",
+          "nativeCalls": {
+            "__xuiFlowGraphWidgetTraceOwnership": [
+              "xuiFlowGraphIsOwned",
+              "xuiFlowGraphOwnership",
+              "xuiFlowGraphTraceOwnedValues"
+            ]
+          }
+        },
+        "src/xui/workflow/xui_workflow_widget.c": {
+          "object": "F:\\xlang-validation\\xge-full-20261110\\flow-workflow-consumers-win-r1\\xui_workflow_widget-lifetime.o",
+          "objectSha256": "c1447c488f1cd8433ef0185847f08101e3f886a4c2eb3ad77ccb418cbc456243",
+          "nativeCalls": {
+            "__xuiWorkflowWidgetTraceSlot": [
+              "xuiWorkflowIsOwned",
+              "xuiWorkflowOwnership",
+              "xuiWorkflowTraceOwnedValues"
+            ]
+          }
+        }
+      },
+      "reviewedSymbols": [
+        "xuiFlowGraphCreate",
+        "xuiFlowGraphDestroy",
+        "xuiFlowGraphDestroyChecked",
+        "xuiFlowGraphIsOwned",
+        "xuiFlowGraphReleaseChecked",
+        "xuiFlowGraphTraceOwnedValues",
+        "xuiFlowGraphWidgetGetGraph",
+        "xuiFlowGraphWidgetSetGraph",
+        "xuiWorkflowCreate",
+        "xuiWorkflowDestroy",
+        "xuiWorkflowDestroyChecked",
+        "xuiWorkflowGetGraph",
+        "xuiWorkflowIsOwned",
+        "xuiWorkflowReleaseChecked",
+        "xuiWorkflowTraceOwnedValues",
+        "xuiWorkflowValidateConfigEx",
+        "xuiWorkflowWidgetGetWorkflow",
+        "xuiWorkflowWidgetSetWorkflow"
+      ]
+    },
+    "linux": {
+      "nativeConsumerAudit": {
+        "path": "//wsl.localhost/Ubuntu/var/tmp/xlang-validation/xge-full-20261110/flow-workflow-consumers-linux-r1/results.json",
+        "sha256": "943b5a830124c54c21ca3bcde746d884c1091db874ea2c62282943fbe37c94d6"
+      },
+      "previousAudit": {
+        "path": "//wsl.localhost/Ubuntu/var/tmp/xlang-validation/xge-full-20261110/xui-resource-sharing-consumers-linux-r2/results.json",
+        "sha256": "72b2ef9eb8e2a46a9dc616c882642adf743bda3fd53b45658bf6bc8faf291d50"
+      },
+      "languageJitDynamicStaticAot": {
+        "path": "//wsl.localhost/Ubuntu/var/tmp/xlang-validation/xge-full-20261110/flow-workflow-verify-linux-r3/results.json",
+        "sha256": "32054526f56c02cf9f5f5078f8801f9cf52d5b953efd41d0304daf99becb4071"
+      },
+      "exampleJitDynamicStaticAot": {
+        "path": "//wsl.localhost/Ubuntu/var/tmp/xlang-validation/xge-full-20261110/flow-workflow-verify-linux-r2/results.json",
+        "sha256": "cf52df112912f51d640a194394f6607deedc46eaa1589d66a38631cef5f6266c"
+      },
+      "functions": 5868,
+      "directDeclarations": 4803,
+      "pendingConsumerOrReplacement": {
+        "XGE": 59,
+        "XUI": 74
+      },
+      "ownershipWitnesses": {
+        "src/xui/workflow/xui_flow_graph_widget.c": {
+          "object": "/var/tmp/xlang-validation/xge-full-20261110/flow-workflow-consumers-linux-r1/xui_flow_graph_widget-lifetime.o",
+          "objectSha256": "f2b878f23af22a410971e9350b92f87f66dce3852213252340b1f309d1b41880",
+          "nativeCalls": {
+            "__xuiFlowGraphWidgetTraceOwnership": [
+              "xuiFlowGraphIsOwned",
+              "xuiFlowGraphOwnership",
+              "xuiFlowGraphTraceOwnedValues"
+            ]
+          }
+        },
+        "src/xui/workflow/xui_workflow_widget.c": {
+          "object": "/var/tmp/xlang-validation/xge-full-20261110/flow-workflow-consumers-linux-r1/xui_workflow_widget-lifetime.o",
+          "objectSha256": "a8fedc3d6ea5fa4e0a7525cd82fd374ee1dd079b96ed5697707032537721751c",
+          "nativeCalls": {
+            "__xuiWorkflowWidgetTraceSlot": [
+              "xuiWorkflowIsOwned",
+              "xuiWorkflowOwnership",
+              "xuiWorkflowTraceOwnedValues"
+            ]
+          }
+        }
+      },
+      "reviewedSymbols": [
+        "xuiFlowGraphCreate",
+        "xuiFlowGraphDestroy",
+        "xuiFlowGraphDestroyChecked",
+        "xuiFlowGraphIsOwned",
+        "xuiFlowGraphReleaseChecked",
+        "xuiFlowGraphTraceOwnedValues",
+        "xuiFlowGraphWidgetGetGraph",
+        "xuiFlowGraphWidgetSetGraph",
+        "xuiWorkflowCreate",
+        "xuiWorkflowDestroy",
+        "xuiWorkflowDestroyChecked",
+        "xuiWorkflowGetGraph",
+        "xuiWorkflowIsOwned",
+        "xuiWorkflowReleaseChecked",
+        "xuiWorkflowTraceOwnedValues",
+        "xuiWorkflowValidateConfigEx",
+        "xuiWorkflowWidgetGetWorkflow",
+        "xuiWorkflowWidgetSetWorkflow"
+      ]
+    }
+  }
+}

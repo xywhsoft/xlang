@@ -132,6 +132,16 @@ TABLE_LIFETIME_CALLS = {
         '__xuiTableGridInit': ('xuiTableGridEditorConfigOutputInit',),
     },
 }
+FLOW_LIFETIME_CALLS = {
+    'src/xui/workflow/xui_flow_graph_widget.c': {
+        '__xuiFlowGraphWidgetTraceOwnership': (
+            'xuiFlowGraphIsOwned', 'xuiFlowGraphOwnership', 'xuiFlowGraphTraceOwnedValues'),
+    },
+    'src/xui/workflow/xui_workflow_widget.c': {
+        '__xuiWorkflowWidgetTraceSlot': (
+            'xuiWorkflowIsOwned', 'xuiWorkflowOwnership', 'xuiWorkflowTraceOwnedValues'),
+    },
+}
 SEQUENCE_WITNESSES = (
     ('xge3d.MeshGeometry3D', 'vertices', 'xge3dMeshGeometryVertices', 'xge3dMeshGeometryAddRef', 'xge3dMeshGeometryReleaseChecked'),
     ('xge3d.SkinPalette3D', 'matrices', 'xge3dSkinPaletteMatrices', 'xge3dSkinPaletteAddRef', 'xge3dSkinPaletteReleaseChecked'),
@@ -388,11 +398,9 @@ def witness_build_inputs(build, audit, packages, gcc, sha, units):
     return source, metadata['flags'], pins
 
 
-def prove_table_lifetime(source, flags, bound, tools, out, run, sha):
-    assert any(item['language']=='xui.TableView.getCell' for item in bound['xuiTableViewGetCellOwned'])
-    assert any(item['language']=='xui.Context.tableGridNative' for item in bound['xuiTableGridCreate'])
+def prove_native_lifetime(source, flags, calls, tools, out, run, sha):
     evidence = {}
-    for path, expected in TABLE_LIFETIME_CALLS.items():
+    for path, expected in calls.items():
         label = Path(path).stem+'-lifetime'
         obj = out/(label+'.o')
         run(label+'-compile', [tools['gcc'],*flags,'-O0','-fno-inline','-ffunction-sections',
@@ -457,6 +465,8 @@ def main():
         help='Matching hosted engine build-report.json for Document lifetime witnesses')
     p.add_argument('--table-engine-build',type=Path,
         help='Matching hosted engine build-report.json for TableView and TableGrid lifetime witnesses')
+    p.add_argument('--flow-engine-build',type=Path,
+        help='Matching hosted engine build-report.json for FlowGraph and Workflow lifetime witnesses')
     a=p.parse_args();surface,cc,build,packages,replay,out=[v.resolve() for v in
         (a.surface,a.compiler,a.compiler_report,a.packages,a.replay_report,a.out)]
     if out.is_relative_to(packages) or out.is_relative_to(cc.parent):
@@ -479,16 +489,21 @@ def main():
         Path(__file__).with_name('check_xge3_bindings.py'),surface,cc,build,*proof,*tools.values()]
     for folder in (sdk,packages):files.extend(f for f in folder.rglob('*') if f.is_file())
     document = None
-    table_build = None
+    lifetime_builds = {}
     if a.document_engine_build:
         document_source, document_flags, evidence_inputs = witness_build_inputs(
             a.document_engine_build.resolve(),audit,packages,tools['gcc'],sha,{DOCUMENT_RENDERER_SOURCE, DOCUMENT_MODEL_SOURCE})
         files.extend(evidence_inputs)
-    if a.table_engine_build:
-        table_source, table_flags, evidence_inputs = witness_build_inputs(
-            a.table_engine_build.resolve(),audit,packages,tools['gcc'],sha,TABLE_LIFETIME_CALLS.keys())
+    for name, build_report, calls in (
+        ('tableLifetime', a.table_engine_build, TABLE_LIFETIME_CALLS),
+        ('flowLifetime', a.flow_engine_build, FLOW_LIFETIME_CALLS),
+    ):
+        if not build_report:
+            continue
+        source, build_flags, evidence_inputs = witness_build_inputs(
+            build_report.resolve(),audit,packages,tools['gcc'],sha,calls.keys())
         files.extend(evidence_inputs)
-        table_build = (table_source, table_flags)
+        lifetime_builds[name] = (source, build_flags, calls)
     inputs={str(f):sha(f) for f in files};out.mkdir(parents=True,exist_ok=False)
     report=dict(complete=False,passed=False,scope=__doc__,inputs=inputs,rows=[],objects=[],providerAliases=[],
         runtimeAcceptance=False,apiCompletenessClaim=False,shippingDelivery=False,networkTests=False,graphicsTests=False)
@@ -638,12 +653,20 @@ def main():
             report['documentLifetime'] = document
             for symbol in sorted(DOCUMENT_FONT_TAIL):
                 consumers.setdefault(symbol,[]).append(DOCUMENT_RENDERER_SOURCE)
-        if table_build:
-            report['tableLifetime'] = prove_table_lifetime(*table_build,bound,tools,out,run,sha)
-            for source_path, expected in TABLE_LIFETIME_CALLS.items():
+        if 'tableLifetime' in lifetime_builds:
+            assert any(item['language']=='xui.TableView.getCell' for item in bound['xuiTableViewGetCellOwned'])
+            assert any(item['language']=='xui.Context.tableGridNative' for item in bound['xuiTableGridCreate'])
+        if 'flowLifetime' in lifetime_builds:
+            assert any(item['language']=='xui.FlowGraphWidget.getGraph' for item in bound['xuiFlowGraphWidgetGetGraphOwned'])
+            assert any(item['language']=='xui.WorkflowWidget.getWorkflow' for item in bound['xuiWorkflowWidgetGetWorkflowOwned'])
+        for label, (source, build_flags, calls) in lifetime_builds.items():
+            report[label] = prove_native_lifetime(source,build_flags,calls,tools,out,run,sha)
+            for source_path, expected in calls.items():
                 for names in expected.values():
                     for symbol in names:
-                        consumers.setdefault(symbol,[]).append(source_path)
+                        entries = consumers.setdefault(symbol,[])
+                        if source_path not in entries:
+                            entries.append(source_path)
         for symbol,item in sorted(functions.items()):
             if item['declarationPresent']:continue
             replacement=REPLACED.get(symbol)
