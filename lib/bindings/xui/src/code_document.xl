@@ -24,6 +24,7 @@ export extern "xui_code_document_t*" class CodeDocument @header("xge3_runtime.h"
  extern "xuiCodeDocumentGetByte" @no_raise @c_output(2,0) func getByte(c_int offset) as c_char
  extern "xuiCodeDocumentCopyRange" @no_raise @c_span(2,"char*","int") @c_output(5,0) func copyRange(c_int start,c_int endOffset,Buffer output) as c_int
  extern "xuiCodeFoldCBuildDocumentRanges" @no_raise @c_span(0,"xui_code_fold_range_t*","int") @c_output(3,0) func buildCFoldRanges(Buffer? output=null) as c_int
+ extern "xuiCodeLexerCTokenizeDocumentRange" @no_raise @c_span(2,"xui_code_token_t*","int") @c_output(5,0) func tokenizeCRange(c_int firstByte=0,c_int endByte=-1,Buffer? output=null) as c_int
  extern "xuiCodeDocumentGetLastEditRange" @no_raise @c_output(1,0) func getLastEditRange() as CodeRange
  extern "xuiCodeDocumentGetLastError" @no_raise @c_result("cstring") func getLastError() as string?
  extern "xuiCodeDocumentLoadTextFile" @no_raise @c_cstr(0) @c_result("status",0) func loadTextFile(string path,c_int charset)
@@ -78,6 +79,7 @@ export extern "xui_code_document_t*" class CodeEditDocument @header("xge3_runtim
  extern "xuiCodeDocumentGetByte" @no_raise @c_output(2,0) func getByte(c_int offset) as c_char
  extern "xuiCodeDocumentCopyRange" @no_raise @c_span(2,"char*","int") @c_output(5,0) func copyRange(c_int start,c_int endOffset,Buffer output) as c_int
  extern "xuiCodeFoldCBuildDocumentRanges" @no_raise @c_span(0,"xui_code_fold_range_t*","int") @c_output(3,0) func buildCFoldRanges(Buffer? output=null) as c_int
+ extern "xuiCodeLexerCTokenizeDocumentRange" @no_raise @c_span(2,"xui_code_token_t*","int") @c_output(5,0) func tokenizeCRange(c_int firstByte=0,c_int endByte=-1,Buffer? output=null) as c_int
  extern "xuiCodeDocumentGetLastEditRange" @no_raise @c_output(1,0) func getLastEditRange() as CodeRange
  extern "xuiCodeDocumentGetLastError" @no_raise @c_result("cstring") func getLastError() as string?
  extern "xuiCodeDocumentLoadTextFile" @no_raise @c_cstr(0) @c_result("status",0) func loadTextFile(string path,c_int charset)

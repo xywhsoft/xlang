@@ -1,0 +1,19 @@
+import xui
+
+func main(...) as int
+ // Run the editor's C language tools without opening a window.
+ auto languages=xui.createCodeLanguageRegistry()
+ auto document=xui.createCodeDocument()
+ try
+  languages.loadDefaults()
+  document.setText("int main() {\n    return 0;\n}\n")
+
+  // Without an output buffer, each operation returns the total count.
+  println("Tokens:",languages.lex("c",document))
+  println("Foldable regions:",languages.fold("c",document))
+ finally
+  document.close()
+  languages.close()
+ end
+ return 0
+end

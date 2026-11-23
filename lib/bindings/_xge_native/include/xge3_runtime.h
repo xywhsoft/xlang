@@ -225,6 +225,9 @@ static inline const char* xl6Xui3TimelineSpanLabel(const xui_timeline_span_t* sp
 /* Observed editor documents and independent documents have the same C handle. */
 #define xl6Xui3PrepareEditorDocumentBatch xuiCodeDocumentBatchPrepare
 #define xl6Xui3CaptureEditorDocumentBatch xuiCodeDocumentBatchCapture
+/* Same physical prototypes, distinct xlang argument ownership policies. */
+#define xl6Xui3LexEditorDocument xuiCodeLanguageRegistryLex
+#define xl6Xui3FoldEditorDocument xuiCodeLanguageRegistryFold
 /* Separate language projections of the same checked native query. */
 #define xl6Xui3TextLayoutGetSize xuiTextLayoutGetState
 #define xl6Xui3TextLayoutGetLineCount xuiTextLayoutGetState

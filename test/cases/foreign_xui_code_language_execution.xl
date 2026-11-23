@@ -1,0 +1,132 @@
+import xui
+
+extern "fixtureDiagnosticBudget" @header("test/cases/foreign_xui_codeedit_diagnostics_heap.h") @no_raise func budget(c_int allowance)
+
+func checkSource(string source,Buffer prefix,Buffer tokens)
+ auto count=xui.tokenizeC(source)
+ assert count>4
+ assert xui.tokenizeC(source,prefix)==count
+ assert xui.tokenizeC(source,tokens)==count
+ assert prefix.toBytes()==tokens.toBytes(20)
+ assert tokens.toBytes(20)==b"\0\0\0\0\x03\0\0\0\x02\0\0\0\x02\0\0\0\0\0\0\0"
+ assert xui.tokenizeC(source,size=3)==1
+ assert xui.tokenizeC(source,size=9999)==count
+ assert xui.tokenizeCRange(source,0,-1)==count
+ assert xui.tokenizeCRange(source,0,-1,size=3)==1
+ assert xui.tokenizeCRange(source,15,24)<count
+ assert xui.tokenizeCRange(source,100,100)==0
+ assert xui.tokenizeC("int\0int")>=2
+
+ c_int untouched=99
+ auto broken=Buffer(b"abc")
+ try
+  untouched=xui.tokenizeC(source,broken)
+ catch Error
+  assert untouched==99 and broken.toBytes()==b"abc"
+ end
+ assert untouched==99
+end
+
+func checkRegex(xui.CodeLanguageRegistry languages,xui.CodeDocument document,Buffer prefix,Buffer error)
+ array<string?> names=[null]
+ array<string> patterns=["[0-9]+"]
+ array<c_int> kinds=[xui.XUI_CODE_TOKEN_NUMBER]
+ array<c_int> styles=[xui.XUI_CODE_STYLE_NUMBER]
+ array<c_uint> flags=[c_uint(0)]
+ languages.registerRegex("numeric","Numeric",["num"],-1,names,patterns,kinds,styles,flags)
+ string source="id 123\n456"
+ document.setText(source)
+ assert languages.lex("NUMERIC",document)==4
+ assert languages.lex("numeric",document,1,1,prefix,error)==1
+ assert prefix.toBytes(4)==b"\x07\0\0\0" and error.byteAt(0)==0
+ assert xui.tokenizeRegex(source,names,patterns,kinds,styles,flags)==4
+ assert xui.tokenizeRegex("123",names,patterns,kinds,styles,flags,output=prefix,diagnostic=error)==1
+ assert prefix.toBytes(8)==b"\0\0\0\0\x03\0\0\0"
+
+ int rejected=0
+ try
+  auto count=xui.tokenizeRegex(source,names,["["],kinds,styles,flags,diagnostic=error)
+ catch Error
+  rejected+=1
+ end
+ assert rejected==1 and error.byteAt(0)!=0
+ try
+  auto count=xui.tokenizeRegex(source,names,patterns,[],styles,flags)
+ catch Error
+  rejected+=1
+ end
+ try
+  auto count=languages.fold("numeric",document)
+ catch Error
+  rejected+=1
+ end
+ assert rejected==3
+end
+
+func main(...) as int
+ string source="int main() {\n return 42;\n}\n"
+ auto prefix=Buffer()
+ auto tokens=Buffer()
+ auto error=Buffer()
+ assert prefix.resize(20) and tokens.resize(260) and error.resize(128)
+ checkSource(source,prefix,tokens)
+
+ auto languages=xui.createCodeLanguageRegistry()
+ auto document=xui.createCodeDocument()
+ auto proxy=xui.createProxy()
+ auto ui=xui.create(proxy,xui.XUI_SYSTEM_FONT_DISABLED)
+ auto editor=ui.codeEditNative()
+ assert ui.setRootWidget(editor)==xui.XUI_OK
+ auto live=editor.languageRegistry()
+ auto observed=editor.document()
+ try
+  languages.loadDefaults()
+  document.setText(source)
+  observed.setText(source)
+  auto count=xui.tokenizeC(source)
+  assert document.tokenizeCRange()==count and observed.tokenizeCRange()==count
+  assert languages.lex("c",document)==count and languages.fold("c",document)==1
+  assert languages.lex("c",observed)==count and languages.fold("c",observed)==1
+  assert live.lex("c",document)==count and live.fold("c",document)==1
+  assert live.lex("c",observed)==count and live.fold("c",observed)==1
+  assert languages.lex("c",document,0,-1,prefix)==count
+  assert prefix.toBytes()==tokens.toBytes(20)
+
+  c_int untouched=99
+  budget(0)
+  try
+   untouched=languages.lex("c",document)
+  catch Error
+   assert untouched==99
+  finally
+   budget(-1)
+  end
+  assert untouched==99 and languages.lex("c",document)==count
+
+  auto worker=thread(func() as int
+   try
+    auto result=live.lex("c",observed)
+    return 1
+   catch Error
+    return 0
+   end
+  end)
+  assert worker.waitTimeout(30000) and worker.exitCode()==0
+  checkRegex(languages,document,prefix,error)
+  editor.close()
+  bool expired=false
+  try
+   auto count=languages.lex("c",observed)
+  catch StateError
+   expired=true
+  end
+  assert expired
+ finally
+  ui.close()
+  proxy.close()
+  document.close()
+  languages.close()
+ end
+ println("XUI_CODE_LANGUAGE_EXECUTION_OK")
+ return 0
+end

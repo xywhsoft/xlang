@@ -118,5 +118,18 @@ C 记录，原生端保存自己的副本。范围无效或内存分配失败时
 跨线程使用与关闭编辑器后访问视图会报 checked 错误。原生词法与折叠回调仍由
 C 调用者管理。
 
+独立注册表和编辑器注册表都可用 `lex(id, document)` 和 `fold(id, document)`
+对独立文档或编辑器文档执行已注册的语言定义。`lex` 的行号从零开始，结束行包含在内，
+`-1` 表示直到文档尾。省略输出缓冲区时只返回总数。缓冲区的字节长度必须是对应
+`CodeToken` 或 `CodeFoldRange` 原生记录大小的整数倍。只写入容得下的记录，
+返回值仍为总数。`lex` 可选的诊断
+缓冲区接收原生错误文本。失败时抛出 checked 错误，调用方应丢弃已写入的记录。
+回调执行期间，清除、关闭或再次执行同一注册表会报 Busy。
+
+`xui.tokenizeC`、`xui.tokenizeCRange` 和 `xui.tokenizeRegex` 直接处理字符串，
+适合没有编辑器文档的程序。`document.tokenizeCRange` 对现有文档处理 C 源码，
+保留区间起点处的词法状态，区间以 UTF-8 字节计，结束位置不包含在内。
+
+[无窗口词法与折叠范例](../lib/bindings/xui/examples/code_language_tools.xl) ·
 [高亮范例](../lib/bindings/xui/examples/code_editor_language.xl) ·
 [验收记录](../dev/release-materials/provenance/xui-codeedit-language-registry-20261120.json)
