@@ -1,7 +1,5 @@
-#include "analysis/ir_profile.h"
-#if XLS_EXPERIMENTAL_IR_FUNCTION_EXITS
 static int xl6IrGrow(void**,size_t*,size_t,size_t);
-/* Required type allocations only. Optional memo/index/cache allocations are
+/* Original native allocations only. Optional overlay memo/index/cache allocations are
  * not routed here. Success adds no error-state read or allocator replacement;
  * failure latches in the synchronous native build scope. */
 typedef struct xls_ir_type_resource_scope {
@@ -17,11 +15,3 @@ static char* xlsIrTypeStrDup(const char* s){return xlsIrTypePointer(xrtStrDup(s)
 static char* xlsIrTypeStrDupN(const char* s,size_t n){return xlsIrTypePointer(xrtStrDupN(s,n),s!=NULL);}
 static int xlsIrTypeGrow(void** p,size_t* capacity,size_t count,size_t width)
 {int okay=xl6IrGrow(p,capacity,count,width);if(!okay&&xlsActiveTypeResource)xlsActiveTypeResource->failed=1;return okay;}
-#else
-#define xlsIrTypeMalloc xrtMalloc
-#define xlsIrTypeCalloc xrtCalloc
-#define xlsIrTypeRealloc xrtRealloc
-#define xlsIrTypeStrDup xrtStrDup
-#define xlsIrTypeStrDupN xrtStrDupN
-#define xlsIrTypeGrow xl6IrGrow
-#endif

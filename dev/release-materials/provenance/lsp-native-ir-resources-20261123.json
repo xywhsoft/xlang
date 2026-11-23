@@ -1,0 +1,108 @@
+{
+  "schema": 1,
+  "date": "2026-11-23",
+  "stage": "M7b7p",
+  "scope": "Default0.110 native IR allocation failure stability;complete default service and paired GUI qualification before local publication",
+  "ownedSources": {
+    "ide/src/analysis/frontend_ir.inc": "a4de8ea1a7d17d414a5127447b820b2fbf9d51e3d00b073f43e0908fefbe5be4",
+    "ide/src/analysis/frontend_ir_type_resource.inc": "300b6f633de596e1c34737bf3ec8161bafa0cae3641a70a81d2e6febd2335b7a",
+    "ide/src/server/xlang_ls.c": "a19fb8239e109b4e93904749f535664b8cf0a269edb482c8deac7646bf8ed542",
+    "ide/tools/native_ir_type_resource.py": "e9fe7644b78390e4d4877fa945f48c79f7da245ba03619c86884ee585ec4b4f5",
+    "ide/tools/build_lsp_core.py": "566a9de4dccf7e32a4bd51a896d018acc8ebb34e505fab3fa39d14e90f3f908e",
+    "ide/tools/check_ir_function_exit_profile.py": "2cd28fcadceac6d0e52562d2b07f4644f9b6524f01445ac84e2d21121bdfedd3",
+    "ide/tests/analysis_ir_type_resource_test.c": "45f91e4bf53990ebadeb4b3a32d405487fd68e6e78a7c9651fda64d74f7de3cb",
+    "ide/tests/analysis_ir_topology_test.c": "34d0294ec8c4358e4488747643e48da90b1e5585b6306976b2fbeb1c00ff07f9",
+    "ide/docs/lsp-native-ir-resources.md": "5e6255ca6c823a379138462f3c7375f2fa8ee358d3b7a26884849d8b7b5b343c",
+    "ide/docs/lsp-development.md": "4ec290fa70cbb3ab17edb0fc596a8b8993f8e93fc6066b3abf0977e7cab5ac91"
+  },
+  "materials": {
+    "sources": {
+      "archive": {
+        "path": "dev/release-materials/sources/lsp-native-ir-resources-20261123/sources.tar.gz",
+        "sha256": "ca0e848b98b792284598b414114e6fb0e9501f1cd0b67fc0b29501dd6fe7b0c8",
+        "bytes": 29509460
+      },
+      "manifest": {
+        "path": "dev/release-materials/sources/lsp-native-ir-resources-20261123/sources.tar.gz.manifest.json",
+        "sha256": "8032c4512f924224a72727e67502eb5377a86d10f1ff621c8b0f00cb739fc907",
+        "bytes": 1769909
+      },
+      "entries": 3807,
+      "uniquePayloads": 2245
+    },
+    "validation": {
+      "archive": {
+        "path": "dev/release-materials/provenance/lsp-native-ir-resources-20261123/validation.tar.gz",
+        "sha256": "4c2499f58e62741f79c1f3e24e7c2bc4ea759c39c5b67fcd07277745de2f2e67",
+        "bytes": 1157510547
+      },
+      "manifest": {
+        "path": "dev/release-materials/provenance/lsp-native-ir-resources-20261123/validation.tar.gz.manifest.json",
+        "sha256": "836b64e67f79892f3150549e41920e9cd1a94f9ee793c508bc996da0014d78b2",
+        "bytes": 5870950
+      },
+      "entries": 12834,
+      "uniquePayloads": 4625
+    }
+  },
+  "materialDependencies": [
+    "dev/release-materials/provenance/lsp-ir-function-exits-20261123.json",
+    "dev/release-materials/provenance/lsp-stable-enum-package-20261123.json"
+  ],
+  "languageServerVersion": "0.110",
+  "qualification": {
+    "nativeCompiles": 380,
+    "mappedNativeObjects": 379,
+    "nativePrograms": 234,
+    "standardNativePrograms": 233,
+    "refreshedTopologyProbe": 1,
+    "topologyChecks": 1612,
+    "protocolSuites": 33,
+    "guiObjects": 140,
+    "guiSuites": 55,
+    "editorModes": 47,
+    "resourceResult": "type-resource mode0: 166 allocation/API rejection points\r\ntype-resource mode1: 259 allocation/API rejection points\r\ntype-resource mode2: 259 allocation/API rejection points\r\ntype-resource mode0: 101 allocation/API rejection points\r\ntype-resource mode1: 148 allocation/API rejection points\r\ntype-resource mode2: 148 allocation/API rejection points\r\ntype-resource mode0: 110 allocation/API rejection points\r\ntype-resource mode1: 159 allocation/API rejection points\r\ntype-resource mode2: 159 allocation/API rejection points\r\nanalysis_ir_type_resource_test passed: 8433 checks;993 required type failures rejected;direct/cold/hot,four threads,full JSON/native verifier,retired outputs\r\n",
+    "sourcePolicyCases": 7,
+    "nativeAllocationFunctions": 81,
+    "comparedExistingFunctions": 1846,
+    "changedExistingFunctions": 82,
+    "unchangedPrivateLayouts": 2,
+    "compiledDefects": 1,
+    "positiveControls": 1,
+    "sourceAndRuntimeGuardPassed": true
+  },
+  "candidate": {
+    "serviceSha256": "db50f21702ec1aec2423b49274c10884b098f20dbc041f7fe9c301b62feaecd5",
+    "ideSha256": "a146c451b35aa7284293b185123a9a276bf9e4764f926c266567133386c8d806",
+    "privateRuntimeSha256": "7eba677fddada9b605db2d54dd59ee57a9cfc1caf0b574f6cb206ec9de379418"
+  },
+  "profile": {
+    "requiredNativeAllocationFailureGuard": true,
+    "experimentalNodeViews": false,
+    "experimentalExitReuse": false,
+    "experimentalFunctionExits": false,
+    "normalSelectiveFinalIrEnabled": false
+  },
+  "retainedFailures": [
+    "Precompile missing corpus/patch preparation failures.",
+    "Old18-type-only guard accepted missing closure intrinsic-call metadata;actual/expectedJSON retained.",
+    "Old topology test macro stringified pre-forwarding argument;1612assertions rerun unchanged after exact helper-argument adaptation.",
+    "GUI v3 lacked fixed test proxy;v4 had one unconfirmed artifact-publication failure;6diagnostic runs did not reproduce it;logs retained.",
+    "Component script bracket syntax failure before execution.",
+    "Prior experimental latency failures remain rejected;no rerun to erase them."
+  ],
+  "unreproducedGuiArtifactPublicationFailureRetained": true,
+  "guiArtifactFailureRootCauseEstablished": false,
+  "diagnosticGuiActionsPasses": 6,
+  "defaultRuntimeReplaced": false,
+  "formalRelease": false,
+  "externalPublishPerformed": false,
+  "wholeLspPerformanceQualified": false,
+  "goalComplete": false,
+  "limits": [
+    "Failure latching applies to synchronous native AST-to-IR construction;it conservatively rejects a request after native allocation failure.",
+    "Optional overlay cache/index allocations preserve fallback.",
+    "Tracked test allocations are external XRT calls,not every private allocator allocation or whole-service RSS.",
+    "This stage does not qualify complete final-function incremental IR,all platform/endurance or global resource goals."
+  ]
+}

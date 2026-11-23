@@ -8,9 +8,10 @@
 #endif
 static size_t topologyCalls,traceNodes;
 static int tracing,denyTopology;
+static const char* topologyAllocationArgument(void);
 static void* trackTopologyCalloc(size_t count,size_t bytes,const char* expression)
 {
-    if(tracing && count==traceNodes && bytes==1 && !strcmp(expression,"module->nodeCount")){
+    if(tracing && count==traceNodes && bytes==1 && !strcmp(expression,topologyAllocationArgument())){
         ++topologyCalls;if(denyTopology){denyTopology=0;return NULL;}
     }
     return xrtCalloc(count,bytes);
@@ -18,6 +19,17 @@ static void* trackTopologyCalloc(size_t count,size_t bytes,const char* expressio
 #define xrtCalloc(count,bytes) trackTopologyCalloc((count),(bytes),#count)
 #include "xl6_ir.c"
 #undef xrtCalloc
+static const char* topologyAllocationArgument(void)
+{
+#ifdef XLS_NATIVE_IR_TYPE_RESOURCE_GUARD
+    /* The native one-byte-per-node allocation now passes through the
+     * qualified allocator helper. Keep the exact count/width and original
+     * single-allocation/rejection assertions; match its parameter spelling. */
+    return "n";
+#else
+    return "module->nodeCount";
+#endif
+}
 #ifdef XLS_NATIVE_IR_TOPOLOGY_OBSERVER
 #include "src/parser/xl6_parser_api.h"
 #include "src/stdlib/xl6_stdlib.h"

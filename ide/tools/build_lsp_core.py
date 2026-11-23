@@ -104,6 +104,7 @@ CORE_TESTS = ("analysis_ir_exit_test", "analysis_ir_memo_test", "analysis_projec
 CORE_TESTS = ("analysis_ir_exit_range_test", *CORE_TESTS)
 CORE_TESTS = ("analysis_ir_function_exit_test", *CORE_TESTS)
 CORE_TESTS = ("analysis_ir_function_exit_contract_test", *CORE_TESTS)
+CORE_TESTS = ("analysis_ir_type_resource_test", *CORE_TESTS)
 CORE_TESTS = ("analysis_completion_body_failure_test", *CORE_TESTS)
 CORE_TESTS = ("analysis_semantic_proof_test", *CORE_TESTS)
 CORE_TESTS = ("analysis_semantic_headers_test", *CORE_TESTS)
@@ -1131,6 +1132,8 @@ def main() -> None:
         for name in (() if args.skip_tests else tests):
             program = output / (name + suffix)
             extra = [str(objects["document_sync"])] if name in ("document_sync_test", "diagnostic_stream_test") else []
+            if name == 'analysis_ir_type_resource_test':
+                extra += ['-Wl,--wrap='+f for f in ('xrtMalloc','xrtCalloc','xrtRealloc','xrtFree','xrtStrDup','xrtStrDupN','xrtArrayPush','xrtArrayResize','xrtMapSet','xrtStrBufReserve')]
             if name == 'analysis_ir_node_graph_test':
                 extra += ['-Wl,--wrap='+f for f in ('xrtMalloc','xrtCalloc','xrtFree')]
             if name in ('analysis_ir_table_graph_test','analysis_ir_node_link_test','analysis_ir_type_link_test','analysis_ir_unit_capture_test','analysis_ir_call_link_test','analysis_ir_control_link_test','analysis_ir_enum_link_test','analysis_ir_exit_range_test','analysis_ir_function_exit_test','analysis_ir_function_exit_contract_test'):

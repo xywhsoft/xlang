@@ -128,13 +128,13 @@ int xlsFrontendIrBuildTypeBudget(XL6_IrModule* module,const XL6_AstNode* root,XL
     size_t charged=scan.ready ? scan.filtered.childCount*sizeof(*scan.items) : 0;
     xls_type_alias_scope aliases;
     xlsFrontendTypeAliasBegin(&aliases,module ? root : NULL,bytes-charged);
-#if XLS_EXPERIMENTAL_IR_FUNCTION_EXITS && defined(XLS_NATIVE_IR_TYPE_RESOURCE_GUARD)
+#if defined(XLS_NATIVE_IR_TYPE_RESOURCE_GUARD)
     xls_ir_type_resource_scope resources={.previous=xlsActiveTypeResource};xlsActiveTypeResource=&resources;
 #endif
     int okay=xlsIrBuildModuleOriginal(module,root,diags);
-#if XLS_EXPERIMENTAL_IR_FUNCTION_EXITS && defined(XLS_NATIVE_IR_TYPE_RESOURCE_GUARD)
+#if defined(XLS_NATIVE_IR_TYPE_RESOURCE_GUARD)
     xlsActiveTypeResource=resources.previous;
-    if(resources.failed){xl6IrModuleFree(module);xl6DiagAdd(diags,0,0,"resource failure constructing native IR types");okay=0;}
+    if(resources.failed){xl6IrModuleFree(module);xl6DiagAdd(diags,0,0,"resource failure constructing native IR");okay=0;}
 #endif
     xlsFrontendTypeAliasEnd(&aliases);
     xlsActiveTypeLookup=scan.previous; xrtFree(scan.items); return okay;

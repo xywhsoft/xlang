@@ -21,11 +21,11 @@ def main():
         _,compiled,metadata=prepare_native_ir(root,out)
         field_ir(compiled,out/'native_fields/xl6_ir.c')
         details=metadata['exitRangeProduction'];assert details['enabled']
-        assert len(details['typeResources']['functions'])==len(resources.FUNCTIONS)==18
+        assert len(details['typeResources']['functions'])==len(resources.FUNCTIONS)==81
         projection=Path(details['functionProjectionGenerated']).read_text()
         assert 'src->exitKind'in projection and 'src->xlsFnKind'not in projection
         assert 'static int xlsFnNodeKey'in projection
-        record['cases'].append('actual-standard-pipeline-and-18-type-allocation-seams')
+        record['cases'].append('actual-standard-pipeline-and-81-native-allocation-seams')
         original=(root/'src/ir/xl6_ir.c').read_text(encoding='utf8')
         original_read=Path.read_bytes
         for name in('src/ir/xl6_ir.c','src/ir/xl6_ir.h'):
