@@ -1,0 +1,30 @@
+// Negotiate a copy with a local drag event. No window is needed.
+import xge
+from xge import CallbackDataObject as DragData
+
+func acceptText(xge.DragEvent event) as c_uint
+    if event.data != null then
+        auto data = event.data as DragData
+        if data.has("text/plain") != 0 then
+            return c_uint(xge.XGE_DRAG_EFFECT_COPY)
+        end
+    end
+    return c_uint(xge.XGE_DRAG_EFFECT_NONE)
+end
+
+func main(...) as int
+    auto data = xge.createDataObject()
+    auto copy = c_uint(xge.XGE_DRAG_EFFECT_COPY)
+    data.set("text/plain", "拖放示例")
+
+    xge.setDragCallback(acceptText)
+    try
+        auto effect = xge.dispatchDragEvent(xge.XGE_DRAG_EVENT_ENTER, data, allowedEffects=copy)
+        assert effect == copy
+        println("Drag effect: copy")
+    finally
+        xge.setDragCallback(null)
+        data.close()
+    end
+    return 0
+end

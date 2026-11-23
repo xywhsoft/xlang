@@ -62,9 +62,14 @@ AUDIO_RESOURCE_CLOSES = {
     'xgeMusicFree': ('xge.Music.close', 'xl6Xge3SoundDestroy', 'xgeSoundFreeChecked'),
     'xgeStreamClose': ('xge.AudioStream.close', 'xl6Xge3SoundDestroy', 'xgeSoundFreeChecked'),
 }
+INPUT_ACTION_CLOSES = {
+    symbol: ('xge.Actions.close', 'xl6Xge3ActionsDestroy', 'xgeActionsFreeChecked')
+    for symbol in ('xgeActionsFree', 'xgeActionsFreeChecked')
+}
 RESOURCE_CLOSE_GROUPS = {
     'renderResourceHeaderPolicies': ('xge-render-resource-header-policies', RENDER_RESOURCE_CLOSES),
     'audioResourceHeaderPolicies': ('xge-audio-resource-header-policies', AUDIO_RESOURCE_CLOSES),
+    'inputActionHeaderPolicies': ('xge-input-action-header-policies', INPUT_ACTION_CLOSES),
 }
 RESOURCE_CLOSES = {
     symbol: (group, logical, destroy, release)
@@ -95,9 +100,10 @@ CORE_HEADER_CLOSES = {
 PARTICLE_WORLD_FACTORIES = {'xgeParticleWorldCreate', 'xgeParticleWorldCreateOwned'}
 PARTICLE_WORLD_BRIDGE = 'xl6Xge3ParticleWorldCreateOwned'
 PARTICLE_WORLD_PRODUCER = 'xgeParticleWorldCreateOwnedWithCode'
-CLIPBOARD_PUBLISHERS = {
+TRANSFER_PUBLISHERS = {
     'xl6Xge3ClipboardSetItems': ('xge.clipboardSetItems', 'xgeClipboardSetItemsWithTransfer'),
     'xl6Xui3ClipboardSetItems': ('xui.Context.setClipboardItems', 'xuiClipboardSetItemsWithTransfer'),
+    'xl6Xge3DragBegin': ('xge.DataObject.startDrag', 'xgeDragBeginWithTransfer'),
 }
 HEADER_CLOSE_REPLACEMENTS.update({
     old: (f'xge.{owner}.close', release)
@@ -544,7 +550,7 @@ def main():
             flags.append('-DXL6_NATIVE_LINK_SCHEMA=1')
         policy_relocations={}
         particle_factory=None
-        clipboard_publishers={}
+        transfer_publishers={}
         for number,source in enumerate(sources):
             name='unit-'+str(number);obj=out/(name+'.o')
             run(name+'-compile',[tools['gcc'],*flags,'-c',core/source,'-o',obj])
@@ -570,9 +576,10 @@ def main():
                     relocationPath=[call_section,PARTICLE_WORLD_PRODUCER])
                 if 'xge.createDefaultParticleWorld' in factories:
                     particle_factory['defaultFactory']='xge.createDefaultParticleWorld'
-            if source=='src/transfer.c' and CLIPBOARD_PUBLISHERS.keys() & bound.keys():
+            if source=='src/transfer.c' and TRANSFER_PUBLISHERS.keys() & bound.keys():
                 relocations=object_relocations(run(name+'-relocations',[tools['objdump'],'-r',obj]))
-                for adapter,(language,native) in CLIPBOARD_PUBLISHERS.items():
+                for adapter in sorted(TRANSFER_PUBLISHERS.keys() & bound.keys()):
+                    language,native=TRANSFER_PUBLISHERS[adapter]
                     assert adapter in defined and native in functions,(adapter,native)
                     assert any(row['language']==language for row in bound[adapter]),(adapter,language)
                     sections=[prefix+adapter for prefix in ('.text.', '.text$')
@@ -580,7 +587,7 @@ def main():
                     assert len(sections)==1,(adapter,native)
                     calls=reachable_relocations(relocations,sections[0])
                     assert {'xl6CodeLeaseAcquireScoped','xl6CodeLeaseRelease'} <= calls,(adapter,calls)
-                    clipboard_publishers[adapter]=dict(language=language,native=native,adapter=adapter,
+                    transfer_publishers[adapter]=dict(language=language,native=native,adapter=adapter,
                         source=source,relocationPath=[sections[0],native])
             for group in groups:
                 if group['source']!=source:continue
@@ -678,8 +685,10 @@ def main():
             elif symbol in PARTICLE_WORLD_FACTORIES:
                 assert particle_factory is not None,symbol
                 evidence=particle_factory
-            elif symbol=='xgeClipboardSetItems' and clipboard_publishers:
-                evidence=clipboard_publishers['xl6Xge3ClipboardSetItems']
+            elif symbol=='xgeClipboardSetItems' and 'xl6Xge3ClipboardSetItems' in transfer_publishers:
+                evidence=transfer_publishers['xl6Xge3ClipboardSetItems']
+            elif symbol=='xgeDragBegin' and 'xl6Xge3DragBegin' in transfer_publishers:
+                evidence=transfer_publishers['xl6Xge3DragBegin']
             elif symbol in CLOSE_REPLACEMENTS:
                 logical,policy,destroy,release=CLOSE_REPLACEMENTS[symbol]
                 owner=class_bindings[logical.rsplit('.',1)[0]]
@@ -719,7 +728,7 @@ def main():
                 explicitReplacement=evidence,
                 contractReview='pending',runtimeAcceptance='not-certified-by-this-audit'))
         verify_replay_package(packages,replay)
-        report.update(items=rows,clipboardPublishers=clipboard_publishers,
+        report.update(items=rows,transferPublishers=transfer_publishers,
             nativeRevision=audit['nativeRevision'],functionPopulation=len(functions),
             directDeclarations=sum(r['declarationPresent'] for r in functions.values()),nonDirectFunctions=len(rows),
             compiledConsumerFunctions=sum(bool(r['compiledNativeConsumers']) for r in rows),

@@ -22,6 +22,7 @@ $env:XLANG_PACKAGE_PATH = "$runtime\extlibs"
 | `shape_traversal.xl` | Native Shape feature; no device. A depth-first visitor prints `Visited shape 7`. | Closes the retained result, scene and original shape. |
 | `shape_mask.xl` | Native Shape feature and OpenGL. Draws an orange layer through a circular mask. | Closes the scene, shape and engine after 90 frames. |
 | `input_events.xl` | No window or device. Posts an IME update and a key-up event, then prints their text and key in queue order. | Calls checked `unit()` after consuming the events. |
+| `drag_event.xl` | No window or device. A local drag with a text payload negotiates a copy and prints `Drag effect: copy`. | Clears the callback and closes the payload. |
 | `miniprogram_bridge.xl` | Uses local host callbacks to request a frame, load bytes and receive an audio command. Starts before the host supplies the canvas size, then sets the logical size and pixel ratio. | Closes the resource and detaches the bridge with `miniProgramUnitChecked()`. |
 | `miniprogram_touch.xl` | Simulates two touch points at DPR 2 and prints the second point in framebuffer pixels (100, 70). | No window or device. Ends both touches and closes the host and engine. |
 | `gui_shapes.xl` | Interactive desktop and working 2D graphics backend. Opens the native default window and draws a rectangle/circle until the user closes it. `begin`/`nativeEnd` must succeed. | Clears the persistent frame callback, then checked engine shutdown. |

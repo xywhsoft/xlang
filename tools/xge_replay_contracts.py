@@ -98,6 +98,10 @@ CLOSE_REPLACEMENTS = {
 }
 
 REPLACED = {
+    'xgeDragEventCallbackSet': ('xge.setDragCallback', 'xgeDragEventCallbackSetOwned'),
+    'xgeDragEventDispatch': ('xge.dispatchDragEvent', 'xgeDragEventDispatchChecked'),
+    'xgeInputEventGet': ('xge.readInputEvent', 'xgeInputEventRead'),
+    'xgeInputEventPost': ('xge.postInputEvent', 'xgeInputEventPostData'),
     'xgeTextureAddRef': ('xge.Texture.share', 'xgeTextureShareOwned'),
     'xgeShaderAddRef': ('xge.Shader.share', 'xgeShaderShareOwned'),
     'xgeRenderTargetAddRef': ('xge.RenderTarget.share', 'xgeRenderTargetShareOwned'),

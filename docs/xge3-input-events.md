@@ -16,6 +16,14 @@
 
 运行 [input_events.xl](../lib/bindings/xge/examples/input_events.xl) 可观察缓冲不足、重试和先后顺序。示例使用合成事件，不需要窗口或输入设备。
 
+## 本地拖放事件
+
+`xge.dispatchDragEvent()` 同步调用已注册的拖放回调，成功时返回协商后的效果。可以指定坐标、修饰键、允许效果和可选的 `DataObject`。省略序号和时间时由 XGE 填写。没有接收方时返回 `XGE_DRAG_EFFECT_NONE`。无效事件类型和 checked 回调错误会抛出，超出允许范围的效果由原生层归为 `NONE`。
+
+回调中的 `DragEvent`、`DragEffectOutput` 和 `event.data` 只在本次调用有效。需要在返回后读取同一载荷时，对取出的非空载荷调用 `share()`。启动实际拖出会话使用 `DataObject.startDrag()`。
+
+运行 [drag_event.xl](../lib/bindings/xge/examples/drag_event.xl) 可查看如何根据载荷格式协商复制效果。
+
 ## 小程序触摸
 
 在宿主事件线程调用 `xge.miniProgramTouch(phase, array<MiniprogramTouch>, size=-1)`。

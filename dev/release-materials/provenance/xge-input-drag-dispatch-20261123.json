@@ -1,0 +1,147 @@
+{
+  "schema": 1,
+  "scope": "Local checked drag dispatch, concurrent native sequences, action close and ordered input",
+  "nativeCommit": "fd867b1eb9b7a70fd4c6a85bf4b91df6cb15830a",
+  "shippingDelivery": false,
+  "networkTests": false,
+  "osDragTests": false,
+  "sourceSha256NormalizedLf": {
+    "lib/bindings/xge/src/callbacks.xl": "811641b23f3fb240ba18be92246686b294556ed550db2b08ec230f7bfb05469b",
+    "test/cases/foreign_xge3_checked_drag.xl": "e920c7d64bf15858a596059b9d49b30256b42df7157d89ce1d20f6cf6f39d2ca",
+    "test/cases/foreign_xge3_checked_drag_native.c": "ea557f029639a00c2cd3cd30eff4ee8b1aab59c9c926323f72c7121a20a1eb02",
+    "test/cases/foreign_xge3_checked_drag.h": "9c6cf2d915b1f199ab7260418c780ecd6630381d50d7df4e3fcf97d5e395edc0",
+    "test/cases/foreign_xge3_input_actions.xl": "3984d1aec01b0cb32f8cda2d42f81565f2b442c30c925bf9db29d977d654694f",
+    "test/cases/foreign_xge3_input_actions.c": "d93d11a57bc8ffd93f0251cbf152f7187e594ad3078cd8d6f3e667973c42a700",
+    "test/cases/foreign_xge3_input_actions.h": "724940bb4f8e4408f2a00292bb9488290c350726e75147c7b9248b994b1098d6",
+    "test/cases/foreign_xge_input_events.xl": "01bfbbc7c47afdcb6c3563e8054713809b81e629c40c0901c6f4d181b96df48a",
+    "test/cases/foreign_xge_input_events.c": "417347d3038939c8d374737f193a824f191dd77fd20cdf51c161376c60cea3f8",
+    "test/cases/foreign_xge_input_events.h": "e07dccd8211936242b892a7f5f12d51829d731ec00e3f5ac5d2c779cf2fa0590",
+    "lib/bindings/xge/examples/drag_event.xl": "2a27ec31d438bd5f4d0b32a28f0e836eea1a7540b1244a821f61cb1fe37187a8",
+    "tools/check_xge3_native_consumers.py": "3c99dfc546c655d9bc313af40ccc80d474adfb5c8b85b0082ea0e5d630e96bb0",
+    "tools/xge_replay_contracts.py": "09108ee1ada307e93247a9f5e46e634b7cb3d2089337a7fffd78350ab059b598"
+  },
+  "validation": {
+    "concurrentDispatchThreads": 2,
+    "automaticSequencesPerThread": 4000,
+    "payloadRetainedThroughCancel": true,
+    "embeddedNulPayload": true,
+    "callbackViewsExpire": true,
+    "invalidInputRejected": true,
+    "checkedCallbackErrorPreserved": true,
+    "failureOutputUnchanged": true,
+    "callbackOutOfMemory": true,
+    "orderedInputReturnsBufferCapacity": true,
+    "staticAotHasNoEngineOrCompilerLibraryImport": true
+  },
+  "performanceScope": "Three warmed samples of 20,000 iterations with the same hosted engine and XRT in one dynamically linked program. Both callbacks inspect Enter and report Copy, with no payload. The wall-time sample includes loop and managed callback costs. Registration, payload processing and OS drag are outside the sample.",
+  "platforms": {
+    "win": {
+      "nativeSource": {
+        "path": "F:/xlang-validation/xge-full-20261110/input-drag-dispatch-native-source-win-r2.json",
+        "sha256": "629fc4fd818e375938fd6d629b3f21b7edd04e0a2a6d1d5a510d40d471d8d197"
+      },
+      "nativeSequenceAndLifecycleO0O2": {
+        "path": "F:/xlang-validation/xge-full-20261110/input-drag-dispatch-native-test-win-r2/results.json",
+        "sha256": "837809058162cb4fb3b38761210238e1e7224b5511750757398a82e52504a446"
+      },
+      "languageJitDynamicStaticAot": {
+        "path": "F:/xlang-validation/xge-full-20261110/input-drag-dispatch-verify-win-r1/results.json",
+        "sha256": "b70375c1f3558e7a7df7fefbcfc63af440e6c9bd6e046b84bc9fc4ed55943b60"
+      },
+      "declarationReplay": {
+        "path": "F:/xlang-validation/xge-full-20261110/input-drag-dispatch-generator-win-r3/results.json",
+        "sha256": "bf1c38936213f0a67b8d6d9b721e8d7de68e64d7102f6edbf19d22df9d92d7cc"
+      },
+      "nativeConsumerAudit": {
+        "path": "F:/xlang-validation/xge-full-20261110/input-drag-dispatch-consumers-win-r2/results.json",
+        "sha256": "e4682c19d4f98ac4a0fa41f27ddb754e78f90628be1028c39e7dfd87f9c39cea"
+      },
+      "functionPopulation": 5870,
+      "directDeclarations": 4806,
+      "pendingConsumerOrReplacement": {
+        "XGE": 51,
+        "XUI": 74
+      },
+      "comparisonWithC": {
+        "path": "F:/xlang-validation/xge-full-20261110/input-drag-dispatch-perf-win-r1/results.json",
+        "sha256": "04ae291ab26d8434df97d36b1a18d7aee3d50b7a9875f681b19df1d4ce2999ac"
+      },
+      "medianWallMs": {
+        "C": 6.206,
+        "xlang": 125.293
+      },
+      "matchedPackages": {
+        "path": "F:/xlang-validation/xge-full-20261110/input-drag-dispatch-stage-win-r3/replay/stage-report.json",
+        "sha256": "850c40a7751945a1820368144767ac22543f13c94702f4271a9c8f3243c73fae"
+      },
+      "staticO2Build": {
+        "path": "F:/xlang-validation/xge-full-20261110/input-drag-dispatch-static-win-r2/build-report.json",
+        "sha256": "14c03c882c67658e33f4b1b5a29597aff64826bf226b65477fa12d97fd83c284"
+      },
+      "hostO2Build": {
+        "path": "F:/xlang-validation/xge-full-20261110/input-drag-dispatch-host-win-r2/build-report.json",
+        "sha256": "cfae3b501016720193978d5167719e119a744ec5f024fbf2f42b554b33590015"
+      },
+      "publicSurface": {
+        "path": "F:/xlang-validation/xge-full-20261110/input-drag-dispatch-inventory-win-r3/surface.json",
+        "sha256": "017f4e8b761e8b95521fdca3b1177e523f32140a36acbc7ccdf215c78f2dafc0"
+      }
+    },
+    "linux": {
+      "nativeSource": {
+        "path": "//wsl.localhost/Ubuntu/var/tmp/xlang-validation/xge-full-20261110/input-drag-dispatch-native-source-linux-r2.json",
+        "sha256": "d9b2497a453f4fbb33ec4b26336a148b6058f7f604af2bc41a57eeeb25b51231"
+      },
+      "nativeSequenceAndLifecycleO0O2": {
+        "path": "//wsl.localhost/Ubuntu/var/tmp/xlang-validation/xge-full-20261110/input-drag-dispatch-native-test-linux-r2/results.json",
+        "sha256": "7e014647574ca7458bd52ba586d462bbbdd91072db8b6e40208c0829f12021da"
+      },
+      "languageJitDynamicStaticAot": {
+        "path": "//wsl.localhost/Ubuntu/var/tmp/xlang-validation/xge-full-20261110/input-drag-dispatch-verify-linux-r1/results.json",
+        "sha256": "76a44d2a3e127b7a680e28cf7c33b0403285c9dc3d90bf5f2c652b561aa196ef"
+      },
+      "declarationReplay": {
+        "path": "//wsl.localhost/Ubuntu/var/tmp/xlang-validation/xge-full-20261110/input-drag-dispatch-generator-linux-r3/results.json",
+        "sha256": "b04f52458f14fb7aead6ab03798425f49b9fb14f23f6e3413c9869aef9dde423"
+      },
+      "nativeConsumerAudit": {
+        "path": "//wsl.localhost/Ubuntu/var/tmp/xlang-validation/xge-full-20261110/input-drag-dispatch-consumers-linux-r2/results.json",
+        "sha256": "8590e0083673fd07d5010e3bea5255de6be18f201f266283122bbf05446b75c1"
+      },
+      "functionPopulation": 5870,
+      "directDeclarations": 4806,
+      "pendingConsumerOrReplacement": {
+        "XGE": 51,
+        "XUI": 74
+      },
+      "comparisonWithC": {
+        "path": "//wsl.localhost/Ubuntu/var/tmp/xlang-validation/xge-full-20261110/input-drag-dispatch-perf-linux-r1/results.json",
+        "sha256": "e1f5aead20df78662706649b70aa7a9d9ca147a63eaea242d72379f7630d3aa8"
+      },
+      "medianWallMs": {
+        "C": 5.643,
+        "xlang": 107.424
+      },
+      "matchedPackages": {
+        "path": "//wsl.localhost/Ubuntu/var/tmp/xlang-validation/xge-full-20261110/input-drag-dispatch-stage-linux-r3/replay/stage-report.json",
+        "sha256": "a80ce9c664ee0e0c85f5dd8848d17307cc50b2532fd20e03e338ae22d66b3010"
+      },
+      "staticO2Build": {
+        "path": "//wsl.localhost/Ubuntu/var/tmp/xlang-validation/xge-full-20261110/input-drag-dispatch-static-linux-r2/build-report.json",
+        "sha256": "0052a73a099c7d3e21b7798fdec17f7b41f20e1ed557518085413a766d3e4a65"
+      },
+      "hostO2Build": {
+        "path": "//wsl.localhost/Ubuntu/var/tmp/xlang-validation/xge-full-20261110/input-drag-dispatch-host-linux-r2/build-report.json",
+        "sha256": "b2c13b9399515b9fe01ce7113a5c035ce9449cc1c921dbf5912066fc5306ff48"
+      },
+      "publicSurface": {
+        "path": "//wsl.localhost/Ubuntu/var/tmp/xlang-validation/xge-full-20261110/input-drag-dispatch-inventory-linux-r3/surface.json",
+        "sha256": "72f7358d0067e851b6f0d8b5b72671bd7f21c31a1a10a69ebfd76d9e70f405a4"
+      }
+    }
+  },
+  "previousEngineDuplicateSequence": {
+    "path": "//wsl.localhost/Ubuntu/var/tmp/xlang-validation/xge-full-20261110/input-drag-dispatch-prior-native-repro-linux-r1/O0-run.log",
+    "sha256": "832960b4cb3c85cfe54e6fa40589df7e39c218dd5b914fc25d59fe742f7abaaa"
+  }
+}

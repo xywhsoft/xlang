@@ -33,6 +33,7 @@ func main(...) as int
   return c_int(0)
  end)
  assert dispatch(data)==c_uint(2)
+ assert xge.dispatchDragEvent(xge.XGE_DRAG_EVENT_ENTER,data,c_float(0),c_float(0),c_uint(0),c_uint(3),c_uint(1),c_uint(0),uint64(23))==c_uint(2)
  bool rejected=false
  try
   auto old=expiredEffect as EffectOutput
@@ -91,8 +92,52 @@ func main(...) as int
  auto allocationFailed=resetAlloc()
  assert rejected and allocationFailed==c_int(1)
  assert lastStatus()==c_int(-16) and lastEffect()==c_uint(0xa5)
+ xge.setDragCallbackChecked(func(xge.DragEvent event,xge.DragEffectOutput effect) as c_int
+  assert event.type==xge.XGE_DRAG_EVENT_OVER and event.sequence==uint64(71)
+  assert event.time==c_double(2.5) and event.x==c_float(10) and event.y==c_float(20)
+  assert event.modifiers==c_uint(2) and event.effect==c_uint(4)
+  assert event.allowedEffects==c_uint(1) and event.suggestedEffect==c_uint(0)
+  assert event.data==null
+  effect.value=c_uint(2)
+  return c_int(0)
+ end)
+ assert xge.dispatchDragEvent(xge.XGE_DRAG_EVENT_OVER,null,c_float(10),c_float(20),c_uint(2),c_uint(9),c_uint(3),c_uint(4),uint64(71),c_double(2.5))==c_uint(0)
+ xge.setDragCallbackChecked(func(xge.DragEvent event,xge.DragEffectOutput effect) as c_int
+  throw RuntimeError "public drag dispatch"
+ end)
+ rejected=false
+ try
+  xge.dispatchDragEvent(xge.XGE_DRAG_EVENT_ENTER)
+ catch error
+  assert error.message=="public drag dispatch"
+  rejected=true
+ end
+ assert rejected
  xge.setDragCallbackChecked(null)
+ rejected=false
+ try
+  xge.dispatchDragEvent(xge.XGE_DRAG_EVENT_NONE)
+ catch error
+  rejected=true
+ end
+ assert rejected
+ assert xge.dispatchDragEvent(xge.XGE_DRAG_EVENT_ENTER)==c_uint(0)
+
+ // A local session owns the payload through cancellation, including after close.
+ bool cancelled=false
+ xge.setDragCallback(func(xge.DragEvent event) as c_uint
+  assert event.type==xge.XGE_DRAG_EVENT_CANCEL
+  auto payload=event.data as PayloadView
+  assert payload.has("application/drag")==c_int(1)
+  cancelled=true
+  return c_uint(xge.XGE_DRAG_EFFECT_NONE)
+ end)
+ retained.startDrag(c_uint(xge.XGE_DRAG_EFFECT_COPY),c_uint(xge.XGE_DRAG_EFFECT_COPY))
+ assert xge.dragIsActive()==c_int(1)
  retained.close()
+ assert xge.dragCancel()==c_int(0) and cancelled and xge.dragIsActive()==c_int(0)
+ xge.setDragCallback(null)
  retainedPayload=null
+ println("XGE_CHECKED_DRAG_OK")
  return 0
 end

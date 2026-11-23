@@ -1,5 +1,31 @@
 # Native consumers in the full API inventory
 
+## Checked drag dispatch and ordered input
+
+`xge.dispatchDragEvent()` prepares a native event on the stack and calls
+`xgeDragEventDispatchChecked()` directly. Native code assigns automatic
+sequence numbers atomically. The test reproduces a duplicate sequence with
+the previous engine and checks 8,000 unique sequences across two threads on
+each platform with the fix.
+
+`DataObject.startDrag()` holds a transfer code lease. The local cancellation
+fixture closes its original payload view before reading the payload in the
+cancel callback. The ordered input methods consume the same queue as the
+legacy getter and preserve counted text, including interior NUL. The Actions
+close policy uses `xgeActionsFreeChecked()`.
+
+Both platforms passed JIT and dynamic and static AOT for drag, ordered input,
+Actions and the drag example. In three warmed samples of 20,000 drag events,
+the C and xlang paths both had zero XRT heap operations. Median elapsed times
+were 6.206 ms for C and 125.293 ms for xlang on Windows, and 5.643 ms for C and
+107.424 ms for xlang on Linux. The sample includes loop and managed callback
+costs and excludes registration, payload processing and OS drag.
+
+The matching audits now cover 5,870 functions, with 4,806 direct declarations
+and 125 unresolved functions. XGE accounts for 51 and XUI for 74.
+
+[Drag and ordered input evidence](../dev/release-materials/provenance/xge-input-drag-dispatch-20261123.json)
+
 ## Shared FlowGraph and Workflow canvas construction
 
 The model overloads of `Context.flowGraphWidget()` and `workflowWidget()`
