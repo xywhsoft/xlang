@@ -1,5 +1,29 @@
 # Native consumers in the full API inventory
 
+## Ownership of native sequences
+
+The audit compiles actual xlang callers for 18 sequence producers. For each
+caller it follows the exported entry to the compiled body that reserves the
+sequence, reads the native span, retains the owner and adopts the reference.
+It then follows the selected policy through its registered consuming function
+to the native release. The policy can live in a package header or in the
+resident runtime. A symbol imported elsewhere in the object provides no
+evidence for a sequence. The relocation tests remove policy and release edges
+and verify that the audit rejects those paths.
+
+The token buffer's full and ranged reads map to `capture()` and
+`captureInRange()`. The resulting `tokens()` view keeps the selected generation
+alive through later edits or cache closure. Windows and Linux also reran the
+shape snapshots, 3D mesh geometry and CodeEdit token snapshot in JIT, dynamic
+AOT and standalone static AOT.
+
+The 5,796-function inventory now has 310 non-direct functions with compiled
+consumers and 469 with explicit replacements. There are 291 rows without a
+direct declaration, compiled consumer or explicit replacement. XGE accounts
+for 113 and XUI for 178.
+
+[Validation evidence](../dev/release-materials/provenance/xge-retained-sequence-consumers-20261123.json)
+
 ## CodeEdit margin layout
 
 `CodeMarginModel.captureLayout()` and `CodeEditMargins.captureLayout()` return
@@ -8,13 +32,10 @@ the full text rectangle and total visible count. Entries survive model changes
 and editor closure through their own native reference. Native capture reads
 numeric margin state with the same pixel rounding as the per-margin queries.
 
-The audit maps the raw clear, query, hit-test, layout and two destroy entries
-to their managed APIs. Compiled header policy evidence covers release of the
-new layout. The inventory has 5,796 native functions, 4,734 direct declarations,
-and 314 rows without a direct declaration, compiled consumer or explicit
-replacement. XGE accounts for 126 and XUI for 188. The new layout retain helper
-appears in the generated-C runtime test and still needs an entry in the shared
-compiled-consumer audit.
+This batch mapped the raw clear, query, hit-test, layout and two destroy entries
+to their managed APIs. Its header policy evidence covered release of the new
+layout. It recorded 314 pending entries at the time. The later sequence audit
+above also covers the layout retain call.
 
 [Validation evidence](../dev/release-materials/provenance/xui-code-margin-layout-20261123.json)
 

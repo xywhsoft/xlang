@@ -5,7 +5,7 @@ does not infer equivalent behavior, complete ownership, runtime acceptance or
 API completeness from a symbol reference. All unreviewed rows remain pending.
 """
 from pathlib import Path
-import argparse,hashlib,json,re,shutil,subprocess,time
+import argparse,hashlib,json,os,re,shutil,subprocess,time
 from full_compiler_qualification import verify_full_compiler
 from stage_xge3_replay_contracts import verify_replay_package
 from check_xge3_full_surface import source_bindings
@@ -98,6 +98,43 @@ TABLE_LIFETIME_CALLS = {
         '__xuiTableGridInit': ('xuiTableGridEditorConfigOutputInit',),
     },
 }
+SEQUENCE_WITNESSES = (
+    ('xge3d.MeshGeometry3D', 'vertices', 'xge3dMeshGeometryVertices', 'xge3dMeshGeometryAddRef', 'xge3dMeshGeometryReleaseChecked'),
+    ('xge3d.SkinPalette3D', 'matrices', 'xge3dSkinPaletteMatrices', 'xge3dSkinPaletteAddRef', 'xge3dSkinPaletteReleaseChecked'),
+    ('xge.AudioClip', 'samples', 'xgeAudioClipGetSamples', 'xgeAudioClipAddRef', 'xgeAudioClipFree'),
+    ('xge.GlyphBitmap', 'pixels', 'xgeGlyphBitmapResourceGetPixels', 'xgeGlyphBitmapResourceAddRef', 'xgeGlyphBitmapResourceFree'),
+    ('xge.GlyphRun', 'glyphs', 'xgeGlyphRunGetGlyphs', 'xgeGlyphRunAddRef', 'xgeGlyphRunFree'),
+    ('xge.ShapeDashSnapshot', 'pattern', 'xgeShapeDashSnapshotPattern', 'xgeShapeDashSnapshotAddRef', 'xgeShapeDashSnapshotReleaseChecked'),
+    ('xge.ShapeGradientSnapshot', 'stops', 'xgeShapeGradientSnapshotStops', 'xgeShapeGradientSnapshotAddRef', 'xgeShapeGradientSnapshotReleaseChecked'),
+    ('xge.ShapePathSnapshot', 'commands', 'xgeShapePathSnapshotCommands', 'xgeShapePathSnapshotAddRef', 'xgeShapePathSnapshotReleaseChecked'),
+    ('xui.CodeLayoutSnapshot', 'lines', 'xuiCodeLayoutSnapshotGetLines', 'xuiCodeLayoutSnapshotAddRef', 'xuiCodeLayoutSnapshotRelease'),
+    ('xui.CodeMarginLayout', 'entries', 'xuiCodeMarginLayoutGetEntries', 'xuiCodeMarginLayoutAddRef', 'xuiCodeMarginLayoutRelease'),
+    ('xui.CodeTokenSnapshot', 'tokens', 'xuiCodeTokenSnapshotGetTokens', 'xuiCodeTokenSnapshotAddRef', 'xuiCodeTokenSnapshotDestroy'),
+    ('xui.DocumentChangeSet', 'operations', 'xuiDocumentChangeSetGetOperations', 'xuiDocumentChangeSetAddRef', 'xuiDocumentChangeSetReleaseOwnerChecked'),
+    ('xui.DocumentMarkdownLosses', 'entries', 'xuiDocumentMarkdownLossesGetEntries', 'xuiDocumentMarkdownLossesAddRef', 'xuiDocumentMarkdownLossesReleaseOwnerChecked'),
+    ('xui.DocumentMatches', 'ranges', 'xuiDocumentMatchesGetRanges', 'xuiDocumentMatchesAddRef', 'xuiDocumentMatchesReleaseOwnerChecked'),
+    ('xui.DocumentRangeRects', 'entries', 'xuiDocumentRangeRectsGetEntries', 'xuiDocumentRangeRectsAddRef', 'xuiDocumentRangeRectsReleaseOwnerChecked'),
+    ('xui.FindMatches', 'results', 'xuiFindMatchesGet', 'xuiFindMatchesAddRef', 'xuiFindMatchesRelease'),
+    ('xui.InventoryIndices', 'indices', 'xuiInventoryIndicesGet', 'xuiInventoryIndicesAddRef', 'xuiInventoryIndicesRelease'),
+    ('xui.TextShape', 'clusters', 'xuiTextShapeGetClusters', 'xuiTextShapeAddRef', 'xuiTextShapeReleaseOwnerChecked'),
+)
+SEQUENCE_DESTROY_CALLBACKS = {
+    'xl6Xge3AudioClipPolicy': 'destroy_audio_clip',
+    'xl6Xui3CodeLayoutSnapshotPolicy': 'xl6Xui3CodeLayoutSnapshotDestroy',
+    'xl6Xui3CodeMarginLayoutPolicy': 'xl6Xui3CodeMarginLayoutRelease',
+    'xl6Xui3CodeTokenSnapshotPolicy': 'xl6Xui3CodeTokenSnapshotDestroy',
+    'xl6Xui3DocumentChangeSetPolicy': 'destroy_DocumentChangeSet',
+    'xl6Xui3DocumentMarkdownLossesPolicy': 'destroy_DocumentMarkdownLosses',
+    'xl6Xui3DocumentMatchesPolicy': 'destroy_DocumentMatches',
+    'xl6Xui3DocumentRangeRectsPolicy': 'destroy_DocumentRangeRects',
+    'xl6Xui3FindMatchesPolicy': 'xl6Xui3FindMatchesDestroy',
+    'xl6Xui3InventoryIndicesPolicy': 'destroy_inventory_indices',
+    'xl6Xui3TextShapePolicy': 'destroy_text_shape',
+}
+SEQUENCE_RELEASE_ADAPTERS = {
+    'xge3dMeshGeometryReleaseChecked': 'xl6Xge3dReleaseGeometry',
+    'xge3dSkinPaletteReleaseChecked': 'xl6Xge3dReleaseSkinPalette',
+}
 
 
 def object_relocations(text):
@@ -116,16 +153,18 @@ def object_relocations(text):
     return relocations
 
 
-def close_relocation_path(relocations,policy,destroy,release):
+def close_relocation_path(relocations,policy,destroy,release,adapter=None):
     # A policy can also reach native functions through tracing and quiescence.
     # Only its descriptor's registered consuming function proves close.
     paths=[]
     for prefix in ('.text.','.text$'):
         getter=prefix+policy+'Get';consumer=prefix+destroy
-        if release not in relocations.get(consumer,()):continue
+        call_tail=[prefix+adapter,release] if adapter else [release]
+        if call_tail[0] not in relocations.get(consumer,()):continue
+        if adapter and release not in relocations.get(call_tail[0],()):continue
         for descriptor in relocations.get(getter,()):
             if consumer in relocations.get(descriptor,()):
-                paths.append((getter,descriptor,consumer,release))
+                paths.append((getter,descriptor,consumer,*call_tail))
     assert len(paths)==1,(policy,destroy,release,paths)
     return paths[0]
 
@@ -192,6 +231,69 @@ def compile_header_policies(name, view, classes, native_names, flags, tools, out
     evidence = dict(source=str(source), sha256=sha(source), object=str(obj), objectSha256=sha(obj),
         headerSelectors=imports)
     return evidence, relocations
+
+
+def sequence_release_path(body_edges, generated, resident, policy, release):
+    """Resolve the actual descriptor's release slot, including resident policies."""
+    getter = policy+'Get'
+    local_getters = body_edges & {'.text.'+getter,'.text$'+getter}
+    assert len(local_getters)+int(getter in body_edges)==1, (policy, body_edges)
+    relocations, unit = (generated,'generated') if local_getters else (resident,'src/runtime.c')
+    destroy = SEQUENCE_DESTROY_CALLBACKS.get(policy,policy+'Destroy')
+    path = close_relocation_path(relocations,policy,destroy,release,SEQUENCE_RELEASE_ADAPTERS.get(release))
+    assert not local_getters or path[0] in local_getters, (policy, path)
+    return unit, path
+
+
+def compile_owned_sequence_consumers(view, bound, classes, native_names, cc, packages, flags,
+    tools, out, run, symbols, sha, resident):
+    witnesses = []
+    for owner, method, producer, retain, release in SEQUENCE_WITNESSES:
+        if producer not in bound:
+            continue
+        name = f'{owner}.{method}'
+        matches = [row for row in bound[producer] if row['language']==name]
+        assert len(matches)==1 and {producer,retain,release}<=native_names, name
+        line = class_lines(view, matches[0])[0]
+        assert '@c_owned_sequence(' in line and '@c_retain(' in line, name
+        declaration = class_lines(view, classes[owner])[0]
+        policy = re.search(r'@policy\("(\w+)"\)', declaration)
+        assert policy and '@lifetime("owned")' in declaration, owner
+        witnesses.append((owner, method, producer, retain, release, policy[1]))
+    if not witnesses:
+        return None
+
+    stem = 'owned-sequence-consumers'
+    source, generated, header, obj = (out/f'{stem}.{suffix}' for suffix in ('xl','c','h','o'))
+    code = [f'import {module}' for module in sorted({owner.split('.')[0] for owner,*_ in witnesses})]
+    for index, (owner, method, *_rest) in enumerate(witnesses):
+        code.extend((f'export "audit_owned_sequence_{index}" func witness{index}({owner} owner) as int',
+            f'    auto entries = owner.{method}()', '    int count = 0', '    for entry in entries',
+            '        count += 1', '    end', '    return count', 'end'))
+    source.write_text('\n'.join(code)+'\n', encoding='utf-8')
+    env = {key:value for key,value in os.environ.items() if not key.startswith('XL6_')}
+    env['XLANG_PACKAGE_PATH'] = str(packages)
+    run(stem+'-emit', [cc,'cgen',source,'--emit',generated,'--emit-header',header], cwd=out, env=env)
+    run(stem+'-compile', [tools['gcc'],*flags,'-O0','-fno-inline','-c',generated,'-o',obj])
+    undefined = symbols(run(stem+'-undefined', [tools['nm'],'-u',obj]))
+    relocations = object_relocations(run(stem+'-relocations', [tools['objdump'],'-r',obj]))
+    rows = []
+    for index, (owner, method, producer, retain, release, policy) in enumerate(witnesses):
+        entry = f'audit_owned_sequence_{index}'
+        required = {producer,retain,'xl6NativeSequenceResultReserveV1','xl6NativeSequenceResultSpanV1',
+            'xl6NativeSequenceResultAdoptV1','xl6NativeSequenceResultTakeV1','xl6NativeSequenceResultEndV1'}
+        bodies = [(section,body) for section in ('.text.'+entry,'.text$'+entry)
+            for body in relocations.get(section, ()) if body.startswith(('.text.','.text$'))
+            and required<=relocations.get(body,set())]
+        assert len(bodies)==1 and {producer,retain}<=undefined, (entry, producer, retain, bodies)
+        export, body = bodies[0]
+        release_unit, release_path = sequence_release_path(relocations[body],relocations,resident,policy,release)
+        if release_unit=='generated':
+            assert release in undefined, release
+        rows.append(dict(language=f'{owner}.{method}',producer=producer,retain=retain,release=release,
+            entryPath=[export,body],policy=policy,releaseUnit=release_unit,releasePath=release_path))
+    return dict(source=str(source), sourceSha256=sha(source), generated=str(generated), generatedSha256=sha(generated),
+        object=str(obj), objectSha256=sha(obj), packages=str(packages), entries=rows)
 
 
 def witness_build_inputs(build, audit, packages, gcc, sha, units):
@@ -324,8 +426,8 @@ def main():
     report=dict(complete=False,passed=False,scope=__doc__,inputs=inputs,rows=[],objects=[],providerAliases=[],
         runtimeAcceptance=False,apiCompletenessClaim=False,shippingDelivery=False,networkTests=False,graphicsTests=False)
     def save():(out/'results.json').write_text(json.dumps(report,indent=2)+'\n',encoding='utf8')
-    def run(name,command,cwd=None):
-        command=list(map(str,command));start=time.monotonic();z=subprocess.run(command,cwd=cwd,capture_output=True,timeout=180)
+    def run(name,command,cwd=None,env=None):
+        command=list(map(str,command));start=time.monotonic();z=subprocess.run(command,cwd=cwd,env=env,capture_output=True,timeout=180)
         data=z.stdout+z.stderr;log=out/(name+'.log');log.write_bytes(data)
         report['rows'].append(dict(name=name,command=command,exitCode=z.returncode,seconds=time.monotonic()-start,
             logSha256=sha(log),cwd=str(cwd) if cwd else None));save();print(name,z.returncode,flush=True)
@@ -365,7 +467,8 @@ def main():
             run(name+'-compile',[tools['gcc'],*flags,'-c',core/source,'-o',obj])
             undefined=symbols(run(name+'-undefined',[tools['nm'],'-u',obj]))
             defined=symbols(run(name+'-defined',[tools['nm'],'--defined-only','-g',obj]))
-            if source=='src/runtime.c' and CLOSE_REPLACEMENTS.keys() & functions.keys():
+            if source=='src/runtime.c' and (CLOSE_REPLACEMENTS.keys() & functions.keys()
+                or any(producer in bound for _,_,producer,_,_ in SEQUENCE_WITNESSES)):
                 policy_relocations=object_relocations(run(name+'-relocations',[tools['objdump'],'-r',obj]))
             if source=='src/particle_world.c' and PARTICLE_WORLD_FACTORIES & functions.keys():
                 assert PARTICLE_WORLD_BRIDGE in defined and PARTICLE_WORLD_PRODUCER in functions
@@ -430,6 +533,14 @@ def main():
             imports = {symbol for names in evidence['headerSelectors'].values() for symbol in names}
             for symbol in sorted(imports):
                 consumers.setdefault(symbol,[]).append(name)
+        sequence_evidence = compile_owned_sequence_consumers(view,bound,class_bindings,set(functions),cc,packages,
+            flags,tools,out,run,symbols,sha,policy_relocations)
+        if sequence_evidence:
+            report['ownedSequenceConsumers'] = sequence_evidence
+            for entry in sequence_evidence['entries']:
+                label = 'owned-sequence:'+entry['language']
+                for symbol in (entry['retain'],entry['release']):
+                    consumers.setdefault(symbol,[]).append(label)
         if a.document_engine_build:
             document = prove_document_lifetime(document_source,document_flags,view,bound,packages,tools,out,run,sha)
             report['documentLifetime'] = document

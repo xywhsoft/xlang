@@ -1,0 +1,212 @@
+{
+  "schema": 1,
+  "date": "2026-11-23",
+  "complete": true,
+  "passed": true,
+  "scope": "Compiled retain and release paths from public owned sequence methods, token snapshot replacements and representative runtime regression",
+  "nativeRevision": "f0f5c5d4de9ca8efada6e48c08fbc296a02b3ed0",
+  "shippingDelivery": false,
+  "networkTests": false,
+  "apiCompletenessClaim": false,
+  "tools": [
+    {
+      "path": "D:\\GIT\\x-lang\\tools\\check_xge3_native_consumers.py",
+      "sha256": "582979f2376fd17b12f4797908aa86cfcee6869f282af06de49cf4fb0bb8e0d2"
+    },
+    {
+      "path": "D:\\GIT\\x-lang\\tools\\xge_replay_contracts.py",
+      "sha256": "5acba53c8ca6b78349fcbef1993e19daebda0b9d03eeb1cc6e5f86bc519297c7"
+    }
+  ],
+  "platforms": {
+    "Windows x64": {
+      "audit": {
+        "path": "F:\\xlang-validation\\xge-full-20261110\\retained-sequence-audit-win-r2\\results.json",
+        "sha256": "aec8ed23049cdfd651315d01f90c658a64a383fb9a94fe6626265cd839fa7aa1"
+      },
+      "priorAudit": {
+        "path": "F:\\xlang-validation\\xge-full-20261110\\margin-layout-audit-win-r1\\consumers\\results.json",
+        "sha256": "029db2d3be23b84f2405bd1f4f581d125ae0722ae518d08d64be14fde9a8d9c3"
+      },
+      "source": {
+        "path": "F:\\xlang-validation\\xge-full-20261110\\retained-sequence-audit-win-r2\\owned-sequence-consumers.xl",
+        "sha256": "b6ce30a72ab5d25e22231ecdffd9ca93424d5505b4dd99bcf9bc2aa6f90c53f8"
+      },
+      "generatedC": {
+        "path": "F:\\xlang-validation\\xge-full-20261110\\retained-sequence-audit-win-r2\\owned-sequence-consumers.c",
+        "sha256": "bb8df05eeac789c6065051d3fb7fdb7efefad5d7ba2b7841771363de8b38fffe"
+      },
+      "generatedObject": {
+        "path": "F:\\xlang-validation\\xge-full-20261110\\retained-sequence-audit-win-r2\\owned-sequence-consumers.o",
+        "sha256": "7a9e72ea22feccde29f8dea94b58c9261a0f5bc40b1c02403e864cacfbcbe109"
+      },
+      "negativeCheck": {
+        "path": "F:\\xlang-validation\\xge-full-20261110\\retained-sequence-negative-win-r2.json",
+        "sha256": "6588b47fbe66b1cb53a51dffe8b1bef58049c9dd94a32bbe672c20be1ab01ab2"
+      },
+      "runtime": {
+        "path": "F:\\xlang-validation\\xge-full-20261110\\retained-sequence-runtime-win-r1\\results.json",
+        "sha256": "391ceb9ebebd68f459e1b7c56261a75156c84b6783cf27e52c548a02ebc5fa8f"
+      },
+      "negativeCases": 38,
+      "runtimeSteps": 21
+    },
+    "Linux x64": {
+      "audit": {
+        "path": "\\\\wsl.localhost\\Ubuntu\\var\\tmp\\xlang-validation\\xge-full-20261110\\retained-sequence-audit-linux-r2\\results.json",
+        "sha256": "2e9c0efceefa7d237b9b25662df2141f94dbf2b6d490ffbf90368b30fd0f8238"
+      },
+      "priorAudit": {
+        "path": "\\\\wsl.localhost\\Ubuntu\\var\\tmp\\xlang-validation\\xge-full-20261110\\margin-layout-audit-linux-r1\\consumers\\results.json",
+        "sha256": "0c384348aeac80fe094a26e9040feaf1717900bc262b42c15566428fc64dd81b"
+      },
+      "source": {
+        "path": "\\\\wsl.localhost\\Ubuntu\\var\\tmp\\xlang-validation\\xge-full-20261110\\retained-sequence-audit-linux-r2\\owned-sequence-consumers.xl",
+        "sha256": "3214b7c26e9558def8b1c14efcf18e63993e92adbf9788f992006b14a043f21a"
+      },
+      "generatedC": {
+        "path": "\\\\wsl.localhost\\Ubuntu\\var\\tmp\\xlang-validation\\xge-full-20261110\\retained-sequence-audit-linux-r2\\owned-sequence-consumers.c",
+        "sha256": "bb8df05eeac789c6065051d3fb7fdb7efefad5d7ba2b7841771363de8b38fffe"
+      },
+      "generatedObject": {
+        "path": "\\\\wsl.localhost\\Ubuntu\\var\\tmp\\xlang-validation\\xge-full-20261110\\retained-sequence-audit-linux-r2\\owned-sequence-consumers.o",
+        "sha256": "6aef574a9523b517d03776ea2111204b419c90bb2a620a75e84180881967a499"
+      },
+      "negativeCheck": {
+        "path": "F:\\xlang-validation\\xge-full-20261110\\retained-sequence-negative-linux-r2.json",
+        "sha256": "98a96bdbfbe834fffc7fd095e96bf6ac98c56944b9043212eeab7e887d046552"
+      },
+      "runtime": {
+        "path": "\\\\wsl.localhost\\Ubuntu\\var\\tmp\\xlang-validation\\xge-full-20261110\\retained-sequence-runtime-linux-r1\\results.json",
+        "sha256": "6739ad82cd0bb95c0b68c80db6767d77345f6d7a8f0caf778e87c94226f6ecfe"
+      },
+      "negativeCases": 38,
+      "runtimeSteps": 21
+    }
+  },
+  "audit": {
+    "functionPopulation": 5796,
+    "directDeclarations": 4734,
+    "compiledConsumerFunctions": 310,
+    "explicitReplacements": 469,
+    "resolved": [
+      {
+        "symbol": "xge3dMeshGeometryAddRef",
+        "family": "XGE"
+      },
+      {
+        "symbol": "xge3dSkinPaletteAddRef",
+        "family": "XGE"
+      },
+      {
+        "symbol": "xgeAudioClipAddRef",
+        "family": "XGE"
+      },
+      {
+        "symbol": "xgeGlyphBitmapResourceAddRef",
+        "family": "XGE"
+      },
+      {
+        "symbol": "xgeGlyphBitmapResourceFree",
+        "family": "XGE"
+      },
+      {
+        "symbol": "xgeGlyphRunAddRef",
+        "family": "XGE"
+      },
+      {
+        "symbol": "xgeGlyphRunFree",
+        "family": "XGE"
+      },
+      {
+        "symbol": "xgeShapeDashSnapshotAddRef",
+        "family": "XGE"
+      },
+      {
+        "symbol": "xgeShapeDashSnapshotReleaseChecked",
+        "family": "XGE"
+      },
+      {
+        "symbol": "xgeShapeGradientSnapshotAddRef",
+        "family": "XGE"
+      },
+      {
+        "symbol": "xgeShapeGradientSnapshotReleaseChecked",
+        "family": "XGE"
+      },
+      {
+        "symbol": "xgeShapePathSnapshotAddRef",
+        "family": "XGE"
+      },
+      {
+        "symbol": "xgeShapePathSnapshotReleaseChecked",
+        "family": "XGE"
+      },
+      {
+        "symbol": "xuiCodeLayoutSnapshotAddRef",
+        "family": "XUI"
+      },
+      {
+        "symbol": "xuiCodeMarginLayoutAddRef",
+        "family": "XUI"
+      },
+      {
+        "symbol": "xuiCodeTokenBufferGetTokens",
+        "family": "XUI"
+      },
+      {
+        "symbol": "xuiCodeTokenBufferGetTokensInRange",
+        "family": "XUI"
+      },
+      {
+        "symbol": "xuiCodeTokenSnapshotAddRef",
+        "family": "XUI"
+      },
+      {
+        "symbol": "xuiCodeTokenSnapshotDestroy",
+        "family": "XUI"
+      },
+      {
+        "symbol": "xuiFindMatchesAddRef",
+        "family": "XUI"
+      },
+      {
+        "symbol": "xuiFindMatchesRelease",
+        "family": "XUI"
+      },
+      {
+        "symbol": "xuiInventoryIndicesAddRef",
+        "family": "XUI"
+      },
+      {
+        "symbol": "xuiTextShapeAddRef",
+        "family": "XUI"
+      }
+    ],
+    "pending": {
+      "XGE": 113,
+      "XUI": 178,
+      "Document": 0
+    },
+    "ownedSequenceWitnesses": [
+      "xge3d.MeshGeometry3D.vertices",
+      "xge3d.SkinPalette3D.matrices",
+      "xge.AudioClip.samples",
+      "xge.GlyphBitmap.pixels",
+      "xge.GlyphRun.glyphs",
+      "xge.ShapeDashSnapshot.pattern",
+      "xge.ShapeGradientSnapshot.stops",
+      "xge.ShapePathSnapshot.commands",
+      "xui.CodeLayoutSnapshot.lines",
+      "xui.CodeMarginLayout.entries",
+      "xui.CodeTokenSnapshot.tokens",
+      "xui.DocumentChangeSet.operations",
+      "xui.DocumentMarkdownLosses.entries",
+      "xui.DocumentMatches.ranges",
+      "xui.DocumentRangeRects.entries",
+      "xui.FindMatches.results",
+      "xui.InventoryIndices.indices",
+      "xui.TextShape.clusters"
+    ]
+  }
+}

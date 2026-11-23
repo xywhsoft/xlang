@@ -210,6 +210,8 @@ REPLACED = {
     'xuiCodeMarginModelGet': ('xui.CodeMarginModel.getState', 'xuiCodeMarginModelGetState'),
     'xuiCodeMarginModelHitTest': ('xui.CodeMarginModel.findHit', 'xuiCodeMarginModelFindHit'),
     'xuiCodeMarginModelLayout': ('xui.CodeMarginModel.captureLayout', 'xuiCodeMarginModelCaptureLayout'),
+    'xuiCodeTokenBufferGetTokens': ('xui.CodeTokenBuffer.capture', 'xuiCodeTokenBufferCapture'),
+    'xuiCodeTokenBufferGetTokensInRange': ('xui.CodeTokenBuffer.captureInRange', 'xuiCodeTokenBufferCaptureInRange'),
     'xuiFindText': ('xui.findText', 'xuiFindLocateText'),
     'xuiFindCollectText': ('xui.findAllText', 'xuiFindCollectMatches'),
     'xuiDebugWidgetInspectAt': ('xui.Context.inspectWidgetAt', 'xuiDebugWidgetInspectAtChecked'),
