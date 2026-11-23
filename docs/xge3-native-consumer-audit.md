@@ -1,5 +1,20 @@
 # Native consumers in the full API inventory
 
+## GPU resource sharing
+
+`Texture.share()`, `Shader.share()` and `RenderTarget.share()` call the
+owned native share entries directly. The original raw AddRef entries map
+to these methods. Shader creation maps to the owned factory. The compiled
+close policies cover shader, shader variant set, render target and pass
+cleanup, including the old cleanup entries that do not return status.
+
+The matched Windows and Linux inventories cover 5,863 native functions,
+including 4,798 direct declarations. There are 176 entries without a direct
+declaration, compiled consumer or explicit replacement. XGE accounts for 74
+and XUI for 102.
+
+[GPU resource sharing evidence](../dev/release-materials/provenance/xge-gpu-resource-sharing-20261123.json)
+
 ## Table column setup
 
 `TableView.setColumnsWithCallbacks()` and `TableGrid.setColumnsWithCallbacks()`

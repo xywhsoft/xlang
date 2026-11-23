@@ -584,7 +584,7 @@
       "dependencies": [
         {
           "sourceFile": "include/xge.h",
-          "lfSha256": "bb6b426a845904093f6ccd40e00c43b219238f31c8a991b77662a9795e587d02"
+          "lfSha256": "bb478a41b4b1bde8c5b89332255fd288321dfb1aeeeca91766986edd4568e1f9"
         }
       ]
     },
@@ -650,7 +650,7 @@
       "dependencies": [
         {
           "sourceFile": "include/xge.h",
-          "lfSha256": "bb6b426a845904093f6ccd40e00c43b219238f31c8a991b77662a9795e587d02"
+          "lfSha256": "bb478a41b4b1bde8c5b89332255fd288321dfb1aeeeca91766986edd4568e1f9"
         },
         {
           "sourceFile": "src/xge/render/xge_render.c",
@@ -1252,7 +1252,7 @@
       "dependencies": [
         {
           "sourceFile": "include/xge.h",
-          "lfSha256": "bb6b426a845904093f6ccd40e00c43b219238f31c8a991b77662a9795e587d02"
+          "lfSha256": "bb478a41b4b1bde8c5b89332255fd288321dfb1aeeeca91766986edd4568e1f9"
         },
         {
           "sourceFile": "src/xge/core/xge_debug.c",
@@ -2195,7 +2195,7 @@
       "dependencies": [
         {
           "sourceFile": "include/xge.h",
-          "lfSha256": "bb6b426a845904093f6ccd40e00c43b219238f31c8a991b77662a9795e587d02"
+          "lfSha256": "bb478a41b4b1bde8c5b89332255fd288321dfb1aeeeca91766986edd4568e1f9"
         },
         {
           "sourceFile": "include/xui.h",
@@ -2484,7 +2484,7 @@
       "dependencies": [
         {
           "sourceFile": "include/xge.h",
-          "lfSha256": "bb6b426a845904093f6ccd40e00c43b219238f31c8a991b77662a9795e587d02"
+          "lfSha256": "bb478a41b4b1bde8c5b89332255fd288321dfb1aeeeca91766986edd4568e1f9"
         },
         {
           "sourceFile": "src/xge/render/xge_shape_ex.c",
@@ -2504,7 +2504,7 @@
       "dependencies": [
         {
           "sourceFile": "include/xge.h",
-          "lfSha256": "bb6b426a845904093f6ccd40e00c43b219238f31c8a991b77662a9795e587d02"
+          "lfSha256": "bb478a41b4b1bde8c5b89332255fd288321dfb1aeeeca91766986edd4568e1f9"
         },
         {
           "sourceFile": "src/xge/render/xge_shape_ex.c",

@@ -1,5 +1,23 @@
 # Shader、RenderTarget 与 Pass
 
+## 共享资源引用
+
+`Texture.share()`、`Shader.share()` 和 `RenderTarget.share()` 在创建线程上取得
+独立的拥有引用。关闭任意一个视图后，其他视图仍可使用同一个原生对象。
+渲染目标的 attachment 纹理引用会同时保留其目标。最后一个引用释放后，
+相应的图形资源计数才下降。共享操作不会复制纹理像素、着色器程序或渲染目标。
+
+`xge.unit()` 在资源存活时以 checked Busy 失败。`HostSession.close()` 允许先
+关闭语言视图，并将物理清理延迟到 GPU 引用释放之后。Windows WGL 和 Linux EGL
+测试都实际绘制并读取共享目标的像素，并通过宿主探针检查上下文释放时机。
+
+预热后，各平台执行 10,000 次纹理共享、读取宽度和关闭。C 路径的 XRT 分配为 0，
+xlang JIT 路径每次增加 2 次受管视图相关分配和 2 次释放。原生共享调用取得创建线程
+准入后增加引用计数。这个测量覆盖共享引用的创建与关闭。
+
+[共享纹理范例](../lib/bindings/xge/examples/share_texture.xl) ·
+[双平台验收记录](../dev/release-materials/provenance/xge-gpu-resource-sharing-20261123.json)
+
 本批按已批准的规则处理资源：显式关闭引擎遇到仍然存活的原生拥有资源时，
 checked 返回 Busy，保持引擎和回调注册；释放资源/保留槽后重试。用户已决定继续
 由主代理单独实施。这里记录本批实现与证据，不是全量 XGE/XUI/Document 结项。

@@ -98,6 +98,10 @@ CLOSE_REPLACEMENTS = {
 }
 
 REPLACED = {
+    'xgeTextureAddRef': ('xge.Texture.share', 'xgeTextureShareOwned'),
+    'xgeShaderAddRef': ('xge.Shader.share', 'xgeShaderShareOwned'),
+    'xgeRenderTargetAddRef': ('xge.RenderTarget.share', 'xgeRenderTargetShareOwned'),
+    'xgeShaderCreate': ('xge.createShader', 'xgeShaderCreateOwned'),
     'xgeDataObjectCreate': ('xge.createDataObject','xgeDataObjectCreateOwned'),
     'xgeDataObjectAddRef': ('xge.DataObject.share','xgeDataObjectShareOwned'),
     'xgeDataObjectSetProvider': ('xge.DataObject.setProvider','xgeDataObjectSetProviderOwned'),

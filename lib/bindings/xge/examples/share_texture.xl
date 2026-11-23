@@ -1,0 +1,17 @@
+// 两个受管引用指向同一张纹理。任何一个都可以先关闭。
+import xge
+
+func main(...) as int
+    auto texture = xge.createTexture(1, 1, Buffer.fromHex("2c1207ff"))
+    auto shared = texture.share()
+    texture.close()
+    try
+        auto pixels = Buffer()
+        assert pixels.resize(4)
+        shared.readPixels(pixels)
+        println(pixels.hex())
+    finally
+        shared.close()
+    end
+    return 0
+end

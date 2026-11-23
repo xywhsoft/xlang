@@ -1,0 +1,237 @@
+{
+  "schema": 1,
+  "scope": "Independent owning views of XGE textures, shaders and render targets",
+  "nativeCommit": "a5a94d579e4d3328fb4742719f5bbc16ed92f198",
+  "engineBaseCommit": "86078a320f06f673d462aa60089b3f8db857dead",
+  "shippingDelivery": false,
+  "networkTests": false,
+  "sourceSha256NormalizedLf": {
+    "docs/xge3-xui3-api-map-storage.json": "5009958267b83e4c0e099194bb292b7d2f1e0a8112cc0b06dd23ae5d7f3fbf86",
+    "lib/bindings/xge/examples/share_texture.xl": "53b066c9fdd3a45def7ffbec8eb02d60f4e34d38ff08aba15b662aff66d5eefb",
+    "lib/bindings/xge/src/render_pipeline.xl": "b54cf6a8af5ddc07b4e736e2384d39bd83d054477604bfad1da53e9da1f4cbee",
+    "lib/bindings/xge/src/resources.xl": "5edd0becec873dfbe18ecadc21d8834c2641f59baf859bdd0288965e52f9965a",
+    "tools/check_xge3_native_consumers.py": "a0fb2acc39b1fbbd8aa0e9b268a2c97d4bfa762940799d5273c5d048d3add188",
+    "tools/xge_replay_contracts.py": "dce265925e5a94009167fd35be1f3c40a1ac6084a3fbd79820072309a6bd7ed4",
+    "test/cases/foreign_xge3_gpu_sharing.xl": "eaedcd6e8b13d45fb0abe56b2fda92b81ad9f685b2a691445beeb6f3619eb264"
+  },
+  "verification": {
+    "nativeShareAllocatesNoStorage": true,
+    "oomRollbackKeepsOriginalOwnerUsable": true,
+    "wrongThreadShareRejected": true,
+    "renderTargetAttachmentRetainsPhysicalTarget": true,
+    "shaderVariantOutlivesOriginalViewAndVariantSet": true,
+    "engineCloseBusyWithLiveResourceAndSucceedsAfterRelease": true,
+    "hostCloseDefersOsContextReleaseUntilGpuOwnersRetire": true,
+    "renderedPixels": "2c1207ff repeated six times",
+    "staticAotHasNoEngineOrCompilerLibraryImport": true,
+    "sampleQualification": "One warmed JIT sample and one C sample per platform. Each path uses the same texture and repeats share, width read and close 10,000 times. XRT allocation monitoring is enabled. CPU time is a sample of view management, not draw throughput.",
+    "platforms": {
+      "win": {
+        "graphicsBackend": "WGL OpenGL 3.3",
+        "nativeSource": {
+          "path": "F:/xlang-validation/xge-full-20261110/gpu-resource-sharing-native-source-win-r2.json",
+          "sha256": "31ca5c39d5456a1a67a08389b25ac7a52a3724f5b31da9eda65200548f469bc9"
+        },
+        "nativeHostAndStaticO0O2": {
+          "path": "F:/xlang-validation/xge-full-20261110/gpu-resource-sharing-native-test-win-r1/results.json",
+          "sha256": "a45cd67fc51d04ad384ed4b9550c0f04e0bb04c3f0696a7eef0cb2210d57d6e9"
+        },
+        "languageJitDynamicStaticAot": {
+          "path": "F:/xlang-validation/xge-full-20261110/gpu-resource-sharing-verify-win-r7/results.json",
+          "sha256": "f94e757ee02c9e3d3c28e2835519f3e5fceec20db8eea08a650233d53e513ab2"
+        },
+        "compiledGpuFixture": [
+          {
+            "path": "F:/xlang-validation/xge-full-20261110/gpu-resource-sharing-verify-win-r7/gpu_resource_sharing.c",
+            "sha256": "12e52d95c17f45a660eb3b3bed19b5e5560ae261621ff84a38f1c718f8bfbf86"
+          },
+          {
+            "path": "F:/xlang-validation/xge-full-20261110/gpu-resource-sharing-verify-win-r7/jit.log",
+            "sha256": "3456fb1dadbb70c0ec823ea3d2e189e5701b9237e7586f99dea3afbd9307f1fd"
+          },
+          {
+            "path": "F:/xlang-validation/xge-full-20261110/gpu-resource-sharing-verify-win-r7/probe.a",
+            "sha256": "9287631a2e4494a994af37180fc748e7d2c0674b6881e9e37582871dd09b70c9"
+          },
+          {
+            "path": "F:/xlang-validation/xge-full-20261110/gpu-resource-sharing-verify-win-r7/probe.dll",
+            "sha256": "661e73d95ee0e0cbdcc761f89586a34ef86e30bbf6874ce4bde7ad4aa09249af"
+          },
+          {
+            "path": "F:/xlang-validation/xge-full-20261110/gpu-resource-sharing-verify-win-r7/dynamic-imports.log",
+            "sha256": "06559ee6aece7d89b680b0e8e60bbe7f9c5a6b7b0fa57aee251bd1204711d115"
+          },
+          {
+            "path": "F:/xlang-validation/xge-full-20261110/gpu-resource-sharing-verify-win-r7/static-imports.log",
+            "sha256": "4040154a6732d134bf6dc05d07fd534856b2b61b1bcfc1a2f5f8e52d079d216a"
+          },
+          {
+            "path": "F:/xlang-validation/xge-full-20261110/gpu-resource-sharing-verify-win-r7/dynamic.exe",
+            "sha256": "95e4071c59d4bddc57f456daa7dca4d5e10af46f01852a5fa4f37cc421da82ce"
+          },
+          {
+            "path": "F:/xlang-validation/xge-full-20261110/gpu-resource-sharing-verify-win-r7/static.exe",
+            "sha256": "729db57bf61f2e08d93f7e5e472897cf1d8160c0f163e879c8bfeef6d19a12de"
+          }
+        ],
+        "exampleJitDynamicStaticAot": {
+          "path": "F:/xlang-validation/xge-full-20261110/gpu-resource-sharing-verify-win-r4/results.json",
+          "sha256": "a14bc014c9bf366f0348a776cb1a3ef88af52ff5d07596f7d3ecdc06727e23a0"
+        },
+        "strictDeclarationReplay": {
+          "path": "F:/xlang-validation/xge-full-20261110/gpu-resource-sharing-generator-win-r3/results.json",
+          "sha256": "d709a7daff56b60a888d97551843bf8f2fc55642c33039feddf4d1968b10a5be"
+        },
+        "consumerAudit": {
+          "path": "F:/xlang-validation/xge-full-20261110/gpu-resource-sharing-consumers-win-r2/results.json",
+          "sha256": "ed6941264d91b2fa50afcbce541b9b237e1594a6fde25cb186782880d41ebf27"
+        },
+        "functions": 5863,
+        "directDeclarations": 4798,
+        "pendingConsumerOrReplacement": {
+          "XGE": 74,
+          "XUI": 102
+        },
+        "warmAllocationAndTiming": {
+          "path": "F:/xlang-validation/xge-full-20261110/gpu-resource-sharing-perf-win-r1/results.json",
+          "sha256": "1b7014ee06adf9ad6743ea1f6b5568d0bee5c743333866df309da692a824e6d6"
+        },
+        "measurements": {
+          "xlang": {
+            "rounds": 10000,
+            "alloc": 20000,
+            "free": 20000,
+            "realloc": 0,
+            "cpuMs": 32.0
+          },
+          "C": {
+            "rounds": 10000,
+            "alloc": 0,
+            "free": 0,
+            "realloc": 0,
+            "cpuMs": 0.0
+          }
+        },
+        "matchedPackages": {
+          "path": "F:/xlang-validation/xge-full-20261110/gpu-resource-sharing-stage-win-r3/replay/stage-report.json",
+          "sha256": "fc87897a7130c9042ad47a7dd58e685661b4a980e11007a69cc26b7ba93b9f3d"
+        },
+        "staticO2Build": {
+          "path": "F:/xlang-validation/xge-full-20261110/gpu-resource-sharing-static-win-r2/build-report.json",
+          "sha256": "3b01ce48ae13748a2ba4d344086ac430ebc13f8d214d4942fb0ebee85100c21b"
+        },
+        "publicSurface": {
+          "path": "F:/xlang-validation/xge-full-20261110/gpu-resource-sharing-inventory-win-r3/surface.json",
+          "sha256": "bd4414a99108d3a645269556c6e308b4d12885e0043477b77822cc5d363454c6"
+        },
+        "hostO2Build": {
+          "path": "F:/xlang-validation/xge-full-20261110/gpu-resource-sharing-host-win-r2/build-report.json",
+          "sha256": "65a0f626a7be838af70c1e2983ab0df8e9be33f09122de6c1b07761f9ab213e7"
+        }
+      },
+      "linux": {
+        "graphicsBackend": "EGL OpenGL 3.3, software rendering",
+        "nativeSource": {
+          "path": "//wsl.localhost/Ubuntu/var/tmp/xlang-validation/xge-full-20261110/gpu-resource-sharing-native-source-linux-r2.json",
+          "sha256": "fce3ecf8a7f99db434b348ae2a3e793eb78507d580db130674b9bda03dd7f4fc"
+        },
+        "nativeHostAndStaticO0O2": {
+          "path": "//wsl.localhost/Ubuntu/var/tmp/xlang-validation/xge-full-20261110/gpu-resource-sharing-native-test-linux-r1/results.json",
+          "sha256": "3491843f65882dfdaa9c1f1c5ddccbd44d738f28b337ff249b091f42d9857214"
+        },
+        "languageJitDynamicStaticAot": {
+          "path": "//wsl.localhost/Ubuntu/var/tmp/xlang-validation/xge-full-20261110/gpu-resource-sharing-verify-linux-r7/results.json",
+          "sha256": "a28317ec7b8375c29f7869a21077391c960f842953bae3c8980aa0a59ce82175"
+        },
+        "compiledGpuFixture": [
+          {
+            "path": "//wsl.localhost/Ubuntu/var/tmp/xlang-validation/xge-full-20261110/gpu-resource-sharing-verify-linux-r7/gpu_resource_sharing.c",
+            "sha256": "12e52d95c17f45a660eb3b3bed19b5e5560ae261621ff84a38f1c718f8bfbf86"
+          },
+          {
+            "path": "//wsl.localhost/Ubuntu/var/tmp/xlang-validation/xge-full-20261110/gpu-resource-sharing-verify-linux-r7/jit.log",
+            "sha256": "3456fb1dadbb70c0ec823ea3d2e189e5701b9237e7586f99dea3afbd9307f1fd"
+          },
+          {
+            "path": "//wsl.localhost/Ubuntu/var/tmp/xlang-validation/xge-full-20261110/gpu-resource-sharing-verify-linux-r7/probe.a",
+            "sha256": "ffe997e236d6fa3a375512edd5cc275c8af776cc316483ea88a08ac95fd59266"
+          },
+          {
+            "path": "//wsl.localhost/Ubuntu/var/tmp/xlang-validation/xge-full-20261110/gpu-resource-sharing-verify-linux-r7/probe.so",
+            "sha256": "af9551ddef1351dfe75d576bbf7d6e99eabcc2038150af5744b4271f92a180f3"
+          },
+          {
+            "path": "//wsl.localhost/Ubuntu/var/tmp/xlang-validation/xge-full-20261110/gpu-resource-sharing-verify-linux-r7/dynamic-imports.log",
+            "sha256": "f405f888c723a723bc6fe6b0e5c276f3db3f136e87a1fc191eea08288ad387d5"
+          },
+          {
+            "path": "//wsl.localhost/Ubuntu/var/tmp/xlang-validation/xge-full-20261110/gpu-resource-sharing-verify-linux-r7/static-imports.log",
+            "sha256": "05c9610655a49d0098d59a20399a2635c64a21ee6d04c51d50b43c68dcab3705"
+          },
+          {
+            "path": "//wsl.localhost/Ubuntu/var/tmp/xlang-validation/xge-full-20261110/gpu-resource-sharing-verify-linux-r7/dynamic",
+            "sha256": "8001f4a2ac90dddf810a7fb80a3154d0184f21974149768a5efcd32a3d163c83"
+          },
+          {
+            "path": "//wsl.localhost/Ubuntu/var/tmp/xlang-validation/xge-full-20261110/gpu-resource-sharing-verify-linux-r7/static",
+            "sha256": "1a891fb0c357e0df406c5434be78bdf4a37fcee37c496059c7dadba1a87bbb3a"
+          }
+        ],
+        "exampleJitDynamicStaticAot": {
+          "path": "//wsl.localhost/Ubuntu/var/tmp/xlang-validation/xge-full-20261110/gpu-resource-sharing-verify-linux-r4/results.json",
+          "sha256": "bdabfe498ffe1d2d166f1a77aa216e09a63ce04468cfd36cee45c5564bb529cc"
+        },
+        "strictDeclarationReplay": {
+          "path": "//wsl.localhost/Ubuntu/var/tmp/xlang-validation/xge-full-20261110/gpu-resource-sharing-generator-linux-r3/results.json",
+          "sha256": "421b929fb8eada2f8f9b959dbd134d75c0c77820be0a0315c32c9592c238f3b4"
+        },
+        "consumerAudit": {
+          "path": "//wsl.localhost/Ubuntu/var/tmp/xlang-validation/xge-full-20261110/gpu-resource-sharing-consumers-linux-r2/results.json",
+          "sha256": "a17508931086f6ad7722025be5de96d360dee7e06d383701a243e7f2e9f9a313"
+        },
+        "functions": 5863,
+        "directDeclarations": 4798,
+        "pendingConsumerOrReplacement": {
+          "XGE": 74,
+          "XUI": 102
+        },
+        "warmAllocationAndTiming": {
+          "path": "//wsl.localhost/Ubuntu/var/tmp/xlang-validation/xge-full-20261110/gpu-resource-sharing-perf-linux-r1/results.json",
+          "sha256": "f46f85ccc975165943fa46d1cdad81293b52d7ed3e7923f21c9f8631c69ffbb2"
+        },
+        "measurements": {
+          "xlang": {
+            "rounds": 10000,
+            "alloc": 20000,
+            "free": 20000,
+            "realloc": 0,
+            "cpuMs": 36.784
+          },
+          "C": {
+            "rounds": 10000,
+            "alloc": 0,
+            "free": 0,
+            "realloc": 0,
+            "cpuMs": 0.467
+          }
+        },
+        "matchedPackages": {
+          "path": "//wsl.localhost/Ubuntu/var/tmp/xlang-validation/xge-full-20261110/gpu-resource-sharing-stage-linux-r3/replay/stage-report.json",
+          "sha256": "48c3e1051aec2ba72b570ce8118502673df15ecee05f8868a978f87f2fa5edc6"
+        },
+        "staticO2Build": {
+          "path": "//wsl.localhost/Ubuntu/var/tmp/xlang-validation/xge-full-20261110/gpu-resource-sharing-static-linux-r2/build-report.json",
+          "sha256": "4033defa4aaa01529b10c30aff651c524a3e4bed93ded7fabd5a2b1f736278bd"
+        },
+        "publicSurface": {
+          "path": "//wsl.localhost/Ubuntu/var/tmp/xlang-validation/xge-full-20261110/gpu-resource-sharing-inventory-linux-r3/surface.json",
+          "sha256": "5e2373ed11a3a3aad11b1b99c8da4a3e2a4e6e7b6f94d791cfc03ce65f6bad3c"
+        },
+        "hostO2Build": {
+          "path": "//wsl.localhost/Ubuntu/var/tmp/xlang-validation/xge-full-20261110/gpu-resource-sharing-host-linux-r2/build-report.json",
+          "sha256": "e84d52c21e86a7226b052673dc68b29605541da319f5a464baaa3fb1d8bc83ec"
+        }
+      }
+    }
+  }
+}

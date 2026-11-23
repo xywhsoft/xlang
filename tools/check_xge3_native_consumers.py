@@ -46,6 +46,16 @@ HEADER_CLOSE_REPLACEMENTS = {
 }
 HEADER_CLOSE_REPLACEMENTS['xge3dQueryResultsReleaseChecked'] = (
     'xge3d.QueryResults.close', 'xge3dQueryResultsRelease')
+RENDER_RESOURCE_CLOSES = {
+    'xgeShaderFree': ('xge.Shader.close', 'xl6Xge3ShaderPolicyDestroy', 'xgeShaderFree'),
+    'xgeShaderVariantSetFree': ('xge.ShaderVariants.close', 'xl6Xge3ShaderVariantsPolicyDestroy', 'xgeShaderVariantSetFree'),
+    'xgeRenderTargetFree': ('xge.RenderTarget.close', 'xl6Xge3TargetDestroy', 'xgeRenderTargetReleaseOwnerChecked'),
+    'xgeRenderTargetReleaseOwnerChecked': ('xge.RenderTarget.close', 'xl6Xge3TargetDestroy', 'xgeRenderTargetReleaseOwnerChecked'),
+    'xgePassFree': ('xge.Pass.close', 'xl6Xge3PassDestroy', 'xgePassReleaseOwnerChecked'),
+    'xgePassReleaseOwnerChecked': ('xge.Pass.close', 'xl6Xge3PassDestroy', 'xgePassReleaseOwnerChecked'),
+}
+HEADER_CLOSE_REPLACEMENTS.update({symbol: (logical, release)
+    for symbol, (logical, _, release) in RENDER_RESOURCE_CLOSES.items()})
 CORE_POLICY_CLASSES = {
     'xge.Scene', 'xge.PlatformBackend', 'xge.GraphicsBackend', 'xge.GraphicsContext', 'xge.HostSession',
     'xge.ImageLoad', 'xge.TextureLoad', 'xge.FontLoad', 'xge.SoundLoad',
@@ -571,6 +581,9 @@ def main():
             'iconHeaderPolicies': ('xui-icon-header-policies',
                 {'xui.IconReference': class_bindings['xui.IconReference']}),
         }
+        render_classes = {logical.rsplit('.', 1)[0] for logical, _, _ in RENDER_RESOURCE_CLOSES.values()}
+        policy_groups['renderResourceHeaderPolicies'] = ('xge-render-resource-header-policies',
+            {name: class_bindings[name] for name in sorted(render_classes)})
         if 'xui.CodeLayoutSnapshot' in class_bindings:
             policy_groups['codeLayoutHeaderPolicies'] = ('xui-code-layout-header-policies',
                 {'xui.CodeLayoutSnapshot': class_bindings['xui.CodeLayoutSnapshot']})
@@ -638,7 +651,11 @@ def main():
                 logical,release=HEADER_CLOSE_REPLACEMENTS[symbol]
                 owner=class_bindings[logical.rsplit('.',1)[0]]
                 policy=re.search(r'@policy\("(\w+)"\)',class_lines(view,owner)[0])[1]
-                if symbol in CORE_HEADER_CLOSES:
+                if symbol in RENDER_RESOURCE_CLOSES:
+                    key='renderResourceHeaderPolicies'
+                    destroy=RENDER_RESOURCE_CLOSES[symbol][1]
+                    require_close(class_lines(view,owner),policy,logical)
+                elif symbol in CORE_HEADER_CLOSES:
                     key='coreHeaderPolicies'
                     destroy='xl6Xge3'+CORE_HEADER_CLOSES[symbol][1]+'Destroy'
                 elif symbol=='xuiTerminalSessionDestroy':

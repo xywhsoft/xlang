@@ -1,0 +1,186 @@
+import xge
+from xge import Texture, Shader
+
+extern "xge_test_host_probe_info" struct ProbeInfo @header("test/cases/foreign_xge3_host_probe.h")
+    c_uint platformInit
+    c_uint graphicsInit
+    c_uint platformUnit
+    c_uint graphicsUnit
+    c_uint begins
+    c_uint ends
+    c_uint polls
+    c_uint presents
+    c_uint releases
+    c_uint makeCurrent
+    c_uint lookups
+    bool contextLive
+    bool platformLive
+end
+
+extern "xgeTestHostConfigure" @header("test/cases/foreign_xge3_host_probe.h") @no_raise @c_result("status",0) func configure(c_int backend,bool deferRelease)
+extern "xgeTestHostPlatformInit" @header("test/cases/foreign_xge3_host_probe.h") @no_raise func platformInit() as c_int
+extern "xgeTestHostPlatformUnit" @header("test/cases/foreign_xge3_host_probe.h") @no_raise func platformUnit()
+extern "xgeTestHostGraphicsInit" @header("test/cases/foreign_xge3_host_probe.h") @no_raise func graphicsInit() as c_int
+extern "xgeTestHostGraphicsUnit" @header("test/cases/foreign_xge3_host_probe.h") @no_raise func graphicsUnit()
+extern "xgeTestHostMakeCurrent" @header("test/cases/foreign_xge3_host_probe.h") @no_raise func makeCurrent() as c_int
+extern "xgeTestHostIsCurrent" @header("test/cases/foreign_xge3_host_probe.h") @no_raise func isCurrent() as c_int
+extern "xgeTestHostRelease" @header("test/cases/foreign_xge3_host_probe.h") @no_raise func release() as xge.HostReleaseResult
+extern "xgeTestHostBegin" @header("test/cases/foreign_xge3_host_probe.h") @no_raise func beginFrame() as c_int
+extern "xgeTestHostEnd" @header("test/cases/foreign_xge3_host_probe.h") @no_raise func endFrame() as c_int
+extern "xgeTestHostPoll" @header("test/cases/foreign_xge3_host_probe.h") @no_raise func poll() as c_int
+extern "xgeTestHostPresent" @header("test/cases/foreign_xge3_host_probe.h") @no_raise func present()
+extern "xgeTestHostInfo" @header("test/cases/foreign_xge3_host_probe.h") @no_raise @c_output(0,0) func probeInfo() as ProbeInfo
+extern "xrtMemDebugFailAfter" @header("xrt_decl.h") @no_raise func failAfter(c_size allowance) as bool
+extern "xrtMemDebugFailClear" @header("xrt_decl.h") @no_raise func clearBudget()
+
+func expectOom(func() operation)
+    assert failAfter(0)
+    bool failed = false
+    try
+        operation()
+    catch Error
+        failed = true
+    finally
+        clearBudget()
+    end
+    assert failed, "view allocation must fail under the injected budget"
+end
+
+func checkCpuShare()
+    auto source = xge.createTexture(1,1,Buffer.fromHex("2c1207ff"))
+    expectOom(func()
+        auto unexpected = source.share()
+        unexpected.close()
+    end)
+    auto shared = source.share()
+    source.close()
+    bool expired = false
+    try
+        auto rejected = source.share()
+    catch StateError
+        expired = true
+    end
+    assert expired and shared.width == 1
+    bool busy = false
+    try
+        xge.unit()
+    catch Error
+        busy = true
+    end
+    assert busy and xge.graphicsResourceCount() == uint64(1)
+    shared.close()
+    assert xge.graphicsResourceCount() == uint64(0)
+end
+
+func main(...) as int
+    checkCpuShare()
+    c_int backend = xge.XGE_GPU_BACKEND_OPENGL33
+    configure(backend, false)
+    xge.init(4,4,"GPU sharing checks",0,xge.XGE_RUN_MANUAL)
+    auto platform = xge.createPlatformBackend(xge.XGE_PLATFORM_BACKEND_CUSTOM,"local OS",platformInit,platformUnit,poll,present)
+    auto graphics = xge.createGraphicsBackend(backend,"local GL",graphicsInit,graphicsUnit,beginFrame,endFrame)
+    auto host = xge.createHostSession(4,4,1,0,platform,graphics,makeCurrent,isCurrent,release)
+    platform.close()
+    graphics.close()
+    uint64 hostOwners = xge.graphicsResourceCount()
+
+    auto vertex = "#version 330\nlayout(location=0)in vec4 position;void main(){gl_Position=position;}"
+    auto fragment = "#version 330\nuniform vec4 uTint;out vec4 color;void main(){color=uTint;}"
+    if backend == xge.XGE_GPU_BACKEND_GLES30 then
+        vertex = "#version 300 es\nlayout(location=0)in vec4 position;void main(){gl_Position=position;}"
+        fragment = "#version 300 es\nprecision highp float;uniform vec4 uTint;out vec4 color;void main(){color=uTint;}"
+    end
+    auto shader = xge.createShader(vertex, fragment)
+    auto target = xge.createRenderTarget(2,2)
+    uint64 owners = xge.graphicsResourceCount()
+    assert owners == hostOwners + uint64(2), "shader and target each owe one graphics owner"
+    expectOom(func()
+        auto unexpected = shader.share()
+        unexpected.close()
+    end)
+    expectOom(func()
+        auto unexpected = target.share()
+        unexpected.close()
+    end)
+    auto retainedShader = shader.share()
+    auto retainedTarget = target.share()
+    assert xge.graphicsResourceCount() == owners
+    shader.close()
+    target.close()
+    assert retainedShader.nativeProgram != c_uint(0)
+    retainedShader.uniform4f("uTint",1,0,0,1)
+    retainedTarget.resize(3,2)
+    assert retainedTarget.width == 3 and retainedTarget.height == 2
+    auto pass = xge.createPass(retainedTarget, c_uint(xge.XGE_PASS_CLEAR_COLOR), xge.colorRGBA(44,18,7,255))
+    host.beginFrame()
+    pass.begin()
+    pass.finish()
+    host.endFrame()
+    host.discardFrame()
+    pass.close()
+    auto firstAttachment = retainedTarget.texture as Texture
+    auto attachment = firstAttachment.share()
+    firstAttachment.close()
+    retainedTarget.close()
+    assert xge.graphicsResourceCount() == owners
+    assert attachment.width == 3 and attachment.height == 2
+    auto destination = xge.createRenderTarget(3,2)
+    auto copyPass = xge.createPass(destination)
+    auto area = xge.Rect()
+    area.fW = 3
+    area.fH = 2
+    host.beginFrame()
+    copyPass.begin()
+    xge.drawTexture(attachment,area,area,xge.colorRGBA(255,255,255,255))
+    copyPass.finish()
+    host.endFrame()
+    host.discardFrame()
+    auto pixels = Buffer()
+    assert pixels.resize(24)
+    destination.readPixels(pixels)
+    assert pixels.hex() == string.repeat("2c1207ff",6)
+    copyPass.close()
+    destination.close()
+
+    auto worker = thread(func() as int
+        try
+            auto rejected = attachment.share()
+            rejected.close()
+        catch StateError
+            return 1
+        end
+        return 0
+    end)
+    assert worker.waitTimeout(30000) and worker.exitCode() == 1
+
+    auto variants = xge.createShaderVariants(vertex, fragment)
+    array<xge.ShaderDefine> defines = []
+    auto firstVariant = variants.get(0, defines)
+    auto retainedVariant = firstVariant.share()
+    firstVariant.close()
+    variants.close()
+    retainedVariant.uniform4f("uTint",0,1,0,1)
+    retainedVariant.close()
+
+    retainedShader.close()
+    assert xge.graphicsResourceCount() == hostOwners + uint64(1), "attachment keeps its target alive"
+    bool busy = false
+    try
+        xge.unit()
+    catch Error
+        busy = true
+    end
+    assert busy and host.isCurrent(), "engine shutdown must leave the live context usable"
+    host.close()
+    auto deferred = probeInfo()
+    assert deferred.contextLive and deferred.releases == c_uint(0), "the attachment delays physical host cleanup"
+    assert xge.graphicsResourceCount() == hostOwners + uint64(1)
+    attachment.close()
+    host.close()
+    auto finished = probeInfo()
+    assert !finished.contextLive and finished.releases == c_uint(1), "the context is released exactly once"
+    assert xge.graphicsResourceCount() == uint64(0)
+    xge.unit()
+    println("XGE_GPU_RESOURCE_SHARING_OK")
+    return 0
+end

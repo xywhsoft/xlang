@@ -1,6 +1,7 @@
 // Native resource ownership; methods remain direct engine calls.
 export extern "xge_shader_t*" class Shader @header("xge3_shader.h") @lifetime("owned") @policy("xl6Xge3ShaderPolicy")
  native point handle
+ extern "xgeShaderShareOwned" @no_raise @c_result("owned_view") @factory(1,0,freeShader) func share() as Shader
  extern "iProgram" @c_field get nativeProgram() as c_uint
  extern "xgeShaderUniform1i" @no_raise @c_cstr(0) @c_result("status",0) func uniform1i(string name,c_int value)
  extern "xgeShaderUniform1f" @no_raise @c_cstr(0) @c_result("status",0) func uniform1f(string name,c_float value)
@@ -28,6 +29,7 @@ export extern "xgeShaderVariantSetInit" @header("xge3_shader.h") @no_raise @c_cs
 
 export extern "xge_render_target_t*" class RenderTarget @header("xge3_render_target.h") @lifetime("owned") @policy("xl6Xge3TargetPolicy")
  native point handle
+ extern "xgeRenderTargetShareOwned" @no_raise @c_result("owned_view") @factory(1,0,freeRenderTarget) func share() as RenderTarget
  extern "iWidth" @c_field get width() as c_int
  extern "iHeight" @c_field get height() as c_int
  extern "xgeRenderTargetResize" @no_raise @c_result("status",0) func resize(c_int width,c_int height)
