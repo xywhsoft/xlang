@@ -1,5 +1,9 @@
 /* Included only by the qualified native pipeline component. */
-typedef struct xls_call_read {uint32_t kind,id;} xls_call_read;
+typedef xls_ir_input_read xls_call_read;
+typedef xls_ir_input_trace xls_call_trace;
+#define xlsCallPut xlsIrInputPut
+#define xlsCallText xlsIrInputText
+#define xlsCallRegion xlsIrInputRegion
 typedef struct xls_call_unit {
  xatomic32 refs;size_t first,end,reads,keyBytes,sites,args,bytes;
  xls_call_read* ids;unsigned char* key;XL6_IrCallSite* site;XL6_IrCallArgument* arg;
@@ -9,10 +13,6 @@ typedef struct xls_call_build {
  const xls_ir_call_cache* previous;xls_ir_call_cache* next;
  size_t limit;xls_ir_call_cache_work work;
 } xls_call_build;
-typedef struct xls_call_trace {
- const XL6_IrModule* module;uint32_t *seen,epoch;xls_call_read* ids;
- size_t reads,readCapacity,used,capacity;unsigned char* key;int failed;
-} xls_call_trace;
 static _Thread_local xls_call_trace* xlsCallsActiveTrace;
 static void xlsCallUnitRelease(xls_call_unit* u)
 {
@@ -32,18 +32,6 @@ void xlsIrCallCacheDestroy(xls_ir_call_cache* c)
  xrtArrayUnit(&c->units);xrtStrBufFree(&c->context);xrtFree(c);
 }
 size_t xlsIrCallCacheBytes(const xls_ir_call_cache* c){return c?c->bytes:0;}
-static int xlsCallPut(xls_call_trace* t,const void* p,size_t n)
-{
- if(t->failed||n>t->capacity-t->used||(n&&!p)){t->failed=1;return 0;}
- if(n)memcpy(t->key+t->used,p,n);
- t->used+=n;return 1;
-}
-static int xlsCallText(xls_call_trace* t,const char* p)
-{
- uint64_t n=0;
- if(p){size_t room=t->capacity-t->used;for(;n<room&&p[n];++n){}if(n==room){t->failed=1;return 0;}++n;}
- return xlsCallPut(t,&n,sizeof(n))&&xlsCallPut(t,p,(size_t)n);
-}
 static int xlsCallNodeKey(xls_call_trace* t,XL6_IrNodeId id)
 {
  const XL6_IrModule* m=t->module;const XL6_IrNode* n=xl6IrNodeGet(m,id);if(!n)return 0;
@@ -134,12 +122,6 @@ static int xlsCallContext(xstrbuf* key,const XL6_IrModule* m,size_t limit)
 #undef CALL_VECTOR
 #undef CALL_KEY
  return 1;
-}
-static int xlsCallRegion(size_t* bytes,size_t count,size_t width,size_t align,size_t* at)
-{
- size_t pad=(align-*bytes%align)%align;if(pad>SIZE_MAX-*bytes)return 0;*bytes+=pad;*at=*bytes;
- if(count>(SIZE_MAX-*bytes)/width)return 0;
- *bytes+=count*width;return 1;
 }
 static xls_call_unit* xlsCallCapture(const XL6_IrModule* m,const xls_call_trace* t,
  size_t first,size_t end,size_t siteStart,size_t argStart,size_t limit)

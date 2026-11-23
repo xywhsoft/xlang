@@ -1,0 +1,286 @@
+{
+  "schema": 1,
+  "date": "2026-11-23",
+  "stage": "M7b7v",
+  "scope": "Actual cross-generation native implicit-name production and three-scalar restoration;no ordinary integration or full final-function IR",
+  "ownedSources": {
+    "ide/src/analysis/frontend_ir_call_cache.inc": "d7239272f6240969c9c2ae1ef39a9eb05a1f351dccca486dffb3ac0be8edd14a",
+    "ide/src/analysis/frontend_ir_pipeline.inc": "e05ff85285ac13a5b50d1bbe60a4d15a462e0347d7e3fe4e53bdcb51a6b8724e",
+    "ide/src/analysis/frontend_ir_input_bytes.inc": "5ec424463669b80ae8acc64f4e95329b96a728c0a3ae68526961e7b23c805a8d",
+    "ide/src/analysis/frontend_ir_name_cache.inc": "b07a65f51f5a189315ca345f21e428a8da970149645e6b874dfcdfb269e51d81",
+    "ide/src/analysis/ir_native_name_cache.h": "056210c1092b7c63a6bfd9f5d6e7212ec51a4b17dd6974ece64ac429a3dab2f4",
+    "ide/tools/build_lsp_core.py": "20d70d97d128653d961e2640d9c854851d81c566ce0744dc6e9748e75de2ee1d",
+    "ide/tools/check_ir_pipeline_profile.py": "8f44240ce0a0f11715f2f7e908c20ffb902f30d2d252ecd9ffa8d949ed217028",
+    "ide/tools/native_current_ir_overlay.py": "6e6e18f471317304b4dc09b48acc6c366a6d28d8bdd40aa0a080442cb2f147ba",
+    "ide/tools/native_field_bindings_overlay.py": "9d4f591558bf3b7bcde2b182f931b9d4ec322f2145014aaacc40439284889714",
+    "ide/tools/native_ir_pipeline_overlay.py": "55748af5c0e805676d06ed500daed80c6ab1c365d151deec341f84983a455d90",
+    "ide/tools/native_ir_name_cache_overlay.py": "7b898a3ec06d6fc610f08d1ed2fc6021ce0385348a314c6cc17e0d38040a6982",
+    "ide/tests/analysis_ir_name_cache_test.c": "0bd9f9d550dbe2530e041e013c5ad5a40592e24f522da9be72ff1eba5e4aa8fb",
+    "ide/tests/analysis_ir_name_cache_contract_test.c": "eace80b7ce6a2a77a1fbb9b69fe93de7baf5a3f1a1431c08a0162c4c32342b66",
+    "ide/docs/lsp-native-name-cache.md": "c4ceafd42e830cf08800aca561e4c742f0c8efbe410c3a7f271a348fdb9468a7",
+    "ide/docs/lsp-development.md": "bd9511c6839759a2167efbd205af0d14deb93d387e2eaad2cdb48ad377be79ba"
+  },
+  "materials": {
+    "sources": {
+      "archive": {
+        "path": "dev/release-materials/sources/lsp-native-name-cache-20261123/sources.tar.gz",
+        "sha256": "657fd3ac3151aae032988d0717163eae5235763c9750f7252d524caa6cb6a559",
+        "bytes": 16658759
+      },
+      "manifest": {
+        "path": "dev/release-materials/sources/lsp-native-name-cache-20261123/sources.tar.gz.manifest.json",
+        "sha256": "768a7e58112242a703f1e14d885397eb2e405006ab95e4b4b01aea971e40ed5a",
+        "bytes": 2311013
+      },
+      "entries": 4972,
+      "uniquePayloads": 2069
+    },
+    "validation": {
+      "archive": {
+        "path": "dev/release-materials/provenance/lsp-native-name-cache-20261123/validation.tar.gz",
+        "sha256": "60fe229324e2eb152f46856752097bf8d1d9e24828e71984a4d24b024b05e7b3",
+        "bytes": 135518761
+      },
+      "manifest": {
+        "path": "dev/release-materials/provenance/lsp-native-name-cache-20261123/validation.tar.gz.manifest.json",
+        "sha256": "2f03f99f3fc84943a2aec93a2c7e2b95444cb2ed73f16220831a9959c3677c24",
+        "bytes": 141615
+      },
+      "entries": 416,
+      "uniquePayloads": 231
+    }
+  },
+  "materialDependencies": [
+    "dev/release-materials/provenance/lsp-call-input-projection-20261123.json",
+    "dev/release-materials/provenance/lsp-stable-resource-package-20261123.json"
+  ],
+  "qualification": {
+    "nativeCoreMembersFresh": 1,
+    "coreObjectsReusedExactDependencies": 79,
+    "freshNativeFixtures": 4,
+    "semanticInputs": 49,
+    "nameNormalChecks": 6889,
+    "nameContractChecksIncludingNormal": 7413,
+    "namePoisonedRetiredUnits": 736,
+    "callNormalChecksRerun": 6803,
+    "callContractChecksRerun": 6924,
+    "concurrentReaders": 4,
+    "readerGenerations": 3,
+    "nameInputFields": 12,
+    "nameOutputFields": 3,
+    "outputsDisjointFromInputs": true,
+    "changedNativeClassFieldComparedWithIndependentProduction": true,
+    "seededOutputSlotsRestoredBeforeFullVerifier": true,
+    "memberSwitchReusedRanges": 20,
+    "totalMemberRanges": 21,
+    "memberSwitchNativeNodes": 19,
+    "totalMemberNodes": 550,
+    "coordinateOnlyEditReusedRanges": 21,
+    "coordinateOnlyEditNativeNodes": 0,
+    "coldAllocationApiRejectionPoints": 52,
+    "hotAllocationApiRejectionPoints": 49,
+    "coldCancellationPoints": 45,
+    "hotCancellationPoints": 48,
+    "sourcePolicyCases": 20,
+    "relatedNativePrograms": 8,
+    "ordinaryUnavailableFixtures": 2,
+    "compiledDefects": 9,
+    "positiveControls": 2,
+    "mutationHarnessPreparationFailureRetained": true,
+    "defaultExistingFunctions": 1862,
+    "unchangedPrivateLayouts": 2,
+    "sourceHeaderCompilerRuntimeGuardsPassed": true,
+    "finalComponentCompilerWarnings": 0
+  },
+  "sourceContract": {
+    "functions": {
+      "xl6IrBuildImplicitNameAbis": "300f44c99886e2eb88bc72dc965dec6b0eeba641aef1fb9359f7840d77168457",
+      "xl6IrClassifyImplicitNameAbi": "8bb17eb80babb1001379483c860fb489359e4c1b7247cdcc95c6f8b826ad4c78",
+      "xlsClassifyOriginal_xl6IrClassifyImplicitNameAbi": "fd294b9daf74f538508bd41c43550fba7f5148cc2ad863e31d0c5fbd79bcb9d4",
+      "xl6IrBuildImplicitClassField": "6242598da8f5c29ab389f3b53920318ccea3d7aeb13e1d84f99f0739ee6fd50a",
+      "xl6IrNodeGet": "a1d6375145b7123c25224c480e656eac97cf0e136d27f16c0fe07193023de520",
+      "xl6IrBuildCallTargetNeedsReceiver": "6cefbf7ead7be65532bfbdc21743a973c27a3866ce7dc0185b3bc03820329fdb",
+      "xl6IrBuildEnclosingClass": "b4c23140b0a3a145eb738874463c384cf9acdcb400340d9fd5b59e3166989a87",
+      "xl6IrTypeGet": "753e997667f51bbbff554f5ed70be9664f33f94390926062ef81546c5e185dd5",
+      "xl6IrCleanupEnclosingCallable": "28761d28fc4a81ddb99e5b02b6555a83c973e1ba712aa0a7f7ee119b5b9b037e",
+      "xlsIrImplicitTargetAllowed": "2c3f0ef1a15887bc3049968bf92fcb24a99221a960dad992ca7c6f3cf369a5f8"
+    },
+    "nodeFields": [
+      "declarationOwnerType",
+      "flags",
+      "kind",
+      "parent",
+      "sourceKind",
+      "storageType",
+      "symbol",
+      "targetSymbol",
+      "text",
+      "type",
+      "typeValueTarget",
+      "valueCategory"
+    ],
+    "queriedTypeFields": [
+      "kind",
+      "nominalSymbol"
+    ],
+    "outputFields": [
+      "implicitFieldDeclaration",
+      "implicitNameAbi",
+      "implicitReceiverType"
+    ],
+    "outputsDisjointFromInputs": true,
+    "directNodeReaders": [
+      "xl6IrBuildImplicitNameAbis",
+      "xl6IrNodeGet"
+    ],
+    "scope": "Post-field-binding native implicit-name phase;exact IDs;no ordinary integration"
+  },
+  "profile": {
+    "componentMacro": "XLS_NATIVE_IR_PIPELINE_COMPONENT",
+    "ordinaryEnabled": false,
+    "nodeViews": false,
+    "exitReuse": false,
+    "functionExits": false
+  },
+  "runtimePreserved": {
+    "D:\\GIT\\x-lang\\release\\win_x64\\mdo.exe": "9219de70911e1f02d8e54eadc77c257369e4ea637e5202fcbb04854a29893044",
+    "D:\\GIT\\x-lang\\release\\win_x64\\update.exe": "4c5266fce0a541b9b96fe92b3d2f7d94598aff3b052e420b08b6d47db5e5c6c2",
+    "D:\\GIT\\x-lang\\release\\win_x64\\xge.dll": "127db42612e8a27c8b1f7f74e4653c25f09140f8baac38d16fc564eb74892ef3",
+    "D:\\GIT\\x-lang\\release\\win_x64\\xl.dll": "f31ddbe973ed48d261014ec64fa6b0ba48791fc0313192a19d59467254c0fcd6",
+    "D:\\GIT\\x-lang\\release\\win_x64\\xl.exe": "5288c4e8be9f420ef98caeb11be362017be925f2ad81a0d56946cc6a8c721081",
+    "D:\\GIT\\x-lang\\release\\win_x64\\xlang-ls.exe": "db50f21702ec1aec2423b49274c10884b098f20dbc041f7fe9c301b62feaecd5",
+    "D:\\GIT\\x-lang\\release\\win_x64\\xlang_ide.exe": "a146c451b35aa7284293b185123a9a276bf9e4764f926c266567133386c8d806",
+    "D:\\GIT\\x-lang\\release\\win_x64\\xlang_ide_xge.dll": "7eba677fddada9b605db2d54dd59ee57a9cfc1caf0b574f6cb206ec9de379418",
+    "D:\\GIT\\x-lang\\release\\win_x64\\xlc.dll": "64b2e9830569c84580335b0a2b15a59ce13552ba1ba51933fc82cd75808c0728"
+  },
+  "compiledDefectCases": [
+    {
+      "name": "ignore-common-context",
+      "exit": 1
+    },
+    {
+      "name": "omit-node-values",
+      "exit": 1
+    },
+    {
+      "name": "omit-type-reads",
+      "exit": 1
+    },
+    {
+      "name": "omit-native-field-name",
+      "exit": 1
+    },
+    {
+      "name": "omit-receiver-restore",
+      "exit": 1
+    },
+    {
+      "name": "omit-declaration-restore",
+      "exit": 1
+    },
+    {
+      "name": "publish-failed-cache",
+      "exit": 1
+    },
+    {
+      "name": "late-unit-budget",
+      "exit": 1
+    },
+    {
+      "name": "capture-prior-outputs",
+      "exit": 1
+    }
+  ],
+  "timing": {
+    "classFields": {
+      "status": "screening-failed",
+      "scope": "One process,24rotating rounds;32classes with repeated implicit field reads;fresh typed-AST IR preparation+all native phases/verifier;no parsing/semantic checking/LSP/GUI;cleanup outside timing",
+      "samples": 72,
+      "programSha256": "94a6e7d58a1256bc76783605a231df2472fcbe0b3419a0f776a87fb88a0934d4",
+      "statistics": {
+        "0": {
+          "samples": 24,
+          "median": 0.00709915,
+          "p95": 0.0092677
+        },
+        "1": {
+          "samples": 24,
+          "median": 0.0078751,
+          "p95": 0.0102864
+        },
+        "2": {
+          "samples": 24,
+          "median": 0.0079033,
+          "p95": 0.0092761
+        }
+      },
+      "ratios": {
+        "firstCapture": 1.1093018178232603,
+        "crossGeneration": 1.1132741243670017
+      },
+      "thresholds": {
+        "firstCaptureMedianRatioMax": 1.15,
+        "crossGenerationMedianRatioMax": 0.98
+      },
+      "screeningPassed": false
+    },
+    "plainFileControl": {
+      "status": "screening-failed",
+      "scope": "One process,24rotating rounds;Plain-file control:32functions with repeated direct calls;fresh typed-AST IR preparation+all native phases/verifier;no parsing/semantic checking/LSP/GUI;cleanup outside timing",
+      "samples": 72,
+      "programSha256": "aca618c579419cfef156dd62557bd072fcd143880669f44528278177c6b8f4c6",
+      "statistics": {
+        "0": {
+          "samples": 24,
+          "median": 0.0054188,
+          "p95": 0.0087207
+        },
+        "1": {
+          "samples": 24,
+          "median": 0.00572775,
+          "p95": 0.0088026
+        },
+        "2": {
+          "samples": 24,
+          "median": 0.0052657,
+          "p95": 0.0079346
+        }
+      },
+      "ratios": {
+        "firstCapture": 1.0570144681479294,
+        "crossGeneration": 0.9717465121429099
+      },
+      "thresholds": {
+        "firstCaptureMedianRatioMax": 1.02,
+        "crossGenerationMedianRatioMax": 1.02
+      },
+      "screeningPassed": false
+    },
+    "coreArchiveSha256": "4ac6a3da7d043fca1e93b0d55b0af98d1c27c872943a94cc7876175ea33b3753",
+    "sameImageRetried": false,
+    "wholeLspPerformanceQualified": false
+  },
+  "retainedFailures": [
+    "Mutation harness v1 completed6defects+1control then could not distinguish component/stub duplicate API definitions;raw failure retained. V2 selects the unique publication seam and completes3defects+1control against unchanged final product.",
+    "First component compiler emitted a misleading-indentation warning;raw logs and snapshot preserved;final source rebuilt without warnings.",
+    "Class workload cross-generation constructor median1.113274 failed its0.98screen.",
+    "Plain-file first-capture median1.057014 failed its1.02control screen.",
+    "Earlier rejected performance results remain rejected;no same-image timing retry or threshold changes."
+  ],
+  "defaultRuntimeReplaced": false,
+  "serviceRebuilt": false,
+  "ideRebuilt": false,
+  "languageServerVersion": "0.110",
+  "formalRelease": false,
+  "externalPublishPerformed": false,
+  "wholeLspPerformanceQualified": false,
+  "goalComplete": false,
+  "limits": [
+    "Implicit-name phase only;all other native phases and complete verifier remain.",
+    "Exact IDs,root-level declaration ranges and global binding/class-layout input can reject broad structural edits.",
+    "Two explicit component cache APIs are not yet a combined ordinary request or aggregate memory budget.",
+    "Scratch and retained cache each have16MiB caps,not a whole-analysis/process memory limit.",
+    "External API rejection enumeration does not cover every allocator-internal allocation.",
+    "Single-process typed-AST IR constructor screening excludes parsing,semantic checking,cleanup,LSP and IDE;both workload screens failed."
+  ]
+}

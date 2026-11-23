@@ -5,6 +5,7 @@ import argparse,hashlib,json
 import native_ir_pipeline_overlay as adapter
 import native_ir_pipeline_nodes as node_adapter
 import native_ir_call_cache_overlay as call_adapter
+import native_ir_name_cache_overlay as name_adapter
 from check_native_bridge_catalog import function
 from build_lsp_core import prepare_native_ir
 
@@ -91,6 +92,24 @@ def main():
             except ValueError:pass
             else:raise AssertionError('Changed direct entry projection admitted')
         record['cases'].append('changed-direct-entry-projection-rejected')
+        names=pipeline['nameCache'];assert len(names['functions'])==10 and len(names['nodeFields'])==12 and len(names['queriedTypeFields'])==2
+        assert set(names['outputFields'])==name_adapter.OUTPUT_FIELDS and names['outputsDisjointFromInputs']
+        record['cases'].append('complete-post-field-name-read-write-closure')
+        with patch.object(name_adapter,'PINS',{k:v for k,v in name_adapter.PINS.items()if k!='xlsIrImplicitTargetAllowed'}):
+            try:adapter.derive(original,args.frontend,out)
+            except ValueError:pass
+            else:raise AssertionError('Missing field-binding dependency admitted')
+        record['cases'].append('missing-name-field-binding-dependency-rejected')
+        with patch.object(name_adapter,'NODE_FIELDS',name_adapter.NODE_FIELDS|{'implicitNameAbi'}):
+            try:adapter.derive(original,args.frontend,out)
+            except ValueError:pass
+            else:raise AssertionError('Name output included in immutable input projection')
+        record['cases'].append('overlapping-name-input-output-projection-rejected')
+        with patch.object(name_adapter,'PINS',{**name_adapter.PINS,'xl6IrClassifyImplicitNameAbi':'0'*64}):
+            try:adapter.derive(original,args.frontend,out)
+            except ValueError:pass
+            else:raise AssertionError('Changed classifier wrapper admitted')
+        record['cases'].append('changed-name-classifier-wrapper-rejected')
         record.update(status='passed',generatedSha256=hashlib.sha256(Path(pipeline['generated']).read_bytes()).hexdigest());print(json.dumps(dict(status='passed',cases=len(record['cases']))))
     finally:(out/'result.json').write_text(json.dumps(record,indent=2)+'\n')
 if __name__=='__main__':main()

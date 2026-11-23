@@ -61,8 +61,7 @@ def index(source,output):
         '    case XL6_AST_FIELD:return n->text && *n->text ? n : NULL;\n    case XL6_AST_NAME: case XL6_AST_PARAM: case XL6_AST_VAR_DECL: case XL6_AST_CONST_DECL:'))
     return _save(source,output,s,1)
 
-def ir(source,output):
-    s=Path(source).read_text(encoding='utf8')
+def ir_text(s):
     s=_once(s,'source->semanticTargetSymbolId && source->inferredType &&',
               '(source->semanticSymbolId==0 || source->semanticSymbolId!=source->semanticTargetSymbolId) &&\n       source->semanticTargetSymbolId && source->inferredType &&')
     marker='static const XL6_IrClassField* xl6IrBuildImplicitClassField(\n'
@@ -77,4 +76,7 @@ def ir(source,output):
               'if ( !name->targetSymbol && strcmp(name->text, "base") == 0 &&')
     s=_once(s,'} else if ( strcmp(name->text, "base") != 0 &&',
               '} else if ( (name->targetSymbol || strcmp(name->text, "base") != 0) &&')
-    return _save(source,output,s,6)
+    return s
+
+def ir(source,output):
+    return _save(source,output,ir_text(Path(source).read_text(encoding='utf8')),6)

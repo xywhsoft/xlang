@@ -1,17 +1,24 @@
 #include "analysis/ir_native_pipeline.h"
 #include "analysis/ir_native_call_cache.h"
+#include "analysis/ir_native_name_cache.h"
 #if defined(XLS_NATIVE_IR_PIPELINE_COMPONENT) && XLS_NATIVE_IR_PIPELINE_COMPONENT && \
     defined(XLS_NATIVE_IR_PIPELINE_SOURCE) && defined(XLS_NATIVE_IR_TYPE_RESOURCE_GUARD)
 typedef struct xls_call_build xls_call_build;
+typedef struct xls_name_build xls_name_build;
 static const XL6_IrNode* xlsCallsNodeGet(const XL6_IrModule*,XL6_IrNodeId);
 static const XL6_IrNode* xlsCallsEntryGet(const XL6_IrModule*,XL6_IrNodeId);
 static const XL6_IrType* xlsCallsTypeGet(const XL6_IrTypePool*,XL6_IrTypeId);
+static const XL6_IrNode* xlsNamesNodeGet(const XL6_IrModule*,XL6_IrNodeId);
+static const XL6_IrNode* xlsNamesEntryGet(const XL6_IrModule*,XL6_IrNodeId);
+static const XL6_IrType* xlsNamesTypeGet(const XL6_IrTypePool*,XL6_IrTypeId);
 struct xls_ir_native_pipeline {
  XL6_IrModule module;const XL6_AstNode* root;
- size_t phase,lookupBytes,cursor;xls_ir_pipeline_state state;xls_call_build* calls;
+ size_t phase,lookupBytes,cursor;xls_ir_pipeline_state state;xls_call_build* calls;xls_name_build* names;
 };
 #include "ir_native_pipeline_generated.inc"
+#include "analysis/frontend_ir_input_bytes.inc"
 #include "analysis/frontend_ir_call_cache.inc"
+#include "analysis/frontend_ir_name_cache.inc"
 static void xlsIrPipelineStatus(xls_ir_pipeline_status* out,xls_ir_pipeline_status status)
 {if(out)*out=status;}
 int xlsIrNativePipelineAvailable(void){return 1;}
@@ -28,7 +35,11 @@ size_t xlsIrNativePipelineNodeCursor(const xls_ir_native_pipeline* b){return b?b
 static int xlsIrPipelineExecute(xls_ir_native_pipeline* b,XL6_DiagList* diags,size_t end)
 {
  size_t count=xlsIrNativePipelinePhaseCount();int okay;
- if(b->phase==26&&!end&&!b->cursor&&b->calls){
+ if(b->phase==18&&!end&&!b->cursor&&b->names){
+  okay=xlsNamePhase(&b->module,b->names);
+  if(!okay)xl6IrDiag(diags,NULL,"cannot build XLIR implicit names");
+ }
+ else if(b->phase==26&&!end&&!b->cursor&&b->calls){
   okay=xlsCallPhase(&b->module,b->calls);
   if(!okay)xl6IrDiag(diags,NULL,"cannot build XLIR call sites");
  }
@@ -107,13 +118,27 @@ int xlsIrNativePipelineFinishCachedCalls(xls_ir_native_pipeline* b,XL6_DiagList*
  const xls_ir_call_cache* previous,size_t limit,xls_ir_call_cache** out,
  xls_ir_call_cache_work* work,xls_ir_pipeline_status* status)
 {
- if(!out||*out||!b||!d||d->count||b->calls||
+ if(!out||*out||!b||!d||d->count||b->calls||b->names||
     (b->state!=XLS_PIPELINE_READY&&(b->state!=XLS_PIPELINE_PREPARED||b->phase>26||(b->phase==26&&b->cursor)))){
   xlsIrPipelineStatus(status,XLS_PIPELINE_INPUT);return 0;
  }
  xls_call_build build={.previous=previous,.limit=limit<16u*1024u*1024u?limit:16u*1024u*1024u};
  b->calls=build.limit?&build:NULL;int okay=xlsIrNativePipelineFinish(b,d,status);b->calls=NULL;
  if(okay){*out=build.next;build.work.bytes=xlsIrCallCacheBytes(build.next);}else xlsIrCallCacheDestroy(build.next);
+ if(work)*work=build.work;
+ return okay;
+}
+int xlsIrNativePipelineFinishCachedNames(xls_ir_native_pipeline* b,XL6_DiagList* d,
+ const xls_ir_name_cache* previous,size_t limit,xls_ir_name_cache** out,
+ xls_ir_name_cache_work* work,xls_ir_pipeline_status* status)
+{
+ if(!out||*out||!b||!d||d->count||b->calls||b->names||
+    (b->state!=XLS_PIPELINE_READY&&(b->state!=XLS_PIPELINE_PREPARED||b->phase>18||(b->phase==18&&b->cursor)))){
+  xlsIrPipelineStatus(status,XLS_PIPELINE_INPUT);return 0;
+ }
+ xls_name_build build={.previous=previous,.limit=limit<16u*1024u*1024u?limit:16u*1024u*1024u};
+ b->names=build.limit?&build:NULL;int okay=xlsIrNativePipelineFinish(b,d,status);b->names=NULL;
+ if(okay){*out=build.next;build.work.bytes=xlsIrNameCacheBytes(build.next);}else xlsIrNameCacheDestroy(build.next);
  if(work)*work=build.work;
  return okay;
 }
@@ -134,6 +159,11 @@ void xlsIrNativePipelineDestroy(xls_ir_native_pipeline* b)
 #else
 static void xlsIrPipelineUnavailable(xls_ir_pipeline_status* s){if(s)*s=XLS_PIPELINE_UNAVAILABLE;}
 int xlsIrNativePipelineAvailable(void){return 0;}
+void xlsIrNameCacheDestroy(xls_ir_name_cache* c){(void)c;}
+size_t xlsIrNameCacheBytes(const xls_ir_name_cache* c){(void)c;return 0;}
+int xlsIrNativePipelineFinishCachedNames(xls_ir_native_pipeline* b,XL6_DiagList* d,
+ const xls_ir_name_cache* p,size_t n,xls_ir_name_cache** out,xls_ir_name_cache_work* w,xls_ir_pipeline_status* s)
+{(void)b;(void)d;(void)p;(void)n;(void)out;(void)w;xlsIrPipelineUnavailable(s);return 0;}
 void xlsIrCallCacheDestroy(xls_ir_call_cache* c){(void)c;}
 size_t xlsIrCallCacheBytes(const xls_ir_call_cache* c){(void)c;return 0;}
 int xlsIrNativePipelineFinishCachedCalls(xls_ir_native_pipeline* b,XL6_DiagList* d,

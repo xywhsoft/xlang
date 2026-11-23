@@ -127,9 +127,11 @@ def derive(frontend:Path,output:Path,*,phases=False,ir_source=None):
     audited[str(dependency)]=hashlib.sha256(dependency.read_bytes()).hexdigest()
     dependency=Path(__file__).with_name('native_ir_pipeline_nodes.py')
     audited[str(dependency)]=hashlib.sha256(dependency.read_bytes()).hexdigest()
-    for name in ('native_ir_call_cache_overlay.py','ir_node_graph_schema.py'):
+    for name in ('native_ir_call_cache_overlay.py','ir_node_graph_schema.py','native_ir_name_cache_overlay.py','native_field_bindings_overlay.py'):
         dependency=Path(__file__).with_name(name)
         audited[str(dependency)]=hashlib.sha256(dependency.read_bytes()).hexdigest()
+    dependency=Path(__file__).resolve().parent.parent/'src/analysis/frontend_field_ir.inc'
+    audited[str(dependency)]=hashlib.sha256(dependency.read_bytes()).hexdigest()
     compiled.write_text(source,encoding='utf8',newline='\n')
     return selected,compiled,dict(source=str(selected),sourceSha256=hashlib.sha256(selected.read_bytes()).hexdigest(),
         baseFrontendSource=str(original),baseFrontendSourceSha256=audited[str(original)],
