@@ -1,5 +1,23 @@
 # Native consumers in the full API inventory
 
+## Checked editor model retirement and resource releases
+
+`CodeAnnotationStore.close()`, `CodeTokenBuffer.close()` and
+`CodeSelectionModel.close()` propagate the checked native result. A rejected
+release leaves the resource live. The CodeEdit regression exercises all three
+owner rejections and verifies that the editor can still read its models.
+
+`ShapeBatch.close()`, `SpriteBatch.close()`, `EmojiPack.close()`,
+`GlyphBitmap.close()` and `CodeAnnotationSnapshot.close()` have verified native
+release paths. The glyph bitmap's last native reference releases the underlying
+raster payload. The audit checks both that native call and the managed policy.
+
+The matched Windows and Linux inventories cover 5,888 native functions and
+4,827 direct declarations. The remaining 75 entries comprise 16 XGE and 59 XUI
+functions.
+
+[Resource release evidence](../dev/release-materials/provenance/xge-resource-release-20261124.json)
+
 ## Shared shapes and shape scenes
 
 `Shape.share()` and `ShapeScene.share()` return a separate owning view of the

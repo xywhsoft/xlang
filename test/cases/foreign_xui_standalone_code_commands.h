@@ -8,5 +8,6 @@ bool fixtureCodeCommandClearOom(void);
 void fixtureCodeCommandBeginMeasure(void);
 void fixtureCodeCommandEndMeasure(int language);
 void fixtureCodeCommandMeasureNative(xui_code_document document,xui_code_selection_model selection);
+void fixtureCodeCommandCheckLeafRetirement(xui_widget editor);
 
 #endif

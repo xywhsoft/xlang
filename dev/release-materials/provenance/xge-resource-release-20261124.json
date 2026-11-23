@@ -1,0 +1,440 @@
+{
+  "schema": 1,
+  "scope": "Managed render/text release paths and checked editor leaf retirement",
+  "nativeCommit": "90dda67948df44e8b9ba655c6cfb16b446ddebd6",
+  "previousQualification": {
+    "path": "D:/GIT/x-lang/dev/release-materials/provenance/xge-shape-share-20261124.json",
+    "sha256": "0e57b7a543672979bf91610d3d5449955253e1eb0f4c7661b386bf78633d2abe"
+  },
+  "shippingDelivery": false,
+  "networkTests": false,
+  "graphicsDevice": false,
+  "platforms": {
+    "win": {
+      "compiler": {
+        "path": "F:/xlang-validation/xge-full-20261110/compiler-owned-output-pair-win-r2/build.json",
+        "sha256": "41596d3515fdf8c1f5194838396e40b1d84ecb013557b7f7aadbe352315593a3"
+      },
+      "nativeHost": {
+        "path": "F:/xlang-validation/xge-full-20261110/owned-shape-share-host-win-r1/build-report.json",
+        "sha256": "8a19cf71c6b49f5b487e4e05c6654b73d2f55963f622bc1e082ee05dd915a930"
+      },
+      "nativeStatic": {
+        "path": "F:/xlang-validation/xge-full-20261110/owned-shape-share-static-win-r1/build-report.json",
+        "sha256": "c3367f358f9f5b3cdf14e9b79822cbd8bad84873450d195091c526a8de3cf2aa"
+      },
+      "packageReplay": {
+        "path": "F:/xlang-validation/xge-full-20261110/resource-release-stage-win-r1/replay/stage-report.json",
+        "sha256": "4bc6b62305e71669365930a4eed782a20abd76f77aa9d5133a05a96f73177c86"
+      },
+      "languageAcceptance": {
+        "path": "F:/xlang-validation/xge-full-20261110/resource-release-verify-win-r1/results.json",
+        "sha256": "3d1865a16826ca8b7c1e02d87c68bbfd7cbe7a1b4e9facb65a2078beacbf3a54"
+      },
+      "emojiRetest": {
+        "path": "F:/xlang-validation/xge-full-20261110/resource-release-emoji-verify-win-r1/results.json",
+        "sha256": "6b5155c3bc08b7f2ea4c1dd5a3759753d7580d32f977915aa407d43c787042a2"
+      },
+      "acceptanceRows": 48,
+      "fixtureRevision": {
+        "foreign_xge3_emoji_pack_cost.h": {
+          "before": "b8596c99ee5918133ab11944c6bffa0d6a9394d658b345847eee1187490b6635",
+          "after": "84b1a388ee94ffcd54aec3964781cb06a7401e17b4b4dade1b7c957d7edfe621"
+        }
+      },
+      "audit": {
+        "path": "F:/xlang-validation/xge-full-20261110/resource-release-consumers-win-r1/results.json",
+        "sha256": "cb51ed21b231585fce588fdd1f7b394e951d423577dc73e0f6a33b7f913edbb5"
+      },
+      "previousAudit": {
+        "path": "F:/xlang-validation/xge-full-20261110/owned-shape-share-consumers-win-r3/results.json",
+        "sha256": "663eb366cf9f9de2b8442dcc17ff43839e2eb7fb4759a579d4c09dc8162e7531"
+      },
+      "freedResources": {
+        "xgeEmojiPackFree": {
+          "language": "xge.EmojiPack.close",
+          "native": "xgeEmojiPackFree",
+          "policy": "xl6Xge3EmojiPackPolicy",
+          "relocationPath": [
+            ".text$xl6Xge3EmojiPackPolicyGet",
+            ".rdata$policy.3",
+            ".text$xl6Xge3EmojiPackPolicyDestroy",
+            "xgeEmojiPackFree"
+          ]
+        },
+        "xgeGlyphBitmapFree": {
+          "language": "xge.GlyphBitmap.close",
+          "native": "xgeGlyphBitmapResourceFree",
+          "policy": "xl6Xge3GlyphBitmapPolicy",
+          "relocationPath": [
+            ".text$xl6Xge3GlyphBitmapPolicyGet",
+            ".rdata$policy.0",
+            ".text$xl6Xge3GlyphBitmapPolicyDestroy",
+            "xgeGlyphBitmapResourceFree"
+          ],
+          "nativeReleaseWitness": {
+            "source": "single/xge.c",
+            "caller": "xgeGlyphBitmapResourceFree",
+            "callee": "xgeGlyphBitmapFree",
+            "objectSha256": "28f93cc3643387fe5b82788615c843828e8830b1327c0cc77a439132b90c28fa"
+          }
+        },
+        "xgeShapeBatchFree": {
+          "language": "xge.ShapeBatch.close",
+          "native": "xgeShapeBatchFree",
+          "policy": "xl6Xge3ShapeBatchPolicy",
+          "relocationPath": [
+            ".text$xl6Xge3ShapeBatchPolicyGet",
+            ".rdata$policy.2",
+            ".text$xl6Xge3ShapeBatchPolicyDestroy",
+            "xgeShapeBatchFree"
+          ]
+        },
+        "xgeSpriteBatchFree": {
+          "language": "xge.SpriteBatch.close",
+          "native": "xgeSpriteBatchFree",
+          "policy": "xl6Xge3SpriteBatchPolicy",
+          "relocationPath": [
+            ".text$xl6Xge3SpriteBatchPolicyGet",
+            ".rdata$policy.1",
+            ".text$xl6Xge3SpriteBatchPolicyDestroy",
+            "xgeSpriteBatchFree"
+          ]
+        },
+        "xuiCodeAnnotationSnapshotDestroy": {
+          "language": "xui.CodeAnnotationSnapshot.close",
+          "native": "xuiCodeAnnotationSnapshotDestroy",
+          "policy": "xl6Xui3CodeAnnotationSnapshotPolicy",
+          "relocationPath": [
+            ".text$xl6Xui3CodeAnnotationSnapshotPolicyGet",
+            ".rdata$value.2",
+            ".text$xl6Xui3CodeAnnotationSnapshotDestroy",
+            "xuiCodeAnnotationSnapshotDestroy"
+          ]
+        },
+        "xuiCodeAnnotationStoreDestroy": {
+          "language": "xui.CodeAnnotationStore.close",
+          "native": "xuiCodeAnnotationStoreDestroyChecked",
+          "policy": "xl6Xui3CodeAnnotationStorePolicy",
+          "relocationPath": [
+            ".text$xl6Xui3CodeAnnotationStorePolicyGet",
+            ".rdata$value.1",
+            ".text$xl6Xui3CodeAnnotationStoreDestroy",
+            "xuiCodeAnnotationStoreDestroyChecked"
+          ],
+          "nativeReleaseWitness": {
+            "source": "src/xui/code/xui_code_annotation.c",
+            "caller": "xuiCodeAnnotationStoreDestroy",
+            "callee": "xuiCodeAnnotationStoreDestroyChecked",
+            "objectSha256": "9ea3d0d919d5de308d806ee1cce1432ed5c0e280621b536d61f674d618ab1980"
+          }
+        },
+        "xuiCodeAnnotationStoreDestroyChecked": {
+          "language": "xui.CodeAnnotationStore.close",
+          "native": "xuiCodeAnnotationStoreDestroyChecked",
+          "policy": "xl6Xui3CodeAnnotationStorePolicy",
+          "relocationPath": [
+            ".text$xl6Xui3CodeAnnotationStorePolicyGet",
+            ".rdata$value.1",
+            ".text$xl6Xui3CodeAnnotationStoreDestroy",
+            "xuiCodeAnnotationStoreDestroyChecked"
+          ]
+        },
+        "xuiCodeSelectionDestroy": {
+          "language": "xui.CodeSelectionModel.close",
+          "native": "xuiCodeSelectionDestroyChecked",
+          "policy": "xl6Xui3CodeSelectionPolicy",
+          "relocationPath": [
+            ".text$xl6Xui3CodeSelectionPolicyGet",
+            ".rdata$value.16",
+            ".text$destroy_code_selection",
+            "xuiCodeSelectionDestroyChecked"
+          ],
+          "nativeReleaseWitness": {
+            "source": "src/xui/code/xui_code_selection.c",
+            "caller": "xuiCodeSelectionDestroy",
+            "callee": "xuiCodeSelectionDestroyChecked",
+            "objectSha256": "7d1300c709b85bc0757423cd9a11e655b09d061b26ac223c82aee09eeddbe2df"
+          }
+        },
+        "xuiCodeSelectionDestroyChecked": {
+          "language": "xui.CodeSelectionModel.close",
+          "native": "xuiCodeSelectionDestroyChecked",
+          "policy": "xl6Xui3CodeSelectionPolicy",
+          "relocationPath": [
+            ".text$xl6Xui3CodeSelectionPolicyGet",
+            ".rdata$value.16",
+            ".text$destroy_code_selection",
+            "xuiCodeSelectionDestroyChecked"
+          ]
+        },
+        "xuiCodeTokenBufferDestroy": {
+          "language": "xui.CodeTokenBuffer.close",
+          "native": "xuiCodeTokenBufferDestroyChecked",
+          "policy": "xl6Xui3CodeTokenBufferPolicy",
+          "relocationPath": [
+            ".text$xl6Xui3CodeTokenBufferPolicyGet",
+            ".rdata$value.0",
+            ".text$xl6Xui3CodeTokenBufferDestroy",
+            "xuiCodeTokenBufferDestroyChecked"
+          ],
+          "nativeReleaseWitness": {
+            "source": "src/xui/code/xui_code_token_buffer.c",
+            "caller": "xuiCodeTokenBufferDestroy",
+            "callee": "xuiCodeTokenBufferDestroyChecked",
+            "objectSha256": "9bb87ba4c096093a0b279c2894f989298cbdd3a7af59dc521b7ca5f31fb5ef8d"
+          }
+        },
+        "xuiCodeTokenBufferDestroyChecked": {
+          "language": "xui.CodeTokenBuffer.close",
+          "native": "xuiCodeTokenBufferDestroyChecked",
+          "policy": "xl6Xui3CodeTokenBufferPolicy",
+          "relocationPath": [
+            ".text$xl6Xui3CodeTokenBufferPolicyGet",
+            ".rdata$value.0",
+            ".text$xl6Xui3CodeTokenBufferDestroy",
+            "xuiCodeTokenBufferDestroyChecked"
+          ]
+        }
+      },
+      "remaining": {
+        "XGE": 16,
+        "XUI": 59
+      },
+      "checkedRejection": {
+        "jit": {
+          "path": "F:/xlang-validation/xge-full-20261110/resource-release-verify-win-r1/foreign_xui_standalone_code_commands/jit.log",
+          "sha256": "3638571e818e0b4870e6e1672d51afd67de8f1f5f1931cee374a89f32db00b64"
+        },
+        "host-run": {
+          "path": "F:/xlang-validation/xge-full-20261110/resource-release-verify-win-r1/foreign_xui_standalone_code_commands/host-run.log",
+          "sha256": "6fd368e7b838b409130b2839a5724f28f2d748d9abc3def1f44b2f3a334f0af3"
+        },
+        "static-run": {
+          "path": "F:/xlang-validation/xge-full-20261110/resource-release-verify-win-r1/foreign_xui_standalone_code_commands/static-run.log",
+          "sha256": "df3872d749d189873310afcc36122944219ec25ca3fb693585c0847bca3b1a28"
+        }
+      }
+    },
+    "linux": {
+      "compiler": {
+        "path": "//wsl.localhost/Ubuntu/var/tmp/xlang-validation/xge-full-20261110/compiler-owned-output-pair-linux-r2/build.json",
+        "sha256": "bb4ad4330abb14095a0dc59233ed6e265033b4498b8f779a11ca4d0b9b176099"
+      },
+      "nativeHost": {
+        "path": "//wsl.localhost/Ubuntu/var/tmp/xlang-validation/xge-full-20261110/owned-shape-share-host-linux-r1/build-report.json",
+        "sha256": "c6c235dcc2699c7c2af41a648a725ad185ff4616b121884125a7b2f7a600943b"
+      },
+      "nativeStatic": {
+        "path": "//wsl.localhost/Ubuntu/var/tmp/xlang-validation/xge-full-20261110/owned-shape-share-static-linux-r1/build-report.json",
+        "sha256": "f5d001ad70b4d9e3b25fa1801d686d303698d890b2ee9b4fc429254f3c6e8b78"
+      },
+      "packageReplay": {
+        "path": "//wsl.localhost/Ubuntu/var/tmp/xlang-validation/xge-full-20261110/resource-release-stage-linux-r1/replay/stage-report.json",
+        "sha256": "ec6f06023d19775b5ae968489f48d6f84357fc419dc27ffb34e1e234c7efa7f3"
+      },
+      "languageAcceptance": {
+        "path": "//wsl.localhost/Ubuntu/var/tmp/xlang-validation/xge-full-20261110/resource-release-verify-linux-r1/results.json",
+        "sha256": "81e5e8ef64e3b637b311e1b58fbaaef3aa393cf5981f0ecec48263be14c35637"
+      },
+      "emojiRetest": {
+        "path": "//wsl.localhost/Ubuntu/var/tmp/xlang-validation/xge-full-20261110/resource-release-emoji-verify-linux-r1/results.json",
+        "sha256": "4bbc1f68cc7b9c799c7fd816df0932f6ee6831e9d27df36bed758abdc1e1a4b2"
+      },
+      "acceptanceRows": 48,
+      "fixtureRevision": {
+        "foreign_xge3_emoji_pack_cost.h": {
+          "before": "b8596c99ee5918133ab11944c6bffa0d6a9394d658b345847eee1187490b6635",
+          "after": "84b1a388ee94ffcd54aec3964781cb06a7401e17b4b4dade1b7c957d7edfe621"
+        }
+      },
+      "audit": {
+        "path": "//wsl.localhost/Ubuntu/var/tmp/xlang-validation/xge-full-20261110/resource-release-consumers-linux-r1/results.json",
+        "sha256": "f1982ffaaa19560a4b9b41fbefb0dfebfff7489ccb0c9f900a605955a55e6d80"
+      },
+      "previousAudit": {
+        "path": "//wsl.localhost/Ubuntu/var/tmp/xlang-validation/xge-full-20261110/owned-shape-share-consumers-linux-r3/results.json",
+        "sha256": "0707a6fb84b28b459083be69ec94d07b49b30f6ccd77181f4ec628b093fd5a58"
+      },
+      "freedResources": {
+        "xgeEmojiPackFree": {
+          "language": "xge.EmojiPack.close",
+          "native": "xgeEmojiPackFree",
+          "policy": "xl6Xge3EmojiPackPolicy",
+          "relocationPath": [
+            ".text.xl6Xge3EmojiPackPolicyGet",
+            ".data.rel.ro.local.policy.3",
+            ".text.xl6Xge3EmojiPackPolicyDestroy",
+            "xgeEmojiPackFree"
+          ]
+        },
+        "xgeGlyphBitmapFree": {
+          "language": "xge.GlyphBitmap.close",
+          "native": "xgeGlyphBitmapResourceFree",
+          "policy": "xl6Xge3GlyphBitmapPolicy",
+          "relocationPath": [
+            ".text.xl6Xge3GlyphBitmapPolicyGet",
+            ".data.rel.ro.local.policy.0",
+            ".text.xl6Xge3GlyphBitmapPolicyDestroy",
+            "xgeGlyphBitmapResourceFree"
+          ],
+          "nativeReleaseWitness": {
+            "source": "single/xge.c",
+            "caller": "xgeGlyphBitmapResourceFree",
+            "callee": "xgeGlyphBitmapFree",
+            "objectSha256": "c88b6b4535a4018a69dda36ecb870cc5376452e98357879a29ca68e9867e752f"
+          }
+        },
+        "xgeShapeBatchFree": {
+          "language": "xge.ShapeBatch.close",
+          "native": "xgeShapeBatchFree",
+          "policy": "xl6Xge3ShapeBatchPolicy",
+          "relocationPath": [
+            ".text.xl6Xge3ShapeBatchPolicyGet",
+            ".data.rel.ro.local.policy.2",
+            ".text.xl6Xge3ShapeBatchPolicyDestroy",
+            "xgeShapeBatchFree"
+          ]
+        },
+        "xgeSpriteBatchFree": {
+          "language": "xge.SpriteBatch.close",
+          "native": "xgeSpriteBatchFree",
+          "policy": "xl6Xge3SpriteBatchPolicy",
+          "relocationPath": [
+            ".text.xl6Xge3SpriteBatchPolicyGet",
+            ".data.rel.ro.local.policy.1",
+            ".text.xl6Xge3SpriteBatchPolicyDestroy",
+            "xgeSpriteBatchFree"
+          ]
+        },
+        "xuiCodeAnnotationSnapshotDestroy": {
+          "language": "xui.CodeAnnotationSnapshot.close",
+          "native": "xuiCodeAnnotationSnapshotDestroy",
+          "policy": "xl6Xui3CodeAnnotationSnapshotPolicy",
+          "relocationPath": [
+            ".text.xl6Xui3CodeAnnotationSnapshotPolicyGet",
+            ".data.rel.ro.local.value.2",
+            ".text.xl6Xui3CodeAnnotationSnapshotDestroy",
+            "xuiCodeAnnotationSnapshotDestroy"
+          ]
+        },
+        "xuiCodeAnnotationStoreDestroy": {
+          "language": "xui.CodeAnnotationStore.close",
+          "native": "xuiCodeAnnotationStoreDestroyChecked",
+          "policy": "xl6Xui3CodeAnnotationStorePolicy",
+          "relocationPath": [
+            ".text.xl6Xui3CodeAnnotationStorePolicyGet",
+            ".data.rel.ro.local.value.1",
+            ".text.xl6Xui3CodeAnnotationStoreDestroy",
+            "xuiCodeAnnotationStoreDestroyChecked"
+          ],
+          "nativeReleaseWitness": {
+            "source": "src/xui/code/xui_code_annotation.c",
+            "caller": "xuiCodeAnnotationStoreDestroy",
+            "callee": "xuiCodeAnnotationStoreDestroyChecked",
+            "objectSha256": "7fec434385d37ac53ffc7c75c92059b5c5460c6a9904a841de2dfe80dc20e9cf"
+          }
+        },
+        "xuiCodeAnnotationStoreDestroyChecked": {
+          "language": "xui.CodeAnnotationStore.close",
+          "native": "xuiCodeAnnotationStoreDestroyChecked",
+          "policy": "xl6Xui3CodeAnnotationStorePolicy",
+          "relocationPath": [
+            ".text.xl6Xui3CodeAnnotationStorePolicyGet",
+            ".data.rel.ro.local.value.1",
+            ".text.xl6Xui3CodeAnnotationStoreDestroy",
+            "xuiCodeAnnotationStoreDestroyChecked"
+          ]
+        },
+        "xuiCodeSelectionDestroy": {
+          "language": "xui.CodeSelectionModel.close",
+          "native": "xuiCodeSelectionDestroyChecked",
+          "policy": "xl6Xui3CodeSelectionPolicy",
+          "relocationPath": [
+            ".text.xl6Xui3CodeSelectionPolicyGet",
+            ".data.rel.ro.local.value.16",
+            ".text.destroy_code_selection",
+            "xuiCodeSelectionDestroyChecked"
+          ],
+          "nativeReleaseWitness": {
+            "source": "src/xui/code/xui_code_selection.c",
+            "caller": "xuiCodeSelectionDestroy",
+            "callee": "xuiCodeSelectionDestroyChecked",
+            "objectSha256": "c7200ef6180784498553d72bbef1068fc30cc3582fdac582d22c4b898725e3ae"
+          }
+        },
+        "xuiCodeSelectionDestroyChecked": {
+          "language": "xui.CodeSelectionModel.close",
+          "native": "xuiCodeSelectionDestroyChecked",
+          "policy": "xl6Xui3CodeSelectionPolicy",
+          "relocationPath": [
+            ".text.xl6Xui3CodeSelectionPolicyGet",
+            ".data.rel.ro.local.value.16",
+            ".text.destroy_code_selection",
+            "xuiCodeSelectionDestroyChecked"
+          ]
+        },
+        "xuiCodeTokenBufferDestroy": {
+          "language": "xui.CodeTokenBuffer.close",
+          "native": "xuiCodeTokenBufferDestroyChecked",
+          "policy": "xl6Xui3CodeTokenBufferPolicy",
+          "relocationPath": [
+            ".text.xl6Xui3CodeTokenBufferPolicyGet",
+            ".data.rel.ro.local.value.0",
+            ".text.xl6Xui3CodeTokenBufferDestroy",
+            "xuiCodeTokenBufferDestroyChecked"
+          ],
+          "nativeReleaseWitness": {
+            "source": "src/xui/code/xui_code_token_buffer.c",
+            "caller": "xuiCodeTokenBufferDestroy",
+            "callee": "xuiCodeTokenBufferDestroyChecked",
+            "objectSha256": "b609c54afc8a04bf0f8edc3e736c552511a3ff9332eef75514e1bc18460b06f4"
+          }
+        },
+        "xuiCodeTokenBufferDestroyChecked": {
+          "language": "xui.CodeTokenBuffer.close",
+          "native": "xuiCodeTokenBufferDestroyChecked",
+          "policy": "xl6Xui3CodeTokenBufferPolicy",
+          "relocationPath": [
+            ".text.xl6Xui3CodeTokenBufferPolicyGet",
+            ".data.rel.ro.local.value.0",
+            ".text.xl6Xui3CodeTokenBufferDestroy",
+            "xuiCodeTokenBufferDestroyChecked"
+          ]
+        }
+      },
+      "remaining": {
+        "XGE": 16,
+        "XUI": 59
+      },
+      "checkedRejection": {
+        "jit": {
+          "path": "//wsl.localhost/Ubuntu/var/tmp/xlang-validation/xge-full-20261110/resource-release-verify-linux-r1/foreign_xui_standalone_code_commands/jit.log",
+          "sha256": "946644d6363fed80c7ffb05a7d594cc6944b45e9f349d0d040672da353f52688"
+        },
+        "host-run": {
+          "path": "//wsl.localhost/Ubuntu/var/tmp/xlang-validation/xge-full-20261110/resource-release-verify-linux-r1/foreign_xui_standalone_code_commands/host-run.log",
+          "sha256": "5c518eed62f4f0ae678252ada395754f77ae29e3c944bf29b701b59dc55fd2ac"
+        },
+        "static-run": {
+          "path": "//wsl.localhost/Ubuntu/var/tmp/xlang-validation/xge-full-20261110/resource-release-verify-linux-r1/foreign_xui_standalone_code_commands/static-run.log",
+          "sha256": "f7190a5ea22ab826d12c14af23fdceeece9901f6ad0b1ce28acc3f6a8a0f5a34"
+        }
+      }
+    }
+  },
+  "sourceSha256NormalizedLf": {
+    "lib/bindings/_xge_native/include/xui3_code_cleanup.h": "39873028064a43b9be249123290e2799881452f8ca789ce726fbd02488a07a2e",
+    "lib/bindings/_xge_native/include/xui3_code_annotations.h": "3525b61baaff6b7e25953483f3dc17d77e08883b8bb14c859fd2588bdacf0d97",
+    "lib/bindings/_xge_native/include/xui3_code_token_buffer.h": "6ff3bca5bdd07896ebe1cead8e9a64d6701fb06dbfc41e6b67c4e8844215c0f7",
+    "lib/bindings/_xge_native/include/xui3_code_fold_state.h": "20d6b466ef07efbd6633ab9dc689c867cc744deaaeeaf4dea2ca08ad9364a830",
+    "lib/bindings/_xge_native/src/runtime.c": "b0b5c21818a6821fc9121c6a17d188bf3e01570dfe2d5f650803f49cc2a5ca5a",
+    "tools/check_xge3_native_consumers.py": "77060d8ca94e069ef695fee1a71f843d49f1400d477bd13b1001b6fbab577d7b",
+    "test/cases/foreign_xge3_emoji_pack_cost.xl": "47c71c17bf71c7d241ebffd3e9dbe6ce9c37c06149480d4a137a7e0a22c99124",
+    "test/cases/foreign_xge3_emoji_pack_cost.c": "e4dfa1dc157526bf6c10c70b937a4aa5bef26e1bb959548f7fad43563d3f1287",
+    "test/cases/foreign_xge3_emoji_pack_cost.h": "84b1a388ee94ffcd54aec3964781cb06a7401e17b4b4dade1b7c957d7edfe621",
+    "test/cases/foreign_xui_standalone_code_commands.xl": "3000cfeeff705d061ca9e0083ba8011bf0de66df64693cc3c59d66c462c31e11",
+    "test/cases/foreign_xui_standalone_code_commands.c": "1826c0811ad4812bfe781a25513f2bef52c344bfbdbe8bc54cb93033ce6a86a7",
+    "test/cases/foreign_xui_standalone_code_commands.h": "62fa9fa6e49dea1159acadf84e35722fdb82ce4cc70699897fa4d65e62358e6b"
+  }
+}

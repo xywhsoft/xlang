@@ -18,6 +18,9 @@ from xui_managed_contracts import CLOSE_REPLACEMENTS as XUI_CLOSE_REPLACEMENTS,R
 PROVIDER_ALIASES={'xl6Xge3InitPacked':('xge3_init.h','xl6Xge3InitWithCode')}
 REPLACED = {**XGE_REPLACEMENTS, **XUI_REPLACEMENTS, **DOCUMENT_REPLACEMENTS, **LIFECYCLE_REPLACEMENTS}
 CLOSE_REPLACEMENTS = {**XGE_CLOSE_REPLACEMENTS, **DOCUMENT_CLOSE_REPLACEMENTS, **XUI_CLOSE_REPLACEMENTS}
+for selection_release in ('xuiCodeSelectionDestroy', 'xuiCodeSelectionDestroyChecked'):
+    CLOSE_REPLACEMENTS[selection_release] = ('xui.CodeSelectionModel.close',
+        'xl6Xui3CodeSelectionPolicy', 'destroy_code_selection', 'xuiCodeSelectionDestroyChecked')
 
 # The old releases consume the same owner as the checked release in close().
 # These policies live in the package headers, so runtime.c cannot prove them.
@@ -50,6 +53,8 @@ RENDER_RESOURCE_CLOSES = {
     'xgeShaderFree': ('xge.Shader.close', 'xl6Xge3ShaderPolicyDestroy', 'xgeShaderFree'),
     'xgeBufferFree': ('xge.GpuBuffer.close', 'xl6Xge3GpuBufferPolicyDestroy', 'xgeBufferFree'),
     'xgeMeshFree': ('xge.Mesh.close', 'xl6Xge3MeshPolicyDestroy', 'xgeMeshFree'),
+    'xgeShapeBatchFree': ('xge.ShapeBatch.close', 'xl6Xge3ShapeBatchPolicyDestroy', 'xgeShapeBatchFree'),
+    'xgeSpriteBatchFree': ('xge.SpriteBatch.close', 'xl6Xge3SpriteBatchPolicyDestroy', 'xgeSpriteBatchFree'),
     'xgeShaderVariantSetFree': ('xge.ShaderVariants.close', 'xl6Xge3ShaderVariantsPolicyDestroy', 'xgeShaderVariantSetFree'),
     'xgeRenderTargetFree': ('xge.RenderTarget.close', 'xl6Xge3TargetDestroy', 'xgeRenderTargetReleaseOwnerChecked'),
     'xgeRenderTargetReleaseOwnerChecked': ('xge.RenderTarget.close', 'xl6Xge3TargetDestroy', 'xgeRenderTargetReleaseOwnerChecked'),
@@ -67,7 +72,26 @@ AUDIO_RESOURCE_CLOSES = {
 FONT_RESOURCE_CLOSES = {
     'xgeFontFaceFree': ('xge.FontFace.close', 'xl6Xge3FontFacePolicyDestroy', 'xgeFontFaceFree'),
     'xgeFontFamilyFree': ('xge.FontFamily.close', 'xl6Xge3FontFamilyPolicyDestroy', 'xgeFontFamilyFree'),
+    'xgeEmojiPackFree': ('xge.EmojiPack.close', 'xl6Xge3EmojiPackPolicyDestroy', 'xgeEmojiPackFree'),
+    'xgeGlyphBitmapFree': ('xge.GlyphBitmap.close', 'xl6Xge3GlyphBitmapPolicyDestroy', 'xgeGlyphBitmapResourceFree'),
 }
+CODE_LEAF_CLOSES = {
+    'xuiCodeAnnotationSnapshotDestroy': ('xui.CodeAnnotationSnapshot.close',
+        'xl6Xui3CodeAnnotationSnapshotDestroy', 'xuiCodeAnnotationSnapshotDestroy'),
+}
+NATIVE_RELEASE_DELEGATES = {
+    'xgeGlyphBitmapFree': ('single/xge.c', 'xgeGlyphBitmapResourceFree', 'xgeGlyphBitmapFree'),
+    'xuiCodeAnnotationStoreDestroy': ('src/xui/code/xui_code_annotation.c',
+        'xuiCodeAnnotationStoreDestroy', 'xuiCodeAnnotationStoreDestroyChecked'),
+    'xuiCodeTokenBufferDestroy': ('src/xui/code/xui_code_token_buffer.c',
+        'xuiCodeTokenBufferDestroy', 'xuiCodeTokenBufferDestroyChecked'),
+    'xuiCodeSelectionDestroy': ('src/xui/code/xui_code_selection.c',
+        'xuiCodeSelectionDestroy', 'xuiCodeSelectionDestroyChecked'),
+}
+for leaf in ('CodeAnnotationStore', 'CodeTokenBuffer'):
+    for suffix in ('Destroy', 'DestroyChecked'):
+        CODE_LEAF_CLOSES['xui'+leaf+suffix] = (f'xui.{leaf}.close',
+            'xl6Xui3'+leaf+'Destroy', 'xui'+leaf+'DestroyChecked')
 INPUT_ACTION_CLOSES = {
     symbol: ('xge.Actions.close', 'xl6Xge3ActionsDestroy', 'xgeActionsFreeChecked')
     for symbol in ('xgeActionsFree', 'xgeActionsFreeChecked')
@@ -76,6 +100,7 @@ RESOURCE_CLOSE_GROUPS = {
     'renderResourceHeaderPolicies': ('xge-render-resource-header-policies', RENDER_RESOURCE_CLOSES),
     'audioResourceHeaderPolicies': ('xge-audio-resource-header-policies', AUDIO_RESOURCE_CLOSES),
     'fontResourceHeaderPolicies': ('xge-font-resource-header-policies', FONT_RESOURCE_CLOSES),
+    'codeLeafHeaderPolicies': ('xui-code-leaf-header-policies', CODE_LEAF_CLOSES),
     'inputActionHeaderPolicies': ('xge-input-action-header-policies', INPUT_ACTION_CLOSES),
 }
 RESOURCE_CLOSES = {
@@ -393,7 +418,7 @@ end
         object=str(obj), objectSha256=sha(obj))
 
 
-def witness_build_inputs(build, audit, packages, gcc, sha, units):
+def witness_build_inputs(build, audit, packages, gcc, sha, units, included_units=()):
     metadata = json.loads(build.read_text(encoding='utf-8'))
     assert metadata['linked'] and metadata['xrt_mode']=='host'
     assert Path(metadata['compiler'][0]).resolve()==gcc
@@ -410,8 +435,9 @@ def witness_build_inputs(build, audit, packages, gcc, sha, units):
     pins.extend((build.parent/'host-xrt').glob('*.*'))
     for name in units:
         assert name in metadata['sources'], name
+    assert set(units).union(included_units) <= freeze['sourceInputs'].keys()
     for name, digest in freeze['sourceInputs'].items():
-        if name in units or Path(name).suffix in ('.h','.inc'):
+        if name in units or name in included_units or Path(name).suffix in ('.h','.inc'):
             path = (source/name).resolve()
             assert path.is_relative_to(source) and sha(path)==digest, name
             pins.append(path)
@@ -487,6 +513,8 @@ def main():
         help='Matching hosted engine build-report.json for TableView and TableGrid lifetime witnesses')
     p.add_argument('--flow-engine-build',type=Path,
         help='Matching hosted engine build-report.json for FlowGraph and Workflow lifetime witnesses')
+    p.add_argument('--resource-engine-build',type=Path,
+        help='Matching hosted engine build-report.json for native resource release witnesses')
     a=p.parse_args();surface,cc,build,packages,replay,out=[v.resolve() for v in
         (a.surface,a.compiler,a.compiler_report,a.packages,a.replay_report,a.out)]
     if out.is_relative_to(packages) or out.is_relative_to(cc.parent):
@@ -524,6 +552,15 @@ def main():
             build_report.resolve(),audit,packages,tools['gcc'],sha,calls.keys())
         files.extend(evidence_inputs)
         lifetime_builds[name] = (source, build_flags, calls)
+    if a.resource_engine_build:
+        calls = {}
+        for unit, caller, callee in NATIVE_RELEASE_DELEGATES.values():
+            calls.setdefault(unit, {})[caller] = (callee,)
+        source, build_flags, evidence_inputs = witness_build_inputs(
+            a.resource_engine_build.resolve(),audit,packages,tools['gcc'],sha,calls.keys(),
+            ('src/xge/text/xge_text_resources.c',))
+        files.extend(evidence_inputs)
+        lifetime_builds['resourceLifetime'] = (source, build_flags, calls)
     inputs={str(f):sha(f) for f in files};out.mkdir(parents=True,exist_ok=False)
     report=dict(complete=False,passed=False,scope=__doc__,inputs=inputs,rows=[],objects=[],providerAliases=[],
         runtimeAcceptance=False,apiCompletenessClaim=False,shippingDelivery=False,networkTests=False,graphicsTests=False)
@@ -750,14 +787,14 @@ def main():
                 evidence=transfer_publishers['xl6Xge3RunOwned']
             elif symbol in engine_owners:
                 evidence=engine_owners[symbol]
-            elif symbol in CLOSE_REPLACEMENTS:
+            elif symbol in CLOSE_REPLACEMENTS and (symbol not in NATIVE_RELEASE_DELEGATES or a.resource_engine_build):
                 logical,policy,destroy,release=CLOSE_REPLACEMENTS[symbol]
                 owner=class_bindings[logical.rsplit('.',1)[0]]
                 require_close(class_lines(view,owner),policy,logical)
                 assert release in functions and 'src/runtime.c' in consumers.get(release,()),release
                 evidence=dict(language=logical,native=release,policy=policy,
                     relocationPath=close_relocation_path(policy_relocations,policy,destroy,release))
-            elif symbol in HEADER_CLOSE_REPLACEMENTS:
+            elif symbol in HEADER_CLOSE_REPLACEMENTS and (symbol not in NATIVE_RELEASE_DELEGATES or a.resource_engine_build):
                 logical,release=HEADER_CLOSE_REPLACEMENTS[symbol]
                 owner=class_bindings[logical.rsplit('.',1)[0]]
                 policy=re.search(r'@policy\("(\w+)"\)',class_lines(view,owner)[0])[1]
@@ -787,6 +824,12 @@ def main():
                     relocationPath=close_relocation_path(header_relocations[key],policy,destroy,release))
             elif document and symbol=='xuiDocumentFreeBuffer':
                 evidence=document['bufferReplacement']
+            if evidence and symbol in NATIVE_RELEASE_DELEGATES:
+                unit, caller, callee = NATIVE_RELEASE_DELEGATES[symbol]
+                witness = report['resourceLifetime'][unit]
+                assert callee in witness['nativeCalls'][caller]
+                evidence['nativeReleaseWitness'] = dict(source=unit,caller=caller,callee=callee,
+                    objectSha256=witness['objectSha256'])
             rows.append(dict(id=item['id'],symbol=symbol,family=item['family'],conditions=item['conditions'],
                 publicDeclarationPresent=False,compiledNativeConsumers=consumers.get(symbol,[]),
                 explicitReplacement=evidence,

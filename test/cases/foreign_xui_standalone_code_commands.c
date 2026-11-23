@@ -1,4 +1,6 @@
 #include "foreign_xui_standalone_code_commands.h"
+#include <xui3_code_annotations.h>
+#include <xui3_code_token_buffer.h>
 
 #undef NDEBUG
 #include <assert.h>
@@ -6,6 +8,31 @@
 
 static xmemdebugsnapshot before;
 static double started;
+
+static void expectOwnedReleaseRejected(const XL6_ForeignViewDescriptorV1* policy, void* raw)
+{
+    assert(raw && (policy->flags & XL6_FOREIGN_VIEW_DESTROY_REPORTS_FAILURE));
+    xl6_error_scope scope = {0};
+    assert(xl6ErrorScopeBegin(&scope));
+    assert(!policy->Destroy(raw));
+    xl6_error_result result = xl6ErrorScopeEnd(&scope);
+    assert(!result.ok && result.error && xrtErrorCode(result.error) == XUI_ERROR_INVALID_STATE);
+    xrtErrorFree(result.error);
+}
+
+void fixtureCodeCommandCheckLeafRetirement(xui_widget editor)
+{
+    xui_code_annotation_store annotations = xuiCodeEditGetAnnotations(editor);
+    xui_code_token_buffer tokens = xuiCodeEditGetTokenBuffer(editor);
+    xui_code_selection_model selection = xuiCodeEditGetSelection(editor);
+    expectOwnedReleaseRejected(&xl6Xui3CodeAnnotationStorePolicy, annotations);
+    expectOwnedReleaseRejected(&xl6Xui3CodeTokenBufferPolicy, tokens);
+    expectOwnedReleaseRejected(&xl6Xui3CodeSelectionPolicy, selection);
+    assert(xuiCodeAnnotationGetDiagnosticCount(annotations) == 0);
+    assert(xuiCodeTokenBufferGetCount(tokens) == 0);
+    assert(xuiCodeSelectionGetCount(selection) >= 0);
+    puts("XUI_CHECKED_LEAF_RETIREMENT_OK");
+}
 
 void fixtureCodeCommandArmOom(void)
 {

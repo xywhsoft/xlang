@@ -6,6 +6,7 @@ extern "fixtureCodeCommandClearOom" @header("test/cases/foreign_xui_standalone_c
 extern "fixtureCodeCommandBeginMeasure" @header("test/cases/foreign_xui_standalone_code_commands.h") @no_raise func beginMeasure()
 extern "fixtureCodeCommandEndMeasure" @header("test/cases/foreign_xui_standalone_code_commands.h") @no_raise func endMeasure(c_int language)
 extern "fixtureCodeCommandMeasureNative" @header("test/cases/foreign_xui_standalone_code_commands.h") @no_raise func measureNative(xui.CodeDocument document, xui.CodeSelectionModel selection)
+extern "fixtureCodeCommandCheckLeafRetirement" @header("test/cases/foreign_xui_standalone_code_commands.h") @no_raise func checkLeafRetirement(xui.CodeEdit editor)
 
 func expectReadOnly(xui.CodeDocument document, c_int command, string expected)
     bool denied = false
@@ -69,6 +70,7 @@ func checkProvider(xui.CodeDocument document, xui.CodeSelectionModel selection)
     auto proxy = xui.createProxy()
     auto context = xui.create(proxy, xui.XUI_SYSTEM_FONT_DISABLED)
     auto editor = context.codeEditNative()
+    checkLeafRetirement(editor)
     auto providers = xui.createCodeProviderSet()
     c_int custom = xui.XUI_CODE_COMMAND_USER_BASE
     CallbackInt? saved = null
