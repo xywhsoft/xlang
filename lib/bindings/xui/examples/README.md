@@ -180,7 +180,7 @@ WebView 范例只加载源码中的本地 HTML。它需要启用 WebView2 的 Wi
 | [stepbar.xl](stepbar.xl) | 四个步骤来自一个字符串数组。 |
 | [tablegrid.xl](tablegrid.xl) | 双击单元格编辑；回调把新文字写回 rows。 |
 | [tableview.xl](tableview.xl) | 每个单元格从 rows 的对应行列读取文字。 |
-| [tabs.xl](tabs.xl) | 切换页面，或点击页签的关闭按钮移除该页。 |
+| [tabs.xl](tabs.xl) | 用 `Tabs.addPage()` 逐个添加页面，点击页签的关闭按钮移除该页。 |
 | [taginput.xl](taginput.xl) | 输入文字并回车添加标签；点击标签上的关闭按钮删除。 |
 | [terminal.xl](terminal.xl) | 显示两行 ANSI 文本，不启动命令行子进程。 |
 | [textedit.xl](textedit.xl) | 多行文字编辑，支持选择、撤销和重做。 |

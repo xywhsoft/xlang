@@ -1,24 +1,22 @@
 // 点击标签切换页面，用左右箭头或末尾列表按钮查看隐藏的标签。
 // 点击标签的关闭按钮可移除该页。
 import xui
+from xui import Widget
 from "./_window.xl" import Window
 
 Window.show("Tabs / Context-owned pages", func(xui.Context ui, xui.Widget root)
  auto tabs = ui.tabsNative()
  Window.place(root, tabs, 24, 24, 640, 260)
- tabs.setItems(["Overview", "Settings", "Sources", "Build", "Output", "Tasks", "Search", "History"])
  tabs.setScrollable(1)
  tabs.setTabSize(140, 32)
  tabs.setScrollButtonsVisible(1)
  tabs.setTabListButtonVisible(1)
- for i in range(0, 8)
-  auto page = ui.widget()
-  page.setRect(Window.rect(0, 0, 600, 240))
-  page.setSizeMode(xui.XUI_SIZE_FILL, xui.XUI_SIZE_FILL)
+ for title in ["Overview", "Settings", "Sources", "Build", "Output", "Tasks", "Search", "History"]
+  tabs.addPage(title)
+  auto page = tabs.getPageWidget(tabs.getItemCount() - c_int(1)) as Widget
   auto label = ui.labelNative()
-  label.setText("Page "+string(i+1))
+  label.setText(title)
   Window.place(page, label, 20, 24, 400, 28)
-  tabs.addPageChild(c_int(i), page)
  end
  tabs.setSelected(0)
  tabs.setClose(true, func(xui.CallbackWidget widget, c_int index)

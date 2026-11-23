@@ -1,5 +1,24 @@
 # Native consumers in the full API inventory
 
+## Dynamic tab pages
+
+`Tabs.addPage(title)` appends one page through `xuiTabsAddPage`, with a
+checked UTF-8 title and a typed null for the optional raw page output.
+`Tabs.getPageWidget(index)` exposes the observed widget separately. The
+Tabs control owns its page containers. Existing page identities stay stable
+when a page is appended. Removing a page invalidates its widget and attached
+children, and closing the context invalidates the remaining views.
+
+Windows and Linux pass JIT and dynamic and static AOT. The tests exercise
+empty and Unicode titles, embedded-NUL rejection, and allocation failures
+with both empty and populated tab strips. The example renders after
+building its pages one at a time.
+
+The matched inventories cover 5,882 functions with 4,820 direct declarations.
+The remaining 106 entries comprise 38 XGE and 68 XUI functions.
+
+[Dynamic tab page evidence](../dev/release-materials/provenance/xui-tabs-add-page-20261124.json)
+
 ## Tab close callbacks and common edit selection
 
 `Tabs.setClose()` registers through the native owned callback slot. Pointer

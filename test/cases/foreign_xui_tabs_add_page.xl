@@ -1,0 +1,89 @@
+import xui
+from xui import Widget
+
+extern "xrtMemDebugEnable" @header("xrt_decl.h") @no_raise func memDebug(bool enabled) as bool
+extern "xrtMemDebugEnabled" @header("xrt_decl.h") @no_raise func memDebugEnabled() as bool
+extern "xrtMemDebugFailAfter" @header("xrt_decl.h") @no_raise func failAfter(uint64 prefix) as bool
+extern "xrtMemDebugFailTriggered" @header("xrt_decl.h") @no_raise func failureTriggered() as bool
+extern "xrtMemDebugFailClear" @header("xrt_decl.h") @no_raise func failClear()
+
+func checkExpired(Widget page)
+    bool expired = false
+    try
+        auto bounds = page.getRect()
+    catch StateError
+        expired = true
+    end
+    assert expired, "removed page views expire"
+end
+
+func checkOom(xui.Tabs tabs)
+    c_int count = tabs.getItemCount()
+    c_int selected = tabs.getSelected()
+    int failures = 0
+    for prefix in range(64)
+        c_int changes = tabs.getChangeCount()
+        bool rejected = false
+        bool hit = false
+        assert failAfter(uint64(prefix))
+        try
+            tabs.addPage("OOM sweep")
+        catch Error
+            rejected = true
+        finally
+            hit = failureTriggered()
+            failClear()
+        end
+        if rejected then
+            assert hit, "a failed append corresponds to an injected allocation"
+            assert tabs.getItemCount() == count and tabs.getSelected() == selected, "failed append preserves count and selection"
+            assert tabs.getChangeCount() == changes, "failed append preserves the selection change counter"
+            assert tabs.getPageWidget(count) == null, "failed append publishes no page"
+            failures += 1
+        else
+            assert not hit and tabs.getItemCount() == count + c_int(1), "successful append publishes one page"
+            auto page = tabs.getPageWidget(count) as Widget
+            assert tabs.removePage(count) == xui.XUI_OK
+            checkExpired(page)
+        end
+    end
+    assert failures > 0 and failures < 64, "the sweep exercises both failure and success"
+end
+
+func main(...) as int
+    assert memDebugEnabled() or memDebug(true)
+    auto proxy = xui.createProxy()
+    auto ui = xui.create(proxy, xui.XUI_SYSTEM_FONT_DISABLED)
+    auto tabs = ui.tabsNative()
+    assert tabs.getItemCount() == c_int(0) and tabs.getSelected() == c_int(-1)
+    checkOom(tabs)
+
+    tabs.addPage("首页")
+    assert (tabs.getItemText(0) as string) == "首页" and tabs.getSelected() == c_int(0), "first append selects the new page"
+    auto first = tabs.getPageWidget(0) as Widget
+    auto label = ui.labelNative()
+    label.setText("Owned by the first page")
+    assert first.addChild(label) == xui.XUI_OK and first.getChildCount() == c_int(1)
+    tabs.addPage("")
+    assert (tabs.getItemText(1) as string) == "" and tabs.getSelected() == c_int(0), "later append preserves selection"
+    auto second = tabs.getPageWidget(1) as Widget
+    assert first != second
+    bool invalidTitle = false
+    try
+        tabs.addPage("invalid\0title")
+    catch Error
+        invalidTitle = true
+    end
+    assert invalidTitle and tabs.getItemCount() == c_int(2), "embedded NUL is rejected before mutation"
+    checkOom(tabs)
+    assert (tabs.getPageWidget(0) as Widget) == first and (tabs.getPageWidget(1) as Widget) == second, "append does not change existing page identity"
+    assert tabs.removePage(0) == xui.XUI_OK
+    checkExpired(first)
+    checkExpired(label)
+    assert (tabs.getPageWidget(0) as Widget) == second and tabs.getSelected() == c_int(0), "removal shifts the remaining page"
+    ui.close()
+    checkExpired(second)
+    proxy.close()
+    println("XUI_TABS_ADD_PAGE_OK")
+    return 0
+end

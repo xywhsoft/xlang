@@ -1,0 +1,86 @@
+{
+  "schema": 1,
+  "scope": "Direct Tabs page append and checked composite lifetime",
+  "nativeCommit": "b3cf0b2fb2658730f9bf3e08cefbe87f7c2dcff8",
+  "shippingDelivery": false,
+  "networkTests": false,
+  "sourceSha256NormalizedLf": {
+    "lib/bindings/xui/src/managed.xl": "ec1b0cb72484d7f67747925f0ab373f566b291792e2a951ee13d6c4e02c04b57",
+    "tools/xui_managed_contracts.py": "34ff8310a6b876557b477de1c33982e887c0d2380bc958d5311dcbd222c6357e",
+    "lib/bindings/xui/examples/tabs.xl": "96485dc260f4dab27e7702db8a33b6bcfef504e1fac24b410299f2bc3bdb6796",
+    "lib/bindings/xui/examples/README.md": "d9350bba35b4697e6ae7be1cd6958bfcb2513fc85569d470ddc57eb36c4849c9",
+    "test/cases/foreign_xui_tabs_add_page.xl": "f9dd60ac541f1ab01355e3a105dd23ce844888ffcd266fb115d765ce5eca6e4c"
+  },
+  "validation": {
+    "oneNativeAppendWithTypedNull": true,
+    "emptyAndUnicodeTitles": true,
+    "embeddedNulRejectedBeforeMutation": true,
+    "oomPreservesCountSelectionAndChangeCount": true,
+    "retainedPageIdentity": true,
+    "removedPageAndChildViewsExpire": true,
+    "contextCloseExpiresRemainingPage": true
+  },
+  "platforms": {
+    "win": {
+      "nativeSource": {
+        "path": "F:/xlang-validation/xge-full-20261110/tabs-close-native-source-win-r2.json",
+        "sha256": "e75969c90c33e2c3e50d46233b9d747e484de69f04ee7312e0407645b6cbebae"
+      },
+      "declarationReplay": {
+        "path": "F:/xlang-validation/xge-full-20261110/tabs-add-page-stage-win-r5/replay/stage-report.json",
+        "sha256": "6e2cc2b248742ef183743335bcf43a0cbe4a3f46a4e1ecae502a6111ebb3a1bd"
+      },
+      "jitAndAotWithImports": {
+        "path": "F:/xlang-validation/xge-full-20261110/tabs-add-page-verify-win-r2/results.json",
+        "sha256": "195b58f3d9b442c11bffcbbbc364ab29cc342cea353c0ca66236f9ca7a47385f"
+      },
+      "nativeConsumerAudit": {
+        "path": "F:/xlang-validation/xge-full-20261110/tabs-add-page-consumers-win-r3/results.json",
+        "sha256": "fe89a5b029a4496ae82c9c24ed42e9c719ae19d924828c84880d1ef170c0404e"
+      },
+      "functionPopulation": 5882,
+      "directDeclarations": 4820,
+      "pendingConsumerOrReplacement": {
+        "XGE": 38,
+        "XUI": 68
+      }
+    },
+    "linux": {
+      "nativeSource": {
+        "path": "//wsl.localhost/Ubuntu/var/tmp/xlang-validation/xge-full-20261110/tabs-close-native-source-linux-r2.json",
+        "sha256": "8e527f0b2dbbae96ef9ead37f1ec5a660aa209dddf74c1afaaf780351358a33d"
+      },
+      "declarationReplay": {
+        "path": "//wsl.localhost/Ubuntu/var/tmp/xlang-validation/xge-full-20261110/tabs-add-page-stage-linux-r5/replay/stage-report.json",
+        "sha256": "e583d89f55952a40ec42d0ea71a08b4d07e66f3525e365c4d557e410a7067f11"
+      },
+      "jitAndAotWithImports": {
+        "path": "//wsl.localhost/Ubuntu/var/tmp/xlang-validation/xge-full-20261110/tabs-add-page-verify-linux-r2/results.json",
+        "sha256": "8be9f34ef596fdeca690e808a9f2a41eb5e3a3973dd4d1d0be90f27054d215b2"
+      },
+      "nativeConsumerAudit": {
+        "path": "//wsl.localhost/Ubuntu/var/tmp/xlang-validation/xge-full-20261110/tabs-add-page-consumers-linux-r3/results.json",
+        "sha256": "1da1c3d7e16fa10009a3c37488b16b60f37742c1f72d75f75a7b04b5cb28843b"
+      },
+      "functionPopulation": 5882,
+      "directDeclarations": 4820,
+      "pendingConsumerOrReplacement": {
+        "XGE": 38,
+        "XUI": 68
+      }
+    }
+  },
+  "example": {
+    "windowsGeneratedC": {
+      "path": "F:/xlang-validation/xge-full-20261110/tabs-add-page-example-win-r1.c",
+      "sha256": "7acf8e2f5bc3302029d1d14a5adb1feb7d6d0a0202f320767768d47716e95ca7"
+    },
+    "linuxXvfbRender": {
+      "format": "raw RGBA",
+      "width": 800,
+      "height": 600,
+      "path": "//wsl.localhost/Ubuntu/var/tmp/xlang-validation/xge-full-20261110/tabs-add-page-example-linux-r1.rgba",
+      "sha256": "98517f216c7ce41f0166c8ec5c508799b06767ce620db28881023de7f6b4352f"
+    }
+  }
+}

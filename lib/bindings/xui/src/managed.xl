@@ -4412,6 +4412,8 @@ export extern "xui_widget_t*" class Tabs @header("xge3_runtime.h") @lifetime("ow
 
  extern "xuiTabsSetItemText" @no_raise @c_cstr(1) @c_result("status",0) func setItemText(c_int iIndex,string sTitle)
 
+ extern "xuiTabsAddPage" @no_raise @c_cstr(0) @c_result("status",0) @c_null(2,"xui_widget*") func addPage(string title)
+
  extern "xuiTabsRemovePage" @no_raise func removePage(c_int iIndex) as c_int
 
  extern "xuiTabsGetItemCount" @no_raise func getItemCount() as c_int
