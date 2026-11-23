@@ -68,3 +68,26 @@ constant-time guarantee. No native implementation or compiler rule changed.
 Pointer-bearing slot records, query/output arrays, animation ownership and
 return-plus-output projections keep their separate integration status. Final
 matching SDK/compiler/runtime/IDE installation remains in the full goal.
+
+## Slot descriptors
+
+`InventoryGrid.setSlot()` publishes one slot's item settings, two text fields,
+icon and animation style as one native update. The owning Context retains an
+icon from its Proxy. An incompatible icon or invalid field rejects the full
+update. The native C caller's opaque animation object stays attached during
+descriptor edits.
+
+`getSlot()` returns the settings, label, hotkey, optional icon, icon rectangle
+and tint, then animation flags, scale and tint. It copies the text and gives
+the caller an independent icon reference. That reference remains usable after
+clearing the slot or closing the grid. If any output conversion fails, the
+caller keeps the previous complete result.
+
+Each binding calls one native descriptor function. In the 2,000-call warmed
+samples without an icon, xlang's setter allocated two temporary C strings
+per call. The getter allocated eight times per call, including the two text
+copies and the resource-result reservation. The handwritten C getter
+allocated twice per call to copy the same strings.
+
+[Slot descriptor example](../lib/bindings/xui/examples/inventory_content.xl) ·
+[Validation and measurements](../dev/release-materials/provenance/xui-inventory-slot-descriptor-20261123.json)

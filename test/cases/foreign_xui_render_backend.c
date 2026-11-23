@@ -55,12 +55,21 @@ static bool count(const void* raw,size_t* output){assert(raw==&references);*outp
 static bool trace(const void* raw,xrtownershipvisitor visit,void* user)
 {assert(raw==&references);(void)visit;(void)user;return true;}
 static const xrtownershipops operations={count,trace};
-int fixtureRenderProxy(xui_proxy* output)
+static int createFixtureRenderProxy(xui_proxy* output)
 {
-    assert(fixtureRenderBalanced());xuiTestProxyInit(&backend);fixtureRenderResetText();
     xui_proxy_t table;adapt(&table);
     const xui_callback_owner_t owner={{&references,&operations},hold,drop};
     return xuiProxyCreateOwned(&table,&owner,output);
+}
+int fixtureRenderProxy(xui_proxy* output)
+{
+    assert(fixtureRenderBalanced());xuiTestProxyInit(&backend);fixtureRenderResetText();
+    return createFixtureRenderProxy(output);
+}
+int fixtureRenderSecondaryProxy(xui_proxy* output)
+{
+    assert(references>1);
+    return createFixtureRenderProxy(output);
 }
 int fixtureRenderFont(xui_proxy proxy,xui_font* output)
 {return proxy->fontLoadMemory(proxy,output,"cpu",3,16,0);}

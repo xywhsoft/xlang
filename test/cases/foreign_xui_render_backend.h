@@ -2,6 +2,7 @@
 #define FOREIGN_XUI_RENDER_BACKEND_H
 #include <xge3_runtime.h>
 int fixtureRenderProxy(xui_proxy* output);
+int fixtureRenderSecondaryProxy(xui_proxy* output);
 int fixtureRenderFont(xui_proxy proxy,xui_font* output);
 int fixtureRenderSurface(xui_proxy proxy,xui_surface* output);
 int fixtureRenderBalanced(void);

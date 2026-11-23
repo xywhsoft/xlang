@@ -1,0 +1,194 @@
+{
+  "schema": 1,
+  "scope": "InventoryGrid combined checked slot update and retained slot descriptor",
+  "nativeCommit": "4b99fff7b96280a5c84645a65961c5c2a9c0024d",
+  "shippingDelivery": false,
+  "graphicsTests": false,
+  "networkTests": false,
+  "nativeEntryPoints": [
+    "xuiInventoryGridSetSlotDescriptor",
+    "xuiInventoryGridGetSlotDescriptor"
+  ],
+  "sourceSha256NormalizedLf": {
+    "docs/xge3-xui3-api-map-storage.json": "3db02b83a6c44fa1fd3332a82a3cc1e3a54a0a4ebb8a0212f4c20721195a191b",
+    "lib/bindings/xui/src/managed.xl": "6628f5f5e427ec3c33309160ed3e5c48469947b24911143a309afd2ec91b3c96",
+    "lib/bindings/xui/examples/inventory_content.xl": "24044f9b600ad3f939e9b64fd8a08ea7ad2832c4f4367076a7f757a0340d93c0",
+    "test/cases/foreign_xui_inventory_slot_descriptor.xl": "b24f1b75d43cc41b055b08adbc7340dd3af868dbf66ad51d0d3fd9af8b4515b9",
+    "tools/xui_managed_contracts.py": "e31534aee219040dd1418218e298f2f4550a598208c94097f3816286aa2b7c73",
+    "tools/check_xge3_bindings.py": "e7d9f15d0115c440a9ec7142259f77b248c032d24162d2dd169d5b0c33ac4587",
+    "test/cases/foreign_xui_render_backend.c": "d923086b61f849a73a720968149c8a9cb990e4febe45b01bf1cf9735490826a6",
+    "test/cases/foreign_xui_render_backend.h": "f5c5e0a41b5932e164c251d610bd874bb2e3e2d4b01d5b61930164659813164f",
+    "test/cases/foreign_xui_render_adapters.inc": "b54a15b0295c93a59be72b93acacfb1eefd335a7ec28d6290b18be213770711e"
+  },
+  "verification": {
+    "oneDirectNativeCallPerLanguageOperation": true,
+    "foreignProxyAndInvalidScaleRejectEntireNativeChange": true,
+    "nativeRawAnimationObjectPreservedByDescriptorEdits": true,
+    "retainedIconCanBeUsedAfterSlotAndContextClose": true,
+    "allocationFailurePreservesExistingSlotOrOutput": true,
+    "languageSlotTextAndEmptyIconRoundTrip": true,
+    "sampleQualification": "One warmed JIT sample per platform with 2,000 updates and 2,000 reads per language. The data contains a short name and hotkey and has a NULL icon. C duplicates the same two string results using XRT allocations. xlang input makes two temporary C strings. The generated getter reserves the nullable resource control before the native call and then copies both strings. The measurement uses clock() on each platform and does not cover live-icon materialization or GPU rendering.",
+    "platforms": {
+      "win": {
+        "jitDynamicStaticAot": {
+          "path": "F:/xlang-validation/xge-full-20261110/inventory-slot-descriptor-verify-win-r5/results.json",
+          "sha256": "2dc0ea277e87ed06b5bcef53ba8a18e159484331ba361c714da35a94231bf445"
+        },
+        "exampleJitDynamicStaticAot": {
+          "path": "F:/xlang-validation/xge-full-20261110/inventory-slot-descriptor-verify-win-r6/results.json",
+          "sha256": "fc75a0cc92e94c037b7a612203f9526a75f3aa88dddbf5a8cd56994701a717df"
+        },
+        "completeInventoryGridNativeRegressionO0O2": {
+          "path": "F:/xlang-validation/xge-full-20261110/inventory-slot-descriptor-native-test-win-r2/results.json",
+          "sha256": "b96f5c2b14bc7336aae521329edb07a669346e7d4921d73917b0d82402032a69"
+        },
+        "strictDeclarationReplay": {
+          "path": "F:/xlang-validation/xge-full-20261110/inventory-slot-descriptor-generator-win-r3/results.json",
+          "sha256": "d60bd0b799954b131efa0d180592c28ad8c2de0f15e824bcfa010e69b4a46ec0"
+        },
+        "stagedPackages": {
+          "path": "F:/xlang-validation/xge-full-20261110/inventory-slot-descriptor-stage-win-r3/replay/stage-report.json",
+          "sha256": "c31aa6593a5ed45d2f067686542471c5c46d053799a85119d37a9fbef6b5cf90"
+        },
+        "scopedNativeSource": {
+          "path": "F:/xlang-validation/xge-full-20261110/inventory-slot-descriptor-native-source-win-r1.json",
+          "sha256": "42afcd0215cfbeafb4bac0cb911ffa31075ec6cc12710e1b2e923d0d099e570a"
+        },
+        "publicSurfaceInventory": {
+          "path": "F:/xlang-validation/xge-full-20261110/inventory-slot-descriptor-inventory-win-r1/surface.json",
+          "sha256": "b096130dd49ed463ba50f05a12cc80a8efea74da0b891c984d63ee422dc2801f"
+        },
+        "matchedConsumerAudit": {
+          "path": "F:/xlang-validation/xge-full-20261110/inventory-slot-descriptor-consumers-win-r1/results.json",
+          "sha256": "bb259fb8f565b44f81889c50c9b39e3a5633bbb1c5ab698b149e1647a05f88cd"
+        },
+        "performance": {
+          "report": {
+            "path": "F:/xlang-validation/xge-full-20261110/inventory-slot-descriptor-perf-win-r1/results.json",
+            "sha256": "6a8adcf4c12838d4a26ac37efa93a668fb137fbacbf57ab94ae62d3cb1c1bc7c"
+          },
+          "sample": {
+            "xlang-set": {
+              "calls": 2000,
+              "alloc": 4000,
+              "free": 4000,
+              "realloc": 0,
+              "clockMs": 4.0
+            },
+            "xlang-get": {
+              "calls": 2000,
+              "alloc": 16000,
+              "free": 16000,
+              "realloc": 0,
+              "clockMs": 9.0
+            },
+            "C-set": {
+              "calls": 2000,
+              "alloc": 0,
+              "free": 0,
+              "realloc": 0,
+              "clockMs": 1.0
+            },
+            "C-get": {
+              "calls": 2000,
+              "alloc": 4000,
+              "free": 4000,
+              "realloc": 0,
+              "clockMs": 1.0
+            }
+          }
+        },
+        "nativeO2Builds": {
+          "host": {
+            "path": "F:/xlang-validation/xge-full-20261110/inventory-slot-descriptor-host-win-r1/build-report.json",
+            "sha256": "61df97648452d7ed70ae634e8d8093452c93ccae5e13a63387f4412c325ee094"
+          },
+          "static": {
+            "path": "F:/xlang-validation/xge-full-20261110/inventory-slot-descriptor-static-win-r1/build-report.json",
+            "sha256": "37ab32e6e2e4f4f394f7132b14091bcb183fe038e985e976c615e970ebc0be27"
+          }
+        }
+      },
+      "linux": {
+        "jitDynamicStaticAot": {
+          "path": "//wsl.localhost/Ubuntu/var/tmp/xlang-validation/xge-full-20261110/inventory-slot-descriptor-verify-linux-r5/results.json",
+          "sha256": "1db3b95e06c303d9fa87ae24c7ceb630e7fa510ece634bc04a7941547fa17888"
+        },
+        "exampleJitDynamicStaticAot": {
+          "path": "//wsl.localhost/Ubuntu/var/tmp/xlang-validation/xge-full-20261110/inventory-slot-descriptor-verify-linux-r6/results.json",
+          "sha256": "a6dff72cc2331e42c75d64f9ccef5870a8fab7f848a6d096168f99c3546b71f5"
+        },
+        "completeInventoryGridNativeRegressionO0O2": {
+          "path": "//wsl.localhost/Ubuntu/var/tmp/xlang-validation/xge-full-20261110/inventory-slot-descriptor-native-test-linux-r1/results.json",
+          "sha256": "879c4d70ef898b03f85364d38f2976818f7411b2fc09f951090649056d758e6f"
+        },
+        "strictDeclarationReplay": {
+          "path": "//wsl.localhost/Ubuntu/var/tmp/xlang-validation/xge-full-20261110/inventory-slot-descriptor-generator-linux-r3/results.json",
+          "sha256": "e6b421ba4bbdeec34355153a1453adebc4d27e3e519f5040d79e301904b55eaa"
+        },
+        "stagedPackages": {
+          "path": "//wsl.localhost/Ubuntu/var/tmp/xlang-validation/xge-full-20261110/inventory-slot-descriptor-stage-linux-r3/replay/stage-report.json",
+          "sha256": "446679dc425e702ecf1acd936e8ed4ccbba2639f5a9a21d4cdc49c8198ef7ed9"
+        },
+        "scopedNativeSource": {
+          "path": "//wsl.localhost/Ubuntu/var/tmp/xlang-validation/xge-full-20261110/inventory-slot-descriptor-native-source-linux-r1.json",
+          "sha256": "e629518fe15c3fc176455d5c8f1b0ccfe4739f44d4a7f1562e82a797bde219fe"
+        },
+        "publicSurfaceInventory": {
+          "path": "//wsl.localhost/Ubuntu/var/tmp/xlang-validation/xge-full-20261110/inventory-slot-descriptor-inventory-linux-r1/surface.json",
+          "sha256": "5c4a8aa562ecf119db03469c994c23586acdedbb5f5cbeeade300199c3c1581a"
+        },
+        "matchedConsumerAudit": {
+          "path": "//wsl.localhost/Ubuntu/var/tmp/xlang-validation/xge-full-20261110/inventory-slot-descriptor-consumers-linux-r1/results.json",
+          "sha256": "0aadc4c2b084be9357847184e861d4efd059e7914cb4a7a42abd63c5f2b17721"
+        },
+        "performance": {
+          "report": {
+            "path": "//wsl.localhost/Ubuntu/var/tmp/xlang-validation/xge-full-20261110/inventory-slot-descriptor-perf-linux-r1/results.json",
+            "sha256": "9fa3a58c618e89b3399506b09bd2ae727ce6ebe92bc299e0e88f866208027d62"
+          },
+          "sample": {
+            "xlang-set": {
+              "calls": 2000,
+              "alloc": 4000,
+              "free": 4000,
+              "realloc": 0,
+              "clockMs": 2.605
+            },
+            "xlang-get": {
+              "calls": 2000,
+              "alloc": 16000,
+              "free": 16000,
+              "realloc": 0,
+              "clockMs": 4.78
+            },
+            "C-set": {
+              "calls": 2000,
+              "alloc": 0,
+              "free": 0,
+              "realloc": 0,
+              "clockMs": 0.57
+            },
+            "C-get": {
+              "calls": 2000,
+              "alloc": 4000,
+              "free": 4000,
+              "realloc": 0,
+              "clockMs": 0.416
+            }
+          }
+        },
+        "nativeO2Builds": {
+          "host": {
+            "path": "//wsl.localhost/Ubuntu/var/tmp/xlang-validation/xge-full-20261110/inventory-slot-descriptor-host-linux-r1/build-report.json",
+            "sha256": "290488110aee739a2af10aa14f4e27460f97b653748cca85f41191dfb297099c"
+          },
+          "static": {
+            "path": "//wsl.localhost/Ubuntu/var/tmp/xlang-validation/xge-full-20261110/inventory-slot-descriptor-static-linux-r1/build-report.json",
+            "sha256": "159bc0b46e518a60a6cc262c9ba364e607cc3f1e60ab4b97c2fce1b8167f5097"
+          }
+        }
+      }
+    }
+  }
+}

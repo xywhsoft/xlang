@@ -1026,6 +1026,8 @@ def generate_xui(root,header,records,types,primitive,param,reserved,reviewed_spa
                       ('xuiListViewSetVirtualItemsOwned','owned-callback'),
                       ('xuiChartSetTooltipCallbackOwned','owned-callback'),
                       ('xuiChartSetContextMenuOwned','owned-callback'),
+                      ('xuiInventoryGridSetSlotDescriptor','shared-owned-surface-slot'),
+                      ('xuiInventoryGridGetSlotDescriptor','retained-surface-output'),
                       ('xuiInventoryGridSetSlotContent','native-copy-or-synchronous-read'),
                       ('xuiInventoryGridGetSlotContent','borrowed-synchronous-output'),
                       ('xuiInventoryGridQuerySlotsOwned','synchronous-callback-owned-output'),

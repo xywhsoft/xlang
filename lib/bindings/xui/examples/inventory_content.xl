@@ -10,7 +10,10 @@ try
     item.iItemId = 101
     item.iCount = 4
     item.iMaxCount = 20
-    inventory.setSlotContent(0, item, "Health potion", "1")
+    // Apply the item, hotkey and animation style together.
+    item.iFlags = c_uint(xui.XUI_INVENTORY_SLOT_ANIMATION)
+    inventory.setSlot(0, item, "Health potion", "1", animationScale=1.15)
+    item.iFlags = c_uint(0)
 
     item.iItemId = 102
     item.iCount = 9
@@ -20,7 +23,7 @@ try
         c_uint(xui.XUI_INVENTORY_QUERY_EXCLUDE_EMPTY | xui.XUI_INVENTORY_QUERY_SORT_DESCENDING),
         0, 0, xui.XUI_INVENTORY_SORT_COUNT, "potion")
     for index in ranked.indices()
-        auto settings, name, hotkey = inventory.getSlotContent(index)
+        auto settings, name, hotkey, _, _, _, _, _, _ = inventory.getSlot(index)
         println(name, " × ", settings.iCount, "  [", hotkey, "]")
     end
 finally

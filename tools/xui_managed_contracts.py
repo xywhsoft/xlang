@@ -1812,15 +1812,24 @@ end""",
 VIEW_FUNCTIONS["xuiInventoryIndicesGet"] = 'int xuiInventoryIndicesGet(xui_inventory_indices pIndices, const int** ppSlots, size_t* pCount)'
 RECORDS.update({
     'xui_inventory_slot_settings_t': 'typedef struct xui_inventory_slot_settings_t { int iSlotId; int iItemId; int iCount; int iMaxCount; int iSlotType; int iItemType; uint32_t iFlags; uint32_t iQualityColor; float fCooldownRate; float fDurabilityRate; } xui_inventory_slot_settings_t;',
+    'xui_inventory_slot_desc_t': 'typedef struct xui_inventory_slot_desc_t { uint32_t iSize; xui_inventory_slot_settings_t tSettings; const char* sText; const char* sHotkey; struct xui_surface_t* pIcon; xui_rect_t tIconSrc; uint32_t iIconTint; uint32_t iAnimationFlags; float fAnimationScale; uint32_t iAnimationTint; } xui_inventory_slot_desc_t;',
     'xui_inventory_slot_content_t': 'typedef struct xui_inventory_slot_content_t { xui_inventory_slot_settings_t tSettings; const char* sText; const char* sHotkey; } xui_inventory_slot_content_t;',
     'xui_inventory_indices': 'typedef struct xui_inventory_indices_t* xui_inventory_indices;',
 })
 REPLACED.update({
+    "xuiInventoryGridSetSlot": ("xui.InventoryGrid.setSlot", "xuiInventoryGridSetSlotDescriptor"),
+    "xuiInventoryGridGetSlot": ("xui.InventoryGrid.getSlot", "xuiInventoryGridGetSlotDescriptor"),
     "xuiInventoryGridQuerySlots": ("xui.InventoryGrid.querySlots", "xuiInventoryGridQuerySlotsOwned"),
     "xuiInventoryGridSortSlots": ("xui.InventoryGrid.sortSlots", "xuiInventoryGridSortSlotsOwned"),
 })
 
 METHODS.update({
+    'xuiInventoryGridSetSlotDescriptor': (
+        'int xuiInventoryGridSetSlotDescriptor(xui_widget pWidget, int iSlot, const xui_inventory_slot_desc_t* pDesc)',
+        'InventoryGrid', ['extern "xuiInventoryGridSetSlotDescriptor" @no_raise @c_pack(2,"xui_inventory_slot_desc_t",1,9) @c_pack_size(2,"iSize","uint32_t") @c_pack_field(2,"tSettings",1,"value") @c_pack_field(2,"sText",2,"c_string") @c_pack_field(2,"sHotkey",3,"c_string") @c_pack_field(2,"pIcon",4,"view_raw") @c_pack_field(2,"tIconSrc",5,"value") @c_pack_field(2,"iIconTint",6,"value") @c_pack_field(2,"iAnimationFlags",7,"value") @c_pack_field(2,"fAnimationScale",8,"value") @c_pack_field(2,"iAnimationTint",9,"value") @c_result("status",0) func setSlot(c_int index,InventorySlotSettings settings,string text="",string hotkey="",Surface? icon=null,Rect iconSource=Rect(),c_uint iconTint=0,c_uint animationFlags=0,c_float animationScale=1.0,c_uint animationTint=0)']),
+    'xuiInventoryGridGetSlotDescriptor': (
+        'int xuiInventoryGridGetSlotDescriptor(xui_widget pWidget, int iSlot, xui_inventory_slot_desc_t* pDesc)',
+        'InventoryGrid', ['extern "xuiInventoryGridGetSlotDescriptor" @no_raise @c_output_record(2,"xui_inventory_slot_desc_t","borrowed") @c_output_size(2,"iSize") @c_status(0) @c_output_field(0,"tSettings") @c_output_field(1,"sText","cstring") @c_output_field(2,"sHotkey","cstring") @c_output_field(3,"pIcon","retain",retainSurface,"zero",rollbackSurface) @c_output_field(4,"tIconSrc") @c_output_field(5,"iIconTint") @c_output_field(6,"iAnimationFlags") @c_output_field(7,"fAnimationScale") @c_output_field(8,"iAnimationTint") func getSlot(c_int index) as (InventorySlotSettings,string,string,Surface?,Rect,c_uint,c_uint,c_float,c_uint)']),
     'xuiInventoryGridSetSlotIcon': (
         'int xuiInventoryGridSetSlotIcon(xui_widget pWidget, int iSlot, xui_surface pIcon, xui_rect_t tSource, uint32_t iTint)',
         'InventoryGrid', ['extern "xuiInventoryGridSetSlotIcon" @no_raise @c_result("status",0) func setSlotIcon(c_int index,Surface? icon,Rect source,c_uint tint=0)']),

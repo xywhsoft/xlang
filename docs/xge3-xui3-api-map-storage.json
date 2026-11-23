@@ -1027,7 +1027,7 @@
         },
         {
           "sourceFile": "include/xui.h",
-          "lfSha256": "a933daeba903740d6900e8d913d537c5eef667965261980f38eb9e1a09e8173f"
+          "lfSha256": "80f3538cd8b017d0968507cc66c009baceab206a382d62891a600873aff6c21f"
         }
       ]
     },
@@ -1289,7 +1289,7 @@
         },
         {
           "sourceFile": "include/xui.h",
-          "lfSha256": "a933daeba903740d6900e8d913d537c5eef667965261980f38eb9e1a09e8173f"
+          "lfSha256": "80f3538cd8b017d0968507cc66c009baceab206a382d62891a600873aff6c21f"
         }
       ],
       "note": "Copies extensions, regex records and their text before publication. Both callbacks use one retained and traced owner, and invocation views are scoped. Regex-only registration holds no owner."
@@ -1391,7 +1391,7 @@
         },
         {
           "sourceFile": "include/xui.h",
-          "lfSha256": "a933daeba903740d6900e8d913d537c5eef667965261980f38eb9e1a09e8173f"
+          "lfSha256": "80f3538cd8b017d0968507cc66c009baceab206a382d62891a600873aff6c21f"
         }
       ]
     },
@@ -1413,7 +1413,7 @@
         },
         {
           "sourceFile": "include/xui.h",
-          "lfSha256": "a933daeba903740d6900e8d913d537c5eef667965261980f38eb9e1a09e8173f"
+          "lfSha256": "80f3538cd8b017d0968507cc66c009baceab206a382d62891a600873aff6c21f"
         }
       ]
     },
@@ -1435,7 +1435,7 @@
         },
         {
           "sourceFile": "include/xui.h",
-          "lfSha256": "a933daeba903740d6900e8d913d537c5eef667965261980f38eb9e1a09e8173f"
+          "lfSha256": "80f3538cd8b017d0968507cc66c009baceab206a382d62891a600873aff6c21f"
         }
       ]
     },
@@ -1457,7 +1457,7 @@
         },
         {
           "sourceFile": "include/xui.h",
-          "lfSha256": "a933daeba903740d6900e8d913d537c5eef667965261980f38eb9e1a09e8173f"
+          "lfSha256": "80f3538cd8b017d0968507cc66c009baceab206a382d62891a600873aff6c21f"
         }
       ]
     },
@@ -1479,7 +1479,7 @@
         },
         {
           "sourceFile": "include/xui.h",
-          "lfSha256": "a933daeba903740d6900e8d913d537c5eef667965261980f38eb9e1a09e8173f"
+          "lfSha256": "80f3538cd8b017d0968507cc66c009baceab206a382d62891a600873aff6c21f"
         }
       ]
     },
@@ -1501,7 +1501,7 @@
         },
         {
           "sourceFile": "include/xui.h",
-          "lfSha256": "a933daeba903740d6900e8d913d537c5eef667965261980f38eb9e1a09e8173f"
+          "lfSha256": "80f3538cd8b017d0968507cc66c009baceab206a382d62891a600873aff6c21f"
         }
       ]
     },
@@ -1523,7 +1523,7 @@
         },
         {
           "sourceFile": "include/xui.h",
-          "lfSha256": "a933daeba903740d6900e8d913d537c5eef667965261980f38eb9e1a09e8173f"
+          "lfSha256": "80f3538cd8b017d0968507cc66c009baceab206a382d62891a600873aff6c21f"
         }
       ]
     },
@@ -1533,11 +1533,11 @@
       "storage": "native-copy-or-synchronous-read",
       "sourceFile": "src/xui/controls/xui_inventory_grid.c",
       "line": 4310,
-      "functionSha256": "f9c6535484061ef2389f343c3d7d21c6ab42ae780a87cdbfbb8b4e6ca281a897",
+      "functionSha256": "19512f396fa5b88bcaa6c23d41f6522f091b7f1a5edc7136ee5897602ccc8305",
       "dependencies": [
         {
           "sourceFile": "src/xui/controls/xui_inventory_grid.c",
-          "lfSha256": "73068735d9e99edca529a47a8a5e0da13746eea93c992c67b29e8d8d7ce43095"
+          "lfSha256": "59ccfc4e051608a97507cd02f2feb11c00b0fa1664fe246e6ab13d902b1a5ce4"
         },
         {
           "sourceFile": "src/xui/core/xui_widget.c",
@@ -1545,7 +1545,7 @@
         },
         {
           "sourceFile": "include/xui.h",
-          "lfSha256": "a933daeba903740d6900e8d913d537c5eef667965261980f38eb9e1a09e8173f"
+          "lfSha256": "80f3538cd8b017d0968507cc66c009baceab206a382d62891a600873aff6c21f"
         }
       ]
     },
@@ -1555,11 +1555,11 @@
       "storage": "borrowed-synchronous-output",
       "sourceFile": "src/xui/controls/xui_inventory_grid.c",
       "line": 4328,
-      "functionSha256": "e5cc689e9ac01a841171810b3a268b4d5b1befc4c1efc35f08b86b14e93ec09a",
+      "functionSha256": "4b8078f7eeadcdf02a00e7ea9f27bdb9daa8e1721e53e9a09f8ed1673359b639",
       "dependencies": [
         {
           "sourceFile": "src/xui/controls/xui_inventory_grid.c",
-          "lfSha256": "73068735d9e99edca529a47a8a5e0da13746eea93c992c67b29e8d8d7ce43095"
+          "lfSha256": "59ccfc4e051608a97507cd02f2feb11c00b0fa1664fe246e6ab13d902b1a5ce4"
         },
         {
           "sourceFile": "src/xui/core/xui_widget.c",
@@ -1567,7 +1567,7 @@
         },
         {
           "sourceFile": "include/xui.h",
-          "lfSha256": "a933daeba903740d6900e8d913d537c5eef667965261980f38eb9e1a09e8173f"
+          "lfSha256": "80f3538cd8b017d0968507cc66c009baceab206a382d62891a600873aff6c21f"
         }
       ]
     },
@@ -1581,7 +1581,7 @@
       "dependencies": [
         {
           "sourceFile": "src/xui/controls/xui_inventory_grid.c",
-          "lfSha256": "73068735d9e99edca529a47a8a5e0da13746eea93c992c67b29e8d8d7ce43095"
+          "lfSha256": "59ccfc4e051608a97507cd02f2feb11c00b0fa1664fe246e6ab13d902b1a5ce4"
         },
         {
           "sourceFile": "src/xui/core/xui_widget.c",
@@ -1589,7 +1589,7 @@
         },
         {
           "sourceFile": "include/xui.h",
-          "lfSha256": "a933daeba903740d6900e8d913d537c5eef667965261980f38eb9e1a09e8173f"
+          "lfSha256": "80f3538cd8b017d0968507cc66c009baceab206a382d62891a600873aff6c21f"
         }
       ]
     },
@@ -1603,7 +1603,7 @@
       "dependencies": [
         {
           "sourceFile": "src/xui/controls/xui_inventory_grid.c",
-          "lfSha256": "73068735d9e99edca529a47a8a5e0da13746eea93c992c67b29e8d8d7ce43095"
+          "lfSha256": "59ccfc4e051608a97507cd02f2feb11c00b0fa1664fe246e6ab13d902b1a5ce4"
         },
         {
           "sourceFile": "src/xui/core/xui_widget.c",
@@ -1611,7 +1611,7 @@
         },
         {
           "sourceFile": "include/xui.h",
-          "lfSha256": "a933daeba903740d6900e8d913d537c5eef667965261980f38eb9e1a09e8173f"
+          "lfSha256": "80f3538cd8b017d0968507cc66c009baceab206a382d62891a600873aff6c21f"
         }
       ]
     },
@@ -1625,7 +1625,7 @@
       "dependencies": [
         {
           "sourceFile": "src/xui/controls/xui_inventory_grid.c",
-          "lfSha256": "73068735d9e99edca529a47a8a5e0da13746eea93c992c67b29e8d8d7ce43095"
+          "lfSha256": "59ccfc4e051608a97507cd02f2feb11c00b0fa1664fe246e6ab13d902b1a5ce4"
         },
         {
           "sourceFile": "src/xui/core/xui_widget.c",
@@ -1637,7 +1637,7 @@
         },
         {
           "sourceFile": "include/xui.h",
-          "lfSha256": "a933daeba903740d6900e8d913d537c5eef667965261980f38eb9e1a09e8173f"
+          "lfSha256": "80f3538cd8b017d0968507cc66c009baceab206a382d62891a600873aff6c21f"
         }
       ]
     },
@@ -1651,7 +1651,7 @@
       "dependencies": [
         {
           "sourceFile": "src/xui/controls/xui_inventory_grid.c",
-          "lfSha256": "73068735d9e99edca529a47a8a5e0da13746eea93c992c67b29e8d8d7ce43095"
+          "lfSha256": "59ccfc4e051608a97507cd02f2feb11c00b0fa1664fe246e6ab13d902b1a5ce4"
         },
         {
           "sourceFile": "src/xui/core/xui_widget.c",
@@ -1663,7 +1663,7 @@
         },
         {
           "sourceFile": "include/xui.h",
-          "lfSha256": "a933daeba903740d6900e8d913d537c5eef667965261980f38eb9e1a09e8173f"
+          "lfSha256": "80f3538cd8b017d0968507cc66c009baceab206a382d62891a600873aff6c21f"
         }
       ]
     },
@@ -1677,7 +1677,7 @@
       "dependencies": [
         {
           "sourceFile": "src/xui/controls/xui_inventory_grid.c",
-          "lfSha256": "73068735d9e99edca529a47a8a5e0da13746eea93c992c67b29e8d8d7ce43095"
+          "lfSha256": "59ccfc4e051608a97507cd02f2feb11c00b0fa1664fe246e6ab13d902b1a5ce4"
         },
         {
           "sourceFile": "src/xui/core/xui_widget.c",
@@ -1689,7 +1689,7 @@
         },
         {
           "sourceFile": "include/xui.h",
-          "lfSha256": "a933daeba903740d6900e8d913d537c5eef667965261980f38eb9e1a09e8173f"
+          "lfSha256": "80f3538cd8b017d0968507cc66c009baceab206a382d62891a600873aff6c21f"
         }
       ]
     },
@@ -1703,7 +1703,7 @@
       "dependencies": [
         {
           "sourceFile": "src/xui/controls/xui_inventory_grid.c",
-          "lfSha256": "73068735d9e99edca529a47a8a5e0da13746eea93c992c67b29e8d8d7ce43095"
+          "lfSha256": "59ccfc4e051608a97507cd02f2feb11c00b0fa1664fe246e6ab13d902b1a5ce4"
         },
         {
           "sourceFile": "src/xui/core/xui_widget.c",
@@ -1715,7 +1715,7 @@
         },
         {
           "sourceFile": "include/xui.h",
-          "lfSha256": "a933daeba903740d6900e8d913d537c5eef667965261980f38eb9e1a09e8173f"
+          "lfSha256": "80f3538cd8b017d0968507cc66c009baceab206a382d62891a600873aff6c21f"
         }
       ]
     },
@@ -1729,7 +1729,7 @@
       "dependencies": [
         {
           "sourceFile": "src/xui/controls/xui_inventory_grid.c",
-          "lfSha256": "73068735d9e99edca529a47a8a5e0da13746eea93c992c67b29e8d8d7ce43095"
+          "lfSha256": "59ccfc4e051608a97507cd02f2feb11c00b0fa1664fe246e6ab13d902b1a5ce4"
         },
         {
           "sourceFile": "src/xui/core/xui_widget.c",
@@ -1741,7 +1741,7 @@
         },
         {
           "sourceFile": "include/xui.h",
-          "lfSha256": "a933daeba903740d6900e8d913d537c5eef667965261980f38eb9e1a09e8173f"
+          "lfSha256": "80f3538cd8b017d0968507cc66c009baceab206a382d62891a600873aff6c21f"
         }
       ]
     },
@@ -1755,7 +1755,7 @@
       "dependencies": [
         {
           "sourceFile": "src/xui/controls/xui_inventory_grid.c",
-          "lfSha256": "73068735d9e99edca529a47a8a5e0da13746eea93c992c67b29e8d8d7ce43095"
+          "lfSha256": "59ccfc4e051608a97507cd02f2feb11c00b0fa1664fe246e6ab13d902b1a5ce4"
         },
         {
           "sourceFile": "src/xui/core/xui_widget.c",
@@ -1771,7 +1771,7 @@
         },
         {
           "sourceFile": "include/xui.h",
-          "lfSha256": "a933daeba903740d6900e8d913d537c5eef667965261980f38eb9e1a09e8173f"
+          "lfSha256": "80f3538cd8b017d0968507cc66c009baceab206a382d62891a600873aff6c21f"
         }
       ]
     },
@@ -1785,7 +1785,7 @@
       "dependencies": [
         {
           "sourceFile": "src/xui/controls/xui_inventory_grid.c",
-          "lfSha256": "73068735d9e99edca529a47a8a5e0da13746eea93c992c67b29e8d8d7ce43095"
+          "lfSha256": "59ccfc4e051608a97507cd02f2feb11c00b0fa1664fe246e6ab13d902b1a5ce4"
         },
         {
           "sourceFile": "src/xui/core/xui_widget.c",
@@ -1801,7 +1801,7 @@
         },
         {
           "sourceFile": "include/xui.h",
-          "lfSha256": "a933daeba903740d6900e8d913d537c5eef667965261980f38eb9e1a09e8173f"
+          "lfSha256": "80f3538cd8b017d0968507cc66c009baceab206a382d62891a600873aff6c21f"
         }
       ]
     },
@@ -1815,7 +1815,7 @@
       "dependencies": [
         {
           "sourceFile": "src/xui/controls/xui_inventory_grid.c",
-          "lfSha256": "73068735d9e99edca529a47a8a5e0da13746eea93c992c67b29e8d8d7ce43095"
+          "lfSha256": "59ccfc4e051608a97507cd02f2feb11c00b0fa1664fe246e6ab13d902b1a5ce4"
         },
         {
           "sourceFile": "src/xui/core/xui_widget.c",
@@ -1827,7 +1827,7 @@
         },
         {
           "sourceFile": "include/xui.h",
-          "lfSha256": "a933daeba903740d6900e8d913d537c5eef667965261980f38eb9e1a09e8173f"
+          "lfSha256": "80f3538cd8b017d0968507cc66c009baceab206a382d62891a600873aff6c21f"
         }
       ]
     },
@@ -1853,7 +1853,7 @@
         },
         {
           "sourceFile": "include/xui.h",
-          "lfSha256": "a933daeba903740d6900e8d913d537c5eef667965261980f38eb9e1a09e8173f"
+          "lfSha256": "80f3538cd8b017d0968507cc66c009baceab206a382d62891a600873aff6c21f"
         }
       ]
     },
@@ -1879,7 +1879,7 @@
         },
         {
           "sourceFile": "include/xui.h",
-          "lfSha256": "a933daeba903740d6900e8d913d537c5eef667965261980f38eb9e1a09e8173f"
+          "lfSha256": "80f3538cd8b017d0968507cc66c009baceab206a382d62891a600873aff6c21f"
         }
       ]
     },
@@ -1905,7 +1905,7 @@
         },
         {
           "sourceFile": "include/xui.h",
-          "lfSha256": "a933daeba903740d6900e8d913d537c5eef667965261980f38eb9e1a09e8173f"
+          "lfSha256": "80f3538cd8b017d0968507cc66c009baceab206a382d62891a600873aff6c21f"
         }
       ]
     },
@@ -1927,7 +1927,7 @@
         },
         {
           "sourceFile": "include/xui.h",
-          "lfSha256": "a933daeba903740d6900e8d913d537c5eef667965261980f38eb9e1a09e8173f"
+          "lfSha256": "80f3538cd8b017d0968507cc66c009baceab206a382d62891a600873aff6c21f"
         }
       ]
     },
@@ -1953,7 +1953,7 @@
         },
         {
           "sourceFile": "include/xui.h",
-          "lfSha256": "a933daeba903740d6900e8d913d537c5eef667965261980f38eb9e1a09e8173f"
+          "lfSha256": "80f3538cd8b017d0968507cc66c009baceab206a382d62891a600873aff6c21f"
         }
       ]
     },
@@ -1971,7 +1971,7 @@
         },
         {
           "sourceFile": "include/xui.h",
-          "lfSha256": "a933daeba903740d6900e8d913d537c5eef667965261980f38eb9e1a09e8173f"
+          "lfSha256": "80f3538cd8b017d0968507cc66c009baceab206a382d62891a600873aff6c21f"
         }
       ]
     },
@@ -1989,7 +1989,7 @@
         },
         {
           "sourceFile": "include/xui.h",
-          "lfSha256": "a933daeba903740d6900e8d913d537c5eef667965261980f38eb9e1a09e8173f"
+          "lfSha256": "80f3538cd8b017d0968507cc66c009baceab206a382d62891a600873aff6c21f"
         }
       ]
     },
@@ -2007,7 +2007,7 @@
         },
         {
           "sourceFile": "include/xui.h",
-          "lfSha256": "a933daeba903740d6900e8d913d537c5eef667965261980f38eb9e1a09e8173f"
+          "lfSha256": "80f3538cd8b017d0968507cc66c009baceab206a382d62891a600873aff6c21f"
         }
       ]
     },
@@ -2025,7 +2025,7 @@
         },
         {
           "sourceFile": "include/xui.h",
-          "lfSha256": "a933daeba903740d6900e8d913d537c5eef667965261980f38eb9e1a09e8173f"
+          "lfSha256": "80f3538cd8b017d0968507cc66c009baceab206a382d62891a600873aff6c21f"
         }
       ]
     },
@@ -2043,7 +2043,7 @@
         },
         {
           "sourceFile": "include/xui.h",
-          "lfSha256": "a933daeba903740d6900e8d913d537c5eef667965261980f38eb9e1a09e8173f"
+          "lfSha256": "80f3538cd8b017d0968507cc66c009baceab206a382d62891a600873aff6c21f"
         }
       ]
     },
@@ -2057,7 +2057,7 @@
       "dependencies": [
         {
           "sourceFile": "include/xui.h",
-          "lfSha256": "a933daeba903740d6900e8d913d537c5eef667965261980f38eb9e1a09e8173f"
+          "lfSha256": "80f3538cd8b017d0968507cc66c009baceab206a382d62891a600873aff6c21f"
         },
         {
           "sourceFile": "src/xui/core/xui_widget.c",
@@ -2075,11 +2075,63 @@
       "dependencies": [
         {
           "sourceFile": "include/xui.h",
-          "lfSha256": "a933daeba903740d6900e8d913d537c5eef667965261980f38eb9e1a09e8173f"
+          "lfSha256": "80f3538cd8b017d0968507cc66c009baceab206a382d62891a600873aff6c21f"
         },
         {
           "sourceFile": "src/xui/core/xui_widget.c",
           "lfSha256": "2f3b7cad95fd736dc5c95a3f5d1b882b26e76cc56f8c3ead8eedeb36b30c2a61"
+        }
+      ]
+    },
+    "xuiInventoryGridSetSlotDescriptor": {
+      "bindingFile": "lib\\bindings\\xui\\src\\managed.xl",
+      "declaration": "extern \"xuiInventoryGridSetSlotDescriptor\" @no_raise @c_pack(2,\"xui_inventory_slot_desc_t\",1,9) @c_pack_size(2,\"iSize\",\"uint32_t\") @c_pack_field(2,\"tSettings\",1,\"value\") @c_pack_field(2,\"sText\",2,\"c_string\") @c_pack_field(2,\"sHotkey\",3,\"c_string\") @c_pack_field(2,\"pIcon\",4,\"view_raw\") @c_pack_field(2,\"tIconSrc\",5,\"value\") @c_pack_field(2,\"iIconTint\",6,\"value\") @c_pack_field(2,\"iAnimationFlags\",7,\"value\") @c_pack_field(2,\"fAnimationScale\",8,\"value\") @c_pack_field(2,\"iAnimationTint\",9,\"value\") @c_result(\"status\",0) func setSlot(c_int index,InventorySlotSettings settings,string text=\"\",string hotkey=\"\",Surface? icon=null,Rect iconSource=Rect(),c_uint iconTint=0,c_uint animationFlags=0,c_float animationScale=1.0,c_uint animationTint=0)",
+      "storage": "shared-owned-surface-slot",
+      "sourceFile": "src/xui/controls/xui_inventory_grid.c",
+      "line": 4362,
+      "functionSha256": "16b4bf511843e6f864c786163a30e00f09496cc6f6855c8c82a7cdf45166eddb",
+      "dependencies": [
+        {
+          "sourceFile": "src/xui/controls/xui_inventory_grid.c",
+          "lfSha256": "59ccfc4e051608a97507cd02f2feb11c00b0fa1664fe246e6ab13d902b1a5ce4"
+        },
+        {
+          "sourceFile": "src/xui/core/xui_widget.c",
+          "lfSha256": "2f3b7cad95fd736dc5c95a3f5d1b882b26e76cc56f8c3ead8eedeb36b30c2a61"
+        },
+        {
+          "sourceFile": "src/xui/core/xui_owned_resource_slots.c",
+          "lfSha256": "3e58b861b12483f814042459215e7f8dd29fedb9c2b94009197f6c13f50bdd70"
+        },
+        {
+          "sourceFile": "include/xui.h",
+          "lfSha256": "80f3538cd8b017d0968507cc66c009baceab206a382d62891a600873aff6c21f"
+        }
+      ]
+    },
+    "xuiInventoryGridGetSlotDescriptor": {
+      "bindingFile": "lib\\bindings\\xui\\src\\managed.xl",
+      "declaration": "extern \"xuiInventoryGridGetSlotDescriptor\" @no_raise @c_output_record(2,\"xui_inventory_slot_desc_t\",\"borrowed\") @c_output_size(2,\"iSize\") @c_status(0) @c_output_field(0,\"tSettings\") @c_output_field(1,\"sText\",\"cstring\") @c_output_field(2,\"sHotkey\",\"cstring\") @c_output_field(3,\"pIcon\",\"retain\",retainSurface,\"zero\",rollbackSurface) @c_output_field(4,\"tIconSrc\") @c_output_field(5,\"iIconTint\") @c_output_field(6,\"iAnimationFlags\") @c_output_field(7,\"fAnimationScale\") @c_output_field(8,\"iAnimationTint\") func getSlot(c_int index) as (InventorySlotSettings,string,string,Surface?,Rect,c_uint,c_uint,c_float,c_uint)",
+      "storage": "retained-surface-output",
+      "sourceFile": "src/xui/controls/xui_inventory_grid.c",
+      "line": 4378,
+      "functionSha256": "42f81c4c821362043964402447beb3f0eb0ba578b4c6799b1d2464cd2ed5af7b",
+      "dependencies": [
+        {
+          "sourceFile": "src/xui/controls/xui_inventory_grid.c",
+          "lfSha256": "59ccfc4e051608a97507cd02f2feb11c00b0fa1664fe246e6ab13d902b1a5ce4"
+        },
+        {
+          "sourceFile": "src/xui/core/xui_widget.c",
+          "lfSha256": "2f3b7cad95fd736dc5c95a3f5d1b882b26e76cc56f8c3ead8eedeb36b30c2a61"
+        },
+        {
+          "sourceFile": "src/xui/core/xui_owned_resource_slots.c",
+          "lfSha256": "3e58b861b12483f814042459215e7f8dd29fedb9c2b94009197f6c13f50bdd70"
+        },
+        {
+          "sourceFile": "include/xui.h",
+          "lfSha256": "80f3538cd8b017d0968507cc66c009baceab206a382d62891a600873aff6c21f"
         }
       ]
     }
@@ -2107,7 +2159,7 @@
         },
         {
           "sourceFile": "include/xui.h",
-          "lfSha256": "a933daeba903740d6900e8d913d537c5eef667965261980f38eb9e1a09e8173f"
+          "lfSha256": "80f3538cd8b017d0968507cc66c009baceab206a382d62891a600873aff6c21f"
         },
         {
           "sourceFile": "src/xge/render/xge_render.c",
@@ -2225,7 +2277,7 @@
       "dependencies": [
         {
           "sourceFile": "include/xui.h",
-          "lfSha256": "a933daeba903740d6900e8d913d537c5eef667965261980f38eb9e1a09e8173f"
+          "lfSha256": "80f3538cd8b017d0968507cc66c009baceab206a382d62891a600873aff6c21f"
         },
         {
           "sourceFile": "src/xui/core/xui_proxy_xge.c",
@@ -2323,7 +2375,7 @@
       "dependencies": [
         {
           "sourceFile": "include/xui.h",
-          "lfSha256": "a933daeba903740d6900e8d913d537c5eef667965261980f38eb9e1a09e8173f"
+          "lfSha256": "80f3538cd8b017d0968507cc66c009baceab206a382d62891a600873aff6c21f"
         },
         {
           "sourceFile": "src/xui/core/xui_proxy_xge.c",

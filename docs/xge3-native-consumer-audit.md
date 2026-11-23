@@ -1,5 +1,15 @@
 # Native consumers in the full API inventory
 
+## InventoryGrid slot descriptors
+
+Both matched package audits map the raw slot update and query to
+`InventoryGrid.setSlot()` and `getSlot()`. Each makes one call to the
+native descriptor API. The native update validates the entire slot and
+preserves an installed C animation object. The language query copies the
+strings and obtains an independent retained icon reference.
+
+[Slot descriptor evidence](../dev/release-materials/provenance/xui-inventory-slot-descriptor-20261123.json)
+
 ## Timeline record values
 
 The six legacy layer, frame and span userdata entries map to the checked

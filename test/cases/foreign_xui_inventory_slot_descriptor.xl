@@ -1,0 +1,96 @@
+import xui
+from xui import Proxy, Rect, Surface
+
+extern "fixtureRenderProxy" @header("test/cases/foreign_xui_render_backend.h") @no_raise @c_result("owned_view") @factory(0,0,dropProxy) func cpuProxy() as Proxy
+extern "fixtureRenderSecondaryProxy" @no_raise @c_result("owned_view") @factory(0,0,dropProxy) func secondProxy() as Proxy
+extern "fixtureRenderSurface" @no_raise @c_result("owned_view") @factory(1,0,dropSurface) func cpuSurface(Proxy proxy) as Surface
+extern "fixtureRenderBalanced" @no_raise func balanced() as c_int
+extern "fixtureRenderBudget" @no_raise func budget(c_int allowance)
+extern "xuiProxyReleaseChecked" @header("xge3_runtime.h") @no_raise @c_result("status",0) func dropProxy(Proxy value)
+extern "xuiSurfaceReleaseChecked" @no_raise @c_result("status",0) func dropSurface(Surface value)
+
+func main(...) as int
+    auto proxy = cpuProxy()
+    auto otherProxy = secondProxy()
+    auto icon = cpuSurface(proxy)
+    auto otherIcon = cpuSurface(otherProxy)
+    auto ui = xui.create(proxy,xui.XUI_SYSTEM_FONT_DISABLED)
+    auto grid = ui.inventoryGridNative()
+    assert grid.setSlotCount(2) == 0
+
+    auto item = xui.InventorySlotSettings()
+    item.iItemId = 37
+    item.iCount = 3
+    item.iMaxCount = 9
+    item.iFlags = c_uint(xui.XUI_INVENTORY_SLOT_ANIMATION)
+    auto source = Rect()
+    source.fX = 3
+    source.fY = 4
+    source.fW = 8
+    source.fH = 9
+    c_uint tint = c_uint(0x998855ff)
+    c_uint color = c_uint(0x113355ff)
+    grid.setSlot(0,item,"药水","F2",icon,source,tint,13,0.5,color)
+    icon.close()
+
+    auto settings, label, key, saved, src, actualTint, flags, scale, actualColor = grid.getSlot(0)
+    assert settings.iItemId == 37 and settings.iCount == 3 and settings.iMaxCount == 9
+    assert label == "药水" and key == "F2" and saved != null
+    assert src.fX == 3 and src.fY == 4 and src.fW == 8 and src.fH == 9
+    assert actualTint == tint and flags == 13 and scale == 0.5 and actualColor == color
+    auto active, styleFlags, styleScale, styleColor = grid.getSlotAnimationStyle(0)
+    assert active == 1 and styleFlags == flags and styleScale == scale and styleColor == actualColor
+    auto _, blank, noKey, noIcon, _, _, _, _, _ = grid.getSlot(1)
+    assert blank == "" and noKey == "" and noIcon == null
+
+    item.iItemId = 92
+    bool rejected = false
+    try
+        grid.setSlot(0,item,"Foreign proxy","FX",otherIcon,source,0,9,2,0)
+    catch Error
+        rejected = true
+    end
+    assert rejected
+
+    budget(0)
+    rejected = false
+    try
+        grid.setSlot(0,item,"Allocation failure","F9",null)
+    catch Error
+        rejected = true
+    finally
+        budget(-1)
+    end
+    assert rejected
+
+    // Prepare the destination with another snapshot. Failure preserves every value.
+    auto before, beforeText, beforeKey, beforeIcon, beforeSrc, beforeTint, beforeFlags, beforeScale, beforeColor = grid.getSlot(0)
+    assert before.iItemId == 37 and beforeText == "药水" and beforeKey == "F2" and beforeIcon != null
+    assert beforeTint == tint and beforeFlags == flags and beforeScale == scale and beforeColor == color
+    budget(1)
+    rejected = false
+    try
+        before, beforeText, beforeKey, beforeIcon, beforeSrc, beforeTint, beforeFlags, beforeScale, beforeColor = grid.getSlot(0)
+    catch Error
+        rejected = true
+    finally
+        budget(-1)
+    end
+    assert rejected and before.iItemId == 37 and beforeText == "药水" and beforeKey == "F2" and beforeIcon != null
+    assert beforeSrc.fW == 8 and beforeTint == tint and beforeFlags == 13 and beforeScale == 0.5 and beforeColor == color
+
+    grid.clearSlot(0)
+    auto _, cleared, _, clearedIcon, _, _, _, _, _ = grid.getSlot(0)
+    assert cleared == "" and clearedIcon == null
+    grid.close()
+    ui.close()
+    proxy.clearSurface(saved as Surface,tint)
+    (saved as Surface).close()
+    (beforeIcon as Surface).close()
+    otherIcon.close()
+    otherProxy.close()
+    proxy.close()
+    assert balanced() != 0
+    println("XUI_INVENTORY_SLOT_DESCRIPTOR_OK")
+    return 0
+end
