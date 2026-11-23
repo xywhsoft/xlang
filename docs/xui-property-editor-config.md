@@ -8,4 +8,8 @@
 
 同进程动态 AOT 对照测试重复替换包含两个选项和一个日期格式的配置。每次调用的 XRT 分配数在两端都是原生 C 3 次、xlang 6 次，释放数与分配数相同。每组 50,000 次取 7 组中位数，Windows 为 111 ms／491 ms，Linux 为 117 ms／447 ms，顺序均为 C／xlang。这组数据涵盖循环和配置替换，用于量化配置入口的转换成本。
 
+`setValidate()` 注册值校验，返回 `1` 接受编辑，返回 `0` 保留原值。`setGlobalAction()` 处理文件选择等属性操作。`setGlobalRenderer()` 返回 `0` 时继续默认绘制，返回正值时使用回调的绘制结果。三者都保留回调和捕获对象，传 `null` 可撤销注册。
+
+`beginEdit()` 和 `endEdit()` 返回 `0` 或 `1` 表示编辑结果，回调失败时抛出异常。回调得到的 `CString`、单元格和绘制上下文只在本次调用内有效，需要长期保存文本时调用 `copy()`。
+
 [属性表格范例](../lib/bindings/xui/examples/propertygrid.xl)

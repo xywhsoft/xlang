@@ -824,6 +824,17 @@ TYPE_SHAPES.update({
     'xui_webview_event_proc': '4c8d001e4b5001ef70e4347f5955528d82a5fb5237178cdde269a1237d680db1',
 })
 
+CALLBACKS.update({
+    'xui_property_grid_validate_proc': (
+        'typedef int (*xui_property_grid_validate_proc)(xui_widget_t* pWidget, int iProperty, const char* sId, '
+        'const char* sValue, int iType, void* pUser);',
+        'export typedef PropertyGridValidateProc = func(Widget,c_int,CString,CString,c_int) as c_int'),
+    'xui_property_grid_action_proc': (
+        'typedef int (*xui_property_grid_action_proc)(xui_widget_t* pWidget, int iProperty, const char* sId, '
+        'xui_rect_t tWorldRect, void* pUser);',
+        'export typedef PropertyGridActionProc = func(Widget,c_int,CString,Rect) as c_int'),
+})
+
 METHODS.update({
     'xuiNumericInputSetFormatterOwned': [
         'int xuiNumericInputSetFormatterOwned(xui_widget pWidget, xui_numeric_input_text_owned_proc onFormat, '
@@ -845,6 +856,22 @@ METHODS.update({
     'xuiTableViewSetRows': ['int xuiTableViewSetRows(xui_widget pWidget, const xui_table_view_row_t* arrRows, int iCount)', 'TableView',
         ['extern "xuiTableViewSetRows" @no_raise @c_span(0,"const xui_table_view_row_t*","int") func setRows(Buffer arrRows) as c_int',
          'extern "xuiTableViewSetRows" @no_raise @c_array_group(1,0,1,"int",1) @c_array_input(1,0,"const xui_table_view_row_t*","value") func setRows(array<TableViewRow> rows,int size=-1) as c_int']],
+    'xuiPropertyGridSetValidateOwned': ['int xuiPropertyGridSetValidateOwned(xui_widget pWidget, '
+        'xui_property_grid_validate_proc onValidate, void* pUser, const xui_callback_owner_t* pOwner)', 'PropertyGrid',
+        ['extern "xuiPropertyGridSetValidateOwned" @no_raise @c_owned_callback(0,0,"xui_callback_owner_t",-16) '
+         '@c_result("status",0) func setValidate(PropertyGridValidateProc? onValidate)']],
+    'xuiPropertyGridSetGlobalActionOwned': ['int xuiPropertyGridSetGlobalActionOwned(xui_widget pWidget, '
+        'xui_property_grid_action_proc onAction, void* pUser, const xui_callback_owner_t* pOwner)', 'PropertyGrid',
+        ['extern "xuiPropertyGridSetGlobalActionOwned" @no_raise @c_owned_callback(0,0,"xui_callback_owner_t",-16) '
+         '@c_result("status",0) func setGlobalAction(PropertyGridActionProc? onAction)']],
+    'xuiPropertyGridSetGlobalRendererOwned': ['int xuiPropertyGridSetGlobalRendererOwned(xui_widget pWidget, '
+        'xui_property_grid_render_proc onRender, void* pUser, const xui_callback_owner_t* pOwner)', 'PropertyGrid',
+        ['extern "xuiPropertyGridSetGlobalRendererOwned" @no_raise @c_owned_callback(0,0,"xui_callback_owner_t",-16) '
+         '@c_result("status",0) func setGlobalRenderer(TableViewCellRenderer? onRender)']],
+    'xuiPropertyGridBeginEditChecked': ['int xuiPropertyGridBeginEditChecked(xui_widget widget, int property)', 'PropertyGrid',
+        ['extern "xuiPropertyGridBeginEditChecked" @no_raise @c_result("integer_min",0) func beginEdit(c_int iProperty) as c_int']],
+    'xuiPropertyGridEndEditChecked': ['int xuiPropertyGridEndEditChecked(xui_widget widget, int commit)', 'PropertyGrid',
+        ['extern "xuiPropertyGridEndEditChecked" @no_raise @c_result("integer_min",0) func endEdit(c_int bCommit) as c_int']],
     'xuiPropertyGridSetEditorConfig': ['int xuiPropertyGridSetEditorConfig(xui_widget pWidget, int iProperty, const xui_table_grid_editor_config_t* pConfig)',
         'PropertyGrid', ['extern "xuiPropertyGridSetEditorConfig" @no_raise @c_result("status",0) '
         '@c_pack(2,"xui_table_grid_editor_config_t",1,28) @c_pack_field(2,"fMin",1,"value") '
@@ -1567,8 +1594,13 @@ REPLACED = {
     'xuiPageSetChange': ('xui.Page.setChange', 'xuiPageSetChangeOwned'),
     'xuiPopupSetChange': ('xui.Popup.setChange', 'xuiPopupSetChangeOwned'),
     'xuiPropertyGridSetChange': ('xui.PropertyGrid.setChange', 'xuiPropertyGridSetChangeOwned'),
+    'xuiPropertyGridBeginEdit': ('xui.PropertyGrid.beginEdit', 'xuiPropertyGridBeginEditChecked'),
+    'xuiPropertyGridEndEdit': ('xui.PropertyGrid.endEdit', 'xuiPropertyGridEndEditChecked'),
     'xuiPropertyGridSetContextMenu': ('xui.PropertyGrid.setContextMenu', 'xuiPropertyGridSetContextMenuOwned'),
+    'xuiPropertyGridSetGlobalAction': ('xui.PropertyGrid.setGlobalAction', 'xuiPropertyGridSetGlobalActionOwned'),
+    'xuiPropertyGridSetGlobalRenderer': ('xui.PropertyGrid.setGlobalRenderer', 'xuiPropertyGridSetGlobalRendererOwned'),
     'xuiPropertyGridSetSelect': ('xui.PropertyGrid.setSelect', 'xuiPropertyGridSetSelectOwned'),
+    'xuiPropertyGridSetValidate': ('xui.PropertyGrid.setValidate', 'xuiPropertyGridSetValidateOwned'),
     'xuiRadioGroupSetChange': ('xui.RadioGroup.setChange', 'xuiRadioGroupSetChangeOwned'),
     'xuiRadioSetChange': ('xui.Radio.setChange', 'xuiRadioSetChangeOwned'),
     'xuiRangeSliderSetChange': ('xui.RangeSlider.setChange', 'xuiRangeSliderSetChangeOwned'),

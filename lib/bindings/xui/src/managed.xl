@@ -820,6 +820,8 @@ export typedef TimelineFrameRenderProc = func(CallbackWidget,c_int,c_int,Callbac
 export typedef TimelineSpanRenderProc = func(CallbackWidget,c_int,c_int,CallbackTimelineSpan,CallbackDrawContext,Rect,c_int) as c_int
 
 export typedef PropertyGridSelectProc = func(Widget,c_int,CString)
+export typedef PropertyGridValidateProc = func(Widget,c_int,CString,CString,c_int) as c_int
+export typedef PropertyGridActionProc = func(Widget,c_int,CString,Rect) as c_int
 
 export typedef PropertyGridChangeProc = func(Widget,c_int,CString,CString,c_int)
 
@@ -5765,9 +5767,9 @@ export extern "xui_widget_t*" class PropertyGrid @header("xge3_runtime.h") @life
 
  extern "xuiPropertyGridIsEditing" @no_raise func isEditing() as c_int
 
- extern "xuiPropertyGridBeginEdit" @no_raise func beginEdit(c_int iProperty) as c_int
+ extern "xuiPropertyGridBeginEditChecked" @no_raise @c_result("integer_min",0) func beginEdit(c_int iProperty) as c_int
 
- extern "xuiPropertyGridEndEdit" @no_raise func endEdit(c_int bCommit) as c_int
+ extern "xuiPropertyGridEndEditChecked" @no_raise @c_result("integer_min",0) func endEdit(c_int bCommit) as c_int
 
  extern "xuiPropertyGridSetFont" @no_raise @c_result("status",0) func setFont(Font? pFont)
 
@@ -5794,6 +5796,12 @@ export extern "xui_widget_t*" class PropertyGrid @header("xge3_runtime.h") @life
  extern "xuiPropertyGridGetScrollbarMode" @no_raise func getScrollbarMode() as c_int
 
  extern "xuiPropertyGridSetSelectOwned" @no_raise @c_owned_callback(0,0,"xui_callback_owner_t",0) @c_result("status",0) func setSelect(PropertyGridSelectProc? onSelect)
+ // 返回 1 接受编辑，返回 0 保留原值。传 null 取消注册。
+ extern "xuiPropertyGridSetValidateOwned" @no_raise @c_owned_callback(0,0,"xui_callback_owner_t",-16) @c_result("status",0) func setValidate(PropertyGridValidateProc? onValidate)
+ // 单项操作优先于全局操作。传 null 取消注册。
+ extern "xuiPropertyGridSetGlobalActionOwned" @no_raise @c_owned_callback(0,0,"xui_callback_owner_t",-16) @c_result("status",0) func setGlobalAction(PropertyGridActionProc? onAction)
+ // 返回 0 使用默认绘制，返回正值表示已绘制。传 null 取消注册。
+ extern "xuiPropertyGridSetGlobalRendererOwned" @no_raise @c_owned_callback(0,0,"xui_callback_owner_t",-16) @c_result("status",0) func setGlobalRenderer(TableViewCellRenderer? onRender)
 
  extern "xuiPropertyGridSetChangeOwned" @no_raise @c_owned_callback(0,0,"xui_callback_owner_t",0) @c_result("status",0) func setChange(PropertyGridChangeProc? onChange)
 

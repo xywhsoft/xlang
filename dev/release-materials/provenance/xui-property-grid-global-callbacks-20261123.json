@@ -1,0 +1,81 @@
+{
+  "schema": 1,
+  "scope": "PropertyGrid global validator, action and render callbacks",
+  "nativeCallbacksCommit": "ade0c693",
+  "nativeCheckedEditCommit": "f1f3ebcd",
+  "legacyFixtureDiagnosticCleanupCommit": "37104a55",
+  "statusOnlyFixtureCommit": "191413e5",
+  "shippingDelivery": false,
+  "sourceSha256NormalizedLf": {
+    "docs/xge3-xui3-api-map-storage.json": "0be350439d842fc911b086614eda75652ea04668b62da3a067c745218a645a4e",
+    "lib/bindings/xui/src/managed.xl": "d0dbc019be0adfc53e8631435ff5a4047cf165284ceb482186d73c649930a6aa",
+    "test/cases/foreign_xui_property_grid_callbacks.xl": "fb126eb242984b01b26e10654f1750f1e0492caa9b160885a22ae82aa22683f4",
+    "lib/bindings/xui/examples/propertygrid.xl": "528b651545f5580a907bcc63df16afd397b696588a7ff84d726baf4b9784ce09"
+  },
+  "verification": {
+    "retainedCallbacks": true,
+    "reentrantUnregisterKeepsPhysicalCallAlive": true,
+    "allocationFailureRollsBack": true,
+    "ordinaryValidationRejectionAndBeginEndEditExceptions": true,
+    "renderFallbackAndUnregister": true,
+    "nativeStatusOnlyFailurePreserved": true,
+    "platforms": {
+      "win": {
+        "JitDynamicStaticAot": {
+          "path": "F:/xlang-validation/xge-full-20261110/property-grid-checked-callbacks-verify-win-r2/results.json",
+          "sha256": "b5c409d605934ef47038a42e603f40245408d28e2b46a483a6a306c4659992c8"
+        },
+        "nativeO0O2": {
+          "path": "F:/xlang-validation/xge-full-20261110/property-grid-checked-callbacks-native-test-win-r3/results.json",
+          "sha256": "abe77ba29fc93a45ec9c6842f02a4bd92b76d73a07b07ef1422a17abbb6f773e"
+        },
+        "legacyPropertyGridO0O2": {
+          "path": "F:/xlang-validation/xge-full-20261110/property-grid-global-callbacks-native-test-win-r7/results.json",
+          "sha256": "34b97e574ddf7522ad59af69c0627c524bbcbf3fbcf9678c8392e00197362bf0"
+        },
+        "strictDeclarationReplay": {
+          "path": "F:/xlang-validation/xge-full-20261110/property-grid-checked-callbacks-generator-win-r1/results.json",
+          "sha256": "c10352f13cca6fa7f6333e9ca05d2b5c96407d8913274daafc8d9f1edfc6b509"
+        },
+        "example": {
+          "path": "F:/xlang-validation/xge-full-20261110/property-grid-checked-example-win-r1/results.json",
+          "sha256": "1a58294f7dffbe6641487488f6f52254f6b6b16792ca752eaec6f292dad8ba59"
+        }
+      },
+      "linux": {
+        "JitDynamicStaticAot": {
+          "path": "//wsl.localhost/Ubuntu/var/tmp/xlang-validation/xge-full-20261110/property-grid-checked-callbacks-verify-linux-r2/results.json",
+          "sha256": "0b218c80b380bb1082f6a99c6f046101aa0b8b2f886e30a520847cdb9b937dee"
+        },
+        "nativeO0O2": {
+          "path": "//wsl.localhost/Ubuntu/var/tmp/xlang-validation/xge-full-20261110/property-grid-checked-callbacks-native-test-linux-r3/results.json",
+          "sha256": "75b854b53a17a2ad7fb80cc9c6397541dcd8b40399f81e8754c7f75c49895de0"
+        },
+        "legacyPropertyGridO0O2": {
+          "path": "//wsl.localhost/Ubuntu/var/tmp/xlang-validation/xge-full-20261110/property-grid-global-callbacks-native-test-linux-r7/results.json",
+          "sha256": "15b8bebaf00d7bcc8209dc47ca8c3b288fcacc189e5703e33f54f3a0d7fea107"
+        },
+        "strictDeclarationReplay": {
+          "path": "//wsl.localhost/Ubuntu/var/tmp/xlang-validation/xge-full-20261110/property-grid-checked-callbacks-generator-linux-r1/results.json",
+          "sha256": "2d22b5b986260778574f9af8bde3c336d084dbdcec2248ab7f14d14b21d3e0ee"
+        },
+        "example": {
+          "path": "//wsl.localhost/Ubuntu/var/tmp/xlang-validation/xge-full-20261110/property-grid-checked-example-linux-r1/results.json",
+          "sha256": "da6ad22f1a5803c0e45a4e8a37862656b0209d8a45c806b01fcb02606573c738"
+        }
+      }
+    },
+    "exampleRenderedFrames": {
+      "platform": "Linux",
+      "renderer": "Xvfb software GL",
+      "count": 3,
+      "viewport": [
+        800,
+        600
+      ]
+    },
+    "exampleWindows": {
+      "staticAotBuild": true
+    }
+  }
+}

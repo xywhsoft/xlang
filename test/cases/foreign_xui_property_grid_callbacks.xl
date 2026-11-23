@@ -1,0 +1,92 @@
+import xui
+from xui import CallbackDrawContext, CallbackTableViewCell, CallbackWidget, Context, CString, Proxy, Rect, Surface, Widget
+
+extern "fixtureRenderProxy" @header("test/cases/foreign_xui_render_backend.h") @no_raise @c_result("owned_view") @factory(0,0,dropProxy) func cpuProxy() as Proxy
+extern "fixtureRenderSurface" @header("test/cases/foreign_xui_render_backend.h") @no_raise @c_result("owned_view") @factory(1,0,dropSurface) func cpuSurface(Proxy proxy) as Surface
+extern "fixtureRenderBalanced" @header("test/cases/foreign_xui_render_backend.h") @no_raise func balanced() as c_int
+extern "xuiProxyReleaseChecked" @header("xge3_runtime.h") @no_raise @c_result("status",0) func dropProxy(Proxy proxy)
+extern "xuiSurfaceReleaseChecked" @header("xge3_runtime.h") @no_raise @c_result("status",0) func dropSurface(Surface surface)
+
+func editProperties(Context ui,Surface target)
+ auto grid = ui.propertyGridNative()
+ Rect bounds
+ bounds.fW = 480
+ bounds.fH = 320
+ assert grid.setRect(bounds) == 0 and ui.setRootWidget(grid) == 0
+ ui.setViewportSize(480,320)
+ auto category = grid.addCategory("general","General",1)
+ auto enabled = grid.addProperty(category,"enabled","Enabled",type=xui.XUI_TABLE_CELL_TYPE_BOOL,value="false")
+ auto asset = grid.addProperty(category,"asset","Asset",type=xui.XUI_TABLE_CELL_TYPE_FILE,value="asset.txt")
+ auto label = grid.addProperty(category,"label","Label",value="draft")
+ assert enabled == 0 and asset == 1 and label == 2
+
+ int validates = 0
+ grid.setValidate(func(Widget widget,c_int property,CString id,CString value,c_int type) as c_int
+  assert (property == enabled and type == xui.XUI_TABLE_CELL_TYPE_BOOL and id.copy() == "enabled") or (property == label and type == xui.XUI_TABLE_CELL_TYPE_TEXT and id.copy() == "label")
+  validates += 1
+  if validates == 2 then return 0 end
+  if validates > 2 then throw "property grid validation failure" end
+  return 1
+ end)
+ int actions = 0
+ grid.setGlobalAction(func(Widget widget,c_int property,CString id,Rect area) as c_int
+  assert property == asset and area.fW > 0 and id.copy() == "asset"
+  actions += 1
+  grid.setGlobalAction(null)
+  return 1
+ end)
+ int paints = 0
+ grid.setGlobalRenderer(func(CallbackWidget widget,c_int property,c_int column,CallbackTableViewCell cell,CallbackDrawContext draw,Rect area,c_int flags) as c_int
+  assert property >= enabled and property <= label and column == 1 and area.fW > 0
+  paints += 1
+  return 0
+ end)
+
+ assert ui.layout() == 0
+ assert grid.beginEdit(enabled) == 1 and validates == 1
+ assert grid.beginEdit(enabled) == 0 and validates == 2, "ordinary validation rejection"
+ bool caught = false
+ try
+  grid.beginEdit(enabled)
+ catch Error
+  caught = true
+ end
+ assert caught and validates == 3, "deliver the validation failure at the checked boundary"
+ assert grid.beginEdit(label) == 1
+ caught = false
+ try
+  grid.endEdit(1)
+ catch Error
+  caught = true
+ end
+ assert caught and validates == 4, "deliver validation failure when committing an editor"
+ assert grid.endEdit(0) == 1
+ grid.setValidate(null)
+ assert grid.beginEdit(enabled) == 1 and validates == 4
+ assert grid.beginEdit(asset) == 1 and actions == 1
+ assert grid.beginEdit(asset) == 0 and actions == 1, "reentrant action removal"
+ ui.render(target)
+ assert paints > 0
+ grid.setGlobalRenderer(null)
+ int previousPaints = paints
+ ui.render(target)
+ assert paints == previousPaints
+ grid.clear()
+ grid.close()
+end
+
+func main(...) as int
+ auto proxy = cpuProxy()
+ auto ui = xui.create(proxy,xui.XUI_SYSTEM_FONT_DISABLED)
+ auto target = cpuSurface(proxy)
+ try
+  editProperties(ui,target)
+ finally
+  target.close()
+  ui.close()
+  proxy.close()
+ end
+ assert balanced() != 0
+ println("PROPERTY_GRID_CALLBACKS_OK")
+ return 0
+end

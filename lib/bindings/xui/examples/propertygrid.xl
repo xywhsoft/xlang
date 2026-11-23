@@ -7,7 +7,13 @@ Window.show("Property grid / editable values", func(xui.Context ui, xui.Widget r
  properties.setFont(ui.getDefaultFont())
  Window.place(root, properties, 24, 24, 640, 300)
  c_int category = properties.addCategory("general", "General", 1)
- properties.addProperty(category, "name", "Name", description = "Project name", value = "xlang")
+ auto name = properties.addProperty(category, "name", "Name", description = "Project name", value = "xlang")
+ properties.setValidate(func(xui.Widget owner, c_int property, xui.CString id, xui.CString value, c_int type) as c_int
+  if property == name and value.length == 0 then
+   return 0
+  end
+  return 1
+ end)
  auto mode = properties.addProperty(category, "mode", "Mode", type = xui.XUI_TABLE_CELL_TYPE_ENUM, value = "Release")
  properties.setEditorConfig(mode, optionLabels = ["Debug", "Release"], optionValues = [0, 1],
   optionEnabled = [1, 1], optionSeparators = [0, 0], optionIcons = [0, 0])
