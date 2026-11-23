@@ -4029,6 +4029,13 @@ export typedef InventorySlotRenderProc = func(CallbackWidget,c_int,CallbackInven
 
 export typedef InventoryAnimationRenderProc = func(CallbackWidget,c_int,CallbackInventorySlot,CallbackDrawContext,Rect,c_uint,c_uint,c_uint) as c_int
 
+export extern "xui_list_selection_buffer" class ListSelectionBuffer @header("xge3_runtime.h") @lifetime("owned") @policy("xl6Xui3ListSelectionBufferPolicy")
+ native point handle
+ extern "xuiListSelectionBufferGetCapacity" @no_raise @c_result("integer_min",0) func capacity() as c_int
+ extern "xuiListSelectionBufferGet" @no_raise @c_result("integer_min",0) func get(c_int index) as c_int
+ extern "xl6ForeignViewCloseV1" @no_raise @c_control(0) @c_result("bool_status") func close()
+end
+
 export extern "xui_inventory_indices" class InventoryIndices @header("xge3_runtime.h") @lifetime("owned") @policy("xl6Xui3InventoryIndicesPolicy")
  native point handle
  extern "xuiInventoryIndicesGet" @no_raise @c_owned_sequence(1,2,0,"size_t",0) @c_retain(retainInventoryIndices,"zero",releaseInventoryIndices) func indices() as NativeSequence<c_int>
@@ -5099,6 +5106,8 @@ export extern "xui_widget_t*" class ListView @header("xge3_runtime.h") @lifetime
  extern "xuiListViewSetVirtualItemsOwned" @no_raise @c_owned_callback(1,0,"xui_callback_owner_t",0,"owned_text") @c_result("status",0) func setVirtualItems(c_int count,ListViewTextProc? onText=null)
 
  extern "xuiListViewGetItemTextOwned" @no_raise @c_output_text(2,3,"char*","size_t","xrt",0) func readItemText(c_int index) as string
+ extern "xuiListViewSetSelectionBufferOwned" @no_raise @c_result("status",0) func setSelectionBuffer(ListSelectionBuffer? buffer)
+ extern "xuiListViewGetSelectionBufferOwned" @no_raise @c_result("retained_view") @c_retain(retainListSelectionBuffer,"zero",releaseListSelectionBuffer) func selectionBuffer() as ListSelectionBuffer?
 
  extern "xuiListViewSetContextMenuOwned" @no_raise @c_owned_callback(0,0,"xui_callback_owner_t",-16) @c_result("status",0) func setContextMenu(ListViewContextProc? onContext)
 
@@ -6953,6 +6962,9 @@ extern "xuiWidgetDestroyChecked" @no_raise @c_result("status",0) func rollbackVi
 extern "xuiWidgetDestroyChecked" @no_raise @c_result("status",0) func rollbackInventoryGrid(InventoryGrid value)
 
 extern "xuiInventoryIndicesAddRef" @header("xge3_runtime.h") @no_raise func retainInventoryIndices(InventoryIndices value) as c_int
+export extern "xuiListSelectionBufferCreate" @no_raise @c_result("owned_view") @factory(0,0,releaseListSelectionBuffer) func createListSelectionBuffer(c_int capacity) as ListSelectionBuffer
+extern "xuiListSelectionBufferAddRef" @header("xge3_runtime.h") @no_raise func retainListSelectionBuffer(ListSelectionBuffer value) as c_int
+extern "xuiListSelectionBufferRelease" @header("xge3_runtime.h") @no_raise func releaseListSelectionBuffer(ListSelectionBuffer value)
 
 extern "xuiInventoryIndicesRelease" @header("xge3_runtime.h") @no_raise func releaseInventoryIndices(InventoryIndices value)
 

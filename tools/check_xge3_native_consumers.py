@@ -303,6 +303,39 @@ def compile_owned_sequence_consumers(view, bound, classes, native_names, cc, pac
         object=str(obj), objectSha256=sha(obj), packages=str(packages), entries=rows)
 
 
+def compile_list_selection_buffer_consumer(view, binding, cc, packages, flags, tools, out, run, symbols, sha):
+    logical = 'xui.ListView.selectionBuffer'
+    assert binding['language'] == logical
+    declaration = class_lines(view, binding)[0]
+    assert '@c_result("retained_view")' in declaration and '@c_retain(' in declaration
+    stem = 'list-selection-buffer-consumer'
+    source, generated, header, obj = (out/f'{stem}.{suffix}' for suffix in ('xl', 'c', 'h', 'o'))
+    source.write_text('''import xui
+from xui import ListSelectionBuffer
+
+export "audit_list_selection_buffer" func witness(xui.ListView list) as c_int
+    auto buffer = list.selectionBuffer()
+    if buffer == null then return -1 end
+    return (buffer as ListSelectionBuffer).get(0)
+end
+''', encoding='utf-8')
+    env = {key: value for key, value in os.environ.items() if not key.startswith('XL6_')}
+    env['XLANG_PACKAGE_PATH'] = str(packages)
+    run(stem+'-emit', [cc, 'cgen', source, '--emit', generated, '--emit-header', header], cwd=out, env=env)
+    run(stem+'-compile', [tools['gcc'], *flags, '-O0', '-fno-inline', '-c', generated, '-o', obj])
+    undefined = symbols(run(stem+'-undefined', [tools['nm'], '-u', obj]))
+    relocations = object_relocations(run(stem+'-relocations', [tools['objdump'], '-r', obj]))
+    retain = 'xuiListSelectionBufferAddRef'
+    required = {'xuiListViewGetSelectionBufferOwned', retain}
+    paths = [(section, body) for section in ('.text.audit_list_selection_buffer', '.text$audit_list_selection_buffer')
+        for body in relocations.get(section, ()) if body.startswith(('.text.', '.text$'))
+        and required <= relocations.get(body, set())]
+    assert len(paths) == 1 and required <= undefined, (logical, paths)
+    return dict(language=logical, retain=retain, relocationPath=[*paths[0], retain],
+        source=str(source), sourceSha256=sha(source), generated=str(generated), generatedSha256=sha(generated),
+        object=str(obj), objectSha256=sha(obj))
+
+
 def witness_build_inputs(build, audit, packages, gcc, sha, units):
     metadata = json.loads(build.read_text(encoding='utf-8'))
     assert metadata['linked'] and metadata['xrt_mode']=='host'
@@ -564,6 +597,12 @@ def main():
                 label = 'owned-sequence:'+entry['language']
                 for symbol in (entry['retain'],entry['release']):
                     consumers.setdefault(symbol,[]).append(label)
+        if 'xuiListViewGetSelectionBufferOwned' in bound:
+            binding, = bound['xuiListViewGetSelectionBufferOwned']
+            selection = compile_list_selection_buffer_consumer(view, binding,
+                cc, packages, flags, tools, out, run, symbols, sha)
+            report['listSelectionBufferConsumer'] = selection
+            consumers.setdefault(selection['retain'], []).append('retained-view:'+selection['language'])
         if a.document_engine_build:
             document = prove_document_lifetime(document_source,document_flags,view,bound,packages,tools,out,run,sha)
             report['documentLifetime'] = document

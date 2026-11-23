@@ -1,0 +1,23 @@
+// 多选列表和调用方共享同一块选择存储。
+import xui
+
+func main(...) as int
+    auto proxy = xui.createProxy()
+    auto ui = xui.create(proxy, xui.XUI_SYSTEM_FONT_DISABLED)
+    auto selected = xui.createListSelectionBuffer(3)
+    try
+        auto list = ui.listViewNative()
+        list.setItems(["Read", "Write", "Share"])
+        list.setSelectionMode(xui.XUI_SELECTION_MULTI)
+        list.setSelectionBuffer(selected)
+        list.setItemSelected(0, 1)
+        list.setItemSelected(2, 1)
+
+        println("Read", selected.get(0), "Write", selected.get(1), "Share", selected.get(2))
+    finally
+        ui.close()
+        selected.close()
+        proxy.close()
+    end
+    return 0
+end

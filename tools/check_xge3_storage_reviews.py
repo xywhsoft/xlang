@@ -277,7 +277,10 @@ def main():
         (out/'generated-inventory.json').write_text(json.dumps(rows,indent=2)+'\n')
         import re
         block=lambda text:re.search(r'export extern "xui_widget_t\*" class Page .*?\nend',text,re.S).group()
-        check('page-block-replay-stable',lambda:require(block((generated/'lib/bindings/xui/src/managed.xl').read_text())==block((root/'lib/bindings/xui/src/managed.xl').read_text())))
+        managed_path='lib/bindings/xui/src/managed.xl'
+        check('page-block-replay-stable',lambda:require(
+            block((generated/managed_path).read_text(encoding='utf-8'))==
+            block((root/managed_path).read_text(encoding='utf-8'))))
         shape_generated=generated/'lib/bindings/xge/src/shapes.xl';shape_current=root/'lib/bindings/xge/src/shapes.xl'
         check('shape-fixed-output-replay-text-stable',lambda:require(shape_generated.read_text(encoding='utf-8-sig')==shape_current.read_text(encoding='utf-8-sig')))
         check('nine-selected-files-preserve-complete-declaration-units',lambda:report.update(selectedDeclarationUnits=compare_selected(root,generated)))

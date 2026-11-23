@@ -1209,4 +1209,19 @@ const XL6_ForeignViewDescriptorV1* xl6Xui3InventoryIndicesPolicyGet(void)
 #else
 const XL6_ForeignViewDescriptorV1* xl6Xui3InventoryIndicesPolicyGet(void){return NULL;}
 #endif
+#if XUI_ENABLE_LIST_VIEW
+static bool destroy_list_selection_buffer(void* raw)
+{
+    xuiListSelectionBufferRelease(raw);
+    return true;
+}
+const XL6_ForeignViewDescriptorV1* xl6Xui3ListSelectionBufferPolicyGet(void)
+{
+    static const XL6_ForeignViewDescriptorV1 value={sizeof(value),XL6_FOREIGN_VIEW_V1_TAG,"xui.list_selection_buffer",
+        0,1,NULL,NULL,destroy_list_selection_buffer,0,1,NULL,NULL,NULL,NULL,XL6_FOREIGN_VIEW_THREAD_NEUTRAL_LEAF,NULL,NULL};
+    return &value;
+}
+#else
+const XL6_ForeignViewDescriptorV1* xl6Xui3ListSelectionBufferPolicyGet(void){return NULL;}
+#endif
 #undef RESOURCE_POLICY

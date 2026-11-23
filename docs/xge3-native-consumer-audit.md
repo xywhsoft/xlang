@@ -1,5 +1,20 @@
 # Native consumers in the full API inventory
 
+## ListView selection storage
+
+`ListView.setSelectionBuffer()` uses a fixed-capacity native allocation shared
+by the list and its language views. The old raw setter maps to the owned
+setter. The compiled `selectionBuffer()` witness shows its native retain call,
+and the resource policy releases the reference when the language view closes.
+
+Both matched hosted package audits compile the Document allocator and font
+paths and the TableView and TableGrid lifecycle paths. The inventory covers
+5,856 native functions. There are 188 entries without a direct declaration,
+compiled consumer or explicit replacement. XGE accounts for 84 and XUI for
+104.
+
+[ListView selection buffer evidence](../dev/release-materials/provenance/xui-list-selection-buffer-20261123.json)
+
 ## TreeView node data
 
 The C bulk setter, adapter and three raw node queries map to the checked

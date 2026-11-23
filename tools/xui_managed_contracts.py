@@ -946,6 +946,16 @@ METHODS.update({
         'ListView', ['extern "xuiListViewSetVirtualItemsOwned" @no_raise @c_owned_callback(1,0,"xui_callback_owner_t",0,"owned_text") @c_result("status",0) func setVirtualItems(c_int count,ListViewTextProc? onText=null)']],
     'xuiListViewGetItemTextOwned': ['int xuiListViewGetItemTextOwned(xui_widget pWidget, int iIndex, char** psText, size_t* piSize)',
         'ListView', ['extern "xuiListViewGetItemTextOwned" @no_raise @c_output_text(2,3,"char*","size_t","xrt",0) func readItemText(c_int index) as string']],
+    'xuiListSelectionBufferCreate': ['int xuiListSelectionBufferCreate(xui_list_selection_buffer* ppBuffer, int iCapacity)',
+        None, ['export extern "xuiListSelectionBufferCreate" @no_raise @c_result("owned_view") @factory(0,0,releaseListSelectionBuffer) func createListSelectionBuffer(c_int capacity) as ListSelectionBuffer']],
+    'xuiListSelectionBufferAddRef': ['int xuiListSelectionBufferAddRef(xui_list_selection_buffer pBuffer)',
+        None, ['extern "xuiListSelectionBufferAddRef" @header("xge3_runtime.h") @no_raise func retainListSelectionBuffer(ListSelectionBuffer value) as c_int']],
+    'xuiListSelectionBufferRelease': ['void xuiListSelectionBufferRelease(xui_list_selection_buffer pBuffer)',
+        None, ['extern "xuiListSelectionBufferRelease" @header("xge3_runtime.h") @no_raise func releaseListSelectionBuffer(ListSelectionBuffer value)']],
+    'xuiListViewSetSelectionBufferOwned': ['int xuiListViewSetSelectionBufferOwned(xui_widget pWidget, xui_list_selection_buffer pBuffer)',
+        'ListView', ['extern "xuiListViewSetSelectionBufferOwned" @no_raise @c_result("status",0) func setSelectionBuffer(ListSelectionBuffer? buffer)']],
+    'xuiListViewGetSelectionBufferOwned': ['xui_list_selection_buffer xuiListViewGetSelectionBufferOwned(xui_widget pWidget)',
+        'ListView', ['extern "xuiListViewGetSelectionBufferOwned" @no_raise @c_result("retained_view") @c_retain(retainListSelectionBuffer,"zero",releaseListSelectionBuffer) func selectionBuffer() as ListSelectionBuffer?']],
     'xuiListViewSetEnabledItems': ['int xuiListViewSetEnabledItems(xui_widget pWidget, const int* arrEnabled, int iCount)', 'ListView', [
         'extern "xuiListViewSetEnabledItems" @no_raise @c_span(0,"const int*","int") @c_result("status",0) func setEnabledItems(Buffer arrEnabled)',
         'extern "xuiListViewSetEnabledItems" @no_raise @c_array_group(1,0,1,"int",1) @c_array_input(1,0,"const int*","value") @c_result("status",0) func setEnabledItems(array<c_int> enabled,int size=-1)',
@@ -1824,6 +1834,12 @@ CALLBACKS.update({'xui_inventory_filter_proc': ('typedef int (*xui_inventory_fil
                                 'const xui_inventory_slot_t* pSlotB, void* pUser);',
                                 'export typedef InventoryCompareProc = func(CallbackWidget,c_int,CallbackInventorySlot,c_int,CallbackInventorySlot) as c_int')})
 VIEWS.update({
+    'ListSelectionBuffer': """export extern "xui_list_selection_buffer" class ListSelectionBuffer @header("xge3_runtime.h") @lifetime("owned") @policy("xl6Xui3ListSelectionBufferPolicy")
+ native point handle
+ extern "xuiListSelectionBufferGetCapacity" @no_raise @c_result("integer_min",0) func capacity() as c_int
+ extern "xuiListSelectionBufferGet" @no_raise @c_result("integer_min",0) func get(c_int index) as c_int
+ extern "xl6ForeignViewCloseV1" @no_raise @c_control(0) @c_result("bool_status") func close()
+end""",
     'CallbackInventorySlot': """export extern "const xui_inventory_slot_t*" class CallbackInventorySlot @header("xge3_runtime.h") @lifetime("callback")
  native point handle
  extern "iSlotId" @c_field get slotId() as c_int
@@ -1846,13 +1862,17 @@ end""",
 end""",
 })
 VIEW_FUNCTIONS["xuiInventoryIndicesGet"] = 'int xuiInventoryIndicesGet(xui_inventory_indices pIndices, const int** ppSlots, size_t* pCount)'
+VIEW_FUNCTIONS['xuiListSelectionBufferGetCapacity'] = 'int xuiListSelectionBufferGetCapacity(xui_list_selection_buffer pBuffer)'
+VIEW_FUNCTIONS['xuiListSelectionBufferGet'] = 'int xuiListSelectionBufferGet(xui_list_selection_buffer pBuffer, int iIndex)'
 RECORDS.update({
     'xui_inventory_slot_settings_t': 'typedef struct xui_inventory_slot_settings_t { int iSlotId; int iItemId; int iCount; int iMaxCount; int iSlotType; int iItemType; uint32_t iFlags; uint32_t iQualityColor; float fCooldownRate; float fDurabilityRate; } xui_inventory_slot_settings_t;',
     'xui_inventory_slot_desc_t': 'typedef struct xui_inventory_slot_desc_t { uint32_t iSize; xui_inventory_slot_settings_t tSettings; const char* sText; const char* sHotkey; struct xui_surface_t* pIcon; xui_rect_t tIconSrc; uint32_t iIconTint; uint32_t iAnimationFlags; float fAnimationScale; uint32_t iAnimationTint; } xui_inventory_slot_desc_t;',
     'xui_inventory_slot_content_t': 'typedef struct xui_inventory_slot_content_t { xui_inventory_slot_settings_t tSettings; const char* sText; const char* sHotkey; } xui_inventory_slot_content_t;',
     'xui_inventory_indices': 'typedef struct xui_inventory_indices_t* xui_inventory_indices;',
+    'xui_list_selection_buffer': 'typedef struct xui_list_selection_buffer_t* xui_list_selection_buffer;',
 })
 REPLACED.update({
+    "xuiListViewSetSelectionBuffer": ("xui.ListView.setSelectionBuffer", "xuiListViewSetSelectionBufferOwned"),
     "xuiInventoryGridSetSlot": ("xui.InventoryGrid.setSlot", "xuiInventoryGridSetSlotDescriptor"),
     "xuiInventoryGridGetSlot": ("xui.InventoryGrid.getSlot", "xuiInventoryGridGetSlotDescriptor"),
     "xuiInventoryGridQuerySlots": ("xui.InventoryGrid.querySlots", "xuiInventoryGridQuerySlotsOwned"),
@@ -2178,6 +2198,8 @@ def extend(context,classes,free,callback_declarations,mapped):
     mapped['xuiInputDecorationRemoveFromOwner']='xui.InputDecoration.remove'
     mapped.update(xuiTooltipReplySetText='xui.TooltipReply.setText',xuiTooltipReplySetCustom='xui.TooltipReply.setCustom')
     mapped['xuiInventoryIndicesGet']='xui.InventoryIndices.indices'
+    mapped['xuiListSelectionBufferGetCapacity']='xui.ListSelectionBuffer.capacity'
+    mapped['xuiListSelectionBufferGet']='xui.ListSelectionBuffer.get'
     mapped.update(xuiEventDragData='xui.CallbackConstEvent.dragData',xuiRequestClose='xui.CallbackContext.requestClose')
 
 

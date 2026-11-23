@@ -23,3 +23,15 @@ Windows 和 Linux 上各重复设置两行状态 1,000 次。语言数组入口�
 预热后分别用 xlang 和手写 C 读取五字节标签 1,000 次。两条路径各记录到 1,000 次 XRT 堆分配和释放，无重分配。见[验收记录](../dev/release-materials/provenance/xui-list-view-virtual-text-20261120.json)。
 
 用 `xl run list_virtual_rows.xl` 运行[虚拟行示例](../lib/bindings/xui/examples/list_virtual_rows.xl)，可以从最后一行往回滚动查看。
+
+## 共享选择缓冲区
+
+`xui.createListSelectionBuffer(capacity)` 创建固定容量的缓冲区。`list.setSelectionBuffer(buffer)` 将当前选择写入缓冲区，随后列表直接在这块存储中更新选择。缓冲区一次只能绑定一个 ListView。重复绑定到同一列表会直接返回。选择仍通过列表的 `setItemSelected`、`setSelected` 或界面交互修改。
+
+`buffer.get(index)` 在创建线程返回 `0` 或 `1`。超出容量会抛错，容量内暂未使用的索引返回 `0`。列表缩短后再增长，新出现的行从未选中开始。超过缓冲区容量的条目更新会被拒绝。
+
+`list.selectionBuffer()` 取得一份独立的受管引用。关闭任意一个引用后，列表和其他引用仍可使用缓冲区。`list.setSelectionBuffer(null)` 将当前选择复制回内部存储。解绑、换绑或销毁列表后，仍持有缓冲区的调用方可以读取最后一次绑定的选择。
+
+原生创建使用一次固定容量分配。换绑复制当前行的选择，解绑在需要时分配内部数组。逐项读取是一次原生调用，xlang 同时执行存活性和错误检查。预热后的 10,000 轮选择切换在两端均观察到零 XRT 堆分配和重分配。计时和手写 C 对照见[验收记录](../dev/release-materials/provenance/xui-list-selection-buffer-20261123.json)。
+
+用 `xl run list_selection_buffer.xl` 运行[共享选择缓冲区示例](../lib/bindings/xui/examples/list_selection_buffer.xl)。

@@ -126,6 +126,7 @@ const XL6_ForeignViewDescriptorV1* xl6Xge3SvgPaintPolicyGet(void);
 const XL6_ForeignViewDescriptorV1* xl6Xge3SvgCachePolicyGet(void);
 const XL6_ForeignViewDescriptorV1* xl6Xge3AudioClipPolicyGet(void);
 const XL6_ForeignViewDescriptorV1* xl6Xui3InventoryIndicesPolicyGet(void);
+const XL6_ForeignViewDescriptorV1* xl6Xui3ListSelectionBufferPolicyGet(void);
 
 /* Grid snapshots terminate their inline text before any callback sees it. */
 static inline const char* xl6Xui3InventorySlotText(const xui_inventory_slot_t* slot)
@@ -245,4 +246,5 @@ static inline const char* xl6Xui3TimelineSpanLabel(const xui_timeline_span_t* sp
 #define xl6Xge3SvgCachePolicy (*xl6Xge3SvgCachePolicyGet())
 #define xl6Xge3AudioClipPolicy (*xl6Xge3AudioClipPolicyGet())
 #define xl6Xui3InventoryIndicesPolicy (*xl6Xui3InventoryIndicesPolicyGet())
+#define xl6Xui3ListSelectionBufferPolicy (*xl6Xui3ListSelectionBufferPolicyGet())
 #endif
