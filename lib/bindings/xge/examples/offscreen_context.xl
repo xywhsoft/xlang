@@ -1,0 +1,25 @@
+// Windows uses a hidden OpenGL drawable. On Linux, use an EGL-enabled SDK.
+import xge
+
+func main(...) as int
+    if os.platform() != "windows" and xge.eglCapsGet().bCompiled == c_int(0) then
+        println("This SDK needs EGL to render offscreen on this platform.")
+        return 0
+    end
+
+    xge.init(4, 4, "Offscreen rendering", 0, xge.XGE_RUN_MANUAL)
+    auto context = xge.createOffscreenContext(4, 4)
+    auto target = xge.createRenderTarget(2, 2)
+    auto pass = xge.createPass(target, c_uint(xge.XGE_PASS_CLEAR_COLOR), xge.colorRGBA(10, 20, 30, 255))
+    pass.begin()
+    pass.finish()
+
+    auto rgba = target.readPixels()
+    println("RGBA: ", codec.hexEncode(rgba))
+
+    pass.close()
+    target.close()
+    context.close()
+    xge.unit()
+    return 0
+end

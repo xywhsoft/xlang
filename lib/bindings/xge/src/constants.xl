@@ -17,6 +17,7 @@ export const c_int XGE_PLATFORM_BACKEND_NONE = 0
 export const c_int XGE_PLATFORM_BACKEND_SOKOL = 1
 export const c_int XGE_PLATFORM_BACKEND_MINIPROGRAM = 2
 export const c_int XGE_PLATFORM_BACKEND_EGL = 3
+export const c_int XGE_PLATFORM_BACKEND_WGL = 4
 export const c_int XGE_PLATFORM_BACKEND_CUSTOM = 100
 export const c_int XGE_GPU_BACKEND_NONE = 0
 export const c_int XGE_GPU_BACKEND_OPENGL33 = 1

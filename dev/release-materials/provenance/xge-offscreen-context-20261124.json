@@ -1,0 +1,374 @@
+{
+  "schema": 1,
+  "scope": "Exclusive creator-thread WGL / EGL PBuffer offscreen renderer, direct managed context methods and actual pixel readback",
+  "nativeCommit": "0590b3befa4d45eb27a01660ec14f78e8671cfc6",
+  "nativeOverlayParent": "e1b6db78af6737f0a9843cabb358f3dcb85f9dd0",
+  "shippingDelivery": false,
+  "networkTests": false,
+  "sourceSha256NormalizedLf": {
+    "docs/xge3-xui3-api-map-storage.json": "57a98f80e4e1fbca7eb23e77773f214a6009ca87a80f474405bc393a9025ce19",
+    "lib/bindings/_xge_native/include/xge3_runtime.h": "ed60fe707f7a6f05c87735e21d9edd60fd9a3d91e26d687caad9303e7434284b",
+    "lib/bindings/_xge_native/src/graphics_context.c": "19cc42b601649eade8f80b1712b5bb44866f40bf8365439ae3c4618838e00a81",
+    "lib/bindings/_xge_native/xlang.package.json": "c4f09a41cd8f8fcd50f44157ab2e691b027feb5877cee1b03314a053807e9df0",
+    "lib/bindings/xge/src/constants.xl": "c0e0ff68e639fd94c16122ff34c65e0dc3a3f2a2184fef0edd4c245605a5bc3d",
+    "lib/bindings/xge/src/graphics_context.xl": "e19c990765bf9c6655b0ab84db62348930d9b83100a7334a5694f64a78a8bef5",
+    "lib/bindings/xge/examples/README.md": "db8dada2e6c473ddaf726c5f9f48bcd76a10257ca0a0185b4c5f818201f9ac67",
+    "lib/bindings/xge/examples/offscreen_context.xl": "f7b21add6b7b75e068e181179a44be903ae6e72833f973c5e41f6c7e72cfafbc",
+    "test/cases/foreign_xge3_offscreen_context.xl": "8b83aa6e1263e144702b979a99d1e1ced65c458fde6368edc5bab9d380bcebe6"
+  },
+  "nativeSourceSha256NormalizedLf": {
+    "include/xge.h": "705a8efde5d4141931c140b5bcf634fc5240222b6b5fd9bb1d8516ba4175eb4e",
+    "src/xge/core/xge_core.c": "05cfff69442a425ce974d3f8664d1303a48f12b7456dff5a4486a534ca1816df",
+    "src/xge/core/xge_graphics_context.c": "db6e50dd8b25a2e6389e224d22317e6432fd18dbe67474da43a99a81cff53202",
+    "src/xge/platform/xge_wgl_offscreen.c": "9ae6017aef6480419151cfeccd6a0d34bc47a59afe15c31ea84f7ca9f697789d",
+    "tests/xge/test_wgl_offscreen_context.c": "845f8e61d5548a9c035914e4cac340853fe05791b9473bde4c892618630d44b8"
+  },
+  "validation": {
+    "actualHiddenWglWindow": true,
+    "actualEglPBuffer": true,
+    "defaultLinuxCheckedUnsupported": true,
+    "xgeUnitWithActiveContextBusy": true,
+    "xgeUnitWithRetainedGpuChildBusy": true,
+    "retainedRenderTargetStillReadable": true,
+    "ownedPixelsSurviveRelease": true,
+    "nativeWglWrongThreadAndOOM": true,
+    "nativeWglFailedCleanupRetry": true
+  },
+  "performanceScope": "Identical 4x4 sessions in matched builds. Metadata loops have 1,000 validated results per sample and include local language control flow, checked admission, and view handling. Each measured create/close cycle runs inside a fresh, initialized engine epoch. Driver, window and OS time are included. Engine init/unit, one warm-up cycle in each language, and OS heap counts are outside the measurement.",
+  "xrtHeapOperations": {
+    "createCloseNative": {
+      "alloc": 1,
+      "free": 1,
+      "realloc": 0
+    },
+    "createCloseXlang": {
+      "alloc": 4,
+      "free": 4,
+      "realloc": 0
+    },
+    "queriesBoth": {
+      "alloc": 0,
+      "free": 0,
+      "realloc": 0
+    }
+  },
+  "platforms": {
+    "win": {
+      "nativeSource": {
+        "path": "F:/xlang-validation/xge-full-20261110/offscreen-context-native-source-win-r2.json",
+        "sha256": "b1bcd8989f841103ab6b8c1376ad98d1783fb98511bc313c2f57f6355efc3546"
+      },
+      "nativeO0O2": {
+        "path": "F:/xlang-validation/xge-full-20261110/offscreen-context-native-test-win-r1/results.json",
+        "sha256": "25c5c8e0c39b56f7f19b15cda14ddeff4a10d557bcf7a3529e34fcf136444dc4"
+      },
+      "cohorts": {
+        "default": {
+          "matchedPackages": {
+            "path": "F:/xlang-validation/xge-full-20261110/offscreen-context-stage-win-r4/replay/stage-report.json",
+            "sha256": "b03a74c636d0afe8466a9652b00ac0966e0741a426ec85ddc3c17eebbbbbf985"
+          },
+          "declarationReplay": {
+            "path": "F:/xlang-validation/xge-full-20261110/offscreen-context-generator-win-r4/results.json",
+            "sha256": "48ca1df21d45212037ab642014a9eee26bb3cf50aefd0eab036b19af73ebe577"
+          },
+          "hostedEngine": {
+            "path": "F:/xlang-validation/xge-full-20261110/offscreen-context-host-win-r2/build-report.json",
+            "sha256": "9025d1a12a235b2c42a8d8cb0de6f31d6134801b1c6935d1162f180264803718"
+          },
+          "staticEngine": {
+            "path": "F:/xlang-validation/xge-full-20261110/offscreen-context-static-win-r2/build-report.json",
+            "sha256": "c82eb570473f5d0596388a5101bad1a2605759959e628aa2f8ddf48a24cce819"
+          },
+          "publicSurface": {
+            "path": "F:/xlang-validation/xge-full-20261110/offscreen-context-inventory-win-r4/surface.json",
+            "sha256": "e55de41a4b97be0b269bc22acbbe71fda72c6a25f8359a50d5bc1a8fbb3f8c5c"
+          },
+          "languageJitDynamicStaticAot": {
+            "path": "F:/xlang-validation/xge-full-20261110/offscreen-context-verify-win-r1/results.json",
+            "sha256": "daa5973a21eb33ade780a92db16913270e4048e556af7c028d630b90932219fc"
+          },
+          "rendered": true,
+          "performance": {
+            "report": {
+              "path": "F:/xlang-validation/xge-full-20261110/offscreen-context-measure-win-r2/results.json",
+              "sha256": "658a29fc6876f670074c2a90c1eeeb3d0857d28a55726ce529b3593c3c4a1dc8"
+            },
+            "samples": {
+              "jit": {
+                "log": {
+                  "path": "F:/xlang-validation/xge-full-20261110/offscreen-context-measure-win-r2/offscreen-context-measure/jit.log",
+                  "sha256": "66b75017631f5eaf8ba06b286e005580c10c35146475df30033c03860025cbff"
+                },
+                "queries1000Ms": {
+                  "C": 0.0227,
+                  "xlang": 0.5865
+                },
+                "contextCreateCloseMs": {
+                  "C": [
+                    19.2667,
+                    19.7933,
+                    18.9122,
+                    18.6501,
+                    18.7487,
+                    21.0848
+                  ],
+                  "xlang": [
+                    20.1329,
+                    22.3386,
+                    19.5563,
+                    18.7275,
+                    19.21,
+                    20.1195
+                  ]
+                }
+              },
+              "host-run": {
+                "log": {
+                  "path": "F:/xlang-validation/xge-full-20261110/offscreen-context-measure-win-r2/offscreen-context-measure/host-run.log",
+                  "sha256": "b5b7dee3b90d4e8d118b0af7113caf2ff3bc0d49d3918194003aaa89dd7866b1"
+                },
+                "queries1000Ms": {
+                  "C": 0.0727,
+                  "xlang": 2.4481
+                },
+                "contextCreateCloseMs": {
+                  "C": [
+                    19.7578,
+                    19.1153,
+                    18.8337,
+                    19.5704,
+                    22.3751,
+                    21.2814
+                  ],
+                  "xlang": [
+                    19.7871,
+                    19.9636,
+                    17.7595,
+                    19.0243,
+                    18.6171,
+                    19.1286
+                  ]
+                }
+              },
+              "static-run": {
+                "log": {
+                  "path": "F:/xlang-validation/xge-full-20261110/offscreen-context-measure-win-r2/offscreen-context-measure/static-run.log",
+                  "sha256": "1f0d49edfe62a02fc4ffafcf59bb203c80a157099e8ae24a504de5c38f96355c"
+                },
+                "queries1000Ms": {
+                  "C": 0.0599,
+                  "xlang": 1.6844
+                },
+                "contextCreateCloseMs": {
+                  "C": [
+                    19.9776,
+                    20.8818,
+                    18.3973,
+                    21.368,
+                    22.1189,
+                    18.8541
+                  ],
+                  "xlang": [
+                    18.8293,
+                    19.7216,
+                    18.9462,
+                    20.7343,
+                    20.9234,
+                    19.9293
+                  ]
+                }
+              }
+            }
+          }
+        }
+      },
+      "nativeConsumerAudit": {
+        "path": "F:/xlang-validation/xge-full-20261110/offscreen-context-consumers-win-r3/results.json",
+        "sha256": "72f394ac4868e44a1ba1acba712655a8806f165c9d851988b4d07961a2400591"
+      },
+      "functionPopulation": 5881,
+      "directDeclarations": 4816,
+      "pendingConsumerOrReplacement": {
+        "XGE": 42,
+        "XUI": 74
+      }
+    },
+    "linux": {
+      "nativeSource": {
+        "path": "//wsl.localhost/Ubuntu/var/tmp/xlang-validation/xge-full-20261110/offscreen-context-native-source-linux-r2.json",
+        "sha256": "fc52ba5ea34ce7964a5ccb3c2f246847e42b2b34e078ac996203076d651be523"
+      },
+      "nativeO0O2": {
+        "path": "//wsl.localhost/Ubuntu/var/tmp/xlang-validation/xge-full-20261110/offscreen-context-native-test-linux-r1/results.json",
+        "sha256": "3bc3ed65ec90eb5119d5e7af1e5935f7fd54b2e00d58af6066b5620dd4b01b77"
+      },
+      "cohorts": {
+        "default": {
+          "matchedPackages": {
+            "path": "//wsl.localhost/Ubuntu/var/tmp/xlang-validation/xge-full-20261110/offscreen-context-stage-linux-r4/replay/stage-report.json",
+            "sha256": "a7aab8a75bc2de4a60ec6c6568c9bb433ca386d89e289edd15a17b31b064dd2a"
+          },
+          "declarationReplay": {
+            "path": "//wsl.localhost/Ubuntu/var/tmp/xlang-validation/xge-full-20261110/offscreen-context-generator-linux-r4/results.json",
+            "sha256": "425aeebdcdf5ee8b9c89cd4cf795771a6cc86cf11d155d7cd51529fad6f7fd8d"
+          },
+          "hostedEngine": {
+            "path": "//wsl.localhost/Ubuntu/var/tmp/xlang-validation/xge-full-20261110/offscreen-context-host-linux-r2/build-report.json",
+            "sha256": "6dc4b166d706176d7b057fac16fc36284897278c7d565c37411880093f449a36"
+          },
+          "staticEngine": {
+            "path": "//wsl.localhost/Ubuntu/var/tmp/xlang-validation/xge-full-20261110/offscreen-context-static-linux-r2/build-report.json",
+            "sha256": "7c7eb9484d251992e526770b215ddf072ce9df36282fa25437513e0852a2ecc4"
+          },
+          "publicSurface": {
+            "path": "//wsl.localhost/Ubuntu/var/tmp/xlang-validation/xge-full-20261110/offscreen-context-inventory-linux-r4/surface.json",
+            "sha256": "fe0e4c2f7af9382981f4cff1f579bafa0c56d0618caa253a180587831217cc8b"
+          },
+          "languageJitDynamicStaticAot": {
+            "path": "//wsl.localhost/Ubuntu/var/tmp/xlang-validation/xge-full-20261110/offscreen-context-verify-linux-r1/results.json",
+            "sha256": "458a0138d498bc21d58626a224229dc9b0523fc66560ae50813a7f2a0b026251"
+          },
+          "rendered": false
+        },
+        "egl": {
+          "matchedPackages": {
+            "path": "//wsl.localhost/Ubuntu/var/tmp/xlang-validation/xge-full-20261110/offscreen-context-egl-stage-linux-r4/replay/stage-report.json",
+            "sha256": "2454f258b59e89996b7d116f80bb34896d51dab2ba9c6fa775ef61c70ad8f77b"
+          },
+          "declarationReplay": {
+            "path": "//wsl.localhost/Ubuntu/var/tmp/xlang-validation/xge-full-20261110/offscreen-context-egl-generator-linux-r4/results.json",
+            "sha256": "ba4402a717d0c0d5844c887971b7f5767be3c482d043cad4cfee537ac6f0e39e"
+          },
+          "hostedEngine": {
+            "path": "//wsl.localhost/Ubuntu/var/tmp/xlang-validation/xge-full-20261110/offscreen-context-egl-host-linux-r2/build-report.json",
+            "sha256": "d3bc7ff37f621829e652942a417ce3bace3b2f9e93bd74733402e936dd7a3964"
+          },
+          "staticEngine": {
+            "path": "//wsl.localhost/Ubuntu/var/tmp/xlang-validation/xge-full-20261110/offscreen-context-egl-static-linux-r2/build-report.json",
+            "sha256": "68895afe47553a949ce502db579f12dce7c389952e610c91ea2515ab7113f933"
+          },
+          "publicSurface": {
+            "path": "//wsl.localhost/Ubuntu/var/tmp/xlang-validation/xge-full-20261110/offscreen-context-egl-inventory-linux-r4/surface.json",
+            "sha256": "fe0e4c2f7af9382981f4cff1f579bafa0c56d0618caa253a180587831217cc8b"
+          },
+          "languageJitDynamicStaticAot": {
+            "path": "//wsl.localhost/Ubuntu/var/tmp/xlang-validation/xge-full-20261110/offscreen-context-egl-verify-linux-r1/results.json",
+            "sha256": "b1380ee46c85f07d72e3ded126d3406e3f2bd16bafaefca5b4af079e2119b435"
+          },
+          "rendered": true,
+          "performance": {
+            "report": {
+              "path": "//wsl.localhost/Ubuntu/var/tmp/xlang-validation/xge-full-20261110/offscreen-context-egl-measure-linux-r2/results.json",
+              "sha256": "1e0a7596ab81e77e87077485c5b76276bea0503f837196daa8fade1e6e80b3c2"
+            },
+            "samples": {
+              "jit": {
+                "log": {
+                  "path": "//wsl.localhost/Ubuntu/var/tmp/xlang-validation/xge-full-20261110/offscreen-context-egl-measure-linux-r2/offscreen-context-measure/jit.log",
+                  "sha256": "9077600f798ae37f2e32568e26617bdaee0fbf3eafb47b1e5446236e9511cf8a"
+                },
+                "queries1000Ms": {
+                  "C": 0.3449,
+                  "xlang": 0.9103
+                },
+                "contextCreateCloseMs": {
+                  "C": [
+                    12.6752,
+                    11.8712,
+                    9.274,
+                    10.2864,
+                    9.6249,
+                    9.4279
+                  ],
+                  "xlang": [
+                    8.8131,
+                    10.5435,
+                    10.0887,
+                    9.2204,
+                    10.154,
+                    9.7802
+                  ]
+                }
+              },
+              "host-run": {
+                "log": {
+                  "path": "//wsl.localhost/Ubuntu/var/tmp/xlang-validation/xge-full-20261110/offscreen-context-egl-measure-linux-r2/offscreen-context-measure/host-run.log",
+                  "sha256": "412288695a23454c98c2a8583b5dcdad0efb24785262da5e58ae36c95dbb0b1c"
+                },
+                "queries1000Ms": {
+                  "C": 0.4,
+                  "xlang": 1.7095
+                },
+                "contextCreateCloseMs": {
+                  "C": [
+                    13.217599,
+                    12.2663,
+                    10.011,
+                    10.918699,
+                    10.7509,
+                    9.1059
+                  ],
+                  "xlang": [
+                    11.1598,
+                    12.0057,
+                    9.673799,
+                    10.3455,
+                    9.7854,
+                    8.724
+                  ]
+                }
+              },
+              "static-run": {
+                "log": {
+                  "path": "//wsl.localhost/Ubuntu/var/tmp/xlang-validation/xge-full-20261110/offscreen-context-egl-measure-linux-r2/offscreen-context-measure/static-run.log",
+                  "sha256": "ecf89216494aa1510882bf576cb833ef554442b2c9e21ce337a8ffa698b2f337"
+                },
+                "queries1000Ms": {
+                  "C": 0.3651,
+                  "xlang": 0.9306
+                },
+                "contextCreateCloseMs": {
+                  "C": [
+                    13.7475,
+                    11.3454,
+                    10.8503,
+                    10.8895,
+                    10.7467,
+                    8.95
+                  ],
+                  "xlang": [
+                    9.3391,
+                    9.172399,
+                    10.3482,
+                    8.8094,
+                    10.4554,
+                    10.5664
+                  ]
+                }
+              }
+            }
+          },
+          "nativeEglRegression": {
+            "path": "//wsl.localhost/Ubuntu/var/tmp/xlang-validation/xge-full-20261110/offscreen-context-egl-native-regression-linux-r1/results.json",
+            "sha256": "0da7e819cdb90c7aa294339d8bf6e89eeecfe773cd0ad6a692224d965948ecd1"
+          },
+          "nativeEglFaults": {
+            "path": "//wsl.localhost/Ubuntu/var/tmp/xlang-validation/xge-full-20261110/offscreen-context-egl-native-faults-linux-r1/results.json",
+            "sha256": "239d3ae5971c568e0466d7def7242f458bba1e281ddc42732f4769eccaf35da1"
+          }
+        }
+      },
+      "nativeConsumerAudit": {
+        "path": "//wsl.localhost/Ubuntu/var/tmp/xlang-validation/xge-full-20261110/offscreen-context-consumers-linux-r3/results.json",
+        "sha256": "c87d08f258f51e9dac27b239d1677ded13dc412eee810dc813ae1cf768d6ba2d"
+      },
+      "functionPopulation": 5881,
+      "directDeclarations": 4816,
+      "pendingConsumerOrReplacement": {
+        "XGE": 42,
+        "XUI": 74
+      }
+    }
+  }
+}

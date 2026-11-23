@@ -19,3 +19,4 @@ export extern "struct xge_graphics_context_t*" class GraphicsContext @header("xg
 end
 extern "xgeGraphicsContextReleaseChecked" @header("xge3_graphics_context.h") @no_raise @c_result("status",0) func releaseGraphicsContext(GraphicsContext value)
 export extern "xl6Xge3GraphicsContextCreateEglOwned" @header("xge3_graphics_context.h") @no_raise @c_code_owner(4) @c_result("owned_view") @factory(0,0,releaseGraphicsContext) func createEglContext(c_int width,c_int height,bool surfaceless=false) as GraphicsContext
+export extern "xl6Xge3GraphicsContextCreateOffscreenOwned" @header("xge3_graphics_context.h") @no_raise @c_code_owner(3) @c_result("owned_view") @factory(0,0,releaseGraphicsContext) func createOffscreenContext(c_int width,c_int height) as GraphicsContext

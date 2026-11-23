@@ -1,5 +1,24 @@
 # Native consumers in the full API inventory
 
+## Owned offscreen graphics contexts
+
+`xge.createOffscreenContext()` creates a hidden WGL drawable on Windows
+and an EGL PBuffer on EGL-enabled Linux. The selected package source connects
+the managed constructor to `xgeGraphicsContextCreateOffscreenOwned` with a
+code lease. Generated C calls the original native methods for context info,
+sharing, rebinding and graphics operations.
+
+The previous raw EGL descriptors and offscreen records remain separate audit
+entries. The managed constructor owns an exclusive renderer and drawable.
+An offscreen render target in an existing renderer is available independently
+through `xge.createRenderTarget()`.
+
+Matching Windows and Linux audits cover 5,881 functions, with 4,816 direct
+declarations and 116 unresolved entries (42 XGE and 74 XUI). The new native
+factory is accounted for through its compiled package consumer.
+
+[Offscreen graphics verification](../dev/release-materials/provenance/xge-offscreen-context-20261124.json)
+
 ## Backend metadata and scoped native windows
 
 The platform and graphics defaults, current engine descriptors and owned

@@ -25,7 +25,8 @@
       {
         "source": "src/graphics_context.c",
         "providedSymbols": [
-          "xl6Xge3GraphicsContextCreateEglOwned"
+          "xl6Xge3GraphicsContextCreateEglOwned",
+          "xl6Xge3GraphicsContextCreateOffscreenOwned"
         ],
         "requiredSymbols": [
           "xl6CodeLeaseAcquireScoped",

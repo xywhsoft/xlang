@@ -1,0 +1,83 @@
+import xge
+
+func expectBusyShutdown()
+    bool busy = false
+    try
+        xge.unit()
+    catch Error error
+        busy = error.code == int(xge.XGE_ERROR_BUSY)
+    end
+    assert busy
+end
+
+func main(...) as int
+    xge.init(4, 4, "Offscreen context test", 0, xge.XGE_RUN_MANUAL)
+    bool windows = os.platform() == "windows"
+    if not windows and xge.eglCapsGet().bCompiled == c_int(0) then
+        bool unsupported = false
+        try
+            auto unused = xge.createOffscreenContext(4, 4)
+        catch Error error
+            unsupported = error.code == int(xge.XGE_ERROR_UNSUPPORTED)
+        end
+        assert unsupported and xge.graphicsResourceCount() == uint64(0)
+        xge.unit()
+        println("XGE_OFFSCREEN_CONTEXT_UNSUPPORTED")
+        return 0
+    end
+
+    bool invalid = false
+    try
+        auto unused = xge.createOffscreenContext(0, 4)
+    catch Error error
+        invalid = error.code == int(xge.XGE_ERROR_INVALID_ARGUMENT)
+    end
+    assert invalid
+
+    auto context = xge.createOffscreenContext(4, 4)
+    auto state = context.info()
+    auto caps = xge.platformCapsGet()
+    assert state.width == c_int(4) and state.height == c_int(4)
+    assert state.current and state.graphicsReady and not state.surfaceless
+    assert caps.bOffscreen != c_int(0) and caps.bWindow == c_int(0)
+    if windows then
+        assert state.backend == xge.XGE_GPU_BACKEND_OPENGL33
+        assert caps.iPlatformBackend == xge.XGE_PLATFORM_BACKEND_WGL
+    else
+        assert state.backend == xge.XGE_GPU_BACKEND_GLES30
+        assert caps.iPlatformBackend == xge.XGE_PLATFORM_BACKEND_EGL
+    end
+    bool exclusive = false
+    try
+        auto duplicate = xge.createOffscreenContext(4, 4)
+    catch Error error
+        exclusive = error.code == int(xge.XGE_ERROR_BUSY)
+    end
+    assert exclusive and context.info().current
+    expectBusyShutdown()
+
+    auto shared = context.share()
+    context.close()
+    shared.makeCurrent()
+    auto target = xge.createRenderTarget(2, 2)
+    auto pass = xge.createPass(target, c_uint(xge.XGE_PASS_CLEAR_COLOR), xge.colorRGBA(10, 20, 30, 255))
+    pass.begin()
+    pass.finish()
+    pass.close()
+
+    auto saved = target.readPixels()
+    assert codec.hexEncode(saved) == "0a141eff0a141eff0a141eff0a141eff"
+    shared.close()
+    auto reusable = Buffer()
+    assert reusable.resize(16)
+    target.readPixels(reusable)
+    assert reusable.hex() == "0a141eff0a141eff0a141eff0a141eff"
+    expectBusyShutdown()
+
+    target.close()
+    xge.unit()
+    assert xge.graphicsResourceCount() == uint64(0)
+    assert codec.hexEncode(saved) == "0a141eff0a141eff0a141eff0a141eff"
+    println("XGE_OFFSCREEN_CONTEXT_OK")
+    return 0
+end

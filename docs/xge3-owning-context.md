@@ -1,8 +1,45 @@
-# 拥有式 EGL 渲染上下文
+# 拥有式离屏渲染上下文
+
+在 `XGE_RUN_MANUAL` 模式初始化引擎后，调用
+`xge.createOffscreenContext(width, height)` 可以在不显示窗口的情况下渲染。
+Windows 使用隐藏的 WGL drawable，需要 OpenGL 3.3 Core 驱动。
+启用 EGL 的 Linux SDK 使用 GLES 3 PBuffer，默认 Linux SDK 返回 checked
+`XGE_ERROR_UNSUPPORTED`。Linux 仍可用 `createEglContext(width, height, true)`
+显式选择无 surface 模式。
+
+`context.info()` 提供尺寸、GPU 后端、当前绑定状态和渲染就绪状态。
+`xge.platformCapsGet()` 对这两种离屏后端报告 offscreen 能力。
+同一个引擎一次只允许一个拥有式渲染上下文，整个上下文由创建线程管理。
+上下文关闭后，仍由外部持有的 RenderTarget 可以继续回读。引擎关闭会报告
+Busy，直到剩余的 GPU 子资源释放。打开下一套上下文前，需要关闭并重新初始化引擎。
+
+`offscreen_context.xl` 演示创建上下文、清除 2×2 RenderTarget、回读四个 RGBA
+像素并按顺序释放。Windows 使用默认 SDK，Linux 无显示服务器时使用下述命令和
+启用了 EGL 的 SDK。
+
+```sh
+LIBGL_ALWAYS_SOFTWARE=1 EGL_PLATFORM=surfaceless xl run offscreen_context.xl
+```
+
+Windows WGL 和 Linux Mesa EGL 的示例及生命周期夹具通过了 JIT、动态 AOT 和静态
+AOT。Linux 默认 SDK 验证了 unsupported 路径。Windows 原生测试覆盖了 OOM、
+错误线程、重新绑定和失败后的物理清理重试。Linux EGL 还通过原有的上下文及
+故障注入测试。
+
+相同 4×4 上下文的创建与关闭在 C 中各有 1 次 XRT 分配和释放，在 xlang 中各有
+4 次，额外操作来自语言拥有对象和代码驻留管理。预热后的 1,000 次 `info()`
+查询在两边均无 XRT 堆操作。Windows 样本为 C 0.023–0.073 ms、xlang
+0.587–2.448 ms，Linux Mesa EGL 样本为 C 0.345–0.400 ms、xlang
+0.910–1.710 ms。计时包含循环、状态检查和语言视图管理。创建与关闭的耗时
+另行记录，其中包括驱动与系统窗口操作。
+
+[跨平台离屏渲染验收](../dev/release-materials/provenance/xge-offscreen-context-20261124.json)
+
+## 显式 EGL 模式
 
 `xge.GraphicsContext` 支持宿主在语言模块关闭后继续使用自己持有的上下文。
 Linux 的 Mesa EGL 配套已通过模块全局上下文的退役与原生库卸载测试。
-正式 SDK／IDE 配套和 Windows EGL 配置仍待验收。
+正式 SDK／IDE 配套和 Windows 显式 EGL 配置仍待验收。
 
 启用 EGL 的配套 SDK 可以在 `XGE_RUN_MANUAL` 引擎上调用
 `xge.createEglContext(width,height,surfaceless=false)`，创建真正接入 XGE 渲染器的
