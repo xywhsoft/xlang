@@ -99,6 +99,21 @@ static int xl6IrNullPackMeta(const XL6_IrModule* m,const XL6_IrCallTarget* a,con
     for(size_t i=0;i<m->foreignPackFieldCount;++i)right+=m->foreignPackFields[i].declaration==b->declaration && m->foreignPackFields[i].packPhysicalIndex==bp->physicalIndex;
     return left==right;
 }
+static int xl6IrNullArraysOmitted(const XL6_IrModule* module,const XL6_IrCallTarget* target,
+    const uint32* mapped)
+{
+    const XL6_IrNode* declaration=xl6IrNodeGet(module,target->declaration);
+    if(!xl6ForeignInputHasArrayGroups(declaration->foreignCall.inputMappingFacts))return 1;
+    if(!xl6IrForeignArrayGroupsMatch(module,target))return 0;
+    for(size_t i=0;i<module->foreignArrayGroupCount;++i){
+        const XL6_ForeignArrayGroupContract* group=&module->foreignArrayGroups[i];
+        if(group->declaration!=target->declaration)continue;
+        if(!group->packPhysicalIndexPlusOne || group->firstParameter>=target->parameterCount ||
+            group->sizeParameter>=target->parameterCount || mapped[group->firstParameter]!=UINT32_MAX ||
+            mapped[group->sizeParameter]!=UINT32_MAX)return 0;
+    }
+    return 1;
+}
 static int xl6IrForeignNullPhysicalCompatible(const XL6_IrModule* m,const XL6_IrCallTarget* a,const XL6_IrCallTarget* b)
 {
     const XL6_IrNode* an=xl6IrNodeGet(m,a->declaration);const XL6_IrNode* bn=xl6IrNodeGet(m,b->declaration);
@@ -125,7 +140,6 @@ static int xl6IrForeignNullPhysicalCompatible(const XL6_IrModule* m,const XL6_Ir
         !a->cName || !b->cName || strcmp(a->cName,b->cName) || an->sourceKind!=bn->sourceKind || an->declarationOwnerType!=bn->declarationOwnerType ||
         ((an->flags^bn->flags)&flags) || !(an->flags&XL6_AST_FLAG_FOREIGN_NO_RAISE) ||
         !ah || !bh || strcmp(ah,bh) || xl6ForeignInputHasRegions(an->foreignCall.inputMappingFacts) || xl6ForeignInputHasRegions(bn->foreignCall.inputMappingFacts) ||
-        xl6ForeignInputHasArrayGroups(an->foreignCall.inputMappingFacts) || xl6ForeignInputHasArrayGroups(bn->foreignCall.inputMappingFacts) ||
         a->foreignOperationAbi!=b->foreignOperationAbi || a->returnType!=b->returnType || a->resultPhysicalAbi!=b->resultPhysicalAbi ||
         a->resultConversionAbi!=b->resultConversionAbi || a->resultCAbi!=b->resultCAbi || a->outputResultAbi!=b->outputResultAbi ||
         a->nativeSuccessCode!=b->nativeSuccessCode || a->resultPhysicalFieldDeclaration!=b->resultPhysicalFieldDeclaration ||
@@ -142,6 +156,7 @@ static int xl6IrForeignNullPhysicalCompatible(const XL6_IrModule* m,const XL6_Ir
             if(!ap || !bp || ap->parameterCount!=bp->parameterCount)return 0;
             for(size_t n=0;n<ap->parameterCount;++n){am[x.parameter+n]=x.physicalIndex*65+(uint32)n;bm[y.parameter+n]=y.physicalIndex*65+(uint32)n;}}
     }
+    if(!xl6IrNullArraysOmitted(m,a,am) || !xl6IrNullArraysOmitted(m,b,bm))return 0;
     for(size_t i=0;i<steps;++i){XL6_ForeignPhysicalStep x,y;if(!xl6IrForeignPhysicalStepGet(m,a,i,&x) || !xl6IrForeignPhysicalStepGet(m,b,i,&y))return 0;
         if(x.kind!=y.kind)continue;
         if(x.kind==XL6_FOREIGN_PHYSICAL_STEP_OUTPUT){if(x.ordinal!=y.ordinal)return 0;continue;}

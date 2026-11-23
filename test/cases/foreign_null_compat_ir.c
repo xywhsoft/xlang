@@ -16,7 +16,7 @@ int main(int argc,char** argv)
 {
     assert(argc==2);XL6_CompileUnit unit;xl6CompileUnitInit(&unit);
     assert(xl6CompileUnitLoadFile(&unit,argv[1],1));assert(xl6IrLowerModule(&unit.ir,&unit.parse.diags));
-    XL6_IrModule* m=&unit.ir;assert(xl6IrVerifyModule(m,NULL));assert(m->foreignFixedInputCount==5);
+    XL6_IrModule* m=&unit.ir;assert(xl6IrVerifyModule(m,NULL));assert(m->foreignFixedInputCount==6);
     for(size_t i=0;i<m->foreignFixedInputCount;++i){XL6_ForeignFixedInputContract* row=&m->foreignFixedInputs[i];XL6_ForeignFixedInputContract saved=*row;
         strcpy(row->pointerCName,"const OtherPod*");refused(m,"unrelated const pointee");*row=saved;
         strcpy(row->pointerCName,"NullPod*");refused(m,"mutable pointer instead of const input");*row=saved;
@@ -50,8 +50,14 @@ int main(int argc,char** argv)
         strcpy(row->recordCName,"OtherDesc");refused(m,"pack record versus NULL pointee");*row=saved;
         strcpy(row->header,"other.h");refused(m,"pack authority differs");*row=saved;
     }
+    assert(m->foreignArrayGroupCount==1);
+    XL6_ForeignArrayGroupContract* group=&m->foreignArrayGroups[0];
+    uint32 pack=group->packPhysicalIndexPlusOne;
+    group->packPhysicalIndexPlusOne=0;refused(m,"standalone array cannot disappear with descriptor");
+    group->packPhysicalIndexPlusOne=pack+1;refused(m,"array assigned to a surviving slot");
+    group->packPhysicalIndexPlusOne=pack;
     for(size_t i=0;i<m->callTargetCount;++i){XL6_IrCallTarget* t=&m->callTargets[i];if(t->kind!=XL6_IR_CALL_TARGET_EXTERN_C || !t->cName ||
-          (strcmp(t->cName,"null_pod") && strcmp(t->cName,"null_free") && strcmp(t->cName,"null_create_config") && strcmp(t->cName,"apply") && strcmp(t->cName,"paired")))continue;
+          (strcmp(t->cName,"null_pod") && strcmp(t->cName,"null_free") && strcmp(t->cName,"null_create_config") && strcmp(t->cName,"null_array") && strcmp(t->cName,"apply") && strcmp(t->cName,"paired")))continue;
         XL6_IrCallErrorPhysicalAbi ep=t->errorPhysicalAbi;t->errorPhysicalAbi=XL6_IR_CALL_ERROR_PHYSICAL_NONE;refused(m,"lost checked adapter errors");t->errorPhysicalAbi=ep;
         int32 success=t->nativeSuccessCode;t->nativeSuccessCode=7;refused(m,"status success disagreement");t->nativeSuccessCode=success;
         for(size_t p=0;p<t->parameterCount;++p){XL6_IrCallParameterConstraintAbi c=t->parameterConstraintAbis[p];t->parameterConstraintAbis[p]=(XL6_IrCallParameterConstraintAbi)UINT32_MAX;refused(m,"unknown constraint in unaffected input");t->parameterConstraintAbis[p]=c;}

@@ -68,7 +68,8 @@ static int xl6SemNullInputAttr(const XL6_AstNode* attr)
 {
     static const char* const names[]={"c_pack","c_pack_field","c_pack_record","c_pack_size","c_null","c_code_owner",
         "c_ref","c_const","c_control","c_value","c_static_callback","c_cstr","c_text_view","c_bytes_view",
-        "c_span","c_owned_callback","c_sync_callback","c_callback_span","c_result"};
+        "c_span","c_owned_callback","c_sync_callback","c_callback_span","c_result",
+        "c_array_group","c_array_input","c_array_record","c_array_field","c_array_span_field","c_array_size","c_array_pack"};
     for(size_t i=0;attr && attr->text && i<sizeof(names)/sizeof(*names);++i)if(!strcmp(attr->text,names[i]))return 1;
     return 0;
 }
@@ -131,6 +132,23 @@ static int xl6SemNullPacksEqual(const XL6_SemNullPhysical* a,const XL6_ForeignPh
     for(size_t j=0;bb && j<bb->childCount;++j){XL6_ForeignPackFieldContract row;if(xl6ForeignPackFieldRead(bb->children[j],&row) && row.packPhysicalIndex==bs->physicalIndex)++right;}
     return left==right;
 }
+/* An embedded group disappears with its omitted descriptor. Standalone groups
+ * and groups in surviving descriptors still require their own compatibility proof. */
+static int xl6SemNullArraysOmitted(const XL6_SemNullPhysical* map)
+{
+    if(!xl6ForeignInputHasArrayGroups(map->facts.inputMappingFacts))return 1;
+    const XL6_AstNode* attrs=xl6ForeignFunctionAttributes(map->node);
+    for(size_t i=0;attrs && i<attrs->childCount;++i){
+        XL6_ForeignArrayGroupContract group;
+        if(!xl6ForeignArrayGroupRead(attrs->children[i],&group))continue;
+        size_t first=group.firstParameter+map->receiver;
+        size_t count=group.sizeParameter+map->receiver;
+        if(!xl6ForeignArrayPackForGroup(map->node,&group) || !group.packPhysicalIndexPlusOne ||
+            first>=map->parameters || count>=map->parameters ||
+            map->map[first]!=UINT32_MAX || map->map[count]!=UINT32_MAX)return 0;
+    }
+    return 1;
+}
 static int xl6SemForeignNullPhysicalCompatible(XL6_SemContext* ctx,const XL6_AstNode* left,
     const XL6_AstNode* right,const XL6_AstNode* owner)
 {
@@ -157,7 +175,6 @@ static int xl6SemForeignNullPhysicalCompatible(XL6_SemContext* ctx,const XL6_Ast
         !(left->flags&XL6_AST_FLAG_FOREIGN_NO_RAISE) || ((left->flags|right->flags)&XL6_AST_FLAG_FOREIGN_FIELD) || a.receiver!=b.receiver ||
         !xl6SemNullHeader(left,owner,ah,sizeof(ah)) || !xl6SemNullHeader(right,owner,bh,sizeof(bh)) || strcmp(ah,bh) ||
         xl6ForeignInputHasRegions(a.facts.inputMappingFacts) || xl6ForeignInputHasRegions(b.facts.inputMappingFacts) ||
-        xl6ForeignInputHasArrayGroups(a.facts.inputMappingFacts) || xl6ForeignInputHasArrayGroups(b.facts.inputMappingFacts) ||
         !xl6SemExternCReturnsCompatible(ctx,xl6SemExternFuncReturns(left),xl6SemExternFuncReturns(right)))return 0;
     for(size_t i=0;i<a.steps;++i){XL6_ForeignPhysicalStep x,y;if(!xl6SemNullStep(&a,i,&x) || !xl6SemNullStep(&b,i,&y))return 0;
         if(x.kind!=y.kind)continue;
@@ -166,6 +183,7 @@ static int xl6SemForeignNullPhysicalCompatible(XL6_SemContext* ctx,const XL6_Ast
             if(!xl6ForeignPackForParameter(left,x.parameter-a.receiver,&ap) || !xl6ForeignPackForParameter(right,y.parameter-b.receiver,&bp) || ap.parameterCount!=bp.parameterCount)return 0;
             for(size_t n=0;n<ap.parameterCount;++n){a.map[x.parameter+n]=x.physicalIndex*65+(uint32)n;b.map[y.parameter+n]=y.physicalIndex*65+(uint32)n;}}
     }
+    if(!xl6SemNullArraysOmitted(&a) || !xl6SemNullArraysOmitted(&b))return 0;
     for(size_t i=0;i<a.steps;++i){XL6_ForeignPhysicalStep x,y;if(!xl6SemNullStep(&a,i,&x) || !xl6SemNullStep(&b,i,&y))return 0;
         if(x.kind!=y.kind)continue;
         if(x.kind==XL6_FOREIGN_PHYSICAL_STEP_OUTPUT){if(x.ordinal!=y.ordinal)return 0;continue;}

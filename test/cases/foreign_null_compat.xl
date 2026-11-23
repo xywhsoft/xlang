@@ -9,6 +9,8 @@ extern "NullRoot*" class Root @header("test/cases/foreign_null_compat.h") @lifet
  extern "apply" @c_field_call @no_raise @c_null(1,"const NullDesc*") @c_cstr(1) @c_output(4,0) func clear(c_int number,string suffix) as c_int
  extern "paired" @c_field_call @no_raise @c_pack(1,"NullDesc",0,3) @c_pack_size(1,"size","uint32_t") @c_pack_field(1,"mode",0,"value") @c_pack_field(1,"source",1,"view_raw") @c_pack_field(1,"text",2,"c_string") @c_pack(2,"NullNested",3,3) @c_pack_size(2,"size","uint32_t") @c_pack_record(2,"inner","NullInner") @c_pack_size(2,"inner.size","uint32_t","inner") @c_pack_field(2,"inner.mode",3,"value") @c_pack_field(2,"inner.source",4,"view_raw") @c_pack_field(2,"inner.text",5,"c_string") @c_cstr(7) @c_output(5,0) func applyBoth(c_int mode,Root source,string text,c_int secondMode,Root secondSource,string secondText,c_int number,string suffix) as c_int
  extern "paired" @c_field_call @no_raise @c_null(1,"const NullDesc*") @c_pack(2,"NullNested",0,3) @c_pack_size(2,"size","uint32_t") @c_pack_record(2,"inner","NullInner") @c_pack_size(2,"inner.size","uint32_t","inner") @c_pack_field(2,"inner.mode",0,"value") @c_pack_field(2,"inner.source",1,"view_raw") @c_pack_field(2,"inner.text",2,"c_string") @c_cstr(4) @c_output(5,0) func clearFirst(c_int secondMode,Root secondSource,string secondText,c_int number,string suffix) as c_int
+ extern "null_array" @no_raise @c_pack(1,"NullArrayDesc",0,4) @c_array_group(10,0,2,"int",2) @c_array_record(10,"NullItem") @c_array_field(10,"text",0,"c_string") @c_array_field(10,"value",1,"value") @c_array_pack(10,1,"items","count") @c_span(3,"const uint32_t*","int") @c_pack_field(1,"colors",3,"span_data") @c_pack_field(1,"colorCount",3,"span_count") @c_output(3,0) func arrayConfig(array<string> labels,array<c_int> values,int count,bytes colors,c_int number) as c_int
+ extern "null_array" @no_raise @c_null(1,"const NullArrayDesc*") @c_output(3,0) func clearArray(c_int number) as c_int
  extern "xl6ForeignViewCloseV1" @no_raise @c_control(0) @c_result("bool_status") func close()
 end
 extern "null_create" @header("test/cases/foreign_null_compat.h") @no_raise @c_result("owned_view") @factory(0,0,rollback) func create() as Root
@@ -35,6 +37,9 @@ func main(...) as int
  assert clearer.clear(c_int(11),"end")==c_int(16)
  assert root.applyBoth(c_int(7),root,"packed",c_int(9),root,"packed",c_int(11),"end")==c_int(42)
  assert root.clearFirst(c_int(9),root,"packed",c_int(11),"end")==c_int(30)
+ assert root.arrayConfig(["a","ab"],[c_int(3),c_int(4)],-1,b"\x09\0\0\0",c_int(1))==c_int(25)
+ assert root.arrayConfig([],[],0,b"",c_int(1))==c_int(6)
+ assert root.clearArray(c_int(1))==c_int(6)
  assert freePod(config,c_int(11),"end")==c_int(18)
  assert freeClear(c_int(11),"end")==c_int(11)
  Root configured=createConfigured(c_int(3),root,"packed")
@@ -43,7 +48,7 @@ func main(...) as int
  assert defaults.clearPod(c_int(0),"end")==c_int(5)
  configured.close()
  defaults.close()
- assert calls()==c_int(14)
+ assert calls()==c_int(17)
  root.close()
  return 0
 end

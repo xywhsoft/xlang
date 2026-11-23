@@ -1,0 +1,42 @@
+{
+  "schema": 1,
+  "scope": "Typed NULL alias of an exact const descriptor with embedded array projections",
+  "shippingDelivery": false,
+  "platforms": {
+    "win": {
+      "completeO2Compiler": {
+        "path": "F:/xlang-validation/xge-full-20261110/compiler-omitted-pack-arrays-win-r1/build.json",
+        "sha256": "0f786883ffcd90fbb33e1ca8a8fb79b27fd813cab8916a1ecaeb65abec3c2bc0"
+      },
+      "publicSourceDriver": {
+        "path": "F:/xlang-validation/xge-full-20261110/property-grid-config-public-win-r2/build.json",
+        "sha256": "1cfb37c04698903afd7eb6f30642d3245dc9f472790184abbc9ce991c853a9f2"
+      },
+      "qualifiedNativeContracts": {
+        "path": "F:/xlang-validation/xge-full-20261110/property-grid-config-null-gate-win-r1/results.json",
+        "sha256": "e3fdc683293d2476d0b59c21beaab049385fc08d1a8675fec593d31a43f1bb09"
+      }
+    },
+    "linux": {
+      "completeO2Compiler": {
+        "path": "//wsl.localhost/Ubuntu/var/tmp/xlang-validation/xge-full-20261110/compiler-omitted-pack-arrays-linux-r1/build.json",
+        "sha256": "eaf376946a2dd95f511f3167fb67e7267a813be82456a46af12e8dc49cf31248"
+      },
+      "publicSourceDriver": {
+        "path": "//wsl.localhost/Ubuntu/var/tmp/xlang-validation/xge-full-20261110/property-grid-config-public-linux-r2/build.json",
+        "sha256": "74e9e46b0be6f9f765b426fb8730fea650154c58b111a34b2e899022fc2e8f71"
+      },
+      "qualifiedNativeContracts": {
+        "path": "//wsl.localhost/Ubuntu/var/tmp/xlang-validation/xge-full-20261110/property-grid-config-null-gate-linux-r1/results.json",
+        "sha256": "0f5efb80e98bf5738036aa26c7163832958b50053954621049e581b4094d494f"
+      }
+    }
+  },
+  "specializedChecksPerPlatform": 47,
+  "verification": [
+    "Reversed declarations and exact C11, C++11 and C++17 authority headers",
+    "Independent O0 and O2 generated programs and IR mutation rejection",
+    "Normal compiler JIT and dynamic/static AOT success on both platforms for the generic fixture"
+  ],
+  "qualificationBoundary": "Array groups belonging to surviving descriptors still require an independent compatibility proof."
+}

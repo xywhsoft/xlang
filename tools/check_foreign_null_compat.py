@@ -23,7 +23,7 @@ def main():
  def run(name,cmd,accepted=True):
   cmd=list(map(str,cmd));actual=command_with_response(cmd,'gcc',out/(name+'.rsp')) if cmd[0] in ('gcc','g++') else cmd;t=time.monotonic();z=subprocess.run(actual,cwd=cohort,env=env,capture_output=True,timeout=300);log=out/(name+'.log');log.write_bytes(z.stdout+z.stderr);report['rows'].append(dict(name=name,exitCode=z.returncode,accepted=accepted,seconds=round(time.monotonic()-t,3),logSha256=sha(log)));save();print(name,z.returncode,flush=True);assert (not z.returncode)==accepted,log
  generated=out/'generated.c';run('cgen',[driver,fixture,'cgen-default',generated]);run('ir',[driver,fixture,'ir-lowered',out/'lowered.json']);run('public',[driver,fixture,'emit',out/'public'])
- text=generated.read_text();assert '(const NullPod*)0' in text and '(const NullDesc*)0' in text and 'native_callee_receiver->apply' in text
+ text=generated.read_text();assert '(const NullPod*)0' in text and '(const NullDesc*)0' in text and '(const NullArrayDesc*)0' in text and 'native_callee_receiver->apply' in text
  inc=out/'sdk/__xl_runtime';inc.mkdir(parents=True)
  for source in (cohort/'src/runtime').glob('*.h'):
   shutil.copy2(source,inc/source.name);inputs[str(source)]=sha(source)
@@ -31,8 +31,8 @@ def main():
  sdk=Path(b['base'].get('SdkDirectory') or b['base'].get('RuntimeDirectory') or runtime.parent);includes=['-I'+str(x) for x in (out/'fixture-inputs',out/'sdk',cohort,root,b['basePath'].parent/'include',sdk,sdk/'include')];flags=['-std=c11','-Wall','-Wextra','-Werror','-DXL_STATIC_EMBED',*includes];warnings=['-Wno-'+x for x in ('unused-function','unused-variable','unused-label','unused-const-variable','unused-but-set-variable','cast-function-type')];systems=['-lws2_32','-liphlpapi','-lshell32','-lole32','-ladvapi32'] if windows else ['-Wl,--export-dynamic','-pthread','-ldl','-lm','-Wl,-rpath,'+str(runtime.parent)]
  run('header-C',['gcc',*flags,'-x','c','-fsyntax-only',out/'public.h'])
  for std in ('c++11','c++17'):run('header-'+std,['g++','-std='+std,'-Wall','-Wextra','-Werror','-DXL_STATIC_EMBED',*includes,'-x','c++','-fsyntax-only',out/'public.h'])
- code=fixture.read_text();lines=code.splitlines();pairs=[i for i,x in enumerate(lines) if 'func pod(' in x or 'func apply(' in x or 'func applyBoth(' in x or 'func freePod(' in x or 'func createConfigured(' in x]
- assert len(pairs)==5
+ code=fixture.read_text();lines=code.splitlines();pairs=[i for i,x in enumerate(lines) if 'func pod(' in x or 'func apply(' in x or 'func applyBoth(' in x or 'func freePod(' in x or 'func createConfigured(' in x or 'func arrayConfig(' in x]
+ assert len(pairs)==6
  for i in pairs:lines[i],lines[i+1]=lines[i+1],lines[i]
  reverse=out/'reverse.xl';reverse.write_text('\n'.join(lines)+'\n');reverseC=out/'reverse.c';run('reverse-cgen',[driver,reverse,'cgen-default',reverseC]);run('reverse-ir',[driver,reverse,'ir-lowered',out/'reverse.json'])
  for opt in ('O0','O2'):
@@ -43,6 +43,7 @@ def main():
   'mutable-null':code.replace('@c_null(1,"const NullPod*")','@c_null(1,"NullPod*")',1),
   'unrelated-null':code.replace('@c_null(1,"const NullPod*")','@c_null(1,"const OtherPod*")',1),
   'wrong-pack-null':code.replace('@c_null(1,"const NullDesc*")','@c_null(1,"const NullPod*")',1),
+  'wrong-array-pack-null':code.replace('@c_null(1,"const NullArrayDesc*")','@c_null(1,"const NullDesc*")',1),
   'changed-suffix':code.replace('@c_null(1,"const NullDesc*") @c_cstr(1)','@c_null(1,"const NullDesc*") @c_text_view(1)',1),
   'changed-native-effect':code.replace('@c_null(1,"const NullDesc*")','@pure @c_null(1,"const NullDesc*")',1),
   'changed-nonblocking':code.replace('@c_null(1,"const NullDesc*")','@nonblocking @c_null(1,"const NullDesc*")',1),
@@ -64,6 +65,7 @@ def main():
  original=header.read_text();changes={
   'native-nonconst-pod':('const NullPod*,int,const char*,int*','NullPod*,int,const char*,int*'),
   'native-nonconst-pack':('NullRoot*,const NullDesc*,int,const char*,int*','NullRoot*,NullDesc*,int,const char*,int*'),
+  'native-nonconst-array-pack':('NullRoot*,const NullArrayDesc*,int,int*','NullRoot*,NullArrayDesc*,int,int*'),
   'native-output':('int,const char*,int*','int,const char*,float*')}
  for name,(old,new) in changes.items():
   assert old in original;bad=out/('bad-'+name+'/test/cases');bad.mkdir(parents=True);(bad/header.name).write_text(original.replace(old,new));priority=['-I'+str(bad.parents[1])]

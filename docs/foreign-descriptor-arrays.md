@@ -64,6 +64,12 @@ assembly is on the stack, and ABI/offset proofs add no runtime work. The
 per-declaration call-facts record stays 88 bytes; destination metadata is kept
 only in sparse array-group rows. This is not a whole-bridge zero-cost claim.
 
+An alternate declaration of the same native function may pass a typed NULL
+for the exact const descriptor pointer, omitting its embedded arrays with it.
+The header, result, effects and the remaining physical arguments must still
+match. An independent array argument or an embedded array in a descriptor
+that both declarations pass requires its own compatibility proof.
+
 `tools/check_foreign_descriptor_arrays.py` requires an actual complete O2
 compiler. Its CPU-only cases exercise JIT, standalone/static AOT, shared
 retirement/unload, nested compilation, independent GCC O0/O2, C11/C++ headers,
