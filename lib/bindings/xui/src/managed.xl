@@ -1336,6 +1336,7 @@ export extern "xui_context_t*" class Context @header("xge3_runtime.h") @lifetime
  extern "xl6Xui3CopyToClipboard" @no_raise @c_code_owner(2) @c_result("status",0) func copyToClipboard(DataObject data)
  extern "xl6Xui3ClipboardSetItems" @no_raise @c_code_owner(3) @c_array_group(1,0,2,"int",2) @c_array_record(1,"xui_clipboard_item_t") @c_array_field(1,"sFormat",0,"c_string") @c_array_span_field(1,"pData","iDataSize",1,"const void*","size_t") @c_result("status",0) func setClipboardItems(array<string> formats,array<bytes> payloads,int size=-1)
  extern "xuiDragBegin" @no_raise @c_result("status",0) func startDrag(Widget source,DataObject data,c_uint allowedEffects,c_uint suggestedEffect)
+ extern "xuiDragExternalEvent" @no_raise @c_output(8,0) func dragExternalEvent(c_int type,c_int x=0,c_int y=0,c_uint modifiers=0,DataObject? data=null,c_uint allowedEffects=0,c_uint suggestedEffect=0) as c_uint
 
  extern "xuiDragCancel" @no_raise @c_result("status",0) func dragCancel()
 

@@ -1,0 +1,329 @@
+{
+  "schema": 1,
+  "scope": "Host-driven XUI drag-and-drop using native owned DataObject",
+  "nativeCommit": "91c3089135de3b42d95b8ca977574b794e8e1783",
+  "shippingDelivery": false,
+  "graphicsTests": false,
+  "networkTests": false,
+  "priorEvidence": {
+    "path": "D:/GIT/x-lang/dev/release-materials/provenance/xui-context-text-shape-20261124.json",
+    "sha256": "014b43568fd6403ae91710afd603bccdb9061c0ab7923b105b8da0bf0022b3f5"
+  },
+  "sourceSha256NormalizedLf": {
+    "lib/bindings/xui/src/managed.xl": "a0559b61a282f58b36285e8d8b54849cd823029c3fd3bd4924eed49d1b11920e",
+    "lib/bindings/xui/examples/external_drag.xl": "8c01418eeb8f18521150ab83bee481e65a5372f9888c2e7328b0578f48387012",
+    "lib/bindings/xui/examples/gallery.json": "eee7fc1b31ffa730788204cd6df719951d6ccbac75d91fff04c6e1b3cf135021",
+    "test/cases/foreign_xui_external_drag.xl": "0ee829c01a49fb3cd080a5f589406040b17dcb63269640f3be93dff8b8475a3f",
+    "test/cases/foreign_xui_external_drag.c": "6092e0ee83bc892dc3042cd01fe87975563fd8568ec8b9790fa6febc7c4d5702",
+    "test/cases/foreign_xui_external_drag.h": "e543e37f27b124a4230fdc2776e612f0806bd3ca6efa2a600cc2f5d46a5cd0e0",
+    "tools/xui_managed_contracts.py": "d5498035aa7866cf8a18a37dbf3f6833e697f8a99cc844691ec5d79b9bffbadb"
+  },
+  "platforms": {
+    "win": {
+      "nativeHost": {
+        "path": "F:/xlang-validation/xge-full-20261110/xui-context-text-shape-host-win-r1/build-report.json",
+        "sha256": "efbbacfce5bb19a59f4251a0d2127f776f7fbd9b31b0b6211b9ff9f2ae382484"
+      },
+      "nativeStatic": {
+        "path": "F:/xlang-validation/xge-full-20261110/xui-context-text-shape-static-win-r1/build-report.json",
+        "sha256": "b4cc20a89afdb152d0dd65092634926fbfd83538b38697cccff69ac4f90bb0f6"
+      },
+      "compiler": {
+        "path": "F:/xlang-validation/xge-full-20261110/compiler-owned-output-pair-win-r2/build.json",
+        "sha256": "41596d3515fdf8c1f5194838396e40b1d84ecb013557b7f7aadbe352315593a3"
+      },
+      "packageReplay": {
+        "path": "F:/xlang-validation/xge-full-20261110/xui-external-drag-stage-win-r1/replay/stage-report.json",
+        "sha256": "b518d6b4933577c171f2b97dc77524deadc65fa37426222c4ae86617a2d0eaa8"
+      },
+      "consumerAudit": {
+        "path": "F:/xlang-validation/xge-full-20261110/xui-external-drag-consumers-win-r1/results.json",
+        "sha256": "4916f2bd4ce0e3f25d3858e11ae167f28cf6784381deeab931eb8b2dfde8ea00"
+      },
+      "nativeO0O2": {
+        "path": "F:/xlang-validation/xge-full-20261110/xui-external-drag-native-tests-win-r1/results.json",
+        "sha256": "131cc17d74de38d1488841aac8c98a5d326020d155b64e1f75a368ff01d005ab"
+      },
+      "functionPopulation": 5891,
+      "directDeclarations": 4831,
+      "remaining": {
+        "XGE": 16,
+        "XUI": 53
+      },
+      "cases": {
+        "external_drag": {
+          "report": {
+            "path": "F:/xlang-validation/xge-full-20261110/xui-external-drag-verify-win-r2/results.json",
+            "sha256": "13207e15b4009716f9874c5cad27526a50c5f82a754ea4400eb0468cfce027d4"
+          },
+          "steps": [
+            "emit",
+            "host-build",
+            "host-imports",
+            "host-run",
+            "jit",
+            "static-build",
+            "static-imports",
+            "static-run"
+          ],
+          "imports": {
+            "host": [
+              "msvcrt.dll",
+              "xge3_host.dll",
+              "kernel32.dll",
+              "shell32.dll",
+              "ucrtbase.dll"
+            ],
+            "static": [
+              "msvcrt.dll",
+              "kernel32.dll",
+              "user32.dll",
+              "ole32.dll",
+              "oleaut32.dll",
+              "shell32.dll",
+              "gdi32.dll",
+              "imm32.dll",
+              "dwrite.dll"
+            ]
+          },
+          "generated": {
+            "path": "F:/xlang-validation/xge-full-20261110/xui-external-drag-verify-win-r2/external_drag/generated.c",
+            "sha256": "9d04f51a193b2b57554f105cfd87e1350bb1350e4fae163ec0ff5d6e6a4a1517"
+          },
+          "noTargetCycles128": {}
+        },
+        "foreign_xui_external_drag": {
+          "report": {
+            "path": "F:/xlang-validation/xge-full-20261110/xui-external-drag-verify-win-r2/results.json",
+            "sha256": "13207e15b4009716f9874c5cad27526a50c5f82a754ea4400eb0468cfce027d4"
+          },
+          "steps": [
+            "emit",
+            "host-build",
+            "host-imports",
+            "host-run",
+            "jit",
+            "static-build",
+            "static-imports",
+            "static-run"
+          ],
+          "imports": {
+            "host": [
+              "msvcrt.dll",
+              "xge3_host.dll",
+              "kernel32.dll",
+              "shell32.dll",
+              "ws2_32.dll",
+              "iphlpapi.dll",
+              "ucrtbase.dll"
+            ],
+            "static": [
+              "msvcrt.dll",
+              "kernel32.dll",
+              "user32.dll",
+              "ole32.dll",
+              "oleaut32.dll",
+              "shell32.dll",
+              "gdi32.dll",
+              "imm32.dll",
+              "dwrite.dll"
+            ]
+          },
+          "generated": {
+            "path": "F:/xlang-validation/xge-full-20261110/xui-external-drag-verify-win-r2/foreign_xui_external_drag/generated.c",
+            "sha256": "8e3b18a06ee25d9e505e0812121bb45c74cf49a39517cbd0ede414c5d596b145"
+          },
+          "noTargetCycles128": {
+            "jit": {
+              "native": {
+                "alloc": 0,
+                "free": 0,
+                "realloc": 0
+              },
+              "language": {
+                "alloc": 0,
+                "free": 0,
+                "realloc": 0
+              }
+            },
+            "host-run": {
+              "native": {
+                "alloc": 0,
+                "free": 0,
+                "realloc": 0
+              },
+              "language": {
+                "alloc": 0,
+                "free": 0,
+                "realloc": 0
+              }
+            },
+            "static-run": {
+              "native": {
+                "alloc": 0,
+                "free": 0,
+                "realloc": 0
+              },
+              "language": {
+                "alloc": 0,
+                "free": 0,
+                "realloc": 0
+              }
+            }
+          }
+        }
+      }
+    },
+    "linux": {
+      "nativeHost": {
+        "path": "//wsl.localhost/Ubuntu/var/tmp/xlang-validation/xge-full-20261110/xui-context-text-shape-host-linux-r1/build-report.json",
+        "sha256": "e62069f47808fdb233e04b6dcf8fabb6e39f530baada1a86293e6afb2f33d0e1"
+      },
+      "nativeStatic": {
+        "path": "//wsl.localhost/Ubuntu/var/tmp/xlang-validation/xge-full-20261110/xui-context-text-shape-static-linux-r1/build-report.json",
+        "sha256": "022bc11501acb463ca6281d2d5ac6ca2c2499ecdf1dff35fbdb2718d9926f16f"
+      },
+      "compiler": {
+        "path": "//wsl.localhost/Ubuntu/var/tmp/xlang-validation/xge-full-20261110/compiler-owned-output-pair-linux-r2/build.json",
+        "sha256": "bb4ad4330abb14095a0dc59233ed6e265033b4498b8f779a11ca4d0b9b176099"
+      },
+      "packageReplay": {
+        "path": "//wsl.localhost/Ubuntu/var/tmp/xlang-validation/xge-full-20261110/xui-external-drag-stage-linux-r1/replay/stage-report.json",
+        "sha256": "52dd8caaa452edd7b35e75be0ea5a4333fc5e1d6253c107a7e2808b95954690e"
+      },
+      "consumerAudit": {
+        "path": "//wsl.localhost/Ubuntu/var/tmp/xlang-validation/xge-full-20261110/xui-external-drag-consumers-linux-r1/results.json",
+        "sha256": "7b125b7979402db9f2bcfeb63197011e41d65c35297e68ad13f42975924aedcf"
+      },
+      "nativeO0O2": {
+        "path": "//wsl.localhost/Ubuntu/var/tmp/xlang-validation/xge-full-20261110/xui-external-drag-native-tests-linux-r1/results.json",
+        "sha256": "cd30871fc20103681a4244419a57a6740fe55fb9f434193f24d12f0bb9d57c76"
+      },
+      "functionPopulation": 5891,
+      "directDeclarations": 4831,
+      "remaining": {
+        "XGE": 16,
+        "XUI": 53
+      },
+      "cases": {
+        "external_drag": {
+          "report": {
+            "path": "//wsl.localhost/Ubuntu/var/tmp/xlang-validation/xge-full-20261110/xui-external-drag-verify-linux-r3/results.json",
+            "sha256": "a1e70cf6101763b51af5ebbd7d91a03f8b2e2c73e3ca7fb899380227ecdb124e"
+          },
+          "steps": [
+            "emit",
+            "host-build",
+            "host-imports",
+            "host-run",
+            "jit",
+            "static-build",
+            "static-imports",
+            "static-run"
+          ],
+          "imports": {
+            "host": [
+              "libm.so.6",
+              "libmvec.so.1",
+              "libxge3_host.so",
+              "libc.so.6",
+              "ld-linux-x86-64.so.2"
+            ],
+            "static": [
+              "libm.so.6",
+              "libmvec.so.1",
+              "libx11.so.6",
+              "libxi.so.6",
+              "libxcursor.so.1",
+              "libgl.so.1",
+              "libc.so.6",
+              "ld-linux-x86-64.so.2"
+            ]
+          },
+          "generated": {
+            "path": "//wsl.localhost/Ubuntu/var/tmp/xlang-validation/xge-full-20261110/xui-external-drag-verify-linux-r3/external_drag/generated.c",
+            "sha256": "9d04f51a193b2b57554f105cfd87e1350bb1350e4fae163ec0ff5d6e6a4a1517"
+          },
+          "noTargetCycles128": {}
+        },
+        "foreign_xui_external_drag": {
+          "report": {
+            "path": "//wsl.localhost/Ubuntu/var/tmp/xlang-validation/xge-full-20261110/xui-external-drag-verify-linux-r3/results.json",
+            "sha256": "a1e70cf6101763b51af5ebbd7d91a03f8b2e2c73e3ca7fb899380227ecdb124e"
+          },
+          "steps": [
+            "emit",
+            "host-build",
+            "host-imports",
+            "host-run",
+            "jit",
+            "static-build",
+            "static-imports",
+            "static-run"
+          ],
+          "imports": {
+            "static": [
+              "libm.so.6",
+              "libmvec.so.1",
+              "libx11.so.6",
+              "libxi.so.6",
+              "libxcursor.so.1",
+              "libgl.so.1",
+              "libc.so.6",
+              "ld-linux-x86-64.so.2"
+            ],
+            "host": [
+              "libm.so.6",
+              "libmvec.so.1",
+              "libxge3_host.so",
+              "libc.so.6",
+              "ld-linux-x86-64.so.2"
+            ]
+          },
+          "generated": {
+            "path": "//wsl.localhost/Ubuntu/var/tmp/xlang-validation/xge-full-20261110/xui-external-drag-verify-linux-r3/foreign_xui_external_drag/generated.c",
+            "sha256": "8e3b18a06ee25d9e505e0812121bb45c74cf49a39517cbd0ede414c5d596b145"
+          },
+          "noTargetCycles128": {
+            "jit": {
+              "native": {
+                "alloc": 0,
+                "free": 0,
+                "realloc": 0
+              },
+              "language": {
+                "alloc": 0,
+                "free": 0,
+                "realloc": 0
+              }
+            },
+            "host-run": {
+              "native": {
+                "alloc": 0,
+                "free": 0,
+                "realloc": 0
+              },
+              "language": {
+                "alloc": 0,
+                "free": 0,
+                "realloc": 0
+              }
+            },
+            "static-run": {
+              "native": {
+                "alloc": 0,
+                "free": 0,
+                "realloc": 0
+              },
+              "language": {
+                "alloc": 0,
+                "free": 0,
+                "realloc": 0
+              }
+            }
+          }
+        }
+      }
+    }
+  }
+}

@@ -1,5 +1,22 @@
 # XUI input results and command events
 
+## External drag and drop
+
+`Context.dragExternalEvent()` delivers the host's `XUI_DRAG_EXTERNAL_*`
+notifications and returns the effect negotiated by the target. Pass a
+`DataObject` and an allowed-effect mask on Enter. Over and Drop use that
+session's data. Leave and Cancel end the current drag. Mark the target with
+`setDropEnabled()` and call `dragAccept()` from its handler to select an
+allowed effect.
+
+The native session retains the data across notifications. A callback can use
+`event.dragData()` while the handler is active, or share the data object to
+keep it after Drop or Context close. Errors leave the effect assignment
+unchanged. The [external drag example](../lib/bindings/xui/examples/external_drag.xl)
+demonstrates a host accepting a copy.
+
+## Input result masks and queued commands
+
 `Context.inputKeyDownEx(key, modifiers=0)`, `inputKeyUpEx(key, modifiers=0)`
 and `inputTextEx(codepoint)` return a `c_uint` result mask. Combine/test the
 existing `XUI_INPUT_RESULT_CONSUMED`, `FOCUS_CHANGED` and `HOTKEY` constants

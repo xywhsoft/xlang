@@ -1,0 +1,134 @@
+import xui
+from xui import CallbackDragData as DragPayload
+from xui import CallbackDataObject as DataView
+from xui import DataObject as OwnedData
+
+extern "fixtureExternalDragEnableTracking" @header("test/cases/foreign_xui_external_drag.h") @no_raise func enableTracking()
+extern "fixtureExternalDragBeginSample" @header("test/cases/foreign_xui_external_drag.h") @no_raise func beginSample()
+extern "fixtureExternalDragEndSample" @header("test/cases/foreign_xui_external_drag.h") @no_raise func endSample(c_int language)
+extern "fixtureExternalDragNativeSample" @header("test/cases/foreign_xui_external_drag.h") @no_raise func nativeSample(xui.Context context,xui.DataObject data)
+
+func noTargetCycle(xui.Context context,xui.DataObject data)
+    c_uint none=c_uint(xui.XUI_DRAG_EFFECT_NONE)
+    assert context.dragExternalEvent(xui.XUI_DRAG_EXTERNAL_ENTER,data=data,
+        allowedEffects=c_uint(xui.XUI_DRAG_EFFECT_COPY))==none
+    assert context.dragExternalEvent(xui.XUI_DRAG_EXTERNAL_OVER,1,1)==none
+    assert context.dragExternalEvent(xui.XUI_DRAG_EXTERNAL_CANCEL)==none
+end
+
+func exerciseTarget(xui.Context context)
+    auto target=context.widget()
+    auto area=xui.Rect()
+    area.fW=100
+    area.fH=100
+    context.setViewportSize(100,100)
+    assert target.setRect(area)==xui.XUI_OK
+    assert context.setRootWidget(target)==xui.XUI_OK
+    target.setDropEnabled(1)
+    c_int enterCount=0
+    c_int overCount=0
+    c_int dropCount=0
+    c_int leaveCount=0
+    c_uint copy=c_uint(xui.XUI_DRAG_EFFECT_COPY)
+    c_uint none=c_uint(xui.XUI_DRAG_EFFECT_NONE)
+    xui.CallbackDragData? escaped=null
+    xui.DataObject? received=null
+    auto data=xui.createDataObject()
+    bytes content=b"U\0I"
+    data.setProvider("application/drag-test",func(xui.DataFormat format,xui.DataOutput output) as c_int
+        assert format.text=="application/drag-test"
+        output.set(content)
+        return 0
+    end)
+    target.setEventCallback(func(xui.Widget sender,xui.CallbackConstEvent event) as c_int
+        auto bounded=event.dragData()
+        if bounded==null then return 0 end
+        auto drag=bounded as DragPayload
+        assert drag.external==1
+        assert drag.allowedEffects==copy and drag.suggestedEffect==copy
+        escaped=drag
+        if event.iType==xui.XUI_EVENT_DRAG_LEAVE then
+            leaveCount+=1
+            return 0
+        end
+        if event.iType==xui.XUI_EVENT_DRAG_ENTER then
+            enterCount+=1
+        elseif event.iType==xui.XUI_EVENT_DRAG_OVER then
+            overCount+=1
+        elseif event.iType==xui.XUI_EVENT_DROP then
+            auto payload=drag.data as DataView
+            received=payload.share()
+            dropCount+=1
+        end
+        context.dragAccept(copy)
+        return 0
+    end)
+
+    assert context.dragExternalEvent(xui.XUI_DRAG_EXTERNAL_ENTER,10,10,data=data,
+        allowedEffects=copy,suggestedEffect=copy)==copy
+    assert context.dragExternalEvent(xui.XUI_DRAG_EXTERNAL_LEAVE)==none
+    assert enterCount==1 and leaveCount==1 and context.dragIsActive()==0
+    assert context.dragExternalEvent(xui.XUI_DRAG_EXTERNAL_ENTER,10,10,data=data,
+        allowedEffects=copy,suggestedEffect=copy)==copy
+    assert context.dragExternalEvent(xui.XUI_DRAG_EXTERNAL_CANCEL)==none
+    assert enterCount==2 and leaveCount==2
+    assert context.dragExternalEvent(xui.XUI_DRAG_EXTERNAL_ENTER,10,10,data=data,
+        allowedEffects=copy,suggestedEffect=copy)==copy
+    data.close()
+    assert context.dragExternalEvent(xui.XUI_DRAG_EXTERNAL_OVER,11,11)==copy
+    assert context.dragExternalEvent(xui.XUI_DRAG_EXTERNAL_DROP,11,11)==copy
+    assert enterCount==3 and overCount>=1 and dropCount==1 and context.dragIsActive()==0
+    assert context.dragGetEffect()==copy
+
+    bool rejected=false
+    try
+        auto old=escaped as DragPayload
+        auto ignored=old.effect
+    catch Error
+        rejected=true
+    end
+    assert rejected, "drag callback view expired"
+
+    c_uint unchanged=99
+    rejected=false
+    try
+        unchanged=context.dragExternalEvent(xui.XUI_DRAG_EXTERNAL_OVER,11,11)
+    catch Error failure
+        rejected=failure.code==int(xui.XUI_ERROR_INVALID_STATE)
+    end
+    assert rejected and unchanged==99, "checked status preserves the output"
+
+    rejected=false
+    try
+        unchanged=context.dragExternalEvent(xui.XUI_DRAG_EXTERNAL_ENTER,11,11,allowedEffects=copy)
+    catch Error failure
+        rejected=failure.code==int(xui.XUI_ERROR_INVALID_ARGUMENT)
+    end
+    assert rejected and unchanged==99 and context.dragIsActive()==0
+
+    target.setEventCallback(null)
+    context.close()
+    auto owned=received as OwnedData
+    auto output=Buffer(b"...")
+    assert owned.readInto("application/drag-test",output)==c_size(3) and output.toBytes()==content
+    owned.close()
+end
+
+func main(...) as int
+    enableTracking()
+    auto proxy=xui.createProxy()
+    auto context=xui.create(proxy,xui.XUI_SYSTEM_FONT_DISABLED)
+    auto data=xui.createDataObject()
+    nativeSample(context,data)
+    noTargetCycle(context,data)
+    beginSample()
+    for round in range(128)
+        noTargetCycle(context,data)
+    end
+    endSample(1)
+    data.close()
+    exerciseTarget(context)
+    proxy.close()
+    println("XUI_EXTERNAL_DRAG_OK")
+    return 0
+end

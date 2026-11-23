@@ -1,0 +1,32 @@
+// 将宿主的拖入和放下通知交给 XUI，由目标控件协商复制效果。
+import xui
+
+func main(...) as int
+    auto proxy = xui.createProxy()
+    auto ui = xui.create(proxy, xui.XUI_SYSTEM_FONT_DISABLED)
+    auto target = ui.widget()
+    auto area = xui.Rect()
+    area.fW = 100
+    area.fH = 100
+    ui.setViewportSize(100, 100)
+    target.setRect(area)
+    ui.setRootWidget(target)
+
+    c_uint copy = c_uint(xui.XUI_DRAG_EFFECT_COPY)
+    target.setDropEnabled(1)
+    target.setEventCallback(func(xui.Widget sender, xui.CallbackConstEvent event) as c_int
+        if event.dragData() != null then
+            ui.dragAccept(copy)
+        end
+        return 0
+    end)
+
+    auto payload = xui.createDataObject()
+    payload.set("text/plain", "Hello from the host")
+    ui.dragExternalEvent(xui.XUI_DRAG_EXTERNAL_ENTER, 10, 10, data=payload,
+        allowedEffects=copy)
+    c_uint effect = ui.dragExternalEvent(xui.XUI_DRAG_EXTERNAL_DROP, 10, 10)
+    println("复制已接受", effect == copy)
+    target.setEventCallback(null)
+    return 0
+end

@@ -153,6 +153,12 @@ METHODS = {'xuiResourceFind': ['xui_resource xuiResourceFind(xui_context pContex
                   'Context',
                   ['extern "xuiDragBegin" @no_raise @c_result("status",0) func startDrag(Widget source,DataObject data,c_uint '
                    'allowedEffects,c_uint suggestedEffect)']],
+ 'xuiDragExternalEvent': (
+     'int xuiDragExternalEvent(xui_context pContext, int iType, int iX, int iY, uint32_t iModifiers, '
+     'xui_data_object pData, uint32_t iAllowedEffects, uint32_t iSuggestedEffect, uint32_t* pEffect)',
+     'Context',
+     ['extern "xuiDragExternalEvent" @no_raise @c_output(8,0) func dragExternalEvent(c_int type,c_int x=0,c_int y=0,'
+      'c_uint modifiers=0,DataObject? data=null,c_uint allowedEffects=0,c_uint suggestedEffect=0) as c_uint']),
  'xuiDragCancel': ['int xuiDragCancel(xui_context pContext)',
                    'Context',
                    ['extern "xuiDragCancel" @no_raise @c_result("status",0) func dragCancel()']],

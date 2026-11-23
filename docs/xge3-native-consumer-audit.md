@@ -1,5 +1,20 @@
 # Native consumers in the full API inventory
 
+## Host-driven XUI drag and drop
+
+`Context.dragExternalEvent()` directly binds the native Enter, Over, Leave,
+Drop and Cancel entry point. The two-platform tests drop data after the
+original owner closes, expire the callback view, and read from a shared owner
+after Context close. Checked errors preserve the effect output.
+
+Both O2 products passed JIT, dynamic AOT and static AOT. In 128 warmed
+Enter/Over/Cancel cycles without a drop target, C and xlang both recorded zero
+XRT heap operations. The inventory covers 5,891 native functions with 4,831
+direct declarations. The remaining 69 entries comprise 16 XGE and 53 XUI
+functions.
+
+[External drag evidence](../dev/release-materials/provenance/xui-external-drag-20261124.json)
+
 ## Context-bound text shaping
 
 `Context.shapeText()` uses the same cached capabilities and shaping routine as

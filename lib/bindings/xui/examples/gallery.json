@@ -463,6 +463,13 @@
       "expected": "输出两个已设置的译文及其 ID。"
     },
     {
+      "name": "external_drag",
+      "title": "External drag and drop",
+      "kind": "cpu",
+      "gallery": false,
+      "expected": "输出“复制已接受 true”。"
+    },
+    {
       "name": "asset_names",
       "title": "asset_names",
       "kind": "cpu",
