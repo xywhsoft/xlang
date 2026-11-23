@@ -108,6 +108,8 @@ CORE_TESTS = ("analysis_ir_type_resource_test", *CORE_TESTS)
 CORE_TESTS = ("analysis_ir_pipeline_test", *CORE_TESTS)
 CORE_TESTS = ("analysis_ir_pipeline_contract_test", *CORE_TESTS)
 CORE_TESTS = ("analysis_ir_pipeline_nodes_test", *CORE_TESTS)
+CORE_TESTS = ("analysis_ir_call_cache_test", *CORE_TESTS)
+CORE_TESTS = ("analysis_ir_call_cache_contract_test", *CORE_TESTS)
 CORE_TESTS = ("analysis_completion_body_failure_test", *CORE_TESTS)
 CORE_TESTS = ("analysis_semantic_proof_test", *CORE_TESTS)
 CORE_TESTS = ("analysis_semantic_headers_test", *CORE_TESTS)
@@ -799,7 +801,7 @@ def main() -> None:
         # their native warning profile. Their objects never enter core/server.
         sources += [(ide / "tests" / (name + ".c"), name not in
                      ("analysis_semantic_read_front_test", "analysis_ir_sparse_decode_test", "analysis_ir_projection_test", "analysis_ir_capacity_test",
-                      "analysis_semantic_final_input_test", "analysis_ir_input_test", "analysis_ir_pipeline_nodes_test", "analysis_ir_pipeline_contract_test", "analysis_ir_function_exit_contract_test", "analysis_final_environment_test", "analysis_index_canonical_guards_test",
+                      "analysis_semantic_final_input_test", "analysis_ir_input_test", "analysis_ir_call_cache_contract_test", "analysis_ir_pipeline_nodes_test", "analysis_ir_pipeline_contract_test", "analysis_ir_function_exit_contract_test", "analysis_final_environment_test", "analysis_index_canonical_guards_test",
                       "analysis_semantic_alias_reads_test", "analysis_type_constructor_test", "analysis_ir_derived_test", "analysis_ir_parameters_test", "analysis_ir_classifier_test", "analysis_model_source_test", "analysis_ir_topology_test")) for name in tests]
     if args.server:
         if os.name != "nt":
@@ -1137,7 +1139,7 @@ def main() -> None:
             extra = [str(objects["document_sync"])] if name in ("document_sync_test", "diagnostic_stream_test") else []
             if name == 'analysis_ir_type_resource_test':
                 extra += ['-Wl,--wrap='+f for f in ('xrtMalloc','xrtCalloc','xrtRealloc','xrtFree','xrtStrDup','xrtStrDupN','xrtArrayPush','xrtArrayResize','xrtMapSet','xrtStrBufReserve')]
-            if name in ('analysis_ir_pipeline_test','analysis_ir_pipeline_contract_test','analysis_ir_pipeline_nodes_test'):
+            if name in ('analysis_ir_pipeline_test','analysis_ir_pipeline_contract_test','analysis_ir_pipeline_nodes_test','analysis_ir_call_cache_test','analysis_ir_call_cache_contract_test'):
                 extra += ['-Wl,--wrap='+f for f in ('xrtMalloc','xrtCalloc','xrtRealloc','xrtFree','xrtStrDup','xrtStrDupN','xrtArrayPush','xrtArrayResize','xrtMapSet','xrtStrBufReserve')]
             if name == 'analysis_ir_node_graph_test':
                 extra += ['-Wl,--wrap='+f for f in ('xrtMalloc','xrtCalloc','xrtFree')]

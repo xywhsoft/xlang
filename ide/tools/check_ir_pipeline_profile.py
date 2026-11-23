@@ -4,6 +4,7 @@ from unittest.mock import patch
 import argparse,hashlib,json
 import native_ir_pipeline_overlay as adapter
 import native_ir_pipeline_nodes as node_adapter
+import native_ir_call_cache_overlay as call_adapter
 from check_native_bridge_catalog import function
 from build_lsp_core import prepare_native_ir
 
@@ -53,6 +54,24 @@ def main():
             except ValueError:pass
             else:raise AssertionError('Multiple dependent node loops admitted')
         record['cases'].append('multiple-node-loops-rejected')
+        assert len(pipeline['callCache']['functions'])==17 and len(pipeline['callCache']['entryFields'])==5 and len(pipeline['callCache']['queriedTypeFields'])==7
+        record['cases'].append('complete-call-read-gateways-and-projections')
+        with patch.object(call_adapter,'PINS',{k:v for k,v in call_adapter.PINS.items()if k!='xl6IrTypeGet'}):
+            try:adapter.derive(original,args.frontend,out)
+            except ValueError:pass
+            else:raise AssertionError('Incomplete call dependency closure admitted')
+        record['cases'].append('incomplete-call-dependency-closure-rejected')
+        for name,old,new,label in(
+            ('xl6IrCallVariadicAbiForParameter','array<var>','array<Var>','changed-call-helper-rejected'),
+            ('xl6IrNodeIsResolvedSyntaxCall','node->targetSymbol','node->symbol','changed-entry-projection-rejected')):
+            body=function(original,name);bad=body.replace(old,new,1);changed=original.replace(body,bad,1)
+            override={**call_adapter.PINS}
+            if label=='changed-entry-projection-rejected':override[name]=hashlib.sha256(bad.encode()).hexdigest()
+            with patch.object(call_adapter,'PINS',override):
+                try:adapter.derive(changed,args.frontend,out)
+                except ValueError:pass
+                else:raise AssertionError(label)
+            record['cases'].append(label)
         record.update(status='passed',generatedSha256=hashlib.sha256(Path(pipeline['generated']).read_bytes()).hexdigest());print(json.dumps(dict(status='passed',cases=len(record['cases']))))
     finally:(out/'result.json').write_text(json.dumps(record,indent=2)+'\n')
 if __name__=='__main__':main()

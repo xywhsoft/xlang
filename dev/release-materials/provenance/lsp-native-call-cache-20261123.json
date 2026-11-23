@@ -1,0 +1,210 @@
+{
+  "schema": 1,
+  "date": "2026-11-23",
+  "stage": "M7b7t",
+  "scope": "Actual cross-generation native call-site/argument reuse in ordered declaration ranges;no whole-final-IR or ordinary integration",
+  "ownedSources": {
+    "ide/src/analysis/ir_native_call_cache.h": "1a1e33419b799eb6f93e1f9956284dae65f09766148257b4804b1296c7bd67a6",
+    "ide/src/analysis/frontend_ir_call_cache.inc": "865373fc1be18b7ad504ae742933792d3bc2dbfec50b0d915bb88811a516ae73",
+    "ide/src/analysis/frontend_ir_pipeline.inc": "eaf59682fc0bb5a3b1f134e4a50009e9add6fcd1069833a4c66c6286c5f28d44",
+    "ide/tools/native_ir_call_cache_overlay.py": "77a9442fe150c985da33cdfea0ef5d7403094e67d913159b07b229fc9d64d49f",
+    "ide/tools/native_ir_pipeline_overlay.py": "c2d3e6d72fd7eec7f4ee2cdc9371e6d06ef5977ec86febdcf8fe6a34a9c8a38a",
+    "ide/tools/native_current_ir_overlay.py": "e9fe66cdfcab6f181cd210efd4dde37e9151aad72758028de150e4a68d8105f4",
+    "ide/tools/build_lsp_core.py": "1db1f2205acf49474200c846ddbb4920a7f561aa959be5fb0eac1d8d59f79602",
+    "ide/tools/check_ir_pipeline_profile.py": "db8f5ad22bde3ed3c329c8f6dbaada174a8ff7e39579b3aa21420604d4df013c",
+    "ide/tests/analysis_ir_call_cache_test.c": "6838fd64a2e5ba443fdb8fdd96786b4dcead14bf8f55153451878e95e8df3987",
+    "ide/tests/analysis_ir_call_cache_contract_test.c": "7683b7f260619b47a39e9b9d741c05feb2240ad51696d64c2c3c55c994731b70",
+    "ide/docs/lsp-native-call-cache.md": "b4a6accdcd027bf9fd53dfdc9c52eade1e101e5945cf41ffe981fba372542057",
+    "ide/docs/lsp-development.md": "57770305610a39c43512863719bd9f2bf38f0bc7fb79f53447e45f3d7c2c114f"
+  },
+  "materials": {
+    "sources": {
+      "archive": {
+        "path": "dev/release-materials/sources/lsp-native-call-cache-20261123/sources.tar.gz",
+        "sha256": "83bfa69b177906e51cfd30b4bba8fec8ca9f4ab3a02b6411819cc1706d41657b",
+        "bytes": 17121716
+      },
+      "manifest": {
+        "path": "dev/release-materials/sources/lsp-native-call-cache-20261123/sources.tar.gz.manifest.json",
+        "sha256": "2ef66013713c9031efffd854bc9e7bab1b8a5ac1c15b036f393ad85791c75a5e",
+        "bytes": 5330801
+      },
+      "entries": 10892,
+      "uniquePayloads": 2082
+    },
+    "validation": {
+      "archive": {
+        "path": "dev/release-materials/provenance/lsp-native-call-cache-20261123/validation.tar.gz",
+        "sha256": "dbd581c0380290914c48e90f48c1700d839da6d19aac022c7a2b0d4485d8c4b9",
+        "bytes": 196412290
+      },
+      "manifest": {
+        "path": "dev/release-materials/provenance/lsp-native-call-cache-20261123/validation.tar.gz.manifest.json",
+        "sha256": "5b913020350aeccbf2dff8cd76c0e6a93cce0c76a0291f72fae95d1a930d3f8a",
+        "bytes": 323176
+      },
+      "entries": 922,
+      "uniquePayloads": 260
+    }
+  },
+  "materialDependencies": [
+    "dev/release-materials/provenance/lsp-native-ir-node-ranges-20261123.json",
+    "dev/release-materials/provenance/lsp-stable-resource-package-20261123.json"
+  ],
+  "qualification": {
+    "nativeCoreMembersFresh": 1,
+    "coreObjectsReusedExactDependencies": 79,
+    "semanticInputs": 49,
+    "normalChecks": 6794,
+    "contractChecksIncludingNormal": 6915,
+    "poisonedRetiredUnits": 676,
+    "concurrentReaders": 4,
+    "readerGenerations": 3,
+    "editedRangeNativeNodes": 20,
+    "totalNativeNodes": 350,
+    "reusedRanges": 18,
+    "totalRanges": 19,
+    "defaultValueOnlyEditNativeNodes": 0,
+    "defaultValueOnlyEditReusedRanges": 19,
+    "coldAllocationApiRejectionPoints": 52,
+    "hotAllocationApiRejectionPoints": 46,
+    "coldCancellationPoints": 45,
+    "hotCancellationPoints": 48,
+    "sourcePolicyCases": 13,
+    "relatedNativePrograms": 8,
+    "ordinaryUnavailableFixtures": 2,
+    "compiledDefects": 8,
+    "positiveControls": 2,
+    "oldDefectCohortExactDeltaValidated": true,
+    "defaultExistingFunctions": 1862,
+    "unchangedPrivateLayouts": 2,
+    "sourceHeaderCompilerRuntimeGuardsPassed": true
+  },
+  "sourceContract": {
+    "functions": {
+      "xl6IrBuildCallSites": "39432f3f294f03ecb8092654e944305e4f9c1f4c42db5b9b615cc27c578889b2",
+      "xl6IrBuildSyntaxCallSite": "895a00e2cd4849ff070daf530e182dc3747d9e378865097a6831ffa75662d2d3",
+      "xl6IrSyntaxIndexArgumentAt": "dcd265a657c9afd740b70ee0527ed5666fbd2545a8ddb6837eb86f955101d662",
+      "xl6IrNodeGet": "a1d6375145b7123c25224c480e656eac97cf0e136d27f16c0fe07193023de520",
+      "xl6IrBuildCallSiteDispatchSlot": "440aca2e949ccecd85ef65620c8fd3f7eeca2eca6bbda72f6a612746ddd0fd7a",
+      "xl6IrTypeGet": "753e997667f51bbbff554f5ed70be9664f33f94390926062ef81546c5e185dd5",
+      "xl6IrNodeIsPropertyUpdate": "d4e0e086d0f7353194404008739e7914c450ba8187c5e98416c2cfbdedf180a1",
+      "xl6IrCallVariadicAbiForParameter": "43135c562a52dd7fa937648c9ef70b5e2af113d7845b003fe776db426d6a0ec3",
+      "xl6IrSyntaxIndexArgumentCount": "a1c73b87cc63bafa2ade69af5c29541b7b6d519bea0e19833e6de90d3531ea39",
+      "xl6IrCallParameterListGet": "19a297c997d0547f0be1eb1a5c4d721c595bc3ac5ca670aa47766c9bca7e66cf",
+      "xl6IrBuildCallTargetNeedsReceiver": "6cefbf7ead7be65532bfbdc21743a973c27a3866ce7dc0185b3bc03820329fdb",
+      "xl6IrBuildEnclosingClass": "b4c23140b0a3a145eb738874463c384cf9acdcb400340d9fd5b59e3166989a87",
+      "xl6IrNodeIsResolvedSyntaxCall": "be380478f5504624e5a1a5833c67423005f93bdfdf51f6709d6f92c65284e465",
+      "xl6IrBuildCallSite": "8210edeea32a23d47e362467084aa2540ce9863373838d5c6681a95d6003d8a4",
+      "xl6IrBuildFunctionValueCallSite": "9956efbc0716250142c36dc06b67e280bf14f9b56ba94e275da7018e736cc2db",
+      "xl6IrBuildCallableVariadicAbi": "d9058fea8640cdd44dc49ae16a970e922c1084b1e7d9ab77255e8af236b2f01a",
+      "xl6IrIntrinsicCallGet": "326e56d70701a2903a93a06bccf16e05745e89ecda1a477431f6e4e887497057"
+    },
+    "nodeGateway": "xlsCallsNodeGet",
+    "typeGateway": "xlsCallsTypeGet",
+    "entryFields": [
+      "callKind",
+      "kind",
+      "lvalueKind",
+      "opcode",
+      "targetSymbol"
+    ],
+    "queriedTypeFields": [
+      "cAbi",
+      "callableErasureAbi",
+      "kind",
+      "paramCount",
+      "parameterAbis",
+      "parameterModes",
+      "params"
+    ],
+    "directNodeReaders": [
+      "xl6IrBuildCallSites",
+      "xl6IrNodeGet"
+    ],
+    "readSet": "Five entry fields;complete traced helper node values/children;actual queried type projection;symbol map,intrinsic origins,class/protocol dispatch projection,initial call rows",
+    "output": "Independent call sites/arguments;relative argument slices;original final contracts",
+    "scope": "Call-table phase only,exact IDs;no ordinary integration"
+  },
+  "profile": {
+    "componentMacro": "XLS_NATIVE_IR_PIPELINE_COMPONENT",
+    "ordinaryEnabled": false,
+    "nodeViews": false,
+    "exitReuse": false,
+    "functionExits": false
+  },
+  "runtimePreserved": {
+    "D:\\GIT\\x-lang\\release\\win_x64\\mdo.exe": "9219de70911e1f02d8e54eadc77c257369e4ea637e5202fcbb04854a29893044",
+    "D:\\GIT\\x-lang\\release\\win_x64\\update.exe": "4c5266fce0a541b9b96fe92b3d2f7d94598aff3b052e420b08b6d47db5e5c6c2",
+    "D:\\GIT\\x-lang\\release\\win_x64\\xge.dll": "127db42612e8a27c8b1f7f74e4653c25f09140f8baac38d16fc564eb74892ef3",
+    "D:\\GIT\\x-lang\\release\\win_x64\\xl.dll": "f31ddbe973ed48d261014ec64fa6b0ba48791fc0313192a19d59467254c0fcd6",
+    "D:\\GIT\\x-lang\\release\\win_x64\\xl.exe": "5288c4e8be9f420ef98caeb11be362017be925f2ad81a0d56946cc6a8c721081",
+    "D:\\GIT\\x-lang\\release\\win_x64\\xlang-ls.exe": "db50f21702ec1aec2423b49274c10884b098f20dbc041f7fe9c301b62feaecd5",
+    "D:\\GIT\\x-lang\\release\\win_x64\\xlang_ide.exe": "a146c451b35aa7284293b185123a9a276bf9e4764f926c266567133386c8d806",
+    "D:\\GIT\\x-lang\\release\\win_x64\\xlang_ide_xge.dll": "7eba677fddada9b605db2d54dd59ee57a9cfc1caf0b574f6cb206ec9de379418",
+    "D:\\GIT\\x-lang\\release\\win_x64\\xlc.dll": "64b2e9830569c84580335b0a2b15a59ce13552ba1ba51933fc82cd75808c0728"
+  },
+  "compiledDefectCases": [
+    {
+      "name": "ignore-common-context",
+      "exit": 1
+    },
+    {
+      "name": "omit-type-reads",
+      "exit": 1
+    },
+    {
+      "name": "omit-node-values",
+      "exit": 1
+    },
+    {
+      "name": "omit-argument-rebase",
+      "exit": 1
+    },
+    {
+      "name": "borrow-unit-names",
+      "exit": 1
+    },
+    {
+      "name": "omit-final-contracts",
+      "exit": 1
+    },
+    {
+      "name": "publish-failed-cache",
+      "exit": 1
+    },
+    {
+      "name": "omit-count-preflight",
+      "exit": 1
+    }
+  ],
+  "retainedFailures": [
+    "v1 fixture referenced an unexposed helper;compiler failure and warning logs retained.",
+    "v2 whole-type-pool common key missed unrelated functions after one target edit;standalone exact context diagnosis retained.",
+    "v3 fixture incorrectly required call-table production when only the default value changed;the audited producer reads the expression ID,not that value;full native JSON comparison verifies the updated value.",
+    "Preparation helpers assumed a fresh IR compile recipe while the qualified cohort reused its IR object;actual original recipe retained and used in v2/v3 followups.",
+    "Earlier rejected IR performance results remain rejected;no rerun or threshold change."
+  ],
+  "timing": {
+    "status": "not-run",
+    "reason": "Observed active external XRT performance compiler workload;avoid concurrent timing",
+    "observationToolPrepared": true,
+    "observationTool": "ide/build/Release/lsp-native-call-cache-20261123/observe-constructor-v1.py"
+  },
+  "defaultRuntimeReplaced": false,
+  "serviceRebuilt": false,
+  "ideRebuilt": false,
+  "languageServerVersion": "0.110",
+  "formalRelease": false,
+  "externalPublishPerformed": false,
+  "wholeLspPerformanceQualified": false,
+  "goalComplete": false,
+  "limits": [
+    "Call-table phase only;raw IR and all other phases still produce normally and complete native verification is mandatory.",
+    "Caches own immutable native values,relative argument slices and independent names;no AST/model/result/cache-container chain is retained.",
+    "Cache input uses exact current native IDs;structural or coordinate changes may decline reuse.",
+    "Retained cache bytes and phase scratch have separate16MiB maxima;these are not a process or complete analysis memory limit.",
+    "External XRT API rejection points do not cover every allocator-internal allocation.",
+    "Native loop reductions are not measured IDE/LSP speedups;IR-only timing was deferred to avoid external performance-build interference."
+  ]
+}
