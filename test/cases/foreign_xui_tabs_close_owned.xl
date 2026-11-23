@@ -1,0 +1,149 @@
+import xui
+from xui import CallbackWidget, TabsCloseProc
+
+extern "fixtureTabsCpuProxy" @header("test/cases/foreign_xui_tabs_close_owned.h") @no_raise @c_result("owned_view") @factory(0,0,releaseProxy) func cpuProxy() as xui.Proxy
+extern "xuiProxyReleaseChecked" @header("xge3_runtime.h") @no_raise @c_result("status",0) func releaseProxy(xui.Proxy proxy)
+extern "fixtureTabsInstallRawClose" @header("test/cases/foreign_xui_tabs_close_owned.h") @no_raise func installRawClose(xui.Tabs tabs) as c_int
+extern "fixtureTabsRawCloseCount" @no_raise func rawCloseCount() as c_int
+extern "fixtureTabsArmOom" @no_raise func armOom(uint64 prefix)
+extern "fixtureTabsClearOom" @no_raise func clearOom() as bool
+
+func clickClose(xui.Context ui, xui.Tabs tabs, c_int index)
+    assert ui.layout() == xui.XUI_OK, "layout before close click"
+    auto rect = tabs.getCloseRect(index)
+    auto world = tabs.getWorldRect()
+    assert rect.fW > 0 and rect.fH > 0, "close button has a hit area"
+    c_int x = c_int(world.fX + rect.fX + rect.fW / 2)
+    c_int y = c_int(world.fY + rect.fY + rect.fH / 2)
+    c_int pressed = ui.inputPointerDown(x, y, xui.XUI_POINTER_BUTTON_LEFT, c_uint(xui.XUI_POINTER_BUTTON_LEFT))
+    assert pressed == xui.XUI_OK, "queue pointer down returned " + string(int(pressed))
+    assert ui.dispatchPendingEvents() == xui.XUI_OK, "dispatch pointer down"
+    assert ui.inputPointerUp(x, y, xui.XUI_POINTER_BUTTON_LEFT, 0) == xui.XUI_OK, "queue pointer up"
+    assert ui.dispatchPendingEvents() == xui.XUI_OK, "dispatch pointer up"
+end
+
+func checkSelection(xui.Widget widget)
+    assert widget.editSetText("a中b") == xui.XUI_OK, "set multibyte text"
+    assert widget.editSetSelection(1, 4) == xui.XUI_OK, "select one character with three bytes"
+    auto first, last = widget.editGetSelection()
+    assert first == c_int(1) and last == c_int(4), "read selection in UTF-8 bytes"
+    assert widget.editSetSelection(4, 4) == xui.XUI_OK, "set collapsed selection"
+    first, last = widget.editGetSelection()
+    assert first == c_int(4) and last == c_int(4), "read collapsed selection"
+end
+
+func checkUnsupported(xui.Widget widget)
+    bool unsupported = false
+    c_int first = 7
+    c_int last = 9
+    try
+        first, last = widget.editGetSelection()
+    catch Error failure
+        unsupported = failure.code == int(xui.XUI_ERROR_UNSUPPORTED)
+    end
+    assert unsupported and first == c_int(7) and last == c_int(9), "failed selection query leaves outputs untouched"
+end
+
+func checkTabs(xui.Context ui, xui.Tabs tabs)
+    CallbackWidget? saved = null
+    int firstCalls = 0
+    int nextCalls = 0
+    TabsCloseProc next = func(CallbackWidget widget, c_int index)
+        assert index == c_int(0), "replacement handles the remaining tab"
+        nextCalls += 1
+        throw RangeError "tabs close callback failed"
+    end
+    tabs.setClose(true, func(CallbackWidget widget, c_int index)
+        assert widget.rect().fW > 0 and index == c_int(1), "first close sees the clicked tab and a live widget"
+        saved = widget
+        tabs.setClose(true, next)
+        assert tabs.removePage(index) == xui.XUI_OK, "callback can remove its page"
+        firstCalls += 1
+    end)
+    clickClose(ui, tabs, 1)
+    assert firstCalls == 1 and nextCalls == 0 and tabs.getItemCount() == c_int(1), "replacement only runs on the next click"
+
+    bool expired = false
+    try
+        auto staleRect = (saved as CallbackWidget).rect()
+    catch StateError
+        expired = true
+    end
+    assert expired, "saved callback widget expires"
+
+    bool originalError = false
+    try
+        clickClose(ui, tabs, 0)
+    catch RangeError failure
+        originalError = failure.message == "tabs close callback failed"
+    end
+    assert originalError and nextCalls == 1 and tabs.getItemCount() == c_int(1), "original callback error reaches the checked boundary"
+
+    assert installRawClose(tabs) == xui.XUI_OK, "raw registration replaces the owned callback"
+    clickClose(ui, tabs, 0)
+    assert rawCloseCount() == c_int(1) and nextCalls == 1, "only the raw callback runs"
+    int failures = 0
+    for prefix in range(16)
+        bool rejected = false
+        bool hit = false
+        armOom(uint64(prefix))
+        try
+            tabs.setClose(false, next)
+        catch Error
+            rejected = true
+        finally
+            hit = clearOom()
+        end
+        if rejected then
+            assert hit, "registration fails only at an injected allocation"
+            c_int previous = rawCloseCount()
+            clickClose(ui, tabs, 0)
+            assert rawCloseCount() == previous + c_int(1) and nextCalls == 1, "failed registration keeps the old callback and close button"
+            failures += 1
+        else
+            assert not hit, "successful registration did not consume an injected failure"
+            c_int previous = rawCloseCount()
+            clickClose(ui, tabs, 0)
+            assert rawCloseCount() == previous and nextCalls == 1, "hidden close button does not dispatch"
+            assert installRawClose(tabs) == xui.XUI_OK, "restore raw callback for the next attempt"
+        end
+    end
+    assert failures > 0 and failures < 16, "OOM sweep reaches both rejected and successful registrations"
+    tabs.setClose(false, null)
+    c_int previous = rawCloseCount()
+    clickClose(ui, tabs, 0)
+    assert rawCloseCount() == previous and nextCalls == 1, "null callback clears the close action"
+end
+
+func main(...) as int
+    auto proxy = cpuProxy()
+    auto ui = xui.create(proxy, xui.XUI_SYSTEM_FONT_DISABLED)
+    checkSelection(ui.inputNative())
+    checkSelection(ui.textEditNative())
+    checkSelection(ui.codeEditNative())
+    checkUnsupported(ui.panelNative())
+
+    auto root = ui.widget()
+    root.setFlowMode(xui.XUI_FLOW_ABSOLUTE)
+    assert ui.setRootWidget(root) == xui.XUI_OK
+    ui.setViewportSize(480, 280)
+    auto viewport = xui.Rect()
+    viewport.fW = 480
+    viewport.fH = 280
+    assert root.setRect(viewport) == xui.XUI_OK
+    auto tabs = ui.tabsNative()
+    assert root.addChild(tabs) == xui.XUI_OK
+    auto rect = xui.Rect()
+    rect.fX = 10
+    rect.fY = 10
+    rect.fW = 400
+    rect.fH = 220
+    assert tabs.setRect(rect) == xui.XUI_OK
+    tabs.setItems(["First", "Second"])
+    tabs.setTabSize(120, 32)
+    checkTabs(ui, tabs)
+    ui.close()
+    proxy.close()
+    println("XUI_TABS_CLOSE_OWNED_OK")
+    return 0
+end

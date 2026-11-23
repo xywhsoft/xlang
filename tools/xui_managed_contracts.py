@@ -159,6 +159,9 @@ METHODS = {'xuiResourceFind': ['xui_resource xuiResourceFind(xui_context pContex
  'xuiEditGetTextView': ['int xuiEditGetTextView(xui_widget pWidget, xstrview* pView)',
                         'Widget',
                         ['extern "xuiEditGetTextView" @no_raise @c_output(1,0) @c_output_view(1,"text") func editGetText() as string?']],
+ 'xuiEditGetSelection': ['int xuiEditGetSelection(xui_widget pWidget, int* pStart, int* pEnd)',
+                         'Widget',
+                         ['extern "xuiEditGetSelection" @no_raise @c_outputs(1,2) @c_status(0) func editGetSelection() as (c_int,c_int)']],
  'xuiGetLanguagePack': ['xui_language xuiGetLanguagePack(xui_context pContext, int iLanguageId)',
                         'Context',
                         ['extern "xuiGetLanguagePack" @no_raise @c_result("owner_view",0) func languagePack(c_int id) as Language?']],
@@ -659,6 +662,10 @@ CALLBACKS = {'xui_accessibility_event_proc': ('typedef void (*xui_accessibility_
                                  'export typedef RadioGroupChangeProc = func(Widget,Widget?,c_int)')}
 
 CALLBACKS.update({
+    'xui_tabs_close_proc': (
+        'typedef void (*xui_tabs_close_proc)(xui_widget_t* pWidget, int iIndex, void* pUser);',
+        'export typedef TabsCloseProc = func(CallbackWidget,c_int)',
+    ),
     'xui_numeric_input_text_owned_proc': (
         'typedef xstrview (*xui_numeric_input_text_owned_proc)(float fValue, void* pUser);',
         'export typedef NumericInputFormatter = func(c_float) as string',
@@ -1718,6 +1725,7 @@ REPLACED = {
     'xuiStatusBarSetContextMenu': ('xui.StatusBar.setContextMenu', 'xuiStatusBarSetContextMenuOwned'),
     'xuiStatusBarSetSelect': ('xui.StatusBar.setSelect', 'xuiStatusBarSetSelectOwned'),
     'xuiTabsSetContextMenu': ('xui.Tabs.setContextMenu', 'xuiTabsSetContextMenuOwned'),
+    'xuiTabsSetClose': ('xui.Tabs.setClose', 'xuiTabsSetCloseOwned'),
     'xuiTabsSetSelect': ('xui.Tabs.setSelect', 'xuiTabsSetSelectOwned'),
     'xuiTagInputSetChange': ('xui.TagInput.setChange', 'xuiTagInputSetChangeOwned'),
     'xuiTagInputSetContextMenu': ('xui.TagInput.setContextMenu', 'xuiTagInputSetContextMenuOwned'),

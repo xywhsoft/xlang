@@ -1,0 +1,164 @@
+{
+  "schema": 1,
+  "scope": "Direct edit selection output and owned tab close notifications",
+  "nativeCommit": "b3cf0b2fb2658730f9bf3e08cefbe87f7c2dcff8",
+  "nativeOverlayParent": "b7fe7710878384614d76163cd1b56eaf23af627b",
+  "shippingDelivery": false,
+  "networkTests": false,
+  "validation": {
+    "utf8ByteOffsets": [
+      "Input",
+      "TextEdit",
+      "CodeEdit"
+    ],
+    "collapsedSelections": true,
+    "unsupportedLeavesOutputsUntouched": true,
+    "pointerHitDispatch": true,
+    "inFlightReplaceAndRemovePage": true,
+    "callbackViewExpiry": true,
+    "originalException": true,
+    "rawReplacement": true,
+    "registrationOomPreservesPrevious": true,
+    "hidesCloseAction": true
+  },
+  "sourceSha256NormalizedLf": {
+    "docs/xge3-xui3-api-map-storage.json": "33fbf8b0f4cfc0c926b66832a15cc732185fe011d3f7438ff9c346ad6f52bb23",
+    "tools/xui_managed_contracts.py": "5c4416ebc2bf0361cd492f87b5b1fd714dcd3c014db5a1894301827908238ee1",
+    "lib/bindings/xui/src/managed.xl": "adf67c3434b2211b8d479b28f34430291d8a89d665736f7ea31834fdc176fba3",
+    "lib/bindings/xui/examples/tabs.xl": "6f6edfa6dcd77fae5f1a0383e8b058a1073439ee9a509d1de0fee9a447d30d73",
+    "lib/bindings/xui/examples/README.md": "94619ed6e6a3b0350c107a0973a5cf70ff59e32d8475a3abcdb41dd2b62e4429",
+    "test/cases/foreign_xui_tabs_close_owned.xl": "53912931a0b5ebaf514d86632c350f3d54e695599927c94ae33dabae306bc8f4",
+    "test/cases/foreign_xui_tabs_close_owned.c": "7229438dea6c2a64cdf426586c34c47e124c75c444bc6e420f267b2b5c57b560",
+    "test/cases/foreign_xui_tabs_close_owned.h": "3627181ae3acf8915e4d393714a83a455e304c12cacfc4c83e80320b72a1d131"
+  },
+  "nativeSourceSha256NormalizedLf": {
+    "include/xui.h": "6d401a542a61e732276f71628329fb941135f08aef4f98f416b4edfe1e171020",
+    "src/xui/controls/xui_tabs.c": "53c039e85b29ddf415730210e197973f20f9e3928506179995c1bf978b4ebb8c"
+  },
+  "selectionPerformanceScope": "A single warmed JIT sample of 10,000 successful selection reads against the same Input widget with each language. Timings include checks and the loop. The sample excludes widget setup, conversion of the selected text and callback dispatch.",
+  "selectionPerformanceInputs": {
+    "selection.c": {
+      "path": "F:/xlang-validation/xge-full-20261110/tabs-selection-performance-r1/selection.c",
+      "sha256": "b1a3697bafcb2e2d2835efb6eb5cab4654b740b6803e311da9cde5a910f6ac73"
+    },
+    "selection.h": {
+      "path": "F:/xlang-validation/xge-full-20261110/tabs-selection-performance-r1/selection.h",
+      "sha256": "dc175684d90f4b5ecb49f6c1dbe52bf3977d3f3ebee7f39ac96788c45050ed9e"
+    },
+    "selection.xl": {
+      "path": "F:/xlang-validation/xge-full-20261110/tabs-selection-performance-r1/selection.xl",
+      "sha256": "21a81bcb1ac1b2483f548f737c011201ae90574739cba02cdac3339aff1449c9"
+    }
+  },
+  "platforms": {
+    "win": {
+      "nativeSource": {
+        "path": "F:/xlang-validation/xge-full-20261110/tabs-close-native-source-win-r2.json",
+        "sha256": "e75969c90c33e2c3e50d46233b9d747e484de69f04ee7312e0407645b6cbebae"
+      },
+      "matchedPackages": {
+        "path": "F:/xlang-validation/xge-full-20261110/tabs-close-stage-win-r5/replay/stage-report.json",
+        "sha256": "47c521bc8349c4da962291648cd09040faacefb6eab2e127dc447e57b4c40c99"
+      },
+      "jitAndAotWithImports": {
+        "path": "F:/xlang-validation/xge-full-20261110/tabs-close-verify-win-r3/results.json",
+        "sha256": "34298694c2ae2aac9b2b747a65fe4668643fae495346494b9aa6b5df8f24a47e"
+      },
+      "nativeTabsRegressionO0O2": {
+        "path": "F:/xlang-validation/xge-full-20261110/tabs-close-native-verify-win-r1/results.json",
+        "sha256": "e814385f89ad627fb7a473fa658b7491c6b9cbb047edcee9de5adee382a6ead4"
+      },
+      "nativeConsumerAudit": {
+        "path": "F:/xlang-validation/xge-full-20261110/tabs-close-consumers-win-r3/results.json",
+        "sha256": "474bf6d6c1378443a7f3e1950294425cb3225e3889ca8e53c4b89af95a6e5dcf"
+      },
+      "selectionPerformanceLog": {
+        "path": "F:/xlang-validation/xge-full-20261110/tabs-selection-performance-r1/win/results.log",
+        "sha256": "0f4e2b9e56132354c1d620bf2ae1f53d2454ce22741d165792bf49f9f32484ec"
+      },
+      "selectionPerformanceSamples": [
+        {
+          "language": "C",
+          "xrtAlloc": 0,
+          "xrtFree": 0,
+          "xrtRealloc": 0,
+          "wallMs": 0.55
+        },
+        {
+          "language": "xlang",
+          "xrtAlloc": 0,
+          "xrtFree": 0,
+          "xrtRealloc": 0,
+          "wallMs": 12.6446
+        }
+      ],
+      "functionPopulation": 5882,
+      "directDeclarations": 4819,
+      "pendingConsumerOrReplacement": {
+        "XGE": 38,
+        "XUI": 69
+      }
+    },
+    "linux": {
+      "nativeSource": {
+        "path": "//wsl.localhost/Ubuntu/var/tmp/xlang-validation/xge-full-20261110/tabs-close-native-source-linux-r2.json",
+        "sha256": "8e527f0b2dbbae96ef9ead37f1ec5a660aa209dddf74c1afaaf780351358a33d"
+      },
+      "matchedPackages": {
+        "path": "//wsl.localhost/Ubuntu/var/tmp/xlang-validation/xge-full-20261110/tabs-close-stage-linux-r5/replay/stage-report.json",
+        "sha256": "b7dd9d902b29bdf4255a999da088e6ba17aada0b8c021677edc6d2ea3f9b76f3"
+      },
+      "jitAndAotWithImports": {
+        "path": "//wsl.localhost/Ubuntu/var/tmp/xlang-validation/xge-full-20261110/tabs-close-verify-linux-r3/results.json",
+        "sha256": "d5e281c6b48f0ac1d82684805a164a87f74aedc8e1d8d217adf1425340ff8dbd"
+      },
+      "nativeTabsRegressionO0O2": {
+        "path": "//wsl.localhost/Ubuntu/var/tmp/xlang-validation/xge-full-20261110/tabs-close-native-verify-linux-r1/results.json",
+        "sha256": "bc39e22af9d3baac7e84e40f88a36105a514e9a5a36c4ee8b7c0093a1e2c50c4"
+      },
+      "nativeConsumerAudit": {
+        "path": "//wsl.localhost/Ubuntu/var/tmp/xlang-validation/xge-full-20261110/tabs-close-consumers-linux-r3/results.json",
+        "sha256": "14096aadd4ada75755359e2caabca9f940e3aff45de1151da4060dd21e0fe593"
+      },
+      "selectionPerformanceLog": {
+        "path": "//wsl.localhost/Ubuntu/var/tmp/xlang-validation/xge-full-20261110/tabs-selection-performance-linux-r1/results.log",
+        "sha256": "3077f7cdff86b11120895d180d63ccfcbdbb15f301ab5ecf2e7af59c8047d939"
+      },
+      "selectionPerformanceSamples": [
+        {
+          "language": "C",
+          "xrtAlloc": 0,
+          "xrtFree": 0,
+          "xrtRealloc": 0,
+          "wallMs": 0.3135
+        },
+        {
+          "language": "xlang",
+          "xrtAlloc": 0,
+          "xrtFree": 0,
+          "xrtRealloc": 0,
+          "wallMs": 9.101
+        }
+      ],
+      "functionPopulation": 5882,
+      "directDeclarations": 4819,
+      "pendingConsumerOrReplacement": {
+        "XGE": 38,
+        "XUI": 69
+      }
+    }
+  },
+  "example": {
+    "windowsGeneratedC": {
+      "path": "F:/xlang-validation/xge-full-20261110/tabs-close-example-win-r1.c",
+      "sha256": "2d1ab44cf3534aa4075e6679b36db4a57f503dcf69dc96f0b9636f559dedfd71"
+    },
+    "linuxXvfbRender": {
+      "format": "raw RGBA",
+      "width": 800,
+      "height": 600,
+      "path": "//wsl.localhost/Ubuntu/var/tmp/xlang-validation/xge-full-20261110/tabs-close-example-linux-r1.png",
+      "sha256": "b30668ccb911a03fdaf31ee500f98b021113903cde48d8c72701bfccabed9d87"
+    }
+  }
+}

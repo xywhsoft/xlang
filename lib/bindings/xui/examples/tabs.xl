@@ -1,4 +1,5 @@
-// 点击标签切换页面；用左右箭头或末尾列表按钮查看隐藏的标签。
+// 点击标签切换页面，用左右箭头或末尾列表按钮查看隐藏的标签。
+// 点击标签的关闭按钮可移除该页。
 import xui
 from "./_window.xl" import Window
 
@@ -20,4 +21,7 @@ Window.show("Tabs / Context-owned pages", func(xui.Context ui, xui.Widget root)
   tabs.addPageChild(c_int(i), page)
  end
  tabs.setSelected(0)
+ tabs.setClose(true, func(xui.CallbackWidget widget, c_int index)
+  tabs.removePage(index)
+ end)
 end)

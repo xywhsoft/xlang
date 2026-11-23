@@ -1,5 +1,29 @@
 # Native consumers in the full API inventory
 
+## Tab close callbacks and common edit selection
+
+`Tabs.setClose()` registers through the native owned callback slot. Pointer
+dispatch keeps the in-flight closure alive while the handler replaces itself
+and removes its page. The callback widget expires when the handler returns.
+The original callback error reaches the checked dispatch boundary. Legacy C
+registration can replace the owned handler. Injected registration failures
+preserve the previous callback and its close button.
+
+`Widget.editGetSelection()` calls the native editing adapter once and returns
+both offsets as a checked pair. Tests cover UTF-8 byte offsets in Input,
+TextEdit and CodeEdit, collapsed selections, and an unsupported widget that
+leaves the caller's destinations intact.
+
+Windows and Linux pass JIT and dynamic and static AOT. A small JIT comparison
+of 10,000 prewarmed selection reads recorded zero XRT heap operations in both
+C and xlang. The elapsed times, including loop and checks, were 0.55/12.64 ms
+on Windows and 0.31/9.10 ms on Linux for C/xlang.
+
+The matched inventories cover 5,882 functions with 4,819 direct declarations.
+The remaining 107 entries comprise 38 XGE and 69 XUI functions.
+
+[Tab close and edit selection evidence](../dev/release-materials/provenance/xui-tabs-close-20261124.json)
+
 ## Zero-initialized GPU buffers and native mesh factories
 
 `xge.createGpuBuffer(kind, usage, size)` passes a typed NULL and the byte
