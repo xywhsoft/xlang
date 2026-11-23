@@ -1,0 +1,32 @@
+// 在一次列替换中设置列信息和对应的格式化器。
+import xui
+from xui import CallbackTableColumnSetup, CallbackTableViewCell, CallbackTableViewFormatOutput, CallbackWidget
+
+func main(...) as int
+    auto proxy = xui.createProxy()
+    auto ui = xui.create(proxy, xui.XUI_SYSTEM_FONT_DISABLED)
+    try
+        auto table = ui.tableViewNative()
+        xui.TableColumnSettings stock
+        stock.iId = 1
+        stock.fWidth = 120
+        array<string?> ids = ["stock"]
+        array<string?> titles = ["库存"]
+        table.setColumnsWithCallbacks([stock], ids, titles, configure=func(CallbackTableColumnSetup setup) as c_int
+            setup.setFormatter(0, func(CallbackWidget widget,c_int row,c_int column,CallbackTableViewCell cell,CallbackTableViewFormatOutput output) as c_int
+                output.setText("有货")
+                return 0
+            end)
+            return 0
+        end)
+        xui.TableViewRow row
+        row.fHeight = 24
+        assert table.setRows([row]) == 0
+        auto id,parent,role,state,name,value,description,bounds,start,finish,level,r,c,rows,columns,actions,rangeInfo = table.getAccessibleNode(1)
+        println(name ?? "")
+    finally
+        ui.close()
+        proxy.close()
+    end
+    return 0
+end

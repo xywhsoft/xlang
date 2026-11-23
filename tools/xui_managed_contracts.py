@@ -841,6 +841,9 @@ TYPE_SHAPES.update({
 })
 
 CALLBACKS.update({
+    'xui_table_column_setup_proc': (
+        'typedef int (*xui_table_column_setup_proc)(xui_table_column_setup_t* pSetup, void* pUser);',
+        'export typedef TableColumnSetupProc = func(CallbackTableColumnSetup) as c_int'),
     'xui_property_grid_validate_proc': (
         'typedef int (*xui_property_grid_validate_proc)(xui_widget_t* pWidget, int iProperty, const char* sId, '
         'const char* sValue, int iType, void* pUser);',
@@ -861,6 +864,8 @@ METHODS.update({
         'TableView', ['extern "xuiTableViewGetColumnDescriptor" @no_raise @c_output_record(2,"xui_table_column_desc_t","borrowed") @c_status(0) @c_output_field(0,"tSettings") @c_output_field(1,"sId","cstring") @c_output_field(2,"sTitle","cstring") @c_output_field(3,"tRect") func getColumn(c_int index) as (TableColumnSettings,string?,string?,Rect)']],
     'xuiTableViewSetColumnDescriptors': ['int xuiTableViewSetColumnDescriptors(xui_widget pWidget, const xui_table_column_desc_t* pColumns, int iCount)',
         'TableView', ['extern "xuiTableViewSetColumnDescriptors" @no_raise @c_array_group(1,0,3,"int",3) @c_array_record(1,"xui_table_column_desc_t") @c_array_field(1,"tSettings",0,"value") @c_array_field(1,"sId",1,"c_string") @c_array_field(1,"sTitle",2,"c_string") @c_result("status",0) func setColumnsDetailed(array<TableColumnSettings> settings,array<string?> ids,array<string?> titles,int size=-1)']],
+    'xuiTableViewSetColumnDescriptorsWithCallbacks': ['int xuiTableViewSetColumnDescriptorsWithCallbacks(xui_widget pWidget, const xui_table_column_desc_t* pColumns, int iCount, xui_table_column_setup_proc onSetup, void* pUser)',
+        'TableView', ['extern "xuiTableViewSetColumnDescriptorsWithCallbacks" @no_raise @c_array_group(1,0,3,"int",3) @c_array_record(1,"xui_table_column_desc_t") @c_array_field(1,"tSettings",0,"value") @c_array_field(1,"sId",1,"c_string") @c_array_field(1,"sTitle",2,"c_string") @c_sync_callback(4,-1,-16,"last","xge3_runtime.h") @c_result("status",0) func setColumnsWithCallbacks(array<TableColumnSettings> settings,array<string?> ids,array<string?> titles,int size=-1,TableColumnSetupProc? configure=null)']],
     'xuiTableViewSetHeaderRendererOwned': ['int xuiTableViewSetHeaderRendererOwned(xui_widget pWidget, xui_table_view_header_renderer_proc onRender, void* pUser, const xui_callback_owner_t* pOwner)',
         'TableView', ['extern "xuiTableViewSetHeaderRendererOwned" @no_raise @c_owned_callback(0,0,"xui_callback_owner_t",-16) @c_result("status",0) func setHeaderRenderer(TableViewHeaderRenderer? renderer)']],
     'xuiTableViewSetCellRendererOwned': ['int xuiTableViewSetCellRendererOwned(xui_widget pWidget, xui_table_view_cell_renderer_proc onRender, void* pUser, const xui_callback_owner_t* pOwner)',
@@ -933,6 +938,8 @@ METHODS.update({
         'TableGrid', ['extern "xuiTableGridGetColumnDescriptor" @no_raise @c_output_record(2,"xui_table_column_desc_t","borrowed") @c_status(0) @c_output_field(0,"tSettings") @c_output_field(1,"sId","cstring") @c_output_field(2,"sTitle","cstring") @c_output_field(3,"tRect") func getColumn(c_int index) as (TableColumnSettings,string?,string?,Rect)']],
     'xuiTableGridSetColumnDescriptors': ['int xuiTableGridSetColumnDescriptors(xui_widget pWidget, const xui_table_column_desc_t* pColumns, int iCount)',
         'TableGrid', ['extern "xuiTableGridSetColumnDescriptors" @no_raise @c_array_group(1,0,3,"int",3) @c_array_record(1,"xui_table_column_desc_t") @c_array_field(1,"tSettings",0,"value") @c_array_field(1,"sId",1,"c_string") @c_array_field(1,"sTitle",2,"c_string") @c_result("status",0) func setColumnsDetailed(array<TableColumnSettings> settings,array<string?> ids,array<string?> titles,int size=-1)']],
+    'xuiTableGridSetColumnDescriptorsWithCallbacks': ['int xuiTableGridSetColumnDescriptorsWithCallbacks(xui_widget pWidget, const xui_table_column_desc_t* pColumns, int iCount, xui_table_column_setup_proc onSetup, void* pUser)',
+        'TableGrid', ['extern "xuiTableGridSetColumnDescriptorsWithCallbacks" @no_raise @c_array_group(1,0,3,"int",3) @c_array_record(1,"xui_table_column_desc_t") @c_array_field(1,"tSettings",0,"value") @c_array_field(1,"sId",1,"c_string") @c_array_field(1,"sTitle",2,"c_string") @c_sync_callback(4,-1,-16,"last","xge3_runtime.h") @c_result("status",0) func setColumnsWithCallbacks(array<TableColumnSettings> settings,array<string?> ids,array<string?> titles,int size=-1,TableColumnSetupProc? configure=null)']],
     'xuiTableViewGetSortColumn': ['int xuiTableViewGetSortColumn(xui_widget pWidget, int* pDescending)',
         'TableView', ['extern "xuiTableViewGetSortColumn" @no_raise @c_outputs(-1,1) @c_result("integer_min",-1) func getSortColumn() as (c_int,c_int)']],
 })
@@ -1834,6 +1841,11 @@ CALLBACKS.update({'xui_inventory_filter_proc': ('typedef int (*xui_inventory_fil
                                 'const xui_inventory_slot_t* pSlotB, void* pUser);',
                                 'export typedef InventoryCompareProc = func(CallbackWidget,c_int,CallbackInventorySlot,c_int,CallbackInventorySlot) as c_int')})
 VIEWS.update({
+    'CallbackTableColumnSetup': """export extern "xui_table_column_setup_t*" class CallbackTableColumnSetup @header("xge3_runtime.h") @lifetime("callback")
+ native point handle
+ extern "xuiTableColumnSetupSetFormatter" @no_raise @c_owned_callback(1,-1,"xui_callback_owner_t",-16) @c_result("status",0) func setFormatter(c_int column,TableViewColumnFormatter? formatter)
+ extern "xuiTableColumnSetupSetRenderer" @no_raise @c_owned_callback(1,-1,"xui_callback_owner_t",-16) @c_result("status",0) func setRenderer(c_int column,TableViewCellRenderer? renderer)
+end""",
     'ListSelectionBuffer': """export extern "xui_list_selection_buffer" class ListSelectionBuffer @header("xge3_runtime.h") @lifetime("owned") @policy("xl6Xui3ListSelectionBufferPolicy")
  native point handle
  extern "xuiListSelectionBufferGetCapacity" @no_raise @c_result("integer_min",0) func capacity() as c_int
@@ -1862,6 +1874,9 @@ end""",
 end""",
 })
 VIEW_FUNCTIONS["xuiInventoryIndicesGet"] = 'int xuiInventoryIndicesGet(xui_inventory_indices pIndices, const int** ppSlots, size_t* pCount)'
+VIEW_FUNCTIONS['xuiTableColumnSetupSetFormatter'] = 'int xuiTableColumnSetupSetFormatter(xui_table_column_setup_t* pSetup, int iColumn, xui_table_view_format_owned_proc onFormat, void* pUser, const xui_callback_owner_t* pOwner)'
+VIEW_FUNCTIONS['xuiTableColumnSetupSetRenderer'] = 'int xuiTableColumnSetupSetRenderer(xui_table_column_setup_t* pSetup, int iColumn, xui_table_view_cell_renderer_proc onRender, void* pUser, const xui_callback_owner_t* pOwner)'
+RECORDS['xui_table_column_setup_t'] = 'typedef struct xui_table_column_setup_t xui_table_column_setup_t;'
 VIEW_FUNCTIONS['xuiListSelectionBufferGetCapacity'] = 'int xuiListSelectionBufferGetCapacity(xui_list_selection_buffer pBuffer)'
 VIEW_FUNCTIONS['xuiListSelectionBufferGet'] = 'int xuiListSelectionBufferGet(xui_list_selection_buffer pBuffer, int iIndex)'
 RECORDS.update({
@@ -1872,6 +1887,8 @@ RECORDS.update({
     'xui_list_selection_buffer': 'typedef struct xui_list_selection_buffer_t* xui_list_selection_buffer;',
 })
 REPLACED.update({
+    "xuiTableViewSetColumns": ("xui.TableView.setColumnsWithCallbacks", "xuiTableViewSetColumnDescriptorsWithCallbacks"),
+    "xuiTableGridSetColumns": ("xui.TableGrid.setColumnsWithCallbacks", "xuiTableGridSetColumnDescriptorsWithCallbacks"),
     "xuiListViewSetSelectionBuffer": ("xui.ListView.setSelectionBuffer", "xuiListViewSetSelectionBufferOwned"),
     "xuiInventoryGridSetSlot": ("xui.InventoryGrid.setSlot", "xuiInventoryGridSetSlotDescriptor"),
     "xuiInventoryGridGetSlot": ("xui.InventoryGrid.getSlot", "xuiInventoryGridGetSlotDescriptor"),
@@ -2200,6 +2217,8 @@ def extend(context,classes,free,callback_declarations,mapped):
     mapped['xuiInventoryIndicesGet']='xui.InventoryIndices.indices'
     mapped['xuiListSelectionBufferGetCapacity']='xui.ListSelectionBuffer.capacity'
     mapped['xuiListSelectionBufferGet']='xui.ListSelectionBuffer.get'
+    mapped['xuiTableColumnSetupSetFormatter']='xui.CallbackTableColumnSetup.setFormatter'
+    mapped['xuiTableColumnSetupSetRenderer']='xui.CallbackTableColumnSetup.setRenderer'
     mapped.update(xuiEventDragData='xui.CallbackConstEvent.dragData',xuiRequestClose='xui.CallbackContext.requestClose')
 
 

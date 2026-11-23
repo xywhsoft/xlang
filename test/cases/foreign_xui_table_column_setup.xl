@@ -1,0 +1,130 @@
+import xui
+from xui import CallbackTableColumnSetup, CallbackWidget, CallbackTableViewCell, CallbackTableViewFormatOutput
+from xui import CallbackDrawContext, Proxy, Surface, Font, Rect, TableViewRow
+
+extern "fixtureRenderProxy" @header("test/cases/foreign_xui_render_backend.h") @no_raise @c_result("owned_view") @factory(0,0,dropProxy) func cpuProxy() as Proxy
+extern "fixtureRenderSurface" @no_raise @c_result("owned_view") @factory(1,0,dropSurface) func cpuSurface(Proxy proxy) as Surface
+extern "fixtureRenderFont" @no_raise @c_result("owned_view") @factory(1,0,dropFont) func cpuFont(Proxy proxy) as Font
+extern "fixtureRenderBalanced" @no_raise func balanced() as c_int
+extern "fixtureRenderSawText" @no_raise @c_cstr(0) func sawText(string text) as c_int
+extern "fixtureRenderBudget" @no_raise func budget(c_int allowance)
+extern "xuiProxyReleaseChecked" @header("xge3_runtime.h") @no_raise @c_result("status",0) func dropProxy(Proxy value)
+extern "xuiSurfaceReleaseChecked" @no_raise @c_result("status",0) func dropSurface(Surface value)
+extern "xuiFontReleaseChecked" @no_raise @c_result("status",0) func dropFont(Font value)
+
+func cellName(xui.TableView table) as string
+    auto id,parent,role,state,name,value,description,bounds,start,finish,level,row,column,rows,columns,actions,rangeInfo = table.getAccessibleNode(1)
+    return name ?? ""
+end
+
+func main(...) as int
+    auto proxy = cpuProxy()
+    auto target = cpuSurface(proxy)
+    auto font = cpuFont(proxy)
+    auto ui = xui.create(proxy, xui.XUI_SYSTEM_FONT_DISABLED)
+    try
+        ui.setViewportSize(320, 160)
+        auto table = ui.tableViewNative()
+        auto grid = ui.tableGridNative()
+        Rect bounds
+        bounds.fW = 320
+        bounds.fH = 160
+        assert table.setRect(bounds) == 0 and ui.setRootWidget(table) == 0
+        table.setFont(font)
+        table.setColumns(["Previous"], [120])
+        TableViewRow row
+        row.fHeight = 31
+        assert table.setRows([row]) == 0
+
+        xui.TableColumnSettings settings
+        settings.iId = 21
+        settings.fWidth = 140
+        array<string?> ids = ["unit-price"]
+        array<string?> titles = ["Price"]
+        CallbackTableColumnSetup? saved = null
+        int rendered = 0
+        xui.TableViewColumnFormatter formatter = func(CallbackWidget widget,c_int iRow,c_int column,CallbackTableViewCell cell,CallbackTableViewFormatOutput output) as c_int
+            assert iRow == 0 and column == 0
+            output.setText("Formatted price")
+            return 0
+        end
+        xui.TableViewCellRenderer renderer = func(CallbackWidget widget,c_int iRow,c_int column,CallbackTableViewCell cell,CallbackDrawContext draw,Rect area,c_int state) as c_int
+            assert iRow == 0 and column == 0 and area.fH == 31
+            rendered += 1
+            return 0
+        end
+        table.setColumnsWithCallbacks([settings], ids, titles, configure=func(CallbackTableColumnSetup setup) as c_int
+            auto old,oldId,oldTitle,oldRect = table.getColumn(0)
+            assert (oldTitle ?? "") == "Previous"
+            saved = setup
+            setup.setFormatter(0, formatter)
+            setup.setRenderer(0, renderer)
+            return 0
+        end)
+        auto applied,appliedId,appliedTitle,appliedRect = table.getColumn(0)
+        assert applied.iId == 21 and (appliedTitle ?? "") == "Price"
+        assert cellName(table) == "Formatted price"
+        assert ui.layout() == 0
+        ui.render(target)
+        assert rendered == 1 and sawText("Formatted price") != 0
+
+        bool expired = false
+        try
+            (saved as CallbackTableColumnSetup).setFormatter(0, null)
+        catch StateError
+            expired = true
+        end
+        assert expired
+
+        settings.iId = 99
+        bool failed = false
+        try
+            table.setColumnsWithCallbacks([settings], ids, titles, configure=func(CallbackTableColumnSetup setup) as c_int
+                setup.setFormatter(0, null)
+                throw RuntimeError "column setup rejected"
+            end)
+        catch RuntimeError error
+            failed = error.message == "column setup rejected"
+        end
+        assert failed and cellName(table) == "Formatted price"
+        auto previous,previousId,previousTitle,previousRect = table.getColumn(0)
+        assert previous.iId == 21
+
+        failed = false
+        budget(0)
+        try
+            table.setColumnsWithCallbacks([settings], ids, titles, configure=func(CallbackTableColumnSetup setup) as c_int
+                setup.setFormatter(0, formatter)
+                return 0
+            end)
+        catch Error
+            failed = true
+        finally
+            budget(-1)
+        end
+        assert failed and cellName(table) == "Formatted price"
+
+        table.close()
+        assert grid.setRect(bounds) == 0 and ui.setRootWidget(grid) == 0
+        grid.setFont(font)
+        grid.setColumnsWithCallbacks([settings], ids, titles, configure=func(CallbackTableColumnSetup setup) as c_int
+            setup.setFormatter(0, formatter)
+            setup.setRenderer(0, renderer)
+            return 0
+        end)
+        assert grid.setRows([row]) == 0 and ui.layout() == 0
+        ui.render(target)
+        assert rendered == 2
+        auto current,currentId,currentTitle,currentRect = grid.getColumn(0)
+        assert current.iId == 99
+        grid.close()
+    finally
+        ui.close()
+        font.close()
+        target.close()
+        proxy.close()
+    end
+    assert balanced() != 0
+    println("XUI_TABLE_COLUMN_SETUP_OK")
+    return 0
+end

@@ -1,5 +1,20 @@
 # Native consumers in the full API inventory
 
+## Table column setup
+
+`TableView.setColumnsWithCallbacks()` and `TableGrid.setColumnsWithCallbacks()`
+replace the raw column setters with a single checked publication of the column
+data and optional per-column callbacks. The temporary setup view holds each
+candidate owner until the native table can transfer it to the callback directory.
+The old configuration is readable during setup and remains active after a
+prepublication failure.
+
+The Windows and Linux inventories cover 5,860 native functions. There are
+186 entries without a direct declaration, compiled consumer or explicit
+replacement. XGE accounts for 84 and XUI for 102.
+
+[Table column setup evidence](../dev/release-materials/provenance/xui-table-column-setup-20261123.json)
+
 ## ListView selection storage
 
 `ListView.setSelectionBuffer()` uses a fixed-capacity native allocation shared

@@ -1,0 +1,201 @@
+{
+  "schema": 1,
+  "scope": "Atomic table-column settings and owned per-column callbacks",
+  "nativeCommit": "86078a320f06f673d462aa60089b3f8db857dead",
+  "engineBaseCommit": "3a7e9d6a9c30873537b015ea700c0ab56c2ed79b",
+  "shippingDelivery": false,
+  "networkTests": false,
+  "legacyApiReplacements": {
+    "xuiTableViewSetColumns": "xuiTableViewSetColumnDescriptorsWithCallbacks",
+    "xuiTableGridSetColumns": "xuiTableGridSetColumnDescriptorsWithCallbacks"
+  },
+  "verification": {
+    "setupCanReadPreviousColumns": true,
+    "sameTableReconfigurationIsBusy": true,
+    "setupCallbackScopeExpires": true,
+    "nativeHoldTransfersExactlyOneReferencePerCallback": true,
+    "previousOwnersDropAfterPublication": true,
+    "rejectedOrOomSetupPreservesPreviousColumnsAndCallbacks": true,
+    "destroyDuringSetupReleasesCandidates": true,
+    "realFormattingAndCpuRendering": true,
+    "staticAotHasNoEngineOrCompilerDllImport": true,
+    "sampleQualification": "One JIT sample of 1,000 warmed replacements per platform. Both paths replace one column and one owned formatter using preformed data and callbacks on the same table. The C owner is process-resident. XRT allocation monitoring was enabled. The prior replacement owns the formatter until publication.",
+    "platforms": {
+      "win": {
+        "nativeO0O2": {
+          "path": "F:/xlang-validation/xge-full-20261110/table-column-setup-native-test-win-r1/results.json",
+          "sha256": "6239163b0e3a869bae7d1d609923d966bac6672922dd847f8284ea3c7ac58b21"
+        },
+        "legacyNativeO0O2": {
+          "path": "F:/xlang-validation/xge-full-20261110/table-column-setup-native-test-win-r2/results.json",
+          "sha256": "7d18b177ad77c1d1a807278413663ae527b4032711b85e1b6a6e8bff3aaf9356"
+        },
+        "legacyProviderO0O2": {
+          "path": "F:/xlang-validation/xge-full-20261110/table-column-setup-native-test-win-r4/results.json",
+          "sha256": "e8bc7551617099baeb698f0e58da0e42841406c8377c1f52be560aa1f3bbfb19"
+        },
+        "languageJitDynamicStaticAot": {
+          "path": "F:/xlang-validation/xge-full-20261110/table-column-setup-verify-win-r3/results.json",
+          "sha256": "eb448c489aa84ec2ff06d288d92595d98799f2dace26da135eb7f240b2cdb739"
+        },
+        "exampleJitDynamicStaticAot": {
+          "path": "F:/xlang-validation/xge-full-20261110/table-column-setup-verify-win-r5/results.json",
+          "sha256": "6fff3d13938d254297e43e4f9e833bcb2a72e4b2bdd95bf087ed157fa4846c4c"
+        },
+        "existingColumnSnapshotJitDynamicStaticAot": {
+          "path": "F:/xlang-validation/xge-full-20261110/table-column-setup-verify-win-r6/results.json",
+          "sha256": "32cae671f4115ea93b5f0fed7dfa625049b71e3f2e933a9a37de154ea43751b3"
+        },
+        "strictDeclarationReplay": {
+          "path": "F:/xlang-validation/xge-full-20261110/table-column-setup-generator-win-r4/results.json",
+          "sha256": "b3849c4fb095dd9bb5a757e2538184ad35a8437d0b01ea0819e3cebefe97dc6e"
+        },
+        "consumerAudit": {
+          "path": "F:/xlang-validation/xge-full-20261110/table-column-setup-consumers-win-r2/results.json",
+          "sha256": "3b5eed907f742e19a2f49f32f01610a635398f395fba12447973a432a92dca0c"
+        },
+        "functions": 5860,
+        "directDeclarations": 4795,
+        "pendingConsumerOrReplacement": {
+          "XGE": 84,
+          "XUI": 102
+        },
+        "warmAllocationAndTiming": {
+          "path": "F:/xlang-validation/xge-full-20261110/table-column-setup-perf-win-r1/results.json",
+          "sha256": "d3a16713506c86763b8ee01c674fec518069670d69e9fdb3cf7c9043f8ee7ea1"
+        },
+        "measurements": {
+          "xlang": {
+            "rounds": 1000,
+            "alloc": 5000,
+            "free": 5000,
+            "realloc": 0,
+            "cpuMs": 9.0
+          },
+          "C": {
+            "rounds": 1000,
+            "alloc": 3000,
+            "free": 3000,
+            "realloc": 0,
+            "cpuMs": 7.0
+          }
+        },
+        "publicSurface": {
+          "path": "F:/xlang-validation/xge-full-20261110/table-column-setup-inventory-win-r2/surface.json",
+          "sha256": "e031a354dcd24943446fc03311bf7692693e3c6322a35ee2be01829c0a0024a7"
+        },
+        "matchedLanguageTestPackages": {
+          "path": "F:/xlang-validation/xge-full-20261110/table-column-setup-stage-win-r3/replay/stage-report.json",
+          "sha256": "290733df39fca70eb9075e44ea7f3b380119655baa1ef184738519bbda2f0b0a"
+        },
+        "matchedExamplePackages": {
+          "path": "F:/xlang-validation/xge-full-20261110/table-column-setup-stage-win-r4/replay/stage-report.json",
+          "sha256": "2e0b1d83f847079a02235ed82aeb5947e77c2976dc257947b7c36b45a4f7c9e9"
+        },
+        "scopedNativeSource": {
+          "path": "F:/xlang-validation/xge-full-20261110/table-column-setup-native-source-win-r2.json",
+          "sha256": "299bf8913192903a0ed61a7a962a06b3cd4ce88e29a9e7887b7e13cc93c640f9"
+        },
+        "hostO2Build": {
+          "path": "F:/xlang-validation/xge-full-20261110/table-column-setup-host-win-r2/build-report.json",
+          "sha256": "bdbcc5daf216a349fc797f51bbc4a1391596435a66b5ebca04c6c8abac2cc6d4"
+        },
+        "staticO2Build": {
+          "path": "F:/xlang-validation/xge-full-20261110/table-column-setup-static-win-r2/build-report.json",
+          "sha256": "b344677160210f803b2087820cec8d5f1ee61d046460eccaccbf6ae81aa066ff"
+        }
+      },
+      "linux": {
+        "nativeO0O2": {
+          "path": "//wsl.localhost/Ubuntu/var/tmp/xlang-validation/xge-full-20261110/table-column-setup-native-test-linux-r1/results.json",
+          "sha256": "8874d9d2ea4947f2fdd70510f880b35d7f339446ac7c5358c572ad073fd90282"
+        },
+        "legacyNativeO0O2": {
+          "path": "//wsl.localhost/Ubuntu/var/tmp/xlang-validation/xge-full-20261110/table-column-setup-native-test-linux-r2/results.json",
+          "sha256": "45710759d204a0a4519114eaed0c8e881b2b8b2c4e7057b9a5a90ff1e116a3d8"
+        },
+        "legacyProviderO0O2": {
+          "path": "//wsl.localhost/Ubuntu/var/tmp/xlang-validation/xge-full-20261110/table-column-setup-native-test-linux-r4/results.json",
+          "sha256": "480b14defb24047505efeef52cabb365bb711051f0d69f92946115747b0e6db1"
+        },
+        "languageJitDynamicStaticAot": {
+          "path": "//wsl.localhost/Ubuntu/var/tmp/xlang-validation/xge-full-20261110/table-column-setup-verify-linux-r3/results.json",
+          "sha256": "7b637604e49cdcebf7a24400057494c5aa8a86f4b352e07777d7eeb078bc141c"
+        },
+        "exampleJitDynamicStaticAot": {
+          "path": "//wsl.localhost/Ubuntu/var/tmp/xlang-validation/xge-full-20261110/table-column-setup-verify-linux-r5/results.json",
+          "sha256": "3358f8da1b804b444d7873b6d36900f0f9fa24e7ea929bc36848d5e9c63e2181"
+        },
+        "existingColumnSnapshotJitDynamicStaticAot": {
+          "path": "//wsl.localhost/Ubuntu/var/tmp/xlang-validation/xge-full-20261110/table-column-setup-verify-linux-r6/results.json",
+          "sha256": "674d62b3e39fab0a2ef235fb2f180c168a548ce534716c93c884cf1849c2bd53"
+        },
+        "strictDeclarationReplay": {
+          "path": "//wsl.localhost/Ubuntu/var/tmp/xlang-validation/xge-full-20261110/table-column-setup-generator-linux-r4/results.json",
+          "sha256": "1016737c5b0d96078e10c1eb3e06f0b9e70515c16551fc942d80632a86ddbde1"
+        },
+        "consumerAudit": {
+          "path": "//wsl.localhost/Ubuntu/var/tmp/xlang-validation/xge-full-20261110/table-column-setup-consumers-linux-r2/results.json",
+          "sha256": "d60437dacce34354a8c4ca0db127115578fc539cb0e2d8c6a546f3d0186f4bf9"
+        },
+        "functions": 5860,
+        "directDeclarations": 4795,
+        "pendingConsumerOrReplacement": {
+          "XGE": 84,
+          "XUI": 102
+        },
+        "warmAllocationAndTiming": {
+          "path": "//wsl.localhost/Ubuntu/var/tmp/xlang-validation/xge-full-20261110/table-column-setup-perf-linux-r1/results.json",
+          "sha256": "b7a08fd1c2292c27451d4de640eaec809ee435f9f7b3a2f12691a6b9c4d97f47"
+        },
+        "measurements": {
+          "xlang": {
+            "rounds": 1000,
+            "alloc": 5000,
+            "free": 5000,
+            "realloc": 0,
+            "cpuMs": 10.982
+          },
+          "C": {
+            "rounds": 1000,
+            "alloc": 3000,
+            "free": 3000,
+            "realloc": 0,
+            "cpuMs": 2.788
+          }
+        },
+        "publicSurface": {
+          "path": "//wsl.localhost/Ubuntu/var/tmp/xlang-validation/xge-full-20261110/table-column-setup-inventory-linux-r2/surface.json",
+          "sha256": "03616c6f8dce3d984b096304d1753b936a27505d5a3619976b6d526e2a6d1444"
+        },
+        "matchedLanguageTestPackages": {
+          "path": "//wsl.localhost/Ubuntu/var/tmp/xlang-validation/xge-full-20261110/table-column-setup-stage-linux-r3/replay/stage-report.json",
+          "sha256": "4381a2bed554f63245d48d34071e6bbeb24d0b998f3cfadf5306cb8b595e0d8d"
+        },
+        "matchedExamplePackages": {
+          "path": "//wsl.localhost/Ubuntu/var/tmp/xlang-validation/xge-full-20261110/table-column-setup-stage-linux-r4/replay/stage-report.json",
+          "sha256": "b77aeb50d8f480c45dd7a80f070b460424ad9d0a1ca8df5c7c15ee8072a98eb7"
+        },
+        "scopedNativeSource": {
+          "path": "//wsl.localhost/Ubuntu/var/tmp/xlang-validation/xge-full-20261110/table-column-setup-native-source-linux-r2.json",
+          "sha256": "0e82a92b407e6df1933a0ee5830259d6a328da84d6c61075e4c0448816439c67"
+        },
+        "hostO2Build": {
+          "path": "//wsl.localhost/Ubuntu/var/tmp/xlang-validation/xge-full-20261110/table-column-setup-host-linux-r2/build-report.json",
+          "sha256": "0ff2bfa3eb4fed6b52b95c276bac1ef95528912e87cfb5bd9c7eef6b88d45df7"
+        },
+        "staticO2Build": {
+          "path": "//wsl.localhost/Ubuntu/var/tmp/xlang-validation/xge-full-20261110/table-column-setup-static-linux-r2/build-report.json",
+          "sha256": "2f11d6320c7a5e503a819d4db61dd5f5f6613fc377545ac8063ce31572ba2ef4"
+        }
+      }
+    }
+  },
+  "sourceSha256NormalizedLf": {
+    "docs/xge3-xui3-api-map-storage.json": "8de36acf4701e646c5d8126d2dde1fff703469f41d4cab3011db547ed223364e",
+    "lib/bindings/xui/examples/table_column_callbacks.xl": "0c583ee663380f9b2a3128578a7a93a4d708954045fca750f93e3f6ad8fa5e53",
+    "lib/bindings/xui/src/managed.xl": "93ece68afcfbd1969cc11230b605f34552c82e05f668be87932ff0675680162e",
+    "test/cases/foreign_xui_table_column_setup.xl": "b4fb3b69e9aefdc8c7976b555eb2b7ca7a13de8279276d98c86f64a3bdfe2670",
+    "tools/xui_managed_contracts.py": "53773832e4a275f5660c74db5e9e69fa6b89fed4b94f7f7dd7987db987f39507"
+  }
+}
