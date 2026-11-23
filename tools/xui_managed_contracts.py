@@ -956,6 +956,16 @@ METHODS.update({
         'TreeView', ['extern "xuiTreeViewSetIconRendererOwned" @no_raise @c_owned_callback(0,0,"xui_callback_owner_t",-16) @c_result("status",0) func setIconRenderer(TreeViewIconRenderProc? onRender)']],
     'xuiTreeViewSetNodeDescriptors': ['int xuiTreeViewSetNodeDescriptors(xui_widget pWidget, const xui_tree_node_desc_t* pNodes, int iCount)',
         'TreeView', ['extern "xuiTreeViewSetNodeDescriptors" @no_raise @c_array_group(1,0,2,"int",2) @c_array_record(1,"xui_tree_node_desc_t") @c_array_field(1,"tState",0,"value") @c_array_field(1,"sText",1,"c_string") @c_result("status",0) func setNodes(array<TreeNodeState> states,array<string?> texts,int size=-1)']],
+    'xuiTreeViewClear': ['int xuiTreeViewClear(xui_widget pWidget)', 'TreeView',
+        ['extern "xuiTreeViewClear" @no_raise @c_result("status",0) func clear()']],
+    'xuiTreeViewSetNodeDescriptorsWithValues': ['int xuiTreeViewSetNodeDescriptorsWithValues(xui_widget pWidget, const xui_tree_node_desc_t* pNodes, int iCount, xvalue* pValues)',
+        'TreeView', ['extern "xuiTreeViewSetNodeDescriptorsWithValues" @no_raise @c_array_group(1,0,2,"int",2) @c_array_record(1,"xui_tree_node_desc_t") @c_array_field(1,"tState",0,"value") @c_array_field(1,"sText",1,"c_string") @c_data_snapshot(3) @c_result("status",0) func setNodesWithData(array<TreeNodeState> states,array<string?> texts,int size=-1,var values=null)']],
+    'xuiTreeViewSetNodeValue': ['int xuiTreeViewSetNodeValue(xui_widget pWidget, int iNodeId, xvalue* pValue)',
+        'TreeView', ['extern "xuiTreeViewSetNodeValue" @no_raise @c_data_snapshot(1) @c_result("status",0) func setNodeData(c_int id,var value)']],
+    'xuiTreeViewGetNodeValue': ['int xuiTreeViewGetNodeValue(xui_widget pWidget, int iNodeId, xvalue** ppValue)',
+        'TreeView', ['extern "xuiTreeViewGetNodeValue" @no_raise @c_output(2,0) @c_output_view(2,"owned_value") @c_data_snapshot_result(0) func getNodeData(c_int id) as var']],
+    'xuiTreeViewSetDataAdapterOwned': ['int xuiTreeViewSetDataAdapterOwned(xui_widget pWidget, xui_tree_view_count_proc onCount, void* pCountUser, const xui_callback_owner_t* pCountOwner, xui_tree_view_node_data_proc onNode, void* pNodeUser, const xui_callback_owner_t* pNodeOwner)',
+        'TreeView', ['extern "xuiTreeViewSetDataAdapterOwned" @no_raise @c_owned_callback(0,0,"xui_callback_owner_t",-16) @c_owned_callback(1,0,"xui_callback_owner_t",-16) @c_result("status",0) func setDataAdapter(TreeViewCountProc? onCount,TreeViewNodeDataProc? onNode)']],
     'xuiTreeViewGetNodeDescriptor': ['int xuiTreeViewGetNodeDescriptor(xui_widget pWidget, int iIndex, xui_tree_node_desc_t* pNode)',
         'TreeView', ['extern "xuiTreeViewGetNodeDescriptor" @no_raise @c_output_record(2,"xui_tree_node_desc_t","borrowed") @c_status(0) @c_output_field(0,"tState") @c_output_field(1,"sText","cstring") func getNode(c_int index) as (TreeNodeState,string)']],
     'xuiTreeViewGetNodeDescriptorById': ['int xuiTreeViewGetNodeDescriptorById(xui_widget pWidget, int iNodeId, xui_tree_node_desc_t* pNode)',
@@ -984,6 +994,10 @@ CALLBACKS.update({
     'xui_tree_view_icon_proc': (
         'typedef int (*xui_tree_view_icon_proc)(xui_widget pWidget, int iNodeId, xui_draw_context pDraw, xui_rect_t tRect, int iState, void* pUser);',
         'export typedef TreeViewIconRenderProc = func(CallbackWidget,c_int,CallbackDrawContext,Rect,c_int) as c_int',
+    ),
+    'xui_tree_view_node_data_proc': (
+        'typedef int (*xui_tree_view_node_data_proc)(xui_widget pWidget, int iIndex, xui_tree_view_node_output_t* pNode, xui_tree_view_value_output_t* pValue, void* pUser);',
+        'export typedef TreeViewNodeDataProc = func(Widget,c_int,CallbackTreeViewNodeOutput,CallbackTreeViewValueOutput) as c_int',
     ),
 })
 
@@ -1396,6 +1410,11 @@ METHODS["xuiWidgetRegisterTypeOwned"] = ['int xuiWidgetRegisterTypeOwned(xui_con
     ['extern "xuiWidgetRegisterTypeOwned" @no_raise @c_pack(2,"xui_widget_type_desc_t",0,12) @c_pack_size(2,"iSize","uint32_t") @c_pack_callback_group(2,"pUser",3,"optional") @c_pack_field(2,"sName",0,"c_string") @c_pack_field(2,"pParent",1,"view_raw") @c_pack_field(2,"iFlags",2,"value") @c_pack_field(2,"onInit",3,"owned_callback") @c_owned_callback(3,-1,"xui_callback_owner_t",-16,"last") @c_pack_field(2,"onDestroy",4,"owned_callback") @c_owned_callback(4,-1,"xui_callback_owner_t",0,"last") @c_pack_field(2,"onContentMeasure",5,"owned_callback") @c_owned_callback(5,-1,"xui_callback_owner_t",-16,"last") @c_pack_field(2,"onLayoutPrepare",6,"owned_callback") @c_owned_callback(6,-1,"xui_callback_owner_t",-16,"last") @c_pack_field(2,"onLayoutChildren",7,"owned_callback") @c_owned_callback(7,-1,"xui_callback_owner_t",-16,"last") @c_pack_field(2,"onLayoutComplete",8,"owned_callback") @c_owned_callback(8,-1,"xui_callback_owner_t",-16,"last") @c_pack_field(2,"onCacheRender",9,"owned_callback") @c_owned_callback(9,-1,"xui_callback_owner_t",-16,"last") @c_pack_field(2,"onUpdate",10,"owned_callback") @c_owned_callback(10,-1,"xui_callback_owner_t",-16,"last") @c_pack_field(2,"onQueryCursor",11,"owned_callback") @c_owned_callback(11,-1,"xui_callback_owner_t",-16,"last") @c_result("owner_view",0) @factory(1,0,rollbackWidgetType) func registerWidgetTypeWithCallbacks(string name,WidgetType? parent=null,c_uint flags=0,WidgetTypeInitProc? initialize=null,WidgetTypeDestroyProc? destroy=null,WidgetTypeMeasureProc? measure=null,WidgetTypeLayoutPrepareProc? prepareLayout=null,WidgetTypeLayoutChildrenProc? layoutChildren=null,WidgetTypeLayoutCompleteProc? completeLayout=null,WidgetTypeRenderProc? render=null,WidgetTypeUpdateProc? update=null,WidgetTypeCursorProc? queryCursor=null) as WidgetType']]
 
 VIEW_FUNCTIONS = {'xuiGetLanguage': 'int xuiGetLanguage(xui_context pContext)', 'xuiRequestClose': 'int xuiRequestClose(xui_context pContext)'}
+VIEW_FUNCTIONS['xuiTreeViewValueOutputSet'] = 'int xuiTreeViewValueOutputSet(xui_tree_view_value_output_t* pOutput, xvalue* pValue)'
+VIEWS['CallbackTreeViewValueOutput'] = '''export extern "xui_tree_view_value_output_t*" class CallbackTreeViewValueOutput @header("xge3_runtime.h") @lifetime("callback")
+ native point handle
+ extern "xuiTreeViewValueOutputSet" @no_raise @c_data_snapshot(0) @c_result("status",0) func set(var value)
+end'''
 VIEW_FUNCTIONS['xuiInputDecorationGetBounds'] = 'int xuiInputDecorationGetBounds(xui_input_decoration pDecoration, xui_rect_t* pRect)'
 VIEW_FUNCTIONS['xuiInputDecorationDescribe'] = 'int xuiInputDecorationDescribe(xui_input_decoration pDecoration, xui_input_decoration_desc_t* pDesc)'
 VIEW_FUNCTIONS['xuiInputDecorationRemoveFromOwner'] = 'int xuiInputDecorationRemoveFromOwner(xui_input_decoration pDecoration)'
@@ -1687,6 +1706,11 @@ REPLACED = {
     'xuiWidgetGetUserData': ('xui.Widget.getUserData', 'xuiWidgetGetUserValue'),
     'xuiWidgetSetTooltip': ('xui.Widget.setTooltipText', 'xuiWidgetSetTextTooltip'),
     'xuiWidgetGetTooltip': ('xui.Widget.tooltipInfo', 'xuiWidgetGetTooltipInfo'),
+    'xuiTreeViewSetNodes': ('xui.TreeView.setNodes', 'xuiTreeViewSetNodeDescriptors'),
+    'xuiTreeViewSetAdapter': ('xui.TreeView.setAdapter', 'xuiTreeViewSetAdapterOwned'),
+    'xuiTreeViewGetNode': ('xui.TreeView.getNode', 'xuiTreeViewGetNodeDescriptor'),
+    'xuiTreeViewGetNodeById': ('xui.TreeView.getNodeById', 'xuiTreeViewGetNodeDescriptorById'),
+    'xuiTreeViewGetVisibleNode': ('xui.TreeView.getVisibleNode', 'xuiTreeViewGetVisibleNodeDescriptor'),
     'xuiWidgetSetTooltipResolver': ('xui.Widget.setTooltipResolver', 'xuiWidgetSetTooltipResolverOwned'),
     'xuiWidgetSetAccessibilityProvider': ('xui.Widget.setAccessibilityProvider', 'xuiWidgetSetAccessibilityProviderOwned'),
     'xuiTerminalCreateFakeSession': ('xui.createFakeTerminalSession', 'xuiTerminalCreateFakeSessionOwned'),

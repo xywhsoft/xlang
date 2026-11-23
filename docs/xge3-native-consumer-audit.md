@@ -1,5 +1,25 @@
 # Native consumers in the full API inventory
 
+## TreeView node data
+
+The C bulk setter, adapter and three raw node queries map to the checked
+descriptor, owned adapter and snapshot methods. `setNodesWithData()` and
+`setDataAdapter()` publish rows and managed data together. `getNodeData()`
+reads a snapshot by ID. The original native node and callback output records
+retain their layout and continue to carry explicit C user pointers.
+
+The data adapter moves an owned value into each staged row. A failed row
+retires its unpublished output and leaves the previous tree available. Clear
+and replacement detach old data before dropping references. The native slot
+table is allocated when a value is first stored and the context ownership
+graph visits the stored references.
+
+Both platform audits cover 5,849 native functions and record five replacements
+in this family. The inventory has 197 entries without a direct declaration,
+compiled consumer or explicit replacement.
+
+[TreeView node data evidence](../dev/release-materials/provenance/xui-tree-node-values-20261123.json)
+
 ## Widget data and tooltip configuration
 
 `setUserData()` and `getUserData()` call the new retained native value slot

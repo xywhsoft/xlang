@@ -1,0 +1,123 @@
+import xui
+from xui import CallbackTreeViewNodeOutput, CallbackTreeViewValueOutput
+
+extern "fixtureRenderBudget" @header("test/cases/foreign_xui_render_backend.h") @no_raise func budget(c_int count)
+
+class AdapterState
+    bool failSecond = true
+end
+
+func main(...) as int
+    auto proxy = xui.createProxy()
+    auto ui = xui.create(proxy, xui.XUI_SYSTEM_FONT_DISABLED)
+    try
+        auto tree = ui.treeViewNative()
+        xui.TreeNodeState root
+        root.iId = 10
+        root.iParent = -1
+        root.bEnabled = 1
+        xui.TreeNodeState child
+        child.iId = 11
+        child.iParent = 10
+        child.bEnabled = 1
+        array<string?> titles = ["Root", "Child"]
+        var source = {"key": 7, "payload": b"\0\xff", "label": "a\0b"}
+        array<var> values = [source, null]
+        tree.setNodesWithData([root, child], titles, values=values)
+        source["key"] = 9
+        var saved = tree.getNodeData(10)
+        assert saved["key"] == 7 and saved["payload"] == b"\0\xff" and saved["label"] == "a\0b", "bulk value fields"
+        assert tree.getNodeData(11) == null and tree.getVisibleCount() == 1, "bulk null and folded child"
+        assert tree.setNodeExpanded(10, 1) == 0 and tree.getVisibleCount() == 2, "expand child"
+        assert tree.getNodeData(10)["key"] == 7, "data follows ID through expansion"
+        saved["key"] = -2
+
+        bool failed = false
+        budget(0)
+        try
+            tree.setNodeData(10, source)
+        catch Error
+            failed = true
+        finally
+            budget(-1)
+        end
+        assert failed and tree.getNodeData(10)["key"] == 7, "allocation failure during write preserves tree"
+        failed = false
+        budget(0)
+        try
+            saved = tree.getNodeData(10)
+        catch Error
+            failed = true
+        finally
+            budget(-1)
+        end
+        assert failed and saved["key"] == -2 and tree.getNodeData(10)["key"] == 7, "allocation failure during read preserves destination"
+
+        child.iParent = 999
+        failed = false
+        try
+            tree.setNodesWithData([root, child], titles, values=values)
+        catch Error
+            failed = true
+        end
+        assert failed and tree.getNodeCount() == 2 and tree.getNodeData(10)["key"] == 7, "invalid hierarchy preserves rows and values"
+        child.iParent = 10
+
+        auto adapterState = AdapterState()
+        CallbackTreeViewValueOutput? savedOutput = null
+        xui.TreeViewCountProc count = func(xui.Widget view) as c_int
+            return 2
+        end
+        xui.TreeViewNodeDataProc read = func(xui.Widget view, c_int index, CallbackTreeViewNodeOutput node, CallbackTreeViewValueOutput output) as c_int
+            assert tree.getNodeData(10)["key"] == 7, "adapter can see previous tree"
+            node.iId = c_int(20) + index
+            node.iParent = -1
+            node.setText("Adapter row")
+            output.set({"key": int(index)})
+            savedOutput = output
+            if index == 1 and adapterState.failSecond then
+                return -1
+            end
+            return 0
+        end
+        failed = false
+        try
+            tree.setDataAdapter(count, read)
+        catch Error
+            failed = true
+        end
+        assert failed and tree.getNodeData(10)["key"] == 7, "failed adapter preserves rows and values"
+        adapterState.failSecond = false
+        assert tree.refreshAdapter() == 0, "adapter retry succeeds"
+        assert tree.getNodeData(20)["key"] == 0 and tree.getNodeData(21)["key"] == 1, "adapter data published"
+        failed = false
+        try
+            (savedOutput as CallbackTreeViewValueOutput).set(999)
+        catch StateError
+            failed = true
+        end
+        assert failed, "expired data output fails"
+
+        auto worker = thread(func() as int
+            try
+                auto wrongThread = tree.getNodeData(20)
+            catch StateError
+                return 1
+            end
+            return 0
+        end)
+        assert worker.waitTimeout(30000) and worker.exitCode() == 1, "worker cannot read widget"
+        tree.setDataAdapter(null, null)
+        tree.setNodeData(20, null)
+        assert tree.getNodeData(20) == null, "null clears a node value"
+        tree.clear()
+        assert tree.addNode(21, -1, "Reused ID") == 0 and tree.getNodeData(21) == null, "reused ID starts empty"
+        tree.close()
+        assert saved["payload"] == b"\0\xff", "snapshot survives closure"
+    finally
+        ui.close()
+        proxy.close()
+    end
+    println("XUI_TREE_NODE_VALUES_OK")
+    return 0
+end

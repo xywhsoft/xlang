@@ -1,9 +1,7 @@
-// Load a root and child together, then read the child after expanding the root.
-import xge
+// 在同一次更新中为文件节点保存显示名称和实际路径。
 import xui
 
 func main(...) as int
-    xge.init(32,32,"Tree nodes",c_int(xge.XGE_INIT_OFFSCREEN),xge.XGE_RUN_MANUAL)
     auto proxy = xui.createProxy()
     auto ui = xui.create(proxy,xui.XUI_SYSTEM_FONT_DISABLED)
     try
@@ -18,15 +16,15 @@ func main(...) as int
         source.bEnabled = 1
 
         array<string?> names = ["Project","main.xl"]
-        tree.setNodes([project,source],names)
+        array<var> data = [null, {"path": "src/main.xl"}]
+        tree.setNodesWithData([project,source],names,values=data)
         assert tree.getVisibleCount() == 1
         assert tree.setNodeExpanded(1,1) == 0
         auto node,name = tree.getVisibleNode(1)
-        println(name,"depth",node.iDepth)
+        println(name,"depth",node.iDepth,tree.getNodeData(node.iId)["path"])
     finally
         ui.close()
         proxy.close()
-        xge.unit()
     end
     return 0
 end
