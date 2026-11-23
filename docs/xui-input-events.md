@@ -15,6 +15,19 @@ keep it after Drop or Context close. Errors leave the effect assignment
 unchanged. The [external drag example](../lib/bindings/xui/examples/external_drag.xl)
 demonstrates a host accepting a copy.
 
+## Read and dispatch one queued event
+
+`Context.pollEvent(visitor)` reads one queued event and returns false when
+the queue is empty. The visitor receives a callback-period
+`CallbackConstEvent`. It can read fields, save copied text or call
+`Context.dispatchEvent(event)` to route the event immediately. The view
+expires when the visitor returns.
+
+The queue advances before the visitor runs. If the visitor throws, the
+exception propagates and the next poll reads the next event. A nested poll
+uses its own event storage and leaves the outer view valid until its
+visitor returns. See the [polling example](../lib/bindings/xui/examples/poll_event.xl).
+
 ## Input result masks and queued commands
 
 `Context.inputKeyDownEx(key, modifiers=0)`, `inputKeyUpEx(key, modifiers=0)`

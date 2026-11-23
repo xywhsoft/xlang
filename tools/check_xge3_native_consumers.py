@@ -606,6 +606,8 @@ def main():
         if 'xuiContextTextShapeCreateOwned' in functions:
             for unit, expected in TEXT_SHAPE_LIFETIME_CALLS.items():
                 calls.setdefault(unit, {}).update(expected)
+        if 'xuiPollEventVisit' in functions:
+            calls.setdefault('src/xui/core/xui_input.c', {})['xuiPollEventVisit'] = ('xuiPollEvent','xuiCallScopeBegin')
         source, build_flags, evidence_inputs = witness_build_inputs(
             a.resource_engine_build.resolve(),audit,packages,tools['gcc'],sha,calls.keys(),
             ('src/xge/text/xge_text_resources.c',))
@@ -874,6 +876,14 @@ def main():
                     relocationPath=close_relocation_path(header_relocations[key],policy,destroy,release))
             elif document and symbol=='xuiDocumentFreeBuffer':
                 evidence=document['bufferReplacement']
+            elif symbol=='xuiPollEvent' and a.resource_engine_build and 'xuiPollEventVisit' in bound:
+                native = 'xuiPollEventVisit'
+                logical = 'xui.Context.pollEvent'
+                assert {row['language'] for row in bound[native]} == {logical}
+                witness = report['resourceLifetime']['src/xui/core/xui_input.c']
+                evidence=dict(language=logical,native=native,
+                    ownership='Borrowed queued event limited to the synchronous visitor',
+                    nativePollPath=witness['relocationPaths'][native][symbol])
             elif symbol in ('xuiTextShape','xuiTextShapeFree','xuiTextShapeFreeChecked') and (
                 a.resource_engine_build and 'xuiContextTextShapeCreateOwned' in bound):
                 native = 'xuiContextTextShapeCreateOwned'

@@ -2255,6 +2255,23 @@ METHODS['xuiContextTextShapeCreateOwned'] = (
     'Context',
     [CONTEXT_TEXT_SHAPE.format(spans=spans) for spans in ('bytes paintSpans=b""', 'Buffer paintSpans')],
 )
+CALLBACKS['xui_event_visit_proc'] = (
+    'typedef int (*xui_event_visit_proc)(const xui_event_t* pEvent, void* pUser);',
+    'export typedef QueuedEventVisitor = func(CallbackConstEvent) as c_int',
+)
+METHODS.update({
+    'xuiPollEventVisit': (
+        'int xuiPollEventVisit(xui_context pContext, xui_event_visit_proc onEvent, void* pUser, bool* pVisited)',
+        'Context',
+        ['extern "xuiPollEventVisit" @no_raise @c_sync_callback(0,-1,-16) @c_output(3,0) '
+         'func pollEvent(QueuedEventVisitor visitor) as bool'],
+    ),
+    'xuiDispatchEvent': (
+        'int xuiDispatchEvent(xui_context pContext, const xui_event_t* pEvent)',
+        'Context',
+        ['extern "xuiDispatchEvent" @no_raise @c_result("status",0) func dispatchEvent(CallbackConstEvent event)'],
+    ),
+})
 
 
 def validate(root,header,function_sha):

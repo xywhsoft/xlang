@@ -222,6 +222,8 @@ WebView 范例只加载源码中的本地 HTML。它需要启用 WebView2 的 Wi
 | [document_node_attributes.xl](document_node_attributes.xl) | 插入带字体、字号和语言的文字节点，再从快照读出这些属性 |
 | [document_ui_headless.xl](document_ui_headless.xl) | 只读状态 1，以及文档身份比较 true |
 | [data_object.xl](data_object.xl) | 二进制长度 3，以及十六进制 610062 |
+| [external_drag.xl](external_drag.xl) | 自定义宿主收到拖放数据，输出“复制已接受 true” |
+| [poll_event.xl](poll_event.xl) | 自定义事件循环读出视口事件，输出“视口尺寸 640 480” |
 | [code_document.xl](code_document.xl) | 创建文本模型、合并两次编辑为一个撤销步骤，并观察变更回调、撤销和重做。 |
 | [code_document_batch.xl](code_document_batch.xl) | 一次提交两个文档的修改，并分别撤销到原内容。 |
 | [code_document_batch_worker.xl](code_document_batch_worker.xl) | 工作线程准备两个文档的修改，主线程接收并提交，输出“你好 世界”。 |

@@ -1,0 +1,113 @@
+import xui
+from xui import CallbackConstEvent as EventView
+
+extern "fixtureEventEnableTracking" @header("test/cases/foreign_xui_event_visit.h") @no_raise func enableTracking()
+extern "fixtureEventBeginSample" @header("test/cases/foreign_xui_event_visit.h") @no_raise func beginSample()
+extern "fixtureEventEndSample" @header("test/cases/foreign_xui_event_visit.h") @no_raise func endSample(c_int language)
+extern "fixtureEventNativeSample" @header("test/cases/foreign_xui_event_visit.h") @no_raise func nativeSample(xui.Context context)
+
+func checkQueuedCommands(xui.Context context,xui.Context other)
+    auto root=context.widget()
+    assert context.setRootWidget(root)==xui.XUI_OK, "context root"
+    context.clearEvents()
+
+    string text=""
+    root.setEventCallback(func(xui.Widget sender,EventView event) as c_int
+        if event.iType==xui.XUI_EVENT_COMMAND then
+            assert (event.commandName as string)=="文", "dispatch preserves command pointer"
+            text=event.text
+        end
+        return 0
+    end)
+    context.dispatchCommand(root,1,"文")
+    EventView? escaped=null
+    bool dispatchedElsewhere=false
+    assert context.pollEvent(func(EventView event) as c_int
+        assert event.iType==xui.XUI_EVENT_COMMAND and event.iCommand==1, "outer queued command"
+        assert (event.commandName as string)=="文" and event.text=="文", "outer command text"
+        escaped=event
+        try
+            other.dispatchEvent(event)
+            dispatchedElsewhere=true
+        catch Error failure
+            assert failure.code==int(xui.XUI_ERROR_INVALID_ARGUMENT), "dispatch rejects another context"
+        end
+        // Queue reuse or a nested poll cannot overwrite the outer event text.
+        context.dispatchCommand(root,2,"B")
+        assert context.pollEvent(func(EventView nextEvent) as c_int
+            assert nextEvent.iCommand==2 and (nextEvent.commandName as string)=="B", "nested queued command"
+            return 0
+        end), "nested poll visits one event"
+        assert (event.commandName as string)=="文" and event.text=="文", "outer command text survives nested poll"
+        context.dispatchEvent(event)
+        return 0
+    end), "outer poll visits one event"
+    assert text=="文" and !dispatchedElsewhere, "dispatch delivers only on the source context"
+
+    bool rejected=false
+    try
+        auto expired=escaped as EventView
+        context.dispatchEvent(expired)
+    catch Error
+        rejected=true
+    end
+    assert rejected, "expired input view is checked"
+
+    bool unexpected=false
+    assert !context.pollEvent(func(EventView event) as c_int
+        unexpected=true
+        return 0
+    end), "queue empty after nested poll"
+    assert !unexpected, "empty poll does not call visitor"
+
+    context.dispatchCommand(root,3,"A")
+    bool unchanged=false
+    rejected=false
+    try
+        unchanged=context.pollEvent(func(EventView event) as c_int
+            throw Error("poll visitor failed")
+        end)
+    catch Error failure
+        rejected=failure.message=="poll visitor failed"
+    end
+    assert rejected and !unchanged, "visitor error preserves output"
+    assert !context.pollEvent(func(EventView event) as c_int
+        unexpected=true
+        return 0
+    end), "failed visitor leaves queue empty"
+    assert !unexpected, "rejected visitor consumed exactly one event"
+    root.setEventCallback(null)
+end
+
+func checkCost(xui.Context context)
+    nativeSample(context)
+    c_int observed=0
+    auto visit=func(EventView event) as c_int
+        assert event.iType==xui.XUI_EVENT_VIEWPORT, "viewport event type"
+        observed=event.fX
+        return 0
+    end
+    context.inputViewport(200,100)
+    assert context.pollEvent(visit) and observed==200, "warm viewport event"
+    beginSample()
+    for index in range(128)
+        c_int width=c_int(index+300)
+        context.inputViewport(width,100)
+        assert context.pollEvent(visit) and observed==width, "sample viewport event"
+    end
+    endSample(1)
+end
+
+func main(...) as int
+    enableTracking()
+    auto proxy=xui.createProxy()
+    auto context=xui.create(proxy,xui.XUI_SYSTEM_FONT_DISABLED)
+    auto other=xui.create(proxy,xui.XUI_SYSTEM_FONT_DISABLED)
+    checkCost(other)
+    checkQueuedCommands(context,other)
+    context.close()
+    other.close()
+    proxy.close()
+    println("XUI_EVENT_VISIT_OK")
+    return 0
+end

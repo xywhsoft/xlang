@@ -1,0 +1,16 @@
+// 在自定义事件循环中，每次读取一个待处理事件，再决定是否派发。
+import xui
+
+func main(...) as int
+    auto proxy = xui.createProxy()
+    auto ui = xui.create(proxy, xui.XUI_SYSTEM_FONT_DISABLED)
+    ui.inputViewport(640, 480)
+    ui.pollEvent(func(xui.CallbackConstEvent event) as c_int
+        if event.iType == xui.XUI_EVENT_VIEWPORT then
+            println("视口尺寸", event.fX, event.fY)
+            ui.dispatchEvent(event)
+        end
+        return 0
+    end)
+    return 0
+end

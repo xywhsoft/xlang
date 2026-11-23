@@ -1,5 +1,23 @@
 # Native consumers in the full API inventory
 
+## Queued event inspection and dispatch
+
+`Context.pollEvent()` delivers one queued event to a synchronous visitor.
+The visitor can immediately dispatch that event through `Context.dispatchEvent()`.
+The view expires when the visitor returns. Nested polling keeps the outer
+event and its command text valid, and checked dispatch rejects other contexts.
+The queue advances before calling the visitor, including when it throws.
+
+The fixture and standalone lesson passed Windows and Linux O2 JIT, dynamic
+AOT and static AOT. Native and language workloads each performed zero XRT
+heap operations during 128 warmed viewport visits. The native visitor uses
+one stack event record and defers context destruction until the callback ends.
+
+The matching inventories cover 5,892 functions and 4,833 direct declarations.
+The remaining 66 entries comprise 16 XGE and 50 XUI functions.
+
+[Queued event evidence](../dev/release-materials/provenance/xui-event-visit-20261124.json)
+
 ## Host-driven XUI drag and drop
 
 `Context.dragExternalEvent()` directly binds the native Enter, Over, Leave,

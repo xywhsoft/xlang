@@ -1,0 +1,381 @@
+{
+  "schema": 1,
+  "scope": "Synchronous queued XUI event visits and checked scoped dispatch",
+  "nativeCommit": "4a11e5d1957154b744e1ca4982b267b06b498c70",
+  "shippingDelivery": false,
+  "graphicsTests": false,
+  "networkTests": false,
+  "sourceSha256NormalizedLf": {
+    "lib/bindings/xui/src/managed.xl": "7807930a349c18d6adc762802eb0cf4ba11b732f26020c44d1d8a4dd733ec0ea",
+    "lib/bindings/xui/examples/poll_event.xl": "bb970ab02a35a9e6c99bf351d2b0ea364b4f34794ab2321bfa3829d105774899",
+    "lib/bindings/xui/examples/gallery.json": "7f6cd5d5ecdab421a1afa7c5716fbe430b2c8d3d3913f8fe9ed3806622a0ffa0",
+    "test/cases/foreign_xui_event_visit.xl": "82dd54237e37f463b683d49db5cd13238271902ea7b42e6df39e27fa6c3ff015",
+    "test/cases/foreign_xui_event_visit.c": "ae894ccac2968b5645194dbedb3b5da76352c63a53f8272cbc4dd3886e48c41f",
+    "test/cases/foreign_xui_event_visit.h": "b4f99437a254fe18a26f67b73d196de40689faafeb34fd8c44a5cc4f7e7a103f",
+    "tools/check_xge3_native_consumers.py": "b6a3f438a883f37e7c1000351a63c6409af3d65a8679d496032b15376a9920eb",
+    "tools/xui_managed_contracts.py": "5725eb3cd6293ef360cc3e1e5748ba48535a2305a1fe290ab86d2b772bfa9d90",
+    "docs/xge3-xui3-api-map-storage.json": "2879008f9aaa93beb3d1d206a9745cfac5fabfb26e655038869615f9512207ec"
+  },
+  "platforms": {
+    "win": {
+      "nativeSource": {
+        "path": "F:/xlang-validation/xge-full-20261110/xui-event-visit-native-source-win-r1.json",
+        "sha256": "bc606cda9b3c740779cebcc41e68dcd5a897b363337d333072a898e2eb939a88"
+      },
+      "nativeHost": {
+        "path": "F:/xlang-validation/xge-full-20261110/xui-event-visit-host-win-r1/build-report.json",
+        "sha256": "47620cc4d97d890440afdd4c8c64e891b770dbee8110421d53181bac29fe729c"
+      },
+      "nativeStatic": {
+        "path": "F:/xlang-validation/xge-full-20261110/xui-event-visit-static-win-r1/build-report.json",
+        "sha256": "109990ec94ac07bd3021a2f617f27947853de741b4e54011c69ae5841f4783bd"
+      },
+      "compiler": {
+        "path": "F:/xlang-validation/xge-full-20261110/compiler-owned-output-pair-win-r2/build.json",
+        "sha256": "41596d3515fdf8c1f5194838396e40b1d84ecb013557b7f7aadbe352315593a3"
+      },
+      "packageReplay": {
+        "path": "F:/xlang-validation/xge-full-20261110/xui-event-visit-stage-win-r1/replay/stage-report.json",
+        "sha256": "588eac7631ff4835b6281641f11dcab01d1c911f2ee1efe5a77ec91d51d11b84"
+      },
+      "consumerAudit": {
+        "path": "F:/xlang-validation/xge-full-20261110/xui-event-visit-consumers-win-r1/results.json",
+        "sha256": "ed00e846f60ccc202aef150adbf42250d04d5b31b13a127a4298d3a6c57d554a"
+      },
+      "nativeO0O2": {
+        "path": "F:/xlang-validation/xge-full-20261110/xui-event-visit-native-tests-win-r1/results.json",
+        "sha256": "0a9427a87c19fa8d5a3e4d125f6055ca33bbee4fd743685aabeb8603c27e3940"
+      },
+      "functionPopulation": 5892,
+      "directDeclarations": 4833,
+      "remaining": {
+        "XGE": 16,
+        "XUI": 50
+      },
+      "nativePoll": {
+        "language": "xui.Context.pollEvent",
+        "native": "xuiPollEventVisit",
+        "ownership": "Borrowed queued event limited to the synchronous visitor",
+        "nativePollPath": [
+          ".text$xuiPollEvent"
+        ]
+      },
+      "nativeScope": {
+        "id": "xui.h:functions:xuiCallScopeBegin",
+        "symbol": "xuiCallScopeBegin",
+        "family": "XUI",
+        "conditions": [
+          "XGE_ENABLE_XUI"
+        ],
+        "publicDeclarationPresent": false,
+        "compiledNativeConsumers": [
+          "src/xui/core/xui_input.c"
+        ],
+        "explicitReplacement": null,
+        "contractReview": "pending",
+        "runtimeAcceptance": "not-certified-by-this-audit"
+      },
+      "cases": {
+        "poll_event": {
+          "report": {
+            "path": "F:/xlang-validation/xge-full-20261110/xui-event-visit-verify-win-r4/results.json",
+            "sha256": "4b627a0481fce02c89739e75ec84d007b2408d9fc8d841959d09c11dbbba364c"
+          },
+          "steps": [
+            "emit",
+            "host-build",
+            "host-imports",
+            "host-run",
+            "jit",
+            "static-build",
+            "static-imports",
+            "static-run"
+          ],
+          "imports": {
+            "static": [
+              "msvcrt.dll",
+              "kernel32.dll",
+              "user32.dll",
+              "ole32.dll",
+              "oleaut32.dll",
+              "shell32.dll",
+              "gdi32.dll",
+              "imm32.dll",
+              "dwrite.dll"
+            ],
+            "host": [
+              "msvcrt.dll",
+              "xge3_host.dll",
+              "kernel32.dll",
+              "shell32.dll",
+              "ucrtbase.dll"
+            ]
+          },
+          "generated": {
+            "path": "F:/xlang-validation/xge-full-20261110/xui-event-visit-verify-win-r4/poll_event/generated.c",
+            "sha256": "8b7745b7f0a3d45958840e001925eb7e291922ce93dc6891171ec73d87b67e6d"
+          },
+          "viewportEvents128": {}
+        },
+        "foreign_xui_event_visit": {
+          "report": {
+            "path": "F:/xlang-validation/xge-full-20261110/xui-event-visit-verify-win-r4/results.json",
+            "sha256": "4b627a0481fce02c89739e75ec84d007b2408d9fc8d841959d09c11dbbba364c"
+          },
+          "steps": [
+            "emit",
+            "host-build",
+            "host-imports",
+            "host-run",
+            "jit",
+            "static-build",
+            "static-imports",
+            "static-run"
+          ],
+          "imports": {
+            "static": [
+              "msvcrt.dll",
+              "kernel32.dll",
+              "user32.dll",
+              "ole32.dll",
+              "oleaut32.dll",
+              "shell32.dll",
+              "gdi32.dll",
+              "imm32.dll",
+              "dwrite.dll"
+            ],
+            "host": [
+              "msvcrt.dll",
+              "xge3_host.dll",
+              "kernel32.dll",
+              "shell32.dll",
+              "ws2_32.dll",
+              "iphlpapi.dll",
+              "ucrtbase.dll"
+            ]
+          },
+          "generated": {
+            "path": "F:/xlang-validation/xge-full-20261110/xui-event-visit-verify-win-r4/foreign_xui_event_visit/generated.c",
+            "sha256": "fe3a638826c4fc421b02116b491a60e60d6cbf1b536a72367fb669191623077e"
+          },
+          "viewportEvents128": {
+            "jit": {
+              "native": {
+                "alloc": 0,
+                "free": 0,
+                "realloc": 0
+              },
+              "language": {
+                "alloc": 0,
+                "free": 0,
+                "realloc": 0
+              }
+            },
+            "host-run": {
+              "native": {
+                "alloc": 0,
+                "free": 0,
+                "realloc": 0
+              },
+              "language": {
+                "alloc": 0,
+                "free": 0,
+                "realloc": 0
+              }
+            },
+            "static-run": {
+              "native": {
+                "alloc": 0,
+                "free": 0,
+                "realloc": 0
+              },
+              "language": {
+                "alloc": 0,
+                "free": 0,
+                "realloc": 0
+              }
+            }
+          }
+        }
+      }
+    },
+    "linux": {
+      "nativeSource": {
+        "path": "//wsl.localhost/Ubuntu/var/tmp/xlang-validation/xge-full-20261110/xui-event-visit-native-source-linux-r1.json",
+        "sha256": "33719365f0741af52c9c9f7ed939c96b34b94f5af480c4814816c1861867c057"
+      },
+      "nativeHost": {
+        "path": "//wsl.localhost/Ubuntu/var/tmp/xlang-validation/xge-full-20261110/xui-event-visit-host-linux-r2/build-report.json",
+        "sha256": "74390121e5f2786376da393d4c81eb66a02eb7284f791267a7fac4786342b058"
+      },
+      "nativeStatic": {
+        "path": "//wsl.localhost/Ubuntu/var/tmp/xlang-validation/xge-full-20261110/xui-event-visit-static-linux-r2/build-report.json",
+        "sha256": "7a82fa7d795ec47670adb83c097a4dcbd382dda0921c9d1aab1a9ddd3086e565"
+      },
+      "compiler": {
+        "path": "//wsl.localhost/Ubuntu/var/tmp/xlang-validation/xge-full-20261110/compiler-owned-output-pair-linux-r2/build.json",
+        "sha256": "bb4ad4330abb14095a0dc59233ed6e265033b4498b8f779a11ca4d0b9b176099"
+      },
+      "packageReplay": {
+        "path": "//wsl.localhost/Ubuntu/var/tmp/xlang-validation/xge-full-20261110/xui-event-visit-stage-linux-r1/replay/stage-report.json",
+        "sha256": "39cbc575e77aa032387579688a84c194f718876d8b9ec8bb5a8147bbe10aa3e0"
+      },
+      "consumerAudit": {
+        "path": "//wsl.localhost/Ubuntu/var/tmp/xlang-validation/xge-full-20261110/xui-event-visit-consumers-linux-r1/results.json",
+        "sha256": "24a756978986b308f5b0265fb4b4b9f8f42310a61b6280617934dd988acb2b95"
+      },
+      "nativeO0O2": {
+        "path": "//wsl.localhost/Ubuntu/var/tmp/xlang-validation/xge-full-20261110/xui-event-visit-native-tests-linux-r1/results.json",
+        "sha256": "400c7f7e8f89bc685c6ff080be23591bed8c875f360b81cc637090f2302ceb76"
+      },
+      "functionPopulation": 5892,
+      "directDeclarations": 4833,
+      "remaining": {
+        "XGE": 16,
+        "XUI": 50
+      },
+      "nativePoll": {
+        "language": "xui.Context.pollEvent",
+        "native": "xuiPollEventVisit",
+        "ownership": "Borrowed queued event limited to the synchronous visitor",
+        "nativePollPath": [
+          "xuiPollEvent"
+        ]
+      },
+      "nativeScope": {
+        "id": "xui.h:functions:xuiCallScopeBegin",
+        "symbol": "xuiCallScopeBegin",
+        "family": "XUI",
+        "conditions": [
+          "XGE_ENABLE_XUI"
+        ],
+        "publicDeclarationPresent": false,
+        "compiledNativeConsumers": [
+          "src/xui/core/xui_input.c"
+        ],
+        "explicitReplacement": null,
+        "contractReview": "pending",
+        "runtimeAcceptance": "not-certified-by-this-audit"
+      },
+      "cases": {
+        "poll_event": {
+          "report": {
+            "path": "//wsl.localhost/Ubuntu/var/tmp/xlang-validation/xge-full-20261110/xui-event-visit-verify-linux-r4/results.json",
+            "sha256": "d7673eead1bcdcdae0ffedb1aa701349c864f6f0ba4f086e6fc10c5a176d0def"
+          },
+          "steps": [
+            "emit",
+            "host-build",
+            "host-imports",
+            "host-run",
+            "jit",
+            "static-build",
+            "static-imports",
+            "static-run"
+          ],
+          "imports": {
+            "host": [
+              "libm.so.6",
+              "libmvec.so.1",
+              "libxge3_host.so",
+              "libc.so.6",
+              "ld-linux-x86-64.so.2"
+            ],
+            "static": [
+              "libm.so.6",
+              "libmvec.so.1",
+              "libx11.so.6",
+              "libxi.so.6",
+              "libxcursor.so.1",
+              "libgl.so.1",
+              "libc.so.6",
+              "ld-linux-x86-64.so.2"
+            ]
+          },
+          "generated": {
+            "path": "//wsl.localhost/Ubuntu/var/tmp/xlang-validation/xge-full-20261110/xui-event-visit-verify-linux-r4/poll_event/generated.c",
+            "sha256": "8b7745b7f0a3d45958840e001925eb7e291922ce93dc6891171ec73d87b67e6d"
+          },
+          "viewportEvents128": {}
+        },
+        "foreign_xui_event_visit": {
+          "report": {
+            "path": "//wsl.localhost/Ubuntu/var/tmp/xlang-validation/xge-full-20261110/xui-event-visit-verify-linux-r4/results.json",
+            "sha256": "d7673eead1bcdcdae0ffedb1aa701349c864f6f0ba4f086e6fc10c5a176d0def"
+          },
+          "steps": [
+            "emit",
+            "host-build",
+            "host-imports",
+            "host-run",
+            "jit",
+            "static-build",
+            "static-imports",
+            "static-run"
+          ],
+          "imports": {
+            "host": [
+              "libm.so.6",
+              "libmvec.so.1",
+              "libxge3_host.so",
+              "libc.so.6",
+              "ld-linux-x86-64.so.2"
+            ],
+            "static": [
+              "libm.so.6",
+              "libmvec.so.1",
+              "libx11.so.6",
+              "libxi.so.6",
+              "libxcursor.so.1",
+              "libgl.so.1",
+              "libc.so.6",
+              "ld-linux-x86-64.so.2"
+            ]
+          },
+          "generated": {
+            "path": "//wsl.localhost/Ubuntu/var/tmp/xlang-validation/xge-full-20261110/xui-event-visit-verify-linux-r4/foreign_xui_event_visit/generated.c",
+            "sha256": "fe3a638826c4fc421b02116b491a60e60d6cbf1b536a72367fb669191623077e"
+          },
+          "viewportEvents128": {
+            "jit": {
+              "native": {
+                "alloc": 0,
+                "free": 0,
+                "realloc": 0
+              },
+              "language": {
+                "alloc": 0,
+                "free": 0,
+                "realloc": 0
+              }
+            },
+            "host-run": {
+              "native": {
+                "alloc": 0,
+                "free": 0,
+                "realloc": 0
+              },
+              "language": {
+                "alloc": 0,
+                "free": 0,
+                "realloc": 0
+              }
+            },
+            "static-run": {
+              "native": {
+                "alloc": 0,
+                "free": 0,
+                "realloc": 0
+              },
+              "language": {
+                "alloc": 0,
+                "free": 0,
+                "realloc": 0
+              }
+            }
+          }
+        }
+      }
+    }
+  }
+}

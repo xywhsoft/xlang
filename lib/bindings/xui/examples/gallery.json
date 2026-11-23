@@ -470,6 +470,13 @@
       "expected": "输出“复制已接受 true”。"
     },
     {
+      "name": "poll_event",
+      "title": "Read a queued XUI event",
+      "kind": "cpu",
+      "gallery": false,
+      "expected": "输出“视口尺寸 640 480”。"
+    },
+    {
       "name": "asset_names",
       "title": "asset_names",
       "kind": "cpu",
