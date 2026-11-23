@@ -1,0 +1,39 @@
+// Paint a small offscreen surface once, then read back its four pixels.
+import xge
+import xui
+
+func main(...) as int
+    xge.init(160,120,"Offscreen painter")
+    try
+        xge.run(func() as c_int
+            auto proxy=xui.createProxy()
+            auto ui=xui.create(proxy,xui.XUI_SYSTEM_FONT_DISABLED)
+            auto surface=proxy.createSurfaceRGBA(2,2,flags=c_uint(xui.XUI_SURFACE_USAGE_TARGET))
+            auto draw=proxy.beginDraw(surface)
+            try
+                auto bounds=xui.Rect()
+                bounds.fW=2
+                bounds.fH=2
+                ui.withPainter(draw,func(xui.CallbackPainter painter) as c_int
+                    painter.clearRect(bounds,xge.colorRGBA(10,20,30,255))
+                    return 0
+                end)
+                draw.finish()
+            finally
+                draw.close()
+            end
+
+            auto pixels=Buffer()
+            assert pixels.resize(16)
+            proxy.readSurfaceRGBA(surface,pixels)
+            println(pixels.hex())
+            surface.close()
+            ui.close()
+            proxy.close()
+            return 1
+        end)
+    finally
+        xge.unit()
+    end
+    return 0
+end

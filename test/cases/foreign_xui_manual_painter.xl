@@ -1,0 +1,119 @@
+import xui
+from xui import CallbackPainter as PainterView, Resource as RegistryResource
+
+extern "fixtureRenderProxy" @header("test/cases/foreign_xui_manual_painter.h") @no_raise @c_result("owned_view") @factory(0,0,dropProxy) func cpuProxy() as xui.Proxy
+extern "fixtureRenderSecondaryProxy" @no_raise @c_result("owned_view") @factory(0,0,dropProxy) func secondaryProxy() as xui.Proxy
+extern "fixtureRenderSurface" @no_raise @c_result("owned_view") @factory(1,0,dropSurface) func cpuSurface(xui.Proxy proxy) as xui.Surface
+extern "xuiProxyReleaseChecked" @header("xge3_runtime.h") @no_raise @c_result("status",0) func dropProxy(xui.Proxy proxy)
+extern "xuiSurfaceReleaseChecked" @header("xge3_runtime.h") @no_raise @c_result("status",0) func dropSurface(xui.Surface surface)
+extern "fixtureRenderBalanced" @no_raise func balanced() as c_int
+extern "fixtureRenderHeapBegin" @no_raise func beginSample()
+extern "fixtureRenderHeapResult" @no_raise func endSample(c_int native)
+extern "fixturePainterNativeSample" @no_raise func nativeSample(xui.Context context,xui.DrawContext draw)
+extern "fixtureResourceReserve" @no_raise @c_result("status",0) func reserve(RegistryResource resource,bool acquire)
+
+func checkResource(xui.Context context,xui.Surface surface)
+    context.setSurfaceResource("canvas",surface)
+    auto resource=context.findResource("canvas") as RegistryResource
+    assert resource.nativeReferenceCount==1, "registry owns one reference"
+    reserve(resource,true)
+    try
+        assert resource.nativeReferenceCount==2, "native retain is observable"
+        bool rejected=false
+        try
+            resource.remove()
+        catch Error failure
+            rejected=failure.code==int(xui.XUI_ERROR_INVALID_STATE)
+        end
+        assert rejected, "retain protects registry entry from removal"
+    finally
+        reserve(resource,false)
+    end
+    assert resource.nativeReferenceCount==1, "native release restores count"
+    resource.remove()
+    assert context.findResource("canvas")==null, "registry entry removed"
+end
+
+func checkPainter(xui.Context context,xui.Context other,xui.DrawContext draw)
+    PainterView? escaped=null
+    auto area=xui.Rect()
+    area.fW=5
+    area.fH=5
+    context.withPainter(draw,func(PainterView painter) as c_int
+        escaped=painter
+        assert painter.drawContext()!=null, "painter sees its draw"
+        painter.clearRect(area,0x102030ff)
+        return 0
+    end)
+    bool rejected=false
+    try
+        auto expired=escaped as PainterView
+        expired.drawContext()
+    catch StateError
+        rejected=true
+    end
+    assert rejected, "painter expires outside its callback"
+
+    rejected=false
+    bool called=false
+    try
+        other.withPainter(draw,func(PainterView painter) as c_int
+            called=true
+            return 0
+        end)
+    catch Error failure
+        rejected=failure.code==int(xui.XUI_ERROR_INVALID_ARGUMENT)
+    end
+    assert rejected and !called, "different proxy rejects the callback"
+
+    rejected=false
+    try
+        context.withPainter(draw,func(PainterView painter) as c_int
+            throw Error("painter callback failed")
+        end)
+    catch Error failure
+        rejected=failure.message=="painter callback failed"
+    end
+    assert rejected and !draw.ended(), "callback error leaves caller-owned session usable"
+
+    auto visitor=func(PainterView painter) as c_int
+        assert painter.drawContext()!=null
+        return 0
+    end
+    nativeSample(context,draw)
+    context.withPainter(draw,visitor)
+    beginSample()
+    for index in range(128)
+        context.withPainter(draw,visitor)
+    end
+    endSample(0)
+    draw.finish()
+    assert draw.ended(), "explicit finish ends the draw"
+    rejected=false
+    try
+        context.withPainter(draw,visitor)
+    catch Error
+        rejected=true
+    end
+    assert rejected, "ended draw cannot be visited"
+end
+
+func main(...) as int
+    auto proxy=cpuProxy()
+    auto foreignProxy=secondaryProxy()
+    auto context=xui.create(proxy,xui.XUI_SYSTEM_FONT_DISABLED)
+    auto other=xui.create(foreignProxy,xui.XUI_SYSTEM_FONT_DISABLED)
+    auto surface=cpuSurface(proxy)
+    checkResource(context,surface)
+    auto draw=proxy.beginDraw(surface)
+    checkPainter(context,other,draw)
+    draw.close()
+    surface.close()
+    context.close()
+    other.close()
+    proxy.close()
+    foreignProxy.close()
+    assert balanced()==1, "all native backend owners released"
+    println("XUI_MANUAL_PAINTER_OK")
+    return 0
+end

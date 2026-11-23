@@ -449,6 +449,13 @@
       "expected": "Draw to a Surface once, then display it through a normal Image widget."
     },
     {
+      "name": "manual_painter",
+      "title": "Paint and read an offscreen Surface",
+      "kind": "gui",
+      "gallery": false,
+      "expected": "绘制一帧后退出，输出 0a141eff0a141eff0a141eff0a141eff。"
+    },
+    {
       "name": "localization",
       "title": "Localization / custom language pack",
       "kind": "gui",

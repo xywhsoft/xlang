@@ -5,6 +5,7 @@ export extern "xui_resource_t*" class Resource @header("xge3_runtime.h") @lifeti
  extern "xuiResourceGetName" @no_raise @c_result("cstring") get name() as string
  extern "xuiResourceGetKind" @no_raise get kind() as c_int
  extern "xuiResourceGetGeneration" @no_raise get generation() as c_uint
+ extern "xuiResourceGetRefCount" @no_raise get nativeReferenceCount() as c_int
  extern "xuiResourceGetSurface" @no_raise @c_result("retained_view") @c_retain(retainSurface,"zero",rollbackSurface) func surface() as Surface?
  extern "xuiResourceGetFont" @no_raise @c_result("retained_view") @c_retain(retainFont,"zero",rollbackFont) func font() as Font?
  extern "xuiResourceGetDependencyCount" @no_raise func dependencyCount() as c_int

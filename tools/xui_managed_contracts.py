@@ -2259,6 +2259,10 @@ CALLBACKS['xui_event_visit_proc'] = (
     'typedef int (*xui_event_visit_proc)(const xui_event_t* pEvent, void* pUser);',
     'export typedef QueuedEventVisitor = func(CallbackConstEvent) as c_int',
 )
+CALLBACKS['xui_painter_visit_proc'] = (
+    'typedef int (*xui_painter_visit_proc)(xui_painter pPainter, void* pUser);',
+    'export typedef PainterVisitor = func(CallbackPainter) as c_int',
+)
 METHODS.update({
     'xuiPollEventVisit': (
         'int xuiPollEventVisit(xui_context pContext, xui_event_visit_proc onEvent, void* pUser, bool* pVisited)',
@@ -2270,6 +2274,12 @@ METHODS.update({
         'int xuiDispatchEvent(xui_context pContext, const xui_event_t* pEvent)',
         'Context',
         ['extern "xuiDispatchEvent" @no_raise @c_result("status",0) func dispatchEvent(CallbackConstEvent event)'],
+    ),
+    'xuiPainterVisit': (
+        'int xuiPainterVisit(xui_context pContext, xui_draw_context pDraw, xui_painter_visit_proc onPaint, void* pUser)',
+        'Context',
+        ['extern "xuiPainterVisit" @no_raise @c_sync_callback(1,-1,-16) @c_result("status",0) '
+         'func withPainter(DrawContext draw,PainterVisitor visitor)'],
     ),
 })
 

@@ -1,5 +1,30 @@
 # Native consumers in the full API inventory
 
+## Painter access on an owned draw session
+
+`Context.withPainter()` uses an active `DrawContext` from the same Proxy.
+It exposes the Painter only during the callback and leaves the session's
+ownership with the caller. `Proxy.beginDraw()` and `DrawContext.finish()`
+bracket the session. The native operation pins the Context and Draw and
+stores the Painter on the stack. Both C and xlang record zero XRT heap
+operations over 128 warmed visits.
+
+The raw C probes check the legacy begin/end pair, a callback that requests
+Draw and Context shutdown, and a visit with XRT allocations disabled.
+The xlang fixture checks expired views, cross-Proxy rejection and recovery
+after a visitor raises an error. The graphical example reads back all four
+RGBA pixels after closing the Draw session.
+
+`Resource.nativeReferenceCount` reads the registry entry's native count.
+The fixture verifies that an extra native reference protects the entry from
+removal until released. The compiled audit also follows typed registry
+insertion and the default XGE Proxy's managed Font, Surface and Draw factories.
+
+The inventories cover 5,894 functions and 4,837 direct declarations. The
+remaining 49 entries comprise 13 XGE and 36 XUI functions.
+
+[Painter and resource evidence](../dev/release-materials/provenance/xui-manual-painter-20261124.json)
+
 ## Counted UTF-8 and descriptor reads
 
 `xge.readUtf8()` shares the native decoder with `xgeTextUTF8Next` and accepts

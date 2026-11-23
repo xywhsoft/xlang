@@ -108,6 +108,17 @@ SCOPED_READERS = {
     'xuiMessageListGetNode': ('src/xui/controls/xui_message_list.c', 'xuiMessageListGetNodeDescriptor',
         '__xuiMessagePublicNode', 'xui.MessageList.getNode'),
 }
+MANUAL_PAINTER_CALLS = {
+    'xuiPainterVisit': ('xuiCallScopeBegin','xuiDrawCallScopeBegin','xuiDrawGetProxy',
+        'xuiDrawGetTarget','xuiDrawCallScopeEnd'),
+    'xuiResourceSetSurface': ('xuiResourceSet',),
+    'xuiResourceSetFont': ('xuiResourceSet',),
+}
+XGE_PROXY_RESOURCE_CALLS = {
+    '__xuiProxyXgeFontAlloc': ('xuiProxyIsOwned','xuiFontCreateOwned'),
+    '__xuiProxyXgeSurfaceAlloc': ('xuiProxyIsOwned','xuiSurfaceCreateOwned'),
+    '__xuiProxyXgeManualDrawBegin': ('xuiProxyIsOwned','xuiDrawCreateOwnedEx'),
+}
 TEXT_SHAPE_LIFETIME_CALLS = {
     'src/xui/core/xui_text.c': {
         'xuiTextShape': ('xuiGetProxyCaps','__xuiTextShapeWithProxy'),
@@ -626,6 +637,9 @@ def main():
                 calls.setdefault(unit, {}).update(expected)
         if 'xuiPollEventVisit' in functions:
             calls.setdefault('src/xui/core/xui_input.c', {})['xuiPollEventVisit'] = ('xuiPollEvent','xuiCallScopeBegin')
+        if 'xuiPainterVisit' in functions:
+            calls.setdefault('src/xui/core/xui_core.c', {}).update(MANUAL_PAINTER_CALLS)
+            calls['src/xui/core/xui_proxy_xge.c'] = XGE_PROXY_RESOURCE_CALLS
         for legacy, (unit, checked, owner, _) in MANAGER_CLOSE_CHAINS.items():
             if legacy in functions and checked in functions and owner in functions:
                 calls.setdefault(unit, {}).update({legacy: (checked,), checked: (owner,)})
@@ -909,6 +923,16 @@ def main():
                     relocationPath=close_relocation_path(header_relocations[key],policy,destroy,release))
             elif document and symbol=='xuiDocumentFreeBuffer':
                 evidence=document['bufferReplacement']
+            elif symbol in ('xuiPainterBegin','xuiPainterEnd') and a.resource_engine_build and 'xuiPainterVisit' in bound:
+                native = 'xuiPainterVisit'
+                assert {row['language'] for row in bound[native]} == {'xui.Context.withPainter'}
+                assert any(row['language']=='xui.DrawContext.finish' for row in bound['xuiDrawEndChecked'])
+                proxy = (view/'lib/bindings/xui/src/proxy.xl').read_text(encoding='utf-8-sig')
+                assert re.search(r'extern "drawBegin" @c_field_call .*func beginDraw\(',proxy)
+                witness = report['resourceLifetime']['src/xui/core/xui_core.c']
+                evidence=dict(language='xui.Context.withPainter',native=native,
+                    pairedMethods=['xui.Proxy.beginDraw','xui.DrawContext.finish','xui.DrawContext.close'],
+                    scopePaths=witness['relocationPaths'][native])
             elif symbol in SCOPED_READERS and a.resource_engine_build and SCOPED_READERS[symbol][1] in functions:
                 source, native, reader, logical = SCOPED_READERS[symbol]
                 assert {row['language'] for row in bound[native]} == {logical}

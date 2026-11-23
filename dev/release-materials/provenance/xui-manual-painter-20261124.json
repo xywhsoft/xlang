@@ -1,0 +1,387 @@
+{
+  "schema": 1,
+  "scope": "Scoped Painter access to owned Draw sessions and resource registry observations",
+  "nativeCommit": "4960df7f5403109527f122fd255ac63dbb46cf72",
+  "priorEvidence": {
+    "path": "D:/GIT/x-lang/dev/release-materials/provenance/xge-utf8-read-20261124.json",
+    "sha256": "076d5f852e6a0aa056d52f67a12e7c9dd21b64b488b4edfc44c1e32743535a72"
+  },
+  "shippingDelivery": false,
+  "graphicsTests": true,
+  "networkTests": false,
+  "sourceSha256NormalizedLf": {
+    "lib/bindings/xui/src/managed.xl": "b83d5008ffdae38a2421713fe6f3956ea843d3d40c7c6deef1cf25a69a662264",
+    "lib/bindings/xui/src/resources.xl": "86e4dd0d14c3f6c7bd3bf7160e815b5b5b8fd270f80825a4968df5788b353738",
+    "lib/bindings/xui/examples/manual_painter.xl": "ff585ccc46aad89d8d580d2573b6e1dcfed077b88b82d295db3af5633aa3382c",
+    "lib/bindings/xui/examples/gallery.json": "d32c1505eb352b1ec12ea66a64cb3465ed563f63162f439049ed2a32d6c4b719",
+    "test/cases/foreign_xui_manual_painter.xl": "0dab4195dbbcd234a568b24e8da0f899512870b337414965aeec9e8783e64cad",
+    "test/cases/foreign_xui_manual_painter.c": "0afe6aac3f3fb3a816fc18e8bce59cce63dca1d76ceb10fa9796570c0e4148fb",
+    "test/cases/foreign_xui_manual_painter.h": "95aea855956e2b98b8c1b766c0a15e131ae5ec9ed92503d546a2c3f2903787c5",
+    "test/cases/foreign_xui_render_backend.h": "f5c5e0a41b5932e164c251d610bd874bb2e3e2d4b01d5b61930164659813164f",
+    "test/cases/foreign_xui_render_backend.c": "d923086b61f849a73a720968149c8a9cb990e4febe45b01bf1cf9735490826a6",
+    "test/cases/foreign_xui_render_adapters.inc": "b54a15b0295c93a59be72b93acacfb1eefd335a7ec28d6290b18be213770711e",
+    "tools/check_xge3_native_consumers.py": "7a0e3310b96037d2d52edae382ba63f15824bc6ea9a9ea3bbae3fce7d5fa9588",
+    "tools/xui_managed_contracts.py": "a6f5b973dc245b028602fb04bc71b27e1d5ff880773f4537bd51e238213a644e",
+    "docs/xge3-xui3-api-map-storage.json": "976e5bb026745b65f2e1a1392ffc2a080d4c93e23d49020cdd9e1eda93eb482b"
+  },
+  "platforms": {
+    "win": {
+      "nativeSource": {
+        "path": "F:/xlang-validation/xge-full-20261110/xui-manual-painter-native-source-win-r1.json",
+        "sha256": "730b25171b9aac9a27686c84ad810ab56ea85b1837fa17a53ba0507daa62d81c"
+      },
+      "nativeHost": {
+        "path": "F:/xlang-validation/xge-full-20261110/xui-manual-painter-host-win-r1/build-report.json",
+        "sha256": "a0ba7367ae8c5cda3cba3e37c6f71c1e5aa9e64d41572f635b8e204a7c578f2b"
+      },
+      "nativeStatic": {
+        "path": "F:/xlang-validation/xge-full-20261110/xui-manual-painter-static-win-r1/build-report.json",
+        "sha256": "8257ad51e8d566eaccf5549d832fff5c99a2d048ed594af875c93137f9741049"
+      },
+      "nativeTests": {
+        "path": "F:/xlang-validation/xge-full-20261110/xui-manual-painter-native-tests-win-r1/results.json",
+        "sha256": "e9d00eea6be37cc5f53e01649119ae19bf91a64f1944ddf641aec129d43f6c3c"
+      },
+      "compiler": {
+        "path": "F:/xlang-validation/xge-full-20261110/compiler-owned-output-pair-win-r2/build.json",
+        "sha256": "41596d3515fdf8c1f5194838396e40b1d84ecb013557b7f7aadbe352315593a3"
+      },
+      "stage": {
+        "path": "F:/xlang-validation/xge-full-20261110/xui-manual-painter-stage-win-r1/replay/stage-report.json",
+        "sha256": "945062c3bdacb6c23332afc699d964bb8682c9880cb5b0af653aca7e5cc65af4"
+      },
+      "audit": {
+        "path": "F:/xlang-validation/xge-full-20261110/xui-manual-painter-consumers-win-r1/results.json",
+        "sha256": "0b5dbb0483e6eff43a194372b897bc0efc11c4f4e5ab1fd056c89353399bd55b"
+      },
+      "runtime": {
+        "path": "F:/xlang-validation/xge-full-20261110/xui-manual-painter-verify-win-r2/results.json",
+        "sha256": "a9ec49cb4e9521d9986e80b315b6700480fcc949837b7a51305684dc498a435f"
+      },
+      "remaining": {
+        "XGE": 13,
+        "XUI": 36
+      },
+      "functionPopulation": 5894,
+      "directDeclarations": 4837,
+      "painterMapping": {
+        "language": "xui.Context.withPainter",
+        "native": "xuiPainterVisit",
+        "pairedMethods": [
+          "xui.Proxy.beginDraw",
+          "xui.DrawContext.finish",
+          "xui.DrawContext.close"
+        ],
+        "scopePaths": {
+          "xuiCallScopeBegin": [
+            ".text$xuiCallScopeBegin"
+          ],
+          "xuiDrawCallScopeBegin": [
+            "xuiDrawCallScopeBegin"
+          ],
+          "xuiDrawGetProxy": [
+            "xuiDrawGetProxy"
+          ],
+          "xuiDrawGetTarget": [
+            "xuiDrawGetTarget"
+          ],
+          "xuiDrawCallScopeEnd": [
+            "xuiDrawCallScopeEnd"
+          ]
+        }
+      },
+      "cases": {
+        "foreign_xui_manual_painter": {
+          "generated": {
+            "path": "F:/xlang-validation/xge-full-20261110/xui-manual-painter-verify-win-r2/foreign_xui_manual_painter/generated.c",
+            "sha256": "6dbf9defa8524a62c2b9fbefd04ec8caf2219cd849902c1c8c4347bdba126d5b"
+          },
+          "imports": {
+            "host": [
+              "msvcrt.dll",
+              "xge3_host.dll",
+              "kernel32.dll",
+              "shell32.dll",
+              "ws2_32.dll",
+              "iphlpapi.dll",
+              "ucrtbase.dll"
+            ],
+            "static": [
+              "msvcrt.dll",
+              "kernel32.dll",
+              "ole32.dll",
+              "shell32.dll"
+            ]
+          },
+          "steps": [
+            "emit",
+            "host-build",
+            "host-imports",
+            "host-run",
+            "jit",
+            "static-build",
+            "static-imports",
+            "static-run"
+          ],
+          "heapSamples": {
+            "jit": {
+              "native": {
+                "alloc": 0,
+                "free": 0,
+                "realloc": 0
+              },
+              "language": {
+                "alloc": 0,
+                "free": 0,
+                "realloc": 0
+              }
+            },
+            "host-run": {
+              "native": {
+                "alloc": 0,
+                "free": 0,
+                "realloc": 0
+              },
+              "language": {
+                "alloc": 0,
+                "free": 0,
+                "realloc": 0
+              }
+            },
+            "static-run": {
+              "native": {
+                "alloc": 0,
+                "free": 0,
+                "realloc": 0
+              },
+              "language": {
+                "alloc": 0,
+                "free": 0,
+                "realloc": 0
+              }
+            }
+          }
+        },
+        "manual_painter": {
+          "generated": {
+            "path": "F:/xlang-validation/xge-full-20261110/xui-manual-painter-verify-win-r2/manual_painter/generated.c",
+            "sha256": "bfa2c2395051515aab70628b7a1abb28b62493876a212f14f6e4386b12694496"
+          },
+          "imports": {
+            "host": [
+              "xge3_host.dll",
+              "msvcrt.dll",
+              "kernel32.dll",
+              "shell32.dll",
+              "ole32.dll",
+              "ucrtbase.dll"
+            ],
+            "static": [
+              "msvcrt.dll",
+              "kernel32.dll",
+              "user32.dll",
+              "gdi32.dll",
+              "ole32.dll",
+              "oleaut32.dll",
+              "shell32.dll",
+              "imm32.dll",
+              "dwrite.dll"
+            ]
+          },
+          "steps": [
+            "emit",
+            "host-build",
+            "host-imports",
+            "host-run",
+            "jit",
+            "static-build",
+            "static-imports",
+            "static-run"
+          ],
+          "heapSamples": {}
+        }
+      },
+      "heapVisitCount": 128,
+      "expectedRgbaHex": "0a141eff0a141eff0a141eff0a141eff"
+    },
+    "linux": {
+      "nativeSource": {
+        "path": "//wsl.localhost/Ubuntu/var/tmp/xlang-validation/xge-full-20261110/xui-manual-painter-native-source-linux-r1.json",
+        "sha256": "562acf06fcaee33f03d79a0bde049f1c7474511afa4fa8edeb3e6496b0422df1"
+      },
+      "nativeHost": {
+        "path": "//wsl.localhost/Ubuntu/var/tmp/xlang-validation/xge-full-20261110/xui-manual-painter-host-linux-r1/build-report.json",
+        "sha256": "af836e5dffb65269cdc4dd1727711bfb561e8ba7a5ce0b5d6f959567127a9d6a"
+      },
+      "nativeStatic": {
+        "path": "//wsl.localhost/Ubuntu/var/tmp/xlang-validation/xge-full-20261110/xui-manual-painter-static-linux-r1/build-report.json",
+        "sha256": "52d5abfd53830f3344bd1e0521c94b2a7d34b6a42a43759cfebe3f752eeacfa6"
+      },
+      "nativeTests": {
+        "path": "//wsl.localhost/Ubuntu/var/tmp/xlang-validation/xge-full-20261110/xui-manual-painter-native-tests-linux-r1/results.json",
+        "sha256": "6ee883bb36da498c420b0687839b6a20741b719f1154051c77e9886425cde768"
+      },
+      "compiler": {
+        "path": "//wsl.localhost/Ubuntu/var/tmp/xlang-validation/xge-full-20261110/compiler-owned-output-pair-linux-r2/build.json",
+        "sha256": "bb4ad4330abb14095a0dc59233ed6e265033b4498b8f779a11ca4d0b9b176099"
+      },
+      "stage": {
+        "path": "//wsl.localhost/Ubuntu/var/tmp/xlang-validation/xge-full-20261110/xui-manual-painter-stage-linux-r1/replay/stage-report.json",
+        "sha256": "e47102bede72b026f43478998e03713b48e154a1a3a7f75f36ea04991fb9b853"
+      },
+      "audit": {
+        "path": "//wsl.localhost/Ubuntu/var/tmp/xlang-validation/xge-full-20261110/xui-manual-painter-consumers-linux-r1/results.json",
+        "sha256": "8b22560efe94a8903f874d850c9a915eefc96a175c7a2fb7866f999c4dacbf6c"
+      },
+      "runtime": {
+        "path": "//wsl.localhost/Ubuntu/var/tmp/xlang-validation/xge-full-20261110/xui-manual-painter-verify-linux-r2/results.json",
+        "sha256": "773f033f9039d1758b159070bf1f6f9f804a53190bb3589028796878b430e729"
+      },
+      "remaining": {
+        "XGE": 13,
+        "XUI": 36
+      },
+      "functionPopulation": 5894,
+      "directDeclarations": 4837,
+      "painterMapping": {
+        "language": "xui.Context.withPainter",
+        "native": "xuiPainterVisit",
+        "pairedMethods": [
+          "xui.Proxy.beginDraw",
+          "xui.DrawContext.finish",
+          "xui.DrawContext.close"
+        ],
+        "scopePaths": {
+          "xuiCallScopeBegin": [
+            "xuiCallScopeBegin"
+          ],
+          "xuiDrawCallScopeBegin": [
+            "xuiDrawCallScopeBegin"
+          ],
+          "xuiDrawGetProxy": [
+            "xuiDrawGetProxy"
+          ],
+          "xuiDrawGetTarget": [
+            "xuiDrawGetTarget"
+          ],
+          "xuiDrawCallScopeEnd": [
+            "xuiDrawCallScopeEnd"
+          ]
+        }
+      },
+      "cases": {
+        "foreign_xui_manual_painter": {
+          "generated": {
+            "path": "//wsl.localhost/Ubuntu/var/tmp/xlang-validation/xge-full-20261110/xui-manual-painter-verify-linux-r2/foreign_xui_manual_painter/generated.c",
+            "sha256": "6dbf9defa8524a62c2b9fbefd04ec8caf2219cd849902c1c8c4347bdba126d5b"
+          },
+          "imports": {
+            "static": [
+              "libm.so.6",
+              "libmvec.so.1",
+              "libx11.so.6",
+              "libxi.so.6",
+              "libxcursor.so.1",
+              "libgl.so.1",
+              "libc.so.6",
+              "ld-linux-x86-64.so.2"
+            ],
+            "host": [
+              "libm.so.6",
+              "libmvec.so.1",
+              "libxge3_host.so",
+              "libc.so.6",
+              "ld-linux-x86-64.so.2"
+            ]
+          },
+          "steps": [
+            "emit",
+            "host-build",
+            "host-imports",
+            "host-run",
+            "jit",
+            "static-build",
+            "static-imports",
+            "static-run"
+          ],
+          "heapSamples": {
+            "jit": {
+              "native": {
+                "alloc": 0,
+                "free": 0,
+                "realloc": 0
+              },
+              "language": {
+                "alloc": 0,
+                "free": 0,
+                "realloc": 0
+              }
+            },
+            "static-run": {
+              "native": {
+                "alloc": 0,
+                "free": 0,
+                "realloc": 0
+              },
+              "language": {
+                "alloc": 0,
+                "free": 0,
+                "realloc": 0
+              }
+            },
+            "host-run": {
+              "native": {
+                "alloc": 0,
+                "free": 0,
+                "realloc": 0
+              },
+              "language": {
+                "alloc": 0,
+                "free": 0,
+                "realloc": 0
+              }
+            }
+          }
+        },
+        "manual_painter": {
+          "generated": {
+            "path": "//wsl.localhost/Ubuntu/var/tmp/xlang-validation/xge-full-20261110/xui-manual-painter-verify-linux-r2/manual_painter/generated.c",
+            "sha256": "bfa2c2395051515aab70628b7a1abb28b62493876a212f14f6e4386b12694496"
+          },
+          "imports": {
+            "host": [
+              "libm.so.6",
+              "libmvec.so.1",
+              "libxge3_host.so",
+              "libc.so.6",
+              "ld-linux-x86-64.so.2"
+            ],
+            "static": [
+              "libm.so.6",
+              "libmvec.so.1",
+              "libx11.so.6",
+              "libxi.so.6",
+              "libxcursor.so.1",
+              "libgl.so.1",
+              "libc.so.6",
+              "ld-linux-x86-64.so.2"
+            ]
+          },
+          "steps": [
+            "emit",
+            "host-build",
+            "host-imports",
+            "host-run",
+            "jit",
+            "static-build",
+            "static-imports",
+            "static-run"
+          ],
+          "heapSamples": {}
+        }
+      },
+      "heapVisitCount": 128,
+      "expectedRgbaHex": "0a141eff0a141eff0a141eff0a141eff"
+    }
+  }
+}

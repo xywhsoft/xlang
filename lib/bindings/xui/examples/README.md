@@ -207,6 +207,7 @@ WebView 范例只加载源码中的本地 HTML。它需要启用 WebView2 的 Wi
 | [webview.xl](webview.xl) | 只加载内存中的 HTML，不访问网站。需启用 WebView2 的 Windows 后端。 |
 | [all_controls.xl](all_controls.xl) | Select a control in the gallery. |
 | [gui_surface_draw.xl](gui_surface_draw.xl) | Draw to a Surface once, then display it through a normal Image widget. |
+| [manual_painter.xl](manual_painter.xl) | 通过 `withPainter` 清除离屏画布，结束绘制后读取四个 RGBA 像素。 |
 
 ## 无窗口进阶范例
 
