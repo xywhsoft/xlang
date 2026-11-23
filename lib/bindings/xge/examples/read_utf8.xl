@@ -1,0 +1,16 @@
+// Read code points using byte offsets, including the embedded zero.
+import xge
+
+func main(...) as int
+    string text = "A文\0🙂"
+    c_size offset = 0
+    while true
+        auto codepoint, nextOffset = xge.readUtf8(text, offset)
+        if nextOffset == offset then
+            break
+        end
+        println(uint32(codepoint), uint64(nextOffset))
+        offset = nextOffset
+    end
+    return 0
+end

@@ -20,6 +20,11 @@ CONTRACTS = {
     'xgeRenderThreadEGLSet': (
         'int xgeRenderThreadEGLSet(const xge_egl_desc_t* pDesc)',
         'export extern "xgeRenderThreadEGLSet" @header("xge3_runtime.h") @no_raise @c_null(0,"const xge_egl_desc_t*") @c_result("status",0) func resetRenderThreadEgl()'),
+    'xgeTextUTF8Read': (
+        'int xgeTextUTF8Read(const char* pText, size_t iSize, size_t iOffset, uint32_t* pCodepoint, size_t* pNext)',
+        'export extern "xgeTextUTF8Read" @header("xge3_runtime.h") @no_raise @c_span(0,"const char*","size_t") @c_outputs(3,4) @c_status(0) func readUtf8(string text,c_size offset=0) as (c_uint,c_size)\n'
+        'export extern "xgeTextUTF8Read" @header("xge3_runtime.h") @no_raise @c_span(0,"const char*","size_t") @c_outputs(3,4) @c_status(0) func readUtf8(bytes text,c_size offset=0) as (c_uint,c_size)\n'
+        'export extern "xgeTextUTF8Read" @header("xge3_runtime.h") @no_raise @c_span(0,"const char*","size_t") @c_outputs(3,4) @c_status(0) func readUtf8(Buffer text,c_size offset=0) as (c_uint,c_size)'),
     'xgeAudioUnitChecked': (
         'int xgeAudioUnitChecked(void)',
         'export extern "xgeAudioUnitChecked" @header("xge3_runtime.h") @no_raise @c_result("status",0) func audioUnit()'),

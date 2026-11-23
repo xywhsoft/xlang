@@ -14,6 +14,9 @@ export extern "xgeLogSetLevel" @header("xge3_runtime.h") func logSetLevel(c_int 
 export extern "xgeLogGetLevel" @header("xge3_runtime.h") func logGetLevel() as c_int
 export extern "xgeLogWrite" @header("xge3_runtime.h") @c_cstr(1) @c_cstr(2) func logWrite(c_int iLevel,string sTag,string sMessage) as c_int
 export extern "xgeLogFlush" @header("xge3_runtime.h") func logFlush() as c_int
+export extern "xgeTextUTF8Read" @header("xge3_runtime.h") @no_raise @c_span(0,"const char*","size_t") @c_outputs(3,4) @c_status(0) func readUtf8(string text,c_size offset=0) as (c_uint,c_size)
+export extern "xgeTextUTF8Read" @header("xge3_runtime.h") @no_raise @c_span(0,"const char*","size_t") @c_outputs(3,4) @c_status(0) func readUtf8(bytes text,c_size offset=0) as (c_uint,c_size)
+export extern "xgeTextUTF8Read" @header("xge3_runtime.h") @no_raise @c_span(0,"const char*","size_t") @c_outputs(3,4) @c_status(0) func readUtf8(Buffer text,c_size offset=0) as (c_uint,c_size)
 export extern "xgeGpuCapsGet" @header("xge3_runtime.h") @no_raise @c_output(0,0) func gpuCapsGet() as GpuCaps
 export extern "xgePlatformCapsGet" @header("xge3_runtime.h") @no_raise @c_output(0,0) func platformCapsGet() as PlatformCaps
 export extern "xgePlatformRuntimeGet" @header("xge3_runtime.h") @no_raise @c_output(0,0) func platformRuntimeGet() as PlatformRuntime

@@ -562,7 +562,7 @@
         },
         {
           "sourceFile": "include/xge.h",
-          "lfSha256": "885e103a80c0c313fceb5686478a2f078faaab9487f6a77a398171befa227c0c"
+          "lfSha256": "9bacfc4071f8be10a0e15aa73030f12fec32003e1c71168109aa5f61b7c189a2"
         }
       ]
     },
@@ -622,7 +622,7 @@
       "dependencies": [
         {
           "sourceFile": "include/xge.h",
-          "lfSha256": "885e103a80c0c313fceb5686478a2f078faaab9487f6a77a398171befa227c0c"
+          "lfSha256": "9bacfc4071f8be10a0e15aa73030f12fec32003e1c71168109aa5f61b7c189a2"
         }
       ]
     },
@@ -642,7 +642,7 @@
       "dependencies": [
         {
           "sourceFile": "src/xge/text/xge_font.c",
-          "lfSha256": "1e49a875b7f247f85775da77467ec98d628723d08967a37d3baea34475be013d"
+          "lfSha256": "77cf8addea3b702e7a2c84c36ba723356fc0a1a20890023123173fb2205f574f"
         }
       ]
     },
@@ -688,7 +688,7 @@
       "dependencies": [
         {
           "sourceFile": "include/xge.h",
-          "lfSha256": "885e103a80c0c313fceb5686478a2f078faaab9487f6a77a398171befa227c0c"
+          "lfSha256": "9bacfc4071f8be10a0e15aa73030f12fec32003e1c71168109aa5f61b7c189a2"
         },
         {
           "sourceFile": "src/xge/render/xge_render.c",
@@ -737,7 +737,7 @@
       "dependencies": [
         {
           "sourceFile": "src/xge/text/xge_font.c",
-          "lfSha256": "1e49a875b7f247f85775da77467ec98d628723d08967a37d3baea34475be013d"
+          "lfSha256": "77cf8addea3b702e7a2c84c36ba723356fc0a1a20890023123173fb2205f574f"
         }
       ]
     },
@@ -1290,7 +1290,7 @@
       "dependencies": [
         {
           "sourceFile": "include/xge.h",
-          "lfSha256": "885e103a80c0c313fceb5686478a2f078faaab9487f6a77a398171befa227c0c"
+          "lfSha256": "9bacfc4071f8be10a0e15aa73030f12fec32003e1c71168109aa5f61b7c189a2"
         },
         {
           "sourceFile": "src/xge/core/xge_debug.c",
@@ -2233,7 +2233,7 @@
       "dependencies": [
         {
           "sourceFile": "include/xge.h",
-          "lfSha256": "885e103a80c0c313fceb5686478a2f078faaab9487f6a77a398171befa227c0c"
+          "lfSha256": "9bacfc4071f8be10a0e15aa73030f12fec32003e1c71168109aa5f61b7c189a2"
         },
         {
           "sourceFile": "include/xui.h",
@@ -2522,7 +2522,7 @@
       "dependencies": [
         {
           "sourceFile": "include/xge.h",
-          "lfSha256": "885e103a80c0c313fceb5686478a2f078faaab9487f6a77a398171befa227c0c"
+          "lfSha256": "9bacfc4071f8be10a0e15aa73030f12fec32003e1c71168109aa5f61b7c189a2"
         },
         {
           "sourceFile": "src/xge/render/xge_shape_ex.c",
@@ -2542,7 +2542,7 @@
       "dependencies": [
         {
           "sourceFile": "include/xge.h",
-          "lfSha256": "885e103a80c0c313fceb5686478a2f078faaab9487f6a77a398171befa227c0c"
+          "lfSha256": "9bacfc4071f8be10a0e15aa73030f12fec32003e1c71168109aa5f61b7c189a2"
         },
         {
           "sourceFile": "src/xge/render/xge_shape_ex.c",

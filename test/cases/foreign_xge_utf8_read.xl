@@ -1,0 +1,64 @@
+import xge
+
+extern "fixtureUtf8NativeCases" @header("test/cases/foreign_xge_utf8_read.h") @no_raise func nativeCases()
+extern "fixtureUtf8BeginSample" @no_raise func beginSample()
+extern "fixtureUtf8EndSample" @no_raise func endSample(c_int language)
+extern "fixtureUtf8NativeSample" @no_raise func nativeSample()
+
+func expectMalformed(bytes input)
+    bool rejected=false
+    c_uint point=23
+    c_size next=72
+    try
+        point,next=xge.readUtf8(input)
+    catch Error failure
+        rejected=failure.code==int(xge.XGE_ERROR_UNSUPPORTED)
+    end
+    assert rejected and point==23 and next==72, "malformed input preserves outputs"
+end
+
+func main(...) as int
+    nativeCases()
+    auto ascii,afterAscii=xge.readUtf8("A文\0🙂")
+    assert ascii==65 and afterAscii==1, "one-byte prefix"
+    auto text,afterText=xge.readUtf8("A文\0🙂",afterAscii)
+    assert text==0x6587 and afterText==4, "three-byte prefix"
+    auto nul,afterNul=xge.readUtf8("A文\0🙂",afterText)
+    assert nul==0 and afterNul==5, "embedded NUL advances"
+    auto emoji,afterEmoji=xge.readUtf8("A文\0🙂",afterNul)
+    assert emoji==0x1f642 and afterEmoji==9, "four-byte prefix"
+    auto empty,atEnd=xge.readUtf8("A文\0🙂",afterEmoji)
+    assert empty==0 and atEnd==afterEmoji, "end preserves offset"
+    auto noPoint,noOffset=xge.readUtf8(b"")
+    assert noPoint==0 and noOffset==0, "empty byte span"
+
+    bytes bytesText=b"A\xc2\xa2\xe6\x96\x87\xf0\x9f\x99\x82"
+    auto buffer=Buffer()
+    buffer.append(bytesText)
+    auto cent,afterCent=xge.readUtf8(buffer,1)
+    assert cent==0xa2 and afterCent==3, "Buffer two-byte prefix"
+    expectMalformed(b"\x80")
+    expectMalformed(b"\xc0\xaf")
+    expectMalformed(b"\xe2\x82")
+    expectMalformed(b"\xed\xa0\x80")
+    expectMalformed(b"\xf4\x90\x80\x80")
+    bool rejected=false
+    try
+        xge.readUtf8(bytesText,11)
+    catch Error failure
+        rejected=failure.code==int(xge.XGE_ERROR_INVALID_ARGUMENT)
+    end
+    assert rejected, "out-of-range offset"
+
+    nativeSample()
+    auto warm,next=xge.readUtf8(bytesText,3)
+    assert warm==0x6587 and next==6, "warm byte span"
+    beginSample()
+    for index in range(256)
+        auto point,offset=xge.readUtf8(bytesText,3)
+        assert point==0x6587 and offset==6, "sample byte span"
+    end
+    endSample(1)
+    println("XGE_UTF8_READ_OK")
+    return 0
+end

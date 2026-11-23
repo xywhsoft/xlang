@@ -1,0 +1,340 @@
+{
+  "schema": 1,
+  "scope": "Counted UTF-8 reads and checked descriptor readers",
+  "nativeCommit": "0acf964be1d6eb1136788478c2773250b19d9ac8",
+  "priorEvidence": {
+    "path": "D:/GIT/x-lang/dev/release-materials/provenance/xge-render-thread-20261124.json",
+    "sha256": "6e36b51a745470a996cfefb5712b1bbaa133a214970a9b0262ebcc319429ed44"
+  },
+  "shippingDelivery": false,
+  "graphicsTests": false,
+  "networkTests": false,
+  "sourceSha256NormalizedLf": {
+    "lib/bindings/xge/src/functions.xl": "f1f2709ef61c4fe23ad6b23853e9bf6205e589c6eaaa6cf1187dfc6aefdb91e2",
+    "lib/bindings/xge/examples/read_utf8.xl": "8a0175157a1d6b7b44e099cdbc4db79f7b9f3e7474721400ce91425bbf87ab75",
+    "test/cases/foreign_xge_utf8_read.xl": "532e0652752106300e694387a7637ab59948898dd2f5e4c1e37365437a7ecfdc",
+    "test/cases/foreign_xge_utf8_read.c": "b2c2031717ce242b0c98e6540a26e6b0eb8c2da4a1f032e28451ccb39d93865d",
+    "test/cases/foreign_xge_utf8_read.h": "6195004c9a9c34e4d5b9e074505ece19aefc09e48292a7531ddd7dd94e4ed88e",
+    "tools/check_xge3_native_consumers.py": "9c305fc90017b98a01d4bfb5c226f37df65d559a19e7aebfb014e38dc9482af3",
+    "tools/xge_replay_contracts.py": "b7de4dba093cf3be679193930497fca5bbf6580a89f56c87afd6ab8461e37947",
+    "docs/xge3-xui3-api-map-storage.json": "c1ce5a4bd7c4a2859ae33e87736ea37136101b032bdd9d3de58c08ca81c3fc89"
+  },
+  "platforms": {
+    "win": {
+      "nativeSource": {
+        "path": "F:/xlang-validation/xge-full-20261110/xge-utf8-read-native-source-win-r1.json",
+        "sha256": "43e9141db74168c08ca5b8dee4c69280b11f6665177a0144a538a2b315213e75"
+      },
+      "nativeHost": {
+        "path": "F:/xlang-validation/xge-full-20261110/xge-utf8-read-host-win-r1/build-report.json",
+        "sha256": "48e99418079ca3b1e0f6804d8ebb20a9a14c2b4eb5f2f68691bdf386ffa0190b"
+      },
+      "nativeStatic": {
+        "path": "F:/xlang-validation/xge-full-20261110/xge-utf8-read-static-win-r1/build-report.json",
+        "sha256": "52139b677cd21d6af7d7e539d0a26d2558c10e7c10bc89458e3d6599b006362d"
+      },
+      "nativeTests": {
+        "path": "F:/xlang-validation/xge-full-20261110/xge-utf8-read-native-tests-win-r1/results.json",
+        "sha256": "03c6a160f234f366524168d2abbc7461fb6ac1a1dddaeba43ea9351e0d378d8a"
+      },
+      "compiler": {
+        "path": "F:/xlang-validation/xge-full-20261110/compiler-owned-output-pair-win-r2/build.json",
+        "sha256": "41596d3515fdf8c1f5194838396e40b1d84ecb013557b7f7aadbe352315593a3"
+      },
+      "stage": {
+        "path": "F:/xlang-validation/xge-full-20261110/xge-utf8-read-stage-win-r1/replay/stage-report.json",
+        "sha256": "4e6bc29d62536ac26ba4d150895c8e9d1837cc4fb67a1dc4e9a3dba8106a9551"
+      },
+      "audit": {
+        "path": "F:/xlang-validation/xge-full-20261110/xge-utf8-read-consumers-win-r1/results.json",
+        "sha256": "996e41acd77f6742b89c8f2d75f6c9a952dbce8bcbce0ea8a6aebf7fba3e2c53"
+      },
+      "runtime": {
+        "path": "F:/xlang-validation/xge-full-20261110/xge-utf8-read-verify-win-r1/results.json",
+        "sha256": "b3654aca20e0b6beb6708774353041e43a10d53edc5cab6da772c4ae43dd20c9"
+      },
+      "remaining": {
+        "XGE": 13,
+        "XUI": 44
+      },
+      "functionPopulation": 5893,
+      "directDeclarations": 4835,
+      "sharedReaders": {
+        "xgeTextUTF8Next": {
+          "language": "xge.readUtf8",
+          "native": "xgeTextUTF8Read",
+          "sharedReader": "__xgeTextReadUtf8Prefix",
+          "nativeReaderWitness": {
+            "source": "single/xge.c",
+            "objectSha256": "4b360fb7dfdaba82cab609087be0f4a9cd86681764a8199d7fc97569b4d8b453",
+            "legacyPath": [
+              ".text$__xgeTextReadUtf8Prefix"
+            ],
+            "checkedPath": [
+              ".text$__xgeTextReadUtf8Prefix"
+            ]
+          }
+        },
+        "xuiInputDecorationGetDesc": {
+          "language": "xui.InputDecoration.describe",
+          "native": "xuiInputDecorationDescribe",
+          "sharedReader": "__xuiInputDecorationReadDesc",
+          "nativeReaderWitness": {
+            "source": "src/xui/core/xui_input_widget.c",
+            "objectSha256": "fa7be96dca66de460b7e50fe110a4d86ad49a29c16ed22cc2cc1382164533e7e",
+            "legacyPath": [
+              ".text$__xuiInputDecorationReadDesc"
+            ],
+            "checkedPath": [
+              ".text$__xuiInputDecorationReadDesc"
+            ]
+          }
+        },
+        "xuiMessageListGetNode": {
+          "language": "xui.MessageList.getNode",
+          "native": "xuiMessageListGetNodeDescriptor",
+          "sharedReader": "__xuiMessagePublicNode",
+          "nativeReaderWitness": {
+            "source": "src/xui/controls/xui_message_list.c",
+            "objectSha256": "cc13be770c2879861f37bc89d139bd17a71847628537c4ce7e3247846a122df3",
+            "legacyPath": [
+              ".text$__xuiMessagePublicNode"
+            ],
+            "checkedPath": [
+              ".text$__xuiMessagePublicNode"
+            ]
+          }
+        }
+      },
+      "cases": {
+        "foreign_xge_utf8_read": {
+          "generated": {
+            "path": "F:/xlang-validation/xge-full-20261110/xge-utf8-read-verify-win-r1/foreign_xge_utf8_read/generated.c",
+            "sha256": "4cd30cb4c44bfebb32b26174b4363adbad8cd70300280c9ab1ede6c4df1384ed"
+          },
+          "imports": {
+            "host": [
+              "xge3_host.dll",
+              "msvcrt.dll",
+              "kernel32.dll",
+              "shell32.dll",
+              "ws2_32.dll",
+              "iphlpapi.dll",
+              "ucrtbase.dll"
+            ],
+            "static": [
+              "msvcrt.dll",
+              "kernel32.dll",
+              "shell32.dll"
+            ]
+          },
+          "steps": [
+            "emit",
+            "host-build",
+            "host-imports",
+            "host-run",
+            "jit",
+            "static-build",
+            "static-imports",
+            "static-run"
+          ]
+        },
+        "read_utf8": {
+          "generated": {
+            "path": "F:/xlang-validation/xge-full-20261110/xge-utf8-read-verify-win-r1/read_utf8/generated.c",
+            "sha256": "c2ad16f2fc0eeeff7ea7169c84579d0538a0d32ceb732d259a08408e1c9d3a15"
+          },
+          "imports": {
+            "host": [
+              "xge3_host.dll",
+              "msvcrt.dll",
+              "kernel32.dll",
+              "shell32.dll",
+              "ucrtbase.dll"
+            ],
+            "static": [
+              "msvcrt.dll",
+              "kernel32.dll",
+              "shell32.dll"
+            ]
+          },
+          "steps": [
+            "emit",
+            "host-build",
+            "host-imports",
+            "host-run",
+            "jit",
+            "static-build",
+            "static-imports",
+            "static-run"
+          ]
+        }
+      },
+      "scalarsChecked": 1112064,
+      "heapReadCount": 256,
+      "nativeAndLanguageHeapOperations": 0
+    },
+    "linux": {
+      "nativeSource": {
+        "path": "//wsl.localhost/Ubuntu/var/tmp/xlang-validation/xge-full-20261110/xge-utf8-read-native-source-linux-r1.json",
+        "sha256": "d52b7b35e5d4a7e77edbfdceb98eb9f86e3e58338932f6967815ef93c414ef60"
+      },
+      "nativeHost": {
+        "path": "//wsl.localhost/Ubuntu/var/tmp/xlang-validation/xge-full-20261110/xge-utf8-read-host-linux-r1/build-report.json",
+        "sha256": "45686900d3a213f43adfd295360e66d351f39e99eea3606156dd0b501d704c18"
+      },
+      "nativeStatic": {
+        "path": "//wsl.localhost/Ubuntu/var/tmp/xlang-validation/xge-full-20261110/xge-utf8-read-static-linux-r1/build-report.json",
+        "sha256": "19921496ddf2fd0ff424ccb7e194808cffe77bbafa302ada4f8e08694229c3f0"
+      },
+      "nativeTests": {
+        "path": "//wsl.localhost/Ubuntu/var/tmp/xlang-validation/xge-full-20261110/xge-utf8-read-native-tests-linux-r1/results.json",
+        "sha256": "856b1610a81277e28e8dd0041ac3fc7b646eb2e2c601c9a4581e6f1528cee75c"
+      },
+      "compiler": {
+        "path": "//wsl.localhost/Ubuntu/var/tmp/xlang-validation/xge-full-20261110/compiler-owned-output-pair-linux-r2/build.json",
+        "sha256": "bb4ad4330abb14095a0dc59233ed6e265033b4498b8f779a11ca4d0b9b176099"
+      },
+      "stage": {
+        "path": "//wsl.localhost/Ubuntu/var/tmp/xlang-validation/xge-full-20261110/xge-utf8-read-stage-linux-r1/replay/stage-report.json",
+        "sha256": "ebcba631e5dc1d016de0a97fd88b8a7fb8dca53121964ae04afb202da8f2cebc"
+      },
+      "audit": {
+        "path": "//wsl.localhost/Ubuntu/var/tmp/xlang-validation/xge-full-20261110/xge-utf8-read-consumers-linux-r1/results.json",
+        "sha256": "9db294654845d73589509cfc9f0225dfdf08608dd149cd7b78710637354e2b03"
+      },
+      "runtime": {
+        "path": "//wsl.localhost/Ubuntu/var/tmp/xlang-validation/xge-full-20261110/xge-utf8-read-verify-linux-r1/results.json",
+        "sha256": "ba739d7b146572a5643ba65fd88541564adbc650236eaffd17a02a3bd55b8896"
+      },
+      "remaining": {
+        "XGE": 13,
+        "XUI": 44
+      },
+      "functionPopulation": 5893,
+      "directDeclarations": 4835,
+      "sharedReaders": {
+        "xgeTextUTF8Next": {
+          "language": "xge.readUtf8",
+          "native": "xgeTextUTF8Read",
+          "sharedReader": "__xgeTextReadUtf8Prefix",
+          "nativeReaderWitness": {
+            "source": "single/xge.c",
+            "objectSha256": "c19f7f86fd5b8f748956d35d6ada85feb65d2bf9e2278a13b0f88c04b9f71ff1",
+            "legacyPath": [
+              ".text.__xgeTextReadUtf8Prefix"
+            ],
+            "checkedPath": [
+              ".text.__xgeTextReadUtf8Prefix"
+            ]
+          }
+        },
+        "xuiInputDecorationGetDesc": {
+          "language": "xui.InputDecoration.describe",
+          "native": "xuiInputDecorationDescribe",
+          "sharedReader": "__xuiInputDecorationReadDesc",
+          "nativeReaderWitness": {
+            "source": "src/xui/core/xui_input_widget.c",
+            "objectSha256": "0b5bd818fdb77ba13a825cf9a6c8b9e8518d4f4c4bbaea72ab5399c3bff0c181",
+            "legacyPath": [
+              ".text.__xuiInputDecorationReadDesc"
+            ],
+            "checkedPath": [
+              ".text.__xuiInputDecorationReadDesc"
+            ]
+          }
+        },
+        "xuiMessageListGetNode": {
+          "language": "xui.MessageList.getNode",
+          "native": "xuiMessageListGetNodeDescriptor",
+          "sharedReader": "__xuiMessagePublicNode",
+          "nativeReaderWitness": {
+            "source": "src/xui/controls/xui_message_list.c",
+            "objectSha256": "2b33f45301f7ad4eb02bca043d0f06d3b6571f8edce1da7a66e9dd83e054a79d",
+            "legacyPath": [
+              ".text.__xuiMessagePublicNode"
+            ],
+            "checkedPath": [
+              ".text.__xuiMessagePublicNode"
+            ]
+          }
+        }
+      },
+      "cases": {
+        "foreign_xge_utf8_read": {
+          "generated": {
+            "path": "//wsl.localhost/Ubuntu/var/tmp/xlang-validation/xge-full-20261110/xge-utf8-read-verify-linux-r1/foreign_xge_utf8_read/generated.c",
+            "sha256": "4cd30cb4c44bfebb32b26174b4363adbad8cd70300280c9ab1ede6c4df1384ed"
+          },
+          "imports": {
+            "static": [
+              "libm.so.6",
+              "libmvec.so.1",
+              "libx11.so.6",
+              "libxi.so.6",
+              "libxcursor.so.1",
+              "libgl.so.1",
+              "libc.so.6",
+              "ld-linux-x86-64.so.2"
+            ],
+            "host": [
+              "libm.so.6",
+              "libmvec.so.1",
+              "libxge3_host.so",
+              "libc.so.6",
+              "ld-linux-x86-64.so.2"
+            ]
+          },
+          "steps": [
+            "emit",
+            "host-build",
+            "host-imports",
+            "host-run",
+            "jit",
+            "static-build",
+            "static-imports",
+            "static-run"
+          ]
+        },
+        "read_utf8": {
+          "generated": {
+            "path": "//wsl.localhost/Ubuntu/var/tmp/xlang-validation/xge-full-20261110/xge-utf8-read-verify-linux-r1/read_utf8/generated.c",
+            "sha256": "c2ad16f2fc0eeeff7ea7169c84579d0538a0d32ceb732d259a08408e1c9d3a15"
+          },
+          "imports": {
+            "host": [
+              "libm.so.6",
+              "libmvec.so.1",
+              "libxge3_host.so",
+              "libc.so.6",
+              "ld-linux-x86-64.so.2"
+            ],
+            "static": [
+              "libm.so.6",
+              "libmvec.so.1",
+              "libx11.so.6",
+              "libxi.so.6",
+              "libxcursor.so.1",
+              "libgl.so.1",
+              "libc.so.6",
+              "ld-linux-x86-64.so.2"
+            ]
+          },
+          "steps": [
+            "emit",
+            "host-build",
+            "host-imports",
+            "host-run",
+            "jit",
+            "static-build",
+            "static-imports",
+            "static-run"
+          ]
+        }
+      },
+      "scalarsChecked": 1112064,
+      "heapReadCount": 256,
+      "nativeAndLanguageHeapOperations": 0
+    }
+  }
+}

@@ -18,6 +18,7 @@ $env:XLANG_PACKAGE_PATH = "$runtime\extlibs"
 | `headless_frame.xl` | Owned native callback support; no window or device. Explicit dispatch returns 1, then 2, and the captured counter changes. | Clears the callback and calls checked `unit()`. |
 | `error_callback.xl` | No engine/window/device. Reports one typed error and prints `Resource unavailable` from an independent message snapshot. | Explicitly clears the global observer. |
 | `headless_shape.xl` | Native Shape feature; no engine initialization or device. Clone has an independent ID after modification. | Both owners close in `finally`. |
+| `read_utf8.xl` | Native Text feature; no engine initialization or device. Prints four code points and the next byte offsets, including `0 5` for the embedded zero. | No resources created. |
 | `shape_references.xl` | Native Shape feature; no device. A hit result still reports ID 7 after the scene and original shape close. | Closes all three managed references. |
 | `shape_traversal.xl` | Native Shape feature; no device. A depth-first visitor prints `Visited shape 7`. | Closes the retained result, scene and original shape. |
 | `shape_mask.xl` | Native Shape feature and OpenGL. Draws an orange layer through a circular mask. | Closes the scene, shape and engine after 90 frames. |

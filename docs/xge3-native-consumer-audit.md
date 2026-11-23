@@ -1,5 +1,27 @@
 # Native consumers in the full API inventory
 
+## Counted UTF-8 and descriptor reads
+
+`xge.readUtf8()` shares the native decoder with `xgeTextUTF8Next` and accepts
+a string, bytes or Buffer. It returns a code point and the next byte offset.
+End of input leaves the offset unchanged. An embedded zero advances one byte.
+Errors preserve both destination values.
+
+The Windows and Linux native tests cover all 1,112,064 Unicode scalar values
+and their truncated prefixes. Both O2 xlang candidates pass JIT, dynamic AOT
+and static AOT. In 256 warmed byte-span reads, both C and xlang perform zero
+XRT heap operations. Generated C passes the original data and byte length
+directly and checks the native status before delivering two scalar results.
+
+The input-decoration and message-list audits verify that the managed and
+legacy functions use the same native descriptor readers. Managed calls copy
+the exposed text and retain any returned owned decoration surface.
+
+The inventories cover 5,893 functions and 4,835 direct declarations. The
+remaining 57 entries comprise 13 XGE and 44 XUI functions.
+
+[Counted read and descriptor evidence](../dev/release-materials/provenance/xge-utf8-read-20261124.json)
+
 ## Render-worker configuration and checked retirement paths
 
 `xge.resetRenderThreadEgl()` passes a typed NULL directly to

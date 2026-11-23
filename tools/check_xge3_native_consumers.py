@@ -100,6 +100,14 @@ MANAGER_CLOSE_CHAINS = {
     'xuiToastDestroy': ('src/xui/controls/xui_toast.c', 'xuiToastDestroyChecked',
         'xuiToastDestroyOwnerChecked', 'xui.Toast.close'),
 }
+SCOPED_READERS = {
+    'xgeTextUTF8Next': ('single/xge.c', 'xgeTextUTF8Read', '__xgeTextReadUtf8Prefix',
+        'xge.readUtf8'),
+    'xuiInputDecorationGetDesc': ('src/xui/core/xui_input_widget.c', 'xuiInputDecorationDescribe',
+        '__xuiInputDecorationReadDesc', 'xui.InputDecoration.describe'),
+    'xuiMessageListGetNode': ('src/xui/controls/xui_message_list.c', 'xuiMessageListGetNodeDescriptor',
+        '__xuiMessagePublicNode', 'xui.MessageList.getNode'),
+}
 TEXT_SHAPE_LIFETIME_CALLS = {
     'src/xui/core/xui_text.c': {
         'xuiTextShape': ('xuiGetProxyCaps','__xuiTextShapeWithProxy'),
@@ -621,7 +629,12 @@ def main():
         for legacy, (unit, checked, owner, _) in MANAGER_CLOSE_CHAINS.items():
             if legacy in functions and checked in functions and owner in functions:
                 calls.setdefault(unit, {}).update({legacy: (checked,), checked: (owner,)})
+        for legacy, (unit, checked, reader, _) in SCOPED_READERS.items():
+            if legacy in functions and checked in functions:
+                calls.setdefault(unit, {}).update({legacy: (reader,), checked: (reader,)})
         included_units = ['src/xge/text/xge_text_resources.c']
+        if 'xgeTextUTF8Read' in functions:
+            included_units.append('src/xge/text/xge_font.c')
         if 'xgeAsyncRequestInit' in functions and 'xgeAsyncImageCreateOwned' in functions:
             calls.setdefault('single/xge.c', {}).update({
                 'xgeAsyncImageCreateOwned': ('__xgeLoadCreate',),
@@ -896,6 +909,14 @@ def main():
                     relocationPath=close_relocation_path(header_relocations[key],policy,destroy,release))
             elif document and symbol=='xuiDocumentFreeBuffer':
                 evidence=document['bufferReplacement']
+            elif symbol in SCOPED_READERS and a.resource_engine_build and SCOPED_READERS[symbol][1] in functions:
+                source, native, reader, logical = SCOPED_READERS[symbol]
+                assert {row['language'] for row in bound[native]} == {logical}
+                witness = report['resourceLifetime'][source]
+                paths = witness['relocationPaths']
+                evidence = dict(language=logical,native=native,sharedReader=reader,
+                    nativeReaderWitness=dict(source=source,objectSha256=witness['objectSha256'],
+                        legacyPath=paths[symbol][reader],checkedPath=paths[native][reader]))
             elif symbol in MANAGER_CLOSE_CHAINS and a.resource_engine_build and all(
                     name in functions for name in MANAGER_CLOSE_CHAINS[symbol][1:3]):
                 source, native, owner, logical = MANAGER_CLOSE_CHAINS[symbol]
