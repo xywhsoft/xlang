@@ -1,5 +1,22 @@
 # Native consumers in the full API inventory
 
+## Context-bound text shaping
+
+`Context.shapeText()` uses the same cached capabilities and shaping routine as
+the native Context operation. It returns an owning result. `TextShape.close()`
+uses the native owner release. The last owner calls the same payload cleanup
+as `xuiTextShapeFreeChecked`.
+
+The Windows and Linux tests compare widths and UTF-8 cluster ranges with raw
+C, exercise two native and five language allocation-failure prefixes, and
+read retained clusters after the Context and the shape view close. The native
+backend probe records zero capability queries after Context attachment.
+
+The matched inventories cover 5,891 native functions and 4,830 direct
+declarations. The remaining 70 entries comprise 16 XGE and 54 XUI functions.
+
+[Context shaping evidence](../dev/release-materials/provenance/xui-context-text-shape-20261124.json)
+
 ## Indexed language entries
 
 `Language.textAt()` reads one position in the pack and returns the stored ID

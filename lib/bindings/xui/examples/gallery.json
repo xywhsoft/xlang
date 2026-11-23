@@ -533,6 +533,13 @@
       "expected": "Measure, inspect lines and draw one owned text layout to an Image surface."
     },
     {
+      "name": "context_text_shape",
+      "title": "Shape text with a Context",
+      "kind": "cpu",
+      "gallery": false,
+      "expected": "输出文本宽度以及各文字簇的 UTF-8 字节范围。"
+    },
+    {
       "name": "code_document",
       "title": "Code document",
       "kind": "cpu",

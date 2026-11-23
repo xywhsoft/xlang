@@ -90,6 +90,19 @@ NATIVE_RELEASE_DELEGATES = {
     'xuiDockPanelStateFree': ('src/xui/controls/xui_dock_panel.c',
         'xuiDockPanelStateFree', 'xrtValueRelease'),
 }
+TEXT_SHAPE_LIFETIME_CALLS = {
+    'src/xui/core/xui_text.c': {
+        'xuiTextShape': ('xuiGetProxyCaps','__xuiTextShapeWithProxy'),
+        'xuiContextTextShapeCreateOwned': ('xuiGetProxyCaps','__xuiTextShapeCreateWithCaps'),
+        '__xuiTextShapeCreateWithCaps': ('__xuiTextShapeWithProxy','xuiInternalTextShapeAllocateOwned'),
+        'xuiTextShapeFree': ('xuiTextShapeFreeChecked',),
+        'xuiInternalOwnedTextShapeFinalize': ('xuiTextShapeFreeChecked',),
+    },
+    'src/xui/core/xui_proxy_resource.c': {
+        'xuiInternalTextShapeAllocateOwned': ('resourceCreate','xuiInternalOwnedTextShapeFinalize'),
+        'xuiTextShapeReleaseOwnerChecked': ('resourceRelease',),
+    },
+}
 for leaf in ('CodeAnnotationStore', 'CodeTokenBuffer'):
     for suffix in ('Destroy', 'DestroyChecked'):
         CODE_LEAF_CLOSES['xui'+leaf+suffix] = (f'xui.{leaf}.close',
@@ -446,6 +459,14 @@ def witness_build_inputs(build, audit, packages, gcc, sha, units, included_units
     return source, metadata['flags'], pins
 
 
+def native_refptr_path(relocations, refs, symbol):
+    # COFF can take a native function or import-slot address through a refptr.
+    refptr = '.refptr.'+symbol
+    if refptr in refs and symbol in relocations.get('.rdata$'+refptr,()):
+        return [refptr,symbol]
+    return []
+
+
 def prove_native_lifetime(source, flags, calls, tools, out, run, sha):
     evidence = {}
     imports = next((Path(flag) for flag in flags if Path(flag).name=='xge_host_xrt_imports.h'),None)
@@ -466,16 +487,19 @@ def prove_native_lifetime(source, flags, calls, tools, out, run, sha):
                 if direct:
                     paths[caller][name] = [min(direct)]
                     continue
+                reference = native_refptr_path(relocations,refs,name)
+                if reference:
+                    paths[caller][name] = reference
+                    continue
                 slot = 'XgeHostXrtSlot_'+name
-                assert '-DXGE_XRT_HOST=1' in flags and f'XGE_HOST_XRT_SLOT({name})' in slots
+                assert '-DXGE_XRT_HOST=1' in flags and f'XGE_HOST_XRT_SLOT({name})' in slots, (caller,name,refs)
                 assert f'#define {name} (*{slot})' in import_macros
                 if slot in refs:
                     paths[caller][name] = [slot]
                     continue
-                # COFF may route the address of the import slot through a refptr section.
-                refptr = '.refptr.'+slot
-                assert refptr in refs and slot in relocations.get('.rdata$'+refptr,()), (caller,name,refs)
-                paths[caller][name] = [refptr,slot]
+                reference = native_refptr_path(relocations,refs,slot)
+                assert reference, (caller,name,refs)
+                paths[caller][name] = reference
         evidence[path] = dict(object=str(obj), objectSha256=sha(obj), nativeCalls=expected,
             relocationPaths=paths)
     return evidence
@@ -579,6 +603,9 @@ def main():
             calls.setdefault(unit, {})[caller] = (callee,)
         if 'xuiLanguageGetTextAt' in functions:
             calls.setdefault('src/xui/core/xui_core.c', {})['xuiLanguageGetTextAt'] = ('xrtArrayConstGet',)
+        if 'xuiContextTextShapeCreateOwned' in functions:
+            for unit, expected in TEXT_SHAPE_LIFETIME_CALLS.items():
+                calls.setdefault(unit, {}).update(expected)
         source, build_flags, evidence_inputs = witness_build_inputs(
             a.resource_engine_build.resolve(),audit,packages,tools['gcc'],sha,calls.keys(),
             ('src/xge/text/xge_text_resources.c',))
@@ -847,6 +874,22 @@ def main():
                     relocationPath=close_relocation_path(header_relocations[key],policy,destroy,release))
             elif document and symbol=='xuiDocumentFreeBuffer':
                 evidence=document['bufferReplacement']
+            elif symbol in ('xuiTextShape','xuiTextShapeFree','xuiTextShapeFreeChecked') and (
+                a.resource_engine_build and 'xuiContextTextShapeCreateOwned' in bound):
+                native = 'xuiContextTextShapeCreateOwned'
+                logical = 'xui.Context.shapeText'
+                assert {row['language'] for row in bound[native]} == {logical}
+                paths = {source:report['resourceLifetime'][source]['relocationPaths']
+                         for source in TEXT_SHAPE_LIFETIME_CALLS}
+                if symbol=='xuiTextShape':
+                    evidence=dict(language=logical,native=native,nativeShapeWitness=paths)
+                else:
+                    logical='xui.TextShape.close'
+                    policy='xl6Xui3TextShapePolicy'
+                    release='xuiTextShapeReleaseOwnerChecked'
+                    require_close(class_lines(view,class_bindings['xui.TextShape']),policy,logical)
+                    evidence=dict(language=logical,native=release,policy=policy,nativeShapeWitness=paths,
+                        relocationPath=close_relocation_path(policy_relocations,policy,'destroy_text_shape',release))
             elif symbol=='xuiGetLanguageTextArray' and a.resource_engine_build and 'xuiLanguageGetTextAt' in bound:
                 source = 'src/xui/core/xui_core.c'
                 witness = report['resourceLifetime'][source]

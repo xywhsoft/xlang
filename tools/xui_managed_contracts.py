@@ -2223,6 +2223,34 @@ export extern "const xui_timeline_span_t*" class CallbackTimelineSpan @header("x
 end''',
 })
 
+RECORDS['xui_text_item_t'] = (
+    'typedef struct xui_text_item_t { uint32_t iSize; struct xui_font_t* pFont; '
+    'const char* sText; int iTextSize; uint32_t iFlags; const char* sContext; '
+    'int iContextSize; int iContextOffset; uint32_t iScript; const char* sLanguage; '
+    'float fDrawOffsetX; int iRangeStart; int iRangeEnd; const xui_text_shape_t* pShape; '
+    'const xui_text_paint_span_t* pPaintSpans; int iPaintSpanCount; } xui_text_item_t;'
+)
+CONTEXT_TEXT_SHAPE = (
+    'extern "xuiContextTextShapeCreateOwned" @no_raise @c_result("owned_view") @factory(2,0,rollbackTextShape) '
+    '@c_pack(1,"xui_text_item_t",0,11) @c_pack_size(1,"iSize","uint32_t") '
+    '@c_pack_field(1,"pFont",0,"view_raw") @c_pack_field(1,"sText",1,"text_data") '
+    '@c_pack_field(1,"iTextSize",1,"text_size","int") @c_pack_field(1,"pPaintSpans",2,"span_data") '
+    '@c_pack_field(1,"iPaintSpanCount",2,"span_count") @c_pack_field(1,"iFlags",3,"value") '
+    '@c_pack_field(1,"sContext",4,"text_data") @c_pack_field(1,"iContextSize",4,"text_size","int") '
+    '@c_pack_field(1,"iContextOffset",5,"value") @c_pack_field(1,"iScript",6,"value") '
+    '@c_pack_field(1,"sLanguage",7,"c_string") @c_pack_field(1,"fDrawOffsetX",8,"value") '
+    '@c_pack_field(1,"iRangeStart",9,"value") @c_pack_field(1,"iRangeEnd",10,"value") '
+    '@c_span(2,"const xui_text_paint_span_t*","int") func shapeText(Font font,string text,{spans},'
+    'c_uint shapingFlags=11,string? context=null,c_int contextOffset=0,c_uint script=0,string? language=null,'
+    'c_float drawOffsetX=0,c_int rangeStart=0,c_int rangeEnd=0) as TextShape'
+)
+METHODS['xuiContextTextShapeCreateOwned'] = (
+    'int xuiContextTextShapeCreateOwned(xui_context pContext, const xui_text_item_t* pTextItem, const xui_text_shape_t** ppShape)',
+    'Context',
+    [CONTEXT_TEXT_SHAPE.format(spans=spans) for spans in ('bytes paintSpans=b""', 'Buffer paintSpans')],
+)
+
+
 def validate(root,header,function_sha):
     functions={f['name']:f['declaration']for f in header['functions']}
     types={t['name']:t['declaration']for t in header['types']}

@@ -1,0 +1,638 @@
+{
+  "schema": 1,
+  "scope": "Context-bound owned text shaping, cached capabilities, and resource retirement",
+  "nativeCommit": "91c3089135de3b42d95b8ca977574b794e8e1783",
+  "shippingDelivery": false,
+  "graphicsTests": false,
+  "networkTests": false,
+  "sourceSha256NormalizedLf": {
+    "lib/bindings/xui/src/managed.xl": "14841f884c169429454e7cc1e9c349fdcc8a77130528977b3b5a5ac39fa14fdc",
+    "lib/bindings/xui/examples/context_text_shape.xl": "2f7bc227c281f37f89957f2d43ed27ac04c0c9a521b12577d700c9ab546bda55",
+    "lib/bindings/xui/examples/gallery.json": "ffc2094ebb00084aabf1f41d7868b28aa5a353bc2bb83c9587fbe70371b0ae59",
+    "test/cases/foreign_xui_context_text_shape.xl": "962aceab0ce8477d3d1887a06115a53cf9b60d00fd70084778b784c155f4c956",
+    "test/cases/foreign_xui_context_text_shape.c": "7aafc00c0d673d49a0bec9c1e10bd552adafb7ae4458d69db20d35309e7ae4b6",
+    "test/cases/foreign_xui_context_text_shape.h": "6f12f8cd798ab7c7531d697d1f91e6c50dabefb66869ab65a14ecba27c0af09b",
+    "test/cases/foreign_xui_render_backend.c": "d923086b61f849a73a720968149c8a9cb990e4febe45b01bf1cf9735490826a6",
+    "test/cases/foreign_xui_render_backend.h": "f5c5e0a41b5932e164c251d610bd874bb2e3e2d4b01d5b61930164659813164f",
+    "test/cases/foreign_xui_render_adapters.inc": "b54a15b0295c93a59be72b93acacfb1eefd335a7ec28d6290b18be213770711e",
+    "tools/check_xge3_native_consumers.py": "4a352f3dbacc081624b5d56b528280e90accb32cfb8a42682a5481a1d742820e",
+    "tools/xui_managed_contracts.py": "b6c1480c44163682713c0838d9f850d1db2a1d418bd45bc11d312e04eda74793",
+    "docs/xge3-xui3-api-map-storage.json": "5f363fe92715412e6a1c15e42baaafe5421883960f01019a922a5880e8c92c3e"
+  },
+  "platforms": {
+    "win": {
+      "nativeSource": {
+        "path": "F:/xlang-validation/xge-full-20261110/xui-context-text-shape-native-source-win-r1.json",
+        "sha256": "c540531725f526b12b39b66159f7a8c1160b79e93e8c6d5815fc144b7539c874"
+      },
+      "nativeHost": {
+        "path": "F:/xlang-validation/xge-full-20261110/xui-context-text-shape-host-win-r1/build-report.json",
+        "sha256": "efbbacfce5bb19a59f4251a0d2127f776f7fbd9b31b0b6211b9ff9f2ae382484"
+      },
+      "nativeStatic": {
+        "path": "F:/xlang-validation/xge-full-20261110/xui-context-text-shape-static-win-r1/build-report.json",
+        "sha256": "b4cc20a89afdb152d0dd65092634926fbfd83538b38697cccff69ac4f90bb0f6"
+      },
+      "compiler": {
+        "path": "F:/xlang-validation/xge-full-20261110/compiler-owned-output-pair-win-r2/build.json",
+        "sha256": "41596d3515fdf8c1f5194838396e40b1d84ecb013557b7f7aadbe352315593a3"
+      },
+      "packageReplay": {
+        "path": "F:/xlang-validation/xge-full-20261110/xui-context-text-shape-stage-win-r1/replay/stage-report.json",
+        "sha256": "1c59e12643b72f935f13aac5d2b9f90bde406ce87e6874ea0f2295e35eb7fc0f"
+      },
+      "consumerAudit": {
+        "path": "F:/xlang-validation/xge-full-20261110/xui-context-text-shape-consumers-win-r2/results.json",
+        "sha256": "7205c7cbf6f0c7f24542b827741a0b7393f148165fd0c0f59fd7713f0460d493"
+      },
+      "nativeO0O2": {
+        "path": "F:/xlang-validation/xge-full-20261110/xui-context-text-shape-native-tests-win-r1/results.json",
+        "sha256": "c3694dd7ff53b3104bfcd01535265106e3df6a02bd690e7bbdad78ef65b89117"
+      },
+      "functionPopulation": 5891,
+      "directDeclarations": 4830,
+      "remaining": {
+        "XGE": 16,
+        "XUI": 54
+      },
+      "nativeOomPrefixes": 2,
+      "languageOomPrefixes": 5,
+      "nativeCapabilityQueriesAfterAttachment": 0,
+      "shapeMappings": {
+        "xuiTextShape": {
+          "language": "xui.Context.shapeText",
+          "native": "xuiContextTextShapeCreateOwned",
+          "nativeShapeWitness": {
+            "src/xui/core/xui_text.c": {
+              "xuiTextShape": {
+                "xuiGetProxyCaps": [
+                  "xuiGetProxyCaps"
+                ],
+                "__xuiTextShapeWithProxy": [
+                  ".text$__xuiTextShapeWithProxy"
+                ]
+              },
+              "xuiContextTextShapeCreateOwned": {
+                "xuiGetProxyCaps": [
+                  "xuiGetProxyCaps"
+                ],
+                "__xuiTextShapeCreateWithCaps": [
+                  ".text$__xuiTextShapeCreateWithCaps"
+                ]
+              },
+              "__xuiTextShapeCreateWithCaps": {
+                "__xuiTextShapeWithProxy": [
+                  ".text$__xuiTextShapeWithProxy"
+                ],
+                "xuiInternalTextShapeAllocateOwned": [
+                  "xuiInternalTextShapeAllocateOwned"
+                ]
+              },
+              "xuiTextShapeFree": {
+                "xuiTextShapeFreeChecked": [
+                  ".text$xuiTextShapeFreeChecked"
+                ]
+              },
+              "xuiInternalOwnedTextShapeFinalize": {
+                "xuiTextShapeFreeChecked": [
+                  ".text$xuiTextShapeFreeChecked"
+                ]
+              }
+            },
+            "src/xui/core/xui_proxy_resource.c": {
+              "xuiInternalTextShapeAllocateOwned": {
+                "resourceCreate": [
+                  ".text$resourceCreate"
+                ],
+                "xuiInternalOwnedTextShapeFinalize": [
+                  ".refptr.xuiInternalOwnedTextShapeFinalize",
+                  "xuiInternalOwnedTextShapeFinalize"
+                ]
+              },
+              "xuiTextShapeReleaseOwnerChecked": {
+                "resourceRelease": [
+                  ".text$resourceRelease"
+                ]
+              }
+            }
+          }
+        },
+        "xuiTextShapeFree": {
+          "language": "xui.TextShape.close",
+          "native": "xuiTextShapeReleaseOwnerChecked",
+          "policy": "xl6Xui3TextShapePolicy",
+          "nativeShapeWitness": {
+            "src/xui/core/xui_text.c": {
+              "xuiTextShape": {
+                "xuiGetProxyCaps": [
+                  "xuiGetProxyCaps"
+                ],
+                "__xuiTextShapeWithProxy": [
+                  ".text$__xuiTextShapeWithProxy"
+                ]
+              },
+              "xuiContextTextShapeCreateOwned": {
+                "xuiGetProxyCaps": [
+                  "xuiGetProxyCaps"
+                ],
+                "__xuiTextShapeCreateWithCaps": [
+                  ".text$__xuiTextShapeCreateWithCaps"
+                ]
+              },
+              "__xuiTextShapeCreateWithCaps": {
+                "__xuiTextShapeWithProxy": [
+                  ".text$__xuiTextShapeWithProxy"
+                ],
+                "xuiInternalTextShapeAllocateOwned": [
+                  "xuiInternalTextShapeAllocateOwned"
+                ]
+              },
+              "xuiTextShapeFree": {
+                "xuiTextShapeFreeChecked": [
+                  ".text$xuiTextShapeFreeChecked"
+                ]
+              },
+              "xuiInternalOwnedTextShapeFinalize": {
+                "xuiTextShapeFreeChecked": [
+                  ".text$xuiTextShapeFreeChecked"
+                ]
+              }
+            },
+            "src/xui/core/xui_proxy_resource.c": {
+              "xuiInternalTextShapeAllocateOwned": {
+                "resourceCreate": [
+                  ".text$resourceCreate"
+                ],
+                "xuiInternalOwnedTextShapeFinalize": [
+                  ".refptr.xuiInternalOwnedTextShapeFinalize",
+                  "xuiInternalOwnedTextShapeFinalize"
+                ]
+              },
+              "xuiTextShapeReleaseOwnerChecked": {
+                "resourceRelease": [
+                  ".text$resourceRelease"
+                ]
+              }
+            }
+          },
+          "relocationPath": [
+            ".text$xl6Xui3TextShapePolicyGet",
+            ".rdata$value.39",
+            ".text$destroy_text_shape",
+            "xuiTextShapeReleaseOwnerChecked"
+          ]
+        },
+        "xuiTextShapeFreeChecked": {
+          "language": "xui.TextShape.close",
+          "native": "xuiTextShapeReleaseOwnerChecked",
+          "policy": "xl6Xui3TextShapePolicy",
+          "nativeShapeWitness": {
+            "src/xui/core/xui_text.c": {
+              "xuiTextShape": {
+                "xuiGetProxyCaps": [
+                  "xuiGetProxyCaps"
+                ],
+                "__xuiTextShapeWithProxy": [
+                  ".text$__xuiTextShapeWithProxy"
+                ]
+              },
+              "xuiContextTextShapeCreateOwned": {
+                "xuiGetProxyCaps": [
+                  "xuiGetProxyCaps"
+                ],
+                "__xuiTextShapeCreateWithCaps": [
+                  ".text$__xuiTextShapeCreateWithCaps"
+                ]
+              },
+              "__xuiTextShapeCreateWithCaps": {
+                "__xuiTextShapeWithProxy": [
+                  ".text$__xuiTextShapeWithProxy"
+                ],
+                "xuiInternalTextShapeAllocateOwned": [
+                  "xuiInternalTextShapeAllocateOwned"
+                ]
+              },
+              "xuiTextShapeFree": {
+                "xuiTextShapeFreeChecked": [
+                  ".text$xuiTextShapeFreeChecked"
+                ]
+              },
+              "xuiInternalOwnedTextShapeFinalize": {
+                "xuiTextShapeFreeChecked": [
+                  ".text$xuiTextShapeFreeChecked"
+                ]
+              }
+            },
+            "src/xui/core/xui_proxy_resource.c": {
+              "xuiInternalTextShapeAllocateOwned": {
+                "resourceCreate": [
+                  ".text$resourceCreate"
+                ],
+                "xuiInternalOwnedTextShapeFinalize": [
+                  ".refptr.xuiInternalOwnedTextShapeFinalize",
+                  "xuiInternalOwnedTextShapeFinalize"
+                ]
+              },
+              "xuiTextShapeReleaseOwnerChecked": {
+                "resourceRelease": [
+                  ".text$resourceRelease"
+                ]
+              }
+            }
+          },
+          "relocationPath": [
+            ".text$xl6Xui3TextShapePolicyGet",
+            ".rdata$value.39",
+            ".text$destroy_text_shape",
+            "xuiTextShapeReleaseOwnerChecked"
+          ]
+        }
+      },
+      "cases": {
+        "context_text_shape": {
+          "report": {
+            "path": "F:/xlang-validation/xge-full-20261110/xui-context-text-shape-verify-win-r1/results.json",
+            "sha256": "29d91c98923ca23da61a4fdbe8ae54df3d1de84042b05197b4c99765ea5a9b3b"
+          },
+          "steps": [
+            "emit",
+            "host-build",
+            "host-imports",
+            "host-run",
+            "jit",
+            "static-build",
+            "static-imports",
+            "static-run"
+          ],
+          "imports": {
+            "host": [
+              "msvcrt.dll",
+              "xge3_host.dll",
+              "kernel32.dll",
+              "shell32.dll",
+              "ucrtbase.dll"
+            ],
+            "static": [
+              "msvcrt.dll",
+              "kernel32.dll",
+              "user32.dll",
+              "ole32.dll",
+              "oleaut32.dll",
+              "shell32.dll",
+              "gdi32.dll",
+              "imm32.dll",
+              "dwrite.dll"
+            ]
+          },
+          "generated": {
+            "path": "F:/xlang-validation/xge-full-20261110/xui-context-text-shape-verify-win-r1/context_text_shape/generated.c",
+            "sha256": "69d7d24a4a360eaf4d2b469085dfe97bb9f7cf0d694e441ab796afd580073fbf"
+          }
+        },
+        "foreign_xui_context_text_shape": {
+          "report": {
+            "path": "F:/xlang-validation/xge-full-20261110/xui-context-text-shape-verify-win-r1/results.json",
+            "sha256": "29d91c98923ca23da61a4fdbe8ae54df3d1de84042b05197b4c99765ea5a9b3b"
+          },
+          "steps": [
+            "emit",
+            "host-build",
+            "host-imports",
+            "host-run",
+            "jit",
+            "static-build",
+            "static-imports",
+            "static-run"
+          ],
+          "imports": {
+            "static": [
+              "msvcrt.dll",
+              "kernel32.dll",
+              "ole32.dll",
+              "shell32.dll"
+            ],
+            "host": [
+              "msvcrt.dll",
+              "xge3_host.dll",
+              "kernel32.dll",
+              "shell32.dll",
+              "ws2_32.dll",
+              "iphlpapi.dll",
+              "ucrtbase.dll"
+            ]
+          },
+          "generated": {
+            "path": "F:/xlang-validation/xge-full-20261110/xui-context-text-shape-verify-win-r1/foreign_xui_context_text_shape/generated.c",
+            "sha256": "1ce20ca2d1e8955208ba509fc0e77b974af49ebc93d5a0c2e5bf357093258924"
+          }
+        }
+      }
+    },
+    "linux": {
+      "nativeSource": {
+        "path": "//wsl.localhost/Ubuntu/var/tmp/xlang-validation/xge-full-20261110/xui-context-text-shape-native-source-linux-r1.json",
+        "sha256": "8f84f26c9fb5da156f9f11383b550986ecb59878eb9092e36a8765328a056b86"
+      },
+      "nativeHost": {
+        "path": "//wsl.localhost/Ubuntu/var/tmp/xlang-validation/xge-full-20261110/xui-context-text-shape-host-linux-r1/build-report.json",
+        "sha256": "e62069f47808fdb233e04b6dcf8fabb6e39f530baada1a86293e6afb2f33d0e1"
+      },
+      "nativeStatic": {
+        "path": "//wsl.localhost/Ubuntu/var/tmp/xlang-validation/xge-full-20261110/xui-context-text-shape-static-linux-r1/build-report.json",
+        "sha256": "022bc11501acb463ca6281d2d5ac6ca2c2499ecdf1dff35fbdb2718d9926f16f"
+      },
+      "compiler": {
+        "path": "//wsl.localhost/Ubuntu/var/tmp/xlang-validation/xge-full-20261110/compiler-owned-output-pair-linux-r2/build.json",
+        "sha256": "bb4ad4330abb14095a0dc59233ed6e265033b4498b8f779a11ca4d0b9b176099"
+      },
+      "packageReplay": {
+        "path": "//wsl.localhost/Ubuntu/var/tmp/xlang-validation/xge-full-20261110/xui-context-text-shape-stage-linux-r1/replay/stage-report.json",
+        "sha256": "6a999114d8e85f81cc6ce2963c940017911a5eabd41556ba93ccaf40448b265d"
+      },
+      "consumerAudit": {
+        "path": "//wsl.localhost/Ubuntu/var/tmp/xlang-validation/xge-full-20261110/xui-context-text-shape-consumers-linux-r2/results.json",
+        "sha256": "3bf47caac5810571f2547a178bae8e7e85b4647f12e4fb4040c724a24f271456"
+      },
+      "nativeO0O2": {
+        "path": "//wsl.localhost/Ubuntu/var/tmp/xlang-validation/xge-full-20261110/xui-context-text-shape-native-tests-linux-r1/results.json",
+        "sha256": "2f685b2d7d437eafea6128c685dbe2f087031bc4bdabecfab98bee3e0bbb2349"
+      },
+      "functionPopulation": 5891,
+      "directDeclarations": 4830,
+      "remaining": {
+        "XGE": 16,
+        "XUI": 54
+      },
+      "nativeOomPrefixes": 2,
+      "languageOomPrefixes": 5,
+      "nativeCapabilityQueriesAfterAttachment": 0,
+      "shapeMappings": {
+        "xuiTextShape": {
+          "language": "xui.Context.shapeText",
+          "native": "xuiContextTextShapeCreateOwned",
+          "nativeShapeWitness": {
+            "src/xui/core/xui_text.c": {
+              "xuiTextShape": {
+                "xuiGetProxyCaps": [
+                  "xuiGetProxyCaps"
+                ],
+                "__xuiTextShapeWithProxy": [
+                  ".text.__xuiTextShapeWithProxy"
+                ]
+              },
+              "xuiContextTextShapeCreateOwned": {
+                "xuiGetProxyCaps": [
+                  "xuiGetProxyCaps"
+                ],
+                "__xuiTextShapeCreateWithCaps": [
+                  ".text.__xuiTextShapeCreateWithCaps"
+                ]
+              },
+              "__xuiTextShapeCreateWithCaps": {
+                "__xuiTextShapeWithProxy": [
+                  ".text.__xuiTextShapeWithProxy"
+                ],
+                "xuiInternalTextShapeAllocateOwned": [
+                  "xuiInternalTextShapeAllocateOwned"
+                ]
+              },
+              "xuiTextShapeFree": {
+                "xuiTextShapeFreeChecked": [
+                  "xuiTextShapeFreeChecked"
+                ]
+              },
+              "xuiInternalOwnedTextShapeFinalize": {
+                "xuiTextShapeFreeChecked": [
+                  "xuiTextShapeFreeChecked"
+                ]
+              }
+            },
+            "src/xui/core/xui_proxy_resource.c": {
+              "xuiInternalTextShapeAllocateOwned": {
+                "resourceCreate": [
+                  ".text.resourceCreate"
+                ],
+                "xuiInternalOwnedTextShapeFinalize": [
+                  "xuiInternalOwnedTextShapeFinalize"
+                ]
+              },
+              "xuiTextShapeReleaseOwnerChecked": {
+                "resourceRelease": [
+                  ".text.resourceRelease"
+                ]
+              }
+            }
+          }
+        },
+        "xuiTextShapeFree": {
+          "language": "xui.TextShape.close",
+          "native": "xuiTextShapeReleaseOwnerChecked",
+          "policy": "xl6Xui3TextShapePolicy",
+          "nativeShapeWitness": {
+            "src/xui/core/xui_text.c": {
+              "xuiTextShape": {
+                "xuiGetProxyCaps": [
+                  "xuiGetProxyCaps"
+                ],
+                "__xuiTextShapeWithProxy": [
+                  ".text.__xuiTextShapeWithProxy"
+                ]
+              },
+              "xuiContextTextShapeCreateOwned": {
+                "xuiGetProxyCaps": [
+                  "xuiGetProxyCaps"
+                ],
+                "__xuiTextShapeCreateWithCaps": [
+                  ".text.__xuiTextShapeCreateWithCaps"
+                ]
+              },
+              "__xuiTextShapeCreateWithCaps": {
+                "__xuiTextShapeWithProxy": [
+                  ".text.__xuiTextShapeWithProxy"
+                ],
+                "xuiInternalTextShapeAllocateOwned": [
+                  "xuiInternalTextShapeAllocateOwned"
+                ]
+              },
+              "xuiTextShapeFree": {
+                "xuiTextShapeFreeChecked": [
+                  "xuiTextShapeFreeChecked"
+                ]
+              },
+              "xuiInternalOwnedTextShapeFinalize": {
+                "xuiTextShapeFreeChecked": [
+                  "xuiTextShapeFreeChecked"
+                ]
+              }
+            },
+            "src/xui/core/xui_proxy_resource.c": {
+              "xuiInternalTextShapeAllocateOwned": {
+                "resourceCreate": [
+                  ".text.resourceCreate"
+                ],
+                "xuiInternalOwnedTextShapeFinalize": [
+                  "xuiInternalOwnedTextShapeFinalize"
+                ]
+              },
+              "xuiTextShapeReleaseOwnerChecked": {
+                "resourceRelease": [
+                  ".text.resourceRelease"
+                ]
+              }
+            }
+          },
+          "relocationPath": [
+            ".text.xl6Xui3TextShapePolicyGet",
+            ".data.rel.ro.local.value.39",
+            ".text.destroy_text_shape",
+            "xuiTextShapeReleaseOwnerChecked"
+          ]
+        },
+        "xuiTextShapeFreeChecked": {
+          "language": "xui.TextShape.close",
+          "native": "xuiTextShapeReleaseOwnerChecked",
+          "policy": "xl6Xui3TextShapePolicy",
+          "nativeShapeWitness": {
+            "src/xui/core/xui_text.c": {
+              "xuiTextShape": {
+                "xuiGetProxyCaps": [
+                  "xuiGetProxyCaps"
+                ],
+                "__xuiTextShapeWithProxy": [
+                  ".text.__xuiTextShapeWithProxy"
+                ]
+              },
+              "xuiContextTextShapeCreateOwned": {
+                "xuiGetProxyCaps": [
+                  "xuiGetProxyCaps"
+                ],
+                "__xuiTextShapeCreateWithCaps": [
+                  ".text.__xuiTextShapeCreateWithCaps"
+                ]
+              },
+              "__xuiTextShapeCreateWithCaps": {
+                "__xuiTextShapeWithProxy": [
+                  ".text.__xuiTextShapeWithProxy"
+                ],
+                "xuiInternalTextShapeAllocateOwned": [
+                  "xuiInternalTextShapeAllocateOwned"
+                ]
+              },
+              "xuiTextShapeFree": {
+                "xuiTextShapeFreeChecked": [
+                  "xuiTextShapeFreeChecked"
+                ]
+              },
+              "xuiInternalOwnedTextShapeFinalize": {
+                "xuiTextShapeFreeChecked": [
+                  "xuiTextShapeFreeChecked"
+                ]
+              }
+            },
+            "src/xui/core/xui_proxy_resource.c": {
+              "xuiInternalTextShapeAllocateOwned": {
+                "resourceCreate": [
+                  ".text.resourceCreate"
+                ],
+                "xuiInternalOwnedTextShapeFinalize": [
+                  "xuiInternalOwnedTextShapeFinalize"
+                ]
+              },
+              "xuiTextShapeReleaseOwnerChecked": {
+                "resourceRelease": [
+                  ".text.resourceRelease"
+                ]
+              }
+            }
+          },
+          "relocationPath": [
+            ".text.xl6Xui3TextShapePolicyGet",
+            ".data.rel.ro.local.value.39",
+            ".text.destroy_text_shape",
+            "xuiTextShapeReleaseOwnerChecked"
+          ]
+        }
+      },
+      "cases": {
+        "context_text_shape": {
+          "report": {
+            "path": "//wsl.localhost/Ubuntu/var/tmp/xlang-validation/xge-full-20261110/xui-context-text-shape-verify-linux-r1/results.json",
+            "sha256": "4a94bc8c97fbc86a78c53766781144296f363350e946c1749e62bcebc31d10b6"
+          },
+          "steps": [
+            "emit",
+            "host-build",
+            "host-imports",
+            "host-run",
+            "jit",
+            "static-build",
+            "static-imports",
+            "static-run"
+          ],
+          "imports": {
+            "host": [
+              "libm.so.6",
+              "libmvec.so.1",
+              "libxge3_host.so",
+              "libc.so.6",
+              "ld-linux-x86-64.so.2"
+            ],
+            "static": [
+              "libm.so.6",
+              "libmvec.so.1",
+              "libx11.so.6",
+              "libxi.so.6",
+              "libxcursor.so.1",
+              "libgl.so.1",
+              "libc.so.6",
+              "ld-linux-x86-64.so.2"
+            ]
+          },
+          "generated": {
+            "path": "//wsl.localhost/Ubuntu/var/tmp/xlang-validation/xge-full-20261110/xui-context-text-shape-verify-linux-r1/context_text_shape/generated.c",
+            "sha256": "69d7d24a4a360eaf4d2b469085dfe97bb9f7cf0d694e441ab796afd580073fbf"
+          }
+        },
+        "foreign_xui_context_text_shape": {
+          "report": {
+            "path": "//wsl.localhost/Ubuntu/var/tmp/xlang-validation/xge-full-20261110/xui-context-text-shape-verify-linux-r1/results.json",
+            "sha256": "4a94bc8c97fbc86a78c53766781144296f363350e946c1749e62bcebc31d10b6"
+          },
+          "steps": [
+            "emit",
+            "host-build",
+            "host-imports",
+            "host-run",
+            "jit",
+            "static-build",
+            "static-imports",
+            "static-run"
+          ],
+          "imports": {
+            "host": [
+              "libm.so.6",
+              "libmvec.so.1",
+              "libxge3_host.so",
+              "libc.so.6",
+              "ld-linux-x86-64.so.2"
+            ],
+            "static": [
+              "libm.so.6",
+              "libmvec.so.1",
+              "libx11.so.6",
+              "libxi.so.6",
+              "libxcursor.so.1",
+              "libgl.so.1",
+              "libc.so.6",
+              "ld-linux-x86-64.so.2"
+            ]
+          },
+          "generated": {
+            "path": "//wsl.localhost/Ubuntu/var/tmp/xlang-validation/xge-full-20261110/xui-context-text-shape-verify-linux-r1/foreign_xui_context_text_shape/generated.c",
+            "sha256": "1ce20ca2d1e8955208ba509fc0e77b974af49ebc93d5a0c2e5bf357093258924"
+          }
+        }
+      }
+    }
+  }
+}

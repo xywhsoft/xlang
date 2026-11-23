@@ -1,0 +1,15 @@
+// 用当前 Context 的字体后端塑形，并查看每个簇的 UTF-8 字节范围。
+import xui
+
+func main(...) as int
+    auto proxy = xui.createProxy()
+    auto ui = xui.create(proxy, xui.XUI_SYSTEM_FONT_DISABLED)
+    auto font = proxy.loadSystemFont(16)
+
+    auto shape = ui.shapeText(font, "A文B")
+    println("文本宽度", shape.width)
+    for cluster in shape.clusters()
+        println(cluster.iTextStart, cluster.iTextEnd)
+    end
+    return 0
+end

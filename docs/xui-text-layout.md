@@ -1,5 +1,19 @@
 # Owned XUI text layout
 
+## Shape text with a Context
+
+`Context.shapeText(font, text, ...)` shapes text with the Context's bound
+Proxy and cached capabilities. `Proxy.shapeText()` queries the Proxy's current
+capabilities. The font must belong to the same native backend as the Context.
+Input text uses UTF-8 byte lengths, including embedded NUL.
+
+The owned `TextShape` can outlive the Context. `clusters()` and `carets()`
+retain their own native shape reference and read its arrays in place. Closing
+the last owning reference releases the arrays and paint. See the
+[Context shaping example](../lib/bindings/xui/examples/context_text_shape.xl).
+
+## Create and draw a layout
+
 `xui.createTextLayout(context,font,text,...)` directly calls the native layout
 factory. `TextLayout` is an independent unique owner. Its Context link is weak;
 its Font and shaped-paint references are real native owners. Closing Context

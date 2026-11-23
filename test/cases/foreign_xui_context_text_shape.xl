@@ -1,0 +1,80 @@
+import xui
+
+extern "fixtureShapeContextProxy" @header("test/cases/foreign_xui_context_text_shape.h") @no_raise @c_result("owned_view") @factory(0,0,releaseProxy) func cpuProxy() as xui.Proxy
+extern "fixtureShapeContextOtherProxy" @header("test/cases/foreign_xui_context_text_shape.h") @no_raise @c_result("owned_view") @factory(0,0,releaseProxy) func otherProxy() as xui.Proxy
+extern "xuiProxyReleaseChecked" @header("xge3_runtime.h") @no_raise @c_result("status",0) func releaseProxy(xui.Proxy value)
+extern "fixtureShapeContextBlockCaps" @header("test/cases/foreign_xui_context_text_shape.h") @no_raise func blockCaps()
+extern "fixtureShapeContextCapsCalls" @header("test/cases/foreign_xui_context_text_shape.h") @no_raise func capsCalls() as c_int
+extern "fixtureShapeContextCompare" @header("test/cases/foreign_xui_context_text_shape.h") @no_raise func compareNative(xui.Context ui,xui.Font font)
+extern "fixtureRenderBalanced" @header("test/cases/foreign_xui_render_backend.h") @no_raise func balanced() as c_int
+extern "fixtureRenderBudget" @header("test/cases/foreign_xui_render_backend.h") @no_raise func budget(c_int prefix)
+extern "xrtMemDebugFailTriggered" @header("xrt_decl.h") @no_raise func failureInjected() as bool
+
+func checkClusters(xui.TextShape shape)
+    auto clusters=shape.clusters()
+    shape.close()
+    assert clusters.count()==3 and clusters[1].iTextStart==1 and clusters[2].iTextEnd==5, "clusters outlive Context and shape view"
+end
+
+func main(...) as int
+    auto proxy=cpuProxy()
+    auto other=otherProxy()
+    auto context=xui.create(proxy,xui.XUI_SYSTEM_FONT_DISABLED)
+    auto font=proxy.loadSystemFont(16)
+    auto otherFont=other.loadSystemFont(16)
+    c_int before=capsCalls()
+    assert before>0, "Context caches the initial capabilities"
+    blockCaps()
+
+    string text="a\0文"
+    compareNative(context,font)
+    auto shape=context.shapeText(font,text)
+    assert capsCalls()==before and shape.textSize==5 and shape.clusterCount==3, "cached shaping uses counted text"
+
+    bool rejected=false
+    try
+        auto unexpected=proxy.shapeText(font,text)
+        unexpected.close()
+    catch Error failure
+        rejected=failure.code==int(xui.XUI_ERROR_UNSUPPORTED)
+    end
+    assert rejected and capsCalls()==before+1, "Proxy still queries current capabilities"
+    rejected=false
+    try
+        auto unexpected=context.shapeText(otherFont,text)
+        unexpected.close()
+    catch Error failure
+        rejected=failure.code==int(xui.XUI_ERROR_INVALID_ARGUMENT)
+    end
+    assert rejected, "foreign Proxy font is rejected"
+
+    int failed=0
+    for prefix in range(12)
+        bool refused=false
+        bool injected=false
+        budget(c_int(prefix))
+        try
+            auto second=context.shapeText(font,text)
+            second.close()
+        catch Error
+            refused=true
+        finally
+            injected=failureInjected()
+            budget(-1)
+        end
+        assert refused==injected, "checked shaping allocation outcome"
+        if refused then failed+=1 end
+    end
+    assert failed>0 and failed<12
+    assert capsCalls()==before+1
+
+    context.close()
+    font.close()
+    otherFont.close()
+    proxy.close()
+    other.close()
+    checkClusters(shape)
+    assert balanced()==1, "backend and font references are released"
+    println("XUI_CONTEXT_TEXT_SHAPE_OK",failed)
+    return 0
+end
