@@ -144,4 +144,8 @@ static int rangeTests(void)
  CHECK(okay&&!xrtAtomic32Load(&oracleErrors,XMEMORY_RELAXED)&&xrtAtomic32Load(&oracleRuns,XMEMORY_RELAXED)==134);
  printf("analysis_ir_exit_range_test passed: %u checks;134 modules, two node partitions, full native verifier/JSON\n",xrtAtomic32Load(&checks,XMEMORY_RELAXED));return 1;
 }
+#ifdef XLS_IR_EXIT_RANGE_LIBRARY
+int xlsIrExitRangeFixtureMain(void){return rangeTests()?0:1;}
+#else
 int main(void){return rangeTests()?0:1;}
+#endif

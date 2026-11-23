@@ -16,7 +16,13 @@ static char* dump(const XL6_IrModule* ir)
 static xls_semantic_check* checked(const char* path,const char* source)
 {
     char error[256];xls_semantic_input in={path,source,strlen(source)};
+#ifdef XLS_REFERENCE_CHECK_SCOPE
+    XLS_REFERENCE_CHECK_SCOPE(1);
+#endif
     xls_semantic_check* result=xlsSemanticCheckCreate(path,&in,1,1,NULL,NULL,error,sizeof(error));
+#ifdef XLS_REFERENCE_CHECK_SCOPE
+    XLS_REFERENCE_CHECK_SCOPE(0);
+#endif
     if(!result)fprintf(stderr,"fresh semantic:%s\n",error);
     else if(!xlsSemanticCheckInfo(result).accepted){char* value=xlsSemanticCheckJson(result,NULL);fprintf(stderr,"fresh rejected:%s\n",value ? value : "no report");xrtFree(value);}
     return result;

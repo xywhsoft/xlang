@@ -56,6 +56,9 @@ static size_t xlsIrNextRegionBlock(const XL6_IrModule* module,uint32 region,size
 static XL6_IrNodeId xl6IrCleanupEnclosingCallable(const XL6_IrModule*,XL6_IrNodeId);
 static int xl6IrVerifyNodeTopology(const XL6_IrModule*,XL6_DiagList*);
 static int xlsIrRefreshExitPlansOriginal(XL6_IrModule*);
+#if XLS_EXPERIMENTAL_IR_FUNCTION_EXITS
+static int xlsFnExitTry(XL6_IrModule*);
+#endif
 static int xlsIrVerifyModuleOriginal(const XL6_IrModule*,XL6_DiagList*);
 static int xlsIrVerifyScopeExitActionsOriginal(const XL6_IrModule*,const XL6_IrExitPlan*);
 static int xlsIrBuildImplicitConversionAbisOriginal(XL6_IrModule*);
@@ -125,7 +128,14 @@ int xlsFrontendIrBuildTypeBudget(XL6_IrModule* module,const XL6_AstNode* root,XL
     size_t charged=scan.ready ? scan.filtered.childCount*sizeof(*scan.items) : 0;
     xls_type_alias_scope aliases;
     xlsFrontendTypeAliasBegin(&aliases,module ? root : NULL,bytes-charged);
+#if XLS_EXPERIMENTAL_IR_FUNCTION_EXITS && defined(XLS_NATIVE_IR_TYPE_RESOURCE_GUARD)
+    xls_ir_type_resource_scope resources={.previous=xlsActiveTypeResource};xlsActiveTypeResource=&resources;
+#endif
     int okay=xlsIrBuildModuleOriginal(module,root,diags);
+#if XLS_EXPERIMENTAL_IR_FUNCTION_EXITS && defined(XLS_NATIVE_IR_TYPE_RESOURCE_GUARD)
+    xlsActiveTypeResource=resources.previous;
+    if(resources.failed){xl6IrModuleFree(module);xl6DiagAdd(diags,0,0,"resource failure constructing native IR types");okay=0;}
+#endif
     xlsFrontendTypeAliasEnd(&aliases);
     xlsActiveTypeLookup=scan.previous; xrtFree(scan.items); return okay;
 }
@@ -543,6 +553,9 @@ static int xlsIrRefreshRegionNative(XL6_IrModule* module,size_t bytes)
 int xlsFrontendIrRefreshRegionBudget(XL6_IrModule* module,size_t bytes)
 #endif
 {
+#if XLS_EXPERIMENTAL_IR_FUNCTION_EXITS
+    if(xlsFnExitTry(module))return 1;
+#endif
     xls_ir_initializer_scope initializers;xlsFrontendIrInitializerBegin(&initializers,module);
     xls_ir_call_scan calls; xlsIrCallScanBegin(&calls,module,XLS_IR_CALL_BYTES);
     xls_ir_scan scan; xlsIrScanInit(&scan,module); scan.regionBudget=bytes; xlsActiveIrScan=&scan;

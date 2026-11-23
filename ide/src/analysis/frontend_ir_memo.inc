@@ -6,6 +6,10 @@
 #include "analysis/frontend_ir_exit.h"
 #include "analysis/frontend_cancel.h"
 #include "analysis/index_entities.h"
+#if XLS_EXPERIMENTAL_IR_FUNCTION_EXITS
+typedef struct xls_function_exit_cache xls_function_exit_cache;
+static void xlsFnExitDestroy(xls_function_exit_cache*);
+#endif
 #define XLS_IR_MEMO_BYTES (32u*1024u*1024u)
 typedef struct xls_ir_dependency {XL6_SymbolId symbol;XL6_IrNodeId binding;XL6_IrTypeId type,storage;int local;} xls_ir_dependency;
 typedef struct xls_ir_write {XL6_SymbolId symbol;XL6_IrNodeId binding;int local;} xls_ir_write;
@@ -39,6 +43,9 @@ struct xls_ir_memo {
     /* Preserve every existing hot-field offset in the opt-in profile. */
     xls_exit_asset* exits;xls_exit_result_work exitStats;
 #endif
+#if XLS_EXPERIMENTAL_IR_FUNCTION_EXITS
+    xls_function_exit_cache* functionExits;
+#endif
 };
 typedef struct xls_ir_capture {xls_ir_unit* unit;xmap dependencies,writes,globals;int okay;const xls_lexical_symbols* symbols;const xls_entity_view* entities;} xls_ir_capture;
 typedef struct xls_ir_function {uint64_t identity;const xls_ir_unit* unit;
@@ -59,6 +66,9 @@ typedef struct xls_ir_memo_build {
 #endif
 } xls_ir_memo_build;
 static _Thread_local xls_ir_memo_build* xlsActiveIrMemo;
+#if XLS_EXPERIMENTAL_IR_FUNCTION_EXITS
+static void xlsFnExitRecord(xls_ir_memo_build*,size_t,size_t,const xls_lexical_symbols*);
+#endif
 static XL6_IrNodeId xlsIrBuildAstNodeOriginal(XL6_IrModule*,const XL6_AstNode*,const XL6_AstNode*,const XL6_AstNode*,size_t,XL6_DiagList*,int*);
 static int xlsIrMemoData(xstrbuf* b,const void* data,size_t size,size_t limit)
 {
@@ -71,7 +81,7 @@ static int xlsIrMemoData(xstrbuf* b,const void* data,size_t size,size_t limit)
     }
     return b->Capacity<=limit;
 }
-#if XLS_EXPERIMENTAL_IR_EXIT_REUSE
+#if XLS_EXPERIMENTAL_IR_EXIT_REUSE || XLS_EXPERIMENTAL_IR_FUNCTION_EXITS
 static size_t xlsIrMemoNumberBytes(unsigned char bytes[10],uint64_t value)
 {
     size_t n=0;
@@ -267,6 +277,9 @@ static int xlsIrOwnerMark(XL6_IrModule* module,const xls_ir_unit* unit)
 void xlsFrontendIrMemoDestroy(xls_ir_memo* memo)
 {
     if(!memo)return;
+#if XLS_EXPERIMENTAL_IR_FUNCTION_EXITS
+    xlsFnExitDestroy(memo->functionExits);
+#endif
 #if XLS_EXPERIMENTAL_IR_EXIT_REUSE
     xlsExitRelease(memo->exits);
 #endif
@@ -688,6 +701,9 @@ static XL6_IrNodeId xl6IrBuildAstNode(XL6_IrModule* module,const XL6_AstNode* ro
        !*okay || (diags && diags->count) || childIndex>=build->memo->entries.Count)
         return xlsIrBuildAstNodeOriginal(module,root,source,parent,childIndex,diags,okay);
     size_t limit=build->limit-build->memo->bytes;
+#if XLS_EXPERIMENTAL_IR_FUNCTION_EXITS
+    size_t functionStart=module->nodeCount;
+#endif
     xstrbuf key={0},types={0};XL6_IrNodeId result=0;
     xls_lexical_symbols symbols={0};
 #ifdef XLS_NATIVE_AST_PACKAGE_FIELDS
@@ -712,6 +728,9 @@ static XL6_IrNodeId xl6IrBuildAstNode(XL6_IrModule* module,const XL6_AstNode* ro
         if(result){
             *(xls_ir_unit**)xrtArrayGet(&build->memo->entries,childIndex)=xlsIrUnitRetain((xls_ir_unit*)old);
             build->memo->bytes+=old->bytes;++build->work.reused;build->work.nodesReused+=old->nodes;
+#if XLS_EXPERIMENTAL_IR_FUNCTION_EXITS
+            xlsFnExitRecord(build,childIndex,functionStart,&symbols);
+#endif
 #ifdef XLS_NATIVE_AST_PACKAGE_FIELDS
 #ifdef XLS_NATIVE_IR_DERIVED_PHASES
             xlsIrDerivedRecord(build,childIndex,derivedStart,oldSlot);
@@ -756,6 +775,9 @@ static XL6_IrNodeId xl6IrBuildAstNode(XL6_IrModule* module,const XL6_AstNode* ro
     }else ++build->work.declined;
 #ifdef XLS_NATIVE_AST_PACKAGE_FIELDS
     xlsIrInputKeyEnd(&inputKey,build,&key);
+#endif
+#if XLS_EXPERIMENTAL_IR_FUNCTION_EXITS
+    if(result && *okay && (!diags || !diags->count))xlsFnExitRecord(build,childIndex,functionStart,&symbols);
 #endif
     xrtStrBufFree(&key);xrtStrBufFree(&types);xlsLexicalSymbolsClear(&symbols);return result;
 }

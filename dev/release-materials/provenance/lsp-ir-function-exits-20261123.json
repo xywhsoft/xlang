@@ -1,0 +1,151 @@
+{
+  "schema": 1,
+  "date": "2026-11-23",
+  "stage": "M7b7o",
+  "scope": "Experimental construction-bound function exit input proof,rebase and selective production;correctness component,not a performance-qualified runtime candidate",
+  "ownedSources": {
+    "ide/src/analysis/ir_profile.h": "2f0798d6915c32bc0b7ab83a272dd4e4d99f7f9f1c25291812a61eaba0917c83",
+    "ide/src/analysis/frontend_ir.inc": "33543e140c23554cbadab229c7a06c1a19fa4f39fa2bdc0bb36c22da35351aab",
+    "ide/src/analysis/frontend_ir_memo.inc": "cd714ac9c0ef4c7daae257358e1b25ae69083341b3e144afc2b3cdd3cc3260db",
+    "ide/src/analysis/frontend_ir_function_exit.inc": "c62862d125a07e2f175ae6ab3c0becc674b0593f272863e42cc04ab6aa860e29",
+    "ide/src/analysis/frontend_ir_type_resource.inc": "c21791c11c955d80c12f63ae27a85aecf9ad8877a68ea1bab2cbc7656beeba6a",
+    "ide/src/analysis/ir_function_exit.h": "64019318e67ee5cc36b6bcd7145f04fcd6604a2ec2f25d2e7c9b4c0688b2a542",
+    "ide/tools/native_ir_exit_range.py": "3879a491810a45b61b206f7f0d6c890af68c68cc9b293d58331965f011334daf",
+    "ide/tools/native_ir_type_resource.py": "c32322d4f01d65b31db5243dd1185a02d8153f9d9f04eb66dc5007d5ffd694c1",
+    "ide/tools/native_current_ir_overlay.py": "6191db86d3d0608a6b12e3cf153cc78d71b9a23ea17bba60569e8d7270dd1d12",
+    "ide/tools/build_lsp_core.py": "4fe08145d8ab565d52bff001cbf3224bc83cf530d710e30a80f57b39eb8d9a96",
+    "ide/tools/check_ir_function_exit_profile.py": "6ad6c08a3956bbf7f6b69b9f336f26939e04ab69e89d41d4df35583059f0adc6",
+    "ide/tests/analysis_ir_memo_test.c": "2df31a126c10de75ab201cc83d8a8653b278b76893c4b226edefdae1ed6f5eb0",
+    "ide/tests/analysis_ir_exit_range_test.c": "62d94e72d5c362c67970db7f6624d140e078d38bd4a2fe1d70b06497aa35a122",
+    "ide/tests/analysis_ir_function_exit_test.c": "ca3824b4e8a2a28b92275eba12a4298f5dd8944370f1a830c265a75df4d06db3",
+    "ide/tests/analysis_ir_function_exit_contract_test.c": "e3a4c3c24004300827f56ea5ca7fb6648cea2aa4f1aed380545fc2f132d8e61e",
+    "ide/docs/lsp-ir-function-exits.md": "e7b08c9d7638b2fbea798f8759da8f4340f466b10799596c5bde269a0a99ec43",
+    "ide/docs/lsp-development.md": "7bfb4e9c30353c9548c4b0a75f95ad0ad8170585b85d9565f8896b4bbc816c67"
+  },
+  "materials": {
+    "source": {
+      "archive": {
+        "path": "dev/release-materials/sources/lsp-ir-function-exits-20261123/inputs.tar.gz",
+        "sha256": "ff410da909a0da05b52d856c37f5b341fbbf414fa4570937a965b2ee9a26cc34",
+        "bytes": 11083093
+      },
+      "manifest": {
+        "path": "dev/release-materials/sources/lsp-ir-function-exits-20261123/inputs.tar.gz.manifest.json",
+        "sha256": "8533bf28c04581640bf01c366fd12fa8347ff930b1468c4d227168b2cbf1390a",
+        "bytes": 3503567
+      },
+      "entries": 10819,
+      "uniquePayloads": 1865
+    },
+    "validation": {
+      "archive": {
+        "path": "dev/release-materials/provenance/lsp-ir-function-exits-20261123/validation.tar.gz",
+        "sha256": "8c08f5c6a87fbc1bf346843ed2f421ca38fd8d43e1a75b0bdeb8c2f03a9ca4c9",
+        "bytes": 152954866
+      },
+      "manifest": {
+        "path": "dev/release-materials/provenance/lsp-ir-function-exits-20261123/validation.tar.gz.manifest.json",
+        "sha256": "d33741b08cfc5bcb48e36bef3fc8cfc87baac892322581d4d6022e324443cc47",
+        "bytes": 380671
+      },
+      "entries": 1123,
+      "uniquePayloads": 333
+    }
+  },
+  "externalPaths": [
+    "F:\\codex-builds-xlang-lsp-20261123\\function-exit-production",
+    "F:\\codex-builds-xlang-lsp-20261123\\function-exit-materials"
+  ],
+  "materialDependencies": [
+    "dev/release-materials/provenance/lsp-ir-exit-range-20261123.json",
+    "dev/release-materials/provenance/lsp-stable-enum-package-20261123.json"
+  ],
+  "baseBuild": "F:\\codex-builds-xlang-lsp-20261123\\ir-enum-link\\native-v2\\build-result.json",
+  "compiler": {
+    "path": "E:\\software\\w64devkit\\bin\\gcc.exe",
+    "sha256": "9a52de3e3af8f4896e963c4b68ed159f049954775decb20e421cd75d51aab6ed"
+  },
+  "profile": {
+    "functionExits": 1,
+    "wholeExitReuse": 0,
+    "nodeViews": 0,
+    "defaultFunctionExits": 0
+  },
+  "verification": {
+    "coreObjects": 80,
+    "coreObjectsDependencyEqualReusedAfterV2": 79,
+    "finalNativeRecompiled": true,
+    "currentFixtureChecks": 398802,
+    "contractChecks": 119,
+    "sharedChecksNotDisjoint": true,
+    "existingNativeModules": 134,
+    "existingNativePartitionComparisons": 268,
+    "observedSelectiveCorpusBuilds": 41,
+    "observedReusedCorpusUnits": 42,
+    "structuralGenerations": 32,
+    "unchangedUnitsPerLaterGeneration": 2,
+    "firstStructuralNativeNodes": 36,
+    "firstStructuralModuleNodes": 96,
+    "lastStructuralNativeNodes": 396,
+    "lastStructuralModuleNodes": 456,
+    "retainedFirstBytes": 14866,
+    "retainedLastBytes": 45422,
+    "resourceRejections": {
+      "cold": 268,
+      "hot": 250
+    },
+    "cancellationPoints": {
+      "cold": 223,
+      "hot": 66
+    },
+    "sourceGuardPassed": true,
+    "runtimeGuardPassed": true,
+    "compiledDefects": 12,
+    "positiveControls": 2,
+    "nodeProjectionFields": 27,
+    "typeAllocationFunctions": 18,
+    "sourcePolicyCases": 7,
+    "defaultFunctionTokenBodies": 1846,
+    "defaultPrivateLayouts": 2
+  },
+  "performanceObservation": {
+    "programSha256": "17be8bc283cceead584c398b7968ae9a6f1e1135f7f72da75cf19e01e00cfb18",
+    "frames": 24,
+    "processes": 1,
+    "order": "ABBA",
+    "scope": "Single-process ABBA native IR construction attribution only;not formal end-to-end performance qualification",
+    "mediansMs": {
+      "off-cold": 15.21955,
+      "off-later": 11.48985,
+      "on-cold": 72.2799,
+      "on-later": 12.0009
+    },
+    "acceptedForDefault": false,
+    "formalEndToEndGatePerformed": false
+  },
+  "predecessorFailuresPreserved": true,
+  "defaultRuntimeReplaced": false,
+  "runtimeBeforeAndAfter": {
+    "D:\\GIT\\x-lang\\release\\win_x64\\mdo.exe": "9219de70911e1f02d8e54eadc77c257369e4ea637e5202fcbb04854a29893044",
+    "D:\\GIT\\x-lang\\release\\win_x64\\update.exe": "4c5266fce0a541b9b96fe92b3d2f7d94598aff3b052e420b08b6d47db5e5c6c2",
+    "D:\\GIT\\x-lang\\release\\win_x64\\xge.dll": "127db42612e8a27c8b1f7f74e4653c25f09140f8baac38d16fc564eb74892ef3",
+    "D:\\GIT\\x-lang\\release\\win_x64\\xl.dll": "f31ddbe973ed48d261014ec64fa6b0ba48791fc0313192a19d59467254c0fcd6",
+    "D:\\GIT\\x-lang\\release\\win_x64\\xl.exe": "5288c4e8be9f420ef98caeb11be362017be925f2ad81a0d56946cc6a8c721081",
+    "D:\\GIT\\x-lang\\release\\win_x64\\xlang-ls.exe": "341c0c5b2c9692cfee68889610eebfa5dec1816d44caa6313a3e2e0fecd2d285",
+    "D:\\GIT\\x-lang\\release\\win_x64\\xlang_ide.exe": "57856d0e1c6a7a07b6ad1c1600436f14b17c5217e7ad80c25f931ea7881da4b0",
+    "D:\\GIT\\x-lang\\release\\win_x64\\xlang_ide_xge.dll": "7eba677fddada9b605db2d54dd59ee57a9cfc1caf0b574f6cb206ec9de379418",
+    "D:\\GIT\\x-lang\\release\\win_x64\\xlc.dll": "64b2e9830569c84580335b0a2b15a59ce13552ba1ba51933fc82cd75808c0728"
+  },
+  "activeDeliveryIndexUpdated": false,
+  "protocolGuiQualificationPerformed": false,
+  "wholeGoalPerformanceQualified": false,
+  "goalComplete": false,
+  "externalPublishPerformed": false,
+  "limits": [
+    "Function exit outputs only;all other final IR production/materialization/verifier work still executes.",
+    "Only actual recorded top-level functions;class/method/nonrecorded ranges remain fresh;foreign AST gate and persistent exact clone not integrated.",
+    "Retained cache limit separate from raw memo;excludes scratch,mutable/transient outputs,allocator overhead and RSS;whole-service budget/endurance remains incomplete.",
+    "Native type resource failure latch is experimental-only;default stability delivery/protocol error handling remains pending.",
+    "No end-to-end performance acceptance;component observation prevents activation."
+  ]
+}

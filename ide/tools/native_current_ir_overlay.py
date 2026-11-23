@@ -109,9 +109,13 @@ def derive(frontend:Path,output:Path,*,phases=False,ir_source=None):
     if exit_production['enabled']:source='#define XLS_NATIVE_IR_EXIT_PRODUCTION 1\n'+source
     dependency=Path(__file__).with_name('native_ir_exit_profile.py')
     audited[str(dependency)]=hashlib.sha256(dependency.read_bytes()).hexdigest()
+    dependency=Path(__file__).with_name('native_ir_type_resource.py')
+    audited[str(dependency)]=hashlib.sha256(dependency.read_bytes()).hexdigest()
     compiled=output/'frontend/xl6_ir.c';compiled.parent.mkdir(parents=True,exist_ok=True)
     from native_ir_exit_range import derive as derive_exit_range
     source,exit_range=derive_exit_range(source,frontend,output)
+    if exit_range.get('functionProjectionSource'):
+        audited[exit_range['functionProjectionSource']]=exit_range['functionProjectionSourceSha256']
     dependency=Path(__file__).with_name('native_ir_exit_range.py')
     audited[str(dependency)]=hashlib.sha256(dependency.read_bytes()).hexdigest()
     compiled.write_text(source,encoding='utf8',newline='\n')
