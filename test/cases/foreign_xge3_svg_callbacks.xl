@@ -6,6 +6,55 @@ class Provider
  int calls=0
  ResourceOutput? saved=null
 end
+
+func checkPackedSvg()
+ string source="<svg width='7' height='9'><rect id='tile' width='7' height='9'/></svg>"
+ int reads=0
+ auto cache=xge.createSvgCache()
+ xge.addXPackProvider("svg-assets",func(ResourcePath path,ResourceOutput output) as c_int
+  assert path.text=="svg-assets/drawing.svg"
+  reads+=1
+  output.set(source)
+  return c_int(0)
+ end)
+ try
+  auto resource=xge.loadResource("res:///drawing.svg")
+  bytes encoded=resource.bytes
+  resource.close()
+  auto document=cache.load("res:///drawing.svg")
+  auto shared=document.share()
+  auto paint=shared.getPaintByName("tile")
+  document.close()
+  cache.close()
+  xge.resourceProviderClear()
+  try
+   assert reads==2 and shared.refCountGet()==1
+   assert paint.getName()=="tile" and paint.getDocument().refCountGet()==1
+   auto independent=xge.createSvg()
+   try
+    independent.loadMemory(encoded)
+    auto width,height=independent.getSize()
+    assert width==c_float(7) and height==c_float(9)
+   finally
+    independent.close()
+   end
+   shared.clear()
+   bool expired=false
+   try
+    paint.getId()
+   catch StateError
+    expired=true
+   end
+   assert expired
+  finally
+   shared.close()
+  end
+ finally
+  cache.close()
+  xge.resourceProviderClear()
+ end
+end
+
 func main(...) as int
  auto provider=Provider()
  xge.addResourceProvider("svgcallback",func(ResourcePath path,ResourceOutput output) as c_int
@@ -61,6 +110,7 @@ func main(...) as int
   drawing.close()
   xge.resourceProviderClear()
  end
+ checkPackedSvg()
  assert xge.graphicsResourceCount()==uint64(0)
  println("SVG provider errors, expired outputs and failed-cache retry passed")
  return 0

@@ -1,0 +1,87 @@
+{
+  "schema": 1,
+  "date": "2026-11-23",
+  "complete": true,
+  "passed": true,
+  "nativeRevision": "371148426d6c2780ec9390d8f39675263a90b96a",
+  "scope": "SVG aliases, provider registration and Resource close, checked alpha conversion and existing pixel readers",
+  "shippingDelivery": false,
+  "networkTests": false,
+  "nativeChanged": false,
+  "bindingChanged": false,
+  "apiCompletenessClaim": false,
+  "audit": {
+    "functionPopulation": 5789,
+    "directDeclarations": 4729,
+    "compiledConsumerFunctions": 284,
+    "explicitReplacements": 460,
+    "pending": {
+      "XGE": 127,
+      "XUI": 193,
+      "Document": 0
+    },
+    "resolved": [
+      "xgeImagePremultiply",
+      "xgeResourceFree",
+      "xgeResourceProviderAdd",
+      "xgeResourceXPackProviderAdd",
+      "xgeSvgAddRef",
+      "xgeSvgLoadCached"
+    ],
+    "pixelAddressStillPending": true
+  },
+  "regression": {
+    "path": "D:\\GIT\\x-lang\\test\\cases\\foreign_xge3_svg_callbacks.xl",
+    "sha256": "4afcce00bd92a747314ab269603a5b3fadbc6a12fdfdc7a70c5698272076f867"
+  },
+  "platforms": {
+    "Windows x64": {
+      "priorAudit": {
+        "path": "F:\\xlang-validation\\xge-full-20261110\\particle-world-defaults-stage-win-r2\\consumers\\results.json",
+        "sha256": "881f8e30668567b0848bd0ff088a91d88bbe5302ffad8583b4f5e82b44fbc38e"
+      },
+      "consumerAudit": {
+        "path": "F:\\xlang-validation\\xge-full-20261110\\svg-resource-audit-win-r1\\results.json",
+        "sha256": "bcb569fb258724fff31f06eb3c9854a86a71c38e6a01286c3ff14c1d8073fc73"
+      },
+      "matchedPackages": {
+        "path": "F:\\xlang-validation\\xge-full-20261110\\particle-world-defaults-stage-win-r2\\replay\\stage-report.json",
+        "sha256": "9eb1cba486d68a569ccefbee56c1b440f86cd1cc57679c7d2b3e9805421861d1"
+      },
+      "svgAndAlpha": {
+        "path": "F:\\xlang-validation\\xge-full-20261110\\svg-resource-tests-win-r1\\results.json",
+        "sha256": "c5817bcb8a67cae66aba00ed6c278f2905f865117599475ad4fb21afc26bcaae"
+      },
+      "svgAndAlphaSteps": 28,
+      "existingPixelReads": {
+        "path": "F:\\xlang-validation\\xge-full-20261110\\svg-resource-images-win-r1\\results\\results.json",
+        "sha256": "38d2f5549203da41537c30a3e50c95cee17ecc2ccf558c65c507a2589ad2b0ca"
+      },
+      "existingPixelReadSteps": 24
+    },
+    "Linux x64": {
+      "priorAudit": {
+        "path": "\\\\wsl.localhost\\Ubuntu\\var\\tmp\\xlang-validation\\xge-full-20261110\\particle-world-defaults-stage-linux-r2\\consumers\\results.json",
+        "sha256": "b7800aa1f35708b4942f4cd94956c2abd593e61aaf1ac6c374f323e3c65cb9aa"
+      },
+      "consumerAudit": {
+        "path": "\\\\wsl.localhost\\Ubuntu\\var\\tmp\\xlang-validation\\xge-full-20261110\\svg-resource-audit-linux-r1\\results.json",
+        "sha256": "eed61104695e31d0c22a05fda69ff84bf8077015c0cfe45d168d4452e74e8ee7"
+      },
+      "matchedPackages": {
+        "path": "\\\\wsl.localhost\\Ubuntu\\var\\tmp\\xlang-validation\\xge-full-20261110\\particle-world-defaults-stage-linux-r2\\replay\\stage-report.json",
+        "sha256": "def698e982dfb6e56ac95275bb84ea9a8263895657965d1f2f051cee419c1d0f"
+      },
+      "svgAndAlpha": {
+        "path": "\\\\wsl.localhost\\Ubuntu\\var\\tmp\\xlang-validation\\xge-full-20261110\\svg-resource-tests-linux-r1\\results.json",
+        "sha256": "7fe957bbbd533771b05ec527e5453a65928a34b0e77991fee105e3c1a9c1c2a3"
+      },
+      "svgAndAlphaSteps": 28,
+      "existingPixelReads": {
+        "path": "\\\\wsl.localhost\\Ubuntu\\var\\tmp\\xlang-validation\\xge-full-20261110\\svg-resource-images-linux-r1\\results\\results.json",
+        "sha256": "d373783b7b5dcee84d0cd01cae8982a635a84673795efef2555107dd77ea15b4"
+      },
+      "existingPixelReadSteps": 24
+    }
+  }
+}

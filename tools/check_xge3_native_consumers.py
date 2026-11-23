@@ -49,7 +49,7 @@ HEADER_CLOSE_REPLACEMENTS['xge3dQueryResultsReleaseChecked'] = (
 CORE_POLICY_CLASSES = {
     'xge.Scene', 'xge.PlatformBackend', 'xge.GraphicsBackend', 'xge.HostSession',
     'xge.ImageLoad', 'xge.TextureLoad', 'xge.FontLoad', 'xge.SoundLoad',
-    'xge.ParticleWorld', 'xge.ParticleDefinition', 'xge.ParticleRenderer',
+    'xge.ParticleWorld', 'xge.ParticleDefinition', 'xge.ParticleRenderer', 'xge.Resource',
 }
 CORE_HEADER_CLOSES = {
     'xgeSceneReleaseChecked': ('Scene', 'Scene', 'xgeSceneReleaseOwnerChecked'),
@@ -62,6 +62,7 @@ CORE_HEADER_CLOSES = {
     'xgeParticleWorldFreeChecked': ('ParticleWorld', 'ParticleWorld', 'xgeParticleWorldReleaseOwnerChecked'),
     'xgeParticleRendererFree': ('ParticleRenderer', 'ParticleRenderer', 'xgeParticleRendererReleaseOwnerChecked'),
     'xgeParticleRendererFreeChecked': ('ParticleRenderer', 'ParticleRenderer', 'xgeParticleRendererReleaseOwnerChecked'),
+    'xgeResourceFree': ('Resource', 'ResourcePolicy', 'xgeResourceFree'),
 }
 PARTICLE_WORLD_FACTORIES = {'xgeParticleWorldCreate', 'xgeParticleWorldCreateOwned'}
 PARTICLE_WORLD_BRIDGE = 'xl6Xge3ParticleWorldCreateOwned'

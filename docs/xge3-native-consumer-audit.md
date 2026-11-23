@@ -1,5 +1,33 @@
 # Native consumers in the full API inventory
 
+## SVG, resource providers and image alpha
+
+`SvgCache.load()` supplies the explicit creator-thread cache path for the
+legacy global SVG loader. `Svg.share()` acquires an independent reference to
+the same mutable document. A regression loads an SVG from an owned XPack
+provider, releases the temporary Resource, and closes the cache and the
+original document owner. The shared document and its paint remain usable
+until the document contents are cleared. A separate test covers provider
+failure, cleared registrations, and scoped paint lifetime.
+
+The scheme and XPack registration methods call the native owning variants.
+The compiled `Resource.close()` policy descriptor points to the destructor
+that calls `xgeResourceFree`. The checked `Image.premultiply()` applies alpha
+conversion once to valid straight RGBA and validates the native layout on
+repeat calls. The native repeat-transform function remains available to C.
+
+Windows and Linux passed JIT, dynamic AOT, and standalone static AOT for
+the SVG lifetime and Image alpha regressions. Both also passed the existing
+pixel snapshot and Buffer read cases, including size checks, OOM, and use
+after closing the source Image.
+
+The inventory has 320 entries without a direct declaration, compiled consumer
+or explicit replacement. XGE accounts for 127 and XUI for 193. The raw image
+pixel address still requires independent qualification for a zero-copy owning
+sequence.
+
+[Validation evidence](../dev/release-materials/provenance/xge-svg-resource-audit-20261123.json)
+
 ## Particle world defaults and owned factories
 
 `particleWorldDefaults()` makes one call to `xgeParticleWorldDescInit` and
