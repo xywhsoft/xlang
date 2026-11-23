@@ -118,6 +118,13 @@ def derive(frontend:Path,output:Path,*,phases=False,ir_source=None):
         audited[exit_range['functionProjectionSource']]=exit_range['functionProjectionSourceSha256']
     dependency=Path(__file__).with_name('native_ir_exit_range.py')
     audited[str(dependency)]=hashlib.sha256(dependency.read_bytes()).hexdigest()
+    from native_ir_pipeline_overlay import derive as derive_pipeline
+    if phases:source,pipeline=derive_pipeline(source,frontend,output)
+    else:
+        source+='\n#include "analysis/frontend_ir_pipeline.inc"\n'
+        pipeline=dict(enabled=False,reason='Complete native phase producer required')
+    dependency=Path(__file__).with_name('native_ir_pipeline_overlay.py')
+    audited[str(dependency)]=hashlib.sha256(dependency.read_bytes()).hexdigest()
     compiled.write_text(source,encoding='utf8',newline='\n')
     return selected,compiled,dict(source=str(selected),sourceSha256=hashlib.sha256(selected.read_bytes()).hexdigest(),
         baseFrontendSource=str(original),baseFrontendSourceSha256=audited[str(original)],
@@ -127,6 +134,7 @@ def derive(frontend:Path,output:Path,*,phases=False,ir_source=None):
         derivedPhases=derived_overlay if phases else None,
         exitProduction=exit_production,
         exitRangeProduction=exit_range,
+        nativePipeline=pipeline,
         parameterMasks=parameter_overlay,
         classifierAdmission=classifier_overlay,
         topologyObserver=topology_overlay,

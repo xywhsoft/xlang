@@ -1,0 +1,148 @@
+{
+  "schema": 1,
+  "date": "2026-11-23",
+  "stage": "M7b7r",
+  "scope": "Actual native raw prelude and staged complete producer;no skipped functions or ordinary integration",
+  "ownedSources": {
+    "ide/src/analysis/ir_native_pipeline.h": "868b8a6623a190206faf5147ab0aaac7468952d1a6580f3e03c8b19d6e56ec04",
+    "ide/src/analysis/frontend_ir_pipeline.inc": "3221f05c36bef6ff81c5bdaee128ee7864bf4bce768a86e506cbfdd430a3f91e",
+    "ide/tools/native_ir_pipeline_overlay.py": "4d3075edbc7f32ab1d03aa74f9ec910ea137be5a956c5b861202055855e5f784",
+    "ide/tools/native_current_ir_overlay.py": "481baef9a8f9b0bf298a0585e2fb8246945f67cb62f710737ffd38774082c231",
+    "ide/tools/build_lsp_core.py": "539049cdd34f799a7128440deb022375e0efd5223a65bdb609ecc706b46e0780",
+    "ide/tools/check_ir_pipeline_profile.py": "3e5fff1e2c0b1d9e91266cbf20d3af03d23741436e47296fe0772a9b26ad1a55",
+    "ide/tests/analysis_ir_pipeline_test.c": "d4e1c1e4ab7ad353f77643b5d71865903b295486321c8703c9240d265fe03f00",
+    "ide/tests/analysis_ir_pipeline_contract_test.c": "7556ad333f5d9713bf571ecbc2faa253b111cb366ce89383c00be9a92c11686d",
+    "ide/docs/lsp-native-ir-pipeline.md": "73967fa30b13f4cfd78165f3b9cfff74bef2394a109f5108f9fbef9cda3f85d0",
+    "ide/docs/lsp-development.md": "bac3102071804c964c877bf0d2632a9cdae63c9876aed6d5111bddef14d4a82a"
+  },
+  "materials": {
+    "sources": {
+      "archive": {
+        "path": "dev/release-materials/sources/lsp-native-ir-pipeline-20261123/sources.tar.gz",
+        "sha256": "eee6b8e4a0202d6678840c818f15b423cdabc54a9a34c2caa77db129a580b816",
+        "bytes": 16580129
+      },
+      "manifest": {
+        "path": "dev/release-materials/sources/lsp-native-ir-pipeline-20261123/sources.tar.gz.manifest.json",
+        "sha256": "539c9a211ca35c8daf5dd1b91bc68b559ec9e8663d1397a2a358dc16b4571e14",
+        "bytes": 2171363
+      },
+      "entries": 4720,
+      "uniquePayloads": 2048
+    },
+    "validation": {
+      "archive": {
+        "path": "dev/release-materials/provenance/lsp-native-ir-pipeline-20261123/validation.tar.gz",
+        "sha256": "8e24e793a702109aedf56eef67bf73ea4b11f100e584663776c520d48342b49a",
+        "bytes": 137275636
+      },
+      "manifest": {
+        "path": "dev/release-materials/provenance/lsp-native-ir-pipeline-20261123/validation.tar.gz.manifest.json",
+        "sha256": "0891b42f1fef186a0402ef452a66ab85b47b96cb731603607d483a27d9003533",
+        "bytes": 179196
+      },
+      "entries": 540,
+      "uniquePayloads": 282
+    }
+  },
+  "materialDependencies": [
+    "dev/release-materials/provenance/lsp-native-ir-resources-20261123.json",
+    "dev/release-materials/provenance/lsp-stable-resource-package-20261123.json"
+  ],
+  "qualification": {
+    "freshCoreMembers": 80,
+    "revisionReusedDependencyEqualCoreObjects": 79,
+    "originalPhases": 38,
+    "mandatoryCompleteVerifier": true,
+    "semanticInputs": 49,
+    "pipelineChecks": 5532,
+    "resourceRejectionPointsPerMode": 167,
+    "cancellationPointsPerMode": 47,
+    "modes": 3,
+    "contractChecks": 3314,
+    "interleavedScopes": 1600,
+    "workerThreads": 4,
+    "relatedNativePrograms": 8,
+    "sourcePolicyCases": 7,
+    "ordinaryUnavailablePrograms": 2,
+    "comparedExistingFunctions": 1862,
+    "unchangedPrivateLayouts": 2,
+    "compiledDefects": 7,
+    "positiveControls": 2,
+    "sourceCompilerHeaderAndRuntimeGuardPassed": true
+  },
+  "sourceContract": {
+    "originalBuilderSha256": "f0b8862bdaed2a6b49e0fa4959f5fb089747b2181ffc8bd28e13d712bc62df59",
+    "generatedSha256": "8e8a39175b679761ff779eb33c9c08e47bad0d52f11e538e24ce57ef654f84d7",
+    "reviewedCohortRequired": true
+  },
+  "profile": {
+    "componentMacro": "XLS_NATIVE_IR_PIPELINE_COMPONENT",
+    "ordinaryComponentEnabled": false,
+    "experimentalNodeViews": false,
+    "experimentalExitReuse": false,
+    "experimentalFunctionExits": false
+  },
+  "runtimePreserved": {
+    "D:\\GIT\\x-lang\\release\\win_x64\\mdo.exe": "9219de70911e1f02d8e54eadc77c257369e4ea637e5202fcbb04854a29893044",
+    "D:\\GIT\\x-lang\\release\\win_x64\\update.exe": "4c5266fce0a541b9b96fe92b3d2f7d94598aff3b052e420b08b6d47db5e5c6c2",
+    "D:\\GIT\\x-lang\\release\\win_x64\\xge.dll": "127db42612e8a27c8b1f7f74e4653c25f09140f8baac38d16fc564eb74892ef3",
+    "D:\\GIT\\x-lang\\release\\win_x64\\xl.dll": "f31ddbe973ed48d261014ec64fa6b0ba48791fc0313192a19d59467254c0fcd6",
+    "D:\\GIT\\x-lang\\release\\win_x64\\xl.exe": "5288c4e8be9f420ef98caeb11be362017be925f2ad81a0d56946cc6a8c721081",
+    "D:\\GIT\\x-lang\\release\\win_x64\\xlang-ls.exe": "db50f21702ec1aec2423b49274c10884b098f20dbc041f7fe9c301b62feaecd5",
+    "D:\\GIT\\x-lang\\release\\win_x64\\xlang_ide.exe": "a146c451b35aa7284293b185123a9a276bf9e4764f926c266567133386c8d806",
+    "D:\\GIT\\x-lang\\release\\win_x64\\xlang_ide_xge.dll": "7eba677fddada9b605db2d54dd59ee57a9cfc1caf0b574f6cb206ec9de379418",
+    "D:\\GIT\\x-lang\\release\\win_x64\\xlc.dll": "64b2e9830569c84580335b0a2b15a59ce13552ba1ba51933fc82cd75808c0728"
+  },
+  "languageServerVersion": "0.110",
+  "defaultRuntimeReplaced": false,
+  "serviceRebuiltThisStage": false,
+  "ideRebuiltThisStage": false,
+  "formalRelease": false,
+  "externalPublishPerformed": false,
+  "wholeLspPerformanceQualified": false,
+  "goalComplete": false,
+  "retainedFailures": [
+    "Initial generated branch misleading-indentation warnings;fixed in component-v2.",
+    "Ordinary test configuration accessed opaque internal state;guard corrected without changing active component assertion;both configurations subsequently compiled and tested.",
+    "Prior IR latency failures remain rejected;no repeated timing to erase failures."
+  ],
+  "compiledDefectCases": [
+    {
+      "name": "omit-verifier",
+      "exit": 1
+    },
+    {
+      "name": "omit-intrinsics",
+      "exit": 1
+    },
+    {
+      "name": "omit-node-transfer",
+      "exit": 1
+    },
+    {
+      "name": "ignore-resource-failure",
+      "exit": 1
+    },
+    {
+      "name": "omit-scope-clear",
+      "exit": 1
+    },
+    {
+      "name": "omit-scope-restore",
+      "exit": 1
+    },
+    {
+      "name": "omit-type-restore",
+      "exit": 1
+    }
+  ],
+  "limits": [
+    "The component does not skip functions,establish cache eligibility,replace ordinary analysis or qualify complete final-function incremental production.",
+    "Take moves actual native allocations;full output production and verification still run.",
+    "Lookup budget is optional nominal/alias index storage,not native output or process RSS.",
+    "Tracked XRT calls are external API allocations,not all private allocator allocations.",
+    "Mutation controls use the source-v2 active contract;the subsequent change only gates its unchanged internal assertion in ordinary builds;updated enabled and ordinary fixtures are both accepted.",
+    "Related regressions reuse unchanged objects only after exact dependency and header hashes;original commands retained."
+  ]
+}
