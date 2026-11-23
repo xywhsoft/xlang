@@ -1,0 +1,278 @@
+{
+  "schema": 1,
+  "scope": "Checked independent Shape and ShapeScene references",
+  "nativeCommit": "90dda67948df44e8b9ba655c6cfb16b446ddebd6",
+  "nativeSourceSha256NormalizedLf": {
+    "include/xge.h": "885e103a80c0c313fceb5686478a2f078faaab9487f6a77a398171befa227c0c",
+    "src/xge/render/xge_shape_ex.c": "bca04e3c07c851bd3b4a262fabdb5e3ddff23bc29fce45f043214414c7ae7824",
+    "src/xge/render/xge_svg.c": "b9a270500b19801da9ef825ee7b92d33de85c7ff4c5cf6524fc7fb94ce6ef661",
+    "tests/render/xge_shape_share_test.c": "f70432f097184aa3e035e22f8cb4b2d432be4d1ed3e43ac568485d71f55face8"
+  },
+  "shippingDelivery": false,
+  "networkTests": false,
+  "previousQualification": {
+    "path": "D:/GIT/x-lang/dev/release-materials/provenance/xge-font-share-20261124.json",
+    "sha256": "f8c96ac85f7c3415e932ade718d3f9cddf0167c5086373d5a8591cf5b8458546"
+  },
+  "checks": {
+    "referenceSaturation": true,
+    "noResurrection": true,
+    "failedSvgRetainDoesNotPublish": true,
+    "aliasSharedState": true,
+    "releaseIndependentOfOriginalViews": true,
+    "languageAllocationRollback": true,
+    "nativeAllocationFreeSharing": true,
+    "directGeneratedCalls": true,
+    "importsSeparateHostAndStatic": true,
+    "storageReviewsReplayed": true
+  },
+  "platforms": {
+    "win": {
+      "compiler": {
+        "path": "F:/xlang-validation/xge-full-20261110/compiler-owned-output-pair-win-r2/build.json",
+        "sha256": "41596d3515fdf8c1f5194838396e40b1d84ecb013557b7f7aadbe352315593a3"
+      },
+      "compilerSdk": {
+        "path": "F:/xlang-validation/xge-full-20261110/owned-output-pair-compiler-sdk-win-r2/results.json",
+        "sha256": "0378c6380c02e95812c879094ea2836fed7f6bdccc41fd6a223e16192c0f56ed"
+      },
+      "nativeSource": {
+        "path": "F:/xlang-validation/xge-full-20261110/owned-shape-share-native-source-win-r1.json",
+        "sha256": "752dc08a290af1521152c3f382ae0944457b20a7bf19d29ae24a177781e015ae"
+      },
+      "nativeHost": {
+        "path": "F:/xlang-validation/xge-full-20261110/owned-shape-share-host-win-r1/build-report.json",
+        "sha256": "8a19cf71c6b49f5b487e4e05c6654b73d2f55963f622bc1e082ee05dd915a930"
+      },
+      "nativeStatic": {
+        "path": "F:/xlang-validation/xge-full-20261110/owned-shape-share-static-win-r1/build-report.json",
+        "sha256": "c3367f358f9f5b3cdf14e9b79822cbd8bad84873450d195091c526a8de3cf2aa"
+      },
+      "nativeAcceptance": {
+        "path": "F:/xlang-validation/xge-full-20261110/owned-shape-share-native-check-win-r1/results.json",
+        "sha256": "3e24b5e1454fcc89c7dc1482209dafb5244e5ed36629f787074bc5b48979bf6d"
+      },
+      "storageReviews": {
+        "path": "F:/xlang-validation/xge-full-20261110/owned-shape-share-stage-win-r3/generator.log",
+        "sha256": "53d0e6209f74756b7cf2742c292beaafd42c02dd81ed1391b257e7480579e666"
+      },
+      "replay": {
+        "path": "F:/xlang-validation/xge-full-20261110/owned-shape-share-stage-win-r3/replay/stage-report.json",
+        "sha256": "9858f3008a43578660e33ff786c684402d707f6bd6c228786e66a0492593104a"
+      },
+      "languageAcceptance": {
+        "path": "F:/xlang-validation/xge-full-20261110/owned-shape-share-verify-win-r3/results.json",
+        "sha256": "e5a666db7a66b7ee2b689e2dd46d29e3e5816e20913eae42df8d24914936b6ef"
+      },
+      "consumerAudit": {
+        "path": "F:/xlang-validation/xge-full-20261110/owned-shape-share-consumers-win-r3/results.json",
+        "sha256": "663eb366cf9f9de2b8442dcc17ff43839e2eb7fb4759a579d4c09dc8162e7531"
+      },
+      "previousAudit": {
+        "path": "F:/xlang-validation/xge-full-20261110/owned-font-share-consumers-win-r4/results.json",
+        "sha256": "1b822f36a6416167b17800a6c368c9f72ce8076f6f6ad72c7d148554d5f30dee"
+      },
+      "functionPopulation": 5888,
+      "directDeclarations": 4827,
+      "remaining": {
+        "XGE": 20,
+        "XUI": 65
+      },
+      "replacements": {
+        "xgeShapeExAddRef": {
+          "language": "xge.Shape.share",
+          "native": "xgeShapeExShareOwned"
+        },
+        "xgeShapeExSceneAddRef": {
+          "language": "xge.ShapeScene.share",
+          "native": "xgeShapeExSceneShareOwned"
+        }
+      },
+      "heapAndElapsedSamples": {
+        "jit": [
+          {
+            "language": "C",
+            "iterations": 1000,
+            "allocations": 0,
+            "frees": 0,
+            "reallocations": 0,
+            "elapsedMs": 0.0168
+          },
+          {
+            "language": "xlang",
+            "iterations": 1000,
+            "allocations": 4000,
+            "frees": 4000,
+            "reallocations": 0,
+            "elapsedMs": 10.836
+          }
+        ],
+        "host-run": [
+          {
+            "language": "C",
+            "iterations": 1000,
+            "allocations": 0,
+            "frees": 0,
+            "reallocations": 0,
+            "elapsedMs": 0.0178
+          },
+          {
+            "language": "xlang",
+            "iterations": 1000,
+            "allocations": 4000,
+            "frees": 4000,
+            "reallocations": 0,
+            "elapsedMs": 22.946
+          }
+        ],
+        "static-run": [
+          {
+            "language": "C",
+            "iterations": 1000,
+            "allocations": 0,
+            "frees": 0,
+            "reallocations": 0,
+            "elapsedMs": 0.0145
+          },
+          {
+            "language": "xlang",
+            "iterations": 1000,
+            "allocations": 4000,
+            "frees": 4000,
+            "reallocations": 0,
+            "elapsedMs": 22.8825
+          }
+        ]
+      }
+    },
+    "linux": {
+      "compiler": {
+        "path": "//wsl.localhost/Ubuntu/var/tmp/xlang-validation/xge-full-20261110/compiler-owned-output-pair-linux-r2/build.json",
+        "sha256": "bb4ad4330abb14095a0dc59233ed6e265033b4498b8f779a11ca4d0b9b176099"
+      },
+      "compilerSdk": {
+        "path": "//wsl.localhost/Ubuntu/var/tmp/xlang-validation/xge-full-20261110/owned-output-pair-compiler-sdk-linux-r2/results.json",
+        "sha256": "afbecddf1439d0739b1f540d8077b46754af2024268d3b914b133e086c2ad06e"
+      },
+      "nativeSource": {
+        "path": "//wsl.localhost/Ubuntu/var/tmp/xlang-validation/xge-full-20261110/owned-shape-share-native-source-linux-r1.json",
+        "sha256": "eae1d88453dfc9cc8369cb808e40ceb096f222ae5a5178c7f34b864009eb6660"
+      },
+      "nativeHost": {
+        "path": "//wsl.localhost/Ubuntu/var/tmp/xlang-validation/xge-full-20261110/owned-shape-share-host-linux-r1/build-report.json",
+        "sha256": "c6c235dcc2699c7c2af41a648a725ad185ff4616b121884125a7b2f7a600943b"
+      },
+      "nativeStatic": {
+        "path": "//wsl.localhost/Ubuntu/var/tmp/xlang-validation/xge-full-20261110/owned-shape-share-static-linux-r1/build-report.json",
+        "sha256": "f5d001ad70b4d9e3b25fa1801d686d303698d890b2ee9b4fc429254f3c6e8b78"
+      },
+      "nativeAcceptance": {
+        "path": "//wsl.localhost/Ubuntu/var/tmp/xlang-validation/xge-full-20261110/owned-shape-share-native-check-linux-r1/results.json",
+        "sha256": "e98b15b5fadc609b3fcd5b328b794d36508d804cdf64de7c8baa30cd100d66af"
+      },
+      "storageReviews": {
+        "path": "//wsl.localhost/Ubuntu/var/tmp/xlang-validation/xge-full-20261110/owned-shape-share-stage-linux-r3/generator.log",
+        "sha256": "c7fb851ca88f68ba6330dfac602f08eb40f0f0366ba77ca37f8e58ec4d1641c3"
+      },
+      "replay": {
+        "path": "//wsl.localhost/Ubuntu/var/tmp/xlang-validation/xge-full-20261110/owned-shape-share-stage-linux-r3/replay/stage-report.json",
+        "sha256": "848af4f40d7cdcf247198dc7e4d53b1e2e31e84eade069fba6d1e7c70bf9c199"
+      },
+      "languageAcceptance": {
+        "path": "//wsl.localhost/Ubuntu/var/tmp/xlang-validation/xge-full-20261110/owned-shape-share-verify-linux-r3/results.json",
+        "sha256": "520f42eb86d955a296b67ca0b7b55d1c16ecf1c4d87f18b761c19f6c9eea5442"
+      },
+      "consumerAudit": {
+        "path": "//wsl.localhost/Ubuntu/var/tmp/xlang-validation/xge-full-20261110/owned-shape-share-consumers-linux-r3/results.json",
+        "sha256": "0707a6fb84b28b459083be69ec94d07b49b30f6ccd77181f4ec628b093fd5a58"
+      },
+      "previousAudit": {
+        "path": "//wsl.localhost/Ubuntu/var/tmp/xlang-validation/xge-full-20261110/owned-font-share-consumers-linux-r3/results.json",
+        "sha256": "2898fae937d9f7a4a89472f8654de6af86330eb352f8288315cecc1c212c14a5"
+      },
+      "functionPopulation": 5888,
+      "directDeclarations": 4827,
+      "remaining": {
+        "XGE": 20,
+        "XUI": 65
+      },
+      "replacements": {
+        "xgeShapeExAddRef": {
+          "language": "xge.Shape.share",
+          "native": "xgeShapeExShareOwned"
+        },
+        "xgeShapeExSceneAddRef": {
+          "language": "xge.ShapeScene.share",
+          "native": "xgeShapeExSceneShareOwned"
+        }
+      },
+      "heapAndElapsedSamples": {
+        "jit": [
+          {
+            "language": "C",
+            "iterations": 1000,
+            "allocations": 0,
+            "frees": 0,
+            "reallocations": 0,
+            "elapsedMs": 0.013
+          },
+          {
+            "language": "xlang",
+            "iterations": 1000,
+            "allocations": 4000,
+            "frees": 4000,
+            "reallocations": 0,
+            "elapsedMs": 7.610899
+          }
+        ],
+        "host-run": [
+          {
+            "language": "C",
+            "iterations": 1000,
+            "allocations": 0,
+            "frees": 0,
+            "reallocations": 0,
+            "elapsedMs": 0.0132
+          },
+          {
+            "language": "xlang",
+            "iterations": 1000,
+            "allocations": 4000,
+            "frees": 4000,
+            "reallocations": 0,
+            "elapsedMs": 16.995297
+          }
+        ],
+        "static-run": [
+          {
+            "language": "C",
+            "iterations": 1000,
+            "allocations": 0,
+            "frees": 0,
+            "reallocations": 0,
+            "elapsedMs": 0.0151
+          },
+          {
+            "language": "xlang",
+            "iterations": 1000,
+            "allocations": 4000,
+            "frees": 4000,
+            "reallocations": 0,
+            "elapsedMs": 9.870398
+          }
+        ]
+      }
+    }
+  },
+  "sourceSha256NormalizedLf": {
+    "docs/xge3-shape-references.md": "688662d52406b516a75980b9884fcaea8b4f7a1bd22e8e7a41847a788935f0c1",
+    "docs/xge3-xui3-api-map-storage.json": "b9735e8f7cbc1efe23adf94766a4c953f9fb649af2ae139aeebb25b68717175b",
+    "tools/check_xge3_bindings.py": "d87d41556fdc588a8e2c9cf9c5b9e6b6a74537dbe9261463a751330f7c708382",
+    "tools/xge_replay_contracts.py": "0110e5467a8c300869ebfded2f71158abe51f534631a5a2f43e2aa4833a3d464",
+    "lib/bindings/xge/src/shapes.xl": "11d041c2f2b22928356b350713c2ad49a1cf702d53ba809d5f03b93be1667e8d",
+    "lib/bindings/xge/examples/shape_references.xl": "b9227238de54250b34fa4750b01ce2847846f78945ccee74baab298aaeb136c3",
+    "test/cases/foreign_xge_shape_references.xl": "a4afc69a9608e923dbdf6f029dfc8bce9af58aae88b4818023d6341367e2b895",
+    "test/cases/foreign_xge_shape_references.c": "e12b65fb1cd23a2953961f9ff38fee076fe9b228140b67be4323be476d5eea5b",
+    "test/cases/foreign_xge_shape_references.h": "3e87d7eefe80375130939b7a248bc0488f8fe446bbf773e1b6ad6ef79f6a53c7"
+  }
+}

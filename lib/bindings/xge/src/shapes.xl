@@ -17,6 +17,7 @@ export typedef ShapeMaskDraw = func(ShapeMaskTransform) as c_int
 // Native-only shape graphs: own one exact native reference, no language callback slots.
 export extern "xge_shape_ex" class Shape @header("xge3_runtime.h") @lifetime("owned") @policy("xl6Xge3ShapePolicy")
  native point handle
+ extern "xgeShapeExShareOwned" @no_raise @c_result("owned_view") @factory(1,0,rollbackShape) func share() as Shape
  extern "xgeShapeExRefCountGet" @no_raise @c_output(1,0) func refCountGet() as c_int
  extern "xgeShapeExId" @no_raise @c_result("status",0) func id(c_uint iId)
  extern "xgeShapeExIdGet" @no_raise @c_output(1,0) func idGet() as c_uint
@@ -147,6 +148,7 @@ extern "xgeShapeExAddRef" @no_raise func retainShape(Shape value) as c_int
 export extern "xgeShapeExCreate" @no_raise @c_result("owned_view") @factory(0,0,rollbackShape) func createShape() as Shape
 export extern "xge_shape_ex_scene" class ShapeScene @header("xge3_runtime.h") @lifetime("owned") @policy("xl6Xge3ShapeScenePolicy")
  native point handle
+ extern "xgeShapeExSceneShareOwned" @no_raise @c_result("owned_view") @factory(1,0,rollbackShapeScene) func share() as ShapeScene
  extern "xgeShapeExSceneRefCountGet" @no_raise @c_output(1,0) func refCountGet() as c_int
  extern "xgeShapeExSceneId" @no_raise @c_result("status",0) func id(c_uint iId)
  extern "xgeShapeExSceneIdGet" @no_raise @c_output(1,0) func idGet() as c_uint

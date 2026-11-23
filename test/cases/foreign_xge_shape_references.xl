@@ -6,6 +6,7 @@ extern "shapeReferencesHeapEnd" @header("test/cases/foreign_xge_shape_references
 extern "shapeReferencesHeapBudget" @header("test/cases/foreign_xge_shape_references.h") @no_raise func heapBudget(c_int allowance)
 extern "shapeReferencesAllocationFailed" @header("test/cases/foreign_xge_shape_references.h") @no_raise func allocationFailed() as bool
 extern "shapeReferencesNativeHot" @header("test/cases/foreign_xge_shape_references.h") @no_raise func nativeHot(xge.ShapeScene scene)
+extern "shapeReferencesNativeShare" @header("test/cases/foreign_xge_shape_references.h") @no_raise func nativeShare(xge.Shape shape,xge.ShapeScene scene)
 
 func verifyBorrowedFailures(xge.ShapeScene scene,xge.Shape shape)
     c_int count = shape.refCountGet()
@@ -77,6 +78,61 @@ func verifyMasksAndClips(xge.Shape shape,xge.ShapeScene scene)
     assert noShape == null and noScene == null
 end
 
+func verifyShares()
+    auto shape = xge.createShape()
+    auto scene = xge.createShapeScene()
+    shape.id(17)
+    scene.add(shape)
+    nativeShare(shape,scene)
+    heapBegin()
+    for index in range(1000)
+        auto sharedShape = shape.share()
+        auto sharedScene = scene.share()
+        sharedShape.close()
+        sharedScene.close()
+    end
+    heapEnd(4)
+
+    c_int shapeRefs = shape.refCountGet()
+    c_int sceneRefs = scene.refCountGet()
+    int failures = 0
+    heapBegin()
+    for allowance in range(16)
+        heapBudget(c_int(allowance))
+        bool failed = false
+        try
+            auto sharedShape = shape.share()
+            auto sharedScene = scene.share()
+            sharedShape.close()
+            sharedScene.close()
+        catch Error
+            failed = true
+        end
+        bool triggered = allocationFailed()
+        heapBudget(-1)
+        assert shape.refCountGet() == shapeRefs and scene.refCountGet() == sceneRefs
+        assert triggered == failed
+        if not failed then break end
+        failures += 1
+    end
+    assert failures > 0 and failures < 16
+    heapEnd(5)
+
+    auto sharedShape = shape.share()
+    auto sharedScene = scene.share()
+    shape.close()
+    scene.close()
+    assert sharedScene.getCount() == c_int(1)
+    auto sceneShape = sharedScene.shapeAt(0)
+    sceneShape.id(18)
+    assert sharedShape.idGet() == c_uint(18)
+    sceneShape.close()
+    sharedScene.close()
+    assert sharedShape.refCountGet() == c_int(1)
+    sharedShape.close()
+    println("XGE_SHAPE_SHARE_OK")
+end
+
 func main(...) as int
     auto shape = xge.createShape()
     shape.id(42)
@@ -131,6 +187,7 @@ func main(...) as int
     parent.close()
     grandparent.close()
     retainedChildScene.close()
+    verifyShares()
     println("XGE_SHAPE_REFERENCES_LANGUAGE_OK")
     return 0
 end

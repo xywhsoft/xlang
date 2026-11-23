@@ -118,6 +118,8 @@ REPLACED = {
     'xgeTextureAddRef': ('xge.Texture.share', 'xgeTextureShareOwned'),
     'xgeFontAddRef': ('xge.Font.share', 'xgeFontShareOwned'),
     'xgeFontFaceAddRef': ('xge.FontFace.share', 'xgeFontFaceShareOwned'),
+    'xgeShapeExAddRef': ('xge.Shape.share', 'xgeShapeExShareOwned'),
+    'xgeShapeExSceneAddRef': ('xge.ShapeScene.share', 'xgeShapeExSceneShareOwned'),
     'xgeShaderAddRef': ('xge.Shader.share', 'xgeShaderShareOwned'),
     'xgeRenderTargetAddRef': ('xge.RenderTarget.share', 'xgeRenderTargetShareOwned'),
     'xgeShaderCreate': ('xge.createShader', 'xgeShaderCreateOwned'),

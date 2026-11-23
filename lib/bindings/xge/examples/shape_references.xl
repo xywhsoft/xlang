@@ -10,8 +10,11 @@ func main(...) as int
     rectangle.fillColor(0xFFFFFFFF)
     scene.add(rectangle)
 
-    auto selected = scene.hitTest(5,5) as Shape
+    auto sharedScene = scene.share()
     scene.close()
+
+    auto selected = sharedScene.hitTest(5,5) as Shape
+    sharedScene.close()
     rectangle.close()
     try
         println("Selected shape",selected.idGet())

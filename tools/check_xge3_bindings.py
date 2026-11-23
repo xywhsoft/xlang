@@ -914,6 +914,15 @@ def generate_xge_objects(root,header,records,types,primitive,param,reserved,revi
         for kind,name,result in (('text','exportSvgPath','string'),('bytes','exportSvgPathBytes','bytes'))
     ]
     known={f['name'] for f in header['functions']}
+    shares={
+        'xgeShapeExShareOwned': 'int xgeShapeExShareOwned(xge_shape_ex pShape, xge_shape_ex* ppShared)',
+        'xgeShapeExSceneShareOwned': 'int xgeShapeExSceneShareOwned(xge_shape_ex_scene pScene, xge_shape_ex_scene* ppShared)',
+    }
+    if known.intersection(shares):
+        signatures={f['name']:f['declaration'] for f in header['functions']}
+        for native, expected in shares.items():
+            if signatures.get(native)!=expected:
+                raise ValueError('owned Shape sharing requires the matching native signature: '+native)
     if not set(snapshot_targets).union({export}) <= known:
         raise ValueError('Shape snapshot and export declarations require a matching native header')
     def family(t):
@@ -931,7 +940,8 @@ def generate_xge_objects(root,header,records,types,primitive,param,reserved,revi
             while i<len(p):
                 a=p[i];t=a['type'];logical=len(params)
                 if t['kind']=='pointer' and family(t['to']):
-                    if not re.search(r'Clone$',f['name']):raise ValueError('unreviewed borrowed/resource output')
+                    if f['name'] not in shares and not f['name'].endswith('Clone'):
+                        raise ValueError('unreviewed borrowed/resource output')
                     if factory or outputs:raise ValueError('mixed native outputs')
                     factory=family(t['to']);outputs.append(i);i+=1;continue
                 resource=family(t)
@@ -961,6 +971,7 @@ def generate_xge_objects(root,header,records,types,primitive,param,reserved,revi
                 result=values[0] if len(values)==1 else '('+','.join(values)+')'
             else:attrs.append('@c_result("status",0)');result=None
             name=f['name'][len(owner[2]):];name=name[:1].lower()+name[1:]
+            if f['name'] in shares:name='share'
             if name=='close':name='closePath'
             if not name or name in reserved:name='native'+name[:1].upper()+name[1:]
             methods[owner[0]].append(' extern "'+f['name']+'" @no_raise '+ ' '.join(attrs)+' func '+name+'('+','.join(params)+')'+(' as '+result if result else ''))

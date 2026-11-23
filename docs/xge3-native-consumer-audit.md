@@ -1,5 +1,19 @@
 # Native consumers in the full API inventory
 
+## Shared shapes and shape scenes
+
+`Shape.share()` and `ShapeScene.share()` return a separate owning view of the
+same native object. Both native retain functions reject zero and saturated
+reference counts. SVG definition insertion propagates a retain failure before
+publishing the shape.
+
+Windows and Linux pass native O0/O2 checks and full O2 JIT, dynamic AOT, and
+static AOT for the language fixture and example. Both inventories now cover
+5,888 native functions, including 4,827 direct declarations. The remaining 85
+entries comprise 20 XGE and 65 XUI functions.
+
+[Shape and scene sharing evidence](../dev/release-materials/provenance/xge-shape-share-20261124.json)
+
 ## Shared font references
 
 `Font.share()` and `FontFace.share()` directly call the checked native sharing

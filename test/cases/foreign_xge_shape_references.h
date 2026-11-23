@@ -11,6 +11,7 @@ void shapeReferencesHeapEnd(int mode);
 void shapeReferencesHeapBudget(int allowance);
 bool shapeReferencesAllocationFailed(void);
 void shapeReferencesNativeHot(xge_shape_ex_scene scene);
+void shapeReferencesNativeShare(xge_shape_ex shape, xge_shape_ex_scene scene);
 #ifdef __cplusplus
 }
 #endif
