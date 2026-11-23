@@ -1,0 +1,109 @@
+{
+  "schema": 1,
+  "date": "2026-11-23",
+  "platform": "win_x64",
+  "scope": "Local release-ready IDE and LSP pair",
+  "previousDelivery": "dev/release-materials/provenance/lsp-stable-resource-package-20261123.json",
+  "sourceCommit": "38b8af43c6ea2e928e61ef6773cf831c2e57700b",
+  "acceptanceCommit": "a53a5432294ca38268a75ad4c26e33801b85c0df",
+  "materials": {
+    "sources": {
+      "archive": {
+        "path": "dev/release-materials/sources/lsp-stable-refresh-20261123/inputs.tar.gz",
+        "sha256": "b56ebd8c0bb0a3e41eeba583d6dfbc11e95dd70c1903fb253a6d03691b06ed05",
+        "bytes": 20674765
+      },
+      "manifest": {
+        "path": "dev/release-materials/sources/lsp-stable-refresh-20261123/inputs.tar.gz.manifest.json",
+        "sha256": "424dd84e83c825844d5ecd5145d31024025d067f637030c9f1e9d3ea2dcd1410",
+        "bytes": 674400
+      },
+      "entries": 1882,
+      "uniquePayloads": 1705
+    },
+    "validation": {
+      "archive": {
+        "path": "dev/release-materials/provenance/lsp-stable-refresh-20261123/validation.tar.gz",
+        "sha256": "dffe762aa6c5ec62336c9370e2ba2854101a307c4c8778e3df93c608445c92ac",
+        "bytes": 15914442
+      },
+      "manifest": {
+        "path": "dev/release-materials/provenance/lsp-stable-refresh-20261123/validation.tar.gz.manifest.json",
+        "sha256": "f5f92afb6b19f09a57b5c104acdf8f2377a51405f69ac9dcfc4f81884a511535",
+        "bytes": 346639
+      },
+      "entries": 955,
+      "uniquePayloads": 765
+    }
+  },
+  "qualification": {
+    "nativePrograms": 243,
+    "disabledComponentEntryChecks": 9,
+    "protocolSuites": 33,
+    "guiSuites": 55,
+    "editorModes": 47,
+    "editCycles": 96,
+    "nativeCompileCommands": 389,
+    "nativeObjects": 388,
+    "serviceObjectsMatchedStandardBuild": 115,
+    "guiObjects": 140,
+    "originalNameProtocolQueries": 78,
+    "originalNameCAndXlangFrames": 24,
+    "originalNameInputPassed": true
+  },
+  "installed": {
+    "mdo.exe": "9219de70911e1f02d8e54eadc77c257369e4ea637e5202fcbb04854a29893044",
+    "update.exe": "4c5266fce0a541b9b96fe92b3d2f7d94598aff3b052e420b08b6d47db5e5c6c2",
+    "xge.dll": "127db42612e8a27c8b1f7f74e4653c25f09140f8baac38d16fc564eb74892ef3",
+    "xl.dll": "f31ddbe973ed48d261014ec64fa6b0ba48791fc0313192a19d59467254c0fcd6",
+    "xl.exe": "5288c4e8be9f420ef98caeb11be362017be925f2ad81a0d56946cc6a8c721081",
+    "xlang-ls.exe": "2565c05876982d0c01e53fb53c548ddc7e57b30db7bc167ee962eea51b2730e9",
+    "xlang_ide.exe": "ab12ebf5d069b55fd500d21eb2f6f03fa423bb4e4056b199d287ac6802a2c213",
+    "xlang_ide_xge.dll": "7eba677fddada9b605db2d54dd59ee57a9cfc1caf0b574f6cb206ec9de379418",
+    "xlc.dll": "64b2e9830569c84580335b0a2b15a59ce13552ba1ba51933fc82cd75808c0728"
+  },
+  "changedRuntimeFiles": [
+    "xlang-ls.exe",
+    "xlang_ide.exe"
+  ],
+  "runtimePaths": 7095,
+  "defaultRuntimeReplaced": true,
+  "delivery": {
+    "schema": 1,
+    "stage": "stable-refresh",
+    "directory": "release/win_x64",
+    "provenance": "dev/release-materials/provenance/lsp-stable-refresh-20261123.json",
+    "sourceCommit": "38b8af43c6ea2e928e61ef6773cf831c2e57700b",
+    "languageServerVersion": "0.110",
+    "displayVersion": "0.6.2",
+    "ideRuntimeLibrary": "xlang_ide_xge.dll",
+    "runtime": {
+      "xlang_ide.exe": "ab12ebf5d069b55fd500d21eb2f6f03fa423bb4e4056b199d287ac6802a2c213",
+      "xlang-ls.exe": "2565c05876982d0c01e53fb53c548ddc7e57b30db7bc167ee962eea51b2730e9",
+      "xlang_ide_xge.dll": "7eba677fddada9b605db2d54dd59ee57a9cfc1caf0b574f6cb206ec9de379418",
+      "update.exe": "4c5266fce0a541b9b96fe92b3d2f7d94598aff3b052e420b08b6d47db5e5c6c2"
+    },
+    "preservedEngine": {
+      "xl.exe": "5288c4e8be9f420ef98caeb11be362017be925f2ad81a0d56946cc6a8c721081",
+      "xl.dll": "f31ddbe973ed48d261014ec64fa6b0ba48791fc0313192a19d59467254c0fcd6",
+      "xlc.dll": "64b2e9830569c84580335b0a2b15a59ce13552ba1ba51933fc82cd75808c0728",
+      "xge.dll": "127db42612e8a27c8b1f7f74e4653c25f09140f8baac38d16fc564eb74892ef3"
+    },
+    "profile": "conservative-independent-nodes-native-exits-and-allocation-failure-guard",
+    "functionalAcceptancePassed": true,
+    "originalProgramNamesPaired": true,
+    "experimentalNodeViews": false,
+    "experimentalExitReuse": false,
+    "experimentalFunctionExits": false,
+    "experimentalNativePipeline": false,
+    "wholeLspPerformanceQualified": false,
+    "externalPublishPerformed": false
+  },
+  "retainedSetupFailures": [
+    "Root test corpus omitted from first snapshot",
+    "SDK dependency metadata skipped by first snapshot copy",
+    "Test-only XUI proxy omitted from first GUI run",
+    "Editor run paused by user and completed in a fresh directory"
+  ],
+  "goalComplete": false
+}
