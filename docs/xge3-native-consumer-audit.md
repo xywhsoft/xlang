@@ -1,5 +1,20 @@
 # Native consumers in the full API inventory
 
+## Zero-initialized GPU buffers and native mesh factories
+
+`xge.createGpuBuffer(kind, usage, size)` passes a typed NULL and the byte
+count to `xgeBufferCreateOwned`. A compiled alias probe checks that it links
+to the original native factory. The native factory allocates and initializes
+the backing storage in place. A dedicated OpenGL transfer target keeps index
+uploads and updates from changing the active VAO's element binding.
+
+The audit follows the owned buffer and mesh factories to their native
+implementations and verifies each close policy's actual release relocation.
+The matched inventories contain 5,881 functions and 4,817 direct declarations.
+The 109 pending entries comprise 38 XGE and 71 XUI functions.
+
+[GPU buffer and mesh evidence](../dev/release-materials/provenance/xge-zeroed-gpu-buffer-20261124.json)
+
 ## Standalone XUI code commands
 
 `xui.executeCodeCommand()` packs the native context from managed input views

@@ -115,6 +115,8 @@ REPLACED = {
     'xgeShaderAddRef': ('xge.Shader.share', 'xgeShaderShareOwned'),
     'xgeRenderTargetAddRef': ('xge.RenderTarget.share', 'xgeRenderTargetShareOwned'),
     'xgeShaderCreate': ('xge.createShader', 'xgeShaderCreateOwned'),
+    'xgeBufferCreate': ('xge.createGpuBuffer', 'xgeBufferCreateOwned'),
+    'xgeMeshCreate': ('xge.createMesh', 'xgeMeshCreateOwned'),
     'xgeMusicLoad': ('xge.loadMusic', 'xgeMusicCreateOwned'),
     'xgeMusicLoadGroup': ('xge.loadMusic', 'xgeMusicCreateOwned'),
     'xgeSoundAddRef': ('xge.Sound.share', 'xgeSoundShareOwned'),

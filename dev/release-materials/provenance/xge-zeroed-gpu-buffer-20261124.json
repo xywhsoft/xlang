@@ -1,0 +1,289 @@
+{
+  "schema": 1,
+  "scope": "Direct zero-initialized owned GPU buffers, real index storage and VAO state, native buffer and mesh factory edges",
+  "nativeCommit": "b7fe7710878384614d76163cd1b56eaf23af627b",
+  "nativeOverlayParent": "22873d6857fc9002bfe89790a38db0b33015cd82",
+  "shippingDelivery": false,
+  "networkTests": false,
+  "sourceSha256NormalizedLf": {
+    "lib/bindings/xge/include/xge3_gpu_buffer.h": "62fe8b82fa0ed689e0e143349e1e5ec0571f0d520ce8cd8b27fbddc1539f09ec",
+    "lib/bindings/xge/src/render_resources.xl": "901292fbf43273155eb17c9db5ab1fb60ec158852815f51005348e6140aedd71",
+    "lib/bindings/xge/examples/README.md": "9d3cf1997a2865f219faa508286ac1c2f8a632e0904f2144f2a847e9da86341d",
+    "lib/bindings/xge/examples/zeroed_gpu_buffer.xl": "6635249f940dd65d0d9070d558037a413781f87255e3b91a07f7319d6d9b3338",
+    "tools/check_xge3_native_consumers.py": "38d7554abf0686ea462eb67b2d62f1719dddad3e24be69fb1d3063ab27873b48",
+    "tools/xge_replay_contracts.py": "a63ad754f9aeff5c869f85f94f41fce5ceae21c4341c67cb5dcfb032b75a1f38",
+    "test/cases/foreign_xge3_gpu_buffer_zeroed.xl": "e5fbf25ce362f230516dd34b704ef1be43fea5aa51335a33fd5925813444274b",
+    "test/cases/foreign_xge3_gpu_buffer_zeroed.c": "45dd198ff133e857326ccaa88b82b76e71a5e19c1a6691be7c8dc0e0b8336d7b",
+    "test/cases/foreign_xge3_gpu_buffer_zeroed.h": "32631c4a2ec4f351d601d80eac0c1a70950c14dedbad7143eb2a69f8ead0531d"
+  },
+  "nativeSourceSha256NormalizedLf": {
+    "src/xge/core/xge_buffer.c": "bba07b475b2f58a3d2a033e8b63bf2405cc63b094ed35ed0d3a0d0565a39adb1",
+    "src/xge/render/xge_gl.h": "8229af334ebb8a1a8993f04416049a4d79ef2e245ceeea9c9c5b23f752003cfe",
+    "tests/xge/test_gpu_index_buffer_state.c": "c4e2dbecdb6181e7e355b8af3bb1e6f32559670d2eb5d2c5ceb1324508d8e774"
+  },
+  "validation": {
+    "ownedZeroInitialization": true,
+    "expectedSizeAndKind": true,
+    "invalidCapacityChecked": true,
+    "oomPrefixesRestoreOwnershipCount": true,
+    "managedBufferGuardsEngineShutdown": true,
+    "closedViewRejected": true,
+    "actualWglAndEglIndexReadback": true,
+    "activeVaoElementBindingPreserved": true
+  },
+  "performanceScope": "Per mode, 256 successful 16-byte zeroed buffer create/check/close cycles within the same manual engine epoch without a graphics device. C calls the native owning factory and release. xlang uses its managed factory and close. XRT counts and elapsed samples include content checks and omit engine initialization, driver uploads and GPU timing.",
+  "platforms": {
+    "win": {
+      "nativeSource": {
+        "path": "F:/xlang-validation/xge-full-20261110/zeroed-gpu-buffer-native-source-win-r2.json",
+        "sha256": "29d741945c5b4561e17fd8c0d4ca469545a24feafaf79f44ca7fd9229347dc11"
+      },
+      "nativeVaoBindingRegressionBefore": {
+        "path": "F:/xlang-validation/xge-full-20261110/gpu-index-state-win-baseline-r1/results.json",
+        "sha256": "c09f2027a8ae5262309b2cd7691a190955f4a7029f980a40fa4f6a92c6877755"
+      },
+      "nativeO0O2Readback": {
+        "path": "F:/xlang-validation/xge-full-20261110/gpu-index-state-win-fixed-r1/results.json",
+        "sha256": "f20c705d134b833cc250be987cfeb669df7e11db722790c17c75c0b1d269b9e3"
+      },
+      "nativeFactoryRelocations": {
+        "path": "F:/xlang-validation/xge-full-20261110/graphics-factory-edges-win-r2/results.json",
+        "sha256": "6f209948cf04f603dfc92443de03de4ae3f240c36d18fa7828d9e270e5cd6a80"
+      },
+      "cohorts": {
+        "default": {
+          "matchedPackages": {
+            "path": "F:/xlang-validation/xge-full-20261110/zeroed-gpu-buffer-stage-win-r4/replay/stage-report.json",
+            "sha256": "dcc40f6cd758360c38ce3f853449a754c6a9e7b5b8d04a2b63bc1d3f20a58602"
+          },
+          "declarationReplay": {
+            "path": "F:/xlang-validation/xge-full-20261110/zeroed-gpu-buffer-generator-win-r4/results.json",
+            "sha256": "6cd5d78fa931ea204aa4d1b2cef3699b7246003af0642aaea64be60919a83ada"
+          },
+          "hostO2Build": {
+            "path": "F:/xlang-validation/xge-full-20261110/zeroed-gpu-buffer-host-win-r2/build-report.json",
+            "sha256": "4462fe811e54bb682921b946eb2e53a9b686b51cb22cafebb2eeae54bcbe0599"
+          },
+          "staticO2Build": {
+            "path": "F:/xlang-validation/xge-full-20261110/zeroed-gpu-buffer-static-win-r2/build-report.json",
+            "sha256": "b46ecece1d8ed0195adac81aa44369426781ebf544b6e50743343875a394c79c"
+          },
+          "publicSurface": {
+            "path": "F:/xlang-validation/xge-full-20261110/zeroed-gpu-buffer-inventory-win-r4/surface.json",
+            "sha256": "58d8fc35ef40d94151aff2a26ee3671b59f59d0f5d4bf796808f2c877caa0272"
+          },
+          "jitDynamicStaticAot": {
+            "path": "F:/xlang-validation/xge-full-20261110/zeroed-gpu-buffer-verify-win-r1/results.json",
+            "sha256": "75407d18049ba8f8a7a1ebb80c0e5f95ba09886ffd87d9bb435b5888a2f51673"
+          },
+          "generatedC": {
+            "path": "F:/xlang-validation/xge-full-20261110/zeroed-gpu-buffer-verify-win-r1/foreign_xge3_gpu_buffer_zeroed/generated.c",
+            "sha256": "8d7d9fb59537a6e190c916d89dfcd101210b157695361b02b11d93010576dc1a"
+          },
+          "allocationSamples": {
+            "jit": {
+              "log": {
+                "path": "F:/xlang-validation/xge-full-20261110/zeroed-gpu-buffer-verify-win-r1/foreign_xge3_gpu_buffer_zeroed/jit.log",
+                "sha256": "5b8ff860e1f39639fc0e932d760b6577b627860993ef7ca7a9ae37e49b25ad49"
+              },
+              "calls": 256,
+              "CWallMs": 0.0792,
+              "xlangWallMs": 1.5294
+            },
+            "host-run": {
+              "log": {
+                "path": "F:/xlang-validation/xge-full-20261110/zeroed-gpu-buffer-verify-win-r1/foreign_xge3_gpu_buffer_zeroed/host-run.log",
+                "sha256": "a525c80ff6a45393cff54fa7ee7d2e76aea822b625e1cda150a3a568fd2ef18e"
+              },
+              "calls": 256,
+              "CWallMs": 0.4194,
+              "xlangWallMs": 3.3782
+            },
+            "static-run": {
+              "log": {
+                "path": "F:/xlang-validation/xge-full-20261110/zeroed-gpu-buffer-verify-win-r1/foreign_xge3_gpu_buffer_zeroed/static-run.log",
+                "sha256": "427b889d7d44cc4873398941377fc0c9fdedc4e258911c39a4beb18e702ce898"
+              },
+              "calls": 256,
+              "CWallMs": 0.3533,
+              "xlangWallMs": 3.9064
+            }
+          },
+          "rendered": true
+        }
+      },
+      "nativeConsumerAudit": {
+        "path": "F:/xlang-validation/xge-full-20261110/zeroed-gpu-buffer-consumers-win-r3/results.json",
+        "sha256": "7a09348b030fc36ff8df81fedfc3829c7ded3d0931cc04a14301c8ad834005d4"
+      },
+      "functionPopulation": 5881,
+      "directDeclarations": 4817,
+      "pendingConsumerOrReplacement": {
+        "XGE": 38,
+        "XUI": 71
+      }
+    },
+    "linux": {
+      "nativeSource": {
+        "path": "//wsl.localhost/Ubuntu/var/tmp/xlang-validation/xge-full-20261110/zeroed-gpu-buffer-native-source-linux-r2.json",
+        "sha256": "9765987595624cc98d190fb3de417e2ba46ade6a6c97c58898404e29fe43063d"
+      },
+      "nativeVaoBindingRegressionBefore": {
+        "path": "//wsl.localhost/Ubuntu/var/tmp/xlang-validation/xge-full-20261110/gpu-index-state-linux-baseline-r1/results.json",
+        "sha256": "bd4f16c249ce15521a14a692e0061206652d1db82844f01d4e5632f2e9d14f1d"
+      },
+      "nativeO0O2Readback": {
+        "path": "//wsl.localhost/Ubuntu/var/tmp/xlang-validation/xge-full-20261110/gpu-index-state-linux-fixed-r1/results.json",
+        "sha256": "d997ab9ededbe02dbb474e7221553cc4ce41ec90d21e5177cadde2b3fd99368f"
+      },
+      "nativeFactoryRelocations": {
+        "path": "//wsl.localhost/Ubuntu/var/tmp/xlang-validation/xge-full-20261110/graphics-factory-edges-linux-r2/results.json",
+        "sha256": "e7473c1aa81ef3257b4c5de4ecc1863c66062111af50375acfc9ac923a158e91"
+      },
+      "cohorts": {
+        "default": {
+          "matchedPackages": {
+            "path": "//wsl.localhost/Ubuntu/var/tmp/xlang-validation/xge-full-20261110/zeroed-gpu-buffer-stage-linux-r4/replay/stage-report.json",
+            "sha256": "1c3853b79973da4f15d9db353c3dbc2cdff658ffe09bac234b5a4f16cc15b4c4"
+          },
+          "declarationReplay": {
+            "path": "//wsl.localhost/Ubuntu/var/tmp/xlang-validation/xge-full-20261110/zeroed-gpu-buffer-generator-linux-r4/results.json",
+            "sha256": "5a5d0c48b5574009527bba916aa12aa5916ceee6babc5b0db04ac092a2ea247b"
+          },
+          "hostO2Build": {
+            "path": "//wsl.localhost/Ubuntu/var/tmp/xlang-validation/xge-full-20261110/zeroed-gpu-buffer-host-linux-r2/build-report.json",
+            "sha256": "5531dea443ca2bb905216f4fadea30332dcff0f1cb7104af433ea4e65047ae6d"
+          },
+          "staticO2Build": {
+            "path": "//wsl.localhost/Ubuntu/var/tmp/xlang-validation/xge-full-20261110/zeroed-gpu-buffer-static-linux-r2/build-report.json",
+            "sha256": "8bd3ffc03ab1a6fe3f02860617facf5be5d746666490da0cbfbd98eb1a77f3b5"
+          },
+          "publicSurface": {
+            "path": "//wsl.localhost/Ubuntu/var/tmp/xlang-validation/xge-full-20261110/zeroed-gpu-buffer-inventory-linux-r4/surface.json",
+            "sha256": "732fb7cda843b4d6158da00db1a5f9b9de131e363904b77cd435f01714dd0125"
+          },
+          "jitDynamicStaticAot": {
+            "path": "//wsl.localhost/Ubuntu/var/tmp/xlang-validation/xge-full-20261110/zeroed-gpu-buffer-verify-linux-r1/results.json",
+            "sha256": "b0da0e62e96fe5628bb039b27c5996bdb8c2e652fd57f50af93e9ede088fb2c6"
+          },
+          "generatedC": {
+            "path": "//wsl.localhost/Ubuntu/var/tmp/xlang-validation/xge-full-20261110/zeroed-gpu-buffer-verify-linux-r1/foreign_xge3_gpu_buffer_zeroed/generated.c",
+            "sha256": "8d7d9fb59537a6e190c916d89dfcd101210b157695361b02b11d93010576dc1a"
+          },
+          "allocationSamples": {
+            "jit": {
+              "log": {
+                "path": "//wsl.localhost/Ubuntu/var/tmp/xlang-validation/xge-full-20261110/zeroed-gpu-buffer-verify-linux-r1/foreign_xge3_gpu_buffer_zeroed/jit.log",
+                "sha256": "d5ffc2ec7defca519f5b0ef980ae1e26475c50ef9f4b9e403178cef7cd5250b2"
+              },
+              "calls": 256,
+              "CWallMs": 0.1056,
+              "xlangWallMs": 1.3907
+            },
+            "host-run": {
+              "log": {
+                "path": "//wsl.localhost/Ubuntu/var/tmp/xlang-validation/xge-full-20261110/zeroed-gpu-buffer-verify-linux-r1/foreign_xge3_gpu_buffer_zeroed/host-run.log",
+                "sha256": "92744f0c96b3e1f29f85b872278edb543f9090150477fcd0229ed154058e98bf"
+              },
+              "calls": 256,
+              "CWallMs": 0.1905,
+              "xlangWallMs": 3.399796
+            },
+            "static-run": {
+              "log": {
+                "path": "//wsl.localhost/Ubuntu/var/tmp/xlang-validation/xge-full-20261110/zeroed-gpu-buffer-verify-linux-r1/foreign_xge3_gpu_buffer_zeroed/static-run.log",
+                "sha256": "27d0dd989fa58a6e2e2b5bcf97dc46f4d49ec771e294804067c10296a1c88698"
+              },
+              "calls": 256,
+              "CWallMs": 0.0597,
+              "xlangWallMs": 0.7164
+            }
+          },
+          "rendered": false
+        },
+        "egl": {
+          "matchedPackages": {
+            "path": "//wsl.localhost/Ubuntu/var/tmp/xlang-validation/xge-full-20261110/zeroed-gpu-buffer-egl-stage-linux-r4/replay/stage-report.json",
+            "sha256": "e7e37a4da74993f44904c27f97a356ad2233a6d06dfb1fb016380f4361a985e0"
+          },
+          "declarationReplay": {
+            "path": "//wsl.localhost/Ubuntu/var/tmp/xlang-validation/xge-full-20261110/zeroed-gpu-buffer-egl-generator-linux-r4/results.json",
+            "sha256": "f196f9a5c96df98c5a942c1658fedbb1f5c22096a31155b887ea3487353803d3"
+          },
+          "hostO2Build": {
+            "path": "//wsl.localhost/Ubuntu/var/tmp/xlang-validation/xge-full-20261110/zeroed-gpu-buffer-egl-host-linux-r2/build-report.json",
+            "sha256": "a26bc048d98edb92d6a55c2d13732a1dbffc9a3e8a8c9796998de332db9c1e08"
+          },
+          "staticO2Build": {
+            "path": "//wsl.localhost/Ubuntu/var/tmp/xlang-validation/xge-full-20261110/zeroed-gpu-buffer-egl-static-linux-r2/build-report.json",
+            "sha256": "cf1be6046fe7e5a31dfdeefbfa026720437cb8133647634b9de9e2e9b4d96dd3"
+          },
+          "publicSurface": {
+            "path": "//wsl.localhost/Ubuntu/var/tmp/xlang-validation/xge-full-20261110/zeroed-gpu-buffer-egl-inventory-linux-r4/surface.json",
+            "sha256": "732fb7cda843b4d6158da00db1a5f9b9de131e363904b77cd435f01714dd0125"
+          },
+          "jitDynamicStaticAot": {
+            "path": "//wsl.localhost/Ubuntu/var/tmp/xlang-validation/xge-full-20261110/zeroed-gpu-buffer-egl-verify-linux-r1/results.json",
+            "sha256": "4136b0d3ff22268d5672e2032dbc776fc9794c85a37487430849ed15294f8208"
+          },
+          "generatedC": {
+            "path": "//wsl.localhost/Ubuntu/var/tmp/xlang-validation/xge-full-20261110/zeroed-gpu-buffer-egl-verify-linux-r1/foreign_xge3_gpu_buffer_zeroed/generated.c",
+            "sha256": "8d7d9fb59537a6e190c916d89dfcd101210b157695361b02b11d93010576dc1a"
+          },
+          "allocationSamples": {
+            "jit": {
+              "log": {
+                "path": "//wsl.localhost/Ubuntu/var/tmp/xlang-validation/xge-full-20261110/zeroed-gpu-buffer-egl-verify-linux-r1/foreign_xge3_gpu_buffer_zeroed/jit.log",
+                "sha256": "9b256a1e9ef406134e8c47d4a707e12d9c5996e8a9729becfc654e8a419ef5cc"
+              },
+              "calls": 256,
+              "CWallMs": 0.1029,
+              "xlangWallMs": 2.14
+            },
+            "host-run": {
+              "log": {
+                "path": "//wsl.localhost/Ubuntu/var/tmp/xlang-validation/xge-full-20261110/zeroed-gpu-buffer-egl-verify-linux-r1/foreign_xge3_gpu_buffer_zeroed/host-run.log",
+                "sha256": "10ad0fb4a6ab11eca00701151bce899e6fb8f7117edd3dc177f5ce17335da0d4"
+              },
+              "calls": 256,
+              "CWallMs": 0.1923,
+              "xlangWallMs": 2.4994
+            },
+            "static-run": {
+              "log": {
+                "path": "//wsl.localhost/Ubuntu/var/tmp/xlang-validation/xge-full-20261110/zeroed-gpu-buffer-egl-verify-linux-r1/foreign_xge3_gpu_buffer_zeroed/static-run.log",
+                "sha256": "46eadf37c202c6f1205d2b7d70cbcb60f4ab7fa69b9326f908a427ddaa652026"
+              },
+              "calls": 256,
+              "CWallMs": 0.0698,
+              "xlangWallMs": 0.723199
+            }
+          },
+          "rendered": true
+        }
+      },
+      "nativeConsumerAudit": {
+        "path": "//wsl.localhost/Ubuntu/var/tmp/xlang-validation/xge-full-20261110/zeroed-gpu-buffer-consumers-linux-r3/results.json",
+        "sha256": "cc7e2eee066cd1a555c1cb7690b3a30ed431406934a217684214bfc65f3c82d8"
+      },
+      "functionPopulation": 5881,
+      "directDeclarations": 4817,
+      "pendingConsumerOrReplacement": {
+        "XGE": 38,
+        "XUI": 71
+      }
+    }
+  },
+  "xrtOperationsPerCreateClose": {
+    "C": {
+      "alloc": 2,
+      "free": 2,
+      "realloc": 0
+    },
+    "xlang": {
+      "alloc": 4,
+      "free": 4,
+      "realloc": 0
+    }
+  }
+}

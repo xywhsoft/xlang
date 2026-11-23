@@ -12,6 +12,7 @@ end
 extern "xgeBufferFree" @header("xge3_gpu_buffer.h") @no_raise func freeGpuBuffer(GpuBuffer value)
 export extern "xgeBufferCreateOwned" @header("xge3_gpu_buffer.h") @no_raise @c_span(2,"const void*","int") @c_result("owned_view") @factory(0,0,freeGpuBuffer) func createGpuBuffer(c_int kind,c_int usage,bytes data) as GpuBuffer
 export extern "xgeBufferCreateOwned" @header("xge3_gpu_buffer.h") @no_raise @c_span(2,"const void*","int") @c_result("owned_view") @factory(0,0,freeGpuBuffer) func createGpuBuffer(c_int kind,c_int usage,Buffer data) as GpuBuffer
+export extern "xl6Xge3BufferCreateZeroedOwned" @header("xge3_gpu_buffer.h") @no_raise @c_null(3,"const void*") @c_result("owned_view") @factory(0,0,freeGpuBuffer) func createGpuBuffer(c_int kind,c_int usage,c_int size) as GpuBuffer
 
 export extern "xge_mesh_t*" class Mesh @header("xge3_mesh.h") @lifetime("owned") @policy("xl6Xge3MeshPolicy")
  native point handle

@@ -35,9 +35,32 @@ Mesh 更新回滚，检查实际共享 XRT 的 live count/bytes 与错误计数�
 原生库为最新修复源码重新构建；XRT 定点使用 xlang 的当前配套版本，未覆盖 XGE
 仓库原有依赖。编译器仍是诊断替换构建，未更新正式 release 或 IDE。
 
-尚待处理：引擎关闭时的外部 GPU 资源策略、Shader/Material 真实共享拥有、
+第一批记录的后续事项包括引擎关闭时的外部 GPU 资源策略、Shader/Material 真实共享拥有、
 RenderTarget 内嵌纹理的存储寿命、Pass 栈顺序及实际窗口/GPU 测试。无图形上下文
 的绘制调用仅核对 ABI/清理路径，不能证明像素结果或跨引擎关闭安全。
+
+## 按容量创建零初始化缓冲区
+
+`xge.createGpuBuffer(kind, usage, size)` 按字节数创建原生缓冲区，初始内容全为零。
+也可以直接传入 `bytes` 或 `Buffer`，由 XGE 复制已有数据。
+按容量的声明通过 C 头文件中的编译期别名调用同一个
+`xgeBufferCreateOwned`，数据指针传入 typed NULL。原生分配缓冲区并直接将它清零。
+
+索引缓冲区在实际 OpenGL 上下文中使用 `GL_COPY_WRITE_BUFFER` 做临时传输，
+保留当前 VAO 的索引绑定。Windows WGL 和 Linux EGL 验证了创建、重传、局部更新
+以及实际 GPU 字节回读。缓冲区存活时 checked `unit()` 报 Busy，关闭资源后可重试。
+
+[零初始化缓冲区范例](../lib/bindings/xge/examples/zeroed_gpu_buffer.xl)
+
+配套 Windows 和 Linux 程序通过 JIT、动态 AOT 和静态 AOT，覆盖无效容量、
+注入内存不足、部分更新、释放及过期引用。Linux 默认 SDK 验证 CPU 存储，
+启用 EGL 的 SDK 额外验证实际上传。
+
+同一无设备进程中各执行 256 次 16 字节创建、内容检查及关闭。C 每次分配、
+释放各 2 次，xlang 各 4 次，两边均无重分配。循环耗时为 C 0.060–0.419 ms、
+xlang 0.716–3.906 ms，包含所有权处理和内容检查。
+
+[零初始化与 GPU 传输验收](../dev/release-materials/provenance/xge-zeroed-gpu-buffer-20261124.json)
 
 ## 纹理九宫格
 

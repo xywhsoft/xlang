@@ -48,6 +48,8 @@ HEADER_CLOSE_REPLACEMENTS['xge3dQueryResultsReleaseChecked'] = (
     'xge3d.QueryResults.close', 'xge3dQueryResultsRelease')
 RENDER_RESOURCE_CLOSES = {
     'xgeShaderFree': ('xge.Shader.close', 'xl6Xge3ShaderPolicyDestroy', 'xgeShaderFree'),
+    'xgeBufferFree': ('xge.GpuBuffer.close', 'xl6Xge3GpuBufferPolicyDestroy', 'xgeBufferFree'),
+    'xgeMeshFree': ('xge.Mesh.close', 'xl6Xge3MeshPolicyDestroy', 'xgeMeshFree'),
     'xgeShaderVariantSetFree': ('xge.ShaderVariants.close', 'xl6Xge3ShaderVariantsPolicyDestroy', 'xgeShaderVariantSetFree'),
     'xgeRenderTargetFree': ('xge.RenderTarget.close', 'xl6Xge3TargetDestroy', 'xgeRenderTargetReleaseOwnerChecked'),
     'xgeRenderTargetReleaseOwnerChecked': ('xge.RenderTarget.close', 'xl6Xge3TargetDestroy', 'xgeRenderTargetReleaseOwnerChecked'),
@@ -550,6 +552,24 @@ def main():
             *['-I'+str(f) for f in sorted(packages.glob('*/include'))]]
         if any(artifact.get('nativeLink', {}).values()):
             flags.append('-DXL6_NATIVE_LINK_SCHEMA=1')
+        zeroed_factory = 'xl6Xge3BufferCreateZeroedOwned'
+        zeroed_evidence = None
+        if zeroed_factory in bound:
+            binding, = bound[zeroed_factory]
+            declaration = (view/binding['source']).read_text(encoding='utf-8-sig').splitlines()[binding['line']-1]
+            assert binding['language']=='xge.createGpuBuffer' and '@c_null(3,"const void*")' in declaration
+            probe = out/'zeroed-gpu-buffer-alias.c'
+            obj = out/'zeroed-gpu-buffer-alias.o'
+            probe.write_text('#include <xge3_gpu_buffer.h>\n'
+                'int create_zeroed(xge_buffer* out,int kind,int usage,int size) {\n'
+                '    return xl6Xge3BufferCreateZeroedOwned(out,kind,usage,(const void*)0,size);\n}\n',
+                encoding='utf8')
+            run('zeroed-gpu-buffer-alias-compile',[tools['gcc'],*flags,'-c',probe,'-o',obj])
+            refs = symbols(run('zeroed-gpu-buffer-alias-undefined',[tools['nm'],'-u',obj]))
+            assert 'xgeBufferCreateOwned' in refs and zeroed_factory not in refs,refs
+            zeroed_evidence = dict(alias=zeroed_factory, native='xgeBufferCreateOwned',
+                source=str(probe), sourceSha256=sha(probe), objectSha256=sha(obj))
+            report['zeroedGpuBufferAlias'] = zeroed_evidence
         policy_relocations={}
         particle_factory=None
         transfer_publishers={}
@@ -682,11 +702,15 @@ def main():
         for symbol,item in sorted(functions.items()):
             if item['declarationPresent']:continue
             replacement=REPLACED.get(symbol)
+            if symbol=='xgeBufferCreate' and zeroed_evidence is None:
+                replacement=None
             evidence=None
             if replacement:
                 assert replacement[1] in functions and functions[replacement[1]]['declarationPresent'],symbol
                 assert any(r['language']==replacement[0] for r in bound[replacement[1]]),replacement
                 evidence=dict(language=replacement[0],native=replacement[1])
+                if symbol=='xgeBufferCreate':
+                    evidence['zeroedOverload']=zeroed_evidence['alias']
             elif symbol in PARTICLE_WORLD_FACTORIES:
                 assert particle_factory is not None,symbol
                 evidence=particle_factory

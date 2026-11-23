@@ -1,0 +1,98 @@
+import xge
+
+extern "fixtureGpuBufferContents" @header("test/cases/foreign_xge3_gpu_buffer_zeroed.h") @no_raise func hasContents(xge.GpuBuffer buffer,c_int lastByte,bool uploaded) as bool
+extern "fixtureGpuBufferStartMeasure" @header("test/cases/foreign_xge3_gpu_buffer_zeroed.h") @no_raise func startMeasure()
+extern "fixtureGpuBufferFinishMeasure" @header("test/cases/foreign_xge3_gpu_buffer_zeroed.h") @no_raise func finishMeasure(c_int language)
+extern "fixtureGpuBufferMeasureC" @header("test/cases/foreign_xge3_gpu_buffer_zeroed.h") @no_raise func measureC()
+extern "xrtMemDebugFailAfter" @header("xrt_decl.h") @no_raise func failAfter(uint64 index) as bool
+extern "xrtMemDebugFailClear" @header("xrt_decl.h") @no_raise func clearFailure()
+extern "xrtMemDebugFailTriggered" @header("xrt_decl.h") @no_raise func failureTriggered() as bool
+
+func checkOom()
+    int failed = 0
+    int successful = 0
+    uint64 live = xge.graphicsResourceCount()
+    for budget in range(8)
+        bool refused = false
+        assert failAfter(uint64(budget))
+        try
+            auto buffer = xge.createGpuBuffer(xge.XGE_BUFFER_VERTEX,xge.XGE_BUFFER_DYNAMIC,c_int(16))
+            buffer.close()
+        catch Error error
+            refused = true
+        finally
+            assert failureTriggered() == refused
+            clearFailure()
+        end
+        assert xge.graphicsResourceCount() == live
+        if refused then
+            failed += 1
+        else
+            successful += 1
+        end
+    end
+    assert failed > 0 and successful > 0
+end
+
+func checkInvalidSize()
+    bool denied = false
+    try
+        auto invalid = xge.createGpuBuffer(xge.XGE_BUFFER_VERTEX,xge.XGE_BUFFER_STATIC,c_int(0))
+    catch Error error
+        denied = error.code == int(xge.XGE_ERROR_INVALID_ARGUMENT)
+    end
+    assert denied
+end
+
+func checkBuffers(bool uploaded)
+    auto index = xge.createGpuBuffer(xge.XGE_BUFFER_INDEX,xge.XGE_BUFFER_DYNAMIC,c_int(16))
+    assert index.size == c_int(16) and index.kind == xge.XGE_BUFFER_INDEX
+    assert hasContents(index,0,uploaded)
+    index.update(15,b"l")
+    assert hasContents(index,108,uploaded)
+    bool busy = false
+    try
+        xge.unit()
+    catch Error error
+        busy = error.code == int(xge.XGE_ERROR_BUSY)
+    end
+    assert busy and hasContents(index,108,uploaded)
+    index.close()
+    bool expired = false
+    try
+        auto size = index.size
+    catch StateError
+        expired = true
+    end
+    assert expired
+end
+
+func main(...) as int
+    xge.init(4,4,"Zeroed GPU buffers",0,xge.XGE_RUN_MANUAL)
+    checkInvalidSize()
+    checkBuffers(false)
+    measureC()
+    startMeasure()
+    int index = 0
+    while index < 256
+        auto buffer = xge.createGpuBuffer(xge.XGE_BUFFER_VERTEX,xge.XGE_BUFFER_DYNAMIC,c_int(16))
+        assert hasContents(buffer,0,false)
+        buffer.close()
+        index += 1
+    end
+    finishMeasure(1)
+    checkOom()
+    xge.unit()
+
+    if os.platform() == "windows" or xge.eglCapsGet().bCompiled == c_int(1) then
+        xge.init(4,4,"Index buffer upload",0,xge.XGE_RUN_MANUAL)
+        auto context = xge.createOffscreenContext(4,4)
+        checkBuffers(true)
+        context.close()
+        xge.unit()
+        println("XGE_ZEROED_BUFFER_GPU_OK")
+    end
+    assert xge.graphicsResourceCount() == uint64(0)
+    println("XGE_ZEROED_BUFFER_OK")
+    return 0
+end

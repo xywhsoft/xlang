@@ -3,4 +3,6 @@
 #include "xge3_render_resources.h"
 XL6_XGE_NATIVE_POLICY(xl6Xge3GpuBufferPolicy,"xge.gpuBuffer",xge_buffer_t,xgeBufferFree)
 #define xl6Xge3GpuBufferPolicy (*xl6Xge3GpuBufferPolicyGet())
+/* The fixed-NULL declaration shares the actual C function with the span declarations. */
+#define xl6Xge3BufferCreateZeroedOwned xgeBufferCreateOwned
 #endif
