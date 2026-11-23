@@ -1,0 +1,118 @@
+import xge
+
+extern "fixtureStateOomBudget" @header("test/cases/foreign_xge3_engine_controls.h") @no_raise func budget(c_int allowance)
+extern "fixtureInstallLegacyEngineCallbacks" @no_raise @c_result("status",0) func installLegacyCallbacks()
+extern "fixtureLegacyQuitCalls" @no_raise func legacyQuitCalls() as c_int
+extern "fixtureLegacyErrorCalls" @no_raise func legacyErrorCalls() as c_int
+extern "xrtMemDebugFailTriggered" @header("xrt_decl.h") @no_raise func allocationFailed() as bool
+
+func checkInit()
+    bool coldQuit = false
+    try
+        auto allowed = xge.requestQuit()
+    catch Error failure
+        coldQuit = failure.code == int(xge.XGE_ERROR_INVALID_STATE)
+    end
+    assert coldQuit, "a quit request needs an initialized engine"
+
+    xge.initNative()
+    try
+        assert xge.getWidth() == 800 and xge.getHeight() == 600
+        assert (xge.getTitle() as string) == "XGE"
+    finally
+        xge.unit()
+    end
+
+    bool rejected = false
+    bool failedAllocation = false
+    budget(0)
+    try
+        xge.init(41, 29, "初始化", runMode=xge.XGE_RUN_MANUAL)
+    catch Error failure
+        rejected = failure.code == 1
+    finally
+        failedAllocation = allocationFailed()
+        budget(-1)
+    end
+    assert rejected and failedAllocation, "initialization reports allocation failure"
+end
+
+func checkFrame()
+    int calls = 0
+    xge.run(func() as c_int
+        calls += 1
+        xge.setFrameCallback(func() as c_int
+            throw RangeError "frame callback failed"
+        end)
+        return c_int(1)
+    end)
+    assert calls == 0, "manual Run registers the frame callback without starting the loop"
+    assert xge.dispatchFrame() == 1 and calls == 1
+    bool reported = false
+    try
+        auto result = xge.dispatchFrame()
+    catch RangeError failure
+        reported = failure.message == "frame callback failed"
+    end
+    assert reported and calls == 1, "replacement is used on the next dispatch"
+    xge.setFrameCallback(null)
+    assert xge.dispatchFrame() == 0
+end
+
+func checkGlobalCallbacks()
+    installLegacyCallbacks()
+    assert xge.requestQuit() == 0 and legacyQuitCalls() == 1
+    xge.reportError(xge.XGE_ERROR_INVALID_ARGUMENT)
+    assert legacyErrorCalls() == 1
+
+    int quitCalls = 0
+    xge.setQuitRequestCallback(func() as c_int
+        quitCalls += 1
+        assert xge.requestQuit() == 0, "a nested quit request is vetoed"
+        xge.setQuitRequestCallback(null)
+        return c_int(0)
+    end)
+    assert xge.requestQuit() == 0 and quitCalls == 1 and legacyQuitCalls() == 1
+    xge.setQuitRequestCallback(func() as c_int
+        throw RangeError "quit callback failed"
+    end)
+    bool reported = false
+    try
+        auto result = xge.requestQuit()
+    catch RangeError failure
+        reported = failure.message == "quit callback failed"
+    end
+    assert reported
+    xge.setQuitRequestCallback(null)
+    assert xge.requestQuit() == 1
+
+    xge.setErrorCallback(func(xge.ErrorInfo info)
+        xge.setErrorCallback(null)
+        assert (info.message as string) == "message from engine"
+        throw RangeError "error callback failed"
+    end)
+    reported = false
+    try
+        xge.reportError(xge.XGE_ERROR_INVALID_ARGUMENT, message="message from engine")
+    catch RangeError failure
+        reported = failure.message == "error callback failed"
+    end
+    assert reported and legacyErrorCalls() == 1
+    xge.reportError(xge.XGE_ERROR_INVALID_ARGUMENT)
+end
+
+func main(...) as int
+    checkInit()
+    xge.init(41, 29, "重试成功", runMode=xge.XGE_RUN_MANUAL)
+    try
+        assert xge.getWidth() == 41 and xge.getHeight() == 29 and (xge.getTitle() as string) == "重试成功"
+        checkFrame()
+        checkGlobalCallbacks()
+    finally
+        xge.setErrorCallback(null)
+        xge.unit()
+    end
+    xge.unit()
+    println("XGE_ENGINE_CONTROLS_OK")
+    return 0
+end

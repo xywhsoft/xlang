@@ -98,6 +98,10 @@ CLOSE_REPLACEMENTS = {
 }
 
 REPLACED = {
+    'xgeUnit': ('xge.unit', 'xgeUnitChecked'),
+    'xgeRequestQuit': ('xge.requestQuit', 'xgeRequestQuitChecked'),
+    'xgeSetQuitRequestCallback': ('xge.setQuitRequestCallback', 'xgeSetQuitRequestCallbackOwned'),
+    'xgeSetErrorCallback': ('xge.setErrorCallback', 'xgeSetErrorCallbackOwned'),
     'xgePlatformBackendDefault': ('xge.defaultPlatformBackendInfo', 'xgePlatformBackendDefaultInfo'),
     'xgeGraphicsBackendDefault': ('xge.defaultGraphicsBackendInfo', 'xgeGraphicsBackendDefaultInfo'),
     'xgePlatformBackendGet': ('xge.currentPlatformBackendInfo', 'xgePlatformBackendCurrentInfo'),

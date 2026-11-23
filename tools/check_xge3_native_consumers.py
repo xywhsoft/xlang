@@ -103,9 +103,14 @@ PARTICLE_WORLD_FACTORIES = {'xgeParticleWorldCreate', 'xgeParticleWorldCreateOwn
 PARTICLE_WORLD_BRIDGE = 'xl6Xge3ParticleWorldCreateOwned'
 PARTICLE_WORLD_PRODUCER = 'xgeParticleWorldCreateOwnedWithCode'
 TRANSFER_PUBLISHERS = {
+    'xl6Xge3RunOwned': ('xge.run', 'xgeRunOwnedWithTransfer'),
     'xl6Xge3ClipboardSetItems': ('xge.clipboardSetItems', 'xgeClipboardSetItemsWithTransfer'),
     'xl6Xui3ClipboardSetItems': ('xui.Context.setClipboardItems', 'xuiClipboardSetItemsWithTransfer'),
     'xl6Xge3DragBegin': ('xge.DataObject.startDrag', 'xgeDragBeginWithTransfer'),
+}
+ENGINE_OWNERS = {
+    'src/init.c': ('xgeInit', 'xge.initNative', 'xl6Xge3InitWithCode', 'xgeInitWithCode'),
+    'src/scene.c': ('xgeSceneCreateOwned', 'xge.createScene', 'xl6Xge3SceneCreateOwned', 'xgeSceneCreateOwnedWithCode'),
 }
 HEADER_CLOSE_REPLACEMENTS.update({
     old: (f'xge.{owner}.close', release)
@@ -573,6 +578,7 @@ def main():
         policy_relocations={}
         particle_factory=None
         transfer_publishers={}
+        engine_owners={}
         for number,source in enumerate(sources):
             name='unit-'+str(number);obj=out/(name+'.o')
             run(name+'-compile',[tools['gcc'],*flags,'-c',core/source,'-o',obj])
@@ -610,6 +616,23 @@ def main():
                     calls=reachable_relocations(relocations,sections[0])
                     assert {'xl6CodeLeaseAcquireScoped','xl6CodeLeaseRelease'} <= calls,(adapter,calls)
                     transfer_publishers[adapter]=dict(language=language,native=native,adapter=adapter,
+                        source=source,relocationPath=[sections[0],native])
+            if source in ENGINE_OWNERS:
+                old,language,adapter,native=ENGINE_OWNERS[source]
+                if adapter in bound and old in functions:
+                    assert adapter in defined and native in functions,(adapter,native)
+                    binding, = (row for row in bound[adapter] if row['language']==language)
+                    assert '@c_code_owner(1)' in class_lines(view,binding)[0],binding
+                    relocations=object_relocations(run(name+'-relocations',[tools['objdump'],'-r',obj]))
+                    sections=[prefix+adapter for prefix in ('.text.', '.text$')
+                              if native in relocations.get(prefix+adapter,())]
+                    assert len(sections)==1,(adapter,native)
+                    obligations={'xl6CodeLeaseAcquireScoped','xl6CodeLeaseRelease','xl6CodeLeaseOwnership',
+                                 'xl6CodeLeaseHoldNativeV1','xl6CodeLeaseDropNativeV1'}
+                    if old=='xgeInit':
+                        obligations.add('xl6CodeLeaseAcquireImageV1')
+                    assert obligations <= reachable_relocations(relocations,sections[0]),(adapter,obligations)
+                    engine_owners[old]=dict(language=language,native=native,adapter=adapter,
                         source=source,relocationPath=[sections[0],native])
             for group in groups:
                 if group['source']!=source:continue
@@ -718,6 +741,10 @@ def main():
                 evidence=transfer_publishers['xl6Xge3ClipboardSetItems']
             elif symbol=='xgeDragBegin' and 'xl6Xge3DragBegin' in transfer_publishers:
                 evidence=transfer_publishers['xl6Xge3DragBegin']
+            elif symbol in ('xgeRun','xgeRunOwned') and 'xl6Xge3RunOwned' in transfer_publishers:
+                evidence=transfer_publishers['xl6Xge3RunOwned']
+            elif symbol in engine_owners:
+                evidence=engine_owners[symbol]
             elif symbol in CLOSE_REPLACEMENTS:
                 logical,policy,destroy,release=CLOSE_REPLACEMENTS[symbol]
                 owner=class_bindings[logical.rsplit('.',1)[0]]

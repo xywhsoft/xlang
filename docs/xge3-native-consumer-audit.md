@@ -1,5 +1,29 @@
 # Native consumers in the full API inventory
 
+## Engine startup, scene ownership and global callbacks
+
+`xge.initNative()` accepts the default or an explicit native descriptor.
+`xge.init()` packs the ordinary configuration. Both reach `xgeInitWithCode`
+through the same code-owner admission path. `xge.run()` calls
+`xgeRunOwnedWithTransfer` with the retained frame callback and the transfer
+services for that run. `xge.createScene()` reaches `xgeSceneCreateOwnedWithCode`,
+which keeps scene cleanup callable even if the language reference is released.
+The audit checks the compiled relocation from each adapter to its native entry.
+
+`xge.requestQuit()` preserves the veto result and raises a checked error when
+the engine is uninitialized. `xge.unit()` calls the checked native shutdown.
+The owned quit and error registrations can replace legacy C callbacks in the
+same native slots. Tests exercise self-removal, frame callback replacement,
+quit veto, original exceptions, and an initialization failure followed by retry.
+
+Windows and Linux pass JIT and dynamic and static AOT, including windowed Run
+recovery after startup allocation failures, Scene lifecycle exceptions and
+allocation rollback, and the `scene_stack.xl` example. The remaining 93
+functions without a declaration, compiled consumer or verified replacement
+comprise 26 XGE and 67 XUI entries out of 5,884 native functions.
+
+[Engine and scene evidence](../dev/release-materials/provenance/xge-engine-controls-20261124.json)
+
 ## Managed edit notifications
 
 `Widget.setEditEvent(captureText, callback)` registers an owned native

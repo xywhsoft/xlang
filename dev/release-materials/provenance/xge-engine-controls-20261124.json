@@ -1,0 +1,134 @@
+{
+  "schema": 1,
+  "scope": "Checked initialization, Run, quit, global callbacks and Scene factory replacements",
+  "nativeCommit": "e3da78355aaa958669d157576d9c65c4f657593c",
+  "shippingDelivery": false,
+  "networkTests": false,
+  "sourceSha256NormalizedLf": {
+    "test/cases/foreign_xge3_engine_controls.c": "b810a86c78ed9a68438ac3f1502dc47035a592d8e2da74d7333300f0cd2b96e5",
+    "test/cases/foreign_xge3_engine_controls.h": "20cb97c49521500b45b42ae5086683db8d0654ad08919430397eaba51e9a8860",
+    "test/cases/foreign_xge3_engine_controls.xl": "2a0f8513f87c80fdca9e7497fe7ce7575f047310cf4fbdab278be4e801cccb1b",
+    "tools/check_xge3_native_consumers.py": "72862c2ee9c0100a253c10b969736dafbc89bb780acf407b498c1806252e8286",
+    "tools/xge_replay_contracts.py": "ba737d153b034935a22e9c7e24e53ab6d92cfddf2b15fb6a38f2bedf54b994f0"
+  },
+  "nativeSourceSha256NormalizedLf": {
+    "include/xge.h": "705a8efde5d4141931c140b5bcf634fc5240222b6b5fd9bb1d8516ba4175eb4e",
+    "src/xge/core/xge_core.c": "05cfff69442a425ce974d3f8664d1303a48f12b7456dff5a4486a534ca1816df",
+    "src/xge/core/xge_impl.c": "4d7fcc4d543bdbb0a6e5da0a440e4efda6888c7321c401d254d3b385d447d3ef",
+    "src/xge/core/xge_scene_owned.c": "dd5db39e0d173c1d041f8b89bd3b1b186b07c22a577f27efce82f359fe6627e6"
+  },
+  "replacements": {
+    "xgeInit": {
+      "language": "xge.initNative",
+      "native": "xgeInitWithCode"
+    },
+    "xgeUnit": {
+      "language": "xge.unit",
+      "native": "xgeUnitChecked"
+    },
+    "xgeRun": {
+      "language": "xge.run",
+      "native": "xgeRunOwnedWithTransfer"
+    },
+    "xgeRunOwned": {
+      "language": "xge.run",
+      "native": "xgeRunOwnedWithTransfer"
+    },
+    "xgeRequestQuit": {
+      "language": "xge.requestQuit",
+      "native": "xgeRequestQuitChecked"
+    },
+    "xgeSetErrorCallback": {
+      "language": "xge.setErrorCallback",
+      "native": "xgeSetErrorCallbackOwned"
+    },
+    "xgeSetQuitRequestCallback": {
+      "language": "xge.setQuitRequestCallback",
+      "native": "xgeSetQuitRequestCallbackOwned"
+    },
+    "xgeSceneCreateOwned": {
+      "language": "xge.createScene",
+      "native": "xgeSceneCreateOwnedWithCode"
+    }
+  },
+  "validation": {
+    "countedInitOomRetry": true,
+    "legacyAndOwnedGlobalCallbackSlots": true,
+    "quitVetoAndReentry": true,
+    "originalFrameQuitAndErrorExceptions": true,
+    "windowedStartupOomRecovery": true,
+    "sceneExceptionRetryAndConsumption": true,
+    "sceneAllocationRollback": true,
+    "headlessSceneStackExample": true
+  },
+  "platforms": {
+    "win": {
+      "nativeSource": {
+        "path": "F:/xlang-validation/xge-full-20261110/doc-edit-notice-checked-native-source-win-r2.json",
+        "sha256": "8fc1b92432afc585b1ac31499910360039095ee87a15c5b49d6044656fbe57d9"
+      },
+      "replacementAudit": {
+        "path": "F:/xlang-validation/xge-full-20261110/engine-controls-consumers-win-r1/results.json",
+        "sha256": "55bacba6b284f59d8042cca4fbe58072059f58865fd6a10a4ce03c86490f5c23"
+      },
+      "priorAudit": {
+        "path": "F:/xlang-validation/xge-full-20261110/edit-event-consumers-win-r3/results.json",
+        "sha256": "59f4309f3b2621634d0997e71f6563cd2532d0ee45701b54dd80e4084d35b38b"
+      },
+      "runtimeAcceptance": {
+        "engine-controls-verify": {
+          "path": "F:/xlang-validation/xge-full-20261110/engine-controls-verify-win-r2/results.json",
+          "sha256": "295e8b226ede5a54b76f2461b19d9d9d9b61a317bb830e5f45092deafe1f5b08"
+        },
+        "engine-scenes-verify": {
+          "path": "F:/xlang-validation/xge-full-20261110/engine-scenes-verify-win-r1/results.json",
+          "sha256": "53774ba7cb72488d67e8f6abb4f3b39c8a593a893854d9b7b5794efb218025e3"
+        },
+        "engine-run-verify": {
+          "path": "F:/xlang-validation/xge-full-20261110/engine-run-verify-win-r1/results.json",
+          "sha256": "292528f87c9dd18eb7c96aea4a8d6e51e4c59533344cc0c9fade86c8dbf77287"
+        }
+      },
+      "functionPopulation": 5884,
+      "directDeclarations": 4822,
+      "pendingConsumerOrReplacement": {
+        "XGE": 26,
+        "XUI": 67
+      }
+    },
+    "linux": {
+      "nativeSource": {
+        "path": "//wsl.localhost/Ubuntu/var/tmp/xlang-validation/xge-full-20261110/doc-edit-notice-checked-native-source-linux-r2.json",
+        "sha256": "3d0f7b7da090fae7d98e3b7542219083c063dd1b986e8f2d08f62b31c307469c"
+      },
+      "replacementAudit": {
+        "path": "//wsl.localhost/Ubuntu/var/tmp/xlang-validation/xge-full-20261110/engine-controls-consumers-linux-r1/results.json",
+        "sha256": "65a1ce7c2dba46635aa472c9add2483f3c1930a2ce572c954a876ca9c348a853"
+      },
+      "priorAudit": {
+        "path": "//wsl.localhost/Ubuntu/var/tmp/xlang-validation/xge-full-20261110/edit-event-consumers-linux-r3/results.json",
+        "sha256": "e2c4b6c383e524e30db0c6a8808af6a7af3f9c03c00f1ad6a27898ce6ad81b3b"
+      },
+      "runtimeAcceptance": {
+        "engine-controls-verify": {
+          "path": "//wsl.localhost/Ubuntu/var/tmp/xlang-validation/xge-full-20261110/engine-controls-verify-linux-r2/results.json",
+          "sha256": "4b1d5a57661082d25ca0fba319cc3651a30d1d0c59b20e98e08a4454c92d73b3"
+        },
+        "engine-scenes-verify": {
+          "path": "//wsl.localhost/Ubuntu/var/tmp/xlang-validation/xge-full-20261110/engine-scenes-verify-linux-r1/results.json",
+          "sha256": "3b6d56abb40aa52f80db33ac90359593b1760e4bc306fa2624dc76d9c8f28fa9"
+        },
+        "engine-run-verify": {
+          "path": "//wsl.localhost/Ubuntu/var/tmp/xlang-validation/xge-full-20261110/engine-run-verify-linux-r1/results.json",
+          "sha256": "100f482118dc2e1766ae32b74e00d82b929cf5d424ddafb5fc52eb570537516c"
+        }
+      },
+      "functionPopulation": 5884,
+      "directDeclarations": 4822,
+      "pendingConsumerOrReplacement": {
+        "XGE": 26,
+        "XUI": 67
+      }
+    }
+  }
+}
