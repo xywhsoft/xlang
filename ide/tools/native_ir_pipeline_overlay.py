@@ -67,7 +67,9 @@ def derive(source:str,frontend:Path,output:Path):
 }
 '''
     final='static int xlsIrPipelineCompleteOriginal(XL6_IrModule* module,XL6_DiagList* diags)\n{\n    size_t i;\n'+body[stats:]
-    generated=prefix+phase+final+'\nstatic const char* const xlsIrPipelineNames[]={\n'+''.join(' "'+n+'",\n'for n in(*PHASES,'xl6IrVerifyModule'))+'};\n'
+    from native_ir_pipeline_nodes import derive as derive_nodes
+    nodes,node_metadata=derive_nodes(source,cases,PHASES)
+    generated=prefix+phase+nodes+final+'\nstatic const char* const xlsIrPipelineNames[]={\n'+''.join(' "'+n+'",\n'for n in(*PHASES,'xl6IrVerifyModule'))+'};\n'
     target=output/'frontend/ir_native_pipeline_generated.inc';target.parent.mkdir(parents=True,exist_ok=True);target.write_text(generated,encoding='utf8',newline='\n')
     return source+'\n#define XLS_NATIVE_IR_PIPELINE_SOURCE 1\n'+include,dict(
-        enabled=True,originalBuilderSha256=BODY_SHA,generated=str(target),generatedSha256=hashlib.sha256(target.read_bytes()).hexdigest(),phases=list(PHASES),finalStep='Original statistics and complete native verification',dependencyContractSha256=policy['dependencyContractSha256'],scope='Fresh raw preparation and complete native pipeline;no cache eligibility or ordinary integration')
+        enabled=True,originalBuilderSha256=BODY_SHA,generated=str(target),generatedSha256=hashlib.sha256(target.read_bytes()).hexdigest(),phases=list(PHASES),nodeRanges=node_metadata,finalStep='Original statistics and complete native verification',dependencyContractSha256=policy['dependencyContractSha256'],scope='Fresh raw preparation and complete native pipeline;no cache eligibility or ordinary integration')

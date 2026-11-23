@@ -1,0 +1,228 @@
+{
+  "schema": 1,
+  "date": "2026-11-23",
+  "stage": "M7b7s",
+  "scope": "Actual ordered native node-range production in15single-scan phases;no complete final-function cross-generation cache",
+  "ownedSources": {
+    "ide/src/analysis/frontend_ir_pipeline.inc": "df5b3b74a716624fe0dfaaa6446dd48cc87b1ecfc87424017334b9116a01519b",
+    "ide/src/analysis/ir_native_pipeline.h": "78a1c0753b1794af36096354cd5dcd6ba0bc69fd994a3c53aafbf5dfc741bf65",
+    "ide/tools/native_ir_pipeline_nodes.py": "cf4cad683f535ac5e39fceeb82de80b5ea6e2d159334292160fd658967d3b469",
+    "ide/tools/native_ir_pipeline_overlay.py": "6743eca46c547c77265ebe6e7e9df29b580e8a1c55ff60751420b36d432e8225",
+    "ide/tools/native_current_ir_overlay.py": "3afb199b6ddf6883ebb3e3844128a97e17168362479ab582aab75904bee9839b",
+    "ide/tools/check_ir_pipeline_profile.py": "2434a93996ef9975866e8d2e23b2d83be1b61bfb19202a3696fc5ce0a7087201",
+    "ide/tools/build_lsp_core.py": "b9e458278a82f07cf2058b6874e6c939841c5b3861880c80e01ee39ce664bb2f",
+    "ide/tests/analysis_ir_pipeline_nodes_test.c": "828bfe5ec71afea681dbe918bfcea111cae8116234dee8b217fce939078708a6",
+    "ide/tests/analysis_ir_pipeline_contract_test.c": "159e97ab269917a41c425c41f7dc99f17f0758f874ca55550f87a7e8d4cdf438",
+    "ide/docs/lsp-native-ir-node-ranges.md": "7c8349757e1a0eec41ac0dba6e156cc38f42518b43c6f024ee56e0d5555d4394",
+    "ide/docs/lsp-development.md": "57a752823d3106720b45ba9b0cc2397513973201cb822a6c9a3bfea85bc51d5a"
+  },
+  "materials": {
+    "sources": {
+      "archive": {
+        "path": "dev/release-materials/sources/lsp-native-ir-node-ranges-20261123/sources.tar.gz",
+        "sha256": "02760ed319075afc701477c60aca70f64c0d911e9a569fc698de88635dde2ed5",
+        "bytes": 16501334
+      },
+      "manifest": {
+        "path": "dev/release-materials/sources/lsp-native-ir-node-ranges-20261123/sources.tar.gz.manifest.json",
+        "sha256": "62838897b89b3e7814010c363d194c466cac8b02551d963a30f9a166a38cbe65",
+        "bytes": 1540844
+      },
+      "entries": 3454,
+      "uniquePayloads": 2051
+    },
+    "validation": {
+      "archive": {
+        "path": "dev/release-materials/provenance/lsp-native-ir-node-ranges-20261123/validation.tar.gz",
+        "sha256": "072f0762e754767c23e5a1bfbe26f47665b8f7cc7f423d29979ad52192764f9e",
+        "bytes": 122345522
+      },
+      "manifest": {
+        "path": "dev/release-materials/provenance/lsp-native-ir-node-ranges-20261123/validation.tar.gz.manifest.json",
+        "sha256": "68b2468fd73a43031af26de85568ccdff1825faa4a1038bb7deb1cdc7704ad28",
+        "bytes": 90302
+      },
+      "entries": 277,
+      "uniquePayloads": 213
+    }
+  },
+  "materialDependencies": [
+    "dev/release-materials/provenance/lsp-native-ir-pipeline-20261123.json",
+    "dev/release-materials/provenance/lsp-stable-resource-package-20261123.json"
+  ],
+  "qualification": {
+    "freshNativeCoreMembers": 1,
+    "reusedExactDependencyCoreMembers": 79,
+    "rangePhases": 15,
+    "semanticInputs": 49,
+    "rangeChecks": 66218,
+    "rangeResourcePointsPerMode": 161,
+    "rangeCancellationPointsPerMode": 77,
+    "rangeModes": 3,
+    "actualLoopVisits": 739088,
+    "successfulSlices": 13788,
+    "selectedFunctionLoopNodes": 23,
+    "currentModuleNodes": 5902,
+    "selectedFunctionTargetCalls": 1,
+    "fullTargetCalls": 256,
+    "contractChecks": 5714,
+    "contractScopes": 2200,
+    "workerThreads": 4,
+    "fullPipelineChecks": 5532,
+    "sourcePolicyCases": 9,
+    "relatedNativePrograms": 8,
+    "ordinaryUnavailableFixtures": 3,
+    "compiledDefects": 5,
+    "positiveControls": 1,
+    "defaultExistingFunctions": 1862,
+    "unchangedPrivateLayouts": 2,
+    "sourceCompilerHeaderRuntimeGuardsPassed": true
+  },
+  "sourceContract": {
+    "enabled": true,
+    "originalBuilderSha256": "f0b8862bdaed2a6b49e0fa4959f5fb089747b2181ffc8bd28e13d712bc62df59",
+    "generated": "F:\\codex-builds-xlang-lsp-20261123\\native-node-ranges\\component-v1\\frontend\\ir_native_pipeline_generated.inc",
+    "generatedSha256": "1c3490eb967c0cedee09a5a6291eba2ba793b85b48f4eb59034ada8c8b98ecf4",
+    "phases": [
+      "xl6IrBuildForeignClassBases",
+      "xl6IrInternAsyncInvocationTypes",
+      "xl6IrBuildNamedCallableAbis",
+      "xl6IrInternProjectionDomains",
+      "xl6IrTypePoolFinalizeCallableResults",
+      "xl6IrBuildOwnedReadResults",
+      "xl6IrBuildUnionLayouts",
+      "xl6IrCloseOutputSizes",
+      "xl6IrCloseOutputRecords",
+      "xl6IrCloseOutputViews",
+      "xl6IrCloseNativeSequences",
+      "xl6IrBuildEnumLayouts",
+      "xl6IrRefreshClassLayoutsDetailed",
+      "xl6IrBuildClassStaticFields",
+      "xl6IrCloseRegions",
+      "xl6IrCloseDataSnapshots",
+      "xl6IrClosePacks",
+      "xl6IrCloseArrayGroups",
+      "xl6IrBuildImplicitNameAbis",
+      "xl6IrBuildClassDispatchTables",
+      "xl6IrBuildProtocolDispatchTables",
+      "xl6IrRefreshNominalIdentitySets",
+      "xl6IrNormalizeExpressionCallKinds",
+      "xl6IrBuildDynamicMethodRegistry",
+      "xl6IrBuildIntrinsicCalls",
+      "xl6IrRefreshDynamicMethodAdmissions",
+      "xl6IrBuildCallSites",
+      "xl6IrBuildValueInitializers",
+      "xl6IrBuildNativeHandleBinds",
+      "xl6IrBuildNativeHandleProjects",
+      "xl6IrBuildOperatorErrorAbis",
+      "xl6IrBuildCastAbis",
+      "xl6IrBuildMemberAbis",
+      "xl6IrBuildDynamicCalls",
+      "xl6IrBuildIndexWriteAbis",
+      "xl6IrRefreshLoopAbis",
+      "xl6IrBuildImplicitConversionAbis",
+      "xl6IrRefreshExitPlans"
+    ],
+    "nodeRanges": {
+      "phases": [
+        2,
+        3,
+        5,
+        18,
+        22,
+        24,
+        26,
+        27,
+        28,
+        29,
+        30,
+        31,
+        32,
+        33,
+        36
+      ],
+      "functions": {
+        "xl6IrBuildNamedCallableAbis": "37b65db4fa11dfa1d2b3c18b40c514dc4d56c9b7d177e44e4f6190107921e9fe",
+        "xl6IrInternProjectionDomains": "f51e25a40e34a55ce68514082733e406cbfec709194fa1c2797d6651ce021767",
+        "xl6IrBuildOwnedReadResults": "6efb95d93045ef52c2f27980088ef3d1c8e54d9403e97070f628d86aedd84750",
+        "xl6IrBuildImplicitNameAbis": "300f44c99886e2eb88bc72dc965dec6b0eeba641aef1fb9359f7840d77168457",
+        "xl6IrNormalizeExpressionCallKinds": "21568755af5a6a1e933ae77029238b02c93598349d77652438012b2e6f38a0a2",
+        "xl6IrBuildIntrinsicCalls": "3120cfad2beb00e1b5c5e4e067e55c85e52ced95ef1539893cb810c766668f32",
+        "xl6IrBuildCallSites": "39432f3f294f03ecb8092654e944305e4f9c1f4c42db5b9b615cc27c578889b2",
+        "xl6IrBuildValueInitializers": "90f68c259fdf3a0579c546e0705e054b4d7a02f821ddccd5768acdee46f2cc93",
+        "xl6IrBuildNativeHandleBinds": "c64166bd35ea2e4f40415ca254f2724c5e3aaba40ee28daacfce0f8fc6f61b90",
+        "xl6IrBuildNativeHandleProjects": "3254ce2deca373cd5a200bdb683cc592866456b71f6c32221a29108879d702de",
+        "xlsIrBuildOperatorAbisOriginal": "37df25a022ef4ec2ebbc1023e2be66d1ad8405a566e668a8cd0adb31738714bc",
+        "xl6IrBuildCastAbis": "cf0de818e2041e90c44f222a9d8a14c8f154600bc4ad32e22a5881aca5d109e6",
+        "xlsIrBuildMemberAbisOriginal": "553651e99a200848c918039d766e1575b7a7c4792210289f1defd96622d2cc52",
+        "xl6IrBuildDynamicCalls": "f3bedcf4f69410495f8c4e1af498f51abb0fcea26700751aa5b13067c622df7c",
+        "xlsIrBuildImplicitConversionAbisOriginal": "63fba0c708c85c32c47bc5b0340bc6d573478924b363bb85f77b7d7282849b41"
+      },
+      "scope": "Ordered native node-range production;no reuse eligibility or skipped input"
+    },
+    "finalStep": "Original statistics and complete native verification",
+    "dependencyContractSha256": "503807ac3496ea9e006f94e38fad5268c74aafe43954fb5d71bba217ccaf71a2",
+    "scope": "Fresh raw preparation and complete native pipeline;no cache eligibility or ordinary integration"
+  },
+  "runtimePreserved": {
+    "D:\\GIT\\x-lang\\release\\win_x64\\mdo.exe": "9219de70911e1f02d8e54eadc77c257369e4ea637e5202fcbb04854a29893044",
+    "D:\\GIT\\x-lang\\release\\win_x64\\update.exe": "4c5266fce0a541b9b96fe92b3d2f7d94598aff3b052e420b08b6d47db5e5c6c2",
+    "D:\\GIT\\x-lang\\release\\win_x64\\xge.dll": "127db42612e8a27c8b1f7f74e4653c25f09140f8baac38d16fc564eb74892ef3",
+    "D:\\GIT\\x-lang\\release\\win_x64\\xl.dll": "f31ddbe973ed48d261014ec64fa6b0ba48791fc0313192a19d59467254c0fcd6",
+    "D:\\GIT\\x-lang\\release\\win_x64\\xl.exe": "5288c4e8be9f420ef98caeb11be362017be925f2ad81a0d56946cc6a8c721081",
+    "D:\\GIT\\x-lang\\release\\win_x64\\xlang-ls.exe": "db50f21702ec1aec2423b49274c10884b098f20dbc041f7fe9c301b62feaecd5",
+    "D:\\GIT\\x-lang\\release\\win_x64\\xlang_ide.exe": "a146c451b35aa7284293b185123a9a276bf9e4764f926c266567133386c8d806",
+    "D:\\GIT\\x-lang\\release\\win_x64\\xlang_ide_xge.dll": "7eba677fddada9b605db2d54dd59ee57a9cfc1caf0b574f6cb206ec9de379418",
+    "D:\\GIT\\x-lang\\release\\win_x64\\xlc.dll": "64b2e9830569c84580335b0a2b15a59ce13552ba1ba51933fc82cd75808c0728"
+  },
+  "profile": {
+    "componentMacro": "XLS_NATIVE_IR_PIPELINE_COMPONENT",
+    "ordinaryEnabled": false,
+    "experimentalNodeViews": false,
+    "experimentalExitReuse": false,
+    "experimentalFunctionExits": false
+  },
+  "retainedFailures": [
+    "The first selected-function fixture assumed declaration.text held the function name and print populated the intrinsic table;actual declaration/name parent and native table observations disproved this.",
+    "fixture-v2 and mutations-v1 positive control failed that fixture;all original logs and frozen sources retained.",
+    "Two standalone diagnostic programs established actual native function identities and print call-table behavior before fixing the fixture to explicit target calls.",
+    "Earlier rejected latency experiments remain rejected;no timing rerun or threshold change."
+  ],
+  "compiledDefectCases": [
+    {
+      "name": "ignore-range-start",
+      "exit": 1
+    },
+    {
+      "name": "premature-phase-completion",
+      "exit": 1
+    },
+    {
+      "name": "repeat-initializer-reset",
+      "exit": 1
+    },
+    {
+      "name": "omit-call-contracts",
+      "exit": 1
+    },
+    {
+      "name": "omit-reset-cursor",
+      "exit": 1
+    }
+  ],
+  "defaultRuntimeReplaced": false,
+  "serviceRebuilt": false,
+  "ideRebuilt": false,
+  "languageServerVersion": "0.110",
+  "formalRelease": false,
+  "externalPublishPerformed": false,
+  "wholeLspPerformanceQualified": false,
+  "goalComplete": false,
+  "limits": [
+    "Intervals retain native node order and defer phase finalizers;INDEX/loop/exit and other multi-scan/global phases use their full entry.",
+    "The selected-function probe produces a partial native call table and is not treated as verified final IR.",
+    "No proof or reuse of previous function results,ordinary integration,performance gain or complete function-selective final production is claimed.",
+    "Tracked allocation calls and loop visits do not describe all XRT private allocations,helper scans or process RSS.",
+    "Current pipeline/native core inputs are frozen;two updated QA fixtures were recompiled against exactly those public headers in both component and ordinary configurations."
+  ]
+}

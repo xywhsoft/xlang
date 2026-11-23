@@ -36,6 +36,16 @@ int xlsIrNativePipelinePrepare(xls_ir_native_pipeline*,const XL6_AstNode*,
  * Ready calls are idempotent;invalid arguments do not discard prior state. */
 int xlsIrNativePipelineAdvance(xls_ir_native_pipeline*,XL6_DiagList*,xls_ir_pipeline_status*);
 int xlsIrNativePipelineFinish(xls_ir_native_pipeline*,XL6_DiagList*,xls_ir_pipeline_status*);
+/* For reviewed single-scan phases,produce only [NodeCursor,end) in native
+ * node order. end must exceed the cursor and not exceed nodeCount. The
+ * phase advances only after its last node and mandatory phase finalizer.
+ * Advance/Finish may complete the remaining suffix. No input is skipped,
+ * and incomplete phases cannot produce a Ready result. Other phases and
+ * invalid ranges return INPUT without discarding state. */
+int xlsIrNativePipelinePhaseHasNodeRanges(size_t phase);
+size_t xlsIrNativePipelineNodeCursor(const xls_ir_native_pipeline*);
+int xlsIrNativePipelineAdvanceNodes(xls_ir_native_pipeline*,size_t end,
+ XL6_DiagList*,xls_ir_pipeline_status*);
 /* Read-only borrow,valid until the next mutating call. Empty/Failed/Moved
  * returns NULL. Native APIs requiring a fully verified module may be used
  * only at Ready. Never free this borrow or modify its arrays/payloads. */

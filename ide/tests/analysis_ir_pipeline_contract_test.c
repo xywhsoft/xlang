@@ -26,8 +26,13 @@ static int contractPair(const XL6_AstNode* a,const XL6_AstNode* b,const char* ex
  for(unsigned generation=0;generation<4;++generation){
   for(unsigned i=0;i<2;++i)CHECK(xlsIrNativePipelinePrepare(state[i],roots[i],&diags[i],i?SIZE_MAX:0,&status));
   for(size_t phase=0;phase<xlsIrNativePipelinePhaseCount();++phase){
-   for(unsigned j=0;j<2;++j){unsigned i=(j+phase)%2;CHECK(xlsIrNativePipelineAdvance(state[i],&diags[i],&status));
-    CHECK(xlsActiveIrMemo==&memo&&xlsActiveIrOwner==&owner&&xlsActiveTypeLookup==&lookup&&xlsActiveTypeResource==&resource&&resource.failed==123);
+   int ranges=xlsIrNativePipelinePhaseHasNodeRanges(phase);
+   for(unsigned pass=0;pass<(ranges?2u:1u);++pass){
+    for(unsigned j=0;j<2;++j){unsigned i=(j+phase+pass)%2;
+     if(ranges&&!pass){size_t half=xlsIrNativePipelineModule(state[i])->nodeCount/2;CHECK(half&&xlsIrNativePipelineAdvanceNodes(state[i],half,&diags[i],&status));CHECK(xlsIrNativePipelinePhase(state[i])==phase&&xlsIrNativePipelineNodeCursor(state[i])==half);}
+     else {CHECK(xlsIrNativePipelineAdvance(state[i],&diags[i],&status));if(ranges)CHECK(xlsIrNativePipelinePhase(state[i])==phase+1&&!xlsIrNativePipelineNodeCursor(state[i]));}
+     CHECK(xlsActiveIrMemo==&memo&&xlsActiveIrOwner==&owner&&xlsActiveTypeLookup==&lookup&&xlsActiveTypeResource==&resource&&resource.failed==123);
+    }
    }
   }
   for(unsigned i=0;i<2;++i){
@@ -61,7 +66,8 @@ static int contracts(void)
  pipeline_reader readers[4];xthread* threads[4];
  for(unsigned i=0;i<4;++i){readers[i]=(pipeline_reader){xlsSemanticCheckAst(one),xlsSemanticCheckAst(two),first,second,0};threads[i]=xrtThreadCreate(pipelineRead,&readers[i],0);CHECK(threads[i]);}
  for(unsigned i=0;i<4;++i){CHECK(xrtThreadWait(threads[i])==XWAIT_OK&&readers[i].passed);xrtThreadDestroy(threads[i]);}
- CHECK(xrtAtomic32Load(&scopeCalls,XMEMORY_RELAXED)==5u*4u*2u*(xlsIrNativePipelinePhaseCount()+1)&&!xrtAtomic32Load(&scopeErrors,XMEMORY_RELAXED));
+ size_t ranges=0;for(size_t i=0;i<xlsIrNativePipelinePhaseCount();++i)ranges+=xlsIrNativePipelinePhaseHasNodeRanges(i);
+ CHECK(ranges==15&&xrtAtomic32Load(&scopeCalls,XMEMORY_RELAXED)==5u*4u*2u*(xlsIrNativePipelinePhaseCount()+1+ranges)&&!xrtAtomic32Load(&scopeErrors,XMEMORY_RELAXED));
  CHECK(xlsSemanticCheckValidate(one)&&xlsSemanticCheckValidate(two));xlsSemanticCheckDestroy(one);xlsSemanticCheckDestroy(two);xrtFree(first);xrtFree(second);xrtFree(path);return 1;
 }
 int main(void)
