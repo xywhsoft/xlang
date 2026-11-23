@@ -66,12 +66,12 @@ provider 回调失败、状态错误及非预期诊断不能变成成功；调�
 释放后可重试 `xge.unit()`。FontFace 使用原子引用计数，并独立于引擎。
 
 生成代码直接调用 `xgeFontFaceShareOwned` 和 `xgeFontShareOwned`。故障注入
-验证了创建语言视图失败时源引用仍可用，且引擎资源计数能归零。Linux 的专项
-用例和字体示例通过完整 O2 编译器的 JIT、动态 AOT 和静态 AOT。一次热 JIT
-对照中，两条路径各执行 256 次循环，每次共享并关闭一份 FontFace 和一份 Font。
-C 循环无 XRT 堆操作，xlang 循环共分配并释放 1,024 次。两条路径均无重分配。
+验证了创建语言视图失败时源引用仍可用，且引擎资源计数能归零。Windows 和 Linux
+的专项用例与字体示例均通过完整 O2 编译器的 JIT、动态 AOT 和静态 AOT。两端的
+热 JIT 对照各执行 256 次循环，每次共享并关闭一份 FontFace 和一份 Font。C 循环
+无 XRT 堆操作，xlang 循环共分配并释放 1,024 次。两条路径均无重分配。
 
-[Linux 共享引用验收](../dev/release-materials/provenance/xge-font-share-linux-20261124.json)
+[Windows 和 Linux 共享引用验收](../dev/release-materials/provenance/xge-font-share-20261124.json)
 
 ## 单字形矢量轮廓
 

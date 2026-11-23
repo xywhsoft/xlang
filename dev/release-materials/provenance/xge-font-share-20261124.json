@@ -1,0 +1,247 @@
+{
+  "schema": 1,
+  "scope": "Cross-platform qualification of independent Font and FontFace owning references",
+  "platform": "win-x64",
+  "nativeCommit": "b94642a03296426cad47fd817d9d421587c7aeb0",
+  "shippingDelivery": false,
+  "networkTests": false,
+  "nativeSourceSha256NormalizedLf": {
+    "include/xge.h": "f19aa7dfa461f63c99af33810202234bb01c2e840d02c0b15d5e04831dd0b84d",
+    "src/xge/text/xge_font.c": "1e49a875b7f247f85775da77467ec98d628723d08967a37d3baea34475be013d",
+    "tests/xge/xge_shared_font_face_test.c": "829522e1a7b068656a980432051eb0527e8cf8dfea1779766fcedff497f3a0b8"
+  },
+  "sourceSha256": {
+    "docs/xge3-font-resources.md": "8aca7994b6669f8685f42034361e4c2fe769cb7af1e4274b953094752c7d0e67",
+    "docs/xge3-xui3-api-map-storage.json": "2c281c59ba621b24432f3c0d5393e27899b20e1d2a42d50b078eea6e387b3cdd",
+    "lib/bindings/xge/README.md": "0292060ba9054fdf77169d2eaa5173eb3fe0f92a47a3738ded790a9cc5917681",
+    "lib/bindings/xge/examples/font_faces.xl": "87ec7497c700d8603d3ca7dff6999eaf10073749e3188559abd4b98d20b9fa85",
+    "lib/bindings/xge/examples/data/font_fixture.ttf": "fdd2a74c24e220a0672ea9f9a74afac40bc9f82c24a95d5dae74045d408984d9",
+    "lib/bindings/xge/src/resources.xl": "7989effcf7d58214b5469e60b173dc824cb6e083b7ea5f27c5673cdab2aa4aa3",
+    "lib/bindings/xge/src/font_resources.xl": "5ec144ba093ff541d5aa1541194522e162b2acb0302634a5d56f2189303cb2dd",
+    "test/cases/foreign_xge3_font_resources.c": "1893b17ad7a22b7f9f90ce50c0e9e93a189b4e19bcc5a91767871e929df93648",
+    "test/cases/foreign_xge3_font_resources.h": "14c6b0822bb90e79c8fd02ba1b448b3118aad521279cb51f2f33b64bbf98717a",
+    "test/cases/foreign_xge3_font_resources.xl": "ce60f0e66c8d9b8b140ba48c3a033a249be8141cc29043813615bbfd6b1ddfe3",
+    "tools/check_xge3_native_consumers.py": "ebf8a841c1c405a9ea7d65725615c46cbcf2af59d7ecca5d5ee18971da4fb3ac",
+    "tools/xge_replay_contracts.py": "0a1d5ebb06de5dda724b495b7db80bda5d3b6cdc12e1083591388a0d75e12bff"
+  },
+  "reports": {
+    "compiler": {
+      "path": "F:/xlang-validation/xge-full-20261110/compiler-owned-output-pair-win-r2/build.json",
+      "sha256": "41596d3515fdf8c1f5194838396e40b1d84ecb013557b7f7aadbe352315593a3"
+    },
+    "compilerSdk": {
+      "path": "F:/xlang-validation/xge-full-20261110/owned-output-pair-compiler-sdk-win-r2/results.json",
+      "sha256": "0378c6380c02e95812c879094ea2836fed7f6bdccc41fd6a223e16192c0f56ed"
+    },
+    "nativeSource": {
+      "path": "F:/xlang-validation/xge-full-20261110/owned-font-share-native-source-win-r2.json",
+      "sha256": "7d7493bf5936d2d116d771341d2b76f77e22d94cdd34cadc870ca0641f4d41df"
+    },
+    "nativeHost": {
+      "path": "F:/xlang-validation/xge-full-20261110/owned-font-share-host-win-r2/build-report.json",
+      "sha256": "693a2229ba5a2f621ac6d5938960e253c42fee05b4ddc65b363c5898d784b7be"
+    },
+    "nativeStatic": {
+      "path": "F:/xlang-validation/xge-full-20261110/owned-font-share-static-win-r2/build-report.json",
+      "sha256": "9539fd79b4eb03f9036780a67717666d9b08929fde215d4909197264eebda4ae"
+    },
+    "storageReviews": {
+      "path": "F:/xlang-validation/xge-full-20261110/owned-font-share-generator-win-r8/results.json",
+      "sha256": "8703a72c7dc2aa833ff4bbe8cede0617ce638a00a9cb6ae1af304c7f863f5ec1"
+    },
+    "nativeAcceptance": {
+      "path": "F:/xlang-validation/xge-full-20261110/owned-font-share-native-check-win-r2/results.json",
+      "sha256": "e7e6d912d809b4f57624512516a59bde29fce57229eec8d2d670eafe54ac1ba0"
+    },
+    "replay": {
+      "path": "F:/xlang-validation/xge-full-20261110/owned-font-share-stage-win-r8/replay/stage-report.json",
+      "sha256": "c9059ac8f9e30b729f3db0bc4818f4b045a59bb7075e9eec9e48e78ee9b5f178"
+    },
+    "languageAcceptance": {
+      "path": "F:/xlang-validation/xge-full-20261110/owned-font-share-verify-win-r4/results.json",
+      "sha256": "10284388d7e028cc5e30109d3bdcf1c34faab96487c8973261e532aecf225a47"
+    },
+    "audit": {
+      "path": "F:/xlang-validation/xge-full-20261110/owned-font-share-consumers-win-r4/results.json",
+      "sha256": "1b822f36a6416167b17800a6c368c9f72ce8076f6f6ad72c7d148554d5f30dee"
+    },
+    "previousAudit": {
+      "path": "F:/xlang-validation/xge-full-20261110/xui-find-replace-consumers-win-r2/results.json",
+      "sha256": "7cd13e4485e892c59200cd59eca186e450a4a93c4ffb40a800760f89d4e09466"
+    }
+  },
+  "platformScope": "Native O0/O2 with canonical resident XRT; full O2 Windows compiler and matched host/static XGE",
+  "checks": {
+    "checkedWrongThread": true,
+    "independentNativeReferences": true,
+    "checkedShutdownBusyAndRetry": true,
+    "retainOverflowRejection": true,
+    "callerOwnedFontRejection": true,
+    "languageAllocatorFailureRollback": true,
+    "runtimeImportSeparation": true,
+    "nativeAllocationFreeSharing": true
+  },
+  "audit": {
+    "functionPopulation": 5886,
+    "directDeclarations": 4825,
+    "remaining": {
+      "XGE": 22,
+      "XUI": 65
+    },
+    "replacements": {
+      "xgeFontAddRef": {
+        "language": "xge.Font.share",
+        "native": "xgeFontShareOwned"
+      },
+      "xgeFontFaceAddRef": {
+        "language": "xge.FontFace.share",
+        "native": "xgeFontFaceShareOwned"
+      },
+      "xgeFontFaceFree": {
+        "language": "xge.FontFace.close",
+        "native": "xgeFontFaceFree",
+        "policy": "xl6Xge3FontFacePolicy",
+        "relocationPath": [
+          ".text$xl6Xge3FontFacePolicyGet",
+          ".rdata$policy.1",
+          ".text$xl6Xge3FontFacePolicyDestroy",
+          "xgeFontFaceFree"
+        ]
+      },
+      "xgeFontFamilyFree": {
+        "language": "xge.FontFamily.close",
+        "native": "xgeFontFamilyFree",
+        "policy": "xl6Xge3FontFamilyPolicy",
+        "relocationPath": [
+          ".text$xl6Xge3FontFamilyPolicyGet",
+          ".rdata$policy.0",
+          ".text$xl6Xge3FontFamilyPolicyDestroy",
+          "xgeFontFamilyFree"
+        ]
+      }
+    }
+  },
+  "comparison": {
+    "scope": "Warmed loops; each iteration shares and closes one FontFace and one Font. Counts are XRT heap operations across the whole loop.",
+    "samples": {
+      "jit": [
+        {
+          "language": "C",
+          "iterations": 256,
+          "allocations": 0,
+          "frees": 0,
+          "reallocations": 0,
+          "elapsedMs": 0.0101
+        },
+        {
+          "language": "xlang",
+          "iterations": 256,
+          "allocations": 1024,
+          "frees": 1024,
+          "reallocations": 0,
+          "elapsedMs": 2.0216
+        }
+      ],
+      "host-run": [
+        {
+          "language": "C",
+          "iterations": 256,
+          "allocations": 0,
+          "frees": 0,
+          "reallocations": 0,
+          "elapsedMs": 0.0338
+        },
+        {
+          "language": "xlang",
+          "iterations": 256,
+          "allocations": 1024,
+          "frees": 1024,
+          "reallocations": 0,
+          "elapsedMs": 6.0783
+        }
+      ],
+      "static-run": [
+        {
+          "language": "C",
+          "iterations": 256,
+          "allocations": 0,
+          "frees": 0,
+          "reallocations": 0,
+          "elapsedMs": 0.0254
+        },
+        {
+          "language": "xlang",
+          "iterations": 256,
+          "allocations": 1024,
+          "frees": 1024,
+          "reallocations": 0,
+          "elapsedMs": 4.3572
+        }
+      ]
+    }
+  },
+  "linuxQualification": {
+    "path": "D:/GIT/x-lang/dev/release-materials/provenance/xge-font-share-linux-20261124.json",
+    "sha256": "f885e842574b480891d7196ee8228ba9ccfd2d590eed0f90b291efe14de58d89"
+  },
+  "linuxHeapAndElapsedSamples": {
+    "jit": [
+      {
+        "language": "C",
+        "iterations": 256,
+        "allocations": 0,
+        "frees": 0,
+        "reallocations": 0,
+        "elapsedMs": 0.0091
+      },
+      {
+        "language": "xlang",
+        "iterations": 256,
+        "allocations": 1024,
+        "frees": 1024,
+        "reallocations": 0,
+        "elapsedMs": 1.074
+      }
+    ],
+    "host-run": [
+      {
+        "language": "C",
+        "iterations": 256,
+        "allocations": 0,
+        "frees": 0,
+        "reallocations": 0,
+        "elapsedMs": 0.0284
+      },
+      {
+        "language": "xlang",
+        "iterations": 256,
+        "allocations": 1024,
+        "frees": 1024,
+        "reallocations": 0,
+        "elapsedMs": 3.2776
+      }
+    ],
+    "static-run": [
+      {
+        "language": "C",
+        "iterations": 256,
+        "allocations": 0,
+        "frees": 0,
+        "reallocations": 0,
+        "elapsedMs": 0.007
+      },
+      {
+        "language": "xlang",
+        "iterations": 256,
+        "allocations": 1024,
+        "frees": 1024,
+        "reallocations": 0,
+        "elapsedMs": 1.1147
+      }
+    ]
+  },
+  "qualifiedPlatforms": [
+    "win-x64",
+    "linux-x64"
+  ]
+}
