@@ -832,15 +832,21 @@ const XL6_ForeignViewDescriptorV1* xl6Xui3CodeEditThemePolicyGet(void)
 }
 static bool destroy_code_language_registry(void* raw)
 {
-    int status = xuiCodeLanguageRegistryDestroyChecked(raw);
-    if (status != XUI_OK) report_resource_failure(status, "xuiCodeLanguageRegistryDestroyChecked");
-    return status == XUI_OK;
+    bool consumed = false;
+    int status = xuiCodeLanguageRegistryDestroyOwnerChecked(raw, &consumed);
+    report_resource_failure(status, "xuiCodeLanguageRegistryDestroyOwnerChecked");
+    return consumed;
 }
+static bool trace_code_language_registry(const void* raw,XL6_ModuleOwnershipVisit visit,void* user)
+{return xuiCodeLanguageRegistryTraceOwnership((xui_code_language_registry)raw,visit,user);}
+static bool busy_code_language_registry(const void* raw)
+{return xuiCodeLanguageRegistryOwnershipBusy((xui_code_language_registry)raw);}
 const XL6_ForeignViewDescriptorV1* xl6Xui3CodeLanguageRegistryPolicyGet(void)
 {
     static const XL6_ForeignViewDescriptorV1 value = {
         sizeof(value), XL6_FOREIGN_VIEW_V1_TAG, "xui.codeLanguageRegistry",
-        0, 1, NULL, NULL, destroy_code_language_registry, 0, 1, NULL, NULL, NULL, NULL, 0, NULL, NULL
+        0, 1, NULL, NULL, destroy_code_language_registry, 0, 1, NULL, NULL, trace_code_language_registry,
+        busy_code_language_registry, XL6_FOREIGN_VIEW_DESTROY_REPORTS_FAILURE, NULL, NULL
     };
     return &value;
 }

@@ -1,0 +1,87 @@
+import xui
+from xui import CallbackCodeDocument,CallbackCodeTokenOutput,CallbackCodeFoldOutput,CodeToken,CodeFoldRange
+
+extern "fixtureDiagnosticBudget" @header("test/cases/foreign_xui_codeedit_diagnostics_heap.h") @no_raise func budget(c_int allowance)
+
+func keyword(c_int start) as CodeToken
+ auto token=CodeToken()
+ token.iStartOffset=start
+ token.iEndOffset=start+3
+ token.iKind=xui.XUI_CODE_TOKEN_KEYWORD
+ token.iStyle=xui.XUI_CODE_STYLE_KEYWORD
+ return token
+end
+
+func main(...) as int
+ auto registry=xui.createCodeLanguageRegistry()
+ auto document=xui.createCodeDocument()
+ auto proxy=xui.createProxy()
+ auto context=xui.create(proxy,xui.XUI_SYSTEM_FONT_DISABLED)
+ auto editor=context.codeEditNative()
+ assert context.setRootWidget(editor)==xui.XUI_OK
+ auto live=editor.languageRegistry()
+ auto observed=editor.document()
+ CallbackCodeTokenOutput? saved=null
+ int calls=0
+ xui.CodeLexerProvider tokenize=func(CallbackCodeDocument doc,c_int first,c_int last,CallbackCodeTokenOutput output) as c_int
+  assert doc.getLength()==11 and first==0 and last==-1
+  saved=output
+  output.append(keyword(0))
+  output.append(keyword(4))
+  calls+=1
+  return xui.XUI_OK
+ end
+ xui.CodeFoldProvider fold=func(CallbackCodeDocument doc,CallbackCodeFoldOutput output) as c_int
+  auto range=CodeFoldRange()
+  range.iStartLine=0
+  range.iEndLine=doc.getLineCount()-1
+  output.append(range)
+  return xui.XUI_OK
+ end
+ try
+  document.setText("abc\nxyz\nend")
+  observed.setText("abc\nxyz\nend")
+  registry.registerCallbacks("sample","Sample",["sample"],lineComment="//",lexer=tokenize,folder=fold)
+  live.registerCallbacks("sample","Sample",["sample"],lexer=tokenize,folder=fold)
+  auto prefix=Buffer()
+  assert prefix.resize(20)
+  assert registry.lex("sample",document,output=prefix)==2
+  assert prefix.toBytes(8)==b"\0\0\0\0\x03\0\0\0"
+  assert live.lex("sample",observed)==2 and calls==2
+  assert registry.fold("sample",document)==1 and live.fold("sample",observed)==1
+  auto id,name,line,_,_,kind,extensions,rules=registry.findByExtension(".SAMPLE")
+  assert id=="sample" and name=="Sample" and (line as string)=="//" and kind==xui.XUI_CODE_LEXER_CALLBACK
+  assert extensions==1 and rules==0
+
+  bool expired=false
+  try
+   auto cap=(saved as CallbackCodeTokenOutput).capacity()
+  catch StateError
+   expired=true
+  end
+  assert expired
+
+  bool rejected=false
+  budget(0)
+  try
+   registry.registerCallbacks("sample","replaced",["sample"],folder=fold)
+  catch Error
+   rejected=true
+  finally
+   budget(-1)
+  end
+  assert rejected and registry.lex("sample",document)==2
+
+  live.close()
+  assert editor.languageRegistry().fold("sample",observed)==1
+  registry.clear()
+  assert registry.getCount()==0
+ finally
+  context.close()
+  proxy.close()
+  document.close()
+  registry.close()
+ end
+ println("XUI_CODE_LANGUAGE_OWNERS_OK")
+ return 0
+end

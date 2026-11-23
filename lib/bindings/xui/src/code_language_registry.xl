@@ -1,6 +1,14 @@
-// Independent registry. Use loadDefaults() to install the native C definition.
-export extern "xui_code_language_registry" class CodeLanguageRegistry @header("xge3_runtime.h") @lifetime("owned") @policy("xl6Xui3CodeLanguageRegistryPolicy")
+export extern "xui_code_token_output_t*" class CallbackCodeTokenOutput @header("xge3_runtime.h") @lifetime("callback")
  native point handle
+ extern "xuiCodeTokenOutputGetCapacity" @no_raise @c_const(0) @c_result("integer_min",0) func capacity() as c_int
+ extern "xuiCodeTokenOutputAppend" @no_raise @c_result("status",0) func append(CodeToken token)
+end
+export typedef CodeLexerProvider = func(CallbackCodeDocument,c_int,c_int,CallbackCodeTokenOutput) as c_int
+
+// Independent registry. Use loadDefaults() to install the native C definition.
+export extern "xui_code_language_registry" class CodeLanguageRegistry @header("xge3_runtime.h") @lifetime("owned") @policy("xl6Xui3CodeLanguageRegistryPolicy") @domain("xl6Xui3OwnershipDomainV1")
+ native point handle
+ extern "xuiCodeLanguageRegistryRegisterCallbacks" @no_raise @c_pack(1,"xui_code_callback_language_t",0,9) @c_pack_size(1,"iSize","uint32_t") @c_pack_field(1,"sId",0,"c_string") @c_pack_field(1,"sName",1,"c_string") @c_array_group(10,2,1,"int",3) @c_array_record(10,"xui_code_language_extension_t") @c_array_field(10,"sExtension",0,"c_string") @c_array_pack(10,1,"pExtensions","iExtensionCount") @c_pack_field(1,"sLineComment",4,"c_string") @c_pack_field(1,"sBlockCommentStart",5,"c_string") @c_pack_field(1,"sBlockCommentEnd",6,"c_string") @c_pack_callback_group(1,"pUser",2,"optional") @c_pack_field(1,"onLex",7,"owned_callback") @c_owned_callback(7,-1,"xui_callback_owner_t",-16,"last") @c_pack_field(1,"onFold",8,"owned_callback") @c_owned_callback(8,-1,"xui_callback_owner_t",-16,"last") @c_result("status",0) func registerCallbacks(string id,string? name,array<string> extensions,int extensionCount=-1,string? lineComment=null,string? blockStart=null,string? blockEnd=null,CodeLexerProvider? lexer=null,CodeFoldProvider? folder=null)
  extern "xuiCodeLanguageRegistryLoadDefaults" @no_raise @c_result("status",0) func loadDefaults()
  extern "xuiCodeLanguageRegistryClearChecked" @no_raise @c_result("status",0) func clear()
  extern "xuiCodeLanguageRegistryGetCount" @no_raise @c_result("integer_min",0) func getCount() as c_int
@@ -23,6 +31,7 @@ export extern "xuiCodeLanguageRegistryCreate" @header("xge3_runtime.h") @no_rais
 // Live editor registry. Closing the view leaves the definitions installed.
 export extern "xui_code_language_registry" class CodeEditLanguageRegistry @header("xge3_runtime.h") @lifetime("owner") @owner(Context) @policy("xl6Xui3CodeEditLanguageRegistryPolicy") @watch("xui_lifetime_link_t")
  native point handle
+ extern "xuiCodeLanguageRegistryRegisterCallbacks" @no_raise @c_pack(1,"xui_code_callback_language_t",0,9) @c_pack_size(1,"iSize","uint32_t") @c_pack_field(1,"sId",0,"c_string") @c_pack_field(1,"sName",1,"c_string") @c_array_group(10,2,1,"int",3) @c_array_record(10,"xui_code_language_extension_t") @c_array_field(10,"sExtension",0,"c_string") @c_array_pack(10,1,"pExtensions","iExtensionCount") @c_pack_field(1,"sLineComment",4,"c_string") @c_pack_field(1,"sBlockCommentStart",5,"c_string") @c_pack_field(1,"sBlockCommentEnd",6,"c_string") @c_pack_callback_group(1,"pUser",2,"optional") @c_pack_field(1,"onLex",7,"owned_callback") @c_owned_callback(7,-1,"xui_callback_owner_t",-16,"last") @c_pack_field(1,"onFold",8,"owned_callback") @c_owned_callback(8,-1,"xui_callback_owner_t",-16,"last") @c_result("status",0) func registerCallbacks(string id,string? name,array<string> extensions,int extensionCount=-1,string? lineComment=null,string? blockStart=null,string? blockEnd=null,CodeLexerProvider? lexer=null,CodeFoldProvider? folder=null)
  extern "xuiCodeLanguageRegistryLoadDefaults" @no_raise @c_result("status",0) func loadDefaults()
  extern "xuiCodeLanguageRegistryClearChecked" @no_raise @c_result("status",0) func clear()
  extern "xuiCodeLanguageRegistryGetCount" @no_raise @c_result("integer_min",0) func getCount() as c_int

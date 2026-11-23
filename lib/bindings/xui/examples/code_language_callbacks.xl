@@ -1,0 +1,27 @@
+import xui
+from xui import CallbackCodeDocument,CallbackCodeTokenOutput,CodeToken
+
+func main(...) as int
+ auto languages=xui.createCodeLanguageRegistry()
+ auto document=xui.createCodeDocument()
+ try
+  // This small language treats its first three bytes as a keyword.
+  languages.registerCallbacks("sample","Sample",["sample"],lexer=func(CallbackCodeDocument source,c_int first,c_int last,CallbackCodeTokenOutput output) as c_int
+   if first==0 and source.getLength()>=3 then
+    auto token=CodeToken()
+    token.iStartOffset=0
+    token.iEndOffset=3
+    token.iKind=xui.XUI_CODE_TOKEN_KEYWORD
+    token.iStyle=xui.XUI_CODE_STYLE_KEYWORD
+    output.append(token)
+   end
+   return xui.XUI_OK
+  end)
+  document.setText("say hello")
+  println("Tokens:",languages.lex("sample",document))
+ finally
+  document.close()
+  languages.close()
+ end
+ return 0
+end

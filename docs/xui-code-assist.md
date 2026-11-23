@@ -115,8 +115,7 @@ C 记录，原生端保存自己的副本。范围无效或内存分配失败时
 
 `createCodeLanguageRegistry()` 创建空的独立注册表，可通过 `loadDefaults()`
 装入内建 C 定义。关闭编辑器注册表的视图只解绑观察者，定义继续生效。
-跨线程使用与关闭编辑器后访问视图会报 checked 错误。原生词法与折叠回调仍由
-C 调用者管理。
+跨线程使用与关闭编辑器后访问视图会报 checked 错误。
 
 独立注册表和编辑器注册表都可用 `lex(id, document)` 和 `fold(id, document)`
 对独立文档或编辑器文档执行已注册的语言定义。`lex` 的行号从零开始，结束行包含在内，
@@ -130,6 +129,13 @@ C 调用者管理。
 适合没有编辑器文档的程序。`document.tokenizeCRange` 对现有文档处理 C 源码，
 保留区间起点处的词法状态，区间以 UTF-8 字节计，结束位置不包含在内。
 
+`registerCallbacks` 可为自定义语言注册词法和折叠回调，两者可以单独使用。
+注册表持有闭包，替换、清空或销毁时释放。编辑器注册表的语言定义随编辑器存活。
+词法输入为文档和行区间，输出为文档内的 UTF-8 字节位置。折叠输出使用逻辑行号。
+回调通过有界输出追加记录。一次调用会统计全部结果，只写入缓冲区容得下的前缀。
+文档视图和输出视图只在当前调用中有效。文档被修改或关闭时，调用会拒绝结果。
+
+[自定义词法回调范例](../lib/bindings/xui/examples/code_language_callbacks.xl) ·
 [无窗口词法与折叠范例](../lib/bindings/xui/examples/code_language_tools.xl) ·
 [高亮范例](../lib/bindings/xui/examples/code_editor_language.xl) ·
 [验收记录](../dev/release-materials/provenance/xui-codeedit-language-registry-20261120.json)
