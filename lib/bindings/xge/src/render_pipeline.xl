@@ -33,6 +33,7 @@ export extern "xge_render_target_t*" class RenderTarget @header("xge3_render_tar
  extern "xgeRenderTargetResize" @no_raise @c_result("status",0) func resize(c_int width,c_int height)
  extern "xgeRenderTargetCaptureCurrent" @no_raise @c_result("status",0) func captureCurrent(c_int x,c_int y)
  extern "xgeRenderTargetReadPixelsSized" @no_raise @c_span(0,"void*","size_t") @c_result("status",0) func readPixels(Buffer output,c_int stride=0)
+ extern "xgeRenderTargetReadPixelsOwned" @no_raise @c_output_bytes(1,2,"void*","size_t","xrt",0) func readPixels() as bytes
  extern "xgeRenderTargetTexture" @no_raise @c_result("retained_view") @c_retain(retainTexture,"positive",freeTexture) get texture() as Texture?
  extern "xl6ForeignViewCloseV1" @no_raise @c_control(0) @c_result("bool_status") func close()
 end

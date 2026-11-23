@@ -1,0 +1,154 @@
+{
+  "schema": 1,
+  "date": "2026-11-23",
+  "complete": true,
+  "passed": true,
+  "scope": "Owned straight RGBA render-target readback, padded buffer parity, offscreen coverage and GraphicsContext ownership audit",
+  "nativeRevision": "cd81fbcdf69935ad14aa816848ef7982413c2f09",
+  "shippingDelivery": false,
+  "networkTests": false,
+  "apiCompletenessClaim": false,
+  "sourceLF": {
+    "lib/bindings/xge/src/render_pipeline.xl": "1124be0ba11dca9706e0cd941fbe742f2f1fa851c06b5a55a96a5f8bb630c97d",
+    "lib/bindings/xge/examples/egl_context.xl": "f33ed531a63f4051ee6b6b8da936a0e6239f9f51f21f3a70c5942061cfded7b2",
+    "lib/bindings/xge/examples/offscreen_pass.xl": "a621ccffbcbb60c51f7f4dc1e15088617ee1e79aa6316eaa6f503b5e39d522eb",
+    "docs/xge3-xui3-api-map-storage.json": "7cde54c23b71aab31ca5fdb13ff17c3d762e70c31e74261ad5597ecddf9c0202",
+    "test/cases/foreign_xge3_target_readback.xl": "6221204d95da2c767dd5143bfb0ac06fea4be8b5435dedd8e6eed673dda3b52c",
+    "test/cases/foreign_xge3_target_readback.c": "1573c73d5e563295bbc6bb7bf08b73989341b296100c3326e3ecbeb18f5dd977",
+    "test/cases/foreign_xge3_target_readback.h": "f5a27dffc92a1b733ad73ce3c7eb0b100f76a3df48e2f3a8798d5a62f39f1beb"
+  },
+  "audit": {
+    "functionPopulation": 5797,
+    "directDeclarations": 4735,
+    "compiledConsumerFunctions": 318,
+    "explicitReplacements": 471,
+    "nativeRowsResolved": [
+      "xgeGraphicsContextOwnership",
+      "xgeGraphicsContextOwnershipAdapterV1",
+      "xgeGraphicsContextOwnershipCompletionV2",
+      "xgeGraphicsContextOwnershipFinalizationV1",
+      "xgeGraphicsContextOwnershipPreparationV1",
+      "xgeGraphicsContextOwnershipQuiescenceV1",
+      "xgeGraphicsContextOwnershipReadReady",
+      "xgeGraphicsContextReleaseChecked",
+      "xgeGraphicsContextReleaseOwnerChecked",
+      "xgeOffscreenReadPixels"
+    ],
+    "pending": {
+      "XGE": 103,
+      "XUI": 178,
+      "Document": 0
+    }
+  },
+  "platforms": {
+    "Windows x64": {
+      "engine": {
+        "host": {
+          "path": "F:\\xlang-validation\\xge-full-20261110\\target-readback-host-win-r2\\build-report.json",
+          "sha256": "65e5d391e784c8256aea34d0cce3c38ff7017628d9b8ddb3306da71e149b8839"
+        },
+        "static": {
+          "path": "F:\\xlang-validation\\xge-full-20261110\\target-readback-static-win-r2\\build-report.json",
+          "sha256": "19ccc6104906afe8731eceb4d5439e6b989b842f9ce5372a106b3f123d21f90e"
+        }
+      },
+      "source": {
+        "path": "F:\\xlang-validation\\xge-full-20261110\\target-readback-audit-win-r1\\native-source.json",
+        "sha256": "926477b46d6a83b31754bbdcc7d0245743e5a0fa18f7d09005a1ee3f7a7f4f20"
+      },
+      "surface": {
+        "path": "F:\\xlang-validation\\xge-full-20261110\\target-readback-audit-win-r1\\surface\\surface.json",
+        "sha256": "0315a4f2877e3010bef64bce2ded074031983c8f1182eff9c0f8704bd79b0e77"
+      },
+      "nativeConsumers": {
+        "path": "F:\\xlang-validation\\xge-full-20261110\\target-readback-audit-win-r1\\consumers\\results.json",
+        "sha256": "e159c3c82c3cca8778c7468e4cd4acfd357b7672c1aa7499390a147848d4beba"
+      },
+      "previousAudit": {
+        "path": "F:\\xlang-validation\\xge-full-20261110\\retained-sequence-audit-win-r2\\results.json",
+        "sha256": "aec8ed23049cdfd651315d01f90c658a64a383fb9a94fe6626265cd839fa7aa1"
+      },
+      "generator": {
+        "path": "F:\\xlang-validation\\xge-full-20261110\\target-readback-generator-win-r3\\results.json",
+        "sha256": "db15907e797e4610fb942e1dc269caaf7e37ecac9e4e757d04ccfefbc5136f41"
+      },
+      "packages": {
+        "path": "F:\\xlang-validation\\xge-full-20261110\\target-readback-stage-win-r3\\replay\\stage-report.json",
+        "sha256": "4a9c383b2c6773c946c2f3b62c69a2d83a075b292bd119820eca45d5896807da"
+      },
+      "runtime": {
+        "path": "F:\\xlang-validation\\xge-full-20261110\\target-readback-tests-win-r1\\results.json",
+        "sha256": "2e4d00a41ec3aef80261fc391ca6c158a935e0d08b532bca24c6161636411861"
+      },
+      "runtimeSteps": 14,
+      "renderers": [
+        "Windows OpenGL"
+      ]
+    },
+    "Linux x64": {
+      "engine": {
+        "host": {
+          "path": "\\\\wsl.localhost\\Ubuntu\\var\\tmp\\xlang-validation\\xge-full-20261110\\target-readback-host-linux-r2\\build-report.json",
+          "sha256": "51119261fe42cc59126418a73c5c69a4b55f3930757d511bf8d8bd90e3ea6b35"
+        },
+        "static": {
+          "path": "\\\\wsl.localhost\\Ubuntu\\var\\tmp\\xlang-validation\\xge-full-20261110\\target-readback-static-linux-r2\\build-report.json",
+          "sha256": "c530c6555c6b1cf4c2a597d4406b17a6c94419fd65d6bc771570d0778803d8cc"
+        }
+      },
+      "source": {
+        "path": "\\\\wsl.localhost\\Ubuntu\\var\\tmp\\xlang-validation\\xge-full-20261110\\target-readback-audit-linux-r1\\native-source.json",
+        "sha256": "7b94c462bd7f88cd7e07d6210d43afda65dad43836db4125f64154988aea817c"
+      },
+      "surface": {
+        "path": "\\\\wsl.localhost\\Ubuntu\\var\\tmp\\xlang-validation\\xge-full-20261110\\target-readback-audit-linux-r1\\surface\\surface.json",
+        "sha256": "888f097142f72e731c0d37b576abd052d3952e45fd0e1f0e6ff89c493b00b098"
+      },
+      "nativeConsumers": {
+        "path": "\\\\wsl.localhost\\Ubuntu\\var\\tmp\\xlang-validation\\xge-full-20261110\\target-readback-audit-linux-r1\\consumers\\results.json",
+        "sha256": "78ca8282c7cbe56378b60423bfa543432014fc7e5330c6295d0c28fa81353010"
+      },
+      "previousAudit": {
+        "path": "\\\\wsl.localhost\\Ubuntu\\var\\tmp\\xlang-validation\\xge-full-20261110\\retained-sequence-audit-linux-r2\\results.json",
+        "sha256": "2e9c0efceefa7d237b9b25662df2141f94dbf2b6d490ffbf90368b30fd0f8238"
+      },
+      "generator": {
+        "path": "\\\\wsl.localhost\\Ubuntu\\var\\tmp\\xlang-validation\\xge-full-20261110\\target-readback-generator-linux-r3\\results.json",
+        "sha256": "2d04e6843dbd5151d82a3d413bb628408ff7d26667075fdc11df904dc47b5e7f"
+      },
+      "packages": {
+        "path": "\\\\wsl.localhost\\Ubuntu\\var\\tmp\\xlang-validation\\xge-full-20261110\\target-readback-stage-linux-r3\\replay\\stage-report.json",
+        "sha256": "e3bc0d0d5b9146dcfb1f2f131da65abd8dac2faf15225326ee32b8f7a354cb12"
+      },
+      "runtime": {
+        "path": "\\\\wsl.localhost\\Ubuntu\\var\\tmp\\xlang-validation\\xge-full-20261110\\target-readback-tests-linux-r1\\results.json",
+        "sha256": "023711d2f25bfc8a717076df8f666251fec32e0c11c23bba600d9af964a3d332"
+      },
+      "runtimeSteps": 14,
+      "renderers": [
+        "Mesa EGL PBuffer",
+        "Mesa EGL surfaceless"
+      ]
+    }
+  },
+  "openReleaseGate": {
+    "scope": "Module-global EGL context and engine code lease",
+    "localContextPassed": true,
+    "moduleGlobalPassed": false,
+    "status": "XGE_ERROR_BUSY",
+    "evidence": {
+      "path": "\\\\wsl.localhost\\Ubuntu\\var\\tmp\\xlang-validation\\xge-full-20261110\\target-readback-context-gate-linux-r1\\results.json",
+      "sha256": "398739bcd5c69ec3d779c7504746fbdd4de34e037edc317297bfe8f4a1a1e55d"
+    },
+    "failures": {
+      "O0": {
+        "path": "\\\\wsl.localhost\\Ubuntu\\var\\tmp\\xlang-validation\\xge-full-20261110\\target-readback-context-gate-linux-r1\\O0-mode-1.log",
+        "sha256": "b42e6030d7f1c4fa4b48709d03c7753a8b88cbe6bd864b3678b7eef5d57c0680"
+      },
+      "O2": {
+        "path": "\\\\wsl.localhost\\Ubuntu\\var\\tmp\\xlang-validation\\xge-full-20261110\\target-readback-context-gate-linux-r1\\O2-mode-1.log",
+        "sha256": "72e8e52b72e23b7e2fc20665a421d9e57b985804af2e52bf45c1a0f6a3c5f807"
+      }
+    }
+  }
+}

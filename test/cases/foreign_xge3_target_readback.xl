@@ -1,0 +1,89 @@
+import xge
+
+extern "fixtureReadbackCheck" @header("test/cases/foreign_xge3_target_readback.h") @no_raise func nativeCheck(xge.RenderTarget target)
+extern "fixtureReadbackHeapStart" @no_raise func heapStart()
+extern "fixtureReadbackHeapReport" @no_raise func heapReport(c_int mode)
+extern "fixtureReadbackBudget" @no_raise func budget(c_int allowance)
+
+func checkPixels(bytes rgba)
+    int row = 67 * 4
+    assert rgba.length == row * 5
+    assert rgba[0] >= 248 and rgba[1] == 0 and rgba[2] == 0 and rgba[3] == 128
+    assert rgba[row * 2] == 0 and rgba[row * 2 + 3] == 0
+    assert rgba[row * 4 + 2] == 255 and rgba[row * 4 + 3] == 255
+end
+
+func renderAndRead() as bytes
+    auto target = xge.createRenderTarget(67,5)
+    auto pass = xge.createPass(target,c_uint(xge.XGE_PASS_CLEAR_COLOR),xge.colorRGBA(0,0,0,0))
+    try
+        pass.begin()
+        xge.RectI stripe
+        stripe.iW = 67
+        stripe.iH = 1
+        xge.shapeRectFillPixels(stripe,xge.colorRGBA(255,0,0,128))
+        stripe.iY = 4
+        xge.shapeRectFillPixels(stripe,xge.colorRGBA(0,0,255,255))
+        pass.finish()
+    finally
+        pass.close()
+    end
+    try
+        nativeCheck(target)
+        checkPixels(target.readPixels())
+        heapStart()
+        for i in range(32)
+            checkPixels(target.readPixels())
+        end
+        heapReport(1)
+
+        bytes prior = b"sentinel"
+        int failures = 0
+        int successes = 0
+        for allowance in range(6)
+            prior = b"sentinel"
+            budget(c_int(allowance))
+            try
+                prior = target.readPixels()
+                successes += 1
+            catch Error
+                assert prior == b"sentinel"
+                failures += 1
+            finally
+                budget(-1)
+            end
+        end
+        assert failures > 0 and successes > 0
+        return target.readPixels()
+    finally
+        target.close()
+    end
+end
+
+func headless(bool surfaceless)
+    xge.init(80,24,"Offscreen RGBA readback",0,xge.XGE_RUN_MANUAL)
+    auto context = xge.createEglContext(80,24,surfaceless)
+    auto pixels = renderAndRead()
+    context.close()
+    xge.unit()
+    checkPixels(pixels)
+end
+
+func main(...) as int
+    if xge.eglCapsGet().bCompiled != c_int(0) then
+        headless(false)
+        headless(true)
+    else
+        xge.init(80,24,"Offscreen RGBA readback")
+        bytes pixels = b""
+        xge.run(func() as c_int
+            pixels = renderAndRead()
+            return c_int(1)
+        end)
+        xge.setFrameCallback(null)
+        xge.unit()
+        checkPixels(pixels)
+    end
+    println("XGE_TARGET_READBACK_OK")
+    return 0
+end

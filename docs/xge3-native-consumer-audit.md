@@ -1,5 +1,23 @@
 # Native consumers in the full API inventory
 
+## Render target pixel readback
+
+The new `RenderTarget.readPixels()` overload adopts tightly packed RGBA as
+owned bytes. It uses the same native readback and color conversion as the
+caller-buffer overload. An asymmetric 67 × 5 render verifies row order,
+transparency, padded strides and pixel equality. The tests also exercise
+allocation failure and use the bytes after the target and renderer close.
+
+The audit maps the raw offscreen read to the sized target read and compiles
+the actual GraphicsContext descriptor and ownership domain. On Linux the
+module-global EGL close gate still reports Busy after the host drops its
+reference. The local-context case reaches physical unload.
+
+The inventory has 5,797 native functions and 4,735 direct declarations. It
+records 281 pending rows, 103 for XGE and 178 for XUI.
+
+[Validation evidence](../dev/release-materials/provenance/xge-target-readback-20261123.json)
+
 ## Ownership of native sequences
 
 The audit compiles actual xlang callers for 18 sequence producers. For each

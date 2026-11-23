@@ -36,6 +36,19 @@ Pass 清屏、精确像素读回及显式清理。Linux 无显示服务器命令
 LIBGL_ALWAYS_SOFTWARE=1 EGL_PLATFORM=surfaceless xl run egl_context.xl
 ```
 
+## 像素回读
+
+`target.readPixels()` 返回自上而下、紧密排列的 RGBA 字节。每像素四字节，RGB
+为非预乘颜色。结果持有独立内存，关闭目标或上下文后仍可读取。已有的
+`target.readPixels(buffer, stride)` 适合复用输出缓冲区或指定行间距。
+
+拥有式入口同步等待 GPU，复用回读分配，在原地交换行并恢复非预乘颜色。
+交换行使用 256 字节栈空间。生成 C 直接调用 `xgeRenderTargetReadPixelsOwned`，
+并由通用拥有字节输出合同接管同一指针。32 次预热回读的堆计数为 C 32 次分配、
+xlang 64 次分配，两边均成对释放且没有重分配。计数包含语言字节值的拥有包装。
+
+[像素回读验收](../dev/release-materials/provenance/xge-target-readback-20261123.json)
+
 ## 验收与当前阻塞
 
 Windows 默认、Linux 默认与 EGL 配置的语言 JIT／静态 AOT 共 65 项检查通过，

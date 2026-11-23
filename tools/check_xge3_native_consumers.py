@@ -47,7 +47,7 @@ HEADER_CLOSE_REPLACEMENTS = {
 HEADER_CLOSE_REPLACEMENTS['xge3dQueryResultsReleaseChecked'] = (
     'xge3d.QueryResults.close', 'xge3dQueryResultsRelease')
 CORE_POLICY_CLASSES = {
-    'xge.Scene', 'xge.PlatformBackend', 'xge.GraphicsBackend', 'xge.HostSession',
+    'xge.Scene', 'xge.PlatformBackend', 'xge.GraphicsBackend', 'xge.GraphicsContext', 'xge.HostSession',
     'xge.ImageLoad', 'xge.TextureLoad', 'xge.FontLoad', 'xge.SoundLoad',
     'xge.ParticleWorld', 'xge.ParticleDefinition', 'xge.ParticleRenderer', 'xge.Resource',
 }
@@ -55,6 +55,7 @@ CORE_HEADER_CLOSES = {
     'xgeSceneReleaseChecked': ('Scene', 'Scene', 'xgeSceneReleaseOwnerChecked'),
     'xgePlatformBackendReleaseChecked': ('PlatformBackend', 'PlatformBackend', 'xgePlatformBackendReleaseOwnerChecked'),
     'xgeGraphicsBackendReleaseChecked': ('GraphicsBackend', 'GraphicsBackend', 'xgeGraphicsBackendReleaseOwnerChecked'),
+    'xgeGraphicsContextReleaseChecked': ('GraphicsContext', 'GraphicsContext', 'xgeGraphicsContextReleaseOwnerChecked'),
     'xgeHostSessionReleaseChecked': ('HostSession', 'HostSession', 'xgeHostSessionReleaseOwnerChecked'),
     'xgeAsyncLoadReleaseChecked': ('ImageLoad', 'AsyncLoad', 'xgeAsyncLoadReleaseOwnerChecked'),
     'xgeAsyncRequestFree': ('ImageLoad', 'AsyncLoad', 'xgeAsyncLoadReleaseOwnerChecked'),

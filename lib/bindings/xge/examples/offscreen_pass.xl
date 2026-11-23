@@ -17,10 +17,7 @@ func main(...) as int
     finally
      pass.close()
     end
-    auto pixels=Buffer()
-    assert pixels.resize(16)
-    target.readPixels(pixels)
-    println(pixels.hex()) // Four identical RGBA pixels: 0a141eff...
+    println(codec.hexEncode(target.readPixels())) // Four identical RGBA pixels.
    finally
     target.close()
    end

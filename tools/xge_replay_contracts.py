@@ -174,6 +174,7 @@ REPLACED = {
     'xgeRenderTargetCreate': ('xge.createRenderTarget', 'xgeRenderTargetCreateOwned'),
     'xgeRenderTargetWindow': ('xge.createWindowTarget', 'xgeRenderTargetWindowOwned'),
     'xgeRenderTargetReadPixels': ('xge.RenderTarget.readPixels', 'xgeRenderTargetReadPixelsSized'),
+    'xgeOffscreenReadPixels': ('xge.RenderTarget.readPixels', 'xgeRenderTargetReadPixelsSized'),
     'xgePassInit': ('xge.createPass', 'xgePassCreateOwned'),
     'xgeAsyncImageLoad': ('xge.ImageLoad.start', 'xgeAsyncImageStartOwned'),
     'xgeAsyncTextureLoad': ('xge.TextureLoad.start', 'xgeAsyncTextureStartOwned'),
