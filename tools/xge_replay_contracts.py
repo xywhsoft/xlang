@@ -17,6 +17,9 @@ CONTRACTS = {
     'xgeEGLCapsGet': (
         'int xgeEGLCapsGet(xge_egl_caps_t* pCaps)',
         'export extern "xgeEGLCapsGet" @header("xge3_runtime.h") @no_raise @c_output(0,0) func eglCapsGet() as EglCaps'),
+    'xgeRenderThreadEGLSet': (
+        'int xgeRenderThreadEGLSet(const xge_egl_desc_t* pDesc)',
+        'export extern "xgeRenderThreadEGLSet" @header("xge3_runtime.h") @no_raise @c_null(0,"const xge_egl_desc_t*") @c_result("status",0) func resetRenderThreadEgl()'),
     'xgeAudioUnitChecked': (
         'int xgeAudioUnitChecked(void)',
         'export extern "xgeAudioUnitChecked" @header("xge3_runtime.h") @no_raise @c_result("status",0) func audioUnit()'),

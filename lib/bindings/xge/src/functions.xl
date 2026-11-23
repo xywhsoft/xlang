@@ -38,6 +38,7 @@ export extern "xgeBegin" @header("xge3_runtime.h") func begin() as c_int
 export extern "xgeEnd" @header("xge3_runtime.h") func nativeEnd() as c_int
 export extern "xgeFlush" @header("xge3_runtime.h") func flush() as c_int
 export extern "xgeRenderThreadCapsGet" @header("xge3_runtime.h") @no_raise @c_output(0,0) func renderThreadCapsGet() as RenderThreadCaps
+export extern "xgeRenderThreadEGLSet" @header("xge3_runtime.h") @no_raise @c_null(0,"const xge_egl_desc_t*") @c_result("status",0) func resetRenderThreadEgl()
 export extern "xgeRenderThreadSet" @header("xge3_runtime.h") func renderThreadSet(c_int bEnabled) as c_int
 export extern "xgeRenderThreadGet" @header("xge3_runtime.h") func renderThreadGet() as c_int
 export extern "xgeClear" @header("xge3_runtime.h") func clear(c_uint iColor)

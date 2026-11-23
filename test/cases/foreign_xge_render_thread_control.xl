@@ -1,0 +1,25 @@
+import xge
+
+func main(...) as int
+    bool rejected=false
+    try
+        xge.resetRenderThreadEgl()
+    catch Error failure
+        rejected=failure.code==int(xge.XGE_ERROR_NOT_INITIALIZED)
+    end
+    assert rejected, "reset requires initialization"
+
+    xge.init(4,4,"Render thread controls",0,xge.XGE_RUN_MANUAL)
+    try
+        assert xge.renderThreadCapsGet().bSupported==0, "renderer capabilities"
+        xge.resetRenderThreadEgl()
+        xge.resetRenderThreadEgl()
+        assert xge.renderThreadSet(1)==xge.XGE_ERROR_UNSUPPORTED, "worker activation is unsupported"
+        assert xge.renderThreadGet()==0, "render worker stays disabled"
+        assert xge.renderThreadSet(0)==xge.XGE_OK, "worker shutdown succeeds"
+    finally
+        xge.unit()
+    end
+    println("XGE_RENDER_THREAD_CONTROL_OK")
+    return 0
+end

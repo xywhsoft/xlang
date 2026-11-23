@@ -90,6 +90,16 @@ NATIVE_RELEASE_DELEGATES = {
     'xuiDockPanelStateFree': ('src/xui/controls/xui_dock_panel.c',
         'xuiDockPanelStateFree', 'xrtValueRelease'),
 }
+MANAGER_CLOSE_CHAINS = {
+    'xuiMsgBoxDestroy': ('src/xui/controls/xui_msgbox.c', 'xuiMsgBoxDestroyChecked',
+        'xuiMsgBoxDestroyOwnerChecked', 'xui.MsgBox.close'),
+    'xuiFileDialogDestroy': ('src/xui/controls/xui_file_dialog.c', 'xuiFileDialogDestroyChecked',
+        'xuiFileDialogDestroyOwnerChecked', 'xui.FileDialog.close'),
+    'xuiMsgTipDestroy': ('src/xui/controls/xui_msgtip.c', 'xuiMsgTipDestroyChecked',
+        'xuiMsgTipDestroyOwnerChecked', 'xui.MsgTip.close'),
+    'xuiToastDestroy': ('src/xui/controls/xui_toast.c', 'xuiToastDestroyChecked',
+        'xuiToastDestroyOwnerChecked', 'xui.Toast.close'),
+}
 TEXT_SHAPE_LIFETIME_CALLS = {
     'src/xui/core/xui_text.c': {
         'xuiTextShape': ('xuiGetProxyCaps','__xuiTextShapeWithProxy'),
@@ -608,9 +618,19 @@ def main():
                 calls.setdefault(unit, {}).update(expected)
         if 'xuiPollEventVisit' in functions:
             calls.setdefault('src/xui/core/xui_input.c', {})['xuiPollEventVisit'] = ('xuiPollEvent','xuiCallScopeBegin')
+        for legacy, (unit, checked, owner, _) in MANAGER_CLOSE_CHAINS.items():
+            if legacy in functions and checked in functions and owner in functions:
+                calls.setdefault(unit, {}).update({legacy: (checked,), checked: (owner,)})
+        included_units = ['src/xge/text/xge_text_resources.c']
+        if 'xgeAsyncRequestInit' in functions and 'xgeAsyncImageCreateOwned' in functions:
+            calls.setdefault('single/xge.c', {}).update({
+                'xgeAsyncImageCreateOwned': ('__xgeLoadCreate',),
+                '__xgeLoadCreate': ('xgeAsyncRequestInit',),
+            })
+            included_units.append('src/xge/resource/xge_async_owned.c')
         source, build_flags, evidence_inputs = witness_build_inputs(
             a.resource_engine_build.resolve(),audit,packages,tools['gcc'],sha,calls.keys(),
-            ('src/xge/text/xge_text_resources.c',))
+            included_units)
         files.extend(evidence_inputs)
         lifetime_builds['resourceLifetime'] = (source, build_flags, calls)
     inputs={str(f):sha(f) for f in files};out.mkdir(parents=True,exist_ok=False)
@@ -876,6 +896,15 @@ def main():
                     relocationPath=close_relocation_path(header_relocations[key],policy,destroy,release))
             elif document and symbol=='xuiDocumentFreeBuffer':
                 evidence=document['bufferReplacement']
+            elif symbol in MANAGER_CLOSE_CHAINS and a.resource_engine_build and all(
+                    name in functions for name in MANAGER_CLOSE_CHAINS[symbol][1:3]):
+                source, native, owner, logical = MANAGER_CLOSE_CHAINS[symbol]
+                assert any(row['language']==logical for row in bound[native]),(logical,native)
+                witness=report['resourceLifetime'][source]
+                evidence=dict(language=logical,native=native,
+                    nativeRetirementWitness=dict(source=source,objectSha256=witness['objectSha256'],
+                        legacyPath=witness['relocationPaths'][symbol][native],
+                        checkedPath=witness['relocationPaths'][native][owner]))
             elif symbol=='xuiPollEvent' and a.resource_engine_build and 'xuiPollEventVisit' in bound:
                 native = 'xuiPollEventVisit'
                 logical = 'xui.Context.pollEvent'

@@ -1,5 +1,22 @@
 # Native consumers in the full API inventory
 
+## Render-worker configuration and checked retirement paths
+
+`xge.resetRenderThreadEgl()` passes a typed NULL directly to
+`xgeRenderThreadEGLSet`. The fixture checks the uninitialized error,
+repeatable reset after initialization and the no-worker capabilities reported
+by the current backends. Both O2 packages pass JIT, dynamic AOT and static AOT.
+
+The hosted engine audit verifies that managed async creation reaches
+`xgeAsyncRequestInit`. It also verifies each legacy dialog destroy function's
+path to the same native checked retirement used by `MsgBox`, `FileDialog`,
+`MsgTip` and `Toast` close methods.
+
+Both inventories cover 5,892 functions and 4,834 direct declarations. The
+remaining 60 entries comprise 14 XGE and 46 XUI functions.
+
+[Render controls and native path evidence](../dev/release-materials/provenance/xge-render-thread-20261124.json)
+
 ## Queued event inspection and dispatch
 
 `Context.pollEvent()` delivers one queued event to a synchronous visitor.

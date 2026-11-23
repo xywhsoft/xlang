@@ -1,0 +1,255 @@
+{
+  "schema": 1,
+  "scope": "Native render-worker configuration reset, async request initialization and dialog retirement paths",
+  "nativeCommit": "4a11e5d1957154b744e1ca4982b267b06b498c70",
+  "previousEvidence": {
+    "path": "D:/GIT/x-lang/dev/release-materials/provenance/xui-event-visit-20261124.json",
+    "sha256": "ca96ecbadd16bc577d8495cb7f301790ff1fed12d6ddfe0344d8b87effb07b5d"
+  },
+  "shippingDelivery": false,
+  "graphicsTests": false,
+  "networkTests": false,
+  "platforms": {
+    "win": {
+      "consumerAudit": {
+        "path": "F:/xlang-validation/xge-full-20261110/xge-render-thread-consumers-win-r1/results.json",
+        "sha256": "89e423841f39d740b23fca39f9b6de211a2af5bf15df1929dd4823789ebb9379"
+      },
+      "compiler": {
+        "path": "F:/xlang-validation/xge-full-20261110/compiler-owned-output-pair-win-r2/build.json",
+        "sha256": "41596d3515fdf8c1f5194838396e40b1d84ecb013557b7f7aadbe352315593a3"
+      },
+      "packageReplay": {
+        "path": "F:/xlang-validation/xge-full-20261110/xge-render-thread-stage-win-r1/replay/stage-report.json",
+        "sha256": "18dd0b187aff6bc900254c440dcae706ad69576f7ab1462c0ce3dde68e01d540"
+      },
+      "verification": {
+        "path": "F:/xlang-validation/xge-full-20261110/xge-render-thread-verify-win-r1/results.json",
+        "sha256": "8fed91628ed66763b75b99bf7b7a282192560f869419faa8a1e47e3d48cb763d"
+      },
+      "generated": {
+        "path": "F:/xlang-validation/xge-full-20261110/xge-render-thread-verify-win-r1/foreign_xge_render_thread_control/generated.c",
+        "sha256": "d69facbf7cc91a6a143290cb503a5ebd723ca4ac3292370f3feff73b0579c044"
+      },
+      "functionPopulation": 5892,
+      "directDeclarations": 4834,
+      "remaining": {
+        "XGE": 14,
+        "XUI": 46
+      },
+      "managerRetirement": {
+        "xuiFileDialogDestroy": {
+          "language": "xui.FileDialog.close",
+          "native": "xuiFileDialogDestroyChecked",
+          "nativeRetirementWitness": {
+            "source": "src/xui/controls/xui_file_dialog.c",
+            "objectSha256": "7a58f1e32756ef24db0781ef7c8eafccb581055fc989277c71279ff0cbcdcb63",
+            "legacyPath": [
+              ".text$xuiFileDialogDestroyChecked"
+            ],
+            "checkedPath": [
+              ".text$xuiFileDialogDestroyOwnerChecked"
+            ]
+          }
+        },
+        "xuiMsgBoxDestroy": {
+          "language": "xui.MsgBox.close",
+          "native": "xuiMsgBoxDestroyChecked",
+          "nativeRetirementWitness": {
+            "source": "src/xui/controls/xui_msgbox.c",
+            "objectSha256": "111ce0d841d9e15877c7c548666ed48b292d2cc6c754686fd7ba297b0e30459e",
+            "legacyPath": [
+              ".text$xuiMsgBoxDestroyChecked"
+            ],
+            "checkedPath": [
+              ".text$xuiMsgBoxDestroyOwnerChecked"
+            ]
+          }
+        },
+        "xuiMsgTipDestroy": {
+          "language": "xui.MsgTip.close",
+          "native": "xuiMsgTipDestroyChecked",
+          "nativeRetirementWitness": {
+            "source": "src/xui/controls/xui_msgtip.c",
+            "objectSha256": "3b8de62bcc63cbfa0367e72d234f1e6b81aa9bd6e3b5c64e1a1c56cdac4f9945",
+            "legacyPath": [
+              ".text$xuiMsgTipDestroyChecked"
+            ],
+            "checkedPath": [
+              ".text$xuiMsgTipDestroyOwnerChecked"
+            ]
+          }
+        },
+        "xuiToastDestroy": {
+          "language": "xui.Toast.close",
+          "native": "xuiToastDestroyChecked",
+          "nativeRetirementWitness": {
+            "source": "src/xui/controls/xui_toast.c",
+            "objectSha256": "271d703f1f70c1658ad3af7a5f21155c7af6504bf231101f8180069e77eed4a0",
+            "legacyPath": [
+              ".text$xuiToastDestroyChecked"
+            ],
+            "checkedPath": [
+              ".text$xuiToastDestroyOwnerChecked"
+            ]
+          }
+        }
+      },
+      "asyncInitPaths": {
+        "xgeAsyncImageCreateOwned": {
+          "__xgeLoadCreate": [
+            ".text$__xgeLoadCreate"
+          ]
+        },
+        "__xgeLoadCreate": {
+          "xgeAsyncRequestInit": [
+            ".text$xgeAsyncRequestInit"
+          ]
+        }
+      },
+      "imports": {
+        "host": [
+          "xge3_host.dll",
+          "msvcrt.dll",
+          "kernel32.dll",
+          "shell32.dll",
+          "ucrtbase.dll"
+        ],
+        "static": [
+          "msvcrt.dll",
+          "kernel32.dll",
+          "user32.dll",
+          "ole32.dll",
+          "oleaut32.dll",
+          "shell32.dll",
+          "gdi32.dll",
+          "imm32.dll"
+        ]
+      }
+    },
+    "linux": {
+      "consumerAudit": {
+        "path": "//wsl.localhost/Ubuntu/var/tmp/xlang-validation/xge-full-20261110/xge-render-thread-consumers-linux-r1/results.json",
+        "sha256": "8639f5299c178343eec43b5d423cbd11fef8ee562df0a911dde50dc0ea2aa113"
+      },
+      "compiler": {
+        "path": "//wsl.localhost/Ubuntu/var/tmp/xlang-validation/xge-full-20261110/compiler-owned-output-pair-linux-r2/build.json",
+        "sha256": "bb4ad4330abb14095a0dc59233ed6e265033b4498b8f779a11ca4d0b9b176099"
+      },
+      "packageReplay": {
+        "path": "//wsl.localhost/Ubuntu/var/tmp/xlang-validation/xge-full-20261110/xge-render-thread-stage-linux-r1/replay/stage-report.json",
+        "sha256": "7bdf265e4306d3f388bbb22b245f83a33d2e8e441efc9441ec064ad6faa3110f"
+      },
+      "verification": {
+        "path": "//wsl.localhost/Ubuntu/var/tmp/xlang-validation/xge-full-20261110/xge-render-thread-verify-linux-r1/results.json",
+        "sha256": "19d824c5067e5711a90cbf56b4885bb263e4388497677ca1bcbe8fa5437feca3"
+      },
+      "generated": {
+        "path": "//wsl.localhost/Ubuntu/var/tmp/xlang-validation/xge-full-20261110/xge-render-thread-verify-linux-r1/foreign_xge_render_thread_control/generated.c",
+        "sha256": "d69facbf7cc91a6a143290cb503a5ebd723ca4ac3292370f3feff73b0579c044"
+      },
+      "functionPopulation": 5892,
+      "directDeclarations": 4834,
+      "remaining": {
+        "XGE": 14,
+        "XUI": 46
+      },
+      "managerRetirement": {
+        "xuiFileDialogDestroy": {
+          "language": "xui.FileDialog.close",
+          "native": "xuiFileDialogDestroyChecked",
+          "nativeRetirementWitness": {
+            "source": "src/xui/controls/xui_file_dialog.c",
+            "objectSha256": "4202e728a83bb99ebe7da063becfb35190fecacc739bebae54c864e5e7f94e86",
+            "legacyPath": [
+              "xuiFileDialogDestroyChecked"
+            ],
+            "checkedPath": [
+              "xuiFileDialogDestroyOwnerChecked"
+            ]
+          }
+        },
+        "xuiMsgBoxDestroy": {
+          "language": "xui.MsgBox.close",
+          "native": "xuiMsgBoxDestroyChecked",
+          "nativeRetirementWitness": {
+            "source": "src/xui/controls/xui_msgbox.c",
+            "objectSha256": "95610729b9db403ff9b42c67f989b504d3098f2e3aa9f60e8f327e8f571f1222",
+            "legacyPath": [
+              "xuiMsgBoxDestroyChecked"
+            ],
+            "checkedPath": [
+              "xuiMsgBoxDestroyOwnerChecked"
+            ]
+          }
+        },
+        "xuiMsgTipDestroy": {
+          "language": "xui.MsgTip.close",
+          "native": "xuiMsgTipDestroyChecked",
+          "nativeRetirementWitness": {
+            "source": "src/xui/controls/xui_msgtip.c",
+            "objectSha256": "31bc03847a025352679190f0eb07a5ccf961a29a43e5d6e10d3a638942984c1b",
+            "legacyPath": [
+              "xuiMsgTipDestroyChecked"
+            ],
+            "checkedPath": [
+              "xuiMsgTipDestroyOwnerChecked"
+            ]
+          }
+        },
+        "xuiToastDestroy": {
+          "language": "xui.Toast.close",
+          "native": "xuiToastDestroyChecked",
+          "nativeRetirementWitness": {
+            "source": "src/xui/controls/xui_toast.c",
+            "objectSha256": "bb6cb5c5e47e184ece1071d04730981c4dfc6d7c341a8d4758f8abc27badfef9",
+            "legacyPath": [
+              "xuiToastDestroyChecked"
+            ],
+            "checkedPath": [
+              "xuiToastDestroyOwnerChecked"
+            ]
+          }
+        }
+      },
+      "asyncInitPaths": {
+        "xgeAsyncImageCreateOwned": {
+          "__xgeLoadCreate": [
+            ".text.__xgeLoadCreate"
+          ]
+        },
+        "__xgeLoadCreate": {
+          "xgeAsyncRequestInit": [
+            "xgeAsyncRequestInit"
+          ]
+        }
+      },
+      "imports": {
+        "host": [
+          "libm.so.6",
+          "libmvec.so.1",
+          "libxge3_host.so",
+          "libc.so.6",
+          "ld-linux-x86-64.so.2"
+        ],
+        "static": [
+          "libm.so.6",
+          "libmvec.so.1",
+          "libx11.so.6",
+          "libxi.so.6",
+          "libxcursor.so.1",
+          "libgl.so.1",
+          "libc.so.6",
+          "ld-linux-x86-64.so.2"
+        ]
+      }
+    }
+  },
+  "sourceSha256NormalizedLf": {
+    "lib/bindings/xge/src/functions.xl": "34cba869b3bbe35c8c43047d953e506ee50eadd576df858b2acb8cb2816bb6d9",
+    "test/cases/foreign_xge_render_thread_control.xl": "98fee2669bd16747557fae2d3f1c690d29ca6667f33402e354139ceff5d692db",
+    "tools/xge_replay_contracts.py": "75ca264f8550d8fb3521a273d1ac7aafc5d2a9b094fd7d9f82eab39dae453ec4",
+    "tools/check_xge3_native_consumers.py": "8f6e078b64b8cd1bae7719df004e8ca9289b9fa66fb396850ecb80fb59768fa9",
+    "docs/xge3-host-backends.md": "d22070d157828f17a6e8212acf8453bab9d0384c20aeb3b7b010ae057afa0984"
+  }
+}

@@ -1,5 +1,10 @@
 # 宿主后端与离屏接入
 
+`xge.resetRenderThreadEgl()` 在引擎初始化后清除原生 EGL 渲染线程配置。生成代码直接传入
+`const xge_egl_desc_t*` 类型的空指针。初始化前调用会报告 `XGE_ERROR_NOT_INITIALIZED`。
+当前后端还没有支持渲染线程的持久共享上下文，`renderThreadCapsGet().bSupported` 为 0，
+开启线程会返回 `XGE_ERROR_UNSUPPORTED`。
+
 后续拥有式 EGL 候选已接通实际渲染器，见 [拥有合同与未过发布门](xge3-owning-context.md)。
 原始 Offscreen 的问题不再用于代表新上下文的实现状态；其余宿主调度仍待完成。
 
