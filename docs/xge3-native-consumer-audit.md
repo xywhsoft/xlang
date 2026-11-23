@@ -1,5 +1,19 @@
 # Native consumers in the full API inventory
 
+## Indexed language entries
+
+`Language.textAt()` reads one position in the pack and returns the stored ID
+and an independent nullable string. `textCount` gives the iteration bound.
+`Context.setLanguageText()` and `clearLanguageText()` handle edits.
+Native C tests compare every entry with the pack array and verify that
+out-of-range reads leave the output untouched. Both O2 toolchains passed JIT,
+dynamic AOT and static AOT, including snapshot rollback on allocation failure.
+
+The matched inventories cover 5,890 native functions and 4,829 direct
+declarations. The remaining 73 entries comprise 16 XGE and 57 XUI functions.
+
+[Indexed language entry evidence](../dev/release-materials/provenance/xui-language-entries-20261124.json)
+
 ## Plain editor languages and Dock saved-state release
 
 `CodeLanguageRegistry.registerPlain()` and

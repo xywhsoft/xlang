@@ -1,0 +1,359 @@
+{
+  "schema": 1,
+  "scope": "Indexed language pack entry snapshots and equivalent native slot enumeration",
+  "nativeCommit": "3d68fdcaaa334c02b7607e1c934c1d8abcecf874",
+  "shippingDelivery": false,
+  "graphicsTests": false,
+  "networkTests": false,
+  "sourceSha256NormalizedLf": {
+    "lib/bindings/xui/src/localization.xl": "d30463a2d26a6fd72e3d40b644bbde64701d1ed4108b7cdccdd5343d5e9920c1",
+    "lib/bindings/xui/examples/localization_entries.xl": "2b41de9343bab8d39e2f2bd06d78eb00090d21b8bdb330fae6cf3c6e08f4b378",
+    "lib/bindings/xui/examples/gallery.json": "e1aca47986d3a9ba4c0cacf62e5c04ee0bb64230037eca1052e480c469832b59",
+    "test/cases/foreign_xui_localization.xl": "80568029411e8a44cd8e03c426c97aa573e884c4d807e63afc6d63297b763419",
+    "test/cases/foreign_xui_localization.c": "0836734039dc996b208f69aa9637102a1b9680a105284db675dfcf6cba2f494a",
+    "test/cases/foreign_xui_localization.h": "9f8e388a46688bd1e23ad5435737ee5709a0646401b050505a7f21e6b4c64f87",
+    "test/cases/foreign_xui_icon_models.c": "16c10fe2910d2631c2fc38064bcfa21b8e80f9fa530fabd4f2ec7d5bf87476dd",
+    "test/cases/foreign_xui_icon_models.h": "78abc35f31b69bd848684c34cfdf1796176f4bab0645bd3c802171fabcb2c6d6",
+    "test/cases/foreign_xui_render_backend.c": "d923086b61f849a73a720968149c8a9cb990e4febe45b01bf1cf9735490826a6",
+    "test/cases/foreign_xui_render_backend.h": "f5c5e0a41b5932e164c251d610bd874bb2e3e2d4b01d5b61930164659813164f",
+    "test/cases/foreign_xui_render_adapters.inc": "b54a15b0295c93a59be72b93acacfb1eefd335a7ec28d6290b18be213770711e",
+    "tools/check_xge3_native_consumers.py": "339b13db9381fba38951e826252a2ca5990b7ff537a3b2c64d524de352797340",
+    "docs/xge3-xui3-api-map-storage.json": "5c69d03230d87fdda36c6bc27ff73b17aa933e4695d1af21108e2b833c7d8597"
+  },
+  "platforms": {
+    "win": {
+      "nativeSource": {
+        "path": "F:/xlang-validation/xge-full-20261110/xui-language-entries-native-source-win-r2.json",
+        "sha256": "3956dd73f16114627e08a74d2703c84ec2df58e553ce1d6ceb8bc3ef616e802d"
+      },
+      "nativeHost": {
+        "path": "F:/xlang-validation/xge-full-20261110/xui-language-entries-host-win-r2/build-report.json",
+        "sha256": "b73bd69a13eaede77b31e522c02a57401b7bb11cad3949f81c08c473e669c830"
+      },
+      "nativeStatic": {
+        "path": "F:/xlang-validation/xge-full-20261110/xui-language-entries-static-win-r2/build-report.json",
+        "sha256": "aaba334f1be35b96653034d21b030b0151d5b0fbae3753f10f517f166e57ba69"
+      },
+      "compiler": {
+        "path": "F:/xlang-validation/xge-full-20261110/compiler-owned-output-pair-win-r2/build.json",
+        "sha256": "41596d3515fdf8c1f5194838396e40b1d84ecb013557b7f7aadbe352315593a3"
+      },
+      "packageReplay": {
+        "path": "F:/xlang-validation/xge-full-20261110/xui-language-entries-stage-win-r1/replay/stage-report.json",
+        "sha256": "143944169d345641da7f747726c5a2156fdb29b01e76237f8d1ca63d589592f4"
+      },
+      "consumerAudit": {
+        "path": "F:/xlang-validation/xge-full-20261110/xui-language-entries-consumers-win-r1/results.json",
+        "sha256": "5f52d3783c0a1c3fc39b7c7c6ba2cdd52e5e658225a1467a18b9f8e935ddf64b"
+      },
+      "nativeO0O2": {
+        "path": "F:/xlang-validation/xge-full-20261110/xui-language-entries-native-tests-win-r1/results.json",
+        "sha256": "c5e3829cff8b3ebc33fd0510b1c7ccefeff110ace89354f1ec7df965f9b5fec6"
+      },
+      "functionPopulation": 5890,
+      "directDeclarations": 4829,
+      "remaining": {
+        "XGE": 16,
+        "XUI": 57
+      },
+      "languageArray": {
+        "language": "xui.Language.textAt",
+        "native": "xuiLanguageGetTextAt",
+        "ownership": "Indexed snapshot of the pack slot, with checked mutation through Context",
+        "nativeArrayWitness": {
+          "source": "src/xui/core/xui_core.c",
+          "objectSha256": "1a2002051e777a70e0582f8e3d6c4d19e49ce3fa3eb756075c2d5fe8b4f3b6ce",
+          "relocationPath": [
+            ".refptr.XgeHostXrtSlot_xrtArrayConstGet",
+            "XgeHostXrtSlot_xrtArrayConstGet"
+          ]
+        }
+      },
+      "cases": {
+        "localization_entries": {
+          "report": {
+            "path": "F:/xlang-validation/xge-full-20261110/xui-language-entries-verify-win-r1/results.json",
+            "sha256": "8983dcd33233de4da59d06057e1c751d23115070879bca2aa64344d73b9ca494"
+          },
+          "steps": [
+            "emit",
+            "host-build",
+            "host-imports",
+            "host-run",
+            "jit",
+            "static-build",
+            "static-imports",
+            "static-run"
+          ],
+          "imports": {
+            "host": [
+              "msvcrt.dll",
+              "xge3_host.dll",
+              "kernel32.dll",
+              "shell32.dll",
+              "ucrtbase.dll"
+            ],
+            "static": [
+              "msvcrt.dll",
+              "kernel32.dll",
+              "user32.dll",
+              "ole32.dll",
+              "oleaut32.dll",
+              "shell32.dll",
+              "gdi32.dll",
+              "imm32.dll",
+              "dwrite.dll"
+            ]
+          },
+          "generated": {
+            "path": "F:/xlang-validation/xge-full-20261110/xui-language-entries-verify-win-r1/localization_entries/generated.c",
+            "sha256": "87ab03c21e0758e011560de49056977e86f30ad8837abf5d74bf6436c54934fd"
+          },
+          "indexedHeap128": {}
+        },
+        "foreign_xui_localization": {
+          "report": {
+            "path": "F:/xlang-validation/xge-full-20261110/xui-language-entries-verify-win-r2/results.json",
+            "sha256": "f36a3fb9a4a06eb5bdb98a032e945203d58cdde61fe014e9931994d8740a8b8a"
+          },
+          "steps": [
+            "emit",
+            "host-build",
+            "host-imports",
+            "host-run",
+            "jit",
+            "static-build",
+            "static-imports",
+            "static-run"
+          ],
+          "imports": {
+            "host": [
+              "msvcrt.dll",
+              "xge3_host.dll",
+              "kernel32.dll",
+              "shell32.dll",
+              "ws2_32.dll",
+              "iphlpapi.dll",
+              "ucrtbase.dll"
+            ],
+            "static": [
+              "msvcrt.dll",
+              "kernel32.dll",
+              "ole32.dll",
+              "shell32.dll"
+            ]
+          },
+          "generated": {
+            "path": "F:/xlang-validation/xge-full-20261110/xui-language-entries-verify-win-r2/foreign_xui_localization/generated.c",
+            "sha256": "394e8e6ff3d2946daa51bd99d46cda7d8249276ac4998503097d419fbd7ac1f5"
+          },
+          "indexedHeap128": {
+            "jit": {
+              "native": {
+                "alloc": 0,
+                "free": 0,
+                "realloc": 0
+              },
+              "language": {
+                "alloc": 128,
+                "free": 128,
+                "realloc": 0
+              }
+            },
+            "host-run": {
+              "native": {
+                "alloc": 0,
+                "free": 0,
+                "realloc": 0
+              },
+              "language": {
+                "alloc": 128,
+                "free": 128,
+                "realloc": 0
+              }
+            },
+            "static-run": {
+              "native": {
+                "alloc": 0,
+                "free": 0,
+                "realloc": 0
+              },
+              "language": {
+                "alloc": 128,
+                "free": 128,
+                "realloc": 0
+              }
+            }
+          }
+        }
+      }
+    },
+    "linux": {
+      "nativeSource": {
+        "path": "//wsl.localhost/Ubuntu/var/tmp/xlang-validation/xge-full-20261110/xui-language-entries-native-source-linux-r2.json",
+        "sha256": "63bc219a6ed0b08d5c917ce6fd3687f5cf3db3b1eebded519ffc35e91e88f55f"
+      },
+      "nativeHost": {
+        "path": "//wsl.localhost/Ubuntu/var/tmp/xlang-validation/xge-full-20261110/xui-language-entries-host-linux-r2/build-report.json",
+        "sha256": "9f4780a7398e03c23a13c87705cf99fde7715e047e958b26686cf19640740817"
+      },
+      "nativeStatic": {
+        "path": "//wsl.localhost/Ubuntu/var/tmp/xlang-validation/xge-full-20261110/xui-language-entries-static-linux-r2/build-report.json",
+        "sha256": "63c25cb178195539454f1973c2dec64f09fb0fe1267c382936fd1b201ca2fb6b"
+      },
+      "compiler": {
+        "path": "//wsl.localhost/Ubuntu/var/tmp/xlang-validation/xge-full-20261110/compiler-owned-output-pair-linux-r2/build.json",
+        "sha256": "bb4ad4330abb14095a0dc59233ed6e265033b4498b8f779a11ca4d0b9b176099"
+      },
+      "packageReplay": {
+        "path": "//wsl.localhost/Ubuntu/var/tmp/xlang-validation/xge-full-20261110/xui-language-entries-stage-linux-r1/replay/stage-report.json",
+        "sha256": "402536b2d4b8ae7d5612bb5611a711e9acc801737aa4f25ca65fe63f0e4e8066"
+      },
+      "consumerAudit": {
+        "path": "//wsl.localhost/Ubuntu/var/tmp/xlang-validation/xge-full-20261110/xui-language-entries-consumers-linux-r1/results.json",
+        "sha256": "d240987a94bb445563f8601808b2668f75e0d504f048a4ea303acf010ce33f50"
+      },
+      "nativeO0O2": {
+        "path": "//wsl.localhost/Ubuntu/var/tmp/xlang-validation/xge-full-20261110/xui-language-entries-native-tests-linux-r1/results.json",
+        "sha256": "a161408e309c89dc159ae34764e3a358b385caa64d1d3a3fce5d61e70811eaef"
+      },
+      "functionPopulation": 5890,
+      "directDeclarations": 4829,
+      "remaining": {
+        "XGE": 16,
+        "XUI": 57
+      },
+      "languageArray": {
+        "language": "xui.Language.textAt",
+        "native": "xuiLanguageGetTextAt",
+        "ownership": "Indexed snapshot of the pack slot, with checked mutation through Context",
+        "nativeArrayWitness": {
+          "source": "src/xui/core/xui_core.c",
+          "objectSha256": "a50a56ef144a7281b5f9a5fe86716ccfacdeee1d6cd6c08367c0d298d02fd2bd",
+          "relocationPath": [
+            "XgeHostXrtSlot_xrtArrayConstGet"
+          ]
+        }
+      },
+      "cases": {
+        "localization_entries": {
+          "report": {
+            "path": "//wsl.localhost/Ubuntu/var/tmp/xlang-validation/xge-full-20261110/xui-language-entries-verify-linux-r1/results.json",
+            "sha256": "624afba96b3325c375f297b32f28abbc5cbe434ccfe07f34ad26e4fb23b22bc6"
+          },
+          "steps": [
+            "emit",
+            "host-build",
+            "host-imports",
+            "host-run",
+            "jit",
+            "static-build",
+            "static-imports",
+            "static-run"
+          ],
+          "imports": {
+            "static": [
+              "libm.so.6",
+              "libmvec.so.1",
+              "libx11.so.6",
+              "libxi.so.6",
+              "libxcursor.so.1",
+              "libgl.so.1",
+              "libc.so.6",
+              "ld-linux-x86-64.so.2"
+            ],
+            "host": [
+              "libm.so.6",
+              "libmvec.so.1",
+              "libxge3_host.so",
+              "libc.so.6",
+              "ld-linux-x86-64.so.2"
+            ]
+          },
+          "generated": {
+            "path": "//wsl.localhost/Ubuntu/var/tmp/xlang-validation/xge-full-20261110/xui-language-entries-verify-linux-r1/localization_entries/generated.c",
+            "sha256": "87ab03c21e0758e011560de49056977e86f30ad8837abf5d74bf6436c54934fd"
+          },
+          "indexedHeap128": {}
+        },
+        "foreign_xui_localization": {
+          "report": {
+            "path": "//wsl.localhost/Ubuntu/var/tmp/xlang-validation/xge-full-20261110/xui-language-entries-verify-linux-r2/results.json",
+            "sha256": "e65da4e781863eeebcb1ee78da0bdf7961bb5b75d6d21ae4d7d47239d46a55ef"
+          },
+          "steps": [
+            "emit",
+            "host-build",
+            "host-imports",
+            "host-run",
+            "jit",
+            "static-build",
+            "static-imports",
+            "static-run"
+          ],
+          "imports": {
+            "static": [
+              "libm.so.6",
+              "libmvec.so.1",
+              "libx11.so.6",
+              "libxi.so.6",
+              "libxcursor.so.1",
+              "libgl.so.1",
+              "libc.so.6",
+              "ld-linux-x86-64.so.2"
+            ],
+            "host": [
+              "libm.so.6",
+              "libmvec.so.1",
+              "libxge3_host.so",
+              "libc.so.6",
+              "ld-linux-x86-64.so.2"
+            ]
+          },
+          "generated": {
+            "path": "//wsl.localhost/Ubuntu/var/tmp/xlang-validation/xge-full-20261110/xui-language-entries-verify-linux-r2/foreign_xui_localization/generated.c",
+            "sha256": "394e8e6ff3d2946daa51bd99d46cda7d8249276ac4998503097d419fbd7ac1f5"
+          },
+          "indexedHeap128": {
+            "jit": {
+              "native": {
+                "alloc": 0,
+                "free": 0,
+                "realloc": 0
+              },
+              "language": {
+                "alloc": 128,
+                "free": 128,
+                "realloc": 0
+              }
+            },
+            "host-run": {
+              "native": {
+                "alloc": 0,
+                "free": 0,
+                "realloc": 0
+              },
+              "language": {
+                "alloc": 128,
+                "free": 128,
+                "realloc": 0
+              }
+            },
+            "static-run": {
+              "native": {
+                "alloc": 0,
+                "free": 0,
+                "realloc": 0
+              },
+              "language": {
+                "alloc": 128,
+                "free": 128,
+                "realloc": 0
+              }
+            }
+          }
+        }
+      }
+    }
+  }
+}

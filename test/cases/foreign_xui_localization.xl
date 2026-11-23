@@ -4,13 +4,16 @@ from xui import Language
 extern "fixtureIconProxy" @header("test/cases/foreign_xui_icon_models.h") @no_raise @c_result("owned_view") @factory(0,0,dropProxy) func cpuProxy() as xui.Proxy
 extern "xuiProxyReleaseChecked" @header("xge3_runtime.h") @no_raise @c_result("status",0) func dropProxy(xui.Proxy value)
 extern "fixtureIconBudget" @no_raise func budget(c_int allowance)
-extern "fixtureIconHostReferences" @no_raise func hostReferences() as c_int
+extern "fixtureRenderBalanced" @header("test/cases/foreign_xui_render_backend.h") @no_raise func backendBalanced() as c_int
 extern "fixtureLocaleRemove" @header("test/cases/foreign_xui_localization.h") @no_raise @c_result("status",0) func remove(xui.Language language)
 extern "fixtureLocalePackCount" @no_raise func packCount(xui.Context context) as c_uint
 extern "fixtureLocaleBegin" @no_raise func beginHeap()
 extern "fixtureLocaleLiveUnchanged" @no_raise func liveUnchanged() as c_int
 extern "fixtureLocaleReport" @no_raise func reportHeap(c_int native)
 extern "fixtureLocaleNativeHot" @no_raise func nativeHot(xui.Language language)
+extern "fixtureLocaleCheckNativeSlots" @header("test/cases/foreign_xui_localization.h") @no_raise func checkNativeSlots(xui.Language language,uint64 index)
+extern "fixtureLocaleReportEntries" @header("test/cases/foreign_xui_localization.h") @no_raise func reportEntries(c_int native)
+extern "fixtureLocaleAllocationFailed" @header("test/cases/foreign_xui_localization.h") @no_raise func allocationFailed() as bool
 
 func attempt(xui.Context context,string code,string name,c_int allowance) as bool
     bool success=false
@@ -31,6 +34,54 @@ func retainedContext(xui.Proxy proxy) as Language
     auto context=xui.create(proxy,xui.XUI_SYSTEM_FONT_DISABLED)
     return context.createLanguage("retained","Retained Context")
 end
+
+func checkEntries(xui.Context context,xui.Language language) as string
+    uint64 index=uint64(xui.XUI_TR_EDIT_COPY-1)
+    auto missingId,missing=language.textAt(index)
+    assert missingId==xui.XUI_TR_EDIT_COPY and missing==null, "unset indexed text"
+    context.setLanguageText(language,xui.XUI_TR_EDIT_COPY,"")
+    auto emptyId,empty=language.textAt(index)
+    assert emptyId==missingId and empty!=null and (empty as string)=="", "empty indexed text"
+    context.setLanguageText(language,xui.XUI_TR_EDIT_COPY,"知道了")
+    auto savedId,saved=language.textAt(index)
+    assert savedId==missingId and (saved as string)=="知道了", "indexed text snapshot"
+    auto lastId,lastText=language.textAt(language.textCount-uint64(1))
+    assert lastId==xui.XUI_TR_COUNT-1 and lastText==null, "last indexed text"
+    c_int unchangedId=-1
+    string? unchangedText=null
+    bool rejected=false
+    try
+        unchangedId,unchangedText=language.textAt(language.textCount)
+    catch Error failure
+        rejected=failure.code==int(xui.XUI_ERROR_INVALID_ARGUMENT)
+    end
+    assert rejected and unchangedId==-1 and unchangedText==null, "out-of-range indexed rollback"
+
+    bool injected=false
+    rejected=false
+    budget(0)
+    try
+        unchangedId,unchangedText=language.textAt(index)
+    catch Error
+        rejected=true
+    finally
+        injected=allocationFailed()
+        budget(-1)
+    end
+    assert rejected and injected and unchangedId==-1 and unchangedText==null, "indexed snapshot OOM rollback"
+
+    checkNativeSlots(language,index)
+    beginHeap()
+    for round in range(128)
+        auto id,text=language.textAt(index)
+        assert id==missingId and text!=null, "indexed sample"
+    end
+    reportEntries(0)
+    context.clearLanguageText(language,xui.XUI_TR_EDIT_COPY)
+    assert (saved as string)=="知道了", "snapshot after clearing its slot"
+    return saved as string
+end
+
 func main(...) as int
     auto proxy=cpuProxy()
     auto context=xui.create(proxy,xui.XUI_SYSTEM_FONT_DISABLED)
@@ -38,6 +89,7 @@ func main(...) as int
     assert english.code=="en" and english.textCount==uint64(xui.XUI_TR_COUNT-1)
     assert context.languagePack(-1)==null and english.text(0)==null
     auto language=context.createLanguage("sample","示例语言")
+    string indexedSnapshot=checkEntries(context,language)
     auto id=language.id
     auto alias=context.languagePack(id) as Language
     assert alias.id==id and alias.name=="示例语言" and language.context().getLanguage()==context.getLanguage()
@@ -76,7 +128,7 @@ func main(...) as int
     retained.context().close()
     auto worker=thread(func() as int
         try
-            auto value=language.id
+            auto textId,text=language.textAt(uint64(0))
         catch StateError
             return 1
         end
@@ -109,13 +161,13 @@ func main(...) as int
     context.close()
     rejected=false
     try
-        auto expired=alias.name
+        auto textId,text=alias.textAt(uint64(0))
     catch StateError
         rejected=true
     end
-    assert rejected and snapshot=="知道了"
+    assert rejected and snapshot=="知道了" and indexedSnapshot=="知道了"
     proxy.close()
-    assert hostReferences()==1
+    assert backendBalanced()==1
     println("Localization: registry lifetime, fallback, snapshots, checked errors and 64 managed allocation budgets passed")
     return 0
 end

@@ -7,4 +7,7 @@ void fixtureLocaleBegin(void);
 int fixtureLocaleLiveUnchanged(void);
 void fixtureLocaleReport(int native);
 void fixtureLocaleNativeHot(xui_language language);
+void fixtureLocaleCheckNativeSlots(xui_language language, uint64_t nonemptyIndex);
+void fixtureLocaleReportEntries(int native);
+bool fixtureLocaleAllocationFailed(void);
 #endif

@@ -13,6 +13,7 @@ separate public close operation.
 | Context.languagePack | xuiGetLanguagePack, nullable owner-view query |
 | Language.id / code / name | Native ID and copied C-string metadata |
 | Language.textCount / text(id) | Native own-slot count and copied own text |
+| Language.textAt(index) | Checked indexed read of the stored ID and a nullable text snapshot |
 | Language.context | Same Context root, retained by the existing owner-view rule |
 | Context.setLanguageText | xuiLanguageSetText with checked C-string input |
 | Context.clearLanguageText | Same native operation with compile-time const-char NULL |
@@ -25,6 +26,18 @@ is null, present empty text is `""`. `Context.translate()` treats both unset and
 empty custom overrides as missing, checks the configured fallback pack once,
 then English. It is not recursive fallback traversal. Clearing removes an
 override; setting an empty string stores an actual empty slot.
+
+Pass a zero-based position to `Language.textAt()` to enumerate a pack's own
+slots up to `textCount`. The returned ID is the translation key. An unset slot
+still returns its ID with null text. An out-of-range position raises a checked
+error. The native call reads one slot directly and the language copies its
+string before leaving the Context scope.
+
+In 128 indexed reads of a nonempty translation, native C used zero heap
+allocations. The language path allocated and freed one string per read on
+Windows and Linux. The checked call preserves the caller's output on allocation
+failure. See the [enumeration example](../lib/bindings/xui/examples/localization_entries.xl)
+and [test evidence](../dev/release-materials/provenance/xui-language-entries-20261124.json).
 
 Code/name/text inputs are copied by XUI and reject embedded NUL at the language
 C-string boundary. Returned metadata and text are independent snapshots copied

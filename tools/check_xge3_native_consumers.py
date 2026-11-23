@@ -577,6 +577,8 @@ def main():
         calls = {}
         for unit, caller, callee in NATIVE_RELEASE_DELEGATES.values():
             calls.setdefault(unit, {})[caller] = (callee,)
+        if 'xuiLanguageGetTextAt' in functions:
+            calls.setdefault('src/xui/core/xui_core.c', {})['xuiLanguageGetTextAt'] = ('xrtArrayConstGet',)
         source, build_flags, evidence_inputs = witness_build_inputs(
             a.resource_engine_build.resolve(),audit,packages,tools['gcc'],sha,calls.keys(),
             ('src/xge/text/xge_text_resources.c',))
@@ -845,6 +847,21 @@ def main():
                     relocationPath=close_relocation_path(header_relocations[key],policy,destroy,release))
             elif document and symbol=='xuiDocumentFreeBuffer':
                 evidence=document['bufferReplacement']
+            elif symbol=='xuiGetLanguageTextArray' and a.resource_engine_build and 'xuiLanguageGetTextAt' in bound:
+                source = 'src/xui/core/xui_core.c'
+                witness = report['resourceLifetime'][source]
+                bindings = [row for row in bound['xuiLanguageGetTextAt'] if row['language']=='xui.Language.textAt']
+                assert len(bindings)==1
+                line = (view/bindings[0]['source']).read_text(encoding='utf-8-sig').splitlines()[bindings[0]['line']-1]
+                assert '@c_output_record(2,"xui_language_text_view_t","borrowed")' in line
+                assert '@c_output_field(1,"sText","cstring")' in line
+                assert any(row['language']=='xui.Language.textCount' for row in bound['xuiLanguageGetTextCount'])
+                assert {row['language'] for row in bound['xuiLanguageSetText']} == {
+                    'xui.Context.setLanguageText','xui.Context.clearLanguageText'}
+                evidence=dict(language='xui.Language.textAt',native='xuiLanguageGetTextAt',
+                    ownership='Indexed snapshot of the pack slot, with checked mutation through Context',
+                    nativeArrayWitness=dict(source=source,objectSha256=witness['objectSha256'],
+                        relocationPath=witness['relocationPaths']['xuiLanguageGetTextAt']['xrtArrayConstGet']))
             elif symbol=='xuiDockPanelStateFree' and a.resource_engine_build:
                 bindings = [row for row in bound['xuiDockPanelSaveState']
                             if row['language']=='xui.DockPanel.saveState']

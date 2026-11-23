@@ -27,3 +27,45 @@ void fixtureLocaleReport(int native)
 }
 void fixtureLocaleNativeHot(xui_language language)
 {for(int i=0;i<1000;++i){assert(xuiGetLanguageId(language)>=0);assert(xuiLanguageGetTextCount(language)>0);}}
+
+void fixtureLocaleCheckNativeSlots(xui_language language, uint64_t nonemptyIndex)
+{
+    const xarray* slots = xuiGetLanguageTextArray(language);
+    uint64_t count = xuiLanguageGetTextCount(language);
+    assert(slots && count == slots->Count);
+    for (uint64_t index = 0; index < count; ++index) {
+        const xui_language_text_t* original = xrtArrayConstGet(slots, (size_t)index);
+        xui_language_text_view_t entry = {0};
+        assert(xuiLanguageGetTextAt(language, index, &entry) == XUI_OK);
+        assert(entry.iTextId == original->iTextId && entry.sText == original->sText);
+    }
+    xui_language_text_view_t unchanged = {.iTextId = 99, .sText = NULL};
+    assert(xuiLanguageGetTextAt(language, count, &unchanged) == XUI_ERROR_INVALID_ARGUMENT);
+    assert(xuiLanguageGetTextAt(language, UINT64_MAX, &unchanged) == XUI_ERROR_INVALID_ARGUMENT);
+    assert(xuiLanguageGetTextAt(language, 0, NULL) == XUI_ERROR_INVALID_ARGUMENT);
+    assert(unchanged.iTextId == 99 && unchanged.sText == NULL);
+
+    fixtureLocaleBegin();
+    for (int i = 0; i < 128; ++i) {
+        xui_language_text_view_t entry = {0};
+        assert(xuiLanguageGetTextAt(language, nonemptyIndex, &entry) == XUI_OK);
+        assert(entry.sText && entry.sText[0]);
+    }
+    fixtureLocaleReportEntries(1);
+}
+
+void fixtureLocaleReportEntries(int native)
+{
+    xmemdebugsnapshot after;
+    xrtMemDebugSnapshot(&after);
+    assert(fixtureLocaleLiveUnchanged());
+    printf("Localization indexed %s: alloc=%llu free=%llu realloc=%llu\n", native ? "native" : "language",
+        (unsigned long long)(after.AllocCount - before.AllocCount),
+        (unsigned long long)(after.FreeCount - before.FreeCount),
+        (unsigned long long)(after.ReallocCount - before.ReallocCount));
+}
+
+bool fixtureLocaleAllocationFailed(void)
+{
+    return xrtMemDebugFailTriggered();
+}

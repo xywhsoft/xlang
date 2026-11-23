@@ -456,6 +456,13 @@
       "expected": "窗口显示“自定义复制”，来自当前语言包的译文。"
     },
     {
+      "name": "localization_entries",
+      "title": "Localization / enumerate custom translations",
+      "kind": "cpu",
+      "gallery": false,
+      "expected": "输出两个已设置的译文及其 ID。"
+    },
+    {
       "name": "asset_names",
       "title": "asset_names",
       "kind": "cpu",

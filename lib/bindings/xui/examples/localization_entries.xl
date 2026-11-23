@@ -1,0 +1,18 @@
+// 枚举自定义语言包中实际写入的译文。
+import xui
+
+func main(...) as int
+    auto proxy = xui.createProxy()
+    auto ui = xui.create(proxy, xui.XUI_SYSTEM_FONT_DISABLED)
+    auto language = ui.createLanguage("sample", "示例语言")
+    ui.setLanguageText(language, xui.XUI_TR_EDIT_COPY, "自定义复制")
+    ui.setLanguageText(language, xui.XUI_TR_EDIT_PASTE, "自定义粘贴")
+
+    for index in range(int(language.textCount))
+        auto id, text = language.textAt(uint64(index))
+        if text != null then
+            println(id, text as string)
+        end
+    end
+    return 0
+end
