@@ -1,6 +1,10 @@
 // Capabilities can be queried before creating an engine or window.
 import xge
 
+auto platformKind, platformName, platformCallbacks = xge.defaultPlatformBackendInfo()
+println("Default platform:", platformName as string, "kind:", platformKind)
+println("Default platform callback flags:", platformCallbacks)
+
 auto egl=xge.eglCapsGet()
 println("EGL compiled into this SDK:",egl.bCompiled!=c_int(0))
 println("PBuffer creation compiled:",egl.bPBuffer!=c_int(0))

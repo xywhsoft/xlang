@@ -1,0 +1,230 @@
+{
+  "schema": 1,
+  "scope": "Default, current and owned backend metadata plus synchronous callback-scoped native window access",
+  "nativeCommit": "e1b6db78af6737f0a9843cabb358f3dcb85f9dd0",
+  "shippingDelivery": false,
+  "networkTests": false,
+  "sourceSha256NormalizedLf": {
+    "lib/bindings/xge/src/backend.xl": "f359bb9e9dc6cf40251a8f7eaf674db4318d56841de2420bc269662c21d89d77",
+    "lib/bindings/xge/src/constants.xl": "21dac4e5266d4d2ced2ec8fa74a2893e9df80895a5415b123934ff4893e2ce93",
+    "docs/xge3-xui3-api-map-storage.json": "d61ad72c5de6867c0180981600357a13ed091818506ecebf5e634009f20c9b7d",
+    "lib/bindings/xge/examples/backend_capabilities.xl": "86fb63df721e75b42d89307f417f9eb21dea4f384ec8cbcfd714227c3e50be7f",
+    "test/cases/foreign_xge_backend_info.c": "d43af9897c6295dd3822becb8e84c3023753e0ef0e1dbd37c10a73aaeb76320a",
+    "test/cases/foreign_xge_backend_info.h": "cdef332c62db8a7be147b2f0ec530825441a47893f33256364ae8c32fb4c225b",
+    "test/cases/foreign_xge_backend_info.xl": "843f3c89a2c7060d9eed06d200f26f51b38133e59eb24b2f274d3a3332ec630c",
+    "test/cases/foreign_xge_input_events.xl": "5a61b8a28f92ffa54e0960d37252f0da81f97e0a59fb17dd611dce1f273e2067",
+    "tools/xge_replay_contracts.py": "dd917170ea7f5593624d73de4417cb561fc060ed932951f0590b5b4a12d62391"
+  },
+  "validation": {
+    "actualWindowsAndLinuxWindows": true,
+    "defaultAndCurrentDescriptors": true,
+    "nullableAndEmptyNamesDistinct": true,
+    "ownedSnapshotSurvivesRelease": true,
+    "legacyNameSnapshotIndependent": true,
+    "rejectedWrongThreadPreservesOutput": true,
+    "checkedSnapshotAllocationFailure": true,
+    "callbackViewExpires": true,
+    "callbackErrorPreserved": true,
+    "nativePositiveStatusFails": true,
+    "noWindowReturnsFalse": true
+  },
+  "performanceScope": "One thousand warmed visits to the same current native window in each program. Both callbacks verify identity using the same compiled C helper. The xlang loop reuses its callback value. The samples include synchronous callback admission and cleanup. Closure construction and metadata name copying are outside this measurement.",
+  "platforms": {
+    "win": {
+      "nativeSource": {
+        "path": "F:/xlang-validation/xge-full-20261110/backend-info-native-source-win-r2.json",
+        "sha256": "f337177f67075e948618c598866b5c694ec097df788d9fded002c97e61e6117e"
+      },
+      "languageJitDynamicStaticAot": {
+        "path": "F:/xlang-validation/xge-full-20261110/backend-info-verify-win-r5/results.json",
+        "sha256": "3776e93b1d86ff85da7f9102733e9d96bd90683b6aad5685d67778e7812f73e3"
+      },
+      "warmVisitSamples": {
+        "jit": {
+          "C": {
+            "iterations": 1000,
+            "allocations": 0,
+            "frees": 0,
+            "reallocations": 0,
+            "wallMs": 0.649
+          },
+          "xlang": {
+            "iterations": 1000,
+            "allocations": 0,
+            "frees": 0,
+            "reallocations": 0,
+            "wallMs": 2.008
+          }
+        },
+        "host-run": {
+          "C": {
+            "iterations": 1000,
+            "allocations": 0,
+            "frees": 0,
+            "reallocations": 0,
+            "wallMs": 0.272
+          },
+          "xlang": {
+            "iterations": 1000,
+            "allocations": 0,
+            "frees": 0,
+            "reallocations": 0,
+            "wallMs": 3.492
+          }
+        },
+        "static-run": {
+          "C": {
+            "iterations": 1000,
+            "allocations": 0,
+            "frees": 0,
+            "reallocations": 0,
+            "wallMs": 0.258
+          },
+          "xlang": {
+            "iterations": 1000,
+            "allocations": 0,
+            "frees": 0,
+            "reallocations": 0,
+            "wallMs": 4.951
+          }
+        }
+      },
+      "unboundCallbackGeneratedC": {
+        "path": "F:/xlang-validation/xge-full-20261110/backend-info-verify-win-r4/foreign_xge_backend_info/generated.c",
+        "sha256": "80b11f4977dce20b0e54938fc7db25160dd7dfc2a22114af53c229f0d37aed8a"
+      },
+      "unboundCallbackAllocationProbe": {
+        "path": "F:/xlang-validation/xge-full-20261110/backend-info-verify-win-r4/foreign_xge_backend_info/jit.log",
+        "sha256": "9a8d2d99f9d0e46736b76dbe26af6f8687045d1bc3feeb0ca982c6c365799549"
+      },
+      "declarationReplay": {
+        "path": "F:/xlang-validation/xge-full-20261110/backend-info-generator-win-r4/results.json",
+        "sha256": "24f0a4d6521f46e46ccf09fe635b0ba73e4927f8ce658fd0ff8c978a5f3e029f"
+      },
+      "nativeConsumerAudit": {
+        "path": "F:/xlang-validation/xge-full-20261110/backend-info-consumers-win-r3/results.json",
+        "sha256": "2fbd1e4274052ff8d02869d4bd900ca441f337e673d32376410f6282e43715de"
+      },
+      "functionPopulation": 5880,
+      "directDeclarations": 4816,
+      "pendingConsumerOrReplacement": {
+        "XGE": 42,
+        "XUI": 74
+      },
+      "matchedPackages": {
+        "path": "F:/xlang-validation/xge-full-20261110/backend-info-stage-win-r4/replay/stage-report.json",
+        "sha256": "761a4df4db83b0bd6aca7b20586c7e538c14315a058f2b6b8d8c4d12d9232893"
+      },
+      "staticO2Build": {
+        "path": "F:/xlang-validation/xge-full-20261110/backend-info-static-win-r2/build-report.json",
+        "sha256": "459d601d4ec6202e0c9333431a17f131dcd68f7acc29823477c668538b5c7880"
+      },
+      "hostO2Build": {
+        "path": "F:/xlang-validation/xge-full-20261110/backend-info-host-win-r2/build-report.json",
+        "sha256": "2933846da144bc01bd6137bebf9960b187964163617858735a102b7bd3c77b51"
+      },
+      "publicSurface": {
+        "path": "F:/xlang-validation/xge-full-20261110/backend-info-inventory-win-r4/surface.json",
+        "sha256": "943e321f86485e9dfba1d47838390fea77d668b7a561b20730a5b3d23b3f552a"
+      }
+    },
+    "linux": {
+      "nativeSource": {
+        "path": "//wsl.localhost/Ubuntu/var/tmp/xlang-validation/xge-full-20261110/backend-info-native-source-linux-r2.json",
+        "sha256": "ae73bd9787728e95b9864b23a7adb5565cf4986dd30d27923e8c9db775575e85"
+      },
+      "languageJitDynamicStaticAot": {
+        "path": "//wsl.localhost/Ubuntu/var/tmp/xlang-validation/xge-full-20261110/backend-info-verify-linux-r5/results.json",
+        "sha256": "d3c564d122ae960341c4ae0da24a9c8ba471be83ee5533516bdc37726a85b459"
+      },
+      "warmVisitSamples": {
+        "jit": {
+          "C": {
+            "iterations": 1000,
+            "allocations": 0,
+            "frees": 0,
+            "reallocations": 0,
+            "wallMs": 0.08
+          },
+          "xlang": {
+            "iterations": 1000,
+            "allocations": 0,
+            "frees": 0,
+            "reallocations": 0,
+            "wallMs": 1.17
+          }
+        },
+        "host-run": {
+          "C": {
+            "iterations": 1000,
+            "allocations": 0,
+            "frees": 0,
+            "reallocations": 0,
+            "wallMs": 0.411
+          },
+          "xlang": {
+            "iterations": 1000,
+            "allocations": 0,
+            "frees": 0,
+            "reallocations": 0,
+            "wallMs": 3.285
+          }
+        },
+        "static-run": {
+          "C": {
+            "iterations": 1000,
+            "allocations": 0,
+            "frees": 0,
+            "reallocations": 0,
+            "wallMs": 0.114
+          },
+          "xlang": {
+            "iterations": 1000,
+            "allocations": 0,
+            "frees": 0,
+            "reallocations": 0,
+            "wallMs": 1.499
+          }
+        }
+      },
+      "unboundCallbackGeneratedC": {
+        "path": "//wsl.localhost/Ubuntu/var/tmp/xlang-validation/xge-full-20261110/backend-info-verify-linux-r4/foreign_xge_backend_info/generated.c",
+        "sha256": "80b11f4977dce20b0e54938fc7db25160dd7dfc2a22114af53c229f0d37aed8a"
+      },
+      "unboundCallbackAllocationProbe": {
+        "path": "//wsl.localhost/Ubuntu/var/tmp/xlang-validation/xge-full-20261110/backend-info-verify-linux-r4/foreign_xge_backend_info/jit.log",
+        "sha256": "4a3850dfca986cf87865d5c571941b37158ff1e5950767358ce82074a963a18f"
+      },
+      "declarationReplay": {
+        "path": "//wsl.localhost/Ubuntu/var/tmp/xlang-validation/xge-full-20261110/backend-info-generator-linux-r4/results.json",
+        "sha256": "201c804fdda5c2f1b4bbaf11ae0ca771bebacb1b3a568315b4866af8eefa6618"
+      },
+      "nativeConsumerAudit": {
+        "path": "//wsl.localhost/Ubuntu/var/tmp/xlang-validation/xge-full-20261110/backend-info-consumers-linux-r3/results.json",
+        "sha256": "60f6294e2001c6a7557ee21aa8f54f0db1111826a29cea9650a8b846a46378c7"
+      },
+      "functionPopulation": 5880,
+      "directDeclarations": 4816,
+      "pendingConsumerOrReplacement": {
+        "XGE": 42,
+        "XUI": 74
+      },
+      "matchedPackages": {
+        "path": "//wsl.localhost/Ubuntu/var/tmp/xlang-validation/xge-full-20261110/backend-info-stage-linux-r4/replay/stage-report.json",
+        "sha256": "c884b387cc584ba67efe336275c14dadf906d560ba2736d94369cd3cf0a16129"
+      },
+      "staticO2Build": {
+        "path": "//wsl.localhost/Ubuntu/var/tmp/xlang-validation/xge-full-20261110/backend-info-static-linux-r2/build-report.json",
+        "sha256": "4214fc643f4a46fb98abaf8e097006247b82b6f7971d6e40a9104bf5464114e4"
+      },
+      "hostO2Build": {
+        "path": "//wsl.localhost/Ubuntu/var/tmp/xlang-validation/xge-full-20261110/backend-info-host-linux-r2/build-report.json",
+        "sha256": "93ba8ee47b9001adac7531c08b84e8ae9a5d05506315eadbcc79cdc74ea90796"
+      },
+      "publicSurface": {
+        "path": "//wsl.localhost/Ubuntu/var/tmp/xlang-validation/xge-full-20261110/backend-info-inventory-linux-r4/surface.json",
+        "sha256": "42070aac6c1d234a7b229265d8521c61fe3ecea3bf553a0ac50146ed3d649547"
+      }
+    }
+  }
+}

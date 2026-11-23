@@ -98,6 +98,13 @@ CLOSE_REPLACEMENTS = {
 }
 
 REPLACED = {
+    'xgePlatformBackendDefault': ('xge.defaultPlatformBackendInfo', 'xgePlatformBackendDefaultInfo'),
+    'xgeGraphicsBackendDefault': ('xge.defaultGraphicsBackendInfo', 'xgeGraphicsBackendDefaultInfo'),
+    'xgePlatformBackendGet': ('xge.currentPlatformBackendInfo', 'xgePlatformBackendCurrentInfo'),
+    'xgeGraphicsBackendGet': ('xge.currentGraphicsBackendInfo', 'xgeGraphicsBackendCurrentInfo'),
+    'xgePlatformBackendDescribe': ('xge.PlatformBackend.info', 'xgePlatformBackendInfoGet'),
+    'xgeGraphicsBackendDescribe': ('xge.GraphicsBackend.info', 'xgeGraphicsBackendInfoGet'),
+    'xgePlatformNativeHandle': ('xge.withNativeWindow', 'xgePlatformVisitNativeHandle'),
     'xgeDragEventCallbackSet': ('xge.setDragCallback', 'xgeDragEventCallbackSetOwned'),
     'xgeDragEventDispatch': ('xge.dispatchDragEvent', 'xgeDragEventDispatchChecked'),
     'xgeInputEventGet': ('xge.readInputEvent', 'xgeInputEventRead'),

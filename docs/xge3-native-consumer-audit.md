@@ -1,5 +1,29 @@
 # Native consumers in the full API inventory
 
+## Backend metadata and scoped native windows
+
+The platform and graphics defaults, current engine descriptors and owned
+backend descriptions return the backend kind, callback flags and a copied
+nullable name. The native functions provide those fields without invoking
+any hooks. The tests cover long names, empty and null names, creator-thread
+checks, checked allocation failure, and independent results after changes
+to the original descriptor or release of its owner.
+
+`xge.withNativeWindow()` calls the native visitor directly. Windows and Linux
+tests pass the live window to a C consumer, reject an expired view, and
+preserve the callback error. A manual session without a window reports
+`false`. Examples and tests pass JIT and dynamic and static AOT.
+
+In each linkage mode, 1,000 successful visits with a prebound callback use
+no XRT heap operations in either C or xlang. Generated C creates a closure
+when the named function is passed directly inside the loop. The samples
+include the native admission and synchronous callback costs.
+
+The matching audits cover 5,880 functions, with 4,816 direct declarations and
+116 unresolved functions. XGE accounts for 42 and XUI for 74.
+
+[Backend metadata and native window evidence](../dev/release-materials/provenance/xge-backend-info-20261124.json)
+
 ## Owned Windows IME text clients
 
 `xge.setImeTextClient()` uses the native owned registration. The callback

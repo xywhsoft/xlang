@@ -1,0 +1,132 @@
+import xge
+from xge import NativeWindow as WindowView
+from xge import NativeWindowVisitor as WindowVisitor
+
+extern "backendInstallLegacy" @header("test/cases/foreign_xge_backend_info.h") @no_raise func installLegacy()
+extern "backendChangeLegacyName" @header("test/cases/foreign_xge_backend_info.h") @no_raise func changeLegacyName()
+extern "backendCheckOtherThread" @header("test/cases/foreign_xge_backend_info.h") @no_raise func checkOtherThread(xge.PlatformBackend platform,xge.GraphicsBackend graphics)
+extern "backendWindowMatches" @header("test/cases/foreign_xge_backend_info.h") @no_raise func windowMatches(xge.NativeWindow window) as c_int
+extern "backendCheckWindowAbi" @header("test/cases/foreign_xge_backend_info.h") @no_raise func checkWindowAbi()
+extern "backendFailNextAllocation" @header("test/cases/foreign_xge_backend_info.h") @no_raise func failNextAllocation()
+extern "backendClearFailure" @header("test/cases/foreign_xge_backend_info.h") @no_raise func clearFailure() as c_int
+extern "backendBeginMeasure" @header("test/cases/foreign_xge_backend_info.h") @no_raise func beginMeasure()
+extern "backendEndMeasure" @header("test/cases/foreign_xge_backend_info.h") @no_raise func endMeasure(c_int language)
+extern "backendMeasureNative" @header("test/cases/foreign_xge_backend_info.h") @no_raise func measureNative()
+
+func visitWindow(xge.NativeWindow window) as c_int
+    assert windowMatches(window) == c_int(1)
+    return c_int(0)
+end
+
+func verifyBackends()
+    auto platformKind,platformName,platformMask = xge.defaultPlatformBackendInfo()
+    auto graphicsKind,graphicsName,graphicsMask = xge.defaultGraphicsBackendInfo()
+    assert platformKind == xge.XGE_PLATFORM_BACKEND_SOKOL and (platformName as string) == "sokol" and platformMask == 0
+    assert graphicsKind == xge.XGE_GPU_BACKEND_OPENGL33 and (graphicsName as string) == "opengl33" and graphicsMask == 0
+    auto currentKind,currentName,currentMask = xge.currentPlatformBackendInfo()
+    assert currentKind == platformKind and currentName == platformName and currentMask == 0
+    assert not xge.withNativeWindow(visitWindow)
+
+    xge.init(32,32,"Backend metadata",c_int(xge.XGE_INIT_OFFSCREEN),xge.XGE_RUN_MANUAL)
+    try
+        assert not xge.withNativeWindow(visitWindow)
+        installLegacy()
+        auto rawKind,rawName,rawMask = xge.currentPlatformBackendInfo()
+        auto rawGraphicsKind,rawGraphicsName,rawGraphicsMask = xge.currentGraphicsBackendInfo()
+        assert rawKind == xge.XGE_PLATFORM_BACKEND_CUSTOM and (rawName as string) == "legacy-platform"
+        assert rawMask == c_uint(xge.XGE_BACKEND_CALLBACK_POLL)
+        assert rawGraphicsKind == xge.XGE_GPU_BACKEND_CUSTOM and rawGraphicsName == null
+        assert rawGraphicsMask == c_uint(xge.XGE_BACKEND_CALLBACK_BEGIN)
+        changeLegacyName()
+        auto changedType,changedName,changedMask = xge.currentPlatformBackendInfo()
+        assert changedType == rawKind and changedMask == rawMask
+        assert (changedName as string) == "Legacy-platform" and (rawName as string) == "legacy-platform"
+
+        string longName = "platform-long-name-abcdefghijklmnopqrstuvwxyz-abcdefghijklmnopqrstuvwxyz-中文"
+        auto platform = xge.createPlatformBackend(xge.XGE_PLATFORM_BACKEND_CUSTOM,longName,onPoll=func() as c_int
+            throw RuntimeError "descriptor queries must never call poll"
+        end)
+        auto graphics = xge.createGraphicsBackend(xge.XGE_GPU_BACKEND_CUSTOM,"",onBegin=func() as c_int
+            throw RuntimeError "descriptor queries must never call begin"
+        end)
+        try
+            checkOtherThread(platform,graphics)
+            auto kind,name,mask = platform.info()
+            assert kind == xge.XGE_PLATFORM_BACKEND_CUSTOM and (name as string) == longName
+            assert mask == c_uint(xge.XGE_BACKEND_CALLBACK_POLL)
+            auto otherKind,otherName,otherMask = graphics.info()
+            assert otherKind == xge.XGE_GPU_BACKEND_CUSTOM and (otherName as string) == ""
+            assert otherMask == c_uint(xge.XGE_BACKEND_CALLBACK_BEGIN)
+            failNextAllocation()
+            bool rejected = false
+            try
+                auto failedKind,failedName,failedMask = platform.info()
+            catch error
+                rejected = true
+            end
+            assert clearFailure() == c_int(1) and rejected
+            auto retryKind,retryName,retryMask = platform.info()
+            assert retryKind == kind and retryName == name and retryMask == mask
+            platform.close()
+            assert (name as string) == longName
+        finally
+            platform.close()
+            graphics.close()
+        end
+    finally
+        xge.unit()
+    end
+end
+
+func verifyWindow()
+    checkWindowAbi()
+    WindowView? expired = null
+    assert xge.withNativeWindow(func(xge.NativeWindow window) as c_int
+        assert windowMatches(window) == c_int(1)
+        expired = window
+        return c_int(0)
+    end)
+    bool rejected = false
+    try
+        windowMatches(expired as WindowView)
+    catch error
+        rejected = true
+    end
+    assert rejected
+    rejected = false
+    try
+        xge.withNativeWindow(func(xge.NativeWindow window) as c_int
+            throw RuntimeError "window visitor failure"
+        end)
+    catch error
+        assert error.message == "window visitor failure"
+        rejected = true
+    end
+    assert rejected
+    measureNative()
+    WindowVisitor visitor = visitWindow
+    assert xge.withNativeWindow(visitor)
+    beginMeasure()
+    for i in range(1000)
+        assert xge.withNativeWindow(visitor)
+    end
+    endMeasure(1)
+end
+
+func main(...) as int
+    verifyBackends()
+    xge.init(240,120,"Native window visitor",0,xge.XGE_RUN_GAME_LOOP)
+    int frames = 0
+    try
+        xge.run(func() as c_int
+            verifyWindow()
+            frames += 1
+            return c_int(1)
+        end)
+    finally
+        xge.unit()
+    end
+    assert frames == 1
+    println("XGE_BACKEND_INFO_OK")
+    return 0
+end

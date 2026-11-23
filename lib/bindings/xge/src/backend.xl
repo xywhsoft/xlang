@@ -4,11 +4,13 @@ export typedef BackendActionCallback=func()
 
 export extern "struct xge_platform_backend_ref_t*" class PlatformBackend @header("xge3_backend.h") @lifetime("owned") @policy("xl6Xge3PlatformBackendPolicy") @domain("xl6Xge3PlatformBackendDomainV1")
  native point handle
+ extern "xgePlatformBackendInfoGet" @no_raise @c_output_record(1,"xge_backend_info_t","borrowed") @c_status(0) @c_output_field(0,"iType") @c_output_field(1,"sName","cstring") @c_output_field(2,"iCallbackMask") func info() as (c_int,string?,c_uint)
  extern "xgePlatformBackendShareOwned" @no_raise @c_result("owned_view") @factory(1,0,releasePlatformBackend) func share() as PlatformBackend
  extern "xl6ForeignViewCloseV1" @no_raise @c_control(0) @c_result("bool_status") func close()
 end
 export extern "struct xge_graphics_backend_ref_t*" class GraphicsBackend @header("xge3_backend.h") @lifetime("owned") @policy("xl6Xge3GraphicsBackendPolicy") @domain("xl6Xge3GraphicsBackendDomainV1")
  native point handle
+ extern "xgeGraphicsBackendInfoGet" @no_raise @c_output_record(1,"xge_backend_info_t","borrowed") @c_status(0) @c_output_field(0,"iType") @c_output_field(1,"sName","cstring") @c_output_field(2,"iCallbackMask") func info() as (c_int,string?,c_uint)
  extern "xgeGraphicsBackendShareOwned" @no_raise @c_result("owned_view") @factory(1,0,releaseGraphicsBackend) func share() as GraphicsBackend
  extern "xl6ForeignViewCloseV1" @no_raise @c_control(0) @c_result("bool_status") func close()
 end
@@ -61,3 +63,15 @@ extern "xgeHostSessionReleaseChecked" @header("xge3_backend.h") @no_raise @c_res
 // Framebuffer pixels and scale are explicit. The native system GL loader is
 // used by default; a typed optional resolver receives a callback-period name.
 export extern "xgeHostSessionCreateOwned" @header("xge3_backend.h") @no_raise @c_result("owned_view") @factory(0,0,releaseHostSession) @c_pack(1,"xge_host_session_desc_t",0,4) @c_pack_size(1,"size","uint32_t") @c_pack_field(1,"width",0,"value") @c_pack_field(1,"height",1,"value") @c_pack_field(1,"dpiScale",2,"value") @c_pack_field(1,"framebuffer",3,"value") @c_pack(4,"xge_host_context_hooks_t",6,4) @c_pack_callback_group(4,"pUser",5) @c_pack_field(4,"makeCurrent",6,"owned_callback") @c_pack_field(4,"isCurrent",7,"owned_callback") @c_pack_field(4,"release",8,"owned_callback") @c_pack_field(4,"getProcAddress",9,"owned_callback") @c_owned_callback(6,-1,"xge_callback_owner_t",-16) @c_owned_callback(7,-1,"xge_callback_owner_t",-16) @c_owned_callback(8,-1,"xge_callback_owner_t",0) @c_owned_callback(9,-1,"xge_callback_owner_t",0,"last") func createHostSession(c_int width,c_int height,c_float dpiScale,c_uint framebuffer,PlatformBackend platform,GraphicsBackend graphics,BackendStatusCallback makeCurrent,BackendStatusCallback isCurrent,HostReleaseCallback release,GlProcResolver? resolver=null) as HostSession
+
+export extern "xgePlatformBackendDefaultInfo" @header("xge3_runtime.h") @no_raise @c_output_record(0,"xge_backend_info_t","borrowed") @c_status(0) @c_output_field(0,"iType") @c_output_field(1,"sName","cstring") @c_output_field(2,"iCallbackMask") func defaultPlatformBackendInfo() as (c_int,string?,c_uint)
+export extern "xgeGraphicsBackendDefaultInfo" @header("xge3_runtime.h") @no_raise @c_output_record(0,"xge_backend_info_t","borrowed") @c_status(0) @c_output_field(0,"iType") @c_output_field(1,"sName","cstring") @c_output_field(2,"iCallbackMask") func defaultGraphicsBackendInfo() as (c_int,string?,c_uint)
+export extern "xgePlatformBackendCurrentInfo" @header("xge3_runtime.h") @no_raise @c_output_record(0,"xge_backend_info_t","borrowed") @c_status(0) @c_output_field(0,"iType") @c_output_field(1,"sName","cstring") @c_output_field(2,"iCallbackMask") func currentPlatformBackendInfo() as (c_int,string?,c_uint)
+export extern "xgeGraphicsBackendCurrentInfo" @header("xge3_runtime.h") @no_raise @c_output_record(0,"xge_backend_info_t","borrowed") @c_status(0) @c_output_field(0,"iType") @c_output_field(1,"sName","cstring") @c_output_field(2,"iCallbackMask") func currentGraphicsBackendInfo() as (c_int,string?,c_uint)
+
+// Pass this view to a matching native declaration during the callback.
+export extern "void*" class NativeWindow @header("xge3_runtime.h") @lifetime("callback")
+ native point handle
+end
+export typedef NativeWindowVisitor = func(NativeWindow) as c_int
+export extern "xgePlatformVisitNativeHandle" @header("xge3_runtime.h") @no_raise @c_sync_callback(0,-1,-16) @c_output(2,0) func withNativeWindow(NativeWindowVisitor visit) as bool

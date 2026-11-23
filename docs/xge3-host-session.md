@@ -1,6 +1,34 @@
 # Owning explicit host backends
 
-`lib/bindings/xge/src/backend.xl` targets native XGE
+## Backend metadata and native windows
+
+`PlatformBackend.info()` and `GraphicsBackend.info()` return
+`(kind, name, callbackMask)`. The name is an independent nullable string.
+The mask uses `XGE_BACKEND_CALLBACK_*` flags for the hooks actually present
+on the descriptor. Inspecting a descriptor invokes none of its hooks.
+
+`defaultPlatformBackendInfo()` and `defaultGraphicsBackendInfo()` can be
+called before engine creation. `currentPlatformBackendInfo()` and
+`currentGraphicsBackendInfo()` read the active engine descriptor on its
+creator thread and return defaults before initialization. These queries
+report configuration. An application uses `HostSession` to drive its owned
+custom backend callbacks.
+
+`xge.withNativeWindow(visitor)` passes the primary window to a synchronous
+visitor on the creator thread. It returns `false` before initialization or
+while an active session has no native window. Lifecycle transitions can
+return a checked Busy error. A visitor returns zero on success and can pass its
+`NativeWindow` to a matching platform-specific C declaration. Returning
+from the visitor invalidates that view. The window stays owned by the
+backend. Errors from the visitor propagate to the caller.
+
+For repeated visits, bind the visitor to a `NativeWindowVisitor` value once
+and pass that value each time. Passing a named function directly can create
+a new closure at each call.
+
+[Backend capabilities example](../lib/bindings/xge/examples/backend_capabilities.xl)
+
+`lib/bindings/xge/src/backend.xl` and its original host-session contracts were qualified at native XGE
 `466a1b003db896bbeb1dec10d624619ca34a7b45` and its pinned XRT producer
 `4641cd2e4da09d8b1a66872cabe085c263d8b5ba`. It requires the compiler's generic
 owned callback-group pack contract and a matching complete native SDK. This is

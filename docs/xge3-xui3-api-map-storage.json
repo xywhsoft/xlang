@@ -562,7 +562,7 @@
         },
         {
           "sourceFile": "include/xge.h",
-          "lfSha256": "c49026a1d6baaefb74f7abffebc35845b4410774cbb4882fe0453bf4c3d94b1d"
+          "lfSha256": "064545f220b85523605a775ec883d66b2acf8da15ff0b7409e2f5ecc19df3775"
         }
       ]
     },
@@ -591,7 +591,7 @@
       "declaration": "export extern \"xgeGraphicsShaderHeaderGet\" @header(\"xge3_runtime.h\") @c_span(1,\"char*\",\"int\") func graphicsShaderHeaderGet(c_int iBackend,Buffer sBuffer) as c_int",
       "storage": "bounded-synchronous-output",
       "sourceFile": "src/xge/core/xge_core.c",
-      "line": 932,
+      "line": 1037,
       "functionSha256": "2abed6c95f3f202e74d5b3c5e8b24f3cb11e88ec9559e254669968b95d448a9e"
     },
     "xgeGraphicsLibraryNameGet": {
@@ -599,7 +599,7 @@
       "declaration": "export extern \"xgeGraphicsLibraryNameGet\" @header(\"xge3_runtime.h\") @c_span(2,\"char*\",\"int\") func graphicsLibraryNameGet(c_int iBackend,c_int iIndex,Buffer sBuffer) as c_int",
       "storage": "bounded-synchronous-output",
       "sourceFile": "src/xge/core/xge_core.c",
-      "line": 939,
+      "line": 1044,
       "functionSha256": "caaa9b2cc9df04cbd5ccce5fb62e54e2046877997cb73bc026defaece5c345cc"
     },
     "xgeMiniProgramTouch": {
@@ -622,7 +622,7 @@
       "dependencies": [
         {
           "sourceFile": "include/xge.h",
-          "lfSha256": "c49026a1d6baaefb74f7abffebc35845b4410774cbb4882fe0453bf4c3d94b1d"
+          "lfSha256": "064545f220b85523605a775ec883d66b2acf8da15ff0b7409e2f5ecc19df3775"
         }
       ]
     },
@@ -688,7 +688,7 @@
       "dependencies": [
         {
           "sourceFile": "include/xge.h",
-          "lfSha256": "c49026a1d6baaefb74f7abffebc35845b4410774cbb4882fe0453bf4c3d94b1d"
+          "lfSha256": "064545f220b85523605a775ec883d66b2acf8da15ff0b7409e2f5ecc19df3775"
         },
         {
           "sourceFile": "src/xge/render/xge_render.c",
@@ -1290,7 +1290,7 @@
       "dependencies": [
         {
           "sourceFile": "include/xge.h",
-          "lfSha256": "c49026a1d6baaefb74f7abffebc35845b4410774cbb4882fe0453bf4c3d94b1d"
+          "lfSha256": "064545f220b85523605a775ec883d66b2acf8da15ff0b7409e2f5ecc19df3775"
         },
         {
           "sourceFile": "src/xge/core/xge_debug.c",
@@ -2233,7 +2233,7 @@
       "dependencies": [
         {
           "sourceFile": "include/xge.h",
-          "lfSha256": "c49026a1d6baaefb74f7abffebc35845b4410774cbb4882fe0453bf4c3d94b1d"
+          "lfSha256": "064545f220b85523605a775ec883d66b2acf8da15ff0b7409e2f5ecc19df3775"
         },
         {
           "sourceFile": "include/xui.h",
@@ -2522,7 +2522,7 @@
       "dependencies": [
         {
           "sourceFile": "include/xge.h",
-          "lfSha256": "c49026a1d6baaefb74f7abffebc35845b4410774cbb4882fe0453bf4c3d94b1d"
+          "lfSha256": "064545f220b85523605a775ec883d66b2acf8da15ff0b7409e2f5ecc19df3775"
         },
         {
           "sourceFile": "src/xge/render/xge_shape_ex.c",
@@ -2542,7 +2542,7 @@
       "dependencies": [
         {
           "sourceFile": "include/xge.h",
-          "lfSha256": "c49026a1d6baaefb74f7abffebc35845b4410774cbb4882fe0453bf4c3d94b1d"
+          "lfSha256": "064545f220b85523605a775ec883d66b2acf8da15ff0b7409e2f5ecc19df3775"
         },
         {
           "sourceFile": "src/xge/render/xge_shape_ex.c",
