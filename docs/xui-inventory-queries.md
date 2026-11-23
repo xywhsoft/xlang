@@ -91,3 +91,34 @@ allocated twice per call to copy the same strings.
 
 [Slot descriptor example](../lib/bindings/xui/examples/inventory_content.xl) ·
 [Validation and measurements](../dev/release-materials/provenance/xui-inventory-slot-descriptor-20261123.json)
+
+## Per-slot animation
+
+`setSlotAnimation(index, renderer, flags, scale, tint)` installs a renderer
+for one slot. It takes precedence over the grid animation renderer and uses
+the same drawing callback signature. The callback can capture application
+animation state and draw through the callback's DrawContext. Use
+`setSlotAnimationStyle()` to adjust the style without replacing the callback.
+`getSlotAnimation()` reads whether the slot has its own renderer and returns
+its flags, scale and tint in the same call.
+
+Passing `null` to `setSlotAnimation()` clears the slot animation. Use
+`setSlotAnimationStyle()` to let the grid renderer draw that slot again.
+Clearing a slot, shrinking it out of the grid or closing the grid releases its
+registration. An invocation keeps the callback and slot snapshot alive until
+it returns. An exception in the renderer reaches the checked render call.
+
+The native renderer index is allocated when the first painter is attached.
+Capacity follows peak concurrent registrations until the grid closes.
+Lookup uses binary search, and each dispatch pins the existing registration
+without another owner Hold. The callback's Widget, slot and DrawContext views
+are valid for that invocation. The grid keeps independent registrations after
+content, icon and descriptor edits.
+
+In 250 warmed paints driven by the same native CPU render loop, the C and
+xlang callbacks produced identical allocation counts on both platforms.
+Driving style and render from xlang on every iteration added one allocation
+per iteration in this sample. The callbacks only incremented a counter.
+
+[Per-slot animation example](../lib/bindings/xui/examples/inventory_paint.xl) ·
+[Validation and measurements](../dev/release-materials/provenance/xui-inventory-slot-painters-20261123.json)

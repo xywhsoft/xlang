@@ -1938,6 +1938,14 @@ METHODS.update({
     'xuiInventoryGridSetAnimationLayerOwned': (
         'int xuiInventoryGridSetAnimationLayerOwned(xui_widget pWidget, xui_inventory_animation_layer_proc onRender, void* pUser, const xui_callback_owner_t* pOwner)',
         'InventoryGrid', ['extern "xuiInventoryGridSetAnimationLayerOwned" @no_raise @c_owned_callback(0,0,"xui_callback_owner_t",-16) @c_result("status",0) func setAnimationRenderer(InventoryAnimationRenderProc? renderer)']),
+    'xuiInventoryGridSetSlotAnimationLayerOwned': (
+        'int xuiInventoryGridSetSlotAnimationLayerOwned(xui_widget pWidget, int iSlot, xui_inventory_animation_layer_proc onRender, '
+        'void* pUser, const xui_callback_owner_t* pOwner, uint32_t iFlags, float fScale, uint32_t iTint)',
+        'InventoryGrid', ['extern "xuiInventoryGridSetSlotAnimationLayerOwned" @no_raise @c_owned_callback(1,0,"xui_callback_owner_t",-16) @c_result("status",0) func setSlotAnimation(c_int index,InventoryAnimationRenderProc? renderer,c_uint flags=0,c_float scale=1.0,c_uint tint=0)']),
+    'xuiInventoryGridGetSlotAnimationLayer': (
+        'int xuiInventoryGridGetSlotAnimationLayer(xui_widget pWidget, int iSlot, int* pHasRenderer, '
+        'uint32_t* pFlags, float* pScale, uint32_t* pTint)',
+        'InventoryGrid', ['extern "xuiInventoryGridGetSlotAnimationLayer" @no_raise @c_outputs(2,3,4,5) @c_status(0) func getSlotAnimation(c_int index) as (c_int,c_uint,c_float,c_uint)']),
     'xuiInventoryGridSetSlotAnimationStyle': (
         'int xuiInventoryGridSetSlotAnimationStyle(xui_widget pWidget, int iSlot, uint32_t iFlags, float fScale, uint32_t iTint)',
         'InventoryGrid', ['extern "xuiInventoryGridSetSlotAnimationStyle" @no_raise @c_result("status",0) func setSlotAnimationStyle(c_int index,c_uint flags,c_float scale=1.0,c_uint tint=0)']),
@@ -1983,6 +1991,8 @@ REPLACED.update({
     'xuiInventoryGridSetDropCallback': ('xui.InventoryGrid.setDropCallback','xuiInventoryGridSetDropCallbackOwned'),
     'xuiInventoryGridSetTooltipCallback': ('xui.InventoryGrid.setTooltipProvider','xuiInventoryGridSetTooltipCallbackOwned'),
     'xuiInventoryGridSetRenderCallback': ('xui.InventoryGrid.setSlotRenderer','xuiInventoryGridSetRenderCallbackOwned'),
+    'xuiInventoryGridSetSlotAnimation': ('xui.InventoryGrid.setSlotAnimation', 'xuiInventoryGridSetSlotAnimationLayerOwned'),
+    'xuiInventoryGridGetSlotAnimation': ('xui.InventoryGrid.getSlotAnimation', 'xuiInventoryGridGetSlotAnimationLayer'),
     'xuiInventoryGridSetAnimationRenderCallback': ('xui.InventoryGrid.setAnimationRenderer','xuiInventoryGridSetAnimationLayerOwned'),
     'xuiTimeLineViewGetLayer': ('xui.TimeLineView.getLayer', 'xuiTimeLineViewGetLayerDescriptor'),
     'xuiTimeLineViewGetSpan': ('xui.TimeLineView.getSpan', 'xuiTimeLineViewGetSpanDescriptor'),

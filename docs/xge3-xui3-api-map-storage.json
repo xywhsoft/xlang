@@ -932,7 +932,7 @@
       "declaration": "extern \"xuiInventoryGridExportXSON\" @no_raise @c_span(0,\"char*\",\"int\") func exportXSON(Buffer sBuffer) as c_int",
       "storage": "bounded-synchronous-output",
       "sourceFile": "src/xui/controls/xui_inventory_grid.c",
-      "line": 5874,
+      "line": 6133,
       "functionSha256": "68f9ae30c7ed52bc2268a488a5366d71dea8ef5bf331b39cdd87b4e1e19f4da4"
     },
     "xuiTerminalWrite": {
@@ -1027,7 +1027,7 @@
         },
         {
           "sourceFile": "include/xui.h",
-          "lfSha256": "80f3538cd8b017d0968507cc66c009baceab206a382d62891a600873aff6c21f"
+          "lfSha256": "583ed1430a84333e261a319abd27bd914a54b1b04548308756331aa23f94bccb"
         }
       ]
     },
@@ -1289,7 +1289,7 @@
         },
         {
           "sourceFile": "include/xui.h",
-          "lfSha256": "80f3538cd8b017d0968507cc66c009baceab206a382d62891a600873aff6c21f"
+          "lfSha256": "583ed1430a84333e261a319abd27bd914a54b1b04548308756331aa23f94bccb"
         }
       ],
       "note": "Copies extensions, regex records and their text before publication. Both callbacks use one retained and traced owner, and invocation views are scoped. Regex-only registration holds no owner."
@@ -1391,7 +1391,7 @@
         },
         {
           "sourceFile": "include/xui.h",
-          "lfSha256": "80f3538cd8b017d0968507cc66c009baceab206a382d62891a600873aff6c21f"
+          "lfSha256": "583ed1430a84333e261a319abd27bd914a54b1b04548308756331aa23f94bccb"
         }
       ]
     },
@@ -1413,7 +1413,7 @@
         },
         {
           "sourceFile": "include/xui.h",
-          "lfSha256": "80f3538cd8b017d0968507cc66c009baceab206a382d62891a600873aff6c21f"
+          "lfSha256": "583ed1430a84333e261a319abd27bd914a54b1b04548308756331aa23f94bccb"
         }
       ]
     },
@@ -1435,7 +1435,7 @@
         },
         {
           "sourceFile": "include/xui.h",
-          "lfSha256": "80f3538cd8b017d0968507cc66c009baceab206a382d62891a600873aff6c21f"
+          "lfSha256": "583ed1430a84333e261a319abd27bd914a54b1b04548308756331aa23f94bccb"
         }
       ]
     },
@@ -1457,7 +1457,7 @@
         },
         {
           "sourceFile": "include/xui.h",
-          "lfSha256": "80f3538cd8b017d0968507cc66c009baceab206a382d62891a600873aff6c21f"
+          "lfSha256": "583ed1430a84333e261a319abd27bd914a54b1b04548308756331aa23f94bccb"
         }
       ]
     },
@@ -1479,7 +1479,7 @@
         },
         {
           "sourceFile": "include/xui.h",
-          "lfSha256": "80f3538cd8b017d0968507cc66c009baceab206a382d62891a600873aff6c21f"
+          "lfSha256": "583ed1430a84333e261a319abd27bd914a54b1b04548308756331aa23f94bccb"
         }
       ]
     },
@@ -1501,7 +1501,7 @@
         },
         {
           "sourceFile": "include/xui.h",
-          "lfSha256": "80f3538cd8b017d0968507cc66c009baceab206a382d62891a600873aff6c21f"
+          "lfSha256": "583ed1430a84333e261a319abd27bd914a54b1b04548308756331aa23f94bccb"
         }
       ]
     },
@@ -1523,7 +1523,7 @@
         },
         {
           "sourceFile": "include/xui.h",
-          "lfSha256": "80f3538cd8b017d0968507cc66c009baceab206a382d62891a600873aff6c21f"
+          "lfSha256": "583ed1430a84333e261a319abd27bd914a54b1b04548308756331aa23f94bccb"
         }
       ]
     },
@@ -1532,12 +1532,12 @@
       "declaration": "extern \"xuiInventoryGridSetSlotContent\" @no_raise @c_pack(2,\"xui_inventory_slot_content_t\",1,3) @c_pack_field(2,\"tSettings\",1,\"value\") @c_pack_field(2,\"sText\",2,\"c_string\") @c_pack_field(2,\"sHotkey\",3,\"c_string\") @c_result(\"status\",0) func setSlotContent(c_int index,InventorySlotSettings settings,string text=\"\",string hotkey=\"\")",
       "storage": "native-copy-or-synchronous-read",
       "sourceFile": "src/xui/controls/xui_inventory_grid.c",
-      "line": 4310,
+      "line": 4452,
       "functionSha256": "19512f396fa5b88bcaa6c23d41f6522f091b7f1a5edc7136ee5897602ccc8305",
       "dependencies": [
         {
           "sourceFile": "src/xui/controls/xui_inventory_grid.c",
-          "lfSha256": "59ccfc4e051608a97507cd02f2feb11c00b0fa1664fe246e6ab13d902b1a5ce4"
+          "lfSha256": "675930668b5b27802b80a5b7a81351b826a01e0128caf74214900e523f628946"
         },
         {
           "sourceFile": "src/xui/core/xui_widget.c",
@@ -1545,7 +1545,7 @@
         },
         {
           "sourceFile": "include/xui.h",
-          "lfSha256": "80f3538cd8b017d0968507cc66c009baceab206a382d62891a600873aff6c21f"
+          "lfSha256": "583ed1430a84333e261a319abd27bd914a54b1b04548308756331aa23f94bccb"
         }
       ]
     },
@@ -1554,12 +1554,12 @@
       "declaration": "extern \"xuiInventoryGridGetSlotContent\" @no_raise @c_output_record(2,\"xui_inventory_slot_content_t\",\"borrowed\") @c_status(0) @c_output_field(0,\"tSettings\") @c_output_field(1,\"sText\",\"cstring\") @c_output_field(2,\"sHotkey\",\"cstring\") func getSlotContent(c_int index) as (InventorySlotSettings,string,string)",
       "storage": "borrowed-synchronous-output",
       "sourceFile": "src/xui/controls/xui_inventory_grid.c",
-      "line": 4328,
+      "line": 4465,
       "functionSha256": "4b8078f7eeadcdf02a00e7ea9f27bdb9daa8e1721e53e9a09f8ed1673359b639",
       "dependencies": [
         {
           "sourceFile": "src/xui/controls/xui_inventory_grid.c",
-          "lfSha256": "59ccfc4e051608a97507cd02f2feb11c00b0fa1664fe246e6ab13d902b1a5ce4"
+          "lfSha256": "675930668b5b27802b80a5b7a81351b826a01e0128caf74214900e523f628946"
         },
         {
           "sourceFile": "src/xui/core/xui_widget.c",
@@ -1567,7 +1567,7 @@
         },
         {
           "sourceFile": "include/xui.h",
-          "lfSha256": "80f3538cd8b017d0968507cc66c009baceab206a382d62891a600873aff6c21f"
+          "lfSha256": "583ed1430a84333e261a319abd27bd914a54b1b04548308756331aa23f94bccb"
         }
       ]
     },
@@ -1576,12 +1576,12 @@
       "declaration": "extern \"xuiInventoryGridQuerySlotsOwned\" @no_raise @c_result(\"owned_view\") @factory(2,0,releaseInventoryIndices) @c_sync_callback(5,0,0,\"last\",\"xge3_runtime.h\") @c_sync_callback(6,0,0,\"last\",\"xge3_runtime.h\") @c_pack(1,\"xui_inventory_slot_query_t\",0,7) @c_pack_size(1,\"iSize\",\"uint32_t\") @c_pack_field(1,\"iFlags\",0,\"value\") @c_pack_field(1,\"iRequiredFlags\",1,\"value\") @c_pack_field(1,\"iRejectedFlags\",2,\"value\") @c_pack_field(1,\"iSortMode\",3,\"value\") @c_pack_field(1,\"sTextContains\",4,\"c_string\") @c_pack_field(1,\"onFilter\",5,\"callback\") @c_pack_field(1,\"pFilterUser\",5,\"callback_user\") @c_pack_field(1,\"onCompare\",6,\"callback\") @c_pack_field(1,\"pCompareUser\",6,\"callback_user\") func querySlots(c_uint flags=0,c_uint requiredFlags=0,c_uint rejectedFlags=0,c_int sortMode=0,string? textContains=null,InventoryFilterProc? filter=null,InventoryCompareProc? compare=null) as InventoryIndices",
       "storage": "synchronous-callback-owned-output",
       "sourceFile": "src/xui/controls/xui_inventory_grid.c",
-      "line": 4984,
+      "line": 5151,
       "functionSha256": "f26cdc92fb6007bb31f3a4d2323a19ffdc12ca4224a3ea903c777d21c5f783a7",
       "dependencies": [
         {
           "sourceFile": "src/xui/controls/xui_inventory_grid.c",
-          "lfSha256": "59ccfc4e051608a97507cd02f2feb11c00b0fa1664fe246e6ab13d902b1a5ce4"
+          "lfSha256": "675930668b5b27802b80a5b7a81351b826a01e0128caf74214900e523f628946"
         },
         {
           "sourceFile": "src/xui/core/xui_widget.c",
@@ -1589,7 +1589,7 @@
         },
         {
           "sourceFile": "include/xui.h",
-          "lfSha256": "80f3538cd8b017d0968507cc66c009baceab206a382d62891a600873aff6c21f"
+          "lfSha256": "583ed1430a84333e261a319abd27bd914a54b1b04548308756331aa23f94bccb"
         }
       ]
     },
@@ -1598,12 +1598,12 @@
       "declaration": "extern \"xuiInventoryGridSortSlotsOwned\" @no_raise @c_array_group(1,0,1,\"int\",1) @c_array_input(1,0,\"const int*\",\"value\") @c_sync_callback(4,0,0,\"last\",\"xge3_runtime.h\") @c_result(\"owned_view\") @factory(7,0,releaseInventoryIndices) func sortSlots(array<c_int> slots,int size=-1,c_int sortMode=0,c_uint flags=0,InventoryCompareProc? compare=null) as InventoryIndices",
       "storage": "synchronous-callback-owned-output",
       "sourceFile": "src/xui/controls/xui_inventory_grid.c",
-      "line": 5076,
+      "line": 5243,
       "functionSha256": "58411d2228e030865f715fd5d93945720382dd8cfd36868d4873b81f6bf41bb6",
       "dependencies": [
         {
           "sourceFile": "src/xui/controls/xui_inventory_grid.c",
-          "lfSha256": "59ccfc4e051608a97507cd02f2feb11c00b0fa1664fe246e6ab13d902b1a5ce4"
+          "lfSha256": "675930668b5b27802b80a5b7a81351b826a01e0128caf74214900e523f628946"
         },
         {
           "sourceFile": "src/xui/core/xui_widget.c",
@@ -1611,7 +1611,7 @@
         },
         {
           "sourceFile": "include/xui.h",
-          "lfSha256": "80f3538cd8b017d0968507cc66c009baceab206a382d62891a600873aff6c21f"
+          "lfSha256": "583ed1430a84333e261a319abd27bd914a54b1b04548308756331aa23f94bccb"
         }
       ]
     },
@@ -1620,12 +1620,12 @@
       "declaration": "extern \"xuiInventoryGridSetDragCallbackOwned\" @no_raise @c_owned_callback(0,0,\"xui_callback_owner_t\",0) @c_result(\"status\",0) func setDragCallback(InventoryDragProc? onDrag)",
       "storage": "owned-callback",
       "sourceFile": "src/xui/controls/xui_inventory_grid.c",
-      "line": 5288,
+      "line": 5455,
       "functionSha256": "2dd958bd7baab37d58b0a1b55501ffdb048c5015fd18303845ce8a174e7e6833",
       "dependencies": [
         {
           "sourceFile": "src/xui/controls/xui_inventory_grid.c",
-          "lfSha256": "59ccfc4e051608a97507cd02f2feb11c00b0fa1664fe246e6ab13d902b1a5ce4"
+          "lfSha256": "675930668b5b27802b80a5b7a81351b826a01e0128caf74214900e523f628946"
         },
         {
           "sourceFile": "src/xui/core/xui_widget.c",
@@ -1637,7 +1637,7 @@
         },
         {
           "sourceFile": "include/xui.h",
-          "lfSha256": "80f3538cd8b017d0968507cc66c009baceab206a382d62891a600873aff6c21f"
+          "lfSha256": "583ed1430a84333e261a319abd27bd914a54b1b04548308756331aa23f94bccb"
         }
       ]
     },
@@ -1646,12 +1646,12 @@
       "declaration": "extern \"xuiInventoryGridSetDropCallbackOwned\" @no_raise @c_owned_callback(0,0,\"xui_callback_owner_t\",0) @c_result(\"status\",0) func setDropCallback(InventoryDropProc? onDrop)",
       "storage": "owned-callback",
       "sourceFile": "src/xui/controls/xui_inventory_grid.c",
-      "line": 5312,
+      "line": 5479,
       "functionSha256": "52f6dc08298785c62d7c976a8fbfdffec542c3a92f346ea41e6dfd41b8a7416f",
       "dependencies": [
         {
           "sourceFile": "src/xui/controls/xui_inventory_grid.c",
-          "lfSha256": "59ccfc4e051608a97507cd02f2feb11c00b0fa1664fe246e6ab13d902b1a5ce4"
+          "lfSha256": "675930668b5b27802b80a5b7a81351b826a01e0128caf74214900e523f628946"
         },
         {
           "sourceFile": "src/xui/core/xui_widget.c",
@@ -1663,7 +1663,7 @@
         },
         {
           "sourceFile": "include/xui.h",
-          "lfSha256": "80f3538cd8b017d0968507cc66c009baceab206a382d62891a600873aff6c21f"
+          "lfSha256": "583ed1430a84333e261a319abd27bd914a54b1b04548308756331aa23f94bccb"
         }
       ]
     },
@@ -1672,12 +1672,12 @@
       "declaration": "extern \"xuiInventoryGridSetTooltipCallbackOwned\" @no_raise @c_owned_callback(0,0,\"xui_callback_owner_t\",0,\"owned_text\") @c_result(\"status\",0) func setTooltipProvider(InventoryTooltipProc? provider)",
       "storage": "owned-callback",
       "sourceFile": "src/xui/controls/xui_inventory_grid.c",
-      "line": 5403,
+      "line": 5570,
       "functionSha256": "87a7a829fbd4e9a12cd7e003ac06cbbade48c6c0b52b472cbf2a10aed086d5d3",
       "dependencies": [
         {
           "sourceFile": "src/xui/controls/xui_inventory_grid.c",
-          "lfSha256": "59ccfc4e051608a97507cd02f2feb11c00b0fa1664fe246e6ab13d902b1a5ce4"
+          "lfSha256": "675930668b5b27802b80a5b7a81351b826a01e0128caf74214900e523f628946"
         },
         {
           "sourceFile": "src/xui/core/xui_widget.c",
@@ -1689,7 +1689,7 @@
         },
         {
           "sourceFile": "include/xui.h",
-          "lfSha256": "80f3538cd8b017d0968507cc66c009baceab206a382d62891a600873aff6c21f"
+          "lfSha256": "583ed1430a84333e261a319abd27bd914a54b1b04548308756331aa23f94bccb"
         }
       ]
     },
@@ -1698,12 +1698,12 @@
       "declaration": "extern \"xuiInventoryGridSetRenderCallbackOwned\" @no_raise @c_owned_callback(0,0,\"xui_callback_owner_t\",-16) @c_result(\"status\",0) func setSlotRenderer(InventorySlotRenderProc? renderer)",
       "storage": "owned-callback",
       "sourceFile": "src/xui/controls/xui_inventory_grid.c",
-      "line": 5435,
+      "line": 5602,
       "functionSha256": "f68f6843ac541efcee054f2b9997859dacb0a25377aad3d00df099e0d9e231ac",
       "dependencies": [
         {
           "sourceFile": "src/xui/controls/xui_inventory_grid.c",
-          "lfSha256": "59ccfc4e051608a97507cd02f2feb11c00b0fa1664fe246e6ab13d902b1a5ce4"
+          "lfSha256": "675930668b5b27802b80a5b7a81351b826a01e0128caf74214900e523f628946"
         },
         {
           "sourceFile": "src/xui/core/xui_widget.c",
@@ -1715,7 +1715,7 @@
         },
         {
           "sourceFile": "include/xui.h",
-          "lfSha256": "80f3538cd8b017d0968507cc66c009baceab206a382d62891a600873aff6c21f"
+          "lfSha256": "583ed1430a84333e261a319abd27bd914a54b1b04548308756331aa23f94bccb"
         }
       ]
     },
@@ -1724,12 +1724,12 @@
       "declaration": "extern \"xuiInventoryGridSetAnimationLayerOwned\" @no_raise @c_owned_callback(0,0,\"xui_callback_owner_t\",-16) @c_result(\"status\",0) func setAnimationRenderer(InventoryAnimationRenderProc? renderer)",
       "storage": "owned-callback",
       "sourceFile": "src/xui/controls/xui_inventory_grid.c",
-      "line": 5479,
+      "line": 5646,
       "functionSha256": "f836cb3254cb77b2341c07685d64ec209398d75147fbb6151e3a11ff7ccaf80e",
       "dependencies": [
         {
           "sourceFile": "src/xui/controls/xui_inventory_grid.c",
-          "lfSha256": "59ccfc4e051608a97507cd02f2feb11c00b0fa1664fe246e6ab13d902b1a5ce4"
+          "lfSha256": "675930668b5b27802b80a5b7a81351b826a01e0128caf74214900e523f628946"
         },
         {
           "sourceFile": "src/xui/core/xui_widget.c",
@@ -1741,7 +1741,7 @@
         },
         {
           "sourceFile": "include/xui.h",
-          "lfSha256": "80f3538cd8b017d0968507cc66c009baceab206a382d62891a600873aff6c21f"
+          "lfSha256": "583ed1430a84333e261a319abd27bd914a54b1b04548308756331aa23f94bccb"
         }
       ]
     },
@@ -1750,12 +1750,12 @@
       "declaration": "extern \"xuiInventoryGridSetSlotIcon\" @no_raise @c_result(\"status\",0) func setSlotIcon(c_int index,Surface? icon,Rect source,c_uint tint=0)",
       "storage": "shared-owned-surface-slot",
       "sourceFile": "src/xui/controls/xui_inventory_grid.c",
-      "line": 4341,
+      "line": 4505,
       "functionSha256": "602b8330e89bc4a98acbe47a45574324066c596570ed8fae7a80bcaa369a6c8c",
       "dependencies": [
         {
           "sourceFile": "src/xui/controls/xui_inventory_grid.c",
-          "lfSha256": "59ccfc4e051608a97507cd02f2feb11c00b0fa1664fe246e6ab13d902b1a5ce4"
+          "lfSha256": "675930668b5b27802b80a5b7a81351b826a01e0128caf74214900e523f628946"
         },
         {
           "sourceFile": "src/xui/core/xui_widget.c",
@@ -1771,7 +1771,7 @@
         },
         {
           "sourceFile": "include/xui.h",
-          "lfSha256": "80f3538cd8b017d0968507cc66c009baceab206a382d62891a600873aff6c21f"
+          "lfSha256": "583ed1430a84333e261a319abd27bd914a54b1b04548308756331aa23f94bccb"
         }
       ]
     },
@@ -1780,12 +1780,12 @@
       "declaration": "extern \"xuiInventoryGridGetSlotIcon\" @no_raise @c_output_retain(2,retainSurface,\"zero\",rollbackSurface) @c_outputs(2,3,4) @c_status(0) func getSlotIcon(c_int index) as (Surface?,Rect,c_uint)",
       "storage": "retained-surface-output",
       "sourceFile": "src/xui/controls/xui_inventory_grid.c",
-      "line": 4353,
+      "line": 4517,
       "functionSha256": "ed65c7a335b2d2f1989f061d240df5587de7e2e1f46ec5232af57d7237229533",
       "dependencies": [
         {
           "sourceFile": "src/xui/controls/xui_inventory_grid.c",
-          "lfSha256": "59ccfc4e051608a97507cd02f2feb11c00b0fa1664fe246e6ab13d902b1a5ce4"
+          "lfSha256": "675930668b5b27802b80a5b7a81351b826a01e0128caf74214900e523f628946"
         },
         {
           "sourceFile": "src/xui/core/xui_widget.c",
@@ -1801,7 +1801,7 @@
         },
         {
           "sourceFile": "include/xui.h",
-          "lfSha256": "80f3538cd8b017d0968507cc66c009baceab206a382d62891a600873aff6c21f"
+          "lfSha256": "583ed1430a84333e261a319abd27bd914a54b1b04548308756331aa23f94bccb"
         }
       ]
     },
@@ -1810,12 +1810,12 @@
       "declaration": "extern \"xuiInventoryGridGetScrollSnapshot\" @no_raise @c_output(1,0) func scrollSnapshot() as ScrollModel",
       "storage": "copied-record-output",
       "sourceFile": "src/xui/controls/xui_inventory_grid.c",
-      "line": 4720,
+      "line": 4887,
       "functionSha256": "4cd9925a9052d0f9842456899584fcecbea2be45285ef85a9aeee97a7770880f",
       "dependencies": [
         {
           "sourceFile": "src/xui/controls/xui_inventory_grid.c",
-          "lfSha256": "59ccfc4e051608a97507cd02f2feb11c00b0fa1664fe246e6ab13d902b1a5ce4"
+          "lfSha256": "675930668b5b27802b80a5b7a81351b826a01e0128caf74214900e523f628946"
         },
         {
           "sourceFile": "src/xui/core/xui_widget.c",
@@ -1827,7 +1827,7 @@
         },
         {
           "sourceFile": "include/xui.h",
-          "lfSha256": "80f3538cd8b017d0968507cc66c009baceab206a382d62891a600873aff6c21f"
+          "lfSha256": "583ed1430a84333e261a319abd27bd914a54b1b04548308756331aa23f94bccb"
         }
       ]
     },
@@ -1853,7 +1853,7 @@
         },
         {
           "sourceFile": "include/xui.h",
-          "lfSha256": "80f3538cd8b017d0968507cc66c009baceab206a382d62891a600873aff6c21f"
+          "lfSha256": "583ed1430a84333e261a319abd27bd914a54b1b04548308756331aa23f94bccb"
         }
       ]
     },
@@ -1879,7 +1879,7 @@
         },
         {
           "sourceFile": "include/xui.h",
-          "lfSha256": "80f3538cd8b017d0968507cc66c009baceab206a382d62891a600873aff6c21f"
+          "lfSha256": "583ed1430a84333e261a319abd27bd914a54b1b04548308756331aa23f94bccb"
         }
       ]
     },
@@ -1905,7 +1905,7 @@
         },
         {
           "sourceFile": "include/xui.h",
-          "lfSha256": "80f3538cd8b017d0968507cc66c009baceab206a382d62891a600873aff6c21f"
+          "lfSha256": "583ed1430a84333e261a319abd27bd914a54b1b04548308756331aa23f94bccb"
         }
       ]
     },
@@ -1927,7 +1927,7 @@
         },
         {
           "sourceFile": "include/xui.h",
-          "lfSha256": "80f3538cd8b017d0968507cc66c009baceab206a382d62891a600873aff6c21f"
+          "lfSha256": "583ed1430a84333e261a319abd27bd914a54b1b04548308756331aa23f94bccb"
         }
       ]
     },
@@ -1953,7 +1953,7 @@
         },
         {
           "sourceFile": "include/xui.h",
-          "lfSha256": "80f3538cd8b017d0968507cc66c009baceab206a382d62891a600873aff6c21f"
+          "lfSha256": "583ed1430a84333e261a319abd27bd914a54b1b04548308756331aa23f94bccb"
         }
       ]
     },
@@ -1971,7 +1971,7 @@
         },
         {
           "sourceFile": "include/xui.h",
-          "lfSha256": "80f3538cd8b017d0968507cc66c009baceab206a382d62891a600873aff6c21f"
+          "lfSha256": "583ed1430a84333e261a319abd27bd914a54b1b04548308756331aa23f94bccb"
         }
       ]
     },
@@ -1989,7 +1989,7 @@
         },
         {
           "sourceFile": "include/xui.h",
-          "lfSha256": "80f3538cd8b017d0968507cc66c009baceab206a382d62891a600873aff6c21f"
+          "lfSha256": "583ed1430a84333e261a319abd27bd914a54b1b04548308756331aa23f94bccb"
         }
       ]
     },
@@ -2007,7 +2007,7 @@
         },
         {
           "sourceFile": "include/xui.h",
-          "lfSha256": "80f3538cd8b017d0968507cc66c009baceab206a382d62891a600873aff6c21f"
+          "lfSha256": "583ed1430a84333e261a319abd27bd914a54b1b04548308756331aa23f94bccb"
         }
       ]
     },
@@ -2025,7 +2025,7 @@
         },
         {
           "sourceFile": "include/xui.h",
-          "lfSha256": "80f3538cd8b017d0968507cc66c009baceab206a382d62891a600873aff6c21f"
+          "lfSha256": "583ed1430a84333e261a319abd27bd914a54b1b04548308756331aa23f94bccb"
         }
       ]
     },
@@ -2043,7 +2043,7 @@
         },
         {
           "sourceFile": "include/xui.h",
-          "lfSha256": "80f3538cd8b017d0968507cc66c009baceab206a382d62891a600873aff6c21f"
+          "lfSha256": "583ed1430a84333e261a319abd27bd914a54b1b04548308756331aa23f94bccb"
         }
       ]
     },
@@ -2057,7 +2057,7 @@
       "dependencies": [
         {
           "sourceFile": "include/xui.h",
-          "lfSha256": "80f3538cd8b017d0968507cc66c009baceab206a382d62891a600873aff6c21f"
+          "lfSha256": "583ed1430a84333e261a319abd27bd914a54b1b04548308756331aa23f94bccb"
         },
         {
           "sourceFile": "src/xui/core/xui_widget.c",
@@ -2075,7 +2075,7 @@
       "dependencies": [
         {
           "sourceFile": "include/xui.h",
-          "lfSha256": "80f3538cd8b017d0968507cc66c009baceab206a382d62891a600873aff6c21f"
+          "lfSha256": "583ed1430a84333e261a319abd27bd914a54b1b04548308756331aa23f94bccb"
         },
         {
           "sourceFile": "src/xui/core/xui_widget.c",
@@ -2088,12 +2088,12 @@
       "declaration": "extern \"xuiInventoryGridSetSlotDescriptor\" @no_raise @c_pack(2,\"xui_inventory_slot_desc_t\",1,9) @c_pack_size(2,\"iSize\",\"uint32_t\") @c_pack_field(2,\"tSettings\",1,\"value\") @c_pack_field(2,\"sText\",2,\"c_string\") @c_pack_field(2,\"sHotkey\",3,\"c_string\") @c_pack_field(2,\"pIcon\",4,\"view_raw\") @c_pack_field(2,\"tIconSrc\",5,\"value\") @c_pack_field(2,\"iIconTint\",6,\"value\") @c_pack_field(2,\"iAnimationFlags\",7,\"value\") @c_pack_field(2,\"fAnimationScale\",8,\"value\") @c_pack_field(2,\"iAnimationTint\",9,\"value\") @c_result(\"status\",0) func setSlot(c_int index,InventorySlotSettings settings,string text=\"\",string hotkey=\"\",Surface? icon=null,Rect iconSource=Rect(),c_uint iconTint=0,c_uint animationFlags=0,c_float animationScale=1.0,c_uint animationTint=0)",
       "storage": "shared-owned-surface-slot",
       "sourceFile": "src/xui/controls/xui_inventory_grid.c",
-      "line": 4362,
+      "line": 4476,
       "functionSha256": "16b4bf511843e6f864c786163a30e00f09496cc6f6855c8c82a7cdf45166eddb",
       "dependencies": [
         {
           "sourceFile": "src/xui/controls/xui_inventory_grid.c",
-          "lfSha256": "59ccfc4e051608a97507cd02f2feb11c00b0fa1664fe246e6ab13d902b1a5ce4"
+          "lfSha256": "675930668b5b27802b80a5b7a81351b826a01e0128caf74214900e523f628946"
         },
         {
           "sourceFile": "src/xui/core/xui_widget.c",
@@ -2105,7 +2105,7 @@
         },
         {
           "sourceFile": "include/xui.h",
-          "lfSha256": "80f3538cd8b017d0968507cc66c009baceab206a382d62891a600873aff6c21f"
+          "lfSha256": "583ed1430a84333e261a319abd27bd914a54b1b04548308756331aa23f94bccb"
         }
       ]
     },
@@ -2114,12 +2114,12 @@
       "declaration": "extern \"xuiInventoryGridGetSlotDescriptor\" @no_raise @c_output_record(2,\"xui_inventory_slot_desc_t\",\"borrowed\") @c_output_size(2,\"iSize\") @c_status(0) @c_output_field(0,\"tSettings\") @c_output_field(1,\"sText\",\"cstring\") @c_output_field(2,\"sHotkey\",\"cstring\") @c_output_field(3,\"pIcon\",\"retain\",retainSurface,\"zero\",rollbackSurface) @c_output_field(4,\"tIconSrc\") @c_output_field(5,\"iIconTint\") @c_output_field(6,\"iAnimationFlags\") @c_output_field(7,\"fAnimationScale\") @c_output_field(8,\"iAnimationTint\") func getSlot(c_int index) as (InventorySlotSettings,string,string,Surface?,Rect,c_uint,c_uint,c_float,c_uint)",
       "storage": "retained-surface-output",
       "sourceFile": "src/xui/controls/xui_inventory_grid.c",
-      "line": 4378,
+      "line": 4492,
       "functionSha256": "42f81c4c821362043964402447beb3f0eb0ba578b4c6799b1d2464cd2ed5af7b",
       "dependencies": [
         {
           "sourceFile": "src/xui/controls/xui_inventory_grid.c",
-          "lfSha256": "59ccfc4e051608a97507cd02f2feb11c00b0fa1664fe246e6ab13d902b1a5ce4"
+          "lfSha256": "675930668b5b27802b80a5b7a81351b826a01e0128caf74214900e523f628946"
         },
         {
           "sourceFile": "src/xui/core/xui_widget.c",
@@ -2131,7 +2131,33 @@
         },
         {
           "sourceFile": "include/xui.h",
-          "lfSha256": "80f3538cd8b017d0968507cc66c009baceab206a382d62891a600873aff6c21f"
+          "lfSha256": "583ed1430a84333e261a319abd27bd914a54b1b04548308756331aa23f94bccb"
+        }
+      ]
+    },
+    "xuiInventoryGridSetSlotAnimationLayerOwned": {
+      "bindingFile": "lib\\bindings\\xui\\src\\managed.xl",
+      "declaration": "extern \"xuiInventoryGridSetSlotAnimationLayerOwned\" @no_raise @c_owned_callback(1,0,\"xui_callback_owner_t\",-16) @c_result(\"status\",0) func setSlotAnimation(c_int index,InventoryAnimationRenderProc? renderer,c_uint flags=0,c_float scale=1.0,c_uint tint=0)",
+      "storage": "owned-callback",
+      "sourceFile": "src/xui/controls/xui_inventory_grid.c",
+      "line": 5901,
+      "functionSha256": "11b6194b1387f33987040cacefda0764e085778f39bd45f7adff668452a3c708",
+      "dependencies": [
+        {
+          "sourceFile": "src/xui/controls/xui_inventory_grid.c",
+          "lfSha256": "675930668b5b27802b80a5b7a81351b826a01e0128caf74214900e523f628946"
+        },
+        {
+          "sourceFile": "src/xui/core/xui_callback_owned.c",
+          "lfSha256": "3a2ff3441a18b72f9352ea08dac2e94546a545f6d19cdb9db6e9972cfeec9d17"
+        },
+        {
+          "sourceFile": "src/xui/core/xui_widget.c",
+          "lfSha256": "2f3b7cad95fd736dc5c95a3f5d1b882b26e76cc56f8c3ead8eedeb36b30c2a61"
+        },
+        {
+          "sourceFile": "include/xui.h",
+          "lfSha256": "583ed1430a84333e261a319abd27bd914a54b1b04548308756331aa23f94bccb"
         }
       ]
     }
@@ -2159,7 +2185,7 @@
         },
         {
           "sourceFile": "include/xui.h",
-          "lfSha256": "80f3538cd8b017d0968507cc66c009baceab206a382d62891a600873aff6c21f"
+          "lfSha256": "583ed1430a84333e261a319abd27bd914a54b1b04548308756331aa23f94bccb"
         },
         {
           "sourceFile": "src/xge/render/xge_render.c",
@@ -2277,7 +2303,7 @@
       "dependencies": [
         {
           "sourceFile": "include/xui.h",
-          "lfSha256": "80f3538cd8b017d0968507cc66c009baceab206a382d62891a600873aff6c21f"
+          "lfSha256": "583ed1430a84333e261a319abd27bd914a54b1b04548308756331aa23f94bccb"
         },
         {
           "sourceFile": "src/xui/core/xui_proxy_xge.c",
@@ -2375,7 +2401,7 @@
       "dependencies": [
         {
           "sourceFile": "include/xui.h",
-          "lfSha256": "80f3538cd8b017d0968507cc66c009baceab206a382d62891a600873aff6c21f"
+          "lfSha256": "583ed1430a84333e261a319abd27bd914a54b1b04548308756331aa23f94bccb"
         },
         {
           "sourceFile": "src/xui/core/xui_proxy_xge.c",

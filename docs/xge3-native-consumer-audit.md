@@ -1,5 +1,16 @@
 # Native consumers in the full API inventory
 
+## InventoryGrid per-slot animation
+
+The legacy slot animation setter and query map to `setSlotAnimation()` and
+`getSlotAnimation()` in both matched package audits. A typed retained closure
+supplies the slot animation in xlang. The original C path continues to accept
+the caller's opaque animation object. The managed binding calls one native
+function per registration or query. The runtime tests exercise active
+invocation retirement, style updates, reused indices and callback errors.
+
+[Per-slot animation evidence](../dev/release-materials/provenance/xui-inventory-slot-painters-20261123.json)
+
 ## InventoryGrid slot descriptors
 
 Both matched package audits map the raw slot update and query to

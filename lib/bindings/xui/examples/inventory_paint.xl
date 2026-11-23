@@ -19,11 +19,10 @@ Window.showWithProxy("物品槽自绘与动画层", func(xui.Context ui, xui.Wid
     end)
 
     c_uint tint = c_uint(0xD48231FF)
-    inventory.setSlotAnimationStyle(1, 0, 0.5, tint)
-    inventory.setAnimationRenderer(func(xui.CallbackWidget sender, c_int index, xui.CallbackInventorySlot slot, xui.CallbackDrawContext draw, xui.Rect bounds, c_uint state, c_uint flags, c_uint color) as c_int
+    inventory.setSlotAnimation(1, func(xui.CallbackWidget sender, c_int index, xui.CallbackInventorySlot slot, xui.CallbackDrawContext draw, xui.Rect bounds, c_uint state, c_uint flags, c_uint color) as c_int
         proxy.fillRect(draw, bounds, color)
         return 0
-    end)
+    end, scale=0.5, tint=tint)
 
     float seconds = 0.0
     inventory.setUpdateCallback(func(xui.Widget sender, c_float delta) as c_int

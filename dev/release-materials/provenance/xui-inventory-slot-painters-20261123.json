@@ -1,0 +1,247 @@
+{
+  "schema": 1,
+  "scope": "InventoryGrid retained per-slot animation painters",
+  "nativeCommit": "61d050bb13a7fb803731595b5fcc95599bb6f82b",
+  "shippingDelivery": false,
+  "graphicsTests": "Linux Xvfb, Mesa software GL",
+  "networkTests": false,
+  "nativeEntryPoints": [
+    "xuiInventoryGridSetSlotAnimationLayerOwned",
+    "xuiInventoryGridGetSlotAnimationLayer"
+  ],
+  "sourceSha256NormalizedLf": {
+    "docs/xge3-xui3-api-map-storage.json": "5e3d27b8df7b8e2f12611dabfcaf1a0b17b19a37aa197104a244937751c7f324",
+    "lib/bindings/xui/src/managed.xl": "c553435810ffb238a77a211c38d9171bf278b3aa1d25670ef11a9c0cdf6c4377",
+    "lib/bindings/xui/examples/inventory_paint.xl": "e3cb58f1addf7b952f0196343abf764c86a90faa5c6ed316a0d681cf4e6082af",
+    "test/cases/foreign_xui_inventory_paint.xl": "723afab980f0a3520278a051b99a9d052eba1fa685e8e34fbab24ddf1fe499da",
+    "tools/xui_managed_contracts.py": "baabc8bbb941d2ecf0b315d45ad345149baba820b01778943f7a0ecb9bfca222",
+    "tools/check_xge3_bindings.py": "4ce2959b7c785777c09dff127cf27cdf2680bc73d3746784362376eeef480b23",
+    "test/cases/foreign_xui_render_backend.c": "d923086b61f849a73a720968149c8a9cb990e4febe45b01bf1cf9735490826a6",
+    "test/cases/foreign_xui_render_backend.h": "f5c5e0a41b5932e164c251d610bd874bb2e3e2d4b01d5b61930164659813164f",
+    "test/cases/foreign_xui_render_adapters.inc": "b54a15b0295c93a59be72b93acacfb1eefd335a7ec28d6290b18be213770711e"
+  },
+  "verification": {
+    "oneDirectNativeCallPerLanguageOperation": true,
+    "perSlotPainterTakesPrecedenceOverGridPainter": true,
+    "ownerGraphVisitsEveryRegisteredPainter": true,
+    "shrinkClearAndDestroyRetireTheDetachedRecords": true,
+    "reentrantHoldCannotReinstallAStaleSlot": true,
+    "dropMayInstallAfterAllOldPaintersAreDetached": true,
+    "callbackMayClearItsOwnSlotWhilePinned": true,
+    "statusOnlyDropFailureAndLanguageRenderExceptionDelivered": true,
+    "allocationFailurePreservesOldRegistration": true,
+    "sampleQualification": "One warmed JIT sample per platform. Each of 250 iterations makes one style change and CPU render. Both retained callbacks increment a counter. The common native loop recorded identical allocation counts for the C and xlang callbacks, including allocations in shared native drawing. The API-loop comparison also uses the xlang style and render methods per iteration, yielding one extra allocation per iteration. Timings use clock() and do not isolate callback time.",
+    "platforms": {
+      "win": {
+        "jitDynamicStaticAot": {
+          "path": "F:/xlang-validation/xge-full-20261110/inventory-slot-painters-verify-win-r1/results.json",
+          "sha256": "0213ac735173f44a95aa0845bd1fa614bbf51a0b20e0b0eb2dcf7d7a8da97fd8"
+        },
+        "example": {
+          "report": {
+            "path": "F:/xlang-validation/xge-full-20261110/inventory-slot-painters-example-win-r1/results.json",
+            "sha256": "d7b581ecc32f26e1d5e5cccd369d9d02553c7c91979f88afdd4227c3e4494989"
+          },
+          "graphicalFrames": {},
+          "scope": "AOT build and import check"
+        },
+        "completeInventoryGridNativeRegressionO0O2": {
+          "path": "F:/xlang-validation/xge-full-20261110/inventory-slot-painters-native-test-win-r1/results.json",
+          "sha256": "35e5a7b99ce877c52109cd4da021c6a85428178881713ae8de5aedbcbc190c0e"
+        },
+        "strictDeclarationReplay": {
+          "path": "F:/xlang-validation/xge-full-20261110/inventory-slot-painters-generator-win-r3/results.json",
+          "sha256": "f7866c2bbec4fef56d71f85a7145ed6bf024014b3c2141c8dd8349383dce5563"
+        },
+        "stagedPackages": {
+          "path": "F:/xlang-validation/xge-full-20261110/inventory-slot-painters-stage-win-r3/replay/stage-report.json",
+          "sha256": "eb16b8ff3b3dd6588d7b9a94ba2f620ff83672c6771ce4d45232418d6bf32866"
+        },
+        "scopedNativeSource": {
+          "path": "F:/xlang-validation/xge-full-20261110/inventory-slot-painters-native-source-win-r1.json",
+          "sha256": "ceb66c3042c3ac9c741335a1094e8500ec862e8395a573e7001fc14087c85416"
+        },
+        "publicSurfaceInventory": {
+          "path": "F:/xlang-validation/xge-full-20261110/inventory-slot-painters-inventory-win-r1/surface.json",
+          "sha256": "3f29bf3ee1660f26628ea25c34fecbb121a3a0fa20b54b5925089273a98526fa"
+        },
+        "matchedConsumerAudit": {
+          "path": "F:/xlang-validation/xge-full-20261110/inventory-slot-painters-consumers-win-r1/results.json",
+          "sha256": "a2491cabb590479e6665b02a58df31b2297646144c9848f0924c6b0f88991cad"
+        },
+        "performance": {
+          "apiLoop": {
+            "report": {
+              "path": "F:/xlang-validation/xge-full-20261110/inventory-slot-painters-perf-win-r1/results.json",
+              "sha256": "f18a30cc765a248eb4526bfe145546f56691ea28357ba9a2e5d2db3649d5af8e"
+            },
+            "sample": {
+              "xlang": {
+                "calls": 250,
+                "alloc": 750,
+                "free": 750,
+                "realloc": 0,
+                "clockMs": 3.0
+              },
+              "C": {
+                "calls": 250,
+                "alloc": 500,
+                "free": 500,
+                "realloc": 0,
+                "clockMs": 1.0
+              }
+            }
+          },
+          "commonNativeLoop": {
+            "report": {
+              "path": "F:/xlang-validation/xge-full-20261110/inventory-slot-painters-perf-win-r2/results.json",
+              "sha256": "a1f08f229ad0a40c2241f8a984242fd9721dcfa833534ad069e2633676d426c7"
+            },
+            "sample": {
+              "xlang": {
+                "calls": 250,
+                "alloc": 500,
+                "free": 500,
+                "realloc": 0,
+                "clockMs": 1.0
+              },
+              "C": {
+                "calls": 250,
+                "alloc": 500,
+                "free": 500,
+                "realloc": 0,
+                "clockMs": 1.0
+              }
+            }
+          }
+        },
+        "nativeO2Builds": {
+          "host": {
+            "path": "F:/xlang-validation/xge-full-20261110/inventory-slot-painters-host-win-r1/build-report.json",
+            "sha256": "8ac51d9b953ac6e69e3e55772e95f120316282a18a57fbd581e2dc5b4e47d289"
+          },
+          "static": {
+            "path": "F:/xlang-validation/xge-full-20261110/inventory-slot-painters-static-win-r1/build-report.json",
+            "sha256": "25a26b9a1ccd81051cac1640f9bfa03d9ac2d792f74626fccae951de58e90df0"
+          }
+        }
+      },
+      "linux": {
+        "jitDynamicStaticAot": {
+          "path": "//wsl.localhost/Ubuntu/var/tmp/xlang-validation/xge-full-20261110/inventory-slot-painters-verify-linux-r1/results.json",
+          "sha256": "c55d41813485c037a8a29604f1c79e25b603adb9cbc0f35c1f63ee33078750f3"
+        },
+        "example": {
+          "report": {
+            "path": "//wsl.localhost/Ubuntu/var/tmp/xlang-validation/xge-full-20261110/inventory-slot-painters-example-linux-r1/results.json",
+            "sha256": "3be73b19527f921dda4a76db13da2496b61dd44ed3cb56764bdda0e193c98e11"
+          },
+          "graphicalFrames": {
+            "jit": {
+              "path": "/var/tmp/xlang-validation/xge-full-20261110/inventory-slot-painters-example-linux-r1/jit.rgba",
+              "sha256": "37a771983b25ba3e1b62a519d5a9d7d2ca757352c53defaaef6e844177c46e32",
+              "width": 800,
+              "height": 600,
+              "orangePixels": 576
+            },
+            "dynamic": {
+              "path": "/var/tmp/xlang-validation/xge-full-20261110/inventory-slot-painters-example-linux-r1/dynamic.rgba",
+              "sha256": "9d7c637474cb7906608aea8b506c2459302f7e40b4caeef07a33548a76974d80",
+              "width": 800,
+              "height": 600,
+              "orangePixels": 529
+            },
+            "static": {
+              "path": "/var/tmp/xlang-validation/xge-full-20261110/inventory-slot-painters-example-linux-r1/static.rgba",
+              "sha256": "9d7c637474cb7906608aea8b506c2459302f7e40b4caeef07a33548a76974d80",
+              "width": 800,
+              "height": 600,
+              "orangePixels": 529
+            }
+          },
+          "scope": "JIT, dynamic and static AOT under Xvfb/Mesa software GL"
+        },
+        "completeInventoryGridNativeRegressionO0O2": {
+          "path": "//wsl.localhost/Ubuntu/var/tmp/xlang-validation/xge-full-20261110/inventory-slot-painters-native-test-linux-r2/results.json",
+          "sha256": "5db6f305396321ceb9529aa13203481590d4f0e067843451f7d5c61a295a18d4"
+        },
+        "strictDeclarationReplay": {
+          "path": "//wsl.localhost/Ubuntu/var/tmp/xlang-validation/xge-full-20261110/inventory-slot-painters-generator-linux-r3/results.json",
+          "sha256": "8284483aa6d7605a407ff4c1fd0da099821cac24e884ad2f0d6a331f59101260"
+        },
+        "stagedPackages": {
+          "path": "//wsl.localhost/Ubuntu/var/tmp/xlang-validation/xge-full-20261110/inventory-slot-painters-stage-linux-r3/replay/stage-report.json",
+          "sha256": "eaf35fbdf112c12d6c03acfe61b4acb7faac51eb4e8e0f1804c620419a9d5681"
+        },
+        "scopedNativeSource": {
+          "path": "//wsl.localhost/Ubuntu/var/tmp/xlang-validation/xge-full-20261110/inventory-slot-painters-native-source-linux-r1.json",
+          "sha256": "dcd9cf6b8ed281e14dd3e66dca975df35e34f6e8bccf6469f9e30258857f974f"
+        },
+        "publicSurfaceInventory": {
+          "path": "//wsl.localhost/Ubuntu/var/tmp/xlang-validation/xge-full-20261110/inventory-slot-painters-inventory-linux-r1/surface.json",
+          "sha256": "8a0ea4d4a47e9ce76d59638e22ba7dca99e4acb3f4c6038b86735cbfa22bafc8"
+        },
+        "matchedConsumerAudit": {
+          "path": "//wsl.localhost/Ubuntu/var/tmp/xlang-validation/xge-full-20261110/inventory-slot-painters-consumers-linux-r1/results.json",
+          "sha256": "1cc3f4d842feeae12aa7960424fcd473421f928a7cac7897c41c8e2e1af55b6d"
+        },
+        "performance": {
+          "apiLoop": {
+            "report": {
+              "path": "//wsl.localhost/Ubuntu/var/tmp/xlang-validation/xge-full-20261110/inventory-slot-painters-perf-linux-r1/results.json",
+              "sha256": "1f38ab57385016fb297c9b994c3a60c80da4c635a52641ebb66c12d2e59883e3"
+            },
+            "sample": {
+              "xlang": {
+                "calls": 250,
+                "alloc": 750,
+                "free": 750,
+                "realloc": 0,
+                "clockMs": 1.516
+              },
+              "C": {
+                "calls": 250,
+                "alloc": 500,
+                "free": 500,
+                "realloc": 0,
+                "clockMs": 0.638
+              }
+            }
+          },
+          "commonNativeLoop": {
+            "report": {
+              "path": "//wsl.localhost/Ubuntu/var/tmp/xlang-validation/xge-full-20261110/inventory-slot-painters-perf-linux-r2/results.json",
+              "sha256": "973de7ce3785e6949b099ddc82bfcd5f332ce4a25e5c5a5c763d68edb0f9d758"
+            },
+            "sample": {
+              "xlang": {
+                "calls": 250,
+                "alloc": 500,
+                "free": 500,
+                "realloc": 0,
+                "clockMs": 1.12
+              },
+              "C": {
+                "calls": 250,
+                "alloc": 500,
+                "free": 500,
+                "realloc": 0,
+                "clockMs": 0.602
+              }
+            }
+          }
+        },
+        "nativeO2Builds": {
+          "host": {
+            "path": "//wsl.localhost/Ubuntu/var/tmp/xlang-validation/xge-full-20261110/inventory-slot-painters-host-linux-r1/build-report.json",
+            "sha256": "ecbfb1cc2114529a1a72291ac902f2c49bd05371d1e2eec352e87c4bacddfc56"
+          },
+          "static": {
+            "path": "//wsl.localhost/Ubuntu/var/tmp/xlang-validation/xge-full-20261110/inventory-slot-painters-static-linux-r1/build-report.json",
+            "sha256": "0b5b64923036594b2c211772d0f55e139b541b53b5c0d0e2f57eb53a790b6733"
+          }
+        }
+      }
+    }
+  }
+}
