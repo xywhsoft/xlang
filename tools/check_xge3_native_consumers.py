@@ -83,6 +83,8 @@ HEADER_CLOSE_REPLACEMENTS.update({
     name: ('xui.IconReference.close', 'xuiIconReferenceReleaseOwnerChecked')
     for name in ICON_REFERENCE_RELEASES
 })
+HEADER_CLOSE_REPLACEMENTS['xuiCodeFoldStateDestroy'] = (
+    'xui.CodeFoldState.close', 'xuiCodeFoldStateDestroyChecked')
 DOCUMENT_RENDERER_SOURCE = 'src/xui/document/xui_document_renderer.c'
 DOCUMENT_MODEL_SOURCE = 'src/xui/document/xui_document.c'
 DOCUMENT_FONT_TAIL = {'xuiDocumentFontOutputInit', 'xuiDocumentFontOutputDisposeChecked'}
@@ -542,6 +544,9 @@ def main():
         if 'xui.CodeMarginLayout' in class_bindings:
             policy_groups['codeMarginHeaderPolicies'] = ('xui-code-margin-header-policies',
                 {'xui.CodeMarginLayout': class_bindings['xui.CodeMarginLayout']})
+        if 'xui.CodeFoldState' in class_bindings:
+            policy_groups['codeFoldStateHeaderPolicies'] = ('xui-code-fold-state-header-policies',
+                {'xui.CodeFoldState': class_bindings['xui.CodeFoldState']})
         header_relocations = {}
         for key, (name, classes) in policy_groups.items():
             evidence, relocations = compile_header_policies(name,view,classes,set(functions),
@@ -603,6 +608,9 @@ def main():
                 elif symbol in ICON_REFERENCE_RELEASES:
                     key='iconHeaderPolicies'
                     destroy='xl6Xui3IconReferenceDestroy'
+                elif symbol=='xuiCodeFoldStateDestroy':
+                    key='codeFoldStateHeaderPolicies'
+                    destroy='xl6Xui3CodeFoldStateDestroy'
                 else:
                     key='headerPolicies'
                     destroy='xl6Xge3dSceneDestroy' if policy=='xl6Xge3dScenePolicy' else policy+'Destroy'

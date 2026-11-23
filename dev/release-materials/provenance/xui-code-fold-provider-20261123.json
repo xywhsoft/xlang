@@ -1,0 +1,437 @@
+{
+  "schema": 1,
+  "date": "2026-11-23",
+  "complete": true,
+  "passed": true,
+  "shippingDelivery": false,
+  "networkTests": false,
+  "scope": "Scoped synchronous typed fold providers for independent and editor-owned state",
+  "nativeRevision": "b351868d3ffea6f91be39de7e66438d9e8058436",
+  "nativeSourceLF": {
+    "config/modules.json": "3aea10f537a77d1e9bd31665af3eddcf33584c83a99ade5379a0ee18482b351a",
+    "include/xui.h": "89888026a89424b65662eaf6b734ef3c72779d43332f91d8f3240cc94fdc38c0",
+    "src/xui/code/xui_code_document_internal.h": "fa82b0e2d6ab3c0024c76528f0df188347a435a5a9f650e1fa302960c97bcb4f",
+    "src/xui/code/xui_code_document_owned.inl": "703336e4eae27ec08a632726a318755f542eb7e61e25fd2b3af17c827e19a224",
+    "src/xui/code/xui_code_fold_provider.c": "f0cc524c8c2d63f2f58f314d456c5509c40e4a7e5ff9faa1e7cf5e053f9150f3",
+    "src/xui/code/xui_code_fold_state.c": "00491b4f7f631b7d589af0d0d9307724d749304158c3e70071393ac859043364",
+    "tests/xui/build_code_fold_state_test.bat": "3ca45e0ab3ffc15af3b480866e409ffbb58ac726d17d07fce9833119fe3b67dc",
+    "tests/xui/xui_code_fold_state_test.c": "1a4b09a8a77083bbba089a64b29ff7ce7d22f0a81492d910cde93c14d341dc83"
+  },
+  "sourceLF": {
+    "docs/xge3-xui3-api-map-storage.json": "c2e544e48c41543ba1beb25f537a86d943863d9fb8aa7a46ac76abb5fb3cf49f",
+    "docs/xui-code-folding.md": "5bba013736098b00d7b30887faa1dae2314b5e5956bcd8892dfbcc33b1339c22",
+    "lib/bindings/_xge_native/include/xge3_runtime.h": "91e332139d2c99ec8a8f3e680bead189f12afe29b15788f925512eb6b024c2a2",
+    "lib/bindings/_xge_native/include/xui3_code_fold_state.h": "bfbf2a0b5ca8971009b7917eacb6c3103de2bb4d4ec3777fdd6d16efc88262a4",
+    "lib/bindings/xui/src/code_fold_state.xl": "8f95632b71247adbf332150797f6804dff845a468093cdb4ef2c8a1a8e9101b1",
+    "lib/bindings/xui/src/managed.xl": "25e668f2e665bd8894c29783705b5bb0aa137aae5f0885e4cf453deebd747455",
+    "lib/bindings/xui/examples/README.md": "0fa24fb9aee3fa7c23a6071a3420722328878718f25a627512dd76aa4d966875",
+    "lib/bindings/xui/examples/code_fold_provider.xl": "fa5b5a92519497a5192278325011266eacf098a35678435a1090a16c92d980f4",
+    "test/cases/foreign_xui_code_fold_provider.xl": "5717662a82dee31a84d6a25947ea1c387501d5b8ba11f234cb60de0ebdcfde09",
+    "tools/check_xge3_native_consumers.py": "e89648a71724c1d087f3232cc9b256c62784006a313fca9ad4c3e35fbb03c869",
+    "tools/xui_managed_contracts.py": "79ecfd4748244f55ebc5b2e03ccc398ead825f3052e092a7330877d9002a4c5a"
+  },
+  "platforms": {
+    "Windows x64": {
+      "records": {
+        "source": {
+          "path": "F:\\xlang-validation\\xge-full-20261110\\code-fold-provider-audit-win-r3\\native-source.json",
+          "sha256": "618362ed84e6a74738b09b4effeacd1931923fc7f1c8f14c0ad7fb79fa81bc7f"
+        },
+        "nativeHost": {
+          "path": "F:\\xlang-validation\\xge-full-20261110\\code-fold-provider-host-win-r2\\build-report.json",
+          "sha256": "dfbcbd9e9fcfaa94ba28ec1dd59568e0e53cc3bf0e85fa3eec1aa862af33c88d"
+        },
+        "nativeStatic": {
+          "path": "F:\\xlang-validation\\xge-full-20261110\\code-fold-provider-static-win-r2\\build-report.json",
+          "sha256": "7fdf4938b0a383fafd25bbea8dceee9edef900659d9313d13ae8134be5459232"
+        },
+        "compiler": {
+          "path": "F:\\xlang-validation\\xge-full-20261110\\compiler-egl-image-win-r1\\build.json",
+          "sha256": "79eca7fd3680d6eff32497ae07da75ad074c18c9c642d95eacbd663abb9d6bb8"
+        },
+        "generator": {
+          "path": "F:\\xlang-validation\\xge-full-20261110\\code-fold-provider-generator-win-r5\\results.json",
+          "sha256": "0eafa7d4ec3975fa14073e4e8f34c55168c07b1cb885afdd7425b0bfd0f36a02"
+        },
+        "packages": {
+          "path": "F:\\xlang-validation\\xge-full-20261110\\code-fold-provider-stage-win-r4\\replay\\stage-report.json",
+          "sha256": "be9b6a43ed56cad9c5c404445959ff12baa0e18e0dd020d828e253f5d59a49cc"
+        },
+        "surface": {
+          "path": "F:\\xlang-validation\\xge-full-20261110\\code-fold-provider-audit-win-r3\\surface\\surface.json",
+          "sha256": "0f31d1497b59e7e134f2de830af5b09c7147a02b3af749d34666b52bff88e6ee"
+        },
+        "consumers": {
+          "path": "F:\\xlang-validation\\xge-full-20261110\\code-fold-provider-audit-win-r3\\consumers\\results.json",
+          "sha256": "252602fe8bcd1f3cf2f3130242ab263f1f3339567db02084bd43244daccc3c73"
+        },
+        "nativeTests": {
+          "path": "F:\\xlang-validation\\xge-full-20261110\\code-fold-provider-native-test-win-r3\\results.json",
+          "sha256": "c1ad6db4c5175dbb35ac74a2405a50f90789ecef40ceaa4db128288a67bae416"
+        },
+        "foldingRegression": {
+          "path": "F:\\xlang-validation\\xge-full-20261110\\code-fold-provider-regression-win-r4\\results.json",
+          "sha256": "efeee1c6551dc20005790777c3dfd34e553a8ba6d58ec32aeee133593c558129"
+        },
+        "tests": {
+          "path": "F:\\xlang-validation\\xge-full-20261110\\code-fold-provider-verify-win-r5\\results.json",
+          "sha256": "4a1b76c24d74ffce31a221f6e961bca074c06b2986fedf784106db01b5e72ccc"
+        },
+        "benchmark": {
+          "path": "F:\\xlang-validation\\xge-full-20261110\\code-fold-provider-bench-win-r5\\results.json",
+          "sha256": "df425d45d63619afba68b9dc8a8c1b1abc42a21ac142b4d12ad73fb51a7871ef"
+        }
+      },
+      "tests": {
+        "steps": [
+          "emit",
+          "fixture-jit",
+          "fixture-dynamic-build",
+          "fixture-dynamic-run",
+          "fixture-dynamic-imports",
+          "fixture-static-build",
+          "fixture-static-run",
+          "fixture-static-imports",
+          "lesson-jit",
+          "lesson-dynamic-build",
+          "lesson-dynamic-run",
+          "lesson-dynamic-imports",
+          "lesson-static-build",
+          "lesson-static-run",
+          "lesson-static-imports"
+        ],
+        "directCalls": {
+          "xuiCodeFoldStateBuildFromCallback": 5,
+          "xl6Xui3BuildFoldsFromEditorDocument": 4,
+          "xuiCodeFoldOutputGetCapacity": 2,
+          "xuiCodeFoldOutputAppend": 5,
+          "xuiCodeDocumentGetLineCount": 4,
+          "xuiCodeDocumentGetLineRange": 1
+        },
+        "programs": [
+          {
+            "name": "fixture",
+            "mode": "dynamic",
+            "bytes": 4971008,
+            "sha256": "7f4a97c2a461a4df43aae34bef2e00a780b7c605b940f753b9027c467b36a95d",
+            "imports": [
+              "msvcrt.dll",
+              "xge3_host.dll",
+              "kernel32.dll",
+              "shell32.dll",
+              "ws2_32.dll",
+              "iphlpapi.dll",
+              "ucrtbase.dll"
+            ]
+          },
+          {
+            "name": "fixture",
+            "mode": "static",
+            "bytes": 7313408,
+            "sha256": "abafc1a2364a0a0d84bebc6b61b01c8f341cf0ea99035c8f884116f6d8902842",
+            "imports": [
+              "msvcrt.dll",
+              "kernel32.dll",
+              "user32.dll",
+              "ole32.dll",
+              "oleaut32.dll",
+              "shell32.dll",
+              "gdi32.dll",
+              "imm32.dll",
+              "dwrite.dll"
+            ]
+          },
+          {
+            "name": "lesson",
+            "mode": "dynamic",
+            "bytes": 1614336,
+            "sha256": "95b7538fdcb9d45cb81cc7b67aa49451bec0bd5925f1844420846785a5dafe27",
+            "imports": [
+              "msvcrt.dll",
+              "xge3_host.dll",
+              "kernel32.dll",
+              "shell32.dll",
+              "ucrtbase.dll"
+            ]
+          },
+          {
+            "name": "lesson",
+            "mode": "static",
+            "bytes": 1050624,
+            "sha256": "3dd7a52589b3026a8cd0628445b1f43e882ece9c496af20f7a5255f727bb0631",
+            "imports": [
+              "msvcrt.dll",
+              "kernel32.dll",
+              "ole32.dll",
+              "shell32.dll"
+            ]
+          }
+        ],
+        "nativeSteps": [
+          "host-O0-build",
+          "host-O0-run",
+          "host-O2-build",
+          "host-O2-run",
+          "static-O0-build",
+          "static-O0-run",
+          "static-O2-build",
+          "static-O2-run"
+        ]
+      },
+      "benchmark": {
+        "iterations": 10000,
+        "heapIterations": 1000,
+        "rangesPerBuild": 8,
+        "unit": "milliseconds",
+        "mode": "dynamic AOT",
+        "median": {
+          "native": 12.0,
+          "xlang": 290.5
+        },
+        "heap": [
+          [
+            [
+              0,
+              1000,
+              1000,
+              0
+            ],
+            [
+              1,
+              1000,
+              1000,
+              0
+            ]
+          ],
+          [
+            [
+              0,
+              1000,
+              1000,
+              0
+            ],
+            [
+              1,
+              1000,
+              1000,
+              0
+            ]
+          ]
+        ]
+      }
+    },
+    "Linux x64": {
+      "records": {
+        "source": {
+          "path": "\\\\wsl.localhost\\Ubuntu\\var\\tmp\\xlang-validation\\xge-full-20261110\\code-fold-provider-audit-linux-r3\\native-source.json",
+          "sha256": "818a4b41120289fc6d4ff0d0c5b36b0722d7f2e08060e9a5c1d84a289e9064a1"
+        },
+        "nativeHost": {
+          "path": "\\\\wsl.localhost\\Ubuntu\\var\\tmp\\xlang-validation\\xge-full-20261110\\code-fold-provider-host-linux-r2\\build-report.json",
+          "sha256": "4d22a3487f5c3275dce4238a2c30128e9fbde547f2849c5f32b811ccb6ed4c64"
+        },
+        "nativeStatic": {
+          "path": "\\\\wsl.localhost\\Ubuntu\\var\\tmp\\xlang-validation\\xge-full-20261110\\code-fold-provider-static-linux-r2\\build-report.json",
+          "sha256": "8df085525c9c1f9fdff15157e02c747531d76d27131c740b47e497daa96a9372"
+        },
+        "compiler": {
+          "path": "\\\\wsl.localhost\\Ubuntu\\var\\tmp\\xlang-validation\\xge-full-20261110\\compiler-egl-image-linux-r1\\build.json",
+          "sha256": "df9e82649546cb57c9433e191c8f4b66489feeb4e2a01002ebe67e9df325e1a1"
+        },
+        "generator": {
+          "path": "\\\\wsl.localhost\\Ubuntu\\var\\tmp\\xlang-validation\\xge-full-20261110\\code-fold-provider-generator-linux-r5\\results.json",
+          "sha256": "9b1f744b73cd402c2a0ceef4a876a4aafcc825bfd1055143da27eb62762421c3"
+        },
+        "packages": {
+          "path": "\\\\wsl.localhost\\Ubuntu\\var\\tmp\\xlang-validation\\xge-full-20261110\\code-fold-provider-stage-linux-r4\\replay\\stage-report.json",
+          "sha256": "43c242481f7e65fbe83d698e277317b7e7d1d2307cef037c8d3926330ad10efa"
+        },
+        "surface": {
+          "path": "\\\\wsl.localhost\\Ubuntu\\var\\tmp\\xlang-validation\\xge-full-20261110\\code-fold-provider-audit-linux-r3\\surface\\surface.json",
+          "sha256": "b46018fb22b74bb162aac9dc5c4b66662b3f001e4c1f2406faeb9c496308c2a9"
+        },
+        "consumers": {
+          "path": "\\\\wsl.localhost\\Ubuntu\\var\\tmp\\xlang-validation\\xge-full-20261110\\code-fold-provider-audit-linux-r3\\consumers\\results.json",
+          "sha256": "8a1b105a76a4cc5f4912f6c6642460759739210418cf4a9f2a3b903062ec8715"
+        },
+        "nativeTests": {
+          "path": "\\\\wsl.localhost\\Ubuntu\\var\\tmp\\xlang-validation\\xge-full-20261110\\code-fold-provider-native-test-linux-r4\\results.json",
+          "sha256": "2a5c9e911bd7353a7c60ddc51ea1706cd8bb32216f8298e48da3df78bb0c7585"
+        },
+        "foldingRegression": {
+          "path": "\\\\wsl.localhost\\Ubuntu\\var\\tmp\\xlang-validation\\xge-full-20261110\\code-fold-provider-regression-linux-r4\\results.json",
+          "sha256": "209dd63e61d4a974b0e3c2f367d670b68e3f53dfc5ea27549b911ed8386e57b3"
+        },
+        "tests": {
+          "path": "\\\\wsl.localhost\\Ubuntu\\var\\tmp\\xlang-validation\\xge-full-20261110\\code-fold-provider-verify-linux-r5\\results.json",
+          "sha256": "c2f502cb12dfbaaf2bf6c229eb7ff7ceafd351fb1eb7155d93a134a3d9a7a8a2"
+        },
+        "benchmark": {
+          "path": "\\\\wsl.localhost\\Ubuntu\\var\\tmp\\xlang-validation\\xge-full-20261110\\code-fold-provider-bench-linux-r5\\results.json",
+          "sha256": "575372dc2de863648af1afa6b8711c909f0681a2c72aa50189d6783e95091394"
+        }
+      },
+      "tests": {
+        "steps": [
+          "emit",
+          "fixture-jit",
+          "fixture-dynamic-build",
+          "fixture-dynamic-run",
+          "fixture-dynamic-imports",
+          "fixture-static-build",
+          "fixture-static-run",
+          "fixture-static-imports",
+          "lesson-jit",
+          "lesson-dynamic-build",
+          "lesson-dynamic-run",
+          "lesson-dynamic-imports",
+          "lesson-static-build",
+          "lesson-static-run",
+          "lesson-static-imports"
+        ],
+        "directCalls": {
+          "xuiCodeFoldStateBuildFromCallback": 5,
+          "xl6Xui3BuildFoldsFromEditorDocument": 4,
+          "xuiCodeFoldOutputGetCapacity": 2,
+          "xuiCodeFoldOutputAppend": 5,
+          "xuiCodeDocumentGetLineCount": 4,
+          "xuiCodeDocumentGetLineRange": 1
+        },
+        "programs": [
+          {
+            "name": "fixture",
+            "mode": "dynamic",
+            "bytes": 5174606,
+            "sha256": "07272edf55fcc3cc0dbe0df827620c121f4edf1fa234186f7b9f597a8b348b28",
+            "imports": [
+              "libm.so.6",
+              "libmvec.so.1",
+              "libxge3_host.so",
+              "libc.so.6",
+              "ld-linux-x86-64.so.2"
+            ]
+          },
+          {
+            "name": "fixture",
+            "mode": "static",
+            "bytes": 6472099,
+            "sha256": "329a740c1905eb4797f1bfede39a3051c1d9618c6ace6251290a17eaac24ae06",
+            "imports": [
+              "libm.so.6",
+              "libmvec.so.1",
+              "libx11.so.6",
+              "libxi.so.6",
+              "libxcursor.so.1",
+              "libgl.so.1",
+              "libegl.so.1",
+              "libc.so.6",
+              "ld-linux-x86-64.so.2"
+            ]
+          },
+          {
+            "name": "lesson",
+            "mode": "dynamic",
+            "bytes": 1693721,
+            "sha256": "0490896d8110bdea2483c126ef0454e10cb9e05f872d2fd0db8347691c4eb7a8",
+            "imports": [
+              "libm.so.6",
+              "libmvec.so.1",
+              "libxge3_host.so",
+              "libc.so.6",
+              "ld-linux-x86-64.so.2"
+            ]
+          },
+          {
+            "name": "lesson",
+            "mode": "static",
+            "bytes": 1331847,
+            "sha256": "903b4b4ebd302012b3c44a2fe2bf5bc01b46446b5e5ea06c41662f5054cb71e9",
+            "imports": [
+              "libm.so.6",
+              "libmvec.so.1",
+              "libx11.so.6",
+              "libxi.so.6",
+              "libxcursor.so.1",
+              "libgl.so.1",
+              "libegl.so.1",
+              "libc.so.6",
+              "ld-linux-x86-64.so.2"
+            ]
+          }
+        ],
+        "nativeSteps": [
+          "host-O0-build",
+          "host-O0-run",
+          "host-O2-build",
+          "host-O2-run",
+          "static-O0-build",
+          "static-O0-run",
+          "static-O2-build",
+          "static-O2-run"
+        ]
+      },
+      "benchmark": {
+        "iterations": 10000,
+        "heapIterations": 1000,
+        "rangesPerBuild": 8,
+        "unit": "milliseconds",
+        "mode": "dynamic AOT",
+        "median": {
+          "native": 11.0,
+          "xlang": 234.0
+        },
+        "heap": [
+          [
+            [
+              0,
+              1000,
+              1000,
+              0
+            ],
+            [
+              1,
+              1000,
+              1000,
+              0
+            ]
+          ],
+          [
+            [
+              0,
+              1000,
+              1000,
+              0
+            ],
+            [
+              1,
+              1000,
+              1000,
+              0
+            ]
+          ]
+        ]
+      }
+    }
+  },
+  "remaining": [
+    "Registry-stored custom lexer and fold closures still require checked lifetime and graph ownership.",
+    "Remaining XGE and XUI feature reviews and full runtime qualification.",
+    "Matching shipping SDK, compiler, IDE and extension packages."
+  ],
+  "audit": {
+    "functionPopulation": 5815,
+    "directDeclarations": 4757,
+    "compiledConsumerFunctions": 328,
+    "explicitReplacements": 526,
+    "pending": {
+      "XGE": 84,
+      "XUI": 131,
+      "Document": 0
+    },
+    "previousPending": {
+      "XGE": 84,
+      "XUI": 134,
+      "Document": 0
+    }
+  }
+}

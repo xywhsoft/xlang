@@ -1,9 +1,19 @@
+// The output and document views expire at the end of each invocation.
+export extern "xui_code_fold_output_t*" class CallbackCodeFoldOutput @header("xge3_runtime.h") @lifetime("callback")
+ native point handle
+ extern "xuiCodeFoldOutputGetCapacity" @no_raise @c_const(0) @c_result("integer_min",0) func capacity() as c_int
+ extern "xuiCodeFoldOutputAppend" @no_raise @c_result("status",0) func append(CodeFoldRange foldRange)
+end
+export typedef CodeFoldProvider = func(CallbackCodeDocument,CallbackCodeFoldOutput) as c_int
+
 // Independent numeric fold ranges; this owner does not retain a Document or UI.
 export extern "xui_code_fold_state" class CodeFoldState @header("xui3_code_fold_state.h") @lifetime("owned") @policy("xl6Xui3CodeFoldStatePolicy")
  native point handle
  extern "xuiCodeFoldStateClear" @no_raise func clear()
  // Projection copies typed records once; Native validates and keeps its copy.
  extern "xuiCodeFoldStateSetRanges" @no_raise @c_array_group(1,0,1,"int",1) @c_array_input(1,0,"const xui_code_fold_range_t*","value") @c_result("status",0) func setRanges(array<CodeFoldRange> ranges,int size=-1)
+ extern "xuiCodeFoldStateBuildFromCallback" @no_raise @c_sync_callback(1,-1,-16,"last","xge3_runtime.h") @c_result("status",0) func buildFromProvider(CodeDocument document,CodeFoldProvider provider)
+ extern "xl6Xui3BuildFoldsFromEditorDocument" @no_raise @c_sync_callback(1,-1,-16,"last","xge3_runtime.h") @c_result("status",0) func buildFromProvider(CodeEditDocument document,CodeFoldProvider provider)
  extern "xuiCodeFoldStateTrackEdit" @no_raise @c_result("status",0) func trackEdit(c_int startLine,c_int endLine,c_int newEndLine)
  extern "xuiCodeFoldStateGetCount" @no_raise @c_result("integer_min",0) func getCount() as c_int
  extern "xuiCodeFoldStateGetRange" @no_raise @c_output(2,0) func getRange(c_int index) as CodeFoldRange
@@ -27,6 +37,7 @@ export extern "xui_code_fold_state" class CodeEditFoldState @header("xge3_runtim
  native point handle
  extern "xuiCodeFoldStateClearChecked" @no_raise @c_result("status",0) func clear()
  extern "xuiCodeFoldStateSetRanges" @no_raise @c_array_group(1,0,1,"int",1) @c_array_input(1,0,"const xui_code_fold_range_t*","value") @c_result("status",0) func setRanges(array<CodeFoldRange> ranges,int size=-1)
+ extern "xl6Xui3BuildFoldsFromEditorDocument" @no_raise @c_sync_callback(1,-1,-16,"last","xge3_runtime.h") @c_result("status",0) func buildFromProvider(CodeEditDocument document,CodeFoldProvider provider)
  extern "xuiCodeFoldStateGetCount" @no_raise @c_result("integer_min",0) func getCount() as c_int
  extern "xuiCodeFoldStateGetRange" @no_raise @c_output(2,0) func getRange(c_int index) as CodeFoldRange
  extern "xuiCodeFoldStateGetRanges" @no_raise @c_span(0,"xui_code_fold_range_t*","int") @c_output(3,0) func copyRanges(Buffer? output=null) as c_int

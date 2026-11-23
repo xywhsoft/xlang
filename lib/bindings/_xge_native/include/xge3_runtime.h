@@ -228,6 +228,7 @@ static inline const char* xl6Xui3TimelineSpanLabel(const xui_timeline_span_t* sp
 /* Same physical prototypes, distinct xlang argument ownership policies. */
 #define xl6Xui3LexEditorDocument xuiCodeLanguageRegistryLex
 #define xl6Xui3FoldEditorDocument xuiCodeLanguageRegistryFold
+#define xl6Xui3BuildFoldsFromEditorDocument xuiCodeFoldStateBuildFromCallback
 /* Separate language projections of the same checked native query. */
 #define xl6Xui3TextLayoutGetSize xuiTextLayoutGetState
 #define xl6Xui3TextLayoutGetLineCount xuiTextLayoutGetState

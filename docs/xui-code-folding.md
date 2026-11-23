@@ -13,6 +13,7 @@ fake activity callback or per-method C forwarding layer is introduced.
 | `createCodeFoldState()` | `xuiCodeFoldStateCreate` |
 | `clear()` | `xuiCodeFoldStateClear`; retains allocated capacity |
 | `setRanges(ranges,size=-1)` | `xuiCodeFoldStateSetRanges`; typed const-record array projection |
+| `buildFromProvider(document, provider)` | `xuiCodeFoldStateBuildFromCallback`; synchronous provider with bounded output |
 | `getCount()` / `getRange(index)` | `xuiCodeFoldStateGetCount` / `GetRange`; independent 20-byte record |
 | `copyRanges(output=null)` | `xuiCodeFoldStateGetRanges` |
 | `trackEdit(startLine,endLine,newEndLine)` | `xuiCodeFoldStateTrackEdit` |
@@ -45,9 +46,24 @@ failure is checked and a successful later query can retry. Native IsLineVisible
 writes a provisional output before such failure, but the checked language
 output contract does not assign that failed result to the caller's destination.
 
+`buildFromProvider` works with independent and editor-owned fold state. The
+editor-owned state uses its own editor's document. The provider reads the
+document through `CallbackCodeDocument` and appends `CodeFoldRange` records
+to `CallbackCodeFoldOutput`. The first call queries the count with capacity
+zero. The native builder can call the provider again to fill or grow its buffer.
+Each invocation receives fresh views, which expire when that invocation ends.
+Use the same folding rules on each pass. A provider error, a modified document,
+or failure to allocate the required ranges leaves the previous folds in place.
+The native builder keeps the collapsed state of matching ranges.
+
+See the [fold provider lesson](../lib/bindings/xui/examples/code_fold_provider.xl)
+for a provider that folds the body of a chapter. The
+[fold provider verification record](../dev/release-materials/provenance/xui-code-fold-provider-20261123.json)
+includes cross-platform checks and a comparison with a native C provider.
+
 ## Costs and evidence
 
-The native source and O2 SDK are unchanged in this batch. Business calls invoke
+The initial numeric fold-state binding used the existing native source and O2 SDK. Its methods invoke
 the original native functions once. The only new C code is cold inline leaf
 policy metadata that releases the native object. The full compiler's existing
 factory, typed-array, output-value and checked view contracts are reused.

@@ -1170,6 +1170,10 @@ VIEWS['CallbackCodeDocument'] = """
 export extern "xui_code_document_t*" class CallbackCodeDocument @header("xge3_runtime.h") @lifetime("callback")
  native point handle
  extern "xuiCodeDocumentGetTextView" @no_raise @c_output(1,0) @c_output_view(1,"text") func getText() as string
+ extern "xuiCodeDocumentGetLength" @no_raise func getLength() as c_int
+ extern "xuiCodeDocumentGetLineCount" @no_raise func getLineCount() as c_int
+ extern "xuiCodeDocumentGetLineRange" @no_raise @c_outputs(2,3) @c_status(0) func getLineRange(c_int line) as (c_int,c_int)
+ extern "xuiCodeDocumentGetByte" @no_raise @c_output(2,0) func getByte(c_int offset) as c_char
 end
 """.strip()
 METHODS['xuiCodeEditSetInputHandlerOwned'] = [
@@ -1479,6 +1483,7 @@ REPLACED = {
     'xuiCodeDocumentSetText': ('xui.CodeDocument.setText', 'xuiCodeDocumentSetTextLength'),
     'xuiCodeDocumentSetChangeCallback': ('xui.CodeDocument.setChangeCallback', 'xuiCodeDocumentSetChangeCallbackOwned'),
     'xuiCodeFindScopeSetActivate': ('xui.CodeFindScope.setActivate', 'xuiCodeFindScopeSetActivateOwned'),
+    'xuiCodeFoldStateBuildFromProvider': ('xui.CodeFoldState.buildFromProvider', 'xuiCodeFoldStateBuildFromCallback'),
     'xuiCodeLanguageLex': ('xui.CodeLanguageRegistry.lex', 'xuiCodeLanguageRegistryLex'),
     'xuiCodeLanguageFold': ('xui.CodeLanguageRegistry.fold', 'xuiCodeLanguageRegistryFold'),
     'xuiCodeLanguageRegistryClear': ('xui.CodeLanguageRegistry.clear', 'xuiCodeLanguageRegistryClearChecked'),

@@ -1,0 +1,24 @@
+import xui
+from xui import CallbackCodeDocument,CallbackCodeFoldOutput,CodeFoldRange
+
+func main(...) as int
+ auto document=xui.createCodeDocument()
+ auto folds=xui.createCodeFoldState()
+ try
+  document.setText("Chapter 1\nFirst paragraph\nSecond paragraph")
+  // Keep the chapter heading visible and let its body fold.
+  folds.buildFromProvider(document,func(CallbackCodeDocument source,CallbackCodeFoldOutput output) as c_int
+   auto chapter=CodeFoldRange()
+   chapter.iStartLine=0
+   chapter.iEndLine=source.getLineCount()-1
+   output.append(chapter)
+   return xui.XUI_OK
+  end)
+  folds.foldAll()
+  println("Visible lines:",folds.visibleLineCount(document.getLineCount()))
+ finally
+  folds.close()
+  document.close()
+ end
+ return 0
+end
