@@ -1,0 +1,132 @@
+import xge
+import xui
+
+extern "xuiProxyReleaseChecked" @header("xge3_runtime.h") @no_raise @c_result("status",0) func rollbackProxy(xui.Proxy proxy)
+extern "clipboardBatchProxy" @header("test/cases/foreign_xge3_clipboard_batch.h") @no_raise @c_result("owned_view") @factory(0,0,rollbackProxy) func fixtureProxy() as xui.Proxy
+extern "clipboardBatchRemember" @no_raise @c_span(0,"const void*","size_t") func remember(bytes payload)
+extern "clipboardBatchCalls" @no_raise func calls() as c_int
+extern "clipboardBatchReferences" @no_raise func references() as c_int
+extern "clipboardBatchReject" @no_raise func reject(c_int enabled)
+extern "clipboardBatchIsolatedDisplay" @no_raise func isolatedDisplay() as c_int
+extern "clipboardBatchFailAfter" @no_raise func failAfter(c_int allowance)
+
+const string binaryFormat = "application/x-xlang-batch-test"
+const string emptyFormat = "application/x-xlang-batch-empty"
+
+func testProxy()
+    auto proxy = fixtureProxy()
+    auto context = xui.create(proxy, xui.XUI_SYSTEM_FONT_DISABLED)
+    array<string> formats = [binaryFormat, emptyFormat]
+    array<bytes> payloads = [b"A\0B\xff", b""]
+    try
+        remember(payloads[0])
+        context.setClipboardItems(formats, payloads)
+        context.setClipboardItems(formats, payloads, 1)
+        context.setClipboardItems(formats, [payloads[0]], 10)
+        assert calls() == 3
+
+        bool rejected = false
+        try
+            context.setClipboardItems(formats, [payloads[0]])
+        catch error
+            rejected = true
+        end
+        assert rejected and calls() == 3
+        rejected = false
+        try
+            context.setClipboardItems([binaryFormat + "\0suffix"], [payloads[0]])
+        catch error
+            rejected = true
+        end
+        assert rejected and calls() == 3
+
+        rejected = false
+        try
+            context.setClipboardItems(formats, payloads, 0)
+        catch error
+            assert error.code == xui.XUI_ERROR_INVALID_ARGUMENT
+            rejected = true
+        end
+        assert rejected and calls() == 3
+
+        rejected = false
+        failAfter(0)
+        try
+            context.setClipboardItems(formats, payloads)
+        catch error
+            rejected = true
+        finally
+            failAfter(-1)
+        end
+        assert rejected and calls() == 3
+
+        reject(1)
+        rejected = false
+        try
+            context.setClipboardItems(formats, payloads)
+        catch error
+            assert error.code == xui.XUI_ERROR_UNSUPPORTED
+            rejected = true
+        finally
+            reject(0)
+        end
+        assert rejected and calls() == 4
+        context.setClipboardItems(formats, payloads)
+        assert calls() == 5
+    finally
+        context.close()
+        proxy.close()
+    end
+    assert references() == 1
+end
+
+func testRejection()
+    bool rejected = false
+    try
+        xge.clipboardSetItems([binaryFormat, binaryFormat], [b"A", b"B"])
+    catch error
+        assert error.code == xge.XGE_ERROR_INVALID_ARGUMENT
+        rejected = true
+    end
+    assert rejected
+    println("XGE_XUI_CLIPBOARD_BATCH_CPU_OK")
+end
+
+func testDisplay()
+    xge.init(64, 64, "Clipboard batch fixture", xge.XGE_INIT_OFFSCREEN)
+    try
+        xge.run(func() as c_int
+            xge.clipboardSetItems([binaryFormat, emptyFormat], [b"A\0B\xff", b""])
+            assert xge.clipboardReadData(binaryFormat) == b"A\0B\xff"
+            assert xge.clipboardReadData(emptyFormat) == b""
+            auto proxy = xui.createProxy()
+            try
+                auto context = xui.create(proxy, xui.XUI_SYSTEM_FONT_DISABLED)
+                try
+                    context.setClipboardItems([binaryFormat, emptyFormat], [b"C\0D\xff", b""])
+                    assert xge.clipboardReadData(binaryFormat) == b"C\0D\xff"
+                    assert xge.clipboardReadData(emptyFormat) == b""
+                finally
+                    context.close()
+                end
+            finally
+                proxy.close()
+            end
+            xge.quit()
+            return xge.XGE_OK
+        end)
+    finally
+        xge.setFrameCallback(null)
+        xge.unit()
+    end
+    println("XGE_XUI_CLIPBOARD_BATCH_DISPLAY_OK")
+end
+
+func main(...) as int
+    testProxy()
+    testRejection()
+    if isolatedDisplay() != 0 then
+        testDisplay()
+    end
+    return 0
+end

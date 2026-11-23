@@ -74,6 +74,27 @@ with unchecked C.
 | DataOutput underscore fields | Private Native consumer state; only readonly capacity/required and direct `set`/`write` methods are exposed. |
 | Native event source/target pointers | No implicit owner construction from a callback payload. |
 
+## Publish multiple clipboard formats
+
+`xge.clipboardSetItems(formats, payloads)` publishes prepared data for several
+formats in a single call. Use `context.setClipboardItems(formats, payloads)`
+to publish through an XUI Context's backend. The parallel arrays are
+`array<string>` format names and `array<bytes>` payloads. With the default
+`size=-1`, the two arrays must have equal lengths. A nonnegative size takes
+at most that many entries from their common prefix. The backend accepts
+between 1 and 64 entries. Empty byte payloads and embedded NUL bytes in the
+payload are preserved. Format names cannot contain NUL. XGE also rejects
+empty and duplicate format names before attempting publication.
+
+The compiler builds a temporary native descriptor array and pins the source
+arrays for the duration of the synchronous call. The descriptors point into
+the original bytes. One transfer adapter supplies the code and ownership
+capabilities needed by a backend that publishes a resident clipboard object.
+The backend may copy or serialize the payload. Use a DataObject and
+`setProvider()` when the data needs to be computed on demand.
+
+See [clipboard_formats.xl](../lib/bindings/xge/examples/clipboard_formats.xl).
+
 ## Validation
 
 `tools/check_foreign_xge3_data_object.py` generates all-reachable public ABI
@@ -90,7 +111,14 @@ destruction. Releasing each module clears its own graph; the last checked
 retirement drains the engine code lease. The Context watch observes logical
 close; final engine unloading is a separate retirement check.
 
-Clipboard and OS drag entry points are compiled against the real headers, but
-are not exercised by these CPU tests. They require the matched platform runtime
-and current module code-owner support. Historical FP0 compile reports and
-development compiler overlays do not establish shipping qualification.
+The data-object CPU tests compile the clipboard and OS drag entry points
+against the real headers. Runtime use of these entry points requires the
+matched platform runtime and module code-owner support. Historical FP0
+compile reports and development compiler overlays do not establish shipping
+qualification.
+
+The batch publication fixture uses a checked, owned XUI proxy to verify
+record layout, payload pointer identity, error propagation and cleanup. On
+Linux it also publishes through the real XGE and XUI backends when run under
+an isolated X server. The fixture uses the test proxy alone by default. See
+[batch publication validation](../dev/release-materials/provenance/xge-clipboard-batch-20261123.json).

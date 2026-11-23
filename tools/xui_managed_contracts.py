@@ -46,6 +46,12 @@ METHODS = {'xuiResourceFind': ['xui_resource xuiResourceFind(xui_context pContex
                             'Context',
                             ['extern "xl6Xui3CopyToClipboard" @no_raise @c_code_owner(2) @c_result("status",0) func '
                              'copyToClipboard(DataObject data)']],
+ 'xl6Xui3ClipboardSetItems': ['int xl6Xui3ClipboardSetItems(xui_context,const xui_clipboard_item_t*,int,const XL6_CodeOwner*);',
+                             'Context',
+                             ['extern "xl6Xui3ClipboardSetItems" @no_raise @c_code_owner(3) @c_array_group(1,0,2,"int",2) '
+                              '@c_array_record(1,"xui_clipboard_item_t") @c_array_field(1,"sFormat",0,"c_string") '
+                              '@c_array_span_field(1,"pData","iDataSize",1,"const void*","size_t") @c_result("status",0) '
+                              'func setClipboardItems(array<string> formats,array<bytes> payloads,int size=-1)']],
  'xuiBuiltinAssetGetAtlas': ['int xuiBuiltinAssetGetAtlas(xui_context pContext, xui_surface* ppSurface)',
                              'Context',
                              ['extern "xuiBuiltinAssetGetAtlas" @no_raise @c_output_retain(1,retainSurface,"zero",rollbackSurface) '
@@ -1911,7 +1917,7 @@ def validate(root,header,function_sha):
     functions={f['name']:f['declaration']for f in header['functions']}
     types={t['name']:t['declaration']for t in header['types']}
     for name,(physical,_,_)in METHODS.items():
-        if name=='xl6Xui3CopyToClipboard':
+        if name in ('xl6Xui3CopyToClipboard','xl6Xui3ClipboardSetItems'):
             runtime=(root/'lib/bindings/_xge_native/include/xge3_runtime.h').read_text(encoding='utf-8-sig')
             if physical not in runtime.splitlines():raise ValueError('reviewed runtime declaration changed: '+name)
         elif functions.get(name)!=physical:raise ValueError('reviewed XUI declaration changed: '+name)

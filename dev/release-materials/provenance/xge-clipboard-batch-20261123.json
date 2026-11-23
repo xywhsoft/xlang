@@ -1,0 +1,128 @@
+{
+  "schema": 1,
+  "date": "2026-11-23",
+  "complete": true,
+  "passed": true,
+  "scope": "Eager multi-format clipboard publication with counted byte payloads and resident transfer services",
+  "nativeRevision": "cd81fbcdf69935ad14aa816848ef7982413c2f09",
+  "networkTests": false,
+  "shippingDelivery": false,
+  "sourceLF": {
+    "lib/bindings/_xge_native/include/xge3_runtime.h": "8822b0271e3ed125be3a22a828f7632ff1aef52001bcd7e80fc6ab394e809d51",
+    "lib/bindings/_xge_native/src/transfer.c": "4d50dbaf0437d1d79d38671736c00ce31a3b82dbbbeed28eb5988bd9c52c4fcc",
+    "lib/bindings/_xge_native/xlang.package.json": "42456742d204b065eb319cd0efdebfc902f39390e428f3871c85b96b79b99154",
+    "lib/bindings/xge/src/data_object.xl": "ea1157ebda68335bed067bf42cd1ed509ad91e247bdde57a1f79c03e40216068",
+    "lib/bindings/xge/examples/clipboard_formats.xl": "5509163f39baea9798c5abcde63df58fc7e4e1ef3328bdfdfa31b1595e73ae1d",
+    "lib/bindings/xui/src/managed.xl": "533ee76ea74a9b94843013d6f310b67a85a24aee00784967c48e0967bda97ff9",
+    "test/cases/foreign_xge3_clipboard_batch.c": "4327fb7621df8561b1eb5bb72fd3c192e547221c2bd1ce4eb3c12f0091645910",
+    "test/cases/foreign_xge3_clipboard_batch.h": "2421df3a5264f6f4fddd2d81972376ff1ccdec61bf65d408ef6daeca3d7c25c1",
+    "test/cases/foreign_xge3_clipboard_batch.xl": "ed312dd3f8c2ee5da68abd6a1f2a73c4e76547fc6bc8fc58f9130fb889ce3b7b",
+    "tools/check_xge3_native_consumers.py": "4cb14f143221a71df9d5bde4e22730de102184d241b6b4f664a77e2774c847fe",
+    "tools/xui_managed_contracts.py": "8e8fa9445b2388b4bd6d653c497b011a1306098981d13aa52afe4e2d2463316c"
+  },
+  "audit": {
+    "functionPopulation": 5797,
+    "directDeclarations": 4735,
+    "compiledConsumerFunctions": 320,
+    "explicitReplacements": 472,
+    "resolved": [
+      "xgeClipboardSetItems",
+      "xgeClipboardSetItemsWithTransfer",
+      "xuiClipboardSetItemsWithTransfer"
+    ],
+    "pending": {
+      "XGE": 101,
+      "XUI": 177,
+      "Document": 0
+    }
+  },
+  "platforms": {
+    "Windows x64": {
+      "generator": {
+        "path": "F:\\xlang-validation\\xge-full-20261110\\clipboard-batch-generator-win-r1\\results.json",
+        "sha256": "1f866d0505fa2cd420d7ac82b830dbaf53e1fc34408a314bbdacfaa4b47cdad1"
+      },
+      "packages": {
+        "path": "F:\\xlang-validation\\xge-full-20261110\\clipboard-batch-stage-win-r1\\replay\\stage-report.json",
+        "sha256": "99ddba679a3f982f37ea5b77d0970a142a5b0985668adad7b08c14963022df0d"
+      },
+      "surface": {
+        "path": "F:\\xlang-validation\\xge-full-20261110\\clipboard-batch-audit-win-r1\\surface\\surface.json",
+        "sha256": "a89050a4fa4c74b23221c4fc3edc5dba43c2f0d8afa7ef50d48ceb7ed77413b4"
+      },
+      "nativeConsumers": {
+        "path": "F:\\xlang-validation\\xge-full-20261110\\clipboard-batch-audit-win-r1\\consumers\\results.json",
+        "sha256": "11448b8815235e99562df0c3d8285596e466a7d622ea5c910c114b3f1ae7b9fb"
+      },
+      "runtime": {
+        "path": "F:\\xlang-validation\\xge-full-20261110\\clipboard-batch-tests-win-r2\\results.json",
+        "sha256": "d8ecbe19aec2acb697314ca2daf89faacdcaccdc8aec8a70b49b1b09ea96832e"
+      },
+      "compiler": {
+        "path": "F:\\xlang-validation\\xge-full-20261110\\compiler-existing-root-win-r1\\build.json",
+        "sha256": "107a294cdefd81906f8e3fef6bced071ececaad4bf1837b61a15b1e9c7858a07"
+      },
+      "nativeBuild": {
+        "path": "F:\\xlang-validation\\xge-full-20261110\\target-readback-host-win-r2\\build-report.json",
+        "sha256": "65e5d391e784c8256aea34d0cce3c38ff7017628d9b8ddb3306da71e149b8839"
+      },
+      "staticNativeBuild": {
+        "path": "F:\\xlang-validation\\xge-full-20261110\\target-readback-static-win-r2\\build-report.json",
+        "sha256": "19ccc6104906afe8731eceb4d5439e6b989b842f9ce5372a106b3f123d21f90e"
+      },
+      "runtimeSteps": 13,
+      "execution": [
+        "JIT",
+        "dynamic AOT",
+        "static AOT"
+      ],
+      "payloadPointerIdentity": true,
+      "clipboardBackend": "owned CPU proxy"
+    },
+    "Linux x64": {
+      "generator": {
+        "path": "\\\\wsl.localhost\\Ubuntu\\var\\tmp\\xlang-validation\\xge-full-20261110\\clipboard-batch-generator-linux-r1\\results.json",
+        "sha256": "7386553737d42e1865b3ed7c32e266534fc536d499893bd811a59f0c8e5daa21"
+      },
+      "packages": {
+        "path": "\\\\wsl.localhost\\Ubuntu\\var\\tmp\\xlang-validation\\xge-full-20261110\\clipboard-batch-stage-linux-r1\\replay\\stage-report.json",
+        "sha256": "9f65f4ef704fc111661bfe8000ab81c6f9afcfaf74771d8494c38c2a325fa73f"
+      },
+      "surface": {
+        "path": "\\\\wsl.localhost\\Ubuntu\\var\\tmp\\xlang-validation\\xge-full-20261110\\clipboard-batch-audit-linux-r1\\surface\\surface.json",
+        "sha256": "7bc1e85ce953148671871c0dc7092ff1794614e0e2f29ad17875fb53d2f3b4fa"
+      },
+      "nativeConsumers": {
+        "path": "\\\\wsl.localhost\\Ubuntu\\var\\tmp\\xlang-validation\\xge-full-20261110\\clipboard-batch-audit-linux-r1\\consumers\\results.json",
+        "sha256": "99938975c38b3dec8d047e3f8fcd57eed9b7cb7d5ce42ccfe36858033375f15d"
+      },
+      "runtime": {
+        "path": "\\\\wsl.localhost\\Ubuntu\\var\\tmp\\xlang-validation\\xge-full-20261110\\clipboard-batch-tests-linux-r2\\results.json",
+        "sha256": "a23ccf449a8beeabba0a4f2e80d6e6eb145ee914c88f1cdae5babb3c783f9757"
+      },
+      "compiler": {
+        "path": "\\\\wsl.localhost\\Ubuntu\\var\\tmp\\xlang-validation\\xge-full-20261110\\compiler-existing-root-linux-r1\\build.json",
+        "sha256": "6e729bc793dcd92edcd42f51e244bad799187c32ef82121e8275288a31274b11"
+      },
+      "nativeBuild": {
+        "path": "\\\\wsl.localhost\\Ubuntu\\var\\tmp\\xlang-validation\\xge-full-20261110\\target-readback-host-linux-r2\\build-report.json",
+        "sha256": "51119261fe42cc59126418a73c5c69a4b55f3930757d511bf8d8bd90e3ea6b35"
+      },
+      "staticNativeBuild": {
+        "path": "\\\\wsl.localhost\\Ubuntu\\var\\tmp\\xlang-validation\\xge-full-20261110\\target-readback-static-linux-r2\\build-report.json",
+        "sha256": "c530c6555c6b1cf4c2a597d4406b17a6c94419fd65d6bc771570d0778803d8cc"
+      },
+      "runtimeSteps": 13,
+      "execution": [
+        "JIT",
+        "dynamic AOT",
+        "static AOT"
+      ],
+      "payloadPointerIdentity": true,
+      "clipboardBackend": "private Xvfb"
+    }
+  },
+  "remainingValidation": [
+    "A successful publication through the Windows OS clipboard was not run."
+  ]
+}

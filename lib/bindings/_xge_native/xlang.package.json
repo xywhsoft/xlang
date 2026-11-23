@@ -55,7 +55,9 @@
           "xl6Xge3RunOwned",
           "xl6Xge3DragBegin",
           "xl6Xge3CopyToClipboard",
-          "xl6Xui3CopyToClipboard"
+          "xl6Xui3CopyToClipboard",
+          "xl6Xge3ClipboardSetItems",
+          "xl6Xui3ClipboardSetItems"
         ],
         "requiredSymbols": [
           "xl6CodeLeaseAcquireScoped",

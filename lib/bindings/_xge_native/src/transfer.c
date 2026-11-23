@@ -62,3 +62,22 @@ int xl6Xui3CopyToClipboard(xui_context context,xui_data_object data,const XL6_Co
     status=xuiClipboardCopyDataWithTransfer(context,data,&services);
     return transfer_end(lease,status);
 }
+int xl6Xge3ClipboardSetItems(const xge_clipboard_item_t* items,int count,const XL6_CodeOwner* code)
+{
+    XL6_CodeLease* lease=NULL;
+    xn_transfer_services_v1 services={0};
+    int status=transfer_begin(code,xl6Xge3TransferDomainV1Get(),&lease,&services);
+    if(status!=XGE_OK)return status;
+    status=xgeClipboardSetItemsWithTransfer(items,count,&services);
+    return transfer_end(lease,status);
+}
+int xl6Xui3ClipboardSetItems(xui_context context,const xui_clipboard_item_t* items,int count,
+    const XL6_CodeOwner* code)
+{
+    XL6_CodeLease* lease=NULL;
+    xn_transfer_services_v1 services={0};
+    int status=transfer_begin(code,xl6Xui3OwnershipDomainV1Get(),&lease,&services);
+    if(status!=XGE_OK)return status==XGE_ERROR_OUT_OF_MEMORY ? XUI_ERROR_OUT_OF_MEMORY:XUI_ERROR_INVALID_STATE;
+    status=xuiClipboardSetItemsWithTransfer(context,items,count,&services);
+    return transfer_end(lease,status);
+}

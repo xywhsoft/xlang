@@ -42,6 +42,8 @@ int xl6Xge3RunOwned(xge_scene_proc,void*,const xge_callback_owner_t*,const XL6_C
 int xl6Xge3DragBegin(xge_data_object,uint32_t,uint32_t,const XL6_CodeOwner*);
 int xl6Xge3CopyToClipboard(xge_data_object,const XL6_CodeOwner*);
 int xl6Xui3CopyToClipboard(xui_context,xui_data_object,const XL6_CodeOwner*);
+int xl6Xge3ClipboardSetItems(const xge_clipboard_item_t*,int,const XL6_CodeOwner*);
+int xl6Xui3ClipboardSetItems(xui_context,const xui_clipboard_item_t*,int,const XL6_CodeOwner*);
 
 const XL6_ForeignViewDescriptorV1* xl6Xui3ContextPolicyGet(void);
 const XL6_ForeignViewDescriptorV1* xl6Xui3LanguagePolicyGet(void);

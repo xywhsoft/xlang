@@ -8,17 +8,14 @@ func main(...) as int
             if xge.keyPressed(xge.XGE_KEY_ESCAPE) != 0 then
                 xge.quit()
             elseif xge.keyPressed(xge.XGE_KEY_ENTER) != 0 then
-                auto data = xge.createDataObject()
+                array<string> formats = [xge.XGE_CLIPBOARD_FORMAT_TEXT_UTF8, xge.XGE_CLIPBOARD_FORMAT_HTML]
+                array<bytes> payloads = [b"Hello, xlang!", b"<b>Hello, xlang!</b>"]
                 try
-                    data.set(xge.XGE_CLIPBOARD_FORMAT_TEXT_UTF8, "Hello, xlang!")
-                    data.set(xge.XGE_CLIPBOARD_FORMAT_HTML, "<b>Hello, xlang!</b>")
-                    data.copyToClipboard()
+                    xge.clipboardSetItems(formats, payloads)
                     auto html = xge.clipboardReadData(xge.XGE_CLIPBOARD_FORMAT_HTML)
                     println(encoding.decodeUtf8(html))
                 catch error
                     println("Clipboard operation failed.", error.message)
-                finally
-                    data.close()
                 end
             end
             return xge.XGE_OK

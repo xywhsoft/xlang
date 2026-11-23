@@ -1,5 +1,16 @@
 # Native consumers in the full API inventory
 
+## Batch clipboard publication
+
+The two package declarations project format names and counted byte payloads
+into native records. The compiled transfer adapters reach
+`xgeClipboardSetItemsWithTransfer` and `xuiClipboardSetItemsWithTransfer`, using
+the runtime code and ownership capabilities. The XGE adapter is the checked
+language replacement for raw `xgeClipboardSetItems`. Both platform audits
+record 278 pending functions, 101 for XGE and 177 for XUI.
+
+[Batch clipboard evidence](../dev/release-materials/provenance/xge-clipboard-batch-20261123.json)
+
 ## Render target pixel readback
 
 The new `RenderTarget.readPixels()` overload adopts tightly packed RGBA as

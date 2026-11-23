@@ -184,9 +184,10 @@ See [clipboard_text.xl](examples/clipboard_text.xl).
 `clipboardReadData(format)` reads an independent `bytes` snapshot in one
 call. A missing binary format gives a checked error. A present empty
 representation gives empty bytes. The native backend handles Windows HTML
-fragments, PNG conversion and X11 selection targets. Use
-`DataObject.copyToClipboard()` to publish several formats together. See
-[clipboard_formats.xl](examples/clipboard_formats.xl).
+fragments, PNG conversion and X11 selection targets.
+`clipboardSetItems(formats, payloads)` publishes prepared byte payloads for
+several formats together. Use `DataObject.copyToClipboard()` for lazy
+providers. See [clipboard_formats.xl](examples/clipboard_formats.xl).
 
 ## Window title snapshots
 
