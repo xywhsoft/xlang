@@ -1,0 +1,97 @@
+import xui
+
+extern "xrtMemDebugEnable" @header("xrt_decl.h") @no_raise func enableHeap(bool enabled) as bool
+extern "xrtMemDebugEnabled" @header("xrt_decl.h") @no_raise func heapEnabled() as bool
+extern "xrtMemDebugFailAfter" @header("xrt_decl.h") @no_raise func failAfter(uint64 allocation) as bool
+extern "xrtMemDebugFailClear" @header("xrt_decl.h") @no_raise func clearFailure()
+extern "fixturePlainBegin" @header("test/cases/foreign_xui_code_language_plain.h") @no_raise func beginMeasure()
+extern "fixturePlainEnd" @header("test/cases/foreign_xui_code_language_plain.h") @no_raise func endMeasure(c_int language)
+extern "fixturePlainNative" @header("test/cases/foreign_xui_code_language_plain.h") @no_raise func measureNative()
+
+func measureRegistration()
+    measureNative()
+    auto registry=xui.createCodeLanguageRegistry()
+    array<string> extensions=["p1","p2"]
+    registry.registerPlain("sample","Sample",xui.XUI_CODE_LEXER_BUILTIN_C,extensions,lineComment="//")
+    beginMeasure()
+    for index in range(128)
+        registry.registerPlain("sample","Sample",xui.XUI_CODE_LEXER_BUILTIN_C,extensions,lineComment="//")
+    end
+    endMeasure(c_int(1))
+    registry.close()
+end
+
+func main(...) as int
+    assert heapEnabled() or enableHeap(true), "enable XRT heap diagnostics"
+    auto registry = xui.createCodeLanguageRegistry()
+    auto document = xui.createCodeDocument()
+    auto proxy = xui.createProxy()
+    auto context = xui.create(proxy,xui.XUI_SYSTEM_FONT_DISABLED)
+    auto editor = context.codeEditNative()
+    auto live = editor.languageRegistry()
+    document.setText("int main() {\n    return 42;\n}\n")
+    registry.registerPlain("project-c","Project C",xui.XUI_CODE_LEXER_BUILTIN_C,["projc","projh"],lineComment="//")
+    registry.registerPlain("build","Build output",xui.XUI_CODE_LEXER_EXTERNAL,["buildlog"],lineComment="#")
+    auto id,name,lineComment,blockStart,blockEnd,kind,extensions,rules=registry.findByExtension(".PROJC")
+    string? cComment="//"
+    assert id=="project-c" and name=="Project C" and lineComment==cComment, "C alias metadata"
+    assert blockStart==null and blockEnd==null and kind==xui.XUI_CODE_LEXER_BUILTIN_C and extensions==2 and rules==0, "C alias descriptor"
+    assert registry.lex("project-c",document)==xui.tokenizeC(document.getText()), "C alias tokens"
+    assert registry.fold("project-c",document)==1, "C alias folds"
+    assert registry.getExtension(0,1)=="projh", "C alias extensions"
+
+    auto externalId,externalName,marker,start,endMarker,externalKind,externalCount,externalRules=registry.findByExtension("BUILDLOG")
+    string? externalComment="#"
+    assert externalId=="build" and externalName=="Build output" and marker==externalComment, "external language metadata"
+    assert externalKind==xui.XUI_CODE_LEXER_EXTERNAL and externalCount==1 and externalRules==0, "external language descriptor"
+    c_int unchanged=42
+    bool unsupported=false
+    try
+        unchanged=registry.lex("build",document)
+    catch Error failure
+        unsupported=failure.code==int(xui.XUI_ERROR_UNSUPPORTED)
+    end
+    assert unsupported and unchanged==42, "external lexer checked rejection"
+
+    live.registerPlain("live-build","Live build",xui.XUI_CODE_LEXER_EXTERNAL,["livebuild"])
+    string? liveId="live-build"
+    assert editor.setLanguage("live-build")==xui.XUI_OK and editor.getLanguage()==liveId, "live external language"
+    auto tokens=editor.tokenBuffer()
+    auto token=xui.CodeToken()
+    token.iStartOffset=0
+    token.iEndOffset=1
+    token.iKind=xui.XUI_CODE_TOKEN_IDENTIFIER
+    token.iStyle=xui.XUI_CODE_STYLE_IDENTIFIER
+    assert editor.setText("x")==xui.XUI_OK, "set live document text"
+    tokens.set([token],1,editor.documentVersion())
+    assert tokens.getCount()==1, "publish external tokens"
+
+    bool rejected=false
+    try
+        registry.registerPlain("project-c","wrong",xui.XUI_CODE_LEXER_REGEX,[])
+    catch Error failure
+        rejected=failure.code==int(xui.XUI_ERROR_INVALID_ARGUMENT)
+    end
+    assert rejected and registry.getCount()==2 and registry.getExtension(0,1)=="projh", "invalid lexer preserves old entry"
+    assert failAfter(uint64(0)), "arm allocation refusal"
+    bool refused=false
+    try
+        registry.registerPlain("project-c","OOM",xui.XUI_CODE_LEXER_BUILTIN_C,["bad"])
+    catch Error
+        refused=true
+    finally
+        clearFailure()
+    end
+    assert refused and registry.getCount()==2 and registry.getExtension(0,1)=="projh", "allocation refusal preserves old entry"
+
+    tokens.close()
+    live.close()
+    editor.close()
+    context.close()
+    proxy.close()
+    document.close()
+    registry.close()
+    measureRegistration()
+    println("XUI_CODE_LANGUAGE_PLAIN_OK")
+    return 0
+end

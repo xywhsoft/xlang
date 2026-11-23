@@ -5,12 +5,13 @@ func main(...) as int
  auto languages=xui.createCodeLanguageRegistry()
  auto document=xui.createCodeDocument()
  try
-  languages.loadDefaults()
+  // Register a project file type that uses the built-in C lexer.
+  languages.registerPlain("project-c","Project C",xui.XUI_CODE_LEXER_BUILTIN_C,["projc"],lineComment="//")
   document.setText("int main() {\n    return 0;\n}\n")
 
   // Without an output buffer, each operation returns the total count.
-  println("Tokens:",languages.lex("c",document))
-  println("Foldable regions:",languages.fold("c",document))
+  println("Tokens:",languages.lex("project-c",document))
+  println("Foldable regions:",languages.fold("project-c",document))
  finally
   document.close()
   languages.close()

@@ -87,6 +87,8 @@ NATIVE_RELEASE_DELEGATES = {
         'xuiCodeTokenBufferDestroy', 'xuiCodeTokenBufferDestroyChecked'),
     'xuiCodeSelectionDestroy': ('src/xui/code/xui_code_selection.c',
         'xuiCodeSelectionDestroy', 'xuiCodeSelectionDestroyChecked'),
+    'xuiDockPanelStateFree': ('src/xui/controls/xui_dock_panel.c',
+        'xuiDockPanelStateFree', 'xrtValueRelease'),
 }
 for leaf in ('CodeAnnotationStore', 'CodeTokenBuffer'):
     for suffix in ('Destroy', 'DestroyChecked'):
@@ -446,17 +448,36 @@ def witness_build_inputs(build, audit, packages, gcc, sha, units, included_units
 
 def prove_native_lifetime(source, flags, calls, tools, out, run, sha):
     evidence = {}
+    imports = next((Path(flag) for flag in flags if Path(flag).name=='xge_host_xrt_imports.h'),None)
+    import_macros = set(imports.read_text(encoding='utf-8').splitlines()) if imports else set()
+    slots = set((imports.parent/'xge_host_xrt_slots.inc').read_text(encoding='utf-8').splitlines()) if imports else set()
     for path, expected in calls.items():
         label = Path(path).stem+'-lifetime'
         obj = out/(label+'.o')
         run(label+'-compile', [tools['gcc'],*flags,'-O0','-fno-inline','-ffunction-sections',
             '-fdata-sections','-c',source/path,'-o',obj], cwd=source)
         relocations = object_relocations(run(label+'-relocations',[tools['objdump'],'-r',obj]))
+        paths = {}
         for caller, names in expected.items():
             refs = relocations.get('.text.'+caller, set()) | relocations.get('.text$'+caller, set())
+            paths[caller] = {}
             for name in names:
-                assert {'.text.'+name, '.text$'+name, name} & refs, (caller, name)
-        evidence[path] = dict(object=str(obj), objectSha256=sha(obj), nativeCalls=expected)
+                direct = {'.text.'+name, '.text$'+name, name} & refs
+                if direct:
+                    paths[caller][name] = [min(direct)]
+                    continue
+                slot = 'XgeHostXrtSlot_'+name
+                assert '-DXGE_XRT_HOST=1' in flags and f'XGE_HOST_XRT_SLOT({name})' in slots
+                assert f'#define {name} (*{slot})' in import_macros
+                if slot in refs:
+                    paths[caller][name] = [slot]
+                    continue
+                # COFF may route the address of the import slot through a refptr section.
+                refptr = '.refptr.'+slot
+                assert refptr in refs and slot in relocations.get('.rdata$'+refptr,()), (caller,name,refs)
+                paths[caller][name] = [refptr,slot]
+        evidence[path] = dict(object=str(obj), objectSha256=sha(obj), nativeCalls=expected,
+            relocationPaths=paths)
     return evidence
 
 
@@ -824,12 +845,20 @@ def main():
                     relocationPath=close_relocation_path(header_relocations[key],policy,destroy,release))
             elif document and symbol=='xuiDocumentFreeBuffer':
                 evidence=document['bufferReplacement']
+            elif symbol=='xuiDockPanelStateFree' and a.resource_engine_build:
+                bindings = [row for row in bound['xuiDockPanelSaveState']
+                            if row['language']=='xui.DockPanel.saveState']
+                assert len(bindings)==1
+                line = (view/bindings[0]['source']).read_text(encoding='utf-8-sig').splitlines()[bindings[0]['line']-1]
+                assert '@c_output(1,0) @c_output_view(1,"owned_value")' in line
+                evidence=dict(language='xui.DockPanel.saveState',native='xrtValueRelease',
+                    ownership='Resident XRT value released by the language owner')
             if evidence and symbol in NATIVE_RELEASE_DELEGATES:
                 unit, caller, callee = NATIVE_RELEASE_DELEGATES[symbol]
                 witness = report['resourceLifetime'][unit]
                 assert callee in witness['nativeCalls'][caller]
                 evidence['nativeReleaseWitness'] = dict(source=unit,caller=caller,callee=callee,
-                    objectSha256=witness['objectSha256'])
+                    relocationPath=witness['relocationPaths'][caller][callee],objectSha256=witness['objectSha256'])
             rows.append(dict(id=item['id'],symbol=symbol,family=item['family'],conditions=item['conditions'],
                 publicDeclarationPresent=False,compiledNativeConsumers=consumers.get(symbol,[]),
                 explicitReplacement=evidence,

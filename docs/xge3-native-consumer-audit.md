@@ -1,5 +1,24 @@
 # Native consumers in the full API inventory
 
+## Plain editor languages and Dock saved-state release
+
+`CodeLanguageRegistry.registerPlain()` and
+`CodeEditLanguageRegistry.registerPlain()` can register an external token
+source or a language that uses the built-in C lexer and folder. Each declaration
+calls the native registration function once. Both platforms exercised five
+native allocation-failure prefixes and verified that the old definition survives.
+
+`DockPanel.saveState()` transfers the XRT value to the language owner. The
+native release helper reaches the same `xrtValueRelease` through the host XRT
+import slot. The result remains readable after the Dock panel and Context close,
+and the measured heap operations match the reference C save. The matched O2
+JIT, dynamic AOT and static AOT checks passed on Windows and Linux.
+
+The package inventories cover 5,889 native functions and 4,828 direct
+declarations. The remaining 74 entries comprise 16 XGE and 58 XUI functions.
+
+[Registration and Dock saved-state evidence](../dev/release-materials/provenance/xui-plain-language-20261124.json)
+
 ## Checked editor model retirement and resource releases
 
 `CodeAnnotationStore.close()`, `CodeTokenBuffer.close()` and

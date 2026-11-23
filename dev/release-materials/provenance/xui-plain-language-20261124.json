@@ -1,0 +1,502 @@
+{
+  "schema": 1,
+  "scope": "Plain editor-language registration and Dock saved-state release",
+  "nativeCommit": "79430ec06fc8f7793a6d24b874dbab3e50bb484b",
+  "shippingDelivery": false,
+  "dedicatedGraphicsDevice": false,
+  "networkTests": false,
+  "platforms": {
+    "win": {
+      "nativeSource": {
+        "path": "F:/xlang-validation/xge-full-20261110/xui-plain-language-native-source-win-r1.json",
+        "sha256": "0fa78b428f399ca923a236d9edf93ef7397932f6764a2ad1fdb1174d2d85bd32"
+      },
+      "nativeHost": {
+        "path": "F:/xlang-validation/xge-full-20261110/xui-plain-language-host-win-r1/build-report.json",
+        "sha256": "ec69dfc11782b578818c490d86e24be562fe73b9b8a29be9b79885036c50523b"
+      },
+      "nativeStatic": {
+        "path": "F:/xlang-validation/xge-full-20261110/xui-plain-language-static-win-r1/build-report.json",
+        "sha256": "e62ff5d9e59d0a29cdd55523072fb05bf5dea992a56b3c9f401d6c4b6d697813"
+      },
+      "compiler": {
+        "path": "F:/xlang-validation/xge-full-20261110/compiler-owned-output-pair-win-r2/build.json",
+        "sha256": "41596d3515fdf8c1f5194838396e40b1d84ecb013557b7f7aadbe352315593a3"
+      },
+      "packageReplay": {
+        "path": "F:/xlang-validation/xge-full-20261110/xui-plain-language-stage-win-r2/replay/stage-report.json",
+        "sha256": "ba6e97228ea048908df0e3f3cc3c084c479351536244d8241dad1bb25732fdfb"
+      },
+      "consumerAudit": {
+        "path": "F:/xlang-validation/xge-full-20261110/xui-plain-language-consumers-win-r3/results.json",
+        "sha256": "8467d4c704d19f61371a6b451c70ad65913b64eb78737b295247e4d846870391"
+      },
+      "nativeO0O2": {
+        "path": "F:/xlang-validation/xge-full-20261110/xui-plain-language-native-tests-win-r5/results.json",
+        "sha256": "7f5a097b3fbf10f77fd8c481541467ccd954929177b11b49e78ec9e3a2b2ebc3"
+      },
+      "functionPopulation": 5889,
+      "directDeclarations": 4828,
+      "remaining": {
+        "XGE": 16,
+        "XUI": 58
+      },
+      "dockRelease": {
+        "language": "xui.DockPanel.saveState",
+        "native": "xrtValueRelease",
+        "ownership": "Resident XRT value released by the language owner",
+        "nativeReleaseWitness": {
+          "source": "src/xui/controls/xui_dock_panel.c",
+          "caller": "xuiDockPanelStateFree",
+          "callee": "xrtValueRelease",
+          "relocationPath": [
+            ".refptr.XgeHostXrtSlot_xrtValueRelease",
+            "XgeHostXrtSlot_xrtValueRelease"
+          ],
+          "objectSha256": "1225a61065df197db91e43b9cc3351cd90a8527ce289696c9453503de6fbf1b5"
+        }
+      },
+      "cases": {
+        "code_language_tools": {
+          "report": {
+            "path": "F:/xlang-validation/xge-full-20261110/xui-plain-language-verify-win-r2/results.json",
+            "sha256": "d934ac512fbe358f81745c5ede68413cfcd87768090dee6378fbc49460644c5c"
+          },
+          "steps": [
+            "emit",
+            "host-build",
+            "host-imports",
+            "host-run",
+            "jit",
+            "static-build",
+            "static-imports",
+            "static-run"
+          ],
+          "measurements": {},
+          "generated": {
+            "path": "F:/xlang-validation/xge-full-20261110/xui-plain-language-verify-win-r2/code_language_tools/generated.c",
+            "sha256": "37cb08853b71152155cbc04c725b01eb5328f92467860ebf176cd91ddc43850a"
+          },
+          "imports": {
+            "host": [
+              "msvcrt.dll",
+              "xge3_host.dll",
+              "kernel32.dll",
+              "shell32.dll",
+              "ucrtbase.dll"
+            ],
+            "static": [
+              "msvcrt.dll",
+              "kernel32.dll",
+              "user32.dll",
+              "oleaut32.dll",
+              "ole32.dll",
+              "shell32.dll"
+            ]
+          }
+        },
+        "foreign_xui_code_language_plain": {
+          "report": {
+            "path": "F:/xlang-validation/xge-full-20261110/xui-plain-language-verify-win-r4/results.json",
+            "sha256": "c9089a0224e3fc3b4055a1a146d1153db7260518fe87fb8c07592aabd5f5cb3f"
+          },
+          "steps": [
+            "emit",
+            "host-build",
+            "host-imports",
+            "host-run",
+            "jit",
+            "static-build",
+            "static-imports",
+            "static-run"
+          ],
+          "measurements": {
+            "jit": {
+              "native": {
+                "iterations": 128,
+                "alloc": 768,
+                "free": 768,
+                "realloc": 0,
+                "elapsedMs": 0.1754
+              },
+              "xlang": {
+                "iterations": 128,
+                "alloc": 1280,
+                "free": 1280,
+                "realloc": 0,
+                "elapsedMs": 0.4993
+              }
+            },
+            "host-run": {
+              "native": {
+                "iterations": 128,
+                "alloc": 768,
+                "free": 768,
+                "realloc": 0,
+                "elapsedMs": 0.2982
+              },
+              "xlang": {
+                "iterations": 128,
+                "alloc": 1280,
+                "free": 1280,
+                "realloc": 0,
+                "elapsedMs": 0.8429
+              }
+            },
+            "static-run": {
+              "native": {
+                "iterations": 128,
+                "alloc": 768,
+                "free": 768,
+                "realloc": 0,
+                "elapsedMs": 0.3078
+              },
+              "xlang": {
+                "iterations": 128,
+                "alloc": 1280,
+                "free": 1280,
+                "realloc": 0,
+                "elapsedMs": 0.8507
+              }
+            }
+          },
+          "generated": {
+            "path": "F:/xlang-validation/xge-full-20261110/xui-plain-language-verify-win-r4/foreign_xui_code_language_plain/generated.c",
+            "sha256": "f4888933d4f8e8aece906e8ecae82ad0b81eafd892166c0f80bec9f47cca4ce0"
+          },
+          "imports": {
+            "host": [
+              "msvcrt.dll",
+              "xge3_host.dll",
+              "kernel32.dll",
+              "shell32.dll",
+              "ws2_32.dll",
+              "iphlpapi.dll",
+              "ucrtbase.dll"
+            ],
+            "static": [
+              "msvcrt.dll",
+              "kernel32.dll",
+              "user32.dll",
+              "ole32.dll",
+              "oleaut32.dll",
+              "shell32.dll",
+              "gdi32.dll",
+              "imm32.dll",
+              "dwrite.dll"
+            ]
+          }
+        },
+        "foreign_xui_state_outputs": {
+          "report": {
+            "path": "F:/xlang-validation/xge-full-20261110/xui-plain-language-verify-win-r2/results.json",
+            "sha256": "d934ac512fbe358f81745c5ede68413cfcd87768090dee6378fbc49460644c5c"
+          },
+          "steps": [
+            "emit",
+            "host-build",
+            "host-imports",
+            "host-run",
+            "jit",
+            "static-build",
+            "static-imports",
+            "static-run"
+          ],
+          "measurements": {
+            "jit": {
+              "alloc": 19900,
+              "free": 19900,
+              "realloc": 0
+            },
+            "host-run": {
+              "alloc": 19900,
+              "free": 19900,
+              "realloc": 0
+            },
+            "static-run": {
+              "alloc": 19900,
+              "free": 19900,
+              "realloc": 0
+            }
+          },
+          "generated": {
+            "path": "F:/xlang-validation/xge-full-20261110/xui-plain-language-verify-win-r2/foreign_xui_state_outputs/generated.c",
+            "sha256": "513990ab45cb7c3bf7ae7209b3071994d8b1a11b8db1562ae3b8ad4a6c31db1c"
+          },
+          "imports": {
+            "host": [
+              "msvcrt.dll",
+              "xge3_host.dll",
+              "kernel32.dll",
+              "shell32.dll",
+              "ws2_32.dll",
+              "iphlpapi.dll",
+              "ucrtbase.dll"
+            ],
+            "static": [
+              "msvcrt.dll",
+              "kernel32.dll",
+              "user32.dll",
+              "oleaut32.dll",
+              "ole32.dll",
+              "shell32.dll"
+            ]
+          }
+        }
+      }
+    },
+    "linux": {
+      "nativeSource": {
+        "path": "//wsl.localhost/Ubuntu/var/tmp/xlang-validation/xge-full-20261110/xui-plain-language-native-source-linux-r1.json",
+        "sha256": "9a0cd3fc26980d1a98fc5c8b7d9906a99f68367ccf6e1461c9732bbf48e9927a"
+      },
+      "nativeHost": {
+        "path": "//wsl.localhost/Ubuntu/var/tmp/xlang-validation/xge-full-20261110/xui-plain-language-host-linux-r1/build-report.json",
+        "sha256": "c1cb661b003ad43f7824d4f64cb8994e8aed202d7862676fde8d6fc8125c0688"
+      },
+      "nativeStatic": {
+        "path": "//wsl.localhost/Ubuntu/var/tmp/xlang-validation/xge-full-20261110/xui-plain-language-static-linux-r1/build-report.json",
+        "sha256": "9efd6da0f54150f368f67368ddae939579d45741d5b91105530939c9c9c2bf26"
+      },
+      "compiler": {
+        "path": "//wsl.localhost/Ubuntu/var/tmp/xlang-validation/xge-full-20261110/compiler-owned-output-pair-linux-r2/build.json",
+        "sha256": "bb4ad4330abb14095a0dc59233ed6e265033b4498b8f779a11ca4d0b9b176099"
+      },
+      "packageReplay": {
+        "path": "//wsl.localhost/Ubuntu/var/tmp/xlang-validation/xge-full-20261110/xui-plain-language-stage-linux-r2/replay/stage-report.json",
+        "sha256": "c7d1ddd4aab6ab964803f527ceadcea8f5341aa1980f205b5c1ce1db472a2ab9"
+      },
+      "consumerAudit": {
+        "path": "//wsl.localhost/Ubuntu/var/tmp/xlang-validation/xge-full-20261110/xui-plain-language-consumers-linux-r3/results.json",
+        "sha256": "adf1cfac7c6d9a3b29ded23c79dddd03510b387db96839c4e795fe90d443a59d"
+      },
+      "nativeO0O2": {
+        "path": "//wsl.localhost/Ubuntu/var/tmp/xlang-validation/xge-full-20261110/xui-plain-language-native-tests-linux-r5/results.json",
+        "sha256": "881c1b9aa3bd3517f7fa3b30624de6496be128a6cb1fdb5f71fd561ce54ee808"
+      },
+      "functionPopulation": 5889,
+      "directDeclarations": 4828,
+      "remaining": {
+        "XGE": 16,
+        "XUI": 58
+      },
+      "dockRelease": {
+        "language": "xui.DockPanel.saveState",
+        "native": "xrtValueRelease",
+        "ownership": "Resident XRT value released by the language owner",
+        "nativeReleaseWitness": {
+          "source": "src/xui/controls/xui_dock_panel.c",
+          "caller": "xuiDockPanelStateFree",
+          "callee": "xrtValueRelease",
+          "relocationPath": [
+            "XgeHostXrtSlot_xrtValueRelease"
+          ],
+          "objectSha256": "1e3a35a8f35c1acb6c1f0858ce0442f1b4611bdf816c8defe0cad17a1b97377e"
+        }
+      },
+      "cases": {
+        "code_language_tools": {
+          "report": {
+            "path": "//wsl.localhost/Ubuntu/var/tmp/xlang-validation/xge-full-20261110/xui-plain-language-verify-linux-r2/results.json",
+            "sha256": "7780c80e8e918d56c69cd080917376ccd48efe5cc858098d98d430ac5735c50f"
+          },
+          "steps": [
+            "emit",
+            "host-build",
+            "host-imports",
+            "host-run",
+            "jit",
+            "static-build",
+            "static-imports",
+            "static-run"
+          ],
+          "measurements": {},
+          "generated": {
+            "path": "//wsl.localhost/Ubuntu/var/tmp/xlang-validation/xge-full-20261110/xui-plain-language-verify-linux-r2/code_language_tools/generated.c",
+            "sha256": "37cb08853b71152155cbc04c725b01eb5328f92467860ebf176cd91ddc43850a"
+          },
+          "imports": {
+            "static": [
+              "libm.so.6",
+              "libmvec.so.1",
+              "libx11.so.6",
+              "libxi.so.6",
+              "libxcursor.so.1",
+              "libgl.so.1",
+              "libc.so.6",
+              "ld-linux-x86-64.so.2"
+            ],
+            "host": [
+              "libm.so.6",
+              "libmvec.so.1",
+              "libxge3_host.so",
+              "libc.so.6",
+              "ld-linux-x86-64.so.2"
+            ]
+          }
+        },
+        "foreign_xui_code_language_plain": {
+          "report": {
+            "path": "//wsl.localhost/Ubuntu/var/tmp/xlang-validation/xge-full-20261110/xui-plain-language-verify-linux-r4/results.json",
+            "sha256": "b4e5c9d6c7bbc5e57f39868c616f3822ac0f160b08df8d5c128713068512d40f"
+          },
+          "steps": [
+            "emit",
+            "host-build",
+            "host-imports",
+            "host-run",
+            "jit",
+            "static-build",
+            "static-imports",
+            "static-run"
+          ],
+          "measurements": {
+            "jit": {
+              "native": {
+                "iterations": 128,
+                "alloc": 768,
+                "free": 768,
+                "realloc": 0,
+                "elapsedMs": 0.082
+              },
+              "xlang": {
+                "iterations": 128,
+                "alloc": 1280,
+                "free": 1280,
+                "realloc": 0,
+                "elapsedMs": 0.2567
+              }
+            },
+            "host-run": {
+              "native": {
+                "iterations": 128,
+                "alloc": 768,
+                "free": 768,
+                "realloc": 0,
+                "elapsedMs": 0.2773
+              },
+              "xlang": {
+                "iterations": 128,
+                "alloc": 1280,
+                "free": 1280,
+                "realloc": 0,
+                "elapsedMs": 0.7092
+              }
+            },
+            "static-run": {
+              "native": {
+                "iterations": 128,
+                "alloc": 768,
+                "free": 768,
+                "realloc": 0,
+                "elapsedMs": 0.0788
+              },
+              "xlang": {
+                "iterations": 128,
+                "alloc": 1280,
+                "free": 1280,
+                "realloc": 0,
+                "elapsedMs": 0.2448
+              }
+            }
+          },
+          "generated": {
+            "path": "//wsl.localhost/Ubuntu/var/tmp/xlang-validation/xge-full-20261110/xui-plain-language-verify-linux-r4/foreign_xui_code_language_plain/generated.c",
+            "sha256": "f4888933d4f8e8aece906e8ecae82ad0b81eafd892166c0f80bec9f47cca4ce0"
+          },
+          "imports": {
+            "host": [
+              "libm.so.6",
+              "libmvec.so.1",
+              "libxge3_host.so",
+              "libc.so.6",
+              "ld-linux-x86-64.so.2"
+            ],
+            "static": [
+              "libm.so.6",
+              "libmvec.so.1",
+              "libx11.so.6",
+              "libxi.so.6",
+              "libxcursor.so.1",
+              "libgl.so.1",
+              "libc.so.6",
+              "ld-linux-x86-64.so.2"
+            ]
+          }
+        },
+        "foreign_xui_state_outputs": {
+          "report": {
+            "path": "//wsl.localhost/Ubuntu/var/tmp/xlang-validation/xge-full-20261110/xui-plain-language-verify-linux-r2/results.json",
+            "sha256": "7780c80e8e918d56c69cd080917376ccd48efe5cc858098d98d430ac5735c50f"
+          },
+          "steps": [
+            "emit",
+            "host-build",
+            "host-imports",
+            "host-run",
+            "jit",
+            "static-build",
+            "static-imports",
+            "static-run"
+          ],
+          "measurements": {
+            "jit": {
+              "alloc": 19900,
+              "free": 19900,
+              "realloc": 0
+            },
+            "host-run": {
+              "alloc": 19900,
+              "free": 19900,
+              "realloc": 0
+            },
+            "static-run": {
+              "alloc": 19900,
+              "free": 19900,
+              "realloc": 0
+            }
+          },
+          "generated": {
+            "path": "//wsl.localhost/Ubuntu/var/tmp/xlang-validation/xge-full-20261110/xui-plain-language-verify-linux-r2/foreign_xui_state_outputs/generated.c",
+            "sha256": "513990ab45cb7c3bf7ae7209b3071994d8b1a11b8db1562ae3b8ad4a6c31db1c"
+          },
+          "imports": {
+            "static": [
+              "libm.so.6",
+              "libmvec.so.1",
+              "libx11.so.6",
+              "libxi.so.6",
+              "libxcursor.so.1",
+              "libgl.so.1",
+              "libc.so.6",
+              "ld-linux-x86-64.so.2"
+            ],
+            "host": [
+              "libm.so.6",
+              "libmvec.so.1",
+              "libxge3_host.so",
+              "libc.so.6",
+              "ld-linux-x86-64.so.2"
+            ]
+          }
+        }
+      }
+    }
+  },
+  "previousAudit": {
+    "path": "D:/GIT/x-lang/dev/release-materials/provenance/xge-resource-release-20261124.json",
+    "sha256": "cd1a4038d7fa9d201445d895bd729343574af28a33021c4aff383d8c7031fd82"
+  },
+  "sourceSha256NormalizedLf": {
+    "lib/bindings/xui/src/code_language_registry.xl": "606ac9c4e5dabdd6e2250d37ff1fe9b3d10c9e834da0626486237935434264ab",
+    "lib/bindings/xui/examples/code_language_tools.xl": "01d91cd03789228166a445263d3fc1be6a4cf336c3b5e7f13dcd92542508ba1c",
+    "test/cases/foreign_xui_code_language_plain.xl": "0623965d512a89271ff88b424c0dd3b6ef1e5e9618eb73cfebdace9c1e029c3d",
+    "test/cases/foreign_xui_code_language_plain.c": "8bc2d49f89aba20db44b217451958638c3ba43defd11699efb0326c991356e2f",
+    "test/cases/foreign_xui_code_language_plain.h": "6ebf03b2aba4b4d3522eeef4153bdae8b19fb57fc70b4573f37fa9c45c4f8ecc",
+    "test/cases/foreign_xui_state_outputs.xl": "c72caa87aaa5576c0c550553034b0771bb550c8f51728405b767545518a72707",
+    "test/cases/foreign_xui_state_outputs.c": "cec46747936e67c9f8914f6f1ebe820d775fc645c679908385db53ed7dd17cbc",
+    "test/cases/foreign_xui_state_outputs.h": "32f797f7e318ed84a21b2478d60a3e8edcb866d2cf8779e30235e84d1892b038",
+    "tools/check_xge3_native_consumers.py": "d75f546d7963804bf1da2a50e08389cca8593253f753716cf1598e7513dd49b5",
+    "docs/xge3-xui3-api-map-storage.json": "f75e022dc30518d1d0b31218166949b2caaff937c577be83d6a5913474796ec4"
+  }
+}
