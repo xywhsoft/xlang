@@ -16,6 +16,12 @@
 
 运行 [input_events.xl](../lib/bindings/xge/examples/input_events.xl) 可观察缓冲不足、重试和先后顺序。示例使用合成事件，不需要窗口或输入设备。
 
+## 原生 IME 兼容队列
+
+`xge.readImeEvent(buffer)` 在引擎创建线程读取原生 IME 事件，返回 `(status, ImeEventInfo)`。它沿用有序输入的三个读取状态。缓冲不足时可按 `info.iTextSize` 扩容后重试；成功时只写入实际字节，保留内嵌 NUL。元数据提供 UTF-8 字节选区、替换范围和输入法属性。
+
+该入口和原生 `xgeImeEventGet` 消费同一兼容队列。有序队列中与它对应的事件使用相同的 `iSequence`。有序读取会移除对应的兼容条目，兼容读取会保留有序副本。一般只选择一种消费方式。使用 `xge.postInputEvent()` 提交的合成 IME 事件只进入有序队列。
+
 ## 本地拖放事件
 
 `xge.dispatchDragEvent()` 同步调用已注册的拖放回调，成功时返回协商后的效果。可以指定坐标、修饰键、允许效果和可选的 `DataObject`。省略序号和时间时由 XGE 填写。没有接收方时返回 `XGE_DRAG_EFFECT_NONE`。无效事件类型和 checked 回调错误会抛出，超出允许范围的效果由原生层归为 `NONE`。

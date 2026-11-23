@@ -519,13 +519,27 @@
       "declaration": "export extern \"xgeInputEventRead\" @header(\"xge3_runtime.h\") @no_raise @c_span(0,\"void*\",\"size_t\") @c_outputs(-1,0) @c_result(\"integer_min\",0) func readInputEvent(Buffer text) as (c_int,InputEventInfo)",
       "storage": "bounded-synchronous-output",
       "sourceFile": "src/xge/input/xge_input.c",
-      "line": 438,
+      "line": 461,
       "functionSha256": "9411acd264ee59c34e46715bf5ee4d03c25912eb65f1bd758344f14c8038ce33",
       "helperEvidence": {
         "sourceFile": "src/xge/input/xge_input.c",
-        "line": 463,
+        "line": 486,
         "marker": "iBytes > iCapacity",
         "reason": "writes exactly the counted byte length after a capacity check"
+      }
+    },
+    "xgeImeEventRead": {
+      "bindingFile": "lib\\bindings\\xge\\src\\input_events.xl",
+      "declaration": "export extern \"xgeImeEventRead\" @header(\"xge3_runtime.h\") @no_raise @c_span(0,\"void*\",\"size_t\") @c_outputs(-1,0) @c_result(\"integer_min\",0) func readImeEvent(Buffer text) as (c_int,ImeEventInfo)",
+      "storage": "bounded-synchronous-output",
+      "sourceFile": "src/xge/input/xge_input.c",
+      "line": 551,
+      "functionSha256": "2d089783d5d655cad65fe853c4403bd2f80a247dd94131dc20df751c3f5c580d",
+      "helperEvidence": {
+        "sourceFile": "src/xge/input/xge_input.c",
+        "line": 563,
+        "marker": "iBytes > iCapacity",
+        "reason": "publishes metadata on a short buffer and copies only counted bytes on success"
       }
     },
     "xgeInputEventPostData": {
@@ -533,7 +547,7 @@
       "declaration": "export extern \"xgeInputEventPostData\" @header(\"xge3_runtime.h\") @no_raise @c_ref(0) @c_span(1,\"const void*\",\"size_t\",2) @c_result(\"status\",0) func postInputEvent(InputEventInfo event,bytes text=b\"\",int size=-1)",
       "storage": "native-copy-or-synchronous-read",
       "sourceFile": "src/xge/input/xge_input.c",
-      "line": 469,
+      "line": 492,
       "functionSha256": "0b79d8ebe74dfe510610aec02b31c17efa89447c22ad69b105d1a5c16f68f9ab",
       "helperEvidence": {
         "sourceFile": "src/xge/input/xge_input.c",
@@ -544,7 +558,7 @@
       "dependencies": [
         {
           "sourceFile": "src/xge/input/xge_input.c",
-          "sha256": "620c2b5115a6aee067d6828ad88fae90bfd705de2f9b4b59688cce32eaad0c69"
+          "lfSha256": "2b41cae5bc7234108e8e7fe9c0b4b42bc3eba4bcee778b8cf54e15ba00eae037"
         }
       ]
     },
@@ -584,7 +598,7 @@
       "dependencies": [
         {
           "sourceFile": "include/xge.h",
-          "lfSha256": "bb478a41b4b1bde8c5b89332255fd288321dfb1aeeeca91766986edd4568e1f9"
+          "lfSha256": "b4afc2e0c587f222b73451e00e4cfc5f9e338fd0d278034c65caf94ee7c089d8"
         }
       ]
     },
@@ -650,7 +664,7 @@
       "dependencies": [
         {
           "sourceFile": "include/xge.h",
-          "lfSha256": "bb478a41b4b1bde8c5b89332255fd288321dfb1aeeeca91766986edd4568e1f9"
+          "lfSha256": "b4afc2e0c587f222b73451e00e4cfc5f9e338fd0d278034c65caf94ee7c089d8"
         },
         {
           "sourceFile": "src/xge/render/xge_render.c",
@@ -664,7 +678,7 @@
       "declaration": "export extern \"xgeImeCandidateGetText\" @header(\"xge3_runtime.h\") @c_span(1,\"char*\",\"int\") func imeCandidateGetText(c_int iIndex,Buffer sText) as c_int",
       "storage": "bounded-synchronous-output",
       "sourceFile": "src/xge/input/xge_input.c",
-      "line": 598,
+      "line": 683,
       "functionSha256": "9329c416582884a277de4308156dde4254abbbaf27674943a222ac658cc40a28"
     },
     "xgeImageLoadMemory": {
@@ -1252,7 +1266,7 @@
       "dependencies": [
         {
           "sourceFile": "include/xge.h",
-          "lfSha256": "bb478a41b4b1bde8c5b89332255fd288321dfb1aeeeca91766986edd4568e1f9"
+          "lfSha256": "b4afc2e0c587f222b73451e00e4cfc5f9e338fd0d278034c65caf94ee7c089d8"
         },
         {
           "sourceFile": "src/xge/core/xge_debug.c",
@@ -2195,7 +2209,7 @@
       "dependencies": [
         {
           "sourceFile": "include/xge.h",
-          "lfSha256": "bb478a41b4b1bde8c5b89332255fd288321dfb1aeeeca91766986edd4568e1f9"
+          "lfSha256": "b4afc2e0c587f222b73451e00e4cfc5f9e338fd0d278034c65caf94ee7c089d8"
         },
         {
           "sourceFile": "include/xui.h",
@@ -2484,7 +2498,7 @@
       "dependencies": [
         {
           "sourceFile": "include/xge.h",
-          "lfSha256": "bb478a41b4b1bde8c5b89332255fd288321dfb1aeeeca91766986edd4568e1f9"
+          "lfSha256": "b4afc2e0c587f222b73451e00e4cfc5f9e338fd0d278034c65caf94ee7c089d8"
         },
         {
           "sourceFile": "src/xge/render/xge_shape_ex.c",
@@ -2504,7 +2518,7 @@
       "dependencies": [
         {
           "sourceFile": "include/xge.h",
-          "lfSha256": "bb478a41b4b1bde8c5b89332255fd288321dfb1aeeeca91766986edd4568e1f9"
+          "lfSha256": "b4afc2e0c587f222b73451e00e4cfc5f9e338fd0d278034c65caf94ee7c089d8"
         },
         {
           "sourceFile": "src/xge/render/xge_shape_ex.c",

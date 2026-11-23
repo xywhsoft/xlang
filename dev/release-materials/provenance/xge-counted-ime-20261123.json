@@ -1,0 +1,127 @@
+{
+  "schema": 1,
+  "scope": "Counted native IME events and sequence-based correlation of ordered and compatibility queues",
+  "nativeCommit": "eed05b15d044b863240388a6c4db16dcddd5b41a",
+  "shippingDelivery": false,
+  "networkTests": false,
+  "sourceSha256NormalizedLf": {
+    "lib/bindings/xge/src/input_events.xl": "addc2c48bf5d6c19ea24e9b54ec0259bf8074357c1850421ca80f1ab49c100b4",
+    "docs/xge3-xui3-api-map-storage.json": "062e312aaf8d6df2171b470ec9c622146dba0a1bb8501abd87283ed7a63c4542",
+    "test/cases/foreign_xge_input_events.c": "4dfdfda3a307ada72af26122cd3805d05fa3606e2566230cb2bf35ef459759eb",
+    "test/cases/foreign_xge_input_events.h": "e07dccd8211936242b892a7f5f12d51829d731ec00e3f5ac5d2c779cf2fa0590",
+    "test/cases/foreign_xge_input_events.xl": "5a61b8a28f92ffa54e0960d37252f0da81f97e0a59fb17dd611dce1f273e2067",
+    "test/cases/foreign_xge3_checked_drag.xl": "e920c7d64bf15858a596059b9d49b30256b42df7157d89ce1d20f6cf6f39d2ca",
+    "tools/xge_replay_contracts.py": "1dddcab41c9635d265bdb8e0756fc22519b1f2cc906937801ff89d730f8f9738"
+  },
+  "validation": {
+    "nativePayloadInjectedAtProductionEnqueue": true,
+    "nativePayloadWithNul": true,
+    "nativeShortBufferPreservesEventAndOutput": true,
+    "nativeCrossFrameAndSequenceWrap": true,
+    "nativeReadsPreserveRawBorrow": true,
+    "nativeWrongThreadRejected": true,
+    "languageEmptyPollsPerMode": 1000,
+    "languageSyntheticOnlyInOrderedQueue": true,
+    "languageColdInitializationRejected": true,
+    "nativeSuccessfulReadXrtFrees": 1
+  },
+  "performanceScope": "In the native core fixture NEED_BUFFER, READY and EMPTY cause no XRT allocations or reallocations. READY frees its queued text. The matched hosted and static programs compare 1,000 empty polls in C and xlang; both record zero XRT heap operations. Native event delivery is tested through the production queue with injected events. Real operating-system text-service interaction is outside this receipt.",
+  "platforms": {
+    "win": {
+      "nativeSource": {
+        "path": "F:/xlang-validation/xge-full-20261110/ime-counted-native-source-win-r2.json",
+        "sha256": "4e90d16dc172eef4e8b3ed5def075289b200ece4b75fd32511db093250058024"
+      },
+      "nativeRegressionO0O2": {
+        "path": "F:/xlang-validation/xge-full-20261110/ime-counted-native-test-win-r2/results.json",
+        "sha256": "d5738ce7063d43e97fc49e09ac20d33d05a36371b63d41e2c719d49908a0db46"
+      },
+      "typeCorrelationBeforeAfter": {
+        "path": "F:/xlang-validation/xge-full-20261110/ime-counted-correlation-repro-win-r2/results.json",
+        "sha256": "72ca2febcce390fb3864314a87f5e8fa3ca7560cfe6d521c7822f7dcaff9c246"
+      },
+      "languageJitDynamicStaticAot": {
+        "path": "F:/xlang-validation/xge-full-20261110/ime-counted-verify-win-r2/results.json",
+        "sha256": "d1ff580e06335ceefaa54a13cef6683a66644b4ae1c9753f4b4383da93944d5d"
+      },
+      "declarationReplay": {
+        "path": "F:/xlang-validation/xge-full-20261110/ime-counted-generator-win-r3/results.json",
+        "sha256": "8ccf46e45d556cf0316014cf8836d092cefd17539e6c340b6a036d68a5195224"
+      },
+      "nativeConsumerAudit": {
+        "path": "F:/xlang-validation/xge-full-20261110/ime-counted-consumers-win-r2/results.json",
+        "sha256": "bfaece6c1625f52fd4e058411badd8a196318d6d8dcfad88e2aba5ad35e3f8a2"
+      },
+      "functionPopulation": 5871,
+      "directDeclarations": 4807,
+      "pendingConsumerOrReplacement": {
+        "XGE": 50,
+        "XUI": 74
+      },
+      "matchedPackages": {
+        "path": "F:/xlang-validation/xge-full-20261110/ime-counted-stage-win-r3/replay/stage-report.json",
+        "sha256": "29e353959c541415269cd373225fd22baa004ba72addd66bc6a5b39a91e044f0"
+      },
+      "staticO2Build": {
+        "path": "F:/xlang-validation/xge-full-20261110/ime-counted-static-win-r2/build-report.json",
+        "sha256": "655b411eea0e533083d2bff23d12e18aefddf5a9ab312e4e9de36c9db0e2eaa7"
+      },
+      "hostO2Build": {
+        "path": "F:/xlang-validation/xge-full-20261110/ime-counted-host-win-r2/build-report.json",
+        "sha256": "a557b9551147b59d9b50ed0cff1957dbd331a69f769386a150cfd7dca299067c"
+      },
+      "publicSurface": {
+        "path": "F:/xlang-validation/xge-full-20261110/ime-counted-inventory-win-r3/surface.json",
+        "sha256": "6af6000394c9f3e543cf152b623728d7dfa0be4656ced25f0d0a7ade0f752586"
+      }
+    },
+    "linux": {
+      "nativeSource": {
+        "path": "//wsl.localhost/Ubuntu/var/tmp/xlang-validation/xge-full-20261110/ime-counted-native-source-linux-r2.json",
+        "sha256": "85308362f2179c26c3421d26f1822606c75db5cf5a479ccad2c470b57fa356a4"
+      },
+      "nativeRegressionO0O2": {
+        "path": "//wsl.localhost/Ubuntu/var/tmp/xlang-validation/xge-full-20261110/ime-counted-native-test-linux-r2/results.json",
+        "sha256": "7cddee3380ca943d5644e5932d75c0f8feb314561204a0f22c0babc4cf1221e2"
+      },
+      "typeCorrelationBeforeAfter": {
+        "path": "//wsl.localhost/Ubuntu/var/tmp/xlang-validation/xge-full-20261110/ime-counted-correlation-repro-linux-r2/results.json",
+        "sha256": "b2fc7959c9ba939e3711f0bd8ddef98e39d7230e0303b9fc02c2abfabd36d06d"
+      },
+      "languageJitDynamicStaticAot": {
+        "path": "//wsl.localhost/Ubuntu/var/tmp/xlang-validation/xge-full-20261110/ime-counted-verify-linux-r2/results.json",
+        "sha256": "cf4ac8d787156bab309237cf42de7b7679667c7ec94551dc44f00ccbe408f744"
+      },
+      "declarationReplay": {
+        "path": "//wsl.localhost/Ubuntu/var/tmp/xlang-validation/xge-full-20261110/ime-counted-generator-linux-r3/results.json",
+        "sha256": "4cfb6f2bfb98058171d1656a11e908e3cfd5bc3f90a222eccbe1aa1e583097a1"
+      },
+      "nativeConsumerAudit": {
+        "path": "//wsl.localhost/Ubuntu/var/tmp/xlang-validation/xge-full-20261110/ime-counted-consumers-linux-r2/results.json",
+        "sha256": "ac290e8a10252a52630116f17deecb7c6a22db5090e0d7f96d5ea65743afd77d"
+      },
+      "functionPopulation": 5871,
+      "directDeclarations": 4807,
+      "pendingConsumerOrReplacement": {
+        "XGE": 50,
+        "XUI": 74
+      },
+      "matchedPackages": {
+        "path": "//wsl.localhost/Ubuntu/var/tmp/xlang-validation/xge-full-20261110/ime-counted-stage-linux-r3/replay/stage-report.json",
+        "sha256": "f9a7d513d400b66fef67f9dbcaeef99ee48dc4831dfdedce2e35192979e42fa0"
+      },
+      "staticO2Build": {
+        "path": "//wsl.localhost/Ubuntu/var/tmp/xlang-validation/xge-full-20261110/ime-counted-static-linux-r2/build-report.json",
+        "sha256": "00bc6e632fb69232ad81b7f4219a4fcefda4ebaf4cd6feb25c49f13d256cf240"
+      },
+      "hostO2Build": {
+        "path": "//wsl.localhost/Ubuntu/var/tmp/xlang-validation/xge-full-20261110/ime-counted-host-linux-r2/build-report.json",
+        "sha256": "7d537fa1ef5e06a864fc9d9cee0fc109c348ca9dfc447d7907e1a70221efd447"
+      },
+      "publicSurface": {
+        "path": "//wsl.localhost/Ubuntu/var/tmp/xlang-validation/xge-full-20261110/ime-counted-inventory-linux-r3/surface.json",
+        "sha256": "a9c037c610ae49d3e73c39388a54ffc7f927589ad8b340b32325c625bf211887"
+      }
+    }
+  }
+}

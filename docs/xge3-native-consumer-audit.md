@@ -1,5 +1,26 @@
 # Native consumers in the full API inventory
 
+## Counted reads from the native IME queue
+
+`xge.readImeEvent()` calls `xgeImeEventRead()` directly with a caller-owned
+Buffer. It replaces the borrowed result of the legacy IME getter. A short
+buffer returns the required byte length and leaves the event queued. Ordered
+reads now retire the corresponding legacy record by sequence. In the prior
+engine, a synthetic IME update could retire a native update of the same type.
+
+The native regression injects a counted UTF-8 payload containing NUL through
+the production enqueue path. It covers field projection, sequence wrap,
+cross-frame queue matching, rejected threads and retained legacy pointers.
+The XRT counters show no allocation on reads and one free when consuming a
+queued payload. On both matched SDKs, 1,000 empty polls used no XRT heap
+operations in either handwritten C or xlang. The xlang qualification runs
+through JIT and dynamic and static AOT.
+
+The matching audits cover 5,871 functions, with 4,807 direct declarations and
+124 unresolved functions. XGE accounts for 50 and XUI for 74.
+
+[Counted IME verification](../dev/release-materials/provenance/xge-counted-ime-20261123.json)
+
 ## Checked drag dispatch and ordered input
 
 `xge.dispatchDragEvent()` prepares a native event on the stack and calls

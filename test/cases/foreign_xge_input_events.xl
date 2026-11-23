@@ -23,6 +23,10 @@ func verifyQueue(Buffer output)
     xge.postInputEvent(key)
     assert xge.inputEventPendingCount() == 2
     auto tiny = Buffer.fromHex("CCCC")
+    auto imeStatus,imeInfo = xge.readImeEvent(tiny)
+    assert imeStatus == xge.XGE_INPUT_READ_EMPTY and imeInfo.iSize != 0
+    assert imeInfo.iType == 0 and imeInfo.iTextSize == 0 and imeInfo.iSequence == uint64(0)
+    assert xge.inputEventPendingCount() == 2 and tiny.toBytes() == b"\xcc\xcc"
     auto tooSmall,head = xge.readInputEvent(tiny)
     assert tooSmall == xge.XGE_INPUT_READ_NEED_BUFFER and head.iTextSize == 3
     assert xge.inputEventPendingCount() == 2 and tiny.toBytes() == b"\xcc\xcc"
@@ -68,9 +72,26 @@ func verifyQueue(Buffer output)
         heapEnd(0)
     end
     nativeHot()
+
+    heapBegin()
+    try
+        for i in range(1000)
+            auto status,info = xge.readImeEvent(output)
+            assert status == xge.XGE_INPUT_READ_EMPTY and info.iTextSize == 0
+        end
+    finally
+        heapEnd(2)
+    end
 end
 
 func main(...) as int
+    bool rejected = false
+    try
+        xge.readImeEvent(Buffer())
+    catch error
+        rejected = true
+    end
+    assert rejected
     xge.init(32,32,"Counted input qualification",c_int(xge.XGE_INIT_OFFSCREEN),xge.XGE_RUN_MANUAL)
     try
         verifyQueue(Buffer.fromHex("CCCCCCCC"))

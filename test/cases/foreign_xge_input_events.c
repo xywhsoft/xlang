@@ -37,4 +37,11 @@ void inputEventNativeHot(void)
         assert(got.iTextSize == sizeof(input) && output[0] == 'A' && output[1] == 0 && output[2] == 'B');
     }
     inputEventHeapEnd(1);
+
+    inputEventHeapBegin();
+    for (int i = 0; i < 1000; ++i) {
+        xge_ime_event_info_t info;
+        assert(xgeImeEventRead(&info, NULL, 0) == XGE_INPUT_READ_EMPTY && info.iTextSize == 0);
+    }
+    inputEventHeapEnd(3);
 }
