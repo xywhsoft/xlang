@@ -1419,6 +1419,8 @@ METHODS.update({
 
 # Provider snapshots and sets close through their ownership descriptors.
 CLOSE_REPLACEMENTS = {
+    'xuiCodeDocumentBatchDestroy': ('xui.CodeDocumentBatch.close', 'xl6Xui3CodeDocumentBatchPolicy',
+        'destroy_code_document_batch', 'xuiCodeDocumentBatchDestroy'),
     'xuiCodeMarginModelDestroy': ('xui.CodeMarginModel.close', 'xl6Xui3CodeMarginPolicy', 'destroy_code_margin', 'xuiCodeMarginModelDestroyOwnerChecked'),
     'xuiCodeMarginModelDestroyChecked': ('xui.CodeMarginModel.close', 'xl6Xui3CodeMarginPolicy', 'destroy_code_margin', 'xuiCodeMarginModelDestroyOwnerChecked'),
     'xuiTableViewCellOutputReleaseChecked': ('xui.TableCellOutput.close', 'xl6Xui3TableCellOutputPolicy',

@@ -15,6 +15,11 @@ The callback document view expires on return; copy its text for later use.
 See [CodeDocument contracts](../../../docs/xui-code-document.md) and
 [the console lesson](examples/code_document.xl).
 
+`prepareCodeDocumentBatch()` prepares multiple text edits for one checked
+commit with one undo step per edited document. `batch.wasCommitted()` reports
+whether an observer error followed publication. See the
+[batch editing lesson](examples/code_document_batch.xl).
+
 `captureCodeLayout(document, viewport)` captures the visible code rows and
 the content geometry. `codeLayoutHitTest()` resolves screen coordinates to a
 document position, and `codeLayoutCaretRect()` resolves a position to a

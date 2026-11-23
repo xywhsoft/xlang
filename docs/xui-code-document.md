@@ -59,9 +59,41 @@ An edit may already be committed before its notification raises an error; an
 exception does not mean rollback. `saveTextFile` permits autosave inside a change
 callback by pinning lifetime without taking a second writer role. It uses the
 ordinary local file API, not a virtual filesystem provider. Native text
-normalization and history rules remain in effect. Worker batches, transferable
-payloads and explicit partial-commit outcomes still
-need their own safe contracts and acceptance.
+normalization and history rules remain in effect.
+
+## Multi-document edits
+
+`prepareCodeDocumentBatch(documents, versions, before, after)` prepares
+several document updates on their creator thread. Use
+`prepareEditorDocumentBatch` for the views obtained from `CodeEdit.document()`.
+Each row pairs a document with its change version, exact current text, and new
+LF UTF-8 text. The default `size=-1` requires equally long arrays. An explicit
+nonnegative size selects a prefix of their common length. The following optional
+`budget` argument limits native staging bytes. Zero uses the native default
+of 128 MiB. The native limits are 512 documents, 8 MiB per body, 64 MiB total
+per before/after group and a maximum staging budget of 256 MiB. Embedded NUL
+and carriage returns are rejected.
+
+`commit()` checks every document again and publishes the complete batch
+before its change notifications. Each edited document receives a single undo
+step. If an observer or cleanup throws, `wasCommitted()` tells the caller in
+`catch` whether publication already occurred. A commit takes one attempt.
+Use `close()` in `finally` to release the prepared data and detach its watches.
+Closing a document before commit invalidates the corresponding batch row.
+
+`commitWithNativeHooks()` accepts a borrowed C hook table for host model
+publication. Its guard can refuse before publication. The `published` hook
+must be infallible and run before the document change observers.
+
+The binding allocates temporary descriptors and lifetime scopes proportional
+to document count. It passes the original counted strings into the native
+prepare call. XUI validates and stages replacement bodies, line indexes and
+undo data. The public worker-side capture and staging sequence remains in
+development. See [the batch editing lesson](../lib/bindings/xui/examples/code_document_batch.xl).
+
+[Batch validation](../dev/release-materials/provenance/xui-code-document-batch-20261123.json)
+
+## Independent document validation
 
 The exact O2 native SDK and unchanged full compiler pass 48 Windows/Linux
 language commands: JIT, independent dynamic/static AOT, C11/C++11/C++17 public

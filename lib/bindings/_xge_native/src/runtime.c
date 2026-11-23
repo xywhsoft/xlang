@@ -689,6 +689,25 @@ const XL6_ForeignViewDescriptorV1* xl6Xui3CodeDocumentPolicyGet(void)
         trace_code_document,busy_code_document,XL6_FOREIGN_VIEW_RELIABLE_OWNED_WATCH|
         XL6_FOREIGN_VIEW_DESTROY_OWNS_NATIVE_SCOPE|XL6_FOREIGN_VIEW_DESTROY_REPORTS_FAILURE,NULL,NULL};return &value;
 }
+static bool destroy_code_document_batch(void* raw)
+{
+    int status=xuiCodeDocumentBatchDestroy(raw);
+    report_resource_failure(status,"xuiCodeDocumentBatchDestroy");
+    return status==XUI_OK;
+}
+static bool busy_code_document_batch(const void* raw)
+{return xuiCodeDocumentBatchOwnershipBusy((xui_code_document_batch)raw);}
+const XL6_ForeignViewDescriptorV1* xl6Xui3CodeDocumentBatchPolicyGet(void)
+{
+    /* The batch has weak document watches and owns only native staging data. */
+    static const XL6_ForeignViewDescriptorV1 value={
+        sizeof(value),XL6_FOREIGN_VIEW_V1_TAG,"xui.codeDocumentBatch",
+        0,1,NULL,NULL,destroy_code_document_batch,
+        0,1,NULL,NULL,NULL,busy_code_document_batch,
+        XL6_FOREIGN_VIEW_DESTROY_REPORTS_FAILURE,NULL,NULL
+    };
+    return &value;
+}
 static bool watch_code_edit_document(void* raw, void* storage, void (*invalidate)(void*), void* user)
 {
     int status = xuiCodeDocumentEditorLifetimeWatch(raw, storage, invalidate, user);
@@ -827,6 +846,7 @@ const XL6_ForeignViewDescriptorV1* xl6Xui3CodeEditTokenBufferPolicyGet(void)
 const XL6_ForeignViewDescriptorV1* xl6Xui3CodeEditDocumentViewPolicyGet(void){return NULL;}
 const XL6_ForeignViewDescriptorV1* xl6Xui3CodeEditSelectionViewPolicyGet(void){return NULL;}
 const XL6_ForeignViewDescriptorV1* xl6Xui3CodeDocumentPolicyGet(void){return NULL;}
+const XL6_ForeignViewDescriptorV1* xl6Xui3CodeDocumentBatchPolicyGet(void){return NULL;}
 const XL6_ForeignViewDescriptorV1* xl6Xui3CodeEditCommandMapPolicyGet(void){return NULL;}
 const XL6_ForeignViewDescriptorV1* xl6Xui3CodeEditFoldStatePolicyGet(void){return NULL;}
 const XL6_ForeignViewDescriptorV1* xl6Xui3CodeEditThemePolicyGet(void){return NULL;}

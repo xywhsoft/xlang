@@ -1,0 +1,213 @@
+import xui
+
+extern "fixtureBatchHooks" @header("test/cases/foreign_xui_code_document_batch.h") @no_raise func hooks(c_int refuse) as xui.NativeCodeDocumentBatchHooks
+extern "fixtureBatchPrepared" @no_raise func prepared() as c_int
+extern "fixtureBatchPublished" @no_raise func published() as c_int
+extern "fixtureBatchWrongThread" @no_raise func wrongThread(xui.CodeDocumentBatch batch)
+extern "fixtureBatchFailAfter" @no_raise func failAfter(c_int allowance)
+
+func testPublication(xui.CodeDocument left,xui.CodeDocument right)
+    left.setText("left\n你好")
+    right.setText("right")
+    left.setDirty(0)
+    right.setDirty(0)
+    c_uint leftVersion = left.getChangeVersion()
+    auto batch = xui.prepareCodeDocumentBatch([left,right], [leftVersion,right.getChangeVersion()],
+        ["left\n你好","right"], ["new left","new right\n"])
+    try
+        assert not batch.wasCommitted() and left.getDirty() == 0 and right.getDirty() == 0
+        assert left.getChangeVersion() == leftVersion and right.getText() == "right"
+        wrongThread(batch)
+        int changes = 0
+        left.setChangeCallback(func(xui.CallbackCodeDocument source,xui.CodeRange range,c_uint version)
+            assert published() == 1
+            assert source.getText() == "new left" and right.getText() == "new right\n"
+            assert version == leftVersion + c_uint(1)
+            changes += 1
+            assert false, "observer failed after batch publication"
+        end)
+        bool caught = false
+        try
+            batch.commitWithNativeHooks(hooks(0))
+        catch AssertionError
+            caught = true
+        finally
+            left.setChangeCallback(null)
+        end
+        assert caught and changes == 1 and prepared() == 1 and published() == 1
+        assert batch.wasCommitted()
+        assert left.getText() == "new left" and right.getText() == "new right\n"
+        assert left.getDirty() != 0 and right.getDirty() != 0
+        bool singleAttempt = false
+        try
+            batch.commit()
+        catch error
+            singleAttempt = error.code == xui.XUI_ERROR_INVALID_STATE
+        end
+        assert singleAttempt and batch.wasCommitted()
+        left.undo()
+        right.undo()
+        assert left.getText() == "left\n你好" and right.getText() == "right"
+        assert left.getDirty() == 0 and right.getDirty() == 0
+        left.redo()
+        assert left.getText() == "new left"
+    finally
+        batch.close()
+    end
+end
+
+func testRefusal(xui.CodeDocument left,xui.CodeDocument right)
+    left.setText("a")
+    right.setText("b")
+    auto batch = xui.prepareCodeDocumentBatch([left,right], [left.getChangeVersion(),right.getChangeVersion()],
+        ["a","b"], ["x","y"])
+    try
+        bool caught = false
+        try
+            batch.commitWithNativeHooks(hooks(1))
+        catch error
+            caught = error.code == xui.XUI_ERROR_INVALID_STATE
+        end
+        assert caught and prepared() == 1 and published() == 0 and not batch.wasCommitted()
+        assert left.getText() == "a" and right.getText() == "b"
+    finally
+        batch.close()
+    end
+
+    batch = xui.prepareCodeDocumentBatch([left,right], [left.getChangeVersion(),right.getChangeVersion()],
+        ["a","b"], ["x","y"])
+    try
+        right.setText("stale")
+        bool caught = false
+        try
+            batch.commit()
+        catch error
+            caught = error.code == xui.XUI_ERROR_INVALID_STATE
+        end
+        assert caught and not batch.wasCommitted()
+        assert left.getText() == "a" and right.getText() == "stale"
+    finally
+        batch.close()
+    end
+end
+
+func testPreparation(xui.CodeDocument document)
+    document.setText("a")
+    c_uint version = document.getChangeVersion()
+    array<xui.CodeDocument> documents = [document]
+    array<c_uint> versions = [version]
+    array<string> before = ["a"]
+    array<string> after = ["after"]
+    int rejected = 0
+    try
+        xui.prepareCodeDocumentBatch(documents, versions, ["z"], after)
+    catch Error
+        rejected += 1
+    end
+    try
+        xui.prepareCodeDocumentBatch([document,document], [version,version], ["a","a"], ["x","y"])
+    catch Error
+        rejected += 1
+    end
+    try
+        xui.prepareCodeDocumentBatch(documents, versions, before, ["bad\0text"])
+    catch Error
+        rejected += 1
+    end
+    try
+        xui.prepareCodeDocumentBatch(documents, versions, before, ["bad\r\ntext"])
+    catch Error
+        rejected += 1
+    end
+    try
+        xui.prepareCodeDocumentBatch(documents, versions, before, after, -1, 1)
+    catch Error
+        rejected += 1
+    end
+    try
+        xui.prepareCodeDocumentBatch(documents, [], before, after)
+    catch Error
+        rejected += 1
+    end
+    assert rejected == 6 and document.getText() == "a"
+
+    int failures = 0
+    int successes = 0
+    for i in range(40)
+        failAfter(c_int(i))
+        try
+            auto trial = xui.prepareCodeDocumentBatch(documents, versions, before, after)
+            failAfter(-1)
+            trial.close()
+            successes += 1
+        catch Error
+            failures += 1
+        finally
+            failAfter(-1)
+        end
+    end
+    assert failures > 2 and successes > 0 and document.getText() == "a"
+    auto noop = xui.prepareCodeDocumentBatch(documents, versions, before, before)
+    try
+        assert noop.commit() and noop.wasCommitted() and document.getChangeVersion() == version
+    finally
+        noop.close()
+    end
+end
+
+func testClosedDocument()
+    auto document = xui.createCodeDocument()
+    document.setText("old")
+    auto batch = xui.prepareCodeDocumentBatch([document], [document.getChangeVersion()], ["old"], ["new"])
+    try
+        document.close()
+        bool caught = false
+        try
+            batch.commit()
+        catch Error
+            caught = true
+        end
+        assert caught and not batch.wasCommitted()
+    finally
+        batch.close()
+    end
+end
+
+func testEditorDocuments()
+    auto proxy = xui.createProxy()
+    auto context = xui.create(proxy, xui.XUI_SYSTEM_FONT_DISABLED)
+    try
+        auto first = context.codeEditNative().document()
+        auto second = context.codeEditNative().document()
+        first.setText("first")
+        second.setText("second")
+        auto batch = xui.prepareEditorDocumentBatch([first,second], [first.getChangeVersion(),second.getChangeVersion()],
+            ["first","second"], ["updated first","updated second"])
+        try
+            assert batch.commit()
+            assert first.getText() == "updated first" and second.getText() == "updated second"
+        finally
+            batch.close()
+        end
+    finally
+        context.close()
+        proxy.close()
+    end
+end
+
+func main(...) as int
+    auto left = xui.createCodeDocument()
+    auto right = xui.createCodeDocument()
+    try
+        testPublication(left, right)
+        testRefusal(left, right)
+        testPreparation(left)
+        testClosedDocument()
+        testEditorDocuments()
+    finally
+        right.close()
+        left.close()
+    end
+    println("XUI_CODE_DOCUMENT_BATCH_OK")
+    return 0
+end

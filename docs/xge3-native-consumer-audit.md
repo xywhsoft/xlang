@@ -1,5 +1,18 @@
 # Native consumers in the full API inventory
 
+## CodeDocument batch transactions
+
+The package binds synchronous preparation, both native commit entry points,
+and the retained publication result. The batch close descriptor reaches
+`xuiCodeDocumentBatchDestroy` in the compiled object. The creator-thread
+guard runs before the native code reads mutable batch state.
+
+The inventory contains 5,799 native functions. Pending entries are 101 for
+XGE and 173 for XUI. Worker capture, description, staging and payload transfer
+remain in the inventory.
+
+[Batch transaction evidence](../dev/release-materials/provenance/xui-code-document-batch-20261123.json)
+
 ## Batch clipboard publication
 
 The two package declarations project format names and counted byte payloads

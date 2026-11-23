@@ -1,0 +1,198 @@
+{
+  "schema": 1,
+  "date": "2026-11-23",
+  "complete": true,
+  "passed": true,
+  "shippingDelivery": false,
+  "networkTests": false,
+  "scope": "Creator-thread XUI document batch preparation, atomic publication, error outcome and retirement",
+  "nativeRevision": "cbe818cd57ce8733a55c9e913692cb2a419a3dec",
+  "nativeSourceLF": {
+    "include/xui.h": "0ce9cc4958dbd55ff931f70cec646111c1f9459283cde74895f01f765350a7de",
+    "src/xui/code/xui_code_document.c": "2d7ce7fa86d0b5719f374b206e674c816e1d86f77fbb4da11f308a22cba35ae0"
+  },
+  "sourceLF": {
+    "docs/xge3-xui3-api-map-storage.json": "c0755e521bc91ac3936ad5a8f50e11c0505b353aa1cf97483a158df898c27a19",
+    "lib/bindings/_xge_native/include/xge3_runtime.h": "accbfd6728579c0a8dd792bedab1c931a20af19b3b02e2e953f470432e2ebe93",
+    "lib/bindings/_xge_native/src/runtime.c": "b50202c4c0570ba7387ca36fdc463e3e2fe7083c855f6eb675794262f73957f4",
+    "lib/bindings/xui/xlang.package.json": "afb4ad7a14ed0b109e236c26819cbd62018b7d7d01df550e8a757c31f43a728f",
+    "lib/bindings/xui/src/code_document_batch.xl": "26d161aecf9ed5909e651fa2b1e017b32a5d6b830851e1ad10e35eba2038de83",
+    "lib/bindings/xui/examples/code_document_batch.xl": "94c21738c28946cd32ee7d1d9bdad01d53eabc4213c476f5f183a49d7bd71b2f",
+    "test/cases/foreign_xui_code_document_batch.xl": "1846720f9c0492425d129e0c5db13414c87d934b677fb1083bdba3c2b2a515f7",
+    "test/cases/foreign_xui_code_document_batch.c": "abcac119e4236431d8e949eebf397558d580fbd12f4df1ac12952f106c8df854",
+    "test/cases/foreign_xui_code_document_batch.h": "6c17a1f80581339f7e69cf281e2b9935aec37eb82e3a1e5e4c00b7eb25dee053",
+    "tools/xui_managed_contracts.py": "542274d9c5ec71459782dfa0f3f97ed56e9a08ee6932cadec9723c6356575c6b"
+  },
+  "audit": {
+    "functionPopulation": 5799,
+    "directDeclarations": 4739,
+    "compiledConsumerFunctions": 322,
+    "explicitReplacements": 473,
+    "pending": {
+      "XGE": 101,
+      "XUI": 173,
+      "Document": 0
+    },
+    "direct": [
+      "xuiCodeDocumentBatchPrepare",
+      "xuiCodeDocumentBatchCommit",
+      "xuiCodeDocumentBatchCommitChecked",
+      "xuiCodeDocumentBatchGetCommitted"
+    ],
+    "close": "xuiCodeDocumentBatchDestroy",
+    "quiescence": "xuiCodeDocumentBatchOwnershipBusy"
+  },
+  "platforms": {
+    "Windows x64": {
+      "records": {
+        "source": {
+          "path": "F:\\xlang-validation\\xge-full-20261110\\editor-batch-audit-win-r2\\native-source.json",
+          "sha256": "ef5c3345754dedeae3cefda5d25098c7914e18e81078a310704cde494e6b1de8"
+        },
+        "nativeHost": {
+          "path": "F:\\xlang-validation\\xge-full-20261110\\editor-batch-host-win-r2\\build-report.json",
+          "sha256": "9f486807ed77d557c6f8dd8750bd463c66c7a8eb07714f1c820110d9caabf88c"
+        },
+        "nativeStatic": {
+          "path": "F:\\xlang-validation\\xge-full-20261110\\editor-batch-static-win-r2\\build-report.json",
+          "sha256": "54d73e1ff9b41ec6075f18ab0b5ca9f78e4db6337029ab8a351591746054b1df"
+        },
+        "compiler": {
+          "path": "F:\\xlang-validation\\xge-full-20261110\\compiler-egl-image-win-r1\\build.json",
+          "sha256": "79eca7fd3680d6eff32497ae07da75ad074c18c9c642d95eacbd663abb9d6bb8"
+        },
+        "generator": {
+          "path": "F:\\xlang-validation\\xge-full-20261110\\editor-batch-generator-win-r5\\results.json",
+          "sha256": "9cc6718fe5c023cb0f5afe50f075993edaaae0dea8a2f306ad076f2e8ec83cbd"
+        },
+        "packages": {
+          "path": "F:\\xlang-validation\\xge-full-20261110\\editor-batch-stage-win-r5\\replay\\stage-report.json",
+          "sha256": "5b4ff961c7069a4dd2194d9c570fb83c33966dca33251abf715a8633cc22e6d1"
+        },
+        "inventory": {
+          "path": "F:\\xlang-validation\\xge-full-20261110\\editor-batch-audit-win-r2\\surface\\surface.json",
+          "sha256": "c8034ff297c5ac11682425be67527e2a6596f2f87988014249a70ff4d3fe79d5"
+        },
+        "consumers": {
+          "path": "F:\\xlang-validation\\xge-full-20261110\\editor-batch-audit-win-r2\\consumers\\results.json",
+          "sha256": "0ef1feee3a490c333af0ca12d6649020a5bd6854c621567e3411a75bb3608a38"
+        },
+        "runtime": {
+          "path": "F:\\xlang-validation\\xge-full-20261110\\editor-batch-tests-win-r5\\results.json",
+          "sha256": "6194f20deebe68309208be76176cdea66863526cfd222052213c36799758f408"
+        }
+      },
+      "runtimeSteps": 14,
+      "execution": [
+        "JIT",
+        "dynamic AOT",
+        "static AOT"
+      ],
+      "programImports": {
+        "dynamic": [
+          "msvcrt.dll",
+          "xge3_host.dll",
+          "kernel32.dll",
+          "shell32.dll",
+          "ws2_32.dll",
+          "iphlpapi.dll",
+          "ucrtbase.dll"
+        ],
+        "static": [
+          "msvcrt.dll",
+          "kernel32.dll",
+          "user32.dll",
+          "ole32.dll",
+          "oleaut32.dll",
+          "shell32.dll",
+          "gdi32.dll",
+          "imm32.dll",
+          "dwrite.dll"
+        ]
+      },
+      "directCallSites": {
+        "xuiCodeDocumentBatchPrepare": 12,
+        "xl6Xui3PrepareEditorDocumentBatch": 1,
+        "xuiCodeDocumentBatchCommit": 5,
+        "xuiCodeDocumentBatchCommitChecked": 2,
+        "xuiCodeDocumentBatchGetCommitted": 7
+      }
+    },
+    "Linux x64": {
+      "records": {
+        "source": {
+          "path": "\\\\wsl.localhost\\Ubuntu\\var\\tmp\\xlang-validation\\xge-full-20261110\\editor-batch-audit-linux-r2\\native-source.json",
+          "sha256": "8b1114a045a884834f5649f29da433297abd1efa3127630a332c8c15297ed09b"
+        },
+        "nativeHost": {
+          "path": "\\\\wsl.localhost\\Ubuntu\\var\\tmp\\xlang-validation\\xge-full-20261110\\editor-batch-host-linux-r2\\build-report.json",
+          "sha256": "d11671ad27f083806c6320b4cc9727190e14f398c4418053d28e9cb1bdbfc07d"
+        },
+        "nativeStatic": {
+          "path": "\\\\wsl.localhost\\Ubuntu\\var\\tmp\\xlang-validation\\xge-full-20261110\\editor-batch-static-linux-r2\\build-report.json",
+          "sha256": "b41002b2df27c9a0de1556ba8bed7b0da6b174008cd86dc586b82a00ca7ec615"
+        },
+        "compiler": {
+          "path": "\\\\wsl.localhost\\Ubuntu\\var\\tmp\\xlang-validation\\xge-full-20261110\\compiler-egl-image-linux-r1\\build.json",
+          "sha256": "df9e82649546cb57c9433e191c8f4b66489feeb4e2a01002ebe67e9df325e1a1"
+        },
+        "generator": {
+          "path": "\\\\wsl.localhost\\Ubuntu\\var\\tmp\\xlang-validation\\xge-full-20261110\\editor-batch-generator-linux-r5\\results.json",
+          "sha256": "d43e6e599318f74862c09d930033987e1d338dff69667a7a7616eed756cb2cff"
+        },
+        "packages": {
+          "path": "\\\\wsl.localhost\\Ubuntu\\var\\tmp\\xlang-validation\\xge-full-20261110\\editor-batch-stage-linux-r5\\replay\\stage-report.json",
+          "sha256": "236f3d476327df6f56d3a39b2d1a161eca02a0d9731f7d17d54abeccdffde9d1"
+        },
+        "inventory": {
+          "path": "\\\\wsl.localhost\\Ubuntu\\var\\tmp\\xlang-validation\\xge-full-20261110\\editor-batch-audit-linux-r2\\surface\\surface.json",
+          "sha256": "3cfecf93343f3082426558d5966d9c2cfbcb0a5be41602b034ba5a64647dff48"
+        },
+        "consumers": {
+          "path": "\\\\wsl.localhost\\Ubuntu\\var\\tmp\\xlang-validation\\xge-full-20261110\\editor-batch-audit-linux-r2\\consumers\\results.json",
+          "sha256": "8cc2fc3be0c68c46be5dfcd6efd44adc5cf72c6c74a4b2dcbed149674aa5694c"
+        },
+        "runtime": {
+          "path": "\\\\wsl.localhost\\Ubuntu\\var\\tmp\\xlang-validation\\xge-full-20261110\\editor-batch-tests-linux-r5\\results.json",
+          "sha256": "2539edc57cd327a1ddebbd14c0df6e0172589cd033de357480ca68b70d050bad"
+        }
+      },
+      "runtimeSteps": 14,
+      "execution": [
+        "JIT",
+        "dynamic AOT",
+        "static AOT"
+      ],
+      "programImports": {
+        "dynamic": [
+          "libm.so.6",
+          "libmvec.so.1",
+          "libxge3_host.so",
+          "libc.so.6",
+          "ld-linux-x86-64.so.2"
+        ],
+        "static": [
+          "libm.so.6",
+          "libmvec.so.1",
+          "libx11.so.6",
+          "libxi.so.6",
+          "libxcursor.so.1",
+          "libgl.so.1",
+          "libegl.so.1",
+          "libc.so.6",
+          "ld-linux-x86-64.so.2"
+        ]
+      },
+      "directCallSites": {
+        "xuiCodeDocumentBatchPrepare": 12,
+        "xl6Xui3PrepareEditorDocumentBatch": 1,
+        "xuiCodeDocumentBatchCommit": 5,
+        "xuiCodeDocumentBatchCommitChecked": 2,
+        "xuiCodeDocumentBatchGetCommitted": 7
+      }
+    }
+  },
+  "remaining": [
+    "Worker capture, detached description and staging, and safe transfer of accepted payloads."
+  ]
+}

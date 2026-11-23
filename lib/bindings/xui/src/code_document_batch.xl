@@ -1,0 +1,19 @@
+// Native hooks are borrowed for commit. The published hook must be infallible.
+export extern "const xui_code_document_batch_callbacks_t*" class NativeCodeDocumentBatchHooks @header("xge3_runtime.h") @lifetime("caller")
+ native point handle
+end
+
+// Creator-thread batch. Its document watches do not keep the documents alive.
+export extern "xui_code_document_batch" class CodeDocumentBatch @header("xge3_runtime.h") @lifetime("owned") @policy("xl6Xui3CodeDocumentBatchPolicy") @domain("xl6Xui3OwnershipDomainV1")
+ native point handle
+ extern "xuiCodeDocumentBatchCommit" @no_raise @c_output(1,0) func commit() as bool
+ extern "xuiCodeDocumentBatchCommitChecked" @no_raise @c_output(2,0) func commitWithNativeHooks(NativeCodeDocumentBatchHooks hooks) as bool
+ // A callback may throw after publication. This remains queryable from catch.
+ extern "xuiCodeDocumentBatchGetCommitted" @no_raise @c_output(1,0) func wasCommitted() as bool
+ extern "xl6ForeignViewCloseV1" @no_raise @c_control(0) @c_result("bool_status") func close()
+end
+
+extern "xuiCodeDocumentBatchDestroy" @header("xge3_runtime.h") @no_raise @c_result("status",0) func rollbackCodeDocumentBatch(CodeDocumentBatch batch)
+
+export extern "xuiCodeDocumentBatchPrepare" @header("xge3_runtime.h") @no_raise @c_result("owned_view") @factory(3,0,rollbackCodeDocumentBatch) @c_array_group(0,0,4,"size_t",4) @c_array_record(0,"xui_code_document_batch_item_t") @c_array_field(0,"pDocument",0,"view_raw") @c_array_field(0,"iChangeVersion",1,"value") @c_array_span_field(0,"Before.Data","Before.Size",2,"const char*","size_t") @c_array_span_field(0,"After.Data","After.Size",3,"const char*","size_t") func prepareCodeDocumentBatch(array<CodeDocument> documents,array<c_uint> versions,array<string> before,array<string> after,int size=-1,c_size budget=0) as CodeDocumentBatch
+export extern "xl6Xui3PrepareEditorDocumentBatch" @header("xge3_runtime.h") @no_raise @c_result("owned_view") @factory(3,0,rollbackCodeDocumentBatch) @c_array_group(0,0,4,"size_t",4) @c_array_record(0,"xui_code_document_batch_item_t") @c_array_field(0,"pDocument",0,"view_raw") @c_array_field(0,"iChangeVersion",1,"value") @c_array_span_field(0,"Before.Data","Before.Size",2,"const char*","size_t") @c_array_span_field(0,"After.Data","After.Size",3,"const char*","size_t") func prepareEditorDocumentBatch(array<CodeEditDocument> documents,array<c_uint> versions,array<string> before,array<string> after,int size=-1,c_size budget=0) as CodeDocumentBatch

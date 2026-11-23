@@ -1,0 +1,26 @@
+import xui
+
+func main(...) as int
+    auto first = xui.createCodeDocument()
+    auto second = xui.createCodeDocument()
+    try
+        first.setText("Hello")
+        second.setText("World")
+        array<c_uint> versions = [first.getChangeVersion(), second.getChangeVersion()]
+        array<string> before = [first.getText(), second.getText()]
+        auto batch = xui.prepareCodeDocumentBatch([first,second], versions, before, ["你好","世界"])
+        try
+            batch.commit()
+            println(first.getText(), second.getText())
+        finally
+            batch.close()
+        end
+        first.undo()
+        second.undo()
+        println(first.getText(), second.getText())
+    finally
+        second.close()
+        first.close()
+    end
+    return 0
+end
