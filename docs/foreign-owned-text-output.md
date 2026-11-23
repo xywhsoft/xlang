@@ -17,6 +17,10 @@ use the existing `@c_output_bytes` contract. Both can name the same producer
 when their physical ABI, allocator, status, effects and inputs match exactly.
 Each language result retains its own admission and cleanup contract.
 
+An optional seventh declaration argument selects an `int*` output slot
+after the length slot. With this argument the result is `(string,c_int)`.
+If validation or admission fails, neither destination is assigned.
+
 The provider promises an independent allocation from the exact resident XRT,
 with at least `size + 1` readable bytes and a NUL terminator at `data[size]`.
 Sharing a CRT is insufficient. The count excludes that final terminator.

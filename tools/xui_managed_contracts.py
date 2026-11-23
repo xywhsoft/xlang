@@ -1644,6 +1644,7 @@ CLOSE_REPLACEMENTS = {
 
 # Reviewed native entry points with managed replacements.
 REPLACED = {
+    'xuiFindFreeText': ('xui.replaceAllText', 'xuiFindReplaceAllText'),
     'xuiTextLayoutGetContext': ('xui.TextLayout.getContext', 'xuiTextLayoutGetScopedContext'),
     'xuiCreate': ('xui.create', 'xuiCreateOwned'),
     'xuiCreateEx': ('xui.create', 'xuiCreateOwnedEx'),

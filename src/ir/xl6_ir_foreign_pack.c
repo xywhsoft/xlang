@@ -152,7 +152,11 @@ int xl6IrForeignPhysicalStepGet(const XL6_IrModule* m,const XL6_IrCallTarget* t,
         const XL6_ForeignOutputContract* outRow=node->foreignCall.valueOutput ? xl6IrForeignOutputGet(m,t,o+returned):NULL;
         const XL6_ForeignNativeSequenceContract* sequence=xl6IrForeignNativeSequenceGet(m,t);
         const XL6_ForeignOwnedOutputContract* ownedBytes=xl6IrForeignOwnedOutputGet(m,t);
-        size_t slot=ownedBytes ? (o==0 ? ownedBytes->dataIndex:ownedBytes->sizeIndex):sequence ? (o==0 ? sequence->dataIndex:sequence->countIndex):outRow ? outRow->physicalIndex:node->foreignCall.outputIndexPlusOne-1;
+        size_t slot=outRow ? outRow->physicalIndex:node->foreignCall.outputIndexPlusOne-1;
+        if(ownedBytes && o<outputs){
+            const uint32 slots[3]={ownedBytes->dataIndex,ownedBytes->sizeIndex,ownedBytes->scalarIndexPlusOne-1u};
+            slot=slots[o];
+        }else if(sequence)slot=o==0 ? sequence->dataIndex:sequence->countIndex;
         XL6_ForeignPhysicalStep step={0};step.physicalIndex=(uint32)physical;
         const XL6_ForeignPackContract* physicalPack=xl6IrForeignPackGet(m,t,physical);
         if(o<outputs && slot==physical){

@@ -54713,8 +54713,8 @@ void xl6IrDumpModuleJson(XL6_Output* out, const XL6_IrModule* module)
     xl6OutputPuts("  ],\n  \"foreignOwnedOutputs\": [\n",out);
     for(i=0;i<module->foreignOwnedOutputsCount;++i){
         const XL6_ForeignOwnedOutputContract* row=&module->foreignOwnedOutputs[i];
-        xl6OutputPrintf(out,"    {\"declaration\":%u,\"dataIndex\":%u,\"sizeIndex\":%u,\"pointerAbi\":%u,\"sizeAbi\":%u,\"successCode\":%d,\"kind\":%u}%s\n",
-            row->declaration,row->dataIndex,row->sizeIndex,(unsigned)row->pointerAbi,(unsigned)row->sizeAbi,row->successCode,(unsigned)row->kind,
+        xl6OutputPrintf(out,"    {\"declaration\":%u,\"dataIndex\":%u,\"sizeIndex\":%u,\"pointerAbi\":%u,\"sizeAbi\":%u,\"successCode\":%d,\"kind\":%u,\"scalarIndexPlusOne\":%u}%s\n",
+            row->declaration,row->dataIndex,row->sizeIndex,(unsigned)row->pointerAbi,(unsigned)row->sizeAbi,row->successCode,(unsigned)row->kind,(unsigned)row->scalarIndexPlusOne,
             i+1==module->foreignOwnedOutputsCount ? "":",");
     }
     xl6OutputPuts("  ],\n  \"foreignNativeSequences\": [\n",out);

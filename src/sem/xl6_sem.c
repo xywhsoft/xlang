@@ -22184,7 +22184,8 @@ static int xl6SemCheckExternCAbi(XL6_SemContext* ctx, XL6_AstNode* node,const XL
     XL6_ForeignCallFacts outputFacts={0};
     int hasOutputProduct=xl6ForeignFunctionRead(node,&outputFacts) &&
         (xl6ForeignValueOutputIsMulti(outputFacts.valueOutput) ||
-         xl6ForeignValueOutputIsRecord(outputFacts.valueOutput));
+         xl6ForeignValueOutputIsRecord(outputFacts.valueOutput) ||
+         xl6ForeignValueOutputIsOwned(outputFacts.valueOutput));
     if ( returns != NULL && returns->childCount > 1 &&
          !hasOutputProduct && !xl6SemIsCAbiProductReturns(ctx, returns) ) {
         xl6SemErrorNode(ctx, returns->children[1] != NULL ? returns->children[1] : returns,

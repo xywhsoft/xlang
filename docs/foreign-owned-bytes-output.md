@@ -11,9 +11,12 @@ pointee type, integer length type, allocator and success status. The data slot
 must precede the length slot, but intervening input slots are allowed. Instance
 indices include the native receiver. Pointer spellings are `void*`, `char*` and
 `unsigned char*`; lengths are `size_t`, `uint64_t` and exact C `int`. The native header supplies
-the authoritative prototype and generated C checks it. Exactly one nonnullable
-language `bytes` is returned. This contract does not compose with a second
-output mapping, borrowed result admission or native retain/release helpers.
+the authoritative prototype and generated C checks it. The default result is
+one nonnullable language `bytes` value. An optional seventh argument selects
+an `int*` output slot after the length slot and requires a `(bytes,c_int)`
+result. The scalar and the admitted bytes are assigned together. This contract
+does not compose with a separate output mapping, borrowed result admission
+or native retain/release helpers.
 
 `"xrt"` is an explicit provider promise: a non-NULL result is an independent
 allocation from the **exact resident XRT allocator**, safe to release with its
@@ -24,7 +27,7 @@ length describes readable bytes within that allocation. Native providers are
 trusted to honor C memory contracts; the compiler cannot discover an arbitrary
 foreign allocation's allocator or bounds safely.
 
-Both physical output slots start zeroed. After the direct native call and
+The physical output slots start zeroed. After the direct native call and
 status/error observation, one generic inline runtime operation takes the block
 into the existing `xrtValueBytesTake` representation. It consumes the allocation
 on every path. A nonmatching status, a native thread error, null/nonempty mismatch,

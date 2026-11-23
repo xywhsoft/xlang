@@ -12,5 +12,7 @@ func main(...) as int
         auto replacement=xui.buildTextReplacement(text,pattern,"#$1",regex,result)
         println("Byte offset:",result.iStart,"Replacement:",encoding.decodeUtf8(replacement))
     end
+    auto replaced, count=xui.replaceAllText(text,pattern,"#$1",flags=regex)
+    println("Replaced:",count,encoding.decodeUtf8(replaced))
     return 0
 end

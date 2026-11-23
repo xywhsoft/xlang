@@ -382,6 +382,8 @@ size_t xl6IrForeignOutputCount(const XL6_IrModule* module,const XL6_IrCallTarget
 {
     const XL6_IrNode* node=target ? xl6IrNodeGet(module,target->declaration):NULL;
     if(!node || !node->foreignCall.valueOutput)return 0;
+    const XL6_ForeignOwnedOutputContract* owned=xl6IrForeignOwnedOutputGet(module,target);
+    if(owned)return owned->scalarIndexPlusOne ? 2:1;
     if(xl6ForeignValueOutputIsRecord(node->foreignCall.valueOutput)){
         if(!xl6IrOutputRecordArraysValid(module))return 0;
         size_t fields=0;for(size_t i=0;i<module->foreignOutputFieldCount;++i)fields+=module->foreignOutputFields[i].declaration==target->declaration;
@@ -397,7 +399,8 @@ size_t xl6IrForeignPhysicalOutputCount(const XL6_IrModule* module,const XL6_IrCa
 {
     const XL6_IrNode* node=target ? xl6IrNodeGet(module,target->declaration):NULL;
     if(xl6IrForeignNativeSequenceGet(module,target))return 2;
-    if(xl6IrForeignOwnedOutputGet(module,target))return 2;
+    const XL6_ForeignOwnedOutputContract* owned=xl6IrForeignOwnedOutputGet(module,target);
+    if(owned)return owned->scalarIndexPlusOne ? 3:2;
     if(node && xl6ForeignValueOutputIsRecord(node->foreignCall.valueOutput))return 1;
     size_t count=xl6IrForeignOutputCount(module,target);
     return node && xl6ForeignValueOutputHasReturn(node->foreignCall.valueOutput) && count ? count-1:count;
@@ -410,7 +413,8 @@ XL6_IrTypeId xl6IrForeignOutputType(const XL6_IrModule* module,const XL6_IrCallT
         const XL6_ForeignOutputFieldContract* field=xl6IrForeignOutputFieldGet(module,target,ordinal);
         return field ? field->logicalType:0;
     }
-    if(!xl6IrForeignMultiOutput(node))return ordinal ? 0 : target->returnType;
+    const XL6_ForeignOwnedOutputContract* owned=xl6IrForeignOwnedOutputGet(module,target);
+    if(!xl6IrForeignMultiOutput(node) && !(owned && owned->scalarIndexPlusOne))return ordinal ? 0 : target->returnType;
     const XL6_IrType* result=xl6IrTypeGet(&module->types,target->returnType);
     return result && result->kind==XL6_IR_TYPE_TUPLE && result->params && ordinal<result->paramCount ? result->params[ordinal] : 0;
 }
@@ -462,6 +466,15 @@ int xl6IrForeignOutputValueMatches(const XL6_IrModule* module,const XL6_IrCallTa
     const XL6_ForeignOwnedOutputContract* ownedBytes=xl6IrForeignOwnedOutputGet(module,target);
     if((ownedBytes!=NULL)!=(xl6ForeignValueOutputIsOwned(node->foreignCall.valueOutput)) ||
        (ownedBytes && !xl6IrOwnedOutputValid(module,ownedBytes)))return 0;
+    if(ownedBytes && ownedBytes->scalarIndexPlusOne){
+        const XL6_IrType* result=xl6IrTypeGet(&module->types,target->returnType);
+        if(!result || result->kind!=XL6_IR_TYPE_TUPLE || result->paramCount!=2 || !result->params)return 0;
+        const XL6_IrNode* returns=xl6IrNodeGet(module,module->children[node->firstChild+2]);
+        for(size_t ordinal=0;ordinal<2;++ordinal){
+            const XL6_IrNode* field=xl6IrNodeGet(module,module->children[returns->firstChild+ordinal]);
+            if(!field || field->type!=result->params[ordinal])return 0;
+        }
+    }
     size_t count=xl6IrForeignOutputCount(module,target);
     if(!count || count>64 || (borrowedOutput && count!=1))return 0;
     for(size_t o=0;!borrowedOutput && !ownedBytes && o<count;++o)if(!xl6IrForeignOutputViewGet(module,target,o) &&

@@ -1,0 +1,73 @@
+import xui
+
+extern "signedOutputBegin" @header("test/cases/foreign_owned_signed_output.h") @no_raise func beginHeapCheck()
+extern "signedOutputEnd" @header("test/cases/foreign_owned_signed_output.h") @no_raise func endHeapCheck()
+extern "fixtureStateOomBudget" @header("test/cases/foreign_xge3_state_oom.h") @no_raise func budget(c_int allowance)
+
+func checkRollback()
+    bytes original=b"keep"
+    bytes output=original
+    c_int count=c_int(-1)
+    int failed=0
+    int passed=0
+    for allowance in range(256)
+        beginHeapCheck()
+        bool rejected=false
+        budget(c_int(allowance))
+        try
+            output, count=xui.replaceAllText("a=12 b=34", "([a-z])=([0-9]+)", "$2:$1", flags=c_uint(xui.XUI_FIND_REGEX))
+        catch Error
+            rejected=true
+        finally
+            budget(-1)
+        end
+        if rejected then
+            assert output==original and count==c_int(-1), "failure must preserve both destinations"
+            failed+=1
+        else
+            assert output==b"12:a 34:b" and count==c_int(2), "successful regex retry expands both captures"
+            output=original
+            count=c_int(-1)
+            passed+=1
+        end
+        endHeapCheck()
+        if passed>0 then break end
+    end
+    assert failed>0 and passed>0, "allocation sweep reaches both rejection and success"
+end
+
+func main(...) as int
+    auto output, count=xui.replaceAllText("中文\0red red", "red", "blue")
+    assert output==encoding.encodeUtf8("中文\0blue blue") and count==c_int(2), "counted string preserves UTF-8 and NUL"
+
+    auto source=Buffer(b"red red red")
+    output, count=xui.replaceAllText(source, "red", "blue", rangeStart=4, rangeEnd=7)
+    assert output==b"red blue red" and count==c_int(1), "replacement only affects the requested byte range"
+    assert source.toBytes()==b"red red red", "input Buffer remains unchanged"
+
+    output, count=xui.replaceAllText(b"a\0b", "missing", "other")
+    assert output==b"a\0b" and count==c_int(0), "no match preserves embedded NUL"
+    output, count=xui.replaceAllText(b"", "missing", "other")
+    assert output==b"" and count==c_int(0), "empty input has no matches"
+    output, count=xui.replaceAllText(b"red", "red", "")
+    assert output==b"" and count==c_int(1), "deleting a match returns owned empty bytes"
+    output, count=xui.replaceAllText(b"red+red", "red", "\\n", flags=c_uint(xui.XUI_FIND_ESCAPE))
+    assert output==b"\n+\n" and count==c_int(2), "escaped replacement produces newlines"
+
+    auto errorBuffer=Buffer(b"...............................................................")
+    auto before=errorBuffer.toBytes()
+    bool rejected=false
+    try
+        output, count=xui.replaceAllText("red", "[", "blue", flags=c_uint(xui.XUI_FIND_REGEX), error=errorBuffer)
+    catch Error
+        rejected=true
+    end
+    assert rejected and errorBuffer.toBytes()!=before, "invalid regex reports a checked error and a native diagnostic"
+    assert output==b"\n+\n" and count==c_int(2), "invalid regex preserves both destinations"
+
+    auto groups, groupCount=xui.replaceAllText("a=12 b=34", "([a-z])=([0-9]+)", "$2:$1", flags=c_uint(xui.XUI_FIND_REGEX))
+    assert groups==b"12:a 34:b" and groupCount==c_int(2), "regex replacement preserves group ordering and count"
+    checkRollback()
+    println("XUI_FIND_REPLACE_OK")
+    return 0
+end

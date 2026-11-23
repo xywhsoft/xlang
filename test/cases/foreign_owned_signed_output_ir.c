@@ -18,14 +18,17 @@ int main(int argc,char** argv)
     assert(argc==2 && sizeof(XL6_ForeignOwnedOutputContract)==28);
     XL6_CompileUnit unit;xl6CompileUnitInit(&unit);
     assert(xl6CompileUnitLoadFile(&unit,argv[1],1) && xl6IrLowerModule(&unit.ir,&unit.parse.diags));
-    XL6_IrModule* m=&unit.ir;assert(xl6IrVerifyModule(m,NULL) && m->foreignOwnedOutputsCount==2);
-    for(size_t i=0;i<2;++i){
+    XL6_IrModule* m=&unit.ir;assert(xl6IrVerifyModule(m,NULL) && m->foreignOwnedOutputsCount==4);
+    for(size_t i=0;i<m->foreignOwnedOutputsCount;++i){
         XL6_ForeignOwnedOutputContract* row=&m->foreignOwnedOutputs[i];
         XL6_ForeignOwnedOutputContract saved=*row;assert(row->sizeAbi==XL6_FOREIGN_OWNED_OUTPUT_INT);
         row->sizeAbi=0;refused(m);*row=saved;
         row->sizeAbi=99;refused(m);*row=saved;
         row->sizeIndex=row->dataIndex;refused(m);*row=saved;
         row->successCode^=1;refused(m);*row=saved;
+        row->scalarIndexPlusOne=(uint8)(row->sizeIndex+1);refused(m);*row=saved;
+        row->scalarIndexPlusOne=65;refused(m);*row=saved;
+        row->scalarIndexPlusOne=saved.scalarIndexPlusOne ? 0:4;refused(m);*row=saved;
     }
     assert(xl6IrVerifyModule(m,NULL));
     printf("Owned signed IR: exact int rows, stable 28-byte contract, %u mutations rejected before C/header emission\n",mutations);

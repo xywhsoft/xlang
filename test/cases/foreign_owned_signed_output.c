@@ -29,6 +29,12 @@ int signedOutputText(int mode,char** data,int* count)
 {
     void* raw=*data;int status=produce(mode,&raw,count);*data=raw;return status;
 }
+int signedOutputPair(int mode,char** data,int* count,int* scalar)
+{
+    assert(scalar && !*scalar);
+    *scalar=-37;
+    return signedOutputText(mode,data,count);
+}
 int signedOutputBytesIdentity(const unsigned char* data,size_t count)
 {return data==produced && count==4 && !memcmp(data,"A\0BZ",4);}
 int signedOutputTextIdentity(const char* data,size_t count)

@@ -1,4 +1,4 @@
-"""Exact signed-int owned byte/text counts with a complete compiler cohort.
+"""Exact signed-int owned byte/text counts and paired scalar outputs.
 
 Negative counts reject before reading output memory and release the allocation;
 native errors stay primary. Covers payload identity, NUL, empty values, carrier
@@ -53,6 +53,8 @@ def main():
             if name=='foreign_owned_signed_output':
                 assert 'struct { void* e0; int e1; } native_raw' in text
                 assert 'struct { char* e0; int e1; } native_raw' in text
+                assert 'struct { char* e0; int e1; int e2; } native_raw' in text
+                assert 'signedOutputPair(' in text and '&native_raw.e2' in text
                 assert 'xl6COutputBytesTakeV1(native_raw.e0,(uint64_t)native_raw.e1' in text
                 assert 'xl6COutputTextTakeV1(native_raw.e0,(uint64_t)native_raw.e1' in text
                 for level in ('O0','O2'):
@@ -76,12 +78,31 @@ def main():
             header.write_text(original.replace('void** data,int* count','void** data,'+count+'* count',1),encoding='utf-8')
             errors=run('reject-prototype-'+count.replace(' ','-'),[tools['gcc'],'-std=c11','-I'+str(folder),*c_include,'-fsyntax-only',generated],True)
             assert b'declared C function ABI'in errors
+        folder=out/'wrong-scalar'
+        header=folder/'test/cases/foreign_owned_signed_output.h'
+        header.parent.mkdir(parents=True)
+        header.write_text(original.replace('int* scalar','unsigned int* scalar'),encoding='utf-8')
+        errors=run('reject-prototype-scalar',[tools['gcc'],'-std=c11','-I'+str(folder),*c_include,'-fsyntax-only',generated],True)
+        assert b'declared C function ABI' in errors
         original=(root/'test/cases/foreign_owned_signed_output.xl').read_text(encoding='utf-8')
         needle='@c_output_bytes(1,2,"void*","int","xrt",0)'
         for count in ('unsigned int','int32_t','int64_t'):
             source=out/(count.replace(' ','-')+'.xl');target=source.with_suffix('.c')
             source.write_text(original.replace(needle,needle.replace('"int"','"'+count+'"'),1),encoding='utf-8')
             run('reject-count-'+count.replace(' ','-'),[compiler,'cgen',source,'--emit',target,*include],True)
+            assert not target.exists()
+        pair='@c_output_bytes(1,2,"char*","int","xrt",0,3)'
+        for name,invalid in (
+            ('overlap',original.replace(pair,pair[:-2]+'2)',1)),
+            ('out-of-range',original.replace(pair,pair[:-2]+'64)',1)),
+            ('wrong-type',original.replace('as (bytes,c_int)','as (bytes,c_uint)',1)),
+            ('missing-result',original.replace('as (bytes,c_int)','as bytes',1)),
+            ('missing-slot',original.replace(pair,pair[:-3]+')',1)),
+        ):
+            source=out/('reject-pair-'+name+'.xl')
+            target=source.with_suffix('.c')
+            source.write_text(invalid,encoding='utf-8')
+            run('reject-pair-'+name,[compiler,'cgen',source,'--emit',target,*include],True)
             assert not target.exists()
         # Exercise the new descriptor inside the embedded compiler, too. A
         # parent executable and an actual shared caller must use the new VFS /

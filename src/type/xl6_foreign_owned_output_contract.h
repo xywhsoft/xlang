@@ -22,8 +22,15 @@ typedef struct XL6_ForeignOwnedOutputContract {
     XL6_ForeignOwnedOutputPointer pointerAbi;
     XL6_ForeignOwnedOutputSize sizeAbi;
     int32 successCode;
-    XL6_ForeignOwnedOutputKind kind;
+    uint8 kind,scalarIndexPlusOne;
 } XL6_ForeignOwnedOutputContract;
+static inline int xl6ForeignOwnedOutputPhysicalEqual(const XL6_ForeignOwnedOutputContract* a,
+    const XL6_ForeignOwnedOutputContract* b)
+{
+    return a->dataIndex==b->dataIndex && a->sizeIndex==b->sizeIndex &&
+        a->pointerAbi==b->pointerAbi && a->sizeAbi==b->sizeAbi &&
+        a->successCode==b->successCode && a->scalarIndexPlusOne==b->scalarIndexPlusOne;
+}
 static inline const char* xl6ForeignOwnedOutputPointerCName(XL6_ForeignOwnedOutputPointer abi)
 {return abi==XL6_FOREIGN_OWNED_OUTPUT_VOID ? "void*":abi==XL6_FOREIGN_OWNED_OUTPUT_CHAR ? "char*":abi==XL6_FOREIGN_OWNED_OUTPUT_UCHAR ? "unsigned char*":NULL;}
 static inline const char* xl6ForeignOwnedOutputSizeCName(XL6_ForeignOwnedOutputSize abi)

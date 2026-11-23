@@ -1,5 +1,27 @@
 # Native consumers in the full API inventory
 
+## Counted find and replace
+
+`xui.replaceAllText()` takes a string, bytes or Buffer and returns the complete
+replacement bytes and the match count. The range defaults to the complete
+input, and follows the native byte-offset contract. Flags select regex,
+whole-word and escape behavior. An optional Buffer receives native diagnostics.
+
+The generated call passes the three output slots directly to
+`xuiFindReplaceAllText`. The runtime takes the payload from the resident XRT
+allocator, which also backs `xuiFindFreeText`. The result and count are assigned
+only after successful admission. The tests cover interior NUL, empty and
+unchanged results, captures, range-restricted replacement, invalid patterns,
+and allocation failures. The find example also prints the replacements and
+their count.
+
+The Windows and Linux preflight compilers pass JIT, dynamic AOT and static AOT
+for both the focused test and the example. Both IR probes reject 28 invalid
+contracts before C or public-header emission. Full O2 compiler acceptance is
+tracked separately.
+
+[Replace-all preflight evidence](../dev/release-materials/provenance/xui-find-replace-preflight-20261124.json)
+
 ## Engine startup, scene ownership and global callbacks
 
 `xge.initNative()` accepts the default or an explicit native descriptor.

@@ -1,4 +1,5 @@
-/* A pointer/integer-length pair becomes one owning language bytes/text value.
+/* A pointer/integer-length pair becomes one owning language bytes/text value,
+ * optionally delivered with a separate native int output.
  * All physical and ownership facts close here, before C emission. */
 const XL6_ForeignOwnedOutputContract* xl6IrForeignOwnedOutputGet(const XL6_IrModule* m,const XL6_IrCallTarget* t)
 {
@@ -20,16 +21,24 @@ static int xl6IrOwnedOutputValid(const XL6_IrModule* m,const XL6_ForeignOwnedOut
        (row->kind!=XL6_FOREIGN_OWNED_OUTPUT_BYTES && row->kind!=XL6_FOREIGN_OWNED_OUTPUT_TEXT) ||
        n->foreignCall.valueOutput!=(row->kind==XL6_FOREIGN_OWNED_OUTPUT_TEXT ? XL6_FOREIGN_VALUE_OUTPUT_OWNED_TEXT_STATUS:XL6_FOREIGN_VALUE_OUTPUT_OWNED_BYTES_STATUS) ||
        (row->kind==XL6_FOREIGN_OWNED_OUTPUT_TEXT && row->pointerAbi!=XL6_FOREIGN_OWNED_OUTPUT_CHAR) ||
-       row->dataIndex>=row->sizeIndex || row->sizeIndex>=64 ||
+       row->dataIndex>=row->sizeIndex || row->sizeIndex>=64 || row->scalarIndexPlusOne>64 ||
+       (row->scalarIndexPlusOne && row->scalarIndexPlusOne<=row->sizeIndex+1) ||
        !xl6ForeignOwnedOutputPointerCName(row->pointerAbi) || !xl6ForeignOwnedOutputSizeCName(row->sizeAbi) ||
        n->foreignCall.outputIndexPlusOne!=row->dataIndex+1 || n->foreignCall.successCode!=row->successCode ||
        n->foreignCall.rollbackSymbol || n->foreignCall.inplaceOutput || n->foreignCall.borrowedViewResult || n->foreignCall.receiverDereference ||
        !(n->flags&XL6_AST_FLAG_FOREIGN_NO_RAISE) || (n->flags&(XL6_AST_FLAG_FOREIGN_PURE|XL6_AST_FLAG_FOREIGN_FIELD|XL6_AST_FLAG_FOREIGN_OWNED_STRING)))return 0;
     const XL6_IrNode* returns=xl6IrNodeGet(m,m->children[n->firstChild+2]);
-    if(!returns || returns->kind!=XL6_IR_NODE_LIST || returns->childCount!=1 || returns->firstChild>=m->childCount)return 0;
+    if(!returns || returns->kind!=XL6_IR_NODE_LIST || returns->childCount!=(row->scalarIndexPlusOne ? 2u:1u) ||
+       returns->firstChild>=m->childCount || returns->childCount>m->childCount-returns->firstChild)return 0;
     const XL6_IrNode* result=xl6IrNodeGet(m,m->children[returns->firstChild]);
     const XL6_IrType* type=result ? xl6IrTypeGet(&m->types,result->type):NULL;
     if(!type || type->kind!=XL6_IR_TYPE_BUILTIN || type->paramCount || type->cAbi!=(row->kind==XL6_FOREIGN_OWNED_OUTPUT_TEXT ? XL6_IR_C_ABI_MANAGED_STRING:XL6_IR_C_ABI_MANAGED_BYTES) || type->ownershipAbi!=XL6_IR_OWNERSHIP_ABI_MANAGED)return 0;
+    if(row->scalarIndexPlusOne){
+        const XL6_IrNode* scalar=xl6IrNodeGet(m,m->children[returns->firstChild+1]);
+        const XL6_IrType* scalarType=scalar ? xl6IrTypeGet(&m->types,scalar->type):NULL;
+        if(!scalarType || scalarType->kind!=XL6_IR_TYPE_BUILTIN || scalarType->cAbi!=XL6_IR_C_ABI_C_INT ||
+           scalarType->ownershipAbi!=XL6_IR_OWNERSHIP_ABI_TRIVIAL)return 0;
+    }
     XL6_IrCallTarget target={0};target.declaration=row->declaration;target.foreignHeaderIndexPlusOne=xl6IrForeignFunctionHeaderIndex(m,row->declaration);
     const XL6_IrType* owner=xl6IrTypeGet(&m->types,n->declarationOwnerType);
     return xl6IrForeignFunctionHeaderGet(m,&target) || (owner && owner->foreignHeader);

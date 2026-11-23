@@ -49,11 +49,7 @@ static int xl6IrForeignOverloadMetadataEqualMode(const XL6_IrModule* m,const XL6
     const XL6_ForeignOwnedOutputContract* ao=xl6IrForeignOwnedOutputGet(m,left);
     const XL6_ForeignOwnedOutputContract* bo=xl6IrForeignOwnedOutputGet(m,right);
     if((ao!=NULL)!=(bo!=NULL))return 0;
-    if(ao){
-        XL6_ForeignOwnedOutputContract x=*ao,y=*bo;
-        x.declaration=y.declaration=0;x.kind=y.kind=XL6_FOREIGN_OWNED_OUTPUT_BYTES;
-        if(memcmp(&x,&y,sizeof(x)))return 0;
-    }
+    if(ao && !xl6ForeignOwnedOutputPhysicalEqual(ao,bo))return 0;
     XL6_EQUAL_ROWS(foreignOutputSizes,foreignOutputSizeCount);
     if(!recordProjection){XL6_EQUAL_ROWS(foreignOutputViews,foreignOutputViewCount);}
     XL6_EQUAL_ROWS(foreignOutputRecords,foreignOutputRecordCount);

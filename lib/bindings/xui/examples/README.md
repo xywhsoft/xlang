@@ -304,7 +304,7 @@ window loop. System fonts are demonstrated in the xge package's `examples/system
 
 `widget_inspect.xl` 根据坐标找到控件并读取它的层级和世界坐标宽度。
 
-`find_matches.xl` 查找多条正则匹配，查看总数，并用捕获组生成替换文本。
+`find_matches.xl` 查找多条正则匹配，用捕获组生成替换文本，并返回全部替换后的内容和次数。
 
 `code_search.xl` 不创建窗口，先定位中文前缀后的第一个 `item`，再用正则读取下一个
 编号的捕获区间。输出的位置按 UTF-8 字节计数。

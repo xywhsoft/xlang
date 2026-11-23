@@ -20,6 +20,11 @@ export extern "xuiFindBuildReplacement" @header("xge3_runtime.h") @no_raise @c_s
 export extern "xuiFindBuildReplacement" @header("xge3_runtime.h") @no_raise @c_span(0,"const char*","int") @c_cstr(1) @c_cstr(2) @c_ref(4) @c_span(5,"char*","int") @c_output_bytes(6,7,"char*","int","xrt",0) func buildTextReplacement(bytes text,string pattern,string replacement,c_uint flags,FindResult result,Buffer? error=null) as bytes
 export extern "xuiFindBuildReplacement" @header("xge3_runtime.h") @no_raise @c_span(0,"const char*","int") @c_cstr(1) @c_cstr(2) @c_ref(4) @c_span(5,"char*","int") @c_output_bytes(6,7,"char*","int","xrt",0) func buildTextReplacement(Buffer text,string pattern,string replacement,c_uint flags,FindResult result,Buffer? error=null) as bytes
 
+// Returns the complete replaced byte sequence and the number of replacements.
+export extern "xuiFindReplaceAllText" @header("xge3_runtime.h") @no_raise @c_span(0,"const char*","int") @c_cstr(1) @c_cstr(2) @c_span(6,"char*","int") @c_output_bytes(7,8,"char*","int","xrt",0,9) func replaceAllText(string text,string pattern,string replacement,c_int rangeStart=0,c_int rangeEnd=-1,c_uint flags=0,Buffer? error=null) as (bytes,c_int)
+export extern "xuiFindReplaceAllText" @header("xge3_runtime.h") @no_raise @c_span(0,"const char*","int") @c_cstr(1) @c_cstr(2) @c_span(6,"char*","int") @c_output_bytes(7,8,"char*","int","xrt",0,9) func replaceAllText(bytes text,string pattern,string replacement,c_int rangeStart=0,c_int rangeEnd=-1,c_uint flags=0,Buffer? error=null) as (bytes,c_int)
+export extern "xuiFindReplaceAllText" @header("xge3_runtime.h") @no_raise @c_span(0,"const char*","int") @c_cstr(1) @c_cstr(2) @c_span(6,"char*","int") @c_output_bytes(7,8,"char*","int","xrt",0,9) func replaceAllText(Buffer text,string pattern,string replacement,c_int rangeStart=0,c_int rangeEnd=-1,c_uint flags=0,Buffer? error=null) as (bytes,c_int)
+
 // Explicit C-interop pointer identity; no ownership or dereference methods.
 export extern "xui_widget_t*" class NativeWidgetPointer @header("xge3_runtime.h") @lifetime("caller")
  native point handle

@@ -1,4 +1,16 @@
 /* One physical producer can have distinct owning text/bytes admissions. */
+static int xl6SemForeignOwnedOutputReturnMatches(XL6_SemContext* ctx,const XL6_AstNode* returns,
+    const XL6_ForeignOwnedOutputContract* contract)
+{
+    if(!returns || returns->childCount!=(contract->scalarIndexPlusOne ? 2u:1u))return 0;
+    const XL6_AstNode* output=xl6SemResolveAliasType(ctx,returns->children[0]);
+    if(!output || output->childCount ||
+       !xl6TextEquals(output->text,contract->kind==XL6_FOREIGN_OWNED_OUTPUT_TEXT ? "string":"bytes"))return 0;
+    if(!contract->scalarIndexPlusOne)return 1;
+    const XL6_AstNode* scalar=xl6SemResolveAliasType(ctx,returns->children[1]);
+    return scalar && !scalar->childCount && xl6TextEquals(scalar->text,"c_int");
+}
+
 static int xl6SemForeignOwnedOutputCompatible(XL6_SemContext* ctx,const XL6_AstNode* a,
     const XL6_AstNode* b,const XL6_AstNode* owner)
 {
@@ -10,8 +22,7 @@ static int xl6SemForeignOwnedOutputCompatible(XL6_SemContext* ctx,const XL6_AstN
     XL6_ForeignOwnedOutputContract ar={0},br={0};size_t ac=0,bc=0;
     for(size_t i=0;aa && i<aa->childCount;++i)ac+=xl6ForeignOwnedOutputRead(aa->children[i],&ar);
     for(size_t i=0;ba && i<ba->childCount;++i)bc+=xl6ForeignOwnedOutputRead(ba->children[i],&br);
-    if(ac!=1 || bc!=1 || ar.dataIndex!=br.dataIndex || ar.sizeIndex!=br.sizeIndex ||
-       ar.pointerAbi!=br.pointerAbi || ar.sizeAbi!=br.sizeAbi || ar.successCode!=br.successCode)return 0;
+    if(ac!=1 || bc!=1 || !xl6ForeignOwnedOutputPhysicalEqual(&ar,&br))return 0;
     const uint64 flags=XL6_AST_FLAG_STATIC|XL6_AST_FLAG_FOREIGN_PURE|XL6_AST_FLAG_FOREIGN_NO_RAISE|
         XL6_AST_FLAG_FOREIGN_NONBLOCKING|XL6_AST_FLAG_FOREIGN_OWNED_STRING;
     char ah[256],bh[256];
@@ -28,11 +39,6 @@ static int xl6SemForeignOwnedOutputCompatible(XL6_SemContext* ctx,const XL6_AstN
         for(size_t j=0;j<ba->childCount;++j)right+=xl6SemForeignAttributeEqual(aa->children[i],ba->children[j]);
         if(left!=right)return 0;
     }
-    const XL6_AstNode* nodes[2]={a,b};XL6_ForeignOwnedOutputKind kinds[2]={ar.kind,br.kind};
-    for(size_t i=0;i<2;++i){
-        const XL6_AstNode* returns=xl6SemExternFuncReturns(nodes[i]);
-        const XL6_AstNode* type=returns && returns->childCount==1 ? xl6SemResolveAliasType(ctx,returns->children[0]):NULL;
-        if(!type || type->childCount || !xl6TextEquals(type->text,kinds[i]==XL6_FOREIGN_OWNED_OUTPUT_TEXT ? "string":"bytes"))return 0;
-    }
-    return 1;
+    return xl6SemForeignOwnedOutputReturnMatches(ctx,xl6SemExternFuncReturns(a),&ar) &&
+           xl6SemForeignOwnedOutputReturnMatches(ctx,xl6SemExternFuncReturns(b),&br);
 }

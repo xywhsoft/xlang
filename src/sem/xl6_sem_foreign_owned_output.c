@@ -8,9 +8,8 @@ static int xl6SemForeignOwnedOutput(XL6_SemContext* ctx,XL6_AstNode* node,
     }
     if(!header[0] && ownerClass && xl6ForeignClassRead(ownerClass,&owner,NULL)==1)strcpy(header,owner.header);
     const XL6_AstNode* returns=node->childCount>2 ? node->children[2]:NULL;
-    const XL6_AstNode* type=returns && returns->childCount==1 ? xl6SemResolveAliasType(ctx,returns->children[0]):NULL;
-    if(found==1 && type && !type->childCount && xl6TextEquals(type->text,row.kind==XL6_FOREIGN_OWNED_OUTPUT_TEXT ? "string":"bytes") && header[0] &&
+    if(found==1 && xl6SemForeignOwnedOutputReturnMatches(ctx,returns,&row) && header[0] &&
        (node->flags&XL6_AST_FLAG_FOREIGN_NO_RAISE) &&
        xl6ForeignOutputLogicalForDeclaration(node,facts,inputs,receiver)!=SIZE_MAX)return 1;
-    xl6SemErrorNode(ctx,node,"owned output requires one matching nonnullable bytes or UTF-8 string result, authoritative header, no-raise native status producer and complete pointer/length output slots from the exact resident XRT allocator");return 0;
+    xl6SemErrorNode(ctx,node,"owned output requires nonnullable bytes or UTF-8 string, optional c_int paired result, authoritative header, no-raise native status producer and complete output slots from the exact resident XRT allocator");return 0;
 }

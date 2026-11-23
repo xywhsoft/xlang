@@ -1,0 +1,81 @@
+{
+  "schema": 1,
+  "scope": "Cross-platform preflight for owned pair and direct XUI replace-all",
+  "shippingDelivery": false,
+  "fullCompilerBuild": false,
+  "networkTests": false,
+  "platforms": {
+    "win": {
+      "sourceFreeze": {
+        "path": "F:/xlang-validation/xge-full-20261110/compiler-owned-output-pair-win-r2/freeze.json",
+        "sha256": "0076806918100e0d78315d6e99862d4f30ab057d488d79d119b146ea8b787a39"
+      },
+      "preflightCli": {
+        "path": "F:/xlang-validation/xge-full-20261110/owned-output-pair-cli-preflight-win-r1/results.json",
+        "sha256": "50f9338e29049bfdebdc3029a8fd884ee1bd2552cec760cf243a7ec647aefb05"
+      },
+      "irMutationProbe": {
+        "path": "F:/xlang-validation/xge-full-20261110/owned-output-pair-ir-win-r6/results.json",
+        "sha256": "9816a85619b135536787c4b8b87a6b43118d6a324f96b2489452e27f417c03a1"
+      },
+      "bindingJitAndAot": {
+        "path": "F:/xlang-validation/xge-full-20261110/xui-find-replace-preflight-verify-win-r1/results.json",
+        "sha256": "b5f19dfba0833e97237ab45a1769f79859197da261d8bb86cee4dba873be432f"
+      },
+      "nativeCRegression": {
+        "path": "F:/xlang-validation/xge-full-20261110/doc-edit-notice-checked-native-xui_find_test-win-r1/results.json",
+        "sha256": "40d7afe63ff54edc41dae30eabc1cb5faf05a252f3317126d654192628539d9e"
+      }
+    },
+    "linux": {
+      "sourceFreeze": {
+        "path": "//wsl.localhost/Ubuntu/var/tmp/xlang-validation/xge-full-20261110/compiler-owned-output-pair-linux-r2/freeze.json",
+        "sha256": "43922fd8bb2e6d23b1b512af8f30d364817fd9f8b2cf621a58ec9db4765f5f80"
+      },
+      "preflightCli": {
+        "path": "//wsl.localhost/Ubuntu/var/tmp/xlang-validation/xge-full-20261110/owned-output-pair-cli-preflight-linux-r1/results.json",
+        "sha256": "7d6f31ff6b567b76e681a385ccbc6ee98ddad4b3d4706c832d027b113992040a"
+      },
+      "irMutationProbe": {
+        "path": "//wsl.localhost/Ubuntu/var/tmp/xlang-validation/xge-full-20261110/owned-output-pair-ir-linux-r1/results.json",
+        "sha256": "67fe460fab990ef449b752d585615f0f9be9ef15b5b68658a79974513411f523"
+      },
+      "bindingJitAndAot": {
+        "path": "//wsl.localhost/Ubuntu/var/tmp/xlang-validation/xge-full-20261110/xui-find-replace-preflight-verify-linux-r1/results.json",
+        "sha256": "0b9eb812498923791cfe2039cc0f89bbb5c758ea6f24fb37eb532c61a66ff571"
+      },
+      "nativeCRegression": {
+        "path": "//wsl.localhost/Ubuntu/var/tmp/xlang-validation/xge-full-20261110/doc-edit-notice-checked-native-xui_find_test-linux-r1/results.json",
+        "sha256": "c62056edb86263cce626adfb525958925d7f5d79b1f6f7fa8c33a9e953b5c5cc"
+      }
+    }
+  },
+  "sourceSha256NormalizedLf": {
+    "docs/foreign-owned-bytes-output.md": "70dbe3b18acdb929c88b495cf0820b1587bc8c1a43d7f125fbe48b46cbbd8456",
+    "docs/foreign-owned-text-output.md": "a520fc6101eaebe37be19f47d2f27e0a8fdf1974b59390f9a43c5893bfabc4b3",
+    "lib/bindings/xui/examples/README.md": "f92e2b29f5a898fd72221a301735c7cf74d9ae52218d7245147636e5e9c6063d",
+    "lib/bindings/xui/examples/find_matches.xl": "ff29a47da04757acfe579f39509e849a43e40f7d5c98873cb1388ec8df5e8cf7",
+    "lib/bindings/xui/src/find.xl": "f1ce0a55cad7e2f0d5c051e0867bf1fd0ee71fff9c14c87c13e2ce828e91dcad",
+    "src/cgen/xl6_ir_cgen_foreign_output_view.c": "85a59d7245249c8bdfba3d3b8a7a5eaeeb38f8592a6439fc45ac437a4693c3c6",
+    "src/ir/xl6_ir.c": "ccffb4bbc372308bea8d20b22ef5f900bc59784a8ddb7bcc6df2827e41d9b19f",
+    "src/ir/xl6_ir_foreign_compat.c": "f4e1706822a7b5ed43b422fc760432d30da84895172e9d564de611cba388e535",
+    "src/ir/xl6_ir_foreign_owned_output.c": "461ce7861edc23867fc6c0f2c4ef9aa753909c851774d3cb54f5b16d9992b835",
+    "src/ir/xl6_ir_foreign_pack.c": "76fe2f898387455e96a4457ac383db69691279153292ce8b7ab7269f8ed5c418",
+    "src/ir/xl6_ir_foreign_parameter.c": "af89775c740604c51b25fd63f05eacde74a6d921421f08ae0048c4d6a75af745",
+    "src/ir/xl6_ir_lower.c": "31de265714173698a333babb88b315ee152361579dcc66688ca0e9358246f096",
+    "src/sem/xl6_sem.c": "61d101509c93cbc120887cd5b6a4b86cbe86e7f0c65456a1199f10ea8de607d5",
+    "src/sem/xl6_sem_foreign_owned_output.c": "886bd66a3c8f263ee9937ef56eaf9def6bcf6dfefddee4fd4845b3c4adef6701",
+    "src/sem/xl6_sem_foreign_owned_output_compat.c": "d82415232a325b44169c4a68120313d53bffa9e2d9f39c3e0df4700f2526df73",
+    "src/type/xl6_foreign_owned_output_contract.h": "3bf35ec2b3d96020430968e6532320836195131b9cb799c137e307ecd559c817",
+    "src/type/xl6_foreign_owned_output_decl.h": "923c9dc350ed004b7c253807abb1a8d1ac03554b73a3a1b1ddbe9be419c06ac6",
+    "src/type/xl6_foreign_pack_decl.h": "020a26608ca1aa5717bcf035d9f7546b7151135b48780cd19fbe3f7664f916a9",
+    "test/cases/foreign_owned_signed_output.c": "56e7c3114f81e7ff5e6a33b0730357c6f456cf2ffba16e61f3a2bacba635c483",
+    "test/cases/foreign_owned_signed_output.h": "0d2c4db5d0a1999daabfa3670346033c06c490d1ec0e43b317d82143bcd7605b",
+    "test/cases/foreign_owned_signed_output.xl": "a820f617a10121cf13d0360450315eadc8b6d440fd90416ee95f8e21474783f0",
+    "test/cases/foreign_owned_signed_output_ir.c": "0609a4066f3a6204b3c14b7147b0038ee34d9c4a09ca81ff9b3bf0d0401c999e",
+    "test/cases/foreign_xui_find_replace.c": "06af46a2e26c3e1e14f276ffbeba665951d3f4ec8111298c6e37d5fff864f95c",
+    "test/cases/foreign_xui_find_replace.xl": "99fe24c8f0fc00ad11cb1e47aa23ddebd771a28d5e8fb225f23626628e6ade74",
+    "tools/check_foreign_owned_signed_output.py": "70e531df1f9cb63be283f415f245a653393d6e3e738ac14255f0e3bfdce4ae0a",
+    "tools/xui_managed_contracts.py": "bcd43bbc5975b5a17072f3e8a6e237cf58864e81c8ba4dfd29a6f2c23f9d2ece"
+  }
+}

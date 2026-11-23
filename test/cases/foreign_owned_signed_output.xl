@@ -1,11 +1,53 @@
 extern "signedOutputBytes" @header("test/cases/foreign_owned_signed_output.h") @no_raise @c_output_bytes(1,2,"void*","int","xrt",0) func produceBytes(c_int mode=0) as bytes
 extern "signedOutputText" @header("test/cases/foreign_owned_signed_output.h") @no_raise @c_output_text(1,2,"char*","int","xrt",0) func produceText(c_int mode=0) as string
+extern "signedOutputPair" @header("test/cases/foreign_owned_signed_output.h") @no_raise @c_output_bytes(1,2,"char*","int","xrt",0,3) func produceBytesPair(c_int mode=0) as (bytes,c_int)
+extern "signedOutputPair" @header("test/cases/foreign_owned_signed_output.h") @no_raise @c_output_text(1,2,"char*","int","xrt",0,3) func produceTextPair(c_int mode=0) as (string,c_int)
 extern "signedOutputBytesIdentity" @header("test/cases/foreign_owned_signed_output.h") @no_raise @c_span(0,"const uint8_t*","size_t") func identity(bytes data) as c_int
 extern "signedOutputTextIdentity" @header("test/cases/foreign_owned_signed_output.h") @no_raise @c_span(0,"const char*","size_t") func identityText(string data) as c_int
 extern "signedOutputCalls" @header("test/cases/foreign_owned_signed_output.h") @no_raise func calls() as c_uint
 extern "signedOutputReset" @header("test/cases/foreign_owned_signed_output.h") @no_raise func resetFailure()
 extern "signedOutputBegin" @header("test/cases/foreign_owned_signed_output.h") @no_raise func beginCounter()
 extern "signedOutputEnd" @header("test/cases/foreign_owned_signed_output.h") @no_raise func endCounter()
+
+func checkPairedOutput()
+    c_uint before=calls()
+    auto data, scalar=produceBytesPair()
+    assert calls()==before+c_uint(1) and scalar==c_int(-37) and identity(data)==c_int(1)
+    auto text, textScalar=produceTextPair()
+    assert calls()==before+c_uint(2) and textScalar==c_int(-37) and identityText(text)==c_int(1)
+
+    data=b"kept"
+    text="kept"
+    scalar=c_int(11)
+    textScalar=c_int(12)
+    for mode in [1,4,7,8]
+        beginCounter()
+        bool rejected=false
+        try
+            data, scalar=produceBytesPair(c_int(mode))
+        catch Error failure
+            rejected=true
+            if mode==4 then assert failure.code==-17 end
+        finally
+            resetFailure()
+        end
+        assert rejected and data==b"kept" and scalar==c_int(11)
+        if mode!=7 then
+            rejected=false
+            try
+                text, textScalar=produceTextPair(c_int(mode))
+            catch Error failure
+                rejected=true
+                if mode==4 then assert failure.code==-17 end
+            end
+            assert rejected and text=="kept" and textScalar==c_int(12)
+        end
+        endCounter()
+    end
+    func(c_int) as (bytes,c_int) callback=produceBytesPair
+    data, scalar=callback(0)
+    assert identity(data)==c_int(1) and scalar==c_int(-37)
+end
 
 func main(...) as int
     auto data=produceBytes()
@@ -86,6 +128,7 @@ func main(...) as int
         rejected=true
     end
     assert rejected and kept==b"keep"
+    checkPairedOutput()
     println("Owned signed output: exact int ABI, payload identity, NUL, negative bounds, error priority and rollback passed")
     return 0
 end
