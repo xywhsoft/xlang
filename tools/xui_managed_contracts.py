@@ -1421,6 +1421,10 @@ METHODS.update({
 CLOSE_REPLACEMENTS = {
     'xuiCodeDocumentBatchDestroy': ('xui.CodeDocumentBatch.close', 'xl6Xui3CodeDocumentBatchPolicy',
         'destroy_code_document_batch', 'xuiCodeDocumentBatchDestroy'),
+    'xuiCodeDocumentBatchSnapshotDestroy': ('xui.CodeDocumentBatchSnapshot.close', 'xl6Xui3CodeDocumentBatchSnapshotPolicy',
+        'destroy_code_document_batch_snapshot', 'xuiCodeDocumentBatchSnapshotDestroy'),
+    'xuiCodeDocumentBatchPayloadDestroy': ('xui.CodeDocumentBatchPayload.close', 'xl6Xui3CodeDocumentBatchPayloadPolicy',
+        'destroy_code_document_batch_payload', 'xuiCodeDocumentBatchPayloadDestroy'),
     'xuiCodeMarginModelDestroy': ('xui.CodeMarginModel.close', 'xl6Xui3CodeMarginPolicy', 'destroy_code_margin', 'xuiCodeMarginModelDestroyOwnerChecked'),
     'xuiCodeMarginModelDestroyChecked': ('xui.CodeMarginModel.close', 'xl6Xui3CodeMarginPolicy', 'destroy_code_margin', 'xuiCodeMarginModelDestroyOwnerChecked'),
     'xuiTableViewCellOutputReleaseChecked': ('xui.TableCellOutput.close', 'xl6Xui3TableCellOutputPolicy',
@@ -1439,6 +1443,9 @@ CLOSE_REPLACEMENTS = {
 
 # Reviewed native entry points with managed replacements.
 REPLACED = {
+    'xuiCodeDocumentBatchDescribe': ('xui.CodeDocumentBatch.describe', 'xuiCodeDocumentBatchDescribeSnapshot'),
+    'xuiCodeDocumentBatchStage': ('xui.CodeDocumentBatchSnapshot.stage', 'xuiCodeDocumentBatchSnapshotStage'),
+    'xuiCodeDocumentBatchAccept': ('xui.CodeDocumentBatch.accept', 'xuiCodeDocumentBatchAcceptPayload'),
     # These native callbacks have an owned registration for the same hook.
     'xuiAccordionSetSelect': ('xui.Accordion.setSelect', 'xuiAccordionSetSelectOwned'),
     'xuiBreadcrumbSetClick': ('xui.Breadcrumb.setClick', 'xuiBreadcrumbSetClickOwned'),

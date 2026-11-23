@@ -19,6 +19,9 @@ See [CodeDocument contracts](../../../docs/xui-code-document.md) and
 commit with one undo step per edited document. `batch.wasCommitted()` reports
 whether an observer error followed publication. See the
 [batch editing lesson](examples/code_document_batch.xl).
+For larger edits, capture the batch on the document thread and stage its
+detached description on a worker. The document thread accepts the staged
+payload and commits it. See the [worker example](examples/code_document_batch_worker.xl).
 
 `captureCodeLayout(document, viewport)` captures the visible code rows and
 the content geometry. `codeLayoutHitTest()` resolves screen coordinates to a

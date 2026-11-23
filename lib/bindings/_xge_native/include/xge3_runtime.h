@@ -92,6 +92,8 @@ const XL6_ForeignViewDescriptorV1* xl6Xui3TextShapePolicyGet(void);
 const XL6_ForeignViewDescriptorV1* xl6Xui3TextLayoutPolicyGet(void);
 const XL6_ForeignViewDescriptorV1* xl6Xui3CodeDocumentPolicyGet(void);
 const XL6_ForeignViewDescriptorV1* xl6Xui3CodeDocumentBatchPolicyGet(void);
+const XL6_ForeignViewDescriptorV1* xl6Xui3CodeDocumentBatchSnapshotPolicyGet(void);
+const XL6_ForeignViewDescriptorV1* xl6Xui3CodeDocumentBatchPayloadPolicyGet(void);
 const XL6_ForeignViewDescriptorV1* xl6Xui3CodeEditDocumentViewPolicyGet(void);
 const XL6_ForeignViewDescriptorV1* xl6Xui3CodeEditSelectionViewPolicyGet(void);
 const XL6_ForeignViewDescriptorV1* xl6Xui3CodeSelectionPolicyGet(void);
@@ -218,8 +220,11 @@ static inline const char* xl6Xui3TimelineSpanLabel(const xui_timeline_span_t* sp
 #define xl6Xui3TextLayoutPolicy (*xl6Xui3TextLayoutPolicyGet())
 #define xl6Xui3CodeDocumentPolicy (*xl6Xui3CodeDocumentPolicyGet())
 #define xl6Xui3CodeDocumentBatchPolicy (*xl6Xui3CodeDocumentBatchPolicyGet())
+#define xl6Xui3CodeDocumentBatchSnapshotPolicy (*xl6Xui3CodeDocumentBatchSnapshotPolicyGet())
+#define xl6Xui3CodeDocumentBatchPayloadPolicy (*xl6Xui3CodeDocumentBatchPayloadPolicyGet())
 /* Observed editor documents and independent documents have the same C handle. */
 #define xl6Xui3PrepareEditorDocumentBatch xuiCodeDocumentBatchPrepare
+#define xl6Xui3CaptureEditorDocumentBatch xuiCodeDocumentBatchCapture
 #define xl6Xge3FontPolicy (*xl6Xge3FontPolicyGet())
 #define xl6Xge3TexturePolicy (*xl6Xge3TexturePolicyGet())
 #define xl6Xge3ImagePolicy (*xl6Xge3ImagePolicyGet())

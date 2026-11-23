@@ -1,4 +1,5 @@
 import xui
+from xui import CodeDocumentBatchPayload
 
 extern "fixtureBatchHooks" @header("test/cases/foreign_xui_code_document_batch.h") @no_raise func hooks(c_int refuse) as xui.NativeCodeDocumentBatchHooks
 extern "fixtureBatchPrepared" @no_raise func prepared() as c_int
@@ -195,6 +196,165 @@ func testEditorDocuments()
     end
 end
 
+func testWorkerTransfer(xui.CodeDocument left, xui.CodeDocument right)
+    left.setText("你好")
+    right.setText("blue")
+    array<xui.CodeDocument> documents = [left,right]
+    array<c_uint> versions = [left.getChangeVersion(),right.getChangeVersion()]
+    auto batch = xui.captureCodeDocumentBatch(documents,versions)
+    auto wrongBatch = xui.captureCodeDocumentBatch(documents,versions)
+    auto snapshot = batch.describe()
+    auto mailbox = channel::<xui.CodeDocumentBatchPayload>(1)
+    auto worker = thread(func() as int
+        assert snapshot.layout().iDocuments == 2 and snapshot.source(0).iLength == 6, "worker reads detached byte counts"
+        try
+            batch.describe()
+            return 2
+        catch StateError
+        end
+        auto staged = snapshot.stage(["你好","blue"], ["再见\n","green"])
+        assert not staged.wasTaken(), "the worker still owns the staged rows"
+        assert mailbox.send(staged), "the channel must accept the staged native resource"
+        return 0
+    end)
+    assert worker.waitTimeout(30000) and worker.exitCode() == 0, "staging worker did not succeed"
+    snapshot.close()
+    auto received, result = mailbox.tryRecv()
+    assert received == channelStatus.ok and result != null, "staged payload was missing"
+    auto payload = result as CodeDocumentBatchPayload
+    try
+        bool refused = false
+        try
+            wrongBatch.accept(payload)
+        catch error
+            refused = error.code == xui.XUI_ERROR_INVALID_STATE
+        end
+        assert refused and not payload.wasTaken(), "wrong batch must leave the payload available"
+        batch.accept(payload)
+        assert payload.wasTaken() and not batch.wasCommitted(), "accept must transfer the rows before commit"
+        assert left.getText() == "你好" and right.getText() == "blue", "accept must keep both documents untouched"
+        refused = false
+        try
+            wrongBatch.accept(payload)
+        catch error
+            refused = error.code == xui.XUI_ERROR_INVALID_STATE
+        end
+        assert refused and payload.wasTaken(), "an already moved payload must remain taken"
+        payload.close()
+        assert batch.commit() and batch.wasCommitted(), "batch commit must succeed after closing the shell"
+        assert left.getText() == "再见\n" and right.getText() == "green", "commit must publish both worker edits"
+        left.undo()
+        right.undo()
+        assert left.getText() == "你好" and right.getText() == "blue", "undo must restore both documents"
+    finally
+        payload.close()
+        wrongBatch.close()
+        batch.close()
+        mailbox.close()
+    end
+end
+
+func testDetachedStaging()
+    auto document = xui.createCodeDocument()
+    document.setText("abc")
+    auto batch = xui.captureCodeDocumentBatch([document],[document.getChangeVersion()])
+    auto snapshot = batch.describe()
+    batch.close()
+    document.close()
+    try
+        int rejected = 0
+        try
+            snapshot.source(1)
+        catch error
+            assert error.code == xui.XUI_ERROR_INVALID_ARGUMENT, "snapshot source index must be checked"
+            rejected += 1
+        end
+        try
+            snapshot.stage([],[])
+        catch error
+            assert error.code == xui.XUI_ERROR_INVALID_ARGUMENT, "staging must check the row count"
+            rejected += 1
+        end
+        try
+            snapshot.stage(["abc"],["changed"],-1,1)
+        catch Error
+            rejected += 1
+        end
+        int polls = 0
+        try
+            snapshot.stage(["abc"],["changed"],-1,0,func() as c_int
+                polls += 1
+                return c_int(polls >= 3 ? 1 : 0)
+            end)
+        catch error
+            assert error.code == xui.XUI_ERROR_INVALID_STATE, "staging must report cancellation"
+            rejected += 1
+        end
+        assert polls == 3, "cancellation must stop polling"
+        try
+            snapshot.stage(["abc"],["changed"],-1,0,func() as c_int
+                assert false, "staging callback failed"
+                return c_int(0)
+            end)
+        catch AssertionError
+            rejected += 1
+        end
+        assert rejected == 5, "all invalid or cancelled stage calls must fail"
+        int failures = 0
+        int successes = 0
+        array<string> before = ["abc"]
+        array<string> after = ["changed"]
+        for i in range(40)
+            failAfter(c_int(i))
+            try
+                auto trial = snapshot.stage(before,after)
+                failAfter(-1)
+                assert not trial.wasTaken(), "successful retries produce fresh payloads"
+                trial.close()
+                successes += 1
+            catch Error
+                failures += 1
+            finally
+                failAfter(-1)
+            end
+        end
+        assert failures > 2 and successes > 0, "staging must recover after injected allocation failures"
+        assert snapshot.source(0).iLength == 3, "closing the source document must preserve the description"
+    finally
+        snapshot.close()
+    end
+end
+
+func testEditorWorkerStale()
+    auto proxy = xui.createProxy()
+    auto context = xui.create(proxy,xui.XUI_SYSTEM_FONT_DISABLED)
+    try
+        auto document = context.codeEditNative().document()
+        document.setText("one")
+        auto batch = xui.captureEditorDocumentBatch([document],[document.getChangeVersion()])
+        auto snapshot = batch.describe()
+        auto payload = snapshot.stage(["one"],["two"])
+        try
+            document.setText("new")
+            bool refused = false
+            try
+                batch.accept(payload)
+            catch error
+                refused = error.code == xui.XUI_ERROR_INVALID_STATE
+            end
+            assert refused and not payload.wasTaken() and not batch.wasCommitted(), "stale editor must leave the payload available"
+            assert document.getText() == "new", "stale worker text must never overwrite a newer change"
+        finally
+            payload.close()
+            snapshot.close()
+            batch.close()
+        end
+    finally
+        context.close()
+        proxy.close()
+    end
+end
+
 func main(...) as int
     auto left = xui.createCodeDocument()
     auto right = xui.createCodeDocument()
@@ -204,6 +364,9 @@ func main(...) as int
         testPreparation(left)
         testClosedDocument()
         testEditorDocuments()
+        testWorkerTransfer(left,right)
+        testDetachedStaging()
+        testEditorWorkerStale()
     finally
         right.close()
         left.close()

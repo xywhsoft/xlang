@@ -3,9 +3,29 @@ export extern "const xui_code_document_batch_callbacks_t*" class NativeCodeDocum
  native point handle
 end
 
+export typedef CodeDocumentBatchCancelProc = func() as c_int
+
+// Staged replacement data can be sent to the thread that captured the batch.
+export extern "xui_code_document_batch_payload" class CodeDocumentBatchPayload @header("xge3_runtime.h") @lifetime("owned") @policy("xl6Xui3CodeDocumentBatchPayloadPolicy")
+ native point handle
+ extern "xuiCodeDocumentBatchPayloadWasTaken" @no_raise func wasTaken() as bool
+ extern "xl6ForeignViewCloseV1" @no_raise @c_control(0) @c_result("bool_status") func close()
+end
+
+// Immutable description. It remains valid after the batch and documents close.
+export extern "xui_code_document_batch_snapshot" class CodeDocumentBatchSnapshot @header("xge3_runtime.h") @lifetime("owned") @policy("xl6Xui3CodeDocumentBatchSnapshotPolicy")
+ native point handle
+ extern "xuiCodeDocumentBatchSnapshotGetLayout" @no_raise @c_output(1,0) func layout() as CodeDocumentBatchLayout
+ extern "xuiCodeDocumentBatchSnapshotGetSource" @no_raise @c_output(2,0) func source(c_size index) as CodeDocumentBatchSource
+ extern "xuiCodeDocumentBatchSnapshotStage" @no_raise @c_result("owned_view") @factory(6,0,rollbackCodeDocumentBatchPayload) @c_array_group(1,0,2,"size_t",2) @c_array_record(1,"xui_code_document_batch_text_t","iSize","uint32_t") @c_array_span_field(1,"Before.Data","Before.Size",0,"const char*","size_t") @c_array_span_field(1,"After.Data","After.Size",1,"const char*","size_t") @c_sync_callback(4,-1,1,"first") func stage(array<string> before,array<string> after,int size=-1,c_size budget=0,CodeDocumentBatchCancelProc? shouldCancel=null) as CodeDocumentBatchPayload
+ extern "xl6ForeignViewCloseV1" @no_raise @c_control(0) @c_result("bool_status") func close()
+end
+
 // Creator-thread batch. Its document watches do not keep the documents alive.
 export extern "xui_code_document_batch" class CodeDocumentBatch @header("xge3_runtime.h") @lifetime("owned") @policy("xl6Xui3CodeDocumentBatchPolicy") @domain("xl6Xui3OwnershipDomainV1")
  native point handle
+ extern "xuiCodeDocumentBatchDescribeSnapshot" @no_raise @c_result("owned_view") @factory(1,0,rollbackCodeDocumentBatchSnapshot) func describe() as CodeDocumentBatchSnapshot
+ extern "xuiCodeDocumentBatchAcceptPayload" @no_raise @c_result("status",0) func accept(CodeDocumentBatchPayload payload)
  extern "xuiCodeDocumentBatchCommit" @no_raise @c_output(1,0) func commit() as bool
  extern "xuiCodeDocumentBatchCommitChecked" @no_raise @c_output(2,0) func commitWithNativeHooks(NativeCodeDocumentBatchHooks hooks) as bool
  // A callback may throw after publication. This remains queryable from catch.
@@ -14,6 +34,10 @@ export extern "xui_code_document_batch" class CodeDocumentBatch @header("xge3_ru
 end
 
 extern "xuiCodeDocumentBatchDestroy" @header("xge3_runtime.h") @no_raise @c_result("status",0) func rollbackCodeDocumentBatch(CodeDocumentBatch batch)
+extern "xuiCodeDocumentBatchSnapshotDestroy" @header("xge3_runtime.h") @no_raise func rollbackCodeDocumentBatchSnapshot(CodeDocumentBatchSnapshot snapshot)
+extern "xuiCodeDocumentBatchPayloadDestroy" @header("xge3_runtime.h") @no_raise func rollbackCodeDocumentBatchPayload(CodeDocumentBatchPayload payload)
 
+export extern "xuiCodeDocumentBatchCapture" @header("xge3_runtime.h") @no_raise @c_result("owned_view") @factory(3,0,rollbackCodeDocumentBatch) @c_array_group(0,0,2,"size_t",2) @c_array_record(0,"xui_code_document_batch_item_t") @c_array_field(0,"pDocument",0,"view_raw") @c_array_field(0,"iChangeVersion",1,"value") func captureCodeDocumentBatch(array<CodeDocument> documents,array<c_uint> versions,int size=-1,c_size budget=0) as CodeDocumentBatch
+export extern "xl6Xui3CaptureEditorDocumentBatch" @header("xge3_runtime.h") @no_raise @c_result("owned_view") @factory(3,0,rollbackCodeDocumentBatch) @c_array_group(0,0,2,"size_t",2) @c_array_record(0,"xui_code_document_batch_item_t") @c_array_field(0,"pDocument",0,"view_raw") @c_array_field(0,"iChangeVersion",1,"value") func captureEditorDocumentBatch(array<CodeEditDocument> documents,array<c_uint> versions,int size=-1,c_size budget=0) as CodeDocumentBatch
 export extern "xuiCodeDocumentBatchPrepare" @header("xge3_runtime.h") @no_raise @c_result("owned_view") @factory(3,0,rollbackCodeDocumentBatch) @c_array_group(0,0,4,"size_t",4) @c_array_record(0,"xui_code_document_batch_item_t") @c_array_field(0,"pDocument",0,"view_raw") @c_array_field(0,"iChangeVersion",1,"value") @c_array_span_field(0,"Before.Data","Before.Size",2,"const char*","size_t") @c_array_span_field(0,"After.Data","After.Size",3,"const char*","size_t") func prepareCodeDocumentBatch(array<CodeDocument> documents,array<c_uint> versions,array<string> before,array<string> after,int size=-1,c_size budget=0) as CodeDocumentBatch
 export extern "xl6Xui3PrepareEditorDocumentBatch" @header("xge3_runtime.h") @no_raise @c_result("owned_view") @factory(3,0,rollbackCodeDocumentBatch) @c_array_group(0,0,4,"size_t",4) @c_array_record(0,"xui_code_document_batch_item_t") @c_array_field(0,"pDocument",0,"view_raw") @c_array_field(0,"iChangeVersion",1,"value") @c_array_span_field(0,"Before.Data","Before.Size",2,"const char*","size_t") @c_array_span_field(0,"After.Data","After.Size",3,"const char*","size_t") func prepareEditorDocumentBatch(array<CodeEditDocument> documents,array<c_uint> versions,array<string> before,array<string> after,int size=-1,c_size budget=0) as CodeDocumentBatch

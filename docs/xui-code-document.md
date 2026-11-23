@@ -88,10 +88,41 @@ must be infallible and run before the document change observers.
 The binding allocates temporary descriptors and lifetime scopes proportional
 to document count. It passes the original counted strings into the native
 prepare call. XUI validates and stages replacement bodies, line indexes and
-undo data. The public worker-side capture and staging sequence remains in
-development. See [the batch editing lesson](../lib/bindings/xui/examples/code_document_batch.xl).
+undo data. See [the batch editing lesson](../lib/bindings/xui/examples/code_document_batch.xl).
 
 [Batch validation](../dev/release-materials/provenance/xui-code-document-batch-20261123.json)
+
+### Prepare edits on a worker
+
+1. On the document thread, read the texts and change versions. Call
+   `captureCodeDocumentBatch()` for independent documents or
+   `captureEditorDocumentBatch()` for documents owned by CodeEdit.
+2. Call `batch.describe()` and send the snapshot and counted texts to the
+   worker. The immutable snapshot owns scalar metadata in one native
+   allocation and remains valid after its source documents and batch close.
+   `source(index)` uses zero-based indexing.
+3. Call `snapshot.stage(before, after)` on the worker. Supply one before and
+   after string per captured document in the original order. Keep both
+   arrays unchanged until staging returns. The optional budget defaults to
+   the capture budget and can lower that ceiling. An
+   optional cancellation callback executes synchronously on the staging
+   thread. A nonzero result cancels staging. Any callback error reaches the
+   caller after partial data is released.
+4. Send the owned payload back to the document thread. `batch.accept(payload)`
+   checks the capture identity, versions and original text. It moves the
+   staged storage into the batch. `payload.wasTaken()` remains queryable
+   even if cleanup returns an error. Release the payload with `close()`.
+5. Call `batch.commit()` on the document thread to publish and notify observers.
+
+Staging projects the two string arrays into temporary counted descriptors.
+It retains the original strings through the native call. Accept compares the
+original text against the current document and moves prepared storage without
+copying the staged bodies or indexes. See the
+[worker example](../lib/bindings/xui/examples/code_document_batch_worker.xl).
+The console example waits on the worker for brevity. In a GUI, poll for the
+result or post it to the document thread.
+
+[Worker batch validation](../dev/release-materials/provenance/xui-code-document-batch-worker-20261123.json)
 
 ## Independent document validation
 

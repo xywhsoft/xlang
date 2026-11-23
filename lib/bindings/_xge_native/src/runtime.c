@@ -708,6 +708,34 @@ const XL6_ForeignViewDescriptorV1* xl6Xui3CodeDocumentBatchPolicyGet(void)
     };
     return &value;
 }
+static bool destroy_code_document_batch_snapshot(void* raw)
+{
+    xuiCodeDocumentBatchSnapshotDestroy(raw);
+    return true;
+}
+const XL6_ForeignViewDescriptorV1* xl6Xui3CodeDocumentBatchSnapshotPolicyGet(void)
+{
+    static const XL6_ForeignViewDescriptorV1 value={
+        sizeof(value),XL6_FOREIGN_VIEW_V1_TAG,"xui.codeDocumentBatchSnapshot",
+        0,1,NULL,NULL,destroy_code_document_batch_snapshot,
+        0,1,NULL,NULL,NULL,NULL,XL6_FOREIGN_VIEW_THREAD_NEUTRAL_LEAF,NULL,NULL
+    };
+    return &value;
+}
+static bool destroy_code_document_batch_payload(void* raw)
+{
+    xuiCodeDocumentBatchPayloadDestroy(raw);
+    return true;
+}
+const XL6_ForeignViewDescriptorV1* xl6Xui3CodeDocumentBatchPayloadPolicyGet(void)
+{
+    static const XL6_ForeignViewDescriptorV1 value={
+        sizeof(value),XL6_FOREIGN_VIEW_V1_TAG,"xui.codeDocumentBatchPayload",
+        0,1,NULL,NULL,destroy_code_document_batch_payload,
+        0,1,NULL,NULL,NULL,NULL,XL6_FOREIGN_VIEW_THREAD_NEUTRAL_LEAF,NULL,NULL
+    };
+    return &value;
+}
 static bool watch_code_edit_document(void* raw, void* storage, void (*invalidate)(void*), void* user)
 {
     int status = xuiCodeDocumentEditorLifetimeWatch(raw, storage, invalidate, user);
@@ -847,6 +875,8 @@ const XL6_ForeignViewDescriptorV1* xl6Xui3CodeEditDocumentViewPolicyGet(void){re
 const XL6_ForeignViewDescriptorV1* xl6Xui3CodeEditSelectionViewPolicyGet(void){return NULL;}
 const XL6_ForeignViewDescriptorV1* xl6Xui3CodeDocumentPolicyGet(void){return NULL;}
 const XL6_ForeignViewDescriptorV1* xl6Xui3CodeDocumentBatchPolicyGet(void){return NULL;}
+const XL6_ForeignViewDescriptorV1* xl6Xui3CodeDocumentBatchSnapshotPolicyGet(void){return NULL;}
+const XL6_ForeignViewDescriptorV1* xl6Xui3CodeDocumentBatchPayloadPolicyGet(void){return NULL;}
 const XL6_ForeignViewDescriptorV1* xl6Xui3CodeEditCommandMapPolicyGet(void){return NULL;}
 const XL6_ForeignViewDescriptorV1* xl6Xui3CodeEditFoldStatePolicyGet(void){return NULL;}
 const XL6_ForeignViewDescriptorV1* xl6Xui3CodeEditThemePolicyGet(void){return NULL;}

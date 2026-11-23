@@ -1,0 +1,44 @@
+import xui
+from xui import CodeDocumentBatchPayload
+
+func main(...) as int
+    auto first = xui.createCodeDocument()
+    auto second = xui.createCodeDocument()
+    first.setText("Hello")
+    second.setText("World")
+
+    // Read the source texts and versions on the document thread.
+    array<string> before = [first.getText(),second.getText()]
+    auto batch = xui.captureCodeDocumentBatch([first,second],
+        [first.getChangeVersion(),second.getChangeVersion()])
+    auto snapshot = batch.describe()
+    auto mailbox = channel::<xui.CodeDocumentBatchPayload>(1)
+
+    try
+        // The worker only needs text and the detached description.
+        auto worker = thread(func() as int
+            auto payload = snapshot.stage(before,["你好","世界"])
+            return mailbox.send(payload) ? 0 : 1
+        end)
+        assert worker.waitTimeout(30000) and worker.exitCode() == 0
+
+        auto status, result = mailbox.tryRecv()
+        assert status == channelStatus.ok and result != null
+        auto payload = result as CodeDocumentBatchPayload
+        try
+            // Accept validates that both documents still have the captured versions.
+            batch.accept(payload)
+            batch.commit()
+            println(first.getText(),second.getText())
+        finally
+            payload.close()
+        end
+    finally
+        mailbox.close()
+        snapshot.close()
+        batch.close()
+        second.close()
+        first.close()
+    end
+    return 0
+end
