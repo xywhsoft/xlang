@@ -1,0 +1,38 @@
+{
+  "schema": 1,
+  "scope": "Regenerate the XUI control gallery from its standalone lessons",
+  "packageCommit": "f9c450748",
+  "nativeCommit": "91c30891",
+  "deliveryInstalled": false,
+  "gallerySha256NormalizedLf": "6134e3cd0897369e7e194b014661a56e3ee7b1eb529e0e6c5db8fd329cb241c0",
+  "platforms": {
+    "win": {
+      "report": "F:/xlang-validation/xge-full-20261110/xui-gallery-refresh-win-r1/results.json",
+      "reportSha256": "d71acf1c50af87d285ca57afc55672edd847de094d8faf67754c723f2fb9bcae",
+      "scenes": 57,
+      "checkNames": [
+        "catalog",
+        "emit",
+        "static-build",
+        "static-imports",
+        "static-cycle"
+      ],
+      "window": "Windows native",
+      "defaultDpiUsed": false
+    },
+    "linux": {
+      "report": "//wsl.localhost/Ubuntu/var/tmp/xlang-validation/xge-full-20261110/xui-gallery-refresh-linux-r1/results.json",
+      "reportSha256": "ed650f8fa09c65a56b0be58ca84490978625974d3157f89cb1422f399e20fd9b",
+      "scenes": 57,
+      "checkNames": [
+        "catalog",
+        "emit",
+        "static-build",
+        "static-imports",
+        "static-cycle"
+      ],
+      "window": "Xvfb plus software OpenGL",
+      "defaultDpiUsed": true
+    }
+  }
+}

@@ -95,9 +95,23 @@ func scene_chart(xui.Context ui,xui.Widget root,xui.Proxy proxy) as xui.Widget?
  chart.setFont(ui.getDefaultFont())
  Window.place(root, chart, 24, 24, 640, 340)
  chart.setTitle("Measured values")
+ chart.setXAxis(xui.XUI_CHART_AXIS_VALUE)
  c_int line = chart.addSeries(xui.XUI_CHART_SERIES_LINE, "Samples")
  chart.setSeriesData(line, [0, 1, 2, 3], [2, 5, 3, 7])
+ // 返回的首项表示是否使用手动范围，后四项是实际坐标范围。
+ chart.setViewRange(0, 3, 0, 8)
+ auto manual, minX, maxX, minY, maxY = chart.getViewRange()
+ assert manual == 1 and minX == 0 and maxX == 3 and minY == 0 and maxY == 8
  chart.setLegendVisible(1)
+ chart.setTooltipProvider(func(xui.CallbackWidget sender,c_int series,c_int item) as string
+  return "Sample " + string(int(item) + 1)
+ end)
+ // Right-click a point to show which sample the chart hit.
+ chart.setContextMenu(func(xui.CallbackWidget sender,xui.CallbackChartHit hit,c_float x,c_float y) as c_int
+  if hit.part != xui.XUI_CHART_HIT_SERIES then return 0 end
+  chart.setTitle("Selected sample " + string(int(hit.item) + 1))
+  return 1
+ end)
  return null
 end
 
@@ -194,6 +208,8 @@ end
 func scene_input(xui.Context ui,xui.Widget root,xui.Proxy proxy) as xui.Widget?
  auto input = ui.inputNative()
  Window.place(root, input, 24, 24, 640, 44)
+ input.decorationAdd(xui.XUI_INPUT_DECORATION_SIDE_LEADING, xui.XUI_INPUT_DECORATION_TEXT, "搜索", 44)
+ input.decorationAdd(xui.XUI_INPUT_DECORATION_SIDE_TRAILING, xui.XUI_INPUT_DECORATION_CLEAR)
  input.setText("Hello, xlang - edit this text")
  return null
 end
@@ -228,12 +244,25 @@ func scene_menu(xui.Context ui,xui.Widget root,xui.Proxy proxy) as xui.Widget?
  return menu
 end
 
+from xui import CallbackConstMessageNode
 func scene_messagelist(xui.Context ui,xui.Widget root,xui.Proxy proxy) as xui.Widget?
  auto messages = ui.messageListNative()
  Window.place(root, messages, 24, 24, 640, 320)
  messages.addNode("m1", "Hello from xlang", sender = "Alice", time = "12:00")
  messages.addNode("m2", "Native XUI message rendering", sender = "Bob", time = "12:01")
  messages.appendNodeText("m2", " - appended text")
+
+ auto selection = ui.labelNative()
+ Window.place(root, selection, 24, 360, 640, 32)
+ selection.setText("Click a message")
+ messages.setEvent(func(xui.Widget sender, xui.CallbackConstMessageListEvent event)
+  if event.iEvent != xui.XUI_MESSAGE_EVENT_SELECT then return end
+  auto selected = event.node
+  if selected != null then
+   auto node = selected as CallbackConstMessageNode
+   selection.setText(node.sender + ": " + node.text)
+  end
+ end)
  return null
 end
 
@@ -241,6 +270,9 @@ func scene_numericinput(xui.Context ui,xui.Widget root,xui.Proxy proxy) as xui.W
  auto numberInput = ui.numericInputNative()
  Window.place(root, numberInput, 24, 24, 640, 44)
  numberInput.setRange(-100, 100)
+ numberInput.setFormatter(func(c_float value) as string
+  return float.format(float(value), ".3f")
+ end)
  numberInput.setValue(12.5)
  return null
 end
@@ -250,6 +282,10 @@ func scene_page(xui.Context ui,xui.Widget root,xui.Proxy proxy) as xui.Widget?
  Window.place(root, page, 24, 24, 640, 54)
  page.setPageCount(20)
  page.setCurrent(3, 0)
+ page.setText("首页", "末页", "上一页", "下一页")
+ auto first,last,previous,following = page.getText()
+ assert first=="首页" and last=="末页"
+ assert previous=="上一页" and following=="下一页"
  return null
 end
 
@@ -303,8 +339,18 @@ func scene_propertygrid(xui.Context ui,xui.Widget root,xui.Proxy proxy) as xui.W
  properties.setFont(ui.getDefaultFont())
  Window.place(root, properties, 24, 24, 640, 300)
  c_int category = properties.addCategory("general", "General", 1)
- properties.addProperty(category, "name", "Name", description = "Project name", value = "xlang")
- properties.addProperty(category, "mode", "Mode", value = "Release")
+ auto name = properties.addProperty(category, "name", "Name", description = "Project name", value = "xlang")
+ properties.setValidate(func(xui.Widget owner, c_int property, xui.CString id, xui.CString value, c_int type) as c_int
+  if property == name and value.length == 0 then
+   return 0
+  end
+  return 1
+ end)
+ auto mode = properties.addProperty(category, "mode", "Mode", type = xui.XUI_TABLE_CELL_TYPE_ENUM, value = "Release")
+ properties.setEditorConfig(mode, optionLabels = ["Debug", "Release"], optionValues = [0, 1],
+  optionEnabled = [1, 1], optionSeparators = [0, 0], optionIcons = [0, 0])
+ auto workers = properties.addProperty(category, "workers", "Workers", type = xui.XUI_TABLE_CELL_TYPE_INT, value = "4")
+ properties.setEditorConfig(workers, minimum = 1, maximum = 16, step = 1)
  return null
 end
 
@@ -380,6 +426,19 @@ func scene_scrollview(xui.Context ui,xui.Widget root,xui.Proxy proxy) as xui.Wid
   label.setText("Scrollable row "+string(i+1))
   Window.place(content as Widget, label, 20, i*70+20, 1000, 28)
  end
+
+ auto last = ui.buttonNative()
+ last.setText("查看最后一行")
+ Window.place(root, last, 24, 364, 136, 34)
+ last.setClick(func(Widget sender)
+  auto row = xui.Rect()
+  row.fX = 20
+  row.fY = 790
+  row.fW = 100
+  row.fH = 28
+  auto next = xui.scrollModelWithRectVisible(scrollView.scrollSnapshot(), row)
+  scrollView.setOffset(next.fScrollX, next.fScrollY)
+ end)
  return null
 end
 
@@ -444,6 +503,7 @@ func scene_stepbar(xui.Context ui,xui.Widget root,xui.Proxy proxy) as xui.Widget
  return null
 end
 
+from xui import TableViewPart
 func scene_tablegrid(xui.Context ui,xui.Widget root,xui.Proxy proxy) as xui.Widget?
  auto table = ui.tableGridNative()
  Window.place(root, table, 24, 24, 640, 300)
@@ -457,6 +517,12 @@ func scene_tablegrid(xui.Context ui,xui.Widget root,xui.Proxy proxy) as xui.Widg
  end, func(xui.Widget table, c_int row, c_int column, xui.CString value, c_int type)
   rows[int(row)][int(column)] = value.copy()
  end)
+ auto body = xui.tableView(table) as TableViewPart
+ body.setColumnRenderer(1,func(xui.CallbackWidget widget,c_int row,c_int column,xui.CallbackTableViewCell cell,xui.CallbackDrawContext draw,xui.Rect area,c_int state) as c_int
+  area.fW = 3
+  proxy.fillRect(draw,area,c_uint(0xFF3076AE))
+  return 0 // 保留表格的默认文字和边线。
+ end)
  return null
 end
 
@@ -464,6 +530,14 @@ func scene_tableview(xui.Context ui,xui.Widget root,xui.Proxy proxy) as xui.Widg
  auto table = ui.tableViewNative()
  Window.place(root, table, 24, 24, 640, 300)
  table.setColumns(["Name", "Value"], [250, 220])
+ table.setHeaderRenderer(func(xui.CallbackWidget widget,c_int index,xui.CallbackTableViewColumn column,xui.CallbackDrawContext draw,xui.Rect area,c_int state) as c_int
+  if index==0 then
+   area.fY+=area.fH-2
+   area.fH=2
+   proxy.fillRect(draw,area,c_uint(0xFF3076AE))
+  end
+  return 0 // 保留默认的表头标题和排序标记。
+ end)
  array<array<string>> rows = [["Alpha", "10"], ["Beta", "20"], ["Gamma", "30"]]
  table.setAdapter(func(xui.Widget table) as c_int
   return c_int(rows.length)
@@ -471,27 +545,45 @@ func scene_tableview(xui.Context ui,xui.Widget root,xui.Proxy proxy) as xui.Widg
   cell.setText(rows[int(row)][int(column)])
   return 0
  end)
+ table.setCellRenderer(func(xui.CallbackWidget widget,c_int row,c_int column,xui.CallbackTableViewCell cell,xui.CallbackDrawContext draw,xui.Rect area,c_int state) as c_int
+  if column==1 then
+   area.fW=3
+   proxy.fillRect(draw,area,c_uint(0xFF3076AE))
+  end
+  return 0 // 色条画完后，仍由表格绘制文字和边线。
+ end)
+ auto details=ui.labelNative()
+ details.setText("Click a cell to inspect its content rectangle.")
+ Window.place(root,details,24,336,640,32)
+ table.setSelectionMode(xui.XUI_TABLE_VIEW_SELECTION_CELL)
+ table.setSelect(func(xui.Widget sender,c_int row,c_int column,c_int selected)
+  if selected!=0 and row>=0 and column>=0 then
+   auto rectangle=table.getCellContentRect(row,column)
+   auto scroll=table.scrollSnapshot()
+   details.setText("Cell: ("+string(int(rectangle.fX))+", "+string(int(rectangle.fY))+")   Scroll Y: "+string(int(scroll.fScrollY)))
+  end
+ end)
  return null
 end
 
 func scene_tabs(xui.Context ui,xui.Widget root,xui.Proxy proxy) as xui.Widget?
  auto tabs = ui.tabsNative()
  Window.place(root, tabs, 24, 24, 640, 260)
- tabs.setItems(["Overview", "Settings", "Sources", "Build", "Output", "Tasks", "Search", "History"])
  tabs.setScrollable(1)
  tabs.setTabSize(140, 32)
  tabs.setScrollButtonsVisible(1)
  tabs.setTabListButtonVisible(1)
- for i in range(0, 8)
-  auto page = ui.widget()
-  page.setRect(Window.rect(0, 0, 600, 240))
-  page.setSizeMode(xui.XUI_SIZE_FILL, xui.XUI_SIZE_FILL)
+ for title in ["Overview", "Settings", "Sources", "Build", "Output", "Tasks", "Search", "History"]
+  tabs.addPage(title)
+  auto page = tabs.getPageWidget(tabs.getItemCount() - c_int(1)) as Widget
   auto label = ui.labelNative()
-  label.setText("Page "+string(i+1))
+  label.setText(title)
   Window.place(page, label, 20, 24, 400, 28)
-  tabs.addPageChild(c_int(i), page)
  end
  tabs.setSelected(0)
+ tabs.setClose(true, func(xui.CallbackWidget widget, c_int index)
+  tabs.removePage(index)
+ end)
  return null
 end
 
@@ -538,12 +630,37 @@ end
 
 func scene_toolbar(xui.Context ui,xui.Widget root,xui.Proxy proxy) as xui.Widget?
  auto toolbar = ui.toolbarNative()
- Window.place(root, toolbar, 24, 24, 640, 48)
+ Window.place(root, toolbar, 24, 24, 180, 48)
  toolbar.addItem("New", 0, 1)
  toolbar.addItem("Build", 0, 2)
  toolbar.addSeparator()
  toolbar.addItem("Run", 0, 3)
+ toolbar.addItem("Export", 0, 4)
+ toolbar.addItem("Clean", 0, 5)
  toolbar.setItemTooltip(1, "Build the current project")
+
+ auto selected = ui.labelNative()
+ selected.setText("选择工具栏命令")
+ Window.place(root, selected, 24, 96, 280, 32)
+ auto select = func(xui.Widget sender, c_int index, c_int value)
+  selected.setText("命令编号：" + string(int(value)))
+ end
+ toolbar.setSelect(select)
+
+ auto menu = ui.menuNative()
+ menu.setSelect(select)
+ toolbar.setOverflow(1, 28, func(xui.CallbackWidget sender, c_int first, c_int count)
+  menu.clear()
+  for offset in range(int(count))
+   auto label, _, _, _, command, _, _, _, _ = toolbar.getItem(first + c_int(offset))
+   if label != null then
+    menu.addItem(label as string, value = command)
+   end
+  end
+  auto bar = toolbar.getWorldRect()
+  auto button = toolbar.getOverflowRect()
+  menu.openAt(toolbar, c_float(bar.fX + button.fX), c_float(bar.fY + button.fY + button.fH))
+ end)
  return null
 end
 
@@ -664,6 +781,8 @@ func scene_cascader(xui.Context ui,xui.Widget root,xui.Proxy proxy) as xui.Widge
  c_uint leaf = c_uint(xui.XUI_CASCADER_ITEM_LEAF)
  array<c_uint> flags = [0, 0, leaf, leaf, leaf]
  categories.setItems(names, values, parents, flags)
+ array<c_int> path = [10, 11]
+ categories.setSelectedPath(path)
  return null
 end
 
@@ -688,6 +807,7 @@ func scene_label(xui.Context ui,xui.Widget root,xui.Proxy proxy) as xui.Widget?
  return null
 end
 
+from xui import CallbackWidget, CallbackConstEditEvent
 func scene_documenteditor(xui.Context ui,xui.Widget root,xui.Proxy proxy) as xui.Widget?
  auto document = xui.createDocument()
  try
@@ -703,6 +823,17 @@ func scene_documenteditor(xui.Context ui,xui.Widget root,xui.Proxy proxy) as xui
 
   auto editor = xui.createDocumentEditor(ui, document)
   Window.place(root, editor, 24, 24, 680, 360)
+
+  auto status = ui.labelNative()
+  status.setText("编辑文档后，这里会显示 UTF-8 字节数。")
+  Window.place(root, status, 24, 400, 680, 32)
+  // 只读取字节数，编辑事件无需复制文档正文。
+  editor.setEditEvent(false, func(CallbackWidget widget, CallbackConstEditEvent event) as c_int
+   if event.kind == xui.XUI_EDIT_EVENT_TEXT_CHANGED then
+    status.setText("文档字节数：" + string(int(event.textSize)))
+   end
+   return xui.XUI_OK
+  end)
  finally
   // 编辑器保留原生文档引用；这里释放创建者自己的引用。
   document.close()
