@@ -166,7 +166,7 @@ WebView 范例只加载源码中的本地 HTML。它需要启用 WebView2 的 Wi
 | [panel.xl](panel.xl) | 带标题的面板中放置一个按钮。 |
 | [popup.xl](popup.xl) | 点击按钮打开弹层；点击外部关闭。 |
 | [progress.xl](progress.xl) | 点击按钮增加进度；超过 100% 后从 0 开始。 |
-| [propertygrid.xl](propertygrid.xl) | 展开 General，编辑 Name 和 Mode。 |
+| [propertygrid.xl](propertygrid.xl) | 编辑文本，从下拉列表选模式，设置整数范围和步长。 |
 | [qrcode.xl](qrcode.xl) | 二维码内容就是 setValue 传入的字符串。 |
 | [radio.xl](radio.xl) | RadioGroup 管理互斥关系；两个 Radio 负责显示各自的文字和圆点。 |
 | [rangeslider.xl](rangeslider.xl) | 拖动两个滑块，选择 20 到 80 的初始范围。 |

@@ -1,0 +1,82 @@
+import xui
+
+extern "fixturePropertyEditorNumeric" @header("test/cases/foreign_xui_property_editor_config.h") @no_raise func hasNumericSettings(xui.PropertyGrid grid) as c_int
+extern "fixturePropertyEditorCombo" @header("test/cases/foreign_xui_property_editor_config.h") @no_raise func hasComboSettings(xui.PropertyGrid grid) as c_int
+extern "fixtureRenderProxy" @header("test/cases/foreign_xui_render_backend.h") @no_raise @c_result("owned_view") @factory(0,0,dropProxy) func cpuProxy() as xui.Proxy
+extern "fixtureRenderBudget" @header("test/cases/foreign_xui_render_backend.h") @no_raise func budget(c_int allowance)
+extern "xuiProxyReleaseChecked" @header("xge3_runtime.h") @no_raise @c_result("status",0) func dropProxy(xui.Proxy proxy)
+
+func main(...) as int
+ auto proxy = cpuProxy()
+ auto ui = xui.create(proxy, xui.XUI_SYSTEM_FONT_DISABLED)
+ try
+  auto grid = ui.propertyGridNative()
+  xui.Rect bounds
+  bounds.fW = 480
+  bounds.fH = 320
+  assert grid.setRect(bounds) == xui.XUI_OK, "set the grid bounds"
+  ui.inputViewport(480, 320)
+  assert ui.setRootWidget(grid) == xui.XUI_OK, "install property grid root"
+  grid.setEditMode(xui.XUI_TABLE_GRID_EDIT_QUICK)
+  auto category = grid.addCategory("general", "General", 1)
+  auto mode = grid.addProperty(category, "mode", "Mode", type=xui.XUI_TABLE_CELL_TYPE_ENUM, value="10")
+  auto count = grid.addProperty(category, "count", "Count", type=xui.XUI_TABLE_CELL_TYPE_INT, value="4")
+  assert category == 0 and mode == 0 and count == 1, "property indices"
+  grid.setEditorConfig(count, minimum=2, maximum=12, step=2, precision=0)
+  array<string?> labels = ["Draft", "Ready"]
+  array<c_int> values = [10, 20]
+  array<c_int> enabled = [1, 0]
+  array<c_int> flags = [0, 0]
+  grid.setEditorConfig(mode, useOptionValue=1, optionLabels=labels, optionValues=values,
+   optionEnabled=enabled, optionSeparators=flags, optionIcons=flags, palette=b"\x44\x33\x22\x11",
+   dateFormat="yyyy-MM-dd", actionText="Choose", fileFilter="*.txt", rangeSeparator=" ~ ")
+  labels[0] = "Changed"
+
+  bool rejected = false
+  try
+   grid.setEditorConfig(mode, optionLabels=labels, optionValues=values,
+    optionEnabled=enabled, optionSeparators=flags, optionIcons=flags, palette=b"a")
+  catch Error
+   rejected = true
+  end
+  assert rejected, "reject an incomplete RGBA palette entry"
+  rejected = false
+  try
+   grid.setEditorConfig(mode, dateMinimumMilliseconds=2000, dateMaximumMilliseconds=1000, useDateMinimum=1, useDateMaximum=1)
+  catch Error
+   rejected = true
+  end
+  assert rejected, "reject inverted date limits"
+  rejected = false
+  budget(0)
+  try
+   grid.setEditorConfig(mode, optionLabels=labels, optionValues=values,
+    optionEnabled=enabled, optionSeparators=flags, optionIcons=flags)
+  catch Error
+   rejected = true
+  finally
+   budget(-1)
+  end
+  assert rejected, "reject allocation failure without replacing the option data"
+
+  assert ui.layout() == xui.XUI_OK, "lay out property editors"
+  assert grid.beginEdit(count) == 1, "open numeric editor"
+  assert hasNumericSettings(grid) == 1, "apply numeric editor settings"
+  assert grid.endEdit(0) == 1, "cancel numeric edit"
+  assert grid.beginEdit(mode) == 1, "open enum editor"
+  assert hasComboSettings(grid) == 1, "copy enum labels, values and availability"
+  assert grid.endEdit(0) == 1, "cancel enum edit"
+  grid.clearEditorConfig(mode)
+  grid.clearEditorConfig(mode)
+  assert grid.beginEdit(mode) == 1, "open the default editor after clearing"
+  assert hasComboSettings(grid) == 0, "clear the custom enum editor settings"
+  assert grid.endEdit(0) == 1, "cancel default edit"
+  grid.clear()
+  assert grid.getPropertyCount() == 0, "clear grid properties"
+ finally
+  ui.close()
+  proxy.close()
+ end
+ println("PROPERTY_GRID_EDITOR_CONFIG_OK")
+ return 0
+end

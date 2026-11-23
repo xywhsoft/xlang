@@ -1,4 +1,4 @@
-// 展开 General，编辑 Name 和 Mode。
+// 展开 General，编辑 Name，从下拉菜单选择 Mode，或调整 Workers。
 import xui
 from "./_window.xl" import Window
 
@@ -8,5 +8,9 @@ Window.show("Property grid / editable values", func(xui.Context ui, xui.Widget r
  Window.place(root, properties, 24, 24, 640, 300)
  c_int category = properties.addCategory("general", "General", 1)
  properties.addProperty(category, "name", "Name", description = "Project name", value = "xlang")
- properties.addProperty(category, "mode", "Mode", value = "Release")
+ auto mode = properties.addProperty(category, "mode", "Mode", type = xui.XUI_TABLE_CELL_TYPE_ENUM, value = "Release")
+ properties.setEditorConfig(mode, optionLabels = ["Debug", "Release"], optionValues = [0, 1],
+  optionEnabled = [1, 1], optionSeparators = [0, 0], optionIcons = [0, 0])
+ auto workers = properties.addProperty(category, "workers", "Workers", type = xui.XUI_TABLE_CELL_TYPE_INT, value = "4")
+ properties.setEditorConfig(workers, minimum = 1, maximum = 16, step = 1)
 end)

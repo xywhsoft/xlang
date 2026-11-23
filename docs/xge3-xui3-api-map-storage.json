@@ -1211,6 +1211,21 @@
       "line": 1464,
       "functionSha256": "761cbe9c61faebc924a822e78260f53e6b97f848e8c7c84cc76076a7fd6c9945"
     },
+    "xuiPropertyGridSetEditorConfig": {
+      "bindingFile": "lib/bindings/xui/src/managed.xl",
+      "declaration": "extern \"xuiPropertyGridSetEditorConfig\" @no_raise @c_result(\"status\",0) @c_pack(2,\"xui_table_grid_editor_config_t\",1,28) @c_pack_field(2,\"fMin\",1,\"value\") @c_pack_field(2,\"fMax\",2,\"value\") @c_pack_field(2,\"fStep\",3,\"value\") @c_pack_field(2,\"iPrecision\",4,\"value\") @c_pack_field(2,\"bNullable\",5,\"value\") @c_pack_field(2,\"iEnumSelected\",6,\"value\") @c_pack_field(2,\"bEnumUseValue\",7,\"value\") @c_pack_field(2,\"iEnumSelectedValue\",8,\"value\") @c_pack_field(2,\"arrPalette\",15,\"span_data\") @c_pack_field(2,\"iPaletteCount\",15,\"span_count\") @c_pack_field(2,\"bAlphaEnabled\",16,\"value\") @c_pack_field(2,\"iDateMode\",17,\"value\") @c_pack_field(2,\"bDateModeSet\",18,\"value\") @c_pack_field(2,\"bShowSecond\",19,\"value\") @c_pack_field(2,\"sDateFormat\",20,\"c_string\") @c_pack_field(2,\"tDateMin\",21,\"value\") @c_pack_field(2,\"tDateMax\",22,\"value\") @c_pack_field(2,\"bDateHasMin\",23,\"value\") @c_pack_field(2,\"bDateHasMax\",24,\"value\") @c_pack_field(2,\"tDefaultRangeSpan\",25,\"value\") @c_pack_field(2,\"sActionText\",26,\"c_string\") @c_pack_field(2,\"sFileFilter\",27,\"c_string\") @c_pack_field(2,\"sRangeSeparator\",28,\"c_string\") @c_span(15,\"const uint32_t*\",\"int\") @c_array_group(10,9,5,\"int\",14) @c_array_record(10,\"xui_combobox_item_t\") @c_array_field(10,\"sText\",0,\"c_string\") @c_array_field(10,\"iValue\",1,\"value\") @c_array_field(10,\"bEnabled\",2,\"value\") @c_array_field(10,\"bSeparator\",3,\"value\") @c_array_field(10,\"iIcon\",4,\"value\") @c_array_pack(10,2,\"arrEnumItemData\",\"iEnumItemCount\") func setEditorConfig(c_int property,c_float minimum=0,c_float maximum=0,c_float step=0,c_int precision=-1,c_int nullable=0,c_int selectedOption=-1,c_int useOptionValue=0,c_int selectedValue=0,array<string?> optionLabels=[],array<c_int> optionValues=[],array<c_int> optionEnabled=[],array<c_int> optionSeparators=[],array<c_int> optionIcons=[],int optionCount=-1,bytes palette=b\"\",c_int alphaEnabled=0,c_int dateMode=0,c_int useDateMode=0,c_int showSeconds=1,string? dateFormat=null,int64 dateMinimumMilliseconds=0,int64 dateMaximumMilliseconds=0,c_int useDateMinimum=0,c_int useDateMaximum=0,int64 defaultRangeMilliseconds=0,string? actionText=null,string? fileFilter=null,string? rangeSeparator=null)",
+      "storage": "native-copy-or-synchronous-read",
+      "sourceFile": "src/xui/controls/xui_property_grid.c",
+      "line": 2416,
+      "functionSha256": "c502f4a1cece7d4ec25b47f944f04bd96decb46f8bf522e0f4fc035b7cfb1d33",
+      "dependencies": [
+        {
+          "sourceFile": "src/xui/controls/xui_property_grid.c",
+          "lfSha256": "20d4e6e6f8002325ce3d0edf6bee56ffd0c5e48f6469eb69919aaea621f4f701"
+        }
+      ],
+      "note": "Copies enum option text, palette and optional strings before publishing. The language pack supplies only copied arrays, scalar configuration and text. Raw user pointers and redundant legacy enum arrays stay unset. Clearing passes an exact typed NULL."
+    },
     "xuiTableGridEditorConfigOutputSetPalette": {
       "bindingFile": "lib/bindings/xui/src/managed.xl",
       "declaration": "extern \"xuiTableGridEditorConfigOutputSetPalette\" @no_raise @c_span(0,\"const uint32_t*\",\"int\") @c_result(\"status\",0) func setPalette(Buffer colors)",

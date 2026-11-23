@@ -845,6 +845,34 @@ METHODS.update({
     'xuiTableViewSetRows': ['int xuiTableViewSetRows(xui_widget pWidget, const xui_table_view_row_t* arrRows, int iCount)', 'TableView',
         ['extern "xuiTableViewSetRows" @no_raise @c_span(0,"const xui_table_view_row_t*","int") func setRows(Buffer arrRows) as c_int',
          'extern "xuiTableViewSetRows" @no_raise @c_array_group(1,0,1,"int",1) @c_array_input(1,0,"const xui_table_view_row_t*","value") func setRows(array<TableViewRow> rows,int size=-1) as c_int']],
+    'xuiPropertyGridSetEditorConfig': ['int xuiPropertyGridSetEditorConfig(xui_widget pWidget, int iProperty, const xui_table_grid_editor_config_t* pConfig)',
+        'PropertyGrid', ['extern "xuiPropertyGridSetEditorConfig" @no_raise @c_result("status",0) '
+        '@c_pack(2,"xui_table_grid_editor_config_t",1,28) @c_pack_field(2,"fMin",1,"value") '
+        '@c_pack_field(2,"fMax",2,"value") @c_pack_field(2,"fStep",3,"value") '
+        '@c_pack_field(2,"iPrecision",4,"value") @c_pack_field(2,"bNullable",5,"value") '
+        '@c_pack_field(2,"iEnumSelected",6,"value") @c_pack_field(2,"bEnumUseValue",7,"value") '
+        '@c_pack_field(2,"iEnumSelectedValue",8,"value") @c_pack_field(2,"arrPalette",15,"span_data") '
+        '@c_pack_field(2,"iPaletteCount",15,"span_count") @c_pack_field(2,"bAlphaEnabled",16,"value") '
+        '@c_pack_field(2,"iDateMode",17,"value") @c_pack_field(2,"bDateModeSet",18,"value") '
+        '@c_pack_field(2,"bShowSecond",19,"value") @c_pack_field(2,"sDateFormat",20,"c_string") '
+        '@c_pack_field(2,"tDateMin",21,"value") @c_pack_field(2,"tDateMax",22,"value") '
+        '@c_pack_field(2,"bDateHasMin",23,"value") @c_pack_field(2,"bDateHasMax",24,"value") '
+        '@c_pack_field(2,"tDefaultRangeSpan",25,"value") @c_pack_field(2,"sActionText",26,"c_string") '
+        '@c_pack_field(2,"sFileFilter",27,"c_string") @c_pack_field(2,"sRangeSeparator",28,"c_string") '
+        '@c_span(15,"const uint32_t*","int") @c_array_group(10,9,5,"int",14) '
+        '@c_array_record(10,"xui_combobox_item_t") @c_array_field(10,"sText",0,"c_string") '
+        '@c_array_field(10,"iValue",1,"value") @c_array_field(10,"bEnabled",2,"value") '
+        '@c_array_field(10,"bSeparator",3,"value") @c_array_field(10,"iIcon",4,"value") '
+        '@c_array_pack(10,2,"arrEnumItemData","iEnumItemCount") func setEditorConfig(c_int property,c_float '
+        'minimum=0,c_float maximum=0,c_float step=0,c_int precision=-1,c_int nullable=0,c_int '
+        'selectedOption=-1,c_int useOptionValue=0,c_int selectedValue=0,array<string?> '
+        'optionLabels=[],array<c_int> optionValues=[],array<c_int> optionEnabled=[],array<c_int> '
+        'optionSeparators=[],array<c_int> optionIcons=[],int optionCount=-1,bytes palette=b"",c_int '
+        'alphaEnabled=0,c_int dateMode=0,c_int useDateMode=0,c_int showSeconds=1,string? dateFormat=null,int64 '
+        'dateMinimumMilliseconds=0,int64 dateMaximumMilliseconds=0,c_int useDateMinimum=0,c_int '
+        'useDateMaximum=0,int64 defaultRangeMilliseconds=0,string? actionText=null,string? '
+        'fileFilter=null,string? rangeSeparator=null)',
+        'extern "xuiPropertyGridSetEditorConfig" @no_raise @c_result("status",0) @c_null(2,"const xui_table_grid_editor_config_t*") func clearEditorConfig(c_int property)']],
     'xuiTableGridSetRows': ['int xuiTableGridSetRows(xui_widget pWidget, const xui_table_view_row_t* arrRows, int iCount)', 'TableGrid',
         ['extern "xuiTableGridSetRows" @no_raise @c_span(0,"const xui_table_view_row_t*","int") func setRows(Buffer arrRows) as c_int',
          'extern "xuiTableGridSetRows" @no_raise @c_array_group(1,0,1,"int",1) @c_array_input(1,0,"const xui_table_view_row_t*","value") func setRows(array<TableViewRow> rows,int size=-1) as c_int']],

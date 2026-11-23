@@ -1,0 +1,70 @@
+{
+  "schema": 1,
+  "scope": "PropertyGrid numeric, enum and text editor configuration and restoration of defaults",
+  "nativeCommit": "dc4f7bb9cb1b00fbcc831ac437ab0eea46482cdc",
+  "compilerInteropCommit": "62b5cea18",
+  "shippingDelivery": false,
+  "platforms": {
+    "win": {
+      "matchedCompilerAndPackages": {
+        "path": "F:/xlang-validation/xge-full-20261110/property-grid-config-verify-win-r8/results.json",
+        "sha256": "e0a36019078ffbe701ee3892382ce749cabd53472d061102fdb484d52b7f1524"
+      },
+      "replayedPackages": {
+        "path": "F:/xlang-validation/xge-full-20261110/property-grid-config-stage-win-r1/replay/stage-report.json",
+        "sha256": "277ae659efa799f3a9e31ffabca7b30239603898395727d129ef6467d24c73fb"
+      },
+      "generator": {
+        "path": "F:/xlang-validation/xge-full-20261110/property-grid-config-generator-win-r2/results.json",
+        "sha256": "313f04807886160068f9e42ff7833e34c678ba9a0da020efca4bdd759c664cb1"
+      },
+      "nativeO0O2HostedAndStatic": {
+        "path": "F:/xlang-validation/xge-full-20261110/property-grid-config-native-test-win-r2/results.json",
+        "sha256": "b362f474b897c385d53fc4589b20595fdba5ed77254970cd8700e7d6ff667840"
+      },
+      "preFixLeakReproduction": {
+        "path": "F:/xlang-validation/xge-full-20261110/property-grid-config-native-test-win-r1/results.json",
+        "sha256": "40422a4db023a39d1eae12079810b3ae61ab86c5a25d9fea898ce7f6bbaa160f"
+      }
+    },
+    "linux": {
+      "matchedCompilerAndPackages": {
+        "path": "//wsl.localhost/Ubuntu/var/tmp/xlang-validation/xge-full-20261110/property-grid-config-verify-linux-r8/results.json",
+        "sha256": "a67e81f407ef0fa63b8143bef1863856bc8186e388fa4e7b651d5bbdff52456b"
+      },
+      "replayedPackages": {
+        "path": "//wsl.localhost/Ubuntu/var/tmp/xlang-validation/xge-full-20261110/property-grid-config-stage-linux-r1/replay/stage-report.json",
+        "sha256": "d95894b1307a2bfff69a9a6c9dee8c92ed17bc6e8745a587df07ae05c22c8300"
+      },
+      "generator": {
+        "path": "//wsl.localhost/Ubuntu/var/tmp/xlang-validation/xge-full-20261110/property-grid-config-generator-linux-r2/results.json",
+        "sha256": "2590e52c17f69424bfafb25fe9cf69f0992489059d27a4ac3d8271593c5a4cd4"
+      },
+      "nativeO0O2HostedAndStatic": {
+        "path": "//wsl.localhost/Ubuntu/var/tmp/xlang-validation/xge-full-20261110/property-grid-config-native-test-linux-r2/results.json",
+        "sha256": "95e085ec3c4272e77b5fd91447fb255daa56eb4e1e2036899d132d5b5f272670"
+      },
+      "preFixLeakReproduction": {
+        "path": "//wsl.localhost/Ubuntu/var/tmp/xlang-validation/xge-full-20261110/property-grid-config-native-test-linux-r1/results.json",
+        "sha256": "fb6aed53de8e91e6ed9cd88f681e9e15f79b7a3ee8774696e25354fc3d74f997"
+      }
+    }
+  },
+  "sourceSha256NormalizedLf": {
+    "docs/xge3-xui3-api-map-storage.json": "ba3b7c83870e7aae30e1eae87145859f9107f818c37270d0f53f3d68fc271cbd",
+    "lib/bindings/xui/examples/propertygrid.xl": "c1e755d0ef21ffa7b6e2e307a12ca0743c2083013415dd73fcc81ccf18499a9b",
+    "lib/bindings/xui/src/managed.xl": "3ee630a0f648b3e7b0fb136ac6d22f9818e863d4d446c0e638975249b67369b8",
+    "test/cases/foreign_xui_property_editor_config.c": "b10bcc094fbd2f80bd333762cb56e78f6411351a6cd32879936a5568704193e4",
+    "test/cases/foreign_xui_property_editor_config.h": "cd980363532585fea8f26cd876a47d6ed25be42a07edfc0a327e7e556c020614",
+    "test/cases/foreign_xui_property_editor_config.xl": "8da9813d4b6a2d66d776c9bdef48bd9a8be2230749f652b6661ef065f301e5e6"
+  },
+  "verification": {
+    "languageStepsPerPlatform": 21,
+    "nativeStepsPerPlatform": 8,
+    "nativeCallsInGeneratedConfigurationFixture": 7,
+    "exercisedJitDynamicAndStaticAot": true,
+    "exampleCheckedAndBuiltStatic": true,
+    "interactiveWindowAndGpu": false,
+    "performanceScope": "Generated native calls and allocation topology inspected. No comparative runtime timings in this report."
+  }
+}
