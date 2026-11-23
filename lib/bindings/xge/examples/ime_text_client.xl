@@ -1,0 +1,27 @@
+// Give Windows TSF the selected text of a custom editor.
+import xge
+
+func provideText(xge.ImeTextOutput snapshot) as c_int
+    // The two Chinese characters occupy UTF-8 bytes 3 through 8.
+    snapshot.set("abc你好", selectionStart=3, selectionEnd=9)
+    return c_int(0)
+end
+
+func main(...) as int
+    if os.platform() != "windows" then
+        println("This example uses Windows TSF.")
+        return 0
+    end
+    xge.init(320,160,"IME text client",0,xge.XGE_RUN_GAME_LOOP)
+    try
+        xge.run(func() as c_int
+            xge.setImeTextClient(provideText)
+            println("Submitted the selected text to TSF.")
+            xge.setImeTextClient(null)
+            return c_int(1)
+        end)
+    finally
+        xge.unit()
+    end
+    return 0
+end

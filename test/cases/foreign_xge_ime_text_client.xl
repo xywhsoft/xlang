@@ -1,0 +1,121 @@
+import xge
+from xge import ImeTextOutput as SnapshotOutput
+
+extern "imeSnapshotSampleBegin" @header("test/cases/foreign_xge_ime_text_client.h") @no_raise func sampleBegin()
+extern "imeSnapshotSampleEnd" @header("test/cases/foreign_xge_ime_text_client.h") @no_raise func sampleEnd(c_int language)
+extern "imeSnapshotSampleNative" @header("test/cases/foreign_xge_ime_text_client.h") @no_raise func sampleNative()
+
+func expectUnavailable()
+    bool called = false
+    bool rejected = false
+    try
+        xge.setImeTextClient(func(xge.ImeTextOutput output) as c_int
+            called = true
+            output.set("", 0, 0)
+            return c_int(0)
+        end)
+    catch error
+        rejected = true
+    end
+    assert rejected and not called
+end
+
+func verifyWarmSnapshots()
+    sampleNative()
+    bytes text = b"A\0\xc3\xa9"
+    xge.setImeTextClient(func(xge.ImeTextOutput output) as c_int
+        output.set(text, 2, 4, documentOffset=10, documentSize=32, revision=47)
+        return c_int(0)
+    end)
+    assert xge.imeRefreshTextClient() == 0
+    sampleBegin()
+    for i in range(1000)
+        assert xge.imeRefreshTextClient() == 0
+    end
+    sampleEnd(1)
+    xge.setImeTextClient(null)
+end
+
+func verifyTextClient()
+    int snapshots = 0
+    SnapshotOutput? expired = null
+    xge.setImeTextClient(func(xge.ImeTextOutput output) as c_int
+        snapshots += 1
+        assert xge.imeRefreshTextClient() == xge.XGE_ERROR_BUSY
+        output.set(b"A\0\xc3\xa9", 2, 4, documentOffset=10, documentSize=32, revision=47)
+        expired = output
+        return c_int(0)
+    end)
+    assert snapshots == 1
+    assert xge.imeRefreshTextClient() == 0 and snapshots == 2
+
+    bool rejected = false
+    try
+        auto stale = expired as SnapshotOutput
+        stale.set("", 0, 0)
+    catch error
+        rejected = true
+    end
+    assert rejected
+
+    rejected = false
+    try
+        xge.setImeTextClient(func(xge.ImeTextOutput output) as c_int
+            output.set("new", 0, 3)
+            throw RuntimeError "IME snapshot callback failure"
+        end)
+    catch error
+        assert error.message == "IME snapshot callback failure"
+        rejected = true
+    end
+    assert rejected and xge.imeRefreshTextClient() == 0 and snapshots == 3
+
+    rejected = false
+    try
+        xge.setImeTextClient(func(xge.ImeTextOutput output) as c_int
+            output.set("é", 1, 2)
+            return c_int(0)
+        end)
+    catch error
+        rejected = true
+    end
+    assert rejected and xge.imeRefreshTextClient() == 0 and snapshots == 4
+
+    xge.setImeTextClient(null)
+    assert xge.imeRefreshTextClient() == xge.XGE_ERROR_NOT_INITIALIZED
+    verifyWarmSnapshots()
+    // Leave the final registration to the native window's teardown.
+    xge.setImeTextClient(func(xge.ImeTextOutput output) as c_int
+        output.set("结束", 0, 6)
+        return c_int(0)
+    end)
+end
+
+func main(...) as int
+    expectUnavailable()
+    if os.platform() == "windows" then
+        xge.init(240,120,"IME text client qualification",0,xge.XGE_RUN_GAME_LOOP)
+        int frames = 0
+        try
+            xge.run(func() as c_int
+                verifyTextClient()
+                frames += 1
+                return c_int(1)
+            end)
+        finally
+            xge.unit()
+        end
+        assert frames == 1
+        println("XGE_IME_TEXT_CLIENT_PLATFORM_OK")
+    else
+        xge.init(32,32,"IME text client availability",c_int(xge.XGE_INIT_OFFSCREEN),xge.XGE_RUN_MANUAL)
+        try
+            expectUnavailable()
+            assert xge.imeRefreshTextClient() == xge.XGE_ERROR_UNSUPPORTED
+        finally
+            xge.unit()
+        end
+        println("XGE_IME_TEXT_CLIENT_UNSUPPORTED_OK")
+    end
+    return 0
+end

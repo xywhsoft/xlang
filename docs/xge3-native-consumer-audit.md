@@ -1,5 +1,33 @@
 # Native consumers in the full API inventory
 
+## Owned Windows IME text clients
+
+`xge.setImeTextClient()` uses the native owned registration. The callback
+submits counted text through `ImeTextOutput.set()` while its view is valid.
+The native code converts directly into a reusable UTF-16 scratch buffer,
+then swaps it into the TSF store after the callback succeeds. It validates
+the UTF-8 input, selection boundaries and document offsets. A failed
+candidate leaves the previous client installed.
+
+Windows native tests check allocation failure, owner Hold/Drop, creator
+thread access, composition and text-store locking, raw client replacement,
+and original error preservation. The xlang tests open a Windows window
+and exercise real TSF registration and refresh, including stale output
+rejection and window teardown. Linux verifies the unsupported result
+and that the callback is never invoked.
+
+The matched packages pass JIT and dynamic and static AOT. In each Windows
+mode, 1,000 warmed refreshes use the same four-byte payload in handwritten
+C and xlang. Both paths record zero XRT heap operations. The observed
+elapsed times are 0.229–0.373 ms for C and 2.081–3.545 ms for xlang. These
+samples include the loop and callback costs and exclude registration,
+buffer growth and interactive input method use.
+
+The matching audits cover 5,873 functions, with 4,809 direct declarations and
+123 unresolved functions. XGE accounts for 49 and XUI for 74.
+
+[Owned IME client verification](../dev/release-materials/provenance/xge-owned-ime-client-20261124.json)
+
 ## Counted reads from the native IME queue
 
 `xge.readImeEvent()` calls `xgeImeEventRead()` directly with a caller-owned

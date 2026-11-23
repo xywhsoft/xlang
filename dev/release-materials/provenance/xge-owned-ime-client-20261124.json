@@ -1,0 +1,178 @@
+{
+  "schema": 1,
+  "scope": "Owned Windows TSF text client with counted callback-scoped snapshot output",
+  "nativeCommit": "8f36788803b3edc051f9c5d38a1d03a7060d32e0",
+  "shippingDelivery": false,
+  "networkTests": false,
+  "sourceSha256NormalizedLf": {
+    "lib/bindings/xge/src/input_events.xl": "a18b1ec4fd9d41ff26127cefa4d786abe3e7ad09d6cb557321e6da001873bc6c",
+    "docs/xge3-xui3-api-map-storage.json": "f6ea9990f511394196e996b20e9a5f707ba2e7a7b153d08089119978a630c5d8",
+    "lib/bindings/xge/examples/ime_text_client.xl": "96e32cf6d60b095066c177db33a0a78ff64a58fd7a37d4dc117f0403133d9533",
+    "test/cases/foreign_xge_ime_text_client.c": "0bb1f9bd3c77d89e4c294f21993c96c4223182a85dee10ec3704328d7c2e7ed5",
+    "test/cases/foreign_xge_ime_text_client.h": "0ae4f174dfde4387c84b5f334deed4e30411ba91340d2102853a7c389d107dff",
+    "test/cases/foreign_xge_ime_text_client.xl": "1e6eb3c6d6bbebae3482a266e4512aae56b36326751efb99d69dada8747ba10f",
+    "test/cases/foreign_xge_input_events.xl": "5a61b8a28f92ffa54e0960d37252f0da81f97e0a59fb17dd611dce1f273e2067",
+    "tools/xge_replay_contracts.py": "2f9b2705071a5e0cd3b1d8fc3b14a7d85478a8789b66e7398b6fd6fabfb2a60e"
+  },
+  "validation": {
+    "actualWindowsWindowAndTsf": true,
+    "callbackViewExpires": true,
+    "candidateFailurePreservesPrevious": true,
+    "nativeSnapshotWithNul": true,
+    "strictUtf8AndSelectionBounds": true,
+    "nativeColdAllocationFailure": true,
+    "wrongCreatorThreadRejected": true,
+    "compositionRefreshDeferred": true,
+    "textStoreLockRefused": true,
+    "nativeRawAndOwnedClientReplacement": true,
+    "ownerDropFailurePreservesFirstError": true,
+    "actualWindowTeardown": true,
+    "linuxUnsupportedWithoutCallingClient": true,
+    "interactiveKeyboardOrTipTested": false
+  },
+  "performanceScope": "Each Windows executable warms both UTF-16 buffers and refreshes 1,000 times with the same four-byte UTF-8 input and metadata. The C callback is written by hand. The xlang callback holds its managed closure and uses the checked callback-scoped output. Measurements include the loop and callback costs. Registration, buffer growth and interactive text service activity are outside the sample.",
+  "platforms": {
+    "win": {
+      "nativeSource": {
+        "path": "F:/xlang-validation/xge-full-20261110/ime-text-client-native-source-win-r2.json",
+        "sha256": "f342566db3a440f03ea6128e92f1661a2b8139780b57c8f9fe969f17d4d1d53c"
+      },
+      "nativeOwnershipAndStoreO0O2": {
+        "path": "F:/xlang-validation/xge-full-20261110/ime-text-client-native-test-win-r1/results.json",
+        "sha256": "04239646e23b04b3f7cceb9add7801d1300282e0159ccdbbd9468e23c4cbfeba"
+      },
+      "languageJitDynamicStaticAot": {
+        "path": "F:/xlang-validation/xge-full-20261110/ime-text-client-verify-win-r1/results.json",
+        "sha256": "d588a26085df8254b20af79307095b33f973a048d6a2430162aea333efcd6328"
+      },
+      "warmSnapshotSamples": {
+        "jit": {
+          "C": {
+            "iterations": 1000,
+            "allocations": 0,
+            "frees": 0,
+            "reallocations": 0,
+            "wallMs": 0.229
+          },
+          "xlang": {
+            "iterations": 1000,
+            "allocations": 0,
+            "frees": 0,
+            "reallocations": 0,
+            "wallMs": 2.081
+          }
+        },
+        "host-run": {
+          "C": {
+            "iterations": 1000,
+            "allocations": 0,
+            "frees": 0,
+            "reallocations": 0,
+            "wallMs": 0.373
+          },
+          "xlang": {
+            "iterations": 1000,
+            "allocations": 0,
+            "frees": 0,
+            "reallocations": 0,
+            "wallMs": 3.545
+          }
+        },
+        "static-run": {
+          "C": {
+            "iterations": 1000,
+            "allocations": 0,
+            "frees": 0,
+            "reallocations": 0,
+            "wallMs": 0.361
+          },
+          "xlang": {
+            "iterations": 1000,
+            "allocations": 0,
+            "frees": 0,
+            "reallocations": 0,
+            "wallMs": 3.29
+          }
+        }
+      },
+      "declarationReplay": {
+        "path": "F:/xlang-validation/xge-full-20261110/ime-text-client-generator-win-r3/results.json",
+        "sha256": "73aec10d04d6ddf99800d2de546f57e8f5127d2accfc2a608930c475fdc89a57"
+      },
+      "nativeConsumerAudit": {
+        "path": "F:/xlang-validation/xge-full-20261110/ime-text-client-consumers-win-r2/results.json",
+        "sha256": "ea64615608d54a360584bc230b8eaec707e2820af50b22b189aaf2ca7088af02"
+      },
+      "functionPopulation": 5873,
+      "directDeclarations": 4809,
+      "pendingConsumerOrReplacement": {
+        "XGE": 49,
+        "XUI": 74
+      },
+      "matchedPackages": {
+        "path": "F:/xlang-validation/xge-full-20261110/ime-text-client-stage-win-r3/replay/stage-report.json",
+        "sha256": "62f428b68a1396a4fa2ab6643ea66a02a3ba6884c0bba667025a260600a65e2e"
+      },
+      "staticO2Build": {
+        "path": "F:/xlang-validation/xge-full-20261110/ime-text-client-static-win-r2/build-report.json",
+        "sha256": "cd71abc5db7683a74775b5a14c24c243f2643c446bf38bfaa54ef2f656a8ad7b"
+      },
+      "hostO2Build": {
+        "path": "F:/xlang-validation/xge-full-20261110/ime-text-client-host-win-r2/build-report.json",
+        "sha256": "49f7f6f55b4dc641a92c1e4e985495e6cd87c93f4614fd688d4c3dcf20b1bd4c"
+      },
+      "publicSurface": {
+        "path": "F:/xlang-validation/xge-full-20261110/ime-text-client-inventory-win-r3/surface.json",
+        "sha256": "d37abfdb0b62a04c8055bb832c1d594b07d4a979903381ed7a1e58c2cafc0207"
+      },
+      "legacyTsfCompositionStoreO0O2": {
+        "path": "F:/xlang-validation/xge-full-20261110/ime-text-client-native-legacy-win-r1/results.json",
+        "sha256": "60d69bed924d2e93d69b40b023298797921eea4a0cb19d1ca5fd8b73430970bf"
+      }
+    },
+    "linux": {
+      "nativeSource": {
+        "path": "//wsl.localhost/Ubuntu/var/tmp/xlang-validation/xge-full-20261110/ime-text-client-native-source-linux-r2.json",
+        "sha256": "dd1f0b0f6f4ae317bbf16a39abbc896fd40856ca237ace600b68130dde6868d0"
+      },
+      "nativeOwnershipAndStoreO0O2": {
+        "path": "//wsl.localhost/Ubuntu/var/tmp/xlang-validation/xge-full-20261110/ime-text-client-native-test-linux-r1/results.json",
+        "sha256": "a33855dd3cdede80419d9457a151a8d914d1d773406cf33004f28cae2d848ee7"
+      },
+      "languageJitDynamicStaticAot": {
+        "path": "//wsl.localhost/Ubuntu/var/tmp/xlang-validation/xge-full-20261110/ime-text-client-verify-linux-r1/results.json",
+        "sha256": "73181cf0f86880f39532749fcff57fbf15be789d197778aaa57c369257f26b99"
+      },
+      "declarationReplay": {
+        "path": "//wsl.localhost/Ubuntu/var/tmp/xlang-validation/xge-full-20261110/ime-text-client-generator-linux-r3/results.json",
+        "sha256": "b058b3b3723a07b511681e99e3a99f0eeaa90d52de582d265fac9e34dbd0df42"
+      },
+      "nativeConsumerAudit": {
+        "path": "//wsl.localhost/Ubuntu/var/tmp/xlang-validation/xge-full-20261110/ime-text-client-consumers-linux-r2/results.json",
+        "sha256": "f390db8549745b193eb1b034b61b271e6401ef421376d4734395dbed40ef245b"
+      },
+      "functionPopulation": 5873,
+      "directDeclarations": 4809,
+      "pendingConsumerOrReplacement": {
+        "XGE": 49,
+        "XUI": 74
+      },
+      "matchedPackages": {
+        "path": "//wsl.localhost/Ubuntu/var/tmp/xlang-validation/xge-full-20261110/ime-text-client-stage-linux-r3/replay/stage-report.json",
+        "sha256": "bb1806581f4b1cd03bdc3793eec5b1b21346fcafb443e6b2553862bd4559bf9e"
+      },
+      "staticO2Build": {
+        "path": "//wsl.localhost/Ubuntu/var/tmp/xlang-validation/xge-full-20261110/ime-text-client-static-linux-r2/build-report.json",
+        "sha256": "95e5e1f3c52fad0c9e651a4eca2a4800970552542d8c9eb88a8dacd792f73431"
+      },
+      "hostO2Build": {
+        "path": "//wsl.localhost/Ubuntu/var/tmp/xlang-validation/xge-full-20261110/ime-text-client-host-linux-r2/build-report.json",
+        "sha256": "440c35d3b14e69661f74c5e5aa23fe4ed6d2fe47fe19c882568ec87dfbef9865"
+      },
+      "publicSurface": {
+        "path": "//wsl.localhost/Ubuntu/var/tmp/xlang-validation/xge-full-20261110/ime-text-client-inventory-linux-r3/surface.json",
+        "sha256": "6c4de974409a002234258f6ffd59aed01cfd61c09dda94e7e6efc9c61f13aade"
+      }
+    }
+  }
+}

@@ -22,6 +22,18 @@
 
 该入口和原生 `xgeImeEventGet` 消费同一兼容队列。有序队列中与它对应的事件使用相同的 `iSequence`。有序读取会移除对应的兼容条目，兼容读取会保留有序副本。一般只选择一种消费方式。使用 `xge.postInputEvent()` 提交的合成 IME 事件只进入有序队列。
 
+## 自定义编辑器的文本客户端
+
+Windows 窗口的 TSF 初始化后，在引擎创建线程调用 `xge.setImeTextClient(callback)`。注册时会立即请求一次快照。自定义编辑器更新文本或选区后调用 `xge.imeRefreshTextClient()`，正在组合输入时底层沿用当前快照。其他平台返回或抛出 `XGE_ERROR_UNSUPPORTED`。
+
+回调通过 `ImeTextOutput.set()` 提交一次 `string` 或 UTF-8 `bytes`，并返回 `0`。选区和文档窗口的偏移均以 UTF-8 字节计数。可以指定窗口在完整文档中的偏移、文档字节数和版本号。无效 UTF-8、不在字符边界上的选区和超出文档范围的窗口会被拒绝。TSF 在回调内直接转换带长度的文本，回调结束后输出视图失效。
+
+替换时先验证新快照。回调抛错、校验失败或内存不足会保留原客户端。回调内重入注册、清除或刷新会报告 Busy。移出焦点时可以用 `xge.setImeTextClient(null)` 清除注册，关闭原生窗口和引擎也会释放回调。使用 XUI 默认输入代理时由代理管理同一个原生文本客户端槽。
+
+转换使用交替复用的 UTF-16 缓冲，无需单独复制 UTF-8。初次准备和文本增长可能分配，TSF 仍要执行编码转换、选区换算和变更比较。
+
+运行 [ime_text_client.xl](../lib/bindings/xge/examples/ime_text_client.xl) 可查看如何向 TSF 提交一段文本和选区。
+
 ## 本地拖放事件
 
 `xge.dispatchDragEvent()` 同步调用已注册的拖放回调，成功时返回协商后的效果。可以指定坐标、修饰键、允许效果和可选的 `DataObject`。省略序号和时间时由 XGE 填写。没有接收方时返回 `XGE_DRAG_EFFECT_NONE`。无效事件类型和 checked 回调错误会抛出，超出允许范围的效果由原生层归为 `NONE`。

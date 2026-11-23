@@ -102,6 +102,7 @@ REPLACED = {
     'xgeDragEventDispatch': ('xge.dispatchDragEvent', 'xgeDragEventDispatchChecked'),
     'xgeInputEventGet': ('xge.readInputEvent', 'xgeInputEventRead'),
     'xgeImeEventGet': ('xge.readImeEvent', 'xgeImeEventRead'),
+    'xgeImeSetTextClient': ('xge.setImeTextClient', 'xgeImeSetTextClientOwned'),
     'xgeInputEventPost': ('xge.postInputEvent', 'xgeInputEventPostData'),
     'xgeTextureAddRef': ('xge.Texture.share', 'xgeTextureShareOwned'),
     'xgeShaderAddRef': ('xge.Shader.share', 'xgeShaderShareOwned'),
