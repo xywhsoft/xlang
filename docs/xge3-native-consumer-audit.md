@@ -1,5 +1,27 @@
 # Native consumers in the full API inventory
 
+## XUI resource sharing
+
+`Proxy`, `Font`, `Surface`, `TextShape` and `DrawContext` expose a checked
+`share()` method on the creator thread. Each call acquires one owner of the
+same native object. Closing the initial view leaves the shared view usable.
+For drawing, `finish()` ends the single session for every view. Its target
+and backend survive until that session releases them. An ended session
+rejects new shares, and separate manual sessions still reject overlap.
+
+The compiled policies verify each `close()` against the corresponding native
+owner-release entry. The default by-value proxy maps to `createProxy()`.
+The native share calls allocate no storage. In a warmed sample of 10,000
+`Proxy.share()` / `close()` pairs on each platform, the language path used two
+managed allocations and two frees per pair. The C path used zero allocations.
+
+The matched audits cover 5,868 native functions, including 4,803 direct
+declarations. There are 151 entries without a direct declaration, compiled
+consumer or explicit replacement. XGE accounts for 59 and XUI for 92.
+
+[Shared surface example](../lib/bindings/xui/examples/share_surface.xl) ·
+[XUI resource sharing evidence](../dev/release-materials/provenance/xui-resource-sharing-20261123.json)
+
 ## Audio resource entry points
 
 The old caller-storage load and open functions map to `loadSound()`,

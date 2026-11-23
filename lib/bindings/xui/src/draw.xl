@@ -2,6 +2,7 @@
 // native last call-scope tail finishes it, and close consumes its owner.
 export extern "xui_draw_context_t*" class DrawContext @header("xge3_runtime.h") @lifetime("owned") @policy("xl6Xui3DrawPolicy") @scope("xui_draw_scope_t") @domain("xl6Xui3OwnershipDomainV1")
  native point handle
+ extern "xuiDrawShareOwned" @no_raise @c_result("owned_view") @factory(1,0,rollbackDraw) func share() as DrawContext
  extern "xuiDrawEndChecked" @no_raise @c_result("status",0) func finish()
  extern "xuiDrawEnded" @no_raise func ended() as bool
  extern "xuiDrawGetProxy" @no_raise @c_result("retained_view") @c_retain(retainProxy,"zero",rollbackProxy) func proxy() as Proxy?

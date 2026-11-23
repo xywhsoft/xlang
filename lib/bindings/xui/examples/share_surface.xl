@@ -1,0 +1,18 @@
+// Keep a surface after closing its first reference.
+import xui
+
+func main(...) as int
+    auto proxy = xui.createProxy()
+    auto surface = proxy.createSurfaceRGBA(1, 1, Buffer.fromHex("2c1207ff"))
+    auto shared = surface.share()
+    surface.close()
+
+    auto pixels = Buffer()
+    assert pixels.resize(4)
+    proxy.readSurfaceRGBA(shared, pixels)
+    println(pixels.hex())
+
+    shared.close()
+    proxy.close()
+    return 0
+end

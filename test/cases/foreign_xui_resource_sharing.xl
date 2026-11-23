@@ -1,0 +1,147 @@
+import xge
+import xui
+
+extern "xgeTestHostConfigure" @header("test/cases/foreign_xge3_host_probe.h") @no_raise @c_result("status",0) func configure(c_int backend,bool deferRelease)
+extern "xgeTestHostPlatformInit" @header("test/cases/foreign_xge3_host_probe.h") @no_raise func platformInit() as c_int
+extern "xgeTestHostPlatformUnit" @header("test/cases/foreign_xge3_host_probe.h") @no_raise func platformUnit()
+extern "xgeTestHostGraphicsInit" @header("test/cases/foreign_xge3_host_probe.h") @no_raise func graphicsInit() as c_int
+extern "xgeTestHostGraphicsUnit" @header("test/cases/foreign_xge3_host_probe.h") @no_raise func graphicsUnit()
+extern "xgeTestHostMakeCurrent" @header("test/cases/foreign_xge3_host_probe.h") @no_raise func makeCurrent() as c_int
+extern "xgeTestHostIsCurrent" @header("test/cases/foreign_xge3_host_probe.h") @no_raise func isCurrent() as c_int
+extern "xgeTestHostRelease" @header("test/cases/foreign_xge3_host_probe.h") @no_raise func release() as xge.HostReleaseResult
+extern "xgeTestHostBegin" @header("test/cases/foreign_xge3_host_probe.h") @no_raise func beginFrame() as c_int
+extern "xgeTestHostEnd" @header("test/cases/foreign_xge3_host_probe.h") @no_raise func endFrame() as c_int
+extern "xgeTestHostPoll" @header("test/cases/foreign_xge3_host_probe.h") @no_raise func poll() as c_int
+extern "xgeTestHostPresent" @header("test/cases/foreign_xge3_host_probe.h") @no_raise func present()
+extern "xrtMemDebugFailAfter" @header("xrt_decl.h") @no_raise func failAfter(c_size allowance) as bool
+extern "xrtMemDebugFailTriggered" @header("xrt_decl.h") @no_raise func failTriggered() as bool
+extern "xrtMemDebugFailClear" @header("xrt_decl.h") @no_raise func clearBudget()
+
+func expectOom(func() operation)
+    assert failAfter(0)
+    bool failed = false
+    bool injected = false
+    try
+        operation()
+    catch Error
+        failed = true
+    finally
+        injected = failTriggered()
+        clearBudget()
+    end
+    assert failed and injected
+end
+
+func checkTextResources()
+    auto proxy = xui.createProxy()
+    expectOom(func()
+        auto unexpected = proxy.share()
+        unexpected.close()
+    end)
+    auto backend = proxy.share()
+    proxy.close()
+
+    auto font = backend.loadSystemFont(16)
+    expectOom(func()
+        auto unexpected = font.share()
+        unexpected.close()
+    end)
+    auto sharedFont = font.share()
+    font.close()
+    auto shape = backend.shapeText(sharedFont, "abc")
+    expectOom(func()
+        auto unexpected = shape.share()
+        unexpected.close()
+    end)
+    auto sharedShape = shape.share()
+    shape.close()
+    sharedFont.close()
+    backend.close()
+    assert sharedShape.textSize == 3 and sharedShape.width > 0
+    auto clusters = sharedShape.clusters()
+    sharedShape.close()
+    assert clusters.count() > 0 and clusters[0].iTextStart == 0
+end
+
+func checkDrawResources(xge.HostSession host)
+    auto proxy = xui.createProxy()
+    auto surface = proxy.createSurfaceRGBA(3, 2, flags=c_uint(xui.XUI_SURFACE_USAGE_TARGET))
+    expectOom(func()
+        auto unexpected = surface.share()
+        unexpected.close()
+    end)
+    auto target = surface.share()
+    surface.close()
+    assert proxy.surfaceDesc(target).iWidth == 3
+
+    host.beginFrame()
+    auto draw = proxy.beginDraw(target)
+    expectOom(func()
+        auto unexpected = draw.share()
+        unexpected.close()
+    end)
+    auto sharedDraw = draw.share()
+    auto observer = sharedDraw.share()
+    draw.close()
+    assert !sharedDraw.ended()
+    bool overlaps = false
+    try
+        auto overlap = proxy.beginDraw(target)
+        overlap.close()
+    catch Error
+        overlaps = true
+    end
+    assert overlaps, "two independent manual sessions are still forbidden"
+
+    auto area = xui.Rect()
+    area.fW = 3
+    area.fH = 2
+    proxy.clearRect(sharedDraw, area, 0x2c1207ff)
+    sharedDraw.finish()
+    assert observer.ended(), "finish ends the shared session"
+    bool endedShareRejected = false
+    try
+        auto late = observer.share()
+        late.close()
+    catch Error
+        endedShareRejected = true
+    end
+    assert endedShareRejected
+    observer.close()
+    sharedDraw.close()
+    host.endFrame()
+    host.discardFrame()
+
+    auto pixels = Buffer()
+    assert pixels.resize(24)
+    proxy.readSurfaceRGBA(target, pixels)
+    assert pixels.hex() == string.repeat("2c1207ff", 6)
+    bool busy = false
+    try
+        xge.unit()
+    catch Error
+        busy = true
+    end
+    assert busy and host.isCurrent()
+    target.close()
+    proxy.close()
+end
+
+func main(...) as int
+    checkTextResources()
+    assert xge.graphicsResourceCount() == 0
+    c_int backend = xge.XGE_GPU_BACKEND_OPENGL33
+    configure(backend, false)
+    xge.init(4,4,"XUI resource sharing",0,xge.XGE_RUN_MANUAL)
+    auto platform = xge.createPlatformBackend(xge.XGE_PLATFORM_BACKEND_CUSTOM,"local OS",platformInit,platformUnit,poll,present)
+    auto graphics = xge.createGraphicsBackend(backend,"local GL",graphicsInit,graphicsUnit,beginFrame,endFrame)
+    auto host = xge.createHostSession(4,4,1,0,platform,graphics,makeCurrent,isCurrent,release)
+    platform.close()
+    graphics.close()
+    checkDrawResources(host)
+    host.close()
+    assert xge.graphicsResourceCount() == 0
+    xge.unit()
+    println("XUI_RESOURCE_SHARING_OK")
+    return 0
+end

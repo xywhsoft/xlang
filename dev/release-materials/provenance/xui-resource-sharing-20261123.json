@@ -1,0 +1,237 @@
+{
+  "schema": 1,
+  "scope": "Independent owning views for Proxy, Font, Surface, TextShape and DrawContext",
+  "nativeCommit": "3d0ac21d0cde9b531ec42f92a2419f65de30e3e2",
+  "shippingDelivery": false,
+  "networkTests": false,
+  "sourceSha256NormalizedLf": {
+    "docs/xge3-xui3-api-map-storage.json": "91669e0eece98664f734eb37e9fe75b20908bccdc8937b779460d1886e6144a0",
+    "lib/bindings/xui/examples/share_surface.xl": "bdac9f9a46a112368055bb4c8ca563ecbae3a75361ce20778324fea86d50dcb0",
+    "lib/bindings/xui/src/draw.xl": "c3ec9f3314c4501be75bd209a74930f2d9e7b7f0cc50e7fa057dbbfc30e01174",
+    "lib/bindings/xui/src/proxy.xl": "dc036ef2a42c5ef54168fd77211cf025273d26c48fe856bb6877d837c6bfef09",
+    "lib/bindings/xui/src/text_shape.xl": "f54d219d80f2233cea1092a57ac62d66e3a531369744d95d904f0199a875703e",
+    "tools/xui_managed_contracts.py": "598025b34480b6f2abb8ee882be56a2e0aba52a7ab9ff7dd6c4b8809cd568f31",
+    "test/cases/foreign_xui_resource_sharing.xl": "9f2c3c2983ada12cdd48b7b893cebb7ded61b411b4300e13b03f8bd50cd5ef1a"
+  },
+  "verification": {
+    "nativeShareAllocatesNoStorage": true,
+    "allFiveScopesRejectWrongThread": true,
+    "oomRollbackKeepsOriginalOwnerUsable": true,
+    "textSequenceRetainsItsImmutableShape": true,
+    "drawSharesDoNotPermitOverlappingManualSessions": true,
+    "finishIsVisibleToAllDrawOwners": true,
+    "endedSessionRejectsNewShares": true,
+    "engineCloseBusyWithLiveResourceAndSucceedsAfterRelease": true,
+    "renderedPixels": "2c1207ff repeated six times",
+    "staticAotHasNoEngineOrCompilerLibraryImport": true,
+    "sampleQualification": "One warmed JIT run and one C run per platform. They share and close the same pre-existing Proxy 10,000 times with XRT allocation monitoring. Device throughput is outside this measurement.",
+    "platforms": {
+      "win": {
+        "graphicsBackend": "WGL OpenGL 3.3",
+        "nativeSource": {
+          "path": "F:/xlang-validation/xge-full-20261110/xui-resource-sharing-native-source-win-r2.json",
+          "sha256": "cdb58611ed57c4acdbbbe80f5505d8dc50a0ce2f90e47acd474b0668f59a0c58"
+        },
+        "nativeHostAndStaticO0O2": {
+          "path": "F:/xlang-validation/xge-full-20261110/xui-resource-sharing-native-test-win-r1/results.json",
+          "sha256": "d48bd85761f2894264835529726333039a05ad4a317f46ab7e6b4bfaf0162c3a"
+        },
+        "languageJitDynamicStaticAot": {
+          "path": "F:/xlang-validation/xge-full-20261110/xui-resource-sharing-verify-win-r4/results.json",
+          "sha256": "a8ca222ee03d38733c0c39a9572ad72c09904a45e1e88ba9ba37d27ee31d1cff"
+        },
+        "compiledGpuFixture": [
+          {
+            "path": "F:/xlang-validation/xge-full-20261110/xui-resource-sharing-verify-win-r4/xui_resource_sharing.c",
+            "sha256": "735729da0c6ebdbb621abd4f62fbd4e135a425a968081d79fdb873b9667da2f4"
+          },
+          {
+            "path": "F:/xlang-validation/xge-full-20261110/xui-resource-sharing-verify-win-r4/jit.log",
+            "sha256": "9a09e52c1950fbedfb6e642fdf88a724c62ac2dc19a93dd094cff71cecee35a1"
+          },
+          {
+            "path": "F:/xlang-validation/xge-full-20261110/xui-resource-sharing-verify-win-r4/probe.a",
+            "sha256": "1113857eeb5a693970d2a66852b8782e98588888413473a0c694c0b3da7221b7"
+          },
+          {
+            "path": "F:/xlang-validation/xge-full-20261110/xui-resource-sharing-verify-win-r4/probe.dll",
+            "sha256": "548024b69fd027a2bf654782fcdb4725c16d731b08214840c0f6e71a573247d7"
+          },
+          {
+            "path": "F:/xlang-validation/xge-full-20261110/xui-resource-sharing-verify-win-r4/dynamic-imports.log",
+            "sha256": "78b570cbdf693abddbdf27138ee7e823c59961ef450c9d94421d83f100830434"
+          },
+          {
+            "path": "F:/xlang-validation/xge-full-20261110/xui-resource-sharing-verify-win-r4/static-imports.log",
+            "sha256": "af49ebf4198ceca7e298e6a9f26eaa91be55ee158f87f964ac7225cd7283166f"
+          },
+          {
+            "path": "F:/xlang-validation/xge-full-20261110/xui-resource-sharing-verify-win-r4/dynamic.exe",
+            "sha256": "2db5dfe55d1cbd3d9b75f5589f27f81cb420c3af0a5c9d75154bfb97a510c188"
+          },
+          {
+            "path": "F:/xlang-validation/xge-full-20261110/xui-resource-sharing-verify-win-r4/static.exe",
+            "sha256": "49db48cd7a7540cf023ca377515c196fca02d2b31ec8e9198b7dcd1daf68f304"
+          }
+        ],
+        "exampleJitDynamicStaticAot": {
+          "path": "F:/xlang-validation/xge-full-20261110/xui-resource-sharing-verify-win-r2/results.json",
+          "sha256": "19aca5d5b6347f90d2d7e04d7b1f5250bf8f337cdc83860b51745052b2e470f2"
+        },
+        "strictDeclarationReplay": {
+          "path": "F:/xlang-validation/xge-full-20261110/xui-resource-sharing-generator-win-r4/results.json",
+          "sha256": "5144f1a26b7e80fa4235f0b1d61c690355b81e41240efab22a646e24bca5b2a5"
+        },
+        "consumerAudit": {
+          "path": "F:/xlang-validation/xge-full-20261110/xui-resource-sharing-consumers-win-r2/results.json",
+          "sha256": "c9489c6372b9105bcd5a11f08cdd4a36ed8298c53f9c18cd1607fd06763a0138"
+        },
+        "functions": 5868,
+        "directDeclarations": 4803,
+        "pendingConsumerOrReplacement": {
+          "XGE": 59,
+          "XUI": 92
+        },
+        "warmAllocationAndTiming": {
+          "path": "F:/xlang-validation/xge-full-20261110/xui-resource-sharing-perf-win-r1/results.json",
+          "sha256": "b88d41e959b6e841ee591d7b5e8b9b83cba87e3e20cd7cf695ec278896119f76"
+        },
+        "measurements": {
+          "xlang": {
+            "rounds": 10000,
+            "alloc": 20000,
+            "free": 20000,
+            "realloc": 0,
+            "cpuMs": 46.0
+          },
+          "C": {
+            "rounds": 10000,
+            "alloc": 0,
+            "free": 0,
+            "realloc": 0,
+            "cpuMs": 1.0
+          }
+        },
+        "matchedPackages": {
+          "path": "F:/xlang-validation/xge-full-20261110/xui-resource-sharing-stage-win-r3/replay/stage-report.json",
+          "sha256": "2aade1b02b98fcfccb8cdfe626277f4d0680e103582844f6c768a0270e4eab68"
+        },
+        "staticO2Build": {
+          "path": "F:/xlang-validation/xge-full-20261110/xui-resource-sharing-static-win-r2/build-report.json",
+          "sha256": "0830328b37ad908019fc7842187ba3b6f4f0dcc916dcf3b3075d0ed53c7a6fc0"
+        },
+        "publicSurface": {
+          "path": "F:/xlang-validation/xge-full-20261110/xui-resource-sharing-inventory-win-r3/surface.json",
+          "sha256": "5ab0f0b9e2a23d65b3bdeea1327262477612667e59598e92ce51a871287d703a"
+        },
+        "hostO2Build": {
+          "path": "F:/xlang-validation/xge-full-20261110/xui-resource-sharing-host-win-r2/build-report.json",
+          "sha256": "be6b32f12c45a82edcc253dc43681877ba44283839bbe9fa28e19fb7ac270872"
+        }
+      },
+      "linux": {
+        "graphicsBackend": "EGL OpenGL 3.3, software rendering",
+        "nativeSource": {
+          "path": "//wsl.localhost/Ubuntu/var/tmp/xlang-validation/xge-full-20261110/xui-resource-sharing-native-source-linux-r2.json",
+          "sha256": "e002cf22ea83ed4b0c73dedda65de5ead869463426d63eb504e1eb3b00b553de"
+        },
+        "nativeHostAndStaticO0O2": {
+          "path": "//wsl.localhost/Ubuntu/var/tmp/xlang-validation/xge-full-20261110/xui-resource-sharing-native-test-linux-r1/results.json",
+          "sha256": "bb67dc3975691b49d16396197c626b4f9dc670f17173e811985851eb3e938ae5"
+        },
+        "languageJitDynamicStaticAot": {
+          "path": "//wsl.localhost/Ubuntu/var/tmp/xlang-validation/xge-full-20261110/xui-resource-sharing-verify-linux-r4/results.json",
+          "sha256": "5971e61ed762eeaf97dd488db6371c29d6b4315f666183e8f4d069f4e5b4830f"
+        },
+        "compiledGpuFixture": [
+          {
+            "path": "//wsl.localhost/Ubuntu/var/tmp/xlang-validation/xge-full-20261110/xui-resource-sharing-verify-linux-r4/xui_resource_sharing.c",
+            "sha256": "735729da0c6ebdbb621abd4f62fbd4e135a425a968081d79fdb873b9667da2f4"
+          },
+          {
+            "path": "//wsl.localhost/Ubuntu/var/tmp/xlang-validation/xge-full-20261110/xui-resource-sharing-verify-linux-r4/jit.log",
+            "sha256": "9a09e52c1950fbedfb6e642fdf88a724c62ac2dc19a93dd094cff71cecee35a1"
+          },
+          {
+            "path": "//wsl.localhost/Ubuntu/var/tmp/xlang-validation/xge-full-20261110/xui-resource-sharing-verify-linux-r4/probe.a",
+            "sha256": "ffe997e236d6fa3a375512edd5cc275c8af776cc316483ea88a08ac95fd59266"
+          },
+          {
+            "path": "//wsl.localhost/Ubuntu/var/tmp/xlang-validation/xge-full-20261110/xui-resource-sharing-verify-linux-r4/probe.so",
+            "sha256": "af9551ddef1351dfe75d576bbf7d6e99eabcc2038150af5744b4271f92a180f3"
+          },
+          {
+            "path": "//wsl.localhost/Ubuntu/var/tmp/xlang-validation/xge-full-20261110/xui-resource-sharing-verify-linux-r4/dynamic-imports.log",
+            "sha256": "d800453dc38b226a1144d561cf720d2f051c1d7016942ecb2768b3a7f2c974a4"
+          },
+          {
+            "path": "//wsl.localhost/Ubuntu/var/tmp/xlang-validation/xge-full-20261110/xui-resource-sharing-verify-linux-r4/static-imports.log",
+            "sha256": "11aa6700fc86d4cfbd281a85412c9cd062e427e0a1fa4d6ea519609336fca1fc"
+          },
+          {
+            "path": "//wsl.localhost/Ubuntu/var/tmp/xlang-validation/xge-full-20261110/xui-resource-sharing-verify-linux-r4/dynamic",
+            "sha256": "25b92cadfa4b94e29b89c182909ea190d167bbc057852880ade28a3e165f4909"
+          },
+          {
+            "path": "//wsl.localhost/Ubuntu/var/tmp/xlang-validation/xge-full-20261110/xui-resource-sharing-verify-linux-r4/static",
+            "sha256": "3a03c1dbcf18c0e75e159c24daee401a3196ab6d5320068933abe2339e73528e"
+          }
+        ],
+        "exampleJitDynamicStaticAot": {
+          "path": "//wsl.localhost/Ubuntu/var/tmp/xlang-validation/xge-full-20261110/xui-resource-sharing-verify-linux-r2/results.json",
+          "sha256": "6dd9030d196bd63f9a603d56bd7c7c71f968e5df5fa5742bc9ad656a53d6de0f"
+        },
+        "strictDeclarationReplay": {
+          "path": "//wsl.localhost/Ubuntu/var/tmp/xlang-validation/xge-full-20261110/xui-resource-sharing-generator-linux-r4/results.json",
+          "sha256": "6896b3f89e3237a326c9385c60e92adf6b83a22495702a71ae860e91be17a63a"
+        },
+        "consumerAudit": {
+          "path": "//wsl.localhost/Ubuntu/var/tmp/xlang-validation/xge-full-20261110/xui-resource-sharing-consumers-linux-r2/results.json",
+          "sha256": "72b2ef9eb8e2a46a9dc616c882642adf743bda3fd53b45658bf6bc8faf291d50"
+        },
+        "functions": 5868,
+        "directDeclarations": 4803,
+        "pendingConsumerOrReplacement": {
+          "XGE": 59,
+          "XUI": 92
+        },
+        "warmAllocationAndTiming": {
+          "path": "//wsl.localhost/Ubuntu/var/tmp/xlang-validation/xge-full-20261110/xui-resource-sharing-perf-linux-r1/results.json",
+          "sha256": "4373bdf33a23dbe8ee4b8cb2cb35e706019b2f866852ad68107349d6c066d12c"
+        },
+        "measurements": {
+          "xlang": {
+            "rounds": 10000,
+            "alloc": 20000,
+            "free": 20000,
+            "realloc": 0,
+            "cpuMs": 40.084
+          },
+          "C": {
+            "rounds": 10000,
+            "alloc": 0,
+            "free": 0,
+            "realloc": 0,
+            "cpuMs": 0.763
+          }
+        },
+        "matchedPackages": {
+          "path": "//wsl.localhost/Ubuntu/var/tmp/xlang-validation/xge-full-20261110/xui-resource-sharing-stage-linux-r3/replay/stage-report.json",
+          "sha256": "3721a4d7d4b5078a67837749c60aff24fc0d4a587f9de5031898cbd8fc1be90c"
+        },
+        "staticO2Build": {
+          "path": "//wsl.localhost/Ubuntu/var/tmp/xlang-validation/xge-full-20261110/xui-resource-sharing-static-linux-r2/build-report.json",
+          "sha256": "d09c08125d4ac0d12fb355435b26635d1741c5bf55867ce5e1a8f10220026747"
+        },
+        "publicSurface": {
+          "path": "//wsl.localhost/Ubuntu/var/tmp/xlang-validation/xge-full-20261110/xui-resource-sharing-inventory-linux-r3/surface.json",
+          "sha256": "76588fa091a6ad684f3e8d2f365de5d63955f1acbb5b24705a41226c7291016d"
+        },
+        "hostO2Build": {
+          "path": "//wsl.localhost/Ubuntu/var/tmp/xlang-validation/xge-full-20261110/xui-resource-sharing-host-linux-r2/build-report.json",
+          "sha256": "0032bfd7b728e98af9d27bb18eb268b9f3587eaba2c6e27b2ab16f794b995916"
+        }
+      }
+    }
+  }
+}
