@@ -1,0 +1,106 @@
+import xui
+from xui import CallbackWidget
+
+extern "fixtureRenderBudget" @header("test/cases/foreign_xui_render_backend.h") @no_raise func budget(c_int count)
+
+int getterCalls = 0
+class ItemData
+    int id = 42
+    string label = "a\0b"
+    bytes payload = b"\0\xff"
+    private string secret = "private"
+    get computed() as int
+        getterCalls += 1
+        return self.id
+    end
+end
+
+func main(...) as int
+    auto proxy = xui.createProxy()
+    auto ui = xui.create(proxy, xui.XUI_SYSTEM_FONT_DISABLED)
+    try
+        auto root = ui.widget()
+        auto button = ui.buttonNative()
+        assert root.getUserData() == null and button.getUserData() == null
+
+        auto item = ItemData()
+        button.setUserData(item)
+        item.id = 19
+        var snapshot = button.getUserData()
+        assert snapshot["id"] == 42 and snapshot["label"] == "a\0b"
+        assert snapshot["payload"] == b"\0\xff" and getterCalls == 0
+        snapshot["id"] = -2
+        assert button.getUserData()["id"] == 42
+
+        bool failed = false
+        budget(0)
+        try
+            button.setUserData(item)
+        catch Error
+            failed = true
+        finally
+            budget(-1)
+        end
+        assert failed and button.getUserData()["id"] == 42
+
+        failed = false
+        budget(0)
+        try
+            snapshot = button.getUserData()
+        catch Error
+            failed = true
+        finally
+            budget(-1)
+        end
+        assert failed and snapshot["id"] == -2 and button.getUserData()["id"] == 42
+
+        assert root.addChild(button) == 0 and root.getUserData() == null
+        assert button.removeFromParent() == 0 and button.getUserData()["id"] == 42
+
+        xui.CallbackWidget? initView = null
+        auto kind = ui.registerWidgetTypeWithCallbacks("test.userData", flags=c_uint(xui.XUI_WIDGET_TYPE_MANAGED_STATE),
+            initialize=func(xui.CallbackWidget widget, xui.CallbackWidgetTypeData? data, xui.CallbackWidgetCreateData? input) as c_int
+                widget.setUserData({"id": 23})
+                widget.setInstanceState({"counter": 1})
+                assert widget.getUserData()["id"] == 23 and widget.getInstanceState()["counter"] == 1
+                initView = widget
+                return 0
+            end)
+        auto custom = ui.createWidget(kind)
+        assert custom.getUserData()["id"] == 23 and custom.getInstanceState()["counter"] == 1
+        failed = false
+        try
+            auto expired = (initView as CallbackWidget).getUserData()
+        catch StateError
+            failed = true
+        end
+        assert failed
+        custom.setUserData(null)
+        assert custom.getUserData() == null and custom.getInstanceState()["counter"] == 1
+        custom.close()
+        kind.unregister()
+
+        auto worker = thread(func() as int
+            try
+                auto wrongThread = button.getUserData()
+            catch StateError
+                return 1
+            end
+            return 0
+        end)
+        assert worker.waitTimeout(30000) and worker.exitCode() == 1
+        button.close()
+        failed = false
+        try
+            auto closed = button.getUserData()
+        catch StateError
+            failed = true
+        end
+        assert failed and snapshot["payload"] == b"\0\xff"
+    finally
+        ui.close()
+        proxy.close()
+    end
+    println("XUI_WIDGET_USER_VALUES_OK")
+    return 0
+end

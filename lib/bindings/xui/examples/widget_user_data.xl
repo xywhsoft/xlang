@@ -1,0 +1,16 @@
+// 把条目 ID 保存在按钮上，点击时从触发事件的按钮读取。
+import xui
+from "./_window.xl" import Window
+
+Window.show("控件数据", func(xui.Context ui, xui.Widget root)
+ auto button = ui.buttonNative()
+ button.setText("打开条目")
+ button.setUserData({"itemId": 42})
+ Window.place(root, button, 24, 24, 220, 44)
+
+ button.setClick(func(xui.Widget sender)
+  var itemId = sender.getUserData()["itemId"]
+  button.setText(f"已打开第 {itemId} 项")
+ end)
+ println("Widget item: ", button.getUserData()["itemId"])
+end)

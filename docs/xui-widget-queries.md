@@ -61,3 +61,38 @@ executable bytes, text and BSS deltas are all zero. The batch totals 54 actual
 acceptance commands per platform (108 combined), excluding failed diagnostic
 attempts, staging, inventory and evidence rehashes. Source/SDK/compiler reuse
 does not imply final release installation or completion of the entire XGE goal.
+
+## User data and tooltip configuration
+
+`Widget.setUserData(value)` attaches an independent data snapshot to an
+ordinary or custom widget. `getUserData()` returns an independent snapshot,
+and assigning `null` clears the value. Moving a widget between parents keeps
+its data. Already returned snapshots survive widget closure. Class inputs
+project public storage fields and keep embedded NUL and bytes. Callback views
+can use the same methods on a live widget. `setInstanceState()` continues
+to share identity for custom widget implementations that opt into that API.
+
+The C slot retains and traces the value separately from the raw user pointer.
+Replacement publishes the new value before releasing the old one. Failure to
+prepare a snapshot preserves the old data. If a native old-value finalizer
+reports an error after publication, the error follows checked cleanup and the
+new value stays published unless the finalizer changes it again.
+
+Use `tooltipInfo()` for the current tooltip type, text and placement.
+`setTooltipText()`, `setCustomTooltip()`, `setTooltipResolver()` and
+`clearTooltip()` cover text, retained drawing callbacks, dynamic replies and
+removal. The query returns independent text and placement. The typed setters
+manage callback ownership for their respective registration types.
+
+The native user-value slot adds 8 bytes to each x64 widget, measured as 2,200
+to 2,208 bytes on both SDKs. The warmed integer sample makes 4,000 set/get
+pairs with zero XRT allocations in C and xlang. Each public two-field object
+pair averages 13 allocations in the sample, including snapshot projection,
+lookup and validation. The native retain/read loop makes zero allocations.
+
+One Linux compile of the existing owned-sequence fixture took 90.48 CPU
+seconds with the new declarations and 94.66 with them removed. The two runs
+used the same compiler and native package, with the declarations unused.
+
+The `widget_user_data.xl` lesson stores an item ID on a button and reads it
+from the event sender when the user clicks.

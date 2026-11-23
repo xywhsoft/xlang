@@ -1,5 +1,23 @@
 # Native consumers in the full API inventory
 
+## Widget data and tooltip configuration
+
+`setUserData()` and `getUserData()` call the new retained native value slot
+for any widget. The language methods use the existing snapshot contracts
+and the native ownership graph visits the retained slot. The callback view
+provides the same methods during live callbacks. Custom widget instance state
+keeps its own storage and shared-identity semantics.
+
+Raw tooltip setters map to the declared text, owned custom and resolver APIs.
+`tooltipInfo()` gives the type, text and placement snapshot. The old C
+descriptor and user pointer still serve native callers.
+
+Both platform audits cover 5,844 native functions and record the four
+replacements. There are 202 entries without a direct declaration, compiled
+consumer or explicit replacement.
+
+[Widget data evidence](../dev/release-materials/provenance/xui-widget-user-values-20261123.json)
+
 ## DockPanel window data
 
 The two raw window user-data functions map to `DockPanel.setWindowData()`

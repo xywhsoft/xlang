@@ -1,0 +1,312 @@
+{
+  "schema": 1,
+  "scope": "Widget user data snapshots and tooltip declaration mappings",
+  "nativeCommit": "b9e6d484d883531a2ac7c85e416a187c9a29aa96",
+  "engineBaseCommit": "59641b5bedbfd90d31d12e1e1289696df407f9ba",
+  "shippingDelivery": false,
+  "networkTests": false,
+  "nativeEntryPoints": [
+    "xuiWidgetSetUserValue",
+    "xuiWidgetGetUserValue"
+  ],
+  "legacyApiReplacements": {
+    "xuiWidgetSetUserData": "xuiWidgetSetUserValue",
+    "xuiWidgetGetUserData": "xuiWidgetGetUserValue",
+    "xuiWidgetSetTooltip": "xuiWidgetSetTextTooltip",
+    "xuiWidgetGetTooltip": "xuiWidgetGetTooltipInfo"
+  },
+  "sourceSha256NormalizedLf": {
+    "docs/xge3-xui3-api-map-storage.json": "112d9cbcf45a11ae68e0d1dd587b0cca6f75de8ae124eff8469bb2d8a6bf5c2f",
+    "lib/bindings/xui/src/managed.xl": "10e592864770edb4e8b863af95a4483456759526859c23c93db524be5f59ebab",
+    "lib/bindings/xui/examples/widget_user_data.xl": "0ba62f1d4072c7b95cc44a0a91358beeeba2a09acfe588c0eb9177a8ce65376b",
+    "test/cases/foreign_xui_widget_user_values.xl": "6021c409d573bba0768be448810983f9f66a584cfde25a581addbb205a3bcf6d",
+    "tools/xui_managed_contracts.py": "0e99e0aa9c1527c11b705f5a5e8b58961654135963df46cfabfa25663bd2b09c"
+  },
+  "verification": {
+    "retainedSlotAndIndependentLanguageSnapshots": true,
+    "copiedTextAndBytesPreserveEmbeddedNul": true,
+    "reparentingKeepsTheWidgetData": true,
+    "instanceStateRemainsIndependent": true,
+    "failedSnapshotPreservesStoredAndCallerValues": true,
+    "wrongThreadExpiredCallbackAndClosedWidgetAreChecked": true,
+    "valuePublishesBeforeOldDrop": true,
+    "busyOldValueRejectsReplacement": true,
+    "dropMayReenterAndReplacePublishedData": true,
+    "checkedParentDestroyRetiresChildData": true,
+    "nativeWidgetBytesAdded": 8,
+    "unusedDeclarationsLinuxCompile": {
+      "report": {
+        "path": "//wsl.localhost/Ubuntu/var/tmp/xlang-validation/xge-full-20261110/widget-user-values-unused-cost-linux-r1/results.json",
+        "sha256": "64ebf617cc5c9559f4fcc9160236ab984815d8df826af497ba6102ccb049fd8b"
+      },
+      "sample": [
+        {
+          "variant": "with",
+          "cpuSeconds": 90.483205,
+          "elapsedSeconds": 90.64574088802328,
+          "emittedBytes": 1963538
+        },
+        {
+          "variant": "without",
+          "cpuSeconds": 94.65976700000002,
+          "elapsedSeconds": 94.87766608700622,
+          "emittedBytes": 1963526
+        }
+      ]
+    },
+    "consumerAuditRerunTimeoutSeconds": 600,
+    "sampleQualification": "One JIT timing sample for each input shape per platform with XRT allocation monitoring enabled. Each round uses two setter/getter pairs alternating preformed integers or preformed two-field objects. C retains, validates and releases the values. The public xlang methods apply the data snapshot contract in both directions. Timings from clock() include API, loop and validation work.",
+    "platforms": {
+      "win": {
+        "languageJitDynamicStaticAot": {
+          "path": "F:/xlang-validation/xge-full-20261110/widget-user-values-verify-win-r8/results.json",
+          "sha256": "307e85f95b90feceab4499a4ff7ec96a66d33e555111438c37c2c92c271d3bde"
+        },
+        "nativeO0O2": {
+          "path": "F:/xlang-validation/xge-full-20261110/widget-user-values-native-test-win-r4/results.json",
+          "sha256": "c2f10b34ee9e331e94d25bc936db104e82df3b0083e65f5635c17bd87d0535d8"
+        },
+        "nativeWidgetTypeO0O2": {
+          "path": "F:/xlang-validation/xge-full-20261110/widget-user-values-native-test-win-r5/results.json",
+          "sha256": "31c93aa8d0a69cfc396b75ff5047331d3517be7e7284428d1f55bf2565c99e47"
+        },
+        "instanceStateJitDynamicStaticAot": {
+          "path": "F:/xlang-validation/xge-full-20261110/widget-user-values-verify-win-r6/results.json",
+          "sha256": "cf2cce2165defad56811040ab89357efb0fd14b718bbedd3440b75b22cc51ad2"
+        },
+        "tooltipJitDynamicStaticAot": {
+          "path": "F:/xlang-validation/xge-full-20261110/widget-user-values-verify-win-r7/results.json",
+          "sha256": "d56a66e8ec8d9bffb8b6491bfa355458d8bfdb7d336c6c9ac9eea58486674cb5"
+        },
+        "nativeWidgetFootprint": {
+          "path": "F:/xlang-validation/xge-full-20261110/widget-user-values-footprint-win-r1/results.json",
+          "sha256": "96d54737e4ffb8d6729d3b04a1017b90bce41469c0d69cdfb2a678f91e7fae69"
+        },
+        "example": {
+          "report": {
+            "path": "F:/xlang-validation/xge-full-20261110/widget-user-values-example-win-r1/results.json",
+            "sha256": "70908d880fe20c7706a046d9288a0a119601e2dc45737f72b8e1b13a84884f80"
+          },
+          "frames": {},
+          "scope": "AOT build and import checks"
+        },
+        "strictDeclarationReplay": {
+          "path": "F:/xlang-validation/xge-full-20261110/widget-user-values-generator-win-r4/results.json",
+          "sha256": "7c7129f2d2a8f52ce007b8af9f37f8ad404ebc7b70bd2fb281ed7e93cba43c57"
+        },
+        "matchedPackages": {
+          "path": "F:/xlang-validation/xge-full-20261110/widget-user-values-stage-win-r4/replay/stage-report.json",
+          "sha256": "030a945859b124c30b4e821d885d5db13c66f0c6f10304260801fac7e2985f46"
+        },
+        "scopedNativeSource": {
+          "path": "F:/xlang-validation/xge-full-20261110/widget-user-values-native-source-win-r2.json",
+          "sha256": "fa28fcf6347d5d09a1533ce9bbf9cfd4ca5891d19deedefa1a19532a19a05f1b"
+        },
+        "hostO2Build": {
+          "path": "F:/xlang-validation/xge-full-20261110/widget-user-values-host-win-r2/build-report.json",
+          "sha256": "7d81f3a9cae46a833391fe5edb8c9f509c29ab94670014c97dd26b03958fb211"
+        },
+        "staticO2Build": {
+          "path": "F:/xlang-validation/xge-full-20261110/widget-user-values-static-win-r2/build-report.json",
+          "sha256": "613c0a2faa00555d0a816f8da46ec62df83706642ad2e0cf0535acb59da12354"
+        },
+        "surface": {
+          "path": "F:/xlang-validation/xge-full-20261110/widget-user-values-inventory-win-r1/surface.json",
+          "sha256": "0970f28bcd7216177371450aae8b1b69786eefc9268d8521d93ffa088b678546"
+        },
+        "consumerAudit": {
+          "path": "F:/xlang-validation/xge-full-20261110/widget-user-values-consumers-win-r3/results.json",
+          "sha256": "02186c18fa9560a2b72348b105f96312eefb6601647dfdab18ae450037beded3"
+        },
+        "functions": 5844,
+        "directDeclarations": 4781,
+        "pendingConsumerOrReplacement": {
+          "XGE": 84,
+          "XUI": 115,
+          "Document UI": 2,
+          "Document": 1
+        },
+        "scalarRoundTrip": {
+          "report": {
+            "path": "F:/xlang-validation/xge-full-20261110/widget-user-values-perf-win-r2/results.json",
+            "sha256": "045be0d3b44af35763598733959c3ec73d05d89d84c83a9ed7d7f5f629dc9b9d"
+          },
+          "sample": {
+            "xlang": {
+              "rounds": 2000,
+              "alloc": 0,
+              "free": 0,
+              "realloc": 0,
+              "cpuMs": 25.0
+            },
+            "C": {
+              "rounds": 2000,
+              "alloc": 0,
+              "free": 0,
+              "realloc": 0,
+              "cpuMs": 2.0
+            }
+          }
+        },
+        "objectRoundTrip": {
+          "report": {
+            "path": "F:/xlang-validation/xge-full-20261110/widget-user-values-perf-win-r5/results.json",
+            "sha256": "0b6380d34429773161295d4af7c83295bb4151cbcf0d3c30547c4f7f6abe92fa"
+          },
+          "sample": {
+            "xlang": {
+              "rounds": 2000,
+              "alloc": 52000,
+              "free": 52000,
+              "realloc": 0,
+              "cpuMs": 67.0
+            },
+            "C": {
+              "rounds": 2000,
+              "alloc": 0,
+              "free": 0,
+              "realloc": 0,
+              "cpuMs": 2.0
+            }
+          }
+        }
+      },
+      "linux": {
+        "languageJitDynamicStaticAot": {
+          "path": "//wsl.localhost/Ubuntu/var/tmp/xlang-validation/xge-full-20261110/widget-user-values-verify-linux-r8/results.json",
+          "sha256": "55073b4c5892d6c26e4f9d414463df1b6ada51ccf4d0e4e3508499c934fceba6"
+        },
+        "nativeO0O2": {
+          "path": "//wsl.localhost/Ubuntu/var/tmp/xlang-validation/xge-full-20261110/widget-user-values-native-test-linux-r4/results.json",
+          "sha256": "57708c3c342ca70c817179015a0d717be962389b282364208e6051fb5a720a72"
+        },
+        "nativeWidgetTypeO0O2": {
+          "path": "//wsl.localhost/Ubuntu/var/tmp/xlang-validation/xge-full-20261110/widget-user-values-native-test-linux-r5/results.json",
+          "sha256": "3f7b99a6c0a5e477bff66ba355efef1b12d43a92859b6ec0783179fcd5da0703"
+        },
+        "instanceStateJitDynamicStaticAot": {
+          "path": "//wsl.localhost/Ubuntu/var/tmp/xlang-validation/xge-full-20261110/widget-user-values-verify-linux-r6/results.json",
+          "sha256": "eff31cfee02c7c7bc52300105922ff162cc73f1fb90d6b98399bc21584f8c5f9"
+        },
+        "tooltipJitDynamicStaticAot": {
+          "path": "//wsl.localhost/Ubuntu/var/tmp/xlang-validation/xge-full-20261110/widget-user-values-verify-linux-r7/results.json",
+          "sha256": "bc0cd1b9acbac8117807ca0cfea058e88dff21d96297b4fd6d9b7ca6c38076de"
+        },
+        "nativeWidgetFootprint": {
+          "path": "//wsl.localhost/Ubuntu/var/tmp/xlang-validation/xge-full-20261110/widget-user-values-footprint-linux-r1/results.json",
+          "sha256": "9c88d1b1b26c26c6aa53668dd25ee64c472b27e4bd74319f7e5fad2fd97ec5fb"
+        },
+        "example": {
+          "report": {
+            "path": "//wsl.localhost/Ubuntu/var/tmp/xlang-validation/xge-full-20261110/widget-user-values-example-linux-r2/results.json",
+            "sha256": "0f3b6d05dbf7f59bd6d53a3217b0c1f45df30e82a524654a253c5e7b31699b30"
+          },
+          "frames": {
+            "jit": {
+              "path": "/var/tmp/xlang-validation/xge-full-20261110/widget-user-values-example-linux-r2/jit.rgba",
+              "sha256": "44a600a5d48e7b5d3dec983c3dd828786f6980c84048a68f5c97215619f88c25",
+              "width": 800,
+              "height": 600,
+              "colors": 19
+            },
+            "dynamic": {
+              "path": "/var/tmp/xlang-validation/xge-full-20261110/widget-user-values-example-linux-r2/dynamic.rgba",
+              "sha256": "44a600a5d48e7b5d3dec983c3dd828786f6980c84048a68f5c97215619f88c25",
+              "width": 800,
+              "height": 600,
+              "colors": 19
+            },
+            "static": {
+              "path": "/var/tmp/xlang-validation/xge-full-20261110/widget-user-values-example-linux-r2/static.rgba",
+              "sha256": "44a600a5d48e7b5d3dec983c3dd828786f6980c84048a68f5c97215619f88c25",
+              "width": 800,
+              "height": 600,
+              "colors": 19
+            }
+          },
+          "scope": "Xvfb/Mesa JIT and dynamic/static AOT"
+        },
+        "strictDeclarationReplay": {
+          "path": "//wsl.localhost/Ubuntu/var/tmp/xlang-validation/xge-full-20261110/widget-user-values-generator-linux-r4/results.json",
+          "sha256": "af5f71dd6d20d46ce381f59a31fd2f762c4e7776edc74102c00d3e025618f766"
+        },
+        "matchedPackages": {
+          "path": "//wsl.localhost/Ubuntu/var/tmp/xlang-validation/xge-full-20261110/widget-user-values-stage-linux-r4/replay/stage-report.json",
+          "sha256": "36787f14bca8b0506082a7e4765c34d1a2b373050f1bd8adb950e82d72fe24b6"
+        },
+        "scopedNativeSource": {
+          "path": "//wsl.localhost/Ubuntu/var/tmp/xlang-validation/xge-full-20261110/widget-user-values-native-source-linux-r2.json",
+          "sha256": "01fa1497fb8f10b988b1f9461dac2d8313a5c7c7a8d1234d974832afdd267902"
+        },
+        "hostO2Build": {
+          "path": "//wsl.localhost/Ubuntu/var/tmp/xlang-validation/xge-full-20261110/widget-user-values-host-linux-r2/build-report.json",
+          "sha256": "24620c7d2f999603cfa8b3aba73215148f225590264ba1d90bab7b16da6b8c9e"
+        },
+        "staticO2Build": {
+          "path": "//wsl.localhost/Ubuntu/var/tmp/xlang-validation/xge-full-20261110/widget-user-values-static-linux-r2/build-report.json",
+          "sha256": "36628b3f49213e77b1eacc54b551b3557acddccbf48a8eed1add0db9202b6632"
+        },
+        "surface": {
+          "path": "//wsl.localhost/Ubuntu/var/tmp/xlang-validation/xge-full-20261110/widget-user-values-inventory-linux-r1/surface.json",
+          "sha256": "0b1e292a942c342f6f9366d701ef9c0a268b45d00d9f3ef725348e48b9ed37bc"
+        },
+        "consumerAudit": {
+          "path": "//wsl.localhost/Ubuntu/var/tmp/xlang-validation/xge-full-20261110/widget-user-values-consumers-linux-r3/results.json",
+          "sha256": "2a887fe7ea364ab3a10cbceeefa09ea726adac8c651a745aec24917ed4b39d25"
+        },
+        "functions": 5844,
+        "directDeclarations": 4781,
+        "pendingConsumerOrReplacement": {
+          "XGE": 84,
+          "XUI": 115,
+          "Document UI": 2,
+          "Document": 1
+        },
+        "scalarRoundTrip": {
+          "report": {
+            "path": "//wsl.localhost/Ubuntu/var/tmp/xlang-validation/xge-full-20261110/widget-user-values-perf-linux-r2/results.json",
+            "sha256": "e60152629b34e59304d7a759a9d4b80cf63da68d3cc65e0d75fa0d26d76e44f7"
+          },
+          "sample": {
+            "xlang": {
+              "rounds": 2000,
+              "alloc": 0,
+              "free": 0,
+              "realloc": 0,
+              "cpuMs": 18.911
+            },
+            "C": {
+              "rounds": 2000,
+              "alloc": 0,
+              "free": 0,
+              "realloc": 0,
+              "cpuMs": 1.65
+            }
+          }
+        },
+        "objectRoundTrip": {
+          "report": {
+            "path": "//wsl.localhost/Ubuntu/var/tmp/xlang-validation/xge-full-20261110/widget-user-values-perf-linux-r5/results.json",
+            "sha256": "7700fd398bd15fa5d21e27ac2719d7f8fa3db2bd07b3a04730cb762ac38cffc9"
+          },
+          "sample": {
+            "xlang": {
+              "rounds": 2000,
+              "alloc": 52000,
+              "free": 52000,
+              "realloc": 0,
+              "cpuMs": 52.305
+            },
+            "C": {
+              "rounds": 2000,
+              "alloc": 0,
+              "free": 0,
+              "realloc": 0,
+              "cpuMs": 1.679
+            }
+          }
+        }
+      }
+    }
+  }
+}

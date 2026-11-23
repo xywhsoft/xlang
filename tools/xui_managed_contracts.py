@@ -1364,7 +1364,7 @@ for control in (
         [f'extern "{native}" @no_raise @c_result("owner_view",0) func {method}() as WidgetType?']]
 
 VIEWS.update({
-    'CallbackWidget': 'export extern "xui_widget_t*" class CallbackWidget @header("xge3_runtime.h") @lifetime("callback")\n native point handle\n extern "xuiWidgetGetRect" @no_raise func rect() as Rect\n extern "xuiWidgetSetRect" @no_raise @c_result("status",0) func setRect(Rect value)\n extern "xuiWidgetInvalidate" @no_raise @c_result("status",0) func invalidate(c_uint dirtyFlags)\n extern "xuiWidgetSetInstanceState" @no_raise @c_result("status",0) func setInstanceState(var value)\n extern "xuiWidgetGetInstanceState" @no_raise @c_output(1,0) @c_output_view(1,"owned_value") func getInstanceState() as var\nend',
+    'CallbackWidget': 'export extern "xui_widget_t*" class CallbackWidget @header("xge3_runtime.h") @lifetime("callback")\n native point handle\n extern "xuiWidgetGetRect" @no_raise func rect() as Rect\n extern "xuiWidgetSetRect" @no_raise @c_result("status",0) func setRect(Rect value)\n extern "xuiWidgetInvalidate" @no_raise @c_result("status",0) func invalidate(c_uint dirtyFlags)\n extern "xuiWidgetSetInstanceState" @no_raise @c_result("status",0) func setInstanceState(var value)\n extern "xuiWidgetGetInstanceState" @no_raise @c_output(1,0) @c_output_view(1,"owned_value") func getInstanceState() as var\n extern "xuiWidgetSetUserValue" @no_raise @c_data_snapshot(0) @c_result("status",0) func setUserData(var value)\n extern "xuiWidgetGetUserValue" @no_raise @c_output(1,0) @c_output_view(1,"owned_value") @c_data_snapshot_result(0) func getUserData() as var\nend',
     'CallbackWidgetTypeData': 'export extern "void*" class CallbackWidgetTypeData @header("xge3_runtime.h") @lifetime("callback")\n native point handle\nend',
     'CallbackWidgetCreateData': 'export extern "const void*" class CallbackWidgetCreateData @header("xge3_runtime.h") @lifetime("callback")\n native point handle\nend',
 })
@@ -1386,6 +1386,10 @@ METHODS.update({
         ['extern "xuiWidgetSetInstanceState" @no_raise @c_result("status",0) func setInstanceState(var value)']],
     'xuiWidgetGetInstanceState': ['int xuiWidgetGetInstanceState(xui_widget pWidget, xvalue** ppValue)', 'Widget',
         ['extern "xuiWidgetGetInstanceState" @no_raise @c_output(1,0) @c_output_view(1,"owned_value") func getInstanceState() as var']],
+    'xuiWidgetSetUserValue': ['int xuiWidgetSetUserValue(xui_widget pWidget, xvalue* pValue)', 'Widget',
+        ['extern "xuiWidgetSetUserValue" @no_raise @c_data_snapshot(0) @c_result("status",0) func setUserData(var value)']],
+    'xuiWidgetGetUserValue': ['int xuiWidgetGetUserValue(xui_widget pWidget, xvalue** ppValue)', 'Widget',
+        ['extern "xuiWidgetGetUserValue" @no_raise @c_output(1,0) @c_output_view(1,"owned_value") @c_data_snapshot_result(0) func getUserData() as var']],
 })
 
 METHODS["xuiWidgetRegisterTypeOwned"] = ['int xuiWidgetRegisterTypeOwned(xui_context pContext, xui_widget_type* ppType, const xui_widget_type_desc_t* pDesc, const xui_callback_owner_t* pOwner)', "Context",
@@ -1679,6 +1683,10 @@ REPLACED = {
     'xuiWidgetSetLayoutCompleteCallback': ('xui.Widget.setLayoutCompleteCallback', 'xuiWidgetSetLayoutCompleteCallbackOwned'),
     'xuiWidgetSetLayoutPrepareCallback': ('xui.Widget.setLayoutPrepareCallback', 'xuiWidgetSetLayoutPrepareCallbackOwned'),
     'xuiWidgetSetUpdateCallback': ('xui.Widget.setUpdateCallback', 'xuiWidgetSetUpdateCallbackOwned'),
+    'xuiWidgetSetUserData': ('xui.Widget.setUserData', 'xuiWidgetSetUserValue'),
+    'xuiWidgetGetUserData': ('xui.Widget.getUserData', 'xuiWidgetGetUserValue'),
+    'xuiWidgetSetTooltip': ('xui.Widget.setTooltipText', 'xuiWidgetSetTextTooltip'),
+    'xuiWidgetGetTooltip': ('xui.Widget.tooltipInfo', 'xuiWidgetGetTooltipInfo'),
     'xuiWidgetSetTooltipResolver': ('xui.Widget.setTooltipResolver', 'xuiWidgetSetTooltipResolverOwned'),
     'xuiWidgetSetAccessibilityProvider': ('xui.Widget.setAccessibilityProvider', 'xuiWidgetSetAccessibilityProviderOwned'),
     'xuiTerminalCreateFakeSession': ('xui.createFakeTerminalSession', 'xuiTerminalCreateFakeSessionOwned'),
