@@ -132,6 +132,7 @@ REPLACED = {
     'xge3dRender': ('xge3d.Renderer.renderFrame', 'xge3dRenderFrameConfigured'),
     'xge3dRendererCreate': ('xge3d.createRenderer', 'xge3dRendererCreateOwned'),
     'xge3dSceneCreate': ('xge3d.createScene', 'xge3dSceneCreateOwned'),
+    'xge3dSceneLoad': ('xge3d.Scene.loadColumnsWithResolver', 'xge3dSceneLoadWithResolver'),
     'xge3dShaderCreate': ('xge3d.createShader', 'xge3dShaderCreateOwned'),
     'xge3dTargetCreate': ('xge3d.createRenderTarget', 'xge3dTargetCreateOwned'),
     'xge3dTargetTexture': ('xge3d.RenderTarget3D.texture', 'xge3dTextureFromTargetOwned'),

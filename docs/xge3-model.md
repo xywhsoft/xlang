@@ -271,12 +271,22 @@ or loading policy. Passing a model cache shares URI results with the
 application's other loads. Without a cache, URIs use the managed loader.
 The resulting scene retains its assets independently of these inputs.
 
+Use `Scene.loadColumnsWithResolver()` to resolve URI rows synchronously in
+input order. The resolver receives a `ResourcePath` and a `SceneModelOutput`,
+both valid only during that callback. Call `output.set(model)` once to supply
+an independent native model reference and return `c_int(0)`. Pre-resolved rows
+bypass the callback. An exception, a failed `set()`, or a successful return
+without a model aborts the load. The callback may read the scene. A nested
+managed load against the same scene reports `Busy`.
+
 Resolution completes before node construction. If resolution or construction
 fails, the call leaves no partial hierarchy. Successful cache fills may remain
 available after a later row fails. The compiler projects one native record
 array for the row data, with read pins and per-element resource scopes. An
 explicit resolved-model column adds a temporary native pointer array and
-resource scopes. Native node names are copied into the scene.
+resource scopes. Native node names are copied into the scene. The resolver
+path computes the URI byte length once per call and shares the selected model
+by reference. Reading `uri.text` copies the URI into an owned string.
 
 On both Windows and Linux, 128 warm iterations that loaded and destroyed
 a two-row hierarchy used 14 XRT allocations and frees per xlang iteration

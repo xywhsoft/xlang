@@ -1,0 +1,115 @@
+import xge
+import xge3d
+from xge import ResourcePath
+from xge3d import Mesh3D, Material3D, Model3D, SceneModelOutput, SceneModelResolver
+
+extern "fixture3dResolverNative" @header("test/cases/foreign_xge3d_scene_resolver.h") @no_raise func nativeProbe(xge3d.Scene scene, xge3d.Xge3dNode anchor, Model3D model)
+
+SceneModelOutput? savedOutput = null
+ResourcePath? savedPath = null
+
+func main(...) as int
+    auto scene = xge3d.createScene()
+    auto anchor = scene.createNode(xge3d.Xge3dNode())
+    auto model = xge3d.loadModel("model-triangle.gltf")
+    nativeProbe(scene, anchor, model)
+
+    auto identity = xge3d.sceneNodeTransform()
+    array<string?> names = ["first", "second"]
+    array<c_size> parents = [xge3d.sceneRootParent(), c_size(0)]
+    array<xge3d.Xge3dTransform> transforms = [identity, identity]
+    array<Mesh3D?> meshes = [null, null]
+    array<Material3D?> materials = [null, null]
+    array<c_uint> flags = [c_uint(0), c_uint(0)]
+    array<string?> uris = ["first", "second"]
+
+    SceneModelResolver bad = func(ResourcePath uri, SceneModelOutput output) as c_int
+        assert scene.nodeCount == c_size(1)
+        output.set(model)
+        if uri.text == "second" then
+            throw RuntimeError "second scene model failed"
+        end
+        return c_int(0)
+    end
+    bool rejected = false
+    try
+        scene.loadColumnsWithResolver(anchor, bad, names, parents, transforms, meshes, materials, flags, uris)
+    catch Error failure
+        rejected = failure.message == "second scene model failed"
+    end
+    assert rejected and scene.nodeCount == c_size(1) and scene.childCount(anchor) == c_size(0)
+
+    SceneModelResolver missing = func(ResourcePath uri, SceneModelOutput output) as c_int
+        return c_int(0)
+    end
+    rejected = false
+    try
+        scene.loadColumnsWithResolver(anchor, missing, names, parents, transforms, meshes, materials, flags, uris)
+    catch Error
+        rejected = true
+    end
+    assert rejected and scene.nodeCount == c_size(1)
+
+    SceneModelResolver duplicate = func(ResourcePath uri, SceneModelOutput output) as c_int
+        output.set(model)
+        bool blocked = false
+        try
+            output.set(model)
+        catch Error
+            blocked = true
+        end
+        assert blocked
+        return c_int(0)
+    end
+    rejected = false
+    try
+        scene.loadColumnsWithResolver(anchor, duplicate, names, parents, transforms, meshes, materials, flags, uris)
+    catch Error
+        rejected = true
+    end
+    assert rejected and scene.childCount(anchor) == c_size(0)
+
+    // Only the second row needs the resolver. The first model is supplied directly.
+    array<string?> mixedUris = [null, "second"]
+    array<Model3D?> resolved = [model, null]
+    SceneModelResolver supply = func(ResourcePath uri, SceneModelOutput output) as c_int
+        assert scene.nodeCount == c_size(1) and uri.text == "second"
+        savedOutput = output
+        savedPath = uri
+        output.set(model)
+        return c_int(0)
+    end
+    auto root = scene.loadColumnsWithResolver(anchor, supply, names, parents, transforms, meshes, materials, flags, mixedUris, -1, resolved)
+    assert scene.parent(root).slot == anchor.slot
+    rejected = false
+    try
+        auto stale = savedOutput as SceneModelOutput
+        stale.set(model)
+    catch StateError
+        rejected = true
+    end
+    assert rejected
+    rejected = false
+    try
+        auto stale = savedPath as ResourcePath
+        auto ignored = stale.text
+    catch StateError
+        rejected = true
+    end
+    assert rejected
+    savedOutput = null
+    savedPath = null
+    model.close()
+
+    auto firstStatus, first = scene.find(root, "first")
+    auto secondStatus, second = scene.find(root, "second")
+    assert firstStatus == xge.XGE_OK and secondStatus == xge.XGE_OK
+    assert scene.parent(second).slot == first.slot
+    auto mappedStatus, source = scene.instanceNode(second, c_size(0))
+    assert mappedStatus == xge.XGE_OK and source.slot != uint64(0)
+    scene.destroyNode(root)
+    assert scene.nodeCount == c_size(1)
+    scene.close()
+    println("SCENE_RESOLVER_LANGUAGE_OK")
+    return 0
+end

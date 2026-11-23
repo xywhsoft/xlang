@@ -50,7 +50,7 @@
       "dependencies": [
         {
           "sourceFile": "src/xge/3d/xge3d_nodes.c",
-          "lfSha256": "9ad0f31145d5f1f1a29313891f9eab7edd74162e4653df0c8d59588ad43d32a6"
+          "lfSha256": "a85566565df068a0ddf915d2203245f6626990d26fa869c33b5956f6da393bb0"
         },
         {
           "sourceFile": "src/xge/3d/xge3d_scene.c",
@@ -584,7 +584,7 @@
       "dependencies": [
         {
           "sourceFile": "include/xge.h",
-          "lfSha256": "10b58c8a8bcf42ac303bb71ebf44479a4bd669791d518f9a3e470d8016224951"
+          "lfSha256": "6cf1431a87e28f74a789051a7e4083e145f85ad2f3264914d6c435f61d99ca00"
         }
       ]
     },
@@ -650,7 +650,7 @@
       "dependencies": [
         {
           "sourceFile": "include/xge.h",
-          "lfSha256": "10b58c8a8bcf42ac303bb71ebf44479a4bd669791d518f9a3e470d8016224951"
+          "lfSha256": "6cf1431a87e28f74a789051a7e4083e145f85ad2f3264914d6c435f61d99ca00"
         },
         {
           "sourceFile": "src/xge/render/xge_render.c",
@@ -1237,7 +1237,7 @@
       "dependencies": [
         {
           "sourceFile": "include/xge.h",
-          "lfSha256": "10b58c8a8bcf42ac303bb71ebf44479a4bd669791d518f9a3e470d8016224951"
+          "lfSha256": "6cf1431a87e28f74a789051a7e4083e145f85ad2f3264914d6c435f61d99ca00"
         },
         {
           "sourceFile": "src/xge/core/xge_debug.c",
@@ -2069,7 +2069,7 @@
       "dependencies": [
         {
           "sourceFile": "include/xge.h",
-          "lfSha256": "10b58c8a8bcf42ac303bb71ebf44479a4bd669791d518f9a3e470d8016224951"
+          "lfSha256": "6cf1431a87e28f74a789051a7e4083e145f85ad2f3264914d6c435f61d99ca00"
         },
         {
           "sourceFile": "include/xui.h",
@@ -2358,7 +2358,7 @@
       "dependencies": [
         {
           "sourceFile": "include/xge.h",
-          "lfSha256": "10b58c8a8bcf42ac303bb71ebf44479a4bd669791d518f9a3e470d8016224951"
+          "lfSha256": "6cf1431a87e28f74a789051a7e4083e145f85ad2f3264914d6c435f61d99ca00"
         },
         {
           "sourceFile": "src/xge/render/xge_shape_ex.c",
@@ -2378,7 +2378,7 @@
       "dependencies": [
         {
           "sourceFile": "include/xge.h",
-          "lfSha256": "10b58c8a8bcf42ac303bb71ebf44479a4bd669791d518f9a3e470d8016224951"
+          "lfSha256": "6cf1431a87e28f74a789051a7e4083e145f85ad2f3264914d6c435f61d99ca00"
         },
         {
           "sourceFile": "src/xge/render/xge_shape_ex.c",

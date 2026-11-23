@@ -1,8 +1,9 @@
 import xge3d
-from xge3d import Mesh3D, Material3D
+from xge import ResourcePath
+from xge3d import Mesh3D, Material3D, SceneModelOutput
 
 auto scene = xge3d.createScene()
-auto cache = xge3d.createModelCache()
+auto model = xge3d.loadModel("assets/model-triangle.gltf")
 auto identity = xge3d.sceneNodeTransform()
 auto placed = xge3d.sceneNodeTransform()
 placed.position.z = c_float(-2)
@@ -13,9 +14,16 @@ array<c_size> parents = [xge3d.sceneRootParent(), c_size(0)]
 array<Mesh3D?> meshes = [null, null]
 array<Material3D?> materials = [null, null]
 array<c_uint> flags = [c_uint(0), c_uint(0)]
-array<string?> files = [null, "assets/model-triangle.gltf"]
-auto root = scene.loadColumns(xge3d.Xge3dNode(), names, parents, [identity, placed], meshes, materials, flags, files, -1, [], -1, cache)
-cache.close()
+array<string?> modelUris = [null, "triangle"]
+
+auto resolve = func(ResourcePath uri, SceneModelOutput output) as c_int
+    assert uri.text == "triangle"
+    output.set(model)
+    return c_int(0)
+end
+auto root = scene.loadColumnsWithResolver(xge3d.Xge3dNode(), resolve, names, parents, [identity, placed], meshes, materials, flags, modelUris)
+// 加载后，场景持有模型资源。
+model.close()
 
 auto status, triangle = scene.find(root, "三角形")
 assert status == 0

@@ -1,0 +1,129 @@
+{
+  "schema": 1,
+  "date": "2026-11-23",
+  "complete": true,
+  "passed": true,
+  "scope": "Synchronous managed 3D scene model resolver, callback-scoped views, checked rollback and native ownership",
+  "nativeRevision": "f7686da8fe0d2a1cef01ccc3cb66bd719605c24b",
+  "shippingDelivery": false,
+  "networkTests": false,
+  "apiCompletenessClaim": false,
+  "sourceLF": {
+    "lib/bindings/xge/three_d/src/scene.xl": "d727514669344d6b643f5343dff653fdb300994ab1ec07591b11c1a50343e355",
+    "lib/bindings/xge/three_d/examples/scene_load.xl": "989173f755cbe16878493ba9dedc07822ef8f981be98af282359830fc7632828",
+    "test/cases/foreign_xge3d_scene_resolver.xl": "8fb0a0767c85a7ab6a4ecae5950c565cada834c51a64aa9e315ccae88ed67bea",
+    "test/cases/foreign_xge3d_scene_resolver.c": "eaaff4f0efdd4f1562b441cfd75e0dc9035b234e19e2e771e2300d3f8d05ffdb",
+    "test/cases/foreign_xge3d_scene_resolver.h": "916f90fab6f98301757702766c6d95638b97548301c13ca08c88b50ce3c54624",
+    "docs/xge3-xui3-api-map-storage.json": "8760e98f0e7f6969abc16f75e634aa15541eaaa7d1da3f64e7788459dfdaae6c"
+  },
+  "audit": {
+    "functionPopulation": 5791,
+    "directDeclarations": 4731,
+    "compiledConsumerFunctions": 284,
+    "explicitReplacements": 461,
+    "resolved": [
+      "xge3dSceneLoad"
+    ],
+    "pending": {
+      "XGE": 126,
+      "XUI": 193,
+      "Document": 0
+    }
+  },
+  "platforms": {
+    "Windows x64": {
+      "engine": {
+        "host": {
+          "path": "F:\\xlang-validation\\xge-full-20261110\\scene-resolver-host-win-r2\\build-report.json",
+          "sha256": "d108722e9f016555f7538d7cec9a63194336ee3b76e522a888643b36535ff40a"
+        },
+        "static": {
+          "path": "F:\\xlang-validation\\xge-full-20261110\\scene-resolver-static-win-r2\\build-report.json",
+          "sha256": "9a39ba31aefb861f3ffd557b4cc1876ea9a0e5b82fc6cdebcce5f740fd97d668"
+        }
+      },
+      "nativeSource": {
+        "path": "F:\\xlang-validation\\xge-full-20261110\\scene-resolver-audit-win-r1\\native-source.json",
+        "sha256": "61c0ca7c39caa5daf68f7c8a2c10d4280a30909d62fc24629fe7c9cfb25c67fc"
+      },
+      "apiSurface": {
+        "path": "F:\\xlang-validation\\xge-full-20261110\\scene-resolver-audit-win-r1\\surface\\surface.json",
+        "sha256": "d620bac12e2db605bd01a18a85856dc449df77c9e6f382b1986e9d3848b03622"
+      },
+      "previousAudit": {
+        "path": "F:\\xlang-validation\\xge-full-20261110\\svg-resource-audit-win-r1\\results.json",
+        "sha256": "bcb569fb258724fff31f06eb3c9854a86a71c38e6a01286c3ff14c1d8073fc73"
+      },
+      "consumerAudit": {
+        "path": "F:\\xlang-validation\\xge-full-20261110\\scene-resolver-audit-win-r1\\consumers\\results.json",
+        "sha256": "f6392eb3a0f256d5f75cc6e194a4123343b3406337132b9984e6e3caae8e1a73"
+      },
+      "generator": {
+        "path": "F:\\xlang-validation\\xge-full-20261110\\scene-resolver-generator-win-r3\\results.json",
+        "sha256": "cf61b6536b9db95f95ff9160258ba5210c080b821eb46952023f2f4f789e5fe4"
+      },
+      "matchedPackages": {
+        "path": "F:\\xlang-validation\\xge-full-20261110\\scene-resolver-stage-win-r3\\replay\\stage-report.json",
+        "sha256": "4efc8b5bfacd711e4b4054aef6061ff00276ceee708259f22da2f3065aa55ef8"
+      },
+      "runtime": {
+        "path": "F:\\xlang-validation\\xge-full-20261110\\scene-resolver-tests-win-r1\\results.json",
+        "sha256": "84caaed5c5e7e463c7263d09e9390e9fbda1ff1f11ec29ce3de90db9254e0f44"
+      },
+      "steps": 15,
+      "nativeFaultInjection": {
+        "budgetPrefixes": 48,
+        "faults": 17,
+        "afterResolution": 15,
+        "successfulLoads": 31
+      }
+    },
+    "Linux x64": {
+      "engine": {
+        "host": {
+          "path": "\\\\wsl.localhost\\Ubuntu\\var\\tmp\\xlang-validation\\xge-full-20261110\\scene-resolver-host-linux-r2\\build-report.json",
+          "sha256": "fb2514203c123cb201ec98426e1f831cd6bd2950457620376b7db7983c062538"
+        },
+        "static": {
+          "path": "\\\\wsl.localhost\\Ubuntu\\var\\tmp\\xlang-validation\\xge-full-20261110\\scene-resolver-static-linux-r2\\build-report.json",
+          "sha256": "a60dae1600799174f9ccb8076f72e1c2fc5a4b4d2f8ace14dbbd55cc5d89fef1"
+        }
+      },
+      "nativeSource": {
+        "path": "\\\\wsl.localhost\\Ubuntu\\var\\tmp\\xlang-validation\\xge-full-20261110\\scene-resolver-audit-linux-r1\\native-source.json",
+        "sha256": "57c0ba65438c3f29048a25ae81a95d9abed30ab357f314d1af9eac4bf12a6f73"
+      },
+      "apiSurface": {
+        "path": "\\\\wsl.localhost\\Ubuntu\\var\\tmp\\xlang-validation\\xge-full-20261110\\scene-resolver-audit-linux-r1\\surface\\surface.json",
+        "sha256": "b155634f5d987ef5709ac7acc195fef66bae13c463c60e59a9a1177bfe212eff"
+      },
+      "previousAudit": {
+        "path": "\\\\wsl.localhost\\Ubuntu\\var\\tmp\\xlang-validation\\xge-full-20261110\\svg-resource-audit-linux-r1\\results.json",
+        "sha256": "eed61104695e31d0c22a05fda69ff84bf8077015c0cfe45d168d4452e74e8ee7"
+      },
+      "consumerAudit": {
+        "path": "\\\\wsl.localhost\\Ubuntu\\var\\tmp\\xlang-validation\\xge-full-20261110\\scene-resolver-audit-linux-r1\\consumers\\results.json",
+        "sha256": "68b14c68f05c9d056770e77b9fd23876b4634afebf665d4133f1f898cd8f0ddc"
+      },
+      "generator": {
+        "path": "\\\\wsl.localhost\\Ubuntu\\var\\tmp\\xlang-validation\\xge-full-20261110\\scene-resolver-generator-linux-r3\\results.json",
+        "sha256": "a3a77b17c543d6f629c6a6baa1ad5f613c406e4eee5249a2bce2495f6551b0a5"
+      },
+      "matchedPackages": {
+        "path": "\\\\wsl.localhost\\Ubuntu\\var\\tmp\\xlang-validation\\xge-full-20261110\\scene-resolver-stage-linux-r3\\replay\\stage-report.json",
+        "sha256": "2b7e7e587a9f825196a49ee4605b35b8ca452a40e5c90448ba3ad7ffaed6aceb"
+      },
+      "runtime": {
+        "path": "\\\\wsl.localhost\\Ubuntu\\var\\tmp\\xlang-validation\\xge-full-20261110\\scene-resolver-tests-linux-r1\\results.json",
+        "sha256": "a9af77e862a842a26cc3f141f4fec3f73c7cca35af0a1cae5abbac0c78c6b687"
+      },
+      "steps": 15,
+      "nativeFaultInjection": {
+        "budgetPrefixes": 48,
+        "faults": 17,
+        "afterResolution": 15,
+        "successfulLoads": 31
+      }
+    }
+  }
+}

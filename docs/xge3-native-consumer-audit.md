@@ -1,5 +1,24 @@
 # Native consumers in the full API inventory
 
+## Scene model resolver
+
+`Scene.loadColumnsWithResolver()` projects typed node columns and calls
+`xge3dSceneLoadWithResolver` directly. The synchronous callback supplies a
+model through a callback-scoped output. Native code retains one model
+reference and resolves every URI before creating the staged hierarchy.
+The language test covers exception propagation, missing and duplicate
+output, mixed pre-resolved and callback rows, expired views, and model
+lifetime after the caller closes its reference. The native fixture checks
+same-scene nested load rejection and verifies that failed allocations leave
+the existing hierarchy and model reference count intact.
+
+The raw `xge3dSceneLoad` row now has an explicit managed replacement. The
+audit has 5,791 native functions, 4,731 direct declarations, and 319 rows
+without a direct declaration, compiled consumer or explicit replacement.
+The remaining rows are 126 for XGE and 193 for XUI.
+
+[Validation evidence](../dev/release-materials/provenance/xge3d-scene-resolver-20261123.json)
+
 ## SVG, resource providers and image alpha
 
 `SvgCache.load()` supplies the explicit creator-thread cache path for the
