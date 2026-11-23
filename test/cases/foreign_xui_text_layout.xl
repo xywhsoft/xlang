@@ -1,5 +1,6 @@
 // Unique Layout owns Font/paint while Context remains a weak dependency.
 import xui
+from xui import Context
 extern "fixtureLayoutProxy" @header("test/cases/foreign_xui_text_layout.h") @no_raise @c_result("owned_view") @factory(0,0,dropProxy) func cpuProxy() as xui.Proxy
 extern "xuiProxyReleaseChecked" @header("xge3_runtime.h") @no_raise @c_result("status",0) func dropProxy(xui.Proxy value)
 extern "fixtureLayoutFont" @no_raise @c_result("owned_view") @factory(1,0,dropFont) func cpuFont(xui.Proxy proxy) as xui.Font
@@ -13,6 +14,7 @@ extern "fixtureLayoutCheck" @no_raise func checkCleanup()
 extern "fixtureLayoutHeapBegin" @no_raise func beginHeap()
 extern "fixtureLayoutHeapReport" @no_raise func reportHeap(c_int native)
 extern "fixtureLayoutNativeHot" @no_raise func nativeHot(xui.TextLayout layout)
+extern "fixtureLayoutContextScopes" @no_raise func contextScopes(xui.TextLayout layout)
 func main(...) as int
     println("Layout phase: backend resources")
     auto proxy=cpuProxy()
@@ -21,6 +23,20 @@ func main(...) as int
     auto surface=cpuSurface(proxy)
     println("Layout phase: packed creation and reads")
     auto layout=xui.createTextLayout(context,font,"a\0b",1000,1000)
+    contextScopes(layout)
+    // Result admission should keep the existing Context even with no heap budget.
+    Context? owner=null
+    budget(0)
+    try
+        owner=layout.getContext()
+    finally
+        budget(-1)
+    end
+    assert owner!=null
+    auto alias=owner as Context
+    alias.setVirtualDpi(1.5)
+    assert context.getVirtualDpi()==c_float(1.5)
+    context.setVirtualDpi(1)
     println("Layout phase: state")
     auto size,lines,truncated=layout.getState()
     assert size.fX==24 and size.fY==16 and lines==1 and truncated==0
@@ -140,14 +156,20 @@ func main(...) as int
     assert layout.getText()=="" and original=="a\0b"
     layout.reset(font,"a\0b",1000,1000)
     auto worker=thread(func() as int
+        int rejected=0
+        try
+            layout.getContext()
+        catch StateError
+            rejected+=1
+        end
         try
             auto invalid=layout.getText()
         catch StateError
-            return 1
+            rejected+=1
         end
-        return 0
+        return rejected
     end)
-    assert worker.waitTimeout(30000) and worker.exitCode()==1
+    assert worker.waitTimeout(30000) and worker.exitCode()==2
     println("Layout phase: Busy close and Context expiry")
     ready(0)
     layout.close()
@@ -160,8 +182,17 @@ func main(...) as int
     assert rejected
     ready(1)
     layout.close()
+    assert alias.getVirtualDpi()==c_float(1)
     auto survivor=xui.createTextLayout(context,font,"survives Context storage",1000,1000)
-    context.close()
+    alias.close()
+    assert survivor.getContext()==null
+    rejected=false
+    try
+        context.getVirtualDpi()
+    catch StateError
+        rejected=true
+    end
+    assert rejected
     rejected=false
     try
         original=survivor.getText()

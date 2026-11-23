@@ -91,7 +91,16 @@ CONTRACTS = {
         'export extern "xge3dRayTriangle" @header("xge3_runtime.h") @no_raise @c_ref(0) @c_ref(1) @c_outputs(-1,3) func rayTriangle(Xge3dRay ray,Xge3dVec3[3] triangle,c_float maxDistance) as (c_int,Xge3dHit)'),
 }
 
+CLOSE_REPLACEMENTS = {
+    name: ('xge.DataObject.close','xl6Xge3DataObjectPolicy','destroy_xl6Xge3DataObject',
+           'xgeDataObjectReleaseOwnerChecked')
+    for name in ('xgeDataObjectRelease','xgeDataObjectReleaseChecked')
+}
+
 REPLACED = {
+    'xgeDataObjectCreate': ('xge.createDataObject','xgeDataObjectCreateOwned'),
+    'xgeDataObjectAddRef': ('xge.DataObject.share','xgeDataObjectShareOwned'),
+    'xgeDataObjectSetProvider': ('xge.DataObject.setProvider','xgeDataObjectSetProviderOwned'),
     'xge3dSceneNodeDefault': ('xge3d.sceneNodeDefaults','xge3dSceneNodeDefaultsGet'),
     'xge3dAnimationLayerDefault': ('xge3d.animationOptions','xge3dAnimationOptionsDefaultInto'),
     'xge3dAnimatorCreate': ('xge3d.Scene.animator','xge3dAnimatorCreateOwned'),

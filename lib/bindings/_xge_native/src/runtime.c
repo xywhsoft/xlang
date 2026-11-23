@@ -650,6 +650,24 @@ const XL6_ForeignViewDescriptorV1* xl6Xui3TextShapePolicyGet(void)
     return &value;
 }
 static bool destroy_path(void* raw){xuiPathDestroy(raw);return true;}
+static bool watch_text_layout(void* raw,void* storage,void(*invalidate)(void*),void* user)
+{
+    int status=xuiTextLayoutLifetimeWatch(raw,storage,invalidate,user);
+    if(status!=XUI_OK)report_resource_failure(status,"xuiTextLayoutLifetimeWatch");
+    return status==XUI_OK;
+}
+static bool text_layout_begin(void* raw,void* storage)
+{
+    int status=xuiTextLayoutContextScopeBegin(raw,storage);
+    if(status!=XUI_OK)report_resource_failure(status,"xuiTextLayoutContextScopeBegin");
+    return status==XUI_OK;
+}
+static bool text_layout_end(void* storage)
+{
+    int status=xuiTextLayoutContextScopeEnd(storage);
+    if(status!=XUI_OK)report_resource_failure(status,"xuiTextLayoutContextScopeEnd");
+    return status==XUI_OK;
+}
 static bool destroy_text_layout(void* raw)
 {bool consumed=false;int status=xuiTextLayoutDestroyOwnerChecked(raw,&consumed);if(status!=XUI_STATUS_DEFERRED)report_resource_failure(status,"xuiTextLayoutDestroyOwnerChecked");return consumed;}
 static bool request_text_layout(void* raw)
@@ -660,13 +678,14 @@ static bool busy_text_layout(const void* raw)
 {return xuiTextLayoutOwnershipBusy((xui_text_layout)raw);}
 const XL6_ForeignViewDescriptorV1* xl6Xui3TextLayoutPolicyGet(void)
 {
-    /* Unique owner with weak Context, not a Context child or an invented RC
-     * node. Native status/consumption and partial cleanup progress are separate.
-     * Resident active pins defer destruction through the complete call tail. */
+    /* The scope holds the layout. The lookup pins its Context on demand. */
     static const XL6_ForeignViewDescriptorV1 value={sizeof(value),XL6_FOREIGN_VIEW_V1_TAG,"xui.textLayout",
-        0,1,NULL,NULL,destroy_text_layout,
-        0,1,NULL,NULL,trace_text_layout,busy_text_layout,
-        XL6_FOREIGN_VIEW_DESTROY_REPORTS_FAILURE|XL6_FOREIGN_VIEW_CONTINUABLE_FINALIZE,NULL,request_text_layout};return &value;
+        sizeof(xui_lifetime_link_t),_Alignof(xui_lifetime_link_t),watch_text_layout,unwatch,destroy_text_layout,
+        sizeof(xui_text_layout_context_scope_t),_Alignof(xui_text_layout_context_scope_t),text_layout_begin,text_layout_end,
+        trace_text_layout,busy_text_layout,XL6_FOREIGN_VIEW_RELIABLE_OWNED_WATCH|
+        XL6_FOREIGN_VIEW_DESTROY_OWNS_NATIVE_SCOPE|XL6_FOREIGN_VIEW_DESTROY_REPORTS_FAILURE|
+        XL6_FOREIGN_VIEW_CONTINUABLE_FINALIZE,NULL,request_text_layout};
+    return &value;
 }
 #if XUI_ENABLE_CODE_EDIT
 static bool watch_code_document(void* raw,void* storage,void(*invalidate)(void*),void* user)

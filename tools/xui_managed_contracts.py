@@ -1419,6 +1419,12 @@ METHODS.update({
 
 # Provider snapshots and sets close through their ownership descriptors.
 CLOSE_REPLACEMENTS = {
+    'xuiDestroy': ('xui.Context.close', 'xl6Xui3ContextPolicy',
+        'destroy_context', 'xuiDestroyOwnerChecked'),
+    'xuiDataObjectRelease': ('xui.DataObject.close', 'xl6Xui3DataObjectPolicy',
+        'destroy_xl6Xui3DataObject', 'xuiDataObjectReleaseOwnerChecked'),
+    'xuiDataObjectReleaseChecked': ('xui.DataObject.close', 'xl6Xui3DataObjectPolicy',
+        'destroy_xl6Xui3DataObject', 'xuiDataObjectReleaseOwnerChecked'),
     'xuiTextLayoutDestroy': ('xui.TextLayout.close', 'xl6Xui3TextLayoutPolicy',
         'destroy_text_layout', 'xuiTextLayoutDestroyOwnerChecked'),
     'xuiTextLayoutDestroyChecked': ('xui.TextLayout.close', 'xl6Xui3TextLayoutPolicy',
@@ -1447,6 +1453,14 @@ CLOSE_REPLACEMENTS = {
 
 # Reviewed native entry points with managed replacements.
 REPLACED = {
+    'xuiTextLayoutGetContext': ('xui.TextLayout.getContext', 'xuiTextLayoutGetScopedContext'),
+    'xuiCreate': ('xui.create', 'xuiCreateOwned'),
+    'xuiCreateEx': ('xui.create', 'xuiCreateOwnedEx'),
+    'xuiCreateLanguage': ('xui.Context.createLanguage', 'xuiCreateLanguageOwned'),
+    'xuiGetProxy': ('xui.Context.proxy', 'xuiGetProxyOwned'),
+    'xuiDataObjectCreate': ('xui.createDataObject', 'xuiDataObjectCreateOwned'),
+    'xuiDataObjectAddRef': ('xui.DataObject.share', 'xuiDataObjectShareOwned'),
+    'xuiDataObjectSetProvider': ('xui.DataObject.setProvider', 'xuiDataObjectSetProviderOwned'),
     'xuiTextLayoutGetSize': ('xui.TextLayout.getState', 'xuiTextLayoutGetState'),
     'xuiTextLayoutGetLineCount': ('xui.TextLayout.getState', 'xuiTextLayoutGetState'),
     'xuiTextLayoutGetTruncated': ('xui.TextLayout.getState', 'xuiTextLayoutGetState'),

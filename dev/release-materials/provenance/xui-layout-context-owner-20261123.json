@@ -1,0 +1,412 @@
+{
+  "schema": 1,
+  "date": "2026-11-23",
+  "complete": true,
+  "passed": true,
+  "shippingDelivery": false,
+  "networkTests": false,
+  "scope": "Observed layout Context lookup, lazy native pinning, checked owner cleanup and DataObject replacements",
+  "nativeRevision": "fd8061b92cdbb7e62eedbf40cac69a9369873d76",
+  "nativeSourceLF": {
+    "include/xui.h": "7febffb4e6a6bac97e30533fc5599ecc428e77e3c3e60a4cf05269c3e0c8bb53",
+    "src/xui/core/xui_text.c": "87e4976f899dbfaaf840aca25a614a3fd4b45b2a36bda6038d029b72965b5b78"
+  },
+  "sourceLF": {
+    "docs/xui-text-layout.md": "a806bad834f9a99eb0f2e1851711e547d6948bdabaa335c1acbc627aaafbca12",
+    "docs/xge3-xui3-api-map-storage.json": "8be65f5f7f0d720b561d0abca581bbdc73794c9001b3eb8d3ad86a0fd1f66251",
+    "lib/bindings/_xge_native/src/runtime.c": "761ab8c9b11d21ddbdfe8708e5ecdc604b338af099d4e73ece856c4e88042f2a",
+    "lib/bindings/xui/src/text_layout.xl": "de3b824beee70d568ef9fcd3d05e3fab3c8ec94f7f8ee1ec0a634b03e8758404",
+    "lib/bindings/xui/examples/text_layout.xl": "bf789f9eb750083c7a38af42fafcd30e2aa1860ac2150a5f9c7ae31a06652c5b",
+    "lib/bindings/xui/examples/_window.xl": "926d53e02b0fc31b4bbe9b016d26f80f4da9e65e6354e06459cb4c6684959af0",
+    "test/cases/foreign_xui_text_layout.xl": "f9dec4bc73fb4fabdcb6dd019c33bbed5bd0a9daa01395baf16fe1c15f1f00dc",
+    "test/cases/foreign_xui_text_layout.c": "0d72acc0081447079b1fc8491d67681826fbd0e5bbb7dcc19189435a9b555e4a",
+    "test/cases/foreign_xui_text_layout.h": "2f87002ee09c1cd161994a3bb98ccbdd7c6c95035d191a254e7417c4f6ce8bd2",
+    "test/cases/foreign_xge3_package_data_object.xl": "3568edb7963b2d00a875923cb5d7a6a03b9eb2acb14602322be624b660d03bbf",
+    "tools/xge_replay_contracts.py": "16d4a52325d6237342a7ac3126d2b3e8a484a49c4a3e30c93053a04ff2c42de0",
+    "tools/xui_managed_contracts.py": "8f2cc583bc24deb9eee12213ee469b9f959bdfea56fe155300f9c194f3200ef2",
+    "tools/check_xge3_native_consumers.py": "8b1a57739f1578fc7558fcc81bed869c8df85e7dcb5769e088391a5a2476c3dc"
+  },
+  "audit": {
+    "functionPopulation": 5810,
+    "directDeclarations": 4748,
+    "compiledConsumerFunctions": 327,
+    "explicitReplacements": 512,
+    "pending": {
+      "XGE": 84,
+      "XUI": 150,
+      "Document": 0
+    }
+  },
+  "platforms": {
+    "Windows x64": {
+      "records": {
+        "source": {
+          "path": "F:\\xlang-validation\\xge-full-20261110\\layout-context-owner-audit-win-r2\\native-source.json",
+          "sha256": "ce20204fb0c87bfe098055a0a94c29d1c889c22ec2ef0c44eafb22286888427b"
+        },
+        "nativeHost": {
+          "path": "F:\\xlang-validation\\xge-full-20261110\\layout-context-owner-host-win-r1\\build-report.json",
+          "sha256": "17f1cfa52a5bce78087297961c4e5737f6506922d3d29d3700200f3ce6105123"
+        },
+        "nativeStatic": {
+          "path": "F:\\xlang-validation\\xge-full-20261110\\layout-context-owner-static-win-r1\\build-report.json",
+          "sha256": "ccb50663b533c87e9563be80e9636bbcc23b715bb210c8623c1fa712729920d8"
+        },
+        "compiler": {
+          "path": "F:\\xlang-validation\\xge-full-20261110\\compiler-egl-image-win-r1\\build.json",
+          "sha256": "79eca7fd3680d6eff32497ae07da75ad074c18c9c642d95eacbd663abb9d6bb8"
+        },
+        "generator": {
+          "path": "F:\\xlang-validation\\xge-full-20261110\\layout-context-owner-generator-win-r2\\results.json",
+          "sha256": "992b4fcefba89ff1ec208f221235e6610b66c374728938655488d3aebc6a40f6"
+        },
+        "packages": {
+          "path": "F:\\xlang-validation\\xge-full-20261110\\layout-context-owner-stage-win-r2\\replay\\stage-report.json",
+          "sha256": "997908a3910074c92f07989a2f37ea30f6d95c1105e92b550eb5e82c5622e32d"
+        },
+        "inventory": {
+          "path": "F:\\xlang-validation\\xge-full-20261110\\layout-context-owner-audit-win-r2\\surface\\surface.json",
+          "sha256": "8bdbbc4ba95c5cc328b56ab49615c17011e1436f494c87d80b9aa4e435be05d5"
+        },
+        "consumers": {
+          "path": "F:\\xlang-validation\\xge-full-20261110\\layout-context-owner-audit-win-r2\\consumers\\results.json",
+          "sha256": "5af29eca3c78fc1c3aa4a0aff18b2e5df3e37478a742eef58822c0e2c08139a0"
+        },
+        "layout": {
+          "path": "F:\\xlang-validation\\xge-full-20261110\\layout-context-owner-layout-win-r2\\results.json",
+          "sha256": "ff85834d5babf4acfb256feaa93e442f1c8d4a29265679c3f5483513af09116c"
+        },
+        "data": {
+          "path": "F:\\xlang-validation\\xge-full-20261110\\layout-context-owner-data-win-r2\\results.json",
+          "sha256": "e555c88d9e8ad12674ffcb0111c70eda7557620e963c15bf8ad75b9f4fdfd77c"
+        },
+        "example": {
+          "path": "F:\\xlang-validation\\xge-full-20261110\\layout-context-owner-example-win-r2\\results.json",
+          "sha256": "11af22a40757f757db3331d69e875ddce42e80cbf7bebe3a83904cf7e7338cb7"
+        },
+        "rejectedFullScopeBenchmark": {
+          "path": "F:\\xlang-validation\\xge-full-20261110\\layout-context-owner-bench-win-r1\\results.json",
+          "sha256": "2199df02705e780324620746ac00e837a07d1c111228e3a79ed4e4a29ab48d0f"
+        },
+        "scopedBenchmark": {
+          "path": "F:\\xlang-validation\\xge-full-20261110\\layout-context-owner-bench-win-r2\\results.json",
+          "sha256": "7eac2593854940450e3666f60579ec3b301ff1077df199eb59ae072f666ab27a"
+        }
+      },
+      "tests": {
+        "layout": {
+          "steps": 8,
+          "directCalls": {
+            "xuiTextLayoutGetScopedContext": 3,
+            "xl6ForeignViewFindExistingRootV1": 3,
+            "xuiTextLayoutGetState": 4
+          },
+          "imports": {
+            "dynamic": [
+              "msvcrt.dll",
+              "xge3_host.dll",
+              "kernel32.dll",
+              "shell32.dll",
+              "ws2_32.dll",
+              "iphlpapi.dll",
+              "ucrtbase.dll"
+            ],
+            "static": [
+              "msvcrt.dll",
+              "kernel32.dll",
+              "ole32.dll",
+              "shell32.dll"
+            ]
+          },
+          "warmHeapAllocFreeRealloc": {
+            "jit": {
+              "language": [
+                0,
+                0,
+                0
+              ],
+              "native": [
+                0,
+                0,
+                0
+              ]
+            },
+            "dynamic-run": {
+              "language": [
+                0,
+                0,
+                0
+              ],
+              "native": [
+                0,
+                0,
+                0
+              ]
+            },
+            "static-run": {
+              "language": [
+                0,
+                0,
+                0
+              ],
+              "native": [
+                0,
+                0,
+                0
+              ]
+            }
+          }
+        },
+        "data": {
+          "steps": 8,
+          "directCalls": {
+            "xgeDataObjectShareOwned": 1,
+            "xuiDataObjectShareOwned": 1,
+            "xgeDataObjectSetProviderOwned": 3,
+            "xuiDataObjectSetProviderOwned": 5
+          },
+          "imports": {
+            "dynamic": [
+              "xge3_host.dll",
+              "msvcrt.dll",
+              "kernel32.dll",
+              "shell32.dll",
+              "ucrtbase.dll"
+            ],
+            "static": [
+              "msvcrt.dll",
+              "kernel32.dll",
+              "ole32.dll",
+              "shell32.dll"
+            ]
+          }
+        }
+      },
+      "exampleFrames": [
+        {
+          "mode": "jit",
+          "width": 800,
+          "height": 600,
+          "sha256": "536446a16dd39b01069aff1bd3faceff4878c4ff9739e5cd5b00f9ea5720acc4"
+        },
+        {
+          "mode": "dynamic",
+          "width": 800,
+          "height": 600,
+          "sha256": "536446a16dd39b01069aff1bd3faceff4878c4ff9739e5cd5b00f9ea5720acc4"
+        },
+        {
+          "mode": "static",
+          "width": 800,
+          "height": 600,
+          "sha256": "536446a16dd39b01069aff1bd3faceff4878c4ff9739e5cd5b00f9ea5720acc4"
+        }
+      ],
+      "benchmark": {
+        "iterations": 1000000,
+        "unit": "milliseconds",
+        "finalMedian": {
+          "before": 1127,
+          "after": 1159
+        },
+        "finalRelativeChangePercent": 2.839396628216506,
+        "rejectedFullScopeMedian": {
+          "before": 1225,
+          "after": 1602
+        },
+        "rejectedFullScopeChangePercent": 30.775510204081623
+      }
+    },
+    "Linux x64": {
+      "records": {
+        "source": {
+          "path": "\\\\wsl.localhost\\Ubuntu\\var\\tmp\\xlang-validation\\xge-full-20261110\\layout-context-owner-audit-linux-r2\\native-source.json",
+          "sha256": "51255a75fd9f42b71805752ed6acf37a1f0e472bc19a7dc7662f1e32225204ce"
+        },
+        "nativeHost": {
+          "path": "\\\\wsl.localhost\\Ubuntu\\var\\tmp\\xlang-validation\\xge-full-20261110\\layout-context-owner-host-linux-r1\\build-report.json",
+          "sha256": "6666522d8e507535fdf19500ad95aa27a3048b8596504180199a514fe463f422"
+        },
+        "nativeStatic": {
+          "path": "\\\\wsl.localhost\\Ubuntu\\var\\tmp\\xlang-validation\\xge-full-20261110\\layout-context-owner-static-linux-r1\\build-report.json",
+          "sha256": "10c05afc5b03871afef446b9f03f9b143a2a038d5c6f25dccd26383974e9d393"
+        },
+        "compiler": {
+          "path": "\\\\wsl.localhost\\Ubuntu\\var\\tmp\\xlang-validation\\xge-full-20261110\\compiler-egl-image-linux-r1\\build.json",
+          "sha256": "df9e82649546cb57c9433e191c8f4b66489feeb4e2a01002ebe67e9df325e1a1"
+        },
+        "generator": {
+          "path": "\\\\wsl.localhost\\Ubuntu\\var\\tmp\\xlang-validation\\xge-full-20261110\\layout-context-owner-generator-linux-r2\\results.json",
+          "sha256": "88a00bb77a6819b3b993696b7ba18629bc59d150cf098bd84e4b44216323a6bc"
+        },
+        "packages": {
+          "path": "\\\\wsl.localhost\\Ubuntu\\var\\tmp\\xlang-validation\\xge-full-20261110\\layout-context-owner-stage-linux-r2\\replay\\stage-report.json",
+          "sha256": "3eb88f5e8d3d0de9359933ea39aa6283eb6da6ab78422e7f4879d9d09d8e708c"
+        },
+        "inventory": {
+          "path": "\\\\wsl.localhost\\Ubuntu\\var\\tmp\\xlang-validation\\xge-full-20261110\\layout-context-owner-audit-linux-r2\\surface\\surface.json",
+          "sha256": "ad683d6f9ed4a6dcf05f999eaa88ea2c29966ab642d849a491b0d88606c77584"
+        },
+        "consumers": {
+          "path": "\\\\wsl.localhost\\Ubuntu\\var\\tmp\\xlang-validation\\xge-full-20261110\\layout-context-owner-audit-linux-r2\\consumers\\results.json",
+          "sha256": "133ce159cc851a8a648220c3c5ee35e0789ef71adc12ab88b27db36bde363aad"
+        },
+        "layout": {
+          "path": "\\\\wsl.localhost\\Ubuntu\\var\\tmp\\xlang-validation\\xge-full-20261110\\layout-context-owner-layout-linux-r2\\results.json",
+          "sha256": "907c38779aee495edce98d23d9a9ee79e21a0f9591c58ea321c49ba782ac6297"
+        },
+        "data": {
+          "path": "\\\\wsl.localhost\\Ubuntu\\var\\tmp\\xlang-validation\\xge-full-20261110\\layout-context-owner-data-linux-r2\\results.json",
+          "sha256": "35012cc4d1d32b9eb60e3aec4bca0066dcd41767d7bdd0cd843b414913b1a42e"
+        },
+        "example": {
+          "path": "\\\\wsl.localhost\\Ubuntu\\var\\tmp\\xlang-validation\\xge-full-20261110\\layout-context-owner-example-linux-r2\\results.json",
+          "sha256": "4aca2e35f35dc434f71f82d4b5509207b1d70a3f834aae639d2ac256f31f140f"
+        },
+        "rejectedFullScopeBenchmark": {
+          "path": "\\\\wsl.localhost\\Ubuntu\\var\\tmp\\xlang-validation\\xge-full-20261110\\layout-context-owner-bench-linux-r1\\results.json",
+          "sha256": "484015ab2d3e6fbab6902d182992dff7c6a6c9a9746a8ffa2b395486e6ad5673"
+        },
+        "scopedBenchmark": {
+          "path": "\\\\wsl.localhost\\Ubuntu\\var\\tmp\\xlang-validation\\xge-full-20261110\\layout-context-owner-bench-linux-r2\\results.json",
+          "sha256": "fc1c1c5a03c2982eaba97662d9b680d92b97e3f274ef1e567381e9e82bd25e18"
+        }
+      },
+      "tests": {
+        "layout": {
+          "steps": 8,
+          "directCalls": {
+            "xuiTextLayoutGetScopedContext": 3,
+            "xl6ForeignViewFindExistingRootV1": 3,
+            "xuiTextLayoutGetState": 4
+          },
+          "imports": {
+            "dynamic": [
+              "libm.so.6",
+              "libmvec.so.1",
+              "libxge3_host.so",
+              "libc.so.6",
+              "ld-linux-x86-64.so.2"
+            ],
+            "static": [
+              "libm.so.6",
+              "libmvec.so.1",
+              "libx11.so.6",
+              "libxi.so.6",
+              "libxcursor.so.1",
+              "libgl.so.1",
+              "libegl.so.1",
+              "libc.so.6",
+              "ld-linux-x86-64.so.2"
+            ]
+          },
+          "warmHeapAllocFreeRealloc": {
+            "jit": {
+              "language": [
+                0,
+                0,
+                0
+              ],
+              "native": [
+                0,
+                0,
+                0
+              ]
+            },
+            "dynamic-run": {
+              "language": [
+                0,
+                0,
+                0
+              ],
+              "native": [
+                0,
+                0,
+                0
+              ]
+            },
+            "static-run": {
+              "language": [
+                0,
+                0,
+                0
+              ],
+              "native": [
+                0,
+                0,
+                0
+              ]
+            }
+          }
+        },
+        "data": {
+          "steps": 8,
+          "directCalls": {
+            "xgeDataObjectShareOwned": 1,
+            "xuiDataObjectShareOwned": 1,
+            "xgeDataObjectSetProviderOwned": 3,
+            "xuiDataObjectSetProviderOwned": 5
+          },
+          "imports": {
+            "dynamic": [
+              "libm.so.6",
+              "libmvec.so.1",
+              "libxge3_host.so",
+              "libc.so.6",
+              "ld-linux-x86-64.so.2"
+            ],
+            "static": [
+              "libm.so.6",
+              "libmvec.so.1",
+              "libx11.so.6",
+              "libxi.so.6",
+              "libxcursor.so.1",
+              "libgl.so.1",
+              "libegl.so.1",
+              "libc.so.6",
+              "ld-linux-x86-64.so.2"
+            ]
+          }
+        }
+      },
+      "exampleFrames": [
+        {
+          "mode": "jit",
+          "width": 800,
+          "height": 600,
+          "sha256": "a3bf671ca63cd6069afae2b30a1d577ba9fda26804cd1bb986fc1cd34d8d0ad4"
+        },
+        {
+          "mode": "dynamic",
+          "width": 800,
+          "height": 600,
+          "sha256": "a3bf671ca63cd6069afae2b30a1d577ba9fda26804cd1bb986fc1cd34d8d0ad4"
+        },
+        {
+          "mode": "static",
+          "width": 800,
+          "height": 600,
+          "sha256": "a3bf671ca63cd6069afae2b30a1d577ba9fda26804cd1bb986fc1cd34d8d0ad4"
+        }
+      ],
+      "benchmark": {
+        "iterations": 1000000,
+        "unit": "milliseconds",
+        "finalMedian": {
+          "before": 1078,
+          "after": 1170
+        },
+        "finalRelativeChangePercent": 8.534322820037099,
+        "rejectedFullScopeMedian": {
+          "before": 889,
+          "after": 1197
+        },
+        "rejectedFullScopeChangePercent": 34.645669291338585
+      }
+    }
+  },
+  "remaining": [
+    "Other XGE and XUI surface reviews and runtime qualification.",
+    "Matching shipping SDK, compiler, IDE and extension packages."
+  ]
+}

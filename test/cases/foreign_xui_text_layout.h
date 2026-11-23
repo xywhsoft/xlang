@@ -11,4 +11,5 @@ void fixtureLayoutCheck(void);
 void fixtureLayoutHeapBegin(void);
 void fixtureLayoutHeapReport(int native);
 void fixtureLayoutNativeHot(xui_text_layout layout);
+void fixtureLayoutContextScopes(xui_text_layout layout);
 #endif

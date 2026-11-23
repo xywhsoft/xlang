@@ -81,3 +81,17 @@ void fixtureLayoutNativeHot(xui_text_layout layout)
         assert(xuiTextLayoutGetState(layout,&size,&lines,&truncated)==XUI_OK);
         assert(size.fX==24 && size.fY==16 && lines==1 && truncated==0);}
 }
+void fixtureLayoutContextScopes(xui_text_layout layout)
+{
+    xui_text_layout_context_scope_t first={0},second={0};
+    assert(xuiTextLayoutContextScopeBegin(layout,&first)==XUI_OK);
+    assert(first.tContext.pContext==NULL);
+    xui_context context=xuiTextLayoutGetScopedContext(layout);
+    assert(context && context==xuiTextLayoutGetContext(layout));
+    assert(xuiTextLayoutContextScopeBegin(layout,&second)==XUI_OK);
+    assert(first.tContext.pContext==context && second.tContext.pContext==NULL);
+    assert(xuiTextLayoutGetScopedContext(layout)==context && second.tContext.pContext==context);
+    assert(xuiTextLayoutContextScopeEnd(&first)==XUI_OK);
+    assert(xuiTextLayoutGetScopedContext(layout)==context);
+    assert(xuiTextLayoutContextScopeEnd(&second)==XUI_OK);
+}

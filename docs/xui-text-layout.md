@@ -13,6 +13,7 @@ pointer.
 | reset | xuiTextLayoutReset, checked status |
 | getState | xuiTextLayoutGetState, (Vec2 size, c_int lines, c_int truncated) |
 | getSize / getLineCount / getTruncated | xuiTextLayoutGetState, one checked output |
+| getContext | xuiTextLayoutGetScopedContext, alias of the live managed Context |
 | getLine | xuiTextLayoutGetLine, TextLine with complete byte offset/length and metrics |
 | getText | xuiTextLayoutGetTextView, independent string snapshot |
 | draw | xuiTextLayoutDraw, checked status, owned Surface target |
@@ -63,5 +64,30 @@ handwritten C allocation counters, and can run the real window lesson with a
 pinned font in JIT/dynamic/static modes. Zero heap operations do not prove
 equal CPU time or cold-path costs.
 
-The remaining native Context query needs to keep the weak Context valid
-through lookup of its existing language owner.
+`getContext()` returns an alias of the existing Context, so either reference
+can close the same owner. After Context destruction it returns null. Calling
+through a closed Layout or from another thread raises a checked error. A live
+native Context without a registered language owner raises `StateError`.
+
+```xlang
+from xui import Context
+
+auto owner = layout.getContext()
+if owner != null then
+    auto context = owner as Context
+    println(context.getVirtualDpi())
+end
+```
+
+`getContext()` pins a live Context during result admission. The runtime looks
+up the current thread's watched Context by native identity and retains its
+language reference. Layout watches its own native destruction as well.
+Ordinary layout methods enter a lightweight layout scope. The Context scope
+opens only during the lookup and stays live through result admission.
+Checked layout destruction takes its own native cleanup scope.
+
+In the local x64 dynamic AOT comparison with the same native library,
+one million warm `getState()` calls took 32 ms longer on Windows and 92 ms
+longer on Linux at the median. The lifetime checks add work even when the measured
+reads make zero heap operations.
+[Lookup validation and measurements](../dev/release-materials/provenance/xui-layout-context-owner-20261123.json)

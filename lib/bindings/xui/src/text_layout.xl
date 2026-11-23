@@ -1,6 +1,7 @@
 // Unique native layout. Context is weak; Font/paint remain real owned resources.
-export extern "xui_text_layout_t*" class TextLayout @header("xge3_runtime.h") @lifetime("owned") @policy("xl6Xui3TextLayoutPolicy") @domain("xl6Xui3OwnershipDomainV1")
+export extern "xui_text_layout_t*" class TextLayout @header("xge3_runtime.h") @lifetime("owned") @policy("xl6Xui3TextLayoutPolicy") @scope("xui_text_layout_context_scope_t") @watch("xui_lifetime_link_t") @domain("xl6Xui3OwnershipDomainV1")
  native point handle
+ extern "xuiTextLayoutGetScopedContext" @no_raise @c_result("existing_root") func getContext() as Context?
  extern "xuiTextLayoutGetState" @no_raise @c_outputs(1,2,3) @c_status(0) func getState() as (Vec2,c_int,c_int)
  extern "xl6Xui3TextLayoutGetSize" @no_raise @c_output(1,0) @c_null(2,"int*") @c_null(3,"int*") func getSize() as Vec2
  extern "xl6Xui3TextLayoutGetLineCount" @no_raise @c_output(2,0) @c_null(1,"xui_vec2_t*") @c_null(3,"int*") func getLineCount() as c_int
