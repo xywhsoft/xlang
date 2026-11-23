@@ -9,7 +9,7 @@ export extern "xui_code_command_map" class CodeCommandMap @header("xui3_code_com
  extern "xuiCodeCommandMapGetBinding" @no_raise @c_output(2,0) func getBinding(c_int index) as CodeKeyBinding
  extern "xl6ForeignViewCloseV1" @no_raise @c_control(0) @c_result("bool_status") func close()
 end
-extern "xuiCodeCommandMapDestroy" @header("xui3_code_command_map.h") @no_raise func rollbackCodeCommandMap(CodeCommandMap map)
+extern "xuiCodeCommandMapDestroyChecked" @header("xui3_code_command_map.h") @no_raise @c_result("status",0) func rollbackCodeCommandMap(CodeCommandMap map)
 export extern "xuiCodeCommandMapCreate" @header("xui3_code_command_map.h") @no_raise @c_result("owned_view") @factory(0,0,rollbackCodeCommandMap) func createCodeCommandMap() as CodeCommandMap
 
 // The editor owns this live map. Closing the view leaves its bindings in use.
@@ -23,3 +23,7 @@ export extern "xui_code_command_map" class CodeEditCommandMap @header("xge3_runt
  extern "xuiCodeCommandMapGetBinding" @no_raise @c_output(2,0) func getBinding(c_int index) as CodeKeyBinding
  extern "xl6ForeignViewCloseV1" @no_raise @c_control(0) @c_result("bool_status") func close()
 end
+
+// Dispatch to standalone models or an optional typed provider. The view arguments
+// stay valid throughout the native command and its synchronous callbacks.
+export extern "xuiCodeCommandExecute" @header("xge3_runtime.h") @no_raise @c_output(2,0) @c_pack(0,"xui_code_command_context_t",1,11) @c_pack_size(0,"iSize","uint32_t") @c_pack_field(0,"pDocument",1,"view_raw") @c_pack_field(0,"pSelection",2,"view_raw") @c_pack_field(0,"pFoldState",3,"view_raw") @c_pack_field(0,"pProviders",4,"view_raw") @c_pack_field(0,"pWidget",5,"view_raw") @c_pack_field(0,"pProxy",6,"view_raw") @c_pack_field(0,"bReadonly",7,"value") @c_pack_field(0,"sIndent",8,"c_string") @c_pack_field(0,"iIndentColumns",9,"value") @c_pack_field(0,"sLineComment",10,"c_string") @c_pack_field(0,"iPageLineCount",11,"value") func executeCodeCommand(c_int command,CodeDocument? document=null,CodeSelectionModel? selection=null,CodeFoldState? foldState=null,CodeProviderSet? providers=null,Widget? widget=null,Proxy? proxy=null,c_int readOnly=0,string? indent=null,c_int indentColumns=4,string? lineComment=null,c_int pageLines=0) as c_int

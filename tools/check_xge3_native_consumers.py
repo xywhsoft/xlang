@@ -118,6 +118,8 @@ HEADER_CLOSE_REPLACEMENTS.update({
 })
 HEADER_CLOSE_REPLACEMENTS['xuiCodeFoldStateDestroy'] = (
     'xui.CodeFoldState.close', 'xuiCodeFoldStateDestroyChecked')
+HEADER_CLOSE_REPLACEMENTS['xuiCodeCommandMapDestroy'] = (
+    'xui.CodeCommandMap.close', 'xuiCodeCommandMapDestroyChecked')
 DOCUMENT_RENDERER_SOURCE = 'src/xui/document/xui_document_renderer.c'
 DOCUMENT_MODEL_SOURCE = 'src/xui/document/xui_document.c'
 DOCUMENT_FONT_TAIL = {'xuiDocumentFontOutputInit', 'xuiDocumentFontOutputDisposeChecked'}
@@ -632,6 +634,9 @@ def main():
         if 'xui.CodeFoldState' in class_bindings:
             policy_groups['codeFoldStateHeaderPolicies'] = ('xui-code-fold-state-header-policies',
                 {'xui.CodeFoldState': class_bindings['xui.CodeFoldState']})
+        if 'xui.CodeCommandMap' in class_bindings:
+            policy_groups['codeCommandMapHeaderPolicies'] = ('xui-code-command-map-header-policies',
+                {'xui.CodeCommandMap': class_bindings['xui.CodeCommandMap']})
         header_relocations = {}
         for key, (name, classes) in policy_groups.items():
             evidence, relocations = compile_header_policies(name,view,classes,set(functions),
@@ -715,6 +720,9 @@ def main():
                 elif symbol=='xuiCodeFoldStateDestroy':
                     key='codeFoldStateHeaderPolicies'
                     destroy='xl6Xui3CodeFoldStateDestroy'
+                elif symbol=='xuiCodeCommandMapDestroy':
+                    key='codeCommandMapHeaderPolicies'
+                    destroy='xl6Xui3CodeCommandMapDestroy'
                 else:
                     key='headerPolicies'
                     destroy='xl6Xge3dSceneDestroy' if policy=='xl6Xge3dScenePolicy' else policy+'Destroy'

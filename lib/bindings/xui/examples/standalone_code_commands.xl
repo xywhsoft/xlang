@@ -1,0 +1,20 @@
+// Apply native editing commands to a document without opening a CodeEdit widget.
+import xui
+
+func main(...) as int
+    auto document = xui.createCodeDocument()
+    auto selection = xui.createCodeSelection()
+    try
+        document.setText("print(42)")
+        xui.executeCodeCommand(xui.XUI_CODE_COMMAND_SELECT_ALL, document, selection)
+        xui.executeCodeCommand(xui.XUI_CODE_COMMAND_TOGGLE_LINE_COMMENT, document, selection)
+        println(document.getText())
+
+        xui.executeCodeCommand(xui.XUI_CODE_COMMAND_UNDO, document)
+        println(document.getText())
+    finally
+        selection.close()
+        document.close()
+    end
+    return 0
+end

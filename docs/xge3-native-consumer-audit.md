@@ -1,5 +1,17 @@
 # Native consumers in the full API inventory
 
+## Standalone XUI code commands
+
+`xui.executeCodeCommand()` packs the native context from managed input views
+and calls `xuiCodeCommandExecute` directly. Built-in history commands now
+respect read-only mode. The command-map close policy calls the checked native
+destroy function. Its relocation covers the legacy void destroy entry.
+
+Matching Windows and Linux audits cover 5,881 functions, including 4,817 direct
+declarations. The remaining 113 entries comprise 42 XGE and 71 XUI functions.
+
+[Standalone command evidence](../dev/release-materials/provenance/xui-standalone-code-commands-20261124.json)
+
 ## Owned offscreen graphics contexts
 
 `xge.createOffscreenContext()` creates a hidden WGL drawable on Windows

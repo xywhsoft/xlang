@@ -1,0 +1,146 @@
+import xui
+from xui import CallbackInt
+
+extern "fixtureCodeCommandArmOom" @header("test/cases/foreign_xui_standalone_code_commands.h") @no_raise func armOom()
+extern "fixtureCodeCommandClearOom" @header("test/cases/foreign_xui_standalone_code_commands.h") @no_raise func clearOom() as bool
+extern "fixtureCodeCommandBeginMeasure" @header("test/cases/foreign_xui_standalone_code_commands.h") @no_raise func beginMeasure()
+extern "fixtureCodeCommandEndMeasure" @header("test/cases/foreign_xui_standalone_code_commands.h") @no_raise func endMeasure(c_int language)
+extern "fixtureCodeCommandMeasureNative" @header("test/cases/foreign_xui_standalone_code_commands.h") @no_raise func measureNative(xui.CodeDocument document, xui.CodeSelectionModel selection)
+
+func expectReadOnly(xui.CodeDocument document, c_int command, string expected)
+    bool denied = false
+    c_int result = 7
+    try
+        result = xui.executeCodeCommand(command, document, readOnly=1)
+    catch Error failure
+        denied = failure.code == int(xui.XUI_ERROR_UNSUPPORTED)
+    end
+    assert denied and result == c_int(7) and document.getText() == expected
+end
+
+func checkEditing(xui.CodeDocument document, xui.CodeSelectionModel selection)
+    document.setText("alpha\nbeta\ngamma\n")
+    assert xui.executeCodeCommand(xui.XUI_CODE_COMMAND_SELECT_ALL, document, selection, readOnly=1) == c_int(1)
+    auto start, finish = selection.getRange()
+    assert start == c_int(0) and finish == c_int(17)
+    assert xui.executeCodeCommand(xui.XUI_CODE_COMMAND_TOGGLE_LINE_COMMENT, document, selection, lineComment="# ") == c_int(1)
+    string commented = "# alpha\n# beta\n# gamma\n"
+    string original = "alpha\nbeta\ngamma\n"
+    assert document.getText() == commented
+    expectReadOnly(document, xui.XUI_CODE_COMMAND_UNDO, commented)
+    assert xui.executeCodeCommand(xui.XUI_CODE_COMMAND_UNDO, document) == c_int(1)
+    assert document.getText() == original
+    expectReadOnly(document, xui.XUI_CODE_COMMAND_REDO, original)
+    assert xui.executeCodeCommand(xui.XUI_CODE_COMMAND_REDO, document) == c_int(1)
+    assert document.getText() == commented
+    assert xui.executeCodeCommand(xui.XUI_CODE_COMMAND_UNDO, document) == c_int(1)
+
+    selection.gotoOffset(document, 0)
+    assert xui.executeCodeCommand(xui.XUI_CODE_COMMAND_MOVE_PAGE_DOWN, document, selection, pageLines=2) == c_int(1)
+    assert selection.getState().iCaretOffset == c_int(11)
+
+    bool failed = false
+    c_int handled = 7
+    armOom()
+    try
+        handled = xui.executeCodeCommand(xui.XUI_CODE_COMMAND_INSERT_TAB, document, selection)
+    catch Error failure
+        failed = true
+    finally
+        assert clearOom()
+    end
+    assert failed and handled == c_int(7) and document.getText() == original
+    assert xui.executeCodeCommand(xui.XUI_CODE_COMMAND_INSERT_TAB, document, selection, indent="  ") == c_int(1)
+    assert document.getText() == "alpha\nbeta\n  gamma\n"
+
+    auto foldState = xui.createCodeFoldState()
+    auto fold = xui.CodeFoldRange()
+    fold.iStartLine = 0
+    fold.iEndLine = 2
+    foldState.setRanges([fold])
+    assert xui.executeCodeCommand(xui.XUI_CODE_COMMAND_FOLD_ALL, foldState=foldState) == c_int(1)
+    assert foldState.isLineVisible(1) == c_int(0)
+    assert xui.executeCodeCommand(xui.XUI_CODE_COMMAND_UNFOLD_ALL, foldState=foldState) == c_int(1)
+    assert foldState.isLineVisible(1) == c_int(1)
+    foldState.close()
+end
+
+func checkProvider(xui.CodeDocument document, xui.CodeSelectionModel selection)
+    auto proxy = xui.createProxy()
+    auto context = xui.create(proxy, xui.XUI_SYSTEM_FONT_DISABLED)
+    auto editor = context.codeEditNative()
+    auto providers = xui.createCodeProviderSet()
+    c_int custom = xui.XUI_CODE_COMMAND_USER_BASE
+    CallbackInt? saved = null
+    int calls = 0
+    providers.setCommandProvider(func(xui.CallbackWidget widget, c_int command, xui.CallbackInt handled) as c_int
+        if command != custom then
+            return xui.XUI_ERROR_UNSUPPORTED
+        end
+        calls += 1
+        saved = handled
+        handled.value = 1
+        return xui.XUI_OK
+    end)
+    assert xui.executeCodeCommand(custom, providers=providers, widget=editor) == c_int(1)
+    assert xui.executeCodeCommand(xui.XUI_CODE_COMMAND_MOVE_DOCUMENT_START, document, selection, providers=providers, widget=editor) == c_int(1)
+    assert calls == 1 and selection.getState().iCaretOffset == c_int(0)
+
+    bool expired = false
+    try
+        (saved as CallbackInt).value = 2
+    catch StateError
+        expired = true
+    end
+    assert expired
+
+    auto closed = xui.createCodeDocument()
+    closed.close()
+    bool refused = false
+    try
+        xui.executeCodeCommand(custom, closed, providers=providers, widget=editor)
+    catch StateError
+        refused = true
+    end
+    assert refused and calls == 1
+
+    providers.setCommandProvider(func(xui.CallbackWidget widget, c_int command, xui.CallbackInt handled) as c_int
+        handled.value = 1
+        throw RangeError "standalone command callback failed"
+    end)
+    c_int result = 7
+    bool originalError = false
+    try
+        result = xui.executeCodeCommand(custom, providers=providers, widget=editor)
+    catch RangeError failure
+        originalError = failure.message == "standalone command callback failed"
+    end
+    assert originalError and result == c_int(7)
+    providers.close()
+    editor.close()
+    context.close()
+    proxy.close()
+end
+
+func main(...) as int
+    auto map = xui.createCodeCommandMap()
+    assert map.find(xui.XUI_KEY_LEFT, 0) == xui.XUI_CODE_COMMAND_MOVE_LEFT
+    map.close()
+    auto document = xui.createCodeDocument()
+    auto selection = xui.createCodeSelection()
+    checkEditing(document, selection)
+    checkProvider(document, selection)
+    measureNative(document, selection)
+    beginMeasure()
+    int index = 0
+    while index < 500
+        assert xui.executeCodeCommand(xui.XUI_CODE_COMMAND_MOVE_DOCUMENT_START, document, selection) == c_int(1)
+        assert xui.executeCodeCommand(xui.XUI_CODE_COMMAND_MOVE_DOCUMENT_END, document, selection) == c_int(1)
+        index += 1
+    end
+    endMeasure(1)
+    selection.close()
+    document.close()
+    println("XUI_STANDALONE_COMMANDS_OK")
+    return 0
+end

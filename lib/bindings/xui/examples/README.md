@@ -241,6 +241,7 @@ WebView 范例只加载源码中的本地 HTML。它需要启用 WebView2 的 Wi
 | [code_editor_theme.xl](code_editor_theme.xl) | 修改 CodeEdit 当前使用的主题和关键字颜色。 |
 | [code_editor_commands.xl](code_editor_commands.xl) | 在编辑器中按 Ctrl+F2，调用自定义命令并追加一行文本。 |
 | [code_editing.xl](code_editing.xl) | 替换选中的 world、缩进、撤销并切换行注释；使用原生选区和撤销组。 |
+| [standalone_code_commands.xl](standalone_code_commands.xl) | 无窗口执行全选、切换行注释和撤销，依次打印 `//print(42)` 与 `print(42)`。 |
 | [workflow_callbacks.xl](workflow_callbacks.xl) | 根据配置添加预览端口，并打印端口名称。 |
 
 ## 当前覆盖范围
