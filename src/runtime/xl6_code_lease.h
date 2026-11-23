@@ -86,6 +86,13 @@ XL6_CODE_LEASE_API bool xl6CodeOwnerScopeForeign(const XL6_CodeOwner*);
  * Otherwise perform ordinary (fallible) admission. This does not reopen a
  * closed owner, discover a capability in another thread, or collect cycles. */
 XL6_CODE_LEASE_API XL6_CodeLeaseAdmission xl6CodeLeaseAcquireScoped(const XL6_CodeOwner*, XL6_CodeLease**);
+/* For a native dependency using no language state through this reference.
+ * An older host keeps the entire module alive using ordinary admission.
+ * Keep image-only leases outside the language ownership graph. */
+XL6_CODE_LEASE_API XL6_CodeLeaseAdmission xl6CodeLeaseAcquireImageV1(const XL6_CodeOwner*, XL6_CodeLease**);
+/* A host may extend a previously accepted callback on this thread after Close.
+ * This query does not retain or authorize a caller on another thread. */
+bool xl6CodeScopeAcceptedCurrent(const XL6_CodeOwner*);
 /* Allocation-free. Reference overflow is a contract violation, not a reason
  * to silently skip a destructor. Each concurrent caller already owns a ref. */
 XL6_CODE_LEASE_API XL6_CodeLease* xl6CodeLeaseRetain(XL6_CodeLease*);

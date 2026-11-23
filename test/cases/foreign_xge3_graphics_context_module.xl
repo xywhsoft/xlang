@@ -1,5 +1,5 @@
-// The host keeps a real native context ref past module Close. Mode 1 also
-// keeps a module global, exercising the complete native/code/global graph.
+// The host keeps a native context past module Close. Modes 1 and 2 also
+// store it in a module global. Mode 2 keeps a callback that reads the global.
 import xge
 extern "fixtureContextModuleMode" @header("test/cases/foreign_xge3_graphics_context_module.h") @no_raise func fixtureMode() as c_int
 extern "fixtureContextModulePublish" @header("test/cases/foreign_xge3_graphics_context_module.h") @no_raise func publish(xge.GraphicsContext context) as c_int
@@ -8,8 +8,17 @@ func main(...) as int
  xge.init(4,4,"Context module lifetime",0,xge.XGE_RUN_MANUAL)
  auto context=xge.createEglContext(4,4,true)
  assert publish(context)==xge.XGE_OK
- if fixtureMode()==c_int(1) then
+ if fixtureMode()!=c_int(0) then
   retained=context
+ end
+ if fixtureMode()==c_int(2) then
+  xge.setQuitRequestCallback(func() as c_int
+   auto saved=retained
+   if saved!=null and saved.info().graphicsReady then
+    return c_int(0)
+   end
+   return c_int(1)
+  end)
  end
  return 0
 end

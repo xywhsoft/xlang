@@ -45,6 +45,8 @@ struct XL_Module {
     int ownershipAdmissionRefused;
     int ownershipCleared;
     size_t codeLeases;
+    size_t imageLeases;
+    int languageRetired;
     int codeOwnerReady;
     int retirementRunning;
     int retirementQueued;

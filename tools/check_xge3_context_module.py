@@ -2,6 +2,7 @@
 
 Explicit optional EGL SDK only; headless Mesa is allowed. Both a local view
 and a module global must retire after the external native owner releases.
+A live language callback must retain the global until it is removed.
 No network or hardware-performance test runs.
 """
 from pathlib import Path
@@ -58,7 +59,7 @@ def main():
     for optimization in ('O0','O2'):
         binary=out/('host-'+optimization+('.exe' if os.name=='nt' else ''))
         run(optimization+'-build',[cc,*flags,'-'+optimization,host,library,*systems,'-o',binary])
-        for mode in ('0','1'):
+        for mode in ('0','1','2'):
             temp=out/(optimization+'-tmp-'+mode);temp.mkdir()
             run(optimization+'-mode-'+mode,[binary,case,compiler.parent,sdk,temp,image,mode,root],discover=True)
     report.update(passed=all(not row['exitCode'] for row in report['rows']),inputsUnchanged=all(sha(p)==digest for p,digest in inputs.items()))

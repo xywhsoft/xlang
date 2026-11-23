@@ -39,8 +39,9 @@ static bool xlModuleReadQuiescent(const XL_Module* module)
         !xl6CodeOwnerScopeForeign(&module->codeOwnerGraph.base);
 }
 
-/* Physical host module identity: the caller handle and each actual code
- * acquisition are references. The retirement registry is a discovery anchor,
+/* Language-state identity: the caller handle and each language code
+ * acquisition are references. Image-only acquisitions keep executable memory
+ * mapped independently. The retirement registry is a discovery anchor,
  * not another owner. Entry/cleanup transactions are deliberately uninspectable.
  * Caller must hold the API lifecycle boundary AND whole-graph quiescence;
  * taking this view does not pause workers or authorize reclaiming code. */
@@ -50,7 +51,7 @@ static bool xlModuleOwnershipCount(const void* data, size_t* count)
     size_t handle;
     if (module == NULL || count == NULL || module->state == NULL ||
         !module->codeOwnerReady || module->ownershipTrace == NULL ||
-        module->retirementRunning || module->ownershipCleared ||
+        module->retirementRunning || module->ownershipCleared || module->languageRetired ||
         ((module->activeCalls != 0 || xl6CodeOwnerScopeActive(&module->codeOwnerGraph.base)) &&
             !xlModuleReadQuiescent(module)) ||
         module->activation == XL_MODULE_DEACTIVATING ||

@@ -20,14 +20,16 @@ transparency, padded strides and pixel equality. The tests also exercise
 allocation failure and use the bytes after the target and renderer close.
 
 The audit maps the raw offscreen read to the sized target read and compiles
-the actual GraphicsContext descriptor and ownership domain. On Linux the
-module-global EGL close gate still reports Busy after the host drops its
-reference. The local-context case reaches physical unload.
+the actual GraphicsContext descriptor and ownership domain. This run found
+that the module-global EGL case stayed Busy after the host dropped its
+reference. The subsequent image-lease build passes this case and the
+retained-language-callback case on Linux.
 
 The inventory has 5,797 native functions and 4,735 direct declarations. It
 records 281 pending rows, 103 for XGE and 178 for XUI.
 
-[Validation evidence](../dev/release-materials/provenance/xge-target-readback-20261123.json)
+[Readback evidence](../dev/release-materials/provenance/xge-target-readback-20261123.json) ·
+[Module retirement follow-up](../dev/release-materials/provenance/xge-egl-image-retirement-20261123.json)
 
 ## Ownership of native sequences
 

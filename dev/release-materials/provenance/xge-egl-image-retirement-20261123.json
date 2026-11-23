@@ -1,0 +1,124 @@
+{
+  "schema": 1,
+  "date": "2026-11-23",
+  "complete": true,
+  "passed": true,
+  "shippingDelivery": false,
+  "scope": "Managed JIT language-state retirement while the XGE engine retains its executable image",
+  "nativeRevision": "cd81fbcdf69935ad14aa816848ef7982413c2f09",
+  "networkTests": false,
+  "sourceLF": {
+    "lib/bindings/_xge_native/src/init.c": "cdb76a3c7bf2ab44fc54b723b7ad6def6884a40a62cbb9ad22b06356c42bd657",
+    "lib/bindings/_xge_native/xlang.package.json": "6b6eac8ebbeae4a24181423afacda0d9d53ee484d2f1661762422e84e75c6e4c",
+    "src/api/xl_api.c": "ed8a81ef2bce2818fc8927f08d50ba2f767e21a2088c122b5138d9ea35fb2f64",
+    "src/api/xl_api_symbols.c": "96669ed6e6d2758cb81c31c5cc553a47138012fba066a5ded6af554b9a4dd8d9",
+    "src/api/xl_module_read.inc": "7ddb5e58ee008f1d5306a71726ce20e221f0a0fbdf9ad19faf9db389afb6d5d8",
+    "src/api/xl_module_state.h": "c94e7421a6a5d846815c0aeb985389fef99823fe4ed4db62cc6cd17ace6f4e66",
+    "src/cgen/xl6_ir_cgen_code_owner.c": "db7f53ae3c2f4e078348a56ff4292a00068461e1aa97e7ddad420cb5d4e7e10d",
+    "src/compile/xl6_artifact_runtime_symbols.inc": "4cdda00f111f9e107c023648577cc8b7199b5fa5edf3b32256c29a434e76f800",
+    "src/runtime/xl6_code_lease.c": "ddebe2594216a90c404be435e30f6389756c65b9434b8243a4c114d85ded67fb",
+    "src/runtime/xl6_code_lease.h": "44f9b445445d0bef5b675d3f7b9040ab42d59a516990ae0f34e140bfce56442e",
+    "src/runtime/xl6_code_owner.h": "41577cfd42f6413233bf67d5aefaf17cac82df5fdd3f59717673aed46a8c7db8",
+    "test/cases/foreign_xge3_graphics_context_module.xl": "f3e9d0fd87b0c7a16e13317f4df00468dbd76dab1cbe84859501c5680e0f7873",
+    "test/cases/foreign_xge3_graphics_context_module_host.c": "0d1e462f59d523ae544ba7670c8268df9277f192e9dfa0ad770f5469cdb1b8a1",
+    "test/cases/code_lease_native_owner.c": "191424fa280b85e68bd3f0f0eb4f13810478f1707ee339e68e5294e0503539c4",
+    "tools/check_xge3_context_module.py": "cb1761f63d04b4264e8a02939ad8cd76218a852d73e9ce10a7812ab5738173e3",
+    "tools/check_code_lease_native_owner.py": "ed582effd008592e1f5fa8925891cb2e6f1e7943e266dab3284340a38d4703e9"
+  },
+  "negativeControl": {
+    "path": "\\\\wsl.localhost\\Ubuntu\\var\\tmp\\xlang-validation\\xge-full-20261110\\egl-image-negative-linux-r1\\results.json",
+    "sha256": "a5b54fbaf0d8d2ba7997f05730976a136fd64ad299dd0d3146eb0af46b561527"
+  },
+  "independentNativeImageProbe": {
+    "path": "\\\\wsl.localhost\\Ubuntu\\var\\tmp\\xlang-validation\\xge-full-20261110\\egl-independent-image-probe-linux-r1\\gate\\results.json",
+    "sha256": "874b561eceb81617d53c0e8a79129a343d52d4fd28ad6ccb7ee51a5d66fbb52e"
+  },
+  "platforms": {
+    "Windows x64": {
+      "records": {
+        "compiler": {
+          "path": "F:\\xlang-validation\\xge-full-20261110\\compiler-egl-image-win-r1\\build.json",
+          "sha256": "79eca7fd3680d6eff32497ae07da75ad074c18c9c642d95eacbd663abb9d6bb8"
+        },
+        "sdk": {
+          "path": "F:\\xlang-validation\\xge-full-20261110\\egl-image-compiler-sdk-win-r1\\results.json",
+          "sha256": "532255dbd13d2ea69535e72dc9f2423aab5b64b90e0c4bd75146efc676d75ed5"
+        },
+        "package": {
+          "path": "F:\\xlang-validation\\xge-full-20261110\\egl-image-stage-win-r1\\replay\\stage-report.json",
+          "sha256": "347629f40281bd2385072993cb7633bf87050c99702c2857ae320403a19b7ea0"
+        },
+        "lease": {
+          "path": "F:\\xlang-validation\\xge-full-20261110\\egl-image-qualification-win-r1\\native-owner\\results.json",
+          "sha256": "28c1d5bd9fac46c30821d3f00295842f89be55861adfca0d7fbce0a4c4cf775b"
+        },
+        "init": {
+          "path": "F:\\xlang-validation\\xge-full-20261110\\egl-image-qualification-win-r1\\init-module\\results.json",
+          "sha256": "49ecfe94d1a34c574578aaefda7b2d84f55d5bf579cfde473e0b28a145c09407"
+        },
+        "readback": {
+          "path": "F:\\xlang-validation\\xge-full-20261110\\egl-image-readback-win-r1\\results.json",
+          "sha256": "05e33b1c7eb35318af568355d9d74eb5efa625314694523050851ba5c08bf973"
+        },
+        "retainedCallbackAdmission": {
+          "path": "F:\\xlang-validation\\xge-full-20261110\\egl-image-callback-admission-win-r2\\results\\results.json",
+          "sha256": "ed8824f336d188c75068a253b5f593305ca234775124db7d4357463bb578e59e"
+        }
+      },
+      "checks": {
+        "lease": 4,
+        "init": 8,
+        "readback": 14,
+        "retainedCallbackAdmission": 8
+      }
+    },
+    "Linux x64": {
+      "records": {
+        "compiler": {
+          "path": "\\\\wsl.localhost\\Ubuntu\\var\\tmp\\xlang-validation\\xge-full-20261110\\compiler-egl-image-linux-r1\\build.json",
+          "sha256": "df9e82649546cb57c9433e191c8f4b66489feeb4e2a01002ebe67e9df325e1a1"
+        },
+        "sdk": {
+          "path": "\\\\wsl.localhost\\Ubuntu\\var\\tmp\\xlang-validation\\xge-full-20261110\\egl-image-compiler-sdk-linux-r1\\results.json",
+          "sha256": "7fe4aa397e48c4c50c23454f1fcaa0752b537ff4b0ad1bca91715538362fba02"
+        },
+        "package": {
+          "path": "\\\\wsl.localhost\\Ubuntu\\var\\tmp\\xlang-validation\\xge-full-20261110\\egl-image-stage-linux-r1\\replay\\stage-report.json",
+          "sha256": "ce8d41e56792f9bad49a297e4d6ec4d9b0c70b2ecee176a156f1a6222cd752ec"
+        },
+        "lease": {
+          "path": "\\\\wsl.localhost\\Ubuntu\\var\\tmp\\xlang-validation\\xge-full-20261110\\egl-image-qualification-linux-r1\\native-owner\\results.json",
+          "sha256": "3c2257e565659be0a337c6db78ad890233d60d037d99a24febd04591b878e215"
+        },
+        "init": {
+          "path": "\\\\wsl.localhost\\Ubuntu\\var\\tmp\\xlang-validation\\xge-full-20261110\\egl-image-qualification-linux-r1\\init-module\\results.json",
+          "sha256": "6de6b2571baab64ecb2ec5d53a58b56e2b1f61966ac8c09312784e5e921358fa"
+        },
+        "readback": {
+          "path": "\\\\wsl.localhost\\Ubuntu\\var\\tmp\\xlang-validation\\xge-full-20261110\\egl-image-readback-linux-r1\\results.json",
+          "sha256": "8a96e27ba9ccf53cad011438cc3fb29c88c2ce8d48a93462d1e52f46fa88ec88"
+        },
+        "retainedCallbackAdmission": {
+          "path": "\\\\wsl.localhost\\Ubuntu\\var\\tmp\\xlang-validation\\xge-full-20261110\\egl-image-callback-admission-linux-r2\\results\\results.json",
+          "sha256": "45f0eba9d2fc298f47b965842f0f57236cbb7d4d777438aa2853fc155a5a2a1d"
+        },
+        "eglRetirement": {
+          "path": "\\\\wsl.localhost\\Ubuntu\\var\\tmp\\xlang-validation\\xge-full-20261110\\egl-image-qualification-linux-r1\\context-module\\results.json",
+          "sha256": "b7a8330b336d388f007a6bd17e5ff31ac19ac1ccf32bb1b49465232b6bda3824"
+        }
+      },
+      "checks": {
+        "lease": 4,
+        "init": 8,
+        "readback": 14,
+        "retainedCallbackAdmission": 8,
+        "eglRetirement": 8
+      }
+    }
+  },
+  "limits": [
+    "The module-global EGL unload test ran against Mesa surfaceless. The Windows cohort used the default OpenGL build.",
+    "An owner that provides only the original ABI continues to retain the whole module.",
+    "The checked-in code is qualified against isolated cohorts. The final matched SDK and IDE delivery remains pending."
+  ]
+}

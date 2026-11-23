@@ -1,7 +1,8 @@
-# 拥有式 EGL 渲染上下文候选
+# 拥有式 EGL 渲染上下文
 
-本批补入 `xge.GraphicsContext` 的声明和配套原生合同，仍有跨模块全局退役阻塞，
-不能视为完整交付。候选在隔离目录，正式 release／IDE 未替换。
+`xge.GraphicsContext` 支持宿主在语言模块关闭后继续使用自己持有的上下文。
+Linux 的 Mesa EGL 配套已通过模块全局上下文的退役与原生库卸载测试。
+正式 SDK／IDE 配套和 Windows EGL 配置仍待验收。
 
 启用 EGL 的配套 SDK 可以在 `XGE_RUN_MANUAL` 引擎上调用
 `xge.createEglContext(width,height,surfaceless=false)`，创建真正接入 XGE 渲染器的
@@ -49,7 +50,7 @@ xlang 64 次分配，两边均成对释放且没有重分配。计数包含语�
 
 [像素回读验收](../dev/release-materials/provenance/xge-target-readback-20261123.json)
 
-## 验收与当前阻塞
+## 验收
 
 Windows 默认、Linux 默认与 EGL 配置的语言 JIT／静态 AOT 共 65 项检查通过，
 其中启用 EGL 的夹具和示例实际读取像素；生成头和原生 policy/domain 的 C11、
@@ -57,13 +58,14 @@ C++11、C++17 检查另有 16 项通过。原生独立完成 263 项检查，包
 Sokol 绘制、静态／动态、创建失败、清理重试、OOM、线程及拥有图。它们分别
 记录在 `dev/release-materials/provenance/xge-owning-context-20261110.json`。
 
-`tools/check_xge3_context_module.py` 是发布门，不能跳过：实际宿主先关闭模块，
-继续使用自己持有的原生 context 引用，再释放并检查 DLL／SO 物理卸载。局部
-context 的模式通过；模块全局 context 的模式复现了代码驻留连带全局的相互
-保留，最终 `unit()` 仍 Busy。代码驻留需要补充正确的原生依赖能力，不能把任意
-代码所有者伪装成无子节点叶对象，也不能以提前卸载或吞掉 Busy 解决。
+`tools/check_xge3_context_module.py` 用实际宿主关闭模块、使用外部持有的原生
+上下文，再释放引用并检查共享库卸载。O0／O2 均覆盖局部上下文、模块全局上下文，
+以及原生回调继续访问全局上下文三种情形。移除回调后，模块先清理全局变量，
+引擎凭独立的二进制驻留引用继续存活。最后一次 `unit()` 释放该引用，宿主再确认
+物理卸载。
 
-这项发布门未通过前，拥有式上下文接入不结项，正式交付索引不更新。可替换宿主
-调度、拥有式 WGL、Windows EGL 交付、TCC ELF 按需系统依赖裁剪等仍在长期任务
-范围内。这里没有宣称硬件性能验收或端到端零成本：创建、分享、访问保护和退役
-需要冷路径分配、引用计数、线程与拥有图工作，绘图继续使用既有直接调用。
+创建、分享、访问保护和退役仍需要分配、引用计数、线程检查与拥有图操作。
+绘图继续沿用既有原生调用。Windows OpenGL 和 Linux Mesa EGL 的像素读回
+通过 JIT、动态 AOT 和静态 AOT 复测。
+
+[模块退役和读回验收](../dev/release-materials/provenance/xge-egl-image-retirement-20261123.json)

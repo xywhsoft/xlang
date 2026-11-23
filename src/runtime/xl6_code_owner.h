@@ -50,6 +50,28 @@ static inline const struct xrtownershipops* xl6CodeOwnerGraphOps(const XL6_CodeO
 #define XL6_CODE_OWNER_GRAPH_TYPE_DEFINED
 XL6_CODE_OWNER_GRAPH_DECLARATION
 #endif
+/* Optional, separately tagged image-only acquisition. Its holder may use
+ * resident native dependencies and must own any language callbacks and data
+ * independently. It pins executable storage but does not own module globals.
+ * Old owner descriptors and the original graph prefix keep their semantics. */
+#define XL6_CODE_OWNER_IMAGE_DECLARATION \
+typedef struct XL6_CodeOwnerImageV1 { \
+    XL6_CodeOwnerGraph graph; \
+    unsigned long long imageTag; \
+    int (*acquireImage)(void*); \
+    void (*releaseImage)(void*); \
+} XL6_CodeOwnerImageV1; \
+static inline const XL6_CodeOwnerImageV1* xl6CodeOwnerImageV1(const XL6_CodeOwner* owner) \
+{ \
+    if (owner == 0 || owner->size < sizeof(XL6_CodeOwnerImageV1) || \
+        owner->context == 0 || xl6CodeOwnerGraphOps(owner) == 0) return 0; \
+    const XL6_CodeOwnerImageV1* image = (const XL6_CodeOwnerImageV1*)owner; \
+    return image->imageTag == 0x584C3643494D4731ULL && image->acquireImage && image->releaseImage ? image : 0; \
+}
+#ifndef XL6_CODE_OWNER_IMAGE_TYPE_DEFINED
+#define XL6_CODE_OWNER_IMAGE_TYPE_DEFINED
+XL6_CODE_OWNER_IMAGE_DECLARATION
+#endif
 #define XL6_MODULE_OWNERSHIP_DECLARATION \
 struct xrtownershipref; \
 typedef bool (*XL6_ModuleOwnershipVisit)(struct xrtownershipref, void*); \

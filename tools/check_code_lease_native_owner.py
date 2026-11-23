@@ -1,4 +1,4 @@
-"""Check resident code-owner RC, native return-tail marking and warmed OOM.
+"""Check resident code-owner RC, native return tails and image-only admission.
 
 Requires a separately qualified full compiler/runtime candidate. No engine,
 window, audio device, network access or installed release modification.
@@ -26,7 +26,7 @@ def main():
     sha=lambda p:hashlib.sha256(Path(p).read_bytes()).hexdigest()
     files=[Path(__file__).resolve(),compiler,cohort,library,source,cc]
     files.extend(p for p in (compiler.parent/'include').rglob('*') if p.is_file())
-    files.extend(root/p for p in ('src/runtime/xl6_code_lease.h',
+    files.extend(root/p for p in ('src/runtime/xl6_code_lease.h','src/runtime/xl6_code_owner.h',
         'src/runtime/xl6_foreign_callback_scope.h','src/common/xl6_xrt.h'))
     inputs={str(p):sha(p) for p in files}
     out.mkdir(parents=True,exist_ok=False)

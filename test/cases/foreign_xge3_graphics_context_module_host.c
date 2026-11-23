@@ -45,10 +45,17 @@ int main(int argc,char** argv)
  typedef int (*Current)(xge_graphics_context);
  typedef int (*Release)(xge_graphics_context,bool*);
  typedef int (*Operation)(void);
+ typedef uint64_t (*OwnerCount)(void);
+ typedef int (*DispatchQuit)(int*);
+ typedef int (*SetQuit)(xge_quit_request_proc,void*,const xge_callback_owner_t*);
  Info info=(Info)address(engine,"xgeGraphicsContextInfoGet");
  Current current=(Current)address(engine,"xgeGraphicsContextMakeCurrent");
  Release release=(Release)address(engine,"xgeGraphicsContextReleaseOwnerChecked");
- Operation unit=(Operation)address(engine,"xgeUnitChecked");assert(info && current && release && unit);
+ Operation unit=(Operation)address(engine,"xgeUnitChecked");
+ OwnerCount owners=(OwnerCount)address(engine,"xgeGraphicsOwnedResourceCount");
+ DispatchQuit dispatchQuit=(DispatchQuit)address(engine,"xgeQuitRequestDispatch");
+ SetQuit setQuit=(SetQuit)address(engine,"xgeSetQuitRequestCallbackOwned");
+ assert(info && current && release && unit && owners && dispatchQuit && setQuit);
  xlDestroyModule(module);assert(loaded(engine));
  xge_graphics_context_info_t state={0};state.size=sizeof(state);
  assert(info(retained,&state)==XGE_OK && state.current && state.graphicsReady);
@@ -56,6 +63,16 @@ int main(int argc,char** argv)
  bool consumed=false;int status=release(retained,&consumed);
  assert(status==XGE_OK && consumed);retained=NULL;
  XL_RuntimeDrainResult first=xlRuntimeDrainRetiringChecked(0);
+ assert(!first.ready && first.ok && loaded(engine) && !xrtGetError());
+ if(mode==2){
+  int allowed=1;
+  assert(owners()==1 && unit()==XGE_ERROR_BUSY);
+  assert(dispatchQuit(&allowed)==XGE_OK && !allowed && !xrtGetError());
+  assert(setQuit(NULL,NULL,NULL)==XGE_OK);
+  first=xlRuntimeDrainRetiringChecked(0);
+  assert(!first.ready && first.ok && loaded(engine) && !xrtGetError());
+ }
+ assert(owners()==0);
  int unitStatus=unit();
  fprintf(stderr,"Context release: mode=%d ready=%d ok=%d unit=%d\n",mode,first.ready,first.ok,unitStatus);
  assert(unitStatus==XGE_OK);

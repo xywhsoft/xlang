@@ -339,31 +339,51 @@ void xl6CodeScopeLeave(XL6_CodeScope* scope)
     if (!xrtOwnershipScopeEnd(&mutation)) abort();
     xl6CodeLeaseRelease(lease);
 }
+static XL6_CodeLease* code_scope_current(const XL6_CodeOwner* owner)
+{
+    uint64 threadId = xrtThreadCurrentId();
+    for (XL6_CodeScope* scope = code_scopes; scope != NULL; scope = scope->next) {
+        XL6_CodeLease* lease = scope->lease;
+        if (scope->threadId == threadId && lease->context == owner->context &&
+            lease->acquire == owner->acquire && lease->release == owner->release &&
+            lease->ownerOps == xl6CodeOwnerGraphOps(owner)) return lease;
+    }
+    return NULL;
+}
+
+bool xl6CodeScopeAcceptedCurrent(const XL6_CodeOwner* owner)
+{
+    if (!owner) return false;
+    code_scope_lock_enter();
+    bool accepted = code_scope_current(owner) != NULL;
+    code_scope_lock_leave();
+    return accepted;
+}
+
 static XL6_CodeLeaseAdmission xl6OwnershipBody_xl6CodeLeaseAcquireScoped(const XL6_CodeOwner* owner, XL6_CodeLease** output)
 {
-    XL6_CodeScope* scope;
-    uint64 threadId;
     if (output == NULL) return XL6_CODE_LEASE_INVALID;
     *output = NULL;
     if (owner == NULL) return XL6_CODE_LEASE_ACQUIRED;
     if (owner->size < sizeof(*owner) || owner->acquire == NULL || owner->release == NULL ||
         (xl6CodeOwnerGraphOps(owner) != NULL && owner->context == NULL)) return XL6_CODE_LEASE_INVALID;
-    threadId = xrtThreadCurrentId();
     code_scope_lock_enter();
-    for (scope = code_scopes; scope != NULL; scope = scope->next) {
-        XL6_CodeLease* lease = scope->lease;
-        if (scope->threadId == threadId && lease->context == owner->context &&
-            lease->acquire == owner->acquire && lease->release == owner->release &&
-            lease->ownerOps == xl6CodeOwnerGraphOps(owner)) {
-            *output = xl6CodeLeaseRetain(lease); break;
-        }
-    }
+    XL6_CodeLease* active = code_scope_current(owner);
+    if (active) *output = xl6CodeLeaseRetain(active);
     code_scope_lock_leave();
     return *output != NULL ? XL6_CODE_LEASE_ACQUIRED : xl6CodeLeaseAcquire(owner, output);
 }
 XL6_CodeLeaseAdmission xl6CodeLeaseAcquireScoped(const XL6_CodeOwner* owner, XL6_CodeLease** output)
 {
     XL6_OWNERSHIP_RETURN(XL6_CodeLeaseAdmission, xl6OwnershipBody_xl6CodeLeaseAcquireScoped(owner, output));
+}
+
+XL6_CodeLeaseAdmission xl6CodeLeaseAcquireImageV1(const XL6_CodeOwner* owner, XL6_CodeLease** output)
+{
+    const XL6_CodeOwnerImageV1* image = xl6CodeOwnerImageV1(owner);
+    if (!image) return xl6CodeLeaseAcquireScoped(owner, output);
+    XL6_CodeOwner imageOwner = {sizeof(imageOwner), owner->context, image->acquireImage, image->releaseImage};
+    return xl6CodeLeaseAcquire(&imageOwner, output);
 }
 static XL6_CodeDrop* xl6OwnershipBody_xl6CodeDropCreate(XL6_CodeLease* parent, XL6_CodeDropProc drop, void* context)
 {

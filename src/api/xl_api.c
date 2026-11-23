@@ -2745,6 +2745,8 @@ int xlRuntimeInit(void)
 static void xlCollectRetiringModulesUnlocked(void);
 static int xlModuleAcquireCode(void*);
 static void xlModuleReleaseCode(void*);
+static int xlModuleAcquireImage(void*);
+static void xlModuleReleaseImage(void*);
 #include "src/api/xl_module_read.inc"
 
 
@@ -2841,7 +2843,12 @@ static XL_Module* xlCreateModuleFromState(XL_Context* ctx, TCCState* s)
             xlRuntimeReleaseManualUnlocked(); xlSetError(ctx, "module read binding requires certified owning slots and lifecycle");
             return NULL;
         }
-        if (bind != NULL && !bind(&module->codeOwnerGraph.base)) {
+        XL6_CodeOwnerImageV1 imageOwner = {module->codeOwnerGraph, 0x584C3643494D4731ULL,
+            xlModuleAcquireImage, xlModuleReleaseImage};
+        imageOwner.graph.base.size = sizeof(imageOwner);
+        const XL6_CodeOwner* owner = module->retirementContract
+            ? &imageOwner.graph.base : &module->codeOwnerGraph.base;
+        if (bind != NULL && !bind(owner)) {
             /* Binding only stores the capability. No acquisition is accepted
              * until it succeeds; the caller still owns TCC state on failure. */
             xlModuleLoadedLibrariesFree(module); xrtFree(module);
@@ -3207,12 +3214,12 @@ static int xlModuleTryRetireUnlocked(XL_Module* module)
     if(module->nativeTailRetirementPending)return 0;
     if (module->activeCalls != 0 || module->retirementRunning || xl__ownershipDriverRunning ||
         (module->snapshotRefs && !module->ownershipPlan)) return 0;
-    if (module->destroyRequested && !xlModulePrepareRetirementUnlocked(module)) return 0;
+    if (module->destroyRequested && !module->languageRetired && !xlModulePrepareRetirementUnlocked(module)) return 0;
     if (module->ownershipPlan || (module->codeLeases != 0 && module->retirementContract && module->destroyRequested))
         xlModuleAdvanceOwnershipUnlocked(module);
     if (module->nativeTailRetirementPending || module->ownershipPlan || module->snapshotRefs != 0 || module->preparationRefs != 0 || module->codeLeases != 0) return 0;
-    module->retirementRunning = 1;
-    if ( module->state != NULL ) {
+    if (module->state != NULL && !module->languageRetired) {
+        module->retirementRunning = 1;
         checkedUnit = (XL_ScriptUnitCheckedProc)xl__tcc.tcc_get_symbol(module->state, xlModuleNativeAbiNames[XL_MODULE_ABI_UNIT_CHECKED]);
         /* Checked artifacts own an idempotent phase guard. One-shot execution
          * never activates the host module, but its cleanup may still be busy;
@@ -3250,6 +3257,15 @@ static int xlModuleTryRetireUnlocked(XL_Module* module)
             }
             module->activation = XL_MODULE_INACTIVE;
         }
+        module->languageRetired = 1;
+        module->retirementRunning = 0;
+    }
+    /* Native-only clients may still call loaded dependencies. Language
+     * globals have ended; keep the entire image until the last such client
+     * has left its native return tail. */
+    if (module->imageLeases != 0) return 0;
+    module->retirementRunning = 1;
+    if (module->state != NULL) {
         errorUnit = (XL_ScriptVoidProc)xl__tcc.tcc_get_symbol(module->state, xlModuleNativeAbiNames[XL_MODULE_ABI_ERROR_UNIT]);
         if ( errorUnit != NULL ) {
             xerror* saved = xrtTakeError();
@@ -3397,6 +3413,36 @@ static void xlModuleReleaseCode(void* data)
     if (module->destroyRequested) (void)xlModuleTryRetireUnlocked(module);
     xlApiUnlock();
     xrtClearError(); xrtSetErrorTake(saved);
+}
+
+static int xlModuleAcquireImage(void* data)
+{
+    XL_Module* module = data;
+    int ok = 0;
+    xlApiLock();
+    if (module && module->codeOwnerReady && !module->languageRetired &&
+        !module->retirementRunning && !module->ownershipClaim &&
+        module->activation != XL_MODULE_DEACTIVATING && module->activation != XL_MODULE_DEACTIVATION_PENDING &&
+        module->imageLeases != SIZE_MAX &&
+        (!module->destroyRequested || xl6CodeScopeAcceptedCurrent(&module->codeOwnerGraph.base))) {
+        ++module->imageLeases;
+        ok = 1;
+    }
+    xlApiUnlock();
+    return ok;
+}
+
+static void xlModuleReleaseImage(void* data)
+{
+    XL_Module* module = data;
+    xerror* saved = xrtTakeError();
+    xlApiLock();
+    if (!module || !module->imageLeases) abort();
+    --module->imageLeases;
+    if (module->destroyRequested) (void)xlModuleTryRetireUnlocked(module);
+    xlApiUnlock();
+    xrtClearError();
+    xrtSetErrorTake(saved);
 }
 
 static void xlModuleEndCallUnlocked(XL_Module* module)

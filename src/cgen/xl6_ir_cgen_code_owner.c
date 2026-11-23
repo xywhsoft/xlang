@@ -25,6 +25,9 @@ static void xl6IrCgenEmitCodeOwnerDeclaration(XL6_Output* out)
     xl6OutputPuts("#ifndef XL6_CODE_OWNER_GRAPH_TYPE_DEFINED\n"
         "#define XL6_CODE_OWNER_GRAPH_TYPE_DEFINED\n"
         XL6_IR_STRINGIFY(XL6_CODE_OWNER_GRAPH_DECLARATION) "\n#endif\n", out);
+    xl6OutputPuts("#ifndef XL6_CODE_OWNER_IMAGE_TYPE_DEFINED\n"
+        "#define XL6_CODE_OWNER_IMAGE_TYPE_DEFINED\n"
+        XL6_IR_STRINGIFY(XL6_CODE_OWNER_IMAGE_DECLARATION) "\n#endif\n", out);
     xl6OutputPuts("#ifndef XL6_MODULE_OWNERSHIP_TYPE_DEFINED\n"
         "#define XL6_MODULE_OWNERSHIP_TYPE_DEFINED\n"
         XL6_IR_STRINGIFY(XL6_MODULE_OWNERSHIP_DECLARATION) "\n#endif\n", out);
@@ -37,7 +40,8 @@ static void xl6IrCgenEmitCodeOwnerBinding(XL6_Output* out, const XL6_IrModule* m
     if (module->abi.codeOwnerAbi != XL6_IR_MODULE_CODE_OWNER_BIND_BEFORE_INIT) return;
     xl6IrCgenEmitCodeOwnerDeclaration(out);
     xl6OutputPuts(
-        "static XL6_CodeOwnerGraph xlir_code_owner_graph = {{0}, 0x584C36434F574E31ULL, NULL};\n"
+        "static XL6_CodeOwnerImageV1 xlir_code_owner_image = {{{0}, 0x584C36434F574E31ULL, NULL}, 0, NULL, NULL};\n"
+        "#define xlir_code_owner_graph xlir_code_owner_image.graph\n"
         "#define xlir_code_owner xlir_code_owner_graph.base\n"
         "static int xlir_code_owner_sealed = 0;\n"
         "/* Serialized host binding before any initialization or exported call.\n"
@@ -54,6 +58,11 @@ static void xl6IrCgenEmitCodeOwnerBinding(XL6_Output* out, const XL6_IrModule* m
         "    xlir_code_owner.context = owner->context;\n"
         "    xlir_code_owner.acquire = owner->acquire;\n"
         "    xlir_code_owner.release = owner->release;\n"
+        "    const XL6_CodeOwnerImageV1* image = xl6CodeOwnerImageV1(owner);\n"
+        "    if (image != NULL) {\n"
+        "        xlir_code_owner_image = *image;\n"
+        "        xlir_code_owner.size = sizeof(xlir_code_owner_image);\n"
+        "    }\n"
         "    return 1;\n"
         "}\n\n", out);
     if (module->abi.readBoundaryAbi == XL6_IR_MODULE_READ_BOUNDARY_RESIDENT_HOST_BIND_V1)
