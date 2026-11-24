@@ -26,8 +26,10 @@ static int xl6IrCgenCallbackParameters(XL6_Output* out,const XL6_IrModule* modul
         if(span){
             xl6OutputPuts(span->pointerCName,out);
             if(names)xl6OutputPrintf(out," raw%lu",(unsigned long)p);
-            xl6OutputPrintf(out,", %s",span->countAbi==XL6_FOREIGN_SPAN_COUNT_INT ? "int" : "size_t");
-            if(names)xl6OutputPrintf(out," raw%lu_count",(unsigned long)p);
+            if(!span->fixedCount){
+                xl6OutputPrintf(out,", %s",span->countAbi==XL6_FOREIGN_SPAN_COUNT_INT ? "int" : "size_t");
+                if(names)xl6OutputPrintf(out," raw%lu_count",(unsigned long)p);
+            }
             continue;
         }
         xl6OutputPuts(xl6IrCgenCallbackNativeType(module,signature->params[p]),out);
@@ -150,6 +152,8 @@ static int xl6IrCgenEmitNativeCallbackThunks(XL6_Output* out,const XL6_IrModule*
             if(item->foreignLifetime==XL6_FOREIGN_LIFETIME_CALLBACK){
                 const XL6_ForeignCallbackSpanContract* span=xl6IrForeignCallbackSpanGet(module,row,p);
                 if(span){
+                    if(span->fixedCount)
+                        xl6OutputPrintf(out,"    const size_t raw%lu_count=%u;\n",(unsigned long)p,span->fixedCount);
                     xl6OutputPuts("    if(!errors.failed && (",out);
                     if(span->countAbi==XL6_FOREIGN_SPAN_COUNT_INT)xl6OutputPrintf(out,"raw%lu_count<0 || ",(unsigned long)p);
                     if(span->countsElements){

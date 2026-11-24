@@ -152,6 +152,8 @@ Mesh vertices, indices, path commands and paint spans expose a count and
 checked indexed reads. The view refers to the native array for the lifetime
 of the callback. Clipboard item views keep their formats and byte lengths,
 and reading an item's data copies exactly its selected bytes.
+`CallbackSurfaceVertices` exposes the four original vertices of each native
+quadrilateral draw callback through the same checked indexing interface.
 
 `Context` owns its widget graph. Control classes extend `Widget`; a method such
 as `button.setText(text)` calls its original native function. The package has

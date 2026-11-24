@@ -1,0 +1,110 @@
+{
+  "schema": 1,
+  "scope": "Fixed-size read-only native arrays in XUI callback signatures",
+  "shippingDelivery": false,
+  "networkTests": false,
+  "checks": [
+    "The generated three XUI quad callbacks use the authoritative C signature with a pointer and adjacent flags",
+    "The fixed extent four is set in the generated callback rather than passed as a C parameter",
+    "First and last vertices, nullable render target, resource/backend identity and expiry",
+    "A missing pointer and an out-of-range typed index raise checked errors",
+    "Invalid extent, element qualifier and void element declarations are rejected",
+    "The fixed-array fixture passes Windows and Linux JIT, dynamic AOT, static AOT and import checks"
+  ],
+  "platforms": {
+    "win": {
+      "compilerBuild": {
+        "path": "F:/xlang-validation/xge-full-20261110/compiler-callback-fixed-elements-win-r2/build.json",
+        "sha256": "69767ccf6a2ed49ec7a138432eee5eead08374dbafb184c6cfd21cd10f0868ad"
+      },
+      "inputFreeze": {
+        "path": "F:/xlang-validation/xge-full-20261110/compiler-callback-fixed-elements-win-r2/freeze.json",
+        "sha256": "97c0c51a310abf98fc937e543a5ef6bd5bb60620bb64dd7cc7c0f95b3f2546f8"
+      },
+      "matchedSdk": {
+        "path": "F:/xlang-validation/xge-full-20261110/callback-fixed-elements-compiler-sdk-win-r2/results.json",
+        "sha256": "63f2428e38c76ef64bf3e4f4feaa25c8b18c9c2fdaeebec7beaeb4425fe0c9d1"
+      },
+      "nativeImports": {
+        "host": [
+          "msvcrt.dll",
+          "xge3_host.dll",
+          "kernel32.dll",
+          "shell32.dll",
+          "ws2_32.dll",
+          "iphlpapi.dll",
+          "ucrtbase.dll"
+        ],
+        "static": [
+          "msvcrt.dll",
+          "kernel32.dll",
+          "ole32.dll",
+          "shell32.dll"
+        ]
+      },
+      "runtimeMatrix": {
+        "path": "F:/xlang-validation/xge-full-20261110/callback-fixed-elements-verify-win-r2/fixed-callback-checkpoint.json",
+        "sha256": "1e39676508b19a888d31fc7e8a48bf35dd48a16b2859d1cb92434ab4484f3d8e"
+      },
+      "semanticDeclarations": {
+        "path": "F:/xlang-validation/xge-full-20261110/callback-fixed-elements-declarations-win-r1/results.json",
+        "sha256": "de328d2a94658b9484de7372b8fe54c8c6dd949c5285654c715821dc3480e799"
+      }
+    },
+    "linux": {
+      "compilerBuild": {
+        "path": "/var/tmp/xlang-validation/xge-full-20261110/compiler-callback-fixed-elements-linux-r1/build.json",
+        "sha256": "e3df98fc913670bdeecd6d21e0b7a42c070463a66237e585ed8eb8d095ef4e63"
+      },
+      "inputFreeze": {
+        "path": "/var/tmp/xlang-validation/xge-full-20261110/compiler-callback-fixed-elements-linux-r1/freeze.json",
+        "sha256": "cf709ce053f3717657589893ebc0b320e46d952b2955beb9439c9bcea11a6ccc"
+      },
+      "matchedSdk": {
+        "path": "/var/tmp/xlang-validation/xge-full-20261110/callback-fixed-elements-compiler-sdk-linux-r1/results.json",
+        "sha256": "9b158f620d2f62602f90cea46a1bad0d512c38bb4c6af63a1ad6bdbf934c444b"
+      },
+      "nativeImports": {
+        "host": [
+          "libm.so.6",
+          "libmvec.so.1",
+          "libxge3_host.so",
+          "libc.so.6",
+          "ld-linux-x86-64.so.2"
+        ],
+        "static": [
+          "libm.so.6",
+          "libmvec.so.1",
+          "libx11.so.6",
+          "libxi.so.6",
+          "libxcursor.so.1",
+          "libgl.so.1",
+          "libc.so.6",
+          "ld-linux-x86-64.so.2"
+        ]
+      },
+      "runtimeMatrix": {
+        "path": "/var/tmp/xlang-validation/xge-full-20261110/callback-fixed-elements-verify-linux-r1/results.json",
+        "sha256": "b98ec29fae62a38db21f1f7b2b1dff3b00d5fcdf3a183ac19b54cb7c3162d8fa"
+      },
+      "semanticDeclarations": {
+        "path": "/var/tmp/xlang-validation/xge-full-20261110/callback-fixed-elements-declarations-linux-r1/results.json",
+        "sha256": "bc22df00850e03532c5094bbc70d43ee811be1f3ff42dfef8631ed1ab7bcb6c3"
+      }
+    }
+  },
+  "sourceSha256NormalizedLf": {
+    "src/type/xl6_foreign_call_contract.h": "c8b703e0b8c8ffb20d07c663c240947ef50d5137ba4638b1a7e692a88b164280",
+    "src/type/xl6_foreign_decl.h": "34f4ed8e54cb764ee8cdd16d7a98934fdfa6d98df0d9c20bf7055da96ab9a559",
+    "src/ir/xl6_ir.c": "b3f6539bd2e1031e5b0d7af8952d7433406e97e6ffc8ffa1289bb0281edf3a2d",
+    "src/ir/xl6_ir_foreign_parameter.c": "df3db8b61c8e49a8f429adc0d55b48d1b950ca202de31f4c5a78bc3568b3dad0",
+    "src/cgen/xl6_ir_cgen_native_callback.c": "53c32f3c73b91ce276b2fe0d1b45cabfd6bb4c958be01ec6dab25257e586e0b1",
+    "lib/bindings/_xge_native/include/xge3_callback_elements.h": "770ffbe43f53b660c805442af7cbb14744ba0de462478bc083601f2db58e39db",
+    "lib/bindings/xui/src/proxy.xl": "9fe79d3e977ae408bc96cae48a28835aecb947c9bf63e760a7f87b88b5ff3efd",
+    "docs/foreign-declarations.md": "575eaacb6bf6486424452e16b79ec8b27e0fe8e4d0f9437e179e1d8ab14ec010",
+    "test/cases/foreign_callback_fixed_elements.c": "40120ed00034cb1b11182eb60b77bd53630d7c770fb9b01e9ab40b5a2bcfbc1d",
+    "test/cases/foreign_callback_fixed_elements.h": "eb9f6eb95fccd0191b656fa92629f4b8b8a89376d05cda49c829093a904739c2",
+    "test/cases/foreign_callback_fixed_elements.xl": "4f9442405fe3b87281b3a3c439e00b06aa09dd4df3db2cc6306e221d8b806606",
+    "lib/bindings/xui/README.md": "1abcecdf29804660f2404046df34de6ed3843ae55c4ae2fd78ef3f40348e8190"
+  }
+}

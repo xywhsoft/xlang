@@ -1,0 +1,76 @@
+from xui import CallbackProxy,CallbackSurface,CallbackDrawContext,CallbackSurfaceVertices,Proxy,XUI_PROXY_VERSION
+
+typedef SurfaceQuad=func(CallbackProxy,CallbackSurface,CallbackSurfaceVertices,c_uint) as c_int
+typedef SurfaceQuadTo=func(CallbackProxy,CallbackSurface?,CallbackSurface,CallbackSurfaceVertices,c_uint) as c_int
+typedef DrawQuad=func(CallbackProxy,CallbackDrawContext,CallbackSurface,CallbackSurfaceVertices,c_uint) as c_int
+
+extern "xuiProxyReleaseChecked" @header("xge3_runtime.h") @no_raise @c_result("status",0) func releaseProbe(Proxy value)
+extern "xuiProxyCreateOwned" @header("xge3_runtime.h") @no_raise @c_result("owned_view") @factory(2,0,releaseProbe) @c_pack(0,"xui_proxy_t",0,4) @c_pack_size(0,"iSize","uint32_t") @c_pack_field(0,"iVersion",0,"value") @c_pack_callback_group(0,"pUser",1) @c_pack_field(0,"surfaceDrawQuad",1,"owned_callback") @c_pack_field(0,"surfaceDrawQuadTo",2,"owned_callback") @c_pack_field(0,"drawSurfaceQuad",3,"owned_callback") @c_owned_callback(1,-1,"xui_callback_owner_t",-16,"receiver") @c_owned_callback(2,-1,"xui_callback_owner_t",-16,"receiver") @c_owned_callback(3,-1,"xui_callback_owner_t",-16,"receiver") @c_callback_span(1,2,"const xui_surface_vertex_t*","fixed",4) @c_callback_span(2,3,"const xui_surface_vertex_t*","fixed",4) @c_callback_span(3,3,"const xui_surface_vertex_t*","fixed",4) func makeProxy(c_uint version,SurfaceQuad surface,SurfaceQuadTo target,DrawQuad draw) as Proxy
+extern "xl_test_proxy_quads" @header("test/cases/foreign_callback_fixed_elements.h") @no_raise @c_result("status",0) func drawQuad(Proxy backend,c_int mode)
+
+class State
+ CallbackSurfaceVertices? last=null
+ int invoked=0
+end
+
+func verifyQuad(CallbackProxy backend,CallbackSurface surface,CallbackSurfaceVertices vertices)
+ assert (surface.proxy() as CallbackProxy).version==backend.version
+ assert vertices.count==c_size(4)
+ assert vertices.at(c_size(0)).fX==c_float(11)
+ auto last=vertices.at(c_size(3))
+ assert last.fX==c_float(14) and last.fV==c_float(1) and last.iColor==c_uint(0xAABBCCDD)
+ bool denied=false
+ try
+  auto invalid=vertices.at(c_size(4))
+ catch error
+  denied=true
+ end
+ assert denied
+end
+
+func main(...) as int
+ auto state=State()
+ SurfaceQuad surfaceQuad=func(CallbackProxy backend,CallbackSurface surface,CallbackSurfaceVertices vertices,c_uint flags) as c_int
+  assert flags==c_uint(71)
+  verifyQuad(backend,surface,vertices)
+  state.last=vertices
+  state.invoked+=1
+  return c_int(0)
+ end
+ SurfaceQuadTo targetQuad=func(CallbackProxy backend,CallbackSurface? target,CallbackSurface surface,CallbackSurfaceVertices vertices,c_uint flags) as c_int
+  assert target==null and flags==c_uint(72)
+  verifyQuad(backend,surface,vertices)
+  state.last=vertices
+  state.invoked+=1
+  return c_int(0)
+ end
+ DrawQuad contextQuad=func(CallbackProxy backend,CallbackDrawContext draw,CallbackSurface surface,CallbackSurfaceVertices vertices,c_uint flags) as c_int
+  assert flags==c_uint(73)
+  verifyQuad(backend,surface,vertices)
+  state.last=vertices
+  state.invoked+=1
+  return c_int(0)
+ end
+ auto proxy=makeProxy(c_uint(XUI_PROXY_VERSION),surfaceQuad,targetQuad,contextQuad)
+ for mode in range(0,3)
+  drawQuad(proxy,c_int(mode))
+ end
+ assert state.invoked==3
+ bool expired=false
+ try
+  auto count=(state.last as CallbackSurfaceVertices).count
+ catch error
+  expired=true
+ end
+ assert expired
+ bool rejected=false
+ try
+  drawQuad(proxy,c_int(3))
+ catch error
+  rejected=true
+ end
+ assert rejected and state.invoked==3
+ proxy.close()
+ println("XUI_CALLBACK_FIXED_ELEMENTS_OK")
+ return 0
+end

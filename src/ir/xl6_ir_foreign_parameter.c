@@ -209,9 +209,8 @@ static int xl6IrVerifyForeignCallbackSpans(const XL6_IrModule* module,XL6_DiagLi
         if(!node || row->parameter>=XL6_FOREIGN_PACK_LOGICAL_LIMIT || row->argument>=64 ||
             (row->parameter<64 &&
              !((node->foreignCall.retainedCallbacks|node->foreignCall.physicalPairs)&(UINT64_C(1)<<row->parameter))) ||
-            (row->countAbi!=XL6_FOREIGN_SPAN_COUNT_INT && row->countAbi!=XL6_FOREIGN_SPAN_COUNT_SIZE) ||
             !memchr(row->pointerCName,0,sizeof(row->pointerCName)) ||
-            !xl6ForeignCallbackSpanContractPointerValid(row))goto invalid;
+            !xl6ForeignCallbackSpanContractValid(row))goto invalid;
         const XL6_ForeignParameterContract* callback=NULL;
         for(size_t p=0;p<module->foreignParameterCount;++p)
             if(module->foreignParameters[p].declaration==row->declaration && module->foreignParameters[p].parameter==row->parameter)

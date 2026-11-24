@@ -711,6 +711,13 @@ signature. The thunk validates the count, element alignment, and the
 representable byte extent before invoking xlang. NULL with zero elements is
 an empty sequence.
 
+A native callback with a documented fixed extent uses
+`@c_callback_span(1,2,"const vertex_t*","fixed",4)`. This preserves the
+single physical pointer argument and gives the view four elements. The
+native publisher must supply that many readable elements. The declaration
+supplies the extent for the C pointer. A fixed-size view
+requires a positive extent and a readable, aligned native address.
+
 The descriptor lives on the callback stack and points at the native array.
 `__xl_runtime/xl6_foreign_callback_elements.h` supplies checked accessors
 for a single element. An accessor can copy a pointer-free element or return

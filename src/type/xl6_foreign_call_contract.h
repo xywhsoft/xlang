@@ -349,11 +349,12 @@ typedef struct XL6_ForeignRetainContract {
 
 /* Two native callback slots form one callback-lifetime view. Ordinary spans
  * count bytes. An explicitly declared typed span counts read-only elements.
- * The native publisher owns the storage in both cases. */
+ * A nonzero fixedCount replaces the physical count parameter in a typed span.
+ * The native publisher owns the storage in all cases. */
 typedef struct XL6_ForeignCallbackSpanContract {
     uint32 declaration,parameter,argument;
     XL6_ForeignSpanCountAbi countAbi;
-    uint32 countsElements;
+    uint32 countsElements,fixedCount;
     char pointerCName[128];
 } XL6_ForeignCallbackSpanContract;
 

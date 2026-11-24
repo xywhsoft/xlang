@@ -150,8 +150,12 @@ static inline int xl6ForeignCallbackSpanElementType(const char* pointer,char* ty
     return xl6ForeignCallbackSpanPointeeName(pointer,type,capacity) && xl6ForeignIdentifier(type);
 }
 
-static inline int xl6ForeignCallbackSpanContractPointerValid(const XL6_ForeignCallbackSpanContract* row)
+static inline int xl6ForeignCallbackSpanContractValid(const XL6_ForeignCallbackSpanContract* row)
 {
+    if(row->fixedCount){
+        if(row->countAbi || row->fixedCount>INT32_MAX || row->countsElements!=1)return 0;
+    }else if(row->countAbi!=XL6_FOREIGN_SPAN_COUNT_INT && row->countAbi!=XL6_FOREIGN_SPAN_COUNT_SIZE)
+        return 0;
     char item[128];
     return row->countsElements==1 ? xl6ForeignCallbackSpanElementType(row->pointerCName,item,sizeof(item)) :
         !row->countsElements && xl6ForeignCallbackSpanPointerValid(row->pointerCName);
@@ -165,14 +169,21 @@ static inline int xl6ForeignCallbackSpanRead(const XL6_AstNode* attr,XL6_Foreign
         !xl6ForeignDecimalInt(attr->children[1],&argument) || argument<0 || argument>=64 ||
         !xl6ForeignQuotedText(attr->children[2],row.pointerCName,sizeof(row.pointerCName)) ||
         !xl6ForeignQuotedText(attr->children[3],count,sizeof(count)))return 0;
-    if(!strcmp(count,"int"))row.countAbi=XL6_FOREIGN_SPAN_COUNT_INT;
-    else if(!strcmp(count,"size_t"))row.countAbi=XL6_FOREIGN_SPAN_COUNT_SIZE;
-    else return 0;
-    if(attr->childCount==5){
-        if(!xl6ForeignQuotedText(attr->children[4],count,sizeof(count)) || strcmp(count,"elements"))return 0;
+    if(!strcmp(count,"fixed")){
+        int32 fixedCount;
+        if(attr->childCount!=5 || !xl6ForeignDecimalInt(attr->children[4],&fixedCount) || fixedCount<=0)return 0;
+        row.fixedCount=(uint32)fixedCount;
         row.countsElements=1;
+    }else{
+        if(!strcmp(count,"int"))row.countAbi=XL6_FOREIGN_SPAN_COUNT_INT;
+        else if(!strcmp(count,"size_t"))row.countAbi=XL6_FOREIGN_SPAN_COUNT_SIZE;
+        else return 0;
+        if(attr->childCount==5){
+            if(!xl6ForeignQuotedText(attr->children[4],count,sizeof(count)) || strcmp(count,"elements"))return 0;
+            row.countsElements=1;
+        }
     }
-    if(!xl6ForeignCallbackSpanContractPointerValid(&row))return 0;
+    if(!xl6ForeignCallbackSpanContractValid(&row))return 0;
     row.parameter=(uint32)parameter;row.argument=(uint32)argument;
     if(output)*output=row;
     return 1;

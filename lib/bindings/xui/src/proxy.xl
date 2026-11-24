@@ -203,6 +203,11 @@ export extern "const XL6_WritableBytesViewV1*" class CallbackWritableBytes @head
 end
 
 // Counts are native elements. Scoped access does not copy the entire array.
+export extern "const xl6_xui_surface_vertex_span*" class CallbackSurfaceVertices @header("xge3_callback_elements.h") @lifetime("callback")
+ native point handle
+ extern "Count" @c_field @no_raise get count() as c_size
+ extern "xl6_xui_surface_vertex_spanRead" @no_raise @c_output(2,0) func at(c_size index) as SurfaceVertex
+end
 export extern "const xl6_xui_mesh_vertex_span*" class CallbackMeshVertices @header("xge3_callback_elements.h") @lifetime("callback")
  native point handle
  extern "Count" @c_field @no_raise get count() as c_size

@@ -4,6 +4,8 @@
 #include "xge3_runtime.h"
 #include "__xl_runtime/xl6_foreign_callback_elements.h"
 
+XL6_FOREIGN_CONST_ELEMENTS(xl6_xui_surface_vertex_span,xui_surface_vertex_t)
+XL6_FOREIGN_CONST_ELEMENTS_COPY(xl6_xui_surface_vertex_span,xui_surface_vertex_t)
 XL6_FOREIGN_CONST_ELEMENTS(xl6_xui_mesh_vertex_span,xui_mesh_vertex_t)
 XL6_FOREIGN_CONST_ELEMENTS_COPY(xl6_xui_mesh_vertex_span,xui_mesh_vertex_t)
 XL6_FOREIGN_CONST_ELEMENTS(xl6_xui_mesh_index_span,uint32_t)
