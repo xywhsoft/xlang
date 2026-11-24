@@ -18,10 +18,20 @@ export extern "xl_test_callback_rect" struct CallbackRect @header("test/cases/fo
  c_int iHeight
 end
 
+export extern "const xl_test_callback_width*" class CallbackWidth @header("test/cases/foreign_callback_region.h") @lifetime("callback")
+ native point handle
+end
+
+export extern "const xl_test_callback_height*" class CallbackHeight @header("test/cases/foreign_callback_region.h") @lifetime("callback")
+ native point handle
+end
+
 typedef RegionReader=func(c_int,c_int,ReadRegion?) as c_int
 typedef RegionWriter=func(CallbackRect,WriteRegion) as c_int
+typedef ObservedWriter=func(CallbackWidth,CallbackHeight,WriteRegion) as c_int
 extern "xl_test_callback_region_read" @header("test/cases/foreign_callback_region.h") @no_raise @c_result("status",0) @c_sync_callback(0,-1,-16) @c_callback_region(0,2,"const void*","0","1",4,"nullable") func read(RegionReader reader,c_int mode=0)
 extern "xl_test_callback_region_write" @header("test/cases/foreign_callback_region.h") @no_raise @c_result("status",0) @c_sync_callback(0,-1,-16) @c_callback_region(0,1,"void*","0.iWidth","0.iHeight",4) func write(RegionWriter writer)
+extern "xl_test_callback_region_observed" @header("test/cases/foreign_callback_region.h") @no_raise @c_sync_callback(0,-1,-16) @c_callback_region(0,2,"unsigned char*","observer.iWidth","observer.iHeight",4,"xl_test_callback_region_extent","xl_test_callback_rect",0,1) func writeObserved(ObservedWriter writer,c_int mode=0) as c_int
 
 func main(...) as int
  ReadRegion? saved=null
@@ -89,6 +99,25 @@ func main(...) as int
   output.write(b"wxyz",c_size(1))
   return c_int(0)
  end)
+ int observedCalls=0
+ auto writer=func(CallbackWidth width,CallbackHeight height,WriteRegion output) as c_int
+  observedCalls+=1
+  assert output.rows==2
+  output.write(b"a\0cd",c_size(0))
+  output.write(b"wxyz",c_size(1))
+  return c_int(0)
+ end
+ assert writeObserved(writer)==0
+ for mode in range(1,5)
+  bool rejected=false
+  try
+   writeObserved(writer,c_int(mode))
+  catch error
+   rejected=true
+  end
+  assert rejected
+ end
+ assert observedCalls==1
  println("XLANG_CALLBACK_REGION_OK")
  return 0
 end

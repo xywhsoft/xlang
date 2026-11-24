@@ -235,6 +235,15 @@ export extern "const XL6_ReadableRegionViewV1*" class CallbackReadableRegion @he
  extern "xl6ForeignReadableRegionRowV1" @no_raise @c_output(2,0) @c_output_view(2,"bytes") func copyRow(c_size row) as bytes
 end
 
+export extern "const XL6_WritableRegionViewV1*" class CallbackWritableRegion @header("__xl_runtime/xl6_foreign_region_view.h") @lifetime("callback")
+ native point handle
+ extern "RowBytes" @c_field @no_raise get rowBytes() as c_size
+ extern "RowCount" @c_field @no_raise get rows() as c_size
+ extern "Stride" @c_field @no_raise get stride() as c_size
+ extern "xl6ForeignWritableRegionWriteV1" @no_raise @c_span(0,"const void*","size_t") @c_result("bool_status") func write(bytes input,c_size row,c_size offset=0)
+ extern "xl6ForeignWritableRegionWriteV1" @no_raise @c_span(0,"const void*","size_t") @c_result("bool_status") func write(Buffer input,c_size row,c_size offset=0)
+end
+
 // Counts are native elements. Scoped access does not copy the entire array.
 export extern "const xl6_xui_surface_vertex_span*" class CallbackSurfaceVertices @header("xge3_callback_elements.h") @lifetime("callback")
  native point handle
@@ -270,6 +279,10 @@ export extern "const xl6_xui_clipboard_item_span*" class CallbackClipboardItems 
  native point handle
  extern "Count" @c_field @no_raise get count() as c_size
  extern "xl6_xui_clipboard_item_spanAt" @no_raise @c_result("scope_view",0) func at(c_size index) as CallbackClipboardItem
+end
+export extern "const xn_transfer_services_v1*" class CallbackClipboardTransfer @header("xge3_callback_elements.h") @lifetime("callback")
+ native point handle
+ extern "xl6Xui3ForwardClipboardItems" @no_raise @c_result("status",0) func forwardTo(Context destination,CallbackProxy origin,CallbackClipboardItems items)
 end
 
 export extern "xui_path_t*" class Path @header("xge3_runtime.h") @lifetime("owned") @policy("xl6Xui3PathPolicy")

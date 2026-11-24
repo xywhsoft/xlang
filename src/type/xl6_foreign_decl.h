@@ -166,6 +166,13 @@ static inline int xl6ForeignCallbackRegionExtentRead(const XL6_AstNode* node,XL6
     char selector[80];
     if(!xl6ForeignQuotedText(node,selector,sizeof(selector)))return 0;
     const char* cursor=selector;
+    if(!strncmp(cursor,"observer.",9)){
+        cursor+=9;
+        if(!xl6ForeignIdentifier(cursor) || strlen(cursor)>=sizeof(extent->field))return 0;
+        extent->argument=XL6_FOREIGN_CALLBACK_REGION_OBSERVED;
+        memcpy(extent->field,cursor,strlen(cursor)+1);
+        return 1;
+    }
     if(*cursor<'0' || *cursor>'9')return 0;
     uint32 index=0;
     while(*cursor>='0' && *cursor<='9'){
@@ -179,24 +186,43 @@ static inline int xl6ForeignCallbackRegionExtentRead(const XL6_AstNode* node,XL6
     return 1;
 }
 
-static inline int xl6ForeignCallbackRegionExtentValid(const XL6_ForeignCallbackRegionExtent* extent,uint32 projected)
+static inline int xl6ForeignCallbackRegionExtentValid(const XL6_ForeignCallbackRegionExtent* extent,uint32 projected,bool observed)
 {
-    return extent->argument<64 && extent->argument!=projected &&
+    return (observed ? extent->argument==XL6_FOREIGN_CALLBACK_REGION_OBSERVED && extent->field[0]:
+        extent->argument<64 && extent->argument!=projected) &&
         memchr(extent->field,0,sizeof(extent->field)) &&
         (!extent->field[0] || xl6ForeignIdentifier(extent->field));
 }
 
+static inline int xl6ForeignCallbackRegionObserverValid(const XL6_ForeignCallbackSpanContract* row)
+{
+    const XL6_ForeignCallbackRegionObserver* observer=&row->regionObserver;
+    if(observer->function[0]){
+        return !row->regionNullable && memchr(observer->function,0,sizeof(observer->function)) &&
+            memchr(observer->record,0,sizeof(observer->record)) &&
+            xl6ForeignIdentifier(observer->function) && xl6ForeignIdentifier(observer->record) &&
+            observer->inputs[0]<64 && observer->inputs[1]<64 && observer->inputs[0]!=observer->inputs[1] &&
+            observer->inputs[0]!=row->argument && observer->inputs[1]!=row->argument;
+    }
+    const XL6_ForeignCallbackRegionObserver empty={0};
+    return !memcmp(observer,&empty,sizeof(empty));
+}
+
 static inline int xl6ForeignCallbackSpanContractValid(const XL6_ForeignCallbackSpanContract* row)
 {
-    if(xl6ForeignCallbackRegion(row))
+    if(xl6ForeignCallbackRegion(row)){
+        const bool observed=row->regionObserver.function[0]!=0;
         return !row->rollbackCName[0] && !row->fixedCount && !row->countsElements &&
             row->countAbi==XL6_FOREIGN_SPAN_COUNT_INT && row->regionUnitBytes<=INT32_MAX &&
             row->regionNullable<=1 && (!row->regionNullable || !xl6ForeignCallbackSpanWritable(row)) &&
             xl6ForeignCallbackSpanPointerValid(row->pointerCName) &&
-            xl6ForeignCallbackRegionExtentValid(&row->regionWidth,row->argument) &&
-            xl6ForeignCallbackRegionExtentValid(&row->regionHeight,row->argument);
+            xl6ForeignCallbackRegionObserverValid(row) &&
+            xl6ForeignCallbackRegionExtentValid(&row->regionWidth,row->argument,observed) &&
+            xl6ForeignCallbackRegionExtentValid(&row->regionHeight,row->argument,observed);
+    }
     const XL6_ForeignCallbackRegionExtent empty={0};
-    if(row->regionNullable || memcmp(&row->regionWidth,&empty,sizeof(empty)) ||
+    if(row->regionNullable || row->regionObserver.function[0] || !xl6ForeignCallbackRegionObserverValid(row) ||
+        memcmp(&row->regionWidth,&empty,sizeof(empty)) ||
         memcmp(&row->regionHeight,&empty,sizeof(empty)))return 0;
     if(xl6ForeignCallbackOwnedOutput(row))
         return !row->countAbi && !row->fixedCount && !row->countsElements && !row->pointerCName[0] &&
@@ -218,7 +244,7 @@ static inline int xl6ForeignCallbackSpanRead(const XL6_AstNode* attr,XL6_Foreign
         !xl6ForeignDecimalInt(attr->children[1],&argument) || argument<0 || argument>=64)return 0;
     if(!strcmp(attr->text,"c_callback_region")){
         int32 unit;
-        if((attr->childCount!=6 && attr->childCount!=7) ||
+        if((attr->childCount!=6 && attr->childCount!=7 && attr->childCount!=10) ||
             !xl6ForeignQuotedText(attr->children[2],row.pointerCName,sizeof(row.pointerCName)) ||
             !xl6ForeignCallbackRegionExtentRead(attr->children[3],&row.regionWidth) ||
             !xl6ForeignCallbackRegionExtentRead(attr->children[4],&row.regionHeight) ||
@@ -228,6 +254,16 @@ static inline int xl6ForeignCallbackSpanRead(const XL6_AstNode* attr,XL6_Foreign
         if(attr->childCount==7){
             if(!xl6ForeignQuotedText(attr->children[6],count,sizeof(count)) || strcmp(count,"nullable"))return 0;
             row.regionNullable=1;
+        }
+        if(attr->childCount==10){
+            int32 first,second;
+            if(!xl6ForeignQuotedText(attr->children[6],row.regionObserver.function,sizeof(row.regionObserver.function)) ||
+                !row.regionObserver.function[0] ||
+                !xl6ForeignQuotedText(attr->children[7],row.regionObserver.record,sizeof(row.regionObserver.record)) ||
+                !xl6ForeignDecimalInt(attr->children[8],&first) || first<0 || first>=64 ||
+                !xl6ForeignDecimalInt(attr->children[9],&second) || second<0 || second>=64)return 0;
+            row.regionObserver.inputs[0]=(uint32)first;
+            row.regionObserver.inputs[1]=(uint32)second;
         }
     }else if(!strcmp(attr->text,"c_callback_owned_output")){
         if(attr->childCount!=3 || !xl6ForeignQuotedText(attr->children[2],row.rollbackCName,sizeof(row.rollbackCName)) ||

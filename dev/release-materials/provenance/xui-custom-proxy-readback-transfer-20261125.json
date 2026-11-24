@@ -1,0 +1,105 @@
+{
+  "schema": 1,
+  "feature": "Complete typed callback slots for an owned XUI custom Proxy",
+  "shippingDelivery": false,
+  "nativeAuthority": "3c9b4f89135553ab1dba48236bef6d9a865a1a37",
+  "compiler": "Complete O2 TinyCC, XRT and VFS builds",
+  "callbackSlots": {
+    "typed": 72,
+    "total": 72
+  },
+  "verified": [
+    "Same stable native Surface dimensions at caller and callback",
+    "Guarded row writes, unchanged padding, checked expiry and rejected dimensions before publication",
+    "Typed clipboard transfer between two owned contexts, with bytes preserved and return to the originating backend rejected",
+    "Generic observer failure propagation where the foreign method returns an ordinary C integer",
+    "JIT, dynamic AOT and static AOT, including static import-table checks and the single-pixel example"
+  ],
+  "scopeCosts": [
+    "The RGBA view borrows the caller buffer. Explicit row snapshots allocate, and writes move only the requested row bytes",
+    "Native readback retains cached dimensions for the sized Surface. The warm observer was exercised under an allocation-failure sentinel",
+    "Clipboard forwarding reuses the native item array and transfer capability and enters the destination Context scope"
+  ],
+  "evidence": {
+    "win": {
+      "compiler": {
+        "path": "F:/xlang-validation/xge-full-20261110/compiler-callback-region-win-r3/build.json",
+        "sha256": "0e31701646874a8b06af3b577b23378fab9ccca5a82ff03d1f4994cceec9ef09"
+      },
+      "sdk": {
+        "path": "F:/xlang-validation/xge-full-20261110/callback-region-compiler-sdk-win-r3/results.json",
+        "sha256": "1902440835aa72fa784fdaf5f89ac1691b54917a86901302adc1ef8297790b09"
+      },
+      "rgbaAndTransfer": {
+        "path": "F:/xlang-validation/xge-full-20261110/callback-region-verify-win-r3b/results.json",
+        "sha256": "127147ba6a75cb1d5cdd3f33190c33f4e3b8d38cb1cf5772622e378ca10951e3",
+        "checks": 28
+      },
+      "standaloneObserverErrors": {
+        "path": "F:/xlang-validation/xge-full-20261110/callback-region-standalone-error-verify-win-r3/results.json",
+        "sha256": "def12817088e1597c2e1711116a39088336eeb1093568470938679f64b2dffe1",
+        "checks": 3
+      },
+      "example": {
+        "path": "F:/xlang-validation/xge-full-20261110/callback-region-rgba-example-verify-win-r3/results.json",
+        "sha256": "806aec612aaa3d0c5cafd142ae4b8c65e54416c43da1329a2e1ad0cffe8345f6",
+        "checks": 7
+      },
+      "nativeSurfaceExtent": {
+        "path": "F:/xlang-validation/xge-full-20261110/custom-proxy-surface-extent-verify-win-r1/results.json",
+        "sha256": "b36151cd36b663d0bf808b3132c274e1840b455861633747285f7093169eb622",
+        "checks": 4
+      }
+    },
+    "linux": {
+      "compiler": {
+        "path": "/var/tmp/xlang-validation/xge-full-20261110/compiler-callback-region-linux-r3/build.json",
+        "sha256": "7f98c07a2c36ec442a2db9ce0988e97c60f2bbc859812e2c9359d677a2111fd9"
+      },
+      "sdk": {
+        "path": "/var/tmp/xlang-validation/xge-full-20261110/callback-region-compiler-sdk-linux-r3/results.json",
+        "sha256": "a328aa5f5aeabd207bfe9d76a5ac461586746a868296966c0028465db628eec3"
+      },
+      "rgbaAndTransfer": {
+        "path": "/var/tmp/xlang-validation/xge-full-20261110/callback-region-verify-linux-r3b/results.json",
+        "sha256": "415d09d8bfa173ea882e1018cd123e0dde912e1c4e4bc361b90987b2be64d3fa",
+        "checks": 28
+      },
+      "standaloneObserverErrors": {
+        "path": "/var/tmp/xlang-validation/xge-full-20261110/callback-region-standalone-error-verify-linux-r3/results.json",
+        "sha256": "7801c8968191179ab6a54b94796206d410acd390d27c72100c92bcc94e1e3f21",
+        "checks": 3
+      },
+      "example": {
+        "path": "/var/tmp/xlang-validation/xge-full-20261110/callback-region-rgba-example-verify-linux-r3/results.json",
+        "sha256": "1dabf5c28ff68e673c79c401135a2627f49966831ff151434e84df08a7d1f93e",
+        "checks": 7
+      },
+      "nativeSurfaceExtent": {
+        "path": "/var/tmp/xlang-validation/xge-full-20261110/custom-proxy-surface-extent-verify-linux-r1/results.json",
+        "sha256": "8e5cb7efce7e1497dcf1657ccbaed4aa36df697e4e84b8ede015e44e640566ff",
+        "checks": 4
+      }
+    }
+  },
+  "xlangSourceSha256NormalizedLf": {
+    "src/cgen/xl6_ir_cgen_native_callback.c": "5715d932f2c0f7da801ec32cecef74ab37d3006b116a2809332a2ca3166f0f58",
+    "src/cgen/xl6_ir_cgen_native_dependencies.c": "ba5dc9be3262dddff37ede702c9d478772f95b6579081e44e71a6a68153f1964",
+    "src/ir/xl6_ir.c": "d43583875e8936ad159889a1f97e7522203f806bc1603d0f45283fcfad08915a",
+    "src/ir/xl6_ir_foreign_parameter.c": "10e738d0b539f58db6cba8d76798a2163eb7d127090faf17fab70dac80c55d0a",
+    "src/sem/xl6_sem.c": "f2de6c72f98e49a6ff1bf80edf73698b343515199ff69e39af7c50483f9a9ba6",
+    "src/type/xl6_foreign_call_contract.h": "220f07b1e6987c45340f832e9dd6fa1bb774f9923f49bd1a35d134862e71aabb",
+    "src/type/xl6_foreign_decl.h": "a4523538b1bf7e06bf20d5eb3df1a7cc9d81df0a4806e1c68de2f42a1268f84a",
+    "lib/bindings/_xge_native/include/xge3_callback_elements.h": "8c66f0b5dac1938ab74eebbeed6c0338c33e276e7adf21d2443c9dce1ef81785",
+    "lib/bindings/xui/src/proxy.xl": "14478a84c8b7a529938474876a3fc763110e56cd327d708de65e0a86012eb2c0",
+    "lib/bindings/xui/src/proxy_callbacks.xl": "08f1cadcce948bdf3f0f4b2cbc14dc85b076ba4622578d5c9135bbb1a93f6988",
+    "test/cases/foreign_callback_region.c": "6e77bfded12f063374ac5605d2eae5170c94cbc37a2a24735a7c260930bf6c6e",
+    "test/cases/foreign_callback_region.h": "4d7b64c77b368eb7668b27bf9396c48eba9a156ec3431de2adac54a486ca7b0d",
+    "test/cases/foreign_callback_region.xl": "3fbc4e6c66d513500e29e8b8bc6fc48e3f8659bdf448f63228d053a9bea6c2f9",
+    "test/cases/foreign_xui_custom_proxy_rgba.xl": "358b9ce785da9bfebaf25a12ce8f3b0223c3e7ef74f9eff55cc03f29cdc7e3c1",
+    "test/cases/foreign_xui_custom_proxy_clipboard.xl": "c7ee0d228496d3f6d697949c7e65528af8a36c562cfc0be4a61533491b2adb77",
+    "lib/bindings/xui/examples/custom_proxy_rgba.xl": "47ebb2f9a3d3999cdbab54f55ebbe5cb5e05eac14f4272f1a02b3e3117a1a917",
+    "docs/foreign-declarations.md": "c9898ddbb7916e7211ac13eafbe6beb2d2a323dec939eec94bdb0ead577604c2",
+    "lib/bindings/xui/README.md": "54d3d98a1479c74d720ae31f40de5175b9460b23dd18e1fcf5e6f6a427e27c97"
+  }
+}

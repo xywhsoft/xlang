@@ -358,6 +358,12 @@ typedef struct XL6_ForeignCallbackRegionExtent {
     uint32 argument;
     char field[64];
 } XL6_ForeignCallbackRegionExtent;
+#define XL6_FOREIGN_CALLBACK_REGION_OBSERVED 64u
+
+typedef struct XL6_ForeignCallbackRegionObserver {
+    char function[96],record[96];
+    uint32 inputs[2];
+} XL6_ForeignCallbackRegionObserver;
 
 typedef struct XL6_ForeignCallbackSpanContract {
     uint32 declaration,parameter,argument;
@@ -367,6 +373,7 @@ typedef struct XL6_ForeignCallbackSpanContract {
     char rollbackCName[96];
     uint32 regionUnitBytes,regionNullable;
     XL6_ForeignCallbackRegionExtent regionWidth,regionHeight;
+    XL6_ForeignCallbackRegionObserver regionObserver;
 } XL6_ForeignCallbackSpanContract;
 
 static inline bool xl6ForeignCallbackOwnedOutput(const XL6_ForeignCallbackSpanContract* row)

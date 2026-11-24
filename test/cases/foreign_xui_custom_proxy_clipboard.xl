@@ -1,0 +1,287 @@
+import xui
+from xui import ByteSlice, CallbackClipboardItems, CallbackClipboardTransfer, CallbackProxy, Context, CString
+
+class ClipboardRoute
+    Context? destination = null
+end
+
+// These contexts only publish clipboard items. Required rendering hooks
+// report unsupported if reached, and the system font stays disabled.
+func clipboardProxy(xui.ProxyCaps caps,xui.ProxySetClipboardItemsWithTransferProc publish) as xui.Proxy
+    return xui.createCustomProxy(func(CallbackProxy backend,xui.CallbackProxyCapsOutput output) as c_int
+        output.value = caps
+        return c_int(0)
+    end,
+    clipboardSetText=func(CallbackProxy backend,CString text) as c_int
+        return xui.XUI_ERROR_UNSUPPORTED
+    end,
+    clipboardGetText=func(CallbackProxy backend,xui.CallbackWritableBytes output) as c_int
+        return xui.XUI_ERROR_UNSUPPORTED
+    end,
+    imeGetEnabled=func(CallbackProxy backend) as c_int
+        return xui.XUI_ERROR_UNSUPPORTED
+    end,
+    imeSetEnabled=func(CallbackProxy backend,c_int dimension) as c_int
+        return xui.XUI_ERROR_UNSUPPORTED
+    end,
+    imeSetCandidateRect=func(CallbackProxy backend,xui.Rect rectangle) as c_int
+        return xui.XUI_ERROR_UNSUPPORTED
+    end,
+    surfaceCreate=func(CallbackProxy backend,xui.CallbackSurfaceOutput output,
+        xui.CallbackSurfaceDesc description) as c_int
+        return xui.XUI_ERROR_UNSUPPORTED
+    end,
+    surfaceCreateRGBA=func(CallbackProxy backend,xui.CallbackSurfaceOutput output,c_int dimension,
+        c_int dimension2,xui.CallbackReadableRegion? pixels,c_uint flags) as c_int
+        return xui.XUI_ERROR_UNSUPPORTED
+    end,
+    zstdDecompress=func(CallbackProxy backend,xui.CallbackWritableBytes output,ByteSlice input,
+        xui.CallbackIntOutput outputSize) as c_int
+        return xui.XUI_ERROR_UNSUPPORTED
+    end,
+    surfaceLoadFile=func(CallbackProxy backend,xui.CallbackSurfaceOutput output,CString text,
+        c_uint flags) as c_int
+        return xui.XUI_ERROR_UNSUPPORTED
+    end,
+    surfaceLoadMemory=func(CallbackProxy backend,xui.CallbackSurfaceOutput output,ByteSlice input,
+        c_uint flags) as c_int
+        return xui.XUI_ERROR_UNSUPPORTED
+    end,
+    surfaceUpdateRGBA=func(CallbackProxy backend,xui.CallbackSurface surface,xui.RectI rectangle,
+        xui.CallbackReadableRegion pixels) as c_int
+        return xui.XUI_ERROR_UNSUPPORTED
+    end,
+    surfaceReadRGBA=func(CallbackProxy backend,xui.CallbackSurface surface,
+        xui.CallbackWritableRegion pixels) as c_int
+        return xui.XUI_ERROR_UNSUPPORTED
+    end,
+    surfaceGetDesc=func(CallbackProxy backend,xui.CallbackSurface surface,
+        xui.CallbackSurfaceDescOutput description) as c_int
+        return xui.XUI_ERROR_UNSUPPORTED
+    end,
+    surfaceDraw=func(CallbackProxy backend,xui.CallbackSurface surface,xui.Rect rectangle,xui.Rect rectangle2,
+        c_uint flags,c_uint flags2) as c_int
+        return xui.XUI_ERROR_UNSUPPORTED
+    end,
+    surfaceClear=func(CallbackProxy backend,xui.CallbackSurface? target,c_uint flags) as c_int
+        return xui.XUI_ERROR_UNSUPPORTED
+    end,
+    surfaceClearRect=func(CallbackProxy backend,xui.CallbackSurface? target,xui.Rect rectangle,
+        c_uint flags) as c_int
+        return xui.XUI_ERROR_UNSUPPORTED
+    end,
+    surfaceDrawTo=func(CallbackProxy backend,xui.CallbackSurface? target,xui.CallbackSurface surface,
+        xui.Rect rectangle,xui.Rect rectangle2,c_uint flags,c_uint flags2) as c_int
+        return xui.XUI_ERROR_UNSUPPORTED
+    end,
+    surfaceDrawQuad=func(CallbackProxy backend,xui.CallbackSurface surface,xui.CallbackSurfaceVertices vertices,
+        c_uint flags) as c_int
+        return xui.XUI_ERROR_UNSUPPORTED
+    end,
+    surfaceDrawQuadTo=func(CallbackProxy backend,xui.CallbackSurface? target,xui.CallbackSurface surface,
+        xui.CallbackSurfaceVertices vertices,c_uint flags) as c_int
+        return xui.XUI_ERROR_UNSUPPORTED
+    end,
+    surfaceGetSampler=func(CallbackProxy backend,xui.CallbackSurface surface,
+        xui.CallbackSurfaceSamplerOutput sampler) as c_int
+        return xui.XUI_ERROR_UNSUPPORTED
+    end,
+    surfaceSetSampler=func(CallbackProxy backend,xui.CallbackSurface surface,
+        xui.CallbackSurfaceSampler sampler) as c_int
+        return xui.XUI_ERROR_UNSUPPORTED
+    end,
+    surfaceGetGeneration=func(CallbackProxy backend,xui.CallbackSurface surface,
+        xui.CallbackUIntOutput output) as c_int
+        return xui.XUI_ERROR_UNSUPPORTED
+    end,
+    surfaceDestroy=func(CallbackProxy backend,xui.CallbackSurface surface)
+        return
+    end,
+    shapePoint=func(CallbackProxy backend,xui.CallbackSurface? target,c_float value,c_float value2,
+        c_float value3,c_uint flags) as c_int
+        return xui.XUI_ERROR_UNSUPPORTED
+    end,
+    shapeLine=func(CallbackProxy backend,xui.CallbackSurface? target,c_float value,c_float value2,c_float value3,
+        c_float value4,c_float value5,c_uint flags) as c_int
+        return xui.XUI_ERROR_UNSUPPORTED
+    end,
+    shapeTriangleFill=func(CallbackProxy backend,xui.CallbackSurface? target,xui.Vec2 point,xui.Vec2 point2,
+        xui.Vec2 point3,c_uint flags) as c_int
+        return xui.XUI_ERROR_UNSUPPORTED
+    end,
+    shapeTriangleStroke=func(CallbackProxy backend,xui.CallbackSurface? target,xui.Vec2 point,xui.Vec2 point2,
+        xui.Vec2 point3,c_float value,c_uint flags) as c_int
+        return xui.XUI_ERROR_UNSUPPORTED
+    end,
+    shapeRectFill=func(CallbackProxy backend,xui.CallbackSurface? target,xui.Rect rectangle,
+        c_uint flags) as c_int
+        return xui.XUI_ERROR_UNSUPPORTED
+    end,
+    shapeRectStroke=func(CallbackProxy backend,xui.CallbackSurface? target,xui.Rect rectangle,c_float value,
+        c_uint flags) as c_int
+        return xui.XUI_ERROR_UNSUPPORTED
+    end,
+    shapeCircleFill=func(CallbackProxy backend,xui.CallbackSurface? target,c_float value,c_float value2,
+        c_float value3,c_uint flags) as c_int
+        return xui.XUI_ERROR_UNSUPPORTED
+    end,
+    shapeCircleStroke=func(CallbackProxy backend,xui.CallbackSurface? target,c_float value,c_float value2,
+        c_float value3,c_float value4,c_uint flags) as c_int
+        return xui.XUI_ERROR_UNSUPPORTED
+    end,
+    fontLoadFile=func(CallbackProxy backend,xui.CallbackFontOutput output,CString text,c_float value,
+        c_uint flags) as c_int
+        return xui.XUI_ERROR_UNSUPPORTED
+    end,
+    fontLoadMemory=func(CallbackProxy backend,xui.CallbackFontOutput output,ByteSlice input,c_float value,
+        c_uint flags) as c_int
+        return xui.XUI_ERROR_UNSUPPORTED
+    end,
+    fontGetMetrics=func(CallbackProxy backend,xui.CallbackFont font,
+        xui.CallbackFontMetricsOutput metrics) as c_int
+        return xui.XUI_ERROR_UNSUPPORTED
+    end,
+    fontDestroy=func(CallbackProxy backend,xui.CallbackFont font)
+        return
+    end,
+    textMeasure=func(CallbackProxy backend,xui.CallbackProxyTextItem text,xui.CallbackVec2Output size) as c_int
+        return xui.XUI_ERROR_UNSUPPORTED
+    end,
+    textDraw=func(CallbackProxy backend,xui.CallbackSurface? target,xui.CallbackProxyTextItem text,
+        xui.Rect rectangle,c_uint flags,c_uint flags2) as c_int
+        return xui.XUI_ERROR_UNSUPPORTED
+    end,
+    drawBegin=func(CallbackProxy backend,xui.CallbackDrawOutput output,xui.CallbackSurface? target) as c_int
+        return xui.XUI_ERROR_UNSUPPORTED
+    end,
+    drawEnd=func(CallbackProxy backend,xui.CallbackDrawContext draw) as c_int
+        return xui.XUI_ERROR_UNSUPPORTED
+    end,
+    drawClearRect=func(CallbackProxy backend,xui.CallbackDrawContext draw,xui.Rect rectangle,
+        c_uint flags) as c_int
+        return xui.XUI_ERROR_UNSUPPORTED
+    end,
+    drawSurface=func(CallbackProxy backend,xui.CallbackDrawContext draw,xui.CallbackSurface surface,
+        xui.Rect rectangle,xui.Rect rectangle2,c_uint flags,c_uint flags2) as c_int
+        return xui.XUI_ERROR_UNSUPPORTED
+    end,
+    drawSurfaceQuad=func(CallbackProxy backend,xui.CallbackDrawContext draw,xui.CallbackSurface surface,
+        xui.CallbackSurfaceVertices vertices,c_uint flags) as c_int
+        return xui.XUI_ERROR_UNSUPPORTED
+    end,
+    drawPath=func(CallbackProxy backend,xui.CallbackDrawContext draw,xui.CallbackPathCommands path,
+        xui.CallbackPathStyle style,c_float value) as c_int
+        return xui.XUI_ERROR_UNSUPPORTED
+    end,
+    drawSvgPath=func(CallbackProxy backend,xui.CallbackDrawContext draw,CString text,xui.Rect rectangle,
+        xui.Rect rectangle2,xui.CallbackPathStyle style,c_float value) as c_int
+        return xui.XUI_ERROR_UNSUPPORTED
+    end,
+    drawPoint=func(CallbackProxy backend,xui.CallbackDrawContext draw,c_float value,c_float value2,
+        c_float value3,c_uint flags) as c_int
+        return xui.XUI_ERROR_UNSUPPORTED
+    end,
+    drawLine=func(CallbackProxy backend,xui.CallbackDrawContext draw,c_float value,c_float value2,c_float value3,
+        c_float value4,c_float value5,c_uint flags) as c_int
+        return xui.XUI_ERROR_UNSUPPORTED
+    end,
+    drawTriangleFill=func(CallbackProxy backend,xui.CallbackDrawContext draw,xui.Vec2 point,xui.Vec2 point2,
+        xui.Vec2 point3,c_uint flags) as c_int
+        return xui.XUI_ERROR_UNSUPPORTED
+    end,
+    drawTriangleStroke=func(CallbackProxy backend,xui.CallbackDrawContext draw,xui.Vec2 point,xui.Vec2 point2,
+        xui.Vec2 point3,c_float value,c_uint flags) as c_int
+        return xui.XUI_ERROR_UNSUPPORTED
+    end,
+    drawRectFill=func(CallbackProxy backend,xui.CallbackDrawContext draw,xui.Rect rectangle,
+        c_uint flags) as c_int
+        return xui.XUI_ERROR_UNSUPPORTED
+    end,
+    drawRectStroke=func(CallbackProxy backend,xui.CallbackDrawContext draw,xui.Rect rectangle,c_float value,
+        c_uint flags) as c_int
+        return xui.XUI_ERROR_UNSUPPORTED
+    end,
+    drawCircleFill=func(CallbackProxy backend,xui.CallbackDrawContext draw,c_float value,c_float value2,
+        c_float value3,c_uint flags) as c_int
+        return xui.XUI_ERROR_UNSUPPORTED
+    end,
+    drawCircleStroke=func(CallbackProxy backend,xui.CallbackDrawContext draw,c_float value,c_float value2,
+        c_float value3,c_float value4,c_uint flags) as c_int
+        return xui.XUI_ERROR_UNSUPPORTED
+    end,
+    drawText=func(CallbackProxy backend,xui.CallbackDrawContext draw,xui.CallbackProxyTextItem text,
+        xui.Rect rectangle,c_uint flags,c_uint flags2) as c_int
+        return xui.XUI_ERROR_UNSUPPORTED
+    end,
+    clipboardSetItemsWithTransfer=publish)
+end
+func main(...) as int
+    auto referenceProxy = xui.createProxy()
+    auto caps = referenceProxy.caps()
+    referenceProxy.close()
+    int delivered = 0
+    auto sinkProxy = clipboardProxy(caps,func(CallbackProxy backend,CallbackClipboardItems items,
+        CallbackClipboardTransfer transfer) as c_int
+        assert items.count == 2
+        auto raw = items.at(c_size(0))
+        auto text = items.at(c_size(1))
+        assert raw.format == "application/x-xlang-clipboard-test"
+        assert raw.data == b"a\0b"
+        assert text.format == "text/plain;charset=utf-8"
+        assert text.data == b"forwarded"
+        delivered += 1
+        return c_int(0)
+    end)
+    auto sink = xui.create(sinkProxy,xui.XUI_SYSTEM_FONT_DISABLED)
+
+    auto route = ClipboardRoute()
+    CallbackClipboardItems? savedItems = null
+    CallbackClipboardTransfer? savedTransfer = null
+    CallbackProxy? savedOrigin = null
+    int published = 0
+    auto sourceProxy = clipboardProxy(caps,func(CallbackProxy backend,CallbackClipboardItems items,
+        CallbackClipboardTransfer transfer) as c_int
+        published += 1
+        savedItems = items
+        savedTransfer = transfer
+        savedOrigin = backend
+        auto destination = route.destination as Context
+        transfer.forwardTo(destination,backend,items)
+        return c_int(0)
+    end)
+    auto source = xui.create(sourceProxy,xui.XUI_SYSTEM_FONT_DISABLED)
+    route.destination = sink
+    array<string> formats = ["application/x-xlang-clipboard-test","text/plain;charset=utf-8"]
+    array<bytes> payloads = [b"a\0b",b"forwarded"]
+    source.setClipboardItems(formats,payloads)
+    assert delivered == 1 and published == 1
+
+    bool expired = false
+    try
+        auto transfer = savedTransfer as CallbackClipboardTransfer
+        transfer.forwardTo(sink,savedOrigin as CallbackProxy,savedItems as CallbackClipboardItems)
+    catch error
+        expired = true
+    end
+    assert expired
+
+    route.destination = source
+    bool busy = false
+    try
+        source.setClipboardItems(formats,payloads)
+    catch error
+        busy = error.code == xui.XUI_ERROR_BUSY
+    end
+    assert busy and delivered == 1 and published == 2
+
+    route.destination = null
+    savedItems = null
+    savedTransfer = null
+    savedOrigin = null
+    source.close()
+    sourceProxy.close()
+    sink.close()
+    sinkProxy.close()
+    println("XUI_CUSTOM_PROXY_CLIPBOARD_OK")
+    return 0
+end

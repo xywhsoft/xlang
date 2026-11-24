@@ -483,6 +483,11 @@ int xl6IrCgenVisitResidentSymbols(const XL6_IrModule* module, XL6_DiagList* diag
     for(size_t t=0;t<module->callTargetCount;++t) {
         const XL6_IrCallTarget* target=&module->callTargets[t];
         if(target->reachability==XL6_IR_REACHABILITY_UNREACHABLE)continue;
+        for(size_t s=0;s<module->foreignCallbackSpanCount;++s){
+            const XL6_ForeignCallbackSpanContract* span=&module->foreignCallbackSpans[s];
+            if(span->declaration==target->declaration && span->regionObserver.function[0] &&
+                !visitor(context,"xl6ForeignStatusFailureV1"))return 0;
+        }
         for(size_t p=0;p<module->foreignDataSnapshotCount;++p){
             const XL6_ForeignDataSnapshotContract* row=&module->foreignDataSnapshots[p];
             if(row->declaration==target->declaration && (!visitor(context,"xl6PersistenceSnapshotNativeV1") ||

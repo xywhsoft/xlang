@@ -744,6 +744,23 @@ static int xl6IrForeignCallbackExtentMatches(const XL6_IrModule* module,const XL
     return count==1;
 }
 
+static int xl6IrForeignCallbackRegionExtentsMatch(const XL6_IrModule* module,const XL6_IrType* signature,
+    const XL6_ForeignParameterContract* callback,const XL6_ForeignCallbackSpanContract* span)
+{
+    const XL6_ForeignCallbackRegionObserver* observer=&span->regionObserver;
+    if(!observer->function[0])
+        return xl6IrForeignCallbackExtentMatches(module,signature,callback,&span->regionWidth) &&
+            xl6IrForeignCallbackExtentMatches(module,signature,callback,&span->regionHeight);
+    for(size_t i=0;i<XL6_ARRAY_COUNT(observer->inputs);++i){
+        const uint32 input=observer->inputs[i];
+        if(input>=signature->paramCount || xl6IrForeignCallbackSpanGet(module,callback,input))return 0;
+        const XL6_IrType* type=xl6IrTypeGet(&module->types,signature->params[input]);
+        if(!type || type->kind!=XL6_IR_TYPE_CLASS || type->foreignLifetime!=XL6_FOREIGN_LIFETIME_CALLBACK ||
+            !type->foreignHeader || !xl6ForeignSinglePointerSpelling(type->cName))return 0;
+    }
+    return 1;
+}
+
 int xl6IrForeignCallbackParameterMatches(const XL6_IrModule* module,const XL6_IrCallTarget* target,size_t parameter)
 {
     const XL6_ForeignParameterContract* row=xl6IrForeignParameterGet(module,target,parameter);
@@ -780,9 +797,7 @@ int xl6IrForeignCallbackParameterMatches(const XL6_IrModule* module,const XL6_Ir
         if(xl6ForeignCallbackRegion(span)){
             const char* view=xl6ForeignCallbackSpanWritable(span) ?
                 "const XL6_WritableRegionViewV1*":"const XL6_ReadableRegionViewV1*";
-            if(strcmp(item->cName,view) ||
-                !xl6IrForeignCallbackExtentMatches(module,signature,row,&span->regionWidth) ||
-                !xl6IrForeignCallbackExtentMatches(module,signature,row,&span->regionHeight))return 0;
+            if(strcmp(item->cName,view) || !xl6IrForeignCallbackRegionExtentsMatch(module,signature,row,span))return 0;
         }
         if(xl6ForeignCallbackOwnedOutput(span)){
             const XL6_IrType* status=signature->returnCount==1 ? xl6IrTypeGet(&module->types,signature->callableResultType):NULL;

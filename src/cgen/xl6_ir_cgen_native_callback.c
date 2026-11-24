@@ -79,12 +79,20 @@ static int xl6IrCgenEmitNativeCallbackTypes(XL6_Output* out,const XL6_IrModule* 
             const char* spanType=xl6IrCgenCallbackSpanType(span,view,name,sizeof(name));
             if(!spanType)return 0;
             if(xl6ForeignCallbackRegion(span)){
+                const XL6_ForeignCallbackRegionObserver* observer=&span->regionObserver;
+                if(observer->function[0])
+                    xl6OutputPrintf(out,"XLIR_NATIVE_ASSERT(XLIR_NATIVE_IS_TYPE(&%s,int (*)(%s,%s,%s*)),"
+                        "\"callback region observer must have the exact status-output ABI\");\n",
+                        observer->function,
+                        xl6IrCgenCallbackNativeType(module,signature->params[observer->inputs[0]]),
+                        xl6IrCgenCallbackNativeType(module,signature->params[observer->inputs[1]]),observer->record);
                 const XL6_ForeignCallbackRegionExtent* extents[]={&span->regionWidth,&span->regionHeight};
                 for(size_t e=0;e<XL6_ARRAY_COUNT(extents);++e){
                     const XL6_ForeignCallbackRegionExtent* extent=extents[e];
                     if(extent->field[0])
                         xl6OutputPrintf(out,"XLIR_NATIVE_ASSERT(XLIR_NATIVE_IS_TYPE(((const %s*)0)->%s,int),"
                             "\"callback region extent requires an int field\");\n",
+                            observer->function[0] ? observer->record:
                             xl6IrCgenCallbackNativeType(module,signature->params[extent->argument]),extent->field);
                 }
             }
@@ -105,18 +113,35 @@ static int xl6IrCgenEmitNativeCallbackTypes(XL6_Output* out,const XL6_IrModule* 
 static void xl6IrCgenPrepareCallbackRegion(XL6_Output* out,const XL6_ForeignCallbackSpanContract* span,size_t argument)
 {
     const unsigned long p=(unsigned long)argument;
-    xl6OutputPrintf(out,"    if (!errors.failed && !xl6ForeignCallbackRegionLayoutV1(raw%u",
-        span->regionWidth.argument);
-    if(span->regionWidth.field[0])xl6OutputPrintf(out,".%s",span->regionWidth.field);
-    xl6OutputPrintf(out,",raw%u",span->regionHeight.argument);
-    if(span->regionHeight.field[0])xl6OutputPrintf(out,".%s",span->regionHeight.field);
-    xl6OutputPrintf(out,",raw%lu_count,%u,&native_span_%lu.RowBytes,&native_span_%lu.RowCount,&native_span_%lu.Stride)) "
-        "xl6ErrorScopeCaptureFailure(&errors);\n",p,span->regionUnitBytes,p,p,p);
+    const XL6_ForeignCallbackRegionObserver* observer=&span->regionObserver;
     if(!span->regionNullable)
         xl6OutputPrintf(out,"    if (!errors.failed && !raw%lu) { xrtSetErrorKind(XERR_ARGUMENT); xl6ErrorScopeCaptureFailure(&errors); }\n",p);
-    xl6OutputPrintf(out,"    if (!errors.failed && raw%lu) { XL6_ForeignScopeViewV1 borrowed={0}; native_span_%lu.Data=raw%lu;\n"
+    if(observer->function[0]){
+        xl6OutputPrintf(out,"    %s native_region_extent_%lu={0};\n"
+            "    if (!errors.failed && (!raw%u || !raw%u)) { xrtSetErrorKind(XERR_ARGUMENT); xl6ErrorScopeCaptureFailure(&errors); }\n"
+            "    if (!errors.failed) { int status=%s(raw%u,raw%u,&native_region_extent_%lu);\n"
+            "        if(status!=0 || xrtGetError()) {\n"
+            "            if(!xrtGetError()) xl6ForeignStatusFailureV1(status,\"%s\");\n"
+            "            xl6ErrorScopeCaptureFailure(&errors);\n        }\n    }\n",
+            observer->record,p,observer->inputs[0],observer->inputs[1],observer->function,
+            observer->inputs[0],observer->inputs[1],p,observer->function);
+    }
+    xl6OutputPuts("    if (!errors.failed && !xl6ForeignCallbackRegionLayoutV1(",out);
+    const XL6_ForeignCallbackRegionExtent* extents[]={&span->regionWidth,&span->regionHeight};
+    for(size_t e=0;e<XL6_ARRAY_COUNT(extents);++e){
+        const XL6_ForeignCallbackRegionExtent* extent=extents[e];
+        if(e)xl6OutputPuts(",",out);
+        if(observer->function[0])xl6OutputPrintf(out,"native_region_extent_%lu.%s",p,extent->field);
+        else{
+            xl6OutputPrintf(out,"raw%u",extent->argument);
+            if(extent->field[0])xl6OutputPrintf(out,".%s",extent->field);
+        }
+    }
+    xl6OutputPrintf(out,",raw%lu_count,%u,&native_span_%lu.RowBytes,&native_span_%lu.RowCount,&native_span_%lu.Stride)) "
+        "xl6ErrorScopeCaptureFailure(&errors);\n",p,span->regionUnitBytes,p,p,p);
+    xl6OutputPrintf(out,"    if (!errors.failed && raw%lu) { XL6_ForeignScopeViewV1 borrowed={0}; native_span_%lu.Data=(%suint8_t*)raw%lu;\n"
         "        if (!xl6ForeignScopeViewMakeV2(&lifetime,&native_span_%lu,&borrowed)) xl6ErrorScopeCaptureFailure(&errors);\n"
-        "        else arg%lu = %s;\n    }\n",p,p,p,p,p,span->regionNullable ?
+        "        else arg%lu = %s;\n    }\n",p,p,xl6ForeignCallbackSpanWritable(span) ? "":"const ",p,p,p,span->regionNullable ?
         "(XL6_NullableForeignScopeViewV1){true,borrowed}":"borrowed");
 }
 /* Lifetime expiry and all callback-leave checks precede publication. The

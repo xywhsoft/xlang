@@ -1,9 +1,12 @@
 import xui
-from xui import CallbackReadableRegion
+from xui import CallbackReadableRegion, CallbackWritableRegion
 
 func main(...) as int
     int creates = 0
     int updates = 0
+    int descriptions = 0
+    int reads = 0
+    CallbackWritableRegion? saved = null
     auto proxy = xui.createCustomProxy(func(xui.CallbackProxy backend, xui.CallbackProxyCapsOutput output) as c_int
         output.value = xui.ProxyCaps()
         return c_int(0)
@@ -30,6 +33,33 @@ func main(...) as int
         assert pixels.stride == 4 and pixels.at(c_size(1),c_size(2)) == c_uchar(54)
         updates += 1
         return c_int(0)
+    end,
+    surfaceGetDesc=func(xui.CallbackProxy backend, xui.CallbackSurface surface,
+        xui.CallbackSurfaceDescOutput output) as c_int
+        assert (surface.getBackendValue() as int) == 17
+        xui.SurfaceDesc descriptor
+        descriptions += 1
+        descriptor.iWidth = c_int(descriptions)
+        descriptor.iHeight = 2
+        output.value = descriptor
+        return c_int(0)
+    end,
+    surfaceReadRGBA=func(xui.CallbackProxy backend, xui.CallbackSurface surface,
+        CallbackWritableRegion pixels) as c_int
+        assert (surface.getBackendValue() as int) == 17
+        assert pixels.rowBytes == 4 and pixels.rows == 2 and pixels.stride == 7
+        bool rejected = false
+        try
+            pixels.write(b"!",c_size(0),c_size(4))
+        catch error
+            rejected = true
+        end
+        assert rejected
+        pixels.write(b"a\0cd",c_size(0))
+        pixels.write(Buffer(b"wxyz"),c_size(1))
+        saved = pixels
+        reads += 1
+        return c_int(0)
     end)
 
     auto blank = proxy.createSurfaceRGBA(1,2)
@@ -48,6 +78,31 @@ func main(...) as int
         rejected = true
     end
     assert rejected and creates == 2 and updates == 1
+
+    auto pixels = Buffer(b"----???----")
+    proxy.readSurfaceRGBA(surface,pixels,7)
+    assert pixels.toBytes() == b"a\0cd???wxyz"
+    assert descriptions == 1 and reads == 1
+
+    rejected = false
+    try
+        auto expired = saved as CallbackWritableRegion
+        expired.write(b"!",c_size(0))
+    catch error
+        rejected = true
+    end
+    assert rejected and pixels.toBytes() == b"a\0cd???wxyz"
+
+    auto unchanged = Buffer(b"----???----")
+    rejected = false
+    try
+        proxy.readSurfaceRGBA(surface,unchanged,7)
+    catch error
+        rejected = error.code == xui.XUI_ERROR_INVALID_STATE
+    end
+    assert rejected and descriptions == 2 and reads == 1
+    assert unchanged.toBytes() == b"----???----"
+
     surface.close()
     proxy.close()
     println("XUI_CUSTOM_PROXY_RGBA_OK")

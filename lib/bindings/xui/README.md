@@ -161,8 +161,21 @@ Surface and Draw creation and the [frame request example](examples/custom_proxy.
 for frame scheduling. `surfaceCreateRGBA` receives an optional pixel view,
 and `surfaceUpdateRGBA` receives a required one. `rowBytes` excludes padding,
 `stride` reports the effective native row step, `at(row,offset)` reads a byte
-and `copyRow(row)` makes an independent copy. Full custom `Context` support
-still requires `surfaceReadRGBA`.
+and `copyRow(row)` makes an independent copy. `surfaceReadRGBA` receives a
+writable view. Its `write(bytesOrBuffer,row,offset)` method writes within the
+active bytes of a single row. A custom backend that supports readback must
+also supply `surfaceGetDesc`. A managed Surface keeps the first valid width
+and height for its lifetime. A later descriptor with different dimensions
+fails before the output buffer is exposed.
+The [RGBA example](examples/custom_proxy_rgba.xl) shows upload and readback
+using one pixel stored as an owned Surface value.
+
+`clipboardSetItemsWithTransfer` receives the original clipboard items and a
+scoped `CallbackClipboardTransfer`. A backend can read the items or forward
+the complete batch with `transfer.forwardTo(destination, backend, items)`.
+Forwarding passes the original array and transfer capability through to the
+destination Context synchronously. Forwarding to the originating backend
+reports Busy. The callback cannot save the capability for a later transfer.
 
 Proxy backend callbacks use scoped views for their native arguments.
 `CallbackProxy.share()` obtains an independently owned `Proxy`.

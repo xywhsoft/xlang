@@ -739,6 +739,17 @@ callback rejects invalid geometry, overflow and short stride before
 running the language closure. The C caller remains responsible for
 the actual backing storage described by its ABI.
 
+A callback can also get its dimensions from a native observer when its
+physical parameters carry only the pointer and stride. For example,
+`@c_callback_region(0,2,"void*","observer.width","observer.height",4,"get_extent","Extent",0,1)`
+calls `get_extent` once with the two named native view arguments and a
+stack `Extent` output. The generated C checks the exact `int` status ABI,
+the two argument types, and both `int` fields before use. The observer
+must return zero and leave no pending error for the closure to run.
+With language-managed output storage, the dimensions used by the caller
+to validate the buffer and by the callback to expose it must agree. XUI
+uses the same stable native Surface extent on both sides.
+
 Read helpers expose only active row bytes. A single byte access uses
 the native storage directly. Row snapshots allocate and copy active bytes
 when requested. Writes copy a checked range into one row and cannot

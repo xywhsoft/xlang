@@ -1,0 +1,45 @@
+import xui
+from xui import CallbackReadableRegion
+
+func main(...) as int
+    // This backend stores one RGBA pixel in the Surface's owned value.
+    auto backend = xui.createCustomProxy(func(xui.CallbackProxy proxy,xui.CallbackProxyCapsOutput output) as c_int
+        output.value = xui.ProxyCaps()
+        return xui.XUI_OK
+    end,
+    surfaceCreateRGBA=func(xui.CallbackProxy proxy,xui.CallbackSurfaceOutput output,
+        c_int width,c_int height,CallbackReadableRegion? source,c_uint flags) as c_int
+        assert width == 1 and height == 1
+        bytes pixel = b"\0\0\0\0"
+        if source != null
+            auto rows = source as CallbackReadableRegion
+            pixel = rows.copyRow(0)
+        end
+        output.set(proxy,pixel)
+        return xui.XUI_OK
+    end,
+    surfaceGetDesc=func(xui.CallbackProxy proxy,xui.CallbackSurface surface,
+        xui.CallbackSurfaceDescOutput output) as c_int
+        xui.SurfaceDesc size
+        size.iWidth = 1
+        size.iHeight = 1
+        output.value = size
+        return xui.XUI_OK
+    end,
+    surfaceReadRGBA=func(xui.CallbackProxy proxy,xui.CallbackSurface surface,
+        xui.CallbackWritableRegion destination) as c_int
+        destination.write(surface.getBackendValue() as bytes,0)
+        return xui.XUI_OK
+    end)
+
+    bytes orange = b"\xff\x80\0\xff"
+    auto surface = backend.createSurfaceRGBA(1,1,orange)
+    auto result = Buffer(b"\0\0\0\0")
+    backend.readSurfaceRGBA(surface,result)
+    assert result.toBytes() == orange
+    println(codec.hexEncode(result.toBytes()))
+
+    surface.close()
+    backend.close()
+    return 0
+end
