@@ -1,0 +1,31 @@
+import xui
+
+extern "fixtureInstallLateContextOutput" @header("test/cases/foreign_xui_context_retirement.h") @no_raise @c_result("status",0) func install(xui.Context context)
+extern "fixtureFinishLateContextRead" @no_raise @c_result("status",0) func finishRead()
+extern "fixtureLateContextState" @no_raise func retirementState() as c_int
+
+func main(...) as int
+    auto proxy = xui.createProxy()
+    auto context = xui.create(proxy, xui.XUI_SYSTEM_FONT_DISABLED)
+    install(context)
+    proxy.close()
+
+    context.close()
+    assert retirementState() == 1
+    bool rejected = false
+    try
+        auto unavailable = context.proxy()
+        unavailable.close()
+    catch Error
+        rejected = true
+    end
+    assert rejected
+    context.close()
+    assert retirementState() == 1
+
+    finishRead()
+    context.close()
+    assert retirementState() == 2
+    print("XUI_CONTEXT_RETIREMENT_OK")
+    return 0
+end

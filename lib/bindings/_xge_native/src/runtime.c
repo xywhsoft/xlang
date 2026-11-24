@@ -47,8 +47,8 @@ int xl6Xge3RuntimeBindV1(void)
 }
 static bool watch_context(void* raw,void* storage,void(*invalidate)(void*),void* user)
 {
-    int status=xuiContextLifetimeWatch(raw,storage,invalidate,user);
-    if(status!=XUI_OK){report_resource_failure(status,"xuiContextLifetimeWatch");return false;}
+    int status=xuiContextRetirementWatch(raw,storage,invalidate,user);
+    if(status!=XUI_OK){report_resource_failure(status,"xuiContextRetirementWatch");return false;}
     /* Language roots require the atomic owned creation contract. A legacy C
      * Context cannot be admitted. Physical observation remains attached on
      * qualification failure so the already-transferred owner can retire. */

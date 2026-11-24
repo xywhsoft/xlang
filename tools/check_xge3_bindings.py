@@ -1322,7 +1322,7 @@ def generate_xui(root,header,records,types,primitive,param,reserved,reviewed_spa
             if not p or not widget(p[0]['type']) or [spelling(a['type']) for a in p[1:]]!=expected or spelling(f['type']['returns'])!='int':
                 raise ValueError('NinePatch authoritative physical signature changed: '+f['name'])
             classes[owner].append(declaration);mapped[f['name']]='xui.'+owner+'.'+member;f['sourceContract']=source_contract(f);continue
-        if f.get('state') in ('requires-owned-pinned-storage','requires-native-lifecycle-acceptance') or f['name'] in constructors or f['name'] in ('xuiCreate','xuiCreateOwned','xuiGetProxyOwned','xuiSetProxyOwned','xuiDestroy','xuiWidgetDestroy','xuiWidgetDestroyChecked','xuiContextLifetimeWatch','xuiWidgetLifetimeWatch'):continue
+        if f.get('state') in ('requires-owned-pinned-storage','requires-native-lifecycle-acceptance') or f['name'] in constructors or f['name'] in ('xuiCreate','xuiCreateOwned','xuiGetProxyOwned','xuiSetProxyOwned','xuiDestroy','xuiWidgetDestroy','xuiWidgetDestroyChecked','xuiContextLifetimeWatch','xuiContextRetirementWatch','xuiWidgetLifetimeWatch'):continue
         current_function=f['name']
         p=f['type']['parameters'];sig=f['type'];receiver=False;owner=None;prefix='xui'
         if p and same(p[0]['type'],'xui_context'):owner='Context';receiver=True

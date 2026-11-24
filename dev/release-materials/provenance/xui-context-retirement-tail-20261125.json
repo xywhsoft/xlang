@@ -1,0 +1,114 @@
+{
+  "schema": 1,
+  "nativeCommit": "aaa71423de28df7a12ce98191c6a7b4e9aee1dab",
+  "scope": "Retryable physical retirement of a custom XUI Context whose closing callbacks create refused Proxy resource rollbacks",
+  "shippingDelivery": false,
+  "nativeLfSha256": {
+    "include/xui.h": "925ba2a15e274e51f11582da85bde6419d84f7a160a36c38796734325b2c1a83",
+    "src/xui/core/xui_core.c": "c2b1cfb16ca31697788dfc91f4c1ada4f6c30458e7fa6d66ac25142235f6bf63",
+    "src/xui/core/xui_internal.h": "fcbb30cc0025423035d2d474e023239f21dadad49de5a56cbb30ea2631b716d3",
+    "tests/xui/xui_context_proxy_rollbacks_test.c": "f1c5b31b111546388d2232597ccc66539a6944d85f35fd3c7ca37e62dd159f13"
+  },
+  "bindingLfSha256": {
+    "lib/bindings/_xge_native/src/runtime.c": "a05fc477bdac7b3a42e88a1114ee828673af1c6840a863ceb8d3de137ef10e1d",
+    "test/cases/foreign_xui_context_retirement.xl": "14245ea7cca715dac478cce41f5b1faf0ccd30485a79c0733b35101c37b1d752",
+    "test/cases/foreign_xui_context_retirement.c": "8d7c7dabcc3ad40ba559754da07a0927a40a7527da3b9504ac1be4acc5d4ecaf",
+    "test/cases/foreign_xui_context_retirement.h": "86bca09bc1ad74afd12a475c641299f85657034cc9647689f72dd5b2be2d0757"
+  },
+  "compatibility": "Existing logical lifetime watches still run before user destruction. The new retirement watch protects the managed native owner until queue drain and Proxy release finish.",
+  "platforms": {
+    "windows": {
+      "matchedGate": {
+        "path": "F:/xlang-validation/xge-full-20261110/context-proxy-retirement-tail-verify-win-r1/results.json",
+        "sha256": "1d1382215a791115715f715f68c5c527347b7ecb27d8842517d871b1f55fd647",
+        "checks": 16
+      },
+      "sourceFreeze": {
+        "path": "F:/xlang-validation/xge-full-20261110/context-proxy-retirement-tail-native-source-win-r1.json",
+        "sha256": "ed2cd8c7451daca8dd9d170b713b0a4b6ba50457e0e844c2db57ca5e6a0f045c"
+      },
+      "headers": {
+        "path": "F:/xlang-validation/xge-full-20261110/context-proxy-retirement-header-win-r1/results.json",
+        "sha256": "6466edb74b351ce80aad0bb38eaf04e32493f6d2ab868d2c6c84599171194d49",
+        "checks": 3
+      },
+      "drawDependencyFollowup": {
+        "path": "F:/xlang-validation/xge-full-20261110/published-draw-retirement-verify-win-r3/results.json",
+        "sha256": "7d944a154d0a35e572f619ff233a16e0f3402444420a1cabe0fa815b99afb2cc",
+        "checks": 32
+      },
+      "contextSize": {
+        "path": "F:/xlang-validation/xge-full-20261110/context-retirement-size-r1/results.json",
+        "sha256": "0ba70cddcf53d5cae9d2ce78ed60d7d06b60e8521539295ca55cc5e21e89578f",
+        "before": 147888,
+        "after": 147896,
+        "extraBytes": 8
+      },
+      "hostImports": [
+        "msvcrt.dll",
+        "xge3_host.dll",
+        "kernel32.dll",
+        "shell32.dll",
+        "ws2_32.dll",
+        "iphlpapi.dll",
+        "ucrtbase.dll"
+      ],
+      "staticImports": [
+        "msvcrt.dll",
+        "kernel32.dll",
+        "user32.dll",
+        "ole32.dll",
+        "oleaut32.dll",
+        "shell32.dll",
+        "gdi32.dll",
+        "imm32.dll",
+        "dwrite.dll"
+      ]
+    },
+    "linux": {
+      "matchedGate": {
+        "path": "//wsl.localhost/Ubuntu/var/tmp/xlang-validation/xge-full-20261110/context-proxy-retirement-tail-verify-linux-r1/results.json",
+        "sha256": "b5c26d4cf6dc9103165265d44789ad6f7fc1199cddb631eeccf982f60ded1397",
+        "checks": 16
+      },
+      "sourceFreeze": {
+        "path": "//wsl.localhost/Ubuntu/var/tmp/xlang-validation/xge-full-20261110/context-proxy-retirement-tail-native-source-linux-r1.json",
+        "sha256": "643bd569abc7464ab9ce19ae8b118c1bebde20ef36ecfa78ab2864c200e80be7"
+      },
+      "headers": {
+        "path": "//wsl.localhost/Ubuntu/var/tmp/xlang-validation/xge-full-20261110/context-proxy-retirement-header-linux-r1/results.json",
+        "sha256": "25539484a99ac0f45dfc212425639bfc010ddb517850d7b4a914547d3d06e818",
+        "checks": 3
+      },
+      "drawDependencyFollowup": {
+        "path": "//wsl.localhost/Ubuntu/var/tmp/xlang-validation/xge-full-20261110/published-draw-retirement-verify-linux-r3/results.json",
+        "sha256": "674ca50842e3562e8f60eeedfcf8d2a2afe8f1ce98d7307fabfba28f2d751870",
+        "checks": 32
+      },
+      "contextSize": {
+        "path": "//wsl.localhost/Ubuntu/var/tmp/xlang-validation/xge-full-20261110/context-retirement-size-r1/results.json",
+        "sha256": "8282f124165388c3f0d2a23398fe30b49b0364b721de26e0f88d8bdbdc05e8e4",
+        "before": 147888,
+        "after": 147896,
+        "extraBytes": 8
+      },
+      "hostImports": [
+        "libm.so.6",
+        "libmvec.so.1",
+        "libxge3_host.so",
+        "libc.so.6",
+        "ld-linux-x86-64.so.2"
+      ],
+      "staticImports": [
+        "libm.so.6",
+        "libmvec.so.1",
+        "libx11.so.6",
+        "libxi.so.6",
+        "libxcursor.so.1",
+        "libgl.so.1",
+        "libc.so.6",
+        "ld-linux-x86-64.so.2"
+      ]
+    }
+  }
+}
