@@ -1,5 +1,29 @@
 # Native consumers in the full API inventory
 
+## Dedicated and in-renderer offscreen targets
+
+`xge.createOffscreenContext()` creates a hidden WGL renderer on Windows or
+an EGL PBuffer renderer in the EGL-enabled Linux SDK. Use
+`xge.createRenderTarget()` for the offscreen surface in that renderer or in
+an existing window or host renderer. The target has its own owner. Close
+it and the optional context before the engine. A retained GPU child keeps
+the physical context live, and explicit engine shutdown reports Busy
+until the child is released.
+
+The compiled paths verify backend selection on WGL and EGL initialization,
+make-current and checked retirement in the enabled EGL build. Both modes
+create targets through the same native render-target constructor. The default
+Linux SDK rejects standalone context creation and draws the same four RGBA
+pixels into a target inside an existing X11 renderer.
+
+Windows, Linux default and Linux EGL each passed 32 generation, execution
+and import checks, including JIT, dynamic AOT and static AOT. Across the
+supported configurations, 32 inventory entries remain without a direct
+declaration, compiled consumer or explicit replacement mapping. These
+comprise two XGE and 30 XUI functions.
+
+[Offscreen and backend route evidence](../dev/release-materials/provenance/xge-offscreen-routes-20261124.json)
+
 ## Async resource adoption and TreeView callback outputs
 
 `FontLoad.take()` and `TextureLoad.take()` transfer the loaded native record

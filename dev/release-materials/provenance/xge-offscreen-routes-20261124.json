@@ -1,0 +1,543 @@
+{
+  "schema": "xlang-xge-offscreen-routes-1",
+  "scope": "Managed hidden WGL and EGL renderer sessions, in-renderer offscreen targets, and legacy replacement routes",
+  "shippingDelivery": false,
+  "networkTests": false,
+  "engineCommitForVerifiedNativeContextUnits": "3fb27063",
+  "sourceSha256NormalizedLf": {
+    "tools/check_xge3_native_consumers.py": "31fbef928e6238dacd257b84f85c23e79f775a1dc22c40990ab3e6ba0d074cd9",
+    "test/cases/foreign_xge3_offscreen_context.xl": "f918cdbed12e3c4d6230632373d8a671d980deddf709619205bfc95e08734bda",
+    "test/cases/foreign_xge3_graphics_context.xl": "4a296ced6a84c6e2c00f3c135b56eb58508073ae5480836bf209a28876a15b31",
+    "lib/bindings/xge/examples/offscreen_context.xl": "f7b21add6b7b75e068e181179a44be903ae6e72833f973c5e41f6c7e72cfafbc",
+    "lib/bindings/xge/examples/offscreen_pass.xl": "a621ccffbcbb60c51f7f4dc1e15088617ee1e79aa6316eaa6f503b5e39d522eb"
+  },
+  "nativeContextSha256NormalizedLf": {
+    "single/xge.c": "42827f8988d7f5506037fff5072bd6201dfa2eb9443e7efd91963383dc649ee2",
+    "src/xge/core/xge_core.c": "05cfff69442a425ce974d3f8664d1303a48f12b7456dff5a4486a534ca1816df",
+    "src/xge/core/xge_graphics_context.c": "db6e50dd8b25a2e6389e224d22317e6432fd18dbe67474da43a99a81cff53202",
+    "src/xge/core/xge_owned_graphics.c": "729ebb5133eb6a758cb185672decaf12104c207c5d33fc4780c5cd5e07e2e53c",
+    "src/xge/platform/xge_egl.c": "32449b311b0c49e8b0f5d65468aeabc820ae4b7781117521dcc2c2ad68144455",
+    "src/xge/platform/xge_wgl_offscreen.c": "9ae6017aef6480419151cfeccd6a0d34bc47a59afe15c31ea84f7ca9f697789d",
+    "src/xge/render/xge_render_target.c": "1d0626b72228f9c30ef56f5b8d300ead72d62bda77aaebde0592b221167cc25f"
+  },
+  "cohorts": {
+    "win-default": {
+      "standaloneRendererRan": true,
+      "activeRendererOffscreenTargetRan": true,
+      "nativeSource": {
+        "path": "F:/xlang-validation/xge-full-20261110/xui-resource-reservation-native-source-win-r1.json",
+        "sha256": "a14f74daf48b134b651c25fb3abffe151dde20299839a317e170183a8dab34e4"
+      },
+      "nativeBuilds": {
+        "host": {
+          "path": "F:/xlang-validation/xge-full-20261110/xui-resource-reservation-host-win-r1/build-report.json",
+          "sha256": "3447e4f1ae1f796844102b33e3e1438907962dbfd7988373d4eb3428f1d78490"
+        },
+        "static": {
+          "path": "F:/xlang-validation/xge-full-20261110/xui-resource-reservation-static-win-r1/build-report.json",
+          "sha256": "e759fa1b61d8cbfedf5294cc6bc11a6a5b1c2534ae98e1f0bdb1a7cce6d1f9bd"
+        }
+      },
+      "packageReplay": {
+        "path": "F:/xlang-validation/xge-full-20261110/xui-resource-reservation-stage-win-r1/replay/stage-report.json",
+        "sha256": "bfb297274c85b73023766e419411dade0d37bc02da608c33618fc9e83ed51354"
+      },
+      "audit": {
+        "path": "F:/xlang-validation/xge-full-20261110/current-offscreen-consumers-win-default-r1/results.json",
+        "sha256": "843b2325b5b476840f9fe3de27aa77e70d46bdd81f06550714dc00379f4dca30"
+      },
+      "runtime": {
+        "path": "F:/xlang-validation/xge-full-20261110/current-offscreen-verify-win-default-r3/results.json",
+        "sha256": "bc4e7cc73a40f16828224b26617a1f611db0887af35a3f225767ef1adc604128"
+      },
+      "remaining": {
+        "XGE": 4,
+        "XUI": 30
+      },
+      "nativeCalls": {
+        "__xgeContextNativeUnit": {
+          "xgeEGLUnitChecked": [
+            ".text$xgeEGLUnitChecked"
+          ]
+        },
+        "xgeRenderTargetCreateOwned": {
+          "xgeRenderTargetCreate": [
+            ".text$xgeRenderTargetCreate"
+          ]
+        },
+        "__xgeContextNativeInit": {
+          "__xgeWglOffscreenInit": [
+            ".text$__xgeWglOffscreenInit"
+          ],
+          "xgeGraphicsBackendSet": [
+            ".text$xgeGraphicsBackendSet"
+          ],
+          "xgePlatformBackendSet": [
+            ".text$xgePlatformBackendSet"
+          ]
+        }
+      },
+      "verifiedCases": {
+        "foreign_xge3_offscreen_context": {
+          "directCFunctions": [
+            "xl6Xge3GraphicsContextCreateOffscreenOwned",
+            "xgeGraphicsContextInfoGet",
+            "xgeGraphicsContextMakeCurrent",
+            "xgeRenderTargetReadPixelsOwned"
+          ],
+          "imports": {
+            "host": [
+              "xge3_host.dll",
+              "msvcrt.dll",
+              "kernel32.dll",
+              "shell32.dll",
+              "ucrtbase.dll"
+            ],
+            "static": [
+              "msvcrt.dll",
+              "kernel32.dll",
+              "user32.dll",
+              "ole32.dll",
+              "oleaut32.dll",
+              "shell32.dll",
+              "gdi32.dll",
+              "imm32.dll"
+            ]
+          }
+        },
+        "offscreen_context": {
+          "directCFunctions": [
+            "xl6Xge3GraphicsContextCreateOffscreenOwned",
+            "xgeRenderTargetReadPixelsOwned"
+          ],
+          "imports": {
+            "host": [
+              "xge3_host.dll",
+              "msvcrt.dll",
+              "kernel32.dll",
+              "shell32.dll",
+              "ucrtbase.dll"
+            ],
+            "static": [
+              "msvcrt.dll",
+              "kernel32.dll",
+              "user32.dll",
+              "ole32.dll",
+              "oleaut32.dll",
+              "shell32.dll",
+              "gdi32.dll",
+              "imm32.dll"
+            ]
+          }
+        },
+        "offscreen_pass": {
+          "directCFunctions": [
+            "xgeRenderTargetCreateOwned",
+            "xgeRenderTargetReadPixelsOwned"
+          ],
+          "imports": {
+            "host": [
+              "xge3_host.dll",
+              "msvcrt.dll",
+              "kernel32.dll",
+              "shell32.dll",
+              "ole32.dll",
+              "ucrtbase.dll"
+            ],
+            "static": [
+              "msvcrt.dll",
+              "kernel32.dll",
+              "user32.dll",
+              "gdi32.dll",
+              "ole32.dll",
+              "oleaut32.dll",
+              "shell32.dll",
+              "imm32.dll"
+            ]
+          }
+        },
+        "foreign_xge3_graphics_context": {
+          "directCFunctions": [
+            "xl6Xge3GraphicsContextCreateEglOwned",
+            "xgeGraphicsContextInfoGet"
+          ],
+          "imports": {
+            "host": [
+              "xge3_host.dll",
+              "msvcrt.dll",
+              "kernel32.dll",
+              "shell32.dll",
+              "ucrtbase.dll"
+            ],
+            "static": [
+              "msvcrt.dll",
+              "kernel32.dll",
+              "user32.dll",
+              "ole32.dll",
+              "oleaut32.dll",
+              "shell32.dll",
+              "gdi32.dll",
+              "imm32.dll"
+            ]
+          }
+        }
+      }
+    },
+    "linux-default": {
+      "standaloneRendererRan": false,
+      "activeRendererOffscreenTargetRan": true,
+      "nativeSource": {
+        "path": "//wsl.localhost/Ubuntu/var/tmp/xlang-validation/xge-full-20261110/xui-resource-reservation-native-source-linux-r1.json",
+        "sha256": "af7ff6a2c1271f7fd6683606ce775a7295fe8111f1fc4035602d659f37c5731d"
+      },
+      "nativeBuilds": {
+        "host": {
+          "path": "//wsl.localhost/Ubuntu/var/tmp/xlang-validation/xge-full-20261110/xui-resource-reservation-host-linux-r1/build-report.json",
+          "sha256": "96b41b7a01c10943e6a355230c7ff317f52f18ca77221c426f270d10ba7720fe"
+        },
+        "static": {
+          "path": "//wsl.localhost/Ubuntu/var/tmp/xlang-validation/xge-full-20261110/xui-resource-reservation-static-linux-r1/build-report.json",
+          "sha256": "6bcb49852600154234906f5e702eae6a9032f6a70fee9766dce093e2f07718b7"
+        }
+      },
+      "packageReplay": {
+        "path": "//wsl.localhost/Ubuntu/var/tmp/xlang-validation/xge-full-20261110/xui-resource-reservation-stage-linux-r1/replay/stage-report.json",
+        "sha256": "770d46a40a5ea55f0db6e95d688364b5b21207e79e7ba41365778f6528d59049"
+      },
+      "audit": {
+        "path": "//wsl.localhost/Ubuntu/var/tmp/xlang-validation/xge-full-20261110/current-offscreen-consumers-linux-default-r1/results.json",
+        "sha256": "2e4a92cfadc34e8d20b272ff3b75d0f791ba4d76d8adde711acf19b3a692dd4f"
+      },
+      "runtime": {
+        "path": "//wsl.localhost/Ubuntu/var/tmp/xlang-validation/xge-full-20261110/current-offscreen-verify-linux-default-r3/results.json",
+        "sha256": "d193419a4d54e835a68ddcacecb743c0c5044e887178ef8cc01faa81e9a1913a"
+      },
+      "remaining": {
+        "XGE": 6,
+        "XUI": 30
+      },
+      "nativeCalls": {
+        "__xgeContextNativeUnit": {
+          "xgeEGLUnitChecked": [
+            "xgeEGLUnitChecked"
+          ]
+        },
+        "xgeRenderTargetCreateOwned": {
+          "xgeRenderTargetCreate": [
+            "xgeRenderTargetCreate"
+          ]
+        }
+      },
+      "verifiedCases": {
+        "foreign_xge3_offscreen_context": {
+          "directCFunctions": [
+            "xl6Xge3GraphicsContextCreateOffscreenOwned",
+            "xgeGraphicsContextInfoGet",
+            "xgeGraphicsContextMakeCurrent",
+            "xgeRenderTargetReadPixelsOwned"
+          ],
+          "imports": {
+            "host": [
+              "libm.so.6",
+              "libmvec.so.1",
+              "libxge3_host.so",
+              "libc.so.6",
+              "ld-linux-x86-64.so.2"
+            ],
+            "static": [
+              "libm.so.6",
+              "libmvec.so.1",
+              "libx11.so.6",
+              "libxi.so.6",
+              "libxcursor.so.1",
+              "libgl.so.1",
+              "libc.so.6",
+              "ld-linux-x86-64.so.2"
+            ]
+          }
+        },
+        "offscreen_context": {
+          "directCFunctions": [
+            "xl6Xge3GraphicsContextCreateOffscreenOwned",
+            "xgeRenderTargetReadPixelsOwned"
+          ],
+          "imports": {
+            "host": [
+              "libm.so.6",
+              "libmvec.so.1",
+              "libxge3_host.so",
+              "libc.so.6",
+              "ld-linux-x86-64.so.2"
+            ],
+            "static": [
+              "libm.so.6",
+              "libmvec.so.1",
+              "libx11.so.6",
+              "libxi.so.6",
+              "libxcursor.so.1",
+              "libgl.so.1",
+              "libc.so.6",
+              "ld-linux-x86-64.so.2"
+            ]
+          }
+        },
+        "offscreen_pass": {
+          "directCFunctions": [
+            "xgeRenderTargetCreateOwned",
+            "xgeRenderTargetReadPixelsOwned"
+          ],
+          "imports": {
+            "host": [
+              "libm.so.6",
+              "libmvec.so.1",
+              "libxge3_host.so",
+              "libc.so.6",
+              "ld-linux-x86-64.so.2"
+            ],
+            "static": [
+              "libm.so.6",
+              "libmvec.so.1",
+              "libx11.so.6",
+              "libxi.so.6",
+              "libxcursor.so.1",
+              "libgl.so.1",
+              "libc.so.6",
+              "ld-linux-x86-64.so.2"
+            ]
+          }
+        },
+        "foreign_xge3_graphics_context": {
+          "directCFunctions": [
+            "xl6Xge3GraphicsContextCreateEglOwned",
+            "xgeGraphicsContextInfoGet"
+          ],
+          "imports": {
+            "host": [
+              "libm.so.6",
+              "libmvec.so.1",
+              "libxge3_host.so",
+              "libc.so.6",
+              "ld-linux-x86-64.so.2"
+            ],
+            "static": [
+              "libm.so.6",
+              "libmvec.so.1",
+              "libx11.so.6",
+              "libxi.so.6",
+              "libxcursor.so.1",
+              "libgl.so.1",
+              "libc.so.6",
+              "ld-linux-x86-64.so.2"
+            ]
+          }
+        }
+      }
+    },
+    "linux-egl": {
+      "standaloneRendererRan": true,
+      "activeRendererOffscreenTargetRan": true,
+      "nativeSource": {
+        "path": "//wsl.localhost/Ubuntu/var/tmp/xlang-validation/xge-full-20261110/xui-resource-reservation-native-source-linux-r1.json",
+        "sha256": "af7ff6a2c1271f7fd6683606ce775a7295fe8111f1fc4035602d659f37c5731d"
+      },
+      "nativeBuilds": {
+        "host": {
+          "path": "//wsl.localhost/Ubuntu/var/tmp/xlang-validation/xge-full-20261110/current-egl-host-linux-r1/build-report.json",
+          "sha256": "096cfaf749172c1d91c063c9d03d9b3d0c78d82eeeabab4c4c99b928890c8c90"
+        },
+        "static": {
+          "path": "//wsl.localhost/Ubuntu/var/tmp/xlang-validation/xge-full-20261110/current-egl-static-linux-r1/build-report.json",
+          "sha256": "79cae800700c3695141dfd95c25cdd1189e02409c19400ece3544dcd3076fcee"
+        }
+      },
+      "packageReplay": {
+        "path": "//wsl.localhost/Ubuntu/var/tmp/xlang-validation/xge-full-20261110/current-egl-stage-linux-r1/replay/stage-report.json",
+        "sha256": "b91a11f054f11eecc0b6c40c9f09f781bbef4617cb9881d9cc391033fc5471b2"
+      },
+      "audit": {
+        "path": "//wsl.localhost/Ubuntu/var/tmp/xlang-validation/xge-full-20261110/current-offscreen-consumers-linux-egl-r1/results.json",
+        "sha256": "a37b4514d0086fe422b772c301f2fafad208f9c406ccef6d0bc71400468ff22d"
+      },
+      "runtime": {
+        "path": "//wsl.localhost/Ubuntu/var/tmp/xlang-validation/xge-full-20261110/current-offscreen-verify-linux-egl-r3/results.json",
+        "sha256": "63b927e518595b2315b8d76ce26f217b6a450a6d8ef7801bb84ed46149a41657"
+      },
+      "remaining": {
+        "XGE": 2,
+        "XUI": 30
+      },
+      "nativeCalls": {
+        "__xgeContextNativeUnit": {
+          "xgeEGLUnitChecked": [
+            "xgeEGLUnitChecked"
+          ]
+        },
+        "xgeRenderTargetCreateOwned": {
+          "xgeRenderTargetCreate": [
+            "xgeRenderTargetCreate"
+          ]
+        },
+        "__xgeContextNativeInit": {
+          "xgeEGLInit": [
+            "xgeEGLInit"
+          ]
+        },
+        "xgeEGLInit": {
+          "xgeGraphicsBackendSet": [
+            "xgeGraphicsBackendSet"
+          ],
+          "xgePlatformBackendSet": [
+            "xgePlatformBackendSet"
+          ]
+        },
+        "__xgeContextNativeMakeCurrent": {
+          "xgeEGLMakeCurrent": [
+            "xgeEGLMakeCurrent"
+          ]
+        }
+      },
+      "verifiedCases": {
+        "foreign_xge3_offscreen_context": {
+          "directCFunctions": [
+            "xl6Xge3GraphicsContextCreateOffscreenOwned",
+            "xgeGraphicsContextInfoGet",
+            "xgeGraphicsContextMakeCurrent",
+            "xgeRenderTargetReadPixelsOwned"
+          ],
+          "imports": {
+            "host": [
+              "libm.so.6",
+              "libmvec.so.1",
+              "libxge3_host.so",
+              "libc.so.6",
+              "ld-linux-x86-64.so.2"
+            ],
+            "static": [
+              "libm.so.6",
+              "libmvec.so.1",
+              "libx11.so.6",
+              "libxi.so.6",
+              "libxcursor.so.1",
+              "libgl.so.1",
+              "libegl.so.1",
+              "libc.so.6",
+              "ld-linux-x86-64.so.2"
+            ]
+          }
+        },
+        "offscreen_context": {
+          "directCFunctions": [
+            "xl6Xge3GraphicsContextCreateOffscreenOwned",
+            "xgeRenderTargetReadPixelsOwned"
+          ],
+          "imports": {
+            "host": [
+              "libm.so.6",
+              "libmvec.so.1",
+              "libxge3_host.so",
+              "libc.so.6",
+              "ld-linux-x86-64.so.2"
+            ],
+            "static": [
+              "libm.so.6",
+              "libmvec.so.1",
+              "libx11.so.6",
+              "libxi.so.6",
+              "libxcursor.so.1",
+              "libgl.so.1",
+              "libegl.so.1",
+              "libc.so.6",
+              "ld-linux-x86-64.so.2"
+            ]
+          }
+        },
+        "offscreen_pass": {
+          "directCFunctions": [
+            "xgeRenderTargetCreateOwned",
+            "xgeRenderTargetReadPixelsOwned"
+          ],
+          "imports": {
+            "host": [
+              "libm.so.6",
+              "libmvec.so.1",
+              "libxge3_host.so",
+              "libc.so.6",
+              "ld-linux-x86-64.so.2"
+            ],
+            "static": [
+              "libm.so.6",
+              "libmvec.so.1",
+              "libx11.so.6",
+              "libxi.so.6",
+              "libxcursor.so.1",
+              "libgl.so.1",
+              "libegl.so.1",
+              "libc.so.6",
+              "ld-linux-x86-64.so.2"
+            ]
+          }
+        },
+        "foreign_xge3_graphics_context": {
+          "directCFunctions": [
+            "xl6Xge3GraphicsContextCreateEglOwned",
+            "xgeGraphicsContextInfoGet"
+          ],
+          "imports": {
+            "host": [
+              "libm.so.6",
+              "libmvec.so.1",
+              "libxge3_host.so",
+              "libc.so.6",
+              "ld-linux-x86-64.so.2"
+            ],
+            "static": [
+              "libm.so.6",
+              "libmvec.so.1",
+              "libx11.so.6",
+              "libxi.so.6",
+              "libxcursor.so.1",
+              "libgl.so.1",
+              "libegl.so.1",
+              "libc.so.6",
+              "ld-linux-x86-64.so.2"
+            ]
+          }
+        }
+      }
+    }
+  },
+  "remainingAcrossSupportedConfigurations": [
+    "xgeImageGetPixels",
+    "xgeMemoryFree",
+    "xuiCodeEditGetTokenStyleResolver",
+    "xuiCodeLanguageRegistryRegister",
+    "xuiCodeLanguageRegistryRegisterOwned",
+    "xuiCodeProviderSetCommand",
+    "xuiCodeProviderSetCommandOwned",
+    "xuiContextTraceEventOwners",
+    "xuiDrawCreateOwned",
+    "xuiIconDescDefault",
+    "xuiIconGetUser",
+    "xuiProxyCreateOwned",
+    "xuiProxyCreateOwnedEx",
+    "xuiProxyResourceOwnershipBusy",
+    "xuiProxyResourceOwnershipCompletionV1",
+    "xuiSetProxy",
+    "xuiSetProxyOwned",
+    "xuiTableViewCellOutputCanRetire",
+    "xuiTableViewCellOutputLifetimeWatch",
+    "xuiTerminalSetImageCallback",
+    "xuiWidgetGetCacheRenderCallback",
+    "xuiWidgetGetContentMeasureCallback",
+    "xuiWidgetGetCursorQueryCallback",
+    "xuiWidgetGetEventCallback",
+    "xuiWidgetGetEventHandler",
+    "xuiWidgetGetImeCandidateRect",
+    "xuiWidgetGetLayoutChildrenCallback",
+    "xuiWidgetGetLayoutCompleteCallback",
+    "xuiWidgetGetLayoutPrepareCallback",
+    "xuiWidgetGetTypeData",
+    "xuiWidgetTypeGetUserData",
+    "xuiWidgetTypeSetOwnershipTrace"
+  ]
+}

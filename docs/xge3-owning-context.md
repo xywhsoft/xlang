@@ -7,11 +7,19 @@ Windows 使用隐藏的 WGL drawable，需要 OpenGL 3.3 Core 驱动。
 `XGE_ERROR_UNSUPPORTED`。Linux 仍可用 `createEglContext(width, height, true)`
 显式选择无 surface 模式。
 
+已有窗口或宿主渲染器时，在它的绘制回调内调用
+`xge.createRenderTarget(width, height)` 即可离屏绘制。目标和当前渲染器
+共用图形上下文，默认 Linux SDK 也支持这种方式。目标带独立的拥有引用，
+重复调用会创建不同的目标。创建、清屏和读回的完整示例见
+[`offscreen_pass.xl`](../lib/bindings/xge/examples/offscreen_pass.xl)。
+
 `context.info()` 提供尺寸、GPU 后端、当前绑定状态和渲染就绪状态。
 `xge.platformCapsGet()` 对这两种离屏后端报告 offscreen 能力。
 同一个引擎一次只允许一个拥有式渲染上下文，整个上下文由创建线程管理。
 上下文关闭后，仍由外部持有的 RenderTarget 可以继续回读。引擎关闭会报告
 Busy，直到剩余的 GPU 子资源释放。打开下一套上下文前，需要关闭并重新初始化引擎。
+会话进入退役后，当前后端查询也会返回 checked Busy。执行 `xge.unit()` 后再次查询，
+可读取默认后端信息。
 
 `offscreen_context.xl` 演示创建上下文、清除 2×2 RenderTarget、回读四个 RGBA
 像素并按顺序释放。Windows 使用默认 SDK，Linux 无显示服务器时使用下述命令和
@@ -34,6 +42,11 @@ AOT。Linux 默认 SDK 验证了 unsupported 路径。Windows 原生测试覆盖
 另行记录，其中包括驱动与系统窗口操作。
 
 [跨平台离屏渲染验收](../dev/release-materials/provenance/xge-offscreen-context-20261124.json)
+
+当前配套再次通过三种配置的 JIT、动态 AOT 和静态 AOT。Windows WGL 与
+Linux EGL 实际清屏并读回像素。默认 Linux 在独立上下文路径验证
+`XGE_ERROR_UNSUPPORTED`，并通过 Xvfb 在已有渲染器内实际绘制和读回。
+[后端选择与退役路径复验](../dev/release-materials/provenance/xge-offscreen-routes-20261124.json)
 
 ## 显式 EGL 模式
 

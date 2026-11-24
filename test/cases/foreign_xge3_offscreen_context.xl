@@ -12,6 +12,8 @@ end
 
 func main(...) as int
     xge.init(4, 4, "Offscreen context test", 0, xge.XGE_RUN_MANUAL)
+    auto initialPlatform, initialPlatformName, initialPlatformHooks = xge.currentPlatformBackendInfo()
+    auto initialGraphics, initialGraphicsName, initialGraphicsHooks = xge.currentGraphicsBackendInfo()
     bool windows = os.platform() == "windows"
     if not windows and xge.eglCapsGet().bCompiled == c_int(0) then
         bool unsupported = false
@@ -33,19 +35,31 @@ func main(...) as int
         invalid = error.code == int(xge.XGE_ERROR_INVALID_ARGUMENT)
     end
     assert invalid
+    auto unchangedPlatform, unchangedPlatformName, unchangedPlatformHooks = xge.currentPlatformBackendInfo()
+    auto unchangedGraphics, unchangedGraphicsName, unchangedGraphicsHooks = xge.currentGraphicsBackendInfo()
+    assert unchangedPlatform == initialPlatform and unchangedPlatformHooks == initialPlatformHooks
+    assert unchangedGraphics == initialGraphics and unchangedGraphicsHooks == initialGraphicsHooks
+    assert unchangedPlatformName == initialPlatformName and unchangedGraphicsName == initialGraphicsName
 
     auto context = xge.createOffscreenContext(4, 4)
     auto state = context.info()
     auto caps = xge.platformCapsGet()
+    auto platform, platformName, platformHooks = xge.currentPlatformBackendInfo()
+    auto graphics, graphicsName, graphicsHooks = xge.currentGraphicsBackendInfo()
     assert state.width == c_int(4) and state.height == c_int(4)
     assert state.current and state.graphicsReady and not state.surfaceless
     assert caps.bOffscreen != c_int(0) and caps.bWindow == c_int(0)
+    assert platform == caps.iPlatformBackend and graphics == state.backend
+    assert platformHooks == c_uint(0) and graphicsHooks == c_uint(0)
+    assert platformName != null and graphicsName != null
     if windows then
         assert state.backend == xge.XGE_GPU_BACKEND_OPENGL33
         assert caps.iPlatformBackend == xge.XGE_PLATFORM_BACKEND_WGL
+        assert (platformName as string) == "wgl-offscreen" and (graphicsName as string) == "opengl33"
     else
         assert state.backend == xge.XGE_GPU_BACKEND_GLES30
         assert caps.iPlatformBackend == xge.XGE_PLATFORM_BACKEND_EGL
+        assert (platformName as string) == "egl-offscreen" and (graphicsName as string) == "gles30"
     end
     bool exclusive = false
     try
@@ -75,6 +89,13 @@ func main(...) as int
     expectBusyShutdown()
 
     target.close()
+    bool retired = false
+    try
+        auto retiredKind, retiredName, retiredHooks = xge.currentPlatformBackendInfo()
+    catch Error error
+        retired = error.code == int(xge.XGE_ERROR_BUSY)
+    end
+    assert retired
     xge.unit()
     assert xge.graphicsResourceCount() == uint64(0)
     assert codec.hexEncode(saved) == "0a141eff0a141eff0a141eff0a141eff"

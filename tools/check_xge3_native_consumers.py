@@ -173,6 +173,31 @@ CORE_HEADER_CLOSES = {
     'xgeParticleRendererFreeChecked': ('ParticleRenderer', 'ParticleRenderer', 'xgeParticleRendererReleaseOwnerChecked'),
     'xgeResourceFree': ('Resource', 'ResourcePolicy', 'xgeResourceFree'),
 }
+
+GRAPHICS_CONTEXT_FACTORIES = {
+    'xl6Xge3GraphicsContextCreateEglOwned': ('xge.createEglContext', 'xgeGraphicsContextCreateEglOwned'),
+    'xl6Xge3GraphicsContextCreateOffscreenOwned': ('xge.createOffscreenContext', 'xgeGraphicsContextCreateOffscreenOwned'),
+}
+
+OFFSCREEN_NATIVE_SOURCE = 'single/xge.c'
+OFFSCREEN_REPLACEMENTS = {
+    'xgeOffscreenInit': 'xgeGraphicsContextCreateOffscreenOwned',
+    'xgeOffscreenRenderTarget': 'xgeGraphicsContextCreateOffscreenOwned',
+    'xgeOffscreenUnit': 'xgeGraphicsContextCreateOffscreenOwned',
+    'xgeEGLUnit': 'xgeGraphicsContextCreateEglOwned',
+}
+OFFSCREEN_LIFETIME_CALLS = {
+    'xgeGraphicsContextCreateEglOwned': ('__xgeContextCreateOwned',),
+    'xgeGraphicsContextCreateOffscreenOwned': ('__xgeContextCreateOwned',),
+    '__xgeContextCreateOwned': ('__xgeContextNativeInit',),
+    'xgeGraphicsContextMakeCurrent': ('__xgeContextNativeMakeCurrent',),
+    '__xgeContextFinalize': ('__xgeContextNativeUnit',),
+    '__xgeContextNativeUnit': ('xgeEGLUnitChecked',),
+    'xgeEGLUnit': ('xgeEGLUnitChecked',),
+    'xgeOffscreenInit': ('xgeEGLInit', 'xgeRenderTargetCreate'),
+    'xgeOffscreenUnit': ('xgeEGLUnit', 'xgeRenderTargetFree'),
+    'xgeRenderTargetCreateOwned': ('xgeRenderTargetCreate',),
+}
 PARTICLE_WORLD_FACTORIES = {'xgeParticleWorldCreate', 'xgeParticleWorldCreateOwned'}
 PARTICLE_WORLD_BRIDGE = 'xl6Xge3ParticleWorldCreateOwned'
 PARTICLE_WORLD_PRODUCER = 'xgeParticleWorldCreateOwnedWithCode'
@@ -684,6 +709,23 @@ def main():
                 adopt = f'xge{kind}AdoptStorage'
                 if take in functions and adopt in functions:
                     calls['single/xge.c'][take] = (adopt,)
+        if 'xgeGraphicsContextCreateOffscreenOwned' in functions:
+            engine = json.loads(a.resource_engine_build.read_text(encoding='utf-8'))
+            graphics = calls.setdefault(OFFSCREEN_NATIVE_SOURCE, {})
+            graphics.update(OFFSCREEN_LIFETIME_CALLS)
+            setters = ('xgePlatformBackendSet', 'xgeGraphicsBackendSet')
+            creation = ()
+            if os.name == 'nt':
+                creation += ('__xgeWglOffscreenInit', *setters)
+                included_units.append('src/xge/platform/xge_wgl_offscreen.c')
+            if 'XGE_ENABLE_EGL' in engine['features']:
+                creation += ('xgeEGLInit',)
+                graphics['xgeEGLInit'] = setters
+                graphics['__xgeContextNativeMakeCurrent'] = ('xgeEGLMakeCurrent',)
+            if creation:
+                graphics['__xgeContextNativeInit'] = creation
+            included_units.extend(('src/xge/core/xge_graphics_context.c',
+                'src/xge/core/xge_owned_graphics.c', 'src/xge/platform/xge_egl.c'))
         source, build_flags, evidence_inputs = witness_build_inputs(
             a.resource_engine_build.resolve(),audit,packages,tools['gcc'],sha,calls.keys(),
             included_units)
@@ -704,6 +746,7 @@ def main():
         # x86_64 COFF import indirection names the same authoritative C symbol.
         return {line.split()[-1].removeprefix('__imp_') for line in text.splitlines() if line.split()}
     consumers={}
+    graphics_factories={}
     try:
         # Reuse the authoritative inventory parser on copies of the actual
         # package-selected declarations. A same-header, stale language package
@@ -787,6 +830,19 @@ def main():
                     assert {'xl6CodeLeaseAcquireScoped','xl6CodeLeaseRelease'} <= calls,(adapter,calls)
                     transfer_publishers[adapter]=dict(language=language,native=native,adapter=adapter,
                         source=source,relocationPath=[sections[0],native])
+            if source == 'src/graphics_context.c':
+                relocations = object_relocations(run(name+'-relocations', [tools['objdump'], '-r', obj]))
+                for adapter, (language, native) in GRAPHICS_CONTEXT_FACTORIES.items():
+                    if adapter not in bound:
+                        continue
+                    assert adapter in defined and native in functions, (adapter, native)
+                    assert any(row['language'] == language for row in bound[adapter]), adapter
+                    sections = [prefix+adapter for prefix in ('.text.', '.text$')
+                                if native in relocations.get(prefix+adapter, ())]
+                    assert len(sections) == 1, (adapter, native)
+                    graphics_factories[native] = dict(language=language, native=native, adapter=adapter,
+                        source=source, relocationPath=[sections[0], native])
+                report['graphicsContextFactories'] = graphics_factories
             if source in ENGINE_OWNERS:
                 old,language,adapter,native=ENGINE_OWNERS[source]
                 if adapter in bound and old in functions:
@@ -894,13 +950,19 @@ def main():
                     'xgeAsyncTextureTakeOwned': 'xge.TextureLoad.take',
                     'xuiTreeViewSetDataAdapterOwned': 'xui.TreeView.setDataAdapter',
                     'xuiTreeViewRefreshAdapter': 'xui.TreeView.refreshAdapter',
+                    'xgeGraphicsContextMakeCurrent': 'xge.GraphicsContext.makeCurrent',
+                    'xgeRenderTargetCreateOwned': 'xge.createRenderTarget',
                 }
                 for edges in calls.values():
                     for root in edges.keys() & binding_calls.keys():
                         assert any(item['language'] == binding_calls[root] for item in bound[root]), root
             report[label] = prove_native_lifetime(source,build_flags,calls,tools,out,run,sha)
             for source_path, expected in calls.items():
-                for names in expected.values():
+                for caller, names in expected.items():
+                    # Legacy calls prove retirement/replacement correspondence. They
+                    # cannot establish a consumer reachable from the language API.
+                    if caller in OFFSCREEN_REPLACEMENTS:
+                        continue
                     for symbol in names:
                         entries = consumers.setdefault(symbol,[])
                         if source_path not in entries:
@@ -928,6 +990,21 @@ def main():
                 evidence=transfer_publishers['xl6Xge3RunOwned']
             elif symbol in engine_owners:
                 evidence=engine_owners[symbol]
+            elif OFFSCREEN_REPLACEMENTS.get(symbol) in graphics_factories and a.resource_engine_build:
+                context_factory = graphics_factories[OFFSCREEN_REPLACEMENTS[symbol]]
+                ctx = 'xge.GraphicsContext.close'
+                target = 'xge.RenderTarget.close'
+                for close, policy in ((ctx, 'xl6Xge3GraphicsContextPolicy'), (target, 'xl6Xge3TargetPolicy')):
+                    require_close(class_lines(view, class_bindings[close.rsplit('.', 1)[0]]), policy, close)
+                paths = report['resourceLifetime'][OFFSCREEN_NATIVE_SOURCE]['relocationPaths']
+                if symbol == 'xgeEGLUnit':
+                    evidence = dict(language=ctx, native='xgeEGLUnitChecked', parentFactory=context_factory,
+                        legacyPath=paths[symbol]['xgeEGLUnitChecked'],
+                        managedPath=paths['__xgeContextNativeUnit']['xgeEGLUnitChecked'])
+                else:
+                    evidence = dict(language='xge.createRenderTarget', native='xgeRenderTargetCreateOwned',
+                        optionalContext=context_factory, closeSequence=[target, ctx],
+                        targetConstructor=paths['xgeRenderTargetCreateOwned']['xgeRenderTargetCreate'])
             elif symbol in CLOSE_REPLACEMENTS and (symbol not in NATIVE_RELEASE_DELEGATES or a.resource_engine_build):
                 logical,policy,destroy,release=CLOSE_REPLACEMENTS[symbol]
                 owner=class_bindings[logical.rsplit('.',1)[0]]
