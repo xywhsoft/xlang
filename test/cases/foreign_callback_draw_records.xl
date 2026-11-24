@@ -1,0 +1,99 @@
+from xui import CallbackProxy,CallbackDrawContext,CallbackPathCommands,CallbackPathStyle,CallbackProxyTextItem
+from xui import CString,TextPaintSpan,Proxy,Rect,XUI_PROXY_VERSION,XUI_PATH_CMD_LINE,XUI_PATH_FILL_EVEN_ODD
+from xui import XUI_PATH_JOIN_BEVEL,XUI_PATH_CAP_ROUND
+
+typedef PathVisitor=func(CallbackProxy,CallbackDrawContext,CallbackPathCommands,CallbackPathStyle,c_float) as c_int
+typedef SvgVisitor=func(CallbackProxy,CallbackDrawContext,CString,Rect,Rect,CallbackPathStyle,c_float) as c_int
+typedef TextVisitor=func(CallbackProxy,CallbackDrawContext,CallbackProxyTextItem,Rect,c_uint,c_uint) as c_int
+
+extern "xuiProxyReleaseChecked" @header("xge3_runtime.h") @no_raise @c_result("status",0) func releaseProbe(Proxy value)
+extern "xuiProxyCreateOwned" @header("xge3_runtime.h") @no_raise @c_result("owned_view") @factory(2,0,releaseProbe) @c_pack(0,"xui_proxy_t",0,4) @c_pack_size(0,"iSize","uint32_t") @c_pack_field(0,"iVersion",0,"value") @c_pack_callback_group(0,"pUser",1) @c_pack_field(0,"drawPath",1,"owned_callback") @c_pack_field(0,"drawSvgPath",2,"owned_callback") @c_pack_field(0,"drawText",3,"owned_callback") @c_owned_callback(1,-1,"xui_callback_owner_t",-16,"receiver") @c_owned_callback(2,-1,"xui_callback_owner_t",-16,"receiver") @c_owned_callback(3,-1,"xui_callback_owner_t",-16,"receiver") @c_callback_span(1,2,"const xui_path_command_t*","int","elements") func makeProxy(c_uint version,PathVisitor path,SvgVisitor svg,TextVisitor text) as Proxy
+extern "xl_test_proxy_draw_records" @header("test/cases/foreign_callback_draw_records.h") @no_raise @c_result("status",0) func draw(Proxy backend,c_int mode)
+
+class CallbackState
+ CallbackPathStyle? style=null
+ CallbackProxyTextItem? item=null
+ TextPaintSpan paint=TextPaintSpan()
+ int calls=0
+end
+
+func checkStyle(CallbackPathStyle style)
+ assert style.fillColor==c_uint(0x11223344) and style.strokeColor==c_uint(0xAABBCCDD)
+ assert style.strokeWidth==c_float(2.25) and style.dashOffset==c_float(0.5)
+ assert style.fillRule==XUI_PATH_FILL_EVEN_ODD and style.lineJoin==XUI_PATH_JOIN_BEVEL and style.lineCap==XUI_PATH_CAP_ROUND
+ assert style.dashCount==c_int(2)
+ assert style.dash(c_size(0))==c_float(1.5) and style.dash(c_size(1))==c_float(2.5)
+ bool denied=false
+ try
+  auto value=style.dash(c_size(2))
+ catch error
+  denied=true
+ end
+ assert denied
+end
+
+func main(...) as int
+ auto state=CallbackState()
+ PathVisitor path=func(CallbackProxy backend,CallbackDrawContext context,CallbackPathCommands commands,CallbackPathStyle style,c_float tolerance) as c_int
+  if tolerance==c_float(0.75)
+   auto invalid=style.dash(c_size(0))
+   return c_int(0)
+  end
+  assert backend.version==c_uint(XUI_PROXY_VERSION) and tolerance==c_float(0.25)
+  assert commands.count==c_size(2) and commands.at(c_size(1)).iCommand==XUI_PATH_CMD_LINE
+  checkStyle(style)
+  state.style=style
+  state.calls+=1
+  return c_int(0)
+ end
+ SvgVisitor svg=func(CallbackProxy backend,CallbackDrawContext context,CString path,Rect viewBox,Rect target,CallbackPathStyle style,c_float tolerance) as c_int
+  assert path.copy()=="M 1 2 L 3 4" and tolerance==c_float(0.5)
+  assert viewBox.fX==c_float(1) and target.fH==c_float(9)
+  checkStyle(style)
+  state.calls+=1
+  return c_int(0)
+ end
+ TextVisitor text=func(CallbackProxy backend,CallbackDrawContext context,CallbackProxyTextItem item,Rect rectangle,c_uint color,c_uint flags) as c_int
+  if flags==c_uint(8)
+   auto invalid=item.paintSpan(c_size(0))
+   return c_int(0)
+  end
+  assert item.text=="abcd" and item.paintSpanCount==c_int(2)
+  assert color==c_uint(0xFFEEDDCC) and flags==c_uint(7) and rectangle.fH==c_float(9)
+  assert item.paintSpan(c_size(0)).iStart==c_int(0)
+  state.paint=item.paintSpan(c_size(1))
+  state.item=item
+  state.calls+=1
+  return c_int(0)
+ end
+ auto proxy=makeProxy(c_uint(XUI_PROXY_VERSION),path,svg,text)
+ for mode in range(0,3)
+  draw(proxy,c_int(mode))
+ end
+ for mode in range(3,7)
+  bool denied=false
+  try
+   draw(proxy,c_int(mode))
+  catch error
+   denied=true
+  end
+  assert denied
+ end
+ assert state.calls==3
+ assert state.paint.iStart==c_int(2) and state.paint.iEnd==c_int(4) and state.paint.iColor==c_uint(0x50607080)
+ int expired=0
+ try
+  auto dash=(state.style as CallbackPathStyle).dash(c_size(0))
+ catch error
+  expired+=1
+ end
+ try
+  auto paint=(state.item as CallbackProxyTextItem).paintSpan(c_size(0))
+ catch error
+  expired+=1
+ end
+ assert expired==2
+ proxy.close()
+ println("XUI_CALLBACK_DRAW_RECORDS_OK")
+ return 0
+end

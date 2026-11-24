@@ -1,0 +1,171 @@
+{
+  "schema": 1,
+  "scope": "Scoped path styling, embedded paint spans and immutable text-shaping inputs in XUI callbacks",
+  "qualification": "Separate native callback fixtures pass JIT, dynamic AOT and static AOT. The merged XUI package and native header pass both fixtures together in JIT on each platform.",
+  "shippingDelivery": false,
+  "networkTests": false,
+  "checks": [
+    "Native drawPath, drawSvgPath and drawText read path style and indexed paint records through scoped arguments",
+    "Negative element counts, NULL data with positive counts, out-of-range access and expiry raise checked failures",
+    "Native text shaping produces and shares an immutable result in range measure, basic draw, and coloured span draw",
+    "The text item shape field preserves the supplied callback lifetime, and share() keeps an independent result",
+    "Cluster indexing, empty caret bounds, borrowed backend and native resource retirement"
+  ],
+  "sourceSha256NormalizedLf": {
+    "lib/bindings/xui/src/proxy.xl": "d852f6e334dc9d2e3223f6a4ea0ff155294eb922bdc96ade68a79abec46600e5",
+    "lib/bindings/xui/src/text_shape.xl": "23e5e5590f85ca1098b4b3f672a79f5e9f539431914159a2b633f0b03b9405c5",
+    "lib/bindings/_xge_native/include/xge3_callback_elements.h": "f7e6d37dd6e679da02c7bb156c3975dc1d08c404e54d96f6e497d968c78046b3",
+    "test/cases/foreign_callback_draw_records.xl": "98369fe0715d6c87c048526baf8fbfcf4063f8f22f0d8c3212326c95366cf30f",
+    "test/cases/foreign_callback_draw_records.h": "185106aa6ae569531ed88edc68546dd119f224f0cd7dd5d39e9081a05b8fda3d",
+    "test/cases/foreign_callback_draw_records.c": "e0dc255b0159ac8fb7e04140fb45f398bbd1d49d4fe3e00ba93b262ddaf2c676",
+    "test/cases/foreign_callback_text_shape.xl": "22155366316cc74ce36eaa4061b8d191604db57e41f856e8e1bf33e1fb3a6c87",
+    "test/cases/foreign_callback_text_shape.h": "1651e778f8d5191dfc351b999ec6ea77bd4c2269ee1cd8db197519c0e5c6e1ba",
+    "test/cases/foreign_callback_text_shape.c": "f50da368b10f21645c8c2d8b2a30e3ef08c9103f0bad96422ed4dbd020740a11",
+    "lib/bindings/xui/README.md": "f8507890cd7d6671d26c1bcc9a518e9e2065bb5d01992b4b935c66ec6ec5f519"
+  },
+  "platforms": {
+    "win": {
+      "foreign_callback_draw_records": {
+        "path": "F:/xlang-validation/xge-full-20261110/callback-draw-records-verify-win-r2/results.json",
+        "sha256": "3a256c10c57fae01d7302ae66348de99e464a19cbddbfe55d594aeed34e38d03",
+        "nativeImports": {
+          "host": [
+            "msvcrt.dll",
+            "xge3_host.dll",
+            "kernel32.dll",
+            "shell32.dll",
+            "ws2_32.dll",
+            "iphlpapi.dll",
+            "ucrtbase.dll"
+          ],
+          "static": [
+            "msvcrt.dll",
+            "kernel32.dll",
+            "ole32.dll",
+            "shell32.dll"
+          ]
+        }
+      },
+      "foreign_callback_text_shape": {
+        "path": "F:/xlang-validation/xge-full-20261110/callback-text-shape-verify-win-r1/results.json",
+        "sha256": "4f821ae3422847be65ad27fb970516f9677b507a482590696b815cdf342a623c",
+        "nativeImports": {
+          "host": [
+            "msvcrt.dll",
+            "xge3_host.dll",
+            "kernel32.dll",
+            "shell32.dll",
+            "ws2_32.dll",
+            "iphlpapi.dll",
+            "ucrtbase.dll"
+          ],
+          "static": [
+            "msvcrt.dll",
+            "kernel32.dll",
+            "ole32.dll",
+            "shell32.dll"
+          ]
+        }
+      },
+      "combinedBindingJit": {
+        "path": "F:/xlang-validation/xge-full-20261110/callback-draw-package-composition-win-r1/results.json",
+        "sha256": "b87eefa885d2a258d2672a17600019a3b9855278f98df6c9736bbb61cb310236"
+      }
+    },
+    "linux": {
+      "foreign_callback_draw_records": {
+        "path": "/var/tmp/xlang-validation/xge-full-20261110/callback-draw-records-verify-linux-r2/results.json",
+        "sha256": "961ad48f8e734350295d05316db5f264d7f57029f420936a3ab0e6d59b8e1b84",
+        "nativeImports": {
+          "host": [
+            "libm.so.6",
+            "libmvec.so.1",
+            "libxge3_host.so",
+            "libc.so.6",
+            "ld-linux-x86-64.so.2"
+          ],
+          "static": [
+            "libm.so.6",
+            "libmvec.so.1",
+            "libx11.so.6",
+            "libxi.so.6",
+            "libxcursor.so.1",
+            "libgl.so.1",
+            "libc.so.6",
+            "ld-linux-x86-64.so.2"
+          ]
+        }
+      },
+      "foreign_callback_text_shape": {
+        "path": "/var/tmp/xlang-validation/xge-full-20261110/callback-text-shape-verify-linux-r1/results.json",
+        "sha256": "3d40f1944233c8eb5b27ff1749f3b022b3f7c5e0a575b7d37bdee94542229cec",
+        "nativeImports": {
+          "host": [
+            "libm.so.6",
+            "libmvec.so.1",
+            "libxge3_host.so",
+            "libc.so.6",
+            "ld-linux-x86-64.so.2"
+          ],
+          "static": [
+            "libm.so.6",
+            "libmvec.so.1",
+            "libx11.so.6",
+            "libxi.so.6",
+            "libxcursor.so.1",
+            "libgl.so.1",
+            "libc.so.6",
+            "ld-linux-x86-64.so.2"
+          ]
+        }
+      },
+      "combinedBindingJit": {
+        "path": "/var/tmp/xlang-validation/xge-full-20261110/callback-draw-package-composition-linux-r1/results.json",
+        "sha256": "80de54656985caecabf20fa4ce945618f28a391acc7ad2dfac672ec18661cae7"
+      }
+    }
+  },
+  "checkedRecordReadAssembly": {
+    "path": "F:/xlang-validation/xge-full-20261110/callback-draw-records-src-r2/read-probe-results.json",
+    "sha256": "a533c8d23c595a0f660fde787be20de41553351802f9687aff03e58c9b7bfd1c",
+    "results": {
+      "scope": "GCC O2 successful indexed C accessors; scope entry, generated language calls and failure paths excluded",
+      "platforms": {
+        "win": {
+          "kinds": {
+            "dash": {
+              "projected": 18,
+              "direct": 18,
+              "sameInstructionOrder": false,
+              "sameOpcodeCounts": true
+            },
+            "paint": {
+              "projected": 19,
+              "direct": 19,
+              "sameInstructionOrder": false,
+              "sameOpcodeCounts": true
+            }
+          },
+          "sha256": "1a12b0671508dc885f1284ee913a2491384ea1d906662a8942d947d7f6f8e05b"
+        },
+        "linux": {
+          "kinds": {
+            "dash": {
+              "projected": 20,
+              "direct": 20,
+              "sameInstructionOrder": true,
+              "sameOpcodeCounts": true
+            },
+            "paint": {
+              "projected": 21,
+              "direct": 21,
+              "sameInstructionOrder": true,
+              "sameOpcodeCounts": true
+            }
+          },
+          "sha256": "028f77813b91a5820d737ab029062d834bb4c4a00407611c8b227d3165d22e94"
+        }
+      }
+    }
+  }
+}

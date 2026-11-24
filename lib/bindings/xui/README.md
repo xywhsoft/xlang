@@ -155,6 +155,12 @@ and reading an item's data copies exactly its selected bytes.
 `CallbackSurfaceVertices` exposes the four original vertices of each native
 quadrilateral draw callback through the same checked indexing interface.
 
+Path and SVG draw callbacks expose `CallbackPathStyle`, with checked
+indexed dash reads. `CallbackProxyTextItem` also exposes paint spans and an
+optional already-shaped result. `CallbackTextShape` reads immutable
+measurement, cluster and caret data for the active callback. `share()`
+keeps an independent native shape reference for later use.
+
 `Context` owns its widget graph. Control classes extend `Widget`; a method such
 as `button.setText(text)` calls its original native function. The package has
 no C wrappers for individual methods and no opcode dispatch. Constructors

@@ -166,7 +166,7 @@ export extern "const xui_system_font_desc_t*" class CallbackSystemFontDesc @head
  extern "value" @c_deref get value() as SystemFontDesc
 end
 // Proxy text inputs can carry an explicit byte count or the native -1 convention.
-export extern "const xui_text_item_t*" class CallbackProxyTextItem @header("xge3_runtime.h") @lifetime("callback")
+export extern "const xui_text_item_t*" class CallbackProxyTextItem @header("xge3_callback_elements.h") @lifetime("callback")
  native point handle
  extern "sText" @c_field @c_length("iTextSize","int","minus_one_terminated") @c_result("text_view") get text() as string
  extern "sContext" @c_field @c_length("iContextSize","int","minus_one_terminated") @c_result("text_view") get context() as string?
@@ -175,9 +175,24 @@ export extern "const xui_text_item_t*" class CallbackProxyTextItem @header("xge3
  extern "iScript" @c_field get script() as c_uint
  extern "sLanguage" @c_field @c_result("cstring") get language() as string?
  extern "pFont" @c_field @c_result("scope_view",0) get font() as CallbackFont?
+ extern "pShape" @c_field @c_result("scope_view",0) get shape() as CallbackTextShape?
  extern "fDrawOffsetX" @c_field get drawOffsetX() as c_float
  extern "iRangeStart" @c_field get rangeStart() as c_int
  extern "iRangeEnd" @c_field get rangeEnd() as c_int
+ extern "iPaintSpanCount" @c_field get paintSpanCount() as c_int
+ extern "xl6Xui3TextItemReadPaintSpan" @no_raise @c_output(2,0) func paintSpan(c_size index) as TextPaintSpan
+end
+export extern "const xui_path_style_t*" class CallbackPathStyle @header("xge3_callback_elements.h") @lifetime("callback")
+ native point handle
+ extern "iFillColor" @c_field get fillColor() as c_uint
+ extern "iStrokeColor" @c_field get strokeColor() as c_uint
+ extern "fStrokeWidth" @c_field get strokeWidth() as c_float
+ extern "iFillRule" @c_field get fillRule() as c_int
+ extern "iLineJoin" @c_field get lineJoin() as c_int
+ extern "iLineCap" @c_field get lineCap() as c_int
+ extern "iDashCount" @c_field get dashCount() as c_int
+ extern "fDashOffset" @c_field get dashOffset() as c_float
+ extern "xl6Xui3PathStyleReadDash" @no_raise @c_output(2,0) func dash(c_size index) as c_float
 end
 export extern "xui_font_metrics_t*" class CallbackFontMetricsOutput @header("xge3_runtime.h") @lifetime("callback")
  native point handle

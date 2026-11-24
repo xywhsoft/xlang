@@ -1,0 +1,114 @@
+from xui import CallbackProxy,CallbackProxyCapsOutput,CallbackFont,CallbackFontMetricsOutput,CallbackProxyTextItem
+from xui import CallbackVec2Output,CallbackDrawContext,CallbackTextShape,CallbackTextPaintSpans
+from xui import Proxy,ProxyCaps,Rect,Vec2,FontMetrics,TextShape,XUI_PROXY_VERSION
+
+typedef Caps=func(CallbackProxy,CallbackProxyCapsOutput) as c_int
+typedef Metrics=func(CallbackProxy,CallbackFont,CallbackFontMetricsOutput) as c_int
+typedef Measure=func(CallbackProxy,CallbackProxyTextItem,CallbackVec2Output) as c_int
+typedef MeasureShape=func(CallbackProxy,CallbackTextShape,c_int,c_int,CallbackVec2Output) as c_int
+typedef DrawShape=func(CallbackProxy,CallbackDrawContext,CallbackTextShape,c_int,c_int,Rect,c_uint,c_uint) as c_int
+typedef DrawShapeSpans=func(CallbackProxy,CallbackDrawContext,CallbackTextShape,c_int,c_int,Rect,c_uint,c_uint,c_float,CallbackTextPaintSpans) as c_int
+typedef DrawItem=func(CallbackProxy,CallbackDrawContext,CallbackProxyTextItem,Rect,c_uint,c_uint) as c_int
+
+extern "xuiProxyReleaseChecked" @header("xge3_runtime.h") @no_raise @c_result("status",0) func releaseProbe(Proxy value)
+extern "xuiProxyCreateOwned" @header("xge3_runtime.h") @no_raise @c_result("owned_view") @factory(2,0,releaseProbe) @c_pack(0,"xui_proxy_t",0,8) @c_pack_size(0,"iSize","uint32_t") @c_pack_field(0,"iVersion",0,"value") @c_pack_callback_group(0,"pUser",1) @c_pack_field(0,"getCaps",1,"owned_callback") @c_pack_field(0,"fontGetMetrics",2,"owned_callback") @c_pack_field(0,"textMeasure",3,"owned_callback") @c_pack_field(0,"textShapeRangeMeasure",4,"owned_callback") @c_pack_field(0,"drawTextShapeRange",5,"owned_callback") @c_pack_field(0,"drawTextShapeRangeSpans",6,"owned_callback") @c_pack_field(0,"drawText",7,"owned_callback") @c_owned_callback(1,-1,"xui_callback_owner_t",-16,"receiver") @c_owned_callback(2,-1,"xui_callback_owner_t",-16,"receiver") @c_owned_callback(3,-1,"xui_callback_owner_t",-16,"receiver") @c_owned_callback(4,-1,"xui_callback_owner_t",-16,"receiver") @c_owned_callback(5,-1,"xui_callback_owner_t",-16,"receiver") @c_owned_callback(6,-1,"xui_callback_owner_t",-16,"receiver") @c_owned_callback(7,-1,"xui_callback_owner_t",-16,"receiver") @c_callback_span(6,9,"const xui_text_paint_span_t*","int","elements") func makeProxy(c_uint version,Caps caps,Metrics metrics,Measure measure,MeasureShape measureShape,DrawShape drawShape,DrawShapeSpans drawSpans,DrawItem drawItem) as Proxy
+extern "xl_test_proxy_text_shape" @header("test/cases/foreign_callback_text_shape.h") @no_raise @c_result("status",0) func runFixture(Proxy backend)
+
+class ShapeState
+ CallbackTextShape? loan=null
+ TextShape? retained=null
+ int measureCalls=0
+ int shapeCalls=0
+end
+
+func checkShape(CallbackProxy backend,CallbackTextShape shape)
+ assert (shape.proxy() as CallbackProxy).version==backend.version
+ assert shape.textSize==c_int(2) and shape.clusterCount==c_int(2) and shape.caretCount==c_int(0)
+ assert shape.width==c_float(10) and shape.height==c_float(12)
+ assert shape.ascent==c_float(9) and shape.descent==c_float(3) and shape.lineHeight==c_float(12)
+ assert shape.paintBytes==c_size(0)
+ auto cluster=shape.cluster(c_size(1))
+ assert cluster.iTextStart==c_int(1) and cluster.iTextEnd==c_int(2) and cluster.fAdvance==c_float(5)
+ bool invalid=false
+ try
+  auto caret=shape.caret(c_size(0))
+ catch error
+  invalid=true
+ end
+ assert invalid
+end
+
+func main(...) as int
+ auto state=ShapeState()
+ Caps caps=func(CallbackProxy backend,CallbackProxyCapsOutput output) as c_int
+  output.value=ProxyCaps()
+  return c_int(0)
+ end
+ Metrics metrics=func(CallbackProxy backend,CallbackFont font,CallbackFontMetricsOutput output) as c_int
+  auto value=FontMetrics()
+  value.fAscent=c_float(9)
+  value.fDescent=c_float(3)
+  value.fLineHeight=c_float(12)
+  output.value=value
+  return c_int(0)
+ end
+ Measure measure=func(CallbackProxy backend,CallbackProxyTextItem item,CallbackVec2Output output) as c_int
+  assert item.shape==null
+  assert item.text=="a" or item.text=="b"
+  auto size=Vec2()
+  size.fX=c_float(5)
+  size.fY=c_float(12)
+  output.value=size
+  state.measureCalls+=1
+  return c_int(0)
+ end
+ MeasureShape measureShape=func(CallbackProxy backend,CallbackTextShape shape,c_int first,c_int last,CallbackVec2Output output) as c_int
+  assert first==c_int(1) and last==c_int(2)
+  checkShape(backend,shape)
+  auto size=Vec2()
+  size.fX=c_float(5)
+  size.fY=shape.height
+  output.value=size
+  state.retained=shape.share()
+  state.shapeCalls+=1
+  return c_int(0)
+ end
+ DrawShape drawShape=func(CallbackProxy backend,CallbackDrawContext context,CallbackTextShape shape,c_int first,c_int last,Rect rect,c_uint color,c_uint flags) as c_int
+  assert first==c_int(0) and last==c_int(2) and flags==c_uint(7)
+  assert rect.fW==c_float(10) and color==c_uint(0x11223344)
+  checkShape(backend,shape)
+  state.shapeCalls+=1
+  return c_int(0)
+ end
+ DrawShapeSpans drawSpans=func(CallbackProxy backend,CallbackDrawContext context,CallbackTextShape shape,c_int first,c_int last,Rect rect,c_uint color,c_uint flags,c_float offset,CallbackTextPaintSpans spans) as c_int
+  assert flags==c_uint(8) and offset==c_float(0.25) and spans.count==c_size(1)
+  assert spans.at(c_size(0)).iColor==c_uint(0xAABBCCDD)
+  checkShape(backend,shape)
+  state.shapeCalls+=1
+  return c_int(0)
+ end
+ DrawItem drawItem=func(CallbackProxy backend,CallbackDrawContext context,CallbackProxyTextItem item,Rect rect,c_uint color,c_uint flags) as c_int
+  assert flags==c_uint(9)
+  auto shape=item.shape as CallbackTextShape
+  checkShape(backend,shape)
+  state.loan=shape
+  state.shapeCalls+=1
+  return c_int(0)
+ end
+ auto proxy=makeProxy(c_uint(XUI_PROXY_VERSION),caps,metrics,measure,measureShape,drawShape,drawSpans,drawItem)
+ runFixture(proxy)
+ assert state.measureCalls==2 and state.shapeCalls==4
+ bool expired=false
+ try
+  auto stale=(state.loan as CallbackTextShape).width
+ catch error
+  expired=true
+ end
+ assert expired
+ auto retained=state.retained as TextShape
+ assert retained.width==c_float(10) and retained.cluster(c_size(0)).fAdvance==c_float(5)
+ retained.close()
+ proxy.close()
+ println("XUI_CALLBACK_TEXT_SHAPE_OK")
+ return 0
+end
