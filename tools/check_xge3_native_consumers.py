@@ -722,6 +722,8 @@ def main():
             build_report.resolve(),audit,packages,tools['gcc'],sha,calls.keys())
         files.extend(evidence_inputs)
         lifetime_builds[name] = (source, build_flags, calls)
+    slot_read = 'xuiInternalGetUserValue' if 'xuiIconGetUserValue' in functions else '__xuiGetUserValue'
+    slot_write = 'xuiInternalSetUserValue' if 'xuiIconGetUserValue' in functions else '__xuiSetUserValue'
     if a.resource_engine_build:
         calls = {}
         for unit, caller, callee in NATIVE_RELEASE_DELEGATES.values():
@@ -753,8 +755,8 @@ def main():
             calls.setdefault(WIDGET_SOURCE, {})['xuiContextTraceOwnership'] = ('xuiContextTraceEventOwners',)
         if 'xuiWidgetTypeGetUserValue' in functions:
             calls.setdefault(WIDGET_SOURCE, {}).update({
-                'xuiWidgetTypeGetUserValue': ('__xuiGetUserValue',),
-                'xuiWidgetTypeSetUserValue': ('__xuiSetUserValue',),
+                'xuiWidgetTypeGetUserValue': (slot_read,),
+                'xuiWidgetTypeSetUserValue': (slot_write,),
                 'xuiWidgetSetInstanceState': ('__xuiWidgetStateSlot',),
                 'xuiContextTraceOwnership': (
                     'xuiContextTraceEventOwners','__xuiWidgetStateSlot','xrtValueOwnership'),
@@ -762,6 +764,22 @@ def main():
             calls['src/xui/controls/xui_label.c'] = {
                 'xuiLabelSetText': ('__xuiLabelGetData',),
                 '__xuiLabelGetData': ('xuiWidgetGetTypeData',),
+            }
+        if 'xuiIconGetUserValue' in functions:
+            calls.setdefault(WIDGET_SOURCE, {}).update({
+                'xuiContextOwnershipBusy': ('xuiInternalContextIconValuesReady',),
+                'xuiInternalContextPrepareDestroy': ('xuiInternalContextPrepareIconValues',),
+            })
+            calls.setdefault('src/xui/core/xui_core.c', {}).update({
+                'xuiInternalOperationLeave': ('xuiInternalContextDrainIcons',),
+            })
+            calls['src/xui/core/xui_icon.c'] = {
+                'xuiIconGetUserValue': (slot_read,),
+                'xuiIconSetUserValue': (slot_write,),
+                'xuiInternalContextTraceIcons': ('xrtValueOwnership',),
+                '__xuiIconDestroyOne': ('xuiInternalRetireUserValue',),
+                'xuiInternalContextPrepareIconValues': ('xuiInternalRetireUserValue',),
+                'xuiInternalContextDrainIcons': ('__xuiIconDestroyOne',),
             }
         if 'xuiTerminalSetImageCallbackOwned' in functions:
             calls['src/xui/controls/xui_terminal.c'] = {
@@ -1127,6 +1145,8 @@ def main():
                     'xuiWidgetSetInstanceState': 'xui.Widget.setInstanceState',
                     'xuiLabelSetText': 'xui.Label.setText',
                     'xuiTerminalSetImageCallbackOwned': 'xui.Terminal.setImageCallback',
+                    'xuiIconGetUserValue': 'xui.Icon.getUserData',
+                    'xuiIconSetUserValue': 'xui.Icon.setUserData',
                     'xuiTreeViewSetDataAdapterOwned': 'xui.TreeView.setDataAdapter',
                     'xuiTreeViewRefreshAdapter': 'xui.TreeView.refreshAdapter',
                     'xgeGraphicsContextMakeCurrent': 'xge.GraphicsContext.makeCurrent',
@@ -1376,8 +1396,8 @@ def main():
                     assert '@c_data_snapshot_result(0)' in declaration
                     evidence = dict(language=logical,native=native,
                         receiver='Context-local WidgetType data',
-                        nativeRead=paths[native]['__xuiGetUserValue'],
-                        nativeWrite=paths['xuiWidgetTypeSetUserValue']['__xuiSetUserValue'],
+                        nativeRead=paths[native][slot_read],
+                        nativeWrite=paths['xuiWidgetTypeSetUserValue'][slot_write],
                         ownerTrace=paths['xuiContextTraceOwnership']['xrtValueOwnership'])
                 else:
                     native = 'xuiWidgetSetInstanceState'
@@ -1386,6 +1406,18 @@ def main():
                         nativeWrite=paths[native]['__xuiWidgetStateSlot'],
                         nativeTrace=paths['xuiContextTraceOwnership']['__xuiWidgetStateSlot'],
                         ownerTrace=paths['xuiContextTraceOwnership']['xrtValueOwnership'])
+            elif symbol=='xuiIconGetUser' and a.resource_engine_build and 'xuiIconGetUserValue' in bound:
+                native = 'xuiIconGetUserValue'
+                logical = 'xui.Icon.getUserData'
+                views = {'xui.Icon.getUserData', 'xui.CallbackIcon.getUserData'}
+                assert {row['language'] for row in bound[native]} == views
+                assert all('@c_data_snapshot_result(0)' in class_lines(view,row)[0] for row in bound[native])
+                paths = report['resourceLifetime']['src/xui/core/xui_icon.c']['relocationPaths']
+                evidence = dict(language=logical,native=native,
+                    nativeRead=paths[native][slot_read],nativeWrite=paths['xuiIconSetUserValue'][slot_write],
+                    ownerTrace=paths['xuiInternalContextTraceIcons']['xrtValueOwnership'],
+                    retire=paths['__xuiIconDestroyOne']['xuiInternalRetireUserValue'],
+                    closePreparation=paths['xuiInternalContextPrepareIconValues']['xuiInternalRetireUserValue'])
             elif symbol=='xuiProxyResourceOwnershipCompletionV1' and a.resource_engine_build:
                 assert 'src/runtime.c' in consumers['xuiProxyResourceOwnershipCompletionV2']
                 proxy_log = out/'xui_proxy_resource-lifetime-relocations.log'

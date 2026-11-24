@@ -1,0 +1,330 @@
+{
+  "schema": "xlang-xui-icon-user-value-1",
+  "scope": "Independent Icon and CallbackIcon data with checked retirement and Context tracing",
+  "nativeCommit": "59a4382e",
+  "shippingDelivery": false,
+  "networkTests": false,
+  "prior": {
+    "path": "dev/release-materials/provenance/xui-proxy-completion-parity-20261124.json",
+    "sha256": "dcb70ca6b807aa44700b7019b6ad770ea96366ccab01487983b154a55bc2a515"
+  },
+  "closedFromReview": [
+    "xuiIconGetUser"
+  ],
+  "sourceSha256NormalizedLf": {
+    "docs/xge3-xui3-api-map-storage.json": "57d5400d3a32919c3ef7be0f92f2894dcbb9b55eb5f8ad049123301e99e2f04b",
+    "docs/xui-icon-models.md": "7cfdc5fdf1b31139cf0d5bdbf83c9f47747755e5f542239c5a1d09ff76f5a3f8",
+    "lib/bindings/xui/src/icons.xl": "9090a061522a57bc56721475520c67220011e90918c48ca0b7644e5b1731aeea",
+    "lib/bindings/xui/examples/icon_user_data.xl": "2b78bd1d590a4f82ec2ee90f51d52669b7128e4f846f81524458806c0fa08e3e",
+    "tools/check_xge3_native_consumers.py": "e4a06cc943044024065414ab97fac67dfc00be67fcef9f1f89276af7573a373c",
+    "test/cases/foreign_xui_icon_user_value.xl": "604307b93b36c2800e53347df261359d9613bcecf11324113a5b6f5fea69c6d2"
+  },
+  "nativeSha256NormalizedLf": {
+    "include/xui.h": "8c779a9a85f2e1566845836d69d4661342082751b7a689240e1b4c8cff380eae",
+    "src/xui/core/xui_icon.c": "562e4a495980eaeff2176b0d6d15b82fc18df546bcd02cee5db4b4ab15d03a88",
+    "src/xui/core/xui_core.c": "c9a141aba9d32118500e8464f12bbf37c93f42fc899d5878d8b00b8f668739e4",
+    "src/xui/core/xui_widget.c": "8689e486ad3c6bb69a04e45577f1ba7a2e3ab163405feb924053bdd89de8a682",
+    "src/xui/core/xui_internal.h": "424f8d9f1c05ebd58a71a58a6f4972df0c7576153f365e24a8280ba1cce0025f",
+    "tests/xui/test_icon_user_value.c": "dd3084312d6fa3c943b5b12f487a3317a21dd4ca88de03a21ee7150b82fcb775"
+  },
+  "nativeCases": [
+    "raw descriptor userdata, alias-local managed values and exactly one Context edge",
+    "correct creator-thread, empty value, replacement under allocation fault",
+    "checked final owner removal and retained reference release preserve retry on Busy",
+    "category shutdown consumes the registry owner and defers a busy Icon without extra allocation",
+    "logical Context close retires ready slots, survives reentrant peer deletion and waits for busy slots",
+    "physical lifetimes and native live allocations are balanced"
+  ],
+  "languageCases": [
+    "public data snapshots and metadata independence",
+    "embedded NUL and binary payload preservation and independent alias slot",
+    "input and output allocation failures preserve published state and the previous receiving variable",
+    "registered owner removal and view expiry",
+    "CallbackIcon snapshot updates and checked callback expiry"
+  ],
+  "platforms": {
+    "win": {
+      "stage": {
+        "path": "F:/xlang-validation/xge-full-20261110/icon-user-value-stage-win-r3/replay/stage-report.json",
+        "sha256": "abe2a2f61983194f6e1d81628927a1256372fc8bbf51320e4cbf3a928e4202ff"
+      },
+      "nativeSource": {
+        "path": "F:/xlang-validation/xge-full-20261110/icon-user-value-native-source-win-r1.json",
+        "sha256": "5b9a8d6090990d7e8c2d2c3c60e647819983ccbde3e96fcd98867f04f11da37b"
+      },
+      "audit": {
+        "path": "F:/xlang-validation/xge-full-20261110/icon-user-value-consumers-win-r4/results.json",
+        "sha256": "ba48b5cb36ffd1007674d3bacba7ee88ed264f0a80e3658dc0827af015f02364"
+      },
+      "runtime": {
+        "path": "F:/xlang-validation/xge-full-20261110/icon-user-value-verify-win-r1/results.json",
+        "sha256": "aa8eba64c5d88bb0447aae37ae08931e151b65b171bc9a7dfecdac402f805529"
+      },
+      "regression": {
+        "path": "F:/xlang-validation/xge-full-20261110/icon-user-value-native-regressions-win-r1/results.json",
+        "sha256": "4c58e9f6cc3133b7d8d89bbeb584fa443d0cbb739ffd5a17ca4da1fd575d0cf1"
+      },
+      "native": {
+        "path": "F:/xlang-validation/xge-full-20261110/icon-user-value-native-tests-win-r2/results.json",
+        "sha256": "c193efdacfb8d8f9ad2cd24da56b2a441a6d905bf7012ef9c4ec0f7ec5e3318c"
+      },
+      "layout": {
+        "path": "F:/xlang-validation/xge-full-20261110/icon-user-value-layout-win-r1/results.json",
+        "sha256": "1e3d49152341cf86b9a2830b47a32462a1b28294eb4d63635314fd9c09bc5958"
+      },
+      "generator": {
+        "path": "F:/xlang-validation/xge-full-20261110/icon-user-value-generator-win-r3/results.json",
+        "sha256": "968e78ac25326acde7e12afe9b0f632578bdd3db2e9f4a2f8224dd12a9ea48f6"
+      },
+      "generatedC": {
+        "path": "F:/xlang-validation/xge-full-20261110/icon-user-value-verify-win-r1/foreign_xui_icon_user_value/generated.c",
+        "sha256": "7a67eef7caca3e225239ff2e804e33b64e324b2e13e5864f276f87e9cbccfd5d"
+      },
+      "remaining": {
+        "XGE": 2,
+        "XUI": 2
+      },
+      "cases": {
+        "foreign_xui_icon_user_value": {
+          "directCFunctions": [
+            "xuiIconSetUserValue",
+            "xuiIconGetUserValue",
+            "xuiIconAddAlias",
+            "xuiIconGetIntrinsicSize"
+          ],
+          "imports": {
+            "host": [
+              "msvcrt.dll",
+              "xge3_host.dll",
+              "kernel32.dll",
+              "shell32.dll",
+              "ucrtbase.dll"
+            ],
+            "static": [
+              "msvcrt.dll",
+              "kernel32.dll",
+              "user32.dll",
+              "ole32.dll",
+              "oleaut32.dll",
+              "shell32.dll",
+              "gdi32.dll",
+              "imm32.dll",
+              "dwrite.dll"
+            ]
+          }
+        },
+        "icon_user_data": {
+          "directCFunctions": [
+            "xuiIconSetUserValue",
+            "xuiIconGetUserValue",
+            "xuiIconAddAlias"
+          ],
+          "imports": {
+            "host": [
+              "msvcrt.dll",
+              "xge3_host.dll",
+              "kernel32.dll",
+              "shell32.dll",
+              "ucrtbase.dll"
+            ],
+            "static": [
+              "msvcrt.dll",
+              "kernel32.dll",
+              "user32.dll",
+              "ole32.dll",
+              "oleaut32.dll",
+              "shell32.dll",
+              "gdi32.dll",
+              "imm32.dll",
+              "dwrite.dll"
+            ]
+          }
+        }
+      },
+      "classified": {
+        "id": "xui.h:functions:xuiIconGetUser",
+        "symbol": "xuiIconGetUser",
+        "family": "XUI",
+        "conditions": [
+          "XGE_ENABLE_XUI"
+        ],
+        "publicDeclarationPresent": false,
+        "compiledNativeConsumers": [],
+        "explicitReplacement": {
+          "language": "xui.Icon.getUserData",
+          "native": "xuiIconGetUserValue",
+          "nativeRead": [
+            "xuiInternalGetUserValue"
+          ],
+          "nativeWrite": [
+            "xuiInternalSetUserValue"
+          ],
+          "ownerTrace": [
+            ".refptr.XgeHostXrtSlot_xrtValueOwnership",
+            "XgeHostXrtSlot_xrtValueOwnership"
+          ],
+          "retire": [
+            "xuiInternalRetireUserValue"
+          ],
+          "closePreparation": [
+            "xuiInternalRetireUserValue"
+          ]
+        },
+        "contractReview": "pending",
+        "runtimeAcceptance": "not-certified-by-this-audit"
+      },
+      "privateLayoutBytes": {
+        "baseline": {
+          "icon": 312,
+          "context": 147880
+        },
+        "current": {
+          "icon": 320,
+          "context": 147888
+        }
+      }
+    },
+    "linux": {
+      "stage": {
+        "path": "//wsl.localhost/Ubuntu/var/tmp/xlang-validation/xge-full-20261110/icon-user-value-stage-linux-r3/replay/stage-report.json",
+        "sha256": "7f893048bb177468b8812415148b9f3094f71f1001969898ea9ec6a7892ac6d3"
+      },
+      "nativeSource": {
+        "path": "//wsl.localhost/Ubuntu/var/tmp/xlang-validation/xge-full-20261110/icon-user-value-native-source-linux-r1.json",
+        "sha256": "8e8083912ac8491b1f04a3c56a1bcf1d5143634f3223129606d27b2483c97da8"
+      },
+      "audit": {
+        "path": "//wsl.localhost/Ubuntu/var/tmp/xlang-validation/xge-full-20261110/icon-user-value-consumers-linux-r4/results.json",
+        "sha256": "5ca1d512f3c61678c53bbfdf427a67af1503f22f468da1827d365dd4d0ffd71c"
+      },
+      "runtime": {
+        "path": "//wsl.localhost/Ubuntu/var/tmp/xlang-validation/xge-full-20261110/icon-user-value-verify-linux-r1/results.json",
+        "sha256": "4574f9fe0317ad9b8a253d40cfa4cf292fdbb133bb9d6f5064fc4f81297f7812"
+      },
+      "regression": {
+        "path": "//wsl.localhost/Ubuntu/var/tmp/xlang-validation/xge-full-20261110/icon-user-value-native-regressions-linux-r1/results.json",
+        "sha256": "7a31295747d0ec1fba21639515a1184fa1c3e67c58802b7a1384bcfb4d420828"
+      },
+      "native": {
+        "path": "//wsl.localhost/Ubuntu/var/tmp/xlang-validation/xge-full-20261110/icon-user-value-native-tests-linux-r2/results.json",
+        "sha256": "ded6b06dfe684630cc50f35964a1edf7bcf68d6a43bb061740dd98874932588c"
+      },
+      "layout": {
+        "path": "//wsl.localhost/Ubuntu/var/tmp/xlang-validation/xge-full-20261110/icon-user-value-layout-linux-r1/results.json",
+        "sha256": "eecb62f98294a5f0ef388eb368fe93fee51ab5e82348b8664e76964388de5329"
+      },
+      "generator": {
+        "path": "//wsl.localhost/Ubuntu/var/tmp/xlang-validation/xge-full-20261110/icon-user-value-generator-linux-r3/results.json",
+        "sha256": "71f7c089a18893183c0da6cfc922be1d243def772135a9695d37fbd7f965cc53"
+      },
+      "generatedC": {
+        "path": "//wsl.localhost/Ubuntu/var/tmp/xlang-validation/xge-full-20261110/icon-user-value-verify-linux-r1/foreign_xui_icon_user_value/generated.c",
+        "sha256": "7a67eef7caca3e225239ff2e804e33b64e324b2e13e5864f276f87e9cbccfd5d"
+      },
+      "remaining": {
+        "XGE": 4,
+        "XUI": 2
+      },
+      "cases": {
+        "foreign_xui_icon_user_value": {
+          "directCFunctions": [
+            "xuiIconSetUserValue",
+            "xuiIconGetUserValue",
+            "xuiIconAddAlias",
+            "xuiIconGetIntrinsicSize"
+          ],
+          "imports": {
+            "host": [
+              "libm.so.6",
+              "libmvec.so.1",
+              "libxge3_host.so",
+              "libc.so.6",
+              "ld-linux-x86-64.so.2"
+            ],
+            "static": [
+              "libm.so.6",
+              "libmvec.so.1",
+              "libx11.so.6",
+              "libxi.so.6",
+              "libxcursor.so.1",
+              "libgl.so.1",
+              "libc.so.6",
+              "ld-linux-x86-64.so.2"
+            ]
+          }
+        },
+        "icon_user_data": {
+          "directCFunctions": [
+            "xuiIconSetUserValue",
+            "xuiIconGetUserValue",
+            "xuiIconAddAlias"
+          ],
+          "imports": {
+            "host": [
+              "libm.so.6",
+              "libmvec.so.1",
+              "libxge3_host.so",
+              "libc.so.6",
+              "ld-linux-x86-64.so.2"
+            ],
+            "static": [
+              "libm.so.6",
+              "libmvec.so.1",
+              "libx11.so.6",
+              "libxi.so.6",
+              "libxcursor.so.1",
+              "libgl.so.1",
+              "libc.so.6",
+              "ld-linux-x86-64.so.2"
+            ]
+          }
+        }
+      },
+      "classified": {
+        "id": "xui.h:functions:xuiIconGetUser",
+        "symbol": "xuiIconGetUser",
+        "family": "XUI",
+        "conditions": [
+          "XGE_ENABLE_XUI"
+        ],
+        "publicDeclarationPresent": false,
+        "compiledNativeConsumers": [],
+        "explicitReplacement": {
+          "language": "xui.Icon.getUserData",
+          "native": "xuiIconGetUserValue",
+          "nativeRead": [
+            "xuiInternalGetUserValue"
+          ],
+          "nativeWrite": [
+            "xuiInternalSetUserValue"
+          ],
+          "ownerTrace": [
+            "XgeHostXrtSlot_xrtValueOwnership"
+          ],
+          "retire": [
+            "xuiInternalRetireUserValue"
+          ],
+          "closePreparation": [
+            "xuiInternalRetireUserValue"
+          ]
+        },
+        "contractReview": "pending",
+        "runtimeAcceptance": "not-certified-by-this-audit"
+      },
+      "privateLayoutBytes": {
+        "baseline": {
+          "icon": 312,
+          "context": 147880
+        },
+        "current": {
+          "icon": 320,
+          "context": 147888
+        }
+      }
+    }
+  },
+  "remainingAcrossPreviouslyQualifiedConfigurations": [
+    "xuiProxyCreateOwned",
+    "xuiProxyCreateOwnedEx"
+  ]
+}

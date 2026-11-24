@@ -1,0 +1,103 @@
+import xui
+from xui import CallbackIcon, CallbackPainter, CallbackIconDrawDesc, CallbackVec2
+
+extern "xrtMemDebugEnabled" @header("xrt_decl.h") @no_raise func memDebugEnabled() as bool
+extern "xrtMemDebugEnable" @header("xrt_decl.h") @no_raise func memDebug(bool enabled) as bool
+extern "xrtMemDebugFailAfter" @header("xrt_decl.h") @no_raise func failAfter(uint64 prefix) as bool
+extern "xrtMemDebugFailClear" @header("xrt_decl.h") @no_raise func failClear()
+
+int getterCalls = 0
+class IconData
+    int id = 17
+    string label = "a\0b"
+    bytes payload = b"\0\xff"
+    private string hidden = "private"
+    get computed() as int
+        getterCalls += 1
+        return self.id
+    end
+end
+
+func main(...) as int
+    auto proxy = xui.createProxy()
+    auto ui = xui.create(proxy, xui.XUI_SYSTEM_FONT_DISABLED)
+    auto category = xui.createIconCategory(ui, "icons", xui.iconCategoryDescDefault())
+    xui.Rect bounds
+    bounds.fW = 16
+    bounds.fH = 16
+    auto icon = category.addSvgPath("target", "M0 0 H16 V16 Z", bounds)
+    auto alias = category.addAlias("alias", icon)
+    assert icon.getUserData() == null and alias.getUserData() == null
+
+    auto data = IconData()
+    icon.setUserData(data)
+    icon.setMetadata("Target", null, 1)
+    data.id = 99
+    var saved = icon.getUserData()
+    assert saved["id"] == 17 and saved["label"] == "a\0b" and saved["payload"] == b"\0\xff"
+    assert saved["hidden"] == null and saved["computed"] == null and getterCalls == 0
+    saved["id"] = -1
+    assert icon.getUserData()["id"] == 17
+
+    assert memDebugEnabled() or memDebug(true)
+    bool failed = false
+    assert failAfter(0)
+    try
+        icon.setUserData(data)
+    catch Error
+        failed = true
+    finally
+        failClear()
+    end
+    assert failed and icon.getUserData()["id"] == 17
+
+    failed = false
+    assert failAfter(0)
+    try
+        saved = icon.getUserData()
+    catch Error
+        failed = true
+    finally
+        failClear()
+    end
+    assert failed and saved["id"] == -1
+    alias.setUserData({"id": 54})
+    assert icon.unregister()
+    assert alias.getUserData()["id"] == 54 and icon.getUserData()["id"] == 17
+    assert alias.unregister()
+    failed = false
+    try
+        auto expired = icon.getUserData()
+    catch StateError
+        failed = true
+    end
+    assert failed and saved["label"] == "a\0b"
+
+    CallbackIcon? callbackIcon = null
+    auto custom = category.addCustom("measured", func(CallbackIcon view, CallbackPainter p, xui.Rect box, CallbackIconDrawDesc? style) as c_int
+        return 0
+    end, measure=func(CallbackIcon view, CallbackVec2 size) as c_int
+        assert view.getUserData()["id"] == 22
+        view.setUserData({"id": 41})
+        callbackIcon = view
+        size.fX = 12
+        size.fY = 8
+        return 0
+    end)
+    custom.setUserData({"id": 22})
+    auto size = custom.intrinsicSize()
+    assert size.fX == 12 and size.fY == 8 and custom.getUserData()["id"] == 41
+    failed = false
+    try
+        auto expired = (callbackIcon as CallbackIcon).getUserData()
+    catch StateError
+        failed = true
+    end
+    assert failed
+    custom.setUserData(null)
+    assert custom.getUserData() == null
+    ui.close()
+    proxy.close()
+    println("XUI_ICON_USER_VALUE_OK")
+    return 0
+end

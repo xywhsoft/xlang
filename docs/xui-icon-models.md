@@ -20,6 +20,19 @@ can remain alive through those native references. Physical deletion invalidates
 all language aliases before the native custom finalizer. Context close expires
 all descendants. Native cross-Context checks remain authoritative.
 
+`Icon.setUserData(value)` stores an independent snapshot of public data.
+`getUserData()` returns another snapshot. Pass `null` to clear the slot.
+Each alias has its own slot, and retained icons keep their data after leaving
+the registry. The same methods apply to a live `CallbackIcon` during its
+callback. Context shutdown retires the slots before native icon finalizers.
+
+The native slot adds one pointer per icon and retains the value without
+allocating storage for the slot. A final checked icon release can report Busy
+while a C reader is active. When bulk category removal consumes such an
+owner, the Context keeps the icon until the reader ends and the next operation
+can drain it. The Context traces active and deferred icon values once each.
+See [the icon data example](../lib/bindings/xui/examples/icon_user_data.xl).
+
 Names use the generic borrowed CString contract: one native call, length scan,
 one allocation and copy. Nullable tags/lookups preserve absence. Numeric getters
 do not copy model arrays. Enumeration uses zero-based active indices; stable
