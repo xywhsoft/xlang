@@ -655,6 +655,15 @@ def main():
             calls['src/xui/core/xui_widget.c'] = {
                 'xuiContextGetBaseWidgetType': ('xuiWidgetGetBaseType',),
             }
+        if 'xuiTreeViewSetDataAdapterOwned' in functions:
+            calls['src/xui/controls/xui_tree_view.c'] = {
+                'xuiTreeViewSetDataAdapterOwned': ('__xuiTreeViewSetAdapter',),
+                '__xuiTreeViewSetAdapter': ('xuiTreeViewRefreshAdapter',),
+                'xuiTreeViewRefreshAdapter': ('__xuiTreeViewRefreshAdapterOperation',),
+                '__xuiTreeViewRefreshAdapterOperation': (
+                    'xuiTreeViewNodeOutputInit', 'xuiTreeViewNodeOutputDispose'),
+                'xuiTreeViewNodeOutputDispose': ('xuiTreeViewNodeOutputInit', 'xrtFree'),
+            }
         for legacy, (unit, checked, owner, _) in MANAGER_CLOSE_CHAINS.items():
             if legacy in functions and checked in functions and owner in functions:
                 calls.setdefault(unit, {}).update({legacy: (checked,), checked: (owner,)})
@@ -670,6 +679,11 @@ def main():
                 '__xgeLoadCreate': ('xgeAsyncRequestInit',),
             })
             included_units.append('src/xge/resource/xge_async_owned.c')
+            for kind in ('Font', 'Texture'):
+                take = f'xgeAsync{kind}TakeOwned'
+                adopt = f'xge{kind}AdoptStorage'
+                if take in functions and adopt in functions:
+                    calls['single/xge.c'][take] = (adopt,)
         source, build_flags, evidence_inputs = witness_build_inputs(
             a.resource_engine_build.resolve(),audit,packages,tools['gcc'],sha,calls.keys(),
             included_units)
@@ -874,6 +888,16 @@ def main():
             assert any(item['language']=='xui.FlowGraphWidget.getGraph' for item in bound['xuiFlowGraphWidgetGetGraphOwned'])
             assert any(item['language']=='xui.WorkflowWidget.getWorkflow' for item in bound['xuiWorkflowWidgetGetWorkflowOwned'])
         for label, (source, build_flags, calls) in lifetime_builds.items():
+            if label == 'resourceLifetime':
+                binding_calls = {
+                    'xgeAsyncFontTakeOwned': 'xge.FontLoad.take',
+                    'xgeAsyncTextureTakeOwned': 'xge.TextureLoad.take',
+                    'xuiTreeViewSetDataAdapterOwned': 'xui.TreeView.setDataAdapter',
+                    'xuiTreeViewRefreshAdapter': 'xui.TreeView.refreshAdapter',
+                }
+                for edges in calls.values():
+                    for root in edges.keys() & binding_calls.keys():
+                        assert any(item['language'] == binding_calls[root] for item in bound[root]), root
             report[label] = prove_native_lifetime(source,build_flags,calls,tools,out,run,sha)
             for source_path, expected in calls.items():
                 for names in expected.values():

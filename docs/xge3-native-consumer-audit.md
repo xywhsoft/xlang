@@ -1,5 +1,26 @@
 # Native consumers in the full API inventory
 
+## Async resource adoption and TreeView callback outputs
+
+`FontLoad.take()` and `TextureLoad.take()` transfer the loaded native record
+to an independently owned resource. The compiled engine calls
+`xgeFontAdoptStorage` and `xgeTextureAdoptStorage` before handing over each
+record. The existing xlang declarations already call the checked transfer
+functions directly.
+
+`TreeView.setDataAdapter()` and `TreeView.refreshAdapter()` reach the native
+node output initializer and disposer. On success, the engine transfers text
+to staged node storage. On failure, the disposer releases the temporary
+text through XRT and the previously published tree stays readable.
+
+All three fixtures pass JIT, dynamic AOT and static AOT on Windows and
+Linux, including a failed TreeView callback followed by a successful retry.
+The compiled inventories cover 5,900 functions and 4,841 direct
+declarations. The four native support functions leave 41 entries without
+a direct declaration, compiled consumer or explicit replacement mapping.
+
+[Resource transfer and TreeView output evidence](../dev/release-materials/provenance/xge-xui-native-adoption-20261124.json)
+
 ## Named resource reservations and the base widget type
 
 `Resource.retain()` returns an independently closable reservation. An active

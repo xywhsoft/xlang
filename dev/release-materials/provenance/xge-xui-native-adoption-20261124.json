@@ -1,0 +1,360 @@
+{
+  "schema": "xlang-xge-xui-native-adoption-evidence-1",
+  "scope": "Compiled native Font/Texture record adoption and TreeView node callback output lifetime",
+  "shippingDelivery": false,
+  "networkTests": false,
+  "sourceSha256NormalizedLf": {
+    "tools/check_xge3_native_consumers.py": "37749c54be61bde7f8531085b8055a1d719a074a85bad6a3738a0d54f1cf1f5a",
+    "test/cases/foreign_xge3_font_load.xl": "fab89a952cd7d1a7b534d4098001ae7bf214658ea406fd4c0cc25a27732647c3",
+    "test/cases/foreign_xge3_async_texture.xl": "03b5f4f2d0993067ca763068aa91c655c427df123985467391194cb38510e6b0",
+    "test/cases/foreign_xui_tree_node_values.xl": "90a60c6d5ce40bf6c6251f93990ee5b25506ba023c9cdae7fbf59a5d0c6ccdc3"
+  },
+  "coveredNativeSupport": [
+    "xgeFontAdoptStorage",
+    "xgeTextureAdoptStorage",
+    "xuiTreeViewNodeOutputDispose",
+    "xuiTreeViewNodeOutputInit"
+  ],
+  "platforms": {
+    "win": {
+      "audit": {
+        "path": "F:/xlang-validation/xge-full-20261110/managed-native-adoption-consumers-win-r1/results.json",
+        "sha256": "5db768d0d077c9dcfe3eb333ec3718c1b981a7f1fe9debc75fa7b6ba8b758644"
+      },
+      "runtime": {
+        "path": "F:/xlang-validation/xge-full-20261110/managed-native-adoption-verify-win-r1/results.json",
+        "sha256": "31eb718d6d4b945d2386d32f3f3a2feeccb0908bef3f787cda086168429cdc39"
+      },
+      "cases": {
+        "foreign_xge3_font_load": {
+          "generated": {
+            "path": "F:/xlang-validation/xge-full-20261110/managed-native-adoption-verify-win-r1/foreign_xge3_font_load/generated.c",
+            "sha256": "285bf8a99850dfe113c397e45665e3d35df0405b9c2915990903c35fd76e26e4"
+          },
+          "steps": [
+            "emit",
+            "host-build",
+            "host-imports",
+            "host-run",
+            "jit",
+            "static-build",
+            "static-imports",
+            "static-run"
+          ],
+          "imports": {
+            "host": [
+              "xge3_host.dll",
+              "msvcrt.dll",
+              "kernel32.dll",
+              "shell32.dll",
+              "ucrtbase.dll"
+            ],
+            "static": [
+              "msvcrt.dll",
+              "kernel32.dll",
+              "user32.dll",
+              "ole32.dll",
+              "oleaut32.dll",
+              "shell32.dll",
+              "gdi32.dll",
+              "imm32.dll"
+            ]
+          }
+        },
+        "foreign_xge3_async_texture": {
+          "generated": {
+            "path": "F:/xlang-validation/xge-full-20261110/managed-native-adoption-verify-win-r1/foreign_xge3_async_texture/generated.c",
+            "sha256": "b4fd47c98dae77f287d97cab13f14cce77a8503b4f312378838ba398c11229a8"
+          },
+          "steps": [
+            "emit",
+            "host-build",
+            "host-imports",
+            "host-run",
+            "jit",
+            "static-build",
+            "static-imports",
+            "static-run"
+          ],
+          "imports": {
+            "host": [
+              "xge3_host.dll",
+              "msvcrt.dll",
+              "kernel32.dll",
+              "shell32.dll",
+              "ucrtbase.dll"
+            ],
+            "static": [
+              "msvcrt.dll",
+              "kernel32.dll",
+              "user32.dll",
+              "ole32.dll",
+              "oleaut32.dll",
+              "shell32.dll",
+              "gdi32.dll",
+              "imm32.dll"
+            ]
+          }
+        },
+        "foreign_xui_tree_node_values": {
+          "generated": {
+            "path": "F:/xlang-validation/xge-full-20261110/managed-native-adoption-verify-win-r1/foreign_xui_tree_node_values/generated.c",
+            "sha256": "fc8f7cb9819e12ffa6012c31f4af954a23136aa02fe73f05f7641e6bc8296ce8"
+          },
+          "steps": [
+            "emit",
+            "host-build",
+            "host-imports",
+            "host-run",
+            "jit",
+            "static-build",
+            "static-imports",
+            "static-run"
+          ],
+          "imports": {
+            "host": [
+              "msvcrt.dll",
+              "xge3_host.dll",
+              "kernel32.dll",
+              "shell32.dll",
+              "ws2_32.dll",
+              "iphlpapi.dll",
+              "ucrtbase.dll"
+            ],
+            "static": [
+              "msvcrt.dll",
+              "kernel32.dll",
+              "user32.dll",
+              "ole32.dll",
+              "oleaut32.dll",
+              "shell32.dll",
+              "gdi32.dll",
+              "imm32.dll",
+              "dwrite.dll"
+            ]
+          }
+        }
+      },
+      "remaining": {
+        "XGE": 11,
+        "XUI": 30
+      },
+      "nativePaths": {
+        "single/xge.c": {
+          "xgeAsyncFontTakeOwned": {
+            "xgeFontAdoptStorage": [
+              ".text$xgeFontAdoptStorage"
+            ]
+          },
+          "xgeAsyncTextureTakeOwned": {
+            "xgeTextureAdoptStorage": [
+              ".text$xgeTextureAdoptStorage"
+            ]
+          }
+        },
+        "src/xui/controls/xui_tree_view.c": {
+          "xuiTreeViewSetDataAdapterOwned": {
+            "__xuiTreeViewSetAdapter": [
+              ".text$__xuiTreeViewSetAdapter"
+            ]
+          },
+          "__xuiTreeViewSetAdapter": {
+            "xuiTreeViewRefreshAdapter": [
+              ".text$xuiTreeViewRefreshAdapter"
+            ]
+          },
+          "xuiTreeViewRefreshAdapter": {
+            "__xuiTreeViewRefreshAdapterOperation": [
+              ".text$__xuiTreeViewRefreshAdapterOperation"
+            ]
+          },
+          "__xuiTreeViewRefreshAdapterOperation": {
+            "xuiTreeViewNodeOutputInit": [
+              ".text$xuiTreeViewNodeOutputInit"
+            ],
+            "xuiTreeViewNodeOutputDispose": [
+              ".text$xuiTreeViewNodeOutputDispose"
+            ]
+          },
+          "xuiTreeViewNodeOutputDispose": {
+            "xuiTreeViewNodeOutputInit": [
+              ".text$xuiTreeViewNodeOutputInit"
+            ],
+            "xrtFree": [
+              ".refptr.XgeHostXrtSlot_xrtFree",
+              "XgeHostXrtSlot_xrtFree"
+            ]
+          }
+        }
+      }
+    },
+    "linux": {
+      "audit": {
+        "path": "//wsl.localhost/Ubuntu/var/tmp/xlang-validation/xge-full-20261110/managed-native-adoption-consumers-linux-r1/results.json",
+        "sha256": "45ac58676cf4924ec0c5576dc7fcb297bbfe6a4c18612bbccdd184f77cc3d486"
+      },
+      "runtime": {
+        "path": "//wsl.localhost/Ubuntu/var/tmp/xlang-validation/xge-full-20261110/managed-native-adoption-verify-linux-r1/results.json",
+        "sha256": "ac026f7ba1bd0ae0e265bd1dc5f68c45bcf0221e5bed08cd8ce6f98900b3f482"
+      },
+      "cases": {
+        "foreign_xge3_font_load": {
+          "generated": {
+            "path": "//wsl.localhost/Ubuntu/var/tmp/xlang-validation/xge-full-20261110/managed-native-adoption-verify-linux-r1/foreign_xge3_font_load/generated.c",
+            "sha256": "285bf8a99850dfe113c397e45665e3d35df0405b9c2915990903c35fd76e26e4"
+          },
+          "steps": [
+            "emit",
+            "host-build",
+            "host-imports",
+            "host-run",
+            "jit",
+            "static-build",
+            "static-imports",
+            "static-run"
+          ],
+          "imports": {
+            "host": [
+              "libm.so.6",
+              "libmvec.so.1",
+              "libxge3_host.so",
+              "libc.so.6",
+              "ld-linux-x86-64.so.2"
+            ],
+            "static": [
+              "libm.so.6",
+              "libmvec.so.1",
+              "libx11.so.6",
+              "libxi.so.6",
+              "libxcursor.so.1",
+              "libgl.so.1",
+              "libc.so.6",
+              "ld-linux-x86-64.so.2"
+            ]
+          }
+        },
+        "foreign_xge3_async_texture": {
+          "generated": {
+            "path": "//wsl.localhost/Ubuntu/var/tmp/xlang-validation/xge-full-20261110/managed-native-adoption-verify-linux-r1/foreign_xge3_async_texture/generated.c",
+            "sha256": "b4fd47c98dae77f287d97cab13f14cce77a8503b4f312378838ba398c11229a8"
+          },
+          "steps": [
+            "emit",
+            "host-build",
+            "host-imports",
+            "host-run",
+            "jit",
+            "static-build",
+            "static-imports",
+            "static-run"
+          ],
+          "imports": {
+            "host": [
+              "libm.so.6",
+              "libmvec.so.1",
+              "libxge3_host.so",
+              "libc.so.6",
+              "ld-linux-x86-64.so.2"
+            ],
+            "static": [
+              "libm.so.6",
+              "libmvec.so.1",
+              "libx11.so.6",
+              "libxi.so.6",
+              "libxcursor.so.1",
+              "libgl.so.1",
+              "libc.so.6",
+              "ld-linux-x86-64.so.2"
+            ]
+          }
+        },
+        "foreign_xui_tree_node_values": {
+          "generated": {
+            "path": "//wsl.localhost/Ubuntu/var/tmp/xlang-validation/xge-full-20261110/managed-native-adoption-verify-linux-r1/foreign_xui_tree_node_values/generated.c",
+            "sha256": "fc8f7cb9819e12ffa6012c31f4af954a23136aa02fe73f05f7641e6bc8296ce8"
+          },
+          "steps": [
+            "emit",
+            "host-build",
+            "host-imports",
+            "host-run",
+            "jit",
+            "static-build",
+            "static-imports",
+            "static-run"
+          ],
+          "imports": {
+            "host": [
+              "libm.so.6",
+              "libmvec.so.1",
+              "libxge3_host.so",
+              "libc.so.6",
+              "ld-linux-x86-64.so.2"
+            ],
+            "static": [
+              "libm.so.6",
+              "libmvec.so.1",
+              "libx11.so.6",
+              "libxi.so.6",
+              "libxcursor.so.1",
+              "libgl.so.1",
+              "libc.so.6",
+              "ld-linux-x86-64.so.2"
+            ]
+          }
+        }
+      },
+      "remaining": {
+        "XGE": 11,
+        "XUI": 30
+      },
+      "nativePaths": {
+        "single/xge.c": {
+          "xgeAsyncFontTakeOwned": {
+            "xgeFontAdoptStorage": [
+              "xgeFontAdoptStorage"
+            ]
+          },
+          "xgeAsyncTextureTakeOwned": {
+            "xgeTextureAdoptStorage": [
+              "xgeTextureAdoptStorage"
+            ]
+          }
+        },
+        "src/xui/controls/xui_tree_view.c": {
+          "xuiTreeViewSetDataAdapterOwned": {
+            "__xuiTreeViewSetAdapter": [
+              ".text.__xuiTreeViewSetAdapter"
+            ]
+          },
+          "__xuiTreeViewSetAdapter": {
+            "xuiTreeViewRefreshAdapter": [
+              "xuiTreeViewRefreshAdapter"
+            ]
+          },
+          "xuiTreeViewRefreshAdapter": {
+            "__xuiTreeViewRefreshAdapterOperation": [
+              ".text.__xuiTreeViewRefreshAdapterOperation"
+            ]
+          },
+          "__xuiTreeViewRefreshAdapterOperation": {
+            "xuiTreeViewNodeOutputInit": [
+              "xuiTreeViewNodeOutputInit"
+            ],
+            "xuiTreeViewNodeOutputDispose": [
+              "xuiTreeViewNodeOutputDispose"
+            ]
+          },
+          "xuiTreeViewNodeOutputDispose": {
+            "xuiTreeViewNodeOutputInit": [
+              "xuiTreeViewNodeOutputInit"
+            ],
+            "xrtFree": [
+              "XgeHostXrtSlot_xrtFree"
+            ]
+          }
+        }
+      }
+    }
+  }
+}
