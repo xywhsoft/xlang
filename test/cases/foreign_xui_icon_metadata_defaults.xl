@@ -1,0 +1,21 @@
+import xui
+from xui import Rect
+
+func main(...) as int
+    auto name, tags, flags = xui.iconMetadataDefaults()
+    assert name == null and tags == null and flags == 0
+    auto proxy = xui.createProxy()
+    auto ui = xui.create(proxy, xui.XUI_SYSTEM_FONT_DISABLED)
+    auto category = xui.createIconCategory(ui, "defaults", xui.iconCategoryDescDefault())
+    Rect bounds
+    bounds.fW = 8
+    bounds.fH = 8
+    auto icon = category.addSvgPathWithMetadata("triangle", "M0 0 L8 8 L8 0 Z", bounds, "Triangle", "test", 1)
+    assert icon.displayName == "Triangle" and icon.tags != null and icon.flags == 1
+    icon.setMetadata(name, tags, flags)
+    assert icon.displayName == "triangle" and icon.tags == null and icon.flags == 0
+    ui.close()
+    proxy.close()
+    println("XUI_ICON_METADATA_DEFAULTS_OK")
+    return 0
+end

@@ -7,7 +7,9 @@ existing ownership directory. It does not invent another native graph edge.
 
 `createIconCategory(context,name,iconCategoryDescDefault())` declares the native
 factory directly. Category SVG-path and alias factories, lookups, descriptions,
-counts and Icon metadata use the same direct declarations. `createIconPicker`
+counts and Icon metadata use direct declarations.
+Use `xui.iconMetadataDefaults()` to get the native defaults for display name, tags
+and flags, in that order. `createIconPicker`
 passes a typed null descriptor to use native defaults. The picker's category
 and selected icon getters return views of the same native model objects.
 

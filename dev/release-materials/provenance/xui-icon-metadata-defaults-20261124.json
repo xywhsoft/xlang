@@ -1,0 +1,140 @@
+{
+  "schema": "xlang-xui-icon-metadata-defaults-1",
+  "scope": "Direct projection of native Icon metadata defaults",
+  "nativeCommit": "8fa69c7f",
+  "shippingDelivery": false,
+  "networkTests": false,
+  "prior": {
+    "path": "dev/release-materials/provenance/xui-widget-type-data-20261124.json",
+    "sha256": "c6fcd5dcff358f8af261bcebb662ea9d4351a495f840024a2c3493dd82081a30"
+  },
+  "closedFromReview": [
+    "xuiIconDescDefault"
+  ],
+  "sourceSha256NormalizedLf": {
+    "docs/xui-icon-models.md": "35cb6bbb39caeb288b3c01898404f44e18d6d9e6985eb88e87db3ca3f7e95ce2",
+    "lib/bindings/xui/src/icons.xl": "5e8a78668e1de4c6f06ae5152c38e904901c58dcd7f3039fd8e9ac834376c410",
+    "test/cases/foreign_xui_icon_metadata_defaults.xl": "15a8ace29115fd8023484f8b498a4f55bea6966ee0ab892611e9bbc9eee0155e"
+  },
+  "nativeHeaderSha256NormalizedLf": "c8f7e6659c7352c81a29046689b063b306383cdf4e2da26d6efe8d7038a62a2b",
+  "cases": [
+    "default display name and tags are independently nullable",
+    "default flags are zero",
+    "the same values reset the displayed metadata on an existing Icon",
+    "language code calls the existing native initializer directly"
+  ],
+  "platforms": {
+    "win": {
+      "stage": {
+        "path": "F:/xlang-validation/xge-full-20261110/icon-metadata-defaults-stage-win-r2/replay/stage-report.json",
+        "sha256": "8b6c410e6530521d8359808dfd974b0ea6b0d66001181bfc0efce2f66ed05bd6"
+      },
+      "audit": {
+        "path": "F:/xlang-validation/xge-full-20261110/icon-metadata-defaults-consumers-win-r3/results.json",
+        "sha256": "96aa4acb6a151455451da796268800b45f39b8ad961c1cb8fbee971e26c38505"
+      },
+      "runtime": {
+        "path": "F:/xlang-validation/xge-full-20261110/icon-metadata-defaults-verify-win-r1/results.json",
+        "sha256": "57ac4907f295d35a43ca974e236f8f6966ec936becf006a561acf3fd800d2342"
+      },
+      "generator": {
+        "path": "F:/xlang-validation/xge-full-20261110/icon-metadata-defaults-generator-win-r2/results.json",
+        "sha256": "5a4532cd97bdc3b99501f987ba64f2335aedb3265db5cbd7b9cbad04340f0240"
+      },
+      "generatedC": {
+        "path": "F:/xlang-validation/xge-full-20261110/icon-metadata-defaults-verify-win-r1/foreign_xui_icon_metadata_defaults/generated.c",
+        "sha256": "fa97a4d531ef7a001bae08665f30f14c9e63625dc856bf20ec5425256a9c3c24"
+      },
+      "remaining": {
+        "XGE": 2,
+        "XUI": 5
+      },
+      "nativeCall": {
+        "directCFunctions": [
+          "xuiIconDescDefault",
+          "xuiIconAddSvgPath",
+          "xuiIconSetMetadata"
+        ],
+        "imports": {
+          "host": [
+            "msvcrt.dll",
+            "xge3_host.dll",
+            "kernel32.dll",
+            "shell32.dll",
+            "ucrtbase.dll"
+          ],
+          "static": [
+            "msvcrt.dll",
+            "kernel32.dll",
+            "user32.dll",
+            "ole32.dll",
+            "oleaut32.dll",
+            "shell32.dll",
+            "gdi32.dll",
+            "imm32.dll",
+            "dwrite.dll"
+          ]
+        }
+      }
+    },
+    "linux": {
+      "stage": {
+        "path": "//wsl.localhost/Ubuntu/var/tmp/xlang-validation/xge-full-20261110/icon-metadata-defaults-stage-linux-r2/replay/stage-report.json",
+        "sha256": "3d73fbf3e42cecbc22a7485557f74197d8f02f5f2967f6c4d483bbf0f8c6d1ec"
+      },
+      "audit": {
+        "path": "//wsl.localhost/Ubuntu/var/tmp/xlang-validation/xge-full-20261110/icon-metadata-defaults-consumers-linux-r3/results.json",
+        "sha256": "c74d401fb80a8f63829bc96fdd659bca82573b62839157031eac004d8d46bb44"
+      },
+      "runtime": {
+        "path": "//wsl.localhost/Ubuntu/var/tmp/xlang-validation/xge-full-20261110/icon-metadata-defaults-verify-linux-r1/results.json",
+        "sha256": "260f68a4da6c029d338837d13a5c544ae8f14d774b73849a6d1de9fbb7cbbce4"
+      },
+      "generator": {
+        "path": "//wsl.localhost/Ubuntu/var/tmp/xlang-validation/xge-full-20261110/icon-metadata-defaults-generator-linux-r2/results.json",
+        "sha256": "7bc14a7fb82c84d8266e503d48bebf460804248e9b5c108946c934e8f17f31cc"
+      },
+      "generatedC": {
+        "path": "//wsl.localhost/Ubuntu/var/tmp/xlang-validation/xge-full-20261110/icon-metadata-defaults-verify-linux-r1/foreign_xui_icon_metadata_defaults/generated.c",
+        "sha256": "fa97a4d531ef7a001bae08665f30f14c9e63625dc856bf20ec5425256a9c3c24"
+      },
+      "remaining": {
+        "XGE": 4,
+        "XUI": 5
+      },
+      "nativeCall": {
+        "directCFunctions": [
+          "xuiIconDescDefault",
+          "xuiIconAddSvgPath",
+          "xuiIconSetMetadata"
+        ],
+        "imports": {
+          "host": [
+            "libm.so.6",
+            "libmvec.so.1",
+            "libxge3_host.so",
+            "libc.so.6",
+            "ld-linux-x86-64.so.2"
+          ],
+          "static": [
+            "libm.so.6",
+            "libmvec.so.1",
+            "libx11.so.6",
+            "libxi.so.6",
+            "libxcursor.so.1",
+            "libgl.so.1",
+            "libc.so.6",
+            "ld-linux-x86-64.so.2"
+          ]
+        }
+      }
+    }
+  },
+  "remainingAcrossPreviouslyQualifiedConfigurations": [
+    "xuiIconGetUser",
+    "xuiProxyCreateOwned",
+    "xuiProxyCreateOwnedEx",
+    "xuiProxyResourceOwnershipCompletionV1",
+    "xuiTerminalSetImageCallback"
+  ]
+}
