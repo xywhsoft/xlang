@@ -1,0 +1,106 @@
+{
+  "schema": "xlang-xui-proxy-completion-parity-1",
+  "scope": "V1 finishing semantics retained by the xlang resource ownership domain using V2",
+  "engineSourceCommit": "75319d6a",
+  "nativeTestCommit": "9a4cc2b7",
+  "shippingDelivery": false,
+  "networkTests": false,
+  "prior": {
+    "path": "dev/release-materials/provenance/xui-terminal-image-callback-20261124.json",
+    "sha256": "046d709dddfd33ee39244ae056145b6cd8f3257e15181bb1bbc92c5df5e155d5"
+  },
+  "closedFromReview": [
+    "xuiProxyResourceOwnershipCompletionV1"
+  ],
+  "sourceSha256NormalizedLf": {
+    "tools/check_xge3_native_consumers.py": "bd73fcf52f0e2f0832bdc37b823dc3d279743b73f552eaeb791c07432fc7060f"
+  },
+  "nativeTestSha256NormalizedLf": "fb600b4cc67cd4962476b5a1da8d4dc6a8d48106d635993a05e41dd4a1e44e6f",
+  "cases": [
+    "resident language resource domain compiled with the checked V2 selector",
+    "V1 and V2 use the same exact ownership reference filter, adapter and finish function",
+    "full retirement via each descriptor executes the finalizer once, with balanced native allocations",
+    "existing resource test includes both descriptor contracts and complete lifetime regressions"
+  ],
+  "platforms": {
+    "win": {
+      "audit": {
+        "path": "F:/xlang-validation/xge-full-20261110/proxy-completion-consumers-win-r1/results.json",
+        "sha256": "22712b5f606400c0f5b05c4d5b13ce1c41562b0be90d6df5fc444a4bedfede35"
+      },
+      "nativeParity": {
+        "path": "F:/xlang-validation/xge-full-20261110/proxy-completion-parity-win-r1/results.json",
+        "sha256": "ebbe4b5b86fb02e65e8aea15dc415f29b74c2610128f17963472706e8476cf31"
+      },
+      "nativeResourceRegression": {
+        "path": "F:/xlang-validation/xge-full-20261110/proxy-completion-existing-test-win-r1/results.json",
+        "sha256": "46b2e703b61c74988c1c3fb2c706083461ee32952477b42ce435402ff50796ca"
+      },
+      "remaining": {
+        "XGE": 2,
+        "XUI": 3
+      },
+      "domainAndNativeDescriptors": {
+        "language": "XUI resource ownership domain",
+        "native": "xuiProxyResourceOwnershipCompletionV2",
+        "domainPath": [
+          ".text$xl6Xui3OwnershipDomainV1Get",
+          ".rdata$value.55",
+          ".text$xui_domain_resolve",
+          "xuiProxyResourceOwnershipCompletionV2"
+        ],
+        "nativeDescriptors": {
+          "legacy": ".rdata$resourceCompletion",
+          "current": ".rdata$resourceCompletionV2",
+          "shared": [
+            ".rdata$resourceAdapter",
+            ".text$finish"
+          ]
+        },
+        "nativeObjectSha256": "26821996c55458790942ea445d6f088584b94213cfeace13c11e5788d5a5488e"
+      }
+    },
+    "linux": {
+      "audit": {
+        "path": "//wsl.localhost/Ubuntu/var/tmp/xlang-validation/xge-full-20261110/proxy-completion-consumers-linux-r1/results.json",
+        "sha256": "270fe41c3f455180a5f414b8ec8f9d566b2bf46ce01957006220cf884cce83d5"
+      },
+      "nativeParity": {
+        "path": "//wsl.localhost/Ubuntu/var/tmp/xlang-validation/xge-full-20261110/proxy-completion-parity-linux-r1/results.json",
+        "sha256": "400f34aca41ceded0d859f8901a9e0bb5a59380ec48b62a324729fc6be6b0760"
+      },
+      "nativeResourceRegression": {
+        "path": "//wsl.localhost/Ubuntu/var/tmp/xlang-validation/xge-full-20261110/proxy-completion-existing-test-linux-r1/results.json",
+        "sha256": "12a2fa9940744a78882b4896f329fe6d42e52c5be38b4a7f734575c7f1b0a434"
+      },
+      "remaining": {
+        "XGE": 4,
+        "XUI": 3
+      },
+      "domainAndNativeDescriptors": {
+        "language": "XUI resource ownership domain",
+        "native": "xuiProxyResourceOwnershipCompletionV2",
+        "domainPath": [
+          ".text.xl6Xui3OwnershipDomainV1Get",
+          ".data.rel.ro.local.value.55",
+          ".text.xui_domain_resolve",
+          "xuiProxyResourceOwnershipCompletionV2"
+        ],
+        "nativeDescriptors": {
+          "legacy": ".data.rel.ro.local.resourceCompletion",
+          "current": ".data.rel.ro.local.resourceCompletionV2",
+          "shared": [
+            ".data.rel.ro.local.resourceAdapter",
+            ".text.finish"
+          ]
+        },
+        "nativeObjectSha256": "c5360c013b9d2faf6b8fa1f8993788c66e9e1a8915c535148459dd15ca59cd64"
+      }
+    }
+  },
+  "remainingAcrossPreviouslyQualifiedConfigurations": [
+    "xuiIconGetUser",
+    "xuiProxyCreateOwned",
+    "xuiProxyCreateOwnedEx"
+  ]
+}

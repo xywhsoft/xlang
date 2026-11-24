@@ -356,6 +356,29 @@ def context_event_owner_policy(relocations):
     raise AssertionError('Context descriptor does not register native ownership tracing')
 
 
+def proxy_resource_completion_policy(resident, native):
+    legacy = 'xuiProxyResourceOwnershipCompletionV1'
+    current = 'xuiProxyResourceOwnershipCompletionV2'
+    for prefix, storage in (('.text.','.data.rel.ro.local.'), ('.text$','.rdata$')):
+        getter = prefix+'xl6Xui3OwnershipDomainV1Get'
+        resolver = prefix+'xui_domain_resolve'
+        if current not in resident.get(resolver, ()):
+            continue
+        descriptor, = (entry for entry in resident[getter]
+                       if resolver in resident.get(entry, ()))
+        shared = {prefix+'finish', storage+'resourceAdapter'}
+        exact = prefix+'exact'
+        old, new = storage+'resourceCompletion',storage+'resourceCompletionV2'
+        assert native[prefix+legacy] == {exact,old}
+        assert native[prefix+current] == {exact,new}
+        assert native[old] == shared
+        assert native[new] == shared | {prefix+'adapterDropChecked',prefix+'dropReady'}
+        return dict(language='XUI resource ownership domain',native=current,
+            domainPath=[getter,descriptor,resolver,current],
+            nativeDescriptors=dict(legacy=old,current=new,shared=sorted(shared)))
+    raise AssertionError('XUI resource ownership domain does not select the checked finish descriptor')
+
+
 def class_lines(view, binding):
     return (view/binding['source']).read_text(encoding='utf-8-sig').splitlines()[binding['line']-1:]
 
@@ -1363,6 +1386,13 @@ def main():
                         nativeWrite=paths[native]['__xuiWidgetStateSlot'],
                         nativeTrace=paths['xuiContextTraceOwnership']['__xuiWidgetStateSlot'],
                         ownerTrace=paths['xuiContextTraceOwnership']['xrtValueOwnership'])
+            elif symbol=='xuiProxyResourceOwnershipCompletionV1' and a.resource_engine_build:
+                assert 'src/runtime.c' in consumers['xuiProxyResourceOwnershipCompletionV2']
+                proxy_log = out/'xui_proxy_resource-lifetime-relocations.log'
+                evidence = proxy_resource_completion_policy(
+                    policy_relocations,object_relocations(proxy_log.read_text(encoding='utf8')))
+                evidence['nativeObjectSha256'] = report['resourceLifetime'][
+                    'src/xui/core/xui_proxy_resource.c']['objectSha256']
             elif symbol=='xuiDockPanelStateFree' and a.resource_engine_build:
                 bindings = [row for row in bound['xuiDockPanelSaveState']
                             if row['language']=='xui.DockPanel.saveState']
