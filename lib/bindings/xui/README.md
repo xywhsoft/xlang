@@ -141,11 +141,18 @@ stored application value on the backend's thread. The native resource traces
 this edge and releases it when the resource retires or the draw finishes.
 The resource and its value slot share one allocation.
 
-This constructor covers capabilities, clipboard data, IME, resource queries,
-drawing, text shaping, clipping, decompression, timing and frame requests.
-Binding a full `Context` also requires the native Surface and Font factories,
-pixel transfers, resource retirement and draw-session slots. See the
-[frame request example](examples/custom_proxy.xl) for standalone callback use.
+`CallbackSurfaceOutput.set`, `CallbackFontOutput.set` and
+`CallbackDrawOutput.set` initialize their callback's owning result. The result
+becomes available to the caller when the callback returns success. Each slot
+accepts one assignment. If the callback fails, resources still in use move to
+the Proxy's rollback queue. The next resource output retries that queue.
+`Proxy.drainCallbackRollbacks()` retries it explicitly and reports `Busy` while
+a resource remains in use. `Proxy.close()` also retries pending rollback.
+
+See the [resource example](examples/custom_proxy_resources.xl) for custom
+Surface and Draw creation and the [frame request example](examples/custom_proxy.xl)
+for frame scheduling. Full `Context` support still requires the pixel transfer
+and resource retirement callbacks.
 
 Proxy backend callbacks use scoped views for their native arguments.
 `CallbackProxy.share()` obtains an independently owned `Proxy`.

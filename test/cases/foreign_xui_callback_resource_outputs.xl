@@ -1,0 +1,163 @@
+from xui import CallbackProxy,CallbackProxyCapsOutput,ProxyCaps,Proxy,createCustomProxy
+from xui import CallbackSurfaceOutput,CallbackSurfaceDesc,CallbackSurface,SurfaceDesc,Surface
+from xui import CallbackFontOutput,CallbackFont,CallbackSystemFontDesc,CallbackDrawOutput
+from xui import CString,ByteSlice,XUI_ERROR_BUSY
+
+extern "xl_test_callback_output_state" @header("test/cases/foreign_xui_callback_resource_outputs.h") @no_raise @c_output(0,0) @c_output_view(0,"owned_value") func prepareState() as var
+extern "xl_test_callback_output_read_begin" @header("test/cases/foreign_xui_callback_resource_outputs.h") @no_raise @c_result("status",0) func beginRead()
+extern "xl_test_callback_output_read_end" @header("test/cases/foreign_xui_callback_resource_outputs.h") @no_raise @c_result("status",0) func endRead()
+extern "xl_test_callback_output_native_failure" @header("test/cases/foreign_xui_callback_resource_outputs.h") @no_raise @c_result("status",0) func nativeFailure(Proxy proxy)
+extern "xl_test_callback_output_proxy_edges" @header("test/cases/foreign_xui_callback_resource_outputs.h") @no_raise @c_result("integer_min",0) func proxyEdges(Proxy proxy) as c_int
+
+class Case
+    int mode=0
+end
+
+func main(...) as int
+    auto fixture=Case()
+    var held=prepareState()
+    auto proxy=createCustomProxy(func(CallbackProxy backend,CallbackProxyCapsOutput output) as c_int
+        output.value=ProxyCaps()
+        return c_int(0)
+    end,
+    surfaceCreate=func(CallbackProxy backend,CallbackSurfaceOutput output,CallbackSurfaceDesc desc) as c_int
+        assert desc.value.iWidth==4 and desc.value.iHeight==3
+        if fixture.mode==1
+            output.set(backend,held)
+            beginRead()
+            throw "surface publisher failed"
+        end
+        if fixture.mode==2 then return c_int(0) end
+        output.set(backend,11)
+        if fixture.mode==3 then output.set(backend,99) end
+        return c_int(0)
+    end,
+    surfaceLoadFile=func(CallbackProxy backend,CallbackSurfaceOutput output,CString path,c_uint flags) as c_int
+        assert path.copy()=="surface.png" and flags==1
+        output.set(backend,12)
+        return c_int(0)
+    end,
+    surfaceLoadMemory=func(CallbackProxy backend,CallbackSurfaceOutput output,ByteSlice data,c_uint flags) as c_int
+        assert data.bytes==b"s\0f" and flags==2
+        output.set(backend,13)
+        return c_int(0)
+    end,
+    surfaceLoadSvgFile=func(CallbackProxy backend,CallbackSurfaceOutput output,CString path,c_int width,c_int height,c_uint flags) as c_int
+        assert path.copy()=="image.svg" and width==4 and height==3 and flags==3
+        output.set(backend,14)
+        return c_int(0)
+    end,
+    surfaceLoadSvgMemory=func(CallbackProxy backend,CallbackSurfaceOutput output,ByteSlice data,c_int width,c_int height,c_uint flags) as c_int
+        assert data.bytes==b"sv\0g" and width==4 and height==3 and flags==4
+        output.set(backend,15)
+        return c_int(0)
+    end,
+    fontLoadFile=func(CallbackProxy backend,CallbackFontOutput output,CString path,c_float size,c_uint flags) as c_int
+        assert path.copy()=="font.ttf" and size==c_float(12) and flags==5
+        output.set(backend,21)
+        return c_int(0)
+    end,
+    fontLoadMemory=func(CallbackProxy backend,CallbackFontOutput output,ByteSlice data,c_float size,c_uint flags) as c_int
+        assert data.bytes==b"fn\0t" and size==c_float(14) and flags==6
+        output.set(backend,22)
+        return c_int(0)
+    end,
+    fontCreateSized=func(CallbackProxy backend,CallbackFontOutput output,CallbackFont source,c_float size) as c_int
+        assert (source.getBackendValue() as int)==21 and size==c_float(18)
+        output.set(backend,23)
+        return c_int(0)
+    end,
+    fontLoadSystem=func(CallbackProxy backend,CallbackFontOutput output,CallbackSystemFontDesc desc) as c_int
+        assert desc.value.fSize==c_float(20) and desc.value.iFlags==0
+        output.set(backend,24)
+        return c_int(0)
+    end,
+    drawBegin=func(CallbackProxy backend,CallbackDrawOutput output,CallbackSurface? target) as c_int
+        if target!=null then assert ((target as CallbackSurface).getBackendValue() as int)==11 end
+        output.set(backend,target==null ? 31 : 32,target)
+        return c_int(0)
+    end)
+
+    SurfaceDesc desc
+    desc.iWidth=4
+    desc.iHeight=3
+    auto surface=proxy.createSurface(desc)
+    assert (surface.getBackendValue() as int)==11
+    auto sf=proxy.loadSurface("surface.png",1)
+    auto sm=proxy.loadSurfaceMemory(b"s\0f",2)
+    auto svgf=proxy.loadSvgSurface("image.svg",4,3,3)
+    auto svgm=proxy.loadSvgSurfaceMemory(b"sv\0g",4,3,4)
+    assert (sf.getBackendValue() as int)==12 and (sm.getBackendValue() as int)==13
+    assert (svgf.getBackendValue() as int)==14 and (svgm.getBackendValue() as int)==15
+    auto ff=proxy.loadFont("font.ttf",12,5)
+    auto fm=proxy.loadFontMemory(b"fn\0t",14,6)
+    auto fs=proxy.sizedFont(ff,18)
+    auto systemFont=proxy.loadSystemFont(20)
+    assert (ff.getBackendValue() as int)==21 and (fm.getBackendValue() as int)==22
+    assert (fs.getBackendValue() as int)==23 and (systemFont.getBackendValue() as int)==24
+    auto mainDraw=proxy.beginDraw()
+    auto targetDraw=proxy.beginDraw(surface)
+    auto independent=(targetDraw.target() as Surface)
+    assert mainDraw.target()==null and (mainDraw.getBackendValue() as int)==31
+    assert (targetDraw.getBackendValue() as int)==32 and (independent.getBackendValue() as int)==11
+    independent.close()
+    targetDraw.finish()
+    mainDraw.finish()
+    targetDraw.close()
+    mainDraw.close()
+    sf.close()
+    sm.close()
+    svgf.close()
+    svgm.close()
+    ff.close()
+    fm.close()
+    fs.close()
+    systemFont.close()
+
+    for mode in range(2,4)
+        fixture.mode=mode
+        bool rejected=false
+        try
+            auto missing=proxy.createSurface(desc)
+        catch error
+            rejected=true
+        end
+        assert rejected and proxyEdges(proxy)==1
+    end
+    fixture.mode=1
+    bool primary=false
+    try
+        nativeFailure(proxy)
+    catch error
+        primary=error.message=="surface publisher failed"
+    end
+    assert primary and proxyEdges(proxy)==2
+    bool busy=false
+    try
+        proxy.drainCallbackRollbacks()
+    catch error
+        busy=error.code==XUI_ERROR_BUSY
+    end
+    assert busy and proxyEdges(proxy)==2
+
+    auto alias=proxy.share()
+    bool closeBusy=false
+    try
+        alias.close()
+    catch error
+        closeBusy=error.code==XUI_ERROR_BUSY
+    end
+    assert closeBusy and proxyEdges(proxy)==2
+
+    endRead()
+    fixture.mode=0
+    auto retried=proxy.createSurface(desc)
+    assert (retried.getBackendValue() as int)==11 and proxyEdges(proxy)==1
+    proxy.drainCallbackRollbacks()
+    retried.close()
+    alias.close()
+    surface.close()
+    proxy.close()
+    println("XUI_CALLBACK_RESOURCE_OUTPUTS_OK")
+    return 0
+end

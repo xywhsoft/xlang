@@ -1,0 +1,35 @@
+import xui
+
+func capabilities(xui.CallbackProxy backend, xui.CallbackProxyCapsOutput output) as c_int
+    output.value = xui.ProxyCaps()
+    return c_int(0)
+end
+
+// Store the requested width as application state on the new Surface.
+func createSurface(xui.CallbackProxy backend, xui.CallbackSurfaceOutput output, xui.CallbackSurfaceDesc descriptor) as c_int
+    output.set(backend, int(descriptor.value.iWidth))
+    return c_int(0)
+end
+
+func beginDraw(xui.CallbackProxy backend, xui.CallbackDrawOutput output, xui.CallbackSurface? target) as c_int
+    output.set(backend, null, target)
+    return c_int(0)
+end
+
+func main(...) as int
+    auto backend = xui.createCustomProxy(capabilities, surfaceCreate=createSurface, drawBegin=beginDraw)
+    xui.SurfaceDesc descriptor
+    descriptor.iWidth = 320
+    descriptor.iHeight = 180
+    auto surface = backend.createSurface(descriptor)
+    auto draw = backend.beginDraw(surface)
+
+    int width = surface.getBackendValue() as int
+    assert width == 320
+    println("Surface width", width)
+    draw.finish()
+    draw.close()
+    surface.close()
+    backend.close()
+    return 0
+end

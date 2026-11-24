@@ -586,8 +586,20 @@ const XL6_OwnershipDomainV1* xl6Xui3DocumentModelDomainV1Get(void)
         XL6_OWNERSHIP_DOMAIN_V2_TAG,document_domain_finalization};
     return &value.V1;
 }
+static bool request_proxy_close(void* raw)
+{
+    const int status=xuiProxyDrainCallbackRollbacks(raw);
+    report_resource_failure(status,"xuiProxyDrainCallbackRollbacks");
+    return status==XUI_OK;
+}
 static bool destroy_proxy(void* raw)
-{bool consumed=false;int status=xuiProxyReleaseOwnerChecked(raw,&consumed);report_resource_failure(status,"xuiProxyReleaseOwnerChecked");return consumed;}
+{
+    if(!request_proxy_close(raw))return false;
+    bool consumed=false;
+    const int status=xuiProxyReleaseOwnerChecked(raw,&consumed);
+    report_resource_failure(status,"xuiProxyReleaseOwnerChecked");
+    return consumed;
+}
 static bool destroy_xui_font(void* raw)
 {bool consumed=false;int status=xuiFontReleaseOwnerChecked(raw,&consumed);report_resource_failure(status,"xuiFontReleaseOwnerChecked");return consumed;}
 static bool destroy_surface(void* raw)
@@ -598,13 +610,18 @@ static bool xui_font_trace(const void* raw,XL6_ModuleOwnershipVisit visit,void* 
 {return visit(xuiFontOwnership((xui_font)raw),user);}
 static bool surface_trace(const void* raw,XL6_ModuleOwnershipVisit visit,void* user)
 {return visit(xuiSurfaceOwnership((xui_surface)raw),user);}
+const XL6_ForeignViewDescriptorV1* xl6Xui3ProxyPolicyGet(void)
+{
+    static const XL6_ForeignViewDescriptorV1 value={sizeof(value),XL6_FOREIGN_VIEW_V1_TAG,"xui.proxy",0,1,
+        NULL,NULL,destroy_proxy,0,1,NULL,NULL,proxy_trace,NULL,0,NULL,request_proxy_close};
+    return &value;
+}
 #define XUI_SHARED_POLICY(Name,Family,Destroy,Trace) \
 const XL6_ForeignViewDescriptorV1* Name(void) { \
     static const XL6_ForeignViewDescriptorV1 value={sizeof(value),XL6_FOREIGN_VIEW_V1_TAG,Family,0,1,NULL,NULL,Destroy,0,1,NULL,NULL,Trace,NULL,0,NULL,NULL};return &value;}
 /* An owning RC reference protects each shared record. A language close
  * consumes that owner; native active pins and other owners keep storage alive.
  * Native quiescence/preparation belongs to the independent native graph node. */
-XUI_SHARED_POLICY(xl6Xui3ProxyPolicyGet,"xui.proxy",destroy_proxy,proxy_trace)
 XUI_SHARED_POLICY(xl6Xui3FontPolicyGet,"xui.font",destroy_xui_font,xui_font_trace)
 XUI_SHARED_POLICY(xl6Xui3SurfacePolicyGet,"xui.surface",destroy_surface,surface_trace)
 #undef XUI_SHARED_POLICY

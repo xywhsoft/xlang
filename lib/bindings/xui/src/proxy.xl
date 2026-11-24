@@ -3,6 +3,7 @@
 export extern "xui_proxy_t*" class Proxy @header("xge3_runtime.h") @lifetime("owned") @policy("xl6Xui3ProxyPolicy") @domain("xl6Xui3OwnershipDomainV1")
  native point handle
  extern "xuiProxyShareOwned" @no_raise @c_result("owned_view") @factory(1,0,rollbackProxy) func share() as Proxy
+ extern "xuiProxyDrainCallbackRollbacks" @no_raise @c_result("status",0) func drainCallbackRollbacks()
  extern "getCaps" @c_field_call @no_raise @c_output(1,0) func caps() as ProxyCaps
  extern "clockSeconds" @c_field_call @no_raise func clockSeconds() as c_double
  extern "requestFrame" @c_field_call @no_raise func requestFrame(c_float delaySeconds)

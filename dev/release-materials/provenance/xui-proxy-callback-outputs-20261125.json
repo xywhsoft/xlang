@@ -1,0 +1,220 @@
+{
+  "schema": 1,
+  "scope": "Owned custom XUI Proxy Surface, Font and Draw callback outputs",
+  "nativeCommit": "f0b490a864d5064b752db49976594d4e064e3e4a",
+  "nativeBaseRevision": "04e55fb085a0aa74a1fe2bb1fce3eb1ca57a2a29",
+  "compilerChange": "63885405f",
+  "shippingDelivery": false,
+  "networkTests": false,
+  "nativeSourceSha256NormalizedLf": {
+    "include/xui.h": "cd89116466b980e7cbabe8e69e9425bf247a21832c0231bf5d4cc64f0a167e6a",
+    "src/xui/core/xui_proxy_resource.c": "e4e7e95f82a87a62189404cad85d794d41db0c7591de19cef86dc8e2868e9b6c",
+    "tests/xui/xui_callback_resource_rollback_test.c": "3c7d8b4c3413bb51fe3bcd0ce4d0e1664be67900278395dbeb8ab1b4b4962ee1"
+  },
+  "sourceSha256NormalizedLf": {
+    "lib/bindings/_xge_native/src/runtime.c": "c04a1ea790f1150376ed0aba9bff756a319945923130507024409e3f988fb309",
+    "lib/bindings/xui/src/proxy.xl": "0b84d57fcfcb39451331b0316dab49608c1bda25954cb4974c2da4f37673a530",
+    "lib/bindings/xui/src/proxy_callbacks.xl": "54678c996dc7c94bfe7bd7d19b800c89fa712e2da0e6ce9864e84b7e9526f97a",
+    "lib/bindings/xui/README.md": "e06b742a433d3a921edb67ad8ebefafa18a80af1e90d7c5a9753d44f3c39b987",
+    "lib/bindings/xui/examples/custom_proxy_resources.xl": "68633493d3d809440b6b00603c85cfc8cfce162153b2cfc7fb171426e80912d5",
+    "test/cases/foreign_xui_callback_resource_outputs.xl": "172e8cffd187e6940f2b2db544b058e0b3e8c70cc92dfceb4da02ffb873ef1a1",
+    "test/cases/foreign_xui_callback_resource_outputs.h": "e8e269b1ecdc88b420832004e1b1b930804445cf0b3d5e71c9a8b37092f17061",
+    "test/cases/foreign_xui_callback_resource_outputs.c": "c5799eec88ec7ffd67fcd1ac5687262d4ec7d4514e7935effce111b101af9f3f"
+  },
+  "proxySlots": {
+    "total": 72,
+    "bound": 65,
+    "remaining": [
+      "surfaceCreateRGBA",
+      "surfaceUpdateRGBA",
+      "surfaceReadRGBA",
+      "surfaceDestroy",
+      "fontDestroy",
+      "drawEnd",
+      "clipboardSetItemsWithTransfer"
+    ]
+  },
+  "checks": [
+    "Ten typed resource producers exercised through Proxy calls, including counted data with an embedded NUL",
+    "C observes no output after a throwing language callback against a live resource value read",
+    "Busy rollback transfers one native owner into the exact traced Proxy; repeated writes keep the first output",
+    "Busy Proxy close retains its language owner, then a subsequent stage retries completed readers",
+    "Native checks cover output OOM, wrong-thread drain, reentry during a detached batch, and a Draw owning the last Busy target",
+    "The previous managed backend state fixture and the new resource example run in all three language modes",
+    "Hosted and static linkage is checked against each executable import table"
+  ],
+  "performanceScope": "The hosted O2 XGE check measures XRT heap operations and requested bytes. An ordinary Surface and a callback-stage Surface each request a single allocation. Callback staging adds one pointer to its native carrier. Enqueueing a busy resource has zero XRT heap operations. The steady-state stage checks for pending rollback.",
+  "publishedDrawBusyTargetOnTestedSdk": {
+    "result": "Ordinary checked Draw release reports Busy with consumed=true when the Draw holds the last owner of a Surface with an active value read. The callback rollback route is covered separately by this gate.",
+    "windows": {
+      "path": "F:/xlang-validation/xge-full-20261110/published-draw-busy-target-win-r1/results.json",
+      "sha256": "21dbb84b7efdfc7644b4c61633b7917c7206a6c0ea4c20c62cb27c6c4ef27962"
+    },
+    "linux": {
+      "path": "//wsl.localhost/Ubuntu/var/tmp/xlang-validation/xge-full-20261110/published-draw-busy-target-linux-r1/results.json",
+      "sha256": "31ddda3861242c318321c9c005b08122939549083773a518d825ce8054f55b9e"
+    }
+  },
+  "platforms": {
+    "win": {
+      "nativeSource": {
+        "path": "F:/xlang-validation/xge-full-20261110/proxy-callback-rollback-native-source-win-r1.json",
+        "sha256": "74b5c7a4d08751abefd4d2cee5c69c9bee1ee64d140e6ae22eec2081232f6002"
+      },
+      "nativeBuilds": {
+        "proxy-callback-rollback-host-win-r1": {
+          "path": "F:/xlang-validation/xge-full-20261110/proxy-callback-rollback-host-win-r1/build-report.json",
+          "sha256": "0f95cb55fa230e66ea8014d26bad73cd120a96b3b4467c81e669399df662f25b"
+        },
+        "proxy-callback-rollback-static-win-r1": {
+          "path": "F:/xlang-validation/xge-full-20261110/proxy-callback-rollback-static-win-r1/build-report.json",
+          "sha256": "9d7fecd9dac8d5737a2f7f031ff54b63d1329ec0fafad634243fd0fca8307804"
+        }
+      },
+      "sdk": {
+        "path": "F:/xlang-validation/xge-full-20261110/callback-owned-output-compiler-sdk-win-r1/results.json",
+        "sha256": "c8a7a1de8dc60630e6077074831fd1f2259c804f58e6ef5260f570a3762c606c"
+      },
+      "gate": {
+        "path": "F:/xlang-validation/xge-full-20261110/proxy-callback-rollback-verify-win-r2/results.json",
+        "sha256": "58f967e00094cc112e6c40a2984b5abb5e9b23e4ddc698a669ce19b79d6efa3b",
+        "commands": 30
+      },
+      "imports": {
+        "foreign_xui_callback_resource_outputs": {
+          "host": [
+            "msvcrt.dll",
+            "xge3_host.dll",
+            "kernel32.dll",
+            "shell32.dll",
+            "ws2_32.dll",
+            "iphlpapi.dll",
+            "ucrtbase.dll"
+          ],
+          "static": [
+            "msvcrt.dll",
+            "kernel32.dll",
+            "ole32.dll",
+            "shell32.dll"
+          ]
+        },
+        "foreign_proxy_resource_value": {
+          "host": [
+            "msvcrt.dll",
+            "xge3_host.dll",
+            "kernel32.dll",
+            "shell32.dll",
+            "ws2_32.dll",
+            "iphlpapi.dll",
+            "ucrtbase.dll"
+          ],
+          "static": [
+            "msvcrt.dll",
+            "kernel32.dll",
+            "ole32.dll",
+            "shell32.dll"
+          ]
+        },
+        "example": {
+          "host": [
+            "msvcrt.dll",
+            "xge3_host.dll",
+            "kernel32.dll",
+            "shell32.dll",
+            "ucrtbase.dll"
+          ],
+          "static": [
+            "msvcrt.dll",
+            "kernel32.dll",
+            "ole32.dll",
+            "shell32.dll"
+          ]
+        }
+      }
+    },
+    "linux": {
+      "nativeSource": {
+        "path": "//wsl.localhost/Ubuntu/var/tmp/xlang-validation/xge-full-20261110/proxy-callback-rollback-native-source-linux-r1.json",
+        "sha256": "08a7181cbf521a476409e0de528f4e919513a7dd199f7ce22e949655df265034"
+      },
+      "nativeBuilds": {
+        "proxy-callback-rollback-host-linux-r1": {
+          "path": "//wsl.localhost/Ubuntu/var/tmp/xlang-validation/xge-full-20261110/proxy-callback-rollback-host-linux-r1/build-report.json",
+          "sha256": "d3e60647928f11620f576841a20cb585785098fa56f9ab4d0c95cc2f5bab4dc7"
+        },
+        "proxy-callback-rollback-static-linux-r1": {
+          "path": "//wsl.localhost/Ubuntu/var/tmp/xlang-validation/xge-full-20261110/proxy-callback-rollback-static-linux-r1/build-report.json",
+          "sha256": "7d4d25a9c793a7f536958d3d0f99ee8c02a1af9ec5618db8dfc726553b908cc7"
+        }
+      },
+      "sdk": {
+        "path": "//wsl.localhost/Ubuntu/var/tmp/xlang-validation/xge-full-20261110/callback-owned-output-compiler-sdk-linux-r1/results.json",
+        "sha256": "083c0cd12875e8a7e2d9b28035b0e663ae15a0d1d7e603cf0fd715aa6ab784ba"
+      },
+      "gate": {
+        "path": "//wsl.localhost/Ubuntu/var/tmp/xlang-validation/xge-full-20261110/proxy-callback-rollback-verify-linux-r2/results.json",
+        "sha256": "677c678094d9b099dcbd75f676d413052ab6f1b8cabb8920ba58b2e9d529eb3b",
+        "commands": 30
+      },
+      "imports": {
+        "foreign_xui_callback_resource_outputs": {
+          "host": [
+            "libm.so.6",
+            "libmvec.so.1",
+            "libxge3_host.so",
+            "libc.so.6",
+            "ld-linux-x86-64.so.2"
+          ],
+          "static": [
+            "libm.so.6",
+            "libmvec.so.1",
+            "libx11.so.6",
+            "libxi.so.6",
+            "libxcursor.so.1",
+            "libgl.so.1",
+            "libc.so.6",
+            "ld-linux-x86-64.so.2"
+          ]
+        },
+        "foreign_proxy_resource_value": {
+          "host": [
+            "libm.so.6",
+            "libmvec.so.1",
+            "libxge3_host.so",
+            "libc.so.6",
+            "ld-linux-x86-64.so.2"
+          ],
+          "static": [
+            "libm.so.6",
+            "libmvec.so.1",
+            "libx11.so.6",
+            "libxi.so.6",
+            "libxcursor.so.1",
+            "libgl.so.1",
+            "libc.so.6",
+            "ld-linux-x86-64.so.2"
+          ]
+        },
+        "example": {
+          "host": [
+            "libm.so.6",
+            "libmvec.so.1",
+            "libxge3_host.so",
+            "libc.so.6",
+            "ld-linux-x86-64.so.2"
+          ],
+          "static": [
+            "libm.so.6",
+            "libmvec.so.1",
+            "libx11.so.6",
+            "libxi.so.6",
+            "libxcursor.so.1",
+            "libgl.so.1",
+            "libc.so.6",
+            "ld-linux-x86-64.so.2"
+          ]
+        }
+      }
+    }
+  }
+}
