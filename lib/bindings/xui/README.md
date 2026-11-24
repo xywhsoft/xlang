@@ -97,7 +97,8 @@ update and cursor callbacks. The Context registry retains one group per
 type. Derived instances use the group of the type that declared each
 callback. Widget, draw, and native data arguments are callback-scope views.
 The language registration uses a zero-size native instance descriptor.
-Use closure captures for type-wide data. Add `XUI_WIDGET_TYPE_MANAGED_STATE`
+Use `WidgetType.setUserData` and `getUserData` for data shared by a type.
+Both use independent snapshots of public data. Add `XUI_WIDGET_TYPE_MANAGED_STATE`
 to the type flags to give each instance an initially null `var` slot.
 Derived types inherit the slot. `setInstanceState` retains the assigned value
 with its identity, and `getInstanceState` returns an independent owning

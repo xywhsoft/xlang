@@ -118,3 +118,13 @@ used the same compiler and native package, with the declarations unused.
 
 The `widget_user_data.xl` lesson stores an item ID on a button and reads it
 from the event sender when the user clicks.
+
+Each registered `WidgetType` has its own data slot. `setUserData()` takes a
+snapshot and `getUserData()` returns a fresh snapshot. Pass `null` to clear it.
+The process-wide base type is read-only and returns `null`. The Context traces
+the type's retained value and releases it when the type unregisters or the
+Context closes. Snapshots that were already returned remain usable. The
+native slot holds one reference and its warmed set/get path allocates no
+memory. Language calls also perform the data projection.
+
+[Widget type data example](../lib/bindings/xui/examples/widget_type_data.xl)

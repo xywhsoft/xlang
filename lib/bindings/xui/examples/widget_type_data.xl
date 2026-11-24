@@ -1,0 +1,21 @@
+import xui
+
+// 一个类型的所有实例可以读取同一份类型设置，各自仍能保存自己的数据。
+func main(...) as int
+    auto proxy = xui.createProxy()
+    auto ui = xui.create(proxy, xui.XUI_SYSTEM_FONT_DISABLED)
+
+    auto kind = ui.registerWidgetType("message.card")
+    kind.setUserData({"title": "Inbox"})
+
+    auto first = ui.createWidget(kind)
+    auto second = ui.createWidget(kind)
+    first.setUserData({"unread": 2})
+    second.setUserData({"unread": 5})
+
+    println(kind.getUserData()["title"], first.getUserData()["unread"], second.getUserData()["unread"])
+
+    ui.close()
+    proxy.close()
+    return 0
+end

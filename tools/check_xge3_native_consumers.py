@@ -728,6 +728,18 @@ def main():
             })
         if 'xuiContextTraceEventOwners' in functions:
             calls.setdefault(WIDGET_SOURCE, {})['xuiContextTraceOwnership'] = ('xuiContextTraceEventOwners',)
+        if 'xuiWidgetTypeGetUserValue' in functions:
+            calls.setdefault(WIDGET_SOURCE, {}).update({
+                'xuiWidgetTypeGetUserValue': ('__xuiGetUserValue',),
+                'xuiWidgetTypeSetUserValue': ('__xuiSetUserValue',),
+                'xuiWidgetSetInstanceState': ('__xuiWidgetStateSlot',),
+                'xuiContextTraceOwnership': (
+                    'xuiContextTraceEventOwners','__xuiWidgetStateSlot','xrtValueOwnership'),
+            })
+            calls['src/xui/controls/xui_label.c'] = {
+                'xuiLabelSetText': ('__xuiLabelGetData',),
+                '__xuiLabelGetData': ('xuiWidgetGetTypeData',),
+            }
         helper_calls = ('xuiInternalWidgetCallbackCaptureBegin','xuiInternalWidgetCallbackCaptureEnd')
         if 'xuiWidgetCaptureContentMeasureCallback' in functions:
             calls[WIDGET_CALLBACK_SOURCE] = {
@@ -1077,6 +1089,10 @@ def main():
                 binding_calls = {
                     'xgeAsyncFontTakeOwned': 'xge.FontLoad.take',
                     'xgeAsyncTextureTakeOwned': 'xge.TextureLoad.take',
+                    'xuiWidgetTypeGetUserValue': 'xui.WidgetType.getUserData',
+                    'xuiWidgetTypeSetUserValue': 'xui.WidgetType.setUserData',
+                    'xuiWidgetSetInstanceState': 'xui.Widget.setInstanceState',
+                    'xuiLabelSetText': 'xui.Label.setText',
                     'xuiTreeViewSetDataAdapterOwned': 'xui.TreeView.setDataAdapter',
                     'xuiTreeViewRefreshAdapter': 'xui.TreeView.refreshAdapter',
                     'xgeGraphicsContextMakeCurrent': 'xge.GraphicsContext.makeCurrent',
@@ -1316,6 +1332,26 @@ def main():
                     ownership='Indexed snapshot of the pack slot, with checked mutation through Context',
                     nativeArrayWitness=dict(source=source,objectSha256=witness['objectSha256'],
                         relocationPath=witness['relocationPaths']['xuiLanguageGetTextAt']['xrtArrayConstGet']))
+            elif symbol in ('xuiWidgetTypeGetUserData','xuiWidgetTypeSetOwnershipTrace') and (
+                    a.resource_engine_build and 'xuiWidgetTypeGetUserValue' in bound):
+                paths = report['resourceLifetime'][WIDGET_SOURCE]['relocationPaths']
+                if symbol == 'xuiWidgetTypeGetUserData':
+                    native = 'xuiWidgetTypeGetUserValue'
+                    logical = 'xui.WidgetType.getUserData'
+                    declaration = class_lines(view,next(row for row in bound[native] if row['language']==logical))[0]
+                    assert '@c_data_snapshot_result(0)' in declaration
+                    evidence = dict(language=logical,native=native,
+                        receiver='Context-local WidgetType data',
+                        nativeRead=paths[native]['__xuiGetUserValue'],
+                        nativeWrite=paths['xuiWidgetTypeSetUserValue']['__xuiSetUserValue'],
+                        ownerTrace=paths['xuiContextTraceOwnership']['xrtValueOwnership'])
+                else:
+                    native = 'xuiWidgetSetInstanceState'
+                    evidence = dict(language='xui.Widget.setInstanceState',native=native,
+                        receiver='Managed XRT instance state; custom C storage retains its explicit native trace',
+                        nativeWrite=paths[native]['__xuiWidgetStateSlot'],
+                        nativeTrace=paths['xuiContextTraceOwnership']['__xuiWidgetStateSlot'],
+                        ownerTrace=paths['xuiContextTraceOwnership']['xrtValueOwnership'])
             elif symbol=='xuiDockPanelStateFree' and a.resource_engine_build:
                 bindings = [row for row in bound['xuiDockPanelSaveState']
                             if row['language']=='xui.DockPanel.saveState']

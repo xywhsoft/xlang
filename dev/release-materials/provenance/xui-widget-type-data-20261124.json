@@ -1,0 +1,386 @@
+{
+  "schema": "xlang-xui-widget-type-data-1",
+  "scope": "Direct WidgetType data snapshots and checked retirement",
+  "nativeCommit": "8fa69c7f",
+  "shippingDelivery": false,
+  "networkTests": false,
+  "prior": {
+    "path": "dev/release-materials/provenance/xui-widget-callback-snapshot-20261124.json",
+    "sha256": "731fd5997211e965f0d89380a10c39c75ea1d3da87c0f10c6b7a1eae2ff8cc47"
+  },
+  "closedFromReview": [
+    "xuiWidgetGetTypeData",
+    "xuiWidgetTypeGetUserData",
+    "xuiWidgetTypeSetOwnershipTrace"
+  ],
+  "sourceSha256NormalizedLf": {
+    "docs/xui-widget-queries.md": "788effb9b50aa85d328e3abd2f905bbeb5de6820de71f946e162bec4a3adccb6",
+    "docs/xge3-xui3-api-map-storage.json": "18fe317ba7352c1edf7afd702f478acb6ddb007b6f1c8a52230ee5321ab6e816",
+    "lib/bindings/xui/README.md": "fba6da54646924723a4883ef9d1cf3e03c7234ea3f6bffa90e170702e91197a5",
+    "lib/bindings/xui/src/managed.xl": "2887aff0ce7fac3ee455290d6012b7a38b8460c163cf1edcdb5354f019ceacbd",
+    "lib/bindings/xui/examples/widget_type_data.xl": "cf8b6493b8406daa4846f93f061da99568736b7697b486072202746493d037f5",
+    "tools/check_xge3_native_consumers.py": "99464a0ea914f3489ec188f1ff6337d9b289bfb2df35387ae0e9499d1ad0910f",
+    "tools/xui_managed_contracts.py": "ad327a6c3c9434fdf0b3e6c5a3ed62b42b36587b2a2ea3b80d6b26188515cd79",
+    "test/cases/foreign_xui_widget_type_data.xl": "53a26a6dadbb6fb71fec6155fccc70df5997679d72ea70c7767afd4725938608"
+  },
+  "nativeSha256NormalizedLf": {
+    "include/xui.h": "c8f7e6659c7352c81a29046689b063b306383cdf4e2da26d6efe8d7038a62a2b",
+    "src/xui/core/xui_internal.h": "d676ca7661a06c07637d98e499ef9202f1686ceaf0e4c142051652af529969a7",
+    "src/xui/core/xui_widget.c": "45589168ef6d872d9de5bc2ebf1ba70c3c71cc3f4970c992542513d445ab91d5",
+    "tests/xui/test_widget_type_data.c": "f5891a8161be80a23cfcbc837a9568b071c09f7915d1f022b9361d358117ec9e"
+  },
+  "nativeCases": [
+    "independent type descriptor user pointer, native instance storage and widget user slot",
+    "exact owning edge and stable repeated assignment",
+    "creator thread, null and process-wide base handling",
+    "busy value blocks replacement, unregistration and final Context consumption",
+    "retained value survives access, released on clear, unregistration and Context close",
+    "allocation-free native scalar replacement and retained read under fail-next"
+  ],
+  "languageCases": [
+    "independent input and output data snapshots with embedded NUL and bytes",
+    "public fields only, no getter calls",
+    "input and output allocation failure preserves both published data and receiving variable",
+    "shared managed instance state independent of type data",
+    "native Label reads and writes its original typed storage",
+    "view invalidation after unregistration and durability of earlier snapshots"
+  ],
+  "platforms": {
+    "win": {
+      "stage": {
+        "path": "F:/xlang-validation/xge-full-20261110/widget-type-data-stage-win-r2/replay/stage-report.json",
+        "sha256": "6b435fcfb40ee6def26188fae6aa40b16e5edc7e5f9c57f6541633070112805a"
+      },
+      "nativeSource": {
+        "path": "F:/xlang-validation/xge-full-20261110/widget-type-data-native-source-win-r1.json",
+        "sha256": "e9f9cdf0a7b49d0c25e94d247c7b3b5ed7d556958315b1bbcf54b24bc036b6ab"
+      },
+      "audit": {
+        "path": "F:/xlang-validation/xge-full-20261110/widget-type-data-consumers-win-r3/results.json",
+        "sha256": "e0f433c0e4a73a3fbadef062833ca746f2b4478f53b1d19ba0a7cf78ac974867"
+      },
+      "runtime": {
+        "path": "F:/xlang-validation/xge-full-20261110/widget-type-data-verify-win-r3/results.json",
+        "sha256": "bdf5ed1bfdd526a618be58c385cdbe162d07354a80a7366a43b93a732b6d6ca8"
+      },
+      "regression": {
+        "path": "F:/xlang-validation/xge-full-20261110/widget-type-data-regression-win-r1/results.json",
+        "sha256": "92c3fe7e5a971b044a1c896198a579348a8e69121657a44fea2bbfebfd732bc2"
+      },
+      "native": {
+        "path": "F:/xlang-validation/xge-full-20261110/widget-type-data-native-tests-win-r2/results.json",
+        "sha256": "5a371c6d0756a528eb2674660e363b5df1b1843818c4fd81f1279617a109e243"
+      },
+      "generator": {
+        "path": "F:/xlang-validation/xge-full-20261110/widget-type-data-generator-win-r2/results.json",
+        "sha256": "8524dfd6c8f3d97a9345d5cd369ef2a04f1223d5fe4cdc758fd395c7bccc4361"
+      },
+      "generatedC": {
+        "path": "F:/xlang-validation/xge-full-20261110/widget-type-data-verify-win-r3/foreign_xui_widget_type_data/generated.c",
+        "sha256": "ac56be12b335e406dd90e4c40c7654f49f0d835fae95f3a6b11757b141cc90e9"
+      },
+      "remaining": {
+        "XGE": 2,
+        "XUI": 6
+      },
+      "cases": {
+        "foreign_xui_widget_type_data": {
+          "directCFunctions": [
+            "xuiWidgetTypeSetUserValue",
+            "xuiWidgetTypeGetUserValue",
+            "xuiWidgetSetInstanceState",
+            "xuiLabelSetText"
+          ],
+          "imports": {
+            "host": [
+              "msvcrt.dll",
+              "xge3_host.dll",
+              "kernel32.dll",
+              "shell32.dll",
+              "ucrtbase.dll"
+            ],
+            "static": [
+              "msvcrt.dll",
+              "kernel32.dll",
+              "user32.dll",
+              "ole32.dll",
+              "oleaut32.dll",
+              "shell32.dll",
+              "gdi32.dll",
+              "imm32.dll",
+              "dwrite.dll"
+            ]
+          }
+        },
+        "widget_type_data": {
+          "directCFunctions": [
+            "xuiWidgetTypeSetUserValue",
+            "xuiWidgetTypeGetUserValue",
+            "xuiWidgetCreateTyped"
+          ],
+          "imports": {
+            "host": [
+              "msvcrt.dll",
+              "xge3_host.dll",
+              "kernel32.dll",
+              "shell32.dll",
+              "ucrtbase.dll"
+            ],
+            "static": [
+              "msvcrt.dll",
+              "kernel32.dll",
+              "user32.dll",
+              "ole32.dll",
+              "oleaut32.dll",
+              "shell32.dll",
+              "gdi32.dll",
+              "imm32.dll",
+              "dwrite.dll"
+            ]
+          }
+        }
+      },
+      "classified": {
+        "xuiWidgetGetTypeData": {
+          "id": "xui.h:functions:xuiWidgetGetTypeData",
+          "symbol": "xuiWidgetGetTypeData",
+          "family": "XUI",
+          "conditions": [
+            "XGE_ENABLE_XUI"
+          ],
+          "publicDeclarationPresent": false,
+          "compiledNativeConsumers": [
+            "src/xui/controls/xui_label.c"
+          ],
+          "explicitReplacement": null,
+          "contractReview": "pending",
+          "runtimeAcceptance": "not-certified-by-this-audit"
+        },
+        "xuiWidgetTypeGetUserData": {
+          "id": "xui.h:functions:xuiWidgetTypeGetUserData",
+          "symbol": "xuiWidgetTypeGetUserData",
+          "family": "XUI",
+          "conditions": [
+            "XGE_ENABLE_XUI"
+          ],
+          "publicDeclarationPresent": false,
+          "compiledNativeConsumers": [],
+          "explicitReplacement": {
+            "language": "xui.WidgetType.getUserData",
+            "native": "xuiWidgetTypeGetUserValue",
+            "receiver": "Context-local WidgetType data",
+            "nativeRead": [
+              ".text$__xuiGetUserValue"
+            ],
+            "nativeWrite": [
+              ".text$__xuiSetUserValue"
+            ],
+            "ownerTrace": [
+              ".refptr.XgeHostXrtSlot_xrtValueOwnership",
+              "XgeHostXrtSlot_xrtValueOwnership"
+            ]
+          },
+          "contractReview": "pending",
+          "runtimeAcceptance": "not-certified-by-this-audit"
+        },
+        "xuiWidgetTypeSetOwnershipTrace": {
+          "id": "xui.h:functions:xuiWidgetTypeSetOwnershipTrace",
+          "symbol": "xuiWidgetTypeSetOwnershipTrace",
+          "family": "XUI",
+          "conditions": [
+            "XGE_ENABLE_XUI"
+          ],
+          "publicDeclarationPresent": false,
+          "compiledNativeConsumers": [],
+          "explicitReplacement": {
+            "language": "xui.Widget.setInstanceState",
+            "native": "xuiWidgetSetInstanceState",
+            "receiver": "Managed XRT instance state; custom C storage retains its explicit native trace",
+            "nativeWrite": [
+              ".text$__xuiWidgetStateSlot"
+            ],
+            "nativeTrace": [
+              ".text$__xuiWidgetStateSlot"
+            ],
+            "ownerTrace": [
+              ".refptr.XgeHostXrtSlot_xrtValueOwnership",
+              "XgeHostXrtSlot_xrtValueOwnership"
+            ]
+          },
+          "contractReview": "pending",
+          "runtimeAcceptance": "not-certified-by-this-audit"
+        }
+      }
+    },
+    "linux": {
+      "stage": {
+        "path": "//wsl.localhost/Ubuntu/var/tmp/xlang-validation/xge-full-20261110/widget-type-data-stage-linux-r2/replay/stage-report.json",
+        "sha256": "27a1a959911214b65602abc91d5a00383582cd3b5e750cbedd83a9a931b45f82"
+      },
+      "nativeSource": {
+        "path": "//wsl.localhost/Ubuntu/var/tmp/xlang-validation/xge-full-20261110/widget-type-data-native-source-linux-r1.json",
+        "sha256": "649a14d140b7b9894f54d6d4e5b76da10cf1b0a54a469dcdd220c3f1d440d6fe"
+      },
+      "audit": {
+        "path": "//wsl.localhost/Ubuntu/var/tmp/xlang-validation/xge-full-20261110/widget-type-data-consumers-linux-r3/results.json",
+        "sha256": "135a89ecbf8fd4c1e11d62ecb537ded4d0e11a43ce627f0c74cc67cde1d099c4"
+      },
+      "runtime": {
+        "path": "//wsl.localhost/Ubuntu/var/tmp/xlang-validation/xge-full-20261110/widget-type-data-verify-linux-r3/results.json",
+        "sha256": "8b7b034fc55379ce5c93ee1dd915f23d2d03b3309675491fade8bb071cc15381"
+      },
+      "regression": {
+        "path": "//wsl.localhost/Ubuntu/var/tmp/xlang-validation/xge-full-20261110/widget-type-data-regression-linux-r1/results.json",
+        "sha256": "c8ca1702e09d0e31ecca7cc178a49108a7ed5fb84e67290238d647b6dc9a90f5"
+      },
+      "native": {
+        "path": "//wsl.localhost/Ubuntu/var/tmp/xlang-validation/xge-full-20261110/widget-type-data-native-tests-linux-r2/results.json",
+        "sha256": "bdac8f5cbf0f01ac4c688e6fece412786f50db8b7e50180608f04ffb06040ec4"
+      },
+      "generator": {
+        "path": "//wsl.localhost/Ubuntu/var/tmp/xlang-validation/xge-full-20261110/widget-type-data-generator-linux-r2/results.json",
+        "sha256": "7e3db1de4bfa9685f0c7b7aca0e0b47d388e6045b1bf24b4a0ad97ce592f62a2"
+      },
+      "generatedC": {
+        "path": "//wsl.localhost/Ubuntu/var/tmp/xlang-validation/xge-full-20261110/widget-type-data-verify-linux-r3/foreign_xui_widget_type_data/generated.c",
+        "sha256": "ac56be12b335e406dd90e4c40c7654f49f0d835fae95f3a6b11757b141cc90e9"
+      },
+      "remaining": {
+        "XGE": 4,
+        "XUI": 6
+      },
+      "cases": {
+        "foreign_xui_widget_type_data": {
+          "directCFunctions": [
+            "xuiWidgetTypeSetUserValue",
+            "xuiWidgetTypeGetUserValue",
+            "xuiWidgetSetInstanceState",
+            "xuiLabelSetText"
+          ],
+          "imports": {
+            "host": [
+              "libm.so.6",
+              "libmvec.so.1",
+              "libxge3_host.so",
+              "libc.so.6",
+              "ld-linux-x86-64.so.2"
+            ],
+            "static": [
+              "libm.so.6",
+              "libmvec.so.1",
+              "libx11.so.6",
+              "libxi.so.6",
+              "libxcursor.so.1",
+              "libgl.so.1",
+              "libc.so.6",
+              "ld-linux-x86-64.so.2"
+            ]
+          }
+        },
+        "widget_type_data": {
+          "directCFunctions": [
+            "xuiWidgetTypeSetUserValue",
+            "xuiWidgetTypeGetUserValue",
+            "xuiWidgetCreateTyped"
+          ],
+          "imports": {
+            "host": [
+              "libm.so.6",
+              "libmvec.so.1",
+              "libxge3_host.so",
+              "libc.so.6",
+              "ld-linux-x86-64.so.2"
+            ],
+            "static": [
+              "libm.so.6",
+              "libmvec.so.1",
+              "libx11.so.6",
+              "libxi.so.6",
+              "libxcursor.so.1",
+              "libgl.so.1",
+              "libc.so.6",
+              "ld-linux-x86-64.so.2"
+            ]
+          }
+        }
+      },
+      "classified": {
+        "xuiWidgetGetTypeData": {
+          "id": "xui.h:functions:xuiWidgetGetTypeData",
+          "symbol": "xuiWidgetGetTypeData",
+          "family": "XUI",
+          "conditions": [
+            "XGE_ENABLE_XUI"
+          ],
+          "publicDeclarationPresent": false,
+          "compiledNativeConsumers": [
+            "src/xui/controls/xui_label.c"
+          ],
+          "explicitReplacement": null,
+          "contractReview": "pending",
+          "runtimeAcceptance": "not-certified-by-this-audit"
+        },
+        "xuiWidgetTypeGetUserData": {
+          "id": "xui.h:functions:xuiWidgetTypeGetUserData",
+          "symbol": "xuiWidgetTypeGetUserData",
+          "family": "XUI",
+          "conditions": [
+            "XGE_ENABLE_XUI"
+          ],
+          "publicDeclarationPresent": false,
+          "compiledNativeConsumers": [],
+          "explicitReplacement": {
+            "language": "xui.WidgetType.getUserData",
+            "native": "xuiWidgetTypeGetUserValue",
+            "receiver": "Context-local WidgetType data",
+            "nativeRead": [
+              ".text.__xuiGetUserValue"
+            ],
+            "nativeWrite": [
+              ".text.__xuiSetUserValue"
+            ],
+            "ownerTrace": [
+              "XgeHostXrtSlot_xrtValueOwnership"
+            ]
+          },
+          "contractReview": "pending",
+          "runtimeAcceptance": "not-certified-by-this-audit"
+        },
+        "xuiWidgetTypeSetOwnershipTrace": {
+          "id": "xui.h:functions:xuiWidgetTypeSetOwnershipTrace",
+          "symbol": "xuiWidgetTypeSetOwnershipTrace",
+          "family": "XUI",
+          "conditions": [
+            "XGE_ENABLE_XUI"
+          ],
+          "publicDeclarationPresent": false,
+          "compiledNativeConsumers": [],
+          "explicitReplacement": {
+            "language": "xui.Widget.setInstanceState",
+            "native": "xuiWidgetSetInstanceState",
+            "receiver": "Managed XRT instance state; custom C storage retains its explicit native trace",
+            "nativeWrite": [
+              ".text.__xuiWidgetStateSlot"
+            ],
+            "nativeTrace": [
+              ".text.__xuiWidgetStateSlot"
+            ],
+            "ownerTrace": [
+              "XgeHostXrtSlot_xrtValueOwnership"
+            ]
+          },
+          "contractReview": "pending",
+          "runtimeAcceptance": "not-certified-by-this-audit"
+        }
+      }
+    }
+  },
+  "remainingAcrossPreviouslyQualifiedConfigurations": [
+    "xuiIconDescDefault",
+    "xuiIconGetUser",
+    "xuiProxyCreateOwned",
+    "xuiProxyCreateOwnedEx",
+    "xuiProxyResourceOwnershipCompletionV1",
+    "xuiTerminalSetImageCallback"
+  ]
+}

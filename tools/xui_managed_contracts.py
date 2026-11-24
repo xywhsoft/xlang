@@ -1381,7 +1381,7 @@ METHODS.update({
 })
 
 
-VIEWS["WidgetType"] = 'export extern "xui_widget_type_t*" class WidgetType @header("xge3_runtime.h") @lifetime("owner") @owner(Context) @policy("xl6Xui3WidgetTypePolicy") @watch("xui_lifetime_link_t")\n native point handle\n extern "xuiWidgetTypeGetName" @no_raise @c_result("cstring") func getName() as string\n extern "xuiWidgetTypeGetParent" @no_raise @c_result("owner_view",0) func getParent() as WidgetType?\n extern "xuiWidgetUnregisterType" @no_raise @c_result("status",0) func unregister()\n extern "xl6ForeignViewCloseV1" @no_raise @c_control(0) @c_result("bool_status") func close()\nend'
+VIEWS["WidgetType"] = 'export extern "xui_widget_type_t*" class WidgetType @header("xge3_runtime.h") @lifetime("owner") @owner(Context) @policy("xl6Xui3WidgetTypePolicy") @watch("xui_lifetime_link_t")\n native point handle\n extern "xuiWidgetTypeGetName" @no_raise @c_result("cstring") func getName() as string\n extern "xuiWidgetTypeGetParent" @no_raise @c_result("owner_view",0) func getParent() as WidgetType?\n extern "xuiWidgetTypeSetUserValue" @no_raise @c_data_snapshot(0) @c_result("status",0) func setUserData(var value)\n extern "xuiWidgetTypeGetUserValue" @no_raise @c_output(1,0) @c_output_view(1,"owned_value") @c_data_snapshot_result(0) func getUserData() as var\n extern "xuiWidgetUnregisterType" @no_raise @c_result("status",0) func unregister()\n extern "xl6ForeignViewCloseV1" @no_raise @c_control(0) @c_result("bool_status") func close()\nend'
 
 METHODS.update({
     'xuiWidgetFindType': ['xui_widget_type xuiWidgetFindType(xui_context pContext, const char* sName)', 'Context',
@@ -2317,6 +2317,12 @@ VIEWS['WidgetCallbackSnapshot'] = """export extern "xui_widget_callback_snapshot
 end"""
 
 
+VIEW_FUNCTIONS.update({
+    'xuiWidgetTypeSetUserValue': 'int xuiWidgetTypeSetUserValue(xui_widget_type pType, xvalue* pValue)',
+    'xuiWidgetTypeGetUserValue': 'int xuiWidgetTypeGetUserValue(xui_widget_type pType, xvalue** ppValue)',
+})
+
+
 def validate(root,header,function_sha):
     functions={f['name']:f['declaration']for f in header['functions']}
     types={t['name']:t['declaration']for t in header['types']}
@@ -2371,6 +2377,8 @@ def extend(context,classes,free,callback_declarations,mapped):
     free.append('extern "xuiWidgetCallbackSnapshotRelease" @header("xui3_widget_callback_snapshot.h") @no_raise @c_result("status",0) func rollbackWidgetCallbackSnapshot(WidgetCallbackSnapshot snapshot)')
     mapped['xuiWidgetCallbackSnapshotInstall']='xui.WidgetCallbackSnapshot.install'
     mapped.update(xuiWidgetTypeGetName='xui.WidgetType.getName',xuiWidgetTypeGetParent='xui.WidgetType.getParent',
+                  xuiWidgetTypeSetUserValue='xui.WidgetType.setUserData',
+                  xuiWidgetTypeGetUserValue='xui.WidgetType.getUserData',
                   xuiWidgetUnregisterType='xui.WidgetType.unregister')
     mapped.update(xuiCodeInputResponseGetFlags='xui.CallbackCodeInputResponse.flags',
                   xuiCodeInputResponseSetFlags='xui.CallbackCodeInputResponse.setFlags',

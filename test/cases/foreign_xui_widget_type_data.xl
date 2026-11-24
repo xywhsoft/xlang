@@ -1,0 +1,87 @@
+import xui
+
+extern "xrtMemDebugEnabled" @header("xrt_decl.h") @no_raise func memDebugEnabled() as bool
+extern "xrtMemDebugEnable" @header("xrt_decl.h") @no_raise func memDebug(bool enabled) as bool
+extern "xrtMemDebugFailAfter" @header("xrt_decl.h") @no_raise func failAfter(uint64 prefix) as bool
+extern "xrtMemDebugFailClear" @header("xrt_decl.h") @no_raise func failClear()
+
+int getterCalls = 0
+class CardData
+    int limit = 42
+    string title = "a\0b"
+    bytes tag = b"\0\xff"
+    private string hidden = "private"
+    get computed() as int
+        getterCalls += 1
+        return self.limit
+    end
+end
+
+func main(...) as int
+    auto proxy = xui.createProxy()
+    auto ui = xui.create(proxy, xui.XUI_SYSTEM_FONT_DISABLED)
+    auto kind = ui.registerWidgetType("test.card", flags=c_uint(xui.XUI_WIDGET_TYPE_MANAGED_STATE))
+    auto parent = ui.baseWidgetType()
+    assert parent.getUserData() == null and kind.getUserData() == null
+    auto data = CardData()
+    kind.setUserData(data)
+    data.limit = 5
+    var saved = kind.getUserData()
+    assert saved["limit"] == 42 and saved["title"] == "a\0b" and saved["tag"] == b"\0\xff"
+    assert saved["hidden"] == null and saved["computed"] == null and getterCalls == 0
+    saved["limit"] = 9
+    assert kind.getUserData()["limit"] == 42
+
+    assert memDebugEnabled() or memDebug(true)
+    bool failed = false
+    assert failAfter(0)
+    try
+        kind.setUserData(data)
+    catch Error
+        failed = true
+    finally
+        failClear()
+    end
+    assert failed and kind.getUserData()["limit"] == 42
+    failed = false
+    assert failAfter(0)
+    try
+        saved = kind.getUserData()
+    catch Error
+        failed = true
+    finally
+        failClear()
+    end
+    assert failed and saved["limit"] == 9 and kind.getUserData()["limit"] == 42
+
+    auto card = ui.createWidget(kind)
+    auto other = ui.createWidget(kind)
+    card.setInstanceState(data)
+    card.setUserData({"limit": 3})
+    assert (card.getInstanceState() as CardData).limit == 5
+    data.limit = 7
+    assert (card.getInstanceState() as CardData).limit == 7 and other.getInstanceState() == null
+    assert card.getUserData()["limit"] == 3 and kind.getUserData()["limit"] == 42
+
+    auto label = ui.labelNative()
+    label.setText("Native type storage")
+    auto displayed = label.getText()
+    assert displayed != null and (displayed as string) == "Native type storage"
+
+    card.close()
+    other.close()
+    kind.setUserData(null)
+    assert kind.getUserData() == null
+    kind.unregister()
+    failed = false
+    try
+        auto expired = kind.getUserData()
+    catch StateError
+        failed = true
+    end
+    assert failed and saved["tag"] == b"\0\xff"
+    ui.close()
+    proxy.close()
+    println("XUI_WIDGET_TYPE_DATA_OK")
+    return 0
+end
