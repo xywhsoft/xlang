@@ -1,0 +1,112 @@
+{
+  "schema": 1,
+  "scope": "Typed native callback owning output staging in synchronous and retained receiver callbacks",
+  "shippingDelivery": false,
+  "networkTests": false,
+  "sourceSha256NormalizedLf": {
+    "src/type/xl6_foreign_call_contract.h": "ebf7e7b52b048743c796d2f7d8a5f9a19a46f4dba5b41283ead54cc91afafa4b",
+    "src/type/xl6_foreign_decl.h": "b592c3988bc8698c8d429eae53a2c28648107e400435422b1faf0b19d705d3e0",
+    "src/sem/xl6_sem.c": "4b8aec5e4661e7c53e9e263a4246eb2671969c0b80ec845ca5f918761c9d1278",
+    "src/sem/xl6_sem_foreign_null_compat.c": "2563208b193208124005b4684a99408fa5eefabfb2d7c1a441709507880c68b0",
+    "src/ir/xl6_ir.c": "9ec85f520b773f0a9bf89ca13c67b67f5af1b64b278a06f436f318dc9baae82e",
+    "src/ir/xl6_ir_foreign_parameter.c": "4c479c8534eae89da4878ea2ed380d14027b16379c55cf569398b6fce61b6699",
+    "src/cgen/xl6_ir_cgen_native_callback.c": "4d31d76f4bfcbaac187700a0326bd568ef534acb3081bd0f1e6ba71b8761dbe4",
+    "test/cases/foreign_callback_owned_output.xl": "7c319bf524e9c69345cab6dfda8054d90700ba9b9d712b0bc2478c714df2a275",
+    "test/cases/foreign_callback_owned_output.h": "40954b202a2a2c2995acfd3accc6344784abda9ed08d0e8ee000205366875042",
+    "test/cases/foreign_callback_owned_output.c": "12f11b37852df1caca4c33e46c03f65d4104b8c15b0139475e07787e59be8bdf",
+    "docs/c-pack-owned-callbacks.md": "d930cbe01625567589f29906c1f40c06028ac8e6d4116c8b21894b2cc5870284"
+  },
+  "checks": [
+    "Synchronous and retained receiver callbacks atomically publish two fully initialized outputs",
+    "The native caller sees no partial outputs after exceptions, zero with a missing output, repeated writes, explicit failure, allocation refusal, or missing native slot",
+    "Rollback consumes the successfully staged objects in reverse order and preserves the primary exception or numeric status",
+    "An expired staging view rejects reuse",
+    "The C11 and C++17 header checks prove the exact consuming function signature and reject a mismatched return type",
+    "Const and nullable output slots are rejected",
+    "Scoped writable byte spans and fixed vertex arrays retain their previous behavior"
+  ],
+  "performanceScope": {
+    "roundsPerPath": 100,
+    "xrtAllocsPerRound": 2,
+    "xrtFreesPerRound": 2,
+    "xrtReallocsPerRound": 0,
+    "comparedPaths": [
+      "handwritten C",
+      "warmed synchronous xlang callback"
+    ],
+    "scope": "Native XRT heap counters inside one invocation, after closure and publisher setup, using two real produced objects"
+  },
+  "relatedNativeLimit": "dev/release-materials/provenance/xui-proxy-rollback-busy-20261125.json",
+  "platforms": {
+    "windows": {
+      "compilerBuild": {
+        "path": "F:/xlang-validation/xge-full-20261110/compiler-owned-callback-output-win-r2/build.json",
+        "sha256": "23877fc736659d9d3a6a3f4e6ceae0701895a951c84caa59d7b7917d398dbbed",
+        "seconds": 1035.204
+      },
+      "matchedSdk": {
+        "path": "F:/xlang-validation/xge-full-20261110/callback-owned-output-compiler-sdk-win-r1/results.json",
+        "sha256": "c8a7a1de8dc60630e6077074831fd1f2259c804f58e6ef5260f570a3762c606c"
+      },
+      "runtimeAndAbi": {
+        "path": "F:/xlang-validation/xge-full-20261110/owned-callback-output-verify-win-r4/results.json",
+        "sha256": "e194d8f3b0c8a00bfefab892acf0e99e95e9e98f6639f2dca87f239c487f86fb",
+        "commands": 23
+      },
+      "products": {
+        "xl.exe": "45cabcb2f9931fe29f5c8ecd57cddaf25df8a2043e41e1bb053adbb38804c43e",
+        "xl.dll": "c7389a3c65445c32d5f192e72fccac162fa2567cf7be0b6dc822f7e083ea9b58",
+        "xlc.dll": "bb9c10e783f74d90777a1c02cdfba4f65c717aacf436fe6f27325d73c5be46af"
+      },
+      "generated": {
+        "foreign_callback_owned_output": {
+          "c": "12bb6464c620bf54ddac9b8536493f79e70f9580d2dd49df92404ea11e0b6eeb",
+          "header": "02f6011db87ae1bebda6852cd6e22a410be0d2f02e6d7ba0696ac70c66df30c4"
+        },
+        "foreign_callback_writable_span": {
+          "c": "2df451414ad5bc35b94b6f54f118ebc810aecac6074e2a1d85406a21274b1e4e",
+          "header": "589229880574d3f62a2b8980528bebb7647000a86fec741db8db0cd1cdef99b2"
+        },
+        "foreign_callback_fixed_elements": {
+          "c": "17dbb985c5d0afe898488df9cad0cd5aabb420a13ba7cffa81399a211b4d8d71",
+          "header": "f7e86a29d10f6868f1f0737c5f2812afa3b363a81eac4e4cb8392b5eed02ede4"
+        }
+      }
+    },
+    "linux": {
+      "compilerBuild": {
+        "path": "//wsl.localhost/Ubuntu/var/tmp/xlang-validation/xge-full-20261110/compiler-owned-callback-output-linux-r2/build.json",
+        "sha256": "64c4517ca52e0039960f566414929dc78d96f60b2115aca9920160043cccdd6b",
+        "seconds": 1244.86
+      },
+      "matchedSdk": {
+        "path": "//wsl.localhost/Ubuntu/var/tmp/xlang-validation/xge-full-20261110/callback-owned-output-compiler-sdk-linux-r1/results.json",
+        "sha256": "083c0cd12875e8a7e2d9b28035b0e663ae15a0d1d7e603cf0fd715aa6ab784ba"
+      },
+      "runtimeAndAbi": {
+        "path": "//wsl.localhost/Ubuntu/var/tmp/xlang-validation/xge-full-20261110/owned-callback-output-verify-linux-r4/results.json",
+        "sha256": "c12ef58dd834e75ca0716a02af70bcc5ec512e247b7df9e32af3f0561342d522",
+        "commands": 23
+      },
+      "products": {
+        "xl": "e5ea845bb32f4575dac6b204377dd1b9a1e6f469e66e8da5736fbaf93a238862",
+        "libxl.so": "fd118c6cd03676c1bf4e3421e5f412e875e2c28b9658ee6ae5217456d08ede73",
+        "libxlc.so": "2592100a7139ac631ddf13ad7c4cf493ea9b72ef0d2e20d60af1013ea59a561c"
+      },
+      "generated": {
+        "foreign_callback_owned_output": {
+          "c": "12bb6464c620bf54ddac9b8536493f79e70f9580d2dd49df92404ea11e0b6eeb",
+          "header": "02f6011db87ae1bebda6852cd6e22a410be0d2f02e6d7ba0696ac70c66df30c4"
+        },
+        "foreign_callback_writable_span": {
+          "c": "2df451414ad5bc35b94b6f54f118ebc810aecac6074e2a1d85406a21274b1e4e",
+          "header": "589229880574d3f62a2b8980528bebb7647000a86fec741db8db0cd1cdef99b2"
+        },
+        "foreign_callback_fixed_elements": {
+          "c": "17dbb985c5d0afe898488df9cad0cd5aabb420a13ba7cffa81399a211b4d8d71",
+          "header": "f7e86a29d10f6868f1f0737c5f2812afa3b363a81eac4e4cb8392b5eed02ede4"
+        }
+      }
+    }
+  }
+}

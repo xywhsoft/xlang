@@ -23,7 +23,7 @@ static int xl6IrCgenCallbackParameters(XL6_Output* out,const XL6_IrModule* modul
     for(size_t p=0;p<signature->paramCount;++p) {
         if(p || userFirst)xl6OutputPuts(", ",out);
         const XL6_ForeignCallbackSpanContract* span=xl6IrForeignCallbackSpanGet(module,row,p);
-        if(span){
+        if(span && !xl6ForeignCallbackOwnedOutput(span)){
             xl6OutputPuts(span->pointerCName,out);
             if(names)xl6OutputPrintf(out," raw%lu",(unsigned long)p);
             if(!span->fixedCount){
@@ -61,7 +61,13 @@ static int xl6IrCgenEmitNativeCallbackTypes(XL6_Output* out,const XL6_IrModule* 
             const XL6_ForeignCallbackSpanContract* span=xl6IrForeignCallbackSpanGet(module,row,a);
             if(!span)continue;
             const XL6_IrType* view=xl6IrTypeGet(&module->types,signature->params[a]);
-            char name[64];
+            char name[128];
+            if(xl6ForeignCallbackOwnedOutput(span)){
+                if(!xl6ForeignOwnedOutputPointeeName(view->cName,name,sizeof(name)))return 0;
+                xl6OutputPrintf(out,"XLIR_NATIVE_ASSERT(XLIR_NATIVE_IS_TYPE(&%s,void (*)(%s*)),"
+                    "\"owned callback output needs an exact consuming rollback function\");\n",span->rollbackCName,name);
+                continue;
+            }
             const char* spanType=xl6IrCgenCallbackSpanType(span,view,name,sizeof(name));
             if(!spanType)return 0;
             if(span->countsElements){
@@ -77,6 +83,37 @@ static int xl6IrCgenEmitNativeCallbackTypes(XL6_Output* out,const XL6_IrModule* 
     }
     return !xl6OutputHasFailed(out);
 }
+/* Lifetime expiry and all callback-leave checks precede publication. The
+ * consuming rollback runs in its own diagnostic scope. An explicit native
+ * status keeps its numeric value when cleanup reports a secondary failure. */
+static void xl6IrCgenCallbackPublishOutputs(XL6_Output* out,const XL6_IrModule* module,
+    const XL6_IrType* signature,const XL6_ForeignParameterContract* row,bool sync)
+{
+    xl6OutputPuts("    if (outcome.ok && result==0",out);
+    for(size_t p=0;p<signature->paramCount;++p)
+        if(xl6ForeignCallbackOwnedOutput(xl6IrForeignCallbackSpanGet(module,row,p)))
+            xl6OutputPrintf(out," && staged%lu",(unsigned long)p);
+    xl6OutputPuts(") {\n",out);
+    for(size_t p=0;p<signature->paramCount;++p)
+        if(xl6ForeignCallbackOwnedOutput(xl6IrForeignCallbackSpanGet(module,row,p)))
+            xl6OutputPrintf(out,"        *raw%lu=staged%lu;\n",(unsigned long)p,(unsigned long)p);
+    xl6OutputPuts("    } else {\n"
+        "        xl6_error_scope cleanup={0};\n"
+        "        if (!xl6ErrorScopeBegin(&cleanup)) abort();\n"
+        "        if (outcome.ok && result==0) { xrtSetErrorKind(XERR_STATE); xl6ErrorScopeCaptureFailure(&cleanup); }\n",out);
+    for(size_t p=signature->paramCount;p>0;--p){
+        const XL6_ForeignCallbackSpanContract* projection=xl6IrForeignCallbackSpanGet(module,row,p-1);
+        if(xl6ForeignCallbackOwnedOutput(projection))
+            xl6OutputPrintf(out,"        if (staged%lu) { %s(staged%lu); if(xrtGetError()) xl6ErrorScopeCaptureFailure(&cleanup); }\n",
+                (unsigned long)(p-1),projection->rollbackCName,(unsigned long)(p-1));
+    }
+    xl6OutputPuts("        xl6_error_result cleaned=xl6ErrorScopeEnd(&cleanup);\n"
+        "        if (outcome.ok && result==0) outcome=cleaned;\n"
+        "        else if (outcome.ok && !cleaned.ok) { ",out);
+    xl6OutputPuts(sync ? "xl6SyncCallbackReportV1(&record->invocation,cleaned);" : "xl6NativeCallbackReportFailureV1(record,cleaned);",out);
+    xl6OutputPuts(" } else xrtErrorFree(cleaned.error);\n    }\n",out);
+}
+
 static int xl6IrCgenEmitNativeCallbackThunks(XL6_Output* out,const XL6_IrModule* module)
 {
     for(size_t i=0;i<module->foreignParameterCount;++i) {
@@ -124,13 +161,19 @@ static int xl6IrCgenEmitNativeCallbackThunks(XL6_Output* out,const XL6_IrModule*
         }
         xl6OutputPuts("    xl6_error_scope errors={0};\n    if (!xl6ErrorScopeBegin(&errors)) abort();\n",out);
         if(signature->returnCount)xl6OutputPrintf(out,"    %s result = {%d};\n",result,row->callbackFailureCode);
-        bool scoped=false;
+        bool scoped=false,ownedOutputs=false;
         for(size_t p=0;p<signature->paramCount;++p) {
             const XL6_IrType* item=xl6IrTypeGet(&module->types,signature->params[p]);
             if(item->foreignLifetime==XL6_FOREIGN_LIFETIME_CALLBACK){
                 scoped=true;xl6OutputPrintf(out,"    %s arg%lu = {0};\n",xl6IrCgenType(module,signature->params[p]),(unsigned long)p);
                 const XL6_ForeignCallbackSpanContract* span=xl6IrForeignCallbackSpanGet(module,row,p);
-                if(span){
+                if(xl6ForeignCallbackOwnedOutput(span)){
+                    char name[128];
+                    if(!xl6ForeignOwnedOutputPointeeName(item->cName,name,sizeof(name)))return 0;
+                    ownedOutputs=true;
+                    xl6OutputPrintf(out,"    %s* staged%lu=NULL;\n    if (raw%lu) *raw%lu=NULL;\n",name,
+                        (unsigned long)p,(unsigned long)p,(unsigned long)p);
+                }else if(span){
                     char name[64];
                     const char* spanType=xl6IrCgenCallbackSpanType(span,item,name,sizeof(name));
                     if(!spanType)return 0;
@@ -151,6 +194,12 @@ static int xl6IrCgenEmitNativeCallbackThunks(XL6_Output* out,const XL6_IrModule*
             const XL6_IrType* item=xl6IrTypeGet(&module->types,signature->params[p]);
             if(item->foreignLifetime==XL6_FOREIGN_LIFETIME_CALLBACK){
                 const XL6_ForeignCallbackSpanContract* span=xl6IrForeignCallbackSpanGet(module,row,p);
+                if(xl6ForeignCallbackOwnedOutput(span)){
+                    xl6OutputPrintf(out,"    if (!errors.failed && !raw%lu) { xrtSetErrorKind(XERR_ARGUMENT); xl6ErrorScopeCaptureFailure(&errors); }\n"
+                        "    if (!errors.failed && !xl6ForeignScopeViewMakeV2(&lifetime,&staged%lu,&arg%lu)) xl6ErrorScopeCaptureFailure(&errors);\n",
+                        (unsigned long)p,(unsigned long)p,(unsigned long)p);
+                    continue;
+                }
                 if(span){
                     if(span->fixedCount)
                         xl6OutputPrintf(out,"    const size_t raw%lu_count=%u;\n",(unsigned long)p,span->fixedCount);
@@ -216,7 +265,9 @@ static int xl6IrCgenEmitNativeCallbackThunks(XL6_Output* out,const XL6_IrModule*
         if(scoped)xl6OutputPuts("    if (lifetime.self && !xl6ForeignScopeEndV2(&lifetime)) xl6ErrorScopeCaptureFailure(&errors);\n",out);
         if(sync && root)xl6OutputPuts("    if(native_owner.self && !xl6ForeignViewCallEndV1(&native_owner)) xl6ErrorScopeCaptureFailure(&errors);\n",out);
         xl6OutputPuts("    xl6_error_result outcome = xl6ErrorScopeEnd(&errors);\n",out);
-        xl6OutputPrintf(out,"    if (scope.self) outcome=%s;\n    if (!outcome.ok) {",sync ? "xl6SyncCallbackLeaveV1(&scope,outcome)" : "xl6NativeCallbackRuntimeV1Get()->Leave(&scope,outcome)");
+        xl6OutputPrintf(out,"    if (scope.self) outcome=%s;\n",sync ? "xl6SyncCallbackLeaveV1(&scope,outcome)" : "xl6NativeCallbackRuntimeV1Get()->Leave(&scope,outcome)");
+        if(ownedOutputs)xl6IrCgenCallbackPublishOutputs(out,module,signature,row,sync);
+        xl6OutputPuts("    if (!outcome.ok) {",out);
         if(row->callbackResultKind==XL6_FOREIGN_CALLBACK_RESULT_OWNED_TEXT)xl6OutputPuts(" xrtFree((void*)result.Data);",out);
         xl6OutputPuts(sync ? " xl6SyncCallbackReportV1(&record->invocation,outcome);" : " xl6NativeCallbackReportFailureV1(record,outcome);",out);
         if(signature->returnCount)xl6OutputPrintf(out," result=(%s){%d};",result,row->callbackFailureCode);

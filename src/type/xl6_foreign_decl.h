@@ -150,8 +150,21 @@ static inline int xl6ForeignCallbackSpanElementType(const char* pointer,char* ty
     return xl6ForeignCallbackSpanPointeeName(pointer,type,capacity) && xl6ForeignIdentifier(type);
 }
 
+static inline int xl6ForeignCallbackOwnedOutputElement(const char* name, char* element, size_t capacity)
+{
+    return xl6ForeignOwnedOutputPointeeName(name, element, capacity) && xl6ForeignIdentifier(element);
+}
+
+static inline bool xl6ForeignCallbackProjectionAttribute(const XL6_AstNode* attr)
+{
+    return attr && attr->text && (!strcmp(attr->text,"c_callback_span") || !strcmp(attr->text,"c_callback_owned_output"));
+}
+
 static inline int xl6ForeignCallbackSpanContractValid(const XL6_ForeignCallbackSpanContract* row)
 {
+    if(xl6ForeignCallbackOwnedOutput(row))
+        return !row->countAbi && !row->fixedCount && !row->countsElements && !row->pointerCName[0] &&
+            xl6ForeignIdentifier(row->rollbackCName);
     if(row->fixedCount){
         if(row->countAbi || row->fixedCount>INT32_MAX || row->countsElements!=1)return 0;
     }else if(row->countAbi!=XL6_FOREIGN_SPAN_COUNT_INT && row->countAbi!=XL6_FOREIGN_SPAN_COUNT_SIZE)
@@ -164,12 +177,15 @@ static inline int xl6ForeignCallbackSpanContractValid(const XL6_ForeignCallbackS
 static inline int xl6ForeignCallbackSpanRead(const XL6_AstNode* attr,XL6_ForeignCallbackSpanContract* output)
 {
     XL6_ForeignCallbackSpanContract row={0};int32 parameter,argument;char count[32];
-    if(!attr || !attr->text || strcmp(attr->text,"c_callback_span") || attr->childCount<4 || attr->childCount>5 ||
+    if(!xl6ForeignCallbackProjectionAttribute(attr) || attr->childCount<3 || attr->childCount>5 ||
         !xl6ForeignDecimalInt(attr->children[0],&parameter) || parameter<0 || parameter>=XL6_FOREIGN_PACK_LOGICAL_LIMIT ||
-        !xl6ForeignDecimalInt(attr->children[1],&argument) || argument<0 || argument>=64 ||
-        !xl6ForeignQuotedText(attr->children[2],row.pointerCName,sizeof(row.pointerCName)) ||
+        !xl6ForeignDecimalInt(attr->children[1],&argument) || argument<0 || argument>=64)return 0;
+    if(!strcmp(attr->text,"c_callback_owned_output")){
+        if(attr->childCount!=3 || !xl6ForeignQuotedText(attr->children[2],row.rollbackCName,sizeof(row.rollbackCName)) ||
+            !row.rollbackCName[0])return 0;
+    }else if(attr->childCount<4 || !xl6ForeignQuotedText(attr->children[2],row.pointerCName,sizeof(row.pointerCName)) ||
         !xl6ForeignQuotedText(attr->children[3],count,sizeof(count)))return 0;
-    if(!strcmp(count,"fixed")){
+    else if(!strcmp(count,"fixed")){
         int32 fixedCount;
         if(attr->childCount!=5 || !xl6ForeignDecimalInt(attr->children[4],&fixedCount) || fixedCount<=0)return 0;
         row.fixedCount=(uint32)fixedCount;
@@ -559,7 +575,7 @@ static inline int xl6ForeignFunctionRead(const XL6_AstNode* node,
             if(!xl6ForeignPointerQualifierRead(attr,NULL))return 0;
             continue;
         }
-        if(attr && attr->text && !strcmp(attr->text,"c_callback_span")){
+        if(xl6ForeignCallbackProjectionAttribute(attr)){
             XL6_ForeignCallbackSpanContract row;
             if(!xl6ForeignCallbackSpanRead(attr,&row))return 0;
             if(callbackSpanCount==64)return 0;

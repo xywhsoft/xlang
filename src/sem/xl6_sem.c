@@ -21819,7 +21819,7 @@ static int xl6SemCheckForeignFunctionDeclaration(XL6_SemContext* ctx, XL6_AstNod
     }
     for(size_t i=0;attrs && i<attrs->childCount;++i){
         const XL6_AstNode* attr=attrs->children[i];
-        if(!attr || !attr->text || strcmp(attr->text,"c_callback_span"))continue;
+        if(!xl6ForeignCallbackProjectionAttribute(attr))continue;
         XL6_ForeignCallbackSpanContract row;
         if(!xl6ForeignCallbackSpanRead(attr,&row) || row.parameter>=count){
             xl6SemErrorNode(ctx,node,"callback span parameter is outside the declared signature");return 0;
@@ -21834,7 +21834,16 @@ static int xl6SemCheckForeignFunctionDeclaration(XL6_SemContext* ctx, XL6_AstNod
         if(!value || xl6SemTypeIsNullable(value) || !xl6SemForeignViewDeclaration(ctx,value,&contract) ||
             contract.lifetime!=XL6_FOREIGN_LIFETIME_CALLBACK ||
             (row.countsElements && !xl6ForeignCallbackSpanElementType(contract.cName,descriptor,sizeof(descriptor)))){
-            xl6SemErrorNode(ctx,node,"callback span requires a non-null callback-lifetime view; element spans require a const descriptor pointer");return 0;
+            xl6SemErrorNode(ctx,node,"callback argument projection requires a non-null callback-lifetime view");return 0;
+        }
+        if(xl6ForeignCallbackOwnedOutput(&row)){
+            const XL6_AstNode* returns=signature->children[1];
+            const XL6_AstNode* status=returns && returns->childCount==1 ?
+                xl6SemResolveAliasType(ctx,xl6SemCallableItemType(returns->children[0])):NULL;
+            if(!status || !xl6TextEquals(status->text,"c_int") ||
+                !xl6ForeignCallbackOwnedOutputElement(contract.cName,descriptor,sizeof(descriptor))){
+                xl6SemErrorNode(ctx,node,"owned callback output requires a named mutable C pointer slot and a c_int status return");return 0;
+            }
         }
         for(size_t j=0;j<i;++j){
             XL6_ForeignCallbackSpanContract previous;

@@ -1,0 +1,72 @@
+extern "CallbackOwnedOutput**" class Output @header("test/cases/foreign_callback_owned_output.h") @lifetime("callback")
+    native point handle
+    extern "xl_test_owned_output_store" @no_raise @c_result("status",0) func store(c_int tag)
+end
+extern "const CallbackOutputBackend*" class Backend @header("test/cases/foreign_callback_owned_output.h") @lifetime("callback")
+    native point handle
+end
+
+typedef OutputHandler = func(Output,Output,c_int) as c_int
+typedef BackendHandler = func(Backend,Output,Output,c_int) as c_int
+extern "xl_test_owned_output_invoke" @header("test/cases/foreign_callback_owned_output.h") @no_raise @c_sync_callback(0,-1,-16) @c_callback_owned_output(0,0,"xl_test_owned_output_drop") @c_callback_owned_output(0,1,"xl_test_owned_output_drop") func invoke(OutputHandler handler,c_int mode) as c_int
+extern "xl_test_owned_output_retained" @header("test/cases/foreign_callback_owned_output.h") @no_raise @c_pack(0,"CallbackOutputBackend",0,1) @c_pack_callback_group(0,"user",1) @c_pack_field(0,"write",0,"owned_callback") @c_owned_callback(0,-1,"CallbackOutputOwner",-16,"receiver") @c_callback_owned_output(0,1,"xl_test_owned_output_drop") @c_callback_owned_output(0,2,"xl_test_owned_output_drop") func invokeRetained(BackendHandler handler,c_int mode) as c_int
+extern "xl_test_owned_output_warm" @header("test/cases/foreign_callback_owned_output.h") @no_raise @c_result("status",0) @c_sync_callback(0,-1,-16) @c_callback_owned_output(0,0,"xl_test_owned_output_drop") @c_callback_owned_output(0,1,"xl_test_owned_output_drop") func compareNative(OutputHandler handler)
+
+class State
+    Output? saved=null
+    int calls=0
+end
+
+func verify(func(OutputHandler,c_int) as c_int dispatch)
+    auto state=State()
+    OutputHandler handler=func(Output first,Output second,c_int mode) as c_int
+        state.calls+=1
+        state.saved=first
+        first.store(1)
+        if mode==2 then return c_int(0) end
+        if mode==3 then throw "owned output primary" end
+        if mode==7 then first.store(3) end
+        if mode==6 then second.store(-1) end
+        second.store(mode==4 or mode==8 ? c_int(12) : c_int(2))
+        if mode==4 then throw "owned output primary" end
+        return mode==1 or mode==8 ? c_int(-7) : c_int(0)
+    end
+
+    assert dispatch(handler,0)==0
+    bool expired=false
+    try
+        (state.saved as Output).store(9)
+    catch error
+        expired=true
+    end
+    assert expired and dispatch(handler,1)==-7
+
+    for mode in range(2,9)
+        int calls=state.calls
+        bool rejected=false
+        try
+            auto status=dispatch(handler,c_int(mode))
+        catch error
+            rejected=true
+            if mode==3 or mode==4 then assert error.message=="owned output primary" end
+        end
+        assert rejected and state.calls==calls+(mode==5 ? 0 : 1)
+    end
+    assert dispatch(handler,0)==0
+end
+
+func main(...) as int
+    verify(invoke)
+    verify(func(OutputHandler handler,c_int mode) as c_int
+        return invokeRetained(func(Backend backend,Output first,Output second,c_int selected) as c_int
+            return handler(first,second,selected)
+        end,mode)
+    end)
+    compareNative(func(Output first,Output second,c_int mode) as c_int
+        first.store(1)
+        second.store(2)
+        return c_int(0)
+    end)
+    println("FOREIGN_CALLBACK_OWNED_OUTPUT_OK")
+    return 0
+end

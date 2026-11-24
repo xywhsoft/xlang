@@ -4619,7 +4619,7 @@ static XL6_IrNodeId xl6IrBuildAstNode(
             XL6_ForeignPointerQualifierContract* row=&module->foreignPointerQualifiers[module->foreignPointerQualifierCount++];
             memset(row,0,sizeof(*row));row->declaration=id;row->parameter=parameter;continue;
         }
-        if(declaration && declaration->text && !strcmp(declaration->text,"c_callback_span")){
+        if(xl6ForeignCallbackProjectionAttribute(declaration)){
             XL6_ForeignCallbackSpanContract row;
             if(!xl6ForeignCallbackSpanRead(declaration,&row) ||
                 !xl6IrGrow((void**)&module->foreignCallbackSpans,&module->foreignCallbackSpanCapacity,
@@ -54824,9 +54824,10 @@ void xl6IrDumpModuleJson(XL6_Output* out, const XL6_IrModule* module)
     xl6OutputPuts("  ],\n  \"foreignCallbackSpans\": [\n",out);
     for(i=0;i<module->foreignCallbackSpanCount;++i){
         const XL6_ForeignCallbackSpanContract* row=&module->foreignCallbackSpans[i];
-        xl6OutputPrintf(out,"    {\"declaration\":%u,\"parameter\":%u,\"argument\":%u,\"countAbi\":%d,\"countsElements\":%u,\"fixedCount\":%u,\"pointerCName\":\"%s\"}%s\n",
-            row->declaration,row->parameter,row->argument,(int)row->countAbi,row->countsElements,row->fixedCount,row->pointerCName,
-            i+1==module->foreignCallbackSpanCount ? "" : ",");
+        xl6OutputPrintf(out,"    {\"declaration\":%u,\"parameter\":%u,\"argument\":%u,\"countAbi\":%d,\"countsElements\":%u,\"fixedCount\":%u,\"pointerCName\":\"%s\"",
+            row->declaration,row->parameter,row->argument,(int)row->countAbi,row->countsElements,row->fixedCount,row->pointerCName);
+        if(xl6ForeignCallbackOwnedOutput(row))xl6OutputPrintf(out,",\"rollbackCName\":\"%s\"",row->rollbackCName);
+        xl6OutputPrintf(out,"}%s\n",i+1==module->foreignCallbackSpanCount ? "" : ",");
     }
     xl6OutputPuts("  ],\n  \"foreignFieldLengths\": [\n",out);
     for(i=0;i<module->foreignFieldLengthCount;++i){

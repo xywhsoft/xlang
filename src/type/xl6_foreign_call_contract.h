@@ -350,13 +350,34 @@ typedef struct XL6_ForeignRetainContract {
 /* Two native callback slots form one callback-lifetime view. Ordinary spans
  * count bytes. An explicitly declared typed span counts read-only elements.
  * A nonzero fixedCount replaces the physical count parameter in a typed span.
- * The native publisher owns the storage in all cases. */
+ * The native publisher owns span storage. An owned output instead projects
+ * one native pointer slot through an initially empty stack slot and names
+ * a consuming rollback function. */
 typedef struct XL6_ForeignCallbackSpanContract {
     uint32 declaration,parameter,argument;
     XL6_ForeignSpanCountAbi countAbi;
     uint32 countsElements,fixedCount;
     char pointerCName[128];
+    char rollbackCName[96];
 } XL6_ForeignCallbackSpanContract;
+
+static inline bool xl6ForeignCallbackOwnedOutput(const XL6_ForeignCallbackSpanContract* row)
+{
+    return row && row->rollbackCName[0] != 0;
+}
+
+static inline int xl6ForeignOwnedOutputPointeeName(const char* name, char* element, size_t capacity)
+{
+    if (!name) return 0;
+    const char* end = strchr(name, '*');
+    if (!end || end[1] != '*' || end[2]) return 0;
+    while (end > name && end[-1] == ' ') --end;
+    size_t length = (size_t)(end - name);
+    if (!length || length >= capacity) return 0;
+    memcpy(element, name, length);
+    element[length] = 0;
+    return strcmp(element, "void") != 0;
+}
 
 static inline bool xl6ForeignCallbackSpanPointerValid(const char* name)
 {

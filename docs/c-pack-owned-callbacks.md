@@ -82,6 +82,32 @@ rollback runs within the checked language call; the fixture verifies a failed
 output holding the group is released. General HostSession retryable cleanup and
 real module unload are separate integration work.
 
+## Owning output slots in native callbacks
+
+Use `@c_callback_owned_output(parameter, argument, "dropSymbol")` on a typed
+synchronous or retained callback. The argument is a non-null callback-lifetime
+view with an exact mutable `T**` C type. The callback returns `c_int` with zero
+for success and uses a nonzero checked failure value. The C header declares
+`void dropSymbol(T*)`. The drop function must consume the staged reference
+even if it reports a diagnostic.
+
+The native caller supplies a distinct output-only slot for each output. The
+thunk clears the native slots before entering the callback and exposes private,
+initially empty stack slots to the language. A native setter for such a view
+may place at most one independently owned reference in each slot. It should
+reject a repeated assignment while leaving the original reference intact.
+The thunk publishes the whole group after the callback and its lifetime and
+leave checks succeed, the callback returns zero, and every slot is populated.
+Otherwise it consumes staged references in reverse order. A callback exception
+remains the primary diagnostic. An explicit nonzero status remains the native
+return value, and a diagnostic from cleanup goes through the checked boundary.
+Success with a missing output produces a checked failure.
+
+Output views expire with the callback. Staging adds one pointer slot and
+publication checks per output and does not allocate a staging object. The
+producer's allocation, callback scope, and ownership costs still apply.
+See `test/cases/foreign_callback_owned_output.xl` and its C fixture.
+
 ## Generated representation and costs
 
 Only sparse pack metadata grows. Ordinary IR nodes and the 88-byte foreign-call

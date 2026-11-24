@@ -209,7 +209,7 @@ static int xl6IrVerifyForeignCallbackSpans(const XL6_IrModule* module,XL6_DiagLi
         if(!node || row->parameter>=XL6_FOREIGN_PACK_LOGICAL_LIMIT || row->argument>=64 ||
             (row->parameter<64 &&
              !((node->foreignCall.retainedCallbacks|node->foreignCall.physicalPairs)&(UINT64_C(1)<<row->parameter))) ||
-            !memchr(row->pointerCName,0,sizeof(row->pointerCName)) ||
+            !memchr(row->pointerCName,0,sizeof(row->pointerCName)) || !memchr(row->rollbackCName,0,sizeof(row->rollbackCName)) ||
             !xl6ForeignCallbackSpanContractValid(row))goto invalid;
         const XL6_ForeignParameterContract* callback=NULL;
         for(size_t p=0;p<module->foreignParameterCount;++p)
@@ -750,6 +750,11 @@ int xl6IrForeignCallbackParameterMatches(const XL6_IrModule* module,const XL6_Ir
         if(span && (item->kind!=XL6_IR_TYPE_CLASS || item->foreignLifetime!=XL6_FOREIGN_LIFETIME_CALLBACK ||
             !item->foreignHeader || !item->cName[0] ||
             (span->countsElements && !xl6ForeignCallbackSpanElementType(item->cName,descriptor,sizeof(descriptor)))))return 0;
+        if(xl6ForeignCallbackOwnedOutput(span)){
+            const XL6_IrType* status=signature->returnCount==1 ? xl6IrTypeGet(&module->types,signature->callableResultType):NULL;
+            if(!status || status->cAbi!=XL6_IR_C_ABI_C_INT || !row->callbackFailureCode ||
+                !xl6ForeignCallbackOwnedOutputElement(item->cName,descriptor,sizeof(descriptor)))return 0;
+        }
         if(item->foreignPolicy || item->foreignLifetime==XL6_FOREIGN_LIFETIME_CALLBACK) {
             if(signature->parameterAbis[p]!=XL6_IR_PARAMETER_ABI_BORROW ||
                 ((item->foreignLifetime!=XL6_FOREIGN_LIFETIME_CALLBACK || item->foreignOwner) &&
