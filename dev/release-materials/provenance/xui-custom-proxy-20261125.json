@@ -1,0 +1,241 @@
+{
+  "schema": 1,
+  "scope": "Public typed XUI createCustomProxy and shared native callback group",
+  "nativeCommit": "c663d221eeec4004fcd65de30b1cdf4b3b68f368",
+  "nativeProxyHeaderSha256": "8a388a7c81fb9d1f9a2212f63f17b4deb21a2f6b3a9116eda701b776c688b4c1",
+  "shippingDelivery": false,
+  "networkTests": false,
+  "slots": {
+    "bound": [
+      "getCaps",
+      "clipboardSetText",
+      "clipboardGetText",
+      "imeGetEnabled",
+      "imeSetEnabled",
+      "imeSetCandidateRect",
+      "surfaceGetDesc",
+      "surfaceDraw",
+      "surfaceClear",
+      "surfaceClearRect",
+      "surfaceDrawTo",
+      "surfaceDrawQuad",
+      "surfaceDrawQuadTo",
+      "surfaceGetSampler",
+      "surfaceSetSampler",
+      "surfaceGetGeneration",
+      "shapePoint",
+      "shapeLine",
+      "shapeTriangleFill",
+      "shapeTriangleStroke",
+      "shapeRectFill",
+      "shapeRectStroke",
+      "shapeCircleFill",
+      "shapeCircleStroke",
+      "fontGetMetrics",
+      "textMeasure",
+      "textDraw",
+      "drawClearRect",
+      "drawSurface",
+      "drawSurfaceQuad",
+      "drawMeshTriangles",
+      "drawPath",
+      "drawSvgPath",
+      "drawPoint",
+      "drawLine",
+      "drawTriangleFill",
+      "drawTriangleStroke",
+      "drawRectFill",
+      "drawRectStroke",
+      "drawCircleFill",
+      "drawCircleStroke",
+      "drawText",
+      "drawTextSpans",
+      "drawClipGet",
+      "drawClipSet",
+      "drawClipClear",
+      "textShape",
+      "drawTextShapeRange",
+      "textShapeRangeMeasure",
+      "drawTextShapeRangeSpans",
+      "clipboardSetItems",
+      "clipboardGetData",
+      "zstdDecompress",
+      "clockSeconds",
+      "requestFrame"
+    ],
+    "pending": [
+      "surfaceCreate",
+      "surfaceCreateRGBA",
+      "surfaceLoadFile",
+      "surfaceLoadMemory",
+      "surfaceLoadSvgFile",
+      "surfaceLoadSvgMemory",
+      "surfaceUpdateRGBA",
+      "surfaceReadRGBA",
+      "surfaceDestroy",
+      "fontLoadFile",
+      "fontLoadMemory",
+      "fontDestroy",
+      "drawBegin",
+      "drawEnd",
+      "fontCreateSized",
+      "clipboardSetItemsWithTransfer",
+      "fontLoadSystem"
+    ],
+    "pendingContextRequired": [
+      "surfaceCreate",
+      "surfaceCreateRGBA",
+      "surfaceLoadFile",
+      "surfaceLoadMemory",
+      "surfaceUpdateRGBA",
+      "surfaceReadRGBA",
+      "surfaceDestroy",
+      "fontLoadFile",
+      "fontLoadMemory",
+      "fontDestroy",
+      "drawBegin",
+      "drawEnd"
+    ]
+  },
+  "sourceSha256NormalizedLf": {
+    "lib/bindings/_xge_native/include/xge3_custom_proxy.h": "0620a213e4e058817f003e50f8857dbc5793e4b369119500bc1a96340e5bc760",
+    "lib/bindings/xui/src/proxy_callbacks.xl": "45859bdff4ab8ca78ca613afab11a20f87091ed2ffc4db97ab5c40719127b09c",
+    "lib/bindings/xui/xlang.package.json": "66367a478c9ae2d4c40eb32efdb7d20031a6d5d6c427a4c8e50a210b9898b7d4",
+    "lib/bindings/xui/examples/custom_proxy.xl": "441f102776fed98127b36d52d94d8bf6e737618d6599bd68e8402e47bc6efeba",
+    "lib/bindings/xui/README.md": "4dd14abc24a8ae8bf98ee3704828f29d460f6eb7166245e4ee41091792bb81be",
+    "test/cases/foreign_custom_xui_proxy.c": "a1e2d63a830708076482b24a3c356c7f506136eed36387da146411c3137df01f",
+    "test/cases/foreign_custom_xui_proxy.h": "797428f02adb34cd178142b43dd81d9bd067d17e83d04b3c5c46df85149206e1",
+    "test/cases/foreign_custom_xui_proxy.xl": "bf1da3ba2a631ce20237aa8501a159de906b21ba44675dba4e3314b65b783e60"
+  },
+  "checks": [
+    "Every bound native callback field has an emitted authoritative C type assertion",
+    "Real Proxy owns one traced callback group; shared Proxy continues after closing original",
+    "Writable clipboard text and binary data preserve embedded NUL; decompression uses separately counted input/output and written capacity",
+    "Optional target remains null; missing slots, expired scoped views and void frame callback failures raise checked errors",
+    "Native version rejection and OOM sweep show admission, rollback and subsequent successful construction",
+    "Standalone frame example plus fixed quad vertices and retained text paint exercise the public constructor"
+  ],
+  "performanceScope": "Same matched XGE native SDK on each platform, GCC O2 provider with an existing owned userdata object versus JIT xlang with two callbacks and a shared closure environment. Warmed XRT allocation events and live bytes, with caller setup outside the snapshots.",
+  "platforms": {
+    "win": {
+      "path": "F:/xlang-validation/xge-full-20261110/custom-proxy-verify-win-r2/results.json",
+      "sha256": "1d2a8c6315aca767b2fa46370510e77657939f7f69b05ee792806a2191dc6522",
+      "phases": [
+        "emit",
+        "jit",
+        "host-build",
+        "host-run",
+        "host-imports",
+        "static-build",
+        "static-run",
+        "static-imports",
+        "jit",
+        "jit",
+        "jit"
+      ],
+      "generatedCSha256": "24d7e0cb6b5cfd9f470cdf52ea85d6f2d3861bc0b1b3e2d5faa7f1248ca8875f",
+      "nativeImports": {
+        "host": [
+          "msvcrt.dll",
+          "xge3_host.dll",
+          "kernel32.dll",
+          "shell32.dll",
+          "ws2_32.dll",
+          "iphlpapi.dll",
+          "ucrtbase.dll"
+        ],
+        "static": [
+          "msvcrt.dll",
+          "kernel32.dll",
+          "ole32.dll",
+          "shell32.dll"
+        ]
+      },
+      "baseline": {
+        "path": "F:/xlang-validation/xge-full-20261110/custom-proxy-profile-win-r2/baseline.log",
+        "sha256": "70f66b16b85362b0c24ed038c42fb5ee1b3ef5db05c049c0df652797015069a7",
+        "create": {
+          "allocations": 1,
+          "liveBytesDelta": 720
+        },
+        "clockSeconds": {
+          "allocations": 0,
+          "liveBytesDelta": 0
+        }
+      },
+      "jit": {
+        "path": "F:/xlang-validation/xge-full-20261110/custom-proxy-profile-win-r2/jit.log",
+        "sha256": "b93ee49c0f77fa5d08a8d5b09614ede6ff736577c863b6190fc1ba8d0472b6a7",
+        "create": {
+          "allocations": 11,
+          "liveBytesDelta": 2384
+        },
+        "clockSeconds": {
+          "allocations": 0,
+          "liveBytesDelta": 0
+        }
+      }
+    },
+    "linux": {
+      "path": "/var/tmp/xlang-validation/xge-full-20261110/custom-proxy-verify-linux-r2/results.json",
+      "sha256": "c6ef3861db9cb357ff22bd56cb49ec60e49d8438be2d89f15818ad66d9f2d257",
+      "phases": [
+        "emit",
+        "jit",
+        "host-build",
+        "host-run",
+        "host-imports",
+        "static-build",
+        "static-run",
+        "static-imports",
+        "jit",
+        "jit",
+        "jit"
+      ],
+      "generatedCSha256": "24d7e0cb6b5cfd9f470cdf52ea85d6f2d3861bc0b1b3e2d5faa7f1248ca8875f",
+      "nativeImports": {
+        "host": [
+          "libm.so.6",
+          "libmvec.so.1",
+          "libxge3_host.so",
+          "libc.so.6",
+          "ld-linux-x86-64.so.2"
+        ],
+        "static": [
+          "libm.so.6",
+          "libmvec.so.1",
+          "libx11.so.6",
+          "libxi.so.6",
+          "libxcursor.so.1",
+          "libgl.so.1",
+          "libc.so.6",
+          "ld-linux-x86-64.so.2"
+        ]
+      },
+      "baseline": {
+        "path": "/var/tmp/xlang-validation/xge-full-20261110/custom-proxy-profile-linux-r2/baseline.log",
+        "sha256": "9f7b8e8442b55dddd5ab58f3b530d2761f69f262222d713dfca1c4c9218cc6bc",
+        "create": {
+          "allocations": 1,
+          "liveBytesDelta": 720
+        },
+        "clockSeconds": {
+          "allocations": 0,
+          "liveBytesDelta": 0
+        }
+      },
+      "jit": {
+        "path": "/var/tmp/xlang-validation/xge-full-20261110/custom-proxy-profile-linux-r2/jit.log",
+        "sha256": "32f2f2cd238bd9b143769dc14ac9ed25b016364fb64d25a0b9401aaa956a086f",
+        "create": {
+          "allocations": 11,
+          "liveBytesDelta": 2384
+        },
+        "clockSeconds": {
+          "allocations": 0,
+          "liveBytesDelta": 0
+        }
+      }
+    }
+  }
+}

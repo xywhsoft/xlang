@@ -1,0 +1,128 @@
+from xui import createCustomProxy, Proxy, ProxyCaps, ProxyGetCapsProc
+from xui import CallbackProxy, CallbackProxyCapsOutput, CallbackWritableBytes, CallbackSurface
+from xui import CallbackIntOutput, ByteSlice, CString, XUI_PROXY_VERSION
+
+extern "xl_test_custom_proxy_owner" @header("test/cases/foreign_custom_xui_proxy.h") @no_raise @c_result("status",0) func checkOwner(Proxy proxy)
+extern "xl_test_custom_proxy_fail_after" @header("test/cases/foreign_custom_xui_proxy.h") @no_raise @c_result("status",0) func failAfter(c_int count)
+extern "xl_test_custom_proxy_fail_clear" @header("test/cases/foreign_custom_xui_proxy.h") @no_raise func failClear() as bool
+
+class State
+    int frames=0
+    bool rejectFrame=false
+    bool cleared=false
+    CallbackProxy? callbackProxy=null
+    CallbackWritableBytes? clipboardOutput=null
+end
+
+func main(...) as int
+    auto state=State()
+    ProxyGetCapsProc caps=func(CallbackProxy receiver, CallbackProxyCapsOutput output) as c_int
+        assert receiver.version==c_uint(XUI_PROXY_VERSION)
+        state.callbackProxy=receiver
+        output.value=ProxyCaps()
+        return c_int(0)
+    end
+    auto proxy=createCustomProxy(caps,
+        clipboardGetText=func(CallbackProxy receiver, CallbackWritableBytes output) as c_int
+            state.clipboardOutput=output
+            output.write(b"a\0")
+            return c_int(1)
+        end,
+        clipboardGetData=func(CallbackProxy receiver, CString format, CallbackWritableBytes output) as c_int
+            assert format.copy()=="text/plain"
+            output.write(b"a\0b")
+            return c_int(3)
+        end,
+        surfaceClear=func(CallbackProxy receiver, CallbackSurface? target, c_uint color) as c_int
+            assert target==null and color==c_uint(7)
+            state.cleared=true
+            return c_int(0)
+        end,
+        zstdDecompress=func(CallbackProxy receiver, CallbackWritableBytes output, ByteSlice input, CallbackIntOutput written) as c_int
+            assert input.size==c_size(3) and output.size==c_size(4)
+            output.write(input.bytes)
+            written.value=c_int(3)
+            return c_int(0)
+        end,
+        clockSeconds=func(CallbackProxy receiver) as c_double
+            return c_double(17.25)
+        end,
+        requestFrame=func(CallbackProxy receiver, c_float delay)
+            if state.rejectFrame
+                throw "request frame failed"
+            end
+            assert delay==c_float(0.25)
+            state.frames+=1
+        end)
+    checkOwner(proxy)
+    auto shared=proxy.share()
+    proxy.close()
+    auto received=shared.caps()
+    assert shared.clockSeconds()==c_double(17.25)
+    shared.requestFrame(0.25)
+    shared.clearSurface(null, c_uint(7))
+    assert state.frames==1 and state.cleared
+
+    auto output=Buffer(b"....")
+    assert shared.getClipboardText(output)==c_int(1) and output.text()=="a\0.."
+    output=Buffer(b"....")
+    assert shared.getClipboardData("text/plain",output)==c_int(3) and output.text()=="a\0b."
+    output=Buffer(b"....")
+    assert shared.decompressZstd(output,b"abc")==c_int(3) and output.text()=="abc."
+
+    int rejected=0
+    try
+        auto version=(state.callbackProxy as CallbackProxy).version
+    catch error
+        rejected+=1
+    end
+    try
+        auto size=(state.clipboardOutput as CallbackWritableBytes).size
+    catch error
+        rejected+=1
+    end
+    try
+        shared.setImeEnabled(c_int(1))
+    catch error
+        rejected+=1
+    end
+    state.rejectFrame=true
+    try
+        shared.requestFrame(0.25)
+    catch error
+        rejected+=1
+    end
+    shared.close()
+    assert rejected==4
+
+    bool invalid=false
+    try
+        auto ignored=createCustomProxy(caps,version=c_uint(0))
+    catch error
+        invalid=true
+    end
+    assert invalid
+
+    int failed=0
+    int succeeded=0
+    for step in range(24)
+        bool hitError=false
+        failAfter(c_int(step))
+        try
+            auto probe=createCustomProxy(caps)
+            failClear()
+            probe.close()
+        catch error
+            hitError=true
+        end
+        if hitError
+            assert failClear()
+            failed+=1
+        else
+            succeeded+=1
+        end
+    end
+    assert failed>0 and succeeded>0
+    println("XUI_CUSTOM_PROXY_OK")
+    return 0
+end

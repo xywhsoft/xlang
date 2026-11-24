@@ -23,6 +23,7 @@
       "src/terminal_session.xl",
       "src/tree_nodes.xl",
       "src/proxy.xl",
+      "src/proxy_callbacks.xl",
       "src/draw.xl",
       "src/painter.xl",
       "src/text_shape.xl",

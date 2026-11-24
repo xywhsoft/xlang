@@ -127,6 +127,18 @@ font family. Raw allocator hooks and libc-allocated `char**` results remain
 explicit C interoperability. These declarations require the matching Model
 engine, leased ownership-domain runtime and sized-record compiler contract.
 
+`createCustomProxy(getCaps, ...)` creates an owned Proxy from typed callbacks.
+Pass the callbacks by name to select the operations your backend supports.
+The native Proxy retains one shared environment for the installed callbacks.
+Use `share()` to keep an independent Proxy reference. Optional slots left empty
+raise a checked unsupported error when called through a `Proxy` method.
+
+This constructor covers capabilities, clipboard data, IME, resource queries,
+drawing, text shaping, clipping, decompression, timing and frame requests.
+Binding a full `Context` also requires the native Surface and Font factories,
+pixel transfers, resource retirement and draw-session slots. See the
+[frame request example](examples/custom_proxy.xl) for standalone callback use.
+
 Proxy backend callbacks use scoped views for their native arguments.
 `CallbackProxy.share()` obtains an independently owned `Proxy`.
 Assigning `output.value` writes typed capabilities, surface descriptors,
