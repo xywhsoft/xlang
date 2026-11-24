@@ -186,6 +186,7 @@ OFFSCREEN_REPLACEMENTS = {
     'xgeOffscreenUnit': 'xgeGraphicsContextCreateOffscreenOwned',
     'xgeEGLUnit': 'xgeGraphicsContextCreateEglOwned',
 }
+LEGACY_ONLY_CALLERS = {*OFFSCREEN_REPLACEMENTS, 'xgeMemoryFree', 'xuiSetProxy', 'xuiDrawCreateOwned'}
 OFFSCREEN_LIFETIME_CALLS = {
     'xgeGraphicsContextCreateEglOwned': ('__xgeContextCreateOwned',),
     'xgeGraphicsContextCreateOffscreenOwned': ('__xgeContextCreateOwned',),
@@ -733,6 +734,27 @@ def main():
             })
             included_units.extend(('src/xge/text/xge_texture.c',
                 'src/xge/text/xge_image_pixels.c', 'src/xge/text/xge_image_alpha.c'))
+        if 'xgeImageEncodePNGEx' in functions:
+            calls.setdefault('single/xge.c', {}).update({
+                'xgeMemoryFree': ('xrtFree',),
+                'xgeImageEncodePNGEx': ('stbi_write_png_to_mem',),
+                'stbi_write_png_to_mem': ('xrtMalloc',),
+            })
+            included_units.extend(('src/xge/core/xge_core.c',
+                'src/xge/core/xge_impl.c', 'src/xge/text/xge_texture.c'))
+        if 'xuiSetProxyOwned' in functions:
+            calls.setdefault('src/xui/core/xui_core.c', {}).update({
+                'xuiCreateOwnedEx': ('xuiSetProxyOwned',),
+                'xuiSetProxyOwned': ('xuiProxyAddRef', '__xuiContextValidateProxy', '__xuiContextCopyProxy'),
+                'xuiSetProxy': ('__xuiContextValidateProxy', '__xuiContextCopyProxy'),
+            })
+        if 'xuiDrawCreateOwnedEx' in functions:
+            calls.setdefault('src/xui/core/xui_proxy_resource.c', {}).update({
+                'xuiDrawCreateOwned': ('xuiDrawCreateOwnedEx',),
+            })
+            calls.setdefault('src/xui/core/xui_widget.c', {}).update({
+                '__xuiWidgetDestroyReadySelf': ('xuiProxyResourceOwnershipBusy',),
+            })
         source, build_flags, evidence_inputs = witness_build_inputs(
             a.resource_engine_build.resolve(),audit,packages,tools['gcc'],sha,calls.keys(),
             included_units)
@@ -961,6 +983,8 @@ def main():
                     'xgeRenderTargetCreateOwned': 'xge.createRenderTarget',
                     'xgeImageVisitPixels': 'xge.Image.withPixels',
                     'xgeImagePremultiplyManaged': 'xge.Image.premultiply',
+                    'xgeImageEncodePNGEx': 'xge.encodeImagePng',
+                    'xuiCreateOwnedEx': 'xui.create',
                 }
                 for edges in calls.values():
                     for root in edges.keys() & binding_calls.keys():
@@ -970,7 +994,7 @@ def main():
                 for caller, names in expected.items():
                     # Legacy calls prove retirement/replacement correspondence. They
                     # cannot establish a consumer reachable from the language API.
-                    if caller in OFFSCREEN_REPLACEMENTS:
+                    if caller in LEGACY_ONLY_CALLERS:
                         continue
                     for symbol in names:
                         entries = consumers.setdefault(symbol,[])
@@ -999,6 +1023,30 @@ def main():
                 evidence=transfer_publishers['xl6Xge3RunOwned']
             elif symbol in engine_owners:
                 evidence=engine_owners[symbol]
+            elif symbol == 'xgeMemoryFree' and 'xgeImageEncodePNGEx' in bound and a.resource_engine_build:
+                bindings = bound['xgeImageEncodePNGEx']
+                assert len(bindings) == 2 and all(row['language'] == 'xge.encodeImagePng' for row in bindings)
+                assert all('@c_output_bytes(5,6,"void*","size_t","xrt",0)' in class_lines(view, row)[0]
+                           for row in bindings)
+                paths = report['resourceLifetime']['single/xge.c']['relocationPaths']
+                evidence = dict(language='Owned PNG bytes', native='xrtFree',
+                    producer='xgeImageEncodePNGEx', releasePath=paths[symbol]['xrtFree'],
+                    allocationPath=paths['stbi_write_png_to_mem']['xrtMalloc'])
+            elif symbol == 'xuiSetProxy' and a.resource_engine_build and 'xuiSetProxyOwned' in functions:
+                paths = report['resourceLifetime']['src/xui/core/xui_core.c']['relocationPaths']
+                evidence = dict(language='xui.create', native='xuiCreateOwnedEx',
+                    bindingPath=paths['xuiCreateOwnedEx']['xuiSetProxyOwned'],
+                    sharedValidation=paths[symbol]['__xuiContextValidateProxy'],
+                    retainedPath=paths['xuiSetProxyOwned']['xuiProxyAddRef'])
+            elif symbol == 'xuiDrawCreateOwned' and a.resource_engine_build and 'xuiDrawCreateOwnedEx' in functions:
+                proxy = (view/'lib/bindings/xui/src/proxy.xl').read_text(encoding='utf-8-sig')
+                assert re.search(r'extern "drawBegin" @c_field_call .*func beginDraw\(', proxy)
+                assert any(row['language']=='xui.createProxy' for row in bound['xuiProxyXgeCreate'])
+                paths = report['resourceLifetime']['src/xui/core/xui_proxy_resource.c']['relocationPaths']
+                default = report['resourceLifetime']['src/xui/core/xui_proxy_xge.c']['relocationPaths']
+                evidence = dict(language='xui.Proxy.beginDraw', native='xuiDrawCreateOwnedEx',
+                    legacyPath=paths[symbol]['xuiDrawCreateOwnedEx'],
+                    defaultBackendPath=default['__xuiProxyXgeManualDrawBegin']['xuiDrawCreateOwnedEx'])
             elif OFFSCREEN_REPLACEMENTS.get(symbol) in graphics_factories and a.resource_engine_build:
                 context_factory = graphics_factories[OFFSCREEN_REPLACEMENTS[symbol]]
                 ctx = 'xge.GraphicsContext.close'

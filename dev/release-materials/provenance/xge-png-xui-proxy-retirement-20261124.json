@@ -1,0 +1,331 @@
+{
+  "schema": "xlang-xge-png-xui-proxy-retirement-1",
+  "scope": "Matched allocator adoption/release and native table-cell, Context and Proxy retirement paths",
+  "shippingDelivery": false,
+  "networkTests": false,
+  "nativeCommit": "b7ddaa7e",
+  "closedFromReview": [
+    "xgeMemoryFree",
+    "xuiDrawCreateOwned",
+    "xuiProxyResourceOwnershipBusy",
+    "xuiSetProxy",
+    "xuiSetProxyOwned",
+    "xuiTableViewCellOutputCanRetire"
+  ],
+  "sourceSha256NormalizedLf": {
+    "lib/bindings/xui/src/cell.xl": "5b517fa2c27793ddc7658ddb6b946b05e21677af8d20b51a159e2ad72057d215",
+    "lib/bindings/xui/examples/headless_cell.xl": "066e6c5b0cc75256a999b8cc9cbb8b693ae5bd298c98137ab6d05083e6bc9867",
+    "lib/bindings/xui/examples/manual_painter.xl": "ff585ccc46aad89d8d580d2573b6e1dcfed077b88b82d295db3af5633aa3382c",
+    "lib/bindings/xge/src/image_io.xl": "1f9137e131780da731034cfc6d0b7b295fdcee276e3da1bc5d78fff1b40d05f7",
+    "test/cases/foreign_xui_table_cell_optional_text.xl": "bacb628ed077c934542702d11c723abdee46351484f137cffd6be9b3a1216706",
+    "test/cases/foreign_xui_table_cell_optional_text.h": "f8e5fcb204afb75350a7aacd885d976188263f2b521bf976c973201a9668b3d1",
+    "test/cases/foreign_xui_manual_painter.xl": "0dab4195dbbcd234a568b24e8da0f899512870b337414965aeec9e8783e64cad",
+    "test/cases/foreign_xge3_image_io.xl": "46acf00d0a05806d8ed8e51a92f62ad84ea6b395356e6b03aa0339364ceae499",
+    "test/cases/foreign_xge3_image_io.c": "e56b1028329cdc6fd31652fb3d8fe3a0cd9937af4d47cd2373b8223ef6a37166",
+    "test/cases/foreign_xge3_image_io.h": "f1093c0f2921d493e1bc5c6d0f0cfa9ff96baeb183b885f92ad37ded9b15f904",
+    "test/cases/foreign_xge3_image_io_oom.xl": "93b69261db6438443b5c4dbfb1fc060ffbc8e418b89ab3323b8d154e24feb9aa",
+    "tools/check_xge3_native_consumers.py": "39ec1d01131cf0d5b1459be1eec76321100eabceb2b64a4f63550b7940b3dd89",
+    "tools/check_xge3_image_io.py": "594caff7e0c54e9cfe7c1c1526b42d62ce0ca4b0fcd1ca535bdc9a06e1e9422a"
+  },
+  "platforms": {
+    "win": {
+      "stage": {
+        "path": "F:/xlang-validation/xge-full-20261110/proxy-allocator-stage-win-r1/replay/stage-report.json",
+        "sha256": "0ccf09e5f54fca3206f834aa0996bfceccbd00c5b4ec1d8aa0dc6313333c06a2"
+      },
+      "runtime": {
+        "path": "F:/xlang-validation/xge-full-20261110/proxy-allocator-verify-win-r2/results.json",
+        "sha256": "b49d253fa471564ccb727344ef0d5c81e15f99fc291756bf6b243e3f64604f7b"
+      },
+      "png": {
+        "path": "F:/xlang-validation/xge-full-20261110/proxy-allocator-png-verify-win-r1/results.json",
+        "sha256": "e8e96bbf85fb66bcf89276a278a2685b3016dfc12c000f48dc8c2a97c54855e6"
+      },
+      "pngOwnedResult": {
+        "path": "F:/xlang-validation/xge-full-20261110/proxy-allocator-png-verify-win-r1/foreign_xge3_image_io.c",
+        "sha256": "1c6a6caf10f0d24e02fdd689128ad5ae349b5d4165f3c40382b394a17ce2935a"
+      },
+      "audit": {
+        "path": "F:/xlang-validation/xge-full-20261110/proxy-allocator-consumers-win-r1/results.json",
+        "sha256": "977a40b045ba9bd6d96069c80eb0841426a2b631da0df2401f91f690c666ed52"
+      },
+      "headlessCell": {
+        "path": "F:/xlang-validation/xge-full-20261110/proxy-allocator-headless-cell-win.log",
+        "sha256": "4fbf13a8625f5d5e5bd1a30de154134b977eff0df1a644974a8169509458d10e"
+      },
+      "defaultPainter": {
+        "path": "F:/xlang-validation/xge-full-20261110/proxy-allocator-default-painter-win-r1.log",
+        "sha256": "b0256fe056e9afa0ea914af963f146fd7f1beda5725a63309b8ea0dbd0cdb01c"
+      },
+      "cases": {
+        "foreign_xui_table_cell_optional_text": {
+          "directCFunctions": [
+            "xuiTableViewCellOutputCanRetire"
+          ],
+          "imports": {
+            "host": [
+              "msvcrt.dll",
+              "xge3_host.dll",
+              "kernel32.dll",
+              "shell32.dll",
+              "ucrtbase.dll"
+            ],
+            "static": [
+              "msvcrt.dll",
+              "kernel32.dll",
+              "ole32.dll",
+              "shell32.dll"
+            ]
+          }
+        },
+        "foreign_xui_manual_painter": {
+          "directCFunctions": [
+            "xuiCreateOwnedEx",
+            "xuiPainterVisit"
+          ],
+          "imports": {
+            "host": [
+              "msvcrt.dll",
+              "xge3_host.dll",
+              "kernel32.dll",
+              "shell32.dll",
+              "ws2_32.dll",
+              "iphlpapi.dll",
+              "ucrtbase.dll"
+            ],
+            "static": [
+              "msvcrt.dll",
+              "kernel32.dll",
+              "ole32.dll",
+              "shell32.dll"
+            ]
+          }
+        }
+      },
+      "pngEncodeOom": {
+        "jit": {
+          "kind": 3,
+          "failed": 7,
+          "passed": 89
+        },
+        "dynamic": {
+          "kind": 3,
+          "failed": 7,
+          "passed": 89
+        },
+        "static": {
+          "kind": 3,
+          "failed": 7,
+          "passed": 89
+        }
+      },
+      "remaining": {
+        "XGE": 2,
+        "XUI": 25
+      },
+      "nativeRoutes": {
+        "xgeMemoryFree": {
+          "language": "Owned PNG bytes",
+          "native": "xrtFree",
+          "producer": "xgeImageEncodePNGEx",
+          "releasePath": [
+            ".refptr.XgeHostXrtSlot_xrtFree",
+            "XgeHostXrtSlot_xrtFree"
+          ],
+          "allocationPath": [
+            ".refptr.XgeHostXrtSlot_xrtMalloc",
+            "XgeHostXrtSlot_xrtMalloc"
+          ]
+        },
+        "xuiSetProxy": {
+          "language": "xui.create",
+          "native": "xuiCreateOwnedEx",
+          "bindingPath": [
+            ".text$xuiSetProxyOwned"
+          ],
+          "sharedValidation": [
+            ".text$__xuiContextValidateProxy"
+          ],
+          "retainedPath": [
+            "xuiProxyAddRef"
+          ]
+        },
+        "xuiDrawCreateOwned": {
+          "language": "xui.Proxy.beginDraw",
+          "native": "xuiDrawCreateOwnedEx",
+          "legacyPath": [
+            ".text$xuiDrawCreateOwnedEx"
+          ],
+          "defaultBackendPath": [
+            "xuiDrawCreateOwnedEx"
+          ]
+        }
+      }
+    },
+    "linux": {
+      "stage": {
+        "path": "//wsl.localhost/Ubuntu/var/tmp/xlang-validation/xge-full-20261110/proxy-allocator-stage-linux-r1/replay/stage-report.json",
+        "sha256": "89ac3b3f03937e97934e6f6b88199fd2455f299210d7425a1a982e8ddbcaed0b"
+      },
+      "runtime": {
+        "path": "//wsl.localhost/Ubuntu/var/tmp/xlang-validation/xge-full-20261110/proxy-allocator-verify-linux-r2/results.json",
+        "sha256": "baeb96773201c7e74f96ad7b045c43e5dc13959f1b4264777a26b71a6397f3e9"
+      },
+      "png": {
+        "path": "//wsl.localhost/Ubuntu/var/tmp/xlang-validation/xge-full-20261110/proxy-allocator-png-verify-linux-r1/results.json",
+        "sha256": "29207faca42a67f5e12ef2602b32229d8d2981159766f3b7d594af353fdcea11"
+      },
+      "pngOwnedResult": {
+        "path": "//wsl.localhost/Ubuntu/var/tmp/xlang-validation/xge-full-20261110/proxy-allocator-png-verify-linux-r1/foreign_xge3_image_io.c",
+        "sha256": "1c6a6caf10f0d24e02fdd689128ad5ae349b5d4165f3c40382b394a17ce2935a"
+      },
+      "audit": {
+        "path": "//wsl.localhost/Ubuntu/var/tmp/xlang-validation/xge-full-20261110/proxy-allocator-consumers-linux-r1/results.json",
+        "sha256": "25ebdb973235f45561c555cc8a50f94cb1c9f4b20607e9b2c12a71f82018a4ce"
+      },
+      "headlessCell": {
+        "path": "//wsl.localhost/Ubuntu/var/tmp/xlang-validation/xge-full-20261110/proxy-allocator-headless-cell-linux.log",
+        "sha256": "ed35b87be90f37f6226a9dfff7a39f3091639c1c677cd9a167b11df1ca559951"
+      },
+      "defaultPainter": {
+        "path": "//wsl.localhost/Ubuntu/var/tmp/xlang-validation/xge-full-20261110/proxy-allocator-default-painter-linux-r1.log",
+        "sha256": "271af4430fd25d2546c174a4294f6a490b743210d69f5a3723cab483d897e291"
+      },
+      "cases": {
+        "foreign_xui_table_cell_optional_text": {
+          "directCFunctions": [
+            "xuiTableViewCellOutputCanRetire"
+          ],
+          "imports": {
+            "host": [
+              "libm.so.6",
+              "libmvec.so.1",
+              "libxge3_host.so",
+              "libc.so.6",
+              "ld-linux-x86-64.so.2"
+            ],
+            "static": [
+              "libm.so.6",
+              "libmvec.so.1",
+              "libx11.so.6",
+              "libxi.so.6",
+              "libxcursor.so.1",
+              "libgl.so.1",
+              "libc.so.6",
+              "ld-linux-x86-64.so.2"
+            ]
+          }
+        },
+        "foreign_xui_manual_painter": {
+          "directCFunctions": [
+            "xuiCreateOwnedEx",
+            "xuiPainterVisit"
+          ],
+          "imports": {
+            "host": [
+              "libm.so.6",
+              "libmvec.so.1",
+              "libxge3_host.so",
+              "libc.so.6",
+              "ld-linux-x86-64.so.2"
+            ],
+            "static": [
+              "libm.so.6",
+              "libmvec.so.1",
+              "libx11.so.6",
+              "libxi.so.6",
+              "libxcursor.so.1",
+              "libgl.so.1",
+              "libc.so.6",
+              "ld-linux-x86-64.so.2"
+            ]
+          }
+        }
+      },
+      "pngEncodeOom": {
+        "jit": {
+          "kind": 3,
+          "failed": 7,
+          "passed": 89
+        },
+        "dynamic": {
+          "kind": 3,
+          "failed": 7,
+          "passed": 89
+        },
+        "static": {
+          "kind": 3,
+          "failed": 7,
+          "passed": 89
+        }
+      },
+      "remaining": {
+        "XGE": 4,
+        "XUI": 25
+      },
+      "nativeRoutes": {
+        "xgeMemoryFree": {
+          "language": "Owned PNG bytes",
+          "native": "xrtFree",
+          "producer": "xgeImageEncodePNGEx",
+          "releasePath": [
+            "XgeHostXrtSlot_xrtFree"
+          ],
+          "allocationPath": [
+            "XgeHostXrtSlot_xrtMalloc"
+          ]
+        },
+        "xuiSetProxy": {
+          "language": "xui.create",
+          "native": "xuiCreateOwnedEx",
+          "bindingPath": [
+            "xuiSetProxyOwned"
+          ],
+          "sharedValidation": [
+            ".text.__xuiContextValidateProxy"
+          ],
+          "retainedPath": [
+            "xuiProxyAddRef"
+          ]
+        },
+        "xuiDrawCreateOwned": {
+          "language": "xui.Proxy.beginDraw",
+          "native": "xuiDrawCreateOwnedEx",
+          "legacyPath": [
+            "xuiDrawCreateOwnedEx"
+          ],
+          "defaultBackendPath": [
+            "xuiDrawCreateOwnedEx"
+          ]
+        }
+      }
+    }
+  },
+  "remainingAcrossPreviouslyQualifiedConfigurations": [
+    "xuiCodeEditGetTokenStyleResolver",
+    "xuiCodeLanguageRegistryRegister",
+    "xuiCodeLanguageRegistryRegisterOwned",
+    "xuiCodeProviderSetCommand",
+    "xuiCodeProviderSetCommandOwned",
+    "xuiContextTraceEventOwners",
+    "xuiIconDescDefault",
+    "xuiIconGetUser",
+    "xuiProxyCreateOwned",
+    "xuiProxyCreateOwnedEx",
+    "xuiProxyResourceOwnershipCompletionV1",
+    "xuiTableViewCellOutputLifetimeWatch",
+    "xuiTerminalSetImageCallback",
+    "xuiWidgetGetCacheRenderCallback",
+    "xuiWidgetGetContentMeasureCallback",
+    "xuiWidgetGetCursorQueryCallback",
+    "xuiWidgetGetEventCallback",
+    "xuiWidgetGetEventHandler",
+    "xuiWidgetGetImeCandidateRect",
+    "xuiWidgetGetLayoutChildrenCallback",
+    "xuiWidgetGetLayoutCompleteCallback",
+    "xuiWidgetGetLayoutPrepareCallback",
+    "xuiWidgetGetTypeData",
+    "xuiWidgetTypeGetUserData",
+    "xuiWidgetTypeSetOwnershipTrace"
+  ]
+}

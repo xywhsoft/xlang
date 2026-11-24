@@ -21,3 +21,9 @@
 Windows 和 Linux 分别重复配置一列和一个受管格式化器 1,000 次。xlang 每次记录 5 次 XRT 分配，手写 C 为 3 次。两条路径在每轮回收上一份配置，循环内均无重分配。该样本度量列配置开销。 [验收记录](../dev/release-materials/provenance/xui-table-column-setup-20261123.json)
 
 [table_column_callbacks.xl](../lib/bindings/xui/examples/table_column_callbacks.xl) 把库存列和格式化器一起安装，读取单元格后输出 `有货`。
+
+## 单元格退役状态
+
+`TableCellOutput.canRetire()` 读取单元格当前的原生退役资格。原生调用、读取保留或拥有图接管期间返回 `false`。查询不会释放引用，关闭仍使用 `close()`。关闭后的同一个语言视图不能再查询。
+
+[headless_cell.xl](../lib/bindings/xui/examples/headless_cell.xl) 查询一份独立单元格后共享其引用，并在原引用关闭后读取缓存内容。

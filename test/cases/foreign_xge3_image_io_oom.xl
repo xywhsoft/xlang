@@ -13,8 +13,11 @@ func attempt(bytes encoded,bytes pixels,string source,int kind,int budget) as bo
    image=xge.loadImage(encoded)
   elseif kind==1
    image=xge.loadImage(source)
-  else
+  elseif kind==2
    xge.saveImagePng(target,c_int(1),c_int(2),pixels,c_int(4),c_uint(xge.XGE_IMAGE_PREMULTIPLIED))
+  else
+   auto png=xge.encodeImagePng(1,2,pixels,4,c_uint(xge.XGE_IMAGE_PREMULTIPLIED))
+   assert png.length>8
   end
   success=true
  catch Error error
@@ -36,7 +39,7 @@ func main(...) as int
  xge.saveImagePng(path,c_int(1),c_int(2),pixels)
  try
   auto encoded=file.readBytes(path)
-  for kind in range(3)
+  for kind in range(4)
    assert attempt(encoded,pixels,path,kind,-1)
    int failed=0
    int passed=0

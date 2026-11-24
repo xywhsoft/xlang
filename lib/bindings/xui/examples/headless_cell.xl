@@ -5,6 +5,7 @@ auto cell = xui.createTableCell()
 cell.setText("Answer")
 cell.setTooltip("An independent cached cell")
 cell.setValue(42)
+assert cell.canRetire() // 当前没有原生调用或读取占用。
 
 auto shared = cell.share()
 cell.close() // 共享句柄仍持有同一份单元格数据。

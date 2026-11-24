@@ -134,3 +134,17 @@ memory example also runs in all three modes. See
 `docs/foreign-owned-bytes-output.md` for the exact allocator promise and source
 qualification boundaries. Full O2 compiler/VFS rebuilds and matched final
 delivery remain pending; earlier reports above retain their historical status.
+
+## Matched allocator verification
+
+The compiled PNG encoder allocates through the hosted XRT slot. The legacy
+C release entry `xgeMemoryFree` resolves to the same runtime's `xrtFree`.
+Generated xlang C passes the returned address and length directly to
+`xl6COutputBytesTakeV1`. The language result owns the bytes through its scope.
+
+Windows and Linux each pass JIT, dynamic AOT and static AOT. In every mode,
+64 successful native releases and 64 successful language releases return to
+their heap baselines. The encode-only fault sweep uses 96 allocation budgets
+per mode and observes seven checked failures and 89 successes. All attempts
+preserve live-allocation, invalid-free and double-free counters after cleanup.
+[Matched allocator evidence](../dev/release-materials/provenance/xge-png-xui-proxy-retirement-20261124.json)

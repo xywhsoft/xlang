@@ -5,4 +5,5 @@ void fixtureImageHotEnd(void);
 void fixtureImagePrefixBegin(int);
 void fixtureImagePrefixEnd(void);
 void fixtureImageHeapEqual(void);
+void fixtureImageNativeRelease(void);
 #endif

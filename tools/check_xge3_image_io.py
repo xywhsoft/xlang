@@ -93,11 +93,12 @@ def main():
             if source == case:
                 assert b'Image metadata hot calls: zero XRT heap operations' in output
                 assert b'Image I/O prefixes, alpha flags and checked regions passed' in output
+                assert b'Owned PNG buffers released through the same XRT heap' in output
             elif source == example:
                 assert b'PNG dimensions:' in output
             else:
                 counts = re.findall(rb'Image language prefixes: (\d+) (\d+) (\d+)', output)
-                assert len(counts) == 3 and {int(key) for key, _, _ in counts} == {0, 1, 2}
+                assert len(counts) == 4 and {int(key) for key, _, _ in counts} == {0, 1, 2, 3}
                 assert all(int(failed)>0 and int(passed)>0 and int(failed)+int(passed)==96
                            for _, failed, passed in counts)
                 report.setdefault('oomPrefixes', {})[kind] = [dict(kind=int(key), failed=int(failed), passed=int(passed))
@@ -120,7 +121,8 @@ def main():
                     bytes=binary.stat().st_size, linkage=kind, imports=[value.decode() for value in imports]))
         if source == case:
             text = generated.read_text(encoding='utf-8')
-            symbols = ['xgeImageInfoMemory', 'xgeImageSavePNGEx', 'xgeImageLoadMemoryEx', 'xgeImageLoadEx']
+            symbols = ['xgeImageInfoMemory', 'xgeImageSavePNGEx', 'xgeImageLoadMemoryEx',
+                       'xgeImageLoadEx', 'xgeImageEncodePNGEx', 'xl6COutputBytesTakeV1']
             assert all(re.search(r'\b' + symbol + r'\(', text) for symbol in symbols)
             for standard, tool, language in [('c11', 'gcc', 'c'), ('c++11', 'g++', 'c++'), ('c++17', 'g++', 'c++')]:
                 run('header-' + standard, [tools[tool], '-x', language, '-std=' + standard,

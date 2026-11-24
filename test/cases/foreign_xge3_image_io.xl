@@ -2,7 +2,31 @@
 import xge
 extern "fixtureImageHotBegin" @header("test/cases/foreign_xge3_image_io.h") @no_raise func hotBegin()
 extern "fixtureImageHotEnd" @header("test/cases/foreign_xge3_image_io.h") @no_raise func hotEnd()
+extern "fixtureImagePrefixBegin" @header("test/cases/foreign_xge3_image_io.h") @no_raise func prefixBegin(c_int budget)
+extern "fixtureImageHeapEqual" @header("test/cases/foreign_xge3_image_io.h") @no_raise func heapEqual()
+extern "fixtureImageNativeRelease" @header("test/cases/foreign_xge3_image_io.h") @no_raise func nativeRelease()
+
+func encodeAndRelease(bytes rgba)
+ auto encoded=xge.encodeImagePng(1,2,rgba,4,c_uint(xge.XGE_IMAGE_PREMULTIPLIED))
+ auto width,height=xge.imageInfo(encoded)
+ assert width==c_int(1) and height==c_int(2)
+end
+
 func main(...) as int
+ bytes packed=b"\x40\0\0\x80\0\x40\0\x80"
+ nativeRelease()
+ encodeAndRelease(packed)
+ prefixBegin(-1)
+ for i in range(64)
+  nativeRelease()
+ end
+ heapEqual()
+ prefixBegin(-1)
+ for i in range(64)
+  encodeAndRelease(packed)
+ end
+ heapEqual()
+ println("Owned PNG buffers released through the same XRT heap")
  string path="image-language-fixture.png"
  bytes rgba=b"\x40\0\0\x80\0\0\0\0\0\x40\0\x80"
  xge.saveImagePng(path,c_int(1),c_int(2),rgba,c_int(8),c_uint(xge.XGE_IMAGE_PREMULTIPLIED))

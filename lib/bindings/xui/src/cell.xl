@@ -12,6 +12,7 @@ export extern "xui_table_view_cell_output_t*" class TableCellOutput @header("xge
  extern "xuiTableViewCellOutputSetFormatterOwned" @no_raise @c_owned_callback(0,0,"xui_callback_owner_t",0,"owned_text") @c_result("status",0) func setFormatter(TableViewCellTextOwnedProc? callback)
  extern "xuiTableViewCellOutputSetRendererOwned" @no_raise @c_owned_callback(0,0,"xui_callback_owner_t",-16) @c_result("status",0) func setRenderer(TableViewCellRenderOwnedProc? callback)
  extern "xuiTableViewCellOutputReset" @no_raise @c_result("status",0) func reset()
+ extern "xuiTableViewCellOutputCanRetire" @no_raise @c_const(0) func canRetire() as bool
  extern "xl6ForeignViewCloseV1" @no_raise @c_control(0) @c_result("bool_status") func close()
 end
 export extern "xuiTableViewCellOutputCreate" @no_raise @c_result("owned_view") @factory(0,0,rollbackCell) func createTableCell() as TableCellOutput

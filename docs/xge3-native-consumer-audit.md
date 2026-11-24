@@ -1,5 +1,30 @@
 # Native consumers in the full API inventory
 
+## PNG buffer ownership and XUI retirement
+
+`xge.encodeImagePng()` delivers the original allocation as owned `bytes`.
+The compiled encoder and the C caller's `xgeMemoryFree()` route use the same
+XRT allocator. The language caller relinquishes its bytes normally. The
+qualification checks successful release and the allocation-failure prefixes
+through the encoding and managed-result boundary.
+
+`xui.create(proxy, ...)` calls the owned Proxy setter before the Context can
+acquire widgets or resources. It retains the backend and uses the same native
+descriptor validation as the raw C setter. Both the C draw allocator and
+the default XGE Proxy reach `xuiDrawCreateOwnedEx`. Widget retirement reaches
+the native resource Busy check when an update draw is still active.
+
+`TableCellOutput.canRetire()` calls the native readiness query. It is
+non-consuming and returns false during a native call, read pin or ownership
+claim. Use `close()` to retire the language reference.
+
+The two compiled inventories cover 5,903 functions and 4,844 direct
+declarations. Across the qualified configurations, 25 XUI entries
+remain without a direct declaration, compiled consumer or checked
+replacement. The XGE inventory has a recorded route for every entry.
+
+[Allocator, Proxy and cell evidence](../dev/release-materials/provenance/xge-png-xui-proxy-retirement-20261124.json)
+
 ## Scoped Image pixel access
 
 `Image.withPixels()` exposes the original RGBA8 or A8 span during a

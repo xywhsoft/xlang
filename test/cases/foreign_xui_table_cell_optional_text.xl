@@ -1,7 +1,14 @@
 import xui
+extern "fixtureCellDuringCall" @header("test/cases/foreign_xui_table_cell_optional_text.h") @no_raise @c_sync_callback(1,-1,-16) @c_result("status",0) func duringCall(xui.TableCellOutput cell, func() as c_int visitor)
 
 func main(...) as int
     auto cell = xui.createTableCell()
+    assert cell.canRetire()
+    duringCall(cell, func() as c_int
+        assert not cell.canRetire()
+        return 0
+    end)
+    assert cell.canRetire()
     assert xui.cellText(cell) == null and xui.cellTooltip(cell) == null
 
     cell.setText("Table cell")
@@ -17,6 +24,13 @@ func main(...) as int
     bool expired = false
     try
         xui.cellText(cell)
+    catch StateError
+        expired = true
+    end
+    assert expired
+    expired = false
+    try
+        cell.canRetire()
     catch StateError
         expired = true
     end
