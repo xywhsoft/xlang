@@ -242,6 +242,9 @@ DOCUMENT_EXPORTS = (
 TABLE_VIEW_SOURCE = 'src/xui/controls/xui_table_view.c'
 TABLE_GRID_SOURCE = 'src/xui/controls/xui_table_grid.c'
 TABLE_CELL_SOURCE = 'src/xui/controls/xui_table_cell_output.c'
+CODE_LANGUAGE_SOURCE = 'src/xui/code/xui_code_language.c'
+WIDGET_SOURCE = 'src/xui/core/xui_widget.c'
+FILE_DIALOG_SOURCE = 'src/xui/controls/xui_file_dialog.c'
 TABLE_LIFETIME_CALLS = {
     TABLE_VIEW_SOURCE: {
         '__xuiTableViewGetCell': ('xuiTableViewCellOutputInit',),
@@ -331,6 +334,16 @@ def close_relocation_path(relocations,policy,destroy,release,adapter=None):
                 paths.append((getter,descriptor,consumer,*call_tail))
     assert len(paths)==1,(policy,destroy,release,paths)
     return paths[0]
+
+
+def context_event_owner_policy(relocations):
+    for prefix in ('.text.', '.text$'):
+        getter = prefix+'xl6Xui3ContextPolicyGet'
+        trace = prefix+'context_trace'
+        for descriptor in relocations.get(getter, ()):
+            if trace in relocations.get(descriptor, ()) and 'xuiContextTraceOwnership' in relocations.get(trace, ()):
+                return [getter, descriptor, trace, 'xuiContextTraceOwnership']
+    raise AssertionError('Context descriptor does not register native ownership tracing')
 
 
 def class_lines(view, binding):
@@ -687,8 +700,27 @@ def main():
                 'doc_image_resource_export_png': ('xuiResourceGetHandle','xuiSurfaceAddRef'),
             }
         if 'xuiContextGetBaseWidgetType' in functions:
-            calls['src/xui/core/xui_widget.c'] = {
+            calls.setdefault(WIDGET_SOURCE, {}).update({
                 'xuiContextGetBaseWidgetType': ('xuiWidgetGetBaseType',),
+            })
+        if 'xuiContextTraceEventOwners' in functions:
+            calls.setdefault(WIDGET_SOURCE, {})['xuiContextTraceOwnership'] = ('xuiContextTraceEventOwners',)
+        if 'xuiFileDialogShow' in functions:
+            calls.setdefault(FILE_DIALOG_SOURCE, {}).update({
+                'xuiFileDialogShow': ('xuiFileDialogCreate',),
+                'xuiFileDialogCreate': ('xuiWidgetGetEventCallback', 'xuiWidgetGetEventHandler'),
+            })
+            calls.setdefault('src/xui/controls/xui_msgbox.c', {}).update({
+                'xuiMsgBoxShow': ('xuiMsgBoxCreate',),
+                'xuiMsgBoxCreate': ('xuiWidgetGetEventCallback',),
+            })
+        if 'xuiCodeLanguageRegistryRegisterCallbacks' in functions:
+            calls[CODE_LANGUAGE_SOURCE] = {
+                'xuiCodeLanguageRegistryLoadDefaults': ('xuiCodeLanguageRegistryRegister',),
+                'xuiCodeLanguageRegistryRegisterOwned': ('__xuiCodeLanguageRegister',),
+                'xuiCodeLanguageRegistryRegisterCallbacks': ('__xuiCodeLanguageRegisterCallbacks',),
+                '__xuiCodeLanguageRegisterCallbacks': ('__xuiCodeLanguageRegister',),
+                '__xuiCodeLanguageRegister': ('xuiInternalCallbackHoldFresh',),
             }
         if 'xuiTreeViewSetDataAdapterOwned' in functions:
             calls['src/xui/controls/xui_tree_view.c'] = {
@@ -1002,11 +1034,21 @@ def main():
                     'xgeImagePremultiplyManaged': 'xge.Image.premultiply',
                     'xgeImageEncodePNGEx': 'xge.encodeImagePng',
                     'xuiCreateOwnedEx': 'xui.create',
+                    'xuiFileDialogCreate': 'xui.createFileDialog',
+                    'xuiFileDialogShow': 'xui.showFileDialog',
+                    'xuiMsgBoxCreate': 'xui.createMsgBox',
+                    'xuiMsgBoxShow': 'xui.showMsgBox',
+                    'xuiCodeLanguageRegistryLoadDefaults': 'xui.CodeLanguageRegistry.loadDefaults',
+                    'xuiCodeLanguageRegistryRegisterCallbacks': 'xui.CodeLanguageRegistry.registerCallbacks',
                 }
                 for edges in calls.values():
                     for root in edges.keys() & binding_calls.keys():
                         assert any(item['language'] == binding_calls[root] for item in bound[root]), root
             report[label] = prove_native_lifetime(source,build_flags,calls,tools,out,run,sha)
+            if label == 'resourceLifetime' and 'xuiContextTraceOwnership' in calls.get(WIDGET_SOURCE, {}):
+                assert 'src/runtime.c' in consumers.get('xuiContextTraceOwnership', ())
+                assert '@policy("xl6Xui3ContextPolicy")' in class_lines(view,class_bindings['xui.Context'])[0]
+                report['contextEventOwnerPolicy'] = context_event_owner_policy(policy_relocations)
             for source_path, expected in calls.items():
                 for caller, names in expected.items():
                     # Legacy calls prove retirement/replacement correspondence. They
@@ -1055,6 +1097,19 @@ def main():
                     bindingPath=paths['xuiCreateOwnedEx']['xuiSetProxyOwned'],
                     sharedValidation=paths[symbol]['__xuiContextValidateProxy'],
                     retainedPath=paths['xuiSetProxyOwned']['xuiProxyAddRef'])
+            elif symbol == 'xuiCodeLanguageRegistryRegisterOwned' and CODE_LANGUAGE_SOURCE in report.get('resourceLifetime', {}):
+                binding = 'xui.CodeLanguageRegistry.registerCallbacks'
+                native = 'xuiCodeLanguageRegistryRegisterCallbacks'
+                row, = (row for row in bound[native] if row['language'] == binding)
+                declaration = class_lines(view,row)[0]
+                assert '@c_pack_callback_group' in declaration and declaration.count('@c_owned_callback') == 2
+                paths = report['resourceLifetime'][CODE_LANGUAGE_SOURCE]['relocationPaths']
+                registrar = '__xuiCodeLanguageRegister'
+                projection = '__xuiCodeLanguageRegisterCallbacks'
+                evidence = dict(language=binding,native=native,
+                    legacyPath=paths[symbol][registrar],
+                    managedPath=paths[native][projection]+paths[projection][registrar],
+                    ownerHoldPath=paths[registrar]['xuiInternalCallbackHoldFresh'])
             elif symbol == 'xuiDrawCreateOwned' and a.resource_engine_build and 'xuiDrawCreateOwnedEx' in functions:
                 proxy = (view/'lib/bindings/xui/src/proxy.xl').read_text(encoding='utf-8-sig')
                 assert re.search(r'extern "drawBegin" @c_field_call .*func beginDraw\(', proxy)

@@ -1,0 +1,196 @@
+{
+  "schema": "xlang-xui-callback-native-consumer-routes-1",
+  "scope": "Reachable XUI file-dialog, message-box, callback ownership, and code-language registration routes",
+  "nativeCommit": "ebe0555d",
+  "shippingDelivery": false,
+  "networkTests": false,
+  "prior": {
+    "path": "dev/release-materials/provenance/xui-table-cell-reference-20261124.json",
+    "sha256": "49ee7d46a9ed525c1c97b503c10a96d4b431178bb5c554fcae3c51d394870645"
+  },
+  "closedFromReview": [
+    "xuiCodeLanguageRegistryRegister",
+    "xuiCodeLanguageRegistryRegisterOwned",
+    "xuiContextTraceEventOwners",
+    "xuiWidgetGetEventCallback",
+    "xuiWidgetGetEventHandler"
+  ],
+  "sourceSha256NormalizedLf": {
+    "test/cases/foreign_xui_callback_consumer_routes.xl": "5f68c98db578cb3e587f5ca9ddce71127772c9cfce90c4f317e69873a96e73ab",
+    "test/cases/foreign_xui_callback_consumer_routes.c": "5d68febb2e320439cf81a7442054dd1ce489781150b3324274253224e6f7d20a",
+    "test/cases/foreign_xui_callback_consumer_routes.h": "10297206c15a0f6de740880b9002b118adaf8125615b0bbeb1a3675e8e1d0736",
+    "test/cases/foreign_xui_render_backend.h": "f5c5e0a41b5932e164c251d610bd874bb2e3e2d4b01d5b61930164659813164f",
+    "test/cases/foreign_xui_render_backend.c": "d923086b61f849a73a720968149c8a9cb990e4febe45b01bf1cf9735490826a6",
+    "test/cases/foreign_xui_render_adapters.inc": "b54a15b0295c93a59be72b93acacfb1eefd335a7ec28d6290b18be213770711e",
+    "tools/check_xge3_native_consumers.py": "084382dbefde6258e65e6d39746e3d634a7e9602ccf927754f809e11481ece56"
+  },
+  "platforms": {
+    "win": {
+      "stage": {
+        "path": "F:/xlang-validation/xge-full-20261110/table-cell-reference-stage-win-r2/replay/stage-report.json",
+        "sha256": "f7ef9e5d94a9ab9574a6fc14bfe0a1d596cf6093960dafae76d7b075f0ac394c"
+      },
+      "runtime": {
+        "path": "F:/xlang-validation/xge-full-20261110/xui-callback-routes-verify-win-r1/results.json",
+        "sha256": "0a46bd4bf7013c75d09c7cb877b501b63d8f0914bca032b44f56d92fb3e87c5b"
+      },
+      "audit": {
+        "path": "F:/xlang-validation/xge-full-20261110/xui-callback-routes-consumers-win-r1/results.json",
+        "sha256": "ce133ef3f584aefac259faddacaaf269ee18a6103e44601ce751f6e51933d914"
+      },
+      "generatedC": {
+        "path": "F:/xlang-validation/xge-full-20261110/xui-callback-routes-verify-win-r1/foreign_xui_callback_consumer_routes/generated.c",
+        "sha256": "4e526deafa8af5f54d4197203c9e039a995fca97e7be1b3cf2166b75c7c70189"
+      },
+      "remaining": {
+        "XGE": 2,
+        "XUI": 19
+      },
+      "cases": {
+        "foreign_xui_callback_consumer_routes": {
+          "directCFunctions": [
+            "xuiFileDialogShow",
+            "xuiMsgBoxShow",
+            "xuiWidgetSetEventCallbackOwned",
+            "xuiWidgetSetEventHandlerOwned",
+            "xuiCodeLanguageRegistryLoadDefaults",
+            "xuiCodeLanguageRegistryRegisterCallbacks"
+          ],
+          "imports": {
+            "host": [
+              "msvcrt.dll",
+              "xge3_host.dll",
+              "kernel32.dll",
+              "shell32.dll",
+              "ws2_32.dll",
+              "iphlpapi.dll",
+              "ucrtbase.dll"
+            ],
+            "static": [
+              "msvcrt.dll",
+              "kernel32.dll",
+              "user32.dll",
+              "oleaut32.dll",
+              "ole32.dll",
+              "shell32.dll"
+            ]
+          }
+        }
+      },
+      "contextEventOwnerPolicy": [
+        ".text$xl6Xui3ContextPolicyGet",
+        ".rdata$value.77",
+        ".text$context_trace",
+        "xuiContextTraceOwnership"
+      ],
+      "registryOwnerHold": {
+        "language": "xui.CodeLanguageRegistry.registerCallbacks",
+        "native": "xuiCodeLanguageRegistryRegisterCallbacks",
+        "legacyPath": [
+          ".text$__xuiCodeLanguageRegister"
+        ],
+        "managedPath": [
+          ".text$__xuiCodeLanguageRegisterCallbacks",
+          ".text$__xuiCodeLanguageRegister"
+        ],
+        "ownerHoldPath": [
+          ".text$xuiInternalCallbackHoldFresh"
+        ]
+      }
+    },
+    "linux": {
+      "stage": {
+        "path": "//wsl.localhost/Ubuntu/var/tmp/xlang-validation/xge-full-20261110/table-cell-reference-stage-linux-r2/replay/stage-report.json",
+        "sha256": "ee23598e51edc5cc58bd9c7f4eb6be75e2bdde285824235ed0beb44caff99472"
+      },
+      "runtime": {
+        "path": "//wsl.localhost/Ubuntu/var/tmp/xlang-validation/xge-full-20261110/xui-callback-routes-verify-linux-r1/results.json",
+        "sha256": "ce1e90da056691c4dbaf1c3f0a9e6030e41aaede458dc1b7819f267fa1d8a258"
+      },
+      "audit": {
+        "path": "//wsl.localhost/Ubuntu/var/tmp/xlang-validation/xge-full-20261110/xui-callback-routes-consumers-linux-r1/results.json",
+        "sha256": "472338b9f33293d9465fe6d898df960d85bd4db6467a16ac874ad9fcbe9551c3"
+      },
+      "generatedC": {
+        "path": "//wsl.localhost/Ubuntu/var/tmp/xlang-validation/xge-full-20261110/xui-callback-routes-verify-linux-r1/foreign_xui_callback_consumer_routes/generated.c",
+        "sha256": "4e526deafa8af5f54d4197203c9e039a995fca97e7be1b3cf2166b75c7c70189"
+      },
+      "remaining": {
+        "XGE": 4,
+        "XUI": 19
+      },
+      "cases": {
+        "foreign_xui_callback_consumer_routes": {
+          "directCFunctions": [
+            "xuiFileDialogShow",
+            "xuiMsgBoxShow",
+            "xuiWidgetSetEventCallbackOwned",
+            "xuiWidgetSetEventHandlerOwned",
+            "xuiCodeLanguageRegistryLoadDefaults",
+            "xuiCodeLanguageRegistryRegisterCallbacks"
+          ],
+          "imports": {
+            "host": [
+              "libm.so.6",
+              "libmvec.so.1",
+              "libxge3_host.so",
+              "libc.so.6",
+              "ld-linux-x86-64.so.2"
+            ],
+            "static": [
+              "libm.so.6",
+              "libmvec.so.1",
+              "libx11.so.6",
+              "libxi.so.6",
+              "libxcursor.so.1",
+              "libgl.so.1",
+              "libc.so.6",
+              "ld-linux-x86-64.so.2"
+            ]
+          }
+        }
+      },
+      "contextEventOwnerPolicy": [
+        ".text.xl6Xui3ContextPolicyGet",
+        ".data.rel.ro.local.value.77",
+        ".text.context_trace",
+        "xuiContextTraceOwnership"
+      ],
+      "registryOwnerHold": {
+        "language": "xui.CodeLanguageRegistry.registerCallbacks",
+        "native": "xuiCodeLanguageRegistryRegisterCallbacks",
+        "legacyPath": [
+          ".text.__xuiCodeLanguageRegister"
+        ],
+        "managedPath": [
+          ".text.__xuiCodeLanguageRegisterCallbacks",
+          ".text.__xuiCodeLanguageRegister"
+        ],
+        "ownerHoldPath": [
+          ".text.xuiInternalCallbackHoldFresh"
+        ]
+      }
+    }
+  },
+  "remainingAcrossPreviouslyQualifiedConfigurations": [
+    "xuiCodeEditGetTokenStyleResolver",
+    "xuiCodeProviderSetCommand",
+    "xuiCodeProviderSetCommandOwned",
+    "xuiIconDescDefault",
+    "xuiIconGetUser",
+    "xuiProxyCreateOwned",
+    "xuiProxyCreateOwnedEx",
+    "xuiProxyResourceOwnershipCompletionV1",
+    "xuiTerminalSetImageCallback",
+    "xuiWidgetGetCacheRenderCallback",
+    "xuiWidgetGetContentMeasureCallback",
+    "xuiWidgetGetCursorQueryCallback",
+    "xuiWidgetGetImeCandidateRect",
+    "xuiWidgetGetLayoutChildrenCallback",
+    "xuiWidgetGetLayoutCompleteCallback",
+    "xuiWidgetGetLayoutPrepareCallback",
+    "xuiWidgetGetTypeData",
+    "xuiWidgetTypeGetUserData",
+    "xuiWidgetTypeSetOwnershipTrace"
+  ]
+}

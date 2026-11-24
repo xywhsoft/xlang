@@ -1,5 +1,22 @@
 # Native consumers in the full API inventory
 
+## Dialog and editor callback routes
+
+The FileDialog and MsgBox factories preserve the native callbacks of their
+internal Window controls. FileDialog also preserves the path input's blur
+handler. The fixture opens and closes both managers with the CPU backend on
+Windows and Linux. It also verifies that the Context ownership policy visits
+exactly the primary and per-event owners installed by the language callback
+setters and follows removals of both slots.
+
+`CodeLanguageRegistry.loadDefaults()` reaches the original registration
+entry point. `registerCallbacks()` uses the same native registrar and
+owner acquisition as the owned C entry point. The fixture registers a
+lexer and executes it on a document. JIT, dynamic AOT and static AOT pass
+on both platforms. The five verified routes leave 19 XUI entries in review.
+
+[Callback route evidence](../dev/release-materials/provenance/xui-callback-native-consumer-routes-20261124.json)
+
 ## Weak table cell references
 
 `TableCellOutput.watch()` observes a cell on its creator thread. The

@@ -1,0 +1,83 @@
+import xui
+from xui import Proxy, Font
+
+extern "fixtureRenderProxy" @header("test/cases/foreign_xui_callback_consumer_routes.h") @no_raise @c_result("owned_view") @factory(0,0,dropProxy) func cpuProxy() as Proxy
+extern "fixtureRenderFont" @header("test/cases/foreign_xui_callback_consumer_routes.h") @no_raise @c_result("owned_view") @factory(1,0,dropFont) func cpuFont(Proxy proxy) as Font
+extern "xuiProxyReleaseChecked" @header("xge3_runtime.h") @no_raise @c_result("status",0) func dropProxy(Proxy proxy)
+extern "xuiFontReleaseChecked" @header("xge3_runtime.h") @no_raise @c_result("status",0) func dropFont(Font font)
+extern "fixtureRenderBalanced" @no_raise func balanced() as c_int
+extern "fixtureEventObserveContext" @no_raise func observeContext(xui.Context context)
+extern "fixtureEventCountOwners" @no_raise func countOwners() as c_int
+
+func checkManagers(xui.Context ui, Font font)
+    auto dialog = xui.showFileDialog(ui, ".", "Files", font=font)
+    assert dialog.isOpen() == 1
+    assert dialog.window() != null and dialog.pathInput() != null
+    dialog.cancel()
+    assert dialog.isOpen() == 0
+    dialog.close()
+
+    auto box = xui.showMsgBox(ui, "Message", "Body", font=font)
+    assert box.isOpen() == 1
+    box.close()
+end
+
+func checkEventOwners(xui.Context ui)
+    auto widget = ui.widget()
+    assert ui.setRootWidget(widget) == xui.XUI_OK
+    int calls = 0
+    widget.setEventCallback(func(xui.Widget sender, xui.CallbackConstEvent event) as c_int
+        calls += 1
+        return xui.XUI_OK
+    end)
+    widget.setEventHandler(xui.XUI_EVENT_COMMAND, func(xui.Widget sender, xui.CallbackConstEvent event) as c_int
+        calls += 1
+        return xui.XUI_OK
+    end)
+    observeContext(ui)
+    assert countOwners() == 2
+    ui.dispatchCommand(widget, 9, "verify")
+    ui.dispatchPendingEvents()
+    assert calls > 0
+    widget.setEventHandler(xui.XUI_EVENT_COMMAND, null)
+    observeContext(ui)
+    assert countOwners() == 1
+    widget.setEventCallback(null)
+    observeContext(ui)
+    assert countOwners() == 0
+end
+
+func checkLanguages()
+    auto registry = xui.createCodeLanguageRegistry()
+    registry.loadDefaults()
+    auto id,_,_,_,_,_,_,_ = registry.findByExtension(".h")
+    assert id == "c"
+    auto document = xui.createCodeDocument()
+    document.setText("int x;")
+    int calls = 0
+    registry.registerCallbacks("sample", "Sample", ["sm"], lexer=func(xui.CallbackCodeDocument source, c_int start, c_int endLine, xui.CallbackCodeTokenOutput output) as c_int
+        assert source.getLength() == 6
+        calls += 1
+        return xui.XUI_OK
+    end)
+    assert registry.lex("sample", document) == 0 and calls == 1
+    document.close()
+    registry.close()
+end
+
+func main(...) as int
+    auto proxy = cpuProxy()
+    auto ui = xui.create(proxy, xui.XUI_SYSTEM_FONT_DISABLED)
+    auto font = cpuFont(proxy)
+    ui.setDefaultFont(font)
+    ui.setViewportSize(640, 480)
+    checkEventOwners(ui)
+    checkManagers(ui, font)
+    checkLanguages()
+    ui.close()
+    font.close()
+    proxy.close()
+    assert balanced() == 1
+    println("XUI_CALLBACK_CONSUMER_ROUTES_OK")
+    return 0
+end
