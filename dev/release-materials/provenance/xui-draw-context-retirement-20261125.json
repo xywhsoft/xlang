@@ -1,0 +1,103 @@
+{
+  "schema": 1,
+  "shippingDelivery": false,
+  "scope": "Existing Draw owner release and pending custom Proxy results seen during checked Context close preparation",
+  "draw": {
+    "revision": "32ef8884fe018c0fa2bcdd02d701a672cfbe690b",
+    "sha256NormalizedLf": {
+      "docs/xui-proxy-resource-ownership.md": "59483ae90f24fef2e62264a5b74d61a6f78ffc4b777bc7ddfe767bcaaa3ae8d2",
+      "src/xui/core/xui_proxy_resource.c": "ae837811d0c1f231a9cd140ab288d232a958a5c69bbb6596e7d24a7482cb6089",
+      "src/xui/core/xui_proxy_resource.h": "6f2948341d8466a21a99fb0ae0faf1071d8821ca3979d3c6fb193eda7ec5f211",
+      "tests/xui/xui_callback_resource_rollback_test.c": "d30faf79072986e3147b32f0f577c46332760ea004f08fc8eacbcbaaf74388e8"
+    },
+    "platforms": {
+      "windows": {
+        "matchedPackageGate": {
+          "path": "F:/xlang-validation/xge-full-20261110/published-draw-retirement-verify-win-r3/results.json",
+          "sha256": "7d944a154d0a35e572f619ff233a16e0f3402444420a1cabe0fa815b99afb2cc",
+          "checks": 32
+        }
+      },
+      "linux": {
+        "nativeGate": {
+          "path": "//wsl.localhost/Ubuntu/var/tmp/xlang-validation/xge-full-20261110/context-proxy-rollbacks-native-linux-draw-r1/results.json",
+          "sha256": "c4a437fba11dbee1eb53146c4374d3c27eeedd185f22ff03d7ab4aa05c784f27",
+          "checks": 4
+        },
+        "matchedPackageGatePending": "//wsl.localhost/Ubuntu/var/tmp/xlang-validation/xge-full-20261110/published-draw-retirement-verify-linux-r3/results.json"
+      }
+    }
+  },
+  "contextPreparation": {
+    "revision": "f390f07cd26b57bab2cae3ff595c191814869a55",
+    "sha256NormalizedLf": {
+      "docs/xui-proxy-resource-ownership.md": "53c0777f8c3fc70e3924cb5e47d6baceea41b360d291e05da23f3d6e4072fbe8",
+      "src/xui/core/xui_proxy_resource.c": "dca47948007a26fa6b524c5ad30c94f0a5aff7ac576ae3dd7d56908586e1dceb",
+      "src/xui/core/xui_proxy_resource.h": "0cf40ee3f18134ce96d801787bfb46e55ed35aed2888b8e952ce45e4ee3b1f12",
+      "src/xui/core/xui_widget.c": "0172d0e911000e97ac4ff14d6206cf5f24de1869e1a512914932509368e230e6",
+      "tests/xui/xui_context_proxy_rollbacks_test.c": "e64cfe226ac901261a47270e45d2eb8f16700e2b2a97203e280022b899f98f80"
+    },
+    "platforms": {
+      "windows": {
+        "previousBuildReproducesPrematureClose": {
+          "path": "F:/xlang-validation/xge-full-20261110/context-proxy-rollbacks-native-win-baseline-r1/results.json",
+          "sha256": "dd6c08d1fbc0168a71b0752848ae5db603106b6ba418c3b192de5e77e5821796",
+          "checks": 4
+        },
+        "checkedCloseAndFirstDiagnostic": {
+          "path": "F:/xlang-validation/xge-full-20261110/context-proxy-rollbacks-native-win-fixed-fault-r1/results.json",
+          "sha256": "9e5b80a82e835eb1899a114620d3eacb4a0ef1457478598747e3daa6db62f5bf",
+          "checks": 4
+        },
+        "lateProducerReproduction": {
+          "path": "F:/xlang-validation/xge-full-20261110/context-proxy-rollbacks-native-win-fixed-late-r2-r1/results.json",
+          "sha256": "e0801c2bbee3ed0b3f0e3eed7df532af175e5382312a80d029797afd86c504a7",
+          "checks": 4
+        },
+        "hostBuild": {
+          "path": "F:/xlang-validation/xge-full-20261110/context-proxy-rollbacks-host-win-r1/build-report.json",
+          "sha256": "958d0fd6e7521a291bda3cf745bb7124549d59bff1208a858a29bf246c054c00"
+        },
+        "staticBuild": {
+          "path": "F:/xlang-validation/xge-full-20261110/context-proxy-rollbacks-static-win-r1/build-report.json",
+          "sha256": "f5d25341ca1b021236af7e5cddb9228d598a116f0a50fb4f30ce56f053c0b9ae"
+        },
+        "sourceRecord": {
+          "path": "F:/xlang-validation/xge-full-20261110/context-proxy-rollbacks-native-source-win-r1.json",
+          "sha256": "f78b187a9de948d2053c2bbedb180bcedc7e99af5e76cfd4943a5bd91ce0c82d"
+        }
+      },
+      "linux": {
+        "previousBuildReproducesPrematureClose": {
+          "path": "//wsl.localhost/Ubuntu/var/tmp/xlang-validation/xge-full-20261110/context-proxy-rollbacks-native-linux-baseline-r1/results.json",
+          "sha256": "176d6d4d2f448db2a5fa745fa21baf23e5eaaf50d3b58081c15a17ded6e20465",
+          "checks": 4
+        },
+        "checkedCloseAndFirstDiagnostic": {
+          "path": "//wsl.localhost/Ubuntu/var/tmp/xlang-validation/xge-full-20261110/context-proxy-rollbacks-native-linux-fixed-fault-r1/results.json",
+          "sha256": "319782dbf50e4e3111c538792825ec25ef291507845fcf0771092cda1bdb30c8",
+          "checks": 4
+        },
+        "lateProducerReproduction": {
+          "path": "//wsl.localhost/Ubuntu/var/tmp/xlang-validation/xge-full-20261110/context-proxy-rollbacks-native-linux-fixed-late-r2-r1/results.json",
+          "sha256": "6e82e1ca2a947adaa1ee48a26ea7992dfc540557d4372ca4948c96a67b4d2d80",
+          "checks": 4
+        },
+        "hostBuild": {
+          "path": "//wsl.localhost/Ubuntu/var/tmp/xlang-validation/xge-full-20261110/context-proxy-rollbacks-host-linux-r1/build-report.json",
+          "sha256": "d6f3ceb3d0142b5859e73ed9443cc2f24a0f870dbd74da8536dccf9500f76e30"
+        },
+        "staticBuild": {
+          "path": "//wsl.localhost/Ubuntu/var/tmp/xlang-validation/xge-full-20261110/context-proxy-rollbacks-static-linux-r1/build-report.json",
+          "sha256": "accd4378ff90425d1653705cd2fd472cdcfbe669b2ad7319c9164fec92ba94db"
+        },
+        "sourceRecord": {
+          "path": "//wsl.localhost/Ubuntu/var/tmp/xlang-validation/xge-full-20261110/context-proxy-rollbacks-native-source-linux-r1.json",
+          "sha256": "1a1597c01c5fd14cee97fb55213d90137514461d511a00f57d30cbf96e9c95c1"
+        }
+      }
+    }
+  },
+  "openNativeCase": "An Error callback owner dropped during physical Context teardown can enqueue a new refused Surface rollback after the preparation gate. Both hosts reproduced completed Context destruction with a Busy Proxy queue. The reproducer held a separate diagnostic Proxy owner to permit cleanup.",
+  "contextQualification": "The targeted C probes verified O0 and O2 with a real Context and the matching hosted XRT. Static SDKs built successfully. The isolated probes do not qualify final IDE or release runtime delivery."
+}
