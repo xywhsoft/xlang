@@ -54824,8 +54824,8 @@ void xl6IrDumpModuleJson(XL6_Output* out, const XL6_IrModule* module)
     xl6OutputPuts("  ],\n  \"foreignCallbackSpans\": [\n",out);
     for(i=0;i<module->foreignCallbackSpanCount;++i){
         const XL6_ForeignCallbackSpanContract* row=&module->foreignCallbackSpans[i];
-        xl6OutputPrintf(out,"    {\"declaration\":%u,\"parameter\":%u,\"argument\":%u,\"countAbi\":%d,\"pointerCName\":\"%s\"}%s\n",
-            row->declaration,row->parameter,row->argument,(int)row->countAbi,row->pointerCName,
+        xl6OutputPrintf(out,"    {\"declaration\":%u,\"parameter\":%u,\"argument\":%u,\"countAbi\":%d,\"countsElements\":%u,\"pointerCName\":\"%s\"}%s\n",
+            row->declaration,row->parameter,row->argument,(int)row->countAbi,row->countsElements,row->pointerCName,
             i+1==module->foreignCallbackSpanCount ? "" : ",");
     }
     xl6OutputPuts("  ],\n  \"foreignFieldLengths\": [\n",out);

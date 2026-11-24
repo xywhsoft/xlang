@@ -1,0 +1,17 @@
+#ifndef XL6_XGE3_CALLBACK_ELEMENTS_H
+#define XL6_XGE3_CALLBACK_ELEMENTS_H
+
+#include "xge3_runtime.h"
+#include "__xl_runtime/xl6_foreign_callback_elements.h"
+
+XL6_FOREIGN_CONST_ELEMENTS(xl6_xui_mesh_vertex_span,xui_mesh_vertex_t)
+XL6_FOREIGN_CONST_ELEMENTS_COPY(xl6_xui_mesh_vertex_span,xui_mesh_vertex_t)
+XL6_FOREIGN_CONST_ELEMENTS(xl6_xui_mesh_index_span,uint32_t)
+XL6_FOREIGN_CONST_ELEMENTS_COPY(xl6_xui_mesh_index_span,uint32_t)
+XL6_FOREIGN_CONST_ELEMENTS(xl6_xui_path_command_span,xui_path_command_t)
+XL6_FOREIGN_CONST_ELEMENTS_COPY(xl6_xui_path_command_span,xui_path_command_t)
+XL6_FOREIGN_CONST_ELEMENTS(xl6_xui_paint_span,xui_text_paint_span_t)
+XL6_FOREIGN_CONST_ELEMENTS_COPY(xl6_xui_paint_span,xui_text_paint_span_t)
+XL6_FOREIGN_CONST_ELEMENTS(xl6_xui_clipboard_item_span,xui_clipboard_item_t)
+
+#endif

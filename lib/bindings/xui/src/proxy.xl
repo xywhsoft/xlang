@@ -202,6 +202,38 @@ export extern "const XL6_WritableBytesViewV1*" class CallbackWritableBytes @head
  extern "xl6ForeignWritableBytesWriteV1" @no_raise @c_span(0,"const void*","size_t") @c_result("bool_status") func write(Buffer input,c_size offset=0)
 end
 
+// Counts are native elements. Scoped access does not copy the entire array.
+export extern "const xl6_xui_mesh_vertex_span*" class CallbackMeshVertices @header("xge3_callback_elements.h") @lifetime("callback")
+ native point handle
+ extern "Count" @c_field @no_raise get count() as c_size
+ extern "xl6_xui_mesh_vertex_spanRead" @no_raise @c_output(2,0) func at(c_size index) as MeshVertex
+end
+export extern "const xl6_xui_mesh_index_span*" class CallbackMeshIndices @header("xge3_callback_elements.h") @lifetime("callback")
+ native point handle
+ extern "Count" @c_field @no_raise get count() as c_size
+ extern "xl6_xui_mesh_index_spanRead" @no_raise @c_output(2,0) func at(c_size index) as c_uint
+end
+export extern "const xl6_xui_path_command_span*" class CallbackPathCommands @header("xge3_callback_elements.h") @lifetime("callback")
+ native point handle
+ extern "Count" @c_field @no_raise get count() as c_size
+ extern "xl6_xui_path_command_spanRead" @no_raise @c_output(2,0) func at(c_size index) as PathCommand
+end
+export extern "const xl6_xui_paint_span*" class CallbackTextPaintSpans @header("xge3_callback_elements.h") @lifetime("callback")
+ native point handle
+ extern "Count" @c_field @no_raise get count() as c_size
+ extern "xl6_xui_paint_spanRead" @no_raise @c_output(2,0) func at(c_size index) as TextPaintSpan
+end
+export extern "const xui_clipboard_item_t*" class CallbackClipboardItem @header("xge3_callback_elements.h") @lifetime("callback")
+ native point handle
+ extern "sFormat" @c_field @c_result("cstring") get format() as string
+ extern "pData" @c_field @c_length("iDataSize","size_t") @c_result("bytes_view") get data() as bytes
+end
+export extern "const xl6_xui_clipboard_item_span*" class CallbackClipboardItems @header("xge3_callback_elements.h") @lifetime("callback")
+ native point handle
+ extern "Count" @c_field @no_raise get count() as c_size
+ extern "xl6_xui_clipboard_item_spanAt" @no_raise @c_result("scope_view",0) func at(c_size index) as CallbackClipboardItem
+end
+
 export extern "xui_path_t*" class Path @header("xge3_runtime.h") @lifetime("owned") @policy("xl6Xui3PathPolicy")
  native point handle
  extern "xuiPathClear" @no_raise @c_result("status",0) func clear()

@@ -701,6 +701,22 @@ The writable descriptor exposes `Size`. A binding can declare
 checked status. It copies exactly the supplied byte count, supports overlap,
 and checks the offset and length before writing. The view expires on return
 from the callback.
+
+For a native read-only array, append `"elements"` to the span declaration,
+as in `@c_callback_span(1,0,"const vertex_t*","int","elements")`. The
+callback-lifetime class names a `const` descriptor pointer. Its C header
+declares a `Data` field of the exact native element pointer type and a
+`size_t Count` field. The header checks both fields against the original
+signature. The thunk validates the count, element alignment, and the
+representable byte extent before invoking xlang. NULL with zero elements is
+an empty sequence.
+
+The descriptor lives on the callback stack and points at the native array.
+`__xl_runtime/xl6_foreign_callback_elements.h` supplies checked accessors
+for a single element. An accessor can copy a pointer-free element or return
+a nested callback-lifetime view. Each access checks the requested index. A
+retained language value must use an independent copy or a native owner.
+
 Saving a slice does not extend its validity. Nested callbacks keep their own
 epochs: an inner saved view expires while the outer view remains valid. A
 declared copy property performs ordinary checked bytes materialization for

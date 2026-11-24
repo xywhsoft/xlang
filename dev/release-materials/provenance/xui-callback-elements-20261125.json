@@ -1,0 +1,120 @@
+{
+  "schema": 1,
+  "scope": "Typed read-only counted arrays in native XUI Proxy callbacks",
+  "shippingDelivery": false,
+  "networkTests": false,
+  "qualification": "The counted-array runtime matrix uses a frozen compiler and matching native package. The integrated source also includes the independently qualified text and resource views. The combined Linux matrix passed with the fixed-count successor.",
+  "checks": [
+    "Native counts count elements for a layout-compatible read-only descriptor",
+    "Actual Proxy drawMeshTriangles and clipboardSetItems populate the views and call xlang",
+    "The stack descriptor keeps the native array address; an indexed POD read copies one element",
+    "Clipboard entries borrow their native record within the callback and snapshot the selected bytes",
+    "Zero length, negative count, alignment, invalid addresses with positive counts, overflow, indices and view expiry",
+    "Windows and Linux JIT, dynamic AOT, static AOT and native imports"
+  ],
+  "platforms": {
+    "win_x64": {
+      "compilerBuild": {
+        "path": "F:/xlang-validation/xge-full-20261110/compiler-callback-elements-win-r1/build.json",
+        "sha256": "d438fbc9ba6892710d8698dbde5984cfe99b2fe1ef00003ceb8d7ee16f308e4d"
+      },
+      "matchedSdk": {
+        "path": "F:/xlang-validation/xge-full-20261110/callback-elements-compiler-sdk-win-r1/results.json",
+        "sha256": "0554fe9efc15dc202ac48db6473345a8356d7a9490f3865e6b76318b2d913f84"
+      },
+      "nativeImports": {
+        "host": [
+          "msvcrt.dll",
+          "xge3_host.dll",
+          "kernel32.dll",
+          "shell32.dll",
+          "ws2_32.dll",
+          "iphlpapi.dll",
+          "ucrtbase.dll"
+        ],
+        "static": [
+          "msvcrt.dll",
+          "kernel32.dll",
+          "ole32.dll",
+          "shell32.dll"
+        ]
+      },
+      "runtimeCases": {
+        "path": "F:/xlang-validation/xge-full-20261110/callback-elements-verify-win-r1/results.json",
+        "sha256": "b46a36232acc4c5c55d1a7db4b03b3e678590a768bde30802ef119b1c714d40b"
+      }
+    },
+    "linux_x64": {
+      "compilerBuild": {
+        "path": "/var/tmp/xlang-validation/xge-full-20261110/compiler-callback-elements-linux-r1/build.json",
+        "sha256": "d3562480b5e3051343a4837a0e6fc671dab07780dab93a3ae2add3eddc19b7d4"
+      },
+      "matchedSdk": {
+        "path": "/var/tmp/xlang-validation/xge-full-20261110/callback-elements-compiler-sdk-linux-r1/results.json",
+        "sha256": "3267612131ad779a2ea3b41f39307f097b77d44e0bd939742ba7730175ce91f0"
+      },
+      "nativeImports": {
+        "host": [
+          "libm.so.6",
+          "libmvec.so.1",
+          "libxge3_host.so",
+          "libc.so.6",
+          "ld-linux-x86-64.so.2"
+        ],
+        "static": [
+          "libm.so.6",
+          "libmvec.so.1",
+          "libx11.so.6",
+          "libxi.so.6",
+          "libxcursor.so.1",
+          "libgl.so.1",
+          "libc.so.6",
+          "ld-linux-x86-64.so.2"
+        ]
+      },
+      "runtimeCases": {
+        "path": "/var/tmp/xlang-validation/xge-full-20261110/callback-elements-verify-linux-r1/results.json",
+        "sha256": "fcab00db3486491daff557cf0ca823cd8947169908a06a161bfddcc75cccc067"
+      }
+    }
+  },
+  "combinedLinux": {
+    "path": "/var/tmp/xlang-validation/xge-full-20261110/callback-fixed-elements-verify-linux-r1/results.json",
+    "sha256": "b98ec29fae62a38db21f1f7b2b1dff3b00d5fcdf3a183ac19b54cb7c3162d8fa"
+  },
+  "checkedElementReadAssembly": {
+    "scope": "GCC O2 successful single MeshVertex accessor path. Excludes callback admission and language call lifetime checks.",
+    "path": "F:/xlang-validation/xge-full-20261110/callback-elements-src-r1/element-read-probe-results.json",
+    "sha256": "45acc66227d3f337f55c77c33f75d24ea48792d8a3ae777bf2083fcc9056a5ac",
+    "results": {
+      "win": {
+        "optimization": "gcc -O2",
+        "successfulPathInstructions": 17,
+        "matchesCheckedHandwrittenC": true,
+        "sha256": "6349917d1929771bc291fe4df7ed55b329b31e791f967a68f12987c4ba4ed9cb"
+      },
+      "linux": {
+        "optimization": "gcc -O2",
+        "successfulPathInstructions": 16,
+        "matchesCheckedHandwrittenC": true,
+        "sha256": "c3e5640b9c740c666f60e142dd5cb4756239677c438ef64ff54091728cba61dc"
+      }
+    }
+  },
+  "sourceSha256NormalizedLf": {
+    "src/type/xl6_foreign_call_contract.h": "51615c30a94f53d8e5e6ff9b57a6f75995a9c705c3b06b22fbdaa47e1c8e7535",
+    "src/type/xl6_foreign_decl.h": "2eff47965cbb6f6e25008017abace8f3688301b759e5b249b5cfb08882e9faff",
+    "src/ir/xl6_ir.c": "92cade8b226097e287dfb7b2c14b719b041eea5c488301ba6d72fcb118e5ed37",
+    "src/ir/xl6_ir_foreign_parameter.c": "2ea0ed1995ed9c6a15aef962f0f2e10f9ab7a9c02c8e1a84b596dfbf3f8604f3",
+    "src/sem/xl6_sem.c": "c9e5f06412d091a2cce2c97412cbf886d506ec64e90a915a59c1071ecef64cca",
+    "src/cgen/xl6_ir_cgen_native_callback.c": "ea7c7c11a0015e3afa38edf813ac0f4ea6191f5da2e92f1a8d3aa383d641ecc2",
+    "src/runtime/xl6_foreign_callback_elements.h": "3f7f967c0a872d8c65d085e269d40c26ac99a1d20f5d57e6ba2b2d12c6119068",
+    "lib/bindings/_xge_native/include/xge3_callback_elements.h": "dd062edfd10900d3f160b789ef4da3272876db56159607bb8e7dd84768bc8a09",
+    "lib/bindings/xui/src/proxy.xl": "835bf3869e2eea6c026a959ef3b59091c7e2f3cde7419e46b1e31f79cbdb98d7",
+    "docs/foreign-declarations.md": "5b08087cd4e7a39c514c6d947b3b200996709bc11d6d0f948a304573743a119c",
+    "test/cases/foreign_callback_elements.c": "4cf10a65ca243c0c58b414905ce20839f7be4c402b36db950f8d751b83ac234f",
+    "test/cases/foreign_callback_elements.h": "dae68f947b5c312f13b1824e1ef6dcf2669b064068be382e4dd4adfac350bddd",
+    "test/cases/foreign_callback_elements.xl": "b8e5dfc14877a0ffc4e488d1e838e9bac7dc0036ac5309ba6e6b409f1ca08102",
+    "lib/bindings/xui/README.md": "d221ee08a54f943ed5d0fcd60372f843db53228f5effd7d46a1164de102d2287"
+  }
+}

@@ -21830,9 +21830,11 @@ static int xl6SemCheckForeignFunctionDeclaration(XL6_SemContext* ctx, XL6_AstNod
         const XL6_AstNode* value=arguments && row.argument<arguments->childCount ?
             xl6SemResolveAliasType(ctx,xl6SemCallableItemType(arguments->children[row.argument])) : NULL;
         XL6_ForeignClassDecl contract={0};
+        char descriptor[64];
         if(!value || xl6SemTypeIsNullable(value) || !xl6SemForeignViewDeclaration(ctx,value,&contract) ||
-            contract.lifetime!=XL6_FOREIGN_LIFETIME_CALLBACK){
-            xl6SemErrorNode(ctx,node,"callback span must map to one non-null callback-lifetime byte view");return 0;
+            contract.lifetime!=XL6_FOREIGN_LIFETIME_CALLBACK ||
+            (row.countsElements && !xl6ForeignCallbackSpanElementType(contract.cName,descriptor,sizeof(descriptor)))){
+            xl6SemErrorNode(ctx,node,"callback span requires a non-null callback-lifetime view; element spans require a const descriptor pointer");return 0;
         }
         for(size_t j=0;j<i;++j){
             XL6_ForeignCallbackSpanContract previous;

@@ -211,7 +211,7 @@ static int xl6IrVerifyForeignCallbackSpans(const XL6_IrModule* module,XL6_DiagLi
              !((node->foreignCall.retainedCallbacks|node->foreignCall.physicalPairs)&(UINT64_C(1)<<row->parameter))) ||
             (row->countAbi!=XL6_FOREIGN_SPAN_COUNT_INT && row->countAbi!=XL6_FOREIGN_SPAN_COUNT_SIZE) ||
             !memchr(row->pointerCName,0,sizeof(row->pointerCName)) ||
-            !xl6ForeignCallbackSpanPointerValid(row->pointerCName))goto invalid;
+            !xl6ForeignCallbackSpanContractPointerValid(row))goto invalid;
         const XL6_ForeignParameterContract* callback=NULL;
         for(size_t p=0;p<module->foreignParameterCount;++p)
             if(module->foreignParameters[p].declaration==row->declaration && module->foreignParameters[p].parameter==row->parameter)
@@ -229,7 +229,7 @@ static int xl6IrVerifyForeignCallbackSpans(const XL6_IrModule* module,XL6_DiagLi
             xl6ForeignInputCallbackCount(module->nodes[n].foreignCall.inputMappingFacts)!=count)goto invalid;
     }
     return 1;
-invalid:return xl6IrDiag(diags,NULL,"callback byte spans require unique normalized physical pointer/count mappings");
+invalid:return xl6IrDiag(diags,NULL,"callback spans require unique normalized physical pointer/count mappings");
 }
 static int xl6IrForeignOwnershipHelperMatches(const XL6_IrModule* module,
     XL6_SymbolId symbol,XL6_IrTypeId input,int status)
@@ -747,8 +747,10 @@ int xl6IrForeignCallbackParameterMatches(const XL6_IrModule* module,const XL6_Ir
         const XL6_IrType* item=xl6IrTypeGet(&module->types,signature->params[p]);
         if(signature->parameterModes[p]!=XL6_IR_PARAMETER_MODE_DEFAULT || !item)return 0;
         const XL6_ForeignCallbackSpanContract* span=xl6IrForeignCallbackSpanGet(module,row,p);
+        char descriptor[64];
         if(span && (item->kind!=XL6_IR_TYPE_CLASS || item->foreignLifetime!=XL6_FOREIGN_LIFETIME_CALLBACK ||
-            !item->foreignHeader || !item->cName[0]))return 0;
+            !item->foreignHeader || !item->cName[0] ||
+            (span->countsElements && !xl6ForeignCallbackSpanElementType(item->cName,descriptor,sizeof(descriptor)))))return 0;
         if(item->foreignPolicy || item->foreignLifetime==XL6_FOREIGN_LIFETIME_CALLBACK) {
             if(signature->parameterAbis[p]!=XL6_IR_PARAMETER_ABI_BORROW ||
                 ((item->foreignLifetime!=XL6_FOREIGN_LIFETIME_CALLBACK || item->foreignOwner) &&

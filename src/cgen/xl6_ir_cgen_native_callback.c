@@ -8,8 +8,11 @@ static const char* xl6IrCgenCallbackNativeType(const XL6_IrModule* module,XL6_Ir
     if(type && type->cAbi==XL6_IR_C_ABI_MANAGED_STRING)return "xstrview";
     return type && (type->foreignPolicy || type->foreignLifetime==XL6_FOREIGN_LIFETIME_CALLBACK) ? type->cName : xl6IrCgenType(module,id);
 }
-static const char* xl6IrCgenCallbackSpanType(const XL6_ForeignCallbackSpanContract* span)
+static const char* xl6IrCgenCallbackSpanType(const XL6_ForeignCallbackSpanContract* span,
+    const XL6_IrType* view,char* name,size_t capacity)
 {
+    if(span->countsElements)
+        return xl6ForeignCallbackSpanPointeeName(view->cName,name,capacity) ? name : NULL;
     return xl6ForeignCallbackSpanWritable(span) ? "XL6_WritableBytesViewV1" : "xbytesview";
 }
 static int xl6IrCgenCallbackParameters(XL6_Output* out,const XL6_IrModule* module,
@@ -56,9 +59,18 @@ static int xl6IrCgenEmitNativeCallbackTypes(XL6_Output* out,const XL6_IrModule* 
             const XL6_ForeignCallbackSpanContract* span=xl6IrForeignCallbackSpanGet(module,row,a);
             if(!span)continue;
             const XL6_IrType* view=xl6IrTypeGet(&module->types,signature->params[a]);
-            const char* spanType=xl6IrCgenCallbackSpanType(span);
-            xl6OutputPrintf(out,"XLIR_NATIVE_ASSERT(XLIR_NATIVE_IS_TYPE((%s)0,const %s*),\"callback span requires const %s pointer\");\n",
-                view->cName,spanType,spanType);
+            char name[64];
+            const char* spanType=xl6IrCgenCallbackSpanType(span,view,name,sizeof(name));
+            if(!spanType)return 0;
+            if(span->countsElements){
+                xl6OutputPrintf(out,"XLIR_NATIVE_ASSERT(XLIR_NATIVE_IS_TYPE(((const %s*)0)->Data,%s),"
+                    "\"callback element span Data has the native const element pointer type\");\n"
+                    "XLIR_NATIVE_ASSERT(XLIR_NATIVE_IS_TYPE(((const %s*)0)->Count,size_t),"
+                    "\"callback element span Count has type size_t\");\n",
+                    spanType,span->pointerCName,spanType);
+            }else
+                xl6OutputPrintf(out,"XLIR_NATIVE_ASSERT(XLIR_NATIVE_IS_TYPE((%s)0,const %s*),\"callback span requires const %s pointer\");\n",
+                    view->cName,spanType,spanType);
         }
     }
     return !xl6OutputHasFailed(out);
@@ -116,7 +128,12 @@ static int xl6IrCgenEmitNativeCallbackThunks(XL6_Output* out,const XL6_IrModule*
             if(item->foreignLifetime==XL6_FOREIGN_LIFETIME_CALLBACK){
                 scoped=true;xl6OutputPrintf(out,"    %s arg%lu = {0};\n",xl6IrCgenType(module,signature->params[p]),(unsigned long)p);
                 const XL6_ForeignCallbackSpanContract* span=xl6IrForeignCallbackSpanGet(module,row,p);
-                if(span)xl6OutputPrintf(out,"    %s native_span_%lu={0};\n",xl6IrCgenCallbackSpanType(span),(unsigned long)p);
+                if(span){
+                    char name[64];
+                    const char* spanType=xl6IrCgenCallbackSpanType(span,item,name,sizeof(name));
+                    if(!spanType)return 0;
+                    xl6OutputPrintf(out,"    %s native_span_%lu={0};\n",spanType,(unsigned long)p);
+                }
             }else if(item->foreignPolicy)xl6OutputPrintf(out,"    XL6_ForeignView* arg%lu = NULL;\n",(unsigned long)p);
         }
         if(scoped)xl6OutputPuts("    XL6_ForeignScopeLifetimeV2 lifetime={0};\n",out);
@@ -135,10 +152,20 @@ static int xl6IrCgenEmitNativeCallbackThunks(XL6_Output* out,const XL6_IrModule*
                 if(span){
                     xl6OutputPuts("    if(!errors.failed && (",out);
                     if(span->countAbi==XL6_FOREIGN_SPAN_COUNT_INT)xl6OutputPrintf(out,"raw%lu_count<0 || ",(unsigned long)p);
+                    if(span->countsElements){
+                        char element[128];
+                        if(!xl6ForeignCallbackSpanPointeeName(span->pointerCName,element,sizeof(element)))return 0;
+                        xl6OutputPrintf(out,"(uintmax_t)raw%lu_count>SIZE_MAX/sizeof(%s) || "
+                            "(raw%lu_count && (uintptr_t)raw%lu %% XLIR_NATIVE_ALIGNOF(%s)) || ",
+                            (unsigned long)p,element,(unsigned long)p,(unsigned long)p,element);
+                    }
                     xl6OutputPrintf(out,"(uintmax_t)raw%lu_count>INT64_MAX || (raw%lu_count && !raw%lu))) { xrtSetErrorKind(XERR_ARGUMENT); xl6ErrorScopeCaptureFailure(&errors); }\n"
                         "    if(!errors.failed) { XL6_ForeignScopeViewV1 borrowed={0};\n",
                         (unsigned long)p,(unsigned long)p,(unsigned long)p);
-                    if(xl6ForeignCallbackSpanWritable(span))
+                    if(span->countsElements)
+                        xl6OutputPrintf(out,"        native_span_%lu.Data=raw%lu; native_span_%lu.Count=(size_t)raw%lu_count;\n",
+                            (unsigned long)p,(unsigned long)p,(unsigned long)p,(unsigned long)p);
+                    else if(xl6ForeignCallbackSpanWritable(span))
                         xl6OutputPrintf(out,"        native_span_%lu=(XL6_WritableBytesViewV1){(uint8_t*)raw%lu,(size_t)raw%lu_count};\n",
                             (unsigned long)p,(unsigned long)p,(unsigned long)p);
                     else

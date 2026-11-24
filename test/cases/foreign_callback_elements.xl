@@ -1,0 +1,101 @@
+from xui import CallbackProxy,CallbackDrawContext,CallbackMeshVertices,CallbackMeshIndices,CallbackClipboardItems,CallbackClipboardItem,Proxy,XUI_PROXY_VERSION
+
+typedef Mesh=func(CallbackProxy,CallbackDrawContext,CallbackMeshVertices,CallbackMeshIndices,c_uint) as c_int
+typedef Clipboard=func(CallbackProxy,CallbackClipboardItems) as c_int
+typedef Counted=func(CallbackMeshVertices) as c_int
+
+extern "xuiProxyReleaseChecked" @header("xge3_runtime.h") @no_raise @c_result("status",0) func releaseProbe(Proxy value)
+extern "xuiProxyCreateOwned" @header("xge3_runtime.h") @no_raise @c_result("owned_view") @factory(2,0,releaseProbe) @c_pack(0,"xui_proxy_t",0,3) @c_pack_size(0,"iSize","uint32_t") @c_pack_field(0,"iVersion",0,"value") @c_pack_callback_group(0,"pUser",1) @c_pack_field(0,"drawMeshTriangles",1,"owned_callback") @c_pack_field(0,"clipboardSetItems",2,"owned_callback") @c_owned_callback(1,-1,"xui_callback_owner_t",-16,"receiver") @c_owned_callback(2,-1,"xui_callback_owner_t",-16,"receiver") @c_callback_span(1,2,"const xui_mesh_vertex_t*","int","elements") @c_callback_span(1,3,"const uint32_t*","int","elements") @c_callback_span(2,1,"const xui_clipboard_item_t*","int","elements") func makeProxy(c_uint version,Mesh draw,Clipboard setItems) as Proxy
+extern "xl_test_proxy_mesh" @header("test/cases/foreign_callback_elements.h") @no_raise @c_result("status",0) func drawMesh(Proxy proxy,c_int mode)
+extern "xl_test_proxy_clipboard_items" @header("test/cases/foreign_callback_elements.h") @no_raise @c_result("status",0) func clipboardItems(Proxy proxy)
+extern "xl_test_counted_elements" @header("test/cases/foreign_callback_elements.h") @no_raise @c_result("status",0) @c_sync_callback(0,-1,-16) @c_callback_span(0,0,"const xui_mesh_vertex_t*","size_t","elements") func counted(Counted callback,c_int mode)
+
+class State
+ CallbackMeshVertices? saved=null
+ CallbackClipboardItem? item=null
+ int meshCalls=0
+ int sizeCalls=0
+end
+
+func main(...) as int
+ auto state=State()
+ Mesh draw=func(CallbackProxy backend,CallbackDrawContext context,CallbackMeshVertices vertices,CallbackMeshIndices indices,c_uint flags) as c_int
+  assert backend.version==c_uint(XUI_PROXY_VERSION)
+  state.saved=vertices
+  state.meshCalls+=1
+  if flags==c_uint(0)
+   assert vertices.count==c_size(0) and indices.count==c_size(0)
+   return c_int(0)
+  end
+  assert flags==c_uint(7)
+  assert vertices.count==c_size(2) and indices.count==c_size(3)
+  auto second=vertices.at(c_size(1))
+  assert second.fX==c_float(3) and second.fY==c_float(4) and second.iColor==c_uint(0xAABBCCDD)
+  assert indices.at(c_size(2))==c_uint(1)
+  bool denied=false
+  try
+   auto ignored=vertices.at(c_size(2))
+  catch error
+   denied=true
+  end
+  assert denied
+  return c_int(0)
+ end
+ Clipboard setItems=func(CallbackProxy backend,CallbackClipboardItems items) as c_int
+  assert backend.version==c_uint(XUI_PROXY_VERSION) and items.count==c_size(2)
+  auto first=items.at(c_size(0))
+  assert first.format=="text/plain" and first.data==b"x\0y"
+  assert items.at(c_size(1)).data==b""
+  state.item=first
+  return c_int(0)
+ end
+ auto proxy=makeProxy(c_uint(XUI_PROXY_VERSION),draw,setItems)
+ drawMesh(proxy,c_int(0))
+ drawMesh(proxy,c_int(1))
+ for mode in range(2,4)
+  bool denied=false
+  try
+   drawMesh(proxy,c_int(mode))
+  catch error
+   denied=true
+  end
+  assert denied
+ end
+ assert state.meshCalls==2
+ bool expired=false
+ try
+  auto count=(state.saved as CallbackMeshVertices).count
+ catch error
+  expired=true
+ end
+ assert expired
+ clipboardItems(proxy)
+ expired=false
+ try
+  auto value=(state.item as CallbackClipboardItem).data
+ catch error
+  expired=true
+ end
+ assert expired
+
+ Counted consume=func(CallbackMeshVertices items) as c_int
+  state.sizeCalls+=1
+  assert items.count==c_size(1)
+  assert items.at(c_size(0)).fX==c_float(8)
+  return c_int(0)
+ end
+ counted(consume,c_int(0))
+ for mode in range(1,4)
+  bool denied=false
+  try
+   counted(consume,c_int(mode))
+  catch error
+   denied=true
+  end
+  assert denied
+ end
+ assert state.sizeCalls==1
+ proxy.close()
+ println("XUI_CALLBACK_ELEMENTS_OK")
+ return 0
+end

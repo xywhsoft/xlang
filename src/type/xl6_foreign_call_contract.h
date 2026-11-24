@@ -347,12 +347,13 @@ typedef struct XL6_ForeignRetainContract {
     XL6_ForeignRetainSuccess success;
 } XL6_ForeignRetainContract;
 
-/* Two physical native callback slots become one non-null callback-epoch byte
- * view. Const qualification selects read-only or writable data. Counts are
- * bytes; no element-stride inference or payload ownership. */
+/* Two native callback slots form one callback-lifetime view. Ordinary spans
+ * count bytes. An explicitly declared typed span counts read-only elements.
+ * The native publisher owns the storage in both cases. */
 typedef struct XL6_ForeignCallbackSpanContract {
     uint32 declaration,parameter,argument;
     XL6_ForeignSpanCountAbi countAbi;
+    uint32 countsElements;
     char pointerCName[128];
 } XL6_ForeignCallbackSpanContract;
 
@@ -361,6 +362,20 @@ static inline bool xl6ForeignCallbackSpanPointerValid(const char* name)
     if(!strncmp(name,"const ",6))name+=6;
     return !strcmp(name,"void*") || !strcmp(name,"uint8_t*") ||
         !strcmp(name,"unsigned char*") || !strcmp(name,"char*");
+}
+
+static inline int xl6ForeignCallbackSpanPointeeName(const char* pointer,char* type,size_t capacity)
+{
+    if(!pointer || strncmp(pointer,"const ",6))return 0;
+    const char* base=pointer+6;
+    const char* end=strchr(base,'*');
+    if(!end || end[1])return 0;
+    while(end>base && end[-1]==' ')--end;
+    size_t size=(size_t)(end-base);
+    if(!size || size>=capacity)return 0;
+    memcpy(type,base,size);
+    type[size]=0;
+    return strcmp(type,"void")!=0;
 }
 
 static inline bool xl6ForeignCallbackSpanWritable(const XL6_ForeignCallbackSpanContract* row)
