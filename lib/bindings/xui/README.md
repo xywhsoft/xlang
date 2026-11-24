@@ -149,10 +149,17 @@ the Proxy's rollback queue. The next resource output retries that queue.
 `Proxy.drainCallbackRollbacks()` retries it explicitly and reports `Busy` while
 a resource remains in use. `Proxy.close()` also retries pending rollback.
 
+Use `surfaceDestroy`, `fontDestroy` and `drawEnd` to clean up backend
+resources. Each hook runs once on the backend's thread, for normal
+retirement and for abandoned results. Its resource argument is scoped to the
+hook and can read the live backend value. A retained resource or active
+native read can delay ownership retirement. Hook errors are checked, and a
+cleanup error during rollback preserves the original publication error.
+
 See the [resource example](examples/custom_proxy_resources.xl) for custom
 Surface and Draw creation and the [frame request example](examples/custom_proxy.xl)
 for frame scheduling. Full `Context` support still requires the pixel transfer
-and resource retirement callbacks.
+callbacks.
 
 Proxy backend callbacks use scoped views for their native arguments.
 `CallbackProxy.share()` obtains an independently owned `Proxy`.

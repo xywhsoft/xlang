@@ -1,0 +1,104 @@
+import xui
+from xui import CallbackSurface
+
+class Calls
+    int surfaces = 0
+    int fonts = 0
+    int draws = 0
+    bool rejectPublication = false
+end
+
+func main(...) as int
+    auto calls = Calls()
+    xui.CallbackSurface? expired = null
+    auto proxy = xui.createCustomProxy(func(xui.CallbackProxy backend, xui.CallbackProxyCapsOutput output) as c_int
+        output.value = xui.ProxyCaps()
+        return c_int(0)
+    end,
+    surfaceCreate=func(xui.CallbackProxy backend, xui.CallbackSurfaceOutput output, xui.CallbackSurfaceDesc descriptor) as c_int
+        output.set(backend, int(descriptor.value.iWidth))
+        if calls.rejectPublication then throw "primary Surface publication error" end
+        return c_int(0)
+    end,
+    surfaceDestroy=func(xui.CallbackProxy backend, xui.CallbackSurface surface)
+        assert (surface.getBackendValue() as int) == 17
+        expired = surface
+        bool rejected = false
+        try
+            auto unexpected = surface.share()
+            unexpected.close()
+        catch Error
+            rejected = true
+        end
+        assert rejected
+        calls.surfaces += 1
+        if calls.rejectPublication then throw "secondary Surface destruction error" end
+    end,
+    fontLoadMemory=func(xui.CallbackProxy backend, xui.CallbackFontOutput output, xui.ByteSlice data, c_float size, c_uint flags) as c_int
+        output.set(backend, data.bytes)
+        return c_int(0)
+    end,
+    fontDestroy=func(xui.CallbackProxy backend, xui.CallbackFont font)
+        assert (font.getBackendValue() as bytes) == b"font\0state"
+        calls.fonts += 1
+        throw "Font destruction error"
+    end,
+    drawBegin=func(xui.CallbackProxy backend, xui.CallbackDrawOutput output, xui.CallbackSurface? target) as c_int
+        output.set(backend, 31, target)
+        return c_int(0)
+    end,
+    drawEnd=func(xui.CallbackProxy backend, xui.CallbackDrawContext draw) as c_int
+        assert (draw.getBackendValue() as int) == 31
+        calls.draws += 1
+        return c_int(0)
+    end)
+
+    xui.SurfaceDesc desc
+    desc.iWidth = 17
+    desc.iHeight = 6
+    auto surface = proxy.createSurface(desc)
+    auto surfaceAlias = surface.share()
+    surface.close()
+    assert calls.surfaces == 0
+
+    auto draw = proxy.beginDraw(surfaceAlias)
+    draw.finish()
+    draw.close()
+    assert calls.draws == 1
+
+    surfaceAlias.close()
+    assert calls.surfaces == 1
+    bool viewExpired = false
+    try
+        auto captured = expired as CallbackSurface
+        var unavailable = captured.getBackendValue()
+    catch Error
+        viewExpired = true
+    end
+    assert viewExpired
+
+    auto font = proxy.loadFontMemory(b"font\0state", 12)
+    bool fontFailed = false
+    try
+        font.close()
+    catch error
+        fontFailed = error.message == "Font destruction error"
+    end
+    assert fontFailed and calls.fonts == 1
+    font.close()
+    assert calls.fonts == 1
+
+    calls.rejectPublication = true
+    bool primaryKept = false
+    try
+        auto unexpected = proxy.createSurface(desc)
+        unexpected.close()
+    catch error
+        primaryKept = error.message == "primary Surface publication error"
+    end
+    assert primaryKept and calls.surfaces == 2
+    proxy.drainCallbackRollbacks()
+    proxy.close()
+    println("XUI_CUSTOM_PROXY_LANGUAGE_RETIREMENT_OK")
+    return 0
+end

@@ -1,0 +1,116 @@
+{
+  "schema": 1,
+  "shippingDelivery": false,
+  "nativeHooksCommit": "b061ccd3de7a9868b11a5394cf98255d8f85cb67",
+  "nativeDetachedOwnersCommit": "27611c75a55f9ba3f8b7bbd3beca12333c2c5663",
+  "nativeSourceLfSha256": {
+    "include/xui.h": "c90a5792fe9f1355bea55ee6a6d03922616e07c748ec239ae797e95f83b900cd",
+    "src/xui/core/xui_proxy_resource.c": "858915adfeb273ab4930050beac87d17d1be58702e31eec1c938c4dc3e8610f8",
+    "src/xui/core/xui_proxy_resource.h": "a81e93ebb26ef4f0d749051a132fa2504a7e8b9884f2e9900a9af178a0ab179d",
+    "src/xui/core/xui_core.c": "a04001a1c94274182fccafb1842449dbaba3f6fcfca32087be28ef7ac69cc523",
+    "src/xui/core/xui_widget.c": "5f578d34b8c597ed81a1332e25d6ae1502ada72ff7160b4445c9a0c1b9ba9ce7",
+    "src/xui/core/xui_owned_resource_slots.c": "0229c7e8c97a3fdad2ec3a75a3a4c414173b8a789eb9a0a751eb88eb54c70486",
+    "tests/xui/xui_custom_proxy_retirement_test.c": "4eb45013382cd219fab394df0d0bb1a5b31ff65df954e4699f3d9824f86469da"
+  },
+  "languageSourceLfSha256": {
+    "lib/bindings/xui/src/proxy_callbacks.xl": "8c53e831a752d3f7c80c243a04bbe9fb832b2d9b36e690a47860b10c84f00e3a",
+    "lib/bindings/_xge_native/include/xge3_custom_proxy.h": "5c79139aba13f24a89158e437936168ea4244e8188e748d90886ff6e3c55a150",
+    "test/cases/foreign_xui_custom_proxy_retirement.xl": "34c14a0f7230b5e6a0c2399c5072273c1a990ee8766f0990ccdc24e99532674f",
+    "lib/bindings/xui/examples/custom_proxy_resources.xl": "da925d2b5bba6f0914b7ce926ea1e6a579d073af9041d69a8214938fd3179304"
+  },
+  "customProxySlots": {
+    "typed": 68,
+    "total": 72,
+    "remaining": [
+      "surfaceCreateRGBA",
+      "surfaceUpdateRGBA",
+      "surfaceReadRGBA",
+      "clipboardSetItemsWithTransfer"
+    ]
+  },
+  "scope": "Typed Surface and Font destruction and Draw end, one-shot callbacks and owning queue transfer",
+  "validated": [
+    "backend value visible during callback and checked expired afterward",
+    "retiring resource cannot be shared",
+    "normal explicit retirement, abandoned results and error precedence",
+    "busy raw release and busy detached Context font slot transfer the existing owner without allocation in the queue",
+    "ordinary raw C owned Proxy factory retains its prior callbacks"
+  ],
+  "layoutX64": {
+    "additionalBytesPerProxyWithRetirementHooks": 32,
+    "surfaceAndFontCoreBytes": 80,
+    "drawCoreBytes": 96
+  },
+  "platforms": {
+    "windows": {
+      "matchedGate": {
+        "path": "F:/xlang-validation/xge-full-20261110/custom-proxy-retirement-verify-win-r6/results.json",
+        "sha256": "5489dd3d58b8225282d0ad817890d96c12195773f0bc60f6abd84d163397fb6e",
+        "checks": 17
+      },
+      "headers": {
+        "path": "F:/xlang-validation/xge-full-20261110/custom-proxy-retirement-header-win-r3/results.json",
+        "sha256": "976519e531a46bdc8f941a1756e0162742a00bce6af77485f7cf3ffb24a32716",
+        "checks": 3
+      },
+      "sourceFreeze": {
+        "path": "F:/xlang-validation/xge-full-20261110/custom-proxy-retirement-native-source-win-r3.json",
+        "sha256": "82859449fbd63649c6efcdee6ba02d8e618a29038133f10aa7474bf433622e31"
+      },
+      "preFixDetachedFontReproduction": {
+        "path": "F:/xlang-validation/xge-full-20261110/probe-context-registered-font-retirement.json",
+        "sha256": "c56e897770d3818317191f7217edc628e2918308b4bc1d8570cf45ea04cbdba5"
+      },
+      "hostImports": [
+        "msvcrt.dll",
+        "xge3_host.dll",
+        "kernel32.dll",
+        "shell32.dll",
+        "ucrtbase.dll"
+      ],
+      "staticImports": [
+        "msvcrt.dll",
+        "kernel32.dll",
+        "ole32.dll",
+        "shell32.dll"
+      ]
+    },
+    "linux": {
+      "matchedGate": {
+        "path": "//wsl.localhost/Ubuntu/var/tmp/xlang-validation/xge-full-20261110/custom-proxy-retirement-verify-linux-r6/results.json",
+        "sha256": "91d94d23ed3e7bcd1d6f84ae9c6b44f074fd564f2cd30aa9b87ed64403c26abd",
+        "checks": 17
+      },
+      "headers": {
+        "path": "//wsl.localhost/Ubuntu/var/tmp/xlang-validation/xge-full-20261110/custom-proxy-retirement-header-linux-r3/results.json",
+        "sha256": "4d59756d6b48c3ec2c8e2b849422e68430cedfcc5bb1ad27a85f7b75b20d0bba",
+        "checks": 3
+      },
+      "sourceFreeze": {
+        "path": "//wsl.localhost/Ubuntu/var/tmp/xlang-validation/xge-full-20261110/custom-proxy-retirement-native-source-linux-r3.json",
+        "sha256": "3a65d7c99b193bc35318e064d0c689f9856269b529033a10bd5f3d9314a7a39c"
+      },
+      "preFixDetachedFontReproduction": {
+        "path": "//wsl.localhost/Ubuntu/var/tmp/xlang-validation/xge-full-20261110/probe-context-registered-font-retirement.json",
+        "sha256": "a866112b97c32298afa499a38e3227902d5e9d9ef94cda961bd63c45f33cc0ea"
+      },
+      "hostImports": [
+        "libm.so.6",
+        "libmvec.so.1",
+        "libxge3_host.so",
+        "libc.so.6",
+        "ld-linux-x86-64.so.2"
+      ],
+      "staticImports": [
+        "libm.so.6",
+        "libmvec.so.1",
+        "libx11.so.6",
+        "libxi.so.6",
+        "libxcursor.so.1",
+        "libgl.so.1",
+        "libc.so.6",
+        "ld-linux-x86-64.so.2"
+      ]
+    }
+  }
+}

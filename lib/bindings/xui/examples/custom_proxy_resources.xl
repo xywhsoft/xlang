@@ -12,12 +12,17 @@ func createSurface(xui.CallbackProxy backend, xui.CallbackSurfaceOutput output, 
 end
 
 func beginDraw(xui.CallbackProxy backend, xui.CallbackDrawOutput output, xui.CallbackSurface? target) as c_int
-    output.set(backend, null, target)
+    output.set(backend, "preview", target)
+    return c_int(0)
+end
+
+func endDraw(xui.CallbackProxy backend, xui.CallbackDrawContext draw) as c_int
+    println("Finished", draw.getBackendValue() as string)
     return c_int(0)
 end
 
 func main(...) as int
-    auto backend = xui.createCustomProxy(capabilities, surfaceCreate=createSurface, drawBegin=beginDraw)
+    auto backend = xui.createCustomProxy(capabilities, surfaceCreate=createSurface, drawBegin=beginDraw, drawEnd=endDraw)
     xui.SurfaceDesc descriptor
     descriptor.iWidth = 320
     descriptor.iHeight = 180

@@ -5,7 +5,7 @@
 #include "__xl_runtime/xl6_foreign_writable_bytes.h"
 
 /* Keep the named xlang pack distinct from explicit native descriptor imports.
- * The generated C still calls the original factory. */
-#define xl6Xui3CreateCustomProxy xuiProxyCreateOwned
+ * The generated C calls the native value-owned backend factory directly. */
+#define xl6Xui3CreateCustomProxy xuiProxyCreateCustomOwned
 
 #endif
