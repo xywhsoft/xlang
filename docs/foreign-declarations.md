@@ -724,6 +724,26 @@ for a single element. An accessor can copy a pointer-free element or return
 a nested callback-lifetime view. Each access checks the requested index. A
 retained language value must use an independent copy or a native owner.
 
+For a native pointer followed by a signed `int` row stride, use
+`@c_callback_region(0,2,"const void*","0","1",4,"nullable")`. The two
+extent selectors identify callback arguments by their language indices.
+Each selector accepts an exact `c_int` or a `c_int` field of a by-value
+C record, such as `"0.iWidth"`. The unit is the number of bytes per
+logical column. A nonpositive native stride selects tight rows.
+
+The slot uses `const XL6_ReadableRegionViewV1*` for read-only storage or
+`const XL6_WritableRegionViewV1*` for writable storage. Both live in the
+callback frame. The optional `"nullable"` form is read-only and maps
+NULL to an absent view after validating the dimensions. The generated
+callback rejects invalid geometry, overflow and short stride before
+running the language closure. The C caller remains responsible for
+the actual backing storage described by its ABI.
+
+Read helpers expose only active row bytes. A single byte access uses
+the native storage directly. Row snapshots allocate and copy active bytes
+when requested. Writes copy a checked range into one row and cannot
+overwrite padding. A saved view still expires at callback return.
+
 Saving a slice does not extend its validity. Nested callbacks keep their own
 epochs: an inner saved view expires while the outer view remains valid. A
 declared copy property performs ordinary checked bytes materialization for

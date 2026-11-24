@@ -21831,10 +21831,29 @@ static int xl6SemCheckForeignFunctionDeclaration(XL6_SemContext* ctx, XL6_AstNod
             xl6SemResolveAliasType(ctx,xl6SemCallableItemType(arguments->children[row.argument])) : NULL;
         XL6_ForeignClassDecl contract={0};
         char descriptor[64];
-        if(!value || xl6SemTypeIsNullable(value) || !xl6SemForeignViewDeclaration(ctx,value,&contract) ||
+        const bool nullable=xl6SemTypeIsNullable(value);
+        if(nullable)value=xl6SemResolveAliasType(ctx,xl6SemNullableInnerType(value));
+        if(!value || nullable!=(row.regionNullable!=0) || !xl6SemForeignViewDeclaration(ctx,value,&contract) ||
             contract.lifetime!=XL6_FOREIGN_LIFETIME_CALLBACK ||
             (row.countsElements && !xl6ForeignCallbackSpanElementType(contract.cName,descriptor,sizeof(descriptor)))){
-            xl6SemErrorNode(ctx,node,"callback argument projection requires a non-null callback-lifetime view");return 0;
+            xl6SemErrorNode(ctx,node,"callback argument projection requires a callback-lifetime view with matching nullability");return 0;
+        }
+        if(xl6ForeignCallbackRegion(&row)){
+            const char* view=xl6ForeignCallbackSpanWritable(&row) ?
+                "const XL6_WritableRegionViewV1*":"const XL6_ReadableRegionViewV1*";
+            if(strcmp(contract.cName,view)){
+                xl6SemErrorNode(ctx,node,"callback regions require the matching scoped read or write descriptor");return 0;
+            }
+            const XL6_ForeignCallbackRegionExtent* extents[]={&row.regionWidth,&row.regionHeight};
+            for(size_t e=0;e<XL6_ARRAY_COUNT(extents);++e){
+                const XL6_ForeignCallbackRegionExtent* extent=extents[e];
+                const XL6_AstNode* dimension=extent->argument<arguments->childCount ?
+                    xl6SemResolveAliasType(ctx,xl6SemCallableItemType(arguments->children[extent->argument])):NULL;
+                if(extent->field[0])dimension=xl6SemResolveAliasType(ctx,xl6SemForeignRegionField(ctx,dimension,extent->field));
+                if(!dimension || dimension->childCount || !xl6TextEquals(dimension->text,"c_int")){
+                    xl6SemErrorNode(ctx,node,"callback region extents require c_int arguments or c_int fields of by-value C records");return 0;
+                }
+            }
         }
         if(xl6ForeignCallbackOwnedOutput(&row)){
             const XL6_AstNode* returns=signature->children[1];

@@ -718,6 +718,32 @@ int xl6IrForeignSpanParameterMatches(const XL6_IrModule* module,const XL6_IrCall
     return row->readOnly && ((type->kind==XL6_IR_TYPE_BUILTIN && (type->cAbi==XL6_IR_C_ABI_MANAGED_STRING ||
         type->cAbi==XL6_IR_C_ABI_MANAGED_BYTES)) || type->cAbi==XL6_IR_C_ABI_C_ARRAY || type->cAbi==XL6_IR_C_ABI_C_RECORD);
 }
+static int xl6IrForeignCallbackExtentMatches(const XL6_IrModule* module,const XL6_IrType* signature,
+    const XL6_ForeignParameterContract* callback,const XL6_ForeignCallbackRegionExtent* extent)
+{
+    if(extent->argument>=signature->paramCount ||
+        xl6IrForeignCallbackSpanGet(module,callback,extent->argument))return 0;
+    const XL6_IrTypeId source=signature->params[extent->argument];
+    const XL6_IrType* type=xl6IrTypeGet(&module->types,source);
+    if(!type)return 0;
+    if(!extent->field[0])return type->kind==XL6_IR_TYPE_BUILTIN && type->cAbi==XL6_IR_C_ABI_C_INT;
+    const XL6_IrAggregateLayout* layout=xl6IrUnionLayoutGet(module,source);
+    if(type->kind!=XL6_IR_TYPE_C_RECORD || !type->foreignHeader || !layout ||
+        layout->firstField>module->aggregateFieldCount ||
+        layout->fieldCount>module->aggregateFieldCount-layout->firstField)return 0;
+    size_t count=0;
+    for(size_t i=0;i<layout->fieldCount;++i){
+        const XL6_IrAggregateField* field=&module->aggregateFields[layout->firstField+i];
+        if(!memchr(field->cName,0,sizeof(field->cName)))return 0;
+        if(!strcmp(field->cName,extent->field)){
+            const XL6_IrType* integer=xl6IrTypeGet(&module->types,field->type);
+            if(!integer || integer->kind!=XL6_IR_TYPE_BUILTIN || integer->cAbi!=XL6_IR_C_ABI_C_INT)return 0;
+            ++count;
+        }
+    }
+    return count==1;
+}
+
 int xl6IrForeignCallbackParameterMatches(const XL6_IrModule* module,const XL6_IrCallTarget* target,size_t parameter)
 {
     const XL6_ForeignParameterContract* row=xl6IrForeignParameterGet(module,target,parameter);
@@ -747,9 +773,17 @@ int xl6IrForeignCallbackParameterMatches(const XL6_IrModule* module,const XL6_Ir
         if(signature->parameterModes[p]!=XL6_IR_PARAMETER_MODE_DEFAULT || !item)return 0;
         const XL6_ForeignCallbackSpanContract* span=xl6IrForeignCallbackSpanGet(module,row,p);
         char descriptor[64];
-        if(span && (item->kind!=XL6_IR_TYPE_CLASS || item->foreignLifetime!=XL6_FOREIGN_LIFETIME_CALLBACK ||
+        if(span && (item->kind!=(span->regionNullable ? XL6_IR_TYPE_NULLABLE:XL6_IR_TYPE_CLASS) ||
+            item->foreignLifetime!=XL6_FOREIGN_LIFETIME_CALLBACK ||
             !item->foreignHeader || !item->cName[0] ||
             (span->countsElements && !xl6ForeignCallbackSpanElementType(item->cName,descriptor,sizeof(descriptor)))))return 0;
+        if(xl6ForeignCallbackRegion(span)){
+            const char* view=xl6ForeignCallbackSpanWritable(span) ?
+                "const XL6_WritableRegionViewV1*":"const XL6_ReadableRegionViewV1*";
+            if(strcmp(item->cName,view) ||
+                !xl6IrForeignCallbackExtentMatches(module,signature,row,&span->regionWidth) ||
+                !xl6IrForeignCallbackExtentMatches(module,signature,row,&span->regionHeight))return 0;
+        }
         if(xl6ForeignCallbackOwnedOutput(span)){
             const XL6_IrType* status=signature->returnCount==1 ? xl6IrTypeGet(&module->types,signature->callableResultType):NULL;
             if(!status || status->cAbi!=XL6_IR_C_ABI_C_INT || !row->callbackFailureCode ||

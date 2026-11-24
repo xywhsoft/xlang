@@ -1,0 +1,61 @@
+{
+  "schema": 1,
+  "feature": "Callback-lifetime strided rows for XUI custom Surface creation and update",
+  "nativeAuthority": "3c9b4f89135553ab1dba48236bef6d9a865a1a37",
+  "compiler": "Complete O2 TinyCC, XRT and VFS candidate builds",
+  "shippingDelivery": false,
+  "verified": [
+    "Direct callback dimensions from signed C integer arguments or C record fields",
+    "Nullable creation pixels, tight stride, row padding, embedded NUL, checked bounds and expiry",
+    "JIT, dynamic AOT and static AOT; static executables have no dynamic XGE host import",
+    "Allocation-free C header layout and indexed access checks"
+  ],
+  "remaining": [
+    "Observer-sized XUI readback and clipboard transfer in later cohorts",
+    "Matched release and comparative end-to-end performance qualification"
+  ],
+  "evidence": {
+    "win": {
+      "compiler-callback-region": {
+        "path": "F:/xlang-validation/xge-full-20261110/compiler-callback-region-win-r1/build.json",
+        "sha256": "9dce89c39dda3560f74cfcf4c41edd81cd0bfd961b9fb1e588727314cf87851b"
+      },
+      "callback-region-verify": {
+        "path": "F:/xlang-validation/xge-full-20261110/callback-region-verify-win-r1/results.json",
+        "sha256": "284ae6500485df0a572eed725248c7a45e47dc02d1dd3e2305bdf6e3a6a6b9f9",
+        "steps": 18
+      },
+      "callback-region-header": {
+        "path": "F:/xlang-validation/xge-full-20261110/callback-region-header-win-r1/results.json",
+        "sha256": "0a2e02ec7987366f05aa3be65df8c247fae54c015124745c3ba7edf5bb3ae58f",
+        "steps": 6
+      },
+      "custom-proxy-surface-extent-verify": {
+        "path": "F:/xlang-validation/xge-full-20261110/custom-proxy-surface-extent-verify-win-r1/results.json",
+        "sha256": "b36151cd36b663d0bf808b3132c274e1840b455861633747285f7093169eb622",
+        "steps": 4
+      }
+    },
+    "linux": {
+      "compiler-callback-region": {
+        "path": "/var/tmp/xlang-validation/xge-full-20261110/compiler-callback-region-linux-r1/build.json",
+        "sha256": "1c6d88dcffff85e17b53b02ceb0b49c76b1f227f553b439fea8d705a6dcc45e1"
+      },
+      "callback-region-verify": {
+        "path": "/var/tmp/xlang-validation/xge-full-20261110/callback-region-verify-linux-r1/results.json",
+        "sha256": "8006f042ce16621f9080cc62c6ff8aefa6373986f3496dcdbd97b999533415b1",
+        "steps": 18
+      },
+      "callback-region-header": {
+        "path": "/var/tmp/xlang-validation/xge-full-20261110/callback-region-header-linux-r1/results.json",
+        "sha256": "23e142e6351bbb452a1a5790f71c57e742df7b59437cae58e024838eb2eed350",
+        "steps": 6
+      },
+      "custom-proxy-surface-extent-verify": {
+        "path": "/var/tmp/xlang-validation/xge-full-20261110/custom-proxy-surface-extent-verify-linux-r1/results.json",
+        "sha256": "8e5cb7efce7e1497dcf1657ccbaed4aa36df697e4e84b8ede015e44e640566ff",
+        "steps": 4
+      }
+    }
+  }
+}

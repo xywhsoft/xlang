@@ -352,18 +352,31 @@ typedef struct XL6_ForeignRetainContract {
  * A nonzero fixedCount replaces the physical count parameter in a typed span.
  * The native publisher owns span storage. An owned output instead projects
  * one native pointer slot through an initially empty stack slot and names
- * a consuming rollback function. */
+ * a consuming rollback function. A region uses the second native slot as
+ * its signed int stride and derives extents from the declared arguments. */
+typedef struct XL6_ForeignCallbackRegionExtent {
+    uint32 argument;
+    char field[64];
+} XL6_ForeignCallbackRegionExtent;
+
 typedef struct XL6_ForeignCallbackSpanContract {
     uint32 declaration,parameter,argument;
     XL6_ForeignSpanCountAbi countAbi;
     uint32 countsElements,fixedCount;
     char pointerCName[128];
     char rollbackCName[96];
+    uint32 regionUnitBytes,regionNullable;
+    XL6_ForeignCallbackRegionExtent regionWidth,regionHeight;
 } XL6_ForeignCallbackSpanContract;
 
 static inline bool xl6ForeignCallbackOwnedOutput(const XL6_ForeignCallbackSpanContract* row)
 {
     return row && row->rollbackCName[0] != 0;
+}
+
+static inline bool xl6ForeignCallbackRegion(const XL6_ForeignCallbackSpanContract* row)
+{
+    return row && row->regionUnitBytes != 0;
 }
 
 static inline int xl6ForeignOwnedOutputPointeeName(const char* name, char* element, size_t capacity)

@@ -1,0 +1,55 @@
+import xui
+from xui import CallbackReadableRegion
+
+func main(...) as int
+    int creates = 0
+    int updates = 0
+    auto proxy = xui.createCustomProxy(func(xui.CallbackProxy backend, xui.CallbackProxyCapsOutput output) as c_int
+        output.value = xui.ProxyCaps()
+        return c_int(0)
+    end,
+    surfaceCreateRGBA=func(xui.CallbackProxy backend, xui.CallbackSurfaceOutput output,
+        c_int width, c_int height, CallbackReadableRegion? pixels, c_uint flags) as c_int
+        assert width == 1 and height == 2
+        creates += 1
+        if pixels == null
+            output.set(backend, 0)
+        else
+            auto area = pixels as CallbackReadableRegion
+            assert area.rowBytes == 4 and area.rows == 2 and area.stride == 7
+            assert area.copyRow(c_size(0)) == b"a\0cd"
+            assert area.copyRow(c_size(1)) == b"wxyz"
+            output.set(backend, 17)
+        end
+        return c_int(0)
+    end,
+    surfaceUpdateRGBA=func(xui.CallbackProxy backend, xui.CallbackSurface surface, xui.RectI rectangle,
+        CallbackReadableRegion pixels) as c_int
+        assert (surface.getBackendValue() as int) == 17
+        assert rectangle.iW == 1 and rectangle.iH == 2
+        assert pixels.stride == 4 and pixels.at(c_size(1),c_size(2)) == c_uchar(54)
+        updates += 1
+        return c_int(0)
+    end)
+
+    auto blank = proxy.createSurfaceRGBA(1,2)
+    assert (blank.getBackendValue() as int) == 0
+    blank.close()
+    auto surface = proxy.createSurfaceRGBA(1,2,b"a\0cd???wxyz",7)
+    assert (surface.getBackendValue() as int) == 17
+    xui.RectI rectangle
+    rectangle.iW = 1
+    rectangle.iH = 2
+    proxy.updateSurfaceRGBA(surface,rectangle,b"01234567")
+    bool rejected = false
+    try
+        proxy.updateSurfaceRGBA(surface,rectangle,b"0123",7)
+    catch error
+        rejected = true
+    end
+    assert rejected and creates == 2 and updates == 1
+    surface.close()
+    proxy.close()
+    println("XUI_CUSTOM_PROXY_RGBA_OK")
+    return 0
+end

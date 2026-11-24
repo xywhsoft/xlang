@@ -68,7 +68,7 @@ static int xl6SemNullInputAttr(const XL6_AstNode* attr)
 {
     static const char* const names[]={"c_pack","c_pack_field","c_pack_record","c_pack_size","c_null","c_code_owner",
         "c_ref","c_const","c_control","c_value","c_static_callback","c_cstr","c_text_view","c_bytes_view",
-        "c_span","c_owned_callback","c_sync_callback","c_callback_span","c_callback_owned_output","c_result",
+        "c_span","c_owned_callback","c_sync_callback","c_callback_span","c_callback_owned_output","c_callback_region","c_result",
         "c_array_group","c_array_input","c_array_record","c_array_field","c_array_span_field","c_array_size","c_array_pack"};
     for(size_t i=0;attr && attr->text && i<sizeof(names)/sizeof(*names);++i)if(!strcmp(attr->text,names[i]))return 1;
     return 0;

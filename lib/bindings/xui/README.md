@@ -158,8 +158,11 @@ cleanup error during rollback preserves the original publication error.
 
 See the [resource example](examples/custom_proxy_resources.xl) for custom
 Surface and Draw creation and the [frame request example](examples/custom_proxy.xl)
-for frame scheduling. Full `Context` support still requires the pixel transfer
-callbacks.
+for frame scheduling. `surfaceCreateRGBA` receives an optional pixel view,
+and `surfaceUpdateRGBA` receives a required one. `rowBytes` excludes padding,
+`stride` reports the effective native row step, `at(row,offset)` reads a byte
+and `copyRow(row)` makes an independent copy. Full custom `Context` support
+still requires `surfaceReadRGBA`.
 
 Proxy backend callbacks use scoped views for their native arguments.
 `CallbackProxy.share()` obtains an independently owned `Proxy`.

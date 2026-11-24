@@ -225,6 +225,16 @@ export extern "const XL6_WritableBytesViewV1*" class CallbackWritableBytes @head
  extern "xl6ForeignWritableBytesWriteV1" @no_raise @c_span(0,"const void*","size_t") @c_result("bool_status") func write(Buffer input,c_size offset=0)
 end
 
+// Active bytes per row, excluding the caller's inter-row padding.
+export extern "const XL6_ReadableRegionViewV1*" class CallbackReadableRegion @header("__xl_runtime/xl6_foreign_region_view.h") @lifetime("callback")
+ native point handle
+ extern "RowBytes" @c_field @no_raise get rowBytes() as c_size
+ extern "RowCount" @c_field @no_raise get rows() as c_size
+ extern "Stride" @c_field @no_raise get stride() as c_size
+ extern "xl6ForeignReadableRegionAtV1" @no_raise @c_output(3,0) func at(c_size row,c_size offset) as c_uchar
+ extern "xl6ForeignReadableRegionRowV1" @no_raise @c_output(2,0) @c_output_view(2,"bytes") func copyRow(c_size row) as bytes
+end
+
 // Counts are native elements. Scoped access does not copy the entire array.
 export extern "const xl6_xui_surface_vertex_span*" class CallbackSurfaceVertices @header("xge3_callback_elements.h") @lifetime("callback")
  native point handle

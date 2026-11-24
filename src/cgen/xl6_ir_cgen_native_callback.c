@@ -11,6 +11,8 @@ static const char* xl6IrCgenCallbackNativeType(const XL6_IrModule* module,XL6_Ir
 static const char* xl6IrCgenCallbackSpanType(const XL6_ForeignCallbackSpanContract* span,
     const XL6_IrType* view,char* name,size_t capacity)
 {
+    if(xl6ForeignCallbackRegion(span))
+        return xl6ForeignCallbackSpanWritable(span) ? "XL6_WritableRegionViewV1":"XL6_ReadableRegionViewV1";
     if(span->countsElements)
         return xl6ForeignCallbackSpanPointeeName(view->cName,name,capacity) ? name : NULL;
     return xl6ForeignCallbackSpanWritable(span) ? "XL6_WritableBytesViewV1" : "xbytesview";
@@ -43,6 +45,7 @@ static int xl6IrCgenCallbackParameters(XL6_Output* out,const XL6_IrModule* modul
 }
 static int xl6IrCgenEmitNativeCallbackTypes(XL6_Output* out,const XL6_IrModule* module)
 {
+    bool regionHeader=false;
     for(size_t i=0;i<module->foreignParameterCount;++i) {
         const XL6_ForeignParameterContract* row=&module->foreignParameters[i];
         if(row->kind==XL6_FOREIGN_PARAMETER_SPAN)continue;
@@ -53,6 +56,11 @@ static int xl6IrCgenEmitNativeCallbackTypes(XL6_Output* out,const XL6_IrModule* 
                     xl6IrForeignParameterGet(module,&module->callTargets[t],a)==row) {target=&module->callTargets[t];p=a;break;}
         if(!target)continue;
         const XL6_IrType* signature=xl6IrForeignCallbackSignature(module,target,p);
+        for(size_t a=0;!regionHeader && a<signature->paramCount;++a)
+            if(xl6ForeignCallbackRegion(xl6IrForeignCallbackSpanGet(module,row,a))){
+                xl6OutputPuts("#include \"__xl_runtime/xl6_foreign_region_view.h\"\n",out);
+                regionHeader=true;
+            }
         xl6OutputPrintf(out,"typedef %s (*%s)(",signature->returnCount ?
             xl6IrCgenCallbackNativeType(module,signature->callableResultType) : "void",row->callbackTypeCName);
         if(!xl6IrCgenCallbackParameters(out,module,signature,row,false))return 0;
@@ -70,6 +78,16 @@ static int xl6IrCgenEmitNativeCallbackTypes(XL6_Output* out,const XL6_IrModule* 
             }
             const char* spanType=xl6IrCgenCallbackSpanType(span,view,name,sizeof(name));
             if(!spanType)return 0;
+            if(xl6ForeignCallbackRegion(span)){
+                const XL6_ForeignCallbackRegionExtent* extents[]={&span->regionWidth,&span->regionHeight};
+                for(size_t e=0;e<XL6_ARRAY_COUNT(extents);++e){
+                    const XL6_ForeignCallbackRegionExtent* extent=extents[e];
+                    if(extent->field[0])
+                        xl6OutputPrintf(out,"XLIR_NATIVE_ASSERT(XLIR_NATIVE_IS_TYPE(((const %s*)0)->%s,int),"
+                            "\"callback region extent requires an int field\");\n",
+                            xl6IrCgenCallbackNativeType(module,signature->params[extent->argument]),extent->field);
+                }
+            }
             if(span->countsElements){
                 xl6OutputPrintf(out,"XLIR_NATIVE_ASSERT(XLIR_NATIVE_IS_TYPE(((const %s*)0)->Data,%s),"
                     "\"callback element span Data has the native const element pointer type\");\n"
@@ -82,6 +100,24 @@ static int xl6IrCgenEmitNativeCallbackTypes(XL6_Output* out,const XL6_IrModule* 
         }
     }
     return !xl6OutputHasFailed(out);
+}
+
+static void xl6IrCgenPrepareCallbackRegion(XL6_Output* out,const XL6_ForeignCallbackSpanContract* span,size_t argument)
+{
+    const unsigned long p=(unsigned long)argument;
+    xl6OutputPrintf(out,"    if (!errors.failed && !xl6ForeignCallbackRegionLayoutV1(raw%u",
+        span->regionWidth.argument);
+    if(span->regionWidth.field[0])xl6OutputPrintf(out,".%s",span->regionWidth.field);
+    xl6OutputPrintf(out,",raw%u",span->regionHeight.argument);
+    if(span->regionHeight.field[0])xl6OutputPrintf(out,".%s",span->regionHeight.field);
+    xl6OutputPrintf(out,",raw%lu_count,%u,&native_span_%lu.RowBytes,&native_span_%lu.RowCount,&native_span_%lu.Stride)) "
+        "xl6ErrorScopeCaptureFailure(&errors);\n",p,span->regionUnitBytes,p,p,p);
+    if(!span->regionNullable)
+        xl6OutputPrintf(out,"    if (!errors.failed && !raw%lu) { xrtSetErrorKind(XERR_ARGUMENT); xl6ErrorScopeCaptureFailure(&errors); }\n",p);
+    xl6OutputPrintf(out,"    if (!errors.failed && raw%lu) { XL6_ForeignScopeViewV1 borrowed={0}; native_span_%lu.Data=raw%lu;\n"
+        "        if (!xl6ForeignScopeViewMakeV2(&lifetime,&native_span_%lu,&borrowed)) xl6ErrorScopeCaptureFailure(&errors);\n"
+        "        else arg%lu = %s;\n    }\n",p,p,p,p,p,span->regionNullable ?
+        "(XL6_NullableForeignScopeViewV1){true,borrowed}":"borrowed");
 }
 /* Lifetime expiry and all callback-leave checks precede publication. The
  * consuming rollback runs in its own diagnostic scope. An explicit native
@@ -198,6 +234,10 @@ static int xl6IrCgenEmitNativeCallbackThunks(XL6_Output* out,const XL6_IrModule*
                     xl6OutputPrintf(out,"    if (!errors.failed && !raw%lu) { xrtSetErrorKind(XERR_ARGUMENT); xl6ErrorScopeCaptureFailure(&errors); }\n"
                         "    if (!errors.failed && !xl6ForeignScopeViewMakeV2(&lifetime,&staged%lu,&arg%lu)) xl6ErrorScopeCaptureFailure(&errors);\n",
                         (unsigned long)p,(unsigned long)p,(unsigned long)p);
+                    continue;
+                }
+                if(xl6ForeignCallbackRegion(span)){
+                    xl6IrCgenPrepareCallbackRegion(out,span,p);
                     continue;
                 }
                 if(span){

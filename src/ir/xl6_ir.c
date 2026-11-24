@@ -54827,6 +54827,10 @@ void xl6IrDumpModuleJson(XL6_Output* out, const XL6_IrModule* module)
         xl6OutputPrintf(out,"    {\"declaration\":%u,\"parameter\":%u,\"argument\":%u,\"countAbi\":%d,\"countsElements\":%u,\"fixedCount\":%u,\"pointerCName\":\"%s\"",
             row->declaration,row->parameter,row->argument,(int)row->countAbi,row->countsElements,row->fixedCount,row->pointerCName);
         if(xl6ForeignCallbackOwnedOutput(row))xl6OutputPrintf(out,",\"rollbackCName\":\"%s\"",row->rollbackCName);
+        if(xl6ForeignCallbackRegion(row))
+            xl6OutputPrintf(out,",\"region\":{\"unitBytes\":%u,\"nullable\":%u,\"widthArgument\":%u,\"widthField\":\"%s\","
+                "\"heightArgument\":%u,\"heightField\":\"%s\"}",row->regionUnitBytes,row->regionNullable,
+                row->regionWidth.argument,row->regionWidth.field,row->regionHeight.argument,row->regionHeight.field);
         xl6OutputPrintf(out,"}%s\n",i+1==module->foreignCallbackSpanCount ? "" : ",");
     }
     xl6OutputPuts("  ],\n  \"foreignFieldLengths\": [\n",out);

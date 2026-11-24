@@ -1,0 +1,94 @@
+export extern "const XL6_ReadableRegionViewV1*" class ReadRegion @header("__xl_runtime/xl6_foreign_region_view.h") @lifetime("callback")
+ native point handle
+ extern "RowBytes" @c_field get rowBytes() as c_size
+ extern "RowCount" @c_field get rows() as c_size
+ extern "Stride" @c_field get stride() as c_size
+ extern "xl6ForeignReadableRegionAtV1" @no_raise @c_output(3,0) func at(c_size row,c_size offset) as c_uchar
+ extern "xl6ForeignReadableRegionRowV1" @no_raise @c_output(2,0) @c_output_view(2,"bytes") func copyRow(c_size row) as bytes
+end
+
+export extern "const XL6_WritableRegionViewV1*" class WriteRegion @header("__xl_runtime/xl6_foreign_region_view.h") @lifetime("callback")
+ native point handle
+ extern "RowCount" @c_field get rows() as c_size
+ extern "xl6ForeignWritableRegionWriteV1" @no_raise @c_span(0,"const void*","size_t") @c_result("bool_status") func write(bytes input,c_size row,c_size offset=0)
+end
+
+export extern "xl_test_callback_rect" struct CallbackRect @header("test/cases/foreign_callback_region.h")
+ c_int iWidth
+ c_int iHeight
+end
+
+typedef RegionReader=func(c_int,c_int,ReadRegion?) as c_int
+typedef RegionWriter=func(CallbackRect,WriteRegion) as c_int
+extern "xl_test_callback_region_read" @header("test/cases/foreign_callback_region.h") @no_raise @c_result("status",0) @c_sync_callback(0,-1,-16) @c_callback_region(0,2,"const void*","0","1",4,"nullable") func read(RegionReader reader,c_int mode=0)
+extern "xl_test_callback_region_write" @header("test/cases/foreign_callback_region.h") @no_raise @c_result("status",0) @c_sync_callback(0,-1,-16) @c_callback_region(0,1,"void*","0.iWidth","0.iHeight",4) func write(RegionWriter writer)
+
+func main(...) as int
+ ReadRegion? saved=null
+ bytes retained=b""
+ read(func(c_int width,c_int height,ReadRegion? pixels) as c_int
+  assert width==1 and height==2 and pixels!=null
+  auto area=pixels as ReadRegion
+  assert area.rowBytes==4 and area.rows==2 and area.stride==7
+  assert area.at(c_size(1),c_size(0))==c_uchar(119)
+  retained=area.copyRow(c_size(0))
+  assert area.copyRow(c_size(1))==b"wxyz"
+  saved=area
+  bool rejected=false
+  try
+   auto padding=area.at(c_size(0),c_size(4))
+  catch error
+   rejected=true
+  end
+  assert rejected
+  return c_int(0)
+ end)
+ assert retained==b"a\0cd"
+ bool expired=false
+ try
+  auto stale=saved as ReadRegion
+  auto pixel=stale.at(c_size(0),c_size(0))
+ catch error
+  expired=true
+ end
+ assert expired
+
+ read(func(c_int width,c_int height,ReadRegion? pixels) as c_int
+  assert width==1 and height==2 and pixels==null
+  return c_int(0)
+ end,c_int(1))
+ read(func(c_int width,c_int height,ReadRegion? pixels) as c_int
+  auto area=pixels as ReadRegion
+  assert area.stride==4 and area.copyRow(c_size(1))==b"???w"
+  return c_int(0)
+ end,c_int(5))
+ int invalidCalls=0
+ for mode in range(2,5)
+  bool rejected=false
+  try
+   read(func(c_int width,c_int height,ReadRegion? pixels) as c_int
+    invalidCalls+=1
+    return c_int(0)
+   end,c_int(mode))
+  catch error
+   rejected=true
+  end
+  assert rejected
+ end
+ assert invalidCalls==0
+ write(func(CallbackRect rectangle,WriteRegion output) as c_int
+  assert rectangle.iWidth==1 and output.rows==2
+  bool rejected=false
+  try
+   output.write(b"!",c_size(0),c_size(4))
+  catch error
+   rejected=true
+  end
+  assert rejected
+  output.write(b"a\0cd",c_size(0))
+  output.write(b"wxyz",c_size(1))
+  return c_int(0)
+ end)
+ println("XLANG_CALLBACK_REGION_OK")
+ return 0
+end
