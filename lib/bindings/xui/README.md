@@ -137,6 +137,12 @@ bounded writes from `bytes` or `Buffer` at an explicit byte offset. A
 zero-capacity query can write an empty value at offset zero. The borrowed views
 expire on callback return, and later access raises a checked error.
 
+`CallbackProxyTextItem` reads text and optional context during native
+measure and draw callbacks. It copies the requested UTF-8 field into a
+language string. Explicit lengths preserve embedded NUL bytes, and the
+native `-1` length reads the terminated string. Absent context remains
+`null`.
+
 `Context` owns its widget graph. Control classes extend `Widget`; a method such
 as `button.setText(text)` calls its original native function. The package has
 no C wrappers for individual methods and no opcode dispatch. Constructors

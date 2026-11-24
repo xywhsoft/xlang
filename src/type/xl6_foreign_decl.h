@@ -197,12 +197,17 @@ static inline int xl6ForeignStorageRead(const XL6_AstNode* attr,XL6_ForeignStora
 static inline int xl6ForeignFieldLengthRead(const XL6_AstNode* attr,XL6_ForeignFieldLengthContract* output)
 {
     XL6_ForeignFieldLengthContract row={0};char count[32];
-    if(!attr || !attr->text || strcmp(attr->text,"c_length") || attr->childCount!=2 ||
+    if(!attr || !attr->text || strcmp(attr->text,"c_length") || attr->childCount<2 || attr->childCount>3 ||
         !xl6ForeignQuotedText(attr->children[0],row.field,sizeof(row.field)) || !xl6ForeignIdentifier(row.field) ||
         !xl6ForeignQuotedText(attr->children[1],count,sizeof(count)))return 0;
     if(!strcmp(count,"int"))row.countAbi=XL6_FOREIGN_SPAN_COUNT_INT;
     else if(!strcmp(count,"size_t"))row.countAbi=XL6_FOREIGN_SPAN_COUNT_SIZE;
     else return 0;
+    if(attr->childCount==3){
+        if(row.countAbi!=XL6_FOREIGN_SPAN_COUNT_INT ||
+            !xl6ForeignQuotedText(attr->children[2],count,sizeof(count)) || strcmp(count,"minus_one_terminated"))return 0;
+        row.countAbi=XL6_FOREIGN_FIELD_COUNT_INT_OR_CSTRING;
+    }
     if(output)*output=row;
     return 1;
 }
@@ -548,8 +553,9 @@ static inline int xl6ForeignFunctionRead(const XL6_AstNode* node,
             facts.receiverDereference=1;continue;
         }
         if(attr && attr->text && !strcmp(attr->text,"c_length")){
-            if(countedField || !xl6ForeignFieldLengthRead(attr,NULL))return 0;
-            countedField=1;continue;
+            XL6_ForeignFieldLengthContract length;
+            if(countedField || !xl6ForeignFieldLengthRead(attr,&length))return 0;
+            countedField=length.countAbi;continue;
         }
         if (attr && attr->text && !strcmp(attr->text, "c_result")) {
             const XL6_AstNode* value = attr->childCount ? attr->children[0] : NULL;
@@ -671,7 +677,8 @@ static inline int xl6ForeignFunctionRead(const XL6_AstNode* node,
     if(countedField){
         if(!(node->flags&XL6_AST_FLAG_FOREIGN_FIELD) || node->kind!=XL6_AST_GET || facts.outputIndexPlusOne)return 0;
         if(facts.borrowedViewResult==XL6_FOREIGN_VIEW_RESULT_TEXT)facts.borrowedViewResult=XL6_FOREIGN_VIEW_RESULT_TEXT_FIELD;
-        else if(facts.borrowedViewResult==XL6_FOREIGN_VIEW_RESULT_BYTES)facts.borrowedViewResult=XL6_FOREIGN_VIEW_RESULT_BYTES_FIELD;
+        else if(facts.borrowedViewResult==XL6_FOREIGN_VIEW_RESULT_BYTES &&
+            countedField!=XL6_FOREIGN_FIELD_COUNT_INT_OR_CSTRING)facts.borrowedViewResult=XL6_FOREIGN_VIEW_RESULT_BYTES_FIELD;
         else return 0;
     }
     if(((packFields!=0 || arrayPacks!=0)!=(packs!=0)) || (packText&facts.textViews) || (packCstrings&facts.terminatedStrings))return 0;

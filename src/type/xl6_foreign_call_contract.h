@@ -310,7 +310,8 @@ typedef enum XL6_ForeignParameterKind {
 typedef enum XL6_ForeignSpanCountAbi {
     XL6_FOREIGN_SPAN_COUNT_SIZE = 1,
     XL6_FOREIGN_SPAN_COUNT_INT,
-    XL6_FOREIGN_SPAN_COUNT_U64
+    XL6_FOREIGN_SPAN_COUNT_U64,
+    XL6_FOREIGN_FIELD_COUNT_INT_OR_CSTRING
 } XL6_ForeignSpanCountAbi;
 static inline const char* xl6ForeignSpanCountCName(XL6_ForeignSpanCountAbi kind)
 {return kind==XL6_FOREIGN_SPAN_COUNT_INT ? "int":kind==XL6_FOREIGN_SPAN_COUNT_SIZE ? "size_t":kind==XL6_FOREIGN_SPAN_COUNT_U64 ? "uint64_t":NULL;}

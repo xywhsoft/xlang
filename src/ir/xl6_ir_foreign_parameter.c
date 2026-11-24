@@ -354,7 +354,9 @@ static int xl6IrVerifyForeignFieldLengths(const XL6_IrModule* module,XL6_DiagLis
         const XL6_ForeignFieldLengthContract* row=&module->foreignFieldLengths[i];
         const XL6_IrNode* node=xl6IrNodeGet(module,row->declaration);
         if(!node || !memchr(row->field,0,sizeof(row->field)) || !xl6ForeignIdentifier(row->field) ||
-            (row->countAbi!=XL6_FOREIGN_SPAN_COUNT_INT && row->countAbi!=XL6_FOREIGN_SPAN_COUNT_SIZE) ||
+            (row->countAbi!=XL6_FOREIGN_SPAN_COUNT_INT && row->countAbi!=XL6_FOREIGN_SPAN_COUNT_SIZE &&
+             (row->countAbi!=XL6_FOREIGN_FIELD_COUNT_INT_OR_CSTRING ||
+              node->foreignCall.borrowedViewResult!=XL6_FOREIGN_VIEW_RESULT_TEXT_FIELD)) ||
             !xl6ForeignResultCountedField(node->foreignCall.borrowedViewResult) || node->sourceKind!=XL6_AST_GET ||
             !(node->flags&XL6_AST_FLAG_FOREIGN_FIELD) || (node->flags&XL6_AST_FLAG_STATIC))goto invalid;
         for(size_t j=0;j<i;++j)if(module->foreignFieldLengths[j].declaration==row->declaration)goto invalid;

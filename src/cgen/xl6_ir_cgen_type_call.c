@@ -534,7 +534,7 @@ static int xl6IrCgenPrepareForeignCountedField(XL6_Output* out,const XL6_IrModul
     const XL6_IrType* receiver=xl6IrTypeGet(&module->types,target->parameterTypes[0]);
     char place[40];if(values)snprintf(place,sizeof(place),"v%u",(unsigned)values[0]);else strcpy(place,"receiver");
     const char* view=xl6IrCgenBorrowedResultCType(target);
-    const char* count=length->countAbi==XL6_FOREIGN_SPAN_COUNT_INT ? "int" : "size_t";
+    const char* count=length->countAbi==XL6_FOREIGN_SPAN_COUNT_SIZE ? "size_t" : "int";
     xl6OutputPrintf(out,"    %s native_field_view = {0};\n    %s native_field_count = (",view,count);
     if(!xl6IrCgenEmitCallPlace(out,module,target,0,place))return 0;
     xl6OutputPrintf(out,")->%s;\n    size_t native_field_bound = _Generic(&((%s)0)->%s,\n"
@@ -547,6 +547,25 @@ static int xl6IrCgenPrepareForeignCountedField(XL6_Output* out,const XL6_IrModul
         receiver->cName,target->cName,receiver->cName,target->cName,
         receiver->cName,target->cName,receiver->cName,target->cName,
         receiver->cName,target->cName,receiver->cName,target->cName);
+    if(length->countAbi==XL6_FOREIGN_FIELD_COUNT_INT_OR_CSTRING){
+        xl6OutputPuts("    const char* native_field_data = (",out);
+        if(!xl6IrCgenEmitCallPlace(out,module,target,0,place))return 0;
+        xl6OutputPrintf(out,")->%s;\n"
+            "    if (native_field_count == -1 && native_field_data) {\n"
+            "        size_t native_field_size;\n"
+            "        if (native_field_bound == SIZE_MAX) native_field_size = strlen(native_field_data);\n"
+            "        else {\n"
+            "            const char* end = (const char*)memchr(native_field_data,0,native_field_bound);\n"
+            "            native_field_size = end ? (size_t)(end-native_field_data) : SIZE_MAX;\n"
+            "        }\n"
+            "        if (native_field_size <= INT_MAX) native_field_count = (int)native_field_size;\n"
+            "    }\n"
+            "    if (native_field_count < 0 || (size_t)native_field_count > native_field_bound) {\n"
+            "        xrtSetErrorKind(XERR_RANGE); xl6ErrorScopeCaptureFailure(&%s);\n"
+            "    } else native_field_view = (xstrview){native_field_data,(size_t)native_field_count};\n",
+            target->cName,errors);
+        return !xl6OutputHasFailed(out);
+    }
     xl6OutputPrintf(out,"    if (%s(size_t)native_field_count > native_field_bound) { xrtSetErrorKind(XERR_RANGE); xl6ErrorScopeCaptureFailure(&%s); }\n"
         "    else { native_field_view.Size=(size_t)native_field_count; native_field_view.Data=(%s)(",
         length->countAbi==XL6_FOREIGN_SPAN_COUNT_INT ? "native_field_count < 0 || " : "",errors,

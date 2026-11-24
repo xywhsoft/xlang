@@ -155,6 +155,19 @@ export extern "const xui_system_font_desc_t*" class CallbackSystemFontDesc @head
  native point handle
  extern "value" @c_deref get value() as SystemFontDesc
 end
+// Proxy text inputs can carry an explicit byte count or the native -1 convention.
+export extern "const xui_text_item_t*" class CallbackProxyTextItem @header("xge3_runtime.h") @lifetime("callback")
+ native point handle
+ extern "sText" @c_field @c_length("iTextSize","int","minus_one_terminated") @c_result("text_view") get text() as string
+ extern "sContext" @c_field @c_length("iContextSize","int","minus_one_terminated") @c_result("text_view") get context() as string?
+ extern "iFlags" @c_field get flags() as c_uint
+ extern "iContextOffset" @c_field get contextOffset() as c_int
+ extern "iScript" @c_field get script() as c_uint
+ extern "sLanguage" @c_field @c_result("cstring") get language() as string?
+ extern "fDrawOffsetX" @c_field get drawOffsetX() as c_float
+ extern "iRangeStart" @c_field get rangeStart() as c_int
+ extern "iRangeEnd" @c_field get rangeEnd() as c_int
+end
 export extern "xui_font_metrics_t*" class CallbackFontMetricsOutput @header("xge3_runtime.h") @lifetime("callback")
  native point handle
  extern "value" @c_deref let value(FontMetrics metrics)

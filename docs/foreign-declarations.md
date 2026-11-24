@@ -487,6 +487,15 @@ fields require the native publisher's valid-range contract; a nonzero count
 with NULL data, or a result beyond the language length range, is rejected.
 Flexible arrays need a separate explicit pointer/capacity API.
 
+A text getter whose native signed count reserves `-1` for a C string declares
+`@c_length("nativeCountField", "int", "minus_one_terminated")`. Nonnegative
+counts still read the exact bytes, including embedded NUL. The sentinel
+scans for NUL only when used. A fixed array is searched within its capacity,
+and a pointer requires a valid terminated string from its native publisher.
+A missing terminator in a fixed array, NULL with the sentinel, and all lower
+negative values raise checked errors. A nullable text getter preserves
+NULL/zero as null.
+
 For a required bytes field, NULL plus an explicit zero count is an empty bytes
 value. A nullable bytes field preserves NULL/zero as null. This field rule uses
 the admitted authoritative count; it does not change NULL handling of ordinary

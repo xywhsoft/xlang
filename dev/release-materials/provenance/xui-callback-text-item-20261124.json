@@ -1,0 +1,94 @@
+{
+  "schema": 1,
+  "scope": "Native callback text records with explicit byte counts or the -1 C string convention",
+  "shippingDelivery": false,
+  "networkTests": false,
+  "sourceSha256NormalizedLf": {
+    "src/type/xl6_foreign_call_contract.h": "ff7b15ea6286dd23245a563bea0515140b130e743154eee8a79a490bc7d3428b",
+    "src/type/xl6_foreign_decl.h": "24118a1945cf34548fb8646ca2ab0ec3bc8337c7ed150871095e7830c4442f53",
+    "src/ir/xl6_ir_foreign_parameter.c": "978b70ffe95e237b3c84c2b773eb574aff62b1ded8f1ce539da0dc332376efc6",
+    "src/cgen/xl6_ir_cgen_type_call.c": "adcc93ed9ec1f49f0884bfdfaf3c1285853c858937a05a02d2dcc1d80f8cba08",
+    "src/cgen/xl6_ir_cgen_identity_closure.c": "8054e21e5221c677acc6970ca69aa6f153c92894873f69e3b23a30d7aa774fdf",
+    "lib/bindings/xui/src/proxy.xl": "a2bb67566171a3f8427926e3acceace28ff09031f72bd778ae39183cc099d340",
+    "docs/foreign-declarations.md": "943cf9b8a4f1208e0d97d27be469e8246e51de67fd935151a8964427826d764c",
+    "test/cases/foreign_callback_text_item.xl": "3408af3e0eb3e4537ea7c98a97a183f341004ae35370768eeb7ee2f398667c52",
+    "test/cases/foreign_callback_text_item.h": "2316d62010f6fa1497ebaf66a65773f5f549a4d0accfa317128e10f2c15d68ad",
+    "test/cases/foreign_callback_text_item.c": "61c9fd38677179c30001aaa9fc9d082f52fcfc1238c013042518f3971409aa3d",
+    "lib/bindings/xui/README.md": "08979ba7c620ecd7c1e0d05179cb2f168ce0bffbfec79ba9537a70b23f10b103"
+  },
+  "qualification": "The runtime matrix used a frozen compiler with the counted-text changes. The three-way merge with the separately qualified writable-span change passed GCC syntax checks for the semantic, IR and Cgen compilation units on both platforms.",
+  "checks": [
+    "Real XUI Proxy textMeasure invokes the language callback and receives a typed native measurement",
+    "Explicit byte lengths preserve embedded NUL in text",
+    "The -1 sentinel yields terminated text and optional context; NULL/zero differs from an empty supplied string",
+    "Negative lengths below -1, NULL with sentinel, and a missing required input fail checked",
+    "Fixed-size arrays honor the declared bound for scanning and explicit lengths",
+    "Callback view expires on return"
+  ],
+  "platforms": {
+    "win_x64": {
+      "compilerBuild": {
+        "path": "F:/xlang-validation/xge-full-20261110/compiler-callback-text-item-win-r1/build.json",
+        "sha256": "5ba6a860fa005cb577d01893d9356587dd5ac6273fb0cfc035c51fe5bcbfd4b6"
+      },
+      "matchedSdk": {
+        "path": "F:/xlang-validation/xge-full-20261110/callback-text-item-compiler-sdk-win-r1/results.json",
+        "sha256": "24bb0c7c880aa69cc24e1aa159bc1ed787667c5be2eda62cf50d364050e831dc"
+      },
+      "evaluatedNativeImports": {
+        "host": [
+          "msvcrt.dll",
+          "xge3_host.dll",
+          "kernel32.dll",
+          "shell32.dll",
+          "ws2_32.dll",
+          "iphlpapi.dll",
+          "ucrtbase.dll"
+        ],
+        "static": [
+          "msvcrt.dll",
+          "kernel32.dll",
+          "ole32.dll",
+          "shell32.dll"
+        ]
+      },
+      "runtimeCases": {
+        "path": "F:/xlang-validation/xge-full-20261110/callback-text-item-verify-win-r2/results.json",
+        "sha256": "0945d6dc076ff7a08f8ead1f7aab3bee8c52ca08654badb4db6de4de2675ca76"
+      }
+    },
+    "linux_x64": {
+      "compilerBuild": {
+        "path": "/var/tmp/xlang-validation/xge-full-20261110/compiler-callback-text-item-linux-r1/build.json",
+        "sha256": "c07232fe8cc2166f379c726a7b7d2cfdf731da6d2ddec5c31235cd0070e694c4"
+      },
+      "matchedSdk": {
+        "path": "/var/tmp/xlang-validation/xge-full-20261110/callback-text-item-compiler-sdk-linux-r1/results.json",
+        "sha256": "9e57fa0584bb8bdd0754e3956badfbab17b47928b9ec5202b6a8560a54d95b16"
+      },
+      "evaluatedNativeImports": {
+        "host": [
+          "libm.so.6",
+          "libmvec.so.1",
+          "libxge3_host.so",
+          "libc.so.6",
+          "ld-linux-x86-64.so.2"
+        ],
+        "static": [
+          "libm.so.6",
+          "libmvec.so.1",
+          "libx11.so.6",
+          "libxi.so.6",
+          "libxcursor.so.1",
+          "libgl.so.1",
+          "libc.so.6",
+          "ld-linux-x86-64.so.2"
+        ]
+      },
+      "runtimeCases": {
+        "path": "/var/tmp/xlang-validation/xge-full-20261110/callback-text-item-verify-linux-r2/results.json",
+        "sha256": "d771b4196762ba59ac0788fcf97494de3ee37b3a07a67049ac28dead59e95b7f"
+      }
+    }
+  }
+}
