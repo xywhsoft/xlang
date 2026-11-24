@@ -1,0 +1,311 @@
+{
+  "schema": "xlang-xui-code-command-payload-1",
+  "scope": "Owned code command providers with typed zero-copy XRT value input",
+  "nativeCommit": "490ed07c",
+  "shippingDelivery": false,
+  "networkTests": false,
+  "prior": {
+    "path": "dev/release-materials/provenance/xui-callback-native-consumer-routes-20261124.json",
+    "sha256": "5672d96bcdad2079c5a4ede86115267b1111a4444494f48a3030aec0ebebef2d"
+  },
+  "closedFromReview": [
+    "xuiCodeProviderSetCommand",
+    "xuiCodeProviderSetCommandOwned"
+  ],
+  "sourceSha256NormalizedLf": {
+    "docs/xui-code-assist.md": "f9881417d130c6a57f688205a52d32cd93312d3cab6e13be755e363aa9c3b4a9",
+    "docs/xge3-xui3-api-map-storage.json": "079f71ee323bb99e29a6ca9060ec5fb5721fbe50efdc9bccd0508d8eb5adef9f",
+    "lib/bindings/xui/src/code_provider_set.xl": "15b7d7e4452b5536968b7c89617fb2342b9f73c7c507a32a5b68c6d148f6f803",
+    "lib/bindings/xui/examples/code_command_value.xl": "1ad792d37292b8cd678155139bf316d78aa060ecbb2a06094a23e11b50325147",
+    "tools/check_xge3_native_consumers.py": "b86b0dff3361441e8a1e314aae77e54201acb2e030a6c43d39dae8e0ce847afd",
+    "test/cases/foreign_xui_code_command_payload.xl": "2302b6a91d300cbdb77a03a1ba9e582509d22a4957cd90691cf243f310dfa0fc",
+    "test/cases/foreign_xui_code_command_payload.h": "c711b45d212aafcad6d0ab4c6fddeba3339c4482d04664f71b44913b1c21078d"
+  },
+  "nativeSha256NormalizedLf": {
+    "include/xui.h": "244c98bf1adf8f95062fb4cd2144906524506884860efd912379ef07e301ca4c",
+    "src/xui/code/xui_code_provider.c": "c13db120dafa74171cce3dc1951d886a1ab8a5490e7b68636950d81235f7b051",
+    "src/xui/code/xui_code_provider_owned.inl": "b6d7fddbe02ea7f02ab222180da1c9898135b058691cd2784213da40ae722c0a",
+    "src/xui/code/xui_code_provider_snapshot.inl": "903fff5233b33c65a6d071eb745f04590b27b28cc43dc537fc82b955146bb46d",
+    "tests/xui/test_code_command_payload.c": "74cebd80c4c98230b84548043f59c7968f40ec935a2e581c5f3a7f6f6c65c1ec"
+  },
+  "nativeCases": [
+    "raw C payload preserved",
+    "payload kind mismatch rejected",
+    "OOM registration rollback",
+    "native value identity",
+    "clear during callback",
+    "no allocation attempt in 1000 warm native dispatches"
+  ],
+  "platforms": {
+    "win": {
+      "stage": {
+        "path": "F:/xlang-validation/xge-full-20261110/code-command-payload-stage-win-r4/replay/stage-report.json",
+        "sha256": "b81b3ae796f9a92bfec61f1ad91da40282cab4ad88dfef5c83f5dc05559ac89f"
+      },
+      "audit": {
+        "path": "F:/xlang-validation/xge-full-20261110/code-command-payload-consumers-win-r3/results.json",
+        "sha256": "5ce90cd155cc47288ed45973b421757738da719ff54c2cf04f08ad44986e2152"
+      },
+      "runtime": {
+        "path": "F:/xlang-validation/xge-full-20261110/code-command-payload-verify-win-r3/results.json",
+        "sha256": "9578721ba7bd5b38469f4849bf12d20f97b2e37b839f85d486d85a2e385a884d"
+      },
+      "native": {
+        "path": "F:/xlang-validation/xge-full-20261110/code-command-payload-native-tests-win-r2/results.json",
+        "sha256": "818f0349dac0d4e8beb5e2a9919cf0882fd551cc66deed95e9a9c19c3e24b08b"
+      },
+      "legacy": {
+        "path": "F:/xlang-validation/xge-full-20261110/code-command-payload-native-verify-win-r2/results.json",
+        "sha256": "ea847fd98d9daa6ff57a012a5b4d33e2dcbebf9129fae084324d374a3ef797b1"
+      },
+      "generatedC": {
+        "path": "F:/xlang-validation/xge-full-20261110/code-command-payload-verify-win-r3/foreign_xui_code_command_payload/generated.c",
+        "sha256": "117662ee7714a48fddd01f58ef86692fbf5c00d9159f040893f7ad7f7e7b8a48"
+      },
+      "remaining": {
+        "XGE": 2,
+        "XUI": 17
+      },
+      "cases": {
+        "foreign_xui_code_command_payload": {
+          "directCFunctions": [
+            "xuiCodeProviderSetValueCommandOwned",
+            "xuiCodeProviderExecuteCommandValue",
+            "xuiCodeCommandInputGetValue",
+            "xuiCodeProviderExecuteCommand"
+          ],
+          "imports": {
+            "host": [
+              "msvcrt.dll",
+              "xge3_host.dll",
+              "kernel32.dll",
+              "shell32.dll",
+              "ucrtbase.dll"
+            ],
+            "static": [
+              "msvcrt.dll",
+              "kernel32.dll",
+              "user32.dll",
+              "ole32.dll",
+              "oleaut32.dll",
+              "shell32.dll",
+              "gdi32.dll",
+              "imm32.dll",
+              "dwrite.dll"
+            ]
+          }
+        },
+        "code_command_value": {
+          "directCFunctions": [
+            "xuiCodeProviderSetValueCommandOwned",
+            "xuiCodeProviderExecuteCommandValue",
+            "xuiCodeCommandInputGetValue"
+          ],
+          "imports": {
+            "host": [
+              "msvcrt.dll",
+              "xge3_host.dll",
+              "kernel32.dll",
+              "ucrtbase.dll"
+            ],
+            "static": [
+              "msvcrt.dll",
+              "kernel32.dll",
+              "user32.dll",
+              "ole32.dll",
+              "oleaut32.dll",
+              "shell32.dll",
+              "gdi32.dll",
+              "imm32.dll",
+              "dwrite.dll"
+            ]
+          }
+        }
+      },
+      "nativeSlots": {
+        "xuiCodeProviderSetCommand": {
+          "language": "xui.CodeProviderSet.setValueCommandProvider",
+          "native": "xuiCodeProviderSetValueCommandOwned",
+          "legacyPath": [
+            ".text$__xuiCodeProviderSetRaw"
+          ],
+          "managedPath": [
+            ".text$__xuiCodeProviderSetOwned"
+          ],
+          "ownerHoldPath": [
+            ".text$xuiInternalCallbackHoldFresh"
+          ],
+          "nativeExecution": [
+            ".text$__xuiCodeProviderExecuteCommand"
+          ],
+          "valueExecution": [
+            ".text$__xuiCodeProviderExecuteCommand"
+          ]
+        },
+        "xuiCodeProviderSetCommandOwned": {
+          "language": "xui.CodeProviderSet.setValueCommandProvider",
+          "native": "xuiCodeProviderSetValueCommandOwned",
+          "legacyPath": [
+            ".text$__xuiCodeProviderSetOwned"
+          ],
+          "managedPath": [
+            ".text$__xuiCodeProviderSetOwned"
+          ],
+          "ownerHoldPath": [
+            ".text$xuiInternalCallbackHoldFresh"
+          ],
+          "nativeExecution": [
+            ".text$__xuiCodeProviderExecuteCommand"
+          ],
+          "valueExecution": [
+            ".text$__xuiCodeProviderExecuteCommand"
+          ]
+        }
+      }
+    },
+    "linux": {
+      "stage": {
+        "path": "//wsl.localhost/Ubuntu/var/tmp/xlang-validation/xge-full-20261110/code-command-payload-stage-linux-r4/replay/stage-report.json",
+        "sha256": "2365e6651a528db6839556f56f0fa93c57572b283789bf2f0b25339142ee310e"
+      },
+      "audit": {
+        "path": "//wsl.localhost/Ubuntu/var/tmp/xlang-validation/xge-full-20261110/code-command-payload-consumers-linux-r3/results.json",
+        "sha256": "15c7d3c32be991c8af8ee86c29be63775573d84ad1f92769c127cec64d4773e8"
+      },
+      "runtime": {
+        "path": "//wsl.localhost/Ubuntu/var/tmp/xlang-validation/xge-full-20261110/code-command-payload-verify-linux-r3/results.json",
+        "sha256": "f5acef2d9265370460d4b9f68d7a30c6e3cb843d19663dbfc5473a3161618f49"
+      },
+      "native": {
+        "path": "//wsl.localhost/Ubuntu/var/tmp/xlang-validation/xge-full-20261110/code-command-payload-native-tests-linux-r2/results.json",
+        "sha256": "4f94ba3b77b143cb103d9e7de7f812676ab38249829838be66eadd525e6c010b"
+      },
+      "legacy": {
+        "path": "//wsl.localhost/Ubuntu/var/tmp/xlang-validation/xge-full-20261110/code-command-payload-native-verify-linux-r2/results.json",
+        "sha256": "91a72bc7a1fe5875e74d41b290bc7239f4291d9211f2d460f508d1be3b7faaef"
+      },
+      "generatedC": {
+        "path": "//wsl.localhost/Ubuntu/var/tmp/xlang-validation/xge-full-20261110/code-command-payload-verify-linux-r3/foreign_xui_code_command_payload/generated.c",
+        "sha256": "117662ee7714a48fddd01f58ef86692fbf5c00d9159f040893f7ad7f7e7b8a48"
+      },
+      "remaining": {
+        "XGE": 4,
+        "XUI": 17
+      },
+      "cases": {
+        "foreign_xui_code_command_payload": {
+          "directCFunctions": [
+            "xuiCodeProviderSetValueCommandOwned",
+            "xuiCodeProviderExecuteCommandValue",
+            "xuiCodeCommandInputGetValue",
+            "xuiCodeProviderExecuteCommand"
+          ],
+          "imports": {
+            "host": [
+              "libm.so.6",
+              "libmvec.so.1",
+              "libxge3_host.so",
+              "libc.so.6",
+              "ld-linux-x86-64.so.2"
+            ],
+            "static": [
+              "libm.so.6",
+              "libmvec.so.1",
+              "libx11.so.6",
+              "libxi.so.6",
+              "libxcursor.so.1",
+              "libgl.so.1",
+              "libc.so.6",
+              "ld-linux-x86-64.so.2"
+            ]
+          }
+        },
+        "code_command_value": {
+          "directCFunctions": [
+            "xuiCodeProviderSetValueCommandOwned",
+            "xuiCodeProviderExecuteCommandValue",
+            "xuiCodeCommandInputGetValue"
+          ],
+          "imports": {
+            "host": [
+              "libm.so.6",
+              "libmvec.so.1",
+              "libxge3_host.so",
+              "libc.so.6",
+              "ld-linux-x86-64.so.2"
+            ],
+            "static": [
+              "libm.so.6",
+              "libmvec.so.1",
+              "libx11.so.6",
+              "libxi.so.6",
+              "libxcursor.so.1",
+              "libgl.so.1",
+              "libc.so.6",
+              "ld-linux-x86-64.so.2"
+            ]
+          }
+        }
+      },
+      "nativeSlots": {
+        "xuiCodeProviderSetCommand": {
+          "language": "xui.CodeProviderSet.setValueCommandProvider",
+          "native": "xuiCodeProviderSetValueCommandOwned",
+          "legacyPath": [
+            ".text.__xuiCodeProviderSetRaw"
+          ],
+          "managedPath": [
+            ".text.__xuiCodeProviderSetOwned"
+          ],
+          "ownerHoldPath": [
+            ".text.xuiInternalCallbackHoldFresh"
+          ],
+          "nativeExecution": [
+            ".text.__xuiCodeProviderExecuteCommand"
+          ],
+          "valueExecution": [
+            ".text.__xuiCodeProviderExecuteCommand"
+          ]
+        },
+        "xuiCodeProviderSetCommandOwned": {
+          "language": "xui.CodeProviderSet.setValueCommandProvider",
+          "native": "xuiCodeProviderSetValueCommandOwned",
+          "legacyPath": [
+            ".text.__xuiCodeProviderSetOwned"
+          ],
+          "managedPath": [
+            ".text.__xuiCodeProviderSetOwned"
+          ],
+          "ownerHoldPath": [
+            ".text.xuiInternalCallbackHoldFresh"
+          ],
+          "nativeExecution": [
+            ".text.__xuiCodeProviderExecuteCommand"
+          ],
+          "valueExecution": [
+            ".text.__xuiCodeProviderExecuteCommand"
+          ]
+        }
+      }
+    }
+  },
+  "remainingAcrossPreviouslyQualifiedConfigurations": [
+    "xuiCodeEditGetTokenStyleResolver",
+    "xuiIconDescDefault",
+    "xuiIconGetUser",
+    "xuiProxyCreateOwned",
+    "xuiProxyCreateOwnedEx",
+    "xuiProxyResourceOwnershipCompletionV1",
+    "xuiTerminalSetImageCallback",
+    "xuiWidgetGetCacheRenderCallback",
+    "xuiWidgetGetContentMeasureCallback",
+    "xuiWidgetGetCursorQueryCallback",
+    "xuiWidgetGetImeCandidateRect",
+    "xuiWidgetGetLayoutChildrenCallback",
+    "xuiWidgetGetLayoutCompleteCallback",
+    "xuiWidgetGetLayoutPrepareCallback",
+    "xuiWidgetGetTypeData",
+    "xuiWidgetTypeGetUserData",
+    "xuiWidgetTypeSetOwnershipTrace"
+  ]
+}

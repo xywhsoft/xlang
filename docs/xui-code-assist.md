@@ -74,6 +74,17 @@ ID 和回调期输出，旧的任意指针参数由 C 互操保留。
 [快捷键范例](../lib/bindings/xui/examples/code_editor_commands.xl) 将 Ctrl+F2
 绑定到自定义命令。
 
+传递参数时，对 `editor.providers()` 或独立的 `CodeProviderSet` 调用
+`setValueCommandProvider()`，再用 `executeCommandWithValue(editor, id, payload)`
+同步执行。参数可以是任何 `var`。回调通过 `input.value()` 取得一份拥有引用，
+可以在回调结束后继续使用该值。 `input` 和 `handled` 只在本次回调内有效。
+参数保持原有值身份，原生层使用栈上的输入记录，读取时保留引用。
+
+两种注册方式共用同一个命令槽。重新注册会替换旧提供器。无参数的普通调用
+传给值提供器的参数是 `null`。有参数的值命令遇到普通提供器时会收到
+`XUI_ERROR_UNSUPPORTED`。原生 C 调用继续使用其独立的指针参数合同。
+[命令参数范例](../lib/bindings/xui/examples/code_command_value.xl)
+
 静态 AOT 基准中，启用检查和执行回调都使用 xlang 时，每次命令的中位耗时为
 Windows 10.45 μs、Linux 4.52 μs。相同的 C 回调分别为 3.53 μs、2.03 μs。
 预热后的计时区间内三组均未发生 XRT 堆操作。见[验收记录](../dev/release-materials/provenance/xui-codeedit-command-provider-20261120.json)。

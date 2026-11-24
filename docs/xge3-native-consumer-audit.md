@@ -1,5 +1,23 @@
 # Native consumers in the full API inventory
 
+## Value payloads for editor commands
+
+`CodeProviderSet` and the editor's provider view can install a command
+that accepts an XRT value. The callback reads the original value through
+a call-scoped view. The language getter retains it for independent use.
+Value and opaque C payloads reach the same native dispatcher through
+distinct entry points. The existing raw and owning C registrations keep
+their pointer contract, and the owning registrations use the same slot
+and callback owner acquisition.
+
+The native fixture checks payload identity, allocation failure rollback,
+legacy pointer dispatch and clearing the provider from its own callback.
+It records zero XRT allocation attempts in 1,000 warm native dispatches.
+The language fixture checks the original value identity, embedded NUL,
+callback input expiry and checked exception propagation.
+
+[Editor command payload evidence](../dev/release-materials/provenance/xui-code-command-payload-20261124.json)
+
 ## Dialog and editor callback routes
 
 The FileDialog and MsgBox factories preserve the native callbacks of their

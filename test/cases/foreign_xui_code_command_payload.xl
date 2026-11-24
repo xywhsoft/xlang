@@ -1,0 +1,75 @@
+import xui
+from xui import CallbackWidget, CallbackInt, CallbackCodeCommandInput
+
+extern "fixtureSameCommandValue" @header("test/cases/foreign_xui_code_command_payload.h") @no_raise @c_const(0) @c_const(1) func sameValue(var first,var second) as bool
+
+func main(...) as int
+    auto proxy = xui.createProxy()
+    auto context = xui.create(proxy, xui.XUI_SYSTEM_FONT_DISABLED)
+    auto editor = context.codeEditNative()
+    auto installed = editor.providers()
+    auto detached = xui.createCodeProviderSet()
+    c_int command = xui.XUI_CODE_COMMAND_USER_BASE
+    c_int failingCommand = command + 1
+    var payload = "alpha\0omega"
+    var retained = null
+    int calls = 0
+    CallbackCodeCommandInput? escaped = null
+    xui.CodeValueCommand handler = func(CallbackWidget widget,c_int id,CallbackCodeCommandInput input,CallbackInt handled) as c_int
+        assert id == command or id == failingCommand, "handler command ID"
+        escaped = input
+        retained = input.value()
+        if id == failingCommand then
+            handled.value = 1
+            throw RangeError "command value failure"
+        end
+        handled.value = 1
+        calls += 1
+        return xui.XUI_OK
+    end
+
+    detached.setValueCommandProvider(handler)
+    assert detached.executeCommandWithValue(editor, command, payload) == 1, "detached handler consumed payload"
+    assert sameValue(payload, retained), "original and retained XRT value identities match"
+    assert (retained as string) == "alpha\0omega", "counted payload retains the embedded NUL"
+    assert detached.executeCommand(editor, command) == 1, "detached handler consumed an empty payload"
+    assert retained == null, "ordinary command supplies null"
+    detached.setCommandProvider(func(CallbackWidget widget,c_int id,CallbackInt handled) as c_int
+        handled.value = 1
+        return xui.XUI_OK
+    end)
+    bool rejected = false
+    try
+        detached.executeCommandWithValue(editor, command, payload)
+    catch Error failure
+        rejected = failure.code == xui.XUI_ERROR_UNSUPPORTED
+    end
+    assert rejected, "a scalar provider rejects a value argument"
+    assert detached.executeCommand(editor, command) == 1, "scalar provider remains live"
+    detached.close()
+
+    installed.setValueCommandProvider(handler)
+    assert installed.executeCommandWithValue(editor, command, payload) == 1 and calls == 3, "installed provider consumed payload"
+    assert sameValue(payload, retained), "installed provider reads the original XRT value"
+    bool expired = false
+    try
+        (escaped as CallbackCodeCommandInput).value()
+    catch StateError
+        expired = true
+    end
+    assert expired, "the callback input expires on return"
+    rejected = false
+    try
+        installed.executeCommandWithValue(editor, failingCommand, payload)
+    catch RangeError failure
+        rejected = failure.message == "command value failure"
+    end
+    assert rejected and calls == 3, "callback reports its checked error"
+    assert installed.executeCommandWithValue(editor, command, payload) == 1 and calls == 4, "callback remains installed after an error"
+    installed.setValueCommandProvider(null)
+    context.close()
+    proxy.close()
+    assert sameValue(payload, retained), "the retained value survives editor and provider close"
+    println("XUI_CODE_COMMAND_PAYLOAD_OK")
+    return 0
+end

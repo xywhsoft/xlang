@@ -243,6 +243,12 @@ TABLE_VIEW_SOURCE = 'src/xui/controls/xui_table_view.c'
 TABLE_GRID_SOURCE = 'src/xui/controls/xui_table_grid.c'
 TABLE_CELL_SOURCE = 'src/xui/controls/xui_table_cell_output.c'
 CODE_LANGUAGE_SOURCE = 'src/xui/code/xui_code_language.c'
+CODE_PROVIDER_SOURCE = 'src/xui/code/xui_code_provider.c'
+CODE_COMMAND_REGISTRATIONS = {
+    'xuiCodeProviderSetCommand': '__xuiCodeProviderSetRaw',
+    'xuiCodeProviderSetCommandOwned': '__xuiCodeProviderSetOwned',
+    'xuiCodeProviderSetValueCommandOwned': '__xuiCodeProviderSetOwned',
+}
 WIDGET_SOURCE = 'src/xui/core/xui_widget.c'
 FILE_DIALOG_SOURCE = 'src/xui/controls/xui_file_dialog.c'
 TABLE_LIFETIME_CALLS = {
@@ -722,6 +728,13 @@ def main():
                 '__xuiCodeLanguageRegisterCallbacks': ('__xuiCodeLanguageRegister',),
                 '__xuiCodeLanguageRegister': ('xuiInternalCallbackHoldFresh',),
             }
+        if 'xuiCodeProviderSetValueCommandOwned' in functions:
+            calls[CODE_PROVIDER_SOURCE] = {
+                **{name: (setter,) for name, setter in CODE_COMMAND_REGISTRATIONS.items()},
+                'xuiCodeProviderExecuteCommand': ('__xuiCodeProviderExecuteCommand',),
+                'xuiCodeProviderExecuteCommandValue': ('__xuiCodeProviderExecuteCommand',),
+                '__xuiCodeProviderSetOwned': ('xuiInternalCallbackHoldFresh',),
+            }
         if 'xuiTreeViewSetDataAdapterOwned' in functions:
             calls['src/xui/controls/xui_tree_view.c'] = {
                 'xuiTreeViewSetDataAdapterOwned': ('__xuiTreeViewSetAdapter',),
@@ -738,6 +751,9 @@ def main():
             if legacy in functions and checked in functions:
                 calls.setdefault(unit, {}).update({legacy: (reader,), checked: (reader,)})
         included_units = ['src/xge/text/xge_text_resources.c']
+        if CODE_PROVIDER_SOURCE in calls:
+            included_units.extend(f'src/xui/code/xui_code_provider_{unit}.inl'
+                                  for unit in ('owned', 'lifetime', 'reply', 'snapshot'))
         if 'xgeTextUTF8Read' in functions:
             included_units.append('src/xge/text/xge_font.c')
         if 'xgeAsyncRequestInit' in functions and 'xgeAsyncImageCreateOwned' in functions:
@@ -1040,6 +1056,8 @@ def main():
                     'xuiMsgBoxShow': 'xui.showMsgBox',
                     'xuiCodeLanguageRegistryLoadDefaults': 'xui.CodeLanguageRegistry.loadDefaults',
                     'xuiCodeLanguageRegistryRegisterCallbacks': 'xui.CodeLanguageRegistry.registerCallbacks',
+                    'xuiCodeProviderSetValueCommandOwned': 'xui.CodeProviderSet.setValueCommandProvider',
+                    'xuiCodeProviderExecuteCommandValue': 'xui.CodeProviderSet.executeCommandWithValue',
                 }
                 for edges in calls.values():
                     for root in edges.keys() & binding_calls.keys():
@@ -1110,6 +1128,21 @@ def main():
                     legacyPath=paths[symbol][registrar],
                     managedPath=paths[native][projection]+paths[projection][registrar],
                     ownerHoldPath=paths[registrar]['xuiInternalCallbackHoldFresh'])
+            elif symbol in CODE_COMMAND_REGISTRATIONS and CODE_PROVIDER_SOURCE in report.get('resourceLifetime', {}):
+                native = 'xuiCodeProviderSetValueCommandOwned'
+                prefix = 'xui.CodeProviderSet.'
+                assert {row['language'] for row in bound[native]} == {
+                    prefix+'setValueCommandProvider', 'xui.CodeEditProviders.setValueCommandProvider'}
+                execute = 'xuiCodeProviderExecuteCommandValue'
+                assert any(row['language'] == prefix+'executeCommandWithValue' for row in bound[execute])
+                paths = report['resourceLifetime'][CODE_PROVIDER_SOURCE]['relocationPaths']
+                setter = CODE_COMMAND_REGISTRATIONS[native]
+                evidence = dict(language=prefix+'setValueCommandProvider', native=native,
+                    legacyPath=paths[symbol][CODE_COMMAND_REGISTRATIONS[symbol]],
+                    managedPath=paths[native][setter],
+                    ownerHoldPath=paths[setter]['xuiInternalCallbackHoldFresh'],
+                    nativeExecution=paths['xuiCodeProviderExecuteCommand']['__xuiCodeProviderExecuteCommand'],
+                    valueExecution=paths[execute]['__xuiCodeProviderExecuteCommand'])
             elif symbol == 'xuiDrawCreateOwned' and a.resource_engine_build and 'xuiDrawCreateOwnedEx' in functions:
                 proxy = (view/'lib/bindings/xui/src/proxy.xl').read_text(encoding='utf-8-sig')
                 assert re.search(r'extern "drawBegin" @c_field_call .*func beginDraw\(', proxy)
