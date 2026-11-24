@@ -1,0 +1,322 @@
+{
+  "schema": "xlang-xui-widget-callback-snapshot-1",
+  "scope": "Owned snapshots and direct typed reinstallation for eight widget callback slots",
+  "nativeCommit": "65b52929",
+  "shippingDelivery": false,
+  "networkTests": false,
+  "prior": {
+    "path": "dev/release-materials/provenance/xui-code-command-payload-20261124.json",
+    "sha256": "42730ff328c669d97aa73061b920057ad8231564e25d6362cd8a40c19ca4f0db"
+  },
+  "closedFromReview": [
+    "xuiCodeEditGetTokenStyleResolver",
+    "xuiWidgetGetCacheRenderCallback",
+    "xuiWidgetGetContentMeasureCallback",
+    "xuiWidgetGetCursorQueryCallback",
+    "xuiWidgetGetImeCandidateRect",
+    "xuiWidgetGetLayoutChildrenCallback",
+    "xuiWidgetGetLayoutCompleteCallback",
+    "xuiWidgetGetLayoutPrepareCallback"
+  ],
+  "sourceSha256NormalizedLf": {
+    "docs/xui-widget-queries.md": "0ad0988a72f1f0f7e1f663ffd3a6c22aa0899134f6d7d8de46a8d6e3f712c43c",
+    "docs/xge3-xui3-api-map-storage.json": "b4f152e406a0ae83d1264a65c9eb081821463073f425251dfc18e55605f021c0",
+    "lib/bindings/xui/src/managed.xl": "a57b0270ba2698a82e11a061872f6994b5d48106841bce9efbe559b52e91cd60",
+    "lib/bindings/_xge_native/include/xui3_widget_callback_snapshot.h": "225f2ef226e089a65102db3920be1348edc21bde90e0a802a89762dc7f5f3ca3",
+    "lib/bindings/xui/examples/widget_callback_snapshot.xl": "811121afa3ee812c4cd6585f9942deda3a522b11ccd5e9bfaab112bed00ba08f",
+    "tools/check_xge3_native_consumers.py": "c530e66d72ac7c50a93c4d7df845b104380e78be634be387565970e49ab71af8",
+    "tools/xui_managed_contracts.py": "23bc464041491b0b6c59aa3465827b5e4798c7f1bbca0563a3163833460aa342",
+    "test/cases/foreign_xui_widget_callback_snapshot.xl": "9be614332684408dac0af60d980aa5ad4cc6362607626c089ef0547922e6636f"
+  },
+  "nativeSha256NormalizedLf": {
+    "include/xui.h": "6243ad4267109c246dcbd56574d9af72476b094a46f24736dfe6ff392aacee9a",
+    "src/xui/code/xui_code_edit.c": "8af778ab88aafe3522a7b951024321910f79a50f176cc920fbfb6f3b2b6e08e0",
+    "src/xui/core/xui_callback_owned.c": "08b70a40b4a7db041207d0d3a69d67ca4d9234e79bda000d9cfc823935fb6a3b",
+    "src/xui/core/xui_widget_callback_snapshot_internal.h": "15602bb1eb970b5e47c30b12b72427b76cc1a59006c43eec6af3d4ef175d971a",
+    "tests/xui/test_widget_callback_snapshot.c": "aa11e12002bda90b1fd5ae913a54f50f8e195b83edaaaf6e3303cac6ad85cb5b"
+  },
+  "nativeCases": [
+    "all eight original callback pointers and userdata preserved",
+    "empty slot without allocation",
+    "borrowed C slot reports unsupported",
+    "allocation and hold errors roll back",
+    "source invalidates independently",
+    "owner edge traced",
+    "creator-thread check",
+    "active install close and reinstall report Busy",
+    "consuming Drop error",
+    "successful direct invocation after releasing snapshot"
+  ],
+  "platforms": {
+    "win": {
+      "stage": {
+        "path": "F:/xlang-validation/xge-full-20261110/widget-callback-snapshot-stage-win-r2/replay/stage-report.json",
+        "sha256": "8a73a01939a27e560c32a81009d373728213b126209c4da9623dc2639d8ff730"
+      },
+      "audit": {
+        "path": "F:/xlang-validation/xge-full-20261110/widget-callback-snapshot-consumers-win-r3/results.json",
+        "sha256": "65a98864bdef5246008a4b6d9538758342ed599c8e5944f270fa2bf1d31ad4a3"
+      },
+      "runtime": {
+        "path": "F:/xlang-validation/xge-full-20261110/widget-callback-snapshot-verify-win-r2/results.json",
+        "sha256": "bbe79adb039e6b4189041a85caf5dd09b73772d939fccc6a31510b9acb2c90d3"
+      },
+      "native": {
+        "path": "F:/xlang-validation/xge-full-20261110/widget-callback-snapshot-native-tests-win-r1/results.json",
+        "sha256": "b26585767f2ef26b01cd14b5e92b1b72e234905246176da232b77dd7c186cf02"
+      },
+      "generator": {
+        "path": "F:/xlang-validation/xge-full-20261110/widget-callback-snapshot-generator-win-r2/results.json",
+        "sha256": "2eb73d5f30dff16f9131f38242557149579883c3fc7a1f4d04e1618775b5d3d0"
+      },
+      "generatedC": {
+        "path": "F:/xlang-validation/xge-full-20261110/widget-callback-snapshot-verify-win-r2/foreign_xui_widget_callback_snapshot/generated.c",
+        "sha256": "2e59b6138f9b400ca109effa74d7ee46fade8876dedf0e209c6a86c8e121b897"
+      },
+      "remaining": {
+        "XGE": 2,
+        "XUI": 9
+      },
+      "cases": {
+        "foreign_xui_widget_callback_snapshot": {
+          "directCFunctions": [
+            "xuiWidgetCaptureContentMeasureCallback",
+            "xuiWidgetCaptureLayoutPrepareCallback",
+            "xuiWidgetCaptureLayoutChildrenCallback",
+            "xuiWidgetCaptureLayoutCompleteCallback",
+            "xuiWidgetCaptureImeCandidateRect",
+            "xuiWidgetCaptureCursorQueryCallback",
+            "xuiWidgetCaptureCacheRenderCallback",
+            "xuiCodeEditCaptureTokenStyleResolver",
+            "xuiWidgetCallbackSnapshotInstall"
+          ],
+          "imports": {
+            "host": [
+              "msvcrt.dll",
+              "xge3_host.dll",
+              "kernel32.dll",
+              "shell32.dll",
+              "ucrtbase.dll"
+            ],
+            "static": [
+              "msvcrt.dll",
+              "kernel32.dll",
+              "user32.dll",
+              "ole32.dll",
+              "oleaut32.dll",
+              "shell32.dll",
+              "gdi32.dll",
+              "imm32.dll",
+              "dwrite.dll"
+            ]
+          }
+        },
+        "widget_callback_snapshot": {
+          "directCFunctions": [
+            "xuiWidgetCaptureContentMeasureCallback",
+            "xuiWidgetCallbackSnapshotInstall",
+            "xuiWidgetMeasureContent"
+          ],
+          "imports": {
+            "host": [
+              "msvcrt.dll",
+              "xge3_host.dll",
+              "kernel32.dll",
+              "ucrtbase.dll"
+            ],
+            "static": [
+              "msvcrt.dll",
+              "kernel32.dll",
+              "user32.dll",
+              "ole32.dll",
+              "oleaut32.dll",
+              "shell32.dll",
+              "gdi32.dll",
+              "imm32.dll",
+              "dwrite.dll"
+            ]
+          }
+        }
+      },
+      "nativeGetters": {
+        "xuiCodeEditGetTokenStyleResolver": [
+          "src/xui/code/xui_code_edit.c"
+        ],
+        "xuiWidgetGetCacheRenderCallback": [
+          "src/xui/core/xui_callback_owned.c"
+        ],
+        "xuiWidgetGetContentMeasureCallback": [
+          "src/xui/core/xui_callback_owned.c"
+        ],
+        "xuiWidgetGetCursorQueryCallback": [
+          "src/xui/core/xui_callback_owned.c"
+        ],
+        "xuiWidgetGetImeCandidateRect": [
+          "src/xui/core/xui_callback_owned.c"
+        ],
+        "xuiWidgetGetLayoutChildrenCallback": [
+          "src/xui/core/xui_callback_owned.c"
+        ],
+        "xuiWidgetGetLayoutCompleteCallback": [
+          "src/xui/core/xui_callback_owned.c"
+        ],
+        "xuiWidgetGetLayoutPrepareCallback": [
+          "src/xui/core/xui_callback_owned.c"
+        ]
+      },
+      "domain": ".text$xl6Xui3OwnershipDomainV1Get",
+      "policySelectors": {
+        "xl6Xui3WidgetCallbackSnapshotPolicy": [
+          "xuiWidgetCallbackSnapshotOwnershipBusy",
+          "xuiWidgetCallbackSnapshotReleaseOwnerChecked",
+          "xuiWidgetCallbackSnapshotTraceOwnership"
+        ]
+      },
+      "cxxHeaders": {
+        "path": "F:/xlang-validation/xge-full-20261110/widget-callback-snapshot-headers-win-r1/results.json",
+        "sha256": "4f8183e88c322be0d56f43daef0a351c8861a29c0a6ab7ac772f6e9291e96061",
+        "sourceSha256": "da2d349a63132e389308324a8bc13771c9662e22dc520daff35fe6de963e7ff4"
+      }
+    },
+    "linux": {
+      "stage": {
+        "path": "//wsl.localhost/Ubuntu/var/tmp/xlang-validation/xge-full-20261110/widget-callback-snapshot-stage-linux-r2/replay/stage-report.json",
+        "sha256": "70fff7122087d27d992d21589216dad0e46c8a75dbb3df72efd42539299d9f57"
+      },
+      "audit": {
+        "path": "//wsl.localhost/Ubuntu/var/tmp/xlang-validation/xge-full-20261110/widget-callback-snapshot-consumers-linux-r3/results.json",
+        "sha256": "3eb5d06c849291b73a35149a50b9adb4cca4aa5e0d26286674cf1f9712721378"
+      },
+      "runtime": {
+        "path": "//wsl.localhost/Ubuntu/var/tmp/xlang-validation/xge-full-20261110/widget-callback-snapshot-verify-linux-r2/results.json",
+        "sha256": "a94fafcd555cac048cf3df3fe268dff6c02089ca38d01de623dcb3726254e37c"
+      },
+      "native": {
+        "path": "//wsl.localhost/Ubuntu/var/tmp/xlang-validation/xge-full-20261110/widget-callback-snapshot-native-tests-linux-r1/results.json",
+        "sha256": "755de955c25b43ae54f519e13587a3549f233555437557140526d5f1adbf3f5e"
+      },
+      "generator": {
+        "path": "//wsl.localhost/Ubuntu/var/tmp/xlang-validation/xge-full-20261110/widget-callback-snapshot-generator-linux-r2/results.json",
+        "sha256": "125b3295d547fdb9d82c4f9ab803abe5ef04621d6fdcb23e3f0f0030020ff24c"
+      },
+      "generatedC": {
+        "path": "//wsl.localhost/Ubuntu/var/tmp/xlang-validation/xge-full-20261110/widget-callback-snapshot-verify-linux-r2/foreign_xui_widget_callback_snapshot/generated.c",
+        "sha256": "2e59b6138f9b400ca109effa74d7ee46fade8876dedf0e209c6a86c8e121b897"
+      },
+      "remaining": {
+        "XGE": 4,
+        "XUI": 9
+      },
+      "cases": {
+        "foreign_xui_widget_callback_snapshot": {
+          "directCFunctions": [
+            "xuiWidgetCaptureContentMeasureCallback",
+            "xuiWidgetCaptureLayoutPrepareCallback",
+            "xuiWidgetCaptureLayoutChildrenCallback",
+            "xuiWidgetCaptureLayoutCompleteCallback",
+            "xuiWidgetCaptureImeCandidateRect",
+            "xuiWidgetCaptureCursorQueryCallback",
+            "xuiWidgetCaptureCacheRenderCallback",
+            "xuiCodeEditCaptureTokenStyleResolver",
+            "xuiWidgetCallbackSnapshotInstall"
+          ],
+          "imports": {
+            "host": [
+              "libm.so.6",
+              "libmvec.so.1",
+              "libxge3_host.so",
+              "libc.so.6",
+              "ld-linux-x86-64.so.2"
+            ],
+            "static": [
+              "libm.so.6",
+              "libmvec.so.1",
+              "libx11.so.6",
+              "libxi.so.6",
+              "libxcursor.so.1",
+              "libgl.so.1",
+              "libc.so.6",
+              "ld-linux-x86-64.so.2"
+            ]
+          }
+        },
+        "widget_callback_snapshot": {
+          "directCFunctions": [
+            "xuiWidgetCaptureContentMeasureCallback",
+            "xuiWidgetCallbackSnapshotInstall",
+            "xuiWidgetMeasureContent"
+          ],
+          "imports": {
+            "host": [
+              "libm.so.6",
+              "libmvec.so.1",
+              "libxge3_host.so",
+              "libc.so.6",
+              "ld-linux-x86-64.so.2"
+            ],
+            "static": [
+              "libm.so.6",
+              "libmvec.so.1",
+              "libx11.so.6",
+              "libxi.so.6",
+              "libxcursor.so.1",
+              "libgl.so.1",
+              "libc.so.6",
+              "ld-linux-x86-64.so.2"
+            ]
+          }
+        }
+      },
+      "nativeGetters": {
+        "xuiCodeEditGetTokenStyleResolver": [
+          "src/xui/code/xui_code_edit.c"
+        ],
+        "xuiWidgetGetCacheRenderCallback": [
+          "src/xui/core/xui_callback_owned.c"
+        ],
+        "xuiWidgetGetContentMeasureCallback": [
+          "src/xui/core/xui_callback_owned.c"
+        ],
+        "xuiWidgetGetCursorQueryCallback": [
+          "src/xui/core/xui_callback_owned.c"
+        ],
+        "xuiWidgetGetImeCandidateRect": [
+          "src/xui/core/xui_callback_owned.c"
+        ],
+        "xuiWidgetGetLayoutChildrenCallback": [
+          "src/xui/core/xui_callback_owned.c"
+        ],
+        "xuiWidgetGetLayoutCompleteCallback": [
+          "src/xui/core/xui_callback_owned.c"
+        ],
+        "xuiWidgetGetLayoutPrepareCallback": [
+          "src/xui/core/xui_callback_owned.c"
+        ]
+      },
+      "domain": ".text.xl6Xui3OwnershipDomainV1Get",
+      "policySelectors": {
+        "xl6Xui3WidgetCallbackSnapshotPolicy": [
+          "xuiWidgetCallbackSnapshotOwnershipBusy",
+          "xuiWidgetCallbackSnapshotReleaseOwnerChecked",
+          "xuiWidgetCallbackSnapshotTraceOwnership"
+        ]
+      },
+      "cxxHeaders": {
+        "path": "//wsl.localhost/Ubuntu/var/tmp/xlang-validation/xge-full-20261110/widget-callback-snapshot-headers-linux-r1/results.json",
+        "sha256": "063d2703acbca1771613da5d5377e035e9480b4b8c74b11f1c4620aa73442825",
+        "sourceSha256": "da2d349a63132e389308324a8bc13771c9662e22dc520daff35fe6de963e7ff4"
+      }
+    }
+  },
+  "remainingAcrossPreviouslyQualifiedConfigurations": [
+    "xuiIconDescDefault",
+    "xuiIconGetUser",
+    "xuiProxyCreateOwned",
+    "xuiProxyCreateOwnedEx",
+    "xuiProxyResourceOwnershipCompletionV1",
+    "xuiTerminalSetImageCallback",
+    "xuiWidgetGetTypeData",
+    "xuiWidgetTypeGetUserData",
+    "xuiWidgetTypeSetOwnershipTrace"
+  ]
+}

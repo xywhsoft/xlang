@@ -62,6 +62,28 @@ acceptance commands per platform (108 combined), excluding failed diagnostic
 attempts, staging, inventory and evidence rehashes. Source/SDK/compiler reuse
 does not imply final release installation or completion of the entire XGE goal.
 
+## Saving and reinstalling callbacks
+
+`captureContentMeasureCallback()` saves the callback currently registered on
+a widget. The same operation is available for layout preparation, layout of
+children, layout completion, cache rendering, cursor queries and IME candidate
+rectangles. `CodeEdit.captureTokenStyleResolver()` saves a token style resolver.
+An empty slot returns `null`.
+
+`WidgetCallbackSnapshot` keeps the callback and its captured values alive
+after the source widget closes. Use `snapshot.install(target)` to register the
+callback on another widget on the same thread. A token style resolver requires
+a CodeEdit target. Repeated installation takes an independent owner for each
+target. Close the snapshot when it is no longer needed.
+
+Capturing an existing callback allocates one snapshot and retains the registered
+owner. Installation uses the same checked setter as direct registration. The
+target invokes the original callback with its original signature. A C
+registration with borrowed userdata and no owner reports Unsupported on capture.
+An active installation and a different thread report Busy.
+
+[Callback snapshot example](../lib/bindings/xui/examples/widget_callback_snapshot.xl)
+
 ## User data and tooltip configuration
 
 `Widget.setUserData(value)` attaches an independent data snapshot to an

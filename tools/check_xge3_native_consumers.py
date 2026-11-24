@@ -11,7 +11,7 @@ from stage_xge3_replay_contracts import verify_replay_package
 from check_xge3_full_surface import source_bindings
 from xge_replay_contracts import CLOSE_REPLACEMENTS as XGE_CLOSE_REPLACEMENTS, REPLACED as XGE_REPLACEMENTS
 from xui_document_replacements import CLOSE_REPLACEMENTS as DOCUMENT_CLOSE_REPLACEMENTS,LIFECYCLE_REPLACEMENTS,REPLACEMENTS as DOCUMENT_REPLACEMENTS
-from xui_managed_contracts import CLOSE_REPLACEMENTS as XUI_CLOSE_REPLACEMENTS,REPLACED as XUI_REPLACEMENTS
+from xui_managed_contracts import CLOSE_REPLACEMENTS as XUI_CLOSE_REPLACEMENTS,REPLACED as XUI_REPLACEMENTS,WIDGET_CALLBACK_CAPTURES
 
 # Logical source-group selectors may name an object-like header alias. Prove
 # this one against an actual C relocation, rather than assuming a name suffix.
@@ -227,6 +227,8 @@ HEADER_CLOSE_REPLACEMENTS['xuiResourceReferenceRelease'] = (
     'xui.ResourceReference.close', 'xuiResourceReferenceReleaseOwnerChecked')
 HEADER_CLOSE_REPLACEMENTS['xuiTableCellReferenceRelease'] = (
     'xui.TableCellReference.close', 'xuiTableCellReferenceReleaseOwnerChecked')
+HEADER_CLOSE_REPLACEMENTS['xuiWidgetCallbackSnapshotRelease'] = (
+    'xui.WidgetCallbackSnapshot.close', 'xuiWidgetCallbackSnapshotReleaseOwnerChecked')
 HEADER_CLOSE_REPLACEMENTS['xuiCodeFoldStateDestroy'] = (
     'xui.CodeFoldState.close', 'xuiCodeFoldStateDestroyChecked')
 HEADER_CLOSE_REPLACEMENTS['xuiCodeCommandMapDestroy'] = (
@@ -250,6 +252,8 @@ CODE_COMMAND_REGISTRATIONS = {
     'xuiCodeProviderSetValueCommandOwned': '__xuiCodeProviderSetOwned',
 }
 WIDGET_SOURCE = 'src/xui/core/xui_widget.c'
+WIDGET_CALLBACK_SOURCE = 'src/xui/core/xui_callback_owned.c'
+CODE_EDIT_CALLBACK_SOURCE = 'src/xui/code/xui_code_edit.c'
 FILE_DIALOG_SOURCE = 'src/xui/controls/xui_file_dialog.c'
 TABLE_LIFETIME_CALLS = {
     TABLE_VIEW_SOURCE: {
@@ -374,7 +378,7 @@ def reachable_relocations(relocations, name):
     return reachable
 
 
-def compile_header_policies(name, view, classes, native_names, flags, tools, out, run, symbols, sha):
+def compile_header_policies(name, view, classes, native_names, flags, tools, out, run, symbols, sha, resident):
     headers = set()
     selectors = {}
     for logical, binding in sorted(classes.items()):
@@ -405,14 +409,27 @@ def compile_header_policies(name, view, classes, native_names, flags, tools, out
     undefined = symbols(run(name+'-undefined', [tools['nm'],'-u',obj]))
     relocations = object_relocations(run(name+'-relocations', [tools['objdump'],'-r',obj]))
     imports = {}
+    resident_selectors = {}
     for selector in sorted(selectors):
-        getters = [prefix+selector+'Get' for prefix in ('.text.','.text$')
-            if prefix+selector+'Get' in relocations.get(prefix+'audit_'+selector, ())]
-        assert len(getters)==1, (selector, getters)
-        imports[selector] = sorted(reachable_relocations(relocations,getters[0]) & native_names)
-        assert imports[selector] and set(imports[selector])<=undefined, (selector, imports[selector])
+        getter = selector+'Get'
+        prefixes = ('.text.','.text$')
+        targets = {target for prefix in prefixes for target in relocations.get(prefix+'audit_'+selector, ())}
+        local = targets & {prefix+getter for prefix in prefixes}
+        assert len(local)+int(getter in targets)==1, (selector, targets)
+        if local:
+            imports[selector] = sorted(reachable_relocations(relocations,next(iter(local))) & native_names)
+            assert imports[selector] and set(imports[selector])<=undefined, (selector, imports[selector])
+        else:
+            assert selectors[selector]=='XL6_OwnershipDomainV1' and getter in undefined, (selector,targets)
+            sections = [prefix+getter for prefix in prefixes if prefix+getter in resident]
+            assert len(sections)==1, (selector,sections)
+            native = sorted(reachable_relocations(resident,sections[0]) & native_names)
+            assert native, selector
+            resident_selectors[selector] = dict(source='src/runtime.c',getter=sections[0],nativeImports=native)
     evidence = dict(source=str(source), sha256=sha(source), object=str(obj), objectSha256=sha(obj),
         headerSelectors=imports)
+    if resident_selectors:
+        evidence['residentSelectors'] = resident_selectors
     return evidence, relocations
 
 
@@ -711,6 +728,18 @@ def main():
             })
         if 'xuiContextTraceEventOwners' in functions:
             calls.setdefault(WIDGET_SOURCE, {})['xuiContextTraceOwnership'] = ('xuiContextTraceEventOwners',)
+        helper_calls = ('xuiInternalWidgetCallbackCaptureBegin','xuiInternalWidgetCallbackCaptureEnd')
+        if 'xuiWidgetCaptureContentMeasureCallback' in functions:
+            calls[WIDGET_CALLBACK_SOURCE] = {
+                **{native: (native.replace('Capture','Get',1), *helper_calls)
+                   for native,(owner,_) in WIDGET_CALLBACK_CAPTURES.items() if owner == 'Widget'},
+                'xuiInternalWidgetCallbackCaptureEnd': ('xuiInternalCallbackHoldFresh',),
+                'xuiWidgetCallbackSnapshotReleaseOwnerChecked': ('xuiInternalCallbackOwnerDrop',),
+            }
+        if 'xuiCodeEditCaptureTokenStyleResolver' in functions:
+            calls[CODE_EDIT_CALLBACK_SOURCE] = {
+                'xuiCodeEditCaptureTokenStyleResolver': ('xuiCodeEditGetTokenStyleResolver', *helper_calls),
+            }
         if 'xuiFileDialogShow' in functions:
             calls.setdefault(FILE_DIALOG_SOURCE, {}).update({
                 'xuiFileDialogShow': ('xuiFileDialogCreate',),
@@ -998,13 +1027,19 @@ def main():
         if 'xui.TableCellReference' in class_bindings:
             policy_groups['tableCellReferenceHeaderPolicies'] = ('xui-table-cell-reference-policies',
                 {'xui.TableCellReference': class_bindings['xui.TableCellReference']})
+        if 'xui.WidgetCallbackSnapshot' in class_bindings:
+            policy_groups['widgetCallbackSnapshotHeaderPolicies'] = ('xui-widget-callback-snapshot-policies',
+                {'xui.WidgetCallbackSnapshot': class_bindings['xui.WidgetCallbackSnapshot']})
         header_relocations = {}
         for key, (name, classes) in policy_groups.items():
             evidence, relocations = compile_header_policies(name,view,classes,set(functions),
-                flags,tools,out,run,symbols,sha)
+                flags,tools,out,run,symbols,sha,policy_relocations)
             report[key] = evidence
             header_relocations[key] = relocations
             imports = {symbol for names in evidence['headerSelectors'].values() for symbol in names}
+            if key == 'widgetCallbackSnapshotHeaderPolicies':
+                assert {'xuiWidgetCallbackSnapshotReleaseOwnerChecked','xuiWidgetCallbackSnapshotTraceOwnership',
+                    'xuiWidgetCallbackSnapshotOwnershipBusy'} <= imports
             for symbol in sorted(imports):
                 consumers.setdefault(symbol,[]).append(name)
         sequence_evidence = compile_owned_sequence_consumers(view,bound,class_bindings,set(functions),cc,packages,
@@ -1058,6 +1093,8 @@ def main():
                     'xuiCodeLanguageRegistryRegisterCallbacks': 'xui.CodeLanguageRegistry.registerCallbacks',
                     'xuiCodeProviderSetValueCommandOwned': 'xui.CodeProviderSet.setValueCommandProvider',
                     'xuiCodeProviderExecuteCommandValue': 'xui.CodeProviderSet.executeCommandWithValue',
+                    **{native: f'xui.{owner}.{name}'
+                       for native,(owner,name) in WIDGET_CALLBACK_CAPTURES.items()},
                 }
                 for edges in calls.values():
                     for root in edges.keys() & binding_calls.keys():
@@ -1196,6 +1233,9 @@ def main():
                 elif symbol=='xuiTableCellReferenceRelease':
                     key='tableCellReferenceHeaderPolicies'
                     destroy='xl6Xui3TableCellReferenceDestroy'
+                elif symbol=='xuiWidgetCallbackSnapshotRelease':
+                    key='widgetCallbackSnapshotHeaderPolicies'
+                    destroy='xl6Xui3WidgetCallbackSnapshotDestroy'
                 elif symbol=='xuiCodeFoldStateDestroy':
                     key='codeFoldStateHeaderPolicies'
                     destroy='xl6Xui3CodeFoldStateDestroy'

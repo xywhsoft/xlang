@@ -1,5 +1,22 @@
 # Native consumers in the full API inventory
 
+## Saving registered Widget and CodeEdit callbacks
+
+Seven Widget capture methods and CodeEdit's token style resolver capture
+return the same owned snapshot type. Each capture calls its native getter
+inside a Context scope and retains the original callback owner. A snapshot
+holds no reference to the source widget. Installation uses the existing
+typed setter and takes a new owner for the target slot.
+
+The compiled policy traces the callback owner through the resident XUI
+ownership domain. Native tests check all eight callback identities, empty
+slots, unowned C registrations, allocation failure, owner hold and drop
+errors, cross-thread rejection and reentry during installation. Language
+tests install all eight callbacks and exercise the retained measure
+callback after closing both the source widget and its snapshot.
+
+[Widget callback snapshot evidence](../dev/release-materials/provenance/xui-widget-callback-snapshot-20261124.json)
+
 ## Value payloads for editor commands
 
 `CodeProviderSet` and the editor's provider view can install a command

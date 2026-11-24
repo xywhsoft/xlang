@@ -2289,6 +2289,34 @@ METHODS.update({
 })
 
 
+WIDGET_CALLBACK_CAPTURES = {
+    'xuiWidgetCaptureContentMeasureCallback': ('Widget','captureContentMeasureCallback'),
+    'xuiWidgetCaptureLayoutPrepareCallback': ('Widget','captureLayoutPrepareCallback'),
+    'xuiWidgetCaptureLayoutChildrenCallback': ('Widget','captureLayoutChildrenCallback'),
+    'xuiWidgetCaptureLayoutCompleteCallback': ('Widget','captureLayoutCompleteCallback'),
+    'xuiWidgetCaptureImeCandidateRect': ('Widget','captureImeCandidateRectCallback'),
+    'xuiWidgetCaptureCursorQueryCallback': ('Widget','captureCursorQueryCallback'),
+    'xuiWidgetCaptureCacheRenderCallback': ('Widget','captureCacheRenderCallback'),
+    'xuiCodeEditCaptureTokenStyleResolver': ('CodeEdit','captureTokenStyleResolver'),
+}
+for native,(owner,name) in WIDGET_CALLBACK_CAPTURES.items():
+    METHODS[native] = (
+        f'int {native}(xui_widget widget, xui_widget_callback_snapshot_t** output)',
+        owner, [f'extern "{native}" @no_raise @c_result("owned_view") @factory(1,0,rollbackWidgetCallbackSnapshot) '
+                f'func {name}() as WidgetCallbackSnapshot?'],
+    )
+RECORDS['xui_widget_callback_snapshot_t'] = 'typedef struct xui_widget_callback_snapshot_t xui_widget_callback_snapshot_t;'
+VIEW_FUNCTIONS.update({
+    'xuiWidgetCallbackSnapshotInstall': 'int xuiWidgetCallbackSnapshotInstall(xui_widget_callback_snapshot_t* snapshot, xui_widget widget)',
+    'xuiWidgetCallbackSnapshotRelease': 'int xuiWidgetCallbackSnapshotRelease(xui_widget_callback_snapshot_t* snapshot)',
+})
+VIEWS['WidgetCallbackSnapshot'] = """export extern "xui_widget_callback_snapshot_t*" class WidgetCallbackSnapshot @header("xui3_widget_callback_snapshot.h") @lifetime("owned") @policy("xl6Xui3WidgetCallbackSnapshotPolicy") @domain("xl6Xui3OwnershipDomainV1")
+ native point handle
+ extern "xuiWidgetCallbackSnapshotInstall" @no_raise @c_result("status",0) func install(Widget target)
+ extern "xl6ForeignViewCloseV1" @no_raise @c_control(0) @c_result("bool_status") func close()
+end"""
+
+
 def validate(root,header,function_sha):
     functions={f['name']:f['declaration']for f in header['functions']}
     types={t['name']:t['declaration']for t in header['types']}
@@ -2340,6 +2368,8 @@ def extend(context,classes,free,callback_declarations,mapped):
     free[:]=[row for row in free if 'extern "xuiWidgetUnregisterType"' not in row]
     free.append('extern "xuiWidgetUnregisterType" @no_raise @c_result("status",0) func rollbackWidgetType(WidgetType value)')
     free.append(INPUT_DECORATION_ROLLBACK)
+    free.append('extern "xuiWidgetCallbackSnapshotRelease" @header("xui3_widget_callback_snapshot.h") @no_raise @c_result("status",0) func rollbackWidgetCallbackSnapshot(WidgetCallbackSnapshot snapshot)')
+    mapped['xuiWidgetCallbackSnapshotInstall']='xui.WidgetCallbackSnapshot.install'
     mapped.update(xuiWidgetTypeGetName='xui.WidgetType.getName',xuiWidgetTypeGetParent='xui.WidgetType.getParent',
                   xuiWidgetUnregisterType='xui.WidgetType.unregister')
     mapped.update(xuiCodeInputResponseGetFlags='xui.CallbackCodeInputResponse.flags',
