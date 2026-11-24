@@ -143,6 +143,11 @@ language string. Explicit lengths preserve embedded NUL bytes, and the
 native `-1` length reads the terminated string. Absent context remains
 `null`.
 
+`CallbackSurface` and `CallbackFont` expose incoming resources during
+Proxy callbacks. `proxy()` returns a scoped view of the same backend.
+`share()` obtains a separate native owner for use after the callback.
+The text item exposes its optional font through the same scoped view.
+
 `Context` owns its widget graph. Control classes extend `Widget`; a method such
 as `button.setText(text)` calls its original native function. The package has
 no C wrappers for individual methods and no opcode dispatch. Constructors

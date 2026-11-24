@@ -131,6 +131,16 @@ export extern "xui_proxy_t*" class CallbackProxy @header("xge3_runtime.h") @life
  extern "iVersion" @c_field @no_raise get version() as c_uint
  extern "xuiProxyShareOwned" @no_raise @c_result("owned_view") @factory(1,0,rollbackProxy) func share() as Proxy
 end
+export extern "xui_surface_t*" class CallbackSurface @header("xge3_runtime.h") @lifetime("callback")
+ native point handle
+ extern "xuiSurfaceShareOwned" @no_raise @c_result("owned_view") @factory(1,0,rollbackSurface) func share() as Surface
+ extern "xuiSurfaceGetProxy" @no_raise @c_result("scope_view",0) func proxy() as CallbackProxy?
+end
+export extern "xui_font_t*" class CallbackFont @header("xge3_runtime.h") @lifetime("callback")
+ native point handle
+ extern "xuiFontShareOwned" @no_raise @c_result("owned_view") @factory(1,0,rollbackFont) func share() as Font
+ extern "xuiFontGetProxy" @no_raise @c_result("scope_view",0) func proxy() as CallbackProxy?
+end
 export extern "xui_proxy_caps_t*" class CallbackProxyCapsOutput @header("xge3_runtime.h") @lifetime("callback")
  native point handle
  extern "value" @c_deref let value(ProxyCaps caps)
@@ -164,6 +174,7 @@ export extern "const xui_text_item_t*" class CallbackProxyTextItem @header("xge3
  extern "iContextOffset" @c_field get contextOffset() as c_int
  extern "iScript" @c_field get script() as c_uint
  extern "sLanguage" @c_field @c_result("cstring") get language() as string?
+ extern "pFont" @c_field @c_result("scope_view",0) get font() as CallbackFont?
  extern "fDrawOffsetX" @c_field get drawOffsetX() as c_float
  extern "iRangeStart" @c_field get rangeStart() as c_int
  extern "iRangeEnd" @c_field get rangeEnd() as c_int

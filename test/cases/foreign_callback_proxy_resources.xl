@@ -1,0 +1,85 @@
+from xui import CallbackProxy,CallbackSurface,CallbackFont,CallbackProxyTextItem,CallbackVec2Output
+from xui import CallbackSurfaceDescOutput,CallbackFontMetricsOutput,Surface,SurfaceDesc,Font,FontMetrics,Vec2,Proxy,XUI_PROXY_VERSION
+
+typedef SurfaceQuery=func(CallbackProxy,CallbackSurface,CallbackSurfaceDescOutput) as c_int
+typedef FontQuery=func(CallbackProxy,CallbackFont,CallbackFontMetricsOutput) as c_int
+typedef Measure=func(CallbackProxy,CallbackProxyTextItem,CallbackVec2Output) as c_int
+
+extern "xuiProxyReleaseChecked" @header("xge3_runtime.h") @no_raise @c_result("status",0) func releaseProbe(Proxy value)
+extern "xuiProxyCreateOwned" @header("xge3_runtime.h") @no_raise @c_result("owned_view") @factory(2,0,releaseProbe) @c_pack(0,"xui_proxy_t",0,4) @c_pack_size(0,"iSize","uint32_t") @c_pack_field(0,"iVersion",0,"value") @c_pack_callback_group(0,"pUser",1) @c_pack_field(0,"surfaceGetDesc",1,"owned_callback") @c_pack_field(0,"fontGetMetrics",2,"owned_callback") @c_pack_field(0,"textMeasure",3,"owned_callback") @c_owned_callback(1,-1,"xui_callback_owner_t",-16,"receiver") @c_owned_callback(2,-1,"xui_callback_owner_t",-16,"receiver") @c_owned_callback(3,-1,"xui_callback_owner_t",-16,"receiver") func makeProxy(c_uint version,SurfaceQuery surfaceQuery,FontQuery fontQuery,Measure measure) as Proxy
+
+extern "xl_test_proxy_resources" @header("test/cases/foreign_callback_proxy_resources.h") @no_raise @c_result("status",0) func queryResources(Proxy backend)
+extern "xl_test_proxy_resource_finalizers" @header("test/cases/foreign_callback_proxy_resources.h") @no_raise func finalizations() as c_int
+
+class State
+ CallbackSurface? surfaceView=null
+ CallbackFont? fontView=null
+ Surface? surface=null
+ Font? font=null
+ CallbackProxy? surfaceBackend=null
+end
+
+func main(...) as int
+ auto state=State()
+ SurfaceQuery surfaceQuery=func(CallbackProxy backend,CallbackSurface surface,CallbackSurfaceDescOutput output) as c_int
+  state.surface=surface.share()
+  state.surfaceView=surface
+  state.surfaceBackend=surface.proxy()
+  assert (state.surfaceBackend as CallbackProxy).version==backend.version
+  auto desc=SurfaceDesc()
+  desc.iWidth=c_int(17)
+  output.value=desc
+  return c_int(0)
+ end
+ FontQuery fontQuery=func(CallbackProxy backend,CallbackFont font,CallbackFontMetricsOutput output) as c_int
+  state.font=font.share()
+  state.fontView=font
+  assert (font.proxy() as CallbackProxy).version==backend.version
+  auto metrics=FontMetrics()
+  metrics.fAscent=c_float(11)
+  output.value=metrics
+  return c_int(0)
+ end
+ Measure measure=func(CallbackProxy backend,CallbackProxyTextItem item,CallbackVec2Output output) as c_int
+  auto font=item.font as CallbackFont
+  assert (font.proxy() as CallbackProxy).version==backend.version
+  assert item.text=="probe"
+  auto measured=Vec2()
+  measured.fX=c_float(5)
+  output.value=measured
+  return c_int(0)
+ end
+ auto proxy=makeProxy(c_uint(XUI_PROXY_VERSION),surfaceQuery,fontQuery,measure)
+ queryResources(proxy)
+ assert finalizations()==c_int(0)
+ int expired=0
+ try
+  auto retained=(state.surfaceView as CallbackSurface).share()
+ catch error
+  expired+=1
+ end
+ try
+  auto retained=(state.fontView as CallbackFont).share()
+ catch error
+  expired+=1
+ end
+ try
+  auto version=(state.surfaceBackend as CallbackProxy).version
+ catch error
+  expired+=1
+ end
+ assert expired==3
+ auto surface=state.surface as Surface
+ auto font=state.font as Font
+ auto surfaceProxy=surface.proxy()
+ auto fontProxy=font.proxy()
+ surfaceProxy.close()
+ fontProxy.close()
+ surface.close()
+ assert finalizations()==c_int(1)
+ font.close()
+ assert finalizations()==c_int(2)
+ proxy.close()
+ println("XUI_CALLBACK_PROXY_RESOURCES_OK")
+ return 0
+end

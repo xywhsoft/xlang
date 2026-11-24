@@ -1,0 +1,68 @@
+{
+  "schema": 1,
+  "scope": "Scoped incoming Surface and Font arguments in real XUI Proxy callbacks",
+  "shippingDelivery": false,
+  "networkTests": false,
+  "sourceSha256NormalizedLf": {
+    "lib/bindings/xui/src/proxy.xl": "05f177cf4a5a46bb6921a16ebcf744b7ccaf6a90464efb0be3a1571c0946df5e",
+    "test/cases/foreign_callback_proxy_resources.c": "9bca223fb917022a8da71f29719563de41532932db0da04c6af323c01eadca11",
+    "test/cases/foreign_callback_proxy_resources.h": "9eaaec87d5906b5022fe54885b11f2e03ee1655e4750abfd654bc3e2a625a4fb",
+    "test/cases/foreign_callback_proxy_resources.xl": "c1f168c83a6b3245df068f1aa40c1c9e82caac917a76ee5f776debce242b3453",
+    "lib/bindings/xui/README.md": "0e2bd13110f16624dd44188987f78ee2c5320b360a5677647bcc63944c01ad3b"
+  },
+  "qualification": "The counted-text compiler cohort and package overlays qualify this resource change. Its isolated package omits the writable-buffer declaration whose header ships with the later compiler SDK. The repository integrates both declarations.",
+  "checks": [
+    "Actual native surfaceGetDesc, fontGetMetrics and textMeasure Proxy fields invoke scoped xlang callbacks",
+    "The original Surface and Font native owners release independently of language shares",
+    "Callback views and nested borrowed backend views expire at callback return",
+    "Surface and Font release callbacks run once, after their final language owners close",
+    "Text item exposes its callback-scoped font and the associated backend",
+    "Generated C calls native ShareOwned and GetProxy directly"
+  ],
+  "platforms": {
+    "win_x64": {
+      "report": "F:/xlang-validation/xge-full-20261110/callback-proxy-resources-verify-win-r2/results.json",
+      "sha256": "e486a850f7cb5af54e450559d393b57ab40bd43849071b800eba831162dce451",
+      "nativeImports": {
+        "host": [
+          "msvcrt.dll",
+          "xge3_host.dll",
+          "kernel32.dll",
+          "shell32.dll",
+          "ws2_32.dll",
+          "iphlpapi.dll",
+          "ucrtbase.dll"
+        ],
+        "static": [
+          "msvcrt.dll",
+          "kernel32.dll",
+          "ole32.dll",
+          "shell32.dll"
+        ]
+      }
+    },
+    "linux_x64": {
+      "report": "/var/tmp/xlang-validation/xge-full-20261110/callback-proxy-resources-verify-linux-r2/results.json",
+      "sha256": "7a7361e85fcb3b099369375f14b681ef30a491878d13d34ef41c7cb5e6521337",
+      "nativeImports": {
+        "host": [
+          "libm.so.6",
+          "libmvec.so.1",
+          "libxge3_host.so",
+          "libc.so.6",
+          "ld-linux-x86-64.so.2"
+        ],
+        "static": [
+          "libm.so.6",
+          "libmvec.so.1",
+          "libx11.so.6",
+          "libxi.so.6",
+          "libxcursor.so.1",
+          "libgl.so.1",
+          "libc.so.6",
+          "ld-linux-x86-64.so.2"
+        ]
+      }
+    }
+  }
+}
