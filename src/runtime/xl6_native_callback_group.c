@@ -30,6 +30,10 @@ typedef struct CallbackGroup {
     CallbackGroupPayload retired;
     XL6_NativeCallbackGroupV1 view;
 } CallbackGroup;
+static bool group_count_fits(size_t count)
+{
+    return count && count <= (SIZE_MAX-sizeof(CallbackGroup))/sizeof(XL6_NativeCallback*);
+}
 static CallbackGroup* group_body(const void* view)
 {return view ? (CallbackGroup*)((unsigned char*)view - offsetof(CallbackGroup,view)):NULL;}
 static bool group_hold_body(CallbackGroup* body)
@@ -86,7 +90,7 @@ static bool group_drop_native(const void* raw)
 static XL6_NativeCallbackGroupV1* group_create(const XL6_CodeOwner* owner,
     XL6_Closure* const* closures,XL6_ForeignView* const* contexts,const uint64_t* signatures,size_t count)
 {
-    if(!count || count>64 || !closures || !signatures){xrtSetErrorKind(XERR_ARGUMENT);return NULL;}
+    if(!group_count_fits(count) || !closures || !signatures){xrtSetErrorKind(XERR_ARGUMENT);return NULL;}
     for(size_t i=0;i<count;++i)if(closures[i] && !signatures[i]){xrtSetErrorKind(XERR_ARGUMENT);return NULL;}
     xl6_error_scope errors={0};if(!xl6ErrorScopeBegin(&errors))return NULL;
     CallbackGroup* body=xrtCalloc(1,sizeof(*body)+count*sizeof(XL6_NativeCallback*));
@@ -172,7 +176,7 @@ static bool group_resolve(xrtownershipref ref,const XL6_OwnershipPoliciesV1* pol
         group_claim,group_restore,NULL,group_clear,group_finish};
     if(ref.Ops!=&group_ops || !ref.Data)return false;
     const CallbackGroup* body=group_body(ref.Data);
-    if(body->cleared || !body->view.Count || body->view.Count>64 || !body->view.Members ||
+    if(body->cleared || !group_count_fits(body->view.Count) || !body->view.Members ||
         !xrtAtomic64Load(&body->refs,XMEMORY_ACQUIRE))return false;
     *adapter=&value;return true;
 }

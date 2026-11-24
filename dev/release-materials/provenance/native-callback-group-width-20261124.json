@@ -1,0 +1,31 @@
+{
+  "schema": 1,
+  "scope": "Native callback-group allocation, dispatch, graph tracing, retirement and rollback with 72 slots",
+  "shippingDelivery": false,
+  "networkTests": false,
+  "compilerWidePackSupport": false,
+  "runtimeSymbolEnumerationInThisGate": false,
+  "sourceSha256": {
+    "src/runtime/xl6_native_callback_group.c": "70b29b2685630f3ef2c16f60bce16be3c63f62a2278f960584b0dacb51d46615",
+    "test/cases/foreign_callback_group_runtime.c": "db3156991dd77b191599140bb3c27dcaff6ed326e9e093f57a9e8c1ad6e540fd"
+  },
+  "checks": [
+    "Invoke slot 71 with a typed signature and trace both active members plus the shared lease",
+    "Resolve, claim, clear and retire a group through the ownership adapter",
+    "Reject size overflow before indexing the source arrays",
+    "Preserve live memory and code lease counts after a 72-slot constructor allocation-failure sweep",
+    "Preserve zero allocations, frees and reallocations in the existing warm dispatch probe"
+  ],
+  "platforms": {
+    "win_x64": {
+      "optimizations": ["O0", "O2"],
+      "report": "F:/xlang-validation/xge-full-20261110/callback-group-wide-native-win-r2/results.json",
+      "sha256": "af8e5f06bc6ed583af7fe9adfdce6ebe38f67e4219643c9c6c8b8c77888d713e"
+    },
+    "linux_x64": {
+      "optimizations": ["O0", "O2"],
+      "report": "//wsl.localhost/Ubuntu/var/tmp/xlang-validation/xge-full-20261110/callback-group-wide-native-linux-r2/results.json",
+      "sha256": "2c716a1204da1ac08c3e17e2efe75bafb51166c2bae02086d2d89ee60b6ac3ea"
+    }
+  }
+}

@@ -48,6 +48,50 @@ static const xrtownershipadapterv1* adapter_for(xrtownershipref ref)
     assert(!xl6OwnershipDomainNativeCallbackV1Get()->Resolve(ref,NULL,&wrong,&preparation,&completion) && !wrong);
     assert(adapter && !preparation && !completion);return adapter;
 }
+static void wide_group(const XL6_CodeOwner* owner,XL6_Closure* function,unsigned baselinePins)
+{
+    const XL6_NativeCallbackGroupRuntimeV1* api=xl6NativeCallbackGroupRuntimeV1Get();
+    enum { count=72 };
+    XL6_Closure* closures[count]={0};
+    uint64_t signatures[count]={0};
+    closures[0]=closures[count-1]=function;
+    signatures[0]=13;
+    signatures[count-1]=17;
+    XL6_NativeCallbackGroupV1* group=api->Create(owner,closures,NULL,signatures,count);
+    assert(group && group->Count==count && group->Members[0] && !group->Members[63]);
+    xrtownershipref ref=api->Ownership(group);
+    edges=0;
+    assert(ref.Ops->Trace(ref.Data,visit,NULL) && edges==3);
+    const XL6_NativeCallbackRuntimeV1* members=xl6NativeCallbackRuntimeV1Get();
+    XL6_NativeCallbackScopeV1 scope={0};
+    assert(members->Enter(group->Members[count-1],17,&scope,NULL,0));
+    scope.closure.closure->invoke();
+    clean(members->Leave(&scope,(xl6_error_result){true,NULL}));
+    const xrtownershipadapterv1* adapter=adapter_for(ref);
+    int token;
+    assert(adapter->Hold(ref.Data) && adapter->Claim(ref.Data,&token));
+    adapter->Clear(ref.Data,&token);
+    assert(!group->Count && !group->Members);
+    assert(adapter->Finish(ref.Data,&token));
+    adapter->Drop(ref.Data);
+    assert(api->Release(group) && pins==baselinePins);
+    assert(!api->Create(owner,closures,NULL,signatures,SIZE_MAX));
+    xrtClearError();
+    xmemdebugsnapshot before,after;
+    xrtMemDebugSnapshot(&before);
+    unsigned failures=0,successes=0;
+    for(int step=0;step<12;++step){
+        assert(xrtMemDebugFailAfter(step));
+        group=api->Create(owner,closures,NULL,signatures,count);
+        xrtMemDebugFailClear();
+        if(group){++successes;assert(api->Release(group));}
+        else{++failures;xrtClearError();}
+        assert(pins==baselinePins);
+    }
+    xrtMemDebugSnapshot(&after);
+    assert(failures && successes && before.LiveCount==after.LiveCount && before.LiveBytes==after.LiveBytes);
+    printf("GROUP_WIDE_OK count=%u\n",(unsigned)count);
+}
 int main(void)
 {
     assert(xlApiVisitDefaultRuntimeSymbols(visit_symbol,NULL) && groupSymbols==1 && domainSymbols==1);
@@ -99,7 +143,7 @@ int main(void)
     assert(!group->Members[0] && !group->Members[1]);edges=0;ref=api->Ownership(group);
     assert(ref.Ops->Trace(ref.Data,visit,NULL) && edges==1);assert(api->Release(group) && pins==baselinePins);
     assert(!api->Create(&owner,members,NULL,signatures,0));xrtClearError();
-    assert(!api->Create(&owner,members,NULL,signatures,65));xrtClearError();
+    wide_group(&owner,function,baselinePins);
     assert(!api->Create(&owner,NULL,NULL,signatures,3));xrtClearError();
     assert(!api->Create(&owner,members,NULL,NULL,3));xrtClearError();
     uint64_t bad[]={0,17,0};assert(!api->Create(&owner,members,NULL,bad,3));xrtClearError();
