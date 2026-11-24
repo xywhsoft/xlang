@@ -1,0 +1,378 @@
+{
+  "schema": "xlang-xui-terminal-image-callback-1",
+  "scope": "Native Sixel and iTerm2 inline image parsing with direct managed callback registration",
+  "nativeCommit": "75319d6a",
+  "shippingDelivery": false,
+  "networkTests": false,
+  "prior": {
+    "path": "dev/release-materials/provenance/xui-icon-metadata-defaults-20261124.json",
+    "sha256": "abaad77469585462157b041d3c25dab41e11eaedf31954608bff5d0d1a313521"
+  },
+  "closedFromReview": [
+    "xuiTerminalSetImageCallback"
+  ],
+  "sourceSha256NormalizedLf": {
+    "docs/xge3-xui3-api-map-storage.json": "88cfb917246e89ba4f221d20954aebe741cebfbf1e577d078c0686888b0189d8",
+    "lib/bindings/xui/README.md": "7e8580676e2f2f66fb877947451450b86d2d9f1724ab279efea56a8e15427d74",
+    "lib/bindings/xui/src/managed.xl": "a8da7b0ebc31a6a5f16b056090049375fadddf592d1d7777455668fc00419e3f",
+    "lib/bindings/xui/examples/terminal_image_callback.xl": "482188b667addfd4416f3db7b0098f3f6591eed7e45c24bf0cd21ff265d1eed6",
+    "tools/check_xge3_native_consumers.py": "fcfe1b3a21db2d339273e76e1b0d07132712f75ffbff53ceeea32fad8c91efea",
+    "tools/xui_managed_contracts.py": "a051f1ad3f2bdd55894c0b669f589f43c5145064845709d7f11a7f0476d6a272",
+    "test/cases/foreign_xui_terminal_image_callback.xl": "9cb2b933c1134805a2ff42bdbe7a6c79c52d50bd8bf2499ba8ca2aaff8f12126"
+  },
+  "nativeSha256NormalizedLf": {
+    "include/xui.h": "8d3901aa87770125be094577a04652467b9312a0655dc7f8457c0818ba1d9d3f",
+    "src/xui/controls/xui_terminal.c": "9b4cf75640180a50ca7ff42b0fef214f912d20c3c2d25fe5eabca4443ff71a3e",
+    "tests/xui/xui_terminal_test.c": "11311a739cc9f70d73675d91ae58b155da881187fa1318892a9545790073a835",
+    "tests/xui/test_terminal_image_callback.c": "0bc614f4c2131ea276dc778b97d667bb7666703d388cb4cb2a96e4bed15e48fa"
+  },
+  "nativeCases": [
+    "iTerm2 single and multipart, only inline payloads",
+    "Sixel 7-bit and 8-bit control strings with options",
+    "split delivery and cursor position",
+    "owned callback edge, unregister inside dispatch, balanced native allocation",
+    "allocation failure and parser recovery",
+    "native callback error returned through flush"
+  ],
+  "languageCases": [
+    "direct owned registration and native write and flush",
+    "read-only callback image fields with checked expiry",
+    "copied payload survives callback return",
+    "callback exception delivered across the native boundary"
+  ],
+  "benchmarkWorkload": "7 interleaved samples per mode, 3.125 MiB warmed plain text, host O2 driver versus same prior native configuration",
+  "platforms": {
+    "win": {
+      "stage": {
+        "path": "F:/xlang-validation/xge-full-20261110/terminal-image-callback-stage-win-r3/replay/stage-report.json",
+        "sha256": "9b1585c1d890a74bda7bcfc38c9641bca1bf4b0d258d31bdbc2c019bc57e1f9c"
+      },
+      "nativeSource": {
+        "path": "F:/xlang-validation/xge-full-20261110/terminal-image-callback-native-source-win-r2.json",
+        "sha256": "3eadfafbbfec4d569af7bbf0f59ee853a1180a2b23273737c4b544b1e46cc1d6"
+      },
+      "audit": {
+        "path": "F:/xlang-validation/xge-full-20261110/terminal-image-callback-consumers-win-r4/results.json",
+        "sha256": "53a5dc5a070ccccaf9ec4d513f71892bfb5be8b5524f1d24d56788c34c9a9d17"
+      },
+      "runtime": {
+        "path": "F:/xlang-validation/xge-full-20261110/terminal-image-callback-verify-win-r2/results.json",
+        "sha256": "e8fb6181784ec215c31793b299fa882c51291538991ea4d9edcec5506bb95498"
+      },
+      "regression": {
+        "path": "F:/xlang-validation/xge-full-20261110/terminal-image-callback-native-regressions-win-r2/results.json",
+        "sha256": "44c360ab91360fd53edf373b224815a3c1a2685632f42579596a71b3e25fbefe"
+      },
+      "native": {
+        "path": "F:/xlang-validation/xge-full-20261110/terminal-image-callback-native-tests-win-r2/results.json",
+        "sha256": "92b84bfdc12478548f7836245dbfd0b6119ba8b1a836e39d6cd2bc5d09227e54"
+      },
+      "performance": {
+        "path": "F:/xlang-validation/xge-full-20261110/terminal-image-parser-benchmark-win-r2/results.json",
+        "sha256": "45873f810566938beffb20fe51939cdaef5fe31244972216965bb20b59d0e732"
+      },
+      "generator": {
+        "path": "F:/xlang-validation/xge-full-20261110/terminal-image-callback-generator-win-r3/results.json",
+        "sha256": "6d94e58a1878027fdad43e108bef520aef2b538b13d4894bcee782c9f78edc93"
+      },
+      "generatedC": {
+        "path": "F:/xlang-validation/xge-full-20261110/terminal-image-callback-verify-win-r2/foreign_xui_terminal_image_callback/generated.c",
+        "sha256": "8596b343593f87713a3177e8bc77d58f6d1439d582d65fb878643ef514079d04"
+      },
+      "remaining": {
+        "XGE": 2,
+        "XUI": 4
+      },
+      "cases": {
+        "foreign_xui_terminal_image_callback": {
+          "directCFunctions": [
+            "xuiTerminalSetImageCallbackOwned",
+            "xuiTerminalWriteText",
+            "xuiTerminalFlush"
+          ],
+          "imports": {
+            "host": [
+              "msvcrt.dll",
+              "xge3_host.dll",
+              "kernel32.dll",
+              "shell32.dll",
+              "ucrtbase.dll"
+            ],
+            "static": [
+              "msvcrt.dll",
+              "kernel32.dll",
+              "user32.dll",
+              "ole32.dll",
+              "oleaut32.dll",
+              "shell32.dll",
+              "gdi32.dll",
+              "imm32.dll",
+              "dwrite.dll"
+            ]
+          }
+        },
+        "terminal_image_callback": {
+          "directCFunctions": [
+            "xuiTerminalSetImageCallbackOwned",
+            "xuiTerminalWriteText",
+            "xuiTerminalFlush"
+          ],
+          "imports": {
+            "host": [
+              "msvcrt.dll",
+              "xge3_host.dll",
+              "kernel32.dll",
+              "shell32.dll",
+              "ucrtbase.dll"
+            ],
+            "static": [
+              "msvcrt.dll",
+              "kernel32.dll",
+              "user32.dll",
+              "ole32.dll",
+              "oleaut32.dll",
+              "shell32.dll",
+              "gdi32.dll",
+              "imm32.dll",
+              "dwrite.dll"
+            ]
+          }
+        }
+      },
+      "classified": {
+        "xuiTerminalSetImageCallback": {
+          "id": "xui.h:functions:xuiTerminalSetImageCallback",
+          "symbol": "xuiTerminalSetImageCallback",
+          "family": "XUI",
+          "conditions": [
+            "XUI_ENABLE_TERMINAL"
+          ],
+          "publicDeclarationPresent": false,
+          "compiledNativeConsumers": [],
+          "explicitReplacement": {
+            "language": "xui.Terminal.setImageCallback",
+            "native": "xuiTerminalSetImageCallbackOwned"
+          },
+          "contractReview": "pending",
+          "runtimeAcceptance": "not-certified-by-this-audit"
+        }
+      },
+      "nativeImagePaths": {
+        "xuiTerminalSetImageCallback": {
+          "xuiTerminalSetImageCallbackOwned": [
+            ".text$xuiTerminalSetImageCallbackOwned"
+          ]
+        },
+        "xuiTerminalSetImageCallbackOwned": {
+          "xuiInternalCallbackUpdateBegin": [
+            "xuiInternalCallbackUpdateBegin"
+          ],
+          "xuiInternalCallbackUpdatePublish": [
+            "xuiInternalCallbackUpdatePublish"
+          ]
+        },
+        "__xuiTerminalProcessByte": {
+          "__xuiTerminalDispatchSixel": [
+            ".text$__xuiTerminalDispatchSixel"
+          ],
+          "__xuiTerminalDispatchOsc": [
+            ".text$__xuiTerminalDispatchOsc"
+          ]
+        },
+        "__xuiTerminalDispatchOsc": {
+          "__xuiTerminalDispatchImageOsc": [
+            ".text$__xuiTerminalDispatchImageOsc"
+          ]
+        },
+        "__xuiTerminalDispatchSixel": {
+          "__xuiTerminalDeliverImage": [
+            ".text$__xuiTerminalDeliverImage"
+          ]
+        },
+        "__xuiTerminalDispatchImageOsc": {
+          "__xuiTerminalDeliverImage": [
+            ".text$__xuiTerminalDeliverImage"
+          ]
+        },
+        "__xuiTerminalDeliverImage": {
+          "xuiInternalCallbackSnapshotBeginReported": [
+            "xuiInternalCallbackSnapshotBeginReported"
+          ]
+        }
+      },
+      "plainTextMedianMiBPerSecond": {
+        "baseline": 13.766519823788546,
+        "candidate": 14.076576576576576,
+        "handler": 14.269406392694064
+      }
+    },
+    "linux": {
+      "stage": {
+        "path": "//wsl.localhost/Ubuntu/var/tmp/xlang-validation/xge-full-20261110/terminal-image-callback-stage-linux-r3/replay/stage-report.json",
+        "sha256": "5f1190e8ac659cb53a7b095920b745ff75fe895855e85f6704c3c21a5940f784"
+      },
+      "nativeSource": {
+        "path": "//wsl.localhost/Ubuntu/var/tmp/xlang-validation/xge-full-20261110/terminal-image-callback-native-source-linux-r2.json",
+        "sha256": "7030b9def1cadbcdac0f7e076889f66914e759fd4fe4ca1ce01f99ad9197c59a"
+      },
+      "audit": {
+        "path": "//wsl.localhost/Ubuntu/var/tmp/xlang-validation/xge-full-20261110/terminal-image-callback-consumers-linux-r4/results.json",
+        "sha256": "cb6b68136f2d5dfd6e46a927e24fd7035dadda6c4784ded45673e37843c16f01"
+      },
+      "runtime": {
+        "path": "//wsl.localhost/Ubuntu/var/tmp/xlang-validation/xge-full-20261110/terminal-image-callback-verify-linux-r3/results.json",
+        "sha256": "7cd866b71476bb0836eb305c8e0ba1eea0b842f40ebab84cc189e12ffbbd6c82"
+      },
+      "regression": {
+        "path": "//wsl.localhost/Ubuntu/var/tmp/xlang-validation/xge-full-20261110/terminal-image-callback-native-regressions-linux-r2/results.json",
+        "sha256": "eb66eb5e3cfabe232e2e6d04733435e0743a9569036726f64207744fc8f22fae"
+      },
+      "native": {
+        "path": "//wsl.localhost/Ubuntu/var/tmp/xlang-validation/xge-full-20261110/terminal-image-callback-native-tests-linux-r2/results.json",
+        "sha256": "9682e2b46eec2b8eb2cfaac4443200e4c638a339c68c9243d72fafafae2acd0b"
+      },
+      "performance": {
+        "path": "//wsl.localhost/Ubuntu/var/tmp/xlang-validation/xge-full-20261110/terminal-image-parser-benchmark-linux-r2/results.json",
+        "sha256": "f1a18abae0268d21717fa2dea9aafc3c25f8cde92c4cd42e3db6a633e7104506"
+      },
+      "generator": {
+        "path": "//wsl.localhost/Ubuntu/var/tmp/xlang-validation/xge-full-20261110/terminal-image-callback-generator-linux-r3/results.json",
+        "sha256": "d45987a3090bb9673470ae23023d909182d200360d68e2912444a05ee2837fb8"
+      },
+      "generatedC": {
+        "path": "//wsl.localhost/Ubuntu/var/tmp/xlang-validation/xge-full-20261110/terminal-image-callback-verify-linux-r3/foreign_xui_terminal_image_callback/generated.c",
+        "sha256": "8596b343593f87713a3177e8bc77d58f6d1439d582d65fb878643ef514079d04"
+      },
+      "remaining": {
+        "XGE": 4,
+        "XUI": 4
+      },
+      "cases": {
+        "foreign_xui_terminal_image_callback": {
+          "directCFunctions": [
+            "xuiTerminalSetImageCallbackOwned",
+            "xuiTerminalWriteText",
+            "xuiTerminalFlush"
+          ],
+          "imports": {
+            "host": [
+              "libm.so.6",
+              "libmvec.so.1",
+              "libxge3_host.so",
+              "libc.so.6",
+              "ld-linux-x86-64.so.2"
+            ],
+            "static": [
+              "libm.so.6",
+              "libmvec.so.1",
+              "libx11.so.6",
+              "libxi.so.6",
+              "libxcursor.so.1",
+              "libgl.so.1",
+              "libc.so.6",
+              "ld-linux-x86-64.so.2"
+            ]
+          }
+        },
+        "terminal_image_callback": {
+          "directCFunctions": [
+            "xuiTerminalSetImageCallbackOwned",
+            "xuiTerminalWriteText",
+            "xuiTerminalFlush"
+          ],
+          "imports": {
+            "host": [
+              "libm.so.6",
+              "libmvec.so.1",
+              "libxge3_host.so",
+              "libc.so.6",
+              "ld-linux-x86-64.so.2"
+            ],
+            "static": [
+              "libm.so.6",
+              "libmvec.so.1",
+              "libx11.so.6",
+              "libxi.so.6",
+              "libxcursor.so.1",
+              "libgl.so.1",
+              "libc.so.6",
+              "ld-linux-x86-64.so.2"
+            ]
+          }
+        }
+      },
+      "classified": {
+        "xuiTerminalSetImageCallback": {
+          "id": "xui.h:functions:xuiTerminalSetImageCallback",
+          "symbol": "xuiTerminalSetImageCallback",
+          "family": "XUI",
+          "conditions": [
+            "XUI_ENABLE_TERMINAL"
+          ],
+          "publicDeclarationPresent": false,
+          "compiledNativeConsumers": [],
+          "explicitReplacement": {
+            "language": "xui.Terminal.setImageCallback",
+            "native": "xuiTerminalSetImageCallbackOwned"
+          },
+          "contractReview": "pending",
+          "runtimeAcceptance": "not-certified-by-this-audit"
+        }
+      },
+      "nativeImagePaths": {
+        "xuiTerminalSetImageCallback": {
+          "xuiTerminalSetImageCallbackOwned": [
+            "xuiTerminalSetImageCallbackOwned"
+          ]
+        },
+        "xuiTerminalSetImageCallbackOwned": {
+          "xuiInternalCallbackUpdateBegin": [
+            "xuiInternalCallbackUpdateBegin"
+          ],
+          "xuiInternalCallbackUpdatePublish": [
+            "xuiInternalCallbackUpdatePublish"
+          ]
+        },
+        "__xuiTerminalProcessByte": {
+          "__xuiTerminalDispatchSixel": [
+            ".text.__xuiTerminalDispatchSixel"
+          ],
+          "__xuiTerminalDispatchOsc": [
+            ".text.__xuiTerminalDispatchOsc"
+          ]
+        },
+        "__xuiTerminalDispatchOsc": {
+          "__xuiTerminalDispatchImageOsc": [
+            ".text.__xuiTerminalDispatchImageOsc"
+          ]
+        },
+        "__xuiTerminalDispatchSixel": {
+          "__xuiTerminalDeliverImage": [
+            ".text.__xuiTerminalDeliverImage"
+          ]
+        },
+        "__xuiTerminalDispatchImageOsc": {
+          "__xuiTerminalDeliverImage": [
+            ".text.__xuiTerminalDeliverImage"
+          ]
+        },
+        "__xuiTerminalDeliverImage": {
+          "xuiInternalCallbackSnapshotBeginReported": [
+            "xuiInternalCallbackSnapshotBeginReported"
+          ]
+        }
+      },
+      "plainTextMedianMiBPerSecond": {
+        "baseline": 10.927757903828738,
+        "candidate": 12.025937542090782,
+        "handler": 11.425792675792675
+      }
+    }
+  },
+  "remainingAcrossPreviouslyQualifiedConfigurations": [
+    "xuiIconGetUser",
+    "xuiProxyCreateOwned",
+    "xuiProxyCreateOwnedEx",
+    "xuiProxyResourceOwnershipCompletionV1"
+  ]
+}

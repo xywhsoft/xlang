@@ -740,6 +740,16 @@ def main():
                 'xuiLabelSetText': ('__xuiLabelGetData',),
                 '__xuiLabelGetData': ('xuiWidgetGetTypeData',),
             }
+        if 'xuiTerminalSetImageCallbackOwned' in functions:
+            calls['src/xui/controls/xui_terminal.c'] = {
+                'xuiTerminalSetImageCallback': ('xuiTerminalSetImageCallbackOwned',),
+                'xuiTerminalSetImageCallbackOwned': ('xuiInternalCallbackUpdateBegin','xuiInternalCallbackUpdatePublish'),
+                '__xuiTerminalProcessByte': ('__xuiTerminalDispatchSixel','__xuiTerminalDispatchOsc'),
+                '__xuiTerminalDispatchOsc': ('__xuiTerminalDispatchImageOsc',),
+                '__xuiTerminalDispatchSixel': ('__xuiTerminalDeliverImage',),
+                '__xuiTerminalDispatchImageOsc': ('__xuiTerminalDeliverImage',),
+                '__xuiTerminalDeliverImage': ('xuiInternalCallbackSnapshotBeginReported',),
+            }
         helper_calls = ('xuiInternalWidgetCallbackCaptureBegin','xuiInternalWidgetCallbackCaptureEnd')
         if 'xuiWidgetCaptureContentMeasureCallback' in functions:
             calls[WIDGET_CALLBACK_SOURCE] = {
@@ -1093,6 +1103,7 @@ def main():
                     'xuiWidgetTypeSetUserValue': 'xui.WidgetType.setUserData',
                     'xuiWidgetSetInstanceState': 'xui.Widget.setInstanceState',
                     'xuiLabelSetText': 'xui.Label.setText',
+                    'xuiTerminalSetImageCallbackOwned': 'xui.Terminal.setImageCallback',
                     'xuiTreeViewSetDataAdapterOwned': 'xui.TreeView.setDataAdapter',
                     'xuiTreeViewRefreshAdapter': 'xui.TreeView.refreshAdapter',
                     'xgeGraphicsContextMakeCurrent': 'xge.GraphicsContext.makeCurrent',

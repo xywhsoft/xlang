@@ -1,0 +1,70 @@
+import xui
+from xui import CallbackWidget, CallbackConstTerminalImage
+
+func write(xui.Terminal terminal, string text)
+    assert terminal.writeText(text) == 0
+    assert terminal.flush() == 0
+end
+
+func main(...) as int
+    auto proxy = xui.createProxy()
+    auto ui = xui.create(proxy, xui.XUI_SYSTEM_FONT_DISABLED)
+    auto terminal = ui.terminalNative()
+
+    CallbackConstTerminalImage? last = null
+    int calls = 0
+    string payload = ""
+    terminal.setImageCallback(func(CallbackWidget widget, CallbackConstTerminalImage image)
+        calls += 1
+        last = image
+        payload = image.payload
+        assert image.column == 3 and image.row == 1
+        if image.protocol == xui.XUI_TERMINAL_IMAGE_ITERM2 then
+            assert image.options == "inline=1" and image.payloadSize == 4
+        else
+            assert image.protocol == xui.XUI_TERMINAL_IMAGE_SIXEL
+            assert image.options == "0;1;0" and image.payloadSize == 1
+        end
+    end)
+
+    write(terminal, "\x1b[2;4H\x1b]1337;File=inline=1:QU")
+    assert calls == 0
+    write(terminal, "JD\x1b")
+    assert calls == 0
+    write(terminal, "\\")
+    assert calls == 1 and payload == "QUJD"
+    bool expired = false
+    try
+        auto options = (last as CallbackConstTerminalImage).options
+    catch StateError
+        expired = true
+    end
+    assert expired and payload == "QUJD"
+
+    write(terminal, "\x1bP0;1;0q~\x1b\\")
+    assert calls == 2 and payload == "~"
+    write(terminal, "\x1b]1337;MultipartFile=inline=1\x07\x1b]1337;FilePart=QU\x07")
+    write(terminal, "\x1b]1337;FilePart=JD\x07\x1b]1337;FileEnd\x07")
+    assert calls == 3 and payload == "QUJD"
+    terminal.setImageCallback(null)
+    write(terminal, "\x1bPq~\x1b\\")
+    assert calls == 3
+
+    terminal.setImageCallback(func(CallbackWidget widget, CallbackConstTerminalImage image)
+        throw "terminal image callback failed"
+    end)
+    assert terminal.writeText("\x1bPq~\x1b\\") == 0
+    bool failed = false
+    try
+        auto status = terminal.flush()
+    catch Error error
+        failed = error.message == "terminal image callback failed"
+    end
+    assert failed
+    terminal.setImageCallback(null)
+    write(terminal, "recovered")
+    ui.close()
+    proxy.close()
+    println("XUI_TERMINAL_IMAGE_CALLBACK_OK")
+    return 0
+end

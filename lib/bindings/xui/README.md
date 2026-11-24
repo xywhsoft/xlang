@@ -626,6 +626,15 @@ independent `Vec2` values through the existing checked native-output contract.
 including all sixteen combining codepoints. See `examples/widget_measure.xl`,
 `examples/terminal_cells.xl` and [query contracts](../../../docs/xui-widget-queries.md).
 
+`Terminal.setImageCallback(handler)` delivers Sixel and iTerm2 inline image
+commands as the Terminal processes its output queue. The callback receives
+the current zero-based cell, protocol, options and encoded payload. The view
+expires on return. Read `image.options` or `image.payload` during the callback
+to save that text. The parser accepts single and multipart iTerm2 images
+with `inline=1` and bounds each image's options and payload to 4 MiB. The
+application controls decoding, placement and drawing. Pass `null` to
+unregister the handler. See [the terminal image example](examples/terminal_image_callback.xl).
+
 `TagInput.setTags(tags,size=-1)` replaces a list of strings in one native call,
 with native trimming, copy ownership and atomic preparation failure. The
 [tag-input lesson](examples/taginput.xl) and its generated gallery scene now

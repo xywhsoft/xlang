@@ -1,0 +1,19 @@
+import xui
+from xui import CallbackWidget, CallbackConstTerminalImage
+
+// The callback handles the image data at the current terminal cell.
+func main(...) as int
+    auto proxy = xui.createProxy()
+    auto ui = xui.create(proxy, xui.XUI_SYSTEM_FONT_DISABLED)
+    auto terminal = ui.terminalNative()
+
+    terminal.setImageCallback(func(CallbackWidget widget, CallbackConstTerminalImage image)
+        println("Image at", image.column, image.row, "Sixel:", image.payload)
+    end)
+    assert terminal.writeText("\x1b[2;4H\x1bPq#0;2;100;0;0~\x1b\\") == 0
+    assert terminal.flush() == 0
+
+    ui.close()
+    proxy.close()
+    return 0
+end

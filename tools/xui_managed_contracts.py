@@ -1813,6 +1813,7 @@ REPLACED = {
     'xuiTerminalSetInputCallback': ('xui.Terminal.setInputCallback', 'xuiTerminalSetInputCallbackOwned'),
     'xuiTerminalSetResizeCallback': ('xui.Terminal.setResizeCallback', 'xuiTerminalSetResizeCallbackOwned'),
     'xuiTerminalSetTitleCallback': ('xui.Terminal.setTitleCallback', 'xuiTerminalSetTitleCallbackOwned'),
+    'xuiTerminalSetImageCallback': ('xui.Terminal.setImageCallback', 'xuiTerminalSetImageCallbackOwned'),
     'xuiTerminalSetLinkCallback': ('xui.Terminal.setLinkCallback', 'xuiTerminalSetLinkCallbackOwned'),
     'xuiTableViewCellOutputAddRef': ('xui.TableCellOutput.share','xuiTableViewCellOutputShareOwned'),
     'xuiTableViewSetHeaderRenderer': ('xui.TableView.setHeaderRenderer','xuiTableViewSetHeaderRendererOwned'),
@@ -2321,6 +2322,23 @@ VIEW_FUNCTIONS.update({
     'xuiWidgetTypeSetUserValue': 'int xuiWidgetTypeSetUserValue(xui_widget_type pType, xvalue* pValue)',
     'xuiWidgetTypeGetUserValue': 'int xuiWidgetTypeGetUserValue(xui_widget_type pType, xvalue** ppValue)',
 })
+
+
+CALLBACKS['xui_terminal_image_proc'] = (
+    'typedef void (*xui_terminal_image_proc)(xui_widget_t* pWidget, const xui_terminal_image_t* pImage, void* pUser);',
+    'export typedef TerminalImageProc = func(CallbackWidget,CallbackConstTerminalImage)')
+VIEWS['CallbackConstTerminalImage'] = '''export extern "const xui_terminal_image_t*" class CallbackConstTerminalImage @header("xge3_runtime.h") @lifetime("callback")
+ native point handle
+ extern "iProtocol" @c_field get protocol() as c_int
+ extern "iColumn" @c_field get column() as c_int
+ extern "iRow" @c_field get row() as c_int
+ extern "sOptions" @c_field @c_result("cstring") get options() as string
+ extern "sPayload" @c_field @c_result("cstring") get payload() as string
+ extern "iPayloadSize" @c_field get payloadSize() as c_int
+end'''
+METHODS['xuiTerminalSetImageCallbackOwned'] = (
+    'int xuiTerminalSetImageCallbackOwned(xui_widget pWidget, xui_terminal_image_proc onImage, void* pUser, const xui_callback_owner_t* pOwner)',
+    'Terminal', ['extern "xuiTerminalSetImageCallbackOwned" @no_raise @c_owned_callback(0,0,"xui_callback_owner_t",0) @c_result("status",0) func setImageCallback(TerminalImageProc? callback)'])
 
 
 def validate(root,header,function_sha):

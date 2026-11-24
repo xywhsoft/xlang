@@ -468,6 +468,18 @@ export typedef TerminalTitleProc = func(Widget,CString)
 
 export typedef TerminalLinkProc = func(Widget,CString)
 
+export typedef TerminalImageProc = func(CallbackWidget,CallbackConstTerminalImage)
+
+export extern "const xui_terminal_image_t*" class CallbackConstTerminalImage @header("xge3_runtime.h") @lifetime("callback")
+ native point handle
+ extern "iProtocol" @c_field get protocol() as c_int
+ extern "iColumn" @c_field get column() as c_int
+ extern "iRow" @c_field get row() as c_int
+ extern "sOptions" @c_field @c_result("cstring") get options() as string
+ extern "sPayload" @c_field @c_result("cstring") get payload() as string
+ extern "iPayloadSize" @c_field get payloadSize() as c_int
+end
+
 export typedef SplitLayoutChangeProc = func(Widget,c_int)
 
 export typedef TabsSelectProc = func(Widget,c_int)
@@ -4307,6 +4319,8 @@ export extern "xui_widget_t*" class Terminal @header("xge3_runtime.h") @lifetime
  extern "xuiTerminalSetTitleCallbackOwned" @no_raise @c_owned_callback(0,0,"xui_callback_owner_t",0) @c_result("status",0) func setTitleCallback(TerminalTitleProc? onTitle)
 
  extern "xuiTerminalSetLinkCallbackOwned" @no_raise @c_owned_callback(0,0,"xui_callback_owner_t",0) @c_result("status",0) func setLinkCallback(TerminalLinkProc? onLink)
+
+ extern "xuiTerminalSetImageCallbackOwned" @no_raise @c_owned_callback(0,0,"xui_callback_owner_t",0) @c_result("status",0) func setImageCallback(TerminalImageProc? callback)
 
  extern "xuiTerminalSetPalette" @no_raise @c_result("status",0) func setPalette(c_int iIndex,c_uint iColor)
 
