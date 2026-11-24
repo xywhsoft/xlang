@@ -674,14 +674,24 @@ declaration; the second is its logical callback argument. Physical expansion
 preserves argument order and the declared first/last userdata convention.
 Multiple logical arguments can each expand to pointer plus byte count. A
 declaration permits at most 64 such mappings. Counts use `int` or `size_t`;
-readonly pointers use `const void*`, `const uint8_t*`, `const unsigned char*` or
-`const char*`. The header proves the logical view's exact const `xbytesview*`
-type and complete native callback signature.
+Read-only pointers use `const void*`, `const uint8_t*`, `const unsigned char*` or
+`const char*` and require a logical `const xbytesview*` view. Mutable forms of
+those pointers require `const XL6_WritableBytesViewV1*`. The native header
+checks the full callback signature and the selected view type.
 
-The thunk builds a stack `xbytesview` and uses the existing two-word epoch view.
-It makes no payload copy or per-argument heap wrapper. NULL/zero is a present
-empty slice and is normalized to a stable empty data address; NULL/nonzero,
-negative and out-of-language-range counts fail before invoking language code.
+The thunk places the descriptor on its stack and creates a callback-lifetime
+view without copying payload bytes or allocating an argument wrapper. NULL
+with zero count is a valid empty view. A nonzero count with NULL data, a
+negative count or a count outside the language range fails before invoking
+language code. The read-only descriptor uses a stable empty data address for
+NULL/zero.
+
+The writable descriptor exposes `Size`. A binding can declare
+`xl6ForeignWritableBytesWriteV1` from
+`__xl_runtime/xl6_foreign_writable_bytes.h` with a read-only input span and
+checked status. It copies exactly the supplied byte count, supports overlap,
+and checks the offset and length before writing. The view expires on return
+from the callback.
 Saving a slice does not extend its validity. Nested callbacks keep their own
 epochs: an inner saved view expires while the outer view remains valid. A
 declared copy property performs ordinary checked bytes materialization for

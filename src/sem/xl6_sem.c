@@ -21832,7 +21832,7 @@ static int xl6SemCheckForeignFunctionDeclaration(XL6_SemContext* ctx, XL6_AstNod
         XL6_ForeignClassDecl contract={0};
         if(!value || xl6SemTypeIsNullable(value) || !xl6SemForeignViewDeclaration(ctx,value,&contract) ||
             contract.lifetime!=XL6_FOREIGN_LIFETIME_CALLBACK){
-            xl6SemErrorNode(ctx,node,"callback span must map to one non-null callback-lifetime const xbytesview pointer");return 0;
+            xl6SemErrorNode(ctx,node,"callback span must map to one non-null callback-lifetime byte view");return 0;
         }
         for(size_t j=0;j<i;++j){
             XL6_ForeignCallbackSpanContract previous;

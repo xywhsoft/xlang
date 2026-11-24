@@ -71,6 +71,8 @@ def main():
     for name,old,new in (
         ('header-count-width','size_t,int,void*','int,int,void*'),
         ('header-pointer-type','const unsigned char*,size_t','const float*,size_t'),
+        ('header-pointer-mutability','SpanCallback)(const unsigned char*,size_t',
+         'SpanCallback)(unsigned char*,size_t'),
     ):
         assert old in header
         overlay=out/name;alternate=overlay/'test/cases/foreign_callback_span.h'
@@ -101,13 +103,23 @@ def main():
                 run('tcc-standalone', [prefix.with_suffix('.exe') if os.name == 'nt' else prefix])
     original = source.read_text(encoding='utf-8-sig')
     annotation='@c_callback_span(1,0,"const unsigned char*","size_t")'
+    wrong_view = out/'mutable-pointer-with-readonly-view.xl'
+    wrong_view.write_text(original.replace(annotation,
+        '@c_callback_span(1,0,"unsigned char*","size_t")',1),encoding='utf-8')
+    wrong_view_header = out/'mutable-pointer-with-readonly-view.h'
+    run('emit-mutable-pointer-with-readonly-view',[driver,wrong_view,'emit',
+        wrong_view_header.with_suffix(''),provider])
+    run('mutable-pointer-with-readonly-view',[cc,'-std=c11','-Wall','-Wextra','-Werror',
+        '-I'+str(out/'header-pointer-mutability'),*includes,'-x','c','-fsyntax-only',
+        wrong_view_header],refused=True,semantic=False)
+    assert b'callback span requires const XL6_WritableBytesViewV1 pointer' in \
+        (out/'mutable-pointer-with-readonly-view.log').read_bytes()
     negatives = {
         'duplicate-span': original.replace(annotation,annotation+' '+annotation,1),
         'missing-callback-owner': original.replace(' @c_owned_callback(1,0,"SpanOwner",-7)','',1),
         'parameter-out-of-range': original.replace(annotation,'@c_callback_span(3,0,"const unsigned char*","size_t")',1),
         'argument-out-of-range': original.replace(annotation,'@c_callback_span(1,3,"const unsigned char*","size_t")',1),
         'argument-scalar': original.replace(annotation,'@c_callback_span(1,1,"const unsigned char*","size_t")',1),
-        'mutable-pointer': original.replace(annotation,'@c_callback_span(1,0,"unsigned char*","size_t")',1),
         'non-byte-pointer': original.replace(annotation,'@c_callback_span(1,0,"const float*","size_t")',1),
         'count-abi': original.replace(annotation,'@c_callback_span(1,0,"const unsigned char*","uint32_t")',1),
         'nullable-view': original.replace('typedef ByteHandler = func(Slice,c_int)','typedef ByteHandler = func(Slice?,c_int)',1),

@@ -153,8 +153,7 @@ static inline int xl6ForeignCallbackSpanRead(const XL6_AstNode* attr,XL6_Foreign
         !xl6ForeignDecimalInt(attr->children[1],&argument) || argument<0 || argument>=64 ||
         !xl6ForeignQuotedText(attr->children[2],row.pointerCName,sizeof(row.pointerCName)) ||
         !xl6ForeignQuotedText(attr->children[3],count,sizeof(count)))return 0;
-    if(strcmp(row.pointerCName,"const void*") && strcmp(row.pointerCName,"const uint8_t*") &&
-        strcmp(row.pointerCName,"const unsigned char*") && strcmp(row.pointerCName,"const char*"))return 0;
+    if(!xl6ForeignCallbackSpanPointerValid(row.pointerCName))return 0;
     if(!strcmp(count,"int"))row.countAbi=XL6_FOREIGN_SPAN_COUNT_INT;
     else if(!strcmp(count,"size_t"))row.countAbi=XL6_FOREIGN_SPAN_COUNT_SIZE;
     else return 0;

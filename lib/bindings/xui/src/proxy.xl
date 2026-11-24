@@ -171,6 +171,12 @@ export extern "uint32_t*" class CallbackUIntOutput @header("xge3_runtime.h") @li
  native point handle
  extern "value" @c_deref let value(c_uint number)
 end
+export extern "const XL6_WritableBytesViewV1*" class CallbackWritableBytes @header("__xl_runtime/xl6_foreign_writable_bytes.h") @lifetime("callback")
+ native point handle
+ extern "Size" @c_field @no_raise get size() as c_size
+ extern "xl6ForeignWritableBytesWriteV1" @no_raise @c_span(0,"const void*","size_t") @c_result("bool_status") func write(bytes input,c_size offset=0)
+ extern "xl6ForeignWritableBytesWriteV1" @no_raise @c_span(0,"const void*","size_t") @c_result("bool_status") func write(Buffer input,c_size offset=0)
+end
 
 export extern "xui_path_t*" class Path @header("xge3_runtime.h") @lifetime("owned") @policy("xl6Xui3PathPolicy")
  native point handle

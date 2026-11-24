@@ -11,6 +11,14 @@ typedef struct XL6_ForeignScopeViewV1 {
     uint64_t lifetime;
 } XL6_ForeignScopeViewV1;
 
+/* Mutable byte range supplied by a native publisher for one callback. The
+ * compiler stores this descriptor in its callback frame and scopes access
+ * to it exactly like other publisher-managed native records. */
+typedef struct XL6_WritableBytesViewV1 {
+    uint8_t* Data;
+    size_t Size;
+} XL6_WritableBytesViewV1;
+
 /* Intrusive caller stack storage; never copy a live registration. Begin runs
  * inside an admitted native callback. End must precede that callback's Leave.
  * Native owner-call teardown also expires registrations before any cleanup.

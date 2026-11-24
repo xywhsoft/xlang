@@ -132,8 +132,10 @@ Proxy backend callbacks use scoped views for their native arguments.
 Assigning `output.value` writes typed capabilities, surface descriptors,
 samplers, font metrics, vectors, rectangles or generation numbers directly
 to the native output. Input descriptor views return pointer-free records by
-value. The borrowed views expire on callback return, and later access raises
-a checked error.
+value. `CallbackWritableBytes` exposes the native output capacity and accepts
+bounded writes from `bytes` or `Buffer` at an explicit byte offset. A
+zero-capacity query can write an empty value at offset zero. The borrowed views
+expire on callback return, and later access raises a checked error.
 
 `Context` owns its widget graph. Control classes extend `Widget`; a method such
 as `button.setText(text)` calls its original native function. The package has

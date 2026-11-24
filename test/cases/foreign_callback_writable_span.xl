@@ -1,0 +1,75 @@
+from xui import CallbackProxy,CallbackWritableBytes,CString,Proxy,XUI_PROXY_VERSION
+
+typedef Writer=func(CallbackWritableBytes) as c_int
+typedef ClipboardReader=func(CallbackProxy,CString,CallbackWritableBytes) as c_int
+extern "xl_test_writable_span" @header("test/cases/foreign_callback_writable_span.h") @no_raise @c_result("status",0) @c_sync_callback(0,-1,-16) @c_callback_span(0,0,"char*","int") func invoke(Writer callback,c_int mode=0)
+extern "xl_test_writable_span_size" @header("test/cases/foreign_callback_writable_span.h") @no_raise @c_result("status",0) @c_sync_callback(0,-1,-16) @c_callback_span(0,0,"void*","size_t") func invokeSize(Writer callback)
+extern "xuiProxyReleaseChecked" @header("xge3_runtime.h") @no_raise @c_result("status",0) func releaseProbe(Proxy value)
+extern "xuiProxyCreateOwned" @header("xge3_runtime.h") @no_raise @c_result("owned_view") @factory(2,0,releaseProbe) @c_pack(0,"xui_proxy_t",0,2) @c_pack_size(0,"iSize","uint32_t") @c_pack_field(0,"iVersion",0,"value") @c_pack_callback_group(0,"pUser",1) @c_pack_field(0,"clipboardGetData",1,"owned_callback") @c_owned_callback(1,-1,"xui_callback_owner_t",-16,"receiver") @c_callback_span(1,2,"void*","size_t") func makeClipboard(c_uint version,ClipboardReader callback) as Proxy
+
+class State
+ CallbackWritableBytes? saved=null
+ int invalidCalls=0
+end
+
+func main(...) as int
+ auto state=State()
+ auto first=Buffer(b"w")
+ invoke(func(CallbackWritableBytes output) as c_int
+  assert output.size==c_size(4)
+  bool rejected=false
+  try
+   output.write(b"x",c_size(4))
+  catch error
+   rejected=true
+  end
+  assert rejected
+  output.write(b"A\0",c_size(1))
+  output.write(first)
+  output.write(b"",c_size(4))
+  state.saved=output
+  return c_int(0)
+ end)
+ bool expired=false
+ try
+  (state.saved as CallbackWritableBytes).write(b"x")
+ catch error
+  expired=true
+ end
+ assert expired
+ invoke(func(CallbackWritableBytes output) as c_int
+  assert output.size==c_size(0)
+  output.write(b"")
+  return c_int(0)
+ end,c_int(1))
+ for mode in range(2,4)
+  bool rejected=false
+  try
+   invoke(func(CallbackWritableBytes output) as c_int
+    state.invalidCalls+=1
+    return c_int(0)
+   end,c_int(mode))
+  catch error
+   rejected=true
+  end
+  assert rejected
+ end
+ assert state.invalidCalls==0
+ invokeSize(func(CallbackWritableBytes output) as c_int
+  assert output.size==c_size(1)
+  output.write(b"Z")
+  return c_int(0)
+ end)
+ auto proxy=makeClipboard(c_uint(XUI_PROXY_VERSION),func(CallbackProxy backend,CString format,CallbackWritableBytes output) as c_int
+  assert backend.version==c_uint(XUI_PROXY_VERSION) and format.copy()=="text/plain"
+  assert output.size==c_size(4)
+  output.write(b"a\0bc")
+  return c_int(4)
+ end)
+ auto target=Buffer(b"----")
+ assert proxy.getClipboardData("text/plain",target)==c_int(4)
+ assert target.toBytes()==b"a\0bc"
+ proxy.close()
+ println("XUI_CALLBACK_WRITABLE_SPAN_OK")
+ return 0
+end

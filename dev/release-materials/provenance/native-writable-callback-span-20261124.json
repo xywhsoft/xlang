@@ -1,0 +1,104 @@
+{
+  "schema": 1,
+  "scope": "Bounded writable byte spans in native callbacks and the XUI clipboard data callback",
+  "shippingDelivery": false,
+  "networkTests": false,
+  "sourceSha256NormalizedLf": {
+    "src/type/xl6_foreign_call_contract.h": "96c8924e875d952b243b5268a559ea1bcf80f5794b42a7f4d982b9bcf8e06339",
+    "src/type/xl6_foreign_decl.h": "e17ab0899aeffcfefc660f21d0c1e49558e4541f2d9c2b674a8b6a1b8eaf57c9",
+    "src/sem/xl6_sem.c": "35addf7f483ededbef5cc6c097db52963499ac08b78eb010308f89da5d7da762",
+    "src/ir/xl6_ir_foreign_parameter.c": "5f075f53b3656b69df8827284cb87a84d61ab8cd797aa351b99e6829f028de16",
+    "src/cgen/xl6_ir_cgen_native_callback.c": "0a8a144e0822db9b45e880e1bbda842d71b1c42729dc0ec83e2405344b4c6cba",
+    "src/runtime/xl6_foreign_scope_view.h": "865a7f8d675a17b1f0ec1e7b57fdc4cd61189527133c539b071174256a8118d1",
+    "src/runtime/xl6_foreign_writable_bytes.h": "03acf7f969f714d0b57e3497623e924846764fabef0831cab7b449c34c108bfd",
+    "lib/bindings/xui/src/proxy.xl": "836684a1f05fbb001c8a390c62a216ebb3b9f457264001581a0579e9e307a5ed",
+    "test/cases/foreign_callback_writable_span.c": "2fa2e650b207fac102eeed07a06b655b6a560e125e7cc832712a77d4af108931",
+    "test/cases/foreign_callback_writable_span.h": "6f20b5f3bd8c3b3b4acc606811dc2d499c00e160d69e74769f75403e3f1c198f",
+    "test/cases/foreign_callback_writable_span.xl": "5b6bd787bc05dc10fdc3f2407e75a22a84128f6ea9742c2bfb6610f252c36d33",
+    "tools/check_foreign_callback_span.py": "89a08b3f08e2b7022374f6c93af8dfb5821dd400453ba8129037f8caaa9852cc",
+    "docs/foreign-declarations.md": "5baacade3104a28ace72e11e79daa8cbaa62a1bd49495e5225026aa27c148893",
+    "lib/bindings/xui/README.md": "4ed46038d5ae46beda32ccbbf821ff5bc64f7d347cd3a06b1f1a91192f67bcd7"
+  },
+  "checks": [
+    "Native int and size_t capacities produce bounded callback-lifetime views",
+    "Buffer and bytes overloads write exact data, including embedded NUL, into native storage",
+    "Zero-capacity NULL queries, guard bytes, invalid lengths, checked bounds and expired views",
+    "Real xuiProxyCreateOwned clipboardGetData callback writes into the requesting Proxy Buffer",
+    "Existing read-only callback runs; opposite logical view directions fail the generated ABI assertion",
+    "Generated C uses the typed native callback and one stack descriptor with no payload copy on view admission"
+  ],
+  "platforms": {
+    "win_x64": {
+      "compilerBuild": {
+        "path": "F:/xlang-validation/xge-full-20261110/compiler-writable-callback-span-win-r1/build.json",
+        "sha256": "247c646b164df27afa6729f16f44a927eb801baf4286d66aa3c552310a0ce7b2"
+      },
+      "matchedSdk": {
+        "path": "F:/xlang-validation/xge-full-20261110/writable-callback-span-compiler-sdk-win-r1/results.json",
+        "sha256": "04b3d150b89e93b75c48e998408980918e655485e47cbf3c551718aebda6fc82"
+      },
+      "evaluatedNativeImports": {
+        "host": [
+          "msvcrt.dll",
+          "xge3_host.dll",
+          "kernel32.dll",
+          "shell32.dll",
+          "ws2_32.dll",
+          "iphlpapi.dll",
+          "ucrtbase.dll"
+        ],
+        "static": [
+          "msvcrt.dll",
+          "kernel32.dll",
+          "ole32.dll",
+          "shell32.dll"
+        ]
+      },
+      "runtimeCases": {
+        "path": "F:/xlang-validation/xge-full-20261110/writable-callback-span-verify-win-r1/results.json",
+        "sha256": "a75915071f2ade567844201f5f3714dc4d740e39bd490379ec6ab6ac9fbe85f9"
+      },
+      "directionChecks": {
+        "path": "F:/xlang-validation/xge-full-20261110/writable-callback-span-const-regression-win-r3/results.json",
+        "sha256": "b37e04492427fb5e0dd989870eff47f44cf91cc16f7a18845c17cc41cb84fedc"
+      }
+    },
+    "linux_x64": {
+      "compilerBuild": {
+        "path": "/var/tmp/xlang-validation/xge-full-20261110/compiler-writable-callback-span-linux-r1/build.json",
+        "sha256": "58bad5177537b39aa5d0645975a9ac97534937d05cfabc0b2700936a8d48a483"
+      },
+      "matchedSdk": {
+        "path": "/var/tmp/xlang-validation/xge-full-20261110/writable-callback-span-compiler-sdk-linux-r1/results.json",
+        "sha256": "b13124d74cdbdfa11e3db830649ecc56ce673b9ba31ecacf571cb978c6761bc7"
+      },
+      "evaluatedNativeImports": {
+        "host": [
+          "libm.so.6",
+          "libmvec.so.1",
+          "libxge3_host.so",
+          "libc.so.6",
+          "ld-linux-x86-64.so.2"
+        ],
+        "static": [
+          "libm.so.6",
+          "libmvec.so.1",
+          "libx11.so.6",
+          "libxi.so.6",
+          "libxcursor.so.1",
+          "libgl.so.1",
+          "libc.so.6",
+          "ld-linux-x86-64.so.2"
+        ]
+      },
+      "runtimeCases": {
+        "path": "/var/tmp/xlang-validation/xge-full-20261110/writable-callback-span-verify-linux-r1/results.json",
+        "sha256": "524c1c179d97fad8ede8cfee397bb7cb8af9a761b14546bc0a9bc4908ab4f336"
+      },
+      "directionChecks": {
+        "path": "/var/tmp/xlang-validation/xge-full-20261110/writable-callback-span-const-regression-linux-r3/results.json",
+        "sha256": "56b034f4a19692e0b3eb8280f2a5c57dbbc8991917eeabd87f28e6b919cff4e5"
+      }
+    }
+  }
+}

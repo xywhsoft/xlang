@@ -211,8 +211,7 @@ static int xl6IrVerifyForeignCallbackSpans(const XL6_IrModule* module,XL6_DiagLi
              !((node->foreignCall.retainedCallbacks|node->foreignCall.physicalPairs)&(UINT64_C(1)<<row->parameter))) ||
             (row->countAbi!=XL6_FOREIGN_SPAN_COUNT_INT && row->countAbi!=XL6_FOREIGN_SPAN_COUNT_SIZE) ||
             !memchr(row->pointerCName,0,sizeof(row->pointerCName)) ||
-            (strcmp(row->pointerCName,"const void*") && strcmp(row->pointerCName,"const uint8_t*") &&
-             strcmp(row->pointerCName,"const unsigned char*") && strcmp(row->pointerCName,"const char*")))goto invalid;
+            !xl6ForeignCallbackSpanPointerValid(row->pointerCName))goto invalid;
         const XL6_ForeignParameterContract* callback=NULL;
         for(size_t p=0;p<module->foreignParameterCount;++p)
             if(module->foreignParameters[p].declaration==row->declaration && module->foreignParameters[p].parameter==row->parameter)

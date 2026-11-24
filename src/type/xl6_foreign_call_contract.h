@@ -3,6 +3,7 @@
 
 #include "src/common/xl6_common.h"
 #include "src/type/xl6_foreign_region_contract.h"
+#include <string.h>
 
 typedef enum XL6_ForeignLifetimeAbi {
     XL6_FOREIGN_LIFETIME_NONE=0,
@@ -346,12 +347,25 @@ typedef struct XL6_ForeignRetainContract {
 } XL6_ForeignRetainContract;
 
 /* Two physical native callback slots become one non-null callback-epoch byte
- * view. Counts are bytes; no element-stride inference or payload ownership. */
+ * view. Const qualification selects read-only or writable data. Counts are
+ * bytes; no element-stride inference or payload ownership. */
 typedef struct XL6_ForeignCallbackSpanContract {
     uint32 declaration,parameter,argument;
     XL6_ForeignSpanCountAbi countAbi;
     char pointerCName[128];
 } XL6_ForeignCallbackSpanContract;
+
+static inline bool xl6ForeignCallbackSpanPointerValid(const char* name)
+{
+    if(!strncmp(name,"const ",6))name+=6;
+    return !strcmp(name,"void*") || !strcmp(name,"uint8_t*") ||
+        !strcmp(name,"unsigned char*") || !strcmp(name,"char*");
+}
+
+static inline bool xl6ForeignCallbackSpanWritable(const XL6_ForeignCallbackSpanContract* row)
+{
+    return strncmp(row->pointerCName,"const ",6)!=0;
+}
 
 /* One logical native view supplies its complete pointee by value. Parameter
  * indices include the implicit receiver; this never expands physical slots. */
