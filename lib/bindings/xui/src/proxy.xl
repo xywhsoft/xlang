@@ -123,6 +123,55 @@ export extern "xui_surface_t*" class Surface @header("xge3_runtime.h") @lifetime
  extern "xuiSurfaceGetProxy" @no_raise @c_result("retained_view") @c_retain(retainProxy,"zero",rollbackProxy) func proxy() as Proxy
  extern "xl6ForeignViewCloseV1" @no_raise @c_control(0) @c_result("bool_status") func close()
 end
+
+// Backend callbacks use scoped views. Pointer-free input records can be read
+// by value and output records are assigned directly at the native address.
+export extern "xui_proxy_t*" class CallbackProxy @header("xge3_runtime.h") @lifetime("callback")
+ native point handle
+ extern "iVersion" @c_field @no_raise get version() as c_uint
+ extern "xuiProxyShareOwned" @no_raise @c_result("owned_view") @factory(1,0,rollbackProxy) func share() as Proxy
+end
+export extern "xui_proxy_caps_t*" class CallbackProxyCapsOutput @header("xge3_runtime.h") @lifetime("callback")
+ native point handle
+ extern "value" @c_deref let value(ProxyCaps caps)
+end
+export extern "const xui_surface_desc_t*" class CallbackSurfaceDesc @header("xge3_runtime.h") @lifetime("callback")
+ native point handle
+ extern "value" @c_deref get value() as SurfaceDesc
+end
+export extern "xui_surface_desc_t*" class CallbackSurfaceDescOutput @header("xge3_runtime.h") @lifetime("callback")
+ native point handle
+ extern "value" @c_deref let value(SurfaceDesc descriptor)
+end
+export extern "const xui_surface_sampler_t*" class CallbackSurfaceSampler @header("xge3_runtime.h") @lifetime("callback")
+ native point handle
+ extern "value" @c_deref get value() as SurfaceSampler
+end
+export extern "xui_surface_sampler_t*" class CallbackSurfaceSamplerOutput @header("xge3_runtime.h") @lifetime("callback")
+ native point handle
+ extern "value" @c_deref let value(SurfaceSampler sampler)
+end
+export extern "const xui_system_font_desc_t*" class CallbackSystemFontDesc @header("xge3_runtime.h") @lifetime("callback")
+ native point handle
+ extern "value" @c_deref get value() as SystemFontDesc
+end
+export extern "xui_font_metrics_t*" class CallbackFontMetricsOutput @header("xge3_runtime.h") @lifetime("callback")
+ native point handle
+ extern "value" @c_deref let value(FontMetrics metrics)
+end
+export extern "xui_vec2_t*" class CallbackVec2Output @header("xge3_runtime.h") @lifetime("callback")
+ native point handle
+ extern "value" @c_deref let value(Vec2 vector)
+end
+export extern "xui_rect_t*" class CallbackRectOutput @header("xge3_runtime.h") @lifetime("callback")
+ native point handle
+ extern "value" @c_deref let value(Rect rectangle)
+end
+export extern "uint32_t*" class CallbackUIntOutput @header("xge3_runtime.h") @lifetime("callback")
+ native point handle
+ extern "value" @c_deref let value(c_uint number)
+end
+
 export extern "xui_path_t*" class Path @header("xge3_runtime.h") @lifetime("owned") @policy("xl6Xui3PathPolicy")
  native point handle
  extern "xuiPathClear" @no_raise @c_result("status",0) func clear()

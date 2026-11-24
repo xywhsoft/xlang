@@ -1,0 +1,65 @@
+from xui import Proxy,ProxyCaps,CallbackProxy,CallbackProxyCapsOutput,XUI_PROXY_VERSION
+from xui import CallbackSurfaceDesc,CallbackSurfaceDescOutput,CallbackSurfaceSampler,CallbackSurfaceSamplerOutput
+from xui import CallbackSystemFontDesc,CallbackFontMetricsOutput,CallbackVec2Output,CallbackRectOutput,CallbackUIntOutput
+from xui import FontMetrics,Vec2,Rect,SurfaceSampler
+
+typedef CapsCallback=func(CallbackProxy,CallbackProxyCapsOutput) as c_int
+typedef RecordCallback=func(CallbackSurfaceDesc,CallbackSurfaceDescOutput,CallbackSurfaceSampler,CallbackSurfaceSamplerOutput,CallbackSystemFontDesc,CallbackFontMetricsOutput,CallbackVec2Output,CallbackRectOutput,CallbackUIntOutput) as c_int
+
+extern "xuiProxyReleaseChecked" @header("xge3_runtime.h") @no_raise @c_result("status",0) func releaseProbe(Proxy value)
+extern "xuiProxyCreateOwned" @header("xge3_runtime.h") @no_raise @c_result("owned_view") @factory(2,0,releaseProbe) @c_pack(0,"xui_proxy_t",0,2) @c_pack_size(0,"iSize","uint32_t") @c_pack_field(0,"iVersion",0,"value") @c_pack_callback_group(0,"pUser",1) @c_pack_field(0,"getCaps",1,"owned_callback") @c_owned_callback(1,-1,"xui_callback_owner_t",-16,"receiver") func makeProxy(c_uint version,CapsCallback callback) as Proxy
+extern "xl_test_proxy_records" @header("test/cases/foreign_xui_proxy_records.h") @no_raise @c_result("status",0) @c_sync_callback(0,-1,-16) func roundTrip(RecordCallback callback)
+
+class State
+ CallbackProxyCapsOutput? saved=null
+end
+
+func main(...) as int
+ auto state=State()
+ auto caps=ProxyCaps()
+ caps.iCaps=c_uint(0x40)
+ auto sampler=SurfaceSampler()
+ sampler.iWrapT=c_int(2)
+ caps.tDefaultSampler=sampler
+ auto proxy=makeProxy(c_uint(XUI_PROXY_VERSION),func(CallbackProxy source,CallbackProxyCapsOutput output) as c_int
+  assert source.version==c_uint(XUI_PROXY_VERSION)
+  auto held=source.share()
+  held.close()
+  state.saved=output
+  output.value=caps
+  return c_int(0)
+ end)
+ auto actual=proxy.caps()
+ assert actual.iCaps==c_uint(0x40)
+ assert actual.tDefaultSampler.iWrapT==c_int(2)
+ bool expired=false
+ try
+  (state.saved as CallbackProxyCapsOutput).value=caps
+ catch error
+  expired=true
+ end
+ assert expired
+ proxy.close()
+
+ roundTrip(func(CallbackSurfaceDesc descriptor,CallbackSurfaceDescOutput surface,CallbackSurfaceSampler suggested,CallbackSurfaceSamplerOutput chosen,CallbackSystemFontDesc font,CallbackFontMetricsOutput fontMetrics,CallbackVec2Output vector,CallbackRectOutput rectangle,CallbackUIntOutput generation) as c_int
+  auto size=descriptor.value
+  surface.value=size
+  chosen.value=suggested.value
+  auto metrics=FontMetrics()
+  metrics.fSize=font.value.fSize
+  metrics.fLineHeight=c_float(18)
+  fontMetrics.value=metrics
+  auto measure=Vec2()
+  measure.fX=c_float(size.iWidth)
+  measure.fY=c_float(size.iHeight)
+  vector.value=measure
+  auto clip=Rect()
+  clip.fW=size.iWidth
+  clip.fH=size.iHeight
+  rectangle.value=clip
+  generation.value=c_uint(0xFFFFFFFF)
+  return c_int(0)
+ end)
+ println("XUI_PROXY_RECORDS_OK")
+ return 0
+end

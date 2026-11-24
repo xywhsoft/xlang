@@ -1,0 +1,70 @@
+{
+  "schema": 1,
+  "scope": "Scoped native Proxy callback receiver and pointer-free record projections",
+  "shippingDelivery": false,
+  "networkTests": false,
+  "sourceSha256": {
+    "lib/bindings/xui/src/proxy.xl": "634efc5b7b26db6c510734d95e48fe94f94d1542b8da87be4773b4acf72c0149",
+    "test/cases/foreign_xui_proxy_records.xl": "d38ce01c5bcc961eb3daa775647fd27eddbb17a3b62dab8ac50ab176713b4c68",
+    "test/cases/foreign_xui_proxy_records.h": "8bc515f9f526c850330341ab627e5c50f2dbf5083e4e377101e9288b9b933ed2",
+    "test/cases/foreign_xui_proxy_records.c": "ec4fd646d464b4342afe11d482d6792dfd5276a116e2f89eb01d58af0da32b3d"
+  },
+  "checks": [
+    "Real getCaps callback writes top-level and nested capability fields",
+    "Independent Proxy ownership is acquired through xuiProxyShareOwned",
+    "A retained callback output view rejects use after the invocation",
+    "Native round trip checks descriptor/sampler reads and typed surface, sampler, font metrics, vector, rectangle and uint32 writes",
+    "Generated C assigns each typed output at the native address",
+    "JIT, dynamic AOT and static AOT run on both reported platforms"
+  ],
+  "platforms": {
+    "win_x64": {
+      "report": "F:/xlang-validation/xge-full-20261110/xui-proxy-records-verify-win-r1/results.json",
+      "sha256": "e9c9ebfa2bb72d0ba3d8ae751680d66c64c3b557f57f501061ec295d7ed94bbd",
+      "generatedC": "F:/xlang-validation/xge-full-20261110/xui-proxy-records-verify-win-r1/foreign_xui_proxy_records/generated.c",
+      "generatedCSha256": "77ea336d88500e7e43d2f359a2ee260bbce125aa3c06af1f62789f9ed8f02496",
+      "nativeImports": {
+        "host": [
+          "msvcrt.dll",
+          "xge3_host.dll",
+          "kernel32.dll",
+          "shell32.dll",
+          "ws2_32.dll",
+          "iphlpapi.dll",
+          "ucrtbase.dll"
+        ],
+        "static": [
+          "msvcrt.dll",
+          "kernel32.dll",
+          "ole32.dll",
+          "shell32.dll"
+        ]
+      }
+    },
+    "linux_x64": {
+      "report": "//wsl.localhost/Ubuntu/var/tmp/xlang-validation/xge-full-20261110/xui-proxy-records-verify-linux-r1/results.json",
+      "sha256": "9d925889046860e105775ed82c31f20b0d8c7018c0c7c88fa2bafbca1e07b5cf",
+      "generatedC": "//wsl.localhost/Ubuntu/var/tmp/xlang-validation/xge-full-20261110/xui-proxy-records-verify-linux-r1/foreign_xui_proxy_records/generated.c",
+      "generatedCSha256": "77ea336d88500e7e43d2f359a2ee260bbce125aa3c06af1f62789f9ed8f02496",
+      "nativeImports": {
+        "host": [
+          "libm.so.6",
+          "libmvec.so.1",
+          "libxge3_host.so",
+          "libc.so.6",
+          "ld-linux-x86-64.so.2"
+        ],
+        "static": [
+          "libm.so.6",
+          "libmvec.so.1",
+          "libx11.so.6",
+          "libxi.so.6",
+          "libxcursor.so.1",
+          "libgl.so.1",
+          "libc.so.6",
+          "ld-linux-x86-64.so.2"
+        ]
+      }
+    }
+  }
+}
