@@ -197,6 +197,8 @@ HEADER_CLOSE_REPLACEMENTS.update({
     name: ('xui.IconReference.close', 'xuiIconReferenceReleaseOwnerChecked')
     for name in ICON_REFERENCE_RELEASES
 })
+HEADER_CLOSE_REPLACEMENTS['xuiResourceReferenceRelease'] = (
+    'xui.ResourceReference.close', 'xuiResourceReferenceReleaseOwnerChecked')
 HEADER_CLOSE_REPLACEMENTS['xuiCodeFoldStateDestroy'] = (
     'xui.CodeFoldState.close', 'xuiCodeFoldStateDestroyChecked')
 HEADER_CLOSE_REPLACEMENTS['xuiCodeCommandMapDestroy'] = (
@@ -640,6 +642,19 @@ def main():
         if 'xuiPainterVisit' in functions:
             calls.setdefault('src/xui/core/xui_core.c', {}).update(MANUAL_PAINTER_CALLS)
             calls['src/xui/core/xui_proxy_xge.c'] = XGE_PROXY_RESOURCE_CALLS
+        if 'xuiResourceWithReservation' in functions:
+            calls.setdefault('src/xui/core/xui_core.c', {}).update({
+                'xuiResourceWithReservation': ('xuiResourceAddRef','xuiResourceRelease'),
+                'xuiResourceRetainReference': ('xuiResourceLifetimeWatch','xuiResourceAddRef'),
+                'xuiResourceReferenceReleaseOwnerChecked': ('xuiResourceRelease','xuiLifetimeUnwatch'),
+            })
+            calls['src/xui/document/xui_document_image_resource.c'] = {
+                'doc_image_resource_export_png': ('xuiResourceGetHandle','xuiSurfaceAddRef'),
+            }
+        if 'xuiContextGetBaseWidgetType' in functions:
+            calls['src/xui/core/xui_widget.c'] = {
+                'xuiContextGetBaseWidgetType': ('xuiWidgetGetBaseType',),
+            }
         for legacy, (unit, checked, owner, _) in MANAGER_CLOSE_CHAINS.items():
             if legacy in functions and checked in functions and owner in functions:
                 calls.setdefault(unit, {}).update({legacy: (checked,), checked: (owner,)})
@@ -821,6 +836,9 @@ def main():
         if 'xui.CodeCommandMap' in class_bindings:
             policy_groups['codeCommandMapHeaderPolicies'] = ('xui-code-command-map-header-policies',
                 {'xui.CodeCommandMap': class_bindings['xui.CodeCommandMap']})
+        if 'xui.ResourceReference' in class_bindings:
+            policy_groups['resourceReferenceHeaderPolicies'] = ('xui-resource-reference-policies',
+                {'xui.ResourceReference': class_bindings['xui.ResourceReference']})
         header_relocations = {}
         for key, (name, classes) in policy_groups.items():
             evidence, relocations = compile_header_policies(name,view,classes,set(functions),
@@ -909,6 +927,9 @@ def main():
                 elif symbol in ICON_REFERENCE_RELEASES:
                     key='iconHeaderPolicies'
                     destroy='xl6Xui3IconReferenceDestroy'
+                elif symbol=='xuiResourceReferenceRelease':
+                    key='resourceReferenceHeaderPolicies'
+                    destroy='xl6Xui3ResourceReferenceDestroy'
                 elif symbol=='xuiCodeFoldStateDestroy':
                     key='codeFoldStateHeaderPolicies'
                     destroy='xl6Xui3CodeFoldStateDestroy'

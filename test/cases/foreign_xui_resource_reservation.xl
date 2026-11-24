@@ -1,0 +1,120 @@
+import xui
+from xui import Resource, ResourceReference
+
+extern "fixtureRenderProxy" @header("test/cases/foreign_xui_resource_reservation.h") @no_raise @c_result("owned_view") @factory(0,0,dropProxy) func cpuProxy() as xui.Proxy
+extern "fixtureRenderSurface" @no_raise @c_result("owned_view") @factory(1,0,dropSurface) func cpuSurface(xui.Proxy proxy) as xui.Surface
+extern "xuiProxyReleaseChecked" @header("xge3_runtime.h") @no_raise @c_result("status",0) func dropProxy(xui.Proxy proxy)
+extern "xuiSurfaceReleaseChecked" @no_raise @c_result("status",0) func dropSurface(xui.Surface surface)
+extern "fixtureRenderBalanced" @no_raise func balanced() as c_int
+extern "fixtureRenderBudget" @no_raise func budget(c_int allowance)
+extern "fixtureRenderHeapBegin" @no_raise func beginSample()
+extern "fixtureRenderHeapResult" @no_raise func endSample(c_int native)
+extern "fixtureResourceNativeSample" @no_raise func nativeSample(Resource resource)
+
+func checkRetainOom(Resource entry)
+    bool completed=false
+    int failures=0
+    for allowance in range(24)
+        ResourceReference? reference=null
+        budget(c_int(allowance))
+        try
+            reference=entry.retain()
+        catch Error
+            failures+=1
+        finally
+            budget(-1)
+        end
+        if reference!=null then
+            auto acquired=reference as ResourceReference
+            assert acquired.isLive() and entry.nativeReferenceCount==2, "retain commits once"
+            acquired.close()
+            completed=true
+            break
+        end
+        assert entry.nativeReferenceCount==1, "OOM leaves registry count unchanged"
+    end
+    assert completed and failures>0 and entry.nativeReferenceCount==1, "retain retries cleanly"
+end
+
+func checkPersistentReference(xui.Context context,Resource entry,xui.Surface replacement)
+    auto first=entry.retain()
+    auto second=entry.retain()
+    assert entry.nativeReferenceCount==3 and first.isLive() and second.isLive(), "references coexist"
+    first.close()
+    assert second.isLive() and entry.nativeReferenceCount==2, "closing one preserves the other"
+    bool rejected=false
+    try
+        context.setSurfaceResource("canvas",replacement)
+    catch Error failure
+        rejected=failure.code==int(xui.XUI_ERROR_INVALID_STATE)
+    end
+    assert rejected and entry.name=="canvas", "reference blocks replacement"
+    second.close()
+    assert entry.nativeReferenceCount==1, "closing releases the registry reservation"
+end
+
+func retainUntilReturn(Resource entry)
+    auto temporary=entry.retain()
+    assert temporary.isLive() and entry.nativeReferenceCount==2, "local reference reserves the entry"
+end
+
+func checkScopedReservation(Resource entry)
+    bool rejected=false
+    try
+        entry.withReservation(func() as c_int
+            assert entry.nativeReferenceCount==2, "callback holds one reference"
+            entry.withReservation(func() as c_int
+                assert entry.nativeReferenceCount==3, "nested callback holds its own reference"
+                return 0
+            end)
+            assert entry.nativeReferenceCount==2, "nested reference released"
+            throw Error("reservation callback failed")
+        end)
+    catch Error failure
+        rejected=failure.message=="reservation callback failed"
+    end
+    assert rejected and entry.nativeReferenceCount==1, "callback error releases reservation"
+
+    auto visitor=func() as c_int
+        assert entry.nativeReferenceCount==2, "sample sees reserved entry"
+        return 0
+    end
+    nativeSample(entry)
+    entry.withReservation(visitor)
+    beginSample()
+    for index in range(128)
+        entry.withReservation(visitor)
+    end
+    endSample(0)
+end
+
+func main(...) as int
+    auto proxy=cpuProxy()
+    auto ui=xui.create(proxy,xui.XUI_SYSTEM_FONT_DISABLED)
+    auto base=ui.baseWidgetType()
+    auto button=ui.buttonNative()
+    assert base.getName()=="widget" and base.getParent()==null and button.isType(base)==1, "root widget type"
+    auto surface=cpuSurface(proxy)
+    auto replacement=cpuSurface(proxy)
+    ui.setSurfaceResource("canvas",surface)
+    auto entry=ui.findResource("canvas") as Resource
+    checkRetainOom(entry)
+    checkPersistentReference(ui,entry,replacement)
+    retainUntilReturn(entry)
+    assert entry.nativeReferenceCount==1, "scope exit releases the local reference"
+    checkScopedReservation(entry)
+
+    auto expires=entry.retain()
+    entry.withReservation(func() as c_int
+        ui.close()
+        return 0
+    end)
+    assert !expires.isLive(), "Context close invalidates a held reference"
+    expires.close()
+    surface.close()
+    replacement.close()
+    proxy.close()
+    assert balanced()==1, "all native resources released"
+    println("XUI_RESOURCE_RESERVATION_OK")
+    return 0
+end

@@ -1,0 +1,355 @@
+{
+  "schema": 1,
+  "scope": "Persistent and scoped resource reservations and observed Widget base types",
+  "nativeCommit": "3fb27063aff0ba3d0470eaa3e453ac2b96e9c81e",
+  "priorEvidence": {
+    "path": "D:/GIT/x-lang/dev/release-materials/provenance/xui-manual-painter-20261124.json",
+    "sha256": "94721eefb3db62ad0562eb554b36fad91c324221c4178bcd873bf03889a38441"
+  },
+  "shippingDelivery": false,
+  "graphicsTests": false,
+  "networkTests": false,
+  "sourceSha256NormalizedLf": {
+    "lib/bindings/xui/src/managed.xl": "b01e893fa7de3b1bb21c50ca24b3bffdf3d09c3f9d2e1fa60c45b05d782a932e",
+    "lib/bindings/xui/src/resources.xl": "940588b49632a34629f17bb434a7d7cfb28dc1096ccbca793c37224e3ff83c89",
+    "lib/bindings/xui/examples/resource_reservation.xl": "fe117f2585b5269175ae021997495b6cefb44c17a9132d4436882e110dbc54e7",
+    "lib/bindings/xui/examples/gallery.json": "e6707f7a481cc08a9ad6fe78b1f2f4b557e3880e19ca43525d7fdabf63b3f6c2",
+    "lib/bindings/_xge_native/include/xui3_resource_reference.h": "5b2bcf07bce352784cab87524a3e643d724f08b874516cc6da9af106e3d3d8b0",
+    "test/cases/foreign_xui_resource_reservation.xl": "fe6c509ccfa97a157060fd7a4b8d67a4546fe96be16f225cf773d42df6581074",
+    "test/cases/foreign_xui_resource_reservation.c": "7806da13c37c91be7d822f29a717bd90ed81e9b56985f14f14643fb652712ff8",
+    "test/cases/foreign_xui_resource_reservation.h": "2223646a1916e8758e3e9017cc2f97f66616817d113ea24d1bbccb5acf40b4f8",
+    "test/cases/foreign_xui_render_backend.h": "f5c5e0a41b5932e164c251d610bd874bb2e3e2d4b01d5b61930164659813164f",
+    "test/cases/foreign_xui_render_backend.c": "d923086b61f849a73a720968149c8a9cb990e4febe45b01bf1cf9735490826a6",
+    "test/cases/foreign_xui_render_adapters.inc": "b54a15b0295c93a59be72b93acacfb1eefd335a7ec28d6290b18be213770711e",
+    "tools/check_xge3_native_consumers.py": "c15e6a227494739df3e579ce852920c7f43232a0bf9dc2f58b1af6f9b835cc7b",
+    "tools/xui_managed_contracts.py": "0267cc4648fe50321c77922e64d2db7635a83848eecfd8eb10132f24fa7b08df",
+    "docs/xge3-xui3-api-map-storage.json": "6a76a3dc69770b6d6553f631621beba03c23fb2ea188d77e3e0c4dd35fc865be"
+  },
+  "platforms": {
+    "win": {
+      "nativeSource": {
+        "path": "F:/xlang-validation/xge-full-20261110/xui-resource-reservation-native-source-win-r1.json",
+        "sha256": "a14f74daf48b134b651c25fb3abffe151dde20299839a317e170183a8dab34e4"
+      },
+      "nativeHost": {
+        "path": "F:/xlang-validation/xge-full-20261110/xui-resource-reservation-host-win-r1/build-report.json",
+        "sha256": "3447e4f1ae1f796844102b33e3e1438907962dbfd7988373d4eb3428f1d78490"
+      },
+      "nativeStatic": {
+        "path": "F:/xlang-validation/xge-full-20261110/xui-resource-reservation-static-win-r1/build-report.json",
+        "sha256": "e759fa1b61d8cbfedf5294cc6bc11a6a5b1c2534ae98e1f0bdb1a7cce6d1f9bd"
+      },
+      "nativeTests": {
+        "path": "F:/xlang-validation/xge-full-20261110/xui-resource-reservation-native-tests-win-r1/results.json",
+        "sha256": "bb9f4858b66781f59d53adbd1a662dfaaa53535e4778902852925f9f2699e53f"
+      },
+      "compiler": {
+        "path": "F:/xlang-validation/xge-full-20261110/compiler-owned-output-pair-win-r2/build.json",
+        "sha256": "41596d3515fdf8c1f5194838396e40b1d84ecb013557b7f7aadbe352315593a3"
+      },
+      "stage": {
+        "path": "F:/xlang-validation/xge-full-20261110/xui-resource-reservation-stage-win-r1/replay/stage-report.json",
+        "sha256": "bfb297274c85b73023766e419411dade0d37bc02da608c33618fc9e83ed51354"
+      },
+      "audit": {
+        "path": "F:/xlang-validation/xge-full-20261110/xui-resource-reservation-consumers-win-r1/results.json",
+        "sha256": "4500e061b5e57e8ff602706f827707cc3c51a77880e8d1a91aaebfcd1df472de"
+      },
+      "runtime": {
+        "path": "F:/xlang-validation/xge-full-20261110/xui-resource-reservation-verify-win-r2/results.json",
+        "sha256": "80a9711e6c8cbc447c63a4cf9f2a92f8dce5c565c9f64af02a0e0f88f767e542"
+      },
+      "remaining": {
+        "XGE": 13,
+        "XUI": 32
+      },
+      "functionPopulation": 5900,
+      "directDeclarations": 4841,
+      "retirement": {
+        "language": "xui.ResourceReference.close",
+        "native": "xuiResourceReferenceReleaseOwnerChecked",
+        "policy": "xl6Xui3ResourceReferencePolicy",
+        "relocationPath": [
+          ".text$xl6Xui3ResourceReferencePolicyGet",
+          ".rdata$policy.0",
+          ".text$xl6Xui3ResourceReferenceDestroy",
+          "xuiResourceReferenceReleaseOwnerChecked"
+        ]
+      },
+      "cases": {
+        "foreign_xui_resource_reservation": {
+          "generated": {
+            "path": "F:/xlang-validation/xge-full-20261110/xui-resource-reservation-verify-win-r2/foreign_xui_resource_reservation/generated.c",
+            "sha256": "97e275e6dc8f7e4f2819376dc4bfa97439311a10e9a97591edc72c78517310e2"
+          },
+          "imports": {
+            "static": [
+              "msvcrt.dll",
+              "kernel32.dll",
+              "ole32.dll",
+              "shell32.dll"
+            ],
+            "host": [
+              "msvcrt.dll",
+              "xge3_host.dll",
+              "kernel32.dll",
+              "shell32.dll",
+              "ws2_32.dll",
+              "iphlpapi.dll",
+              "ucrtbase.dll"
+            ]
+          },
+          "steps": [
+            "emit",
+            "host-build",
+            "host-imports",
+            "host-run",
+            "jit",
+            "static-build",
+            "static-imports",
+            "static-run"
+          ],
+          "heapSamples": {
+            "jit": {
+              "native": {
+                "alloc": 0,
+                "free": 0,
+                "realloc": 0
+              },
+              "language": {
+                "alloc": 0,
+                "free": 0,
+                "realloc": 0
+              }
+            },
+            "static-run": {
+              "native": {
+                "alloc": 0,
+                "free": 0,
+                "realloc": 0
+              },
+              "language": {
+                "alloc": 0,
+                "free": 0,
+                "realloc": 0
+              }
+            },
+            "host-run": {
+              "native": {
+                "alloc": 0,
+                "free": 0,
+                "realloc": 0
+              },
+              "language": {
+                "alloc": 0,
+                "free": 0,
+                "realloc": 0
+              }
+            }
+          }
+        },
+        "resource_reservation": {
+          "generated": {
+            "path": "F:/xlang-validation/xge-full-20261110/xui-resource-reservation-verify-win-r2/resource_reservation/generated.c",
+            "sha256": "cfd8272b08fd1ce838300d7e99d25f7c917fd2f500a70533ad92b5f4ab2c0fbf"
+          },
+          "imports": {
+            "host": [
+              "msvcrt.dll",
+              "xge3_host.dll",
+              "kernel32.dll",
+              "shell32.dll",
+              "ucrtbase.dll"
+            ],
+            "static": [
+              "msvcrt.dll",
+              "kernel32.dll",
+              "user32.dll",
+              "ole32.dll",
+              "oleaut32.dll",
+              "shell32.dll",
+              "gdi32.dll",
+              "imm32.dll",
+              "dwrite.dll"
+            ]
+          },
+          "steps": [
+            "emit",
+            "host-build",
+            "host-imports",
+            "host-run",
+            "jit",
+            "static-build",
+            "static-imports",
+            "static-run"
+          ],
+          "heapSamples": {}
+        }
+      },
+      "heapVisitCount": 128
+    },
+    "linux": {
+      "nativeSource": {
+        "path": "//wsl.localhost/Ubuntu/var/tmp/xlang-validation/xge-full-20261110/xui-resource-reservation-native-source-linux-r1.json",
+        "sha256": "af7ff6a2c1271f7fd6683606ce775a7295fe8111f1fc4035602d659f37c5731d"
+      },
+      "nativeHost": {
+        "path": "//wsl.localhost/Ubuntu/var/tmp/xlang-validation/xge-full-20261110/xui-resource-reservation-host-linux-r1/build-report.json",
+        "sha256": "96b41b7a01c10943e6a355230c7ff317f52f18ca77221c426f270d10ba7720fe"
+      },
+      "nativeStatic": {
+        "path": "//wsl.localhost/Ubuntu/var/tmp/xlang-validation/xge-full-20261110/xui-resource-reservation-static-linux-r1/build-report.json",
+        "sha256": "6bcb49852600154234906f5e702eae6a9032f6a70fee9766dce093e2f07718b7"
+      },
+      "nativeTests": {
+        "path": "//wsl.localhost/Ubuntu/var/tmp/xlang-validation/xge-full-20261110/xui-resource-reservation-native-tests-linux-r1/results.json",
+        "sha256": "4fa9b33706eb910087513eada2923a833c0bd01f705db51627933c8185a8f603"
+      },
+      "compiler": {
+        "path": "//wsl.localhost/Ubuntu/var/tmp/xlang-validation/xge-full-20261110/compiler-owned-output-pair-linux-r2/build.json",
+        "sha256": "bb4ad4330abb14095a0dc59233ed6e265033b4498b8f779a11ca4d0b9b176099"
+      },
+      "stage": {
+        "path": "//wsl.localhost/Ubuntu/var/tmp/xlang-validation/xge-full-20261110/xui-resource-reservation-stage-linux-r1/replay/stage-report.json",
+        "sha256": "770d46a40a5ea55f0db6e95d688364b5b21207e79e7ba41365778f6528d59049"
+      },
+      "audit": {
+        "path": "//wsl.localhost/Ubuntu/var/tmp/xlang-validation/xge-full-20261110/xui-resource-reservation-consumers-linux-r1/results.json",
+        "sha256": "6578255863147c478c6893f6e896d78cb4429df443ab189134232cc1be47a4f1"
+      },
+      "runtime": {
+        "path": "//wsl.localhost/Ubuntu/var/tmp/xlang-validation/xge-full-20261110/xui-resource-reservation-verify-linux-r1/results.json",
+        "sha256": "3c85095ae9742ed783a8e0f1c5443bfe1cc53c59cdde51c8383a03574804840b"
+      },
+      "remaining": {
+        "XGE": 13,
+        "XUI": 32
+      },
+      "functionPopulation": 5900,
+      "directDeclarations": 4841,
+      "retirement": {
+        "language": "xui.ResourceReference.close",
+        "native": "xuiResourceReferenceReleaseOwnerChecked",
+        "policy": "xl6Xui3ResourceReferencePolicy",
+        "relocationPath": [
+          ".text.xl6Xui3ResourceReferencePolicyGet",
+          ".data.rel.ro.local.policy.0",
+          ".text.xl6Xui3ResourceReferenceDestroy",
+          "xuiResourceReferenceReleaseOwnerChecked"
+        ]
+      },
+      "cases": {
+        "foreign_xui_resource_reservation": {
+          "generated": {
+            "path": "//wsl.localhost/Ubuntu/var/tmp/xlang-validation/xge-full-20261110/xui-resource-reservation-verify-linux-r1/foreign_xui_resource_reservation/generated.c",
+            "sha256": "97e275e6dc8f7e4f2819376dc4bfa97439311a10e9a97591edc72c78517310e2"
+          },
+          "imports": {
+            "static": [
+              "libm.so.6",
+              "libmvec.so.1",
+              "libx11.so.6",
+              "libxi.so.6",
+              "libxcursor.so.1",
+              "libgl.so.1",
+              "libc.so.6",
+              "ld-linux-x86-64.so.2"
+            ],
+            "host": [
+              "libm.so.6",
+              "libmvec.so.1",
+              "libxge3_host.so",
+              "libc.so.6",
+              "ld-linux-x86-64.so.2"
+            ]
+          },
+          "steps": [
+            "emit",
+            "host-build",
+            "host-imports",
+            "host-run",
+            "jit",
+            "static-build",
+            "static-imports",
+            "static-run"
+          ],
+          "heapSamples": {
+            "jit": {
+              "native": {
+                "alloc": 0,
+                "free": 0,
+                "realloc": 0
+              },
+              "language": {
+                "alloc": 0,
+                "free": 0,
+                "realloc": 0
+              }
+            },
+            "static-run": {
+              "native": {
+                "alloc": 0,
+                "free": 0,
+                "realloc": 0
+              },
+              "language": {
+                "alloc": 0,
+                "free": 0,
+                "realloc": 0
+              }
+            },
+            "host-run": {
+              "native": {
+                "alloc": 0,
+                "free": 0,
+                "realloc": 0
+              },
+              "language": {
+                "alloc": 0,
+                "free": 0,
+                "realloc": 0
+              }
+            }
+          }
+        },
+        "resource_reservation": {
+          "generated": {
+            "path": "//wsl.localhost/Ubuntu/var/tmp/xlang-validation/xge-full-20261110/xui-resource-reservation-verify-linux-r1/resource_reservation/generated.c",
+            "sha256": "cfd8272b08fd1ce838300d7e99d25f7c917fd2f500a70533ad92b5f4ab2c0fbf"
+          },
+          "imports": {
+            "host": [
+              "libm.so.6",
+              "libmvec.so.1",
+              "libxge3_host.so",
+              "libc.so.6",
+              "ld-linux-x86-64.so.2"
+            ],
+            "static": [
+              "libm.so.6",
+              "libmvec.so.1",
+              "libx11.so.6",
+              "libxi.so.6",
+              "libxcursor.so.1",
+              "libgl.so.1",
+              "libc.so.6",
+              "ld-linux-x86-64.so.2"
+            ]
+          },
+          "steps": [
+            "emit",
+            "host-build",
+            "host-imports",
+            "host-run",
+            "jit",
+            "static-build",
+            "static-imports",
+            "static-run"
+          ],
+          "heapSamples": {}
+        }
+      },
+      "heapVisitCount": 128
+    }
+  }
+}

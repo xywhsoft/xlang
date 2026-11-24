@@ -1177,6 +1177,7 @@ export extern "xui_context_t*" class Context @header("xge3_runtime.h") @lifetime
  extern "xuiDatePickerCreate" @no_raise @c_result("owner_view",0) @factory(1,0,rollbackDatePicker) func datePickerNative(NativeConstXuiDatePickerDescTPointer? pDesc=null) as DatePicker
 
  extern "xuiWidgetFindType" @no_raise @c_cstr(0) @c_result("owner_view",0) func findWidgetType(string name) as WidgetType?
+ extern "xuiContextGetBaseWidgetType" @no_raise @c_result("owner_view",0) func baseWidgetType() as WidgetType
 
  extern "xuiWidgetRegisterType" @no_raise @c_pack(2,"xui_widget_type_desc_t",0,3) @c_pack_size(2,"iSize","uint32_t") @c_pack_field(2,"sName",0,"c_string") @c_pack_field(2,"pParent",1,"view_raw") @c_pack_field(2,"iFlags",2,"value") @c_result("owner_view",0) @factory(1,0,rollbackWidgetType) func registerWidgetType(string name,WidgetType? parent=null,c_uint flags=0) as WidgetType
 

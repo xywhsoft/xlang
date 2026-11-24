@@ -1,5 +1,29 @@
 # Native consumers in the full API inventory
 
+## Named resource reservations and the base widget type
+
+`Resource.retain()` returns an independently closable reservation. An active
+reservation prevents replacing or removing that registry entry. `Context.close()`
+expires the reservation, and `ResourceReference.close()` can then release its
+own storage. The persistent native reservation allocates one watched record.
+
+`Resource.withReservation()` reserves the entry for a synchronous callback.
+Nested calls keep separate counts. The native scope releases each count on
+return or error, before any deferred Context destruction. The C and xlang
+fixtures check the extra reference and count heap operations over 128 warmed
+visits. `Context.baseWidgetType()` exposes the native base through an observed
+type view.
+
+The native fixtures check failed allocation, wrong-thread release, nested
+reservations and invalidation when the Context closes. The language fixture
+and example pass JIT, dynamic AOT and static AOT on Windows and Linux. In
+each mode, both C and xlang report zero XRT heap operations over 128 warmed
+scoped visits. The two compiled inventories cover 5,900 functions and
+4,841 direct declarations, with 45 entries remaining across XGE (13) and
+XUI (32).
+
+[Reservation and Context type evidence](../dev/release-materials/provenance/xui-resource-reservation-20261124.json)
+
 ## Painter access on an owned draw session
 
 `Context.withPainter()` uses an active `DrawContext` from the same Proxy.

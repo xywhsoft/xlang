@@ -2264,6 +2264,11 @@ CALLBACKS['xui_painter_visit_proc'] = (
     'export typedef PainterVisitor = func(CallbackPainter) as c_int',
 )
 METHODS.update({
+    'xuiContextGetBaseWidgetType': (
+        'xui_widget_type xuiContextGetBaseWidgetType(xui_context pContext)',
+        'Context',
+        ['extern "xuiContextGetBaseWidgetType" @no_raise @c_result("owner_view",0) func baseWidgetType() as WidgetType'],
+    ),
     'xuiPollEventVisit': (
         'int xuiPollEventVisit(xui_context pContext, xui_event_visit_proc onEvent, void* pUser, bool* pVisited)',
         'Context',

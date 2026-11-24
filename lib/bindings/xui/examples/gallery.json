@@ -484,6 +484,13 @@
       "expected": "输出“视口尺寸 640 480”。"
     },
     {
+      "name": "resource_reservation",
+      "title": "Reserve a named surface entry",
+      "kind": "cpu",
+      "gallery": false,
+      "expected": "两次输出 preview 2，然后移除资源注册项。"
+    },
+    {
       "name": "asset_names",
       "title": "asset_names",
       "kind": "cpu",
