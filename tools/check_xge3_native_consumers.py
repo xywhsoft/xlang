@@ -726,6 +726,13 @@ def main():
                 graphics['__xgeContextNativeInit'] = creation
             included_units.extend(('src/xge/core/xge_graphics_context.c',
                 'src/xge/core/xge_owned_graphics.c', 'src/xge/platform/xge_egl.c'))
+        if 'xgeImageVisitPixels' in functions:
+            calls.setdefault('single/xge.c', {}).update({
+                'xgeImageVisitPixels': ('xgeImageGetPixelView',),
+                'xgeImagePremultiplyManaged': ('xgeImagePremultiplyChecked',),
+            })
+            included_units.extend(('src/xge/text/xge_texture.c',
+                'src/xge/text/xge_image_pixels.c', 'src/xge/text/xge_image_alpha.c'))
         source, build_flags, evidence_inputs = witness_build_inputs(
             a.resource_engine_build.resolve(),audit,packages,tools['gcc'],sha,calls.keys(),
             included_units)
@@ -952,6 +959,8 @@ def main():
                     'xuiTreeViewRefreshAdapter': 'xui.TreeView.refreshAdapter',
                     'xgeGraphicsContextMakeCurrent': 'xge.GraphicsContext.makeCurrent',
                     'xgeRenderTargetCreateOwned': 'xge.createRenderTarget',
+                    'xgeImageVisitPixels': 'xge.Image.withPixels',
+                    'xgeImagePremultiplyManaged': 'xge.Image.premultiply',
                 }
                 for edges in calls.values():
                     for root in edges.keys() & binding_calls.keys():

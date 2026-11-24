@@ -5,6 +5,13 @@ bytes rgba=b"\xff\0\0\xff\0\xff\0\xff"
 auto png=xge.encodeImagePng(2,1,rgba)
 auto image=xge.loadImage(png,c_uint(xge.XGE_IMAGE_STRAIGHT_ALPHA))
 
+// Read from the decoded image in place. The view expires when this callback returns.
+image.withPixels(func(xge.ImagePixelView pixels) as c_int
+    assert pixels.size==c_size(8)
+    assert pixels.at(0)==c_uchar(255) and pixels.at(5)==c_uchar(255)
+    return 0
+end)
+
 bytes snapshot=image.pixels()
 auto output=Buffer()
 assert output.resize(8)

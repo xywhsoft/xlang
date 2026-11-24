@@ -1,11 +1,61 @@
 // Native pixel storage, direct Buffer span and independently owned byte snapshot.
 import xge
+from xge import ImagePixelView
 extern "fixturePixelBudget" @header("test/cases/foreign_xge3_image_pixels.h") @no_raise func budget(c_int allowance)
 extern "fixturePixelBegin" @header("test/cases/foreign_xge3_image_pixels.h") @no_raise func beginHeap()
 extern "fixturePixelReport" @header("test/cases/foreign_xge3_image_pixels.h") @no_raise func reportHeap(c_int label)
 extern "fixturePixelFormat" @header("test/cases/foreign_xge3_image_pixels.h") @no_raise func unsupported(xge.Image image,c_int value)
 extern "fixturePixelNativeCopy" @header("test/cases/foreign_xge3_image_pixels.h") @no_raise @c_const(0) @c_span(1,"void*","size_t") func nativeCopy(xge.Image image,Buffer output)
 extern "fixturePixelNativeBorrow" @header("test/cases/foreign_xge3_image_pixels.h") @no_raise @c_const(0) func nativeBorrow(xge.Image image)
+extern "fixturePixelNativeVisit" @header("test/cases/foreign_xge3_image_pixels.h") @no_raise @c_const(0) func nativeVisit(xge.Image image)
+
+func checkVisit(xge.ImagePixelView pixels) as c_int
+    assert pixels.size==c_size(16) and pixels.at(0)==c_uchar(200)
+    return 0
+end
+
+func checkScopedUse(xge.Image image,bytes expected)
+    xge.ImagePixelView? saved=null
+    image.withPixels(func(xge.ImagePixelView pixels) as c_int
+        saved=pixels
+        assert pixels.bytes==expected
+        bool busy=false
+        try
+            image.premultiply()
+        catch Error failure
+            busy=failure.code==int(xge.XGE_ERROR_BUSY)
+        end
+        assert busy
+        image.withPixels(checkVisit)
+        assert pixels.at(0)==c_uchar(200)
+        bool outOfRange=false
+        try
+            auto invalid=pixels.at(pixels.size)
+        catch Error
+            outOfRange=true
+        end
+        assert outOfRange
+        return 0
+    end)
+    bool expired=false
+    try
+        auto expiredView=saved as ImagePixelView
+        auto invalid=expiredView.at(0)
+    catch StateError
+        expired=true
+    end
+    assert expired
+    bool propagated=false
+    try
+        image.withPixels(func(xge.ImagePixelView pixels) as c_int
+            throw "pixel visitor failed"
+        end)
+    catch Error failure
+        propagated=failure.message=="pixel visitor failed"
+    end
+    assert propagated
+end
+
 func main(...) as int
     bytes rgba=b"\xc8\x64\x32\x80\xff\x80\x40\0\xff\x80\x40\x01\x09\x11\x1f\xff"
     auto png=xge.encodeImagePng(2,2,rgba)
@@ -75,6 +125,23 @@ func main(...) as int
     beginHeap()
     nativeBorrow(image)
     reportHeap(3)
+    checkScopedUse(image,rgba)
+    xge.ImagePixelVisitor visitor=checkVisit
+    image.withPixels(visitor)
+    budget(0)
+    try
+        image.withPixels(visitor)
+    finally
+        budget(-1)
+    end
+    beginHeap()
+    for i in range(1000)
+        image.withPixels(visitor)
+    end
+    reportHeap(4)
+    beginHeap()
+    nativeVisit(image)
+    reportHeap(5)
     image.premultiply()
     assert snapshot==rgba and alias.pixels()!=snapshot
     image.close()
@@ -85,6 +152,18 @@ func main(...) as int
         rejected=true
     end
     assert rejected and snapshot==rgba
+    auto closing=xge.loadImage(png,c_uint(xge.XGE_IMAGE_STRAIGHT_ALPHA))
+    closing.withPixels(func(xge.ImagePixelView pixels) as c_int
+        closing.close()
+        return checkVisit(pixels)
+    end)
+    rejected=false
+    try
+        closing.withPixels(visitor)
+    catch StateError
+        rejected=true
+    end
+    assert rejected
     println("Image pixels: snapshot, Buffer capacity, checked errors, OOM and lifetime passed")
     return 0
 end

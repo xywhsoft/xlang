@@ -125,11 +125,11 @@ device or engine initialization is required. Each owned document closes before
 exit. Documents from one cache share mutable state; use `clone()` for independent
 editing, and create a separate cache on each language thread.
 
-`image_pixels.xl` decodes two in-memory RGBA pixels. `Image.pixels()` creates an
-independent bytes snapshot; `readPixels(output)` copies directly into an already
-sized Buffer. Both results remain usable after `image.close()`. The example
-needs no engine initialization, window, file or service. Snapshot creation
-allocates/copies its byte payload; the Buffer path adds no temporary Buffer.
+`image_pixels.xl` decodes two in-memory RGBA pixels. `Image.withPixels()` reads
+the original bytes inside a synchronous visitor. `Image.pixels()` makes a
+snapshot, and `readPixels(output)` copies into an already-sized Buffer.
+The snapshot and Buffer remain usable after `image.close()`. The example needs
+no engine initialization, window, file or service.
 
 `particle_definition.xl` starts from native emitter defaults, sets the emission
 rate, creates an immutable CPU definition and restores its serialized JSON.

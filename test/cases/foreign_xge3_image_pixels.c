@@ -8,8 +8,10 @@ void fixturePixelBegin(void)
 {assert(xrtMemDebugEnabled() || xrtMemDebugEnable(true));xrtMemDebugSnapshot(&before);}
 void fixturePixelReport(int label)
 {
-    static const char* labels[]={"language-copy","native-copy","language-snapshot","native-borrow"};
-    assert(label>=0 && label<4);xmemdebugsnapshot after;xrtMemDebugSnapshot(&after);
+    static const char* labels[]={"language-copy","native-copy","language-snapshot","native-borrow",
+        "language-visit","native-visit"};
+    assert(label>=0 && (size_t)label<sizeof(labels)/sizeof(labels[0]));
+    xmemdebugsnapshot after;xrtMemDebugSnapshot(&after);
     printf("Image pixels heap %s: alloc=%llu free=%llu realloc=%llu\n",labels[label],
         (unsigned long long)(after.AllocCount-before.AllocCount),(unsigned long long)(after.FreeCount-before.FreeCount),
         (unsigned long long)(after.ReallocCount-before.ReallocCount));
@@ -20,3 +22,18 @@ void fixturePixelNativeCopy(const xge_image_t* image,void* output,size_t size)
 {for(int i=0;i<1000;++i)assert(xgeImageCopyPixels(image,output,size)==XGE_OK);}
 void fixturePixelNativeBorrow(const xge_image_t* image)
 {for(int i=0;i<1000;++i){xbytesview view;assert(xgeImageGetPixelView(image,&view)==XGE_OK && view.Size==16 && view.Data);}}
+
+static int checkVisit(const xbytesview* view,void* expected)
+{
+    unsigned char byte=0;
+    assert(view->Data==expected && view->Size==16);
+    assert(xgeImagePixelViewReadByte(view,0,&byte)==XGE_OK && byte==200);
+    return XGE_OK;
+}
+
+void fixturePixelNativeVisit(const xge_image_t* image)
+{
+    void* pixels=image->pPixels;
+    for(int i=0;i<1000;++i)
+        assert(xgeImageVisitPixels(image,checkVisit,pixels)==XGE_OK);
+}

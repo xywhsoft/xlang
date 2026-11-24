@@ -1,4 +1,4 @@
-"""Read-only Image pixel snapshots and direct Buffer spans with full compilers.
+"""Read-only Image pixel snapshots, scopes and direct Buffer spans with full compilers.
 
 Native storage/layout, capacity and atomic checked failures, OOM/lifetime,
 JIT and independent dynamic/static programs, C/C++ headers and heap counts.
@@ -22,7 +22,7 @@ def main():
     files=[Path(__file__),compiler,build,case,case.with_suffix('.c'),case.with_suffix('.h'),example,
         *extra,*tools.values(),Path(__file__).with_name('foreign_compiler_cohort.py'),
         Path(__file__).with_name('full_compiler_qualification.py'),native/'include/xge.h',
-        native/'src/xge/text/xge_image_pixels.c']
+        native/'src/xge/text/xge_image_pixels.c',native/'src/xge/text/xge_texture.c']
     files.extend(compiler.parent/n for n in(('xl.dll','xlc.dll')if win else('libxl.so','libxlc.so')))
     for folder in(sdk,dynamic,static):files.extend(p for p in folder.rglob('*')if p.is_file())
     sha=lambda p:hashlib.sha256(Path(p).read_bytes()).hexdigest()
@@ -50,6 +50,8 @@ def main():
             run(name+'-emit',[compiler,'cgen',source,'--emit',c,'--emit-header',header,*includes],dynamic)
             text=c.read_text(encoding='utf-8-sig')
             assert re.search(r'\bxgeImageGetPixelView\(',text)
+            assert re.search(r'\bxgeImageVisitPixels\(',text)
+            assert re.search(r'\bxgeImagePixelViewReadByte\(',text)
             if source==case:
                 for level in('O0','O2'):
                     run('provider-'+level,[tools['gcc'],'-std=c11','-'+level,'-Wall','-Wextra','-Werror',*c_includes,'-fsyntax-only',case.with_suffix('.c')],dynamic)
@@ -69,10 +71,11 @@ def main():
                     report['programs'].append(dict(path=str(program),sha256=sha(program),bytes=program.stat().st_size,imports=[n.decode()for n in imports]))
                 if source==case:
                     assert b'Image pixels: snapshot, Buffer capacity, checked errors, OOM and lifetime passed'in output
-                    counts=re.findall(rb'Image pixels heap (language-copy|native-copy|language-snapshot|native-borrow): alloc=(\d+) free=(\d+) realloc=(\d+)',output)
-                    assert len(counts)==4
+                    counts=re.findall(rb'Image pixels heap ([a-z-]+): alloc=(\d+) free=(\d+) realloc=(\d+)',output)
+                    assert len(counts)==6
                     metrics={row[0].decode():dict(zip(('alloc','free','realloc'),map(int,row[1:])))for row in counts}
-                    for key in ('language-copy','native-copy','native-borrow'):assert metrics[key]==dict(alloc=0,free=0,realloc=0)
+                    for key in ('language-copy','native-copy','native-borrow','language-visit','native-visit'):
+                        assert metrics[key]==dict(alloc=0,free=0,realloc=0),metrics
                     assert metrics['language-snapshot']==dict(alloc=1000,free=1000,realloc=0)
                     report['heap'].append(dict(mode=kind,rounds=1000,nativePublicCalls=1000,bytesPerSpan=16,
                         snapshotPayloadBytesCopied=16000,counts=metrics,comparison='Buffer copy uses the same C operation; native borrow does not create an owned snapshot. No CPU equivalence claim.'));save()

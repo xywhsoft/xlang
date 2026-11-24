@@ -1,0 +1,577 @@
+{
+  "schema": "xlang-xge-image-pixel-visit-1",
+  "scope": "Callback scoped direct access to decoded Image bytes with checked mutation and close semantics",
+  "nativeCommit": "b7ddaa7e",
+  "shippingDelivery": false,
+  "networkTests": false,
+  "warmedVisits": 1000,
+  "sourceSha256NormalizedLf": {
+    "lib/bindings/xge/src/resources.xl": "23a7fcaf06438723f37cb2899f039779df0752393375b91dca85c0489c6bc2d1",
+    "lib/bindings/xge/examples/image_pixels.xl": "6b0fa453535c7b4d6554cba414f2bbf94f9dc96ff6a073e7f843b92602e31c7f",
+    "test/cases/foreign_xge3_image_pixels.xl": "a8eee25b014e1222a5734358e040fde588e565cf5bf735926b0b19b05c7fd5e9",
+    "test/cases/foreign_xge3_image_pixels.c": "415872e4fe171db13cdbeed3dd3b405c467b16ae0f4c64e6a727436307a45fd3",
+    "test/cases/foreign_xge3_image_pixels.h": "06ebee07bda242f02d4e7a8878d5d962cdaf4747d84f4d4f58b70b352f360ec2",
+    "tools/check_xge3_image_pixels.py": "f94bbd2938630c91338fe045723c87ed4aa5157c9c805617c610fdc5e7190d61",
+    "tools/check_xge3_image_alpha.py": "6e56d79e8df3c002c9e972a26c97d6869e7b611745e36e826fa85f5745b08cbd",
+    "tools/check_xge3_native_consumers.py": "2067b8b987d2d69699b806519e2162f20f4c5a438783917814483e3598afe64e",
+    "tools/xge_replay_contracts.py": "f3d45c6be2664f31593b809dc27b514e697100f91a54da13bfa2991788238fee",
+    "docs/xge3-xui3-api-map-storage.json": "cc248b3a7d76e16c7f2e2a75b4b654eff4ec3de9cbb8f2f704a6f69826a637a8"
+  },
+  "nativeSourceSha256NormalizedLf": {
+    "include/xge.h": "71e9b32fae9739115b66f9777a47644c9eff9baa15bea3c62076c8f6925f6e09",
+    "src/xge/text/xge_image_pixels.c": "7d348aa5bd9ead2c74c656f373b5f0c70e0790301038dc947bb401d578ace1f8",
+    "src/xge/text/xge_texture.c": "7490663070af06a243f6346a8fc47fe27492c00df5eeeb7cd02a5baf03044335",
+    "tests/xge/test_image_pixel_visit.c": "85ef2f2170f2e120127df4566965b52399959c1700efb29cd287c46a7bc8e8f9"
+  },
+  "platforms": {
+    "win": {
+      "nativeSource": {
+        "path": "F:/xlang-validation/xge-full-20261110/image-pixel-visit-native-source-win-r2.json",
+        "sha256": "2143ff7a45797e5081f142230353b86bdff02747036e863f296991050e44715f"
+      },
+      "hostedEngine": {
+        "path": "F:/xlang-validation/xge-full-20261110/image-pixel-visit-host-win-r2/build-report.json",
+        "sha256": "b7e01e87b7ce0996fc68c62a65157acaf748f7489900ea0f54d4115bfcfcfa06"
+      },
+      "staticEngine": {
+        "path": "F:/xlang-validation/xge-full-20261110/image-pixel-visit-static-win-r2/build-report.json",
+        "sha256": "080131379923de62c7e7fa837a62d5a0de7f166bdd123e52cdd474272db8c1a1"
+      },
+      "nativeTests": {
+        "path": "F:/xlang-validation/xge-full-20261110/image-pixel-visit-native-tests-win-r1/results.json",
+        "sha256": "e41a3e8e2f7ee9c915b68841c4fede7024bfa66b6ced9b9d0b99f94ee254f6f9"
+      },
+      "standaloneLeaf": {
+        "path": "F:/xlang-validation/xge-full-20261110/image-pixel-visit-leaf-win-r1/results.json",
+        "sha256": "ecfac2273fbcf9b4f04a0dd3d7e8abd4219dca5da37b55d0d6c6f318347e8116"
+      },
+      "stage": {
+        "path": "F:/xlang-validation/xge-full-20261110/image-pixel-visit-stage-win-r2/replay/stage-report.json",
+        "sha256": "619996c86ae563da6d29eff9e3f801638f7fc427f3ae38ec9945b25a77f335e6"
+      },
+      "audit": {
+        "path": "F:/xlang-validation/xge-full-20261110/image-pixel-visit-consumers-win-r2/results.json",
+        "sha256": "2155677d949f100291a3b31e4f0405c06367d71dbc83f159fc9963e75e4e0c1b"
+      },
+      "runtime": {
+        "pixels": {
+          "report": {
+            "path": "F:/xlang-validation/xge-full-20261110/image-pixel-visit-pixels-verify-win-r3/results.json",
+            "sha256": "8ce30ee94c077afaee5b21b49d8a3039c5cd491e7b035999459b3152ace45c47"
+          },
+          "heap": [
+            {
+              "mode": "jit",
+              "rounds": 1000,
+              "nativePublicCalls": 1000,
+              "bytesPerSpan": 16,
+              "snapshotPayloadBytesCopied": 16000,
+              "counts": {
+                "language-copy": {
+                  "alloc": 0,
+                  "free": 0,
+                  "realloc": 0
+                },
+                "native-copy": {
+                  "alloc": 0,
+                  "free": 0,
+                  "realloc": 0
+                },
+                "language-snapshot": {
+                  "alloc": 1000,
+                  "free": 1000,
+                  "realloc": 0
+                },
+                "native-borrow": {
+                  "alloc": 0,
+                  "free": 0,
+                  "realloc": 0
+                },
+                "language-visit": {
+                  "alloc": 0,
+                  "free": 0,
+                  "realloc": 0
+                },
+                "native-visit": {
+                  "alloc": 0,
+                  "free": 0,
+                  "realloc": 0
+                }
+              },
+              "comparison": "Buffer copy uses the same C operation; native borrow does not create an owned snapshot. No CPU equivalence claim."
+            },
+            {
+              "mode": "dynamic",
+              "rounds": 1000,
+              "nativePublicCalls": 1000,
+              "bytesPerSpan": 16,
+              "snapshotPayloadBytesCopied": 16000,
+              "counts": {
+                "language-copy": {
+                  "alloc": 0,
+                  "free": 0,
+                  "realloc": 0
+                },
+                "native-copy": {
+                  "alloc": 0,
+                  "free": 0,
+                  "realloc": 0
+                },
+                "language-snapshot": {
+                  "alloc": 1000,
+                  "free": 1000,
+                  "realloc": 0
+                },
+                "native-borrow": {
+                  "alloc": 0,
+                  "free": 0,
+                  "realloc": 0
+                },
+                "language-visit": {
+                  "alloc": 0,
+                  "free": 0,
+                  "realloc": 0
+                },
+                "native-visit": {
+                  "alloc": 0,
+                  "free": 0,
+                  "realloc": 0
+                }
+              },
+              "comparison": "Buffer copy uses the same C operation; native borrow does not create an owned snapshot. No CPU equivalence claim."
+            },
+            {
+              "mode": "static",
+              "rounds": 1000,
+              "nativePublicCalls": 1000,
+              "bytesPerSpan": 16,
+              "snapshotPayloadBytesCopied": 16000,
+              "counts": {
+                "language-copy": {
+                  "alloc": 0,
+                  "free": 0,
+                  "realloc": 0
+                },
+                "native-copy": {
+                  "alloc": 0,
+                  "free": 0,
+                  "realloc": 0
+                },
+                "language-snapshot": {
+                  "alloc": 1000,
+                  "free": 1000,
+                  "realloc": 0
+                },
+                "native-borrow": {
+                  "alloc": 0,
+                  "free": 0,
+                  "realloc": 0
+                },
+                "language-visit": {
+                  "alloc": 0,
+                  "free": 0,
+                  "realloc": 0
+                },
+                "native-visit": {
+                  "alloc": 0,
+                  "free": 0,
+                  "realloc": 0
+                }
+              },
+              "comparison": "Buffer copy uses the same C operation; native borrow does not create an owned snapshot. No CPU equivalence claim."
+            }
+          ]
+        },
+        "alpha": {
+          "report": {
+            "path": "F:/xlang-validation/xge-full-20261110/image-pixel-visit-alpha-verify-win-r3/results.json",
+            "sha256": "ae2cf93ffb184f503eef9c08215d0e4178b1b467d8fcb242b1e89d1b00e531fb"
+          },
+          "heap": [
+            {
+              "mode": "jit",
+              "rounds": 1000,
+              "nativeCalls": 1000,
+              "idempotentNoOp": true,
+              "counts": {
+                "language": {
+                  "alloc": 0,
+                  "free": 0,
+                  "realloc": 0
+                },
+                "native": {
+                  "alloc": 0,
+                  "free": 0,
+                  "realloc": 0
+                }
+              }
+            },
+            {
+              "mode": "dynamic",
+              "rounds": 1000,
+              "nativeCalls": 1000,
+              "idempotentNoOp": true,
+              "counts": {
+                "language": {
+                  "alloc": 0,
+                  "free": 0,
+                  "realloc": 0
+                },
+                "native": {
+                  "alloc": 0,
+                  "free": 0,
+                  "realloc": 0
+                }
+              }
+            },
+            {
+              "mode": "static",
+              "rounds": 1000,
+              "nativeCalls": 1000,
+              "idempotentNoOp": true,
+              "counts": {
+                "language": {
+                  "alloc": 0,
+                  "free": 0,
+                  "realloc": 0
+                },
+                "native": {
+                  "alloc": 0,
+                  "free": 0,
+                  "realloc": 0
+                }
+              }
+            }
+          ]
+        }
+      },
+      "timing": {
+        "mode": "JIT",
+        "visitsPerRun": 200000,
+        "clock": "Platform C clock() semantics",
+        "workload": "Each visit checks size and reads one byte. Includes C/xlang loop and checked callback costs.",
+        "samples": [
+          {
+            "cMs": 2.0,
+            "xlangMs": 372.0
+          },
+          {
+            "cMs": 2.0,
+            "xlangMs": 389.0
+          },
+          {
+            "cMs": 2.0,
+            "xlangMs": 374.0
+          }
+        ],
+        "log": {
+          "path": "F:/xlang-validation/xge-full-20261110/image-pixel-visit-cost-r1/win-jit.log",
+          "sha256": "ac5db47ac9e5676074ce9b6a42720a165d089c85b93d6064446b961d3fe85f5c"
+        },
+        "fixture": {
+          "path": "F:/xlang-validation/xge-full-20261110/image-pixel-visit-cost-r1/visit_cost.xl",
+          "sha256": "b2207cd997210a68f9814e224406a8702dee06f0d547395d31db37f6fb1942f4"
+        },
+        "nativeFixture": {
+          "path": "F:/xlang-validation/xge-full-20261110/image-pixel-visit-cost-r1/visit_cost.h",
+          "sha256": "29171b9814eca568004035cd29c07a5bda377ca4aa5d708664c82b351e792186"
+        }
+      },
+      "remaining": {
+        "XGE": 3,
+        "XUI": 30
+      }
+    },
+    "linux": {
+      "nativeSource": {
+        "path": "//wsl.localhost/Ubuntu/var/tmp/xlang-validation/xge-full-20261110/image-pixel-visit-native-source-linux-r2.json",
+        "sha256": "9b5727ede54dee47fa0bdd933f737595ce6d72bf2ef2d1bbeffb51ee8645d4e8"
+      },
+      "hostedEngine": {
+        "path": "//wsl.localhost/Ubuntu/var/tmp/xlang-validation/xge-full-20261110/image-pixel-visit-host-linux-r2/build-report.json",
+        "sha256": "d99531b92b66fc83a7df8fb00d568af471eaa9cb5d01d67377e6098250c334ad"
+      },
+      "staticEngine": {
+        "path": "//wsl.localhost/Ubuntu/var/tmp/xlang-validation/xge-full-20261110/image-pixel-visit-static-linux-r2/build-report.json",
+        "sha256": "e22c45f94578bf932e5dd202c5a537155cd0981ea72c6b69fb420a4520bd482e"
+      },
+      "nativeTests": {
+        "path": "//wsl.localhost/Ubuntu/var/tmp/xlang-validation/xge-full-20261110/image-pixel-visit-native-tests-linux-r1/results.json",
+        "sha256": "1513245d2acab2f0832f1ba1098153adf746e705605392d48013af75e46f4ab9"
+      },
+      "standaloneLeaf": {
+        "path": "//wsl.localhost/Ubuntu/var/tmp/xlang-validation/xge-full-20261110/image-pixel-visit-leaf-linux-r1/results.json",
+        "sha256": "9b2d78a256b5e3e574844df0ed4c60e4a9269215defc3f407868c9a029a1e20b"
+      },
+      "stage": {
+        "path": "//wsl.localhost/Ubuntu/var/tmp/xlang-validation/xge-full-20261110/image-pixel-visit-stage-linux-r2/replay/stage-report.json",
+        "sha256": "770eb2cc7039ffc61d54bb737a3222ba6ab78c8bd987bbdbfae236274879a595"
+      },
+      "audit": {
+        "path": "//wsl.localhost/Ubuntu/var/tmp/xlang-validation/xge-full-20261110/image-pixel-visit-consumers-linux-r2/results.json",
+        "sha256": "afe59d47ca3ae16c6f20d5dd5b107e8f8a5f95c91e81f77878db28c01a94c5ee"
+      },
+      "runtime": {
+        "pixels": {
+          "report": {
+            "path": "//wsl.localhost/Ubuntu/var/tmp/xlang-validation/xge-full-20261110/image-pixel-visit-pixels-verify-linux-r3/results.json",
+            "sha256": "6b40817a98de6392872144bc34ed985f8ee64a0f6b8bf3c22da07f3d442bd59a"
+          },
+          "heap": [
+            {
+              "mode": "jit",
+              "rounds": 1000,
+              "nativePublicCalls": 1000,
+              "bytesPerSpan": 16,
+              "snapshotPayloadBytesCopied": 16000,
+              "counts": {
+                "language-copy": {
+                  "alloc": 0,
+                  "free": 0,
+                  "realloc": 0
+                },
+                "native-copy": {
+                  "alloc": 0,
+                  "free": 0,
+                  "realloc": 0
+                },
+                "language-snapshot": {
+                  "alloc": 1000,
+                  "free": 1000,
+                  "realloc": 0
+                },
+                "native-borrow": {
+                  "alloc": 0,
+                  "free": 0,
+                  "realloc": 0
+                },
+                "language-visit": {
+                  "alloc": 0,
+                  "free": 0,
+                  "realloc": 0
+                },
+                "native-visit": {
+                  "alloc": 0,
+                  "free": 0,
+                  "realloc": 0
+                }
+              },
+              "comparison": "Buffer copy uses the same C operation; native borrow does not create an owned snapshot. No CPU equivalence claim."
+            },
+            {
+              "mode": "dynamic",
+              "rounds": 1000,
+              "nativePublicCalls": 1000,
+              "bytesPerSpan": 16,
+              "snapshotPayloadBytesCopied": 16000,
+              "counts": {
+                "language-copy": {
+                  "alloc": 0,
+                  "free": 0,
+                  "realloc": 0
+                },
+                "native-copy": {
+                  "alloc": 0,
+                  "free": 0,
+                  "realloc": 0
+                },
+                "language-snapshot": {
+                  "alloc": 1000,
+                  "free": 1000,
+                  "realloc": 0
+                },
+                "native-borrow": {
+                  "alloc": 0,
+                  "free": 0,
+                  "realloc": 0
+                },
+                "language-visit": {
+                  "alloc": 0,
+                  "free": 0,
+                  "realloc": 0
+                },
+                "native-visit": {
+                  "alloc": 0,
+                  "free": 0,
+                  "realloc": 0
+                }
+              },
+              "comparison": "Buffer copy uses the same C operation; native borrow does not create an owned snapshot. No CPU equivalence claim."
+            },
+            {
+              "mode": "static",
+              "rounds": 1000,
+              "nativePublicCalls": 1000,
+              "bytesPerSpan": 16,
+              "snapshotPayloadBytesCopied": 16000,
+              "counts": {
+                "language-copy": {
+                  "alloc": 0,
+                  "free": 0,
+                  "realloc": 0
+                },
+                "native-copy": {
+                  "alloc": 0,
+                  "free": 0,
+                  "realloc": 0
+                },
+                "language-snapshot": {
+                  "alloc": 1000,
+                  "free": 1000,
+                  "realloc": 0
+                },
+                "native-borrow": {
+                  "alloc": 0,
+                  "free": 0,
+                  "realloc": 0
+                },
+                "language-visit": {
+                  "alloc": 0,
+                  "free": 0,
+                  "realloc": 0
+                },
+                "native-visit": {
+                  "alloc": 0,
+                  "free": 0,
+                  "realloc": 0
+                }
+              },
+              "comparison": "Buffer copy uses the same C operation; native borrow does not create an owned snapshot. No CPU equivalence claim."
+            }
+          ]
+        },
+        "alpha": {
+          "report": {
+            "path": "//wsl.localhost/Ubuntu/var/tmp/xlang-validation/xge-full-20261110/image-pixel-visit-alpha-verify-linux-r3/results.json",
+            "sha256": "c9eb361f896f22e93cf33826c4709f1552dede40afea1810a87304dbd01d02c1"
+          },
+          "heap": [
+            {
+              "mode": "jit",
+              "rounds": 1000,
+              "nativeCalls": 1000,
+              "idempotentNoOp": true,
+              "counts": {
+                "language": {
+                  "alloc": 0,
+                  "free": 0,
+                  "realloc": 0
+                },
+                "native": {
+                  "alloc": 0,
+                  "free": 0,
+                  "realloc": 0
+                }
+              }
+            },
+            {
+              "mode": "dynamic",
+              "rounds": 1000,
+              "nativeCalls": 1000,
+              "idempotentNoOp": true,
+              "counts": {
+                "language": {
+                  "alloc": 0,
+                  "free": 0,
+                  "realloc": 0
+                },
+                "native": {
+                  "alloc": 0,
+                  "free": 0,
+                  "realloc": 0
+                }
+              }
+            },
+            {
+              "mode": "static",
+              "rounds": 1000,
+              "nativeCalls": 1000,
+              "idempotentNoOp": true,
+              "counts": {
+                "language": {
+                  "alloc": 0,
+                  "free": 0,
+                  "realloc": 0
+                },
+                "native": {
+                  "alloc": 0,
+                  "free": 0,
+                  "realloc": 0
+                }
+              }
+            }
+          ]
+        }
+      },
+      "timing": {
+        "mode": "JIT",
+        "visitsPerRun": 200000,
+        "clock": "Platform C clock() semantics",
+        "workload": "Each visit checks size and reads one byte. Includes C/xlang loop and checked callback costs.",
+        "samples": [
+          {
+            "cMs": 2.20699999999988,
+            "xlangMs": 337.69900000000007
+          },
+          {
+            "cMs": 2.3630000000002838,
+            "xlangMs": 355.62699999999995
+          },
+          {
+            "cMs": 2.2800000000002,
+            "xlangMs": 355.6600000000003
+          }
+        ],
+        "log": {
+          "path": "F:/xlang-validation/xge-full-20261110/image-pixel-visit-cost-r1/linux-jit.log",
+          "sha256": "e031bcd30ee45c934237a51210c950f1d940eba834c32dc745b10b3e780e3525"
+        },
+        "fixture": {
+          "path": "F:/xlang-validation/xge-full-20261110/image-pixel-visit-cost-r1/visit_cost.xl",
+          "sha256": "b2207cd997210a68f9814e224406a8702dee06f0d547395d31db37f6fb1942f4"
+        },
+        "nativeFixture": {
+          "path": "F:/xlang-validation/xge-full-20261110/image-pixel-visit-cost-r1/visit_cost.h",
+          "sha256": "29171b9814eca568004035cd29c07a5bda377ca4aa5d708664c82b351e792186"
+        }
+      },
+      "remaining": {
+        "XGE": 5,
+        "XUI": 30
+      }
+    }
+  },
+  "remainingAcrossPreviouslyQualifiedConfigurations": [
+    "xgeMemoryFree",
+    "xuiCodeEditGetTokenStyleResolver",
+    "xuiCodeLanguageRegistryRegister",
+    "xuiCodeLanguageRegistryRegisterOwned",
+    "xuiCodeProviderSetCommand",
+    "xuiCodeProviderSetCommandOwned",
+    "xuiContextTraceEventOwners",
+    "xuiDrawCreateOwned",
+    "xuiIconDescDefault",
+    "xuiIconGetUser",
+    "xuiProxyCreateOwned",
+    "xuiProxyCreateOwnedEx",
+    "xuiProxyResourceOwnershipBusy",
+    "xuiProxyResourceOwnershipCompletionV1",
+    "xuiSetProxy",
+    "xuiSetProxyOwned",
+    "xuiTableViewCellOutputCanRetire",
+    "xuiTableViewCellOutputLifetimeWatch",
+    "xuiTerminalSetImageCallback",
+    "xuiWidgetGetCacheRenderCallback",
+    "xuiWidgetGetContentMeasureCallback",
+    "xuiWidgetGetCursorQueryCallback",
+    "xuiWidgetGetEventCallback",
+    "xuiWidgetGetEventHandler",
+    "xuiWidgetGetImeCandidateRect",
+    "xuiWidgetGetLayoutChildrenCallback",
+    "xuiWidgetGetLayoutCompleteCallback",
+    "xuiWidgetGetLayoutPrepareCallback",
+    "xuiWidgetGetTypeData",
+    "xuiWidgetTypeGetUserData",
+    "xuiWidgetTypeSetOwnershipTrace"
+  ]
+}

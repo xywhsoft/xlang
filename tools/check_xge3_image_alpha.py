@@ -48,7 +48,7 @@ def main():
             name=source.stem;c=out/(name+'.c');header=out/(name+'.h')
             run(name+'-emit',[compiler,'cgen',source,'--emit',c,'--emit-header',header,*includes],dynamic)
             text=c.read_text(encoding='utf-8-sig')
-            assert re.search(r'\bxgeImagePremultiplyChecked\(',text)
+            assert re.search(r'\bxgeImagePremultiplyManaged\(',text)
             if source==case:
                 for level in('O0','O2'):
                     run('provider-'+level,[tools['gcc'],'-std=c11','-'+level,'-Wall','-Wextra','-Werror',*c_includes,'-fsyntax-only',case.with_suffix('.c')],dynamic)

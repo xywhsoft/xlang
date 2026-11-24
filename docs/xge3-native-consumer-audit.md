@@ -1,5 +1,21 @@
 # Native consumers in the full API inventory
 
+## Scoped Image pixel access
+
+`Image.withPixels()` exposes the original RGBA8 or A8 span during a
+synchronous visitor. The native fixture compares the address with
+`xgeImageGetPixels`. The checked mutation route uses the existing alpha
+conversion and rejects same-image reentry while the visitor is active.
+Language fixtures cover nested reads, close during the visit, expired views,
+callback errors and allocation failure boundaries.
+
+The Windows and Linux O2 packages passed JIT, dynamic AOT and static AOT.
+The compiled inventories now cover 5,903 functions and 4,843 direct
+declarations. The pixel visitor accounts for one more legacy entry across
+the supported configurations, leaving 31 entries to review.
+
+[Scoped pixel evidence](../dev/release-materials/provenance/xge-image-pixel-visit-20261124.json)
+
 ## Dedicated and in-renderer offscreen targets
 
 `xge.createOffscreenContext()` creates a hidden WGL renderer on Windows or

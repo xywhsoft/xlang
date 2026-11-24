@@ -1,10 +1,11 @@
 # Read-only Image pixel access
 
-The native `xgeImageGetPixels` contract is read-only. Safe declarations use two
-checked native entries which expose the byte extent and destination capacity:
+The native `xgeImageGetPixels` contract is read-only. The language offers a
+scoped view, an owned snapshot and a copy into caller storage.
 
 | xlang API | Native API | Result/cost |
 | --- | --- | --- |
+| `image.withPixels(visitor)` | xgeImageVisitPixels | Scoped access to the original bytes and their extent |
 | `image.pixels()` | xgeImageGetPixelView | Independent bytes snapshot, one allocation and payload copy |
 | `image.readPixels(output)` | xgeImageCopyPixels | One direct copy into an already-sized Buffer; no temporary container |
 
@@ -36,11 +37,25 @@ measurements, not equal-CPU or whole-binding zero-overhead claims. Native
 layout validation, resource scopes, code/owner/thread checks and Buffer pins
 retain their costs.
 
-A zero-copy owning pixel sequence is still outstanding: the current native
-Image exclusively owns its backing and has no independent pixel-storage
-reference. Snapshot/copy convenience APIs do not close that lifecycle gap or
-match the cost of the legacy borrowed pointer. The shared-backing/Busy versus
-Image-bound invalidation rule is a separate pending ownership decision.
+Inside `withPixels()`, `size` reports the byte extent and `at(offset)`
+reads a checked byte without copying the span. The `bytes` property makes
+an independent snapshot when the caller needs the data after returning.
+The synchronous scope accepts nested reads and keeps the backing live even
+when the visitor closes its Image. The visitor's view expires on return.
+Reentrant `premultiply()` on that image reports Busy until the scope ends.
+The native guard records one stack entry on the current thread. Byte reads
+still incur bounds and callback-scope checks.
+
+Windows and Linux passed the pixel and alpha checks in JIT, dynamic AOT and
+static AOT. In each mode, 1,000 warmed visits performed zero XRT heap
+operations in both C and xlang. In three additional JIT samples of 200,000
+visits each, every visitor checked the span size and read one byte.
+`clock()` measured 2 ms for C and 372–389 ms for xlang on Windows, and
+2.21–2.36 ms for C and 338–356 ms for xlang on Linux. The samples include
+the loop, callback entry, scope checks and byte access.
+
+The Image exclusively owns its storage. An independently owned zero-copy
+sequence beyond the visitor would require a separate storage lifetime.
 
 `examples/image_pixels.xl` encodes and decodes two in-memory pixels, obtains a
 snapshot and a reusable Buffer result, closes the Image and verifies both. It
@@ -56,3 +71,5 @@ actual JIT/independent dynamic/static programs have separate recorded gates;
 see `dev/release-materials/provenance/xge-image-pixels-20261114.json`. This batch
 does not complete remaining Image/engine families or install the final matched
 runtime/SDK/compiler/IDE delivery.
+
+[Scoped pixel and alpha evidence](../dev/release-materials/provenance/xge-image-pixel-visit-20261124.json)
