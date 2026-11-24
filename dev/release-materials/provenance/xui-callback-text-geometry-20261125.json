@@ -1,0 +1,100 @@
+{
+  "schema": 1,
+  "scope": "Owned cluster and caret output for the custom XUI Proxy textShape callback",
+  "qualification": "CPU-only matched XGE/XUI SDK, stock native TextShape carrier and source candidate",
+  "shippingDelivery": false,
+  "networkTests": false,
+  "checks": [
+    "Full and requested-range shaping preserve exact item-relative UTF-8 byte offsets and geometry",
+    "The native owned result accepts both arrays and releases them with the text shape",
+    "An invalid cluster permits retry and a nonempty submission cannot be overwritten",
+    "The scoped output rejects access after returning from the callback",
+    "A provider that declines after submitting geometry returns no owner and retires the partial output",
+    "Both XRT-owned geometry allocations were individually failed; output bytes and live allocation/free counters stayed unchanged",
+    "GCC C fixture and G++ C++ header syntax on both platforms"
+  ],
+  "sourceSha256NormalizedLf": {
+    "lib/bindings/_xge_native/include/xge3_callback_text_geometry.h": "fa9ef950d8d8b896ae066102dba66d93eef461c222efff620cbf03d0a889e52c",
+    "lib/bindings/_xge_native/include/xge3_callback_elements.h": "f7e6d37dd6e679da02c7bb156c3975dc1d08c404e54d96f6e497d968c78046b3",
+    "lib/bindings/xui/src/text_shape.xl": "30dbd1f04de0a405655bfd40d17942e63b803c60be13f38a2304b79cecb0fde4",
+    "lib/bindings/xui/src/proxy.xl": "d852f6e334dc9d2e3223f6a4ea0ff155294eb922bdc96ade68a79abec46600e5",
+    "lib/bindings/xui/README.md": "b918c38883e9058fffee3fc54d129f121bb0bd9cfc5dcb464e4ce3bda14f7bae",
+    "test/cases/foreign_callback_text_geometry.c": "e9613dae31b2cdedef4f87d1bc37fae9bf6fe9137d9cbd3b0ac35f9dec51ba7a",
+    "test/cases/foreign_callback_text_geometry.h": "1722ce13b96eb8d6f1dbaec7031131119f469eb0b6b7a578d62bbb5c499f3859",
+    "test/cases/foreign_callback_text_geometry.xl": "08e2ef338289306e3999e8800924d0d3ee755beb428caf193aff59ee8ad5d9fd"
+  },
+  "platforms": {
+    "win": {
+      "path": "F:/xlang-validation/xge-full-20261110/callback-text-geometry-verify-win-r3/results.json",
+      "sha256": "43fbdeeae6088145050a510eb1b852cf111350ef91d168ed345071b1b881eb85",
+      "generatedCSha256": "a2e9ad1bf102b951d3e0a55e44bba4a4a3d5557215d8d844ff1845d755231a32",
+      "phases": [
+        "emit",
+        "jit",
+        "host-build",
+        "host-run",
+        "host-imports",
+        "static-build",
+        "static-run",
+        "static-imports"
+      ],
+      "nativeImports": {
+        "host": [
+          "msvcrt.dll",
+          "xge3_host.dll",
+          "kernel32.dll",
+          "shell32.dll",
+          "ws2_32.dll",
+          "iphlpapi.dll",
+          "ucrtbase.dll"
+        ],
+        "static": [
+          "msvcrt.dll",
+          "kernel32.dll",
+          "ole32.dll",
+          "shell32.dll"
+        ]
+      }
+    },
+    "linux": {
+      "path": "/var/tmp/xlang-validation/xge-full-20261110/callback-text-geometry-verify-linux-r3/results.json",
+      "sha256": "1a80ec4a1ef2af1d3fc30217b19caf66a288e97f53c4b3239a51a33890f99041",
+      "generatedCSha256": "a2e9ad1bf102b951d3e0a55e44bba4a4a3d5557215d8d844ff1845d755231a32",
+      "phases": [
+        "emit",
+        "jit",
+        "host-build",
+        "host-run",
+        "host-imports",
+        "static-build",
+        "static-run",
+        "static-imports"
+      ],
+      "nativeImports": {
+        "host": [
+          "libm.so.6",
+          "libmvec.so.1",
+          "libxge3_host.so",
+          "libc.so.6",
+          "ld-linux-x86-64.so.2"
+        ],
+        "static": [
+          "libm.so.6",
+          "libmvec.so.1",
+          "libx11.so.6",
+          "libxi.so.6",
+          "libxcursor.so.1",
+          "libgl.so.1",
+          "libc.so.6",
+          "ld-linux-x86-64.so.2"
+        ]
+      }
+    }
+  },
+  "projectedArrayCosts": {
+    "scope": "per nonempty input array, excluding caller array creation and common callback bookkeeping",
+    "languageProjection": "one temporary XRT allocation and one record copy per element, verified in generated C",
+    "resultOwnership": "one retained XRT allocation and one checked record copy per element",
+    "nativeBaseline": "a C producer can populate the retained result allocations directly"
+  }
+}

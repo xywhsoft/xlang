@@ -42,5 +42,12 @@ export extern "const xui_text_shape_t*" class CallbackTextShape @header("xge3_ru
  extern "xuiTextShapeGetCaret" @no_raise @c_output(2,0) func caret(c_size index) as TextCaret
 end
 
+// Geometry produced during a native textShape callback.
+export extern "xui_text_shape_t*" class CallbackTextShapeOutput @header("xge3_callback_text_geometry.h") @lifetime("callback")
+ native point handle
+ extern "iTextSize" @c_field get textSize() as c_int
+ extern "xl6Xui3TextShapeSetGeometry" @no_raise @c_array_group(7,6,1,"int",7) @c_array_input(7,0,"const xui_text_cluster_t*","value") @c_array_group(9,8,1,"int",9) @c_array_input(9,0,"const xui_text_caret_t*","value") @c_result("status",0) func setGeometry(CallbackProxyTextItem item,c_float width,c_float height,c_float ascent,c_float descent,c_float lineHeight,array<TextCluster> clusters,int clusterCount=-1,array<TextCaret> carets=[],int caretCount=-1)
+end
+
 extern "xuiTextShapeReleaseChecked" @header("xge3_runtime.h") @no_raise @c_result("status",0) func rollbackTextShape(TextShape value)
 extern "xuiTextShapeAddRef" @header("xge3_runtime.h") @no_raise func retainTextShape(TextShape value) as c_int

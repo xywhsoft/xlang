@@ -1,0 +1,90 @@
+from xui import CallbackProxy,CallbackProxyCapsOutput,CallbackProxyTextItem,CallbackTextShapeOutput
+from xui import Proxy,ProxyCaps,TextCluster,TextCaret,XUI_PROXY_VERSION,XUI_PROXY_CAP_TEXT_RANGE,XUI_ERROR_UNSUPPORTED
+
+typedef Caps=func(CallbackProxy,CallbackProxyCapsOutput) as c_int
+typedef Shape=func(CallbackProxy,CallbackProxyTextItem,CallbackTextShapeOutput) as c_int
+
+extern "xuiProxyReleaseChecked" @header("xge3_runtime.h") @no_raise @c_result("status",0) func releaseProbe(Proxy value)
+extern "xuiProxyCreateOwned" @header("xge3_runtime.h") @no_raise @c_result("owned_view") @factory(2,0,releaseProbe) @c_pack(0,"xui_proxy_t",0,3) @c_pack_size(0,"iSize","uint32_t") @c_pack_field(0,"iVersion",0,"value") @c_pack_callback_group(0,"pUser",1) @c_pack_field(0,"getCaps",1,"owned_callback") @c_pack_field(0,"textShape",2,"owned_callback") @c_owned_callback(1,-1,"xui_callback_owner_t",-16,"receiver") @c_owned_callback(2,-1,"xui_callback_owner_t",-16,"receiver") func makeProxy(c_uint version,Caps caps,Shape shape) as Proxy
+extern "xl_test_proxy_text_geometry" @header("test/cases/foreign_callback_text_geometry.h") @no_raise @c_result("status",0) func shapeFixture(Proxy backend,c_int mode)
+extern "xl_test_text_geometry_allocations" @header("test/cases/foreign_callback_text_geometry.h") @no_raise @c_result("status",0) func verifyAllocationRollback()
+
+class ShapeState
+ CallbackTextShapeOutput? finished=null
+ int mode=0
+ int submitted=0
+end
+
+func main(...) as int
+ verifyAllocationRollback()
+ auto state=ShapeState()
+ Caps caps=func(CallbackProxy backend,CallbackProxyCapsOutput output) as c_int
+  auto value=ProxyCaps()
+  value.iCaps=c_uint(XUI_PROXY_CAP_TEXT_RANGE)
+  output.value=value
+  return c_int(0)
+ end
+ Shape shape=func(CallbackProxy backend,CallbackProxyTextItem item,CallbackTextShapeOutput output) as c_int
+  assert item.text=="abcd" and output.textSize==c_int(4)
+  auto cluster=TextCluster()
+  cluster.iTextStart=c_int(0)
+  cluster.iTextEnd=c_int(2)
+  cluster.fAdvance=c_float(6)
+  auto caret=TextCaret()
+  caret.iTextOffset=c_int(1)
+  caret.fAdvance=c_float(3)
+  if state.mode==1
+   assert item.rangeStart==c_int(1) and item.rangeEnd==c_int(3)
+   output.setGeometry(item,6,12,9,3,12,[cluster],carets=[caret])
+   assert output.textSize==c_int(2)
+  else
+   auto invalid=TextCluster()
+   invalid.iTextEnd=c_int(5)
+   bool rejected=false
+   try
+    output.setGeometry(item,6,12,9,3,12,[invalid],carets=[caret])
+   catch error
+    rejected=true
+   end
+   assert rejected and output.textSize==c_int(4)
+
+   auto second=TextCluster()
+   second.iTextStart=c_int(2)
+   second.iTextEnd=c_int(4)
+   second.fAdvance=c_float(6)
+   auto secondCaret=TextCaret()
+   secondCaret.iTextOffset=c_int(3)
+   secondCaret.fAdvance=c_float(3)
+   output.setGeometry(item,12,12,9,3,12,[cluster,second],carets=[caret,secondCaret])
+   rejected=false
+   try
+    output.setGeometry(item,12,12,9,3,12,[cluster])
+   catch error
+    rejected=true
+   end
+   assert rejected
+  end
+  state.finished=output
+  state.submitted+=1
+  if state.mode==2
+   return XUI_ERROR_UNSUPPORTED
+  end
+  return c_int(0)
+ end
+ auto proxy=makeProxy(c_uint(XUI_PROXY_VERSION),caps,shape)
+ for mode in range(0,3)
+  state.mode=mode
+  shapeFixture(proxy,c_int(mode))
+ end
+ assert state.submitted==3
+ bool expired=false
+ try
+  auto size=(state.finished as CallbackTextShapeOutput).textSize
+ catch error
+  expired=true
+ end
+ assert expired
+ proxy.close()
+ println("XUI_CALLBACK_TEXT_GEOMETRY_OK")
+ return 0
+end

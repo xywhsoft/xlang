@@ -161,6 +161,15 @@ optional already-shaped result. `CallbackTextShape` reads immutable
 measurement, cluster and caret data for the active callback. `share()`
 keeps an independent native shape reference for later use.
 
+A custom Proxy can fill the `textShape` callback output with
+`output.setGeometry(item, width, height, ascent, descent, lineHeight, clusters)`.
+Use that callback's input item and supply optional caret stops with `carets=`.
+Cluster and caret offsets are UTF-8 byte offsets relative to the shaped text
+or the requested range. Invalid offsets and allocation failures are checked.
+The compiler projects each nonempty typed array into temporary C storage once.
+Submission validates the records and copies them into XRT-owned arrays that
+are freed with the shape. If submission fails, the output is left unchanged.
+
 `Context` owns its widget graph. Control classes extend `Widget`; a method such
 as `button.setText(text)` calls its original native function. The package has
 no C wrappers for individual methods and no opcode dispatch. Constructors
