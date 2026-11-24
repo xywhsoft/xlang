@@ -1,0 +1,130 @@
+{
+  "schema": 1,
+  "scope": "XUI custom TextShape PaintV1 shared application value",
+  "nativeCommit": "c663d221eeec4004fcd65de30b1cdf4b3b68f368",
+  "nativeBaseRevision": "59a4382e76934ccba642f14312822695082be1c4",
+  "nativeSourceSha256NormalizedLf": {
+    "include/xui.h": "8a388a7c81fb9d1f9a2212f63f17b4deb21a2f6b3a9116eda701b776c688b4c1",
+    "src/xui/core/xui_text.c": "737fe08870f29634bc6d69c62c34d4cd3d5e50f7065d60a937100817fd16ea2f"
+  },
+  "sourceSha256NormalizedLf": {
+    "lib/bindings/xui/src/text_shape.xl": "5fef900d88b66ddd952089e19a36872acc6000821a03b97190c79c385330fc2d",
+    "lib/bindings/xui/src/proxy.xl": "d852f6e334dc9d2e3223f6a4ea0ff155294eb922bdc96ade68a79abec46600e5",
+    "lib/bindings/xui/README.md": "c4fd1704501a633a685d7d923192fc3250912b22472cd6b8026117632338b71c",
+    "test/cases/foreign_callback_text_paint.c": "0e2e3f14109b67fcb7af2481f450ba98c453e59f219534b998cf3ee1ce98c4d8",
+    "test/cases/foreign_callback_text_paint.h": "488338f5c00d73abfbc3eab78cd4e3066966b68618aa882cb813b7ef92298813",
+    "test/cases/foreign_callback_text_paint.xl": "cf63338fbe03e6bc8f50cfb9e081abf2fa3e309dc29ef3fa436f4910e1662b9e"
+  },
+  "shippingDelivery": false,
+  "networkTests": false,
+  "checks": [
+    "Native custom shaping retains the original language value across measurement callbacks and result close",
+    "Owned native shape traversal exposes exactly one Proxy edge and one value edge",
+    "PaintV1 trace works under Freeze and wrong-thread read/retirement are rejected without consuming the result",
+    "Paint allocation failure and duplicate attach leave the record valid; layout charge overflow is rejected",
+    "An empty result reads as null; a late callback decline retires the partial result",
+    "A scoped shape cannot be used after the callback; an acquired value remains valid after shape close"
+  ],
+  "bridge": "Generated xlang calls each exact C API once with an existing value or an owned output; view and error-scope bookkeeping remain",
+  "performanceScope": "GCC O2 handwritten C and JIT xlang on the same SDK. Warmed setter/getter XRT allocation counters with the input value already live.",
+  "platforms": {
+    "win": {
+      "path": "F:/xlang-validation/xge-full-20261110/text-paint-value-verify-win-r2/results.json",
+      "sha256": "f18a1cc8708ca47d2bf2f94fd0796d34b548db89bbac97708611d9932469c7d2",
+      "phases": [
+        "host-package",
+        "static-package",
+        "emit",
+        "jit",
+        "host-build",
+        "host-run",
+        "host-imports",
+        "static-build",
+        "static-run",
+        "static-imports"
+      ],
+      "generatedCSha256": "f156346c98e46920202a2f7a6d8939721491e8395bdbe192b366183d00c0bb88",
+      "nativeImports": {
+        "host": [
+          "msvcrt.dll",
+          "xge3_host.dll",
+          "kernel32.dll",
+          "shell32.dll",
+          "ws2_32.dll",
+          "iphlpapi.dll",
+          "ucrtbase.dll"
+        ],
+        "static": [
+          "msvcrt.dll",
+          "kernel32.dll",
+          "ole32.dll",
+          "shell32.dll"
+        ]
+      },
+      "cBaseline": {
+        "path": "F:/xlang-validation/xge-full-20261110/text-paint-value-c-baseline-win-r1/run.log",
+        "sha256": "16a2ac78f10f01bc5af09cce440a665fe27c0a4ecc3ff5a70faa58e6de0aa4a8",
+        "attachAllocationCount": 1,
+        "attachLiveBytes": 16,
+        "getAllocationCount": 0
+      },
+      "xlangJit": {
+        "path": "F:/xlang-validation/xge-full-20261110/text-paint-value-xlang-profile-win-r1/run.log",
+        "sha256": "29d83fff47639a95629467f5283af9c4a16f254cf611a596c77313df845b6612",
+        "attachAllocationCount": 1,
+        "attachLiveBytes": 16,
+        "getAllocationCount": 0
+      }
+    },
+    "linux": {
+      "path": "/var/tmp/xlang-validation/xge-full-20261110/text-paint-value-verify-linux-r2/results.json",
+      "sha256": "df914652f333e1153704c4e92c2d7faf57523a17208a681f6b5b21feb79a615c",
+      "phases": [
+        "host-package",
+        "static-package",
+        "emit",
+        "jit",
+        "host-build",
+        "host-run",
+        "host-imports",
+        "static-build",
+        "static-run",
+        "static-imports"
+      ],
+      "generatedCSha256": "f156346c98e46920202a2f7a6d8939721491e8395bdbe192b366183d00c0bb88",
+      "nativeImports": {
+        "host": [
+          "libm.so.6",
+          "libmvec.so.1",
+          "libxge3_host.so",
+          "libc.so.6",
+          "ld-linux-x86-64.so.2"
+        ],
+        "static": [
+          "libm.so.6",
+          "libmvec.so.1",
+          "libx11.so.6",
+          "libxi.so.6",
+          "libxcursor.so.1",
+          "libgl.so.1",
+          "libc.so.6",
+          "ld-linux-x86-64.so.2"
+        ]
+      },
+      "cBaseline": {
+        "path": "/var/tmp/xlang-validation/xge-full-20261110/text-paint-value-c-baseline-linux-r1/run.log",
+        "sha256": "56707c01d6d00f5b8fc0fcc19f8fcf33b3ca538d697361cfb2cbf3f688e3acf1",
+        "attachAllocationCount": 1,
+        "attachLiveBytes": 16,
+        "getAllocationCount": 0
+      },
+      "xlangJit": {
+        "path": "/var/tmp/xlang-validation/xge-full-20261110/text-paint-value-xlang-profile-linux-r1/run.log",
+        "sha256": "de3fcf633d24a162a7c245d6b2623e667eb58c33791ffaa864604b11aaad1d42",
+        "attachAllocationCount": 1,
+        "attachLiveBytes": 16,
+        "getAllocationCount": 0
+      }
+    }
+  }
+}

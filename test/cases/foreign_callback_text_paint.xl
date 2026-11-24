@@ -1,0 +1,87 @@
+from xui import CallbackProxy, CallbackProxyCapsOutput, CallbackProxyTextItem, CallbackTextShapeOutput
+from xui import CallbackTextShape, CallbackVec2Output, Proxy, ProxyCaps, TextCluster, TextShape, Vec2
+from xui import XUI_ERROR_UNSUPPORTED, XUI_PROXY_VERSION
+
+typedef Caps = func(CallbackProxy, CallbackProxyCapsOutput) as c_int
+typedef Shape = func(CallbackProxy, CallbackProxyTextItem, CallbackTextShapeOutput) as c_int
+typedef Measure = func(CallbackProxy, CallbackTextShape, c_int, c_int, CallbackVec2Output) as c_int
+
+extern "xuiProxyReleaseChecked" @header("xge3_runtime.h") @no_raise @c_result("status",0) func releaseProxy(Proxy value)
+extern "xuiTextShapeReleaseChecked" @header("xge3_runtime.h") @no_raise @c_result("status",0) func releaseShape(TextShape value)
+extern "xuiProxyCreateOwned" @header("xge3_runtime.h") @no_raise @c_result("owned_view") @factory(2,0,releaseProxy) @c_pack(0,"xui_proxy_t",0,4) @c_pack_size(0,"iSize","uint32_t") @c_pack_field(0,"iVersion",0,"value") @c_pack_callback_group(0,"pUser",1) @c_pack_field(0,"getCaps",1,"owned_callback") @c_pack_field(0,"textShape",2,"owned_callback") @c_pack_field(0,"textShapeRangeMeasure",3,"owned_callback") @c_owned_callback(1,-1,"xui_callback_owner_t",-16,"receiver") @c_owned_callback(2,-1,"xui_callback_owner_t",-16,"receiver") @c_owned_callback(3,-1,"xui_callback_owner_t",-16,"receiver") func makeProxy(c_uint version,Caps caps,Shape shape,Measure measure) as Proxy
+extern "xl_test_paint_create_shape" @header("test/cases/foreign_callback_text_paint.h") @no_raise @c_result("owned_view") @factory(1,0,releaseShape) func makeShape(Proxy backend) as TextShape
+extern "xl_test_paint_decline_shape" @header("test/cases/foreign_callback_text_paint.h") @no_raise @c_result("status",0) func checkDeclinedShape(Proxy backend)
+extern "xl_test_paint_measure" @header("test/cases/foreign_callback_text_paint.h") @no_raise @c_result("status",0) func measure(Proxy backend,TextShape shape)
+extern "xl_test_paint_protocol" @header("test/cases/foreign_callback_text_paint.h") @no_raise @c_result("status",0) func checkProtocol()
+
+class PaintData
+ int advance = 17
+end
+
+class CallbackState
+ int mode = 0
+ CallbackTextShape? measured = null
+end
+
+func main(...) as int
+ checkProtocol()
+ auto state = CallbackState()
+ Caps caps = func(CallbackProxy backend,CallbackProxyCapsOutput output) as c_int
+  output.value = ProxyCaps()
+  return c_int(0)
+ end
+ Shape produce = func(CallbackProxy backend,CallbackProxyTextItem item,CallbackTextShapeOutput output) as c_int
+  auto cluster = TextCluster()
+  cluster.iTextEnd = c_int(1)
+  cluster.fAdvance = c_float(17)
+  output.setGeometry(item,17,2,1,1,2,[cluster])
+  if state.mode != 1
+   var data = PaintData()
+   output.attachPaintValue(data,32)
+   bool duplicate = false
+   try
+    output.attachPaintValue(data)
+   catch error
+    duplicate = true
+   end
+   assert duplicate
+  end
+  if state.mode == 2
+   return XUI_ERROR_UNSUPPORTED
+  end
+  return c_int(0)
+ end
+ Measure measurePaint = func(CallbackProxy backend,CallbackTextShape shape,c_int first,c_int last,CallbackVec2Output output) as c_int
+  assert first == c_int(0) and last == c_int(1) and shape.paintBytes > c_size(32)
+  auto data = shape.getPaintValue() as PaintData
+  auto size = Vec2()
+  size.fX = c_float(data.advance)
+  size.fY = c_float(2)
+  output.value = size
+  state.measured = shape
+  return c_int(0)
+ end
+
+ auto proxy = makeProxy(c_uint(XUI_PROXY_VERSION),caps,produce,measurePaint)
+ auto painted = makeShape(proxy)
+ measure(proxy,painted)
+ bool expired = false
+ try
+  var discarded = (state.measured as CallbackTextShape).getPaintValue()
+ catch error
+  expired = true
+ end
+ assert expired
+ auto retained = painted.getPaintValue() as PaintData
+ painted.close()
+ assert retained.advance == 17
+ state.mode = 1
+ auto unpainted = makeShape(proxy)
+ assert unpainted.getPaintValue() == null
+ unpainted.close()
+ state.mode = 2
+ checkDeclinedShape(proxy)
+ proxy.close()
+ println("XUI_CALLBACK_TEXT_PAINT_OK")
+ return 0
+end

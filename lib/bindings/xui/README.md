@@ -170,6 +170,16 @@ The compiler projects each nonempty typed array into temporary C storage once.
 Submission validates the records and copies them into XRT-owned arrays that
 are freed with the shape. If submission fails, the output is left unchanged.
 
+Use `output.attachPaintValue(value)` to retain application paint for later
+measurement or drawing. `shape.getPaintValue()` acquires an independent
+reference to the same value on the backend's thread. The producing callback
+must treat the value as immutable after attaching it. The optional
+`retainedBytes` counts additional private payload storage for the layout cache.
+An unpainted shape returns `null`. Opaque paint created by a different native
+provider raises a checked unsupported error. The paint adds one small native
+allocation and one strong reference to the shape's ownership graph. The
+value and its data are not copied.
+
 `Context` owns its widget graph. Control classes extend `Widget`; a method such
 as `button.setText(text)` calls its original native function. The package has
 no C wrappers for individual methods and no opcode dispatch. Constructors
