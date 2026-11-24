@@ -87,11 +87,21 @@ static int checkValues(xui_proxy proxy)
     CHECK(xuiDrawGetValueOwned(draw, &taken) == XUI_OK && taken == value);
     xrtValueRelease(taken);
 
+    xui_surface separate = NULL;
+    CHECK(xuiSurfaceCreateWithValueOwned(proxy, value, &separate) == XUI_OK);
     xvalueviewv1 view = {0};
     CHECK(xrtValueViewBeginV1(value, &view));
     const int closed = xuiDrawEndChecked(draw);
     const bool active = !xuiDrawEnded(draw);
+    bool consumedSurface = true, consumedFont = true, consumedDraw = true;
+    const int surfaceRelease = xuiSurfaceReleaseOwnerChecked(separate, &consumedSurface);
+    const int fontRelease = xuiFontReleaseOwnerChecked(font, &consumedFont);
+    const int drawRelease = xuiDrawReleaseOwnerChecked(draw, &consumedDraw);
     const bool untied = xrtValueViewEndV1(&view);
+    CHECK(surfaceRelease == XUI_ERROR_BUSY && !consumedSurface);
+    CHECK(fontRelease == XUI_ERROR_BUSY && !consumedFont);
+    CHECK(drawRelease == XUI_ERROR_BUSY && !consumedDraw);
+    CHECK(xuiSurfaceReleaseChecked(separate) == XUI_OK);
     CHECK(closed == XUI_ERROR_BUSY && active && untied);
     const xui_proxy_t desc = {.iSize = sizeof(desc), .iVersion = XUI_PROXY_VERSION};
     const xui_callback_owner_t owner = {.tReference = valueEdge, .onHold = holdOwner, .onDrop = dropOwner};

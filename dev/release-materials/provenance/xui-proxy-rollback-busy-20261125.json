@@ -1,0 +1,26 @@
+{
+  "schema": 1,
+  "scope": "Last-owner release of a custom Surface, Font and Draw during an active XRT value read",
+  "nativeCommit": "04e55fb085a0aa74a1fe2bb1fce3eb1ca57a2a29",
+  "compilerAndSdkProvenance": "dev/release-materials/provenance/xui-proxy-resource-value-20261125.json",
+  "source": "test/cases/foreign_proxy_resource_value.c",
+  "sourceSha256NormalizedLf": "29285b9250932adf9df955a1ecc19c7b4634723299f9bc2641f0dbfdb3907d14",
+  "shippingDelivery": false,
+  "networkTests": false,
+  "checks": [
+    "Each last-owner checked release returns Busy with consumed=false while the value read is active",
+    "The Draw stays active after a refused explicit End",
+    "Ending the value read allows retry with all three original owners",
+    "The native fixture ends with the original live allocation and byte counts"
+  ],
+  "platforms": {
+    "windowsJit": {
+      "path": "F:/xlang-validation/xge-full-20261110/xui-proxy-drop-busy-proof-win-r2/results.json",
+      "sha256": "657b4dc88df00a5dc3f0281bb91a8b43d79c6c1ddaf3d5473c8c73376e92e5fd"
+    },
+    "linuxJit": {
+      "path": "//wsl.localhost/Ubuntu/var/tmp/xlang-validation/xge-full-20261110/xui-proxy-drop-busy-proof-linux-r2/results.json",
+      "sha256": "322ad9bc8309d67018908c4a17af0025e4462387f6387b73bcd93d70981f67f5"
+    }
+  }
+}
