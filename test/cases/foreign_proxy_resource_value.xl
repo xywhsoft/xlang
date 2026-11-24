@@ -1,0 +1,85 @@
+from xui import Proxy, createCustomProxy, ProxyCaps, FontMetrics, Rect
+from xui import Surface, Font, DrawContext, CallbackProxy, CallbackProxyCapsOutput
+from xui import CallbackSurface, CallbackFont, CallbackFontMetricsOutput, CallbackDrawContext
+
+extern "xl_test_proxy_resource_value" @header("test/cases/foreign_proxy_resource_value.h") @no_raise @c_result("status",0) func checkNative(Proxy proxy)
+
+class Payload
+    int number=17
+end
+
+class Resources
+    Surface? surface=null
+    Font? font=null
+    DrawContext? draw=null
+    CallbackProxy? callback=null
+    bool painted=false
+end
+
+func main(...) as int
+    auto state=Resources()
+    auto proxy=createCustomProxy(func(CallbackProxy backend,CallbackProxyCapsOutput output) as c_int
+        output.value=ProxyCaps()
+        state.callback=backend
+        state.surface=backend.createBackendSurface(Payload())
+        state.font=backend.createBackendFont(Payload())
+        auto empty=backend.createBackendSurface()
+        assert empty.getBackendValue()==null
+        empty.close()
+        return c_int(0)
+    end,
+    surfaceClear=func(CallbackProxy backend,CallbackSurface? target,c_uint color) as c_int
+        auto surface=target as CallbackSurface
+        assert (surface.getBackendValue() as Payload).number==17
+        state.draw=backend.createBackendDraw(Payload(),surface)
+        return c_int(0)
+    end,
+    fontGetMetrics=func(CallbackProxy backend,CallbackFont font,CallbackFontMetricsOutput output) as c_int
+        auto metrics=FontMetrics()
+        metrics.fAscent=c_float((font.getBackendValue() as Payload).number)
+        output.value=metrics
+        return c_int(0)
+    end,
+    drawClearRect=func(CallbackProxy backend,CallbackDrawContext draw,Rect rectangle,c_uint color) as c_int
+        assert (draw.getBackendValue() as Payload).number==17
+        state.painted=true
+        return c_int(0)
+    end)
+    checkNative(proxy)
+    auto caps=proxy.caps()
+    bool expired=false
+    try
+        auto rejected=(state.callback as CallbackProxy).createBackendFont()
+    catch error
+        expired=true
+    end
+    assert expired
+    auto surface=state.surface as Surface
+    auto font=state.font as Font
+    assert proxy.fontMetrics(font).fAscent==c_float(17)
+    auto kept=font.getBackendValue() as Payload
+    font.close()
+    assert kept.number==17
+    proxy.clearSurface(surface,c_uint(7))
+    auto draw=state.draw as DrawContext
+    proxy.clearRect(draw,Rect(),c_uint(7))
+    assert state.painted
+    auto drawn=draw.getBackendValue() as Payload
+    surface.close()
+    auto target=draw.target() as Surface
+    assert (target.getBackendValue() as Payload).number==17
+    target.close()
+    draw.finish()
+    assert draw.ended() and drawn.number==17
+    bool ended=false
+    try
+        var rejected=draw.getBackendValue()
+    catch error
+        ended=true
+    end
+    assert ended
+    draw.close()
+    proxy.close()
+    println("XUI_PROXY_RESOURCE_VALUE_OK")
+    return 0
+end

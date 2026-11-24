@@ -1012,6 +1012,7 @@ export typedef WidgetUpdateProc = func(Widget,c_float) as c_int
 
 export extern "xui_draw_context_t*" class CallbackDrawContext @header("xge3_runtime.h") @lifetime("callback")
  native point handle
+ extern "xuiDrawGetValueOwned" @no_raise @c_output(1,0) @c_output_view(1,"owned_value") func getBackendValue() as var
 end
 
 export typedef WidgetCacheRenderProc = func(Widget,CallbackDrawContext,c_uint) as c_int

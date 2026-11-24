@@ -1,0 +1,166 @@
+{
+  "schema": 1,
+  "scope": "Native-owned Surface, Font and Draw resource state for custom XUI backends",
+  "nativeCommit": "04e55fb085a0aa74a1fe2bb1fce3eb1ca57a2a29",
+  "nativeBaseRevision": "c663d221eeec4004fcd65de30b1cdf4b3b68f368",
+  "nativeSourceSha256NormalizedLf": {
+    "include/xui.h": "9048e09de470e0308ee2b9d17e31659254f2c91cb548546834462aa4e44e3b65",
+    "src/xui/core/xui_proxy_resource.c": "4547ff5bda3e5b914a561423298b4a553ba0431cd36f3973cf114f26dd7dfde4"
+  },
+  "sourceSha256NormalizedLf": {
+    "lib/bindings/xui/src/proxy.xl": "0ed0d08a38ffc92da1612b59c9daf77e824f7ccf785d8ba6c138f4f288c665f2",
+    "lib/bindings/xui/src/draw.xl": "92f6ac7cc4087031709c73b72f868a3366c29c0bc56a288c8a47032717c38b07",
+    "lib/bindings/xui/src/managed.xl": "742bc8ea3214948842340a5cd376becfb6b7acec7541eb090352e5514e263abd",
+    "lib/bindings/xui/README.md": "24e1fa185f0ddcf1c68276ca67078abd9c3229c3479097ed3f1bf98e2ba45da7",
+    "lib/bindings/xui/src/proxy_callbacks.xl": "edaaf1d0b7e35e94d7ea794e2737b3a28c9233fead14ac8b749144b64a0ba797",
+    "lib/bindings/_xge_native/include/xge3_custom_proxy.h": "2668848a89f6771969bd267fb513e972e6ad4446aba1c95b52e9c293784d5331",
+    "test/cases/foreign_proxy_resource_value.c": "c9ca09f1b49dc8df8ff4e98a2d2cff736e176f0756c75b8d0068ff191e7bac24",
+    "test/cases/foreign_proxy_resource_value.h": "46bd0f847d81bd496e6a3de44a79ade27bb29bf770cb340371f94631efe09ca6",
+    "test/cases/foreign_proxy_resource_value.xl": "66bd4684c7a32615254ca59417ab1564628162938a5bf48cb9cb1da6527c3875"
+  },
+  "shippingDelivery": false,
+  "networkTests": false,
+  "checks": [
+    "Exact Proxy/value ownership edges for native Surface and Font; Draw also owns its actual target",
+    "All six published XGE functions called directly in generated xlang C",
+    "A Draw rejects a foreign backend target and rejects semantic End while value inspection is active",
+    "An any-thread native Proxy still creates custom value resources confined to their creator thread",
+    "Each resource allocation failed independently under injection; outputs cleared and allocation tracked to baseline",
+    "The language exposes state through ordinary and callback views; an independent value survives Font close and Draw finish",
+    "The Draw owns its target even after the original language Surface view closes",
+    "Expired backend views, ended Draw state reads, and opaque payload from other providers report checked errors",
+    "Stock callback resource bridge regression executes with the updated header and binary",
+    "Named Proxy registration and eleven existing explicit C descriptor imports coexist in the package"
+  ],
+  "performanceScope": "XRT allocation events on the same hosted XGE SDK. GCC O2 empty native Surface versus native Surface retaining an already-live value, then JIT xlang construction and read. The output view materialization is included in the xlang counts.",
+  "platforms": {
+    "win": {
+      "path": "F:/xlang-validation/xge-full-20261110/proxy-resource-value-verify-win-r2/results.json",
+      "sha256": "4a3fcdb2a9f9fa80d707aea9d7f2c0e1cc1bec72375c0367e7af0e54b381a1fd",
+      "generatedCSha256": "b810a59b4ea85111fc7f000edb1be4fe578432db258b1e7aa19a930c54cbb639",
+      "phases": [
+        "host-package",
+        "static-package",
+        "emit",
+        "jit",
+        "host-build",
+        "host-run",
+        "host-imports",
+        "static-build",
+        "static-run",
+        "static-imports"
+      ],
+      "nativeImports": {
+        "host": [
+          "msvcrt.dll",
+          "xge3_host.dll",
+          "kernel32.dll",
+          "shell32.dll",
+          "ws2_32.dll",
+          "iphlpapi.dll",
+          "ucrtbase.dll"
+        ],
+        "static": [
+          "msvcrt.dll",
+          "kernel32.dll",
+          "ole32.dll",
+          "shell32.dll"
+        ]
+      },
+      "cBaseline": {
+        "path": "F:/xlang-validation/xge-full-20261110/proxy-resource-value-c-baseline-win-r2/run.log",
+        "sha256": "549576f3ce8a3c91203e6721bf14e5b954822ac9ae023c3e0d74f0c75e93a297",
+        "ordinaryAllocateBytes": 80,
+        "customAllocateBytes": 88,
+        "allocationCountForEachCreate": 1,
+        "getAllocationCount": 0
+      },
+      "jit": {
+        "path": "F:/xlang-validation/xge-full-20261110/proxy-resource-value-xlang-profile-win-r2/run.log",
+        "sha256": "f259d16ba6cef5347e9ce97095c701ac8f81ebb5839a95789383a370c7de2612",
+        "create": {
+          "allocations": 2,
+          "liveBytesDelta": 552
+        },
+        "get": {
+          "allocations": 0,
+          "liveBytesDelta": 0
+        }
+      },
+      "previousCallbackRegression": {
+        "path": "F:/xlang-validation/xge-full-20261110/proxy-resource-value-xlang-profile-win-r2/previous.log",
+        "sha256": "756059ecabecb67f9a5d6d8be5dbf8bfbf689b292361f0e81b92d6c0715d783a"
+      },
+      "rawDescriptors": {
+        "path": "F:/xlang-validation/xge-full-20261110/proxy-resource-value-xlang-profile-win-r2/raw-descriptors.json",
+        "sha256": "826de5a58b9a4c70fba4a2875cab0fc32687fe7478f2426f6f51ad7b2bca4287",
+        "checked": 11
+      }
+    },
+    "linux": {
+      "path": "/var/tmp/xlang-validation/xge-full-20261110/proxy-resource-value-verify-linux-r2/results.json",
+      "sha256": "1dd6b6e99604eec7b24cf10321a7271b4887425a4bba42d96a85e6b20b44bc8b",
+      "generatedCSha256": "b810a59b4ea85111fc7f000edb1be4fe578432db258b1e7aa19a930c54cbb639",
+      "phases": [
+        "host-package",
+        "static-package",
+        "emit",
+        "jit",
+        "host-build",
+        "host-run",
+        "host-imports",
+        "static-build",
+        "static-run",
+        "static-imports"
+      ],
+      "nativeImports": {
+        "host": [
+          "libm.so.6",
+          "libmvec.so.1",
+          "libxge3_host.so",
+          "libc.so.6",
+          "ld-linux-x86-64.so.2"
+        ],
+        "static": [
+          "libm.so.6",
+          "libmvec.so.1",
+          "libx11.so.6",
+          "libxi.so.6",
+          "libxcursor.so.1",
+          "libgl.so.1",
+          "libc.so.6",
+          "ld-linux-x86-64.so.2"
+        ]
+      },
+      "cBaseline": {
+        "path": "/var/tmp/xlang-validation/xge-full-20261110/proxy-resource-value-c-baseline-linux-r2/run.log",
+        "sha256": "7e7191e31b770d08cfe5ecdce2382cfd31cc63c1996c0de7168834667873b804",
+        "ordinaryAllocateBytes": 80,
+        "customAllocateBytes": 88,
+        "allocationCountForEachCreate": 1,
+        "getAllocationCount": 0
+      },
+      "jit": {
+        "path": "/var/tmp/xlang-validation/xge-full-20261110/proxy-resource-value-xlang-profile-linux-r2/run.log",
+        "sha256": "5a1754e00c2193c40fce8cc04f1e12dd98f33468311a983e5a2c37a62570f427",
+        "create": {
+          "allocations": 2,
+          "liveBytesDelta": 552
+        },
+        "get": {
+          "allocations": 0,
+          "liveBytesDelta": 0
+        }
+      },
+      "previousCallbackRegression": {
+        "path": "/var/tmp/xlang-validation/xge-full-20261110/proxy-resource-value-xlang-profile-linux-r2/previous.log",
+        "sha256": "756059ecabecb67f9a5d6d8be5dbf8bfbf689b292361f0e81b92d6c0715d783a"
+      },
+      "rawDescriptors": {
+        "path": "/var/tmp/xlang-validation/xge-full-20261110/proxy-resource-value-xlang-profile-linux-r2/raw-descriptors.json",
+        "sha256": "9e177160bf35d5d6e85ff511642bffb4e629c718b504900232299a24b0f122c3",
+        "checked": 11
+      }
+    }
+  }
+}

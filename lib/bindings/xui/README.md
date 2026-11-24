@@ -133,6 +133,14 @@ The native Proxy retains one shared environment for the installed callbacks.
 Use `share()` to keep an independent Proxy reference. Optional slots left empty
 raise a checked unsupported error when called through a `Proxy` method.
 
+Provider callbacks can create resource owners with
+`backend.createBackendSurface(state)`, `backend.createBackendFont(state)` and
+`backend.createBackendDraw(state, target)`. The optional draw target belongs to
+the same backend. `getBackendValue()` obtains a separate reference to the
+stored application value on the backend's thread. The native resource traces
+this edge and releases it when the resource retires or the draw finishes.
+The resource and its value slot share one allocation.
+
 This constructor covers capabilities, clipboard data, IME, resource queries,
 drawing, text shaping, clipping, decompression, timing and frame requests.
 Binding a full `Context` also requires the native Surface and Font factories,
