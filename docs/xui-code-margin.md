@@ -90,3 +90,22 @@ The pointer-bearing C layout array remains available through explicit C interop.
 
 See [the standalone model acceptance record](../dev/release-materials/provenance/xui-margin-owned-20261115.json)
 for the earlier builds, allocation counts and callback-slot tests.
+
+## Built-in line numbers and change markers
+
+`CodeEdit.setLineNumberLayout()` sets automatic width, horizontal padding on
+each side, and alignment. The defaults are automatic width, 2 pixels and
+right alignment. `getLineNumberLayout()` returns those three values as a tuple.
+
+`getLineChange(line)` reads the marker for a zero-based document line. A
+deletion marker appears on the surviving line. `clearLineChanges()` clears
+the markers while preserving the document text and dirty state. The four
+methods call the corresponding XUI functions directly.
+
+The native editor discards saved or cleared markers by resetting their active
+count. A clean line query and an explicit clear take constant time. Tracking
+the next edit reuses the table's capacity and initializes the active rows.
+Insertions and deletions may move the affected suffix of the table.
+
+The [line margin example](../lib/bindings/xui/examples/code_edit_line_margin.xl)
+sets the layout and shows the marker created by inserting a line.

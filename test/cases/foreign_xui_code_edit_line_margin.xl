@@ -1,0 +1,69 @@
+import xui
+
+func main(...) as int
+    auto backend = xui.createProxy()
+    auto context = xui.create(backend,xui.XUI_SYSTEM_FONT_DISABLED)
+    auto editor = context.codeEditNative()
+    auto document = editor.document()
+
+    auto autoWidth,padding,alignment = editor.getLineNumberLayout()
+    assert autoWidth == 1 and padding == 2.0 and alignment == 2
+    editor.setLineNumberLayout(0,7.5,c_uint(xui.XUI_TEXT_ALIGN_CENTER))
+    auto fixedWidth,fixedPadding,fixedAlignment = editor.getLineNumberLayout()
+    assert fixedWidth == 0 and fixedPadding == 7.5 and fixedAlignment == 1
+
+    bool rejected = false
+    try
+        editor.setLineNumberLayout(1,c_float(-1.0),2)
+    catch error
+        rejected = error.code == xui.XUI_ERROR_INVALID_ARGUMENT
+    end
+    assert rejected
+    auto keptWidth,keptPadding,keptAlignment = editor.getLineNumberLayout()
+    assert keptWidth == 0 and keptPadding == 7.5 and keptAlignment == 1
+    editor.setLineNumberLayout()
+
+    document.setText("alpha\nbeta")
+    assert editor.getLineChange(0) == xui.XUI_CODE_LINE_CHANGE_NONE
+    document.replace(0,1,"A")
+    assert editor.getLineChange(0) == xui.XUI_CODE_LINE_CHANGE_MODIFIED
+    document.setDirty(0)
+    // The first edit after saving starts from the saved baseline even if
+    // the editor has yet to draw or query the gutter.
+    document.replace(6,7,"B")
+    assert editor.getLineChange(0) == xui.XUI_CODE_LINE_CHANGE_NONE
+    assert editor.getLineChange(1) == xui.XUI_CODE_LINE_CHANGE_MODIFIED
+    editor.clearLineChanges()
+    assert editor.getLineChange(1) == xui.XUI_CODE_LINE_CHANGE_NONE
+    assert document.getDirty() != 0 and document.getText() == "Alpha\nBeta"
+    document.replace(0,1,"a")
+    assert editor.getLineChange(0) == xui.XUI_CODE_LINE_CHANGE_MODIFIED
+    assert editor.getLineChange(1) == xui.XUI_CODE_LINE_CHANGE_NONE
+
+    document.setText("alpha\nbeta")
+    document.insert(0,"new\n")
+    assert editor.getLineChange(0) == xui.XUI_CODE_LINE_CHANGE_ADDED
+    document.setText("alpha\nbeta")
+    document.delete(5,6)
+    assert editor.getLineChange(0) == xui.XUI_CODE_LINE_CHANGE_DELETED
+
+    rejected = false
+    try
+        auto invalid = editor.getLineChange(1)
+    catch error
+        rejected = error.code == xui.XUI_ERROR_INVALID_ARGUMENT
+    end
+    assert rejected
+
+    context.close()
+    rejected = false
+    try
+        editor.clearLineChanges()
+    catch error
+        rejected = true
+    end
+    assert rejected
+    backend.close()
+    println("XUI_CODE_EDIT_LINE_MARGIN_OK")
+    return 0
+end

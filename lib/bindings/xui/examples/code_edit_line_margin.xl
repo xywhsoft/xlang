@@ -1,0 +1,22 @@
+import xui
+
+func main(...) as int
+    auto backend = xui.createProxy()
+    auto context = xui.create(backend,xui.XUI_SYSTEM_FONT_DISABLED)
+    auto editor = context.codeEditNative()
+    auto document = editor.document()
+
+    editor.setLineNumberLayout(1,6.0,c_uint(xui.XUI_TEXT_ALIGN_RIGHT))
+    document.setText("first line\nsecond line")
+
+    // The inserted line has index 0 and is marked as added.
+    document.insert(0,"new line\n")
+    assert editor.getLineChange(0) == xui.XUI_CODE_LINE_CHANGE_ADDED
+    println(document.getText())
+
+    editor.clearLineChanges()
+    assert document.getDirty() != 0
+    context.close()
+    backend.close()
+    return 0
+end

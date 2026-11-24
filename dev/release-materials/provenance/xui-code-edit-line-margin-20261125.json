@@ -1,0 +1,102 @@
+{
+  "schema": 1,
+  "feature": "CodeEdit line number layout and line change markers",
+  "shippingDelivery": false,
+  "nativeInputs": "Isolated exact XGE worktree CodeEdit snapshot with scoped marker-table invalidation optimization",
+  "measuredWorkload": "100,000 native get-line-change calls per sample, C clock() elapsed readings, median of three repetitions",
+  "verified": [
+    "Four direct CodeEdit C bindings and four native line change constants",
+    "Saved baseline, marker-only clear, subsequent edits, added and deleted markers, checked range and lifetime",
+    "Existing native CodeEdit regression in O0 and O2",
+    "JIT, dynamic AOT and static AOT for the language fixture and example"
+  ],
+  "evidence": {
+    "win": {
+      "language": {
+        "path": "F:/xlang-validation/xge-full-20261110/codeedit-line-margin-verify-win-r2b/results.json",
+        "sha256": "670a3cebaacf585aa33722676b9a245509b0682d2544b5923b95578f718d7d29",
+        "checks": 17
+      },
+      "nativeTest": {
+        "path": "F:/xlang-validation/xge-full-20261110/codeedit-line-margin-C-regression-win-r2/results.json",
+        "sha256": "748a39c78cc3d323f5ca66503f29900f915b5f7d42da28bb5fa725d1987e9867",
+        "checks": 4
+      },
+      "baselineProbe": {
+        "path": "F:/xlang-validation/xge-full-20261110/codeedit-line-margin-C-probe-win-r1/results.json",
+        "sha256": "6fffe120d18d99d43e3348119fc633cb000b6d16d51a767697305723ae207fe0",
+        "checks": 2
+      },
+      "optimizedProbe": {
+        "path": "F:/xlang-validation/xge-full-20261110/codeedit-line-margin-C-probe-win-r2/results.json",
+        "sha256": "6d1751ac958a33b9ca30f1d91087b143bc58f8810b5979125302c574c7aeb5ee",
+        "checks": 2
+      },
+      "nativeSource": {
+        "path": "F:/xlang-validation/xge-full-20261110/codeedit-line-margin-native-source-win-r2.json",
+        "sha256": "d57b7e57db0cd4f48da7532af34adcfee95634a271bb3d06bb0ad9f62a49b4d6"
+      },
+      "medianNativeClockMilliseconds": {
+        "baseline": {
+          "clean1024": 6.0,
+          "clean131072": 204.0,
+          "saved131072": 204.0
+        },
+        "optimized": {
+          "clean1024": 6.0,
+          "clean131072": 5.0,
+          "saved131072": 5.0
+        }
+      }
+    },
+    "linux": {
+      "language": {
+        "path": "/var/tmp/xlang-validation/xge-full-20261110/codeedit-line-margin-verify-linux-r2b/results.json",
+        "sha256": "62e9f0d80a4d603d9d33307063270cbde28cc5296eb8806fc6620c0920d77ca7",
+        "checks": 17
+      },
+      "nativeTest": {
+        "path": "/var/tmp/xlang-validation/xge-full-20261110/codeedit-line-margin-C-regression-linux-r2/results.json",
+        "sha256": "65016773a0a6960c90db36fcad22ce7378656a88e918d47ee52dc0f4efafee8c",
+        "checks": 4
+      },
+      "baselineProbe": {
+        "path": "/var/tmp/xlang-validation/xge-full-20261110/codeedit-line-margin-C-probe-linux-r1/results.json",
+        "sha256": "320d4bcc3d3b31d716e8cc2a3df3a62aa8ebfe2f48b82c585405c9434b193c5e",
+        "checks": 2
+      },
+      "optimizedProbe": {
+        "path": "/var/tmp/xlang-validation/xge-full-20261110/codeedit-line-margin-C-probe-linux-r2/results.json",
+        "sha256": "9a641e09b7f06e3ff5d1171ef6956d58f0e507e934c8726a876179bc5def80a6",
+        "checks": 2
+      },
+      "nativeSource": {
+        "path": "/var/tmp/xlang-validation/xge-full-20261110/codeedit-line-margin-native-source-linux-r2.json",
+        "sha256": "52872d31ca434d91562033976397103ff54df551093807f10fc27eec03e18a50"
+      },
+      "medianNativeClockMilliseconds": {
+        "baseline": {
+          "clean1024": 6.368,
+          "clean131072": 128.096,
+          "saved131072": 125.623
+        },
+        "optimized": {
+          "clean1024": 5.28,
+          "clean131072": 5.481,
+          "saved131072": 5.112
+        }
+      }
+    },
+    "sourceInventory": {
+      "path": "F:/xlang-validation/xge-full-20261110/surface-codeedit-line-margin-r2/surface.json",
+      "sha256": "ee056d5b3fc87545d714fab82cb46cb6aaa8fd4c179cbdadefef2f5064076283"
+    }
+  },
+  "xlangSourceSha256NormalizedLf": {
+    "lib/bindings/xui/src/managed.xl": "a933f682ead6b4d0b0410debd6aeb6f427a7d6a95dfffaf8a240da8c28ef3b05",
+    "lib/bindings/xui/src/constants.xl": "56700293a8a6725f9c444650ec530a86e0232b2b4f302ca83358e47fcd019dea",
+    "lib/bindings/xui/examples/code_edit_line_margin.xl": "f4fd58b832e007d2d126247f3f7e126448fc723a2134dcf09713c6fb31b2ea09",
+    "test/cases/foreign_xui_code_edit_line_margin.xl": "aedf8b4093ba9373ae2be0a9af04aaa3f89d3ad466606ced2bfc0331954c3552",
+    "docs/xui-code-margin.md": "3666b12f4b1194697435288e934d29acdfd8ac7bed900be6392f67d2033e7e2e"
+  }
+}

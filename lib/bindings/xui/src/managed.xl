@@ -2928,6 +2928,14 @@ export extern "xui_widget_t*" class CodeEdit @header("xge3_runtime.h") @lifetime
 
  extern "xuiCodeEditGetDefaultMargins" @no_raise @c_outputs(1,2,3,4) @c_status(0) func getDefaultMargins() as (c_int,c_int,c_int,c_int)
 
+ extern "xuiCodeEditSetLineNumberLayout" @no_raise @c_result("status",0) func setLineNumberLayout(c_int autoWidth=1,c_float horizontalPadding=2.0,c_uint alignment=2)
+
+ extern "xuiCodeEditGetLineNumberLayout" @no_raise @c_outputs(1,2,3) @c_status(0) func getLineNumberLayout() as (c_int,c_float,c_uint)
+
+ extern "xuiCodeEditGetLineChange" @no_raise @c_output(2,0) func getLineChange(c_int line) as c_int
+
+ extern "xuiCodeEditClearLineChanges" @no_raise @c_result("status",0) func clearLineChanges()
+
  extern "xuiCodeEditGetScrollSnapshot" @no_raise @c_output(1,0) func scrollSnapshot() as ScrollModel
 
  extern "xuiCodeEditGetHScrollBarWidget" @no_raise @c_result("owner_view",0) func getHScrollBarWidget() as Widget?
