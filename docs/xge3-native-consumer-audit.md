@@ -1,5 +1,21 @@
 # Native consumers in the full API inventory
 
+## Weak table cell references
+
+`TableCellOutput.watch()` observes a cell on its creator thread. The
+observer releases its registration on close, and final cell retirement
+invalidates all remaining registrations. `TableCellReference.lock()`
+acquires another owner of the same cell while it is live and returns
+`null` once the cell retires. An active ownership claim reports Busy.
+
+Native tests cover unwatch, allocation failure, rejection from a
+different thread, and observation from inside native retirement. The
+xlang fixture and the headless example pass on Windows and Linux with JIT,
+dynamic AOT and static AOT. The inventories now cover 5,908 functions,
+with 24 XUI entries still awaiting evidence across the qualified configurations.
+
+[Table cell observer evidence](../dev/release-materials/provenance/xui-table-cell-reference-20261124.json)
+
 ## PNG buffer ownership and XUI retirement
 
 `xge.encodeImagePng()` delivers the original allocation as owned `bytes`.

@@ -225,6 +225,8 @@ HEADER_CLOSE_REPLACEMENTS.update({
 })
 HEADER_CLOSE_REPLACEMENTS['xuiResourceReferenceRelease'] = (
     'xui.ResourceReference.close', 'xuiResourceReferenceReleaseOwnerChecked')
+HEADER_CLOSE_REPLACEMENTS['xuiTableCellReferenceRelease'] = (
+    'xui.TableCellReference.close', 'xuiTableCellReferenceReleaseOwnerChecked')
 HEADER_CLOSE_REPLACEMENTS['xuiCodeFoldStateDestroy'] = (
     'xui.CodeFoldState.close', 'xuiCodeFoldStateDestroyChecked')
 HEADER_CLOSE_REPLACEMENTS['xuiCodeCommandMapDestroy'] = (
@@ -239,6 +241,7 @@ DOCUMENT_EXPORTS = (
 )
 TABLE_VIEW_SOURCE = 'src/xui/controls/xui_table_view.c'
 TABLE_GRID_SOURCE = 'src/xui/controls/xui_table_grid.c'
+TABLE_CELL_SOURCE = 'src/xui/controls/xui_table_cell_output.c'
 TABLE_LIFETIME_CALLS = {
     TABLE_VIEW_SOURCE: {
         '__xuiTableViewGetCell': ('xuiTableViewCellOutputInit',),
@@ -650,6 +653,12 @@ def main():
     ):
         if not build_report:
             continue
+        if name == 'tableLifetime' and 'xuiTableViewCellOutputWatchReference' in functions:
+            calls = {**calls, TABLE_CELL_SOURCE: {
+                'xuiTableViewCellOutputWatchReference': ('xuiTableViewCellOutputLifetimeWatch',),
+                'xuiTableCellReferenceLockOwned': ('xuiTableViewCellOutputShareOwned',),
+                'xuiTableCellReferenceReleaseOwnerChecked': ('xuiLifetimeUnwatch',),
+            }}
         source, build_flags, evidence_inputs = witness_build_inputs(
             build_report.resolve(),audit,packages,tools['gcc'],sha,calls.keys())
         files.extend(evidence_inputs)
@@ -938,6 +947,9 @@ def main():
         if 'xui.ResourceReference' in class_bindings:
             policy_groups['resourceReferenceHeaderPolicies'] = ('xui-resource-reference-policies',
                 {'xui.ResourceReference': class_bindings['xui.ResourceReference']})
+        if 'xui.TableCellReference' in class_bindings:
+            policy_groups['tableCellReferenceHeaderPolicies'] = ('xui-table-cell-reference-policies',
+                {'xui.TableCellReference': class_bindings['xui.TableCellReference']})
         header_relocations = {}
         for key, (name, classes) in policy_groups.items():
             evidence, relocations = compile_header_policies(name,view,classes,set(functions),
@@ -969,6 +981,11 @@ def main():
         if 'tableLifetime' in lifetime_builds:
             assert any(item['language']=='xui.TableView.getCell' for item in bound['xuiTableViewGetCellOwned'])
             assert any(item['language']=='xui.Context.tableGridNative' for item in bound['xuiTableGridCreate'])
+            if TABLE_CELL_SOURCE in lifetime_builds['tableLifetime'][2]:
+                assert any(item['language']=='xui.TableCellOutput.watch'
+                           for item in bound['xuiTableViewCellOutputWatchReference'])
+                assert any(item['language']=='xui.TableCellReference.lock'
+                           for item in bound['xuiTableCellReferenceLockOwned'])
         if 'flowLifetime' in lifetime_builds:
             assert any(item['language']=='xui.FlowGraphWidget.getGraph' for item in bound['xuiFlowGraphWidgetGetGraphOwned'])
             assert any(item['language']=='xui.WorkflowWidget.getWorkflow' for item in bound['xuiWorkflowWidgetGetWorkflowOwned'])
@@ -1088,6 +1105,9 @@ def main():
                 elif symbol=='xuiResourceReferenceRelease':
                     key='resourceReferenceHeaderPolicies'
                     destroy='xl6Xui3ResourceReferenceDestroy'
+                elif symbol=='xuiTableCellReferenceRelease':
+                    key='tableCellReferenceHeaderPolicies'
+                    destroy='xl6Xui3TableCellReferenceDestroy'
                 elif symbol=='xuiCodeFoldStateDestroy':
                     key='codeFoldStateHeaderPolicies'
                     destroy='xl6Xui3CodeFoldStateDestroy'

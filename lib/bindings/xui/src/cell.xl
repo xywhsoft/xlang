@@ -3,6 +3,7 @@
 export extern "xui_table_view_cell_output_t*" class TableCellOutput @header("xge3_runtime.h") @lifetime("owned") @policy("xl6Xui3TableCellOutputPolicy") @domain("xl6Xui3OwnershipDomainV1")
  native point handle
  extern "xuiTableViewCellOutputShareOwned" @no_raise @c_result("owned_view") @factory(1,0,rollbackCell) func share() as TableCellOutput
+ extern "xuiTableViewCellOutputWatchReference" @no_raise @c_result("owned_view") @factory(1,0,rollbackCellReference) func watch() as TableCellReference
  extern "xuiTableViewCellOutputSetText" @no_raise @c_text_view(0) @c_result("status",0) func setText(string text)
  extern "xuiTableViewCellOutputGetText" @no_raise @c_const(0) @c_result("text_view") func text() as string
  extern "xuiTableViewCellOutputSetTooltip" @no_raise @c_text_view(0) @c_result("status",0) func setTooltip(string text)
@@ -15,7 +16,17 @@ export extern "xui_table_view_cell_output_t*" class TableCellOutput @header("xge
  extern "xuiTableViewCellOutputCanRetire" @no_raise @c_const(0) func canRetire() as bool
  extern "xl6ForeignViewCloseV1" @no_raise @c_control(0) @c_result("bool_status") func close()
 end
+
+// A weak observer of a heap cell. lock() acquires an independent owner.
+export extern "xui_table_cell_reference_t*" class TableCellReference @header("xui3_table_cell_reference.h") @lifetime("owned") @policy("xl6Xui3TableCellReferencePolicy")
+ native point handle
+ extern "xuiTableCellReferenceIsLive" @no_raise @c_const(0) func isLive() as bool
+ extern "xuiTableCellReferenceLockOwned" @no_raise @c_const(0) @c_result("owned_view") @factory(1,0,rollbackCell) func lock() as TableCellOutput?
+ extern "xl6ForeignViewCloseV1" @no_raise @c_control(0) @c_result("bool_status") func close()
+end
+
 export extern "xuiTableViewCellOutputCreate" @no_raise @c_result("owned_view") @factory(0,0,rollbackCell) func createTableCell() as TableCellOutput
 export extern "xuiTableViewCellOutputGetText" @header("xge3_runtime.h") @no_raise @c_const(0) @c_result("text_view") func cellText(TableCellOutput cell) as string?
 export extern "xuiTableViewCellOutputGetTooltip" @header("xge3_runtime.h") @no_raise @c_const(0) @c_result("text_view") func cellTooltip(TableCellOutput cell) as string?
 extern "xuiTableViewCellOutputReleaseChecked" @no_raise @c_result("status",0) func rollbackCell(TableCellOutput cell)
+extern "xuiTableCellReferenceRelease" @header("xui3_table_cell_reference.h") @no_raise @c_result("status",0) func rollbackCellReference(TableCellReference reference)

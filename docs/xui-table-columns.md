@@ -26,4 +26,6 @@ Windows 和 Linux 分别重复配置一列和一个受管格式化器 1,000 次�
 
 `TableCellOutput.canRetire()` 读取单元格当前的原生退役资格。原生调用、读取保留或拥有图接管期间返回 `false`。查询不会释放引用，关闭仍使用 `close()`。关闭后的同一个语言视图不能再查询。
 
-[headless_cell.xl](../lib/bindings/xui/examples/headless_cell.xl) 查询一份独立单元格后共享其引用，并在原引用关闭后读取缓存内容。
+`TableCellOutput.watch()` 创建一个绑定到创建线程的弱观察引用。观察引用可以提前关闭，也可以保留到单元格退役之后。创建时分配一个原生观察记录，无需复制单元格。 `isLive()` 查询单元格是否仍有效。 `lock()` 返回一个独立的拥有引用，单元格退役后返回 `null`，拥有图暂时接管时报告 Busy。
+
+[headless_cell.xl](../lib/bindings/xui/examples/headless_cell.xl) 共享单元格引用，在原引用关闭后继续读取缓存内容，并在最后一个拥有引用关闭后确认观察引用已失效。

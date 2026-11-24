@@ -1,0 +1,262 @@
+{
+  "schema": "xlang-xui-table-cell-reference-1",
+  "scope": "Creator-thread weak observation and nullable owning lock for TableCellOutput",
+  "nativeCommit": "ebe0555d",
+  "shippingDelivery": false,
+  "networkTests": false,
+  "prior": {
+    "path": "dev/release-materials/provenance/xge-png-xui-proxy-retirement-20261124.json",
+    "sha256": "50cdac7b486cd70fd54a53c6cfbc6a22030521f8523eb8c8b4111b3a515f625c"
+  },
+  "closedFromReview": [
+    "xuiTableViewCellOutputLifetimeWatch"
+  ],
+  "nativeSha256NormalizedLf": {
+    "include/xui.h": "f3fcda02c13ac6d2d26af553c5d703d4a85a63debc4604fc20442f05ee4dc0ae",
+    "src/xui/controls/xui_table_cell_output.c": "3419cc75d0ab4865885039f3c7205f6291e56842d93681357c9d457743bf8f6c",
+    "tests/xui/test_table_cell_reference.c": "3dc75559a392ee2ea59b2d3eb27384195fd118d80f4dd47d978bbd4052c1f5a4"
+  },
+  "sourceSha256NormalizedLf": {
+    "docs/xui-table-columns.md": "f117c2669b31173bf60d6a52c34d525eea408d9b55abbf79edcc0834d790b1b5",
+    "docs/xge3-xui3-api-map-storage.json": "c3dd90e05d9bbf6be207fbadcff0e8caa6c88599c281bd5112c0bb88f5776f67",
+    "lib/bindings/_xge_native/include/xui3_table_cell_reference.h": "5930d3fa28538e8e1d699e803c4d675d3a71b43c4a5845561b45b18f1cc3c98b",
+    "lib/bindings/xui/src/cell.xl": "0717e831cc7699ab7f4a21631295490fa1f881fb5a0f4299ac4bc3b81dc8c780",
+    "lib/bindings/xui/examples/headless_cell.xl": "887382d41968134cf8829bde3bdd7e7a450fccd88b13d2308631bb58019b35b2",
+    "test/cases/foreign_xui_table_cell_optional_text.xl": "f6e86c835b3bb655b2fcf0d20a3989be289af2e2a6beef3b53a903005d6cbdf7",
+    "test/cases/foreign_xui_table_cell_optional_text.h": "f8e5fcb204afb75350a7aacd885d976188263f2b521bf976c973201a9668b3d1",
+    "tools/check_xge3_native_consumers.py": "91e489218732feb875005479ad8c1bffe52c42ff5d0d1a3f4cdedffe8d71a016"
+  },
+  "nativeCases": [
+    "early close",
+    "allocation failure rollback",
+    "wrong thread busy and retry",
+    "multiple simultaneous weak references",
+    "reentrant observation during retirement",
+    "lock retains the same native cell",
+    "lock after retirement returns null"
+  ],
+  "platforms": {
+    "win": {
+      "stage": {
+        "path": "F:/xlang-validation/xge-full-20261110/table-cell-reference-stage-win-r2/replay/stage-report.json",
+        "sha256": "f7ef9e5d94a9ab9574a6fc14bfe0a1d596cf6093960dafae76d7b075f0ac394c"
+      },
+      "runtime": {
+        "path": "F:/xlang-validation/xge-full-20261110/table-cell-reference-verify-win-r2/results.json",
+        "sha256": "6f66d6fe6d6f081d90d9f42f3de6d122ec5830f6cc4242a17dad845f61a4ff1b"
+      },
+      "nativeTests": {
+        "path": "F:/xlang-validation/xge-full-20261110/table-cell-reference-native-tests-win-r2/results.json",
+        "sha256": "3ee366a8941b4b34f812b8ae1cfa29a2a5644c8313703b358d6539c64083abbf"
+      },
+      "audit": {
+        "path": "F:/xlang-validation/xge-full-20261110/table-cell-reference-consumers-win-r3/results.json",
+        "sha256": "deeb7127c150c7be4e2d1647feab79dc03857474185ac446b907e20652b9582e"
+      },
+      "generatedC": {
+        "path": "F:/xlang-validation/xge-full-20261110/table-cell-reference-verify-win-r2/foreign_xui_table_cell_optional_text/generated.c",
+        "sha256": "6b7dafaa8f86c23efbdf4f3415960e57ff33217031f67b779b7e3f672e0d3530"
+      },
+      "remaining": {
+        "XGE": 2,
+        "XUI": 24
+      },
+      "cases": {
+        "foreign_xui_table_cell_optional_text": {
+          "directCFunctions": [
+            "xuiTableViewCellOutputCanRetire",
+            "xuiTableViewCellOutputWatchReference",
+            "xuiTableCellReferenceIsLive",
+            "xuiTableCellReferenceLockOwned"
+          ],
+          "imports": {
+            "host": [
+              "msvcrt.dll",
+              "xge3_host.dll",
+              "kernel32.dll",
+              "shell32.dll",
+              "ucrtbase.dll"
+            ],
+            "static": [
+              "msvcrt.dll",
+              "kernel32.dll",
+              "ole32.dll",
+              "shell32.dll"
+            ]
+          }
+        },
+        "headless_cell": {
+          "directCFunctions": [
+            "xuiTableViewCellOutputWatchReference",
+            "xuiTableCellReferenceIsLive"
+          ],
+          "imports": {
+            "host": [
+              "msvcrt.dll",
+              "xge3_host.dll",
+              "kernel32.dll",
+              "ucrtbase.dll"
+            ],
+            "static": [
+              "msvcrt.dll",
+              "kernel32.dll",
+              "ole32.dll"
+            ]
+          }
+        }
+      },
+      "lifecyclePaths": {
+        "xuiTableViewCellOutputWatchReference": {
+          "xuiTableViewCellOutputLifetimeWatch": [
+            ".text$xuiTableViewCellOutputLifetimeWatch"
+          ]
+        },
+        "xuiTableCellReferenceLockOwned": {
+          "xuiTableViewCellOutputShareOwned": [
+            ".text$xuiTableViewCellOutputShareOwned"
+          ]
+        },
+        "xuiTableCellReferenceReleaseOwnerChecked": {
+          "xuiLifetimeUnwatch": [
+            "xuiLifetimeUnwatch"
+          ]
+        }
+      },
+      "destroyPolicyPath": [
+        ".text$xl6Xui3TableCellReferencePolicyGet",
+        ".rdata$policy.0",
+        ".text$xl6Xui3TableCellReferenceDestroy",
+        "xuiTableCellReferenceReleaseOwnerChecked"
+      ]
+    },
+    "linux": {
+      "stage": {
+        "path": "//wsl.localhost/Ubuntu/var/tmp/xlang-validation/xge-full-20261110/table-cell-reference-stage-linux-r2/replay/stage-report.json",
+        "sha256": "ee23598e51edc5cc58bd9c7f4eb6be75e2bdde285824235ed0beb44caff99472"
+      },
+      "runtime": {
+        "path": "//wsl.localhost/Ubuntu/var/tmp/xlang-validation/xge-full-20261110/table-cell-reference-verify-linux-r2/results.json",
+        "sha256": "f2c2667d14aa26ee2facbee39174a6d290825f586e3f03073d3f46be633f7c7d"
+      },
+      "nativeTests": {
+        "path": "//wsl.localhost/Ubuntu/var/tmp/xlang-validation/xge-full-20261110/table-cell-reference-native-tests-linux-r2/results.json",
+        "sha256": "aa0c1fed9dce82080d6bed45e7d9ba45454f2aa6928cffbf00f49812c153be76"
+      },
+      "audit": {
+        "path": "//wsl.localhost/Ubuntu/var/tmp/xlang-validation/xge-full-20261110/table-cell-reference-consumers-linux-r3/results.json",
+        "sha256": "1d21eafd5598ed4c16698453ca03c7f8b0109476d3e7f029fd2cb676557f73d1"
+      },
+      "generatedC": {
+        "path": "//wsl.localhost/Ubuntu/var/tmp/xlang-validation/xge-full-20261110/table-cell-reference-verify-linux-r2/foreign_xui_table_cell_optional_text/generated.c",
+        "sha256": "6b7dafaa8f86c23efbdf4f3415960e57ff33217031f67b779b7e3f672e0d3530"
+      },
+      "remaining": {
+        "XGE": 4,
+        "XUI": 24
+      },
+      "cases": {
+        "foreign_xui_table_cell_optional_text": {
+          "directCFunctions": [
+            "xuiTableViewCellOutputCanRetire",
+            "xuiTableViewCellOutputWatchReference",
+            "xuiTableCellReferenceIsLive",
+            "xuiTableCellReferenceLockOwned"
+          ],
+          "imports": {
+            "host": [
+              "libm.so.6",
+              "libmvec.so.1",
+              "libxge3_host.so",
+              "libc.so.6",
+              "ld-linux-x86-64.so.2"
+            ],
+            "static": [
+              "libm.so.6",
+              "libmvec.so.1",
+              "libx11.so.6",
+              "libxi.so.6",
+              "libxcursor.so.1",
+              "libgl.so.1",
+              "libc.so.6",
+              "ld-linux-x86-64.so.2"
+            ]
+          }
+        },
+        "headless_cell": {
+          "directCFunctions": [
+            "xuiTableViewCellOutputWatchReference",
+            "xuiTableCellReferenceIsLive"
+          ],
+          "imports": {
+            "host": [
+              "libm.so.6",
+              "libmvec.so.1",
+              "libxge3_host.so",
+              "libc.so.6",
+              "ld-linux-x86-64.so.2"
+            ],
+            "static": [
+              "libm.so.6",
+              "libmvec.so.1",
+              "libx11.so.6",
+              "libxi.so.6",
+              "libxcursor.so.1",
+              "libgl.so.1",
+              "libc.so.6",
+              "ld-linux-x86-64.so.2"
+            ]
+          }
+        }
+      },
+      "lifecyclePaths": {
+        "xuiTableViewCellOutputWatchReference": {
+          "xuiTableViewCellOutputLifetimeWatch": [
+            "xuiTableViewCellOutputLifetimeWatch"
+          ]
+        },
+        "xuiTableCellReferenceLockOwned": {
+          "xuiTableViewCellOutputShareOwned": [
+            "xuiTableViewCellOutputShareOwned"
+          ]
+        },
+        "xuiTableCellReferenceReleaseOwnerChecked": {
+          "xuiLifetimeUnwatch": [
+            "xuiLifetimeUnwatch"
+          ]
+        }
+      },
+      "destroyPolicyPath": [
+        ".text.xl6Xui3TableCellReferencePolicyGet",
+        ".data.rel.ro.local.policy.0",
+        ".text.xl6Xui3TableCellReferenceDestroy",
+        "xuiTableCellReferenceReleaseOwnerChecked"
+      ]
+    }
+  },
+  "remainingAcrossPreviouslyQualifiedConfigurations": [
+    "xuiCodeEditGetTokenStyleResolver",
+    "xuiCodeLanguageRegistryRegister",
+    "xuiCodeLanguageRegistryRegisterOwned",
+    "xuiCodeProviderSetCommand",
+    "xuiCodeProviderSetCommandOwned",
+    "xuiContextTraceEventOwners",
+    "xuiIconDescDefault",
+    "xuiIconGetUser",
+    "xuiProxyCreateOwned",
+    "xuiProxyCreateOwnedEx",
+    "xuiProxyResourceOwnershipCompletionV1",
+    "xuiTerminalSetImageCallback",
+    "xuiWidgetGetCacheRenderCallback",
+    "xuiWidgetGetContentMeasureCallback",
+    "xuiWidgetGetCursorQueryCallback",
+    "xuiWidgetGetEventCallback",
+    "xuiWidgetGetEventHandler",
+    "xuiWidgetGetImeCandidateRect",
+    "xuiWidgetGetLayoutChildrenCallback",
+    "xuiWidgetGetLayoutCompleteCallback",
+    "xuiWidgetGetLayoutPrepareCallback",
+    "xuiWidgetGetTypeData",
+    "xuiWidgetTypeGetUserData",
+    "xuiWidgetTypeSetOwnershipTrace"
+  ]
+}

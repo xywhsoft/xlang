@@ -20,7 +20,18 @@ func main(...) as int
     cell.setText("")
     cell.setTooltip("")
     assert xui.cellText(cell) == null and xui.cellTooltip(cell) == null
+
+    auto observer = cell.watch()
+    auto owner = observer.lock()
+    assert owner != null and observer.isLive()
     cell.close()
+    assert observer.isLive()
+    if owner != null then
+        owner.close()
+    end
+    assert not observer.isLive() and observer.lock() == null
+    observer.close()
+
     bool expired = false
     try
         xui.cellText(cell)
