@@ -365,6 +365,12 @@ typedef enum XL6_ForeignCallbackResultKind {
     XL6_FOREIGN_CALLBACK_RESULT_OWNED_TEXT
 } XL6_ForeignCallbackResultKind;
 
+typedef enum XL6_ForeignCallbackUserMode {
+    XL6_FOREIGN_CALLBACK_USER_LAST = 0,
+    XL6_FOREIGN_CALLBACK_USER_FIRST,
+    XL6_FOREIGN_CALLBACK_USER_RECEIVER
+} XL6_ForeignCallbackUserMode;
+
 typedef struct XL6_ForeignParameterContract {
     uint32 declaration;
     uint32 parameter; /* Explicit language parameter, excluding receiver. */
@@ -379,7 +385,7 @@ typedef struct XL6_ForeignParameterContract {
     char callbackTypeCName[80]; /* Sealed XLIR typedef, empty before normalization. */
     uint32 callbackOwnerIndexPlusOne; /* Includes the implicit receiver. */
     int32 callbackFailureCode;
-    bool callbackUserFirst;
+    XL6_ForeignCallbackUserMode callbackUserMode;
     XL6_ForeignCallbackResultKind callbackResultKind;
 } XL6_ForeignParameterContract;
 

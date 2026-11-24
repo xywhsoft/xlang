@@ -36,19 +36,21 @@ def main():
         temp.write_text(json.dumps(report, indent=2) + '\n')
         os.replace(temp, out / 'results.json')
 
-    def run(name, command, marker=None, working=None):
+    def run(name, command, marker=None, working=None, reject=False):
         command = list(map(str, command))
         start = time.monotonic()
         r = subprocess.run(command, cwd=working or out, env=env, capture_output=True, timeout=600)
         log = out / (name + '.log')
         log.write_bytes(r.stdout + r.stderr)
-        report['rows'].append(dict(name=name, command=command, exitCode=r.returncode,
+        report['rows'].append(dict(name=name, command=command, exitCode=r.returncode, expectedFailure=reject,
                                    logSha256=sha(log), seconds=time.monotonic() - start))
         save()
         print(name, r.returncode, flush=True)
-        assert not r.returncode, log
+        assert bool(r.returncode) == reject, log
         if marker is not None:
             assert marker in r.stdout + r.stderr, log
+            if marker == b'PACK_OWNED_CALLBACK_OK':
+                assert b'PACK_GROUP_RECEIVER_OK hotAlloc=0' in r.stdout + r.stderr, log
         return r.stdout + r.stderr
 
     def imports(name, path):
@@ -86,6 +88,26 @@ def main():
             for v in [*native, *([case.with_suffix('.h')] if case.with_suffix('.h').exists() else [])]:
                 inputs[str(v)] = sha(v)
             working = root if stem.endswith('_nested') else out
+            if stem == 'foreign_pack_owned_callback':
+                source = case.read_text()
+                scalar = '@c_owned_callback(0,-1,"GpOwner",-111)'
+                invalid = {
+                    'scalar-receiver': source.replace(scalar, scalar[:-1] + ',"receiver")', 1),
+                    'unpacked-receiver': source + '\nextern "gp_unpacked" @no_raise '
+                        '@c_owned_callback(0,-1,"GpOwner",-111,"receiver") func unpacked(ReceiverValue? value)\n',
+                }
+                for label, text in invalid.items():
+                    assert text != source
+                    negative = out / (label + '.xl')
+                    negative.write_text(text)
+                    inputs[str(negative)] = sha(negative)
+                    run(label, [compiler, 'check', negative], b'receiver userdata requires a packed owned callback', reject=True)
+                generated = out / (stem + '-generated.c')
+                run(stem + '-cgen', [compiler, 'cgen', case, '--emit', generated])
+                data = generated.read_bytes()
+                assert data.count(b'void* userdata=raw0 ? raw0->user : NULL;') == 2
+                assert b'(const GpReceiver* raw0, int raw1)' in data
+                assert b'(GpReceiver* raw0, int raw1)' in data
             run(stem + '-jit', [compiler, 'run', case, *native, *include], marker, working=working)
             binary = out / (stem + ('.exe' if win else ''))
             run(stem + '-build', [compiler, 'build', case, *native, '-o', binary, *include])

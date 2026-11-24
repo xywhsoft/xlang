@@ -268,7 +268,8 @@ static inline int xl6ForeignParameterRead(const XL6_AstNode* attr,
         if(attr->childCount>=5) {
             char order[16];
             if(!xl6ForeignQuotedText(attr->children[4],order,sizeof(order)))return 0;
-            if(!strcmp(order,"first"))result.callbackUserFirst=true;
+            if(!strcmp(order,"first"))result.callbackUserMode=XL6_FOREIGN_CALLBACK_USER_FIRST;
+            else if(!strcmp(order,"receiver"))result.callbackUserMode=XL6_FOREIGN_CALLBACK_USER_RECEIVER;
             else if(!strcmp(order,"owned_text") && attr->childCount==5)result.callbackResultKind=XL6_FOREIGN_CALLBACK_RESULT_OWNED_TEXT;
             else if(strcmp(order,"last"))return 0;
         }
@@ -287,7 +288,7 @@ static inline int xl6ForeignParameterRead(const XL6_AstNode* attr,
         if(attr->childCount>=4){
             char order[16];
             if(!xl6ForeignQuotedText(attr->children[3],order,sizeof(order)))return 0;
-            if(!strcmp(order,"first"))result.callbackUserFirst=true;
+            if(!strcmp(order,"first"))result.callbackUserMode=XL6_FOREIGN_CALLBACK_USER_FIRST;
             else if(strcmp(order,"last"))return 0;
         }
         if(attr->childCount==5 && (!xl6ForeignQuotedText(attr->children[4],result.header,sizeof(result.header)) ||

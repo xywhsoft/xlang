@@ -26,6 +26,16 @@ in force. The owner binding is distinct from `ownerSlot`. Every member in one
 group must name the same native ownership-record C type. A group must contain
 at least one declared retained member; individual members may be NULL.
 
+Use `@c_owned_callback(parameter, owner, "NativeOwner", failure, "receiver")`
+when the native callback receives the descriptor as its first argument and the
+descriptor carries the shared userdata. The first language argument must be a
+non-null callback-lifetime view of that descriptor. The generated signature
+uses this pointer as its first argument and reads the group's declared
+userdata field from it. An authoritative C type check accepts both mutable
+and const pointers to the packed record. Access through the view after the
+callback returns raises a checked error. The native publisher must keep both
+the receiver and the group alive through the call.
+
 Use the explicit `"optional"` mode when the native API accepts an absent
 group. If all members are NULL, generated code allocates no callback-group
 environment and passes NULL for both the descriptor userdata and the physical
@@ -37,7 +47,9 @@ The complete runnable declaration/tests are in
 `test/cases/foreign_pack_owned_callback.xl` with its authoritative `.h` and native
 consumer. They include two groups in one call, nested descriptors, free and
 bound methods, protocol dispatch and a factory output between descriptor and
-owner slots. The existing synchronous `callback`/`callback_user` pack fields
+owner slots. The receiver fixture covers mutable and const descriptors, clearing
+a group during dispatch, checked callback failures, and expired views.
+The existing synchronous `callback`/`callback_user` pack fields
 retain their original nonescaping contract.
 
 ## Native publisher contract

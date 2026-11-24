@@ -1,0 +1,97 @@
+{
+  "schema": 1,
+  "scope": "Direct receiver-field userdata for retained callbacks in native descriptor packs",
+  "shippingDelivery": false,
+  "networkTests": false,
+  "publicCustomProxyApi": false,
+  "compilerWidePackSupport": false,
+  "compilerSourceSha256": {
+    "src/type/xl6_foreign_call_contract.h": "04186d730adfada8d2fe170f9ed0c0aa946f512bec753f1c5e3d799d953fe096",
+    "src/type/xl6_foreign_decl.h": "79e2df4b516b318710041c5e85eee093d12c85150af88c20d2978188d91569c0",
+    "src/sem/xl6_sem.c": "a6012686aeee493857ed703ec45bd8f8ffcd011982e423d9094d0cadacc8518e",
+    "src/ir/xl6_ir.c": "a38b81726d3aca2799eb172abcae54adbf5dfbb5387c1d5dac881b56b4e5db38",
+    "src/ir/xl6_ir_foreign_compat.c": "2e1dcd942cc9ae418045679cd43c654d516ab4710a08ab16cccaaee7158934fa",
+    "src/ir/xl6_ir_foreign_parameter.c": "273826e62e6e4039bddfe5a3b1acddee0c596e85aa6faa9a930568869383ed4d",
+    "src/cgen/xl6_ir_cgen_native_callback.c": "ca0dc67b1ce4879b0951b4969f9a868c9d70d7d03b7612adcdf83efb30085372"
+  },
+  "fixtureSha256": {
+    "test/cases/foreign_pack_owned_callback.xl": "1cb7368f1ee1bfcba4d799563cdcb049c6344758745286928b63a94483fc5247",
+    "test/cases/foreign_pack_owned_callback.h": "952c5f92304b037ef27ec62a1e39874cdb93f1faf7afca86f42179f53ec6eab0",
+    "test/cases/foreign_pack_owned_callback_native.c": "adbc2b832886bef9c8fe5903dfdddab5a628b719334d15d47ce9b34d37cfbc04",
+    "test/cases/foreign_xui_proxy_receiver.xl": "d0ecfc7d4255d25d2b0876c13d9dceae89e168dec7a88a08bced5950769629dc",
+    "tools/check_foreign_pack_owned_callbacks_full.py": "d34ec9fe6e0bae816dbd087d50f89a374d183378abbd07a98a4ee94a601da540"
+  },
+  "checks": [
+    "Mutable and const receiver pointers use the callback-lifetime view of the native descriptor",
+    "Callback-owned group remains live across reentrant registration clearing",
+    "Expired view access and callback failure reach a checked boundary",
+    "Receiver-mode signatures with a scalar receiver or without a group are rejected",
+    "A mismatched native callback prototype fails the authoritative C header type proof",
+    "1000 warm receiver calls leave allocation, free and reallocation counters unchanged",
+    "Real xuiProxyCreateOwned and xuiProxyCreateOwnedEx exercise clock and frame callbacks, sharing, expiry and invalid flags"
+  ],
+  "platforms": {
+    "win_x64": {
+      "compiler": {
+        "path": "F:/xlang-validation/xge-full-20261110/compiler-callback-receiver-win-r1/build.json",
+        "sha256": "6563339ded70e87ed49ae01a8ddff3d82b47e0f7a276ed310683902a4c389788"
+      },
+      "sourceFreeze": {
+        "path": "F:/xlang-validation/xge-full-20261110/compiler-callback-receiver-win-r1/freeze.json",
+        "sha256": "00866c9818fd93515a3f080ddf323b92c3d48246ea85931b24a86b1b1b2d9b43"
+      },
+      "compilerTests": {
+        "path": "F:/xlang-validation/xge-full-20261110/callback-receiver-qualification-win-r2/results.json",
+        "sha256": "9ca6be8eeeefdbda85439c50b5ace1f3acf9c7f5346b947980de32b936b30a12"
+      },
+      "abiTypes": {
+        "path": "F:/xlang-validation/xge-full-20261110/callback-receiver-qualification-win-r2/receiver-header-proof-r1/results.json",
+        "sha256": "bb05cffb5ea21be969784f247a961407a479d6de71675be39cd19223c0129005"
+      },
+      "realProxyTests": {
+        "path": "F:/xlang-validation/xge-full-20261110/xui-proxy-receiver-verify-win-r1/results.json",
+        "sha256": "6434426dcdf3af889109e1d57838eed3187912ee1c450e1b381bea58bc7b7e32"
+      },
+      "realProxyGenerated": {
+        "path": "F:/xlang-validation/xge-full-20261110/xui-proxy-receiver-verify-win-r1/foreign_xui_proxy_receiver/generated.c",
+        "sha256": "d71577985c0c0fdebacac0377d46517d132d31973258d442feb69f1545f017dd"
+      },
+      "realProxyModes": [
+        "JIT",
+        "dynamic AOT",
+        "static AOT"
+      ]
+    },
+    "linux_x64": {
+      "compiler": {
+        "path": "//wsl.localhost/Ubuntu/var/tmp/xlang-validation/xge-full-20261110/compiler-callback-receiver-linux-r1/build.json",
+        "sha256": "5b9ef75f088081890cd9de9d2e878caa8a11d3b8b07e19d23feb7ce0996bcac8"
+      },
+      "sourceFreeze": {
+        "path": "//wsl.localhost/Ubuntu/var/tmp/xlang-validation/xge-full-20261110/compiler-callback-receiver-linux-r1/freeze.json",
+        "sha256": "64a34430ae4939ff0838d25f27b0d4834f891a6e424c21a9683f4b0099a11f4b"
+      },
+      "compilerTests": {
+        "path": "//wsl.localhost/Ubuntu/var/tmp/xlang-validation/xge-full-20261110/callback-receiver-qualification-linux-r1/results.json",
+        "sha256": "7fa9ba1bd558c4e9f3a6553ea0594fadf7507137dea36a4da8b6d6b81ab86715"
+      },
+      "abiTypes": {
+        "path": "//wsl.localhost/Ubuntu/var/tmp/xlang-validation/xge-full-20261110/callback-receiver-qualification-linux-r1/receiver-header-proof-r1/results.json",
+        "sha256": "ad64bb3a9b8a70429a03e4390057e36621a9980c5fd0acaa056fd780918029fc"
+      },
+      "realProxyTests": {
+        "path": "//wsl.localhost/Ubuntu/var/tmp/xlang-validation/xge-full-20261110/xui-proxy-receiver-verify-linux-r1/results.json",
+        "sha256": "a23f32f4188e6a36f434d293f3db398777f273b09a936d78c084b06e8045c448"
+      },
+      "realProxyGenerated": {
+        "path": "//wsl.localhost/Ubuntu/var/tmp/xlang-validation/xge-full-20261110/xui-proxy-receiver-verify-linux-r1/foreign_xui_proxy_receiver/generated.c",
+        "sha256": "d71577985c0c0fdebacac0377d46517d132d31973258d442feb69f1545f017dd"
+      },
+      "realProxyModes": [
+        "JIT",
+        "dynamic AOT",
+        "static AOT"
+      ]
+    }
+  }
+}

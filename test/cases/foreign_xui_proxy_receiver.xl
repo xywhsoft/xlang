@@ -1,0 +1,57 @@
+from xui import Proxy,XUI_PROXY_VERSION
+
+extern "xui_proxy_t*" class CallbackBackend @header("xge3_runtime.h") @lifetime("callback")
+ native point handle
+ extern "iVersion" @c_field @no_raise get version() as c_uint
+end
+
+typedef Clock=func(CallbackBackend) as c_double
+typedef Frame=func(CallbackBackend,c_float)
+extern "xuiProxyReleaseChecked" @header("xge3_runtime.h") @no_raise @c_result("status",0) func releaseProbe(Proxy proxy)
+extern "xuiProxyCreateOwned" @header("xge3_runtime.h") @no_raise @c_result("owned_view") @factory(2,0,releaseProbe) @c_pack(0,"xui_proxy_t",0,3) @c_pack_size(0,"iSize","uint32_t") @c_pack_field(0,"iVersion",0,"value") @c_pack_callback_group(0,"pUser",1) @c_pack_field(0,"clockSeconds",1,"owned_callback") @c_pack_field(0,"requestFrame",2,"owned_callback") @c_owned_callback(1,-1,"xui_callback_owner_t",0,"receiver") @c_owned_callback(2,-1,"xui_callback_owner_t",0,"receiver") func probe(c_uint version,Clock? clock,Frame? frame) as Proxy
+extern "xuiProxyCreateOwnedEx" @header("xge3_runtime.h") @no_raise @c_result("owned_view") @factory(3,0,releaseProbe) @c_pack(0,"xui_proxy_t",0,3) @c_pack_size(0,"iSize","uint32_t") @c_pack_field(0,"iVersion",0,"value") @c_pack_callback_group(0,"pUser",1) @c_pack_field(0,"clockSeconds",1,"owned_callback") @c_pack_field(0,"requestFrame",2,"owned_callback") @c_owned_callback(1,-1,"xui_callback_owner_t",0,"receiver") @c_owned_callback(2,-1,"xui_callback_owner_t",0,"receiver") func probeEx(c_uint version,Clock? clock,Frame? frame,c_uint flags) as Proxy
+
+class State
+ CallbackBackend? saved=null
+ c_float delay=c_float(0)
+end
+
+func main(...) as int
+ auto state=State()
+ c_uint version=c_uint(XUI_PROXY_VERSION)
+ Clock clock=func(CallbackBackend backend) as c_double
+  assert backend.version==version
+  state.saved=backend
+  return c_double(12.5)
+ end
+ Frame frame=func(CallbackBackend backend,c_float delay)
+  assert backend.version==version
+  state.delay=delay
+ end
+ auto first=probe(version,clock,frame)
+ auto alias=first.share()
+ first.close()
+ assert alias.clockSeconds()==c_double(12.5)
+ alias.requestFrame(c_float(0.25))
+ assert state.delay==c_float(0.25)
+ bool expired=false
+ try
+  auto unused=(state.saved as CallbackBackend).version
+ catch error
+  expired=true
+ end
+ assert expired
+ alias.close()
+ auto second=probeEx(version,clock,frame,c_uint(0))
+ assert second.clockSeconds()==c_double(12.5)
+ second.close()
+ bool rejected=false
+ try
+  auto unused=probeEx(version,clock,frame,c_uint(0xFFFFFFFF))
+ catch error
+  rejected=true
+ end
+ assert rejected
+ println("XUI_PROXY_RECEIVER_OK")
+ return 0
+end

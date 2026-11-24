@@ -8,6 +8,15 @@ extern "C" {
 typedef struct GpOwner {xrtownershipref reference;bool (*hold)(const void*);bool (*drop)(const void*);} GpOwner;
 typedef struct GpDesc {int seed;int (*value)(int,void*);void (*notice)(void*,int);void* user;} GpDesc;
 typedef struct GpNested {GpDesc inner;} GpNested;
+typedef struct GpReceiver {
+    int seed;
+    int (*value)(const struct GpReceiver*,int);
+    void (*notice)(struct GpReceiver*,int);
+    void* user;
+} GpReceiver;
+int gp_receiver_install(const GpReceiver*,const GpOwner*);
+int gp_receiver_dispatch(int);
+int gp_receiver_clear(void);
 typedef struct GpRoot GpRoot;
 struct GpRoot {int (*install)(GpRoot*,const GpDesc*,const GpOwner*);GpOwner failed_owner;};
 int gp_install(const GpDesc*,const GpOwner*);

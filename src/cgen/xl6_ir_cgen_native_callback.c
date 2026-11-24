@@ -11,9 +11,10 @@ static const char* xl6IrCgenCallbackNativeType(const XL6_IrModule* module,XL6_Ir
 static int xl6IrCgenCallbackParameters(XL6_Output* out,const XL6_IrModule* module,
     const XL6_IrType* signature,const XL6_ForeignParameterContract* row,bool names)
 {
-    if(row->callbackUserFirst)xl6OutputPuts(names ? "void* userdata" : "void*",out);
+    bool userFirst=row->callbackUserMode==XL6_FOREIGN_CALLBACK_USER_FIRST;
+    if(userFirst)xl6OutputPuts(names ? "void* userdata" : "void*",out);
     for(size_t p=0;p<signature->paramCount;++p) {
-        if(p || row->callbackUserFirst)xl6OutputPuts(", ",out);
+        if(p || userFirst)xl6OutputPuts(", ",out);
         const XL6_ForeignCallbackSpanContract* span=xl6IrForeignCallbackSpanGet(module,row,p);
         if(span){
             xl6OutputPuts(span->pointerCName,out);
@@ -25,7 +26,7 @@ static int xl6IrCgenCallbackParameters(XL6_Output* out,const XL6_IrModule* modul
         xl6OutputPuts(xl6IrCgenCallbackNativeType(module,signature->params[p]),out);
         if(names)xl6OutputPrintf(out," raw%lu",(unsigned long)p);
     }
-    if(!row->callbackUserFirst) {
+    if(row->callbackUserMode==XL6_FOREIGN_CALLBACK_USER_LAST) {
         if(signature->paramCount)xl6OutputPuts(", ",out);
         xl6OutputPuts(names ? "void* userdata" : "void*",out);
     }
@@ -67,6 +68,15 @@ static int xl6IrCgenEmitNativeCallbackThunks(XL6_Output* out,const XL6_IrModule*
         if(!target)continue;
         const XL6_IrType* signature=xl6IrForeignCallbackSignature(module,target,parameter);
         bool sync=row->kind==XL6_FOREIGN_PARAMETER_SYNC_CALLBACK;
+        size_t member=0;
+        const XL6_ForeignPackContract* group=sync ? NULL:xl6IrForeignPackCallbackMember(module,target,parameter,&member,NULL);
+        if(row->callbackUserMode==XL6_FOREIGN_CALLBACK_USER_RECEIVER){
+            if(!group || !signature->paramCount)return 0;
+            const char* receiver=xl6IrCgenCallbackNativeType(module,signature->params[0]);
+            xl6OutputPrintf(out,"XLIR_NATIVE_ASSERT(XLIR_NATIVE_IS_TYPE((%s)0,%s*) || XLIR_NATIVE_IS_TYPE((%s)0,const %s*),"
+                "\"native callback receiver matches its descriptor\");\n",
+                receiver,group->recordCName,receiver,group->recordCName);
+        }
         const XL6_IrType* root=row->callbackOwnerIndexPlusOne ? xl6IrForeignRootType(module,target->parameterTypes[row->callbackOwnerIndexPlusOne-1]) : NULL;
         const char* ownerScope=sync ? "native_owner" : "scope.owner";
         if(row->kind==XL6_FOREIGN_PARAMETER_SYNC_CALLBACK){
@@ -82,7 +92,8 @@ static int xl6IrCgenEmitNativeCallbackThunks(XL6_Output* out,const XL6_IrModule*
             xl6OutputPrintf(out,"    %s_context* record=userdata;\n    XL6_SyncCallbackScopeV1 scope={0};\n",row->callbackTypeCName);
             if(root)xl6OutputPuts("    XL6_ForeignViewCallV1 native_owner={0};\n",out);
         }else {
-            size_t member;const XL6_ForeignPackContract* group=xl6IrForeignPackCallbackMember(module,target,parameter,&member,NULL);
+            if(row->callbackUserMode==XL6_FOREIGN_CALLBACK_USER_RECEIVER)
+                xl6OutputPrintf(out,"    void* userdata=raw0 ? raw0->%s : NULL;\n",group->callbackUserField);
             if(group)xl6OutputPrintf(out,"    const XL6_NativeCallbackGroupV1* group=userdata;\n"
                 "    XL6_NativeCallback* record=group && group->Members && group->Count>%lu ? group->Members[%lu]:NULL;\n",
                 (unsigned long)member,(unsigned long)member);

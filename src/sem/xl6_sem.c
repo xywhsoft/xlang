@@ -9204,7 +9204,7 @@ static int xl6SemExternParameterListsCompatible(XL6_SemContext* ctx,const XL6_As
         const XL6_AstNode* lt=left->children[p]->children[0];const XL6_AstNode* rt=right->children[p]->children[0];
         if(expanded) {
             if(x.kind!=y.kind || strcmp(x.pointerCName,y.pointerCName) || x.countAbi!=y.countAbi ||
-                strcmp(x.callbackOwnerCName,y.callbackOwnerCName) || x.callbackUserFirst!=y.callbackUserFirst ||
+                strcmp(x.callbackOwnerCName,y.callbackOwnerCName) || x.callbackUserMode!=y.callbackUserMode ||
                 x.callbackFailureCode!=y.callbackFailureCode || x.callbackResultKind!=y.callbackResultKind)return 0;
             if(x.kind==XL6_FOREIGN_PARAMETER_SPAN){
                 if(!xl6SemExternCTypeCompatible(ctx,lt,rt) && !xl6SemForeignReadonlySpanInputCompatible(ctx,lt,rt,&x,&y))return 0;
@@ -21539,6 +21539,26 @@ invalid:
     xl6SemErrorNode(ctx,at,"native C callback requires an exact signature; managed inputs need their declared root and transient text needs a callback view");
     return 0;
 }
+static int xl6SemCheckNativeCallbackReceiver(XL6_SemContext* ctx,const XL6_AstNode* node,
+    const XL6_AstNode* signature,size_t parameter)
+{
+    XL6_ForeignPackContract group;
+    if(!xl6ForeignPackForParameter(node,parameter,&group) || !group.callbackOwnerPhysicalIndexPlusOne)return 0;
+    signature=xl6SemResolveAliasType(ctx,signature);
+    if(xl6SemTypeIsNullable(signature))signature=xl6SemResolveAliasType(ctx,xl6SemNullableInnerType(signature));
+    const XL6_AstNode* args=signature && signature->childCount==2 ? signature->children[0]:NULL;
+    const XL6_AstNode* receiver=args && args->childCount ?
+        xl6SemResolveAliasType(ctx,xl6SemCallableItemType(args->children[0])):NULL;
+    XL6_ForeignClassDecl view={0};
+    if(!receiver || xl6SemTypeIsNullable(receiver) || !xl6SemForeignViewDeclaration(ctx,receiver,&view) ||
+        view.lifetime!=XL6_FOREIGN_LIFETIME_CALLBACK)return 0;
+    const XL6_AstNode* attrs=xl6ForeignFunctionAttributes(node);
+    for(size_t i=0;attrs && i<attrs->childCount;++i){
+        XL6_ForeignCallbackSpanContract span;
+        if(xl6ForeignCallbackSpanRead(attrs->children[i],&span) && span.parameter==parameter && !span.argument)return 0;
+    }
+    return 1;
+}
 /* Ownership helper declarations are resolved once by semantics; lowering and
  * Cgen only consume their sealed symbols and exact physical signatures. */
 static const XL6_AstNode* xl6SemForeignOwnershipHelper(XL6_SemContext* ctx,
@@ -21790,6 +21810,10 @@ static int xl6SemCheckForeignFunctionDeclaration(XL6_SemContext* ctx, XL6_AstNod
                 (source<64 && (facts.controlViews&(UINT64_C(1)<<source))) ||
                 !xl6SemCheckNativeCallbackType(ctx,type,root,contract.callbackResultKind,parameter)) {
                 xl6SemErrorNode(ctx,parameter,"native callback requires its declared non-null managed owner source, or explicit owner=-1");return 0;
+            }
+            if(contract.callbackUserMode==XL6_FOREIGN_CALLBACK_USER_RECEIVER &&
+                !xl6SemCheckNativeCallbackReceiver(ctx,node,type,contract.parameter)){
+                xl6SemErrorNode(ctx,parameter,"receiver userdata requires a packed owned callback with a non-null callback-lifetime descriptor receiver");return 0;
             }
         }
     }

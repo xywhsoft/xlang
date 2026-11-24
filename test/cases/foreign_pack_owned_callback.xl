@@ -25,6 +25,23 @@ extern "gp_fail_reset" @header("test/cases/foreign_pack_owned_callback.h") @no_r
 extern "gp_heap" @header("test/cases/foreign_pack_owned_callback.h") @no_raise @c_outputs(0,1,2,3,4) func heap() as (c_size,c_size,uint64,uint64,uint64)
 extern "xrtMemDebugEnabled" @header("xrt_decl.h") @no_raise func debugEnabled() as bool
 extern "xrtMemDebugEnable" @header("xrt_decl.h") @no_raise func setDebugEnabled(bool enabled) as bool
+extern "const GpReceiver*" class ReadReceiver @header("test/cases/foreign_pack_owned_callback.h") @lifetime("callback")
+ native point handle
+ extern "seed" @c_field @no_raise get seed() as c_int
+end
+extern "GpReceiver*" class Receiver @header("test/cases/foreign_pack_owned_callback.h") @lifetime("callback")
+ native point handle
+ extern "seed" @c_field @no_raise get seed() as c_int
+end
+typedef ReceiverValue=func(ReadReceiver,c_int) as c_int
+typedef ReceiverNotice=func(Receiver,c_int)
+extern "gp_receiver_install" @header("test/cases/foreign_pack_owned_callback.h") @no_raise @c_result("status",0) @c_pack(0,"GpReceiver",0,3) @c_pack_callback_group(0,"user",1) @c_pack_field(0,"value",0,"owned_callback") @c_pack_field(0,"notice",1,"owned_callback") @c_pack_field(0,"seed",2,"value") @c_owned_callback(0,-1,"GpOwner",-111,"receiver") @c_owned_callback(1,-1,"GpOwner",0,"receiver") func installReceiver(ReceiverValue? value,ReceiverNotice? notice,c_int seed)
+extern "gp_receiver_dispatch" @header("test/cases/foreign_pack_owned_callback.h") @no_raise @c_result("integer_min",0) func dispatchReceiver(c_int value) as c_int
+extern "gp_receiver_clear" @header("test/cases/foreign_pack_owned_callback.h") @no_raise @c_result("status",0) func clearReceiver()
+class ReceiverState
+ ReadReceiver? escaped=null
+ c_int observed=c_int(0)
+end
 func plus(c_int value) as c_int
  return value+c_int(5)
 end
@@ -67,8 +84,56 @@ func oomSweep()
  clear()
  println("PACK_GROUP_OOM_OK hotAlloc=0")
 end
+func receiverGroup()
+ auto state=ReceiverState()
+ installReceiver(func(ReadReceiver receiver,c_int input) as c_int
+  state.escaped=receiver
+  clearReceiver()
+  return receiver.seed+input
+ end,func(Receiver receiver,c_int input)
+  state.observed=receiver.seed-input
+ end,c_int(7))
+ assert dispatchReceiver(c_int(2))==c_int(9) and state.observed==c_int(5)
+ bool expired=false
+ try
+  auto unused=(state.escaped as ReadReceiver).seed
+ catch error
+  expired=true
+ end
+ assert expired
+ installReceiver(func(ReadReceiver receiver,c_int input) as c_int
+  assert false, "receiver callback error"
+  return input
+ end,null,c_int(0))
+ bool rejected=false
+ try
+  auto unused=dispatchReceiver(c_int(1))
+ catch error
+  rejected=true
+ end
+ assert rejected
+ clearReceiver()
+ bool previousDebug=debugEnabled()
+ if not previousDebug then assert setDebugEnabled(true) end
+ installReceiver(func(ReadReceiver receiver,c_int input) as c_int
+  return receiver.seed+input
+ end,null,c_int(7))
+ assert dispatchReceiver(c_int(2))==c_int(9)
+ auto live,bytes,allocs,frees,reallocs=heap()
+ int turn=0
+ while turn<1000
+  assert dispatchReceiver(c_int(2))==c_int(9)
+  turn+=1
+ end
+ auto live2,bytes2,allocs2,frees2,reallocs2=heap()
+ assert allocs==allocs2 and frees==frees2 and reallocs==reallocs2
+ clearReceiver()
+ if not previousDebug then assert setDebugEnabled(false) end
+ println("PACK_GROUP_RECEIVER_OK hotAlloc=0")
+end
 func main(...) as int
  clear()
+ receiverGroup()
  c_int observed=c_int(0)
  install(plus,func(c_int value)
   observed+=value

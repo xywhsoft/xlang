@@ -62,6 +62,11 @@ int main(int argc,char** argv)
         callback->kind=XL6_FOREIGN_PARAMETER_SYNC_CALLBACK;refused(ir,"lost retained preparation");*callback=original;
         strcpy(callback->callbackOwnerCName,"WrongOwner");refused(ir,"members disagree on owner ABI");*callback=original;
         callback->callbackOwnerIndexPlusOne=65;refused(ir,"unknown context owner");*callback=original;
+        callback->callbackUserMode=(XL6_ForeignCallbackUserMode)3;refused(ir,"unknown userdata mode");*callback=original;
+        if(original.callbackUserMode!=XL6_FOREIGN_CALLBACK_USER_RECEIVER){
+            callback->callbackUserMode=XL6_FOREIGN_CALLBACK_USER_RECEIVER;
+            refused(ir,"scalar argument cannot supply descriptor userdata");*callback=original;
+        }
         XL6_IrCallParameterPhysicalAbi physical=target->parameterPhysicalAbis[field->parameter];
         target->parameterPhysicalAbis[field->parameter]=XL6_IR_CALL_PARAMETER_PHYSICAL_DIRECT;refused(ir,"lost member preparation");
         target->parameterPhysicalAbis[field->parameter]=physical;

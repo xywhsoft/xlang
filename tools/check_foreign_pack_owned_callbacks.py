@@ -156,6 +156,8 @@ def main():
         for label, old, new in (
             ('value-order', 'int (*value)(int,void*)', 'int (*value)(void*,int)'),
             ('notice-order', 'void (*notice)(void*,int)', 'void (*notice)(int,void*)'),
+            ('receiver-constness', 'int (*value)(const struct GpReceiver*,int)',
+             'int (*value)(struct GpReceiver*,int)'),
             ('userdata-type', 'void* user;', 'const void* user;'),
             ('owner-argument', 'int gp_install(const GpDesc*,const GpOwner*);',
              'int gp_install(const GpDesc*,const void*);')):
@@ -184,6 +186,10 @@ def main():
             'not-retained': original.replace('@c_owned_callback(0,-1,"GpOwner",-111)', '@c_sync_callback(0,-1,-111)', 1),
             'different-owner': original.replace('@c_owned_callback(0,-1,"GpOwner",-111)', '@c_owned_callback(0,-1,"OtherOwner",-111)', 1),
             'individual-userdata': original.replace('@c_pack_field(0,"notice",1,"owned_callback")', '@c_pack_field(0,"notice",1,"callback_user")', 1),
+            'scalar-receiver': original.replace('@c_owned_callback(0,-1,"GpOwner",-111)',
+                                                '@c_owned_callback(0,-1,"GpOwner",-111,"receiver")', 1),
+            'unpacked-receiver': original + '\nextern "gp_unpacked" @no_raise '
+                '@c_owned_callback(0,-1,"GpOwner",-111,"receiver") func unpacked(ReceiverValue? value)\n',
         }
         for label, text in bad.items():
             assert text != original

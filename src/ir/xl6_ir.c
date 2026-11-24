@@ -54675,10 +54675,11 @@ void xl6IrDumpModuleJson(XL6_Output* out, const XL6_IrModule* module)
     xl6OutputPuts("  ],\n  \"foreignParameters\": [\n",out);
     for(i=0;i<module->foreignParameterCount;++i) {
         const XL6_ForeignParameterContract* row=&module->foreignParameters[i];
-        xl6OutputPrintf(out,"    {\"declaration\":%u,\"parameter\":%u,\"kind\":%d,\"pointerCName\":\"%s\",\"elementCName\":\"%s\",\"countAbi\":%d,\"readOnly\":%s,\"callbackOwnerCName\":\"%s\",\"callbackTypeCName\":\"%s\",\"callbackOwnerIndexPlusOne\":%u,\"callbackFailureCode\":%d,\"callbackUserFirst\":%s,\"callbackResultKind\":%d}%s\n",
+        xl6OutputPrintf(out,"    {\"declaration\":%u,\"parameter\":%u,\"kind\":%d,\"pointerCName\":\"%s\",\"elementCName\":\"%s\",\"countAbi\":%d,\"readOnly\":%s,\"callbackOwnerCName\":\"%s\",\"callbackTypeCName\":\"%s\",\"callbackOwnerIndexPlusOne\":%u,\"callbackFailureCode\":%d,\"callbackUserFirst\":%s,\"callbackUserMode\":%d,\"callbackResultKind\":%d}%s\n",
             row->declaration,row->parameter,(int)row->kind,row->pointerCName,row->elementCName,(int)row->countAbi,
             row->readOnly ? "true" : "false",row->callbackOwnerCName,row->callbackTypeCName,
-            row->callbackOwnerIndexPlusOne,row->callbackFailureCode,row->callbackUserFirst ? "true" : "false",(int)row->callbackResultKind,
+            row->callbackOwnerIndexPlusOne,row->callbackFailureCode,row->callbackUserMode==XL6_FOREIGN_CALLBACK_USER_FIRST ? "true" : "false",
+            (int)row->callbackUserMode,(int)row->callbackResultKind,
             i+1==module->foreignParameterCount ? "" : ",");
     }
     xl6OutputPuts("  ],\n  \"foreignOutputs\": [\n",out);

@@ -3,6 +3,8 @@
 #include <string.h>
 static GpDesc current;
 static GpOwner current_owner;
+static GpReceiver receiver;
+static GpOwner receiver_owner;
 static int installations;
 static int failure_roots;
 int gp_install(const GpDesc* desc,const GpOwner* owner)
@@ -29,6 +31,32 @@ int gp_clear(void)
     GpOwner previous=current_owner;
     memset(&current,0,sizeof(current));memset(&current_owner,0,sizeof(current_owner));
     return !previous.reference.Data || previous.drop(previous.reference.Data) ? 0:-1;
+}
+int gp_receiver_install(const GpReceiver* desc,const GpOwner* owner)
+{
+    assert(desc && owner && desc->user==owner->reference.Data && owner->hold && owner->drop);
+    if(!owner->hold(desc->user))return -1;
+    GpOwner previous=receiver_owner;
+    receiver=*desc;
+    receiver_owner=*owner;
+    return !previous.reference.Data || previous.drop(previous.reference.Data) ? 0:-1;
+}
+int gp_receiver_clear(void)
+{
+    GpOwner previous=receiver_owner;
+    receiver=(GpReceiver){0};
+    receiver_owner=(GpOwner){0};
+    return !previous.reference.Data || previous.drop(previous.reference.Data) ? 0:-1;
+}
+int gp_receiver_dispatch(int input)
+{
+    GpReceiver desc=receiver;
+    GpOwner owner=receiver_owner;
+    if(!owner.reference.Data || !owner.hold(owner.reference.Data)){xrtSetErrorKind(XERR_STATE);return -1;}
+    int result=desc.value ? desc.value(&desc,input):desc.seed;
+    if(result>=0 && desc.notice)desc.notice(&desc,input);
+    if(!owner.drop(owner.reference.Data))return -1;
+    return result;
 }
 static int invoke(const GpDesc* desc,const GpOwner* owner,int input)
 {
