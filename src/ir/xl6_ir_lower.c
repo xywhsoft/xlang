@@ -558,10 +558,13 @@ static const XL6_IrExitPlan* xl6IrLowerExitPlan(
 
 static int xl6IrLowerGrow(void** items, size_t* capacity, size_t count, size_t itemSize)
 {
-    size_t next = *capacity == 0 ? 32 : *capacity * 2;
+    size_t next;
     void* grown;
     if ( count < *capacity ) return 1;
-    if ( next < count + 1 || next > SIZE_MAX / itemSize ) return 0;
+    size_t limit = SIZE_MAX / itemSize;
+    if ( count >= limit ) return 0;
+    next = *capacity == 0 ? 32 : *capacity > limit / 2 ? limit : *capacity * 2;
+    if ( next <= count || next > limit ) next = count + 1;
     grown = xrtRealloc(*items, next * itemSize);
     if ( grown == NULL ) return 0;
     *items = grown;
@@ -884,7 +887,7 @@ static int xl6IrLowerEmit(
     }
     if ( operandCount > 0 ) {
         size_t required = module->operandCount + operandCount;
-        while ( required > module->operandCapacity &&
+        if ( required > module->operandCapacity &&
                 !xl6IrLowerGrow((void**)&module->operands, &module->operandCapacity,
                                 required - 1, sizeof(*module->operands)) ) {
             return xl6IrLowerDiag(ctx, origin, "XLIR operand arena has no canonical storage capacity");

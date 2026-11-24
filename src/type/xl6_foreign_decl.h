@@ -149,7 +149,7 @@ static inline int xl6ForeignCallbackSpanRead(const XL6_AstNode* attr,XL6_Foreign
 {
     XL6_ForeignCallbackSpanContract row={0};int32 parameter,argument;char count[32];
     if(!attr || !attr->text || strcmp(attr->text,"c_callback_span") || attr->childCount!=4 ||
-        !xl6ForeignDecimalInt(attr->children[0],&parameter) || parameter<0 || parameter>=64 ||
+        !xl6ForeignDecimalInt(attr->children[0],&parameter) || parameter<0 || parameter>=XL6_FOREIGN_PACK_LOGICAL_LIMIT ||
         !xl6ForeignDecimalInt(attr->children[1],&argument) || argument<0 || argument>=64 ||
         !xl6ForeignQuotedText(attr->children[2],row.pointerCName,sizeof(row.pointerCName)) ||
         !xl6ForeignQuotedText(attr->children[3],count,sizeof(count)))return 0;
@@ -224,7 +224,8 @@ static inline int xl6ForeignParameterRead(const XL6_AstNode* attr,
     XL6_ForeignParameterContract result={0};
     int32 index;
     if(!attr || !attr->text || !attr->childCount ||
-        !xl6ForeignDecimalInt(attr->children[0],&index) || index<0 || index>=64)return 0;
+        !xl6ForeignDecimalInt(attr->children[0],&index) || index<0 || index>=XL6_FOREIGN_PACK_LOGICAL_LIMIT ||
+        (index>=64 && strcmp(attr->text,"c_owned_callback")))return 0;
     result.parameter=(uint32)index;
     if(!strcmp(attr->text,"c_span")) {
         char count[32];
@@ -384,6 +385,7 @@ static inline int xl6ForeignFunctionRead(const XL6_AstNode* node,
 {
     XL6_ForeignCallFacts facts = {0};int countedField=0,retainedResult=0,voidFactory=0,outputStatus=0,fieldCall=0;uint64 callbackSpans=0,callbackParameters=0,outputSizes=0,outputViews=0,regions=0,regionObservers=0,packs=0,packText=0,packCstrings=0,nulls=0,spanLimits=0;size_t callbackSpanCount=0,packFields=0;
     uint64 recordFields=0,recordRetains=0,arrayGroups=0,arrayRecords=0,arrayPacks=0,arrayPackOwners=0,callbackGroups=0,callbackGroupOwners=0,snapshots=0,resultSnapshots=0;size_t arrayInputs=0,arrayFields=0;
+    uint64 upperCallbackSpans=0,upperCallbacks=0;
     const XL6_AstNode* attributes = xl6ForeignFunctionAttributes(node);
     for (size_t i = 0; attributes && i < attributes->childCount; ++i) {
         const XL6_AstNode* attr = attributes->children[i];
@@ -530,7 +532,9 @@ static inline int xl6ForeignFunctionRead(const XL6_AstNode* node,
             XL6_ForeignCallbackSpanContract row;
             if(!xl6ForeignCallbackSpanRead(attr,&row))return 0;
             if(callbackSpanCount==64)return 0;
-            callbackSpans|=UINT64_C(1)<<row.parameter;++callbackSpanCount;continue;
+            if(row.parameter<64)callbackSpans|=UINT64_C(1)<<row.parameter;
+            else upperCallbackSpans|=UINT64_C(1)<<(row.parameter-64);
+            ++callbackSpanCount;continue;
         }
         if(attr && attr->text && !strcmp(attr->text,"c_retain")){
             if(retainedResult || !xl6ForeignRetainRead(attr,NULL))return 0;
@@ -575,7 +579,16 @@ static inline int xl6ForeignFunctionRead(const XL6_AstNode* node,
             continue;
         }
         if (!attr || !attr->text || !attr->childCount ||
-            !xl6ForeignDecimalInt(attr->children[0], &index) || index < 0 || index >= 64) return 0;
+            !xl6ForeignDecimalInt(attr->children[0], &index) || index < 0 || index >= XL6_FOREIGN_PACK_LOGICAL_LIMIT) return 0;
+        if(index>=64){
+            XL6_ForeignParameterContract callback;
+            XL6_ForeignPackContract pack;
+            uint64 bit=UINT64_C(1)<<(index-64);
+            if(!xl6ForeignParameterRead(attr,&callback) || callback.kind!=XL6_FOREIGN_PARAMETER_RETAINED_CALLBACK ||
+                (upperCallbacks&bit) || !xl6ForeignPackForParameter(node,(size_t)index,&pack) || !pack.callbackOwnerPhysicalIndexPlusOne)return 0;
+            upperCallbacks|=bit;
+            continue;
+        }
         if (!strcmp(attr->text,"c_span") || !strcmp(attr->text,"c_owned_callback") || !strcmp(attr->text,"c_sync_callback")) {
             XL6_ForeignParameterContract contract;
             uint64 bit=UINT64_C(1)<<index;
@@ -642,7 +655,7 @@ static inline int xl6ForeignFunctionRead(const XL6_AstNode* node,
         if(facts.inplaceOutput!=XL6_FOREIGN_INPLACE_STATUS)return 0;
         facts.inplaceOutput=XL6_FOREIGN_INPLACE_VOID;
     }
-    if(callbackSpans&~callbackParameters)return 0;
+    if((callbackSpans&~callbackParameters) || (upperCallbackSpans&~upperCallbacks))return 0;
     int nativeSequence=xl6ForeignValueOutputBase(facts.valueOutput)==XL6_FOREIGN_VALUE_OUTPUT_NATIVE_SEQUENCE_STATUS;
     if(retainedResult!=((facts.borrowedViewResult==XL6_FOREIGN_VIEW_RESULT_RETAINED_NATIVE)||nativeSequence) ||
         (retainedResult && !nativeSequence && (facts.outputIndexPlusOne || facts.inplaceOutput || facts.receiverDereference || facts.valueOutput)))return 0;

@@ -6,6 +6,7 @@ exercise JIT/static/shared and a standalone nested compiler. CPU-only.
 from pathlib import Path
 import argparse, hashlib, json, os, re, shutil, subprocess, sys, time
 from full_compiler_qualification import verify_full_compiler
+from foreign_wide_pack_fixture import write_wide_named_call_fixture, write_wide_pack_fixture
 
 
 def main():
@@ -21,7 +22,8 @@ def main():
     objdump = Path(shutil.which('objdump')).resolve()
     stage = snapshot / 'tools/stage_runtime_headers.py'
     inputs = {str(v): sha(v) for v in (compiler, build, Path(__file__), objdump,
-              Path(__file__).with_name('full_compiler_qualification.py'), stage)}
+              Path(__file__).with_name('full_compiler_qualification.py'),
+              Path(__file__).with_name('foreign_wide_pack_fixture.py'), stage)}
     names = ('xl.exe', 'xl.dll', 'xlc.dll') if win else ('xl', 'libxl.so', 'libxlc.so')
     out.mkdir(parents=True, exist_ok=False)
     env = {k: v for k, v in os.environ.items() if not k.startswith('XL6_') and k != 'XLANG_PACKAGE_PATH'}
@@ -77,14 +79,23 @@ def main():
         inputs.update((str(v), sha(v)) for v in execution.rglob('*') if v.is_file())
         if not win:
             env['LD_LIBRARY_PATH'] = str(execution) + ':' + env.get('LD_LIBRARY_PATH', '')
-        include = ['--inc-path', root, '--inc-path', execution / 'include']
+        wide = out / 'wide-fixture'
+        wide.mkdir()
+        write_wide_pack_fixture(wide)
+        include = ['--inc-path', root, '--inc-path', execution / 'include', '--inc-path', wide]
+        named_call = wide / 'ordinal_probe.xl'
+        write_wide_named_call_fixture(named_call)
+        inputs[str(named_call)] = sha(named_call)
+        run('wide-named-arguments', [compiler, 'run', named_call, *include], b'WIDE_NAMED_ARGUMENTS_OK')
         for stem, provider, marker in (
             ('foreign_pack_owned_callback', 'foreign_pack_owned_callback_native.c', b'PACK_OWNED_CALLBACK_OK'),
             ('closure_native_scalar_cells', None, b'NATIVE_SCALAR_CELLS_OK'),
-            ('foreign_pack_owned_callback_nested', None, b'PACK_GROUP_NESTED_OK')):
-            case = root / 'test/cases' / (stem + '.xl')
+            ('foreign_pack_owned_callback_nested', None, b'PACK_GROUP_NESTED_OK'),
+            ('wide_callback_pack', 'wide_callback_pack_native.c', b'WIDE_PACK_CALLBACK_OK')):
+            fixture_root = wide if stem == 'wide_callback_pack' else root / 'test/cases'
+            case = fixture_root / (stem + '.xl')
             inputs[str(case)] = sha(case)
-            native = [root / 'test/cases' / provider] if provider else []
+            native = [fixture_root / provider] if provider else []
             for v in [*native, *([case.with_suffix('.h')] if case.with_suffix('.h').exists() else [])]:
                 inputs[str(v)] = sha(v)
             working = root if stem.endswith('_nested') else out
@@ -108,6 +119,29 @@ def main():
                 assert data.count(b'void* userdata=raw0 ? raw0->user : NULL;') == 2
                 assert b'(const GpReceiver* raw0, int raw1)' in data
                 assert b'(GpReceiver* raw0, int raw1)' in data
+            if stem == 'wide_callback_pack':
+                source = case.read_text(encoding='utf8')
+                member = '@c_pack_field(0,"member71",71,"owned_callback")'
+                callback = '@c_owned_callback(71,-1,"WidePackOwner",-1,"receiver")'
+                for label, old, new in (
+                    ('wide-missing-field', member, ''),
+                    ('wide-duplicate-callback', callback, callback + ' ' + callback),
+                    ('wide-unpacked-callback', '@c_pack(0,"WidePack",0,72)', '@c_pack(0,"WidePack",0,71)'),
+                    ('wide-unpaired-span', '@c_callback_span(71,', '@c_callback_span(72,'),
+                    ('wide-out-of-range', '@c_pack(0,"WidePack",0,72)', '@c_pack(0,"WidePack",0,129)'),
+                    ('wide-unmapped-kind', '@c_pack_field(2,"seed",72,"value")', '@c_pack_field(2,"seed",72,"c_string")'),
+                ):
+                    assert old in source
+                    negative = wide / (label + '.xl')
+                    negative.write_text(source.replace(old, new, 1), encoding='utf8')
+                    inputs[str(negative)] = sha(negative)
+                    run(label, [compiler, 'check', negative], reject=True)
+                generated = out / (stem + '-generated.c')
+                run(stem + '-cgen', [compiler, 'cgen', case, '--emit', generated])
+                data = generated.read_bytes()
+                assert b'native_callback_group_closures_0[72]' in data
+                assert data.count(b'void* userdata=raw0 ? raw0->userdata : NULL;') == 72
+                assert b'group->Members[71]' in data
             run(stem + '-jit', [compiler, 'run', case, *native, *include], marker, working=working)
             binary = out / (stem + ('.exe' if win else ''))
             run(stem + '-build', [compiler, 'build', case, *native, '-o', binary, *include])
@@ -131,6 +165,14 @@ def main():
             inputs[str(host)] = sha(host)
             run(stem + '-shared-run', [sys.executable, '-B', host, library], marker)
             imports(stem + '-shared', library)
+        for stem, marker in (
+            ('foreign_pack_callback', b'packed synchronous callbacks:'),
+            ('foreign_descriptor_arrays', b'DESCRIPTOR_ARRAYS_OK'),
+        ):
+            case = root / 'test/cases' / (stem + '.xl')
+            for path in (case, case.with_suffix('.h'), case.with_suffix('.c')):
+                inputs[str(path)] = sha(path)
+            run(stem + '-jit', [compiler, 'run', case, *include], marker)
         verify_full_compiler(build, compiler)
         report.update(complete=True, inputsUnchanged=all(sha(v) == digest for v, digest in inputs.items()))
         report['passed'] = report['inputsUnchanged']

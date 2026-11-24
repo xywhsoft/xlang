@@ -43,8 +43,8 @@ static inline int xl6ForeignPackRead(const XL6_AstNode* attr,XL6_ForeignPackCont
         !xl6ForeignDecimalInt(attr->children[0],&physical) || physical<0 || physical>=64 ||
         !xl6ForeignQuotedText(attr->children[1],row.recordCName,sizeof(row.recordCName)) ||
         !xl6ForeignIdentifier(row.recordCName) ||
-        !xl6ForeignDecimalInt(attr->children[2],&first) || first<0 || first>=64 ||
-        !xl6ForeignDecimalInt(attr->children[3],&count) || count<=0 || count>64 || first>64-count)return 0;
+        !xl6ForeignDecimalInt(attr->children[2],&first) || first<0 || first>=XL6_FOREIGN_PACK_LOGICAL_LIMIT ||
+        !xl6ForeignDecimalInt(attr->children[3],&count) || count<=0 || count>XL6_FOREIGN_PACK_LOGICAL_LIMIT-first)return 0;
     row.physicalIndex=(uint32)physical;row.firstParameter=(uint32)first;row.parameterCount=(uint32)count;
     if(output)*output=row;
     return 1;
@@ -74,7 +74,7 @@ static inline int xl6ForeignPackFieldRead(const XL6_AstNode* attr,XL6_ForeignPac
                 strlen(target)!=parent || strncmp(target,row.field,parent))return 0;
         }else if(xl6ForeignPackParentLength(row.field))return 0;
     }else{
-        if(!xl6ForeignDecimalInt(attr->children[2],&parameter) || parameter<0 || parameter>=64 ||
+        if(!xl6ForeignDecimalInt(attr->children[2],&parameter) || parameter<0 || parameter>=XL6_FOREIGN_PACK_LOGICAL_LIMIT ||
             !xl6ForeignQuotedText(attr->children[3],mode,sizeof(mode)))return 0;
         row.parameter=(uint32)parameter;
         row.kind=!strcmp(mode,"value") ? XL6_FOREIGN_PACK_FIELD_VALUE :
@@ -87,7 +87,7 @@ static inline int xl6ForeignPackFieldRead(const XL6_AstNode* attr,XL6_ForeignPac
             !strcmp(mode,"callback") ? XL6_FOREIGN_PACK_FIELD_SYNC_CALLBACK :
             !strcmp(mode,"owned_callback") ? XL6_FOREIGN_PACK_FIELD_OWNED_CALLBACK :
             !strcmp(mode,"callback_user") ? XL6_FOREIGN_PACK_FIELD_CALLBACK_USER : XL6_FOREIGN_PACK_FIELD_INVALID;
-        if(!row.kind)return 0;
+        if(!row.kind || (parameter>=64 && !xl6ForeignPackUsesWideOrdinal(row.kind)))return 0;
         if(row.kind==XL6_FOREIGN_PACK_FIELD_TEXT_SIZE){
             if(attr->childCount!=5 || !xl6ForeignQuotedText(attr->children[4],count,sizeof(count)))return 0;
             row.countAbi=!strcmp(count,"int") ? XL6_FOREIGN_SPAN_COUNT_INT :
@@ -238,8 +238,8 @@ static inline int xl6ForeignPhysicalStepRead(const XL6_AstNode* node,const XL6_F
             if(physicalPack.firstParameter+receiver>parameters || physicalPack.parameterCount>parameters-physicalPack.firstParameter-receiver)return 0;
             step.kind=XL6_FOREIGN_PHYSICAL_STEP_PACK;step.parameter=physicalPack.firstParameter+(uint32)receiver;++physical;
         }else{
-            while(parameter<parameters && parameter>=receiver && parameter-receiver<64 &&
-                ((limits&(UINT64_C(1)<<(parameter-receiver))) ||
+            while(parameter<parameters && parameter>=receiver &&
+                (((parameter-receiver)<64 && (limits&(UINT64_C(1)<<(parameter-receiver)))) ||
                  xl6ForeignPackForParameter(node,parameter-receiver,NULL)))++parameter;
             if(parameter>=parameters || (ordinal<outputs && slots[ordinal]<physical))return 0;
             XL6_ForeignPackContract pack;size_t explicitParameter=parameter>=receiver ? parameter-receiver:SIZE_MAX;
@@ -251,7 +251,7 @@ static inline int xl6ForeignPhysicalStepRead(const XL6_AstNode* node,const XL6_F
                     group.arrayCount>=parameters-parameter || width==SIZE_MAX ||
                     (ordinal<outputs && slots[ordinal]>physical && slots[ordinal]-physical<width))return 0;
                 step.kind=XL6_FOREIGN_PHYSICAL_STEP_ARRAY_GROUP;parameter+=(size_t)group.arrayCount+1;physical+=width;
-            }else if(explicitParameter<64 && xl6ForeignPackForParameter(node,explicitParameter,&pack)){
+            }else if(xl6ForeignPackForParameter(node,explicitParameter,&pack)){
                 if(explicitParameter!=pack.firstParameter || pack.physicalIndex!=physical || pack.parameterCount>parameters-parameter)return 0;
                 step.kind=XL6_FOREIGN_PHYSICAL_STEP_PACK;parameter+=pack.parameterCount;++physical;
             }else{

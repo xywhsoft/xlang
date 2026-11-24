@@ -189,7 +189,7 @@ static int xl6IrCgenNativeCallbacksBegin(XL6_Output* out,const XL6_IrModule* mod
         size_t members=0;
         for(size_t p=pack->firstParameter;p<pack->firstParameter+pack->parameterCount;++p)
             if(xl6IrForeignPackCallbackMember(module,target,p,NULL,NULL))++members;
-        if(!members || members>64)return -1;
+        if(!members || members>pack->parameterCount)return -1;
         if(!count++)xl6OutputPuts("    { bool native_callbacks_ok=true;\n",out);
         xl6OutputPrintf(out,"    XL6_NativeCallbackGroupV1* native_callback_group_%u=NULL;\n"
             "    %s native_callback_group_owner_%u={0};\n"

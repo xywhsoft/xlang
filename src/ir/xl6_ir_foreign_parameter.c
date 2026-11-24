@@ -206,8 +206,9 @@ static int xl6IrVerifyForeignCallbackSpans(const XL6_IrModule* module,XL6_DiagLi
     for(size_t i=0;i<module->foreignCallbackSpanCount;++i){
         const XL6_ForeignCallbackSpanContract* row=&module->foreignCallbackSpans[i];
         const XL6_IrNode* node=xl6IrNodeGet(module,row->declaration);
-        if(!node || row->parameter>=64 || row->argument>=64 ||
-            !((node->foreignCall.retainedCallbacks|node->foreignCall.physicalPairs)&(UINT64_C(1)<<row->parameter)) ||
+        if(!node || row->parameter>=XL6_FOREIGN_PACK_LOGICAL_LIMIT || row->argument>=64 ||
+            (row->parameter<64 &&
+             !((node->foreignCall.retainedCallbacks|node->foreignCall.physicalPairs)&(UINT64_C(1)<<row->parameter))) ||
             (row->countAbi!=XL6_FOREIGN_SPAN_COUNT_INT && row->countAbi!=XL6_FOREIGN_SPAN_COUNT_SIZE) ||
             !memchr(row->pointerCName,0,sizeof(row->pointerCName)) ||
             (strcmp(row->pointerCName,"const void*") && strcmp(row->pointerCName,"const uint8_t*") &&
@@ -595,7 +596,8 @@ size_t xl6IrForeignParameterWidth(const XL6_IrModule* module,const XL6_IrCallTar
 }
 static int xl6IrForeignParameterRowValid(const XL6_ForeignParameterContract* row)
 {
-    if(!row || row->parameter>=64 || !memchr(row->header,0,sizeof(row->header)) ||
+    if(!row || row->parameter>=XL6_FOREIGN_PACK_LOGICAL_LIMIT ||
+        (row->parameter>=64 && row->kind!=XL6_FOREIGN_PARAMETER_RETAINED_CALLBACK) || !memchr(row->header,0,sizeof(row->header)) ||
         (row->header[0] && ((row->kind!=XL6_FOREIGN_PARAMETER_SPAN && row->kind!=XL6_FOREIGN_PARAMETER_SYNC_CALLBACK) || !xl6ForeignHeaderName(row->header))))return 0;
     if(row->kind==XL6_FOREIGN_PARAMETER_SPAN) {
         if(row->callbackOwnerCName[0] || row->callbackOwnerIndexPlusOne || row->callbackFailureCode || row->callbackUserMode || row->callbackResultKind ||
@@ -634,11 +636,29 @@ static int xl6IrVerifyForeignParameters(const XL6_IrModule* module,XL6_DiagList*
         if(!memchr(row->callbackTypeCName,0,sizeof(row->callbackTypeCName)) || strcmp(expected,row->callbackTypeCName))goto invalid;
         const XL6_IrNode* declaration=xl6IrNodeGet(module,row->declaration);
         if(!xl6IrForeignParameterRowValid(row) || !declaration || declaration->kind!=XL6_IR_NODE_FUNC_DECL || declaration->childCount<2)goto invalid;
-        uint64 bit=UINT64_C(1)<<row->parameter;
-        if(!(bit&(row->kind!=XL6_FOREIGN_PARAMETER_RETAINED_CALLBACK ? declaration->foreignCall.physicalPairs : declaration->foreignCall.retainedCallbacks)))goto invalid;
         const XL6_IrNode* params=xl6IrNodeGet(module,module->children[declaration->firstChild+1]);
         if(!params || params->kind!=XL6_IR_NODE_LIST || row->parameter>=params->childCount ||
             row->spanLimitIndexPlusOne>params->childCount)goto invalid;
+        if(row->parameter<64){
+            uint64 bit=UINT64_C(1)<<row->parameter;
+            if(!(bit&(row->kind!=XL6_FOREIGN_PARAMETER_RETAINED_CALLBACK ? declaration->foreignCall.physicalPairs : declaration->foreignCall.retainedCallbacks)))goto invalid;
+        }else{
+            size_t receiver=declaration->sourceKind==XL6_AST_NATIVE_EXTERN_FUNC && !(declaration->flags&XL6_AST_FLAG_STATIC) ? 1:0;
+            size_t p=row->parameter+receiver;
+            XL6_IrCallTarget target={0};
+            target.kind=XL6_IR_CALL_TARGET_EXTERN_C;
+            target.declaration=row->declaration;
+            target.parameterCount=params->childCount+receiver;
+            const XL6_ForeignPackContract* pack=xl6IrForeignPackParameter(module,&target,p);
+            if(!pack || !pack->callbackOwnerPhysicalIndexPlusOne)goto invalid;
+            size_t fields=0;
+            for(size_t f=0;f<module->foreignPackFieldCount;++f){
+                const XL6_ForeignPackFieldContract* field=&module->foreignPackFields[f];
+                fields+=field->declaration==row->declaration && field->packPhysicalIndex==pack->physicalIndex &&
+                    field->parameter==p && field->kind==XL6_FOREIGN_PACK_FIELD_OWNED_CALLBACK;
+            }
+            if(fields!=1)goto invalid;
+        }
         for(size_t j=0;j<i;++j)
             if(module->foreignParameters[j].declaration==row->declaration && module->foreignParameters[j].parameter==row->parameter)goto invalid;
     }

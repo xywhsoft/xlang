@@ -38,8 +38,10 @@ static int xl6SemForeignPacks(XL6_SemContext* ctx,XL6_AstNode* node,const XL6_As
     const XL6_AstNode* attrs,const XL6_ForeignCallFacts* facts)
 {
     const XL6_AstNode* params=xl6SemExternFuncParams(node);size_t count=params ? params->childCount:0;
-    size_t packCount=0,fieldCount=0;uint64 consumed=0;
+    size_t packCount=0,fieldCount=0;
+    bool consumed[XL6_FOREIGN_PACK_LOGICAL_LIMIT]={0};
     if(!xl6ForeignInputHasPacks(facts->inputMappingFacts) && !xl6ForeignInputHasFixedInputs(facts->inputMappingFacts))return 1;
+    if(xl6ForeignInputHasPacks(facts->inputMappingFacts) && count>XL6_FOREIGN_PACK_LOGICAL_LIMIT)goto invalid;
     char header[256]={0};XL6_ForeignClassDecl owner={0};
     if(ownerClass && xl6ForeignClassRead(ownerClass,&owner,NULL)==1)strcpy(header,owner.header);
     for(size_t i=0;attrs && i<attrs->childCount;++i)if(xl6ForeignFunctionHeaderRead(attrs->children[i],header,sizeof(header)))break;
@@ -51,18 +53,18 @@ static int xl6SemForeignPacks(XL6_SemContext* ctx,XL6_AstNode* node,const XL6_As
         ++packCount;if(pack.firstParameter>count || pack.parameterCount>count-pack.firstParameter ||
             !xl6ForeignPackApplyCallbackGroup(node,&pack))goto invalid;
         for(size_t p=pack.firstParameter;p<pack.firstParameter+pack.parameterCount;++p){
-            if(consumed&(UINT64_C(1)<<p))goto invalid;
+            if(consumed[p])goto invalid;
             if(!params->children[p] || !params->children[p]->childCount ||
                 xl6SemTypeIsCVararg(params->children[p]->children[0]) ||
                 xl6SemTypeIsArrayVararg(params->children[p]->children[0]) ||
                 xl6SemTypeIsDictVararg(params->children[p]->children[0]))goto invalid;
-            consumed|=UINT64_C(1)<<p;
+            consumed[p]=true;
         }
         for(size_t b=0;b<a;++b){XL6_ForeignPackContract previous;
             if(xl6ForeignPackRead(attrs->children[b],&previous) && previous.physicalIndex==pack.physicalIndex)goto invalid;}
-        uint64 used=0,textData=0,textSize=0,spanData=0,spanCount=0,callbacks=0,callbackUsers=0,ownedCallbacks=0;
+        XL6_ForeignPackSlots slots={0};
         char groupOwner[64]={0};
-        size_t fields=0;uint64 embeddedInputs=0;
+        size_t fields=0;
         for(size_t g=0;g<attrs->childCount;++g){XL6_ForeignArrayGroupContract array;
             if(!xl6ForeignArrayGroupRead(attrs->children[g],&array))continue;
             if(!xl6ForeignArrayPackForGroup(node,&array))goto invalid;
@@ -71,9 +73,8 @@ static int xl6SemForeignPacks(XL6_SemContext* ctx,XL6_AstNode* node,const XL6_As
                 array.sizeParameter>=64 || (pack.callbackOwnerPhysicalIndexPlusOne &&
                 (xl6ForeignPackPathsOverlap(array.packDataField,pack.callbackUserField) ||
                  xl6ForeignPackPathsOverlap(array.packCountField,pack.callbackUserField))))goto invalid;
-            uint64 inputs=array.arrayCount==63 ? UINT64_MAX:((UINT64_C(1)<<(array.arrayCount+1))-1)<<array.firstParameter;
-            if(embeddedInputs&inputs)goto invalid;
-            embeddedInputs|=inputs;used|=inputs;fields+=2;fieldCount+=2;
+            if(!xl6ForeignPackSlotArray(&slots,array.firstParameter,array.sizeParameter))goto invalid;
+            fields+=2;fieldCount+=2;
             const char* paths[2]={array.packDataField,array.packCountField};
             for(size_t d=0;d<2;++d){size_t parent=xl6ForeignPackParentLength(paths[d]),witnesses=0;
                 for(size_t f=0;f<attrs->childCount;++f){XL6_ForeignPackFieldContract field;
@@ -105,10 +106,10 @@ static int xl6SemForeignPacks(XL6_SemContext* ctx,XL6_AstNode* node,const XL6_As
                     witness.kind==XL6_FOREIGN_PACK_FIELD_RECORD && strlen(witness.field)==parent && !strncmp(witness.field,field.field,parent))++parents;}
             if(parent ? parents!=1:parents!=0)goto invalid;
             if(field.kind==XL6_FOREIGN_PACK_FIELD_SIZEOF || field.kind==XL6_FOREIGN_PACK_FIELD_RECORD)continue;
-            size_t p=field.parameter;if(p<pack.firstParameter || p-pack.firstParameter>=pack.parameterCount || (embeddedInputs&(UINT64_C(1)<<p)))goto invalid;
+            size_t p=field.parameter;
+            if(p<pack.firstParameter || p-pack.firstParameter>=pack.parameterCount || !xl6ForeignPackSlotField(&slots,p,field.kind))goto invalid;
             const XL6_AstNode* type=xl6SemResolveAliasType(ctx,params->children[p]->children[0]);
             const XL6_AstNode* inner=type && xl6SemTypeIsNullable(type) ? xl6SemResolveAliasType(ctx,xl6SemNullableInnerType(type)):type;
-            used|=UINT64_C(1)<<p;
             if(field.kind==XL6_FOREIGN_PACK_FIELD_VALUE){
                 if(!xl6SemForeignTrivialCValue(ctx,type,0) &&
                     (!type || type->childCount || !xl6TextEquals(type->text,"var")))goto invalid;
@@ -118,34 +119,28 @@ static int xl6SemForeignPacks(XL6_SemContext* ctx,XL6_AstNode* node,const XL6_As
             }else if(field.kind==XL6_FOREIGN_PACK_FIELD_SPAN_DATA || field.kind==XL6_FOREIGN_PACK_FIELD_SPAN_COUNT){
                 XL6_ForeignParameterContract span;if(!xl6SemExternParameterExpansion(node,p,&span) || span.kind!=XL6_FOREIGN_PARAMETER_SPAN ||
                     !span.readOnly || !xl6SemForeignSpanType(ctx,type,&span))goto invalid;
-                uint64* bits=field.kind==XL6_FOREIGN_PACK_FIELD_SPAN_DATA ? &spanData:&spanCount;
-                if(*bits&(UINT64_C(1)<<p))goto invalid;
-                *bits|=UINT64_C(1)<<p;
             }else if(field.kind==XL6_FOREIGN_PACK_FIELD_OWNED_CALLBACK){
                 XL6_ForeignParameterContract callback;
                 if(!pack.callbackOwnerPhysicalIndexPlusOne || !xl6SemExternParameterExpansion(node,p,&callback) ||
-                    callback.kind!=XL6_FOREIGN_PARAMETER_RETAINED_CALLBACK || (ownedCallbacks&(UINT64_C(1)<<p)))goto invalid;
+                    callback.kind!=XL6_FOREIGN_PARAMETER_RETAINED_CALLBACK)goto invalid;
                 if(groupOwner[0] && strcmp(groupOwner,callback.callbackOwnerCName))goto invalid;
-                strcpy(groupOwner,callback.callbackOwnerCName);ownedCallbacks|=UINT64_C(1)<<p;
+                strcpy(groupOwner,callback.callbackOwnerCName);
             }else if(field.kind==XL6_FOREIGN_PACK_FIELD_SYNC_CALLBACK || field.kind==XL6_FOREIGN_PACK_FIELD_CALLBACK_USER){
                 XL6_ForeignParameterContract callback;
                 if(!xl6SemExternParameterExpansion(node,p,&callback) || callback.kind!=XL6_FOREIGN_PARAMETER_SYNC_CALLBACK)goto invalid;
-                uint64* bits=field.kind==XL6_FOREIGN_PACK_FIELD_SYNC_CALLBACK ? &callbacks:&callbackUsers;
-                if(*bits&(UINT64_C(1)<<p))goto invalid;
-                *bits|=UINT64_C(1)<<p;
             }else{
                 if(!inner || inner->childCount || !xl6TextEquals(inner->text,"string"))goto invalid;
-                if(field.kind==XL6_FOREIGN_PACK_FIELD_TEXT_DATA || field.kind==XL6_FOREIGN_PACK_FIELD_TEXT_SIZE){
-                    uint64* bits=field.kind==XL6_FOREIGN_PACK_FIELD_TEXT_DATA ? &textData:&textSize;
-                    if(*bits&(UINT64_C(1)<<p))goto invalid;
-                    *bits|=UINT64_C(1)<<p;
-                }else if(field.kind!=XL6_FOREIGN_PACK_FIELD_C_STRING)goto invalid;
+                if(field.kind!=XL6_FOREIGN_PACK_FIELD_TEXT_DATA && field.kind!=XL6_FOREIGN_PACK_FIELD_TEXT_SIZE &&
+                    field.kind!=XL6_FOREIGN_PACK_FIELD_C_STRING)goto invalid;
             }
         }
-        uint64 expected=pack.parameterCount==64 ? UINT64_MAX:((UINT64_C(1)<<pack.parameterCount)-1)<<pack.firstParameter;
-        if(!fields || used!=expected || textData!=textSize || spanData!=spanCount || callbacks!=callbackUsers ||
-            (!!ownedCallbacks)!=!!pack.callbackOwnerPhysicalIndexPlusOne)goto invalid;
+        if(!fields || !xl6ForeignPackSlotsComplete(&slots,pack.firstParameter,pack.parameterCount,pack.callbackOwnerPhysicalIndexPlusOne!=0))goto invalid;
         if(pack.callbackOwnerPhysicalIndexPlusOne){
+            for(size_t p=pack.firstParameter;p<pack.firstParameter+pack.parameterCount;++p){
+                XL6_ForeignParameterContract callback;
+                bool mapped=xl6SemExternParameterExpansion(node,p,&callback) && callback.kind==XL6_FOREIGN_PARAMETER_RETAINED_CALLBACK;
+                if(mapped!=!!(slots.flags[p]&XL6_FOREIGN_PACK_SLOT_OWNED))goto invalid;
+            }
             size_t parent=xl6ForeignPackParentLength(pack.callbackUserField),parents=0;
             for(size_t f=0;f<attrs->childCount;++f){XL6_ForeignPackFieldContract field;
                 if(xl6ForeignPackFieldRead(attrs->children[f],&field) && field.packPhysicalIndex==pack.physicalIndex &&
@@ -181,12 +176,13 @@ static int xl6SemForeignPacks(XL6_SemContext* ctx,XL6_AstNode* node,const XL6_As
             }
             if(found!=1 || (receiver && group.callbackOwnerPhysicalIndexPlusOne==1))goto invalid;
         }
-        if(receiver<64 && ((consumed<<receiver)&facts->controlViews))goto invalid;
+        for(size_t p=receiver;p<64;++p)
+            if(consumed[p-receiver] && (facts->controlViews&(UINT64_C(1)<<p)))goto invalid;
         for(size_t a=0;attrs && a<attrs->childCount;++a){uint32 qualifier;XL6_ForeignValueContract value;
             if(xl6ForeignPointerQualifierRead(attrs->children[a],&qualifier) && qualifier>=receiver &&
-                qualifier-receiver<64 && (consumed&(UINT64_C(1)<<(qualifier-receiver))))goto invalid;
+                qualifier-receiver<XL6_FOREIGN_PACK_LOGICAL_LIMIT && consumed[qualifier-receiver])goto invalid;
             if(xl6ForeignValueRead(attrs->children[a],&value) && value.parameter>=receiver &&
-                value.parameter-receiver<64 && (consumed&(UINT64_C(1)<<(value.parameter-receiver))))goto invalid;
+                value.parameter-receiver<XL6_FOREIGN_PACK_LOGICAL_LIMIT && consumed[value.parameter-receiver])goto invalid;
         }
     }
     for(size_t f=0;attrs && f<attrs->childCount;++f){XL6_ForeignPackFieldContract field;

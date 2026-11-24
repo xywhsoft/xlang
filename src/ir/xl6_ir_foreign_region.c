@@ -23,7 +23,9 @@ static const XL6_IrNode* xl6IrRegionSignature(const XL6_IrModule* module,uint32 
         !xl6ForeignInputMappingsValid(node->foreignCall.inputMappingFacts) || !xl6ForeignValueOutputBitsValid(node->foreignCall.valueOutput))return NULL;
     *parameters=xl6IrNodeGet(module,module->children[node->firstChild+1]);
     *receiver=node->sourceKind==XL6_AST_NATIVE_EXTERN_FUNC && !(node->flags&XL6_AST_FLAG_STATIC) ? 1:0;
-    if(!*parameters || (*parameters)->kind!=XL6_IR_NODE_LIST || (*parameters)->childCount+*receiver>64 ||
+    size_t maxParameters=xl6ForeignInputHasPacks(node->foreignCall.inputMappingFacts) ?
+        XL6_FOREIGN_PACK_LOGICAL_LIMIT:64-*receiver;
+    if(!*parameters || (*parameters)->kind!=XL6_IR_NODE_LIST || (*parameters)->childCount>maxParameters ||
         (*parameters)->firstChild>module->childCount || (*parameters)->childCount>module->childCount-(*parameters)->firstChild)return NULL;
     *outputCount=0;
     if(node->foreignCall.outputIndexPlusOne){

@@ -1,0 +1,124 @@
+{
+  "schema": 1,
+  "scope": "Verified wide native callback packs and full-width XUI Proxy ABI",
+  "shippingDelivery": false,
+  "networkTests": false,
+  "compilerSourceSha256": {
+    "src/type/xl6_foreign_pack_contract.h": "745d6bf3978d19886439cbecfba59615325ce4c57b3782f200a095928acbe89d",
+    "src/type/xl6_foreign_pack_decl.h": "24f74850e9ab7fb31a43a90387bcc5521702c78b7a1afd082d0b7a94b004eb44",
+    "src/type/xl6_foreign_decl.h": "3c3722166af2e556d28e3ad10efe0204f33646d0b9d5e23b821bc07f16be68d8",
+    "src/ir/xl6_ir.c": "8c3f3b96a0d90396144604f6fb3272c26836fcd6d1408995b23ea75d3e91325d",
+    "src/ir/xl6_ir_lower.c": "56554dbfa76d876299c4f206c4d5f8473d8ad66b7614a7cd0abc3a9c5a3472b2",
+    "src/ir/xl6_ir_foreign_region.c": "3581d3a34e6faeb3afdac0c6aedc57fbf985ff6d69197db763b7f104d994769c",
+    "src/sem/xl6_sem_foreign_pack.c": "bccf295844485b44cccb942268348a7dd34060757005ae200498358bd9bc3ebb",
+    "src/ir/xl6_ir_foreign_pack.c": "028891dcb67c5be61d4604af4f313676e1df74d19bc6e6b29dd1ec5038c15055",
+    "src/ir/xl6_ir_foreign_parameter.c": "74f31f61bc9b84ed3116836add033757d2d15b340359411545a9a1303f2ca359",
+    "src/cgen/xl6_ir_cgen_native_callback.c": "f526318e28b6aa06dda81a8ee29e66e1b4a7dd223f5676f36732d5d85fb55868",
+    "src/runtime/xl6_native_callback_group.c": "70b29b2685630f3ef2c16f60bce16be3c63f62a2278f960584b0dacb51d46615"
+  },
+  "checks": [
+    "A first call with 74 ordinary arguments resolves defaults and high named arguments",
+    "Static and shared programs and JIT dispatch callbacks in slots 63, 64 and 71 with byte-span projection",
+    "JIT dispatches slot 127 at the 128-slot limit",
+    "Two real Proxy constructors emit exact typed native thunks for all 72 fields",
+    "Real Proxy runtime tests invoke clockSeconds and requestFrame using JIT, dynamic AOT and static AOT",
+    "Six malformed wide descriptor contracts are rejected",
+    "Nested, synchronous and descriptor-array regressions pass"
+  ],
+  "platforms": {
+    "win_x64": {
+      "build": {
+        "path": "F:/xlang-validation/xge-full-20261110/compiler-wide-callback-pack-win-r3/build.json",
+        "sha256": "c49be7ce22162f2643f9a2dfbf3f9de4bfb4e8ff9e3de6c95480283c732ed7fb"
+      },
+      "freeze": {
+        "path": "F:/xlang-validation/xge-full-20261110/compiler-wide-callback-pack-win-r3/freeze.json",
+        "sha256": "3b8c4fa7d7612a6783e1b6f734451e12f779568955e083f3181cbf6fab7f9aa3"
+      },
+      "compilerTests": {
+        "path": "F:/xlang-validation/xge-full-20261110/wide-callback-pack-qualification-win-r3/results.json",
+        "sha256": "3846bc0172b6aec8a756ecf943ec273b8c78fc53dd1c861dcbf4978e7c46b994"
+      },
+      "maxSlotsJit": {
+        "path": "F:/xlang-validation/xge-full-20261110/wide-callback-pack-boundary-win-r1/results.json",
+        "sha256": "44107aa4203913e16ca7bee35e9a68a58f2844cf61b2e6ed3af0a2796d454d8e"
+      },
+      "realProxy": {
+        "path": "F:/xlang-validation/xge-full-20261110/xui-wide-proxy-receiver-verify-win-r3/results.json",
+        "sha256": "d8f2625d2cb81ae6a827368b0422b3c80845384b6475f3916de749f6243768da"
+      },
+      "realProxyFixture": {
+        "path": "F:/xlang-validation/xge-full-20261110/xui-wide-proxy-receiver-fixture-win-r1/fixture.json",
+        "sha256": "5a1ba7d10d384a4dd2d68a28d6502ed4084a93cf28223c29e147c6fbe966ace3"
+      },
+      "generatedC": {
+        "path": "F:/xlang-validation/xge-full-20261110/xui-wide-proxy-receiver-verify-win-r3/xui_wide_proxy_receiver/generated.c",
+        "sha256": "faf013d2da94ae034c48d182365468fbedce0cd57bc97497bf4cbe215bb2a21c"
+      },
+      "nativeImports": {
+        "host": [
+          "msvcrt.dll",
+          "xge3_host.dll",
+          "kernel32.dll",
+          "shell32.dll",
+          "ucrtbase.dll"
+        ],
+        "static": [
+          "msvcrt.dll",
+          "kernel32.dll",
+          "ole32.dll",
+          "shell32.dll"
+        ]
+      }
+    },
+    "linux_x64": {
+      "build": {
+        "path": "//wsl.localhost/Ubuntu/var/tmp/xlang-validation/xge-full-20261110/compiler-wide-callback-pack-linux-r3/build.json",
+        "sha256": "1edeb55918de8013983b26f491169ff484fa573758f25dfe355a91dbec056bd3"
+      },
+      "freeze": {
+        "path": "//wsl.localhost/Ubuntu/var/tmp/xlang-validation/xge-full-20261110/compiler-wide-callback-pack-linux-r3/freeze.json",
+        "sha256": "aaaf17ceb53280ce70f80b29a3bcc09af2da71debdea0ef66fa7f597e01ee9cd"
+      },
+      "compilerTests": {
+        "path": "//wsl.localhost/Ubuntu/var/tmp/xlang-validation/xge-full-20261110/wide-callback-pack-qualification-linux-r3/results.json",
+        "sha256": "59fe7dfd7d33a5a69827b6acd517dbe7c818172087e662a37c436a792890d904"
+      },
+      "maxSlotsJit": {
+        "path": "//wsl.localhost/Ubuntu/var/tmp/xlang-validation/xge-full-20261110/wide-callback-pack-boundary-linux-r1/results.json",
+        "sha256": "d08b666f4681565e13ea3b2e63082099bbd55306d2dd4790864f146211b7b0ed"
+      },
+      "realProxy": {
+        "path": "//wsl.localhost/Ubuntu/var/tmp/xlang-validation/xge-full-20261110/xui-wide-proxy-receiver-verify-linux-r3/results.json",
+        "sha256": "6de88276948d0dfbeff89795ba9d7d304a37a67603c5767a743f7235d38022e8"
+      },
+      "realProxyFixture": {
+        "path": "//wsl.localhost/Ubuntu/var/tmp/xlang-validation/xge-full-20261110/xui-wide-proxy-receiver-fixture-linux-r1/fixture.json",
+        "sha256": "2a358880907258a517aa1bd68d03481bd8666ed79ee93b6b8032633a26203210"
+      },
+      "generatedC": {
+        "path": "//wsl.localhost/Ubuntu/var/tmp/xlang-validation/xge-full-20261110/xui-wide-proxy-receiver-verify-linux-r3/xui_wide_proxy_receiver/generated.c",
+        "sha256": "faf013d2da94ae034c48d182365468fbedce0cd57bc97497bf4cbe215bb2a21c"
+      },
+      "nativeImports": {
+        "host": [
+          "libm.so.6",
+          "libmvec.so.1",
+          "libxge3_host.so",
+          "libc.so.6",
+          "ld-linux-x86-64.so.2"
+        ],
+        "static": [
+          "libm.so.6",
+          "libmvec.so.1",
+          "libx11.so.6",
+          "libxi.so.6",
+          "libxcursor.so.1",
+          "libgl.so.1",
+          "libc.so.6",
+          "ld-linux-x86-64.so.2"
+        ]
+      }
+    }
+  }
+}

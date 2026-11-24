@@ -36,6 +36,14 @@ and const pointers to the packed record. Access through the view after the
 callback returns raises a checked error. The native publisher must keep both
 the receiver and the group alive through the call.
 
+Descriptor packs accept up to 128 explicit logical slots per declaration.
+Ordinals 64 through 127 can supply packed values, managed views or retained
+callbacks. A retained callback in this range must belong to a shared group
+and can still use `@c_callback_span` on its own arguments. Physical slot
+numbers and the other parameter annotation ranges keep their existing limits.
+The extended ordinals use sparse declaration rows and leave the ordinary
+foreign-call fact record at 88 bytes.
+
 Use the explicit `"optional"` mode when the native API accepts an absent
 group. If all members are NULL, generated code allocates no callback-group
 environment and passes NULL for both the descriptor userdata and the physical

@@ -193,10 +193,10 @@ static int xl6IrGrow(void** items, size_t* capacity, size_t count, size_t itemSi
     if ( count < *capacity ) {
         return 1;
     }
-    next = *capacity == 0 ? 64 : *capacity * 2;
-    if ( next < count + 1 || next > SIZE_MAX / itemSize ) {
-        return 0;
-    }
+    size_t limit = SIZE_MAX / itemSize;
+    if ( count >= limit ) return 0;
+    next = *capacity == 0 ? 64 : *capacity > limit / 2 ? limit : *capacity * 2;
+    if ( next <= count || next > limit ) next = count + 1;
     grown = xrtRealloc(*items, next * itemSize);
     if ( grown == NULL ) {
         return 0;
@@ -10691,7 +10691,7 @@ static int xl6IrBuildFunctionValueCallSite(
     if ( fixedParameterCount + tailCount != 0 ) {
         size_t required = module->callArgumentCount +
             fixedParameterCount + tailCount;
-        while ( required > module->callArgumentCapacity &&
+        if ( required > module->callArgumentCapacity &&
                 !xl6IrGrow((void**)&module->callArguments,
                             &module->callArgumentCapacity,
                             required - 1, sizeof(*module->callArguments)) ) {
@@ -10852,7 +10852,7 @@ static int xl6IrBuildCallSite(XL6_IrModule* module, XL6_IrNodeId origin)
     }
     if ( fixedParameterCount + tailCount != 0 ) {
         size_t required = module->callArgumentCount + fixedParameterCount + tailCount;
-        while ( required > module->callArgumentCapacity &&
+        if ( required > module->callArgumentCapacity &&
                 !xl6IrGrow((void**)&module->callArguments, &module->callArgumentCapacity,
                             required - 1, sizeof(*module->callArguments)) ) {
             for ( i = 0; i < bindingCapacity; ++i ) xrtFree(names[i]);
