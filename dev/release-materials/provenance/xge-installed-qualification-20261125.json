@@ -1,0 +1,152 @@
+{
+  "schema": 1,
+  "scope": "Local XGE, XUI and Document delivery with platform compiler and SDK, Windows IDE and runnable examples",
+  "externalPublishPerformed": false,
+  "networkTests": false,
+  "complete": true,
+  "platforms": {
+    "win_x64": {
+      "installedFilesMatched": 5137,
+      "scopedRuntime": {
+        "data/commands.json": "c9c7399a1113d3654d4f77e1cd83598a63a83861f999624e80fffa0b65ae21ca",
+        "xl.def": "dc27a83497769de274a25af2d7450d1fa3b4b7d565f9bf51e8a8c585d440e1dc",
+        "xl.dll": "8835257aa1a4a50fc81f592c0dc724a2d3ad1b5f9b240fcdf8be506c76033141",
+        "xl.exe": "45cabcb2f9931fe29f5c8ecd57cddaf25df8a2043e41e1bb053adbb38804c43e",
+        "xlang-ls.exe": "f1597f80428717ada2c0c232dda496b42120ecd0f3921438c49dde7bae45fb75",
+        "xlang_ide.exe": "c16bf9eb661f5ba3be74207398c0b1a91a4dc8659d979402d2d0a20bedf710da",
+        "xlang_ide_xge.dll": "4d4aa16176f54fa3770ff1f7e09372391a70a324e2c53750d62c7d4646b985f2",
+        "xlc.def": "bb0c1cfd97bace99b3ef73358b5b26c418d22db87d30afb75ad969a3e6ac8ed2",
+        "xlc.dll": "9066d2eb7c08a189ff05eb8d73ab0fe495a8a6f7cd2c9faac0f16dce576cf9a8"
+      },
+      "examples": 56,
+      "nestedSdkChecks": 17,
+      "gameExamples": 9,
+      "gameChecks": 36,
+      "debugLiveChecks": 18,
+      "scopeReceipt": {
+        "path": "F:/xlang-validation/xge-full-20261110/converged-runtime-acceptance-win-r3/results.json",
+        "sha256": "91f25c3eeba3223a84dea040f08d605aecddef9965f1890da22e27d4588ac38e",
+        "bytes": 1047345
+      },
+      "optionalProfileReceipt": {
+        "path": "F:/xlang-validation/xge-full-20261110/converged-xge-profiles-win-r2/results.json",
+        "sha256": "7df73753555fe15cd938793b5a471655c7505678b3b9048149077142c9b50382",
+        "bytes": 124137
+      },
+      "gallery": {
+        "sceneCount": 57,
+        "buildSeconds": 222.828,
+        "receipt": {
+          "path": "F:/xlang-validation/xge-full-20261110/converged-gallery-cycle-win-r3/results.json",
+          "sha256": "c32cda29a49a583dd71e3faac0de9575cf7e5a800eccb618e1783dab3f16e770",
+          "bytes": 118972
+        }
+      },
+      "nativeSurface": {
+        "path": "F:/xlang-validation/xge-full-20261110/converged-source-surface-win-r3/surface.json",
+        "sha256": "8b7b0ff67b13c98baf245483e24f2c3ccf8d607592cab461ebade73fb5e65c6b",
+        "bytes": 5753044
+      }
+    },
+    "linux_x64": {
+      "installedFilesMatched": 5887,
+      "scopedRuntime": {
+        "libxl.so": "8042b26ffc0e63a2dd6e3fa20d2001df578ce9bd615caacdf9ed2b79cc95acd4",
+        "libxlc.so": "1fdf5d382c78b0b2e5e031fd874cbc2af6a7d4fd03d1167bd63df1dc3a14d8e5",
+        "xl": "e5ea845bb32f4575dac6b204377dd1b9a1e6f469e66e8da5736fbaf93a238862"
+      },
+      "examples": 56,
+      "nestedSdkChecks": 17,
+      "gameExamples": 9,
+      "gameChecks": 36,
+      "debugLiveChecks": 18,
+      "scopeReceipt": {
+        "path": "//wsl.localhost/Ubuntu/var/tmp/xlang-validation/xge-full-20261110/converged-runtime-acceptance-linux-r2/results.json",
+        "sha256": "e9861ab7005fec04c73a15bf760cfb9f96fe920da2b4e14783c22c0bd96852d3",
+        "bytes": 520529
+      },
+      "optionalProfileReceipt": {
+        "path": "//wsl.localhost/Ubuntu/var/tmp/xlang-validation/xge-full-20261110/converged-xge-profiles-linux-r2/results.json",
+        "sha256": "a0977519764ab9a820ff7abbec7c8e467fe6d3fdc7551420e0359c223366f23e",
+        "bytes": 236403
+      },
+      "gallery": {
+        "sceneCount": 57,
+        "buildSeconds": 234.037,
+        "receipt": {
+          "path": "//wsl.localhost/Ubuntu/var/tmp/xlang-validation/xge-full-20261110/converged-gallery-cycle-linux-r3/results.json",
+          "sha256": "939b36110aa5d6e5b95e5f8296edc3859db0b06b8ad7e6c34fd2f51799c9a87b",
+          "bytes": 113742
+        }
+      },
+      "nativeSurface": {
+        "path": "//wsl.localhost/Ubuntu/var/tmp/xlang-validation/xge-full-20261110/converged-source-surface-linux-r3/surface.json",
+        "sha256": "5cc0f4992ba47c3367e5a27a79694e74d7fba807738b7725c57eede7973c5714",
+        "bytes": 5560483
+      }
+    }
+  },
+  "passed": true,
+  "releaseBytesTracked": 0,
+  "verifiedInstalledFiles": 11024,
+  "pairedIde": {
+    "executable": {
+      "path": "D:/GIT/x-lang/release/win_x64/xlang_ide.exe",
+      "sha256": "c16bf9eb661f5ba3be74207398c0b1a91a4dc8659d979402d2d0a20bedf710da",
+      "bytes": 2524669
+    },
+    "nativeDll": {
+      "path": "D:/GIT/x-lang/release/win_x64/xlang_ide_xge.dll",
+      "sha256": "4d4aa16176f54fa3770ff1f7e09372391a70a324e2c53750d62c7d4646b985f2",
+      "bytes": 12225770
+    },
+    "languageServer": {
+      "path": "D:/GIT/x-lang/release/win_x64/xlang-ls.exe",
+      "sha256": "f1597f80428717ada2c0c232dda496b42120ecd0f3921438c49dde7bae45fb75",
+      "bytes": 11460494
+    },
+    "windowSmoke": {
+      "path": "F:/xlang-validation/xge-full-20261110/converged-local-release-install-r2/installed-smoke/windows-gui.log",
+      "sha256": "28b727479652ed9a07e2777bface5ce58b1855ad3bd3c9e99750ab469652a55f",
+      "bytes": 76
+    },
+    "commandCatalog": {
+      "path": "F:/xlang-validation/xge-full-20261110/converged-local-release-install-r2/installed-catalog-check.json",
+      "sha256": "e2d2dda0b069f2358cce4d1726331baa02598920e3de0c9e4bde96d46e9ad248",
+      "bytes": 361
+    },
+    "screenshot": {
+      "path": "F:/xlang-validation/xge-full-20261110/converged-local-release-install-r2/installed-smoke/installed-help.png",
+      "sha256": "8b1e558ad255907eb5a5aa673e27b46c666845541e4de59de25fd3c74cbbbf3b",
+      "bytes": 148722
+    },
+    "peImports": [
+      "ADVAPI32.dll",
+      "GDI32.dll",
+      "KERNEL32.dll",
+      "SHELL32.dll",
+      "USER32.dll",
+      "VERSION.dll",
+      "bcrypt.dll",
+      "msvcrt.dll",
+      "ole32.dll",
+      "xlang_ide_xge.dll"
+    ]
+  },
+  "repositoryBudget": {
+    "path": "F:/xlang-validation/xge-full-20261110/converged-local-release-install-r2/repository-budget.json",
+    "sha256": "625c940805a0efe6d35da39e8559c60bb0dec8e1c77e47c187f5480636fd074a",
+    "bytes": 227
+  },
+  "installation": {
+    "path": "F:/xlang-validation/xge-full-20261110/converged-local-release-install-r2/publication.json",
+    "sha256": "0ae0b17e1828ca342a3d3f3e3b66fc117cef0e0e6a955b043fa38f8196e098df",
+    "bytes": 497
+  },
+  "indexVerification": {
+    "path": "F:/xlang-validation/xge-full-20261110/converged-local-release-install-r2/installed-index-check.json",
+    "sha256": "58c1054821b692079ea7f70f52629509db2ed5f7bca52199219c25747eee3b57",
+    "bytes": 113
+  },
+  "priorNativeQualification": "dev/release-materials/provenance/xge-candidate-qualification-20261125.json"
+}

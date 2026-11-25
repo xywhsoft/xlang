@@ -8106,6 +8106,11 @@
       "path": "F:/xlang-validation/xge-full-20261110/converged-local-release-install-r2/installed-catalog-check.json",
       "sha256": "e2d2dda0b069f2358cce4d1726331baa02598920e3de0c9e4bde96d46e9ad248",
       "bytes": 361
+    },
+    "installedQualification": {
+      "path": "dev/release-materials/provenance/xge-installed-qualification-20261125.json",
+      "sha256": "39eb33d05dab4f2d3ce16cae87f238df8f14a2f47835d4c8ba00073e95673f15",
+      "bytes": 6558
     }
   }
 }
