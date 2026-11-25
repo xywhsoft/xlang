@@ -236,6 +236,12 @@ HEADER_CLOSE_REPLACEMENTS['xuiCodeCommandMapDestroy'] = (
 DOCUMENT_RENDERER_SOURCE = 'src/xui/document/xui_document_renderer.c'
 DOCUMENT_MODEL_SOURCE = 'src/xui/document/xui_document.c'
 DOCUMENT_FONT_TAIL = {'xuiDocumentFontOutputInit', 'xuiDocumentFontOutputDisposeChecked'}
+DOCUMENT_CONTEXT_WATCH = 'xuiContextLifetimeWatch'
+CUSTOM_PROXY_FIXTURE = Path(__file__).resolve().parents[1]/'test/cases/foreign_xui_custom_proxy_clipboard.xl'
+CUSTOM_PROXY_IMPORTS = {
+    'xuiProxyCreateCustomOwned', 'xuiProxyGetSurfaceReadExtent',
+    'xuiDrawRollbackCallbackOutput', 'xuiFontRollbackCallbackOutput', 'xuiSurfaceRollbackCallbackOutput',
+}
 DOCUMENT_EXPORTS = (
     'xuiDocumentSerialize', 'xuiDocumentExportHtml', 'xuiDocumentSnapshotCopyPlainText',
     'xuiDocumentSnapshotCopyRange', 'xuiDocumentSnapshotCopyTableMatrix',
@@ -641,6 +647,14 @@ def prove_document_lifetime(source, flags, view, bound, packages, tools, out, ru
             for function in sorted(DOCUMENT_FONT_TAIL):
                 assert {'.text.'+function,'.text$'+function,function} & references, (target,function)
             evidence[name].update(consumer=target, nativeCalls=sorted(DOCUMENT_FONT_TAIL))
+            factory = 'xuiDocumentRendererCreate'
+            release = 'xuiDocumentRendererReleaseOwnerChecked'
+            assert any(row['language']=='xui.createDocumentRenderer' for row in bound[factory])
+            watch = reachable_relocations(relocations,'.text.'+factory) | reachable_relocations(relocations,'.text$'+factory)
+            detach = reachable_relocations(relocations,'.text.'+release) | reachable_relocations(relocations,'.text$'+release)
+            assert DOCUMENT_CONTEXT_WATCH in watch and 'xuiLifetimeUnwatch' in detach
+            evidence[name]['contextWatch'] = dict(factory=factory, watch=DOCUMENT_CONTEXT_WATCH,
+                release=release, detach='xuiLifetimeUnwatch')
         else:
             target = 'xuiDocumentFreeBuffer'
             references = reachable_relocations(relocations,'.text.'+target) | reachable_relocations(relocations,'.text$'+target)
@@ -665,6 +679,19 @@ def prove_document_lifetime(source, flags, view, bound, packages, tools, out, ru
     evidence['bufferReplacement'] = dict(language='Owned Document export values', native='xrtFree',
         allocatorMarker='XUI_DOCUMENT_EXPORT_XRT_ALLOCATOR', owningExports=sorted(set(owners)))
     return evidence
+
+
+def prove_custom_proxy(cc, packages, flags, tools, out, run, symbols, sha):
+    label = 'custom-proxy-callbacks'
+    generated, header, obj = (out/f'{label}.{suffix}' for suffix in ('c','h','o'))
+    env = {key:value for key,value in os.environ.items() if not key.startswith('XL6_')}
+    env['XLANG_PACKAGE_PATH'] = str(packages)
+    run(label+'-emit', [cc,'cgen',CUSTOM_PROXY_FIXTURE,'--emit',generated,'--emit-header',header], cwd=out, env=env)
+    run(label+'-compile', [tools['gcc'],*flags,'-c',generated,'-o',obj])
+    imports = symbols(run(label+'-undefined', [tools['nm'],'-u',obj]))
+    assert CUSTOM_PROXY_IMPORTS <= imports, sorted(CUSTOM_PROXY_IMPORTS-imports)
+    return dict(language='xui.createCustomProxy', source=str(CUSTOM_PROXY_FIXTURE), sourceSha256=sha(CUSTOM_PROXY_FIXTURE),
+        generatedSha256=sha(generated), objectSha256=sha(obj), nativeImports=sorted(CUSTOM_PROXY_IMPORTS))
 
 
 def main():
@@ -711,6 +738,8 @@ def main():
         Path(__file__).with_name('xui_managed_contracts.py'),Path(__file__).with_name('xui_document_replacements.py'),
         Path(__file__).with_name('check_xge3_bindings.py'),surface,cc,build,*proof,*tools.values()]
     for folder in (sdk,packages):files.extend(f for f in folder.rglob('*') if f.is_file())
+    custom_proxy = CUSTOM_PROXY_IMPORTS <= functions.keys()
+    if custom_proxy:files.append(CUSTOM_PROXY_FIXTURE)
     document = None
     lifetime_builds = {}
     if a.document_engine_build:
@@ -959,6 +988,11 @@ def main():
             *['-I'+str(f) for f in sorted(packages.glob('*/include'))]]
         if any(artifact.get('nativeLink', {}).values()):
             flags.append('-DXL6_NATIVE_LINK_SCHEMA=1')
+        if custom_proxy:
+            witness = prove_custom_proxy(cc,packages,flags,tools,out,run,symbols,sha)
+            report['customProxyCallbacks'] = witness
+            for symbol in witness['nativeImports']:
+                consumers.setdefault(symbol,[]).append('generated:'+witness['language'])
         zeroed_factory = 'xl6Xge3BufferCreateZeroedOwned'
         zeroed_evidence = None
         if zeroed_factory in bound:
@@ -1133,7 +1167,7 @@ def main():
         if a.document_engine_build:
             document = prove_document_lifetime(document_source,document_flags,view,bound,packages,tools,out,run,sha)
             report['documentLifetime'] = document
-            for symbol in sorted(DOCUMENT_FONT_TAIL):
+            for symbol in sorted(DOCUMENT_FONT_TAIL | {DOCUMENT_CONTEXT_WATCH}):
                 consumers.setdefault(symbol,[]).append(DOCUMENT_RENDERER_SOURCE)
         if 'tableLifetime' in lifetime_builds:
             assert any(item['language']=='xui.TableView.getCell' for item in bound['xuiTableViewGetCellOwned'])
