@@ -1,0 +1,153 @@
+{
+  "schema": 1,
+  "date": "2026-11-25",
+  "scope": "Matched compiler, extension packages and Windows IDE candidate qualification",
+  "shippingDelivery": false,
+  "releaseDirectoryWritten": false,
+  "networkTests": false,
+  "xlangCompilerRevision": "b6a5b63af72cfbef4e9f50b503b6cf9f58b40cfd",
+  "xgeBaseRevision": "3c9b4f89135553ab1dba48236bef6d9a865a1a37",
+  "nativeSource": {
+    "path": "F:/xlang-validation/xge-full-20261110/codeedit-line-margin-native-source-win-r2.json",
+    "sha256": "d57b7e57db0cd4f48da7532af34adcfee95634a271bb3d06bb0ad9f62a49b4d6"
+  },
+  "ideSdk": {
+    "path": "F:/xlang-validation/xge-full-20261110/converged-ide-sdk-win-r1.json",
+    "sha256": "729d26de3af6dd8c8f9e479de1dfc321ee2dc0b4d8c64d68fbce56266506e670"
+  },
+  "compiler": {
+    "win": {
+      "build": {
+        "path": "F:/xlang-validation/xge-full-20261110/converged-compiler-win-r1/build.json",
+        "sha256": "41bda6ccf5fcc8a9e827ac501d4620fad32b04eeee9527bc022c6d0f46bc687e"
+      },
+      "sdk": {
+        "path": "F:/xlang-validation/xge-full-20261110/converged-compiler-sdk-win-r1/results.json",
+        "sha256": "8fe88d0bcd39d51e91742fe02feff43321e37c9a1287f19b73da8a3b0301f46b",
+        "files": 2065
+      },
+      "xrtRevision": "804cc769de3030118c2b46ef7af69543d1b82d9d",
+      "products": {
+        "xl.exe": "45cabcb2f9931fe29f5c8ecd57cddaf25df8a2043e41e1bb053adbb38804c43e",
+        "xl.dll": "06788b4ee7a8d9b8b66ce7e1c4fb65222d79005cff86dd208490ed4d50409b1e",
+        "xlc.dll": "d41237aa51f699f01d3e6bdb04fb2ddbfab32b38392c65f6c96e813162e2cb45"
+      }
+    },
+    "linux": {
+      "build": {
+        "path": "//wsl.localhost/Ubuntu/var/tmp/xlang-validation/xge-full-20261110/converged-compiler-linux-r1/build.json",
+        "sha256": "5600b16412310f8fa016bbe9a6dabaa4c32bfe8a92e0323e07c6b68fd1832014"
+      },
+      "sdk": {
+        "path": "//wsl.localhost/Ubuntu/var/tmp/xlang-validation/xge-full-20261110/converged-compiler-sdk-linux-r1/results.json",
+        "sha256": "52836fc135ace56296aff3849e5ad44448a8d442ece283507ef6157570b517c5",
+        "files": 2065
+      },
+      "xrtRevision": "804cc769de3030118c2b46ef7af69543d1b82d9d",
+      "products": {
+        "xl": "e5ea845bb32f4575dac6b204377dd1b9a1e6f469e66e8da5736fbaf93a238862",
+        "libxl.so": "a812034c3abb9e0c5826b4c4d04ae662c0e6d530b8009f36f2eeb33acb0be1ab",
+        "libxlc.so": "1ac8c6f66fdd4a927e525821b7aa07616fae6b5b1430c5d569ffb807a911858a"
+      }
+    }
+  },
+  "packages": {
+    "win": {
+      "host": {
+        "path": "F:/xlang-validation/xge-full-20261110/converged-packages-win-r1/host.json",
+        "sha256": "35298b0fa3bd91bb33979e622598612ceeab8191ae74dd4d0c3540e02d7a0cc8",
+        "files": 483
+      },
+      "static": {
+        "path": "F:/xlang-validation/xge-full-20261110/converged-packages-win-r1/static.json",
+        "sha256": "1f17e133f378723635ba22367b9bb2c6bae85d6a699bb0d88068521d0210c1c8",
+        "files": 499
+      }
+    },
+    "linux": {
+      "host": {
+        "path": "//wsl.localhost/Ubuntu/var/tmp/xlang-validation/xge-full-20261110/converged-packages-linux-r1/host.json",
+        "sha256": "0886e731cdf2c9ccc5c4319ea69880a477aabdc79fef9eda89815cfc7649a5ae",
+        "files": 483
+      },
+      "static": {
+        "path": "//wsl.localhost/Ubuntu/var/tmp/xlang-validation/xge-full-20261110/converged-packages-linux-r1/static.json",
+        "sha256": "316a93e86ecfa6ab3dce9dc73f0a2f4751bcd84927b9614f8d171f0ffa970266",
+        "files": 482
+      }
+    }
+  },
+  "ide": {
+    "build": {
+      "path": "F:/xlang-validation/xd-1125-r1/ide/build/Release/gui-build-inputs.json",
+      "sha256": "ebe931ecf921e59451431f2ed7805d4b0331e2930ab3c896a4a5e1a148782645"
+    },
+    "languageServer": {
+      "path": "F:/xlang-validation/xge-full-20261110/converged-ls-win-r3/build-result.json",
+      "sha256": "ad35a06aeca763d018dec6947855af44530dcd7e01a11c21af2e19a784c8c674"
+    },
+    "catalog": {
+      "path": "F:/xlang-validation/xge-full-20261110/converged-catalog-release-coverage-win-r1.json",
+      "sha256": "d183be877462b83fff2c5210920c64c080745bbed6184107a7ad500e0d90092c",
+      "entries": 23464,
+      "documents": 148,
+      "sources": 653
+    },
+    "renderer": {
+      "path": "F:/xlang-validation/xge-full-20261110/converged-gui-delivery-win-r1/codeedit.png",
+      "sha256": "9225b7dd4288b9f7e133ab7d62a0ffe613148c115a619b530262e68292ce3449"
+    },
+    "stdio": {
+      "path": "F:/xlang-validation/xge-full-20261110/converged-ls-stdio-win-r3/results.json",
+      "sha256": "8060f6db7eaf1b34af97b63f4211ad9f176701426ec85b862446cf35ff44ef0a",
+      "checks": 16
+    },
+    "nativeSelection": {
+      "path": "F:/xlang-validation/xge-full-20261110/converged-ls-selection-win-r3/result.json",
+      "sha256": "93bb54dff3192b24f93b8f75301b3a480f5c7d409feb43e64e0a558e736ffbd7",
+      "checks": 28
+    },
+    "currentCore": {
+      "path": "F:/xlang-validation/xge-full-20261110/converged-ls-core-win-r3/result.json",
+      "sha256": "da1d05943c6a1f9fc177985887335e1a9d7841396b3681780426ebd92939b2bf",
+      "checks": 9
+    },
+    "semanticNavigation": {
+      "observedXuiNodes": 121429,
+      "formerlyRejectedIndex": true,
+      "knownAllocationBudgetMiB": 64,
+      "change": "Coordinate endpoints are released before allocating the cursor and reference indexes."
+    },
+    "rejectedCatalogInputs": [
+      "different compiler build receipt",
+      "different XRT declaration digest"
+    ]
+  },
+  "debug": {
+    "win": {
+      "path": "F:/xlang-validation/xge-full-20261110/converged-debug-live-win-r1/results.json",
+      "sha256": "3dd76c19523cb057d639747e7e9e33d3cda0cee32453a046874a075c480e2669",
+      "checks": 18
+    },
+    "linux": {
+      "path": "//wsl.localhost/Ubuntu/var/tmp/xlang-validation/xge-full-20261110/converged-debug-live-linux-r2/results.json",
+      "sha256": "4178731e26eb6a0fab665215dec3e4971082191afdbfb1b220a85c702f3585cb",
+      "checks": 18
+    }
+  },
+  "linuxEglExamples": {
+    "path": "//wsl.localhost/Ubuntu/var/tmp/xlang-validation/xge-full-20261110/converged-examples-egl-r1/results.json",
+    "sha256": "958a696059977d6ff1dd13df0dffabeb9142742f62f5ca52787ad4934a061c64",
+    "checks": 14
+  },
+  "windowsCompilerDelivery": {
+    "path": "F:/xlang-validation/xge-full-20261110/converged-compiler-delivery-win-r1/results.json",
+    "sha256": "3a8140fc4f3f842bfd7fd0fc462dd20cebffd6d07a95d77072c6b69e1855faf4",
+    "checks": 17
+  },
+  "outstanding": [
+    "Full lesson and application coverage of the delivered profiles",
+    "Current source-to-native coverage audit",
+    "Installation into the ordinary runtime directory"
+  ]
+}
