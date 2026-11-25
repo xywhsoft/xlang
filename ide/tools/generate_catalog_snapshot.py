@@ -133,7 +133,7 @@ def generate(root,output,release_report,gcc,release_directory=None,compiler_sdk=
 
 def main():
     ap=argparse.ArgumentParser(description=__doc__);ap.add_argument('--root',type=Path,default=IDE.parent);ap.add_argument('--output',type=Path,required=True);ap.add_argument('--release-report',type=Path);ap.add_argument('--gcc',default=shutil.which('gcc') or '')
-    ap.add_argument('--release-directory',type=Path,help='Windows x64 runtime containing the matched compiler and headers')
+    ap.add_argument('--release-directory',type=Path,help='Windows x64 runtime containing the matched compiler, headers and extension packages')
     ap.add_argument('--compiler-sdk',type=Path,help='SDK staging receipt paired with a full compiler build report')
     args=ap.parse_args()
     if not args.gcc:ap.error('gcc is required')

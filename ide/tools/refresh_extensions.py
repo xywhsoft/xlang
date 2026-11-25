@@ -13,10 +13,14 @@ from catalog_sources import create, plain, sha, verify
 IDE = Path(__file__).resolve().parents[1]
 
 
-def package_root(root):
+def package_location(root, release_directory=None):
     platform = 'win_x64' if sys.platform == 'win32' else 'linux_x64'
-    release = root / 'release' / platform
-    return (release if release.is_dir() else root / 'release') / 'extlibs'
+    legacy = (root / 'release').resolve()
+    release = Path(release_directory).resolve() if release_directory is not None else legacy / platform
+    if release_directory is None and not release.is_dir():
+        release = legacy
+    logical = Path('release') if release == legacy else Path('release') / platform
+    return release / 'extlibs', logical / 'extlibs'
 
 
 def extension_source(path):
@@ -24,9 +28,9 @@ def extension_source(path):
                ('release/extlibs/', 'release/win_x64/extlibs/', 'release/linux_x64/extlibs/'))
 
 
-def input_files(root):
+def input_files(packages):
     files = set()
-    for manifest in sorted(package_root(root).glob('*/xlang.package.json')):
+    for manifest in sorted(packages.glob('*/xlang.package.json')):
         files.add(manifest)
         data = json.loads(manifest.read_text(encoding='utf-8-sig'))
         if data.get('kind') == 'demo6-private-extlib' or data['name'].startswith('_'):
@@ -40,11 +44,11 @@ def input_files(root):
     return sorted(files)
 
 
-def fingerprint(root):
+def fingerprint(packages, logical):
     result = {}
-    for path in input_files(root):
+    for path in input_files(packages):
         plain(path)
-        result[path.relative_to(root).as_posix()] = sha(path)
+        result[(logical / path.relative_to(packages)).as_posix()] = sha(path)
     return result
 
 
@@ -54,11 +58,12 @@ def tools():
              'build_catalog_exporter.py', 'dump_extension_catalog.c')}
 
 
-def check(root, data):
+def check(root, data, release_directory=None):
     verify(data / 'catalog-sources', data / 'commands.json')
     catalog = json.loads((data / 'commands.json').read_text(encoding='utf-8-sig'))
     expected = catalog.get('extensionCatalog', {})
-    current = fingerprint(root)
+    packages, logical = package_location(root, release_directory)
+    current = fingerprint(packages, logical)
     frontend = expected.get('frontendInputs', {})
     frontend_changed = [p for p, value in frontend.items() if not (root / p).is_file() or sha(root / p) != value]
     if expected.get('inputs') != current or expected.get('tools') != tools() or not frontend or frontend_changed:
@@ -76,7 +81,8 @@ def generate(root, data, output, gcc=None, release_directory=None):
         raise ValueError('Base catalog sources are incomplete')
     base_bytes = (data / 'commands.json').read_bytes()
     base = json.loads(base_bytes.decode('utf-8-sig'))
-    before, tool_hashes = fingerprint(root), tools()
+    packages, logical = package_location(root, release_directory)
+    before, tool_hashes = fingerprint(packages, logical), tools()
     output.mkdir(parents=True)
     scratch = output / 'scratch'
     scratch.mkdir()
@@ -98,7 +104,7 @@ def generate(root, data, output, gcc=None, release_directory=None):
             materials[row['path']] = (data / 'catalog-sources' / (row['sha256'] + '.source')).read_bytes()
 
     def capture(path):
-        key = path.relative_to(root).as_posix()
+        key = (logical / path.relative_to(packages)).as_posix()
         if key not in before:
             raise ValueError('Unexpected extension input: ' + key)
         if key not in materials:
@@ -113,9 +119,9 @@ def generate(root, data, output, gcc=None, release_directory=None):
             declared[key] = dict(path=key, sha256=before[key])
         return key, materials[key]
 
-    entries, extra_docs, coverage = extract(package_root(root), compiler, scratch / 'declarations', capture)
+    entries, extra_docs, coverage = extract(packages, compiler, scratch / 'declarations', capture)
     runtime_copy = compiler.parent / ('xlc.dll' if sys.platform == 'win32' else 'libxlc.so')
-    if fingerprint(root) != before or sha(compiler) != compiler_hash or sha(runtime_copy) != frontend['runtimeSha256'] or tools() != tool_hashes or any(sha(Path(p)) != value for p, value in frontend['inputs'].items()):
+    if fingerprint(packages, logical) != before or sha(compiler) != compiler_hash or sha(runtime_copy) != frontend['runtimeSha256'] or tools() != tool_hashes or any(sha(Path(p)) != value for p, value in frontend['inputs'].items()):
         raise ValueError('Extension inputs, compiler or extraction tools changed during generation')
     if (data / 'commands.json').read_bytes() != base_bytes:
         raise ValueError('Installed catalog changed during generation')
@@ -151,13 +157,13 @@ def main():
     parser.add_argument('--data', type=Path, default=IDE / 'data')
     parser.add_argument('--output', type=Path)
     parser.add_argument('--gcc')
-    parser.add_argument('--release-directory', type=Path, help='Runtime supplying the matching compiler DLL and headers')
+    parser.add_argument('--release-directory', type=Path, help='Runtime supplying the matching compiler, headers and extension packages')
     parser.add_argument('--check', action='store_true')
     args = parser.parse_args()
     root, data = args.root.resolve(), args.data.resolve()
     try:
         if args.check:
-            result = check(root, data)
+            result = check(root, data, args.release_directory)
         else:
             if not args.output:
                 parser.error('--output is required for generation')

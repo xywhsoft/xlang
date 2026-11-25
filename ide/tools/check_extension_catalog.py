@@ -7,7 +7,7 @@ import unittest
 
 from catalog_extensions import extract
 from catalog_sources import sha, verify
-from refresh_extensions import check
+from refresh_extensions import check, fingerprint, package_location
 
 IDE = Path(__file__).resolve().parents[1]
 
@@ -105,6 +105,21 @@ class ExtensionCatalogTests(unittest.TestCase):
         entries, documents, coverage = self.read()
         self.assertEqual(([], [], []), (entries, documents, coverage['packages']))
 
+    def test_explicit_release_selects_its_extensions(self):
+        root = self.work / 'root'
+        staged = self.work / 'staging'
+        target = staged / 'extlibs/sample'
+        shutil.copytree(self.package, target)
+        (target / 'api.xl').write_text('export const int CANDIDATE = 1\n', encoding='utf-8')
+        package_root, logical = package_location(root, staged)
+        selected = fingerprint(package_root, logical)
+        self.assertEqual(sha(target / 'api.xl'), selected[(logical / 'sample/api.xl').as_posix()])
+        self.assertNotIn(str(staged), '\n'.join(selected))
+        self.assertNotIn(sha(self.source), selected.values())
+        installed = root / logical.parent
+        shutil.copytree(staged, installed)
+        self.assertEqual(selected, fingerprint(*package_location(root)))
+
     def test_private_packages_are_not_commands(self):
         data = json.loads(self.manifest.read_text())
         data['kind'] = 'demo6-private-extlib'
@@ -166,7 +181,8 @@ class ExtensionCatalogTests(unittest.TestCase):
         self.assertEqual([e for e in before['entries'] if e['category'] != 'extension'],
                          [e for e in catalog['entries'] if e['category'] != 'extension'])
         self.assertEqual(before['compilerSha256'], catalog['compilerSha256'])
-        expected = {json.loads(p.read_text(encoding='utf-8-sig'))['name'] for p in (IDE.parent / 'release/extlibs').glob('*/xlang.package.json')
+        packages, _ = package_location(IDE.parent)
+        expected = {json.loads(p.read_text(encoding='utf-8-sig'))['name'] for p in packages.glob('*/xlang.package.json')
                     if json.loads(p.read_text(encoding='utf-8-sig'))['kind'] != 'demo6-private-extlib'}
         self.assertEqual(expected, {e['name'] for e in catalog['entries'] if e['category'] == 'extension' and e['kind'] == 'module'})
         self.assertEqual(len(catalog['entries']), len({e['id'] for e in catalog['entries']}))

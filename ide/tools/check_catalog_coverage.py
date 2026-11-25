@@ -26,7 +26,7 @@ def check(root,catalog,release=None):
     if len(set(ids))!=len(ids):raise ValueError('Duplicate command identity')
     if 'extensionCatalog' in data:
         from refresh_extensions import check as check_extensions
-        check_extensions(root,catalog.parent)
+        check_extensions(root,catalog.parent,release)
     return dict(status='passed',entries=len(ids),documents=len(data['documents']),publicApi=counts,availableSources=material['available'],catalogSha256=sha(catalog),sourceRevision=revision)
 
 def main():
