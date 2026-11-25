@@ -3563,11 +3563,13 @@ static int xl6IrAppendExitCleanupActions(XL6_IrModule* module, XL6_IrExitPlan* p
         XL6_IrCleanupAction* action;
         XL6_SymbolId nativeDestroy;
 
-        XL6_IrNodeId patternScope = xl6IrPatternBindingScope(module, declarationId);
+        if (declaration == NULL || (declaration->kind != XL6_IR_NODE_PATTERN &&
+            declaration->kind != XL6_IR_NODE_VALUE_DECL)) continue;
+        XL6_IrNodeId patternScope = declaration->kind == XL6_IR_NODE_PATTERN
+            ? xl6IrPatternBindingScope(module, declarationId) : 0;
         uint32 bindingDepth = patternScope != 0
-            ? xl6IrNodeGet(module, patternScope)->scopeDepth + 1 : declaration != NULL ? declaration->scopeDepth : 0;
-        if ( declaration == NULL ||
-             (patternScope == 0 && (declaration->kind != XL6_IR_NODE_VALUE_DECL ||
+            ? xl6IrNodeGet(module, patternScope)->scopeDepth + 1 : declaration->scopeDepth;
+        if ( (patternScope == 0 && (declaration->kind != XL6_IR_NODE_VALUE_DECL ||
               (declaration->sourceKind != XL6_AST_VAR_DECL &&
                declaration->sourceKind != XL6_AST_MULTI_VAR_DECL &&
                declaration->sourceKind != XL6_AST_CONST_DECL))) ||
@@ -3839,11 +3841,13 @@ static int xl6IrVerifyScopeExitActions(
             ? xl6IrScopeBindingOrigin(module, plan->origin, child - 1) : (XL6_IrNodeId)child;
         const XL6_IrNode* declaration = xl6IrNodeGet(module, declarationId);
         size_t bindingIndex;
-        XL6_IrNodeId patternScope = xl6IrPatternBindingScope(module, declarationId);
+        if (declaration == NULL || (declaration->kind != XL6_IR_NODE_PATTERN &&
+            declaration->kind != XL6_IR_NODE_VALUE_DECL)) continue;
+        XL6_IrNodeId patternScope = declaration->kind == XL6_IR_NODE_PATTERN
+            ? xl6IrPatternBindingScope(module, declarationId) : 0;
         uint32 bindingDepth = patternScope != 0
-            ? xl6IrNodeGet(module, patternScope)->scopeDepth + 1 : declaration != NULL ? declaration->scopeDepth : 0;
-        if (declaration == NULL ||
-            (patternScope == 0 && (declaration->kind != XL6_IR_NODE_VALUE_DECL ||
+            ? xl6IrNodeGet(module, patternScope)->scopeDepth + 1 : declaration->scopeDepth;
+        if ((patternScope == 0 && (declaration->kind != XL6_IR_NODE_VALUE_DECL ||
              (declaration->sourceKind != XL6_AST_VAR_DECL &&
               declaration->sourceKind != XL6_AST_MULTI_VAR_DECL &&
               declaration->sourceKind != XL6_AST_CONST_DECL))) ||

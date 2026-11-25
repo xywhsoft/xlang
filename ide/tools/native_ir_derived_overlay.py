@@ -9,7 +9,7 @@ from pathlib import Path
 import hashlib
 from check_native_bridge_catalog import function
 from native_c_interop_profile import PINS as C_INTEROP_PINS
-from native_final_c_interop_profile import XGE_CALLBACK_PINS
+from native_final_c_interop_profile import CLEANUP_SCAN_PINS, XGE_CALLBACK_PINS
 import json
 
 # The reviewed current retirement cohort,including its exact LF checkout.
@@ -32,14 +32,19 @@ XGE_PAIR=('f9de331a20302050512fa90598674ac1ab9562ad269a7693a6ce6ecdde1b6285',
 XGE_CONTRACT_SHA256='503807ac3496ea9e006f94e38fad5268c74aafe43954fb5d71bba217ccaf71a2'
 XGE_CALLBACK_PAIR=(XGE_CALLBACK_PINS['src/ir/xl6_ir.c'], XGE_CALLBACK_PINS['src/ir/xl6_ir.h'])
 XGE_CALLBACK_CONTRACT_SHA256='fb3a16189e15962d1e9b0965dceaa09a6e5632140e283e8cbe13216d1e486a47'
+CLEANUP_SCAN_PAIR=(CLEANUP_SCAN_PINS['src/ir/xl6_ir.c'], CLEANUP_SCAN_PINS['src/ir/xl6_ir.h'])
+CLEANUP_SCAN_CONTRACT_SHA256='9fe06924109a3710d6b5459438e8d5d80095705efd7cc57813af83ac0c2488a8'
 
 
 def current_pair(source_digest,header_digest):
-    return (source_digest,header_digest) in (CURRENT_PAIR,PROJECTION_PAIR,OWNERSHIP_PAIR,XGE_PAIR,XGE_CALLBACK_PAIR)
+    return (source_digest,header_digest) in (CURRENT_PAIR,PROJECTION_PAIR,OWNERSHIP_PAIR,XGE_PAIR,
+                                            XGE_CALLBACK_PAIR,CLEANUP_SCAN_PAIR)
 
 
 def current_contract(pins):
-    return contract_digest(pins) in (CURRENT_CONTRACT_SHA256,PRODUCT_062_CONTRACT_SHA256,PROJECTION_CONTRACT_SHA256,OWNERSHIP_CONTRACT_SHA256,XGE_CONTRACT_SHA256,XGE_CALLBACK_CONTRACT_SHA256)
+    return contract_digest(pins) in (CURRENT_CONTRACT_SHA256,PRODUCT_062_CONTRACT_SHA256,
+        PROJECTION_CONTRACT_SHA256,OWNERSHIP_CONTRACT_SHA256,XGE_CONTRACT_SHA256,
+        XGE_CALLBACK_CONTRACT_SHA256,CLEANUP_SCAN_CONTRACT_SHA256)
 
 
 def contract_digest(pins):

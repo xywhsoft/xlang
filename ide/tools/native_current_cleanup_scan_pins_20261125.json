@@ -1,0 +1,8 @@
+{
+  "format": "xlang-native-frontend-delta-1",
+  "sourceRevision": "current-cleanup-scan-20261125",
+  "parentRecordSha256": "285f14395f636ecb64d5a42b45cd1419dec2364f3e57a1c203a692afdaa2f06c",
+  "pins": {
+    "src/ir/xl6_ir.c": "c4baa5633d66d2025ca2f67ee37a8158d7f1420ce208b8a71a841697b224139f"
+  }
+}

@@ -34,7 +34,12 @@ XGE_CALLBACK_RECORD = json.loads(XGE_CALLBACK_RECORD_PATH.read_text(encoding='ut
 XGE_CALLBACK_RECORD_SHA256 = hashlib.sha256(XGE_CALLBACK_RECORD_PATH.read_bytes()).hexdigest()
 XGE_CALLBACK_REVISION = XGE_CALLBACK_RECORD['sourceRevision']
 XGE_CALLBACK_PINS = {**XGE_PINS, **XGE_CALLBACK_RECORD['pins']}
-XGE_LAYOUTS = (XGE_PINS, XGE_CALLBACK_PINS)
+CLEANUP_SCAN_RECORD_PATH = Path(__file__).with_name('native_current_cleanup_scan_pins_20261125.json')
+CLEANUP_SCAN_RECORD_BYTES = CLEANUP_SCAN_RECORD_PATH.read_bytes()
+CLEANUP_SCAN_RECORD = json.loads(CLEANUP_SCAN_RECORD_BYTES)
+CLEANUP_SCAN_REVISION = CLEANUP_SCAN_RECORD['sourceRevision']
+CLEANUP_SCAN_PINS = {**XGE_CALLBACK_PINS, **CLEANUP_SCAN_RECORD['pins']}
+XGE_LAYOUTS = (XGE_PINS, XGE_CALLBACK_PINS, CLEANUP_SCAN_PINS)
 _xge_parent = OWNERSHIP_RECORD_PATH.read_bytes().replace(b'\r\n',b'\n')
 if XGE_RECORD['parentRecordSha256'] != hashlib.sha256(_xge_parent).hexdigest():
     raise ValueError('XGE frontend delta has a different audited parent')
@@ -44,6 +49,10 @@ if (XGE_CALLBACK_RECORD['parentRecordSha256'] != hashlib.sha256(_callback_parent
     any(XGE_CALLBACK_RECORD[name] != XGE_RECORD[name] for name in ('productVersion','xrtRevision')) or
     any(XGE_CALLBACK_PINS[name] != XGE_PINS[name] for name in ('src/ast/xl6_ast.h','src/ir/xl6_ir.h','lib/xrt/xrt.h'))):
     raise ValueError('XGE callback frontend changes its reviewed SDK/AST/IR layout')
+if (CLEANUP_SCAN_RECORD['parentRecordSha256'] != hashlib.sha256(
+        XGE_CALLBACK_RECORD_PATH.read_bytes().replace(b'\r\n',b'\n')).hexdigest() or
+        set(CLEANUP_SCAN_RECORD['pins']) != {'src/ir/xl6_ir.c'}):
+    raise ValueError('Cleanup scan changes more than the reviewed IR unit')
 LAYOUT_PROFILES = (CURRENT_PINS, PRODUCT_PINS, PROJECTION_PINS, OWNERSHIP_PINS, *XGE_LAYOUTS)
 _ownership_parent_lf = PROJECTION_RECORD_PATH.read_bytes().replace(b'\r\n',b'\n')
 if (OWNERSHIP_RECORD['parentRecordSha256'] not in {hashlib.sha256(data).hexdigest() for data in (_ownership_parent_lf,_ownership_parent_lf.replace(b'\n',b'\r\n'))} or
@@ -88,8 +97,9 @@ def _current_runtime(frontend):
 def pins_for(frontend):
     header=source_path(frontend,'src/ir/xl6_ir.h')
     if _matches(header,'src/ir/xl6_ir.h',XGE_PINS):
-        if _matches(frontend/'src/ir/xl6_ir.c','src/ir/xl6_ir.c',XGE_CALLBACK_PINS):
-            return XGE_CALLBACK_PINS
+        for pins in (CLEANUP_SCAN_PINS, XGE_CALLBACK_PINS):
+            if _matches(frontend/'src/ir/xl6_ir.c','src/ir/xl6_ir.c',pins):
+                return pins
         return XGE_PINS
     if header.is_file() and _recover_current(header.read_bytes(),'src/ir/xl6_ir.h',OWNERSHIP_PINS) is not None:
         return OWNERSHIP_PINS
@@ -110,6 +120,7 @@ def completion_facts(frontend):
 
 def source_revision(frontend):
     pins=pins_for(frontend)
+    if pins is CLEANUP_SCAN_PINS:return CLEANUP_SCAN_REVISION
     if pins is XGE_CALLBACK_PINS:return XGE_CALLBACK_REVISION
     if pins is XGE_PINS:return XGE_REVISION
     if pins is OWNERSHIP_PINS:return OWNERSHIP_RECORD['sourceRevision']
@@ -174,7 +185,9 @@ def prepare(frontend,destination):
     if pins is PROJECTION_PINS:
         original[str(PROJECTION_RECORD_PATH.resolve())]=PROJECTION_RECORD_SHA256
         original[str(PRODUCT_RECORD_PATH.resolve())]=PRODUCT_RECORD_SHA256
-    if pins is XGE_CALLBACK_PINS:
+    if pins is CLEANUP_SCAN_PINS:
+        original[str(CLEANUP_SCAN_RECORD_PATH.resolve())]=hashlib.sha256(CLEANUP_SCAN_RECORD_BYTES).hexdigest()
+    if pins is XGE_CALLBACK_PINS or pins is CLEANUP_SCAN_PINS:
         original[str(XGE_CALLBACK_RECORD_PATH.resolve())]=XGE_CALLBACK_RECORD_SHA256
     if xge_family(pins):
         original[str(XGE_RECORD_PATH.resolve())]=XGE_RECORD_SHA256
