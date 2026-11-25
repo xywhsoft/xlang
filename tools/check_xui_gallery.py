@@ -19,6 +19,7 @@ def main():
  selection.add_argument('--names',help='Comma-separated example filenames without .xl')
  selection.add_argument('--all',action='store_true',help='Include all standalone examples in compile checks')
  p.add_argument('--jobs',type=int,default=2)
+ p.add_argument('--timeout',type=int,default=180,help='Maximum seconds per compile or run command')
  p.add_argument('--resume',action='store_true')
  a=p.parse_args()
  root=a.root.resolve()
@@ -33,6 +34,7 @@ def main():
  modes=a.modes.split(',')
  if not set(modes)<={'check','cgen','build','smoke','execute'} or not 1<=a.jobs<=3:
   p.error('Invalid modes or job count')
+ if a.timeout<1:p.error('--timeout must be positive')
  missing=set(names)-available
  if missing:
   p.error('Unknown examples: '+', '.join(sorted(missing)))
@@ -41,6 +43,7 @@ def main():
  out=a.out.resolve()
  out.mkdir(parents=True,exist_ok=a.resume)
  env={k:v for k,v in os.environ.items()if not k.startswith('XL6_')and k not in('XLANG_PACKAGE_PATH','CPATH','C_INCLUDE_PATH','LIBRARY_PATH','XUI_EXAMPLE_DUMP','XUI_EXAMPLE_CYCLE','XUI_EXAMPLE_EXERCISE')};env.update(XLANG_PACKAGE_PATH=str(runtime/'extlibs'),XUI_EXAMPLE_FRAMES='3');inputs={str(p):sha(p)for p in source.rglob('*')if p.is_file()and '.xlang-ide'not in p.parts};inputs.update((str(runtime/n),sha(runtime/n))for n in ('xl.exe','xl.dll','xlc.dll','xl','libxl.so','libxlc.so')if(runtime/n).is_file());inputs.update((str(p),sha(p))for package in ('xui','xge','_xge_native')for p in(runtime/'extlibs'/package).rglob('*')if p.is_file()and '.xlang-ide'not in p.parts);inputs[str(Path(__file__).resolve())]=sha(__file__);report=dict(complete=False,passed=False,scope=__doc__,runtime=str(runtime),inputs=inputs,rows=[],modes=modes,examples=names,windowTests=bool({'smoke','execute'}&set(modes)),networkTests=False)
+ report['timeoutSeconds']=a.timeout
  if a.resume:
   previous_path=out/'results.json';previous=json.loads(previous_path.read_text())
   assert previous['modes']==modes and previous['examples']==names and previous['runtime']==str(runtime)
@@ -66,7 +69,7 @@ def main():
     scenes=sum(row['name']!='all_controls'and row.get('gallery',True)for row in catalog['examples'])
     child_env.update(XUI_EXAMPLE_CYCLE='1',XUI_EXAMPLE_FRAMES=str(scenes*3+2))
   start=time.monotonic()
-  try:r=subprocess.run(args,cwd=runtime,env=child_env,capture_output=True,timeout=180);code=r.returncode;data=r.stdout+r.stderr
+  try:r=subprocess.run(args,cwd=runtime,env=child_env,capture_output=True,timeout=a.timeout);code=r.returncode;data=r.stdout+r.stderr
   except subprocess.TimeoutExpired as e:code=-1;data=(e.stdout or b'')+(e.stderr or b'')+b'\nTIMEOUT'
   except OSError as e:code=-3;data=str(e).encode('utf-8')
   if code==0 and mode=='execute'and name=='all_controls'and sum(line.startswith(b'SCENE ')for line in data.splitlines())!=sum(row['name']!='all_controls'and row.get('gallery',True)for row in catalog['examples']):
