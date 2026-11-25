@@ -1,0 +1,150 @@
+{
+  "schema": 1,
+  "date": "2026-11-25",
+  "scope": "Candidate XGE/XUI/Document example, native consumer and compiler performance qualification",
+  "shippingDelivery": false,
+  "releaseDirectoryWritten": false,
+  "networkTests": false,
+  "nativeAuditRevision": "eaf5f8cc535ac8d0dacd80d98cee76c849b35d76",
+  "cleanupScanRevision": "5797fb8754cb66d518085cf0a535e0b0b6f93e7f",
+  "previousQualification": "dev/release-materials/provenance/xge-matched-ide-candidate-20261125.json",
+  "platforms": {
+    "win": {
+      "xuiExampleChecks": {
+        "path": "F:/xlang-validation/xge-full-20261110/converged-all-xui-check-win-r1/results.json",
+        "sha256": "a359f665e1b5ba6808a15218ae4a6f1f82d8266210fc2ca10d3e94d13d443545",
+        "checks": 202
+      },
+      "representativeProgramRuns": {
+        "path": "F:/xlang-validation/xge-full-20261110/converged-examples-installed-r1/results.json",
+        "sha256": "576f267d89ff158ece224e84ff1ea4c0b54e4b80d628be66a8bf01576712e131",
+        "checks": 56
+      },
+      "nativeConsumerAudit": {
+        "path": "F:/xlang-validation/xge-full-20261110/converged-native-consumers-win-r5/results.json",
+        "sha256": "ddd7255d4900b54d0ef05e66d2ea18393f33230649fec74f9cbcbd8b19dd42a3",
+        "checks": 157
+      },
+      "nativeFunctions": 5951,
+      "directDeclarations": 4881,
+      "nativeConsumerFunctions": 407,
+      "explicitReplacements": 696,
+      "generatedProxyCalls": [
+        "xuiDrawRollbackCallbackOutput",
+        "xuiFontRollbackCallbackOutput",
+        "xuiProxyCreateCustomOwned",
+        "xuiProxyGetSurfaceReadExtent",
+        "xuiSurfaceRollbackCallbackOutput"
+      ],
+      "documentContextWatch": {
+        "factory": "xuiDocumentRendererCreate",
+        "watch": "xuiContextLifetimeWatch",
+        "release": "xuiDocumentRendererReleaseOwnerChecked",
+        "detach": "xuiLifetimeUnwatch"
+      },
+      "nativeProxyFactoryFixture": {
+        "path": "F:/xlang-validation/xge-full-20261110/converged-native-proxy-package-win-r1/results.json",
+        "sha256": "8e9cc15ec6958d4b898fc12b1ffe2ac5139a7919f8e908bf35665d537d99f0c8",
+        "checks": 2
+      }
+    },
+    "linux": {
+      "xuiExampleChecks": {
+        "path": "//wsl.localhost/Ubuntu/var/tmp/xlang-validation/xge-full-20261110/converged-all-xui-check-linux-r1/results.json",
+        "sha256": "b5146783ddd7d17e780037d75e826aa0a833ab194a79c180e90b3b64ca80bdce",
+        "checks": 202
+      },
+      "representativeProgramRuns": {
+        "path": "//wsl.localhost/Ubuntu/var/tmp/xlang-validation/xge-full-20261110/converged-examples-installed-r2/results.json",
+        "sha256": "8affae97129b6f2a13c50fade4db1deb469270c42e0985b4d73313707fee1a45",
+        "checks": 28
+      },
+      "nativeConsumerAudit": {
+        "path": "//wsl.localhost/Ubuntu/var/tmp/xlang-validation/xge-full-20261110/converged-native-consumers-linux-r3/results.json",
+        "sha256": "e0b65ba070e12b0d335867df14dc159d1d327ed851bb6d6a912aa104106b13cd",
+        "checks": 157
+      },
+      "nativeFunctions": 5951,
+      "directDeclarations": 4881,
+      "nativeConsumerFunctions": 405,
+      "explicitReplacements": 696,
+      "generatedProxyCalls": [
+        "xuiDrawRollbackCallbackOutput",
+        "xuiFontRollbackCallbackOutput",
+        "xuiProxyCreateCustomOwned",
+        "xuiProxyGetSurfaceReadExtent",
+        "xuiSurfaceRollbackCallbackOutput"
+      ],
+      "documentContextWatch": {
+        "factory": "xuiDocumentRendererCreate",
+        "watch": "xuiContextLifetimeWatch",
+        "release": "xuiDocumentRendererReleaseOwnerChecked",
+        "detach": "xuiLifetimeUnwatch"
+      },
+      "nativeProxyFactoryFixture": {
+        "path": "//wsl.localhost/Ubuntu/var/tmp/xlang-validation/xge-full-20261110/converged-native-proxy-package-linux-r1/results.json",
+        "sha256": "1a1075a37133462e0416a5f3e0def9dd2714d5cc528bff9a74cc67a40c376f63",
+        "checks": 2
+      }
+    }
+  },
+  "linuxEgl": {
+    "nativeRelocationWitness": {
+      "path": "//wsl.localhost/Ubuntu/var/tmp/xlang-validation/xge-full-20261110/converged-egl-consumers-r1/results.json",
+      "sha256": "0f1c39ef50ca795426354f373f42772dea6571c50bbc16fb9bbd243ce1b799db",
+      "checks": 2
+    },
+    "exampleChecks": {
+      "path": "//wsl.localhost/Ubuntu/var/tmp/xlang-validation/xge-full-20261110/converged-examples-egl-r1/results.json",
+      "sha256": "958a696059977d6ff1dd13df0dffabeb9142742f62f5ca52787ad4934a061c64",
+      "checks": 14
+    }
+  },
+  "nativeProxySource": {
+    "path": "F:/xlang-validation/xge-full-20261110/native-proxy-package-contract.c",
+    "sha256": "f824a404fd0f848a5d4270c485bb83dce0db17e424c683cec329d73f554eb3dd"
+  },
+  "cleanupScan": {
+    "qualification": {
+      "path": "//wsl.localhost/Ubuntu/var/tmp/xlang-validation/xge-full-20261110/qualify-ir-cleanup-tracked-r3/results.json",
+      "sha256": "6635184fde8cfd4aaadd2550ff7dee597dc170b2f65b2f8f6c8c26bd74056bcd",
+      "checks": 18
+    },
+    "sourceSha256": "c4baa5633d66d2025ca2f67ee37a8158d7f1420ce208b8a71a841697b224139f",
+    "method": "Recompile the exact IR unit with GCC -O2 and interpose it in the isolated Linux compiler process",
+    "typedAndLoweredIdentical": 16,
+    "exitContractRejectionCheck": true,
+    "documentJit": [
+      {
+        "variant": "baseline",
+        "seconds": 82.221,
+        "exitCode": 0,
+        "stdout": "e34c7ef9e41e9d32537b00d685e1ad7038adc6c67edbe47baf2fb6a3b0520e32",
+        "stderr": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      {
+        "variant": "cleanup-scan",
+        "seconds": 44.729,
+        "exitCode": 0,
+        "stdout": "e34c7ef9e41e9d32537b00d685e1ad7038adc6c67edbe47baf2fb6a3b0520e32",
+        "stderr": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      }
+    ]
+  },
+  "languageServer": {
+    "build": {
+      "path": "F:/xlang-validation/xge-full-20261110/converged-lsp-cleanup-win-r1/build-result.json",
+      "sha256": "702aa6571541330e1a2a56bce080d0cd2769749c8cc53080c8091dcd897097b6"
+    },
+    "stdio": {
+      "path": "F:/xlang-validation/xge-full-20261110/converged-ls-stdio-cleanup-win-r1/results.json",
+      "sha256": "c76f2e655d28247e8be7e695e512ee41c342eee73c5951a99e22bd4fcc7d9b0e",
+      "checks": 16
+    }
+  },
+  "remainingDelivery": [
+    "Finish the paired compiler rebuilds and validate the complete product images",
+    "Update the paired SDK and IDE command catalog and rerun installed artifact checks",
+    "Promote the verified runtime and record its local delivery hashes"
+  ]
+}
