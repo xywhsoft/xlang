@@ -1857,3 +1857,28 @@ The immutable evidence index is
 The full integration goal, all pending contracts and final matched delivery
 remain open. This audit supplies concrete review evidence rather than treating
 the absence of a language declaration as a decision to omit an API.
+
+## Matched native routes, 2026-11-25
+
+The current header inventory contains 5,951 functions on both platforms.
+It resolves direct declarations for 4,881 and finds compiled consumers or
+reviewed replacements for 1,066 more across the Windows and Linux audits.
+The optional Linux EGL build supplies relocation evidence for `xgeEGLInit`
+and `xgeEGLMakeCurrent` through the managed `GraphicsContext` entry points.
+
+Native C providers can call `xuiProxyCreateOwned` and `xuiProxyCreateOwnedEx`
+with their own callback table and traced owner. The default factory keeps
+retirement on the creator thread. The extended factory also accepts
+`XUI_PROXY_OWNED_ANYTHREAD_FINALIZE` when every retirement callback and owner
+release can run on any thread. The hosted native fixtures exercise both
+factories and verify the out-of-memory rollback, cross-thread `Busy` result,
+creator-thread retry and flagged release. Language callbacks use
+`xui.createCustomProxy` and retain their shared environment through the managed
+owner.
+
+The declaration audit now accounts for 114 callback fields. It follows the
+physical record parameter in `@c_pack` to each callback in `@c_pack_field`.
+The new analysis identifies 48 fields in existing declarations, including
+platform and graphics backends, host context hooks, and XUI provider callbacks.
+The [candidate qualification](../dev/release-materials/provenance/xge-candidate-qualification-20261125.json)
+links the compiled consumer, native provider and EGL runtime evidence.
