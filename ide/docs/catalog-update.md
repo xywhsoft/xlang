@@ -1,6 +1,6 @@
 # 命令目录更新与验收
 
-命令目录来自当前共享 `release/` 的编译器及其对应源码，不再使用旧的便携编译器快照。编译器源码固定到 `docs/reports/prerelease-0.6.0.json` 记录的 Windows 构建版本；三份产品的 SHA-256 必须与报告一致。编译器目录有未纳入该构建的源码修改时，先构建并完成相应验收，再更新目录。IDE 的并行源码修改不进入编译器输入范围。
+命令目录来自 `release/win_x64` 或指定的配套运行目录。生成器使用构建报告中的编译器源码提交，并核对三份编译器产物的 SHA-256。默认使用 `docs/reports/prerelease-0.6.0.json` 的历史构建记录。更新当前版本时应传入对应构建报告。编译器源码有新改动时，先构建并完成相应验收，再更新目录。IDE 源码可独立修改。
 
 在 `ide/` 下运行：
 
@@ -12,6 +12,8 @@ python -X utf8 tools/check_catalog_coverage.py --catalog data/commands.json
 ```
 
 `-ReleaseReportPath` 可以选择新的构建验收报告，`-Root` 指定其仓库。输出目录必须尚不存在。省略 `-PrepareOnly` 会在覆盖校验通过后直接发布到 `ide/data`。资料更新本身不重编译 GUI 或语言服务；语义服务的编译和验收独立进行。2026-10-31 扩展目录加入 `field`/`variable` 类型及禁止直接补全的工厂返回类型，需要本轮 IDE 读取器；旧二进制不能只替换数据就视作更新完成。
+
+完整生成默认读取 `release/win_x64`。隔离构建可通过 `-ReleaseDirectory` 指定配套运行目录，并同时传入完整 O2 编译器构建报告 `-ReleaseReportPath` 和它的 SDK 暂存回执 `-CompilerSdkPath`。生成器会核对源码提交、三份编译器产物和 SDK 头文件的摘要。生成后的目录和来源索引仍通过同一验收入口检查。
 
 ## 扩展日常刷新
 

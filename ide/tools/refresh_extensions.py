@@ -68,7 +68,7 @@ def check(root, data):
     return dict(status='current', packages=catalog['coverage']['packages'], extensionEntries=catalog['coverage']['categories']['extension'])
 
 
-def generate(root, data, output, gcc=None):
+def generate(root, data, output, gcc=None, release_directory=None):
     if output.exists():
         raise ValueError('Output directory already exists: ' + str(output))
     verified = verify(data / 'catalog-sources', data / 'commands.json')
@@ -87,7 +87,7 @@ def generate(root, data, output, gcc=None):
         if hashlib.sha256(raw).hexdigest() != value:
             raise ValueError('Extraction tool changed before capture: ' + name)
         (tool_snapshot / name).write_bytes(raw)
-    compiler, frontend = build_exporter(root, output / 'frontend', gcc)
+    compiler, frontend = build_exporter(root, output / 'frontend', gcc, release_directory)
     compiler_hash = sha(compiler)
     retained = [e for e in base['entries'] if e['category'] != 'extension']
     documents = [d for d in base['documents'] if not d['id'].startswith('package:')]
@@ -151,6 +151,7 @@ def main():
     parser.add_argument('--data', type=Path, default=IDE / 'data')
     parser.add_argument('--output', type=Path)
     parser.add_argument('--gcc')
+    parser.add_argument('--release-directory', type=Path, help='Runtime supplying the matching compiler DLL and headers')
     parser.add_argument('--check', action='store_true')
     args = parser.parse_args()
     root, data = args.root.resolve(), args.data.resolve()
@@ -160,7 +161,7 @@ def main():
         else:
             if not args.output:
                 parser.error('--output is required for generation')
-            result = generate(root, data, args.output.resolve(), args.gcc)
+            result = generate(root, data, args.output.resolve(), args.gcc, args.release_directory)
     except (OSError, ValueError, KeyError, IndexError, StopIteration) as error:
         parser.exit(1, str(error) + '\n')
     print(json.dumps(result, ensure_ascii=False))

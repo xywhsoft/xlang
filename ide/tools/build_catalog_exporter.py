@@ -13,14 +13,14 @@ SOURCES = ('src/lexer/xl6_token.c', 'src/lexer/xl6_lexer_api.c', 'src/lexer/xl6_
            'src/common/xl6_console.c', 'src/sem/xl6_completion.c')
 
 
-def build(root, output, gcc=None):
+def build(root, output, gcc=None, release_directory=None):
     root, output = Path(root).resolve(), Path(output).resolve()
     gcc = Path(gcc or shutil.which('gcc') or '').resolve(strict=True)
     output.mkdir(parents=True)
     windows = sys.platform == 'win32'
     platform = 'win_x64' if windows else 'linux_x64'
-    release = root / 'release' / platform
-    if not release.is_dir():
+    release = Path(release_directory).resolve() if release_directory else root / 'release' / platform
+    if not release_directory and not release.is_dir():
         release = root / 'release'
     runtime = release / ('xlc.dll' if windows else 'libxlc.so')
     inputs = [root / p for p in SOURCES] + list((root / 'src').rglob('*.h'))
