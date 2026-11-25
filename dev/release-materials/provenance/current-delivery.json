@@ -1,10 +1,10 @@
 {
   "schema": 1,
-  "date": "2026-11-09",
+  "date": "2026-11-25",
   "primaryDirectory": "D:/GIT/x-lang",
   "deliveryDirectory": "release",
-  "externalPublishPerformed": true,
-  "primaryIntegrationRevision": "6c8c0fbd017a61d89d5b81c836db67f712a422cb",
+  "externalPublishPerformed": false,
+  "primaryIntegrationRevision": "0acbb50bf2e35a17de0327a6c28ae89dd82f3fee",
   "integrations": {
     "tomlCalendarCommit": "65eb0f3dc",
     "originalOutstandingCommits": 124,
@@ -20,40 +20,19 @@
     "extensionSourceRevision": "8806c6b6f642e7e532fb16801246b2e6318a70ca"
   },
   "compiler": {
-    "sourceRevision": "9213f2a906bd424ab31e14ac3499f5b636e5c860",
+    "sourceRevision": "5797fb8754cb66d518085cf0a535e0b0b6f93e7f",
     "version": "0.6.2",
-    "rebuiltThisDelivery": true,
-    "entireAcceptanceRerunThisDelivery": false,
-    "reusedQualifiedProducts": false,
-    "xrtRevision": "93347eb5ae6beba8cf7ee3558708cc4f628fdd07",
-    "xrtBaseRevision": "93347eb5ae6beba8cf7ee3558708cc4f628fdd07",
-    "xrtLocalPatchTip": "0a44e3f80091be178c802c231a37e4f2733fd9fb",
-    "optimization": "-O2",
-    "currentBuildProvenance": "dev/release-materials/provenance/release-0.6.2-20261109/receipt.json",
-    "sourceMaterials": {
-      "path": "dev/release-materials/sources/release-0.6.2-20261109/manifest.json",
-      "sha256": "4ffb4e8b2e84607959a46674f360f8f253daaf60f639bfeff92f8c85fbc2045b",
-      "bytes": 6897
-    },
-    "previousDelivery": {
-      "path": "dev/release-materials/provenance/example-failures-20261107/previous-delivery.json",
-      "sha256": "0d682b70638c7e28396680e6e0faa0cdf649aaff7966cdf48fb8b3bb8928d8a2",
-      "bytes": 177183
-    },
-    "buildScope": "Qualified 0.6.1 compiler version-only overlay. All unchanged Windows object hashes verified; Linux native libraries rebuilt; four embedded API profiles refreshed per platform.",
-    "cohortBaseRevision": "9ab5279c4",
-    "previousBuildProvenance": "dev/release-materials/provenance/release-0.6.1-20261108/receipt.json",
-    "qualifiedBaseSourceMaterials": {
-      "path": "dev/release-materials/sources/example-failures-20261107/manifest.json",
-      "sha256": "697de815136a985a8784d28587212d99fa14e4eeb55a0e75da9f4f7a4f72e602",
-      "bytes": 3644
-    },
     "versionCode": 1538,
     "versionCodeHex": "0x00000602",
-    "reusedQualifiedObjects": true
+    "xrtRevision": "804cc769de3030118c2b46ef7af69543d1b82d9d",
+    "rebuiltThisDelivery": true,
+    "optimization": "-O2",
+    "buildScope": "Full compiler and runtime, embedded resources and platform SDKs rebuilt on Windows and Linux",
+    "currentBuildProvenance": "F:/xlang-validation/xge-full-20261110/converged-compiler-win-r2/build.json",
+    "linuxBuildProvenance": "//wsl.localhost/Ubuntu/var/tmp/xlang-validation/xge-full-20261110/converged-compiler-linux-r2/build.json"
   },
   "ide": {
-    "languageServer": "Rebuilt qualified 455-pin C interop cohort; separately accepted from the prior GUI build.",
+    "languageServer": "Matched native frontend and stdio qualification for the installed runtime.",
     "guiTranslationUnits": 113,
     "compiler": "GCC 16.2.0",
     "warnings": [
@@ -75,7 +54,7 @@
       "licenseUrl": "http://www.microsoft.com/typography/fonts/default.aspx"
     },
     "fontChangeSourceParent": "b16a95bbf022efcafc7b965d1bd9b5b945c0d881",
-    "currentBuildProvenance": "dev/release-materials/provenance/release-0.6.2-20261109/receipt.json",
+    "currentBuildProvenance": "F:/xlang-validation/xge-full-20261110/converged-local-release-install-r2/ide-build-proof.json",
     "cLspEnabled": false,
     "applicationIcon": {
       "source": "ide/data/xlang_ide.ico",
@@ -89,7 +68,7 @@
       "provenance": "docs/reports/release-materials-migration-20261031.json",
       "buildCommand": "pwsh -NoProfile -File ide/tools/build.ps1 -Configuration Release -GuiOnly -LanguageServerPath D:/GIT/x-lang/release/xlang-ls.exe -ReleaseDirectory D:/GIT/x-lang/release"
     },
-    "sha256": "a8de3f567398f6499b9b5bfd9cbc500ff137a308299fdebdea292a819745ed3f",
+    "sha256": "c16bf9eb661f5ba3be74207398c0b1a91a4dc8659d979402d2d0a20bedf710da",
     "sourceIdentity": {
       "guiBaseSourceRevision": "7770cae084bc51a79934796be13a24f95e62ec3e",
       "overlayBaseRevision": "ea2eb7b406d6e5f8cd2ab7e300b9615ee5b6e001",
@@ -161,7 +140,7 @@
     "updateStateDirectory": "ide/build/update-runtime/<platform>-<install-path-sha256>",
     "previousBuildProvenanceBeforeDialogBackdrop": "dev/release-materials/provenance/ide-release-maintenance-20261106.json",
     "dialogBackdrop": "viewport-sized absolute overlay; dialog above backdrop; child/IME-aware Escape",
-    "previousBuildProvenance": "dev/release-materials/provenance/ide-template-form-layout-20261109/receipt.json",
+    "previousBuildProvenance": "dev/release-materials/provenance/release-0.6.2-20261109/receipt.json",
     "sourceRevision": "ea2eb7b406d6e5f8cd2ab7e300b9615ee5b6e001",
     "previousSourceIdentity": {
       "guiBaseSourceRevision": "7b2b33c5e7b179b35d80883da47ffc49a813ded3",
@@ -354,22 +333,22 @@
   },
   "catalog": {
     "status": "passed",
-    "entries": 19975,
-    "documents": 147,
+    "entries": 23464,
+    "documents": 148,
     "publicApi": {
       "functions": 823,
       "constants": 202,
       "types": 406,
       "members": 3830
     },
-    "availableSources": 591,
-    "catalogSha256": "f71d5ab77ed0b1e89247cdbfca94031a3d14c6abdc525e91696fdeb23c3535d7",
-    "sourceRevision": "ed78373dded9bde21db313799c1db8d5111631a6",
-    "currentDeliveryAction": "Product-version-only runtime fingerprint refresh; public entries/documents unchanged.",
+    "availableSources": 653,
+    "catalogSha256": "c9c7399a1113d3654d4f77e1cd83598a63a83861f999624e80fffa0b65ae21ca",
+    "sourceRevision": "5797fb8754cb66d518085cf0a535e0b0b6f93e7f",
+    "currentDeliveryAction": "paired compiler, sources and staged platform extensions",
     "extensionRefreshReceipt": {
-      "path": "dev/release-materials/provenance/xge-terminal-newline-20261108/receipt.json",
-      "sha256": "46fe4ee184afed40521671aa634c969cf10caa2439b9d6fcc0c1a242085801d3",
-      "bytes": 29326
+      "path": "F:/xlang-validation/xge-full-20261110/converged-runtime-win-r3/catalog/generation-report.json",
+      "bytes": 848463,
+      "sha256": "2026c62fa0a55cd246337108dfc08f6e833f555d1ebe82c78c458c0512ebdfe5"
     }
   },
   "publicExtensionModules": 207,
@@ -3425,11 +3404,6 @@
       "bytes": 384
     },
     {
-      "path": "release/win_x64/data/catalog-sources/0852aeb3f740ec81621ca11ffff96301e8ab3e364f61ad0fc5ed86151ee9846b.source",
-      "sha256": "0852aeb3f740ec81621ca11ffff96301e8ab3e364f61ad0fc5ed86151ee9846b",
-      "bytes": 757
-    },
-    {
       "path": "release/win_x64/data/catalog-sources/08740a40b246377abbe50be8feab5e4342141566ddb2911328b84e51c47aa364.source",
       "sha256": "08740a40b246377abbe50be8feab5e4342141566ddb2911328b84e51c47aa364",
       "bytes": 378
@@ -3730,11 +3704,6 @@
       "bytes": 4314
     },
     {
-      "path": "release/win_x64/data/catalog-sources/229529406c26e2d6fa841982cf29b6f0ff7bbdde860aa8b4d8151287253dc39a.source",
-      "sha256": "229529406c26e2d6fa841982cf29b6f0ff7bbdde860aa8b4d8151287253dc39a",
-      "bytes": 693201
-    },
-    {
       "path": "release/win_x64/data/catalog-sources/22e74f5207be76336c63728e911da99c7af71b2439ccea02006e632a1f34eed7.source",
       "sha256": "22e74f5207be76336c63728e911da99c7af71b2439ccea02006e632a1f34eed7",
       "bytes": 1133
@@ -3855,11 +3824,6 @@
       "bytes": 13350
     },
     {
-      "path": "release/win_x64/data/catalog-sources/2d74e1a1ecec9850d658478af08086e5708186c407add0c988b371e22d89cd45.source",
-      "sha256": "2d74e1a1ecec9850d658478af08086e5708186c407add0c988b371e22d89cd45",
-      "bytes": 3691
-    },
-    {
       "path": "release/win_x64/data/catalog-sources/2dd0f96f5fa79889ce5151183e198e138f030a24b8f61d03b7e52a80cb384f97.source",
       "sha256": "2dd0f96f5fa79889ce5151183e198e138f030a24b8f61d03b7e52a80cb384f97",
       "bytes": 740
@@ -3888,11 +3852,6 @@
       "path": "release/win_x64/data/catalog-sources/303c1e472cbd94e4456f8ca6314c07b76ad221ca38561d81b7a933f2d0d68144.source",
       "sha256": "303c1e472cbd94e4456f8ca6314c07b76ad221ca38561d81b7a933f2d0d68144",
       "bytes": 404
-    },
-    {
-      "path": "release/win_x64/data/catalog-sources/306c0e4809e4faa4264d43fcaebf77b0fb22658811fb0a2d4c16a7024d7177fa.source",
-      "sha256": "306c0e4809e4faa4264d43fcaebf77b0fb22658811fb0a2d4c16a7024d7177fa",
-      "bytes": 22473
     },
     {
       "path": "release/win_x64/data/catalog-sources/307c09acd59e301b10ab855bcceaf7a1cc8295f1365d6d9baaa6af20d864c56a.source",
@@ -3928,11 +3887,6 @@
       "path": "release/win_x64/data/catalog-sources/32068b6186305de7d6ea0b9961d5caac3549b02d6290e32d2e90a899178a1a73.source",
       "sha256": "32068b6186305de7d6ea0b9961d5caac3549b02d6290e32d2e90a899178a1a73",
       "bytes": 9233
-    },
-    {
-      "path": "release/win_x64/data/catalog-sources/32710274d0f069fae960966e0d2d1b94c01a9d27155963fdf95bddf65a5a8774.source",
-      "sha256": "32710274d0f069fae960966e0d2d1b94c01a9d27155963fdf95bddf65a5a8774",
-      "bytes": 4654
     },
     {
       "path": "release/win_x64/data/catalog-sources/32a10d32dee657b0ab189a762e1b7194f4796923b2f22c5e7ebfb7c1c238125a.source",
@@ -4285,11 +4239,6 @@
       "bytes": 1073
     },
     {
-      "path": "release/win_x64/data/catalog-sources/522236365e3d98a35062a200386b62f5b89df9b6738b59679ad81050cd4eb14a.source",
-      "sha256": "522236365e3d98a35062a200386b62f5b89df9b6738b59679ad81050cd4eb14a",
-      "bytes": 1189
-    },
-    {
       "path": "release/win_x64/data/catalog-sources/5231e78198b5c0458481289fc07264793e049a4d004ad4601955615435cd149a.source",
       "sha256": "5231e78198b5c0458481289fc07264793e049a4d004ad4601955615435cd149a",
       "bytes": 1178
@@ -4308,11 +4257,6 @@
       "path": "release/win_x64/data/catalog-sources/54259877fcffe2f0886e8444946a5ed157deafbde2622401d4ed54986b032be6.source",
       "sha256": "54259877fcffe2f0886e8444946a5ed157deafbde2622401d4ed54986b032be6",
       "bytes": 12511
-    },
-    {
-      "path": "release/win_x64/data/catalog-sources/547ccc19a52260978984381283016621ff4d84d41921105ffa7bd7ead73f813d.source",
-      "sha256": "547ccc19a52260978984381283016621ff4d84d41921105ffa7bd7ead73f813d",
-      "bytes": 803
     },
     {
       "path": "release/win_x64/data/catalog-sources/54bdc8d5c92681bad497a84f18c96876c4a6d7647f356bf194acfe4a64549ad1.source",
@@ -4455,16 +4399,6 @@
       "bytes": 27963
     },
     {
-      "path": "release/win_x64/data/catalog-sources/6132404946057271fbcc6396161f1715e70eb2d5bd100683f6b4c6449c0fa6c5.source",
-      "sha256": "6132404946057271fbcc6396161f1715e70eb2d5bd100683f6b4c6449c0fa6c5",
-      "bytes": 16246
-    },
-    {
-      "path": "release/win_x64/data/catalog-sources/615bf63941a040f098bdcb5cba15d2747381cbc75eff00cedd5d2d784ab97d8e.source",
-      "sha256": "615bf63941a040f098bdcb5cba15d2747381cbc75eff00cedd5d2d784ab97d8e",
-      "bytes": 15840
-    },
-    {
       "path": "release/win_x64/data/catalog-sources/616943239a6c3b80154706a99c324ea46e510a49cad6cbb88a7af3adc3983b9e.source",
       "sha256": "616943239a6c3b80154706a99c324ea46e510a49cad6cbb88a7af3adc3983b9e",
       "bytes": 575
@@ -4478,11 +4412,6 @@
       "path": "release/win_x64/data/catalog-sources/61f24c1de0fd1ede1b487af9190c837b92d9a1fd2b3c93e41ed23beed90e3d48.source",
       "sha256": "61f24c1de0fd1ede1b487af9190c837b92d9a1fd2b3c93e41ed23beed90e3d48",
       "bytes": 1148
-    },
-    {
-      "path": "release/win_x64/data/catalog-sources/620bcbb4d21adfc31cd9c19f0c8a8e0a1fe9084fc8e105cafee2043a7425317b.source",
-      "sha256": "620bcbb4d21adfc31cd9c19f0c8a8e0a1fe9084fc8e105cafee2043a7425317b",
-      "bytes": 3178
     },
     {
       "path": "release/win_x64/data/catalog-sources/62bda34f6bbf7a83189abe45db35a56a6587c9b04b7eeaf8e157f07f88a2e9ac.source",
@@ -4573,11 +4502,6 @@
       "path": "release/win_x64/data/catalog-sources/694c7bcc10bebb3aeb91d4b5479b75601d6e5a5580ffdd4050e1fc4c737f7d68.source",
       "sha256": "694c7bcc10bebb3aeb91d4b5479b75601d6e5a5580ffdd4050e1fc4c737f7d68",
       "bytes": 769
-    },
-    {
-      "path": "release/win_x64/data/catalog-sources/6991d2141b4404f773c08ecfdf40acc1ac0ea3f3e887dbdc18d6181a76ccb054.source",
-      "sha256": "6991d2141b4404f773c08ecfdf40acc1ac0ea3f3e887dbdc18d6181a76ccb054",
-      "bytes": 320571
     },
     {
       "path": "release/win_x64/data/catalog-sources/69d539aadf1ded49f49a7860b0ca6ee2d941fcb068382779c1c628bcfa03a4d9.source",
@@ -4715,11 +4639,6 @@
       "bytes": 10180
     },
     {
-      "path": "release/win_x64/data/catalog-sources/75f43f39f0aeb5bff6c3aab420dd6ac2b1eca47dcadb05d78deeacce8287a521.source",
-      "sha256": "75f43f39f0aeb5bff6c3aab420dd6ac2b1eca47dcadb05d78deeacce8287a521",
-      "bytes": 13255
-    },
-    {
       "path": "release/win_x64/data/catalog-sources/760b2b3381b23d68a49b8d57b9df73b762211fc15874b622817eade81a138253.source",
       "sha256": "760b2b3381b23d68a49b8d57b9df73b762211fc15874b622817eade81a138253",
       "bytes": 6432
@@ -4850,11 +4769,6 @@
       "bytes": 666
     },
     {
-      "path": "release/win_x64/data/catalog-sources/7f9188c845d159984c083d7f1194da4c06c5e323b56bf5c3942523dbcee0cd31.source",
-      "sha256": "7f9188c845d159984c083d7f1194da4c06c5e323b56bf5c3942523dbcee0cd31",
-      "bytes": 866
-    },
-    {
       "path": "release/win_x64/data/catalog-sources/7f9c782c7bc944ec9d8c331ed7b877f7746f6a8f66ccf681bfc060c47d85cf6a.source",
       "sha256": "7f9c782c7bc944ec9d8c331ed7b877f7746f6a8f66ccf681bfc060c47d85cf6a",
       "bytes": 1045
@@ -4940,11 +4854,6 @@
       "bytes": 21314
     },
     {
-      "path": "release/win_x64/data/catalog-sources/852cb65a590028fb42af45c07724e99976b915a49c5a1bdfa386e2cedeb6162b.source",
-      "sha256": "852cb65a590028fb42af45c07724e99976b915a49c5a1bdfa386e2cedeb6162b",
-      "bytes": 1875
-    },
-    {
       "path": "release/win_x64/data/catalog-sources/8558164390ee583fc4744c82e7492ba07b45c3b0178cae11b806dd6ed6141ec5.source",
       "sha256": "8558164390ee583fc4744c82e7492ba07b45c3b0178cae11b806dd6ed6141ec5",
       "bytes": 20373
@@ -4968,11 +4877,6 @@
       "path": "release/win_x64/data/catalog-sources/861bbc9bf197c9b03617248e13625eafdd0d8e9e57cdef826c36070746bd728f.source",
       "sha256": "861bbc9bf197c9b03617248e13625eafdd0d8e9e57cdef826c36070746bd728f",
       "bytes": 9701
-    },
-    {
-      "path": "release/win_x64/data/catalog-sources/866d5e1b19f109bf934cb321451ee8ce8ba86699db9a047f84f773b39447cf09.source",
-      "sha256": "866d5e1b19f109bf934cb321451ee8ce8ba86699db9a047f84f773b39447cf09",
-      "bytes": 73611
     },
     {
       "path": "release/win_x64/data/catalog-sources/86d72e5dba4de8f672942c7f410ada8eac9e4fe67bb4321556f1e86222685cf4.source",
@@ -5135,11 +5039,6 @@
       "bytes": 761
     },
     {
-      "path": "release/win_x64/data/catalog-sources/97747c52db93cb015e0fb3d1065c10752350946bb6062d66709f6011c1a647b5.source",
-      "sha256": "97747c52db93cb015e0fb3d1065c10752350946bb6062d66709f6011c1a647b5",
-      "bytes": 34415
-    },
-    {
       "path": "release/win_x64/data/catalog-sources/977e366719d7bf58cdc668bcd09237bc88eefdad869c69f36e547c89120a21c6.source",
       "sha256": "977e366719d7bf58cdc668bcd09237bc88eefdad869c69f36e547c89120a21c6",
       "bytes": 1328
@@ -5215,11 +5114,6 @@
       "bytes": 1614
     },
     {
-      "path": "release/win_x64/data/catalog-sources/9e740ccbd0a0e4a1b3413f9b98bb0e62c76c7458809d91f9e5f2c61c87371070.source",
-      "sha256": "9e740ccbd0a0e4a1b3413f9b98bb0e62c76c7458809d91f9e5f2c61c87371070",
-      "bytes": 14946
-    },
-    {
       "path": "release/win_x64/data/catalog-sources/9ee58757ce00a2c57d1e0350b1b42cde8c5413d6f1c990ae7a5b7fad42c76702.source",
       "sha256": "9ee58757ce00a2c57d1e0350b1b42cde8c5413d6f1c990ae7a5b7fad42c76702",
       "bytes": 4232
@@ -5265,11 +5159,6 @@
       "bytes": 12467
     },
     {
-      "path": "release/win_x64/data/catalog-sources/a20456775c010ebd2f6a15ea7c5b8faaa5dadd27bf68ff8e5c299953ccdd893e.source",
-      "sha256": "a20456775c010ebd2f6a15ea7c5b8faaa5dadd27bf68ff8e5c299953ccdd893e",
-      "bytes": 20754
-    },
-    {
       "path": "release/win_x64/data/catalog-sources/a2226e772b27976cd41d20db20efe2a11e4a936500b523abd77062c658540c9d.source",
       "sha256": "a2226e772b27976cd41d20db20efe2a11e4a936500b523abd77062c658540c9d",
       "bytes": 926
@@ -5293,11 +5182,6 @@
       "path": "release/win_x64/data/catalog-sources/a480dcb4ef78847b98a686a24aa3fe5aa1e947487c82d97faf2d01f6564ccbb9.source",
       "sha256": "a480dcb4ef78847b98a686a24aa3fe5aa1e947487c82d97faf2d01f6564ccbb9",
       "bytes": 15758
-    },
-    {
-      "path": "release/win_x64/data/catalog-sources/a4e463dcbe2aa1ec8bfac3f008eeda7590b7635ae519c720af142e39ff3496f7.source",
-      "sha256": "a4e463dcbe2aa1ec8bfac3f008eeda7590b7635ae519c720af142e39ff3496f7",
-      "bytes": 2132
     },
     {
       "path": "release/win_x64/data/catalog-sources/a5675ce9698c295f56460b9c1b5343561e06dda95be1d96dc81dfe8213d97653.source",
@@ -5358,11 +5242,6 @@
       "path": "release/win_x64/data/catalog-sources/a9be58be2255c85f06e993f8f40a571a82be47270c94dd195efa72d5bfd2d8fd.source",
       "sha256": "a9be58be2255c85f06e993f8f40a571a82be47270c94dd195efa72d5bfd2d8fd",
       "bytes": 1906
-    },
-    {
-      "path": "release/win_x64/data/catalog-sources/aa6e9d36ce9ebd07317aa616e32cfb35f19206365b345543d22f3350f5b27727.source",
-      "sha256": "aa6e9d36ce9ebd07317aa616e32cfb35f19206365b345543d22f3350f5b27727",
-      "bytes": 20348
     },
     {
       "path": "release/win_x64/data/catalog-sources/aaeed2e2cddbc5a6e9193ddbb58215b510a65d9a8621282a4520edf25e0227e1.source",
@@ -5443,11 +5322,6 @@
       "path": "release/win_x64/data/catalog-sources/aed3a5f44aa83637ca5e0bb8fa6664d14e4295820ae53fb0553082c8618bc17e.source",
       "sha256": "aed3a5f44aa83637ca5e0bb8fa6664d14e4295820ae53fb0553082c8618bc17e",
       "bytes": 775
-    },
-    {
-      "path": "release/win_x64/data/catalog-sources/aedb3c2ab8f7c81b54622d61e6e41b6fdaf4081f547e8b2102ea0bafce784bad.source",
-      "sha256": "aedb3c2ab8f7c81b54622d61e6e41b6fdaf4081f547e8b2102ea0bafce784bad",
-      "bytes": 32933
     },
     {
       "path": "release/win_x64/data/catalog-sources/aef0b54c51dc16fa1250c740a0eadf59a87dd1546f6d2fb6677380a282015315.source",
@@ -5735,11 +5609,6 @@
       "bytes": 31876
     },
     {
-      "path": "release/win_x64/data/catalog-sources/cbc2f2face8e62c0be870b12cbdf9d09887d376921523f6b6eb6284150547087.source",
-      "sha256": "cbc2f2face8e62c0be870b12cbdf9d09887d376921523f6b6eb6284150547087",
-      "bytes": 5939
-    },
-    {
       "path": "release/win_x64/data/catalog-sources/cc3c1c8b36b1b77b30aa173ea8d3a5b9bec48cda5e15e33dbadbfac829b70cea.source",
       "sha256": "cc3c1c8b36b1b77b30aa173ea8d3a5b9bec48cda5e15e33dbadbfac829b70cea",
       "bytes": 641
@@ -5765,19 +5634,9 @@
       "bytes": 372
     },
     {
-      "path": "release/win_x64/data/catalog-sources/ce31cbd89d5c4baf3700b1675c08036d0cf0688922a6e3a512bce61788070eab.source",
-      "sha256": "ce31cbd89d5c4baf3700b1675c08036d0cf0688922a6e3a512bce61788070eab",
-      "bytes": 3314
-    },
-    {
       "path": "release/win_x64/data/catalog-sources/ce83792348fe669c580c0bcac81b778122b6093f6c14fcd51cabb294748749f2.source",
       "sha256": "ce83792348fe669c580c0bcac81b778122b6093f6c14fcd51cabb294748749f2",
       "bytes": 378
-    },
-    {
-      "path": "release/win_x64/data/catalog-sources/d0696614130440193cd09369e0c9cf3f7039652281154bbd2a75b475c866f76e.source",
-      "sha256": "d0696614130440193cd09369e0c9cf3f7039652281154bbd2a75b475c866f76e",
-      "bytes": 38370
     },
     {
       "path": "release/win_x64/data/catalog-sources/d074a347ee2d66f46494f2c48f1cea54429e1b36d49ab8e5906bf71e04134252.source",
@@ -5868,11 +5727,6 @@
       "path": "release/win_x64/data/catalog-sources/d77a3eb3868c5ed2a57ef72478ee9fb96a0ff4a60c576a5b4a3b1b5192fbc673.source",
       "sha256": "d77a3eb3868c5ed2a57ef72478ee9fb96a0ff4a60c576a5b4a3b1b5192fbc673",
       "bytes": 372
-    },
-    {
-      "path": "release/win_x64/data/catalog-sources/d82949377c3a5bd042f76f1c920c787d6c6da4e9ae1e8bda76c7455ece4433b7.source",
-      "sha256": "d82949377c3a5bd042f76f1c920c787d6c6da4e9ae1e8bda76c7455ece4433b7",
-      "bytes": 744
     },
     {
       "path": "release/win_x64/data/catalog-sources/d845277c47ed827ea0558916af70ac61ed19d43798965d64e460e3ccbe5fef7d.source",
@@ -6020,11 +5874,6 @@
       "bytes": 1104
     },
     {
-      "path": "release/win_x64/data/catalog-sources/e64459b1515b703c21b2890b8707e425dedd9fe8f659db40846d17a4605efb81.source",
-      "sha256": "e64459b1515b703c21b2890b8707e425dedd9fe8f659db40846d17a4605efb81",
-      "bytes": 285425
-    },
-    {
       "path": "release/win_x64/data/catalog-sources/e68b2112c2db6ca9e8bc235eb8880c9b4ece6d1a52245a437bd2df38f39aff26.source",
       "sha256": "e68b2112c2db6ca9e8bc235eb8880c9b4ece6d1a52245a437bd2df38f39aff26",
       "bytes": 944
@@ -6145,11 +5994,6 @@
       "bytes": 1403
     },
     {
-      "path": "release/win_x64/data/catalog-sources/f30dd0685a04afeb806aa4f83c82ccd697424d9b1e991c17a0f8f7d5870deaad.source",
-      "sha256": "f30dd0685a04afeb806aa4f83c82ccd697424d9b1e991c17a0f8f7d5870deaad",
-      "bytes": 4431
-    },
-    {
       "path": "release/win_x64/data/catalog-sources/f391ade830359ee6e5385fa99ccd48d585efa8f26a69ba203d4f6dd8336268b9.source",
       "sha256": "f391ade830359ee6e5385fa99ccd48d585efa8f26a69ba203d4f6dd8336268b9",
       "bytes": 5037
@@ -6195,16 +6039,6 @@
       "bytes": 910
     },
     {
-      "path": "release/win_x64/data/catalog-sources/f73d8e37a57c4c566a18da0b03de8ea7953a9cee025bf83ea93345b17e7fbb48.source",
-      "sha256": "f73d8e37a57c4c566a18da0b03de8ea7953a9cee025bf83ea93345b17e7fbb48",
-      "bytes": 22852
-    },
-    {
-      "path": "release/win_x64/data/catalog-sources/f76d15ca17b70af1e5c14d65b01252e6f17a72ec8a185b530cb96c108b1927ef.source",
-      "sha256": "f76d15ca17b70af1e5c14d65b01252e6f17a72ec8a185b530cb96c108b1927ef",
-      "bytes": 20818
-    },
-    {
       "path": "release/win_x64/data/catalog-sources/f77f7a871e7862b532a09d020501e1fe09d0a3e093c5383589dc1bc5126f3496.source",
       "sha256": "f77f7a871e7862b532a09d020501e1fe09d0a3e093c5383589dc1bc5126f3496",
       "bytes": 712
@@ -6223,11 +6057,6 @@
       "path": "release/win_x64/data/catalog-sources/f8b8ad501398f1d95f9894f7ea2bdc51be9921c04bbaebbb21f8e45afcf3ee0f.source",
       "sha256": "f8b8ad501398f1d95f9894f7ea2bdc51be9921c04bbaebbb21f8e45afcf3ee0f",
       "bytes": 14503
-    },
-    {
-      "path": "release/win_x64/data/catalog-sources/f8be2409dc6188091d831a68df657b64b6911d07b197736796d74ce2379260ba.source",
-      "sha256": "f8be2409dc6188091d831a68df657b64b6911d07b197736796d74ce2379260ba",
-      "bytes": 9217
     },
     {
       "path": "release/win_x64/data/catalog-sources/f93b4b33dc1ec0db06f81c988104c769a32851318450ab030e5a74da895a3fde.source",
@@ -6270,11 +6099,6 @@
       "bytes": 823
     },
     {
-      "path": "release/win_x64/data/catalog-sources/fef21eec3dfc19166afcebda44baddff90b440d6cd06a7155496fb5f262120a1.source",
-      "sha256": "fef21eec3dfc19166afcebda44baddff90b440d6cd06a7155496fb5f262120a1",
-      "bytes": 25086
-    },
-    {
       "path": "release/win_x64/data/catalog-sources/ff8e33708d2835922ab8dd3fb21ef0e0339a10dceda544cb95992fb4167d1399.source",
       "sha256": "ff8e33708d2835922ab8dd3fb21ef0e0339a10dceda544cb95992fb4167d1399",
       "bytes": 17236
@@ -6296,70 +6120,915 @@
     },
     {
       "path": "release/win_x64/data/catalog-sources/index.json",
-      "sha256": "a606dbf80db13a3d2b5975c8f9e909bfd6f74fd2d0774724dd5d0387094dec6a",
-      "bytes": 110882
+      "sha256": "96b2feda9bb1ebb924a40eec3b9bcaccfb2eaed0c00f3cc4d180f90c8dd7f811",
+      "bytes": 122577,
+      "previousSha256": "a606dbf80db13a3d2b5975c8f9e909bfd6f74fd2d0774724dd5d0387094dec6a",
+      "origin": "xge-matched-local-delivery-20261125"
     },
     {
       "path": "release/win_x64/data/commands.json",
-      "sha256": "f71d5ab77ed0b1e89247cdbfca94031a3d14c6abdc525e91696fdeb23c3535d7",
-      "bytes": 18437374
+      "sha256": "c9c7399a1113d3654d4f77e1cd83598a63a83861f999624e80fffa0b65ae21ca",
+      "bytes": 21440706,
+      "previousSha256": "f71d5ab77ed0b1e89247cdbfca94031a3d14c6abdc525e91696fdeb23c3535d7",
+      "origin": "xge-matched-local-delivery-20261125"
+    },
+    {
+      "path": "release/linux_x64/extlibs/_xge_native/xlang.package.json",
+      "sha256": "2be2cb0325946c0a1b8342aa966119c879fc901e4b1d7e69f1bba94d6947238a",
+      "bytes": 7476,
+      "origin": "xge-matched-local-delivery-20261125"
+    },
+    {
+      "path": "release/linux_x64/extlibs/xge/xlang.package.json",
+      "sha256": "3c3b832d57c7c731cc691826005aef5884080a03e919b00bf1563fa771b534c7",
+      "bytes": 1330,
+      "origin": "xge-matched-local-delivery-20261125"
+    },
+    {
+      "path": "release/linux_x64/extlibs/xge3d/xlang.package.json",
+      "sha256": "c1e79c104341e8fbb88c9d96797a1a7e7482337ae8e21f7c03fff5f9d58113bd",
+      "bytes": 1011,
+      "origin": "xge-matched-local-delivery-20261125"
+    },
+    {
+      "path": "release/linux_x64/extlibs/xui/xlang.package.json",
+      "sha256": "cd7731f57ee20e6693f968b1b91a49397f29ad769fe677f17ce167d367bd4537",
+      "bytes": 1624,
+      "origin": "xge-matched-local-delivery-20261125"
+    },
+    {
+      "path": "release/linux_x64/profiles/xge-debug/host/_xge_native/native/libxge3_hostdbg.so",
+      "sha256": "7bab8bec098f6bcfdc87b6a150b596ad1677ca31db3d6c98c8a1fb0db017e5f1",
+      "bytes": 11029776,
+      "origin": "xge-matched-local-delivery-20261125"
+    },
+    {
+      "path": "release/linux_x64/profiles/xge-debug/host/_xge_native/xlang.package.json",
+      "sha256": "79941e1cfe9223ea78ad170b260a89a58d8a6121bde630f0b6bde0095d0153ef",
+      "bytes": 7411,
+      "origin": "xge-matched-local-delivery-20261125"
+    },
+    {
+      "path": "release/linux_x64/profiles/xge-debug/host/xge/xlang.package.json",
+      "sha256": "3c3b832d57c7c731cc691826005aef5884080a03e919b00bf1563fa771b534c7",
+      "bytes": 1330,
+      "origin": "xge-matched-local-delivery-20261125"
+    },
+    {
+      "path": "release/linux_x64/profiles/xge-debug/host/xge3d/xlang.package.json",
+      "sha256": "c1e79c104341e8fbb88c9d96797a1a7e7482337ae8e21f7c03fff5f9d58113bd",
+      "bytes": 1011,
+      "origin": "xge-matched-local-delivery-20261125"
+    },
+    {
+      "path": "release/linux_x64/profiles/xge-debug/host/xgeDebug/xlang.package.json",
+      "sha256": "bf8d0ba7df46abf336e3ef3904a4536f08c0b9aecae7c488d47fdfbecad3bee7",
+      "bytes": 602,
+      "origin": "xge-matched-local-delivery-20261125"
+    },
+    {
+      "path": "release/linux_x64/profiles/xge-debug/host/xui/xlang.package.json",
+      "sha256": "cd7731f57ee20e6693f968b1b91a49397f29ad769fe677f17ce167d367bd4537",
+      "bytes": 1624,
+      "origin": "xge-matched-local-delivery-20261125"
+    },
+    {
+      "path": "release/linux_x64/profiles/xge-debug/static/_xge_native/xlang.package.json",
+      "sha256": "06e333c965060f51c58a024cca19e84e80d2fea8dd774b71606c2980bfdaff45",
+      "bytes": 7556,
+      "origin": "xge-matched-local-delivery-20261125"
+    },
+    {
+      "path": "release/linux_x64/profiles/xge-debug/static/xge/xlang.package.json",
+      "sha256": "3c3b832d57c7c731cc691826005aef5884080a03e919b00bf1563fa771b534c7",
+      "bytes": 1330,
+      "origin": "xge-matched-local-delivery-20261125"
+    },
+    {
+      "path": "release/linux_x64/profiles/xge-debug/static/xge3d/xlang.package.json",
+      "sha256": "c1e79c104341e8fbb88c9d96797a1a7e7482337ae8e21f7c03fff5f9d58113bd",
+      "bytes": 1011,
+      "origin": "xge-matched-local-delivery-20261125"
+    },
+    {
+      "path": "release/linux_x64/profiles/xge-debug/static/xgeDebug/xlang.package.json",
+      "sha256": "bf8d0ba7df46abf336e3ef3904a4536f08c0b9aecae7c488d47fdfbecad3bee7",
+      "bytes": 602,
+      "origin": "xge-matched-local-delivery-20261125"
+    },
+    {
+      "path": "release/linux_x64/profiles/xge-debug/static/xui/xlang.package.json",
+      "sha256": "cd7731f57ee20e6693f968b1b91a49397f29ad769fe677f17ce167d367bd4537",
+      "bytes": 1624,
+      "origin": "xge-matched-local-delivery-20261125"
+    },
+    {
+      "path": "release/linux_x64/profiles/xge-egl/host/_xge_native/native/libxge3_host.so",
+      "sha256": "0ba7e34e6b6dbd7998869bb06ddb68fc0ab9c4c3c48597b52eb9086961ffab6e",
+      "bytes": 11034000,
+      "origin": "xge-matched-local-delivery-20261125"
+    },
+    {
+      "path": "release/linux_x64/profiles/xge-egl/host/_xge_native/xlang.package.json",
+      "sha256": "fa979d67a59fcdb97495d1142db15efa74f937695fcae56fddd3206341a3f8e7",
+      "bytes": 7399,
+      "origin": "xge-matched-local-delivery-20261125"
+    },
+    {
+      "path": "release/linux_x64/profiles/xge-egl/host/xge/xlang.package.json",
+      "sha256": "3c3b832d57c7c731cc691826005aef5884080a03e919b00bf1563fa771b534c7",
+      "bytes": 1330,
+      "origin": "xge-matched-local-delivery-20261125"
+    },
+    {
+      "path": "release/linux_x64/profiles/xge-egl/host/xge3d/xlang.package.json",
+      "sha256": "c1e79c104341e8fbb88c9d96797a1a7e7482337ae8e21f7c03fff5f9d58113bd",
+      "bytes": 1011,
+      "origin": "xge-matched-local-delivery-20261125"
+    },
+    {
+      "path": "release/linux_x64/profiles/xge-egl/host/xui/xlang.package.json",
+      "sha256": "cd7731f57ee20e6693f968b1b91a49397f29ad769fe677f17ce167d367bd4537",
+      "bytes": 1624,
+      "origin": "xge-matched-local-delivery-20261125"
+    },
+    {
+      "path": "release/linux_x64/profiles/xge-egl/static/_xge_native/xlang.package.json",
+      "sha256": "6cfe84cab1a97e0b954ff9cb5bbc414ad4676cf33758ba9c2383e84e070e4497",
+      "bytes": 7564,
+      "origin": "xge-matched-local-delivery-20261125"
+    },
+    {
+      "path": "release/linux_x64/profiles/xge-egl/static/xge/xlang.package.json",
+      "sha256": "3c3b832d57c7c731cc691826005aef5884080a03e919b00bf1563fa771b534c7",
+      "bytes": 1330,
+      "origin": "xge-matched-local-delivery-20261125"
+    },
+    {
+      "path": "release/linux_x64/profiles/xge-egl/static/xge3d/xlang.package.json",
+      "sha256": "c1e79c104341e8fbb88c9d96797a1a7e7482337ae8e21f7c03fff5f9d58113bd",
+      "bytes": 1011,
+      "origin": "xge-matched-local-delivery-20261125"
+    },
+    {
+      "path": "release/linux_x64/profiles/xge-egl/static/xui/xlang.package.json",
+      "sha256": "cd7731f57ee20e6693f968b1b91a49397f29ad769fe677f17ce167d367bd4537",
+      "bytes": 1624,
+      "origin": "xge-matched-local-delivery-20261125"
+    },
+    {
+      "path": "release/linux_x64/static/xge3/packages/_xge_native/xlang.package.json",
+      "sha256": "dae1e341ef65b0543e23fd38982f8878100fa2e55fb46ff5b5da137f0a7a4df8",
+      "bytes": 7624,
+      "origin": "xge-matched-local-delivery-20261125"
+    },
+    {
+      "path": "release/linux_x64/static/xge3/packages/xge/xlang.package.json",
+      "sha256": "3c3b832d57c7c731cc691826005aef5884080a03e919b00bf1563fa771b534c7",
+      "bytes": 1330,
+      "origin": "xge-matched-local-delivery-20261125"
+    },
+    {
+      "path": "release/linux_x64/static/xge3/packages/xge3d/xlang.package.json",
+      "sha256": "c1e79c104341e8fbb88c9d96797a1a7e7482337ae8e21f7c03fff5f9d58113bd",
+      "bytes": 1011,
+      "origin": "xge-matched-local-delivery-20261125"
+    },
+    {
+      "path": "release/linux_x64/static/xge3/packages/xui/xlang.package.json",
+      "sha256": "cd7731f57ee20e6693f968b1b91a49397f29ad769fe677f17ce167d367bd4537",
+      "bytes": 1624,
+      "origin": "xge-matched-local-delivery-20261125"
+    },
+    {
+      "path": "release/win_x64/data/catalog-sources/0061df8fbf59aa290ca4c9dcff6763f1055ca3957e17d77fe286f539041ca1e1.source",
+      "sha256": "0061df8fbf59aa290ca4c9dcff6763f1055ca3957e17d77fe286f539041ca1e1",
+      "bytes": 36543,
+      "origin": "xge-matched-local-delivery-20261125"
+    },
+    {
+      "path": "release/win_x64/data/catalog-sources/05702fd4008bd526b45c73455c6f49234c390604d303f68038ba0c5ec9217a0a.source",
+      "sha256": "05702fd4008bd526b45c73455c6f49234c390604d303f68038ba0c5ec9217a0a",
+      "bytes": 5216,
+      "origin": "xge-matched-local-delivery-20261125"
+    },
+    {
+      "path": "release/win_x64/data/catalog-sources/05f141cd70c072ee5375c8ecf25397a9fab6672afb635a817d45221d3bd3465f.source",
+      "sha256": "05f141cd70c072ee5375c8ecf25397a9fab6672afb635a817d45221d3bd3465f",
+      "bytes": 3436,
+      "origin": "xge-matched-local-delivery-20261125"
+    },
+    {
+      "path": "release/win_x64/data/catalog-sources/0914c029dc6570e04498a2210d0f878233a1d4a0ffaf575273001d4014479f6c.source",
+      "sha256": "0914c029dc6570e04498a2210d0f878233a1d4a0ffaf575273001d4014479f6c",
+      "bytes": 359,
+      "origin": "xge-matched-local-delivery-20261125"
+    },
+    {
+      "path": "release/win_x64/data/catalog-sources/0bf75a3707787cf52c0935c1dd0640619e29c70b70e1939f065dcfec82581cbc.source",
+      "sha256": "0bf75a3707787cf52c0935c1dd0640619e29c70b70e1939f065dcfec82581cbc",
+      "bytes": 16107,
+      "origin": "xge-matched-local-delivery-20261125"
+    },
+    {
+      "path": "release/win_x64/data/catalog-sources/0d4b017e6623c48dd0558a7cfb419ebae94ce167c9241c029c2987f06621e2ac.source",
+      "sha256": "0d4b017e6623c48dd0558a7cfb419ebae94ce167c9241c029c2987f06621e2ac",
+      "bytes": 2009,
+      "origin": "xge-matched-local-delivery-20261125"
+    },
+    {
+      "path": "release/win_x64/data/catalog-sources/0deeceaa44f286e5ede20ccf34e13fe1de1833dd276d2bd90e90a140ddffdb35.source",
+      "sha256": "0deeceaa44f286e5ede20ccf34e13fe1de1833dd276d2bd90e90a140ddffdb35",
+      "bytes": 15426,
+      "origin": "xge-matched-local-delivery-20261125"
+    },
+    {
+      "path": "release/win_x64/data/catalog-sources/0e1670b2c8b1f63cde0be09367a9ce8c6929a5cf04c2a00219eee85a4ed008f5.source",
+      "sha256": "0e1670b2c8b1f63cde0be09367a9ce8c6929a5cf04c2a00219eee85a4ed008f5",
+      "bytes": 2962,
+      "origin": "xge-matched-local-delivery-20261125"
+    },
+    {
+      "path": "release/win_x64/data/catalog-sources/0e7330dfc24635732bfcfb8300af71aed53accb7d1f3685ed135dcff3117595f.source",
+      "sha256": "0e7330dfc24635732bfcfb8300af71aed53accb7d1f3685ed135dcff3117595f",
+      "bytes": 10057,
+      "origin": "xge-matched-local-delivery-20261125"
+    },
+    {
+      "path": "release/win_x64/data/catalog-sources/0ecc634d6d50b0ecee83744667fb99e6851897052a6297c7dd85f791cb070901.source",
+      "sha256": "0ecc634d6d50b0ecee83744667fb99e6851897052a6297c7dd85f791cb070901",
+      "bytes": 3105,
+      "origin": "xge-matched-local-delivery-20261125"
+    },
+    {
+      "path": "release/win_x64/data/catalog-sources/1261f8d548dab36ae0ab61fe2ada780febd8c5d32900aab89bec966ad726f26a.source",
+      "sha256": "1261f8d548dab36ae0ab61fe2ada780febd8c5d32900aab89bec966ad726f26a",
+      "bytes": 2933,
+      "origin": "xge-matched-local-delivery-20261125"
+    },
+    {
+      "path": "release/win_x64/data/catalog-sources/1776c650ffb5cb731cf9f1c13fdfdddbe94ca6755ba9180f22269b72c4b40949.source",
+      "sha256": "1776c650ffb5cb731cf9f1c13fdfdddbe94ca6755ba9180f22269b72c4b40949",
+      "bytes": 16273,
+      "origin": "xge-matched-local-delivery-20261125"
+    },
+    {
+      "path": "release/win_x64/data/catalog-sources/18d6cd22eda58c7ce3bf3373b80d94350dd5e6b7aea7be158f1b0c64434e5575.source",
+      "sha256": "18d6cd22eda58c7ce3bf3373b80d94350dd5e6b7aea7be158f1b0c64434e5575",
+      "bytes": 4478,
+      "origin": "xge-matched-local-delivery-20261125"
+    },
+    {
+      "path": "release/win_x64/data/catalog-sources/1ac03e826c37cf62602536b318a2511147ca24f96577a4051de75ef6eb3cee48.source",
+      "sha256": "1ac03e826c37cf62602536b318a2511147ca24f96577a4051de75ef6eb3cee48",
+      "bytes": 1702,
+      "origin": "xge-matched-local-delivery-20261125"
+    },
+    {
+      "path": "release/win_x64/data/catalog-sources/1b1ad14ce11e6c3f88700db287590bf1831cd5c54a45ea164e27fa8962ec0bb5.source",
+      "sha256": "1b1ad14ce11e6c3f88700db287590bf1831cd5c54a45ea164e27fa8962ec0bb5",
+      "bytes": 3422,
+      "origin": "xge-matched-local-delivery-20261125"
+    },
+    {
+      "path": "release/win_x64/data/catalog-sources/2456e696a8c412b2dd3a55ce05b4f6518a178dca2530b2ae5e15e3fa58646598.source",
+      "sha256": "2456e696a8c412b2dd3a55ce05b4f6518a178dca2530b2ae5e15e3fa58646598",
+      "bytes": 49588,
+      "origin": "xge-matched-local-delivery-20261125"
+    },
+    {
+      "path": "release/win_x64/data/catalog-sources/293131ae3c3fe4cc4d98045595542bc8d630d1cc161bf362d002b077297cb398.source",
+      "sha256": "293131ae3c3fe4cc4d98045595542bc8d630d1cc161bf362d002b077297cb398",
+      "bytes": 4937,
+      "origin": "xge-matched-local-delivery-20261125"
+    },
+    {
+      "path": "release/win_x64/data/catalog-sources/294483fe0b7d075f73231b2c5189bdc5df210b7c986f75383753f03eba503715.source",
+      "sha256": "294483fe0b7d075f73231b2c5189bdc5df210b7c986f75383753f03eba503715",
+      "bytes": 8802,
+      "origin": "xge-matched-local-delivery-20261125"
+    },
+    {
+      "path": "release/win_x64/data/catalog-sources/2b6b9c30e57922d207d2dc19598fd9914bf8db2ff2331d0016a56ed86ccb31bc.source",
+      "sha256": "2b6b9c30e57922d207d2dc19598fd9914bf8db2ff2331d0016a56ed86ccb31bc",
+      "bytes": 1200,
+      "origin": "xge-matched-local-delivery-20261125"
+    },
+    {
+      "path": "release/win_x64/data/catalog-sources/325e4dd967575afa51d99b83e00a7fd5fffb7cfad5e1d217c543cf3e0c92aa24.source",
+      "sha256": "325e4dd967575afa51d99b83e00a7fd5fffb7cfad5e1d217c543cf3e0c92aa24",
+      "bytes": 11062,
+      "origin": "xge-matched-local-delivery-20261125"
+    },
+    {
+      "path": "release/win_x64/data/catalog-sources/33497fe60e4685456ee99dac04614105d26864416d7dfe5a55b83b3e324535e6.source",
+      "sha256": "33497fe60e4685456ee99dac04614105d26864416d7dfe5a55b83b3e324535e6",
+      "bytes": 1973,
+      "origin": "xge-matched-local-delivery-20261125"
+    },
+    {
+      "path": "release/win_x64/data/catalog-sources/36767f34b12339c1e0d481dfc2e5c56b36363b2d2e626ade004275dab452969a.source",
+      "sha256": "36767f34b12339c1e0d481dfc2e5c56b36363b2d2e626ade004275dab452969a",
+      "bytes": 2410,
+      "origin": "xge-matched-local-delivery-20261125"
+    },
+    {
+      "path": "release/win_x64/data/catalog-sources/36881d828e33781ff27c130f496224ac12a4cd8f18fb96bc9d55336387c46792.source",
+      "sha256": "36881d828e33781ff27c130f496224ac12a4cd8f18fb96bc9d55336387c46792",
+      "bytes": 3611,
+      "origin": "xge-matched-local-delivery-20261125"
+    },
+    {
+      "path": "release/win_x64/data/catalog-sources/3956c5976acb4a1760d902c9dd141dedce690fbe1f8276646d992a39f3903b7a.source",
+      "sha256": "3956c5976acb4a1760d902c9dd141dedce690fbe1f8276646d992a39f3903b7a",
+      "bytes": 6220,
+      "origin": "xge-matched-local-delivery-20261125"
+    },
+    {
+      "path": "release/win_x64/data/catalog-sources/3c3b832d57c7c731cc691826005aef5884080a03e919b00bf1563fa771b534c7.source",
+      "sha256": "3c3b832d57c7c731cc691826005aef5884080a03e919b00bf1563fa771b534c7",
+      "bytes": 1330,
+      "origin": "xge-matched-local-delivery-20261125"
+    },
+    {
+      "path": "release/win_x64/data/catalog-sources/3cafb413265c524f33ac759743728b250422e6a4bb6d1567a4dc889d968160c3.source",
+      "sha256": "3cafb413265c524f33ac759743728b250422e6a4bb6d1567a4dc889d968160c3",
+      "bytes": 4751,
+      "origin": "xge-matched-local-delivery-20261125"
+    },
+    {
+      "path": "release/win_x64/data/catalog-sources/3dc2d45a8188697946f96b807dc706d6bc1eff1cd47891684486e134195efae4.source",
+      "sha256": "3dc2d45a8188697946f96b807dc706d6bc1eff1cd47891684486e134195efae4",
+      "bytes": 75778,
+      "origin": "xge-matched-local-delivery-20261125"
+    },
+    {
+      "path": "release/win_x64/data/catalog-sources/3f31bb0a27687005b88d79e221536ad1bb88bcc688210d60703a2c4d3f9444bd.source",
+      "sha256": "3f31bb0a27687005b88d79e221536ad1bb88bcc688210d60703a2c4d3f9444bd",
+      "bytes": 5670,
+      "origin": "xge-matched-local-delivery-20261125"
+    },
+    {
+      "path": "release/win_x64/data/catalog-sources/4385734a29f95156ef73dd178c953a89038cb5ea2a994b3a169f83ba5e3210c2.source",
+      "sha256": "4385734a29f95156ef73dd178c953a89038cb5ea2a994b3a169f83ba5e3210c2",
+      "bytes": 353,
+      "origin": "xge-matched-local-delivery-20261125"
+    },
+    {
+      "path": "release/win_x64/data/catalog-sources/43f44da1c4f5e9b89357c992d3cd39a25649e329a3b306438d0ef394b8955fa2.source",
+      "sha256": "43f44da1c4f5e9b89357c992d3cd39a25649e329a3b306438d0ef394b8955fa2",
+      "bytes": 18798,
+      "origin": "xge-matched-local-delivery-20261125"
+    },
+    {
+      "path": "release/win_x64/data/catalog-sources/464a5a1e6ab13eb3b91173c8075b2b703aa8e48048af1508588ac6db36c1831a.source",
+      "sha256": "464a5a1e6ab13eb3b91173c8075b2b703aa8e48048af1508588ac6db36c1831a",
+      "bytes": 895,
+      "origin": "xge-matched-local-delivery-20261125"
+    },
+    {
+      "path": "release/win_x64/data/catalog-sources/4a50f37e9ecaedf6955a50fe0a503bbfa619bde4f3cebc3246363f95937b25f9.source",
+      "sha256": "4a50f37e9ecaedf6955a50fe0a503bbfa619bde4f3cebc3246363f95937b25f9",
+      "bytes": 9276,
+      "origin": "xge-matched-local-delivery-20261125"
+    },
+    {
+      "path": "release/win_x64/data/catalog-sources/4a63d02174cdbe48d84a4d0a2961c7f506deb18102f868509d80d08b75fdd5a8.source",
+      "sha256": "4a63d02174cdbe48d84a4d0a2961c7f506deb18102f868509d80d08b75fdd5a8",
+      "bytes": 1439,
+      "origin": "xge-matched-local-delivery-20261125"
+    },
+    {
+      "path": "release/win_x64/data/catalog-sources/51081ad0b90c1411a0e96f77c54b451134409854d2cc97f3cae4c86e3474b7a3.source",
+      "sha256": "51081ad0b90c1411a0e96f77c54b451134409854d2cc97f3cae4c86e3474b7a3",
+      "bytes": 14713,
+      "origin": "xge-matched-local-delivery-20261125"
+    },
+    {
+      "path": "release/win_x64/data/catalog-sources/532fefd760574d9c6d4b01c7b39291b0def14c431cfc731b9ee5d4a1bc79a0cd.source",
+      "sha256": "532fefd760574d9c6d4b01c7b39291b0def14c431cfc731b9ee5d4a1bc79a0cd",
+      "bytes": 1537,
+      "origin": "xge-matched-local-delivery-20261125"
+    },
+    {
+      "path": "release/win_x64/data/catalog-sources/54d3d98a1479c74d720ae31f40de5175b9460b23dd18e1fcf5e6f6a427e27c97.source",
+      "sha256": "54d3d98a1479c74d720ae31f40de5175b9460b23dd18e1fcf5e6f6a427e27c97",
+      "bytes": 51545,
+      "origin": "xge-matched-local-delivery-20261125"
+    },
+    {
+      "path": "release/win_x64/data/catalog-sources/56023a8c9759cb0ae4b2516cbea4f3242a815ed7ec764b3b0cc3c6e68e4856ef.source",
+      "sha256": "56023a8c9759cb0ae4b2516cbea4f3242a815ed7ec764b3b0cc3c6e68e4856ef",
+      "bytes": 12527,
+      "origin": "xge-matched-local-delivery-20261125"
+    },
+    {
+      "path": "release/win_x64/data/catalog-sources/574b295e5e194ea5578fa7e04fabd1aca062f9546078e333bd69bcb63ab70413.source",
+      "sha256": "574b295e5e194ea5578fa7e04fabd1aca062f9546078e333bd69bcb63ab70413",
+      "bytes": 10321,
+      "origin": "xge-matched-local-delivery-20261125"
+    },
+    {
+      "path": "release/win_x64/data/catalog-sources/5be3bf1aef61d0278c2ac981204e1103814c162b290782de1eb44b90a0da618a.source",
+      "sha256": "5be3bf1aef61d0278c2ac981204e1103814c162b290782de1eb44b90a0da618a",
+      "bytes": 7057,
+      "origin": "xge-matched-local-delivery-20261125"
+    },
+    {
+      "path": "release/win_x64/data/catalog-sources/5e8651eb0bc7b18f4e43b82c83b57a2b2b64524a895ac53088861add3754aba2.source",
+      "sha256": "5e8651eb0bc7b18f4e43b82c83b57a2b2b64524a895ac53088861add3754aba2",
+      "bytes": 6013,
+      "origin": "xge-matched-local-delivery-20261125"
+    },
+    {
+      "path": "release/win_x64/data/catalog-sources/5fd0f28388f324baffd47b22296f46b815346c7d93acd70f0942381881e5c80c.source",
+      "sha256": "5fd0f28388f324baffd47b22296f46b815346c7d93acd70f0942381881e5c80c",
+      "bytes": 1307,
+      "origin": "xge-matched-local-delivery-20261125"
+    },
+    {
+      "path": "release/win_x64/data/catalog-sources/64870aef6c5218d9feb34599069457eaca03442d4c215cee35fb086655def041.source",
+      "sha256": "64870aef6c5218d9feb34599069457eaca03442d4c215cee35fb086655def041",
+      "bytes": 21256,
+      "origin": "xge-matched-local-delivery-20261125"
+    },
+    {
+      "path": "release/win_x64/data/catalog-sources/6621d63940a506e094cd3f1239109c4ae40f589c5086545b03fc38a9f9680ba2.source",
+      "sha256": "6621d63940a506e094cd3f1239109c4ae40f589c5086545b03fc38a9f9680ba2",
+      "bytes": 693898,
+      "origin": "xge-matched-local-delivery-20261125"
+    },
+    {
+      "path": "release/win_x64/data/catalog-sources/6874d5b656c989868538d621fb1a731a961dfa9ef5b3b02ee0915f7fe6560a2b.source",
+      "sha256": "6874d5b656c989868538d621fb1a731a961dfa9ef5b3b02ee0915f7fe6560a2b",
+      "bytes": 2073,
+      "origin": "xge-matched-local-delivery-20261125"
+    },
+    {
+      "path": "release/win_x64/data/catalog-sources/6cbf1def9cd625bf0aabef1569e167e5ca57cb08918a97510307e74cefb26e13.source",
+      "sha256": "6cbf1def9cd625bf0aabef1569e167e5ca57cb08918a97510307e74cefb26e13",
+      "bytes": 4900,
+      "origin": "xge-matched-local-delivery-20261125"
+    },
+    {
+      "path": "release/win_x64/data/catalog-sources/6ccf1d9f6bdeae4893764b6fd4116155336436f508556a3c947b592f09dc9e30.source",
+      "sha256": "6ccf1d9f6bdeae4893764b6fd4116155336436f508556a3c947b592f09dc9e30",
+      "bytes": 3376,
+      "origin": "xge-matched-local-delivery-20261125"
+    },
+    {
+      "path": "release/win_x64/data/catalog-sources/6e17b23ebf324d7f587cc6f30600129b0e40ca2d26baecf06b8201094ec4dbd1.source",
+      "sha256": "6e17b23ebf324d7f587cc6f30600129b0e40ca2d26baecf06b8201094ec4dbd1",
+      "bytes": 5968,
+      "origin": "xge-matched-local-delivery-20261125"
+    },
+    {
+      "path": "release/win_x64/data/catalog-sources/6e8437c6ccce5d9e9a3b290bd5ccd79c6190e3de1a8eea19d9438904b48deaea.source",
+      "sha256": "6e8437c6ccce5d9e9a3b290bd5ccd79c6190e3de1a8eea19d9438904b48deaea",
+      "bytes": 1230,
+      "origin": "xge-matched-local-delivery-20261125"
+    },
+    {
+      "path": "release/win_x64/data/catalog-sources/6ea26a35388709bb0ef270857b07d239ace9312f94f46e6683602ed35f6b7bd1.source",
+      "sha256": "6ea26a35388709bb0ef270857b07d239ace9312f94f46e6683602ed35f6b7bd1",
+      "bytes": 2938,
+      "origin": "xge-matched-local-delivery-20261125"
+    },
+    {
+      "path": "release/win_x64/data/catalog-sources/708c865fc14727760623b3b100d7efc26014a7e44b10914e2585a9da53745f06.source",
+      "sha256": "708c865fc14727760623b3b100d7efc26014a7e44b10914e2585a9da53745f06",
+      "bytes": 21286,
+      "origin": "xge-matched-local-delivery-20261125"
+    },
+    {
+      "path": "release/win_x64/data/catalog-sources/731d570bed029ba4df2d2e848284962038ec600dd3226935b68834ee158de38b.source",
+      "sha256": "731d570bed029ba4df2d2e848284962038ec600dd3226935b68834ee158de38b",
+      "bytes": 3678,
+      "origin": "xge-matched-local-delivery-20261125"
+    },
+    {
+      "path": "release/win_x64/data/catalog-sources/7b96044c28da4b846471494e51641a26d9f0eb3f8581a4e3c77294a450abf31f.source",
+      "sha256": "7b96044c28da4b846471494e51641a26d9f0eb3f8581a4e3c77294a450abf31f",
+      "bytes": 12922,
+      "origin": "xge-matched-local-delivery-20261125"
+    },
+    {
+      "path": "release/win_x64/data/catalog-sources/80a8e30b07746c008e6614febafcebbfc62f014c2f700f6b1a27512b5e746547.source",
+      "sha256": "80a8e30b07746c008e6614febafcebbfc62f014c2f700f6b1a27512b5e746547",
+      "bytes": 3035,
+      "origin": "xge-matched-local-delivery-20261125"
+    },
+    {
+      "path": "release/win_x64/data/catalog-sources/824688ced17f98a7b7ad4508012b59f9c596977f8c48d5e7b961577132cda171.source",
+      "sha256": "824688ced17f98a7b7ad4508012b59f9c596977f8c48d5e7b961577132cda171",
+      "bytes": 6529,
+      "origin": "xge-matched-local-delivery-20261125"
+    },
+    {
+      "path": "release/win_x64/data/catalog-sources/8838e6368fd7251d1d1a60cfc7373c6acd610c8167647a32724097736f675942.source",
+      "sha256": "8838e6368fd7251d1d1a60cfc7373c6acd610c8167647a32724097736f675942",
+      "bytes": 3996,
+      "origin": "xge-matched-local-delivery-20261125"
+    },
+    {
+      "path": "release/win_x64/data/catalog-sources/8c374512ae81e7dfe8cdc0575a6058e2ed7f2f7e048e1d44a97651c56363b411.source",
+      "sha256": "8c374512ae81e7dfe8cdc0575a6058e2ed7f2f7e048e1d44a97651c56363b411",
+      "bytes": 5225,
+      "origin": "xge-matched-local-delivery-20261125"
+    },
+    {
+      "path": "release/win_x64/data/catalog-sources/8e40e094d57c51547294105e86bf5ba852896e72bc7f857fe8aa2414e52e89f7.source",
+      "sha256": "8e40e094d57c51547294105e86bf5ba852896e72bc7f857fe8aa2414e52e89f7",
+      "bytes": 6603,
+      "origin": "xge-matched-local-delivery-20261125"
+    },
+    {
+      "path": "release/win_x64/data/catalog-sources/8e9fd73a2942772fcb55b3aebeb0dcbaddf16373e028474437e222e0360f03ac.source",
+      "sha256": "8e9fd73a2942772fcb55b3aebeb0dcbaddf16373e028474437e222e0360f03ac",
+      "bytes": 7111,
+      "origin": "xge-matched-local-delivery-20261125"
+    },
+    {
+      "path": "release/win_x64/data/catalog-sources/9129b223f00a83eb43884c765438db5ad2a5cf129665d2548714429fdb49da26.source",
+      "sha256": "9129b223f00a83eb43884c765438db5ad2a5cf129665d2548714429fdb49da26",
+      "bytes": 9672,
+      "origin": "xge-matched-local-delivery-20261125"
+    },
+    {
+      "path": "release/win_x64/data/catalog-sources/96b040ad51a32a95a4d6bece66e64d8f3e0e5fab25ebebead77282b691324d9f.source",
+      "sha256": "96b040ad51a32a95a4d6bece66e64d8f3e0e5fab25ebebead77282b691324d9f",
+      "bytes": 1007,
+      "origin": "xge-matched-local-delivery-20261125"
+    },
+    {
+      "path": "release/win_x64/data/catalog-sources/96f18897f596501813ffa8ddca91b0cd82271b7ce3bfc16e2d342d7af4802a09.source",
+      "sha256": "96f18897f596501813ffa8ddca91b0cd82271b7ce3bfc16e2d342d7af4802a09",
+      "bytes": 10122,
+      "origin": "xge-matched-local-delivery-20261125"
+    },
+    {
+      "path": "release/win_x64/data/catalog-sources/97a7aea9ebb31eee751d4aad2e322bfbb57c45641fbbf5f0d950389b6010c32d.source",
+      "sha256": "97a7aea9ebb31eee751d4aad2e322bfbb57c45641fbbf5f0d950389b6010c32d",
+      "bytes": 31000,
+      "origin": "xge-matched-local-delivery-20261125"
+    },
+    {
+      "path": "release/win_x64/data/catalog-sources/9b6f078e7cd6626865b536a833da68ba8ed89ef56201912ccaac9115864c0e88.source",
+      "sha256": "9b6f078e7cd6626865b536a833da68ba8ed89ef56201912ccaac9115864c0e88",
+      "bytes": 6823,
+      "origin": "xge-matched-local-delivery-20261125"
+    },
+    {
+      "path": "release/win_x64/data/catalog-sources/9d530541d22b9c75c240a8145de84578174f87be980f74a3d3fcd16b34360746.source",
+      "sha256": "9d530541d22b9c75c240a8145de84578174f87be980f74a3d3fcd16b34360746",
+      "bytes": 2055,
+      "origin": "xge-matched-local-delivery-20261125"
+    },
+    {
+      "path": "release/win_x64/data/catalog-sources/9d81cfc0be8178c38053ed6c2ccd3ce9b8532ea15f7a9b0b0e6ea82dc06486c1.source",
+      "sha256": "9d81cfc0be8178c38053ed6c2ccd3ce9b8532ea15f7a9b0b0e6ea82dc06486c1",
+      "bytes": 14273,
+      "origin": "xge-matched-local-delivery-20261125"
+    },
+    {
+      "path": "release/win_x64/data/catalog-sources/a54f51330af1e457ef5871c8d6cb558485a27e585a34b80218ad5a46f5a99756.source",
+      "sha256": "a54f51330af1e457ef5871c8d6cb558485a27e585a34b80218ad5a46f5a99756",
+      "bytes": 28112,
+      "origin": "xge-matched-local-delivery-20261125"
+    },
+    {
+      "path": "release/win_x64/data/catalog-sources/a8d2944c0d93d0e2839117a86046d49dda2da4c3bbf5ab57fc6a4aef0675dbcb.source",
+      "sha256": "a8d2944c0d93d0e2839117a86046d49dda2da4c3bbf5ab57fc6a4aef0675dbcb",
+      "bytes": 13114,
+      "origin": "xge-matched-local-delivery-20261125"
+    },
+    {
+      "path": "release/win_x64/data/catalog-sources/aaa82dcd9e9605cfd440fd23c695d4fd4ad2a188a5b3b21ff487b1c36ca8f9af.source",
+      "sha256": "aaa82dcd9e9605cfd440fd23c695d4fd4ad2a188a5b3b21ff487b1c36ca8f9af",
+      "bytes": 4596,
+      "origin": "xge-matched-local-delivery-20261125"
+    },
+    {
+      "path": "release/win_x64/data/catalog-sources/ad90fa6cea149e787366ca7e486df907e8716394f545839fc013c96b84b66236.source",
+      "sha256": "ad90fa6cea149e787366ca7e486df907e8716394f545839fc013c96b84b66236",
+      "bytes": 1845,
+      "origin": "xge-matched-local-delivery-20261125"
+    },
+    {
+      "path": "release/win_x64/data/catalog-sources/ae8676d4dfece3a647f188aeee8271d47281c2f42bf1953b41442b5af84fab2d.source",
+      "sha256": "ae8676d4dfece3a647f188aeee8271d47281c2f42bf1953b41442b5af84fab2d",
+      "bytes": 6822,
+      "origin": "xge-matched-local-delivery-20261125"
+    },
+    {
+      "path": "release/win_x64/data/catalog-sources/b3ece5b1725678929d331bba46c6c2ce15f84dcedbeccfcbe43efac83cff8f95.source",
+      "sha256": "b3ece5b1725678929d331bba46c6c2ce15f84dcedbeccfcbe43efac83cff8f95",
+      "bytes": 1676,
+      "origin": "xge-matched-local-delivery-20261125"
+    },
+    {
+      "path": "release/win_x64/data/catalog-sources/bab2085d4b739ce8ec639f1a4d344e827559d5d941d3ab7b03674c893b466093.source",
+      "sha256": "bab2085d4b739ce8ec639f1a4d344e827559d5d941d3ab7b03674c893b466093",
+      "bytes": 285594,
+      "origin": "xge-matched-local-delivery-20261125"
+    },
+    {
+      "path": "release/win_x64/data/catalog-sources/bf13d9e3c0553cb385af98e992ac0a05120ae07de0563ff9f2444ee1f1cb2526.source",
+      "sha256": "bf13d9e3c0553cb385af98e992ac0a05120ae07de0563ff9f2444ee1f1cb2526",
+      "bytes": 24683,
+      "origin": "xge-matched-local-delivery-20261125"
+    },
+    {
+      "path": "release/win_x64/data/catalog-sources/c1ad1ac57a834fbadb9517664a2a74c9346a5608a6aea96befc11ddf0c4223ae.source",
+      "sha256": "c1ad1ac57a834fbadb9517664a2a74c9346a5608a6aea96befc11ddf0c4223ae",
+      "bytes": 823,
+      "origin": "xge-matched-local-delivery-20261125"
+    },
+    {
+      "path": "release/win_x64/data/catalog-sources/c1e79c104341e8fbb88c9d96797a1a7e7482337ae8e21f7c03fff5f9d58113bd.source",
+      "sha256": "c1e79c104341e8fbb88c9d96797a1a7e7482337ae8e21f7c03fff5f9d58113bd",
+      "bytes": 1011,
+      "origin": "xge-matched-local-delivery-20261125"
+    },
+    {
+      "path": "release/win_x64/data/catalog-sources/c5a6b6959a0c548902723a6df730c4e89686405c1f72c305dad4052f0fd6e8b3.source",
+      "sha256": "c5a6b6959a0c548902723a6df730c4e89686405c1f72c305dad4052f0fd6e8b3",
+      "bytes": 4607,
+      "origin": "xge-matched-local-delivery-20261125"
+    },
+    {
+      "path": "release/win_x64/data/catalog-sources/c7e83ecf6e6d0d8f7ac58071250ac594f42c6e29bfd67e27ee0a51b3a4429aae.source",
+      "sha256": "c7e83ecf6e6d0d8f7ac58071250ac594f42c6e29bfd67e27ee0a51b3a4429aae",
+      "bytes": 5733,
+      "origin": "xge-matched-local-delivery-20261125"
+    },
+    {
+      "path": "release/win_x64/data/catalog-sources/cc379ce54493bb2aadcb27ca4c4dc229c65189130b82db340835228dd9dca167.source",
+      "sha256": "cc379ce54493bb2aadcb27ca4c4dc229c65189130b82db340835228dd9dca167",
+      "bytes": 23569,
+      "origin": "xge-matched-local-delivery-20261125"
+    },
+    {
+      "path": "release/win_x64/data/catalog-sources/cd7731f57ee20e6693f968b1b91a49397f29ad769fe677f17ce167d367bd4537.source",
+      "sha256": "cd7731f57ee20e6693f968b1b91a49397f29ad769fe677f17ce167d367bd4537",
+      "bytes": 1624,
+      "origin": "xge-matched-local-delivery-20261125"
+    },
+    {
+      "path": "release/win_x64/data/catalog-sources/d28acc9c339e6ee72ec837ba1cfb82d453ad3a1b3b4c1c45bedc4b535531d398.source",
+      "sha256": "d28acc9c339e6ee72ec837ba1cfb82d453ad3a1b3b4c1c45bedc4b535531d398",
+      "bytes": 6415,
+      "origin": "xge-matched-local-delivery-20261125"
+    },
+    {
+      "path": "release/win_x64/data/catalog-sources/d5df62c4de9a76461ef88993ef5c708722e19c4cb2458b821fbc94260072e1a9.source",
+      "sha256": "d5df62c4de9a76461ef88993ef5c708722e19c4cb2458b821fbc94260072e1a9",
+      "bytes": 6225,
+      "origin": "xge-matched-local-delivery-20261125"
+    },
+    {
+      "path": "release/win_x64/data/catalog-sources/dcc2da59a9e69cca24c6f63fbcd78d67c1b958a0f8fdd41608ed0925a365b23e.source",
+      "sha256": "dcc2da59a9e69cca24c6f63fbcd78d67c1b958a0f8fdd41608ed0925a365b23e",
+      "bytes": 453974,
+      "origin": "xge-matched-local-delivery-20261125"
+    },
+    {
+      "path": "release/win_x64/data/catalog-sources/de801c915e4c21b3b3dc8c5f9c8e6c864df8579aa8ab8a08652f2b2a6f5fb551.source",
+      "sha256": "de801c915e4c21b3b3dc8c5f9c8e6c864df8579aa8ab8a08652f2b2a6f5fb551",
+      "bytes": 23522,
+      "origin": "xge-matched-local-delivery-20261125"
+    },
+    {
+      "path": "release/win_x64/data/catalog-sources/e09e7d622ad24cdb2db0455181783029746bda7bde56aa9148efb19410481047.source",
+      "sha256": "e09e7d622ad24cdb2db0455181783029746bda7bde56aa9148efb19410481047",
+      "bytes": 49241,
+      "origin": "xge-matched-local-delivery-20261125"
+    },
+    {
+      "path": "release/win_x64/data/catalog-sources/e45771d27b1d6ca4a02d3724531c30fcf5cca527133f2440ed65d083c4188a8d.source",
+      "sha256": "e45771d27b1d6ca4a02d3724531c30fcf5cca527133f2440ed65d083c4188a8d",
+      "bytes": 16982,
+      "origin": "xge-matched-local-delivery-20261125"
+    },
+    {
+      "path": "release/win_x64/data/catalog-sources/ee0d151504ec775de22bef5ce3630b0ba3a5be3b020b5be39a01269f4285ff25.source",
+      "sha256": "ee0d151504ec775de22bef5ce3630b0ba3a5be3b020b5be39a01269f4285ff25",
+      "bytes": 2252,
+      "origin": "xge-matched-local-delivery-20261125"
+    },
+    {
+      "path": "release/win_x64/data/catalog-sources/f44f06b9c63d2edf544675c5d7a353d7ed135e748891ba52dcd9c71dd8b51cfb.source",
+      "sha256": "f44f06b9c63d2edf544675c5d7a353d7ed135e748891ba52dcd9c71dd8b51cfb",
+      "bytes": 23964,
+      "origin": "xge-matched-local-delivery-20261125"
+    },
+    {
+      "path": "release/win_x64/data/catalog-sources/f62ea7ed20d6dbde5a62f68a18e2894e67f5d926d27d0b85288b51f91cd29496.source",
+      "sha256": "f62ea7ed20d6dbde5a62f68a18e2894e67f5d926d27d0b85288b51f91cd29496",
+      "bytes": 1531,
+      "origin": "xge-matched-local-delivery-20261125"
+    },
+    {
+      "path": "release/win_x64/data/catalog-sources/f735bb56eeb070909c1d904a910dc18099983dcabe749fd11ffaf733e0adf3a6.source",
+      "sha256": "f735bb56eeb070909c1d904a910dc18099983dcabe749fd11ffaf733e0adf3a6",
+      "bytes": 6137,
+      "origin": "xge-matched-local-delivery-20261125"
+    },
+    {
+      "path": "release/win_x64/data/catalog-sources/f7cd93f370cf3810511448a65ca27b362b95ec14673612d727caa7fdf40d5468.source",
+      "sha256": "f7cd93f370cf3810511448a65ca27b362b95ec14673612d727caa7fdf40d5468",
+      "bytes": 13771,
+      "origin": "xge-matched-local-delivery-20261125"
+    },
+    {
+      "path": "release/win_x64/data/catalog-sources/f89c5bee42c5258eac7404b7aa0f9fb441e7f0177ad6f74261d9f17ffc4528d9.source",
+      "sha256": "f89c5bee42c5258eac7404b7aa0f9fb441e7f0177ad6f74261d9f17ffc4528d9",
+      "bytes": 8997,
+      "origin": "xge-matched-local-delivery-20261125"
+    },
+    {
+      "path": "release/win_x64/data/catalog-sources/f99b747d3c2058be9b2edfacddc451333865acd18451f55a7d023bb392934613.source",
+      "sha256": "f99b747d3c2058be9b2edfacddc451333865acd18451f55a7d023bb392934613",
+      "bytes": 4371,
+      "origin": "xge-matched-local-delivery-20261125"
+    },
+    {
+      "path": "release/win_x64/data/catalog-sources/ff34bbfba2a0dbffe4b30eb9828f01d36cac9e085ae7d1784c2fb6377ed2bde4.source",
+      "sha256": "ff34bbfba2a0dbffe4b30eb9828f01d36cac9e085ae7d1784c2fb6377ed2bde4",
+      "bytes": 951,
+      "origin": "xge-matched-local-delivery-20261125"
+    },
+    {
+      "path": "release/win_x64/extlibs/_xge_native/xlang.package.json",
+      "sha256": "74eada40f1991ac0ec705549d0cb7b12bf1f31e059b1014a04c37b1c7974f97c",
+      "bytes": 7739,
+      "origin": "xge-matched-local-delivery-20261125"
+    },
+    {
+      "path": "release/win_x64/extlibs/xge/xlang.package.json",
+      "sha256": "3c3b832d57c7c731cc691826005aef5884080a03e919b00bf1563fa771b534c7",
+      "bytes": 1330,
+      "origin": "xge-matched-local-delivery-20261125"
+    },
+    {
+      "path": "release/win_x64/extlibs/xge3d/xlang.package.json",
+      "sha256": "c1e79c104341e8fbb88c9d96797a1a7e7482337ae8e21f7c03fff5f9d58113bd",
+      "bytes": 1011,
+      "origin": "xge-matched-local-delivery-20261125"
+    },
+    {
+      "path": "release/win_x64/extlibs/xui/xlang.package.json",
+      "sha256": "cd7731f57ee20e6693f968b1b91a49397f29ad769fe677f17ce167d367bd4537",
+      "bytes": 1624,
+      "origin": "xge-matched-local-delivery-20261125"
+    },
+    {
+      "path": "release/win_x64/profiles/xge-debug/host/_xge_native/native/xge3_hostdbg.dll",
+      "sha256": "36a74f18899a9c297e927545ccdcbba7ba2a371fb10564903d734222d4532115",
+      "bytes": 10084552,
+      "origin": "xge-matched-local-delivery-20261125"
+    },
+    {
+      "path": "release/win_x64/profiles/xge-debug/host/_xge_native/xlang.package.json",
+      "sha256": "2af2683bc2c85e749c8aaf7a90e7262e78d194a343a6b564a46d8296c4b9d7ca",
+      "bytes": 7672,
+      "origin": "xge-matched-local-delivery-20261125"
+    },
+    {
+      "path": "release/win_x64/profiles/xge-debug/host/xge/xlang.package.json",
+      "sha256": "3c3b832d57c7c731cc691826005aef5884080a03e919b00bf1563fa771b534c7",
+      "bytes": 1330,
+      "origin": "xge-matched-local-delivery-20261125"
+    },
+    {
+      "path": "release/win_x64/profiles/xge-debug/host/xge3d/xlang.package.json",
+      "sha256": "c1e79c104341e8fbb88c9d96797a1a7e7482337ae8e21f7c03fff5f9d58113bd",
+      "bytes": 1011,
+      "origin": "xge-matched-local-delivery-20261125"
+    },
+    {
+      "path": "release/win_x64/profiles/xge-debug/host/xgeDebug/xlang.package.json",
+      "sha256": "bf8d0ba7df46abf336e3ef3904a4536f08c0b9aecae7c488d47fdfbecad3bee7",
+      "bytes": 602,
+      "origin": "xge-matched-local-delivery-20261125"
+    },
+    {
+      "path": "release/win_x64/profiles/xge-debug/host/xui/xlang.package.json",
+      "sha256": "cd7731f57ee20e6693f968b1b91a49397f29ad769fe677f17ce167d367bd4537",
+      "bytes": 1624,
+      "origin": "xge-matched-local-delivery-20261125"
+    },
+    {
+      "path": "release/win_x64/profiles/xge-debug/static/_xge_native/xlang.package.json",
+      "sha256": "dd0f1e2cc38292bc1cdf5df4b4f0fd1f0c7d2d13f68c7f7c093a9693df3f6ace",
+      "bytes": 7992,
+      "origin": "xge-matched-local-delivery-20261125"
+    },
+    {
+      "path": "release/win_x64/profiles/xge-debug/static/xge/xlang.package.json",
+      "sha256": "3c3b832d57c7c731cc691826005aef5884080a03e919b00bf1563fa771b534c7",
+      "bytes": 1330,
+      "origin": "xge-matched-local-delivery-20261125"
+    },
+    {
+      "path": "release/win_x64/profiles/xge-debug/static/xge3d/xlang.package.json",
+      "sha256": "c1e79c104341e8fbb88c9d96797a1a7e7482337ae8e21f7c03fff5f9d58113bd",
+      "bytes": 1011,
+      "origin": "xge-matched-local-delivery-20261125"
+    },
+    {
+      "path": "release/win_x64/profiles/xge-debug/static/xgeDebug/xlang.package.json",
+      "sha256": "bf8d0ba7df46abf336e3ef3904a4536f08c0b9aecae7c488d47fdfbecad3bee7",
+      "bytes": 602,
+      "origin": "xge-matched-local-delivery-20261125"
+    },
+    {
+      "path": "release/win_x64/profiles/xge-debug/static/xui/xlang.package.json",
+      "sha256": "cd7731f57ee20e6693f968b1b91a49397f29ad769fe677f17ce167d367bd4537",
+      "bytes": 1624,
+      "origin": "xge-matched-local-delivery-20261125"
+    },
+    {
+      "path": "release/win_x64/static/xge3/packages/_xge_native/xlang.package.json",
+      "sha256": "740a35d2c0c2e0f531bd5bbd65276a934c6a4f0a9c70f17fb52ccb273b509c9c",
+      "bytes": 8060,
+      "origin": "xge-matched-local-delivery-20261125"
+    },
+    {
+      "path": "release/win_x64/static/xge3/packages/xge/xlang.package.json",
+      "sha256": "3c3b832d57c7c731cc691826005aef5884080a03e919b00bf1563fa771b534c7",
+      "bytes": 1330,
+      "origin": "xge-matched-local-delivery-20261125"
+    },
+    {
+      "path": "release/win_x64/static/xge3/packages/xge3d/xlang.package.json",
+      "sha256": "c1e79c104341e8fbb88c9d96797a1a7e7482337ae8e21f7c03fff5f9d58113bd",
+      "bytes": 1011,
+      "origin": "xge-matched-local-delivery-20261125"
+    },
+    {
+      "path": "release/win_x64/static/xge3/packages/xui/xlang.package.json",
+      "sha256": "cd7731f57ee20e6693f968b1b91a49397f29ad769fe677f17ce167d367bd4537",
+      "bytes": 1624,
+      "origin": "xge-matched-local-delivery-20261125"
     }
   ],
   "products": [
     {
-      "sha256": "5288c4e8be9f420ef98caeb11be362017be925f2ad81a0d56946cc6a8c721081",
+      "sha256": "45cabcb2f9931fe29f5c8ecd57cddaf25df8a2043e41e1bb053adbb38804c43e",
       "bytes": 72704,
       "path": "release/win_x64/xl.exe",
-      "origin": "release-0.6.1-20261108",
-      "previousSha256": "a5feede784f0a5cb1a829c2e362de57e9278b55cec1a11b796cf4b6e78831bbc"
+      "origin": "xge-matched-local-delivery-20261125",
+      "previousSha256": "5288c4e8be9f420ef98caeb11be362017be925f2ad81a0d56946cc6a8c721081"
     },
     {
-      "sha256": "f31ddbe973ed48d261014ec64fa6b0ba48791fc0313192a19d59467254c0fcd6",
-      "bytes": 15184896,
+      "sha256": "8835257aa1a4a50fc81f592c0dc724a2d3ad1b5f9b240fcdf8be506c76033141",
+      "bytes": 15486464,
       "path": "release/win_x64/xl.dll",
-      "origin": "release-0.6.1-20261108",
-      "previousSha256": "215d6b3c87704c745ec609eb07e718a52708ad7c13436294f2f662a56169be13"
+      "origin": "xge-matched-local-delivery-20261125",
+      "previousSha256": "f31ddbe973ed48d261014ec64fa6b0ba48791fc0313192a19d59467254c0fcd6"
     },
     {
-      "sha256": "64b2e9830569c84580335b0a2b15a59ce13552ba1ba51933fc82cd75808c0728",
-      "bytes": 21298688,
+      "sha256": "9066d2eb7c08a189ff05eb8d73ab0fe495a8a6f7cd2c9faac0f16dce576cf9a8",
+      "bytes": 21749248,
       "path": "release/win_x64/xlc.dll",
-      "origin": "release-0.6.1-20261108",
-      "previousSha256": "2241fcd462980fc40cbd6c47ce9347d537bababc93225cb6d2a2d36b9b978797"
+      "origin": "xge-matched-local-delivery-20261125",
+      "previousSha256": "64b2e9830569c84580335b0a2b15a59ce13552ba1ba51933fc82cd75808c0728"
     },
     {
-      "sha256": "faa25e49bdf8c5ce8ccdb084810075b406cc6dd499a59577664616eb2a08265b",
+      "sha256": "e5ea845bb32f4575dac6b204377dd1b9a1e6f469e66e8da5736fbaf93a238862",
       "bytes": 47224,
       "path": "release/linux_x64/xl",
-      "origin": "example-failures-20261107",
+      "origin": "xge-matched-local-delivery-20261125",
       "previousSha256": "faa25e49bdf8c5ce8ccdb084810075b406cc6dd499a59577664616eb2a08265b"
     },
     {
-      "sha256": "235f7e46d1e264d33907eb230e920d93e34a34dca583f1b63d6b8b72cd2a66cd",
-      "bytes": 16448016,
+      "sha256": "8042b26ffc0e63a2dd6e3fa20d2001df578ce9bd615caacdf9ed2b79cc95acd4",
+      "bytes": 16702416,
       "path": "release/linux_x64/libxl.so",
-      "origin": "release-0.6.1-20261108",
-      "previousSha256": "206ed56701191caa5e80db74393b2c2fdfaf0942d06a067eb0a3836671e7be64"
+      "origin": "xge-matched-local-delivery-20261125",
+      "previousSha256": "235f7e46d1e264d33907eb230e920d93e34a34dca583f1b63d6b8b72cd2a66cd"
     },
     {
-      "sha256": "644d740a458440b6626ef96e1a8c7cee22f5510194126d31b04b8ead4f4297d0",
-      "bytes": 22440720,
+      "sha256": "1fdf5d382c78b0b2e5e031fd874cbc2af6a7d4fd03d1167bd63df1dc3a14d8e5",
+      "bytes": 22809840,
       "path": "release/linux_x64/libxlc.so",
-      "origin": "release-0.6.1-20261108",
-      "previousSha256": "c95a4b367e5ee67b9def00181060d678f56e084072ddc2c6b6ed5f1a5b25528b"
+      "origin": "xge-matched-local-delivery-20261125",
+      "previousSha256": "644d740a458440b6626ef96e1a8c7cee22f5510194126d31b04b8ead4f4297d0"
     },
     {
-      "sha256": "f115aa6baa63e204805e711770c26bdeeb653111380fced0016151e90c6f1b97",
-      "bytes": 2128075,
+      "sha256": "c16bf9eb661f5ba3be74207398c0b1a91a4dc8659d979402d2d0a20bedf710da",
+      "bytes": 2524669,
       "path": "release/win_x64/xlang_ide.exe",
-      "origin": "release-0.6.1-20261108",
-      "previousSha256": "8a4d9e633fea3baad66e2cf05c0aa6d7f335b2e87ac655cc6f11d29f0685d8e5"
+      "origin": "xge-matched-local-delivery-20261125",
+      "previousSha256": "f115aa6baa63e204805e711770c26bdeeb653111380fced0016151e90c6f1b97"
     },
     {
-      "sha256": "2ed3bd2eb158bab6d807d10299c7c3aa256b012c050ba2397741da057246f232",
-      "bytes": 10701410,
+      "sha256": "f1597f80428717ada2c0c232dda496b42120ecd0f3921438c49dde7bae45fb75",
+      "bytes": 11460494,
       "path": "release/win_x64/xlang-ls.exe",
-      "origin": "matched-xge3-xui3-local-delivery-20261105"
+      "origin": "xge-matched-local-delivery-20261125",
+      "previousSha256": "2ed3bd2eb158bab6d807d10299c7c3aa256b012c050ba2397741da057246f232"
     },
     {
       "sha256": "127db42612e8a27c8b1f7f74e4653c25f09140f8baac38d16fc564eb74892ef3",
@@ -6370,9 +7039,11 @@
     },
     {
       "path": "release/win_x64/update.exe",
-      "sha256": "72ab3b3a081e192fe2253b5ca4c87c417b8142814d89d0713a678f8e722a8e10",
-      "bytes": 1482752,
-      "origin": "ide-release-maintenance-20261106"
+      "sha256": "4c5266fce0a541b9b96fe92b3d2f7d94598aff3b052e420b08b6d47db5e5c6c2",
+      "bytes": 1484288,
+      "origin": "retained-local-IDE-delivery",
+      "previousSha256": "72ab3b3a081e192fe2253b5ca4c87c417b8142814d89d0713a678f8e722a8e10",
+      "provenance": "dev/release-materials/provenance/lsp-stable-refresh-20261123.json"
     },
     {
       "path": "release/linux_x64/update",
@@ -6382,17 +7053,17 @@
     },
     {
       "path": "release/win_x64/extlibs/_xge_native/native/xge3_host.dll",
-      "sha256": "b38d02e78b57d765ef898eb91f64e5d4ad84ade0ecaa74a74218f5299ecaba5c",
-      "bytes": 9148853,
-      "origin": "xge-keypad-enter-20261108",
-      "previousSha256": "d1d3f66827bcbb59a69ebb37d1051a39c32687967ecf8171be52ec3999abbbfd"
+      "sha256": "04268a38093c50943097499fff388821b894efbfc278d51a79527219e1cbddfb",
+      "bytes": 10082504,
+      "origin": "xge-matched-local-delivery-20261125",
+      "previousSha256": "b38d02e78b57d765ef898eb91f64e5d4ad84ade0ecaa74a74218f5299ecaba5c"
     },
     {
       "path": "release/linux_x64/extlibs/_xge_native/native/libxge3_host.so",
-      "sha256": "6e4e89b1b994a7da925e606704027aaeb9bc61de4ffee574fd65a3e3b2084cb2",
-      "bytes": 9948112,
-      "origin": "xge-keypad-enter-20261108",
-      "previousSha256": "6d889338cb2514ae8873c4001631a8d287721c9069771dfc1a59f87ccca63f20"
+      "sha256": "e59c3de958b84ef44a6b1d48602b2b01a70d76212af6b2a1b5034130c3ca5490",
+      "bytes": 11025648,
+      "origin": "xge-matched-local-delivery-20261125",
+      "previousSha256": "6e4e89b1b994a7da925e606704027aaeb9bc61de4ffee574fd65a3e3b2084cb2"
     },
     {
       "path": "release/win_x64/data/version.json",
@@ -6410,17 +7081,17 @@
     },
     {
       "path": "release/win_x64/xl.def",
-      "sha256": "6184cb83f3cdfd9aa117d74eff3f0687d30a22a9c223030c9aee6e7bc82251ad",
-      "bytes": 244150,
-      "origin": "example-failures-20261107",
-      "previousSha256": "19eb82169cdad57ff9d5c4a54aa8542ff00255c852f79511f2610f239895ab82"
+      "sha256": "dc27a83497769de274a25af2d7450d1fa3b4b7d565f9bf51e8a8c585d440e1dc",
+      "bytes": 245059,
+      "origin": "xge-matched-local-delivery-20261125",
+      "previousSha256": "6184cb83f3cdfd9aa117d74eff3f0687d30a22a9c223030c9aee6e7bc82251ad"
     },
     {
       "path": "release/win_x64/xlc.def",
-      "sha256": "b4dd1ebdc0cabd775981db5c198687b44f805aaae4cf059ae449871f465ffa57",
-      "bytes": 245169,
-      "origin": "example-failures-20261107",
-      "previousSha256": "4485a69c41e4b4e912d1db5a6a700aa1fb65e86d2d5e88331c775ac5659ef853"
+      "sha256": "bb0c1cfd97bace99b3ef73358b5b26c418d22db87d30afb75ad969a3e6ac8ed2",
+      "bytes": 246078,
+      "origin": "xge-matched-local-delivery-20261125",
+      "previousSha256": "b4dd1ebdc0cabd775981db5c198687b44f805aaae4cf059ae449871f465ffa57"
     },
     {
       "path": "release/win_x64/data/template-icons/blank.png",
@@ -6511,6 +7182,12 @@
       "path": "release/win_x64/data/template-icons/tree-workspace@2x.png",
       "sha256": "d2f27b45b729cd12b0e8df4f23b85964ff318c2906d2d0e9e49203271208662c",
       "bytes": 249
+    },
+    {
+      "path": "release/win_x64/xlang_ide_xge.dll",
+      "sha256": "4d4aa16176f54fa3770ff1f7e09372391a70a324e2c53750d62c7d4646b985f2",
+      "bytes": 12225770,
+      "origin": "xge-matched-local-delivery-20261125"
     }
   ],
   "acceptance": {
@@ -7331,5 +8008,104 @@
     "defaultRuntimeReplaced": false,
     "formalRelease": false,
     "externalPublishPerformed": false
+  },
+  "xgeFullLocalDelivery": {
+    "status": "installed",
+    "releaseDirectory": "release",
+    "externalPublishPerformed": false,
+    "previousDeliveryIndex": {
+      "path": "F:/xlang-validation/xge-full-20261110/converged-local-release-install-r2/previous-current-delivery.json",
+      "bytes": 356603,
+      "sha256": "c1ea8571f7c0a851f574bab74ad2d315889e947bfaa782ffcb4e2f1b14693188"
+    },
+    "promotionPlan": {
+      "path": "F:/xlang-validation/xge-full-20261110/converged-runtime-install-preflight-r2.json",
+      "bytes": 2546888,
+      "sha256": "d4f09012e930a8077f043667e2037b5efe617e0d64b1dc147d2e83dcbe030985"
+    },
+    "publication": {
+      "path": "F:/xlang-validation/xge-full-20261110/converged-local-release-install-r2/publication.json",
+      "bytes": 497,
+      "sha256": "0ae0b17e1828ca342a3d3f3e3b66fc117cef0e0e6a955b043fa38f8196e098df"
+    },
+    "nativeReviewAuditCommit": "fd89253e1",
+    "catalogFixCommit": "6323fa137",
+    "scope": [
+      "compiler",
+      "SDK",
+      "XGE",
+      "XUI",
+      "Document",
+      "Windows IDE",
+      "language server",
+      "examples"
+    ],
+    "platforms": {
+      "win": {
+        "compiler": {
+          "path": "F:/xlang-validation/xge-full-20261110/converged-compiler-win-r2/build.json",
+          "bytes": 1596,
+          "sha256": "05416ac22274e11320675a87e4b7a63d075cf1528623b5d78120ddef67aa08d5"
+        },
+        "sdk": {
+          "path": "F:/xlang-validation/xge-full-20261110/converged-compiler-sdk-win-r2/results.json",
+          "bytes": 272939,
+          "sha256": "87bed0dc8d3a4347c4ac7c6901bb5db5030ae05aa4140b9a42182b284cff05ef"
+        },
+        "runtime": {
+          "path": "F:/xlang-validation/xge-full-20261110/converged-runtime-acceptance-win-r3/results.json",
+          "bytes": 1047345,
+          "sha256": "91f25c3eeba3223a84dea040f08d605aecddef9965f1890da22e27d4588ac38e"
+        },
+        "optionalProfiles": {
+          "path": "F:/xlang-validation/xge-full-20261110/converged-xge-profiles-win-r2/results.json",
+          "bytes": 124137,
+          "sha256": "7df73753555fe15cd938793b5a471655c7505678b3b9048149077142c9b50382"
+        },
+        "games": {
+          "path": "F:/xlang-validation/xge-full-20261110/converged-games-win-r2/results.json",
+          "bytes": 18792,
+          "sha256": "2bb10992cc8d3a5eb2ba274147c40e2eb24597f0fb2f1e32f5c05477894e8ec5"
+        }
+      },
+      "linux": {
+        "compiler": {
+          "path": "//wsl.localhost/Ubuntu/var/tmp/xlang-validation/xge-full-20261110/converged-compiler-linux-r2/build.json",
+          "bytes": 1557,
+          "sha256": "9d835f3f8c61fe3eebd384dba80f51907ab289fe5acba500a9da6382777d7e86"
+        },
+        "sdk": {
+          "path": "//wsl.localhost/Ubuntu/var/tmp/xlang-validation/xge-full-20261110/converged-compiler-sdk-linux-r2/results.json",
+          "bytes": 270677,
+          "sha256": "3c6cf040a76037ac95ad5ab146e00d5eda78fbc36aec94a5f66c337298939357"
+        },
+        "runtime": {
+          "path": "//wsl.localhost/Ubuntu/var/tmp/xlang-validation/xge-full-20261110/converged-runtime-acceptance-linux-r2/results.json",
+          "bytes": 520529,
+          "sha256": "e9861ab7005fec04c73a15bf760cfb9f96fe920da2b4e14783c22c0bd96852d3"
+        },
+        "optionalProfiles": {
+          "path": "//wsl.localhost/Ubuntu/var/tmp/xlang-validation/xge-full-20261110/converged-xge-profiles-linux-r2/results.json",
+          "bytes": 236403,
+          "sha256": "a0977519764ab9a820ff7abbec7c8e467fe6d3fdc7551420e0359c223366f23e"
+        },
+        "games": {
+          "path": "//wsl.localhost/Ubuntu/var/tmp/xlang-validation/xge-full-20261110/converged-games-linux-r2/results.json",
+          "bytes": 19201,
+          "sha256": "64ea93df662894e59024d801d0a2b4da4c87c2a0a15789e89cf7d5d5f528b866"
+        }
+      }
+    },
+    "ideReceipt": {
+      "path": "F:/xlang-validation/xge-full-20261110/converged-local-release-install-r2/ide-build-proof.json",
+      "bytes": 1936,
+      "sha256": "c59350c8194b747c224f47ec407c81f80af4cd7adf6162f741e7ab9653a70c07"
+    },
+    "qualification": "dev/release-materials/provenance/xge-candidate-qualification-20261125.json",
+    "installedCatalogCheck": {
+      "path": "F:/xlang-validation/xge-full-20261110/converged-local-release-install-r2/installed-catalog-check.json",
+      "sha256": "e2d2dda0b069f2358cce4d1726331baa02598920e3de0c9e4bde96d46e9ad248",
+      "bytes": 361
+    }
   }
 }

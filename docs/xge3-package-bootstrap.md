@@ -5,6 +5,34 @@ package versions are `3.0.0`, with package ABI `2`. This is the generation of
 the language binding; the current upstream XUI header still reports native
 XUI version 2. The native XGE API reports version 3.
 
+## Optional profiles in the local runtime
+
+`release/win_x64/profiles/xge-debug` and
+`release/linux_x64/profiles/xge-debug` provide the debug-enabled engine.
+`release/linux_x64/profiles/xge-egl` provides the EGL engine. Each contains a
+`host` package set for JIT or dynamic AOT and a `static` package set for static
+AOT. Select a set with `XLANG_PACKAGE_PATH`. Each set carries its matching
+headers, native image or static libraries, package declarations, and notices.
+
+Run the debug capabilities example from `release/win_x64` in PowerShell.
+
+```powershell
+$env:XLANG_PACKAGE_PATH = Join-Path $PWD 'profiles\xge-debug\host'
+.\xl.exe run (Join-Path $env:XLANG_PACKAGE_PATH 'xgeDebug\examples\capabilities.xl')
+```
+
+Run the EGL pixel readback example from `release/linux_x64` on a system with
+EGL and a surfaceless-capable driver.
+
+```sh
+EGL_PLATFORM=surfaceless XLANG_PACKAGE_PATH="$PWD/profiles/xge-egl/host" \
+  ./xl run profiles/xge-egl/host/xge/examples/egl_context.xl
+```
+
+The normal `extlibs/` package set remains the default outside the profile
+selection. The [local delivery index](../dev/release-materials/provenance/current-delivery.json)
+records the platform builds and validation receipts.
+
 ## One runtime
 
 `_xge_native/src/bootstrap.xl` makes one checked top-level call during language
