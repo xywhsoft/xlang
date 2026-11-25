@@ -15,6 +15,10 @@ import subprocess
 from check_xge3_bindings import inventory, annotate_existing_bindings
 
 
+PACK_RECORD = re.compile(r'@c_pack\(\s*(\d+)\s*,\s*"(\w+)"\s*,\s*\d+\s*,\s*\d+\s*\)')
+PACK_CALLBACK = re.compile(r'@c_pack_field\(\s*(\d+)\s*,\s*"(\w+)"\s*,\s*(\d+)\s*,\s*"(callback|owned_callback)"\s*\)')
+
+
 def digest(path):
     return hashlib.sha256(path.read_bytes()).hexdigest()
 
@@ -83,6 +87,13 @@ def source_bindings(root):
                         fields.setdefault((native_owner, method[1]), []).append(binding)
                     elif not re.search(r'@c_(?:field|deref|control)\b', line):
                         functions.setdefault(method[1], []).append(binding)
+                    if '@c_pack_field' in line:
+                        records = dict(PACK_RECORD.findall(line))
+                        for parameter, member, argument, projection in PACK_CALLBACK.findall(line):
+                            if parameter not in records:
+                                raise ValueError(f'Packed callback lacks its C record in {source}:{line_number}')
+                            fields.setdefault((records[parameter], member), []).append(dict(binding,
+                                projection=projection, cParameter=int(parameter), argument=int(argument)))
     return functions, fields, types, constants, inputs
 
 
