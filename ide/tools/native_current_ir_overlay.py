@@ -1,4 +1,4 @@
-from native_final_c_interop_profile import COHORT as FINAL_COHORT, PINS as FINAL_PINS, CURRENT_PINS, PROJECTION_PINS, OWNERSHIP_PINS, XGE_PINS, projection_family
+from native_final_c_interop_profile import COHORT as FINAL_COHORT, PINS as FINAL_PINS, CURRENT_PINS, PROJECTION_PINS, OWNERSHIP_PINS, XGE_LAYOUTS, projection_family, xge_family
 from native_c_interop_profile import pins_for as final_active_pins
 """Audited current IR components; normal builds require the corrected phase cohort."""
 from pathlib import Path
@@ -24,7 +24,7 @@ PHASE_IR_SHA256='e1ea31c336278b6729369e9f6a1bb4d86a4e945018a88f8c672c0a643e08962
 # Both constants name the same committed correction; arbitrary normalization
 # must not admit otherwise unknown source contents.
 PHASE_IR_DIGESTS=(PHASE_IR_SHA256,'5c7a46e13b8f774c0fd27c3d66fc9c064aafc73b20386d2e9a448e9df7d78e6a',C_INTEROP_PINS['src/ir/xl6_ir.c'])+RETIREMENT_IR_DIGESTS+tuple(
-    pins['src/ir/xl6_ir.c'] for pins in (FINAL_PINS,CURRENT_PINS,PROJECTION_PINS,OWNERSHIP_PINS,XGE_PINS))
+    pins['src/ir/xl6_ir.c'] for pins in (FINAL_PINS,CURRENT_PINS,PROJECTION_PINS,OWNERSHIP_PINS,*XGE_LAYOUTS))
 
 
 def derive(frontend:Path,output:Path,*,phases=False,ir_source=None):
@@ -75,7 +75,7 @@ def derive(frontend:Path,output:Path,*,phases=False,ir_source=None):
         source,seams=scans(source,current=True)
         from native_final_c_interop_profile import selected as final_selected
         source=ir_cancellation(source,current=True,foreign=c_interop_selected(frontend),
-                               final=final_selected(frontend),data_snapshots=active is XGE_PINS)
+                               final=final_selected(frontend),data_snapshots=xge_family(active))
         source=initializers(source)
         source,derived_overlay=derived(source,output,hashlib.sha256(selected.read_bytes()).hexdigest(),audited[str(frontend/'src/ir/xl6_ir.h')],frontend=frontend)
         for name in ('native_ir_derived_overlay.py','check_native_bridge_catalog.py'):
@@ -84,9 +84,9 @@ def derive(frontend:Path,output:Path,*,phases=False,ir_source=None):
     source=raw_memo(source,current=True)
     if projection_family(active):
         source='#define XLS_NATIVE_IR_RECORD_PROJECTION 1\n'+source
-    if active is OWNERSHIP_PINS or active is XGE_PINS:
+    if active is OWNERSHIP_PINS or xge_family(active):
         source='#define XLS_NATIVE_IR_OWNED_OUTPUT 1\n'+source
-    if active is XGE_PINS:
+    if xge_family(active):
         source='#define XLS_NATIVE_IR_DATA_SNAPSHOTS 1\n'+source
     parameter_overlay=None
     classifier_overlay=None

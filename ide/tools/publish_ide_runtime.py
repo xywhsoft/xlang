@@ -123,10 +123,11 @@ def main():
     p = argparse.ArgumentParser(description=__doc__)
     for key in ('ide', 'runtime', 'gui', 'server', 'dll', 'output', 'objdump'):
         p.add_argument('--' + key, required=True, type=Path)
+    p.add_argument('--sdk', type=Path, help='SDK used to build the GUI')
     p.add_argument('--updater', type=Path, help='Optional already-qualified standalone updater')
     a = p.parse_args()
     name = runtime_basename(a.ide)
-    sdk = a.ide / 'third_party/xge_sdk'
+    sdk = a.sdk if a.sdk is not None else a.ide / 'third_party/xge_sdk'
     manifest = json.loads((sdk / 'sdk_manifest.json').read_text(encoding='utf-8-sig'))
     expected = next(row['sha256'] for row in manifest['files'] if row['path'] == 'xge.dll')
     if sha(a.dll) != expected:

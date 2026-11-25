@@ -7,7 +7,7 @@ import hashlib
 from check_native_bridge_catalog import function
 from native_ir_derived_overlay import current_pair,current_contract
 from native_c_interop_profile import pins_for
-from native_final_c_interop_profile import OWNERSHIP_PINS, XGE_PINS
+from native_final_c_interop_profile import OWNERSHIP_PINS, xge_family
 
 BODY_SHA256='c989f2e46adbdb57d629193e0be8d35e813a1d602c467af97bcb237e069b5d98'
 OWNERSHIP_BODY_SHA256='0c7898bb5630f124ff6bc0082d3ff0b22ea20c5acbfcf8c4860c65888e9fdb6d'
@@ -22,7 +22,7 @@ def derive(source,frontend,source_digest,header_digest):
     source=source.replace('\r\n','\n').replace('\r','\n')
     if '#define '+FEATURE in source:raise ValueError('Topology observer overlay already applied')
     body=function(source,'xlsIrVerifyModuleOriginal')
-    expected=XGE_BODY_SHA256 if pins is XGE_PINS else OWNERSHIP_BODY_SHA256 if pins is OWNERSHIP_PINS else BODY_SHA256
+    expected=XGE_BODY_SHA256 if xge_family(pins) else OWNERSHIP_BODY_SHA256 if pins is OWNERSHIP_PINS else BODY_SHA256
     if hashlib.sha256(body.encode('utf8')).hexdigest()!=expected:
         raise ValueError('Native IR verifier changed;audit initialization and topology admission order')
     point='if (!xl6IrVerifyNodeTopology(module, diags)) return 0;'

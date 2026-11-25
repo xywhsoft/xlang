@@ -22,6 +22,8 @@
 
 开发环境需要 Python 3、Windows PowerShell 和 MinGW GCC 工具链；工具链中需要 `gcc`、`objdump`，编译测试程序时还需要 `windres`。已经配置 PATH 时可省略 `-ToolchainDirectory`；日常只构建 IDE 时可省略 `-Tests`。这些是开发构建依赖，便携 IDE 的运行依赖见便携包说明。
 
+在隔离发布目录验证新的成套 XGE SDK 时，可直接调用 `tools/build.ps1`，用 `-XgeSdkRoot` 选择已暂存的 SDK，并用 `-ReleaseDirectory` 指定候选运行目录。构建会先校验该 SDK 的清单、配置、导入库和动态库。
+
 每次调用都会复制当前的 `src`、`tests`、`tools`、`data` 和成套 SDK 到新的 `build/cb-xxxxxxxx`，校验复制内容后从源码编译。输出在该目录的 `release`；终端最后会打印 IDE 路径。`build/current-build.json` 指向最近一次已开始的尝试，包括准备阶段失败、编译失败和中断，不能用上一份成功记录冒充本次成功。具体源码哈希、编译日志、实际退出码和输出哈希保存在该构建目录的 `current-build-report.json`。修改源码后重新调用即可生成新的版本。
 
 `-Tests` 会执行原生分析核心测试并编译 GUI 测试程序；GUI 回归仍是独立步骤。运行快照的 `tools/test.ps1 -SkipBuild` 时，传入 `-ReleaseDirectory <快照目录>\release` 和对应配置。构建期间的源码变化会列入报告。直接 `build.bat` 的普通构建更新仓库根 `release`，带 `-Tests` 时输出 `ide/build/<配置>/release`；日常开发建议使用 `build_current.bat` 的独立快照。

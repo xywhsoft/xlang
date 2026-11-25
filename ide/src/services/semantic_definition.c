@@ -41,12 +41,13 @@ static xide_semantic_definitions* nativePointsCreate(const xls_semantic_index* i
 static xide_point_reuse_work nativePointReuseWork(const xide_semantic_definitions*);
 static int typedCapacity(size_t nodes,const xide_semantic_source* sources,size_t count,size_t* coordinateBudget)
 {
- /* Bound owned data including temporary coordinate endpoints, worst-case
-    lookup capacities and the existing4MiB retained text allowance. Borrowed
-    source text and allocator overhead are separate,not process RSS. Cursor
-    indices reserve their high bit for selections. Check before allocating. */
+ /* Coordinate endpoints are released before lookup allocation. Bound the
+    larger of those two phases along with the common data and text allowance.
+    Borrowed source text and allocator overhead are outside this budget. */
  size_t fixed=sizeof(xide_semantic_definitions)+count*sizeof(char*)+4u*1024u*1024u+8*(sizeof(cursor_row)+sizeof(reference_row));
- const size_t per=sizeof(node)+2*sizeof(declaration)+6*sizeof(endpoint)+4*sizeof(cursor_row)+2*sizeof(reference_row);
+ const size_t endpoints=6*sizeof(endpoint);
+ const size_t lookups=4*sizeof(cursor_row)+2*sizeof(reference_row);
+ const size_t per=sizeof(node)+2*sizeof(declaration)+(endpoints>lookups ? endpoints : lookups);
  if(nodes>=CURSOR_SELECTION || nodes+1>(TYPED_DEFINITION_BYTES-fixed)/per) return 0;
  size_t used=fixed+(nodes+1)*per;
  for(size_t i=0;i<count;++i) {
@@ -278,6 +279,7 @@ static xide_semantic_definitions* definitionsCreate(const xvalue* index,
   if(okay && n->declaredType) d->typeDeclarations[d->typeCount++]=(declaration){n->declaredType,i};
  }
  if(okay){int fast=coordinateBudget ? convertDense(ends,used,sources,count,coordinateBudget) : -1;okay=fast<0 ? convert(ends,used,sources) : fast;}
+ free(ends);
  /* Complete source selections for checked callable declarations whose shared
     serializer only supplied a token/name child. Executable IDs remain intact. */
  for(size_t i=0;okay && i<d->count;++i){
@@ -318,7 +320,8 @@ static xide_semantic_definitions* definitionsCreate(const xvalue* index,
   d->typeCount=unique;
  }
  if(okay) okay=buildLookup(d);
- free(ends); if(okay) return d; xideSemanticDefinitionsDestroy(d);
+ if(okay) return d;
+ xideSemanticDefinitionsDestroy(d);
 invalid:
  if(error) { error->code=XIDE_MODEL_INVALID; snprintf(error->message,sizeof(error->message),"编译器语义索引的身份、来源或范围无法验证。"); } return NULL;
 }

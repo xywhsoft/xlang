@@ -1,0 +1,30 @@
+{
+  "format": "xlang-native-frontend-delta-1",
+  "sourceRevision": "current-xge-callbacks-20261125",
+  "repositoryRevision": "b6a5b63af72cfbef4e9f50b503b6cf9f58b40cfd",
+  "xrtRevision": "804cc769de3030118c2b46ef7af69543d1b82d9d",
+  "parentRecordSha256": "4e5253b82fbbd17437967ad5643196f365cb97d9ea4e11cf48a90aa7bfc5b817",
+  "productVersion": "0.6.2",
+  "pins": {
+    "src/compile/xl6_artifact_runtime_symbols.inc": "4cdda00f111f9e107c023648577cc8b7199b5fa5edf3b32256c29a434e76f800",
+    "src/ir/xl6_ir.c": "d43583875e8936ad159889a1f97e7522203f806bc1603d0f45283fcfad08915a",
+    "src/ir/xl6_ir_foreign_compat.c": "2e1dcd942cc9ae418045679cd43c654d516ab4710a08ab16cccaaee7158934fa",
+    "src/ir/xl6_ir_foreign_null_compat.c": "be7d1b0f6b3685edb554a3d9d8ebca9aaf8943b93edb0f1969ba2842894255fc",
+    "src/ir/xl6_ir_foreign_owned_output.c": "461ce7861edc23867fc6c0f2c4ef9aa753909c851774d3cb54f5b16d9992b835",
+    "src/ir/xl6_ir_foreign_pack.c": "a976e85802a4d8dff289a45eeea0150fc08ec391674af58bd64af868e2d60b86",
+    "src/ir/xl6_ir_foreign_parameter.c": "10e738d0b539f58db6cba8d76798a2163eb7d127090faf17fab70dac80c55d0a",
+    "src/ir/xl6_ir_foreign_region.c": "3581d3a34e6faeb3afdac0c6aedc57fbf985ff6d69197db763b7f104d994769c",
+    "src/ir/xl6_ir_lower.c": "30b9918aa73e7176568c487b76963fc1155b3825acac7b091fa68e1cb9b62644",
+    "src/sem/xl6_sem.c": "f2de6c72f98e49a6ff1bf80edf73698b343515199ff69e39af7c50483f9a9ba6",
+    "src/sem/xl6_sem_foreign_null_compat.c": "2c67ade80efa39e01d1a3763401ee11f39e411eaff7d96e1e7bb6eaab5b24642",
+    "src/sem/xl6_sem_foreign_owned_output.c": "886bd66a3c8f263ee9937ef56eaf9def6bcf6dfefddee4fd4845b3c4adef6701",
+    "src/sem/xl6_sem_foreign_owned_output_compat.c": "d82415232a325b44169c4a68120313d53bffa9e2d9f39c3e0df4700f2526df73",
+    "src/sem/xl6_sem_foreign_pack.c": "dbbbcfc3a82620e6e3fff3944e0e086d2b375dc394e885defeca962483e7944c",
+    "src/type/xl6_foreign_call_contract.h": "220f07b1e6987c45340f832e9dd6fa1bb774f9923f49bd1a35d134862e71aabb",
+    "src/type/xl6_foreign_decl.h": "a4523538b1bf7e06bf20d5eb3df1a7cc9d81df0a4806e1c68de2f42a1268f84a",
+    "src/type/xl6_foreign_owned_output_contract.h": "3bf35ec2b3d96020430968e6532320836195131b9cb799c137e307ecd559c817",
+    "src/type/xl6_foreign_owned_output_decl.h": "923c9dc350ed004b7c253807abb1a8d1ac03554b73a3a1b1ddbe9be419c06ac6",
+    "src/type/xl6_foreign_pack_contract.h": "745d6bf3978d19886439cbecfba59615325ce4c57b3782f200a095928acbe89d",
+    "src/type/xl6_foreign_pack_decl.h": "61ffe9932b7f68bb8c4bf693de1d0b34ee23fd02dd60517366c3ff37fdde8784"
+  }
+}

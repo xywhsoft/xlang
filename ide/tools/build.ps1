@@ -1,5 +1,5 @@
 ﻿[CmdletBinding()]
-param([ValidateSet('Debug','Release')][string]$Configuration='Debug', [switch]$Tests, [string]$FrontendRoot='', [string]$ReleaseDirectory='', [switch]$GuiOnly, [string]$LanguageServerPath='', [switch]$EnableCLsp, [switch]$CandidateOnly)
+param([ValidateSet('Debug','Release')][string]$Configuration='Debug', [switch]$Tests, [string]$FrontendRoot='', [string]$ReleaseDirectory='', [switch]$GuiOnly, [string]$LanguageServerPath='', [switch]$EnableCLsp, [switch]$CandidateOnly, [string]$XgeSdkRoot='')
 $ErrorActionPreference='Stop'
 function Get-XideSha256([string]$Path) {
     $stream=[IO.File]::OpenRead($Path)
@@ -8,7 +8,7 @@ function Get-XideSha256([string]$Path) {
     finally { $hasher.Dispose(); $stream.Dispose() }
 }
 $ideRoot = Split-Path -Parent $PSScriptRoot
-$sdkRoot = Join-Path $ideRoot 'third_party\xge_sdk'
+$sdkRoot = if ($XgeSdkRoot) { (Resolve-Path -LiteralPath $XgeSdkRoot).Path } else { Join-Path $ideRoot 'third_party\xge_sdk' }
 & powershell -NoProfile -ExecutionPolicy Bypass -File (Join-Path $PSScriptRoot 'verify_xge_sdk.ps1') -SdkRoot $sdkRoot
 if ($LASTEXITCODE -ne 0) { throw 'SDK verification failed.' }
 $compiler = (Get-Command gcc -ErrorAction Stop).Source
@@ -205,7 +205,7 @@ $sdkDll=Join-Path $sdkRoot 'xge.dll'
 $releaseDll=Join-Path $releaseRoot $runtimeLibrary.runtimeBasename
 $guiExe=Join-Path $releaseRoot 'xlang_ide.exe'
 $publicationRoot=Join-Path $objectRoot ('publication-'+[Guid]::NewGuid().ToString('N'))
-& python -X utf8 -B (Join-Path $PSScriptRoot 'publish_ide_runtime.py') --ide $ideRoot --runtime $releaseRoot --gui $guiStaging --server $pendingServer --dll $sdkDll --output $publicationRoot --objdump (Join-Path (Split-Path -Parent $compiler) 'objdump.exe')
+& python -X utf8 -B (Join-Path $PSScriptRoot 'publish_ide_runtime.py') --ide $ideRoot --sdk $sdkRoot --runtime $releaseRoot --gui $guiStaging --server $pendingServer --dll $sdkDll --output $publicationRoot --objdump (Join-Path (Split-Path -Parent $compiler) 'objdump.exe')
 if ($LASTEXITCODE -ne 0) { throw "Matched IDE/LS runtime publication failed; see $publicationRoot" }
 if ($nativeBuildReceipt) { $nativeBuildReceipt | ConvertTo-Json | Set-Content -LiteralPath (Join-Path $objectRoot 'language-server-build.json') -Encoding utf8 }
 @{configuration=$Configuration;cLspEnabled=[bool]$EnableCLsp;compiler=$compiler;resourceCompiler=$resourceCompiler;flags=$flags;libraries=$libraries;objects=$objects;resources=@($appResources);inputs=$buildInputs;release=$releaseRoot;runtimeLibrary=$runtimeLibrary;outputs=@{xlang_ide=(Get-XideSha256 $guiExe);xlang_ls=(Get-XideSha256 $serverTarget);xge=(Get-XideSha256 $releaseDll)}} | ConvertTo-Json -Depth 5 | Set-Content -LiteralPath (Join-Path $objectRoot 'gui-build-inputs.json') -Encoding utf8
