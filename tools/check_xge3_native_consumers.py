@@ -669,8 +669,12 @@ def prove_document_lifetime(source, flags, view, bound, packages, tools, out, ru
 
 def main():
     p=argparse.ArgumentParser(description=__doc__)
-    for name in ('surface','compiler','compiler-report','packages','replay-report','out'):
+    for name in ('surface','compiler','compiler-report','packages','out'):
         p.add_argument('--'+name,type=Path,required=True)
+    package_receipt=p.add_mutually_exclusive_group(required=True)
+    package_receipt.add_argument('--replay-report',type=Path)
+    package_receipt.add_argument('--package-stage-report',type=Path,
+        help='Matched package staging receipt for the source declarations used by the runtime')
     p.add_argument('--document-engine-build',type=Path,
         help='Matching hosted engine build-report.json for Document lifetime witnesses')
     p.add_argument('--table-engine-build',type=Path,
@@ -679,12 +683,19 @@ def main():
         help='Matching hosted engine build-report.json for FlowGraph and Workflow lifetime witnesses')
     p.add_argument('--resource-engine-build',type=Path,
         help='Matching hosted engine build-report.json for native resource release witnesses')
-    a=p.parse_args();surface,cc,build,packages,replay,out=[v.resolve() for v in
-        (a.surface,a.compiler,a.compiler_report,a.packages,a.replay_report,a.out)]
+    a=p.parse_args();surface,cc,build,packages,out=[v.resolve() for v in
+        (a.surface,a.compiler,a.compiler_report,a.packages,a.out)]
     if out.is_relative_to(packages) or out.is_relative_to(cc.parent):
         p.error('Keep audit outputs outside package/compiler inputs')
     verify_full_compiler(build,cc);sha=lambda f:hashlib.sha256(Path(f).read_bytes()).hexdigest()
-    proof=verify_replay_package(packages,replay)
+    if a.package_stage_report:
+        from check_xge3_debug_delivery import verify_stage
+        verify_package=verify_stage
+        receipt=a.package_stage_report.resolve()
+    else:
+        verify_package=verify_replay_package
+        receipt=a.replay_report.resolve()
+    proof=verify_package(packages,receipt)
     audit=json.loads(surface.read_text(encoding='utf8'));assert audit['inputsUnchanged']
     functions={r['symbol']:r for r in audit['items'] if r['kind']=='functions'}
     assert len(functions)==audit['population']['functions'],'Duplicate function identities require review'
@@ -1443,7 +1454,7 @@ def main():
                 publicDeclarationPresent=False,compiledNativeConsumers=consumers.get(symbol,[]),
                 explicitReplacement=evidence,
                 contractReview='pending',runtimeAcceptance='not-certified-by-this-audit'))
-        verify_replay_package(packages,replay)
+        verify_package(packages,receipt)
         report.update(items=rows,transferPublishers=transfer_publishers,
             nativeRevision=audit['nativeRevision'],functionPopulation=len(functions),
             directDeclarations=sum(r['declarationPresent'] for r in functions.values()),nonDirectFunctions=len(rows),
