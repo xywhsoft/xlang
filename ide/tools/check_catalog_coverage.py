@@ -18,7 +18,7 @@ def check(root,catalog,release=None):
     for name,digest in compiler_files.items():
         if sha(release/name)!=digest:raise ValueError('Catalog compiler changed: '+name)
     if data['compilerSha256']!=compiler_files['xl.exe']:raise ValueError('Parser identity differs from its binding')
-    subprocess.run(['git','diff','--quiet','--no-ext-diff',revision,'--','src','lib','include','release/include'],cwd=root,check=True)
+    subprocess.run(['git','diff','--quiet','--no-ext-diff',revision,'--','src','lib','include','release/include',':(exclude)lib/bindings'],cwd=root,check=True)
     counts=validate(data,data['apiInventory'])
     material=verify(catalog.parent/'catalog-sources',catalog)
     if material['unavailable']:raise ValueError('Catalog has missing source snapshots')

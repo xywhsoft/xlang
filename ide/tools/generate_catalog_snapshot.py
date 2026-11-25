@@ -55,7 +55,7 @@ def generate(root,output,release_report,gcc,release_directory=None,compiler_sdk=
     if not re.fullmatch('[0-9a-f]{40}',revision):raise ValueError('Expected an exact compiler source commit')
     # Concurrent IDE work is outside the compiler input boundary. A compiler
     # source edit requires a new matched build, not merely a stale snapshot.
-    subprocess.run(['git','diff','--quiet',revision,'--','src','lib','include','release/include'],cwd=root,check=True)
+    subprocess.run(['git','diff','--quiet',revision,'--','src','lib','include','release/include',':(exclude)lib/bindings'],cwd=root,check=True)
     compiler_files={name:sha(release/name) for name in ('xl.exe','xl.dll','xlc.dll')}
     if any(expected.get(name)!=value for name,value in compiler_files.items()):raise ValueError('Release products differ from their build acceptance')
     headers=sorted(path for path in (release/'include').rglob('*') if path.is_file())

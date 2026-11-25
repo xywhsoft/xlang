@@ -4,7 +4,7 @@
 使用直接声明的默认构造器创建画布，右键后在标签中显示坐标。原生模型由画布拥有，
 不需要裸指针或手工销毁。运行命令分别为 `xl run extlibs/xui/examples/flow_canvas.xl`
 和 `xl run extlibs/xui/examples/workflow_canvas.xl`；其余准备同本页的窗口范例。
-这两个入门例仅展示画布创建与事件；独立模型、节点编辑和模型长期别名仍在继续接入。
+这两个入门例展示画布创建与事件。独立模型和节点编辑见 [flow_model.xl](flow_model.xl) 和 [workflow_model.xl](workflow_model.xl)。
 
 不创建窗口的数据模型范例见 [document_exports.xl](document_exports.xl)：加载 Markdown，
 导出 HTML／纯文本和 bytes，并将序列化结果恢复为独立的 Document。
@@ -254,20 +254,20 @@ WebView 范例只加载源码中的本地 HTML。它需要启用 WebView2 的 Wi
 不创建窗口的 [edit_search.xl](edit_search.xl) 演示 CodeEdit 查找、替换、读取结果和
 “没有匹配”的状态检查；直接使用 XGE 文档模型，不需要外部文件或服务。
 
-共 88 个独立入口文件，其中现有综合画廊可浏览 57 个场景。图标专题入口包括
+`all_controls.xl` 可浏览 57 个场景。控件画廊之外还有独立的 Document、CodeEdit、自定义后端等范例。
+[code_edit_line_margin.xl](code_edit_line_margin.xl) 演示行号布局和改动标记，
+[custom_proxy_rgba.xl](custom_proxy_rgba.xl) 演示自定义 Surface 的像素读写。图标专题入口包括
 `icon_picker.xl`（分类与格式化）、`icon_memory.xl`（内存 SVG）、
 `icon_custom.xl`（回调期 Painter 自绘）和 `icon_file.xl`（SVG／PNG 文件与批量更新）。
 文件范例附带两份小型 `assets/icon_file.*` 资源；保留 assets 目录，公共窗口助手会
-从范例目录、发布根目录或仓库根目录定位它们。新增接口需要本轮匹配 SDK；最终
-正式发布树仍待统一交付。FlowGraphWidget 和 WorkflowWidget 仍缺少可安全使用的
-完整数据模型声明，相关缺口保留在覆盖清单中。
+从范例目录、发布根目录或仓库根目录定位它们。请使用与示例同批交付的 SDK。
 
 `asset_names.xl` 不创建窗口或 Context，直接列出内建图集资产和矢量图标名称；
 读取结果为独立文本快照，索引越界返回 null。
 
 ## 开发和验证
 
-原来的断言、故障和生命周期检查保留在仓库的 `test/fixtures/xui_learning/`；教学代码不混入模拟点击和自动退出逻辑。`tools/check_xui_lessons.py` 从当前教学源码生成单独的交互验收探针；`tools/check_xui_gallery.py` 批量编译并有界执行。
+原来的断言、故障和生命周期检查保留在仓库的 `test/fixtures/xui_learning/`；教学代码不混入模拟点击和自动退出逻辑。`tools/check_xui_lessons.py` 从画廊教学源码生成交互验收探针。`tools/check_xui_gallery.py` 批量编译并执行有界的画廊验收，加 `--all --modes check` 可检查全部独立入口。
 
 `_window.xl` 保留 `XUI_EXAMPLE_FRAMES` 和 `XUI_EXAMPLE_DUMP`，供外部验收控制运行时长和读取画面；正常学习无需设置。默认字体由辅助文件加载，发布包已附带。可用 `XUI_EXAMPLE_FONT` 指定替代字体。
 

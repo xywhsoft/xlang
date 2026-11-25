@@ -10,7 +10,36 @@ import argparse,concurrent.futures,hashlib,json,os,subprocess,time
 def sha(p):return hashlib.sha256(Path(p).read_bytes()).hexdigest()
 
 def main():
- p=argparse.ArgumentParser(description=__doc__);p.add_argument('--root',type=Path,default=Path(__file__).resolve().parents[1]);p.add_argument('--runtime',type=Path);p.add_argument('--out',type=Path,required=True);p.add_argument('--modes',default='check,cgen,build');p.add_argument('--names',default='');p.add_argument('--jobs',type=int,default=2);p.add_argument('--resume',action='store_true');a=p.parse_args();root=a.root.resolve();runtime=(a.runtime or root/'release/win_x64').resolve();out=a.out.resolve();out.mkdir(parents=True,exist_ok=a.resume);cli=runtime/('xl.exe'if os.name=='nt'else'xl');source=root/'lib/bindings/xui/examples';catalog=json.loads((source/'gallery.json').read_text(encoding='utf-8'));names=a.names.split(',')if a.names else[row['name']for row in catalog['examples']];modes=a.modes.split(',');assert set(modes)<={'check','cgen','build','smoke','execute'}and 1<=a.jobs<=3;assert set(names)<={row['name']for row in catalog['examples']}
+ p=argparse.ArgumentParser(description=__doc__)
+ p.add_argument('--root',type=Path,default=Path(__file__).resolve().parents[1])
+ p.add_argument('--runtime',type=Path)
+ p.add_argument('--out',type=Path,required=True)
+ p.add_argument('--modes',default='check,cgen,build')
+ selection=p.add_mutually_exclusive_group()
+ selection.add_argument('--names',help='Comma-separated example filenames without .xl')
+ selection.add_argument('--all',action='store_true',help='Include all standalone examples in compile checks')
+ p.add_argument('--jobs',type=int,default=2)
+ p.add_argument('--resume',action='store_true')
+ a=p.parse_args()
+ root=a.root.resolve()
+ platform='win_x64' if os.name=='nt' else 'linux_x64'
+ runtime=(a.runtime or root/'release'/platform).resolve()
+ cli=runtime/('xl.exe' if os.name=='nt' else 'xl')
+ source=root/'lib/bindings/xui/examples'
+ catalog=json.loads((source/'gallery.json').read_text(encoding='utf-8'))
+ available={path.stem for path in source.glob('*.xl') if not path.name.startswith('_')}
+ gallery=[row['name'] for row in catalog['examples']]
+ names=sorted(available) if a.all else a.names.split(',') if a.names else gallery
+ modes=a.modes.split(',')
+ if not set(modes)<={'check','cgen','build','smoke','execute'} or not 1<=a.jobs<=3:
+  p.error('Invalid modes or job count')
+ missing=set(names)-available
+ if missing:
+  p.error('Unknown examples: '+', '.join(sorted(missing)))
+ if a.all and set(modes)&{'smoke','execute'}:
+  p.error('Select specific examples for window execution')
+ out=a.out.resolve()
+ out.mkdir(parents=True,exist_ok=a.resume)
  env={k:v for k,v in os.environ.items()if not k.startswith('XL6_')and k not in('XLANG_PACKAGE_PATH','CPATH','C_INCLUDE_PATH','LIBRARY_PATH','XUI_EXAMPLE_DUMP','XUI_EXAMPLE_CYCLE','XUI_EXAMPLE_EXERCISE')};env.update(XLANG_PACKAGE_PATH=str(runtime/'extlibs'),XUI_EXAMPLE_FRAMES='3');inputs={str(p):sha(p)for p in source.rglob('*')if p.is_file()and '.xlang-ide'not in p.parts};inputs.update((str(runtime/n),sha(runtime/n))for n in ('xl.exe','xl.dll','xlc.dll','xl','libxl.so','libxlc.so')if(runtime/n).is_file());inputs.update((str(p),sha(p))for package in ('xui','xge','_xge_native')for p in(runtime/'extlibs'/package).rglob('*')if p.is_file()and '.xlang-ide'not in p.parts);inputs[str(Path(__file__).resolve())]=sha(__file__);report=dict(complete=False,passed=False,scope=__doc__,runtime=str(runtime),inputs=inputs,rows=[],modes=modes,examples=names,windowTests=bool({'smoke','execute'}&set(modes)),networkTests=False)
  if a.resume:
   previous_path=out/'results.json';previous=json.loads(previous_path.read_text())

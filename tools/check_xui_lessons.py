@@ -20,15 +20,16 @@ def main():
     catalog = json.loads((source / 'gallery.json').read_text(encoding='utf-8'))
     expected = {row['name'] for row in catalog['examples']}
     actual = {path.stem for path in source.glob('*.xl') if not path.name.startswith('_')}
-    assert expected == actual, (sorted(expected - actual), sorted(actual - expected))
+    assert len(expected) == len(catalog['examples']), 'Duplicate gallery entries'
+    assert expected <= actual, ('Missing gallery lessons', sorted(expected - actual))
     assert (source / 'all_controls.xl').read_text(encoding='utf-8') == generate(source)
     for row in catalog['examples']:
         text = (source / (row['name'] + '.xl')).read_text(encoding='utf-8')
         assert not re.search(r'^\s*(?:export )?class\s', text, re.M), row['name']
-        # CPU data examples may verify returned values; GUI lessons keep test drives separate.
-        assert row['name'] == 'all_controls' or row.get('kind') == 'cpu' or not re.search(r'\bassert\b|XUI_EXAMPLE_', text), row['name']
+        # Assertions can verify demonstrated values; automated window driving stays in probes.
+        assert row['name'] == 'all_controls' or 'XUI_EXAMPLE_' not in text, row['name']
         assert row['name'] == 'all_controls' or text.startswith('// '), row['name']
-        if row['name'] != 'all_controls' and row.get('kind') != 'cpu':
+        if row['name'] != 'all_controls' and row.get('gallery', True):
             lesson_body(text)
     if args.out:
         args.out.mkdir(parents=True, exist_ok=False)
@@ -127,7 +128,7 @@ def main():
             manifest[name] = dict(lessonSha256=hashlib.sha256(text.encode()).hexdigest(),
                                   probeSha256=hashlib.sha256(target.read_bytes()).hexdigest())
         (args.out / 'manifest.json').write_text(json.dumps(manifest, indent=2) + '\n')
-    print('Tutorial organization verified:', len(actual), 'programs')
+    print('Gallery organization verified:', len(expected), 'entries;', len(actual - expected), 'standalone examples')
 
 
 if __name__ == '__main__':
