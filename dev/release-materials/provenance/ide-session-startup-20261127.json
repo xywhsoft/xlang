@@ -1,0 +1,77 @@
+{
+  "date": "2026-11-27",
+  "status": "installed-and-verified",
+  "externalPublishPerformed": false,
+  "previousBuildProvenance": "F:/xlang-validation/xge-full-20261110/converged-local-release-install-r2/ide-build-proof.json",
+  "fix": {
+    "baseRevision": "b0482ae0111c1ac9564ca5f12a516aa384800cd0",
+    "source": {
+      "path": "ide/src/platform/text_file.c",
+      "bytes": 3734,
+      "sha256": "73c871ab99107305a27d8b367ae51e93ab278b48722810ff9eed72590b0cfff4"
+    },
+    "regression": "ide/tools/check_gui_startup.py",
+    "cause": "The IDE handled an unreadable restored tab but left its XRT file error pending, so XGE rejected the completed frame."
+  },
+  "guiBuild": {
+    "catalogRetained": true,
+    "guiOnly": true,
+    "buildInputs": {
+      "path": "F:/xlang-validation/ide-startup-20261127/gui-candidate-build-inputs.json",
+      "bytes": 192511,
+      "sha256": "1e3e193c345643d6aca3a96b3235aad57a436a50c2277576c76d36872e2a2f30"
+    }
+  },
+  "publication": {
+    "products": [
+      {
+        "path": "release/win_x64/xlang_ide.exe",
+        "bytes": 2524669,
+        "sha256": "ec7cfc29dd9b71b1ac966653c8b9d6e952cd107e6e806040b068e144dee630ca"
+      },
+      {
+        "path": "release/win_x64/xlang_ide_xge.dll",
+        "bytes": 12225770,
+        "sha256": "4d4aa16176f54fa3770ff1f7e09372391a70a324e2c53750d62c7d4646b985f2"
+      },
+      {
+        "path": "release/win_x64/xlang-ls.exe",
+        "bytes": 11460494,
+        "sha256": "f1597f80428717ada2c0c232dda496b42120ecd0f3921438c49dde7bae45fb75"
+      }
+    ],
+    "replaced": [
+      "release/win_x64/xlang_ide.exe"
+    ],
+    "previousGuiSha256": "c16bf9eb661f5ba3be74207398c0b1a91a4dc8659d979402d2d0a20bedf710da",
+    "receipt": {
+      "path": "F:/xlang-validation/ide-startup-20261127/install/publication.json",
+      "bytes": 484,
+      "sha256": "bc615dc16a1a302e476044017ad1462e84cde3afee45a4698ebe9a1b2caa55ba"
+    }
+  },
+  "validation": {
+    "oldGuiMissingTabXge15": {
+      "path": "F:/xlang-validation/ide-startup-20261127/regression-baseline/restore-missing-tab.log",
+      "bytes": 637,
+      "sha256": "12904651545b18a6f818327f658b36094babf7fa081bfba634f0a7815cbfa775"
+    },
+    "installedStartupCases": 6,
+    "installedStartup": {
+      "path": "F:/xlang-validation/ide-startup-20261127/regression-installed/results.json",
+      "bytes": 6239,
+      "sha256": "475dd0e3e110c5927803566206035a75681a79e9f5c1815eb6a2ee6843c1a0f1"
+    },
+    "copiedUserSessionBounded": {
+      "path": "F:/xlang-validation/ide-startup-20261127/restored-installed/result.json",
+      "bytes": 255,
+      "sha256": "08ce8c8c22ecc3effc9651583a450b7270740f54f7e6af4799c4ac39dc4c2b34"
+    },
+    "copiedUserSessionNormal": {
+      "path": "F:/xlang-validation/ide-startup-20261127/normal-installed/result.json",
+      "bytes": 254,
+      "sha256": "be3b9b1da23f668d97d3da3944c1f6eb9e77d9c9878cf95152d08002acef6edb"
+    },
+    "userSettingsAndSessionUnchanged": true
+  }
+}

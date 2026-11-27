@@ -17,10 +17,13 @@ void xideTextFileClear(xide_text_file* file)
 }
 int xideTextFileRead(const char* path,xide_text_file* file,xide_model_error* error)
 {
+    /* File errors are reported through the IDE model. Keep them out of the
+       caller's XRT error slot, including when session restore handles them. */
+    xerror* previous=xrtTakeError();
     char* native=path ? xidePathNativeUtf8(path) : NULL; size_t size=0;
     unsigned char* data=native ? xrtFileReadAllLimit(native,16u*1024u*1024u,&size) : NULL; free(native);
-    if(!data) return failure(error,XIDE_MODEL_IO,"Unable to read text file.");
-    int okay=xideTextFileDecode(data,size,file,error); xrtFree(data); return okay;
+    int okay=data ? xideTextFileDecode(data,size,file,error) : failure(error,XIDE_MODEL_IO,"Unable to read text file.");
+    xrtFree(data); xrtSetErrorTake(previous); return okay;
 }
 int xideTextFileDecode(const unsigned char* data,size_t size,xide_text_file* file,xide_model_error* error)
 {

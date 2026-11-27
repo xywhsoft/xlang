@@ -29,27 +29,34 @@ def check(runtime, output):
     copied.write_bytes(settings.read_bytes() if settings.exists() else b'{"format":"xlang-ide-settings-1"}')
     malformed = output/'malformed-settings.json'
     malformed.write_bytes(b'{broken')
+    missing_tab = output/'missing-tab.xl'
+    missing_tab.write_text('print("restore regression")\n', encoding='utf-8')
     report = dict(complete=False, passed=False, inputs=inputs, rows=[],
                   scope='Real hidden window/workbench creation, rendering and isolated session restore; no user setting/session writes')
 
     def save():
         (output/'results.json').write_text(json.dumps(report, indent=2)+'\n', encoding='utf-8')
 
-    cases = [('default', ['--no-session']),
-             ('fresh-session', ['--settings', str(copied)]),
-             ('restored-session', ['--settings', str(copied)]),
-             ('malformed-preferences', ['--settings', str(malformed)])]
+    cases = [('default', 'session', ['--no-session']),
+             ('fresh-session', 'session', ['--settings', str(copied)]),
+             ('restored-session', 'session', ['--settings', str(copied)]),
+             ('malformed-preferences', 'malformed-session', ['--settings', str(malformed)]),
+             ('seed-missing-tab', 'missing-tab-session', ['--settings', str(copied), '--open-file', str(missing_tab)]),
+             ('restore-missing-tab', 'missing-tab-session', ['--settings', str(copied)])]
     save()
-    for name, extra in cases:
+    for name, session, extra in cases:
+        if name == 'restore-missing-tab':
+            missing_tab.unlink()
         image = output/(name+'.png')
         command = [str(executable), '--hidden', '--frames', '4', '--no-auto-diagnostics',
-                   '--session-root', str(output/('malformed-session' if name=='malformed-preferences' else 'session')),
+                   '--session-root', str(output/session),
                    '--diagnostic-root', str(output/'diagnostics'), '--screenshot', str(image), *extra]
         started = time.monotonic()
         process = subprocess.run(command, cwd=runtime, capture_output=True, timeout=60)
         log = output/(name+'.log')
         log.write_bytes(process.stdout+process.stderr)
-        rendered = rendered_at_least((process.stdout+process.stderr).decode('utf-8',errors='replace'),4)
+        message = (process.stdout+process.stderr).decode('utf-8',errors='replace')
+        rendered = rendered_at_least(message,4)
         captured = image.is_file() and image.read_bytes()[:8]==b'\x89PNG\r\n\x1a\n'
         report['rows'].append(dict(name=name, command=command, exitCode=process.returncode,
                                    seconds=round(time.monotonic()-started, 3),
@@ -57,6 +64,15 @@ def check(runtime, output):
         save()
         if process.returncode or not rendered or not captured:
             raise RuntimeError('Workbench startup failed; see '+str(log))
+        if name == 'restore-missing-tab':
+            checkpoint = json.loads((output/session/'global/session.json').read_bytes())
+            report['missingTabPreserved'] = (
+                missing_tab.name in message and 'Unable to read text file.' in message
+                and any(Path(tab.get('path', '')).name == missing_tab.name for tab in checkpoint['openDocuments'])
+            )
+            save()
+            if not report['missingTabPreserved']:
+                raise RuntimeError('Missing tab was not reported and preserved; see '+str(log))
     report['inputsUnchanged'] = all(sha(Path(path))==digest for path, digest in inputs.items())
     report['malformedPreferencesPreserved'] = malformed.read_bytes()==b'{broken'
     report['complete'] = True

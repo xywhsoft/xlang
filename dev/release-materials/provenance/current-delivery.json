@@ -54,7 +54,7 @@
       "licenseUrl": "http://www.microsoft.com/typography/fonts/default.aspx"
     },
     "fontChangeSourceParent": "b16a95bbf022efcafc7b965d1bd9b5b945c0d881",
-    "currentBuildProvenance": "F:/xlang-validation/xge-full-20261110/converged-local-release-install-r2/ide-build-proof.json",
+    "currentBuildProvenance": "dev/release-materials/provenance/ide-session-startup-20261127.json",
     "cLspEnabled": false,
     "applicationIcon": {
       "source": "ide/data/xlang_ide.ico",
@@ -68,7 +68,7 @@
       "provenance": "docs/reports/release-materials-migration-20261031.json",
       "buildCommand": "pwsh -NoProfile -File ide/tools/build.ps1 -Configuration Release -GuiOnly -LanguageServerPath D:/GIT/x-lang/release/xlang-ls.exe -ReleaseDirectory D:/GIT/x-lang/release"
     },
-    "sha256": "c16bf9eb661f5ba3be74207398c0b1a91a4dc8659d979402d2d0a20bedf710da",
+    "sha256": "ec7cfc29dd9b71b1ac966653c8b9d6e952cd107e6e806040b068e144dee630ca",
     "sourceIdentity": {
       "guiBaseSourceRevision": "7770cae084bc51a79934796be13a24f95e62ec3e",
       "overlayBaseRevision": "ea2eb7b406d6e5f8cd2ab7e300b9615ee5b6e001",
@@ -7017,11 +7017,11 @@
       "previousSha256": "644d740a458440b6626ef96e1a8c7cee22f5510194126d31b04b8ead4f4297d0"
     },
     {
-      "sha256": "c16bf9eb661f5ba3be74207398c0b1a91a4dc8659d979402d2d0a20bedf710da",
+      "sha256": "ec7cfc29dd9b71b1ac966653c8b9d6e952cd107e6e806040b068e144dee630ca",
       "bytes": 2524669,
       "path": "release/win_x64/xlang_ide.exe",
-      "origin": "xge-matched-local-delivery-20261125",
-      "previousSha256": "f115aa6baa63e204805e711770c26bdeeb653111380fced0016151e90c6f1b97"
+      "origin": "ide-session-startup-20261127",
+      "previousSha256": "c16bf9eb661f5ba3be74207398c0b1a91a4dc8659d979402d2d0a20bedf710da"
     },
     {
       "sha256": "f1597f80428717ada2c0c232dda496b42120ecd0f3921438c49dde7bae45fb75",
