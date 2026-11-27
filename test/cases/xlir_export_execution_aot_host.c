@@ -3,7 +3,7 @@
  * public API/TCC fixture. Borrowed code addresses do not own this capability. */
 #include XL6_EXECUTION_GENERATED_C
 #include "test/support/module_product_memory.h"
-#include "release/include/xrt_decl.h"
+#include "release/win_x64/include/xrt_decl.h"
 #include <assert.h>
 
 static size_t pins, acquisitions, releases;

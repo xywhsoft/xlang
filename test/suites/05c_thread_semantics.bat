@@ -4,7 +4,7 @@ call "%~dp0common.bat"
 if errorlevel 1 exit /b 1
 echo Running DEMO6 suite: thread semantics...
 
-release\xl.exe check test\cases\sem_sync_ctor_args.xl >nul 2> build\test\sem_sync_ctor_args.err.txt
+release\win_x64\xl.exe check test\cases\sem_sync_ctor_args.xl >nul 2> build\test\sem_sync_ctor_args.err.txt
 if not errorlevel 1 (
     echo sem_sync_ctor_args.xl should fail.
     exit /b 1
@@ -15,7 +15,7 @@ if errorlevel 1 (
     exit /b 1
 )
 
-release\xl.exe check test\cases\sem_sync_ctor_named_argument.xl >nul 2> build\test\sem_sync_ctor_named_argument.err.txt
+release\win_x64\xl.exe check test\cases\sem_sync_ctor_named_argument.xl >nul 2> build\test\sem_sync_ctor_named_argument.err.txt
 if not errorlevel 1 (
     echo sem_sync_ctor_named_argument.xl should fail.
     exit /b 1
@@ -26,7 +26,7 @@ if errorlevel 1 (
     exit /b 1
 )
 
-release\xl.exe check test\cases\sem_sync_method_args.xl >nul 2> build\test\sem_sync_method_args.err.txt
+release\win_x64\xl.exe check test\cases\sem_sync_method_args.xl >nul 2> build\test\sem_sync_method_args.err.txt
 if not errorlevel 1 (
     echo sem_sync_method_args.xl should fail.
     exit /b 1
@@ -37,7 +37,7 @@ if errorlevel 1 (
     exit /b 1
 )
 
-release\xl.exe check test\cases\sem_sync_wait_timeout_type.xl >nul 2> build\test\sem_sync_wait_timeout_type.err.txt
+release\win_x64\xl.exe check test\cases\sem_sync_wait_timeout_type.xl >nul 2> build\test\sem_sync_wait_timeout_type.err.txt
 if not errorlevel 1 (
     echo sem_sync_wait_timeout_type.xl should fail.
     exit /b 1
@@ -48,7 +48,7 @@ if errorlevel 1 (
     exit /b 1
 )
 
-release\xl.exe check test\cases\sem_sync_post_multiple_type.xl >nul 2> build\test\sem_sync_post_multiple_type.err.txt
+release\win_x64\xl.exe check test\cases\sem_sync_post_multiple_type.xl >nul 2> build\test\sem_sync_post_multiple_type.err.txt
 if not errorlevel 1 (
     echo sem_sync_post_multiple_type.xl should fail.
     exit /b 1
@@ -59,7 +59,7 @@ if errorlevel 1 (
     exit /b 1
 )
 
-release\xl.exe check test\cases\sem_sync_unknown_method.xl >nul 2> build\test\sem_sync_unknown_method.err.txt
+release\win_x64\xl.exe check test\cases\sem_sync_unknown_method.xl >nul 2> build\test\sem_sync_unknown_method.err.txt
 if not errorlevel 1 (
     echo sem_sync_unknown_method.xl should fail.
     exit /b 1
@@ -70,7 +70,7 @@ if errorlevel 1 (
     exit /b 1
 )
 
-release\xl.exe check test\cases\sem_sync_receiver_expr.xl >nul 2> build\test\sem_sync_receiver_expr.err.txt
+release\win_x64\xl.exe check test\cases\sem_sync_receiver_expr.xl >nul 2> build\test\sem_sync_receiver_expr.err.txt
 if not errorlevel 1 (
     echo sem_sync_receiver_expr.xl should fail.
     exit /b 1
@@ -81,7 +81,7 @@ if errorlevel 1 (
     exit /b 1
 )
 
-release\xl.exe check test\cases\sem_sync_cond_mutex_arg.xl >nul 2> build\test\sem_sync_cond_mutex_arg.err.txt
+release\win_x64\xl.exe check test\cases\sem_sync_cond_mutex_arg.xl >nul 2> build\test\sem_sync_cond_mutex_arg.err.txt
 if not errorlevel 1 (
     echo sem_sync_cond_mutex_arg.xl should fail.
     exit /b 1
@@ -92,7 +92,7 @@ if errorlevel 1 (
     exit /b 1
 )
 
-release\xl.exe check test\cases\sem_sync_cond_wait_timeout_type.xl >nul 2> build\test\sem_sync_cond_wait_timeout_type.err.txt
+release\win_x64\xl.exe check test\cases\sem_sync_cond_wait_timeout_type.xl >nul 2> build\test\sem_sync_cond_wait_timeout_type.err.txt
 if not errorlevel 1 (
     echo sem_sync_cond_wait_timeout_type.xl should fail.
     exit /b 1
@@ -103,19 +103,19 @@ if errorlevel 1 (
     exit /b 1
 )
 
-release\xl.exe check test\cases\sem_sync_copy.xl >nul 2> build\test\sem_sync_copy.err.txt
+release\win_x64\xl.exe check test\cases\sem_sync_copy.xl >nul 2> build\test\sem_sync_copy.err.txt
 if not errorlevel 1 (
     echo sem_sync_copy.xl should fail.
     exit /b 1
 )
 
-release\xl.exe check test\cases\cgen_thread.xl
+release\win_x64\xl.exe check test\cases\cgen_thread.xl
 if errorlevel 1 exit /b 1
 
-release\xl.exe run test\cases\cgen_thread.xl
+release\win_x64\xl.exe run test\cases\cgen_thread.xl
 if errorlevel 1 exit /b 1
 
-release\xl.exe build test\cases\cgen_thread.xl -o build\test\cgen_thread.exe
+release\win_x64\xl.exe build test\cases\cgen_thread.xl -o build\test\cgen_thread.exe
 if errorlevel 1 exit /b 1
 
 build\test\cgen_thread.exe
@@ -128,7 +128,7 @@ for /L %%I in (1,1,3) do (
     )
 )
 
-release\xl.exe cgen test\cases\cgen_thread.xl --emit build\test\cgen_thread.c
+release\win_x64\xl.exe cgen test\cases\cgen_thread.xl --emit build\test\cgen_thread.c
 if errorlevel 1 exit /b 1
 
 findstr /C:"xrtThreadCreate" build\test\cgen_thread.c >nul
@@ -202,13 +202,13 @@ if errorlevel 1 (
     exit /b 1
 )
 
-release\xl.exe check test\cases\cgen_thread_default.xl
+release\win_x64\xl.exe check test\cases\cgen_thread_default.xl
 if errorlevel 1 exit /b 1
 
-release\xl.exe run test\cases\cgen_thread_default.xl
+release\win_x64\xl.exe run test\cases\cgen_thread_default.xl
 if errorlevel 1 exit /b 1
 
-release\xl.exe build test\cases\cgen_thread_default.xl -o build\test\cgen_thread_default.exe
+release\win_x64\xl.exe build test\cases\cgen_thread_default.xl -o build\test\cgen_thread_default.exe
 if errorlevel 1 exit /b 1
 
 build\test\cgen_thread_default.exe
@@ -221,7 +221,7 @@ for /L %%I in (1,1,5) do (
     )
 )
 
-release\xl.exe cgen test\cases\cgen_thread_default.xl --emit build\test\cgen_thread_default.c
+release\win_x64\xl.exe cgen test\cases\cgen_thread_default.xl --emit build\test\cgen_thread_default.c
 if errorlevel 1 exit /b 1
 
 findstr /C:"xl6_thread_release" build\test\cgen_thread_default.c >nul
@@ -230,7 +230,7 @@ if errorlevel 1 (
     exit /b 1
 )
 
-release\xl.exe check test\cases\sem_thread_ctor_args.xl >nul 2> build\test\sem_thread_ctor_args.err.txt
+release\win_x64\xl.exe check test\cases\sem_thread_ctor_args.xl >nul 2> build\test\sem_thread_ctor_args.err.txt
 if not errorlevel 1 (
     echo sem_thread_ctor_args.xl should fail.
     exit /b 1
@@ -241,7 +241,7 @@ if errorlevel 1 (
     exit /b 1
 )
 
-release\xl.exe check test\cases\sem_thread_ctor_named_argument.xl >nul 2> build\test\sem_thread_ctor_named_argument.err.txt
+release\win_x64\xl.exe check test\cases\sem_thread_ctor_named_argument.xl >nul 2> build\test\sem_thread_ctor_named_argument.err.txt
 if not errorlevel 1 (
     echo sem_thread_ctor_named_argument.xl should fail.
     exit /b 1
@@ -252,7 +252,7 @@ if errorlevel 1 (
     exit /b 1
 )
 
-release\xl.exe check test\cases\sem_thread_entry_signature.xl >nul 2> build\test\sem_thread_entry_signature.err.txt
+release\win_x64\xl.exe check test\cases\sem_thread_entry_signature.xl >nul 2> build\test\sem_thread_entry_signature.err.txt
 if not errorlevel 1 (
     echo sem_thread_entry_signature.xl should fail.
     exit /b 1
@@ -268,7 +268,7 @@ if not errorlevel 1 (
     exit /b 1
 )
 
-release\xl.exe check test\cases\sem_thread_method_args.xl >nul 2> build\test\sem_thread_method_args.err.txt
+release\win_x64\xl.exe check test\cases\sem_thread_method_args.xl >nul 2> build\test\sem_thread_method_args.err.txt
 if not errorlevel 1 (
     echo sem_thread_method_args.xl should fail.
     exit /b 1
@@ -279,7 +279,7 @@ if errorlevel 1 (
     exit /b 1
 )
 
-release\xl.exe check test\cases\sem_thread_wait_timeout_type.xl >nul 2> build\test\sem_thread_wait_timeout_type.err.txt
+release\win_x64\xl.exe check test\cases\sem_thread_wait_timeout_type.xl >nul 2> build\test\sem_thread_wait_timeout_type.err.txt
 if not errorlevel 1 (
     echo sem_thread_wait_timeout_type.xl should fail.
     exit /b 1
@@ -290,7 +290,7 @@ if errorlevel 1 (
     exit /b 1
 )
 
-release\xl.exe check test\cases\sem_thread_unknown_method.xl >nul 2> build\test\sem_thread_unknown_method.err.txt
+release\win_x64\xl.exe check test\cases\sem_thread_unknown_method.xl >nul 2> build\test\sem_thread_unknown_method.err.txt
 if not errorlevel 1 (
     echo sem_thread_unknown_method.xl should fail.
     exit /b 1
@@ -301,7 +301,7 @@ if errorlevel 1 (
     exit /b 1
 )
 
-release\xl.exe check test\cases\sem_thread_receiver_expr.xl >nul 2> build\test\sem_thread_receiver_expr.err.txt
+release\win_x64\xl.exe check test\cases\sem_thread_receiver_expr.xl >nul 2> build\test\sem_thread_receiver_expr.err.txt
 if not errorlevel 1 (
     echo sem_thread_receiver_expr.xl should fail.
     exit /b 1
@@ -312,7 +312,7 @@ if errorlevel 1 (
     exit /b 1
 )
 
-release\xl.exe check test\cases\sem_thread_copy.xl >nul 2> build\test\sem_thread_copy.err.txt
+release\win_x64\xl.exe check test\cases\sem_thread_copy.xl >nul 2> build\test\sem_thread_copy.err.txt
 if not errorlevel 1 (
     echo sem_thread_copy.xl should fail.
     exit /b 1

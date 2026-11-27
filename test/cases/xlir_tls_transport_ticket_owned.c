@@ -1,6 +1,6 @@
 /* Actual generated typed/erased exports, Worker-thread OOM and Close. Only
  * ordinary self-created literal-loopback communication, no external traffic. */
-#include "release/include/xl_clock.h"
+#include "release/win_x64/include/xl_clock.h"
 #include "include/xlc.h"
 #include "src/runtime/xl6_tls_ticket_result.h"
 #include "src/runtime/xl6_tls_data_abi.h"

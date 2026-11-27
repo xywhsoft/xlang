@@ -1,4 +1,4 @@
-#include "release/include/xl.h"
+#include "release/win_x64/include/xl.h"
 #define XRT_MODULE_ERROR
 #define XRT_MODULE_MEMORY_DEBUG
 #include "lib/xrt/xrt.h"

@@ -60,7 +60,7 @@ int main(int argc,char** argv)
     assert(argc==2 && xrtMemDebugEnable(true));
     XL_ContextOptions options=xlDefaultContextOptions();char root[2048],runtime[2300],libs[2300];
     assert(GetCurrentDirectoryA(sizeof(root),root));
-    snprintf(runtime,sizeof(runtime),"%s/release/xl.dll",root);snprintf(libs,sizeof(libs),"%s/res/tcc/win64/x86_64",root);
+    snprintf(runtime,sizeof(runtime),"%s/release/win_x64/xl.dll",root);snprintf(libs,sizeof(libs),"%s/res/tcc/win64/x86_64",root);
     options.workDir=root;options.tccDllPath=runtime;options.tccLibPath=libs;
     XL_Context* context=xlCreateContext(&options);assert(context);
     assert(xlAddIncludePath(context,argv[1]) && xlAddIncludePath(context,root));

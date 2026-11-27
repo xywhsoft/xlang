@@ -4,7 +4,7 @@
  * adapter. This is a contract spy, not a replacement graph or policy result. */
 #define xrtNetEngineOwnershipAdapterV3 testRealNetEngineOwnershipAdapterV3
 #include "net_engine_runtime.c"
-#include "release/include/xl_clock.h"
+#include "release/win_x64/include/xl_clock.h"
 #undef xrtNetEngineOwnershipAdapterV3
 #undef main
 

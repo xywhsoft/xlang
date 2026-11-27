@@ -1,6 +1,6 @@
-#include "../../release/include/xrt_decl.h"
-#include "../../release/extlibs/argon2/include/argon2_native.h"
-#include "../../release/extlibs/bloom/include/bloom.h"
+#include "../../release/win_x64/include/xrt_decl.h"
+#include "../../release/win_x64/extlibs/argon2/include/argon2_native.h"
+#include "../../release/win_x64/extlibs/bloom/include/bloom.h"
 #include <assert.h>
 #include <stdio.h>
 #include <string.h>

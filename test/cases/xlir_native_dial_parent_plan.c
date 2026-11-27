@@ -1,7 +1,7 @@
 /* Actual Dial/winning Stream/shared binding/candidate/Future cycles through
  * the unchanged production XLIR planner. Code stays resident: not DLL proof. */
 #define main dial_parent_network_main
-#include "release/include/xl_clock.h"
+#include "release/win_x64/include/xl_clock.h"
 #include "tests/network/test_net_dial_parent_ownership.c"
 #undef main
 #include "src/runtime/xl6_ownership_plan.h"

@@ -1,6 +1,6 @@
 /* Actual product runtime, not replacement providers. Ordinary offline vectors
  * plus logical allocation failures at every successful-construction prefix. */
-#include "release/include/xl_clock.h"
+#include "release/win_x64/include/xl_clock.h"
 #include "src/runtime/xl6_text_value.h"
 #include <assert.h>
 #include <stdio.h>

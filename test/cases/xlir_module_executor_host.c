@@ -1,4 +1,4 @@
-#include "release/include/xl_clock.h"
+#include "release/win_x64/include/xl_clock.h"
 #include "lib/tcc/libtcc.h"
 #define main unused_executor_lifetime_main
 #define XL_ENABLE_EXE_COMPILER 1

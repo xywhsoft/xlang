@@ -28,35 +28,35 @@ if errorlevel 1 exit /b 1
 powershell.exe -NoProfile -ExecutionPolicy Bypass -File tools\check_xlir_time_approx_abi.ps1
 if errorlevel 1 exit /b 1
 
-release\xl.exe cgen test\cases\cgen_typed_container_index_assign.xl --emit build\test\cgen_typed_container_index_assign.c
+release\win_x64\xl.exe cgen test\cases\cgen_typed_container_index_assign.xl --emit build\test\cgen_typed_container_index_assign.c
 if errorlevel 1 exit /b 1
-release\xl.exe cgen test\cases\cgen_typed_container_index_assign_objects_functions.xl --emit build\test\cgen_typed_container_index_assign_objects_functions.c
+release\win_x64\xl.exe cgen test\cases\cgen_typed_container_index_assign_objects_functions.xl --emit build\test\cgen_typed_container_index_assign_objects_functions.c
 if errorlevel 1 exit /b 1
-release\xl.exe cgen test\cases\cgen_typed_container_multi_assign_index.xl --emit build\test\cgen_typed_container_multi_assign_index.c
+release\win_x64\xl.exe cgen test\cases\cgen_typed_container_multi_assign_index.xl --emit build\test\cgen_typed_container_multi_assign_index.c
 if errorlevel 1 exit /b 1
-release\xl.exe cgen test\cases\cgen_typed_container_index_compound_assign.xl --emit build\test\cgen_typed_container_index_compound_assign.c
+release\win_x64\xl.exe cgen test\cases\cgen_typed_container_index_compound_assign.xl --emit build\test\cgen_typed_container_index_compound_assign.c
 if errorlevel 1 exit /b 1
-release\xl.exe cgen test\cases\type_values.xl --emit build\test\type_values.c
+release\win_x64\xl.exe cgen test\cases\type_values.xl --emit build\test\type_values.c
 if errorlevel 1 exit /b 1
-release\xl.exe cgen test\cases\cgen_minimal_runtime.xl --emit build\test\cgen_minimal_runtime.c
+release\win_x64\xl.exe cgen test\cases\cgen_minimal_runtime.xl --emit build\test\cgen_minimal_runtime.c
 if errorlevel 1 exit /b 1
-release\xl.exe cgen test\cases\type_aliases.xl --emit build\test\type_aliases.c
+release\win_x64\xl.exe cgen test\cases\type_aliases.xl --emit build\test\type_aliases.c
 if errorlevel 1 exit /b 1
-release\xl.exe cgen test\cases\cgen_string_concat.xl --emit build\test\cgen_string_concat.c
+release\win_x64\xl.exe cgen test\cases\cgen_string_concat.xl --emit build\test\cgen_string_concat.c
 if errorlevel 1 exit /b 1
-release\xl.exe cgen test\cases\cgen_string_compare.xl --emit build\test\cgen_string_compare.c
+release\win_x64\xl.exe cgen test\cases\cgen_string_compare.xl --emit build\test\cgen_string_compare.c
 if errorlevel 1 exit /b 1
-release\xl.exe cgen test\cases\cgen_string_literals.xl --emit build\test\cgen_string_literals.c
+release\win_x64\xl.exe cgen test\cases\cgen_string_literals.xl --emit build\test\cgen_string_literals.c
 if errorlevel 1 exit /b 1
-release\xl.exe cgen test\cases\cgen_string_embedded_nul.xl --emit build\test\cgen_string_embedded_nul.c
+release\win_x64\xl.exe cgen test\cases\cgen_string_embedded_nul.xl --emit build\test\cgen_string_embedded_nul.c
 if errorlevel 1 exit /b 1
-release\xl.exe cgen test\cases\cgen_string_persistence_default_nul.xl --emit build\test\cgen_string_persistence_default_nul.c
+release\win_x64\xl.exe cgen test\cases\cgen_string_persistence_default_nul.xl --emit build\test\cgen_string_persistence_default_nul.c
 if errorlevel 1 exit /b 1
-release\xl.exe cgen test\cases\cgen_fstring.xl --emit build\test\cgen_fstring.c
+release\win_x64\xl.exe cgen test\cases\cgen_fstring.xl --emit build\test\cgen_fstring.c
 if errorlevel 1 exit /b 1
-release\xl.exe cgen test\cases\cgen_time_literals.xl --emit build\test\cgen_time_literals.c
+release\win_x64\xl.exe cgen test\cases\cgen_time_literals.xl --emit build\test\cgen_time_literals.c
 if errorlevel 1 exit /b 1
-release\xl.exe cgen test\cases\cgen_auto_expressions.xl --emit build\test\cgen_auto_expressions.c
+release\win_x64\xl.exe cgen test\cases\cgen_auto_expressions.xl --emit build\test\cgen_auto_expressions.c
 if errorlevel 1 exit /b 1
 
 for %%F in (
@@ -80,16 +80,16 @@ for %%F in (
     if errorlevel 1 exit /b 1
     build\test\%%F.strict.exe
     if errorlevel 1 exit /b 1
-    release\xl.exe run test\cases\%%F.xl test\cases\cgen_class_host.c
+    release\win_x64\xl.exe run test\cases\%%F.xl test\cases\cgen_class_host.c
     if errorlevel 1 exit /b 1
-    release\xl.exe build test\cases\%%F.xl test\cases\cgen_class_host.c -o build\test\%%F.exe
+    release\win_x64\xl.exe build test\cases\%%F.xl test\cases\cgen_class_host.c -o build\test\%%F.exe
     if errorlevel 1 exit /b 1
     build\test\%%F.exe
     if errorlevel 1 exit /b 1
 )
 
 rem User entry is a separate contract from module initialization.
-release\xl.exe cgen test\cases\cgen_top_level_before_main.xl --emit build\test\cgen_top_level_before_main.c
+release\win_x64\xl.exe cgen test\cases\cgen_top_level_before_main.xl --emit build\test\cgen_top_level_before_main.c
 if errorlevel 1 exit /b 1
 "%XL6_CGEN_CC%" %XL6_CGEN_FLAGS% %XL6_CGEN_INCLUDES% -Werror -DXLIR_GENERATED_MODULE_USER_ENTRY -DXLIR_GENERATED_MODULE=\"build/test/cgen_top_level_before_main.c\" test\cases\xlir_generated_module_host.c %XL6_CGEN_LINKS% -o build\test\cgen_top_level_before_main.strict.exe
 if errorlevel 1 exit /b 1
@@ -98,12 +98,12 @@ if not "%errorlevel%"=="7" (
     echo cgen_top_level_before_main.strict.exe should return 7.
     exit /b 1
 )
-release\xl.exe run test\cases\cgen_top_level_before_main.xl > build\test\cgen_top_level_before_main.out.txt 2> build\test\cgen_top_level_before_main.err.txt
+release\win_x64\xl.exe run test\cases\cgen_top_level_before_main.xl > build\test\cgen_top_level_before_main.out.txt 2> build\test\cgen_top_level_before_main.err.txt
 if not "%errorlevel%"=="7" (
     echo cgen_top_level_before_main.xl run should return 7.
     exit /b 1
 )
-release\xl.exe build test\cases\cgen_top_level_before_main.xl -o build\test\cgen_top_level_before_main.exe
+release\win_x64\xl.exe build test\cases\cgen_top_level_before_main.xl -o build\test\cgen_top_level_before_main.exe
 if errorlevel 1 exit /b 1
 build\test\cgen_top_level_before_main.exe > build\test\cgen_top_level_before_main.exe.out.txt 2> build\test\cgen_top_level_before_main.exe.err.txt
 if not "%errorlevel%"=="7" (
@@ -114,14 +114,14 @@ powershell.exe -NoProfile -ExecutionPolicy Bypass -Command "$prefix='build\test\
 if errorlevel 1 exit /b 1
 
 rem Keep the original dedicated string-comparison host independently wired.
-release\xl.exe cgen test\cases\cgen_string_compare.xl --backend xlir --emit build\test\xlir_string_compare_generated.c
+release\win_x64\xl.exe cgen test\cases\cgen_string_compare.xl --backend xlir --emit build\test\xlir_string_compare_generated.c
 if errorlevel 1 exit /b 1
 "%XL6_CGEN_CC%" %XL6_CGEN_FLAGS% %XL6_CGEN_INCLUDES% -Werror test\cases\xlir_string_compare_host.c test\cases\cgen_class_host.c %XL6_CGEN_LINKS% -o build\test\xlir_string_compare_host.exe
 if errorlevel 1 exit /b 1
 build\test\xlir_string_compare_host.exe
 if errorlevel 1 exit /b 1
 
-release\xl.exe check test\cases\cgen_auto_inference_matrix.xl
+release\win_x64\xl.exe check test\cases\cgen_auto_inference_matrix.xl
 if errorlevel 1 exit /b 1
 echo DEMO6 suite ok: core C generation and runtime baseline 4/10
 exit /b 0

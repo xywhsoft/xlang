@@ -21,13 +21,13 @@ for %%F in (
     protocol_overload_dispatch
     protocol_property_dispatch
 ) do (
-    release\xl.exe check test\cases\%%F.xl
+    release\win_x64\xl.exe check test\cases\%%F.xl
     if errorlevel 1 exit /b 1
-    release\xl.exe run test\cases\%%F.xl
+    release\win_x64\xl.exe run test\cases\%%F.xl
     if errorlevel 1 exit /b 1
 )
 
-release\xl.exe check test\cases\sem_protocol_constraint_widen_unrelated_error.xl > build\test\sem_protocol_constraint_widen_unrelated_error.err.txt 2>&1
+release\win_x64\xl.exe check test\cases\sem_protocol_constraint_widen_unrelated_error.xl > build\test\sem_protocol_constraint_widen_unrelated_error.err.txt 2>&1
 if not errorlevel 1 (
     echo sem_protocol_constraint_widen_unrelated_error.xl should fail.
     exit /b 1
@@ -38,11 +38,11 @@ if errorlevel 1 (
     exit /b 1
 )
 
-release\xl.exe check test\cases\protocol_native_backed_dispatch.xl
+release\win_x64\xl.exe check test\cases\protocol_native_backed_dispatch.xl
 if errorlevel 1 exit /b 1
-release\xl.exe run test\cases\protocol_native_backed_dispatch.xl test\cases\protocol_native_backed_host.c
+release\win_x64\xl.exe run test\cases\protocol_native_backed_dispatch.xl test\cases\protocol_native_backed_host.c
 if errorlevel 1 exit /b 1
-release\xl.exe build test\cases\protocol_native_backed_dispatch.xl test\cases\protocol_native_backed_host.c -o build\test\protocol_native_backed_dispatch.exe
+release\win_x64\xl.exe build test\cases\protocol_native_backed_dispatch.xl test\cases\protocol_native_backed_host.c -o build\test\protocol_native_backed_dispatch.exe
 if errorlevel 1 exit /b 1
 build\test\protocol_native_backed_dispatch.exe
 if errorlevel 1 exit /b 1
@@ -58,7 +58,7 @@ for %%F in (
     sem_protocol_generic_arity_mismatch_error
     sem_protocol_private_witness_error
 ) do (
-    release\xl.exe check test\cases\%%F.xl > build\test\%%F.err.txt 2>&1
+    release\win_x64\xl.exe check test\cases\%%F.xl > build\test\%%F.err.txt 2>&1
     if not errorlevel 1 (
         echo %%F.xl should fail.
         exit /b 1
@@ -74,7 +74,7 @@ for %%F in (
     sem_protocol_default_parameter_error
     sem_protocol_duplicate_requirement_error
 ) do (
-    release\xl.exe check test\cases\%%F.xl > build\test\%%F.err.txt 2>&1
+    release\win_x64\xl.exe check test\cases\%%F.xl > build\test\%%F.err.txt 2>&1
     if not errorlevel 1 (
         echo %%F.xl should fail.
         exit /b 1
@@ -86,7 +86,7 @@ for %%F in (
     )
 )
 
-release\xl.exe check test\cases\sem_protocol_overload_ambiguous_error.xl > build\test\sem_protocol_overload_ambiguous_error.err.txt 2>&1
+release\win_x64\xl.exe check test\cases\sem_protocol_overload_ambiguous_error.xl > build\test\sem_protocol_overload_ambiguous_error.err.txt 2>&1
 if not errorlevel 1 (
     echo sem_protocol_overload_ambiguous_error.xl should fail.
     exit /b 1
@@ -97,7 +97,7 @@ if errorlevel 1 (
     exit /b 1
 )
 
-release\xl.exe abi test\cases\protocol_declaration.xl --emit build\test\protocol_declaration.abi.txt
+release\win_x64\xl.exe abi test\cases\protocol_declaration.xl --emit build\test\protocol_declaration.abi.txt
 if errorlevel 1 exit /b 1
 findstr /C:"protocol Writer" build\test\protocol_declaration.abi.txt >nul
 if errorlevel 1 (
@@ -105,7 +105,7 @@ if errorlevel 1 (
     exit /b 1
 )
 
-release\xl.exe abi test\cases\protocol_declaration.xl --json --emit build\test\protocol_declaration.abi.json
+release\win_x64\xl.exe abi test\cases\protocol_declaration.xl --json --emit build\test\protocol_declaration.abi.json
 if errorlevel 1 exit /b 1
 findstr /C:"\"kind\":\"protocol\"" build\test\protocol_declaration.abi.json >nul
 if errorlevel 1 (

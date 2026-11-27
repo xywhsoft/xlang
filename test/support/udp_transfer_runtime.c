@@ -1,6 +1,6 @@
 #define main udpBaselineRuntimeMain
 #include "udp_language_runtime.c"
-#include "release/include/xl_clock.h"
+#include "release/win_x64/include/xl_clock.h"
 #undef main
 #include "udp_transfer_test.h"
 #include "src/runtime/xl6_net_batch_progress_internal.h"

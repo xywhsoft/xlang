@@ -1,6 +1,6 @@
 /* Independently link one genuine resident language family, never all three. */
 #include "src/runtime/xl6_sync.h"
-#include "release/include/xrt_decl.h"
+#include "release/win_x64/include/xrt_decl.h"
 #include "test/support/module_product_memory.h"
 #include <assert.h>
 #include <stdio.h>

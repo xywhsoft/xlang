@@ -1,6 +1,6 @@
 #define main existingServerResourceMain
 #include "tcp_server_execution_resource.c"
-#include "release/include/xl_clock.h"
+#include "release/win_x64/include/xl_clock.h"
 #undef main
 #define XL6_TEXT_API
 #include "src/runtime/xl6_net_bytes_abi.h"

@@ -2,7 +2,7 @@
 #include "src/runtime/xl6_ownership_plan.h"
 #include "src/runtime/xl6_sync_admission.h"
 #include "src/runtime/xl6_array.h"
-#include "release/include/xrt_decl.h"
+#include "release/win_x64/include/xrt_decl.h"
 #include "src/api/xl_foreign_error.h"
 #include "test/support/module_product_memory.h"
 #include <assert.h>

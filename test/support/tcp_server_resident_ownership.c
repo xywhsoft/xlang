@@ -13,7 +13,7 @@
 #endif
 #include "lib/xrt/xrt.h"
 #include "lib/xruntime/xruntime.h"
-#include "release/include/xl_clock.h"
+#include "release/win_x64/include/xl_clock.h"
 #include "src/runtime/xl6_ownership_catalog.h"
 #include "src/runtime/xl6_ownership_domains.h"
 #include "src/api/xl_foreign_error.h"

@@ -1,7 +1,7 @@
 #define JOINT_TCC_ASYNC
 #define JOINT_TCC_SOURCE_FILE "test/cases/xlir_pending_module_preparation_artifact.c"
 #define main unused_pending_lifetime_main
-#include "release/include/xl_clock.h"
+#include "release/win_x64/include/xl_clock.h"
 #include "xlir_one_shot_tcc_host.c"
 #undef main
 

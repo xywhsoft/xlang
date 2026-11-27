@@ -1,5 +1,5 @@
 #define MODULE_EXECUTOR_MIXED
-#include "release/include/xl_clock.h"
+#include "release/win_x64/include/xl_clock.h"
 #include "xlir_module_executor_host.c"
 int main(void)
 {

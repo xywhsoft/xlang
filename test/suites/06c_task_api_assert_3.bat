@@ -5,9 +5,9 @@ if errorlevel 1 exit /b 1
 echo Running DEMO6 suite: task API cgen assertions 3/4...
 
 if not "%XL6_TASK_API_CGEN_READY%"=="1" (
-    release\xl.exe check test\cases\cgen_task_api.xl
+    release\win_x64\xl.exe check test\cases\cgen_task_api.xl
     if errorlevel 1 exit /b 1
-    release\xl.exe cgen test\cases\cgen_task_api.xl --emit build\test\cgen_task_api.c
+    release\win_x64\xl.exe cgen test\cases\cgen_task_api.xl --emit build\test\cgen_task_api.c
     if errorlevel 1 exit /b 1
 )
 

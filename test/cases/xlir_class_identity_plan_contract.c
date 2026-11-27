@@ -2,7 +2,7 @@
 #include "src/parser/xl6_parser_api.h"
 #include "src/sem/xl6_sem.h"
 #include "src/stdlib/xl6_stdlib.h"
-#include "release/include/xrt_decl.h"
+#include "release/win_x64/include/xrt_decl.h"
 #include <assert.h>
 #include <stdio.h>
 #include <string.h>

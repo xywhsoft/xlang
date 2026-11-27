@@ -1,7 +1,7 @@
 /* Source-only deterministic notification barrier. --wrap affects the actual
  * Core object's native result read, not a replacement provider or language
  * callback. Ordinary product tests separately validate the public surface. */
-#include "release/include/xl_clock.h"
+#include "release/win_x64/include/xl_clock.h"
 #include "src/runtime/xl6_channel_direct_deadline.h"
 #include "src/runtime/xl6_channel_select_deadline.h"
 #include "src/runtime/xl6_channel_future_core.h"

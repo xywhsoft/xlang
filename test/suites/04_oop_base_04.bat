@@ -4,7 +4,7 @@ call "%~dp0common.bat"
 if errorlevel 1 exit /b 1
 echo Running DEMO6 suite: OOP ABI export and interop baseline 4/8...
 
-release\xl.exe cgen test\cases\cgen_derive_persistence.xl --emit build\test\cgen_derive_persistence.c
+release\win_x64\xl.exe cgen test\cases\cgen_derive_persistence.xl --emit build\test\cgen_derive_persistence.c
 if errorlevel 1 exit /b 1
 findstr /C:"xl_class_Player______toValue____" build\test\cgen_derive_persistence.c >nul
 if errorlevel 1 (
@@ -31,14 +31,14 @@ if errorlevel 1 exit /b 1
 build\test\cgen_derive_persistence.exe
 if errorlevel 1 exit /b 1
 
-release\xl.exe cgen test\cases\cgen_derive_value_trim.xl --emit build\test\cgen_derive_value_trim.c
+release\win_x64\xl.exe cgen test\cases\cgen_derive_value_trim.xl --emit build\test\cgen_derive_value_trim.c
 if errorlevel 1 exit /b 1
 findstr /C:"xrtValueObjectMerge" build\test\cgen_derive_value_trim.c >nul
 if errorlevel 1 (
     echo cgen_derive_value_trim.c missing inherited value merge.
     exit /b 1
 )
-release\xl.exe build test\cases\cgen_derive_value_trim.xl -o build\test\cgen_derive_value_trim.exe
+release\win_x64\xl.exe build test\cases\cgen_derive_value_trim.xl -o build\test\cgen_derive_value_trim.exe
 if errorlevel 1 exit /b 1
 build\test\cgen_derive_value_trim.exe > build\test\cgen_derive_value_trim.out.txt
 if errorlevel 1 exit /b 1
@@ -48,7 +48,7 @@ if errorlevel 1 (
     exit /b 1
 )
 
-release\xl.exe cgen test\cases\cgen_field_persistence_attrs.xl --emit build\test\cgen_field_persistence_attrs.c
+release\win_x64\xl.exe cgen test\cases\cgen_field_persistence_attrs.xl --emit build\test\cgen_field_persistence_attrs.c
 if errorlevel 1 exit /b 1
 findstr /C:"display_name" build\test\cgen_field_persistence_attrs.c >nul
 if errorlevel 1 (
@@ -70,16 +70,16 @@ if errorlevel 1 exit /b 1
 build\test\cgen_field_persistence_attrs.exe
 if errorlevel 1 exit /b 1
 
-release\xl.exe cgen test\cases\cgen_persistence_array_var_field.xl --emit build\test\cgen_persistence_array_var_field.c
+release\win_x64\xl.exe cgen test\cases\cgen_persistence_array_var_field.xl --emit build\test\cgen_persistence_array_var_field.c
 if errorlevel 1 exit /b 1
 "%XL6_CGEN_CC%" %XL6_CGEN_FLAGS% %XL6_CGEN_INCLUDES% build\test\cgen_persistence_array_var_field.c test\cases\cgen_class_host.c %XL6_CGEN_LINKS% -o build\test\cgen_persistence_array_var_field.exe
 if errorlevel 1 exit /b 1
 build\test\cgen_persistence_array_var_field.exe
 if errorlevel 1 exit /b 1
 
-release\xl.exe check test\cases\cgen_class_overloads.xl
+release\win_x64\xl.exe check test\cases\cgen_class_overloads.xl
 if errorlevel 1 exit /b 1
-release\xl.exe cgen test\cases\cgen_class_overloads.xl --emit build\test\cgen_class_overloads.c
+release\win_x64\xl.exe cgen test\cases\cgen_class_overloads.xl --emit build\test\cgen_class_overloads.c
 if errorlevel 1 exit /b 1
 findstr /C:"void xl_class_Pair__create__void(XL_Class_Pair* self);" build\test\cgen_class_overloads.c >nul
 if errorlevel 1 (
@@ -111,14 +111,14 @@ if errorlevel 1 exit /b 1
 build\test\cgen_class_overloads.exe
 if errorlevel 1 exit /b 1
 
-release\xl.exe abi test\cases\cgen_unicode_identifiers.xl --emit build\test\cgen_unicode_identifiers.abi.txt
+release\win_x64\xl.exe abi test\cases\cgen_unicode_identifiers.xl --emit build\test\cgen_unicode_identifiers.abi.txt
 if errorlevel 1 exit /b 1
 findstr /C:"symbol: xl_fn__u52A0__u4E00___int" build\test\cgen_unicode_identifiers.abi.txt >nul
 if errorlevel 1 (
     echo cgen_unicode_identifiers.abi.txt missing encoded func symbol.
     exit /b 1
 )
-release\xl.exe cgen test\cases\cgen_unicode_identifiers.xl --emit build\test\cgen_unicode_identifiers.c
+release\win_x64\xl.exe cgen test\cases\cgen_unicode_identifiers.xl --emit build\test\cgen_unicode_identifiers.c
 if errorlevel 1 exit /b 1
 findstr /C:"struct XL_Class__u70B9_ {" build\test\cgen_unicode_identifiers.c >nul
 if errorlevel 1 (
@@ -160,7 +160,7 @@ if errorlevel 1 exit /b 1
 build\test\cgen_unicode_identifiers.exe
 if errorlevel 1 exit /b 1
 
-release\xl.exe cgen test\cases\cgen_class_destroy.xl --emit build\test\cgen_class_destroy.c
+release\win_x64\xl.exe cgen test\cases\cgen_class_destroy.xl --emit build\test\cgen_class_destroy.c
 if errorlevel 1 exit /b 1
 findstr /C:"void xl_class_Tracker__destroy(XL_Class_Tracker* self);" build\test\cgen_class_destroy.c >nul
 if errorlevel 1 (
@@ -177,7 +177,7 @@ if errorlevel 1 exit /b 1
 build\test\cgen_class_destroy.exe
 if errorlevel 1 exit /b 1
 
-release\xl.exe cgen test\cases\cgen_cleanup_order.xl --emit build\test\cgen_cleanup_order.c
+release\win_x64\xl.exe cgen test\cases\cgen_cleanup_order.xl --emit build\test\cgen_cleanup_order.c
 if errorlevel 1 exit /b 1
 powershell -NoProfile -ExecutionPolicy Bypass -Command "$lines=Get-Content 'build\test\cgen_cleanup_order.c'; $second=($lines | Select-String -SimpleMatch 'xrtValueRelease(second);' | Select-Object -Last 1).LineNumber; $first=($lines | Select-String -SimpleMatch 'xrtValueRelease(first);' | Select-Object -Last 1).LineNumber; if(-not $second -or -not $first -or $second -ge $first){exit 1}"
 if errorlevel 1 (
@@ -189,7 +189,7 @@ if errorlevel 1 exit /b 1
 build\test\cgen_cleanup_order.exe
 if errorlevel 1 exit /b 1
 
-release\xl.exe cgen test\cases\cgen_class_inherit_destroy.xl --emit build\test\cgen_class_inherit_destroy.c
+release\win_x64\xl.exe cgen test\cases\cgen_class_inherit_destroy.xl --emit build\test\cgen_class_inherit_destroy.c
 if errorlevel 1 exit /b 1
 findstr /C:"void xl_class_AutoChild__destroy(XL_Class_AutoChild* self);" build\test\cgen_class_inherit_destroy.c >nul
 if errorlevel 1 (
@@ -211,7 +211,7 @@ if errorlevel 1 exit /b 1
 build\test\cgen_class_inherit_destroy.exe
 if errorlevel 1 exit /b 1
 
-release\xl.exe cgen test\cases\cgen_class_native_field.xl --emit build\test\cgen_class_native_field.c
+release\win_x64\xl.exe cgen test\cases\cgen_class_native_field.xl --emit build\test\cgen_class_native_field.c
 if errorlevel 1 exit /b 1
 findstr /C:"void xl_class_Holder__destroy(XL_Class_Holder* self);" build\test\cgen_class_native_field.c >nul
 if errorlevel 1 (
@@ -248,7 +248,7 @@ if errorlevel 1 exit /b 1
 build\test\cgen_class_native_field.exe
 if errorlevel 1 exit /b 1
 
-release\xl.exe cgen test\cases\cgen_native_class_field_method.xl --emit build\test\cgen_native_class_field_method.c
+release\win_x64\xl.exe cgen test\cases\cgen_native_class_field_method.xl --emit build\test\cgen_native_class_field_method.c
 if errorlevel 1 exit /b 1
 findstr /C:"xl_class_NativeBox__value(((XL_Class_NativeBox*)xl6_class_data(self->box" build\test\cgen_native_class_field_method.c >nul
 if errorlevel 1 (
@@ -260,9 +260,9 @@ if errorlevel 1 exit /b 1
 build\test\cgen_native_class_field_method.exe
 if errorlevel 1 exit /b 1
 
-release\xl.exe check test\cases\cgen_native_class_overloads.xl
+release\win_x64\xl.exe check test\cases\cgen_native_class_overloads.xl
 if errorlevel 1 exit /b 1
-release\xl.exe cgen test\cases\cgen_native_class_overloads.xl --emit build\test\cgen_native_class_overloads.c
+release\win_x64\xl.exe cgen test\cases\cgen_native_class_overloads.xl --emit build\test\cgen_native_class_overloads.c
 if errorlevel 1 exit /b 1
 findstr /C:"long long xl_class_NativeScore__add__int(XL_Class_NativeScore* self, long long value)" build\test\cgen_native_class_overloads.c >nul
 if errorlevel 1 (
@@ -289,7 +289,7 @@ if errorlevel 1 exit /b 1
 build\test\cgen_native_class_overloads_ownership.exe
 if errorlevel 1 exit /b 1
 
-release\xl.exe cgen test\cases\cgen_overloads.xl --emit build\test\cgen_overloads.c
+release\win_x64\xl.exe cgen test\cases\cgen_overloads.xl --emit build\test\cgen_overloads.c
 if errorlevel 1 exit /b 1
 findstr /C:"long long xl_fn_pick__int(long long value);" build\test\cgen_overloads.c >nul
 if errorlevel 1 (
@@ -311,14 +311,14 @@ if errorlevel 1 exit /b 1
 build\test\cgen_overloads.exe
 if errorlevel 1 exit /b 1
 
-release\xl.exe cgen test\cases\cgen_overload_costs.xl --emit build\test\cgen_overload_costs.c
+release\win_x64\xl.exe cgen test\cases\cgen_overload_costs.xl --emit build\test\cgen_overload_costs.c
 if errorlevel 1 exit /b 1
 "%XL6_CGEN_CC%" %XL6_CGEN_FLAGS% %XL6_CGEN_INCLUDES% build\test\cgen_overload_costs.c test\cases\cgen_class_host.c %XL6_CGEN_LINKS% -o build\test\cgen_overload_costs.exe
 if errorlevel 1 exit /b 1
 build\test\cgen_overload_costs.exe
 if errorlevel 1 exit /b 1
 
-release\xl.exe cgen test\cases\cgen_generic_overload_priority.xl --emit build\test\cgen_generic_overload_priority.c
+release\win_x64\xl.exe cgen test\cases\cgen_generic_overload_priority.xl --emit build\test\cgen_generic_overload_priority.c
 if errorlevel 1 exit /b 1
 findstr /C:"expect_i64(xl_fn_choose(1LL), 10LL);" build\test\cgen_generic_overload_priority.c >nul
 if errorlevel 1 (
@@ -330,7 +330,7 @@ if errorlevel 1 exit /b 1
 build\test\cgen_generic_overload_priority.exe
 if errorlevel 1 exit /b 1
 
-release\xl.exe cgen test\cases\cgen_generic_overload_var_priority.xl --emit build\test\cgen_generic_overload_var_priority.c
+release\win_x64\xl.exe cgen test\cases\cgen_generic_overload_var_priority.xl --emit build\test\cgen_generic_overload_var_priority.c
 if errorlevel 1 exit /b 1
 findstr /C:"expect_i64(xl_gen_choose__int(1LL), 20LL);" build\test\cgen_generic_overload_var_priority.c >nul
 if errorlevel 1 (
@@ -342,7 +342,7 @@ if errorlevel 1 exit /b 1
 build\test\cgen_generic_overload_var_priority.exe
 if errorlevel 1 exit /b 1
 
-release\xl.exe cgen test\cases\cgen_generic_explicit_overload.xl --emit build\test\cgen_generic_explicit_overload.c
+release\win_x64\xl.exe cgen test\cases\cgen_generic_explicit_overload.xl --emit build\test\cgen_generic_explicit_overload.c
 if errorlevel 1 exit /b 1
 findstr /C:"long long xl_gen_pick__int__sig__int(long long value);" build\test\cgen_generic_explicit_overload.c >nul
 if errorlevel 1 (
@@ -369,7 +369,7 @@ if errorlevel 1 exit /b 1
 build\test\cgen_generic_explicit_overload.exe
 if errorlevel 1 exit /b 1
 
-release\xl.exe cgen test\cases\cgen_generic_signature_suffix.xl --emit build\test\cgen_generic_signature_suffix.c
+release\win_x64\xl.exe cgen test\cases\cgen_generic_signature_suffix.xl --emit build\test\cgen_generic_signature_suffix.c
 if errorlevel 1 exit /b 1
 powershell -NoProfile -ExecutionPolicy Bypass -Command "$t=Get-Content -Raw -Encoding UTF8 'build\test\cgen_generic_signature_suffix.c'; if(([regex]::Matches($t, '^long long xl_gen_order__int__string__sig__int__string\(long long left, const char\* right\);', 'Multiline')).Count -ne 1){exit 1}; if(([regex]::Matches($t, '^long long xl_gen_order__int__string__sig__string__int\(const char\* left, long long right\);', 'Multiline')).Count -ne 1){exit 2}; if(([regex]::Matches($t, '^long long xl_gen_order__int__string__sig__int__string\(long long left, const char\* right\)\s*\{', 'Multiline')).Count -ne 1){exit 3}; if(([regex]::Matches($t, '^long long xl_gen_order__int__string__sig__string__int\(const char\* left, long long right\)\s*\{', 'Multiline')).Count -ne 1){exit 4}; if($t -notmatch 'first = xl_gen_order__int__string__sig__int__string\(1LL, \"x\"\);'){exit 5}; if($t -notmatch 'second = xl_gen_order__int__string__sig__string__int\(\"x\", 1LL\);'){exit 6}"
 if errorlevel 1 (
@@ -381,7 +381,7 @@ if errorlevel 1 exit /b 1
 build\test\cgen_generic_signature_suffix.exe
 if errorlevel 1 exit /b 1
 
-release\xl.exe cgen test\cases\cgen_generic_function.xl --emit build\test\cgen_generic_function.c
+release\win_x64\xl.exe cgen test\cases\cgen_generic_function.xl --emit build\test\cgen_generic_function.c
 if errorlevel 1 exit /b 1
 findstr /C:"long long xl_gen_identity__int(long long value);" build\test\cgen_generic_function.c >nul
 if errorlevel 1 (
@@ -408,7 +408,7 @@ if errorlevel 1 exit /b 1
 build\test\cgen_generic_function.exe
 if errorlevel 1 exit /b 1
 
-release\xl.exe cgen test\cases\cgen_generic_dedupe.xl --emit build\test\cgen_generic_dedupe.c
+release\win_x64\xl.exe cgen test\cases\cgen_generic_dedupe.xl --emit build\test\cgen_generic_dedupe.c
 if errorlevel 1 exit /b 1
 powershell -NoProfile -ExecutionPolicy Bypass -Command "$t=Get-Content 'build\test\cgen_generic_dedupe.c' -Raw; if(([regex]::Matches($t, '^long long xl_gen_identity__int\(long long value\);', 'Multiline')).Count -ne 1){exit 1}; if(([regex]::Matches($t, '^long long xl_gen_identity__int\(long long value\)\s*\{', 'Multiline')).Count -ne 1){exit 2}; if(([regex]::Matches($t, 'xl_gen_identity__int\(')).Count -ne 5){exit 3}"
 if errorlevel 1 (
@@ -420,7 +420,7 @@ if errorlevel 1 exit /b 1
 build\test\cgen_generic_dedupe.exe
 if errorlevel 1 exit /b 1
 
-release\xl.exe cgen test\cases\cgen_generic_infer.xl --emit build\test\cgen_generic_infer.c
+release\win_x64\xl.exe cgen test\cases\cgen_generic_infer.xl --emit build\test\cgen_generic_infer.c
 if errorlevel 1 exit /b 1
 findstr /C:"long long xl_gen_identity__int(long long value);" build\test\cgen_generic_infer.c >nul
 if errorlevel 1 (
@@ -502,7 +502,7 @@ if errorlevel 1 exit /b 1
 build\test\cgen_generic_infer.exe
 if errorlevel 1 exit /b 1
 
-release\xl.exe cgen test\cases\cgen_generic_alias.xl --emit build\test\cgen_generic_alias.c
+release\win_x64\xl.exe cgen test\cases\cgen_generic_alias.xl --emit build\test\cgen_generic_alias.c
 if errorlevel 1 exit /b 1
 findstr /C:"long long xl_gen_identity__int(long long value);" build\test\cgen_generic_alias.c >nul
 if errorlevel 1 (
@@ -524,7 +524,7 @@ if errorlevel 1 exit /b 1
 build\test\cgen_generic_alias.exe
 if errorlevel 1 exit /b 1
 
-release\xl.exe cgen test\cases\cgen_generic_class_alias.xl --emit build\test\cgen_generic_class_alias.c
+release\win_x64\xl.exe cgen test\cases\cgen_generic_class_alias.xl --emit build\test\cgen_generic_class_alias.c
 if errorlevel 1 exit /b 1
 findstr /C:"typedef struct XL_Class_Box__int {" build\test\cgen_generic_class_alias.c >nul
 if errorlevel 1 (

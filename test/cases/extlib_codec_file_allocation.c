@@ -4,10 +4,10 @@
 #define XRT_MODULE_MEMORY_DEBUG
 #include "xrt.h"
 #if defined(TEST_CODEC_GZIP)
-    #include "../../release/extlibs/gzip/include/gzip_native.h"
+    #include "../../release/win_x64/extlibs/gzip/include/gzip_native.h"
     #define CODEC_NAME "gzip"
 #elif defined(TEST_CODEC_BROTLI)
-    #include "../../release/extlibs/brotli/include/brotli_native.h"
+    #include "../../release/win_x64/extlibs/brotli/include/brotli_native.h"
     #define CODEC_NAME "brotli"
 #else
     #error Select TEST_CODEC_GZIP or TEST_CODEC_BROTLI

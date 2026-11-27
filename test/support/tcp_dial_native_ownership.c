@@ -2,7 +2,7 @@
 /* Owned Dial/Future graph and valid own-loopback only. No DNS, external
  * endpoint, protocol attacks, malformed traffic or security tests. */
 #define XRT_IMPLEMENTATION
-#include "release/include/xl_clock.h"
+#include "release/win_x64/include/xl_clock.h"
 #include "xrt.h"
 #include <stdio.h>
 #include <stdlib.h>

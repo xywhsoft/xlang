@@ -1,7 +1,7 @@
 /* Ordinary literal-loopback listener lifecycle, without client traffic.
  * A real extra native reference models delayed aggregate Data retirement.
  * Capture cleanup must run on the checked source tail, not the Data thread. */
-#include "release/include/xl_clock.h"
+#include "release/win_x64/include/xl_clock.h"
 #include "include/xrt_decl.h"
 #include "include/xruntime_decl.h"
 #include "src/runtime/xl6_execution_tls_internal.h"

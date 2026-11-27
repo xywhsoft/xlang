@@ -1,6 +1,6 @@
 /* Separate translation unit: the SDK owns debug ABI definitions. Generated
  * standalone C does not need the memory-debug module or duplicate XRT types. */
-#include "release/include/xrt_decl.h"
+#include "release/win_x64/include/xrt_decl.h"
 #include "module_product_memory.h"
 #include <assert.h>
 #include <stdio.h>

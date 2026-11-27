@@ -10,78 +10,78 @@ powershell.exe -NoProfile -ExecutionPolicy Bypass -File tools\check_xlir_current
 if errorlevel 1 exit /b 1
 
 for %%F in (test\cases\index_ownership*.xl) do (
-    release\xl.exe check "%%F"
+    release\win_x64\xl.exe check "%%F"
     if errorlevel 1 exit /b 1
-    release\xl.exe run "%%F"
+    release\win_x64\xl.exe run "%%F"
     if errorlevel 1 exit /b 1
-    release\xl.exe build "%%F" -o "build\test\%%~nF.exe"
+    release\win_x64\xl.exe build "%%F" -o "build\test\%%~nF.exe"
     if errorlevel 1 exit /b 1
     "build\test\%%~nF.exe"
     if errorlevel 1 exit /b 1
 )
 
-release\xl.exe cgen test\cases\index_ownership_top_level_var_return.xl --emit build\test\index_ownership_top_level_var_return.c
+release\win_x64\xl.exe cgen test\cases\index_ownership_top_level_var_return.xl --emit build\test\index_ownership_top_level_var_return.c
 if errorlevel 1 exit /b 1
 
-release\xl.exe check test\cases\hir_xvalue_scalar_bridge_matrix.xl
+release\win_x64\xl.exe check test\cases\hir_xvalue_scalar_bridge_matrix.xl
 if errorlevel 1 exit /b 1
-release\xl.exe cgen test\cases\hir_xvalue_scalar_bridge_matrix.xl --emit build\test\hir_xvalue_scalar_bridge_matrix.c
+release\win_x64\xl.exe cgen test\cases\hir_xvalue_scalar_bridge_matrix.xl --emit build\test\hir_xvalue_scalar_bridge_matrix.c
 if errorlevel 1 exit /b 1
-release\xl.exe run test\cases\hir_xvalue_scalar_bridge_matrix.xl
+release\win_x64\xl.exe run test\cases\hir_xvalue_scalar_bridge_matrix.xl
 if errorlevel 1 exit /b 1
-release\xl.exe build test\cases\hir_xvalue_scalar_bridge_matrix.xl -o build\test\hir_xvalue_scalar_bridge_matrix.exe
+release\win_x64\xl.exe build test\cases\hir_xvalue_scalar_bridge_matrix.xl -o build\test\hir_xvalue_scalar_bridge_matrix.exe
 if errorlevel 1 exit /b 1
 build\test\hir_xvalue_scalar_bridge_matrix.exe
 if errorlevel 1 exit /b 1
 
-release\xl.exe check test\cases\cgen_global_identifier_collision.xl
+release\win_x64\xl.exe check test\cases\cgen_global_identifier_collision.xl
 if errorlevel 1 exit /b 1
-release\xl.exe cgen test\cases\cgen_global_identifier_collision.xl --emit build\test\cgen_global_identifier_collision.c
+release\win_x64\xl.exe cgen test\cases\cgen_global_identifier_collision.xl --emit build\test\cgen_global_identifier_collision.c
 if errorlevel 1 exit /b 1
-release\xl.exe run test\cases\cgen_global_identifier_collision.xl
+release\win_x64\xl.exe run test\cases\cgen_global_identifier_collision.xl
 if errorlevel 1 exit /b 1
-release\xl.exe build test\cases\cgen_global_identifier_collision.xl -o build\test\cgen_global_identifier_collision.exe
+release\win_x64\xl.exe build test\cases\cgen_global_identifier_collision.xl -o build\test\cgen_global_identifier_collision.exe
 if errorlevel 1 exit /b 1
 build\test\cgen_global_identifier_collision.exe
 if errorlevel 1 exit /b 1
 
-release\xl.exe check test\cases\cgen_function_direct_owned_args.xl
+release\win_x64\xl.exe check test\cases\cgen_function_direct_owned_args.xl
 if errorlevel 1 exit /b 1
-release\xl.exe run test\cases\cgen_function_direct_owned_args.xl test\cases\cgen_class_host.c
+release\win_x64\xl.exe run test\cases\cgen_function_direct_owned_args.xl test\cases\cgen_class_host.c
 if errorlevel 1 exit /b 1
-release\xl.exe cgen test\cases\cgen_function_direct_owned_args.xl --emit build\test\cgen_function_direct_owned_args.c
+release\win_x64\xl.exe cgen test\cases\cgen_function_direct_owned_args.xl --emit build\test\cgen_function_direct_owned_args.c
 if errorlevel 1 exit /b 1
-release\xl.exe build test\cases\cgen_function_direct_owned_args.xl test\cases\cgen_class_host.c -o build\test\cgen_function_direct_owned_args.exe
+release\win_x64\xl.exe build test\cases\cgen_function_direct_owned_args.xl test\cases\cgen_class_host.c -o build\test\cgen_function_direct_owned_args.exe
 if errorlevel 1 exit /b 1
 build\test\cgen_function_direct_owned_args.exe
 if errorlevel 1 exit /b 1
 
-release\xl.exe check test\cases\hir_vararg_length_index.xl
+release\win_x64\xl.exe check test\cases\hir_vararg_length_index.xl
 if errorlevel 1 exit /b 1
-release\xl.exe run test\cases\hir_vararg_length_index.xl
+release\win_x64\xl.exe run test\cases\hir_vararg_length_index.xl
 if errorlevel 1 exit /b 1
 
-release\xl.exe run test\cases\anonymous_functions.xl
+release\win_x64\xl.exe run test\cases\anonymous_functions.xl
 if errorlevel 1 exit /b 1
-release\xl.exe build test\cases\anonymous_functions.xl -o build\test\anonymous_functions.exe
+release\win_x64\xl.exe build test\cases\anonymous_functions.xl -o build\test\anonymous_functions.exe
 if errorlevel 1 exit /b 1
 build\test\anonymous_functions.exe
 if errorlevel 1 exit /b 1
 
-release\xl.exe check test\cases\cgen_multiline_anonymous_call_arg.xl
+release\win_x64\xl.exe check test\cases\cgen_multiline_anonymous_call_arg.xl
 if errorlevel 1 exit /b 1
-release\xl.exe run test\cases\cgen_multiline_anonymous_call_arg.xl
+release\win_x64\xl.exe run test\cases\cgen_multiline_anonymous_call_arg.xl
 if errorlevel 1 exit /b 1
-release\xl.exe build test\cases\cgen_multiline_anonymous_call_arg.xl -o build\test\cgen_multiline_anonymous_call_arg.exe
+release\win_x64\xl.exe build test\cases\cgen_multiline_anonymous_call_arg.xl -o build\test\cgen_multiline_anonymous_call_arg.exe
 if errorlevel 1 exit /b 1
 build\test\cgen_multiline_anonymous_call_arg.exe
 if errorlevel 1 exit /b 1
 
-release\xl.exe check test\cases\cgen_nested_anonymous_metadata.xl
+release\win_x64\xl.exe check test\cases\cgen_nested_anonymous_metadata.xl
 if errorlevel 1 exit /b 1
-release\xl.exe run test\cases\cgen_nested_anonymous_metadata.xl
+release\win_x64\xl.exe run test\cases\cgen_nested_anonymous_metadata.xl
 if errorlevel 1 exit /b 1
-release\xl.exe build test\cases\cgen_nested_anonymous_metadata.xl -o build\test\cgen_nested_anonymous_metadata.exe
+release\win_x64\xl.exe build test\cases\cgen_nested_anonymous_metadata.xl -o build\test\cgen_nested_anonymous_metadata.exe
 if errorlevel 1 exit /b 1
 build\test\cgen_nested_anonymous_metadata.exe
 if errorlevel 1 exit /b 1
@@ -93,52 +93,52 @@ for %%F in (
     hir_closure_for_string_capture
     hir_closure_for_named_typed_array
 ) do (
-    release\xl.exe check test\cases\%%F.xl
+    release\win_x64\xl.exe check test\cases\%%F.xl
     if errorlevel 1 exit /b 1
-    release\xl.exe run test\cases\%%F.xl
+    release\win_x64\xl.exe run test\cases\%%F.xl
     if errorlevel 1 exit /b 1
-    release\xl.exe build test\cases\%%F.xl -o build\test\%%F.exe
+    release\win_x64\xl.exe build test\cases\%%F.xl -o build\test\%%F.exe
     if errorlevel 1 exit /b 1
     build\test\%%F.exe
     if errorlevel 1 exit /b 1
 )
 
-release\xl.exe check test\cases\cgen_function_value_error_propagation.xl
+release\win_x64\xl.exe check test\cases\cgen_function_value_error_propagation.xl
 if errorlevel 1 exit /b 1
-release\xl.exe run test\cases\cgen_function_value_error_propagation.xl
+release\win_x64\xl.exe run test\cases\cgen_function_value_error_propagation.xl
 if errorlevel 1 exit /b 1
-release\xl.exe build test\cases\cgen_function_value_error_propagation.xl -o build\test\cgen_function_value_error_propagation.exe
+release\win_x64\xl.exe build test\cases\cgen_function_value_error_propagation.xl -o build\test\cgen_function_value_error_propagation.exe
 if errorlevel 1 exit /b 1
 build\test\cgen_function_value_error_propagation.exe
 if errorlevel 1 exit /b 1
 
-release\xl.exe check test\cases\cgen_float_to_int_range_error.xl
+release\win_x64\xl.exe check test\cases\cgen_float_to_int_range_error.xl
 if errorlevel 1 exit /b 1
-release\xl.exe run test\cases\cgen_float_to_int_range_error.xl
+release\win_x64\xl.exe run test\cases\cgen_float_to_int_range_error.xl
 if errorlevel 1 exit /b 1
-release\xl.exe build test\cases\cgen_float_to_int_range_error.xl -o build\test\cgen_float_to_int_range_error.exe
+release\win_x64\xl.exe build test\cases\cgen_float_to_int_range_error.xl -o build\test\cgen_float_to_int_range_error.exe
 if errorlevel 1 exit /b 1
 build\test\cgen_float_to_int_range_error.exe
 if errorlevel 1 exit /b 1
 
-release\xl.exe check test\cases\cgen_c_macro_identifiers.xl
+release\win_x64\xl.exe check test\cases\cgen_c_macro_identifiers.xl
 if errorlevel 1 exit /b 1
-release\xl.exe run test\cases\cgen_c_macro_identifiers.xl
+release\win_x64\xl.exe run test\cases\cgen_c_macro_identifiers.xl
 if errorlevel 1 exit /b 1
-release\xl.exe build test\cases\cgen_c_macro_identifiers.xl -o build\test\cgen_c_macro_identifiers.exe
+release\win_x64\xl.exe build test\cases\cgen_c_macro_identifiers.xl -o build\test\cgen_c_macro_identifiers.exe
 if errorlevel 1 exit /b 1
 build\test\cgen_c_macro_identifiers.exe
 if errorlevel 1 exit /b 1
 
-release\xl.exe check test\cases\runtime_uint64_format.xl
+release\win_x64\xl.exe check test\cases\runtime_uint64_format.xl
 if errorlevel 1 exit /b 1
-release\xl.exe run test\cases\runtime_uint64_format.xl > build\test\runtime_uint64_format.run.txt
+release\win_x64\xl.exe run test\cases\runtime_uint64_format.xl > build\test\runtime_uint64_format.run.txt
 if errorlevel 1 exit /b 1
 powershell.exe -NoProfile -Command "if (-not ((Get-Content -Encoding UTF8 'build\test\runtime_uint64_format.run.txt') -contains '9223372036854775808')) { exit 1 }"
 if errorlevel 1 exit /b 1
 powershell.exe -NoProfile -Command "if (-not ((Get-Content -Encoding UTF8 'build\test\runtime_uint64_format.run.txt') -contains '18446744073709551615')) { exit 1 }"
 if errorlevel 1 exit /b 1
-release\xl.exe build test\cases\runtime_uint64_format.xl -o build\test\runtime_uint64_format.exe
+release\win_x64\xl.exe build test\cases\runtime_uint64_format.xl -o build\test\runtime_uint64_format.exe
 if errorlevel 1 exit /b 1
 build\test\runtime_uint64_format.exe > build\test\runtime_uint64_format.exe.txt
 if errorlevel 1 exit /b 1
@@ -147,16 +147,16 @@ if errorlevel 1 exit /b 1
 powershell.exe -NoProfile -Command "if (-not ((Get-Content -Encoding UTF8 'build\test\runtime_uint64_format.exe.txt') -contains '18446744073709551615')) { exit 1 }"
 if errorlevel 1 exit /b 1
 
-release\xl.exe check test\cases\cgen_integer_division_errors.xl
+release\win_x64\xl.exe check test\cases\cgen_integer_division_errors.xl
 if errorlevel 1 exit /b 1
-release\xl.exe run test\cases\cgen_integer_division_errors.xl
+release\win_x64\xl.exe run test\cases\cgen_integer_division_errors.xl
 if errorlevel 1 exit /b 1
-release\xl.exe build test\cases\cgen_integer_division_errors.xl -o build\test\cgen_integer_division_errors.exe
+release\win_x64\xl.exe build test\cases\cgen_integer_division_errors.xl -o build\test\cgen_integer_division_errors.exe
 if errorlevel 1 exit /b 1
 build\test\cgen_integer_division_errors.exe
 if errorlevel 1 exit /b 1
 
-release\xl.exe run test\cases\runtime_integer_division_uncaught.xl > build\test\runtime_integer_division_uncaught.out.txt 2> build\test\runtime_integer_division_uncaught.err.txt
+release\win_x64\xl.exe run test\cases\runtime_integer_division_uncaught.xl > build\test\runtime_integer_division_uncaught.out.txt 2> build\test\runtime_integer_division_uncaught.err.txt
 if not errorlevel 1 (
     echo runtime_integer_division_uncaught.xl should fail.
     exit /b 1
@@ -171,31 +171,31 @@ if errorlevel 1 (
     exit /b 1
 )
 
-release\xl.exe run test\cases\c_run_exit_code.c
+release\win_x64\xl.exe run test\cases\c_run_exit_code.c
 set "C_RUN_EXIT=%ERRORLEVEL%"
 if not "%C_RUN_EXIT%"=="37" (
     echo c_run_exit_code.c returned %C_RUN_EXIT%, expected 37.
     exit /b 1
 )
 
-release\xl.exe check test\cases\cgen_implicit_string_methods.xl
+release\win_x64\xl.exe check test\cases\cgen_implicit_string_methods.xl
 if errorlevel 1 exit /b 1
-release\xl.exe cgen test\cases\cgen_implicit_string_methods.xl --emit build\test\cgen_implicit_string_methods.c
+release\win_x64\xl.exe cgen test\cases\cgen_implicit_string_methods.xl --emit build\test\cgen_implicit_string_methods.c
 if errorlevel 1 exit /b 1
-release\xl.exe run test\cases\cgen_implicit_string_methods.xl
+release\win_x64\xl.exe run test\cases\cgen_implicit_string_methods.xl
 if errorlevel 1 exit /b 1
-release\xl.exe build test\cases\cgen_implicit_string_methods.xl -o build\test\cgen_implicit_string_methods.exe
+release\win_x64\xl.exe build test\cases\cgen_implicit_string_methods.xl -o build\test\cgen_implicit_string_methods.exe
 if errorlevel 1 exit /b 1
 build\test\cgen_implicit_string_methods.exe
 if errorlevel 1 exit /b 1
 
-release\xl.exe check test\cases\cgen_generic_class_return_self.xl
+release\win_x64\xl.exe check test\cases\cgen_generic_class_return_self.xl
 if errorlevel 1 exit /b 1
-release\xl.exe cgen test\cases\cgen_generic_class_return_self.xl --emit build\test\cgen_generic_class_return_self.c
+release\win_x64\xl.exe cgen test\cases\cgen_generic_class_return_self.xl --emit build\test\cgen_generic_class_return_self.c
 if errorlevel 1 exit /b 1
-release\xl.exe run test\cases\cgen_generic_class_return_self.xl test\cases\cgen_class_host.c
+release\win_x64\xl.exe run test\cases\cgen_generic_class_return_self.xl test\cases\cgen_class_host.c
 if errorlevel 1 exit /b 1
-release\xl.exe build test\cases\cgen_generic_class_return_self.xl test\cases\cgen_class_host.c -o build\test\cgen_generic_class_return_self.exe
+release\win_x64\xl.exe build test\cases\cgen_generic_class_return_self.xl test\cases\cgen_class_host.c -o build\test\cgen_generic_class_return_self.exe
 if errorlevel 1 exit /b 1
 build\test\cgen_generic_class_return_self.exe
 if errorlevel 1 exit /b 1
@@ -208,17 +208,17 @@ for %%F in (
     hir_array_conversion_direct
     hir_persistence_typed_container_matrix
 ) do (
-    release\xl.exe check test\cases\%%F.xl
+    release\win_x64\xl.exe check test\cases\%%F.xl
     if errorlevel 1 exit /b 1
-    release\xl.exe run test\cases\%%F.xl
+    release\win_x64\xl.exe run test\cases\%%F.xl
     if errorlevel 1 exit /b 1
-    release\xl.exe build test\cases\%%F.xl -o build\test\%%F.exe
+    release\win_x64\xl.exe build test\cases\%%F.xl -o build\test\%%F.exe
     if errorlevel 1 exit /b 1
     build\test\%%F.exe
     if errorlevel 1 exit /b 1
 )
 
-release\xl.exe cgen test\cases\cgen_typed_container_var_identity.xl --emit build\test\cgen_typed_container_var_identity.c
+release\win_x64\xl.exe cgen test\cases\cgen_typed_container_var_identity.xl --emit build\test\cgen_typed_container_var_identity.c
 if errorlevel 1 exit /b 1
 
 echo DEMO6 suite ok: current core ownership regressions

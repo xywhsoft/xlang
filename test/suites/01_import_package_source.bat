@@ -4,7 +4,7 @@ call "%~dp0common.bat"
 if errorlevel 1 exit /b 1
 echo Running DEMO6 suite: import package source...
 
-release\xl.exe check test\cases\import_missing_target.xl >nul 2> build\test\import_missing_target.err.txt
+release\win_x64\xl.exe check test\cases\import_missing_target.xl >nul 2> build\test\import_missing_target.err.txt
 if not errorlevel 1 (
     echo import_missing_target.xl should fail when the import cannot be resolved.
     exit /b 1
@@ -15,7 +15,7 @@ if errorlevel 1 (
     exit /b 1
 )
 
-release\xl.exe check test\cases\import_source_self_cycle.xl >nul 2> build\test\import_source_self_cycle.err.txt
+release\win_x64\xl.exe check test\cases\import_source_self_cycle.xl >nul 2> build\test\import_source_self_cycle.err.txt
 if not errorlevel 1 (
     echo import_source_self_cycle.xl should reject a source import cycle.
     exit /b 1
@@ -26,7 +26,7 @@ if errorlevel 1 (
     exit /b 1
 )
 
-release\xl.exe check test\fixtures\import_source_cycle\a.xl >nul 2> build\test\import_source_mutual_cycle.err.txt
+release\win_x64\xl.exe check test\fixtures\import_source_cycle\a.xl >nul 2> build\test\import_source_mutual_cycle.err.txt
 if not errorlevel 1 (
     echo mutual source import cycle should fail.
     exit /b 1
@@ -37,54 +37,54 @@ if errorlevel 1 (
     exit /b 1
 )
 
-powershell -NoProfile -ExecutionPolicy Bypass -Command "$root=Join-Path (Resolve-Path 'build\test') (([char]0x4E2D)+([char]0x6587)+'_install_package'); New-Item -ItemType Directory -Force -Path $root | Out-Null; Copy-Item -LiteralPath 'release\xl.exe','release\xlc.dll','release\xl.dll' -Destination $root -Force; Copy-Item -LiteralPath 'test\cases\import_package_use.xl' -Destination $root -Force; $fixtures=Join-Path $root 'fixtures'; if(-not (Test-Path -LiteralPath $fixtures)){Copy-Item -LiteralPath 'test\fixtures' -Destination $fixtures -Recurse -Force}; $old=$env:XLANG_PACKAGE_PATH; try{$env:XLANG_PACKAGE_PATH=$fixtures; & (Join-Path $root 'xl.exe') check (Join-Path $root 'import_package_use.xl'); if($LASTEXITCODE -ne 0){exit $LASTEXITCODE}; & (Join-Path $root 'xl.exe') run (Join-Path $root 'import_package_use.xl'); exit $LASTEXITCODE} finally{$env:XLANG_PACKAGE_PATH=$old}"
+powershell -NoProfile -ExecutionPolicy Bypass -Command "$root=Join-Path (Resolve-Path 'build\test') (([char]0x4E2D)+([char]0x6587)+'_install_package'); New-Item -ItemType Directory -Force -Path $root | Out-Null; Copy-Item -LiteralPath 'release\win_x64\xl.exe','release\win_x64\xlc.dll','release\win_x64\xl.dll' -Destination $root -Force; Copy-Item -LiteralPath 'test\cases\import_package_use.xl' -Destination $root -Force; $fixtures=Join-Path $root 'fixtures'; if(-not (Test-Path -LiteralPath $fixtures)){Copy-Item -LiteralPath 'test\fixtures' -Destination $fixtures -Recurse -Force}; $old=$env:XLANG_PACKAGE_PATH; try{$env:XLANG_PACKAGE_PATH=$fixtures; & (Join-Path $root 'xl.exe') check (Join-Path $root 'import_package_use.xl'); if($LASTEXITCODE -ne 0){exit $LASTEXITCODE}; & (Join-Path $root 'xl.exe') run (Join-Path $root 'import_package_use.xl'); exit $LASTEXITCODE} finally{$env:XLANG_PACKAGE_PATH=$old}"
 if errorlevel 1 (
     echo package resolution from a UTF-8 installation path failed.
     exit /b 1
 )
 
-release\xl.exe run test\cases\import_source_use.xl
+release\win_x64\xl.exe run test\cases\import_source_use.xl
 if errorlevel 1 exit /b 1
-release\xl.exe check test\cases\import_source_math.xl
+release\win_x64\xl.exe check test\cases\import_source_math.xl
 if errorlevel 1 exit /b 1
-release\xl.exe build test\cases\import_source_use.xl -o build\test\import_source_use.exe
+release\win_x64\xl.exe build test\cases\import_source_use.xl -o build\test\import_source_use.exe
 if errorlevel 1 exit /b 1
 build\test\import_source_use.exe
 if errorlevel 1 exit /b 1
 
-release\xl.exe run test\cases\import_source_native_use.xl
+release\win_x64\xl.exe run test\cases\import_source_native_use.xl
 if errorlevel 1 exit /b 1
-release\xl.exe check test\cases\import_source_native.xl
+release\win_x64\xl.exe check test\cases\import_source_native.xl
 if errorlevel 1 exit /b 1
-release\xl.exe build test\cases\import_source_native_use.xl -o build\test\import_source_native_use.exe
+release\win_x64\xl.exe build test\cases\import_source_native_use.xl -o build\test\import_source_native_use.exe
 if errorlevel 1 exit /b 1
 build\test\import_source_native_use.exe
 if errorlevel 1 exit /b 1
 
-release\xl.exe run test\cases\import_package_include_dir.xl
+release\win_x64\xl.exe run test\cases\import_package_include_dir.xl
 if errorlevel 1 exit /b 1
-release\xl.exe build test\cases\import_package_include_dir.xl -o build\test\import_package_include_dir.exe
+release\win_x64\xl.exe build test\cases\import_package_include_dir.xl -o build\test\import_package_include_dir.exe
 if errorlevel 1 exit /b 1
 build\test\import_package_include_dir.exe
 if errorlevel 1 exit /b 1
 
-release\xl.exe run test\cases\companion_entry.xl
+release\win_x64\xl.exe run test\cases\companion_entry.xl
 if errorlevel 1 exit /b 1
-release\xl.exe build test\cases\companion_entry.xl -o build\test\companion_entry.exe
+release\win_x64\xl.exe build test\cases\companion_entry.xl -o build\test\companion_entry.exe
 if errorlevel 1 exit /b 1
 build\test\companion_entry.exe
 if errorlevel 1 exit /b 1
 
-release\xl.exe run test\fixtures\xlp_app\app.xlp
+release\win_x64\xl.exe run test\fixtures\xlp_app\app.xlp
 if errorlevel 1 exit /b 1
-release\xl.exe build test\fixtures\xlp_app\app.xlp -o build\test\xlp_app.exe
+release\win_x64\xl.exe build test\fixtures\xlp_app\app.xlp -o build\test\xlp_app.exe
 if errorlevel 1 exit /b 1
 build\test\xlp_app.exe
 if errorlevel 1 exit /b 1
-release\xl.exe build test\fixtures\xlp_lib\lib.xlp -o build\test\xlp_lib.dll
+release\win_x64\xl.exe build test\fixtures\xlp_lib\lib.xlp -o build\test\xlp_lib.dll
 if errorlevel 1 exit /b 1
 
-release\xl.exe check test\fixtures\xlp_bad_missing_entry.xlp >nul 2> build\test\xlp_bad_missing_entry.err.txt
+release\win_x64\xl.exe check test\fixtures\xlp_bad_missing_entry.xlp >nul 2> build\test\xlp_bad_missing_entry.err.txt
 if not errorlevel 1 (
     echo xlp_bad_missing_entry.xlp should fail.
     exit /b 1
@@ -95,7 +95,7 @@ if errorlevel 1 (
     exit /b 1
 )
 
-release\xl.exe check test\fixtures\xlp_bad_object.xlp >nul 2> build\test\xlp_bad_object.err.txt
+release\win_x64\xl.exe check test\fixtures\xlp_bad_object.xlp >nul 2> build\test\xlp_bad_object.err.txt
 if not errorlevel 1 (
     echo xlp_bad_object.xlp should fail.
     exit /b 1
@@ -106,7 +106,7 @@ if errorlevel 1 (
     exit /b 1
 )
 
-release\xl.exe build test\fixtures\xlp_app\app.xlp -o build\test\xlp_app_conflict.dll --shared >nul 2> build\test\xlp_app_conflict.err.txt
+release\win_x64\xl.exe build test\fixtures\xlp_app\app.xlp -o build\test\xlp_app_conflict.dll --shared >nul 2> build\test\xlp_app_conflict.err.txt
 if not errorlevel 1 (
     echo xlp_app.xlp --shared conflict should fail.
     exit /b 1
@@ -117,7 +117,7 @@ if errorlevel 1 (
     exit /b 1
 )
 
-release\xl.exe build test\cases\import_source_no_global_pollution.xl -o build\test\import_source_no_global_pollution.exe >nul 2> build\test\import_source_no_global_pollution.err.txt
+release\win_x64\xl.exe build test\cases\import_source_no_global_pollution.xl -o build\test\import_source_no_global_pollution.exe >nul 2> build\test\import_source_no_global_pollution.err.txt
 if not errorlevel 1 (
     echo import_source_no_global_pollution.xl should fail.
     exit /b 1
@@ -128,13 +128,13 @@ if errorlevel 1 (
     exit /b 1
 )
 
-release\xl.exe check test\cases\import_package_use.xl
+release\win_x64\xl.exe check test\cases\import_package_use.xl
 if errorlevel 1 exit /b 1
-release\xl.exe check test\cases\import_rapidocr_main_entry.xl
+release\win_x64\xl.exe check test\cases\import_rapidocr_main_entry.xl
 if errorlevel 1 exit /b 1
-release\xl.exe check test\cases\import_builtin_features.xl
+release\win_x64\xl.exe check test\cases\import_builtin_features.xl
 if errorlevel 1 exit /b 1
-release\xl.exe check test\cases\import_dependency_version_mismatch.xl >nul 2> build\test\import_dependency_version_mismatch.err.txt
+release\win_x64\xl.exe check test\cases\import_dependency_version_mismatch.xl >nul 2> build\test\import_dependency_version_mismatch.err.txt
 if not errorlevel 1 (
     echo import_dependency_version_mismatch.xl should fail.
     exit /b 1
@@ -144,11 +144,11 @@ if errorlevel 1 (
     echo import_dependency_version_mismatch.err.txt missing version mismatch diagnostic.
     exit /b 1
 )
-release\xl.exe check test\cases\import_lib_search.xl
+release\win_x64\xl.exe check test\cases\import_lib_search.xl
 if errorlevel 1 exit /b 1
-release\xl.exe check test\cases\import_metadata.xl
+release\win_x64\xl.exe check test\cases\import_metadata.xl
 if errorlevel 1 exit /b 1
-release\xl.exe check test\cases\import_metadata_combo.xl
+release\win_x64\xl.exe check test\cases\import_metadata_combo.xl
 if errorlevel 1 exit /b 1
 call tools\bootstrap_tcc.bat
 if errorlevel 1 exit /b 1
@@ -160,9 +160,9 @@ if errorlevel 1 exit /b 1
 if errorlevel 1 exit /b 1
 "%XL6_TCC%" -shared %XL6_TCC_INCLUDES% %XL6_TCC_LIB_FLAGS% test\cases\metadata_combo_loadlib_host.c -o build\test\metadata_combo_loadlib.dll
 if errorlevel 1 exit /b 1
-release\xl.exe run test\cases\import_metadata_combo.xl
+release\win_x64\xl.exe run test\cases\import_metadata_combo.xl
 if errorlevel 1 exit /b 1
-release\xl.exe build test\cases\import_metadata_combo.xl -o build\test\import_metadata_combo.exe
+release\win_x64\xl.exe build test\cases\import_metadata_combo.xl -o build\test\import_metadata_combo.exe
 if errorlevel 1 exit /b 1
 build\test\import_metadata_combo.exe
 if errorlevel 1 exit /b 1
@@ -176,7 +176,7 @@ if errorlevel 1 exit /b 1
 if errorlevel 1 exit /b 1
 build\test\package_manifest_strict_host.exe
 if errorlevel 1 exit /b 1
-release\xl.exe check test\cases\import_native_singleton_conflict.xl >nul 2> build\test\import_native_singleton_conflict.err.txt
+release\win_x64\xl.exe check test\cases\import_native_singleton_conflict.xl >nul 2> build\test\import_native_singleton_conflict.err.txt
 if not errorlevel 1 (
     echo import_native_singleton_conflict.xl should fail.
     exit /b 1
@@ -186,7 +186,7 @@ if errorlevel 1 (
     echo import_native_singleton_conflict.err.txt missing native singleton diagnostic.
     exit /b 1
 )
-release\xl.exe check test\cases\import_no_global_pollution.xl >nul 2> build\test\import_no_global_pollution.err.txt
+release\win_x64\xl.exe check test\cases\import_no_global_pollution.xl >nul 2> build\test\import_no_global_pollution.err.txt
 if not errorlevel 1 (
     echo import_no_global_pollution.xl should fail.
     exit /b 1
@@ -196,11 +196,11 @@ if errorlevel 1 (
     echo import_no_global_pollution.err.txt missing undeclared package symbol diagnostic.
     exit /b 1
 )
-release\xl.exe check test\cases\import_path_no_ext.xl
+release\win_x64\xl.exe check test\cases\import_path_no_ext.xl
 if errorlevel 1 exit /b 1
-release\xl.exe check test\cases\import_relative_scope\root\source\import_relative_scope.xl
+release\win_x64\xl.exe check test\cases\import_relative_scope\root\source\import_relative_scope.xl
 if errorlevel 1 exit /b 1
-release\xl.exe ir test\cases\import_package_use.xl --emit build\test\import_package_use.xlir
+release\win_x64\xl.exe ir test\cases\import_package_use.xl --emit build\test\import_package_use.xlir
 if errorlevel 1 exit /b 1
 findstr /C:"source=extern_func/" build\test\import_package_use.xlir >nul
 if errorlevel 1 (
@@ -217,30 +217,30 @@ if errorlevel 1 (
     echo import_package_use.xlir missing namespace rewrite.
     exit /b 1
 )
-release\xl.exe run test\cases\import_package_use.xl
+release\win_x64\xl.exe run test\cases\import_package_use.xl
 if errorlevel 1 exit /b 1
-release\xl.exe run test\cases\import_namespace_local_shadow.xl
+release\win_x64\xl.exe run test\cases\import_namespace_local_shadow.xl
 if errorlevel 1 exit /b 1
-release\xl.exe run test\cases\import_package_multi_source_scope.xl
+release\win_x64\xl.exe run test\cases\import_package_multi_source_scope.xl
 if errorlevel 1 exit /b 1
-release\xl.exe run test\cases\import_bugfix_pkg.xl
+release\win_x64\xl.exe run test\cases\import_bugfix_pkg.xl
 if errorlevel 1 exit /b 1
 
-release\xl.exe run test\cases\import_dependency_private.xl
+release\win_x64\xl.exe run test\cases\import_dependency_private.xl
 if errorlevel 1 exit /b 1
-release\xl.exe run test\cases\import_dependency_versions.xl
+release\win_x64\xl.exe run test\cases\import_dependency_versions.xl
 if errorlevel 1 exit /b 1
-release\xl.exe build test\cases\import_dependency_versions.xl -o build\test\import_dependency_versions.exe
+release\win_x64\xl.exe build test\cases\import_dependency_versions.xl -o build\test\import_dependency_versions.exe
 if errorlevel 1 exit /b 1
 build\test\import_dependency_versions.exe
 if errorlevel 1 exit /b 1
-release\xl.exe run test\cases\import_dependency_string_shorthand.xl
+release\win_x64\xl.exe run test\cases\import_dependency_string_shorthand.xl
 if errorlevel 1 exit /b 1
-release\xl.exe run test\cases\import_shared_transitive_dependency.xl
+release\win_x64\xl.exe run test\cases\import_shared_transitive_dependency.xl
 if errorlevel 1 exit /b 1
-release\xl.exe run test\cases\import_export_overload_pkg.xl
+release\win_x64\xl.exe run test\cases\import_export_overload_pkg.xl
 if errorlevel 1 exit /b 1
-release\xl.exe cgen test\cases\import_export_overload_pkg.xl --emit build\test\import_export_overload_pkg.c
+release\win_x64\xl.exe cgen test\cases\import_export_overload_pkg.xl --emit build\test\import_export_overload_pkg.c
 if errorlevel 1 exit /b 1
 findstr /C:"xl6_export___xl6_import_export_overload_pkg_value__i64" build\test\import_export_overload_pkg.c >nul
 if errorlevel 1 (
@@ -252,7 +252,7 @@ if errorlevel 1 (
     echo import_export_overload_pkg.c missing string export overload symbol.
     exit /b 1
 )
-release\xl.exe check test\cases\import_dependency_no_pollution.xl >nul 2> build\test\import_dependency_no_pollution.err.txt
+release\win_x64\xl.exe check test\cases\import_dependency_no_pollution.xl >nul 2> build\test\import_dependency_no_pollution.err.txt
 if not errorlevel 1 (
     echo import_dependency_no_pollution.xl should fail.
     exit /b 1
@@ -263,15 +263,15 @@ if errorlevel 1 (
     exit /b 1
 )
 
-release\xl.exe run test\cases\import_package_type_class_use.xl
+release\win_x64\xl.exe run test\cases\import_package_type_class_use.xl
 if errorlevel 1 exit /b 1
-release\xl.exe run test\cases\import_package_type_union_use.xl
+release\win_x64\xl.exe run test\cases\import_package_type_union_use.xl
 if errorlevel 1 exit /b 1
 powershell -NoProfile -ExecutionPolicy Bypass -File tools\check_xlir_union_native_package_abi.ps1 -Root "%CD%"
 if errorlevel 1 exit /b 1
-release\xl.exe check test\cases\import_package_var_use.xl
+release\win_x64\xl.exe check test\cases\import_package_var_use.xl
 if errorlevel 1 exit /b 1
-release\xl.exe ir test\cases\import_package_var_use.xl --emit build\test\import_package_var_use.xlir
+release\win_x64\xl.exe ir test\cases\import_package_var_use.xl --emit build\test\import_package_var_use.xlir
 if errorlevel 1 exit /b 1
 findstr /C:"source=extern_var/" build\test\import_package_var_use.xlir >nul
 if errorlevel 1 (
@@ -290,31 +290,31 @@ if errorlevel 1 (
 )
 
 rem Public module types, namespace aliases and selective imports.
-release\xl.exe run test\cases\import_public_types_namespace.xl
+release\win_x64\xl.exe run test\cases\import_public_types_namespace.xl
 if errorlevel 1 exit /b 1
-release\xl.exe run test\cases\import_public_types_alias.xl
+release\win_x64\xl.exe run test\cases\import_public_types_alias.xl
 if errorlevel 1 exit /b 1
-release\xl.exe run test\cases\import_public_types_selective.xl
+release\win_x64\xl.exe run test\cases\import_public_types_selective.xl
 if errorlevel 1 exit /b 1
-release\xl.exe run test\cases\import_public_types_identity.xl
+release\win_x64\xl.exe run test\cases\import_public_types_identity.xl
 if errorlevel 1 exit /b 1
-release\xl.exe run test\cases\import_public_types_namespace_upgrade.xl
+release\win_x64\xl.exe run test\cases\import_public_types_namespace_upgrade.xl
 if errorlevel 1 exit /b 1
-release\xl.exe run test\cases\import_public_types_qualified_surfaces.xl
+release\win_x64\xl.exe run test\cases\import_public_types_qualified_surfaces.xl
 if errorlevel 1 exit /b 1
-release\xl.exe run test\cases\import_builtin_alias.xl
+release\win_x64\xl.exe run test\cases\import_builtin_alias.xl
 if errorlevel 1 exit /b 1
-release\xl.exe run test\cases\import_source_public_types.xl
+release\win_x64\xl.exe run test\cases\import_source_public_types.xl
 if errorlevel 1 exit /b 1
-release\xl.exe check test\cases\import_source_public_types_module.xl
+release\win_x64\xl.exe check test\cases\import_source_public_types_module.xl
 if errorlevel 1 exit /b 1
 
-release\xl.exe build test\cases\import_public_types_qualified_surfaces.xl -o build\test\import_public_types_qualified_surfaces.exe
+release\win_x64\xl.exe build test\cases\import_public_types_qualified_surfaces.xl -o build\test\import_public_types_qualified_surfaces.exe
 if errorlevel 1 exit /b 1
 build\test\import_public_types_qualified_surfaces.exe
 if errorlevel 1 exit /b 1
 
-release\xl.exe parse test\cases\import_public_types_selective.xl --format tree --emit build\test\import_public_types_selective.ast
+release\win_x64\xl.exe parse test\cases\import_public_types_selective.xl --format tree --emit build\test\import_public_types_selective.ast
 if errorlevel 1 exit /b 1
 findstr /C:"import-selective" build\test\import_public_types_selective.ast >nul
 if errorlevel 1 (
@@ -327,62 +327,62 @@ if errorlevel 1 exit /b 1
 build\test\import_expand_host.exe test\cases\import_public_types_namespace.xl test\cases\import_public_types_alias.xl test\cases\import_public_types_selective.xl test\cases\import_public_types_identity.xl test\cases\import_public_types_namespace_upgrade.xl test\cases\import_public_types_qualified_surfaces.xl test\cases\import_source_public_types.xl
 if errorlevel 1 exit /b 1
 
-release\xl.exe check test\cases\import_public_types_private_fail.xl >nul 2> build\test\import_public_types_private_fail.err.txt
+release\win_x64\xl.exe check test\cases\import_public_types_private_fail.xl >nul 2> build\test\import_public_types_private_fail.err.txt
 if not errorlevel 1 exit /b 1
 findstr /C:"cannot import private or missing symbol" build\test\import_public_types_private_fail.err.txt >nul
 if errorlevel 1 exit /b 1
 
-release\xl.exe check test\cases\import_public_types_missing_fail.xl >nul 2> build\test\import_public_types_missing_fail.err.txt
+release\win_x64\xl.exe check test\cases\import_public_types_missing_fail.xl >nul 2> build\test\import_public_types_missing_fail.err.txt
 if not errorlevel 1 exit /b 1
 findstr /C:"cannot import private or missing symbol" build\test\import_public_types_missing_fail.err.txt >nul
 if errorlevel 1 exit /b 1
 
-release\xl.exe check test\cases\import_public_types_unqualified_fail.xl >nul 2> build\test\import_public_types_unqualified_fail.err.txt
+release\win_x64\xl.exe check test\cases\import_public_types_unqualified_fail.xl >nul 2> build\test\import_public_types_unqualified_fail.err.txt
 if not errorlevel 1 exit /b 1
 findstr /C:"undeclared identifier 'Point'" build\test\import_public_types_unqualified_fail.err.txt >nul
 if errorlevel 1 exit /b 1
 
-release\xl.exe check test\cases\import_public_types_alias_conflict_fail.xl >nul 2> build\test\import_public_types_alias_conflict_fail.err.txt
+release\win_x64\xl.exe check test\cases\import_public_types_alias_conflict_fail.xl >nul 2> build\test\import_public_types_alias_conflict_fail.err.txt
 if not errorlevel 1 exit /b 1
 findstr /C:"import alias conflicts with an existing declaration" build\test\import_public_types_alias_conflict_fail.err.txt >nul
 if errorlevel 1 exit /b 1
 
-release\xl.exe check test\cases\import_public_types_non_type_fail.xl >nul 2> build\test\import_public_types_non_type_fail.err.txt
+release\win_x64\xl.exe check test\cases\import_public_types_non_type_fail.xl >nul 2> build\test\import_public_types_non_type_fail.err.txt
 if not errorlevel 1 exit /b 1
 findstr /C:"import symbol is not a type" build\test\import_public_types_non_type_fail.err.txt >nul
 if errorlevel 1 exit /b 1
 
-release\xl.exe check test\cases\import_public_types_hidden_qualified_fail.xl >nul 2> build\test\import_public_types_hidden_qualified_fail.err.txt
+release\win_x64\xl.exe check test\cases\import_public_types_hidden_qualified_fail.xl >nul 2> build\test\import_public_types_hidden_qualified_fail.err.txt
 if not errorlevel 1 exit /b 1
 findstr /C:"import package has no such exported type" build\test\import_public_types_hidden_qualified_fail.err.txt >nul
 if errorlevel 1 exit /b 1
 
-release\xl.exe check test\cases\import_public_types_alias_hides_canonical_fail.xl >nul 2> build\test\import_public_types_alias_hides_canonical_fail.err.txt
+release\win_x64\xl.exe check test\cases\import_public_types_alias_hides_canonical_fail.xl >nul 2> build\test\import_public_types_alias_hides_canonical_fail.err.txt
 if not errorlevel 1 exit /b 1
 findstr /C:"private package dependency is not exported" build\test\import_public_types_alias_hides_canonical_fail.err.txt >nul
 if errorlevel 1 exit /b 1
 
-release\xl.exe check test\cases\import_public_types_builtin_alias_fail.xl >nul 2> build\test\import_public_types_builtin_alias_fail.err.txt
+release\win_x64\xl.exe check test\cases\import_public_types_builtin_alias_fail.xl >nul 2> build\test\import_public_types_builtin_alias_fail.err.txt
 if not errorlevel 1 exit /b 1
 findstr /C:"selective import name conflicts with an existing declaration" build\test\import_public_types_builtin_alias_fail.err.txt >nul
 if errorlevel 1 exit /b 1
 
-release\xl.exe check test\cases\import_public_types_namespace_builtin_alias_fail.xl >nul 2> build\test\import_public_types_namespace_builtin_alias_fail.err.txt
+release\win_x64\xl.exe check test\cases\import_public_types_namespace_builtin_alias_fail.xl >nul 2> build\test\import_public_types_namespace_builtin_alias_fail.err.txt
 if not errorlevel 1 exit /b 1
 findstr /C:"import alias conflicts with an existing declaration" build\test\import_public_types_namespace_builtin_alias_fail.err.txt >nul
 if errorlevel 1 exit /b 1
 
-release\xl.exe check test\cases\import_public_types_namespace_decl_conflict_fail.xl >nul 2> build\test\import_public_types_namespace_decl_conflict_fail.err.txt
+release\win_x64\xl.exe check test\cases\import_public_types_namespace_decl_conflict_fail.xl >nul 2> build\test\import_public_types_namespace_decl_conflict_fail.err.txt
 if not errorlevel 1 exit /b 1
 findstr /C:"import namespace conflicts with an existing declaration" build\test\import_public_types_namespace_decl_conflict_fail.err.txt >nul
 if errorlevel 1 exit /b 1
 
-release\xl.exe check test\cases\import_public_types_direct_then_namespace_conflict_fail.xl >nul 2> build\test\import_public_types_direct_then_namespace_conflict_fail.err.txt
+release\win_x64\xl.exe check test\cases\import_public_types_direct_then_namespace_conflict_fail.xl >nul 2> build\test\import_public_types_direct_then_namespace_conflict_fail.err.txt
 if not errorlevel 1 exit /b 1
 findstr /C:"import namespace conflicts with an existing declaration" build\test\import_public_types_direct_then_namespace_conflict_fail.err.txt >nul
 if errorlevel 1 exit /b 1
 
-release\xl.exe check test\cases\import_public_types_anonymous_union_export_fail.xl >nul 2> build\test\import_public_types_anonymous_union_export_fail.err.txt
+release\win_x64\xl.exe check test\cases\import_public_types_anonymous_union_export_fail.xl >nul 2> build\test\import_public_types_anonymous_union_export_fail.err.txt
 if not errorlevel 1 exit /b 1
 findstr /C:"export union requires a name" build\test\import_public_types_anonymous_union_export_fail.err.txt >nul
 if errorlevel 1 exit /b 1

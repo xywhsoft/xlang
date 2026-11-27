@@ -1,4 +1,4 @@
-#include "release/include/xrt_decl.h"
+#include "release/win_x64/include/xrt_decl.h"
 
 /* Test-only adapters preserve XRT's const-qualified public declarations while
  * exposing the language's ordinary borrowed-var ABI to the fixtures. */

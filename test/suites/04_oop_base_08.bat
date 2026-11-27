@@ -4,7 +4,7 @@ call "%~dp0common.bat"
 if errorlevel 1 exit /b 1
 echo Running DEMO6 suite: OOP ABI export and interop baseline 8/8...
 
-release\xl.exe cgen test\cases\cgen_class_field_and_container_param.xl --emit build\test\cgen_class_field_and_container_param.c
+release\win_x64\xl.exe cgen test\cases\cgen_class_field_and_container_param.xl --emit build\test\cgen_class_field_and_container_param.c
 if errorlevel 1 exit /b 1
 findstr /C:"xl6_missing_to_value" build\test\cgen_class_field_and_container_param.c >nul
 if not errorlevel 1 (
@@ -26,7 +26,7 @@ if errorlevel 1 exit /b 1
 build\test\cgen_class_field_and_container_param.exe
 if errorlevel 1 exit /b 1
 
-release\xl.exe cgen test\cases\cgen_typed_container_param_mutation.xl --emit build\test\cgen_typed_container_param_mutation.c
+release\win_x64\xl.exe cgen test\cases\cgen_typed_container_param_mutation.xl --emit build\test\cgen_typed_container_param_mutation.c
 if errorlevel 1 exit /b 1
 findstr /C:"xl_fn_mutateArray(__xl6_user_global_arrayValue);" build\test\cgen_typed_container_param_mutation.c >nul
 if errorlevel 1 (
@@ -58,7 +58,7 @@ if errorlevel 1 exit /b 1
 build\test\cgen_typed_container_param_mutation.exe
 if errorlevel 1 exit /b 1
 
-release\xl.exe check test\cases\sem_native_class_const_point.xl >nul 2> build\test\sem_native_class_const_point.err.txt
+release\win_x64\xl.exe check test\cases\sem_native_class_const_point.xl >nul 2> build\test\sem_native_class_const_point.err.txt
 if not errorlevel 1 (
     echo sem_native_class_const_point.xl should reject ownership transfer from const point.
     exit /b 1
@@ -69,7 +69,7 @@ if errorlevel 1 (
     exit /b 1
 )
 
-release\xl.exe cgen test\cases\cgen_class_param_value_ownership.xl --emit build\test\cgen_class_param_value_ownership.c
+release\win_x64\xl.exe cgen test\cases\cgen_class_param_value_ownership.xl --emit build\test\cgen_class_param_value_ownership.c
 if errorlevel 1 exit /b 1
 findstr /C:"xl_fn_mutateCopy(xl6_xrt_retain(__xl6_user_global_source)" build\test\cgen_class_param_value_ownership.c >nul
 if errorlevel 1 (
@@ -81,7 +81,7 @@ if errorlevel 1 exit /b 1
 build\test\cgen_class_param_value_ownership.exe
 if errorlevel 1 exit /b 1
 
-release\xl.exe cgen test\cases\cgen_export_typed_container_abi.xl --emit build\test\cgen_export_typed_container_abi.c --emit-header build\test\cgen_export_typed_container_abi.h
+release\win_x64\xl.exe cgen test\cases\cgen_export_typed_container_abi.xl --emit build\test\cgen_export_typed_container_abi.c --emit-header build\test\cgen_export_typed_container_abi.h
 if errorlevel 1 exit /b 1
 findstr /C:"xtarray values" build\test\cgen_export_typed_container_abi.c >nul
 if errorlevel 1 (

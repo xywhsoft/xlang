@@ -35,7 +35,7 @@ int main(int argc, char** argv)
     int ok = 0, code = 1;
     if (argc != 3) { fprintf(stderr, "usage: runtime-driver source.xl run|module|recovery\n"); return 2; }
     if (!GetCurrentDirectoryA(sizeof(root), root)) return 3;
-    snprintf(dll, sizeof(dll), "%s/release/xl.dll", root);
+    snprintf(dll, sizeof(dll), "%s/release/win_x64/xl.dll", root);
     snprintf(libraries, sizeof(libraries), "%s/res/tcc/win64/x86_64", root);
     options.workDir = root;
     options.tempDir = "build/test/xlir_public_runtime_temps";

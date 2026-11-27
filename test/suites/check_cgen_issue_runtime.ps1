@@ -10,7 +10,7 @@ function Invoke-XlExpectExit {
         [int]$Expected
     )
 
-    & ".\release\xl.exe" @ArgsList
+    & ".\release\win_x64\xl.exe" @ArgsList
     $code = $LASTEXITCODE
     if ($code -ne $Expected) {
         Write-Host "$Label exit mismatch: $code, expected $Expected"
@@ -29,7 +29,7 @@ function Invoke-XlExpectFailure {
     $errPath = Join-Path $root "build\test\$safeLabel.err.txt"
     $outPath = Join-Path $root "build\test\$safeLabel.out.txt"
     $process = Start-Process `
-        -FilePath (Join-Path $root "release\xl.exe") `
+        -FilePath (Join-Path $root "release\win_x64\xl.exe") `
         -ArgumentList $ArgsList `
         -NoNewWindow `
         -Wait `
@@ -80,7 +80,7 @@ Invoke-XlExpectExit `
     -ArgsList @("run", "test\cases\cgen_issue_utf8_argv.xl", "--", "milk") `
     -Expected 0
 
-& ".\release\xl.exe" build "test\cases\cgen_issue_utf8_argv.xl" -o "build\test\cgen_issue_utf8_argv.exe"
+& ".\release\win_x64\xl.exe" build "test\cases\cgen_issue_utf8_argv.xl" -o "build\test\cgen_issue_utf8_argv.exe"
 if ($LASTEXITCODE -ne 0) {
     Write-Host "utf8 argv build failed: $LASTEXITCODE"
     exit 1
@@ -92,7 +92,7 @@ if ($LASTEXITCODE -ne 0) {
     exit 1
 }
 
-& ".\release\xl.exe" build "test\cases\cgen_dev_feedback_priority.xl" -o "build\test\cgen_dev_feedback_priority.exe"
+& ".\release\win_x64\xl.exe" build "test\cases\cgen_dev_feedback_priority.xl" -o "build\test\cgen_dev_feedback_priority.exe"
 if ($LASTEXITCODE -ne 0) {
     Write-Host "dev feedback priority build failed: $LASTEXITCODE"
     exit 1
@@ -104,7 +104,7 @@ if ($LASTEXITCODE -ne 0) {
     exit 1
 }
 
-& ".\release\xl.exe" build "test\cases\stdlib_dev_codec_crypto_buffer_build.xl" -o "build\test\stdlib_dev_codec_crypto_buffer_build.exe"
+& ".\release\win_x64\xl.exe" build "test\cases\stdlib_dev_codec_crypto_buffer_build.xl" -o "build\test\stdlib_dev_codec_crypto_buffer_build.exe"
 if ($LASTEXITCODE -ne 0) {
     Write-Host "stdlib codec crypto buffer build failed: $LASTEXITCODE"
     exit 1
@@ -116,7 +116,7 @@ if ($LASTEXITCODE -ne 0) {
     exit 1
 }
 
-$runtimeHeader = Join-Path $root "release\include\xl_runtime.h"
+$runtimeHeader = Join-Path $root "release\win_x64\include\xl_runtime.h"
 $runtimeHeaderBackup = Join-Path $root "build\test\xl_runtime.h.backup"
 $pollutionSource = Join-Path $root "build\test\xl_runtime_pollution_probe.xl"
 $pollutionExe = Join-Path $root "build\test\xl_runtime_pollution_probe.exe"
@@ -132,9 +132,9 @@ try {
         "func main(...) as int`r`n    println(`"runtime-private-ok`")`r`n    return 0`r`nend`r`n",
         [System.Text.UTF8Encoding]::new($false))
 
-    & ".\release\xl.exe" run $pollutionSource
+    & ".\release\win_x64\xl.exe" run $pollutionSource
     if ($LASTEXITCODE -eq 0) {
-        & ".\release\xl.exe" build $pollutionSource -o $pollutionExe
+        & ".\release\win_x64\xl.exe" build $pollutionSource -o $pollutionExe
         if ($LASTEXITCODE -eq 0) {
             & $pollutionExe
             if ($LASTEXITCODE -eq 0) {

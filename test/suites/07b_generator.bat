@@ -4,7 +4,7 @@ call "%~dp0common.bat"
 if errorlevel 1 exit /b 1
 echo Running DEMO6 suite: generator...
 
-release\xl.exe check test\cases\sem_for_await_non_generator.xl >nul 2> build\test\sem_for_await_non_generator.err.txt
+release\win_x64\xl.exe check test\cases\sem_for_await_non_generator.xl >nul 2> build\test\sem_for_await_non_generator.err.txt
 if not errorlevel 1 (
     echo sem_for_await_non_generator.xl should fail.
     exit /b 1
@@ -15,7 +15,7 @@ if errorlevel 1 (
     exit /b 1
 )
 
-release\xl.exe check test\cases\sem_async_type_non_generator.xl >nul 2> build\test\sem_async_type_non_generator.err.txt
+release\win_x64\xl.exe check test\cases\sem_async_type_non_generator.xl >nul 2> build\test\sem_async_type_non_generator.err.txt
 if not errorlevel 1 (
     echo sem_async_type_non_generator.xl should fail.
     exit /b 1
@@ -26,7 +26,7 @@ if errorlevel 1 (
     exit /b 1
 )
 
-release\xl.exe check test\cases\sem_async_generator_return_value.xl >nul 2> build\test\sem_async_generator_return_value.err.txt
+release\win_x64\xl.exe check test\cases\sem_async_generator_return_value.xl >nul 2> build\test\sem_async_generator_return_value.err.txt
 if not errorlevel 1 (
     echo sem_async_generator_return_value.xl should fail.
     exit /b 1
@@ -42,7 +42,7 @@ if errorlevel 1 (
     exit /b 1
 )
 
-release\xl.exe check test\cases\sem_async_generator_type_marker_return_value.xl >nul 2> build\test\sem_async_generator_type_marker_return_value.err.txt
+release\win_x64\xl.exe check test\cases\sem_async_generator_type_marker_return_value.xl >nul 2> build\test\sem_async_generator_type_marker_return_value.err.txt
 if not errorlevel 1 (
     echo sem_async_generator_type_marker_return_value.xl should fail.
     exit /b 1
@@ -58,7 +58,7 @@ if errorlevel 1 (
     exit /b 1
 )
 
-release\xl.exe check test\cases\sem_generator_return_value.xl >nul 2> build\test\sem_generator_return_value.err.txt
+release\win_x64\xl.exe check test\cases\sem_generator_return_value.xl >nul 2> build\test\sem_generator_return_value.err.txt
 if not errorlevel 1 (
     echo sem_generator_return_value.xl should fail.
     exit /b 1
@@ -74,13 +74,13 @@ if errorlevel 1 (
     exit /b 1
 )
 
-release\xl.exe check test\cases\cgen_generator.xl
+release\win_x64\xl.exe check test\cases\cgen_generator.xl
 if errorlevel 1 exit /b 1
 
-release\xl.exe run test\cases\cgen_generator.xl
+release\win_x64\xl.exe run test\cases\cgen_generator.xl
 if errorlevel 1 exit /b 1
 
-release\xl.exe build test\cases\cgen_generator.xl -o build\test\cgen_generator.exe
+release\win_x64\xl.exe build test\cases\cgen_generator.xl -o build\test\cgen_generator.exe
 if errorlevel 1 exit /b 1
 
 build\test\cgen_generator.exe
@@ -93,7 +93,7 @@ for /L %%I in (1,1,5) do (
     )
 )
 
-release\xl.exe cgen test\cases\cgen_generator.xl --emit build\test\cgen_generator.c
+release\win_x64\xl.exe cgen test\cases\cgen_generator.xl --emit build\test\cgen_generator.c
 if errorlevel 1 exit /b 1
 powershell -NoProfile -ExecutionPolicy Bypass -Command "$text=[IO.File]::ReadAllText('build\test\cgen_generator.c',[Text.Encoding]::UTF8).Replace('__xl6_user_global_',''); [IO.File]::WriteAllText('build\test\cgen_generator.assert.c',$text,(New-Object Text.UTF8Encoding($false)))"
 if errorlevel 1 exit /b 1
@@ -259,13 +259,13 @@ if errorlevel 1 (
     exit /b 1
 )
 
-release\xl.exe check test\cases\cgen_generator_two_targets.xl
+release\win_x64\xl.exe check test\cases\cgen_generator_two_targets.xl
 if errorlevel 1 exit /b 1
 
-release\xl.exe run test\cases\cgen_generator_two_targets.xl
+release\win_x64\xl.exe run test\cases\cgen_generator_two_targets.xl
 if errorlevel 1 exit /b 1
 
-release\xl.exe build test\cases\cgen_generator_two_targets.xl -o build\test\cgen_generator_two_targets.exe
+release\win_x64\xl.exe build test\cases\cgen_generator_two_targets.xl -o build\test\cgen_generator_two_targets.exe
 if errorlevel 1 exit /b 1
 
 build\test\cgen_generator_two_targets.exe
@@ -278,7 +278,7 @@ for /L %%I in (1,1,5) do (
     )
 )
 
-release\xl.exe cgen test\cases\cgen_generator_two_targets.xl --emit build\test\cgen_generator_two_targets.c
+release\win_x64\xl.exe cgen test\cases\cgen_generator_two_targets.xl --emit build\test\cgen_generator_two_targets.c
 if errorlevel 1 exit /b 1
 
 findstr /C:"long long __xl6_gen_index_" build\test\cgen_generator_two_targets.c >nul
@@ -297,13 +297,13 @@ if errorlevel 1 (
     exit /b 1
 )
 
-release\xl.exe check test\cases\sem_yield_outside_generator.xl >nul 2> build\test\sem_yield_outside_generator.err.txt
+release\win_x64\xl.exe check test\cases\sem_yield_outside_generator.xl >nul 2> build\test\sem_yield_outside_generator.err.txt
 if not errorlevel 1 (
     echo sem_yield_outside_generator.xl should fail.
     exit /b 1
 )
 
-release\xl.exe check test\cases\sem_yield_sync_func.xl >nul 2> build\test\sem_yield_sync_func.err.txt
+release\win_x64\xl.exe check test\cases\sem_yield_sync_func.xl >nul 2> build\test\sem_yield_sync_func.err.txt
 if not errorlevel 1 (
     echo sem_yield_sync_func.xl should fail.
     exit /b 1
@@ -314,7 +314,7 @@ if errorlevel 1 (
     exit /b 1
 )
 
-release\xl.exe check test\cases\sem_yield_async_non_generator.xl >nul 2> build\test\sem_yield_async_non_generator.err.txt
+release\win_x64\xl.exe check test\cases\sem_yield_async_non_generator.xl >nul 2> build\test\sem_yield_async_non_generator.err.txt
 if not errorlevel 1 (
     echo sem_yield_async_non_generator.xl should fail.
     exit /b 1
@@ -325,11 +325,11 @@ if errorlevel 1 (
     exit /b 1
 )
 
-release\xl.exe check test\cases\cgen_generator_string_resource.xl
+release\win_x64\xl.exe check test\cases\cgen_generator_string_resource.xl
 if errorlevel 1 exit /b 1
-release\xl.exe run test\cases\cgen_generator_string_resource.xl
+release\win_x64\xl.exe run test\cases\cgen_generator_string_resource.xl
 if errorlevel 1 exit /b 1
-release\xl.exe cgen test\cases\cgen_generator_string_resource.xl --emit build\test\cgen_generator_string_resource.c
+release\win_x64\xl.exe cgen test\cases\cgen_generator_string_resource.xl --emit build\test\cgen_generator_string_resource.c
 if errorlevel 1 exit /b 1
 findstr /C:"__xl6_frame->prefix = xl6_xrt_string_dup(prefix != 0 ? prefix : \"\", 0u);" build\test\cgen_generator_string_resource.c >nul
 if errorlevel 1 (
@@ -351,7 +351,7 @@ if errorlevel 1 exit /b 1
 build\test\cgen_generator_string_resource.exe
 if errorlevel 1 exit /b 1
 
-release\xl.exe check test\cases\sem_generator_var_element.xl >nul 2> build\test\sem_generator_var_element.err.txt
+release\win_x64\xl.exe check test\cases\sem_generator_var_element.xl >nul 2> build\test\sem_generator_var_element.err.txt
 if not errorlevel 1 (
     echo sem_generator_var_element.xl should fail.
     exit /b 1
@@ -362,7 +362,7 @@ if errorlevel 1 (
     exit /b 1
 )
 
-release\xl.exe check test\cases\sem_generator_typed_array_element.xl >nul 2> build\test\sem_generator_typed_array_element.err.txt
+release\win_x64\xl.exe check test\cases\sem_generator_typed_array_element.xl >nul 2> build\test\sem_generator_typed_array_element.err.txt
 if not errorlevel 1 (
     echo sem_generator_typed_array_element.xl should fail.
     exit /b 1
@@ -373,7 +373,7 @@ if errorlevel 1 (
     exit /b 1
 )
 
-release\xl.exe check test\cases\sem_generator_class_element.xl >nul 2> build\test\sem_generator_class_element.err.txt
+release\win_x64\xl.exe check test\cases\sem_generator_class_element.xl >nul 2> build\test\sem_generator_class_element.err.txt
 if not errorlevel 1 (
     echo sem_generator_class_element.xl should fail.
     exit /b 1
@@ -384,7 +384,7 @@ if errorlevel 1 (
     exit /b 1
 )
 
-release\xl.exe check test\cases\sem_generator_function_element.xl >nul 2> build\test\sem_generator_function_element.err.txt
+release\win_x64\xl.exe check test\cases\sem_generator_function_element.xl >nul 2> build\test\sem_generator_function_element.err.txt
 if not errorlevel 1 (
     echo sem_generator_function_element.xl should fail.
     exit /b 1
@@ -396,13 +396,13 @@ if errorlevel 1 (
 )
 
 rem Class references now use retained continuation-frame ownership.
-release\xl.exe run test\cases\sem_generator_class_param.xl
+release\win_x64\xl.exe run test\cases\sem_generator_class_param.xl
 if errorlevel 1 (
     echo sem_generator_class_param.xl failed retained class-frame execution.
     exit /b 1
 )
 
-release\xl.exe check test\cases\sem_generator_var_param.xl >nul 2> build\test\sem_generator_var_param.err.txt
+release\win_x64\xl.exe check test\cases\sem_generator_var_param.xl >nul 2> build\test\sem_generator_var_param.err.txt
 if not errorlevel 1 (
     echo sem_generator_var_param.xl should fail.
     exit /b 1
@@ -418,7 +418,7 @@ if errorlevel 1 (
     exit /b 1
 )
 
-release\xl.exe check test\cases\sem_generator_typed_array_param.xl >nul 2> build\test\sem_generator_typed_array_param.err.txt
+release\win_x64\xl.exe check test\cases\sem_generator_typed_array_param.xl >nul 2> build\test\sem_generator_typed_array_param.err.txt
 if not errorlevel 1 (
     echo sem_generator_typed_array_param.xl should fail.
     exit /b 1
@@ -434,12 +434,12 @@ if errorlevel 1 (
     exit /b 1
 )
 
-release\xl.exe check test\cases\sem_generator_function_param.xl
+release\win_x64\xl.exe check test\cases\sem_generator_function_param.xl
 if errorlevel 1 exit /b 1
-release\xl.exe run test\cases\sem_generator_function_param.xl
+release\win_x64\xl.exe run test\cases\sem_generator_function_param.xl
 if errorlevel 1 exit /b 1
 
-release\xl.exe check test\cases\sem_generator_yield_type.xl >nul 2> build\test\sem_generator_yield_type.err.txt
+release\win_x64\xl.exe check test\cases\sem_generator_yield_type.xl >nul 2> build\test\sem_generator_yield_type.err.txt
 if not errorlevel 1 (
     echo sem_generator_yield_type.xl should fail.
     exit /b 1

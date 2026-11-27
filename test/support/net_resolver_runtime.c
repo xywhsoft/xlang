@@ -1,6 +1,6 @@
 /* Only offline state/ownership and literal numeric fast paths. No lookup of
  * names, sockets, external DNS/traffic, probes or network-security tests. */
-#include "release/include/xl_clock.h"
+#include "release/win_x64/include/xl_clock.h"
 #include "include/xrt_decl.h"
 #include "include/xruntime_decl.h"
 #include "src/runtime/xl6_text_value.h"

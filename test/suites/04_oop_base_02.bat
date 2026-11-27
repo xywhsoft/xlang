@@ -4,7 +4,7 @@ call "%~dp0common.bat"
 if errorlevel 1 exit /b 1
 echo Running DEMO6 suite: OOP ABI export and interop baseline 2/8...
 
-release\xl.exe cgen test\cases\cgen_dynamic_member_access.xl --emit build\test\cgen_dynamic_member_access.c
+release\win_x64\xl.exe cgen test\cases\cgen_dynamic_member_access.xl --emit build\test\cgen_dynamic_member_access.c
 if errorlevel 1 exit /b 1
 findstr /C:"xl6_record_field_get_owned(__xl6_user_global_obj," build\test\cgen_dynamic_member_access.c >nul
 if errorlevel 1 (
@@ -71,9 +71,9 @@ if errorlevel 1 exit /b 1
 build\test\cgen_dynamic_member_access.exe
 if errorlevel 1 exit /b 1
 
-release\xl.exe check test\cases\cgen_dynamic_container_param.xl
+release\win_x64\xl.exe check test\cases\cgen_dynamic_container_param.xl
 if errorlevel 1 exit /b 1
-release\xl.exe cgen test\cases\cgen_dynamic_container_param.xl --emit build\test\cgen_dynamic_container_param.c
+release\win_x64\xl.exe cgen test\cases\cgen_dynamic_container_param.xl --emit build\test\cgen_dynamic_container_param.c
 if errorlevel 1 exit /b 1
 findstr /C:"xvalue* xl_fn_take(xvalue* values)" build\test\cgen_dynamic_container_param.c >nul
 if errorlevel 1 (
@@ -100,12 +100,12 @@ if errorlevel 1 (
     echo cgen_dynamic_container_param.c missing dynamic dict literal argument.
     exit /b 1
 )
-release\xl.exe build test\cases\cgen_dynamic_container_param.xl -o build\test\cgen_dynamic_container_param.exe
+release\win_x64\xl.exe build test\cases\cgen_dynamic_container_param.xl -o build\test\cgen_dynamic_container_param.exe
 if errorlevel 1 exit /b 1
 build\test\cgen_dynamic_container_param.exe
 if errorlevel 1 exit /b 1
 
-release\xl.exe cgen test\cases\cgen_safe_member.xl --emit build\test\cgen_safe_member.c
+release\win_x64\xl.exe cgen test\cases\cgen_safe_member.xl --emit build\test\cgen_safe_member.c
 if errorlevel 1 exit /b 1
 powershell -NoProfile -ExecutionPolicy Bypass -Command "$t=Get-Content 'build\test\cgen_safe_member.c' -Raw; if($t -notmatch '__xl6_user_global_valuesLength = xl6_nullable_box_[0-9a-f]+\(.*xl6TypedArrayCount\('){exit 1}"
 if errorlevel 1 (
@@ -172,7 +172,7 @@ if errorlevel 1 exit /b 1
 build\test\cgen_safe_member.exe
 if errorlevel 1 exit /b 1
 
-release\xl.exe cgen test\cases\cgen_overload_varargs.xl --emit build\test\cgen_overload_varargs.c
+release\win_x64\xl.exe cgen test\cases\cgen_overload_varargs.xl --emit build\test\cgen_overload_varargs.c
 if errorlevel 1 exit /b 1
 findstr /C:"expect_i64(xl_fn_pick__string(\"x\"), 1LL);" build\test\cgen_overload_varargs.c >nul
 if errorlevel 1 (
@@ -194,7 +194,7 @@ if errorlevel 1 exit /b 1
 build\test\cgen_overload_varargs.exe
 if errorlevel 1 exit /b 1
 
-release\xl.exe cgen test\cases\control_flow_inline_if.xl --emit build\test\control_flow_inline_if.c
+release\win_x64\xl.exe cgen test\cases\control_flow_inline_if.xl --emit build\test\control_flow_inline_if.c
 if errorlevel 1 exit /b 1
 findstr /C:"if ((value > 0LL))" build\test\control_flow_inline_if.c >nul
 if errorlevel 1 (
@@ -211,7 +211,7 @@ if errorlevel 1 exit /b 1
 build\test\control_flow_inline_if.exe
 if errorlevel 1 exit /b 1
 
-release\xl.exe cgen test\cases\cgen_assign_ops.xl --emit build\test\cgen_assign_ops.c
+release\win_x64\xl.exe cgen test\cases\cgen_assign_ops.xl --emit build\test\cgen_assign_ops.c
 if errorlevel 1 exit /b 1
 findstr /C:"__xl6_user_global_a += 2LL;" build\test\cgen_assign_ops.c >nul
 if errorlevel 1 (
@@ -233,7 +233,7 @@ if errorlevel 1 exit /b 1
 build\test\cgen_assign_ops.exe
 if errorlevel 1 exit /b 1
 
-release\xl.exe cgen test\cases\cgen_null_coalesce.xl --emit build\test\cgen_null_coalesce.c
+release\win_x64\xl.exe cgen test\cases\cgen_null_coalesce.xl --emit build\test\cgen_null_coalesce.c
 if errorlevel 1 exit /b 1
 findstr /C:"xvalue* __xl6_global_init_" build\test\cgen_null_coalesce.c >nul
 if errorlevel 1 (
@@ -320,7 +320,7 @@ if errorlevel 1 exit /b 1
 build\test\cgen_null_coalesce.exe
 if errorlevel 1 exit /b 1
 
-release\xl.exe cgen test\cases\cgen_pow.xl --emit build\test\cgen_pow.c
+release\win_x64\xl.exe cgen test\cases\cgen_pow.xl --emit build\test\cgen_pow.c
 if errorlevel 1 exit /b 1
 findstr /C:"static long long xl6_int_pow_i64" build\test\cgen_pow.c >nul
 if errorlevel 1 (
@@ -342,7 +342,7 @@ if errorlevel 1 exit /b 1
 build\test\cgen_pow.exe
 if errorlevel 1 exit /b 1
 
-release\xl.exe cgen test\cases\cgen_native_class_lifecycle.xl --emit build\test\cgen_native_class_lifecycle.c
+release\win_x64\xl.exe cgen test\cases\cgen_native_class_lifecycle.xl --emit build\test\cgen_native_class_lifecycle.c
 if errorlevel 1 exit /b 1
 findstr /C:"xl6_xrt_type_value_id(rejectedCopy, false)" build\test\cgen_native_class_lifecycle.c >nul
 if errorlevel 1 (
@@ -374,7 +374,7 @@ if errorlevel 1 exit /b 1
 build\test\cgen_native_class_lifecycle.exe
 if errorlevel 1 exit /b 1
 
-release\xl.exe cgen test\cases\cgen_native_class.xl --emit build\test\cgen_native_class.c
+release\win_x64\xl.exe cgen test\cases\cgen_native_class.xl --emit build\test\cgen_native_class.c
 if errorlevel 1 exit /b 1
 findstr /C:"void* counter_open(long long seed);" build\test\cgen_native_class.c >nul
 if errorlevel 1 (
@@ -401,7 +401,7 @@ if errorlevel 1 exit /b 1
 build\test\cgen_native_class.exe
 if errorlevel 1 exit /b 1
 
-release\xl.exe cgen test\cases\cgen_native_class_bind_point.xl --emit build\test\cgen_native_class_bind_point.c
+release\win_x64\xl.exe cgen test\cases\cgen_native_class_bind_point.xl --emit build\test\cgen_native_class_bind_point.c
 if errorlevel 1 exit /b 1
 findstr /C:"#define XL_RUNTIME_NEED_POINT_MOVE 1" build\test\cgen_native_class_bind_point.c >nul
 if errorlevel 1 (
@@ -448,7 +448,7 @@ if errorlevel 1 exit /b 1
 build\test\cgen_native_class_bind_point.exe
 if errorlevel 1 exit /b 1
 
-release\xl.exe cgen test\cases\cgen_native_class_field.xl --emit build\test\cgen_native_class_field.c
+release\win_x64\xl.exe cgen test\cases\cgen_native_class_field.xl --emit build\test\cgen_native_class_field.c
 if errorlevel 1 exit /b 1
 findstr /C:"xl_class_NativeBox__value(((XL_Class_NativeBox*)xl6_class_data(self->box" build\test\cgen_native_class_field.c >nul
 if errorlevel 1 (
@@ -465,7 +465,7 @@ if errorlevel 1 exit /b 1
 build\test\cgen_native_class_field.exe
 if errorlevel 1 exit /b 1
 
-release\xl.exe cgen test\cases\cgen_native_class_return_move.xl --emit build\test\cgen_native_class_return_move.c
+release\win_x64\xl.exe cgen test\cases\cgen_native_class_return_move.xl --emit build\test\cgen_native_class_return_move.c
 if errorlevel 1 exit /b 1
 findstr /C:"xvalue* __xl6_return_" build\test\cgen_native_class_return_move.c >nul
 if errorlevel 1 (

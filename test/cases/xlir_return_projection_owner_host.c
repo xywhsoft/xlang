@@ -1,7 +1,7 @@
 #include <assert.h>
 #include <stdint.h>
 #include <stdio.h>
-#include "../../release/include/xrt_decl.h"
+#include "../../release/win_x64/include/xrt_decl.h"
 #include "../../build/test/xlir_return_projection_owner.h"
 void return_projection_oom(void);
 static int lane, mode, liveMask, order, observations, calls, finalChecks;

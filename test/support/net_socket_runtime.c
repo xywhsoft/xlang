@@ -12,7 +12,7 @@
 #endif
 #include "lib/xrt/xrt.h"
 #include "lib/xruntime/xruntime.h"
-#include "release/include/xl_clock.h"
+#include "release/win_x64/include/xl_clock.h"
 #define XL6_TEXT_API
 #include "src/runtime/xl6_net_socket_abi.h"
 #include "src/runtime/xl6_native_handle.h"

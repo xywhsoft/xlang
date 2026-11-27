@@ -1,6 +1,6 @@
 /* Tests the real resident bridge with code from an actually unmapped DLL.
  * This is not a substitute for language ALL/ANY deadlock or module-cycle tests. */
-#include "release/include/xruntime_decl.h"
+#include "release/win_x64/include/xruntime_decl.h"
 #include "src/api/xl_future_bridge.h"
 #include "src/runtime/xl6_future_aggregate.h"
 #include "src/runtime/xl6_future_payload.h"

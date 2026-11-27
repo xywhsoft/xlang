@@ -1,6 +1,6 @@
 /* Preinclude generated C and the canonical async target binding. No sockets,
  * delays or network worker scheduling are needed to expose producer execution. */
-#include "release/include/xl_clock.h"
+#include "release/win_x64/include/xl_clock.h"
 #include <assert.h>
 #include <stdio.h>
 typedef struct xthread xthread;

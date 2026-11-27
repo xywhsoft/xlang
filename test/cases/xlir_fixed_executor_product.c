@@ -1,5 +1,5 @@
 /* Link only a normal product and its extracted declaration-only SDK. */
-#include "release/include/xl_clock.h"
+#include "release/win_x64/include/xl_clock.h"
 #include <__xl_runtime/xruntime_decl.h>
 #include <__xl_runtime/xl6_continuation_executor.h>
 #include <__xl_runtime/xl6_continuation_future.h>

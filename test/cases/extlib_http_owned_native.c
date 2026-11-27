@@ -1,5 +1,5 @@
 #define XRT_MODULE_ALL
-#include "../../release/extlibs/xhttp.protocol/include/xhttp_protocol_package.h"
+#include "../../release/win_x64/extlibs/xhttp.protocol/include/xhttp_protocol_package.h"
 #include <assert.h>
 #include <stdio.h>
 #include <string.h>

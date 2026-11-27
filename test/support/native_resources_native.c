@@ -1,4 +1,4 @@
-#include "release/include/xruntime_decl.h"
+#include "release/win_x64/include/xruntime_decl.h"
 #include "src/runtime/xl6_text_value.h"
 #include "src/runtime/xl6_native_handle.h"
 #include "src/runtime/xl6_ownership_domains.h"

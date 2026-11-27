@@ -1,4 +1,4 @@
-#include "release/include/xl_clock.h"
+#include "release/win_x64/include/xl_clock.h"
 #include "src/common/xl6_xrt.h"
 #include "src/runtime/xl6_network_service.h"
 #include <assert.h>

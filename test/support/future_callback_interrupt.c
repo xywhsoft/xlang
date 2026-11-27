@@ -2,7 +2,7 @@
  * queue and catalog. Tests here are offline; no network is selected or used. */
 #define main sharedCallbackRegressionMain
 #include "future_callback_exclusive_queue.c"
-#include "release/include/xl_clock.h"
+#include "release/win_x64/include/xl_clock.h"
 #undef main
 #include "src/runtime/xl6_future_callback_interrupt.h"
 

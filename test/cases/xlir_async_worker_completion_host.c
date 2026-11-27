@@ -1,4 +1,4 @@
-#include "release/include/xl_clock.h"
+#include "release/win_x64/include/xl_clock.h"
 #include <assert.h>
 #include <stddef.h>
 #define XRT_DECLARATIONS 1

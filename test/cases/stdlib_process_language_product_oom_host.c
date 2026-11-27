@@ -3,7 +3,7 @@
  * compiled transparent call-site probe retains a private waiter reference
  * before language boxing. This is not unobserved JIT or trimmed AOT execution.
  * One process per current-thread allocation prefix; other threads not injected. */
-#include "release/include/xl_clock.h"
+#include "release/win_x64/include/xl_clock.h"
 #include <assert.h>
 #include <stdio.h>
 #include <stdlib.h>

@@ -14,7 +14,7 @@ static XL_Context* create(const char* root,const char* headers,const char* tempo
 {
     XL_ContextOptions options=xlDefaultContextOptions(); char runtime[4096],libraries[4096];
 #ifdef _WIN32
-    int n=snprintf(runtime,sizeof(runtime),"%s/release/xl.dll",root);
+    int n=snprintf(runtime,sizeof(runtime),"%s/release/win_x64/xl.dll",root);
     int m=snprintf(libraries,sizeof(libraries),"%s/res/tcc/win64/x86_64",root);
 #else
     const char* native=getenv("XL6_SOURCE_NATIVE_ROOT"); assert(native && *native);

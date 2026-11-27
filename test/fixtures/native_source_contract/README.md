@@ -1,7 +1,7 @@
 # 原生源依赖与 C 入口合同
 
 这组夹具验证显式混编 C、声明模块的扩展包和纯 xlang 程序使用同一套运行库
-选择规则。它不是独立扩展包，也不会被安装到 `release/extlibs`。
+选择规则。它不是独立扩展包，也不会被安装到 `release/win_x64/extlibs`。
 
 ## 覆盖范围
 
@@ -33,7 +33,7 @@
 ## 重跑
 
 在 `demo6` 根目录执行，三条命令使用同一个全新证据目录。需要 GCC、当前冻结
-的 `release/xl.dll` 和仓库 SDK/资源。工具不替换任何发布二进制或运行库实现头。
+的 `release/win_x64/xl.dll` 和仓库 SDK/资源。工具不替换任何发布二进制或运行库实现头。
 
 ```powershell
 powershell -NoProfile -File tools/build_xlir_public_source_driver.ps1 -Directory build/test/native-contract/compiler

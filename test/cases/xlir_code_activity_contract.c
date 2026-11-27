@@ -1,6 +1,6 @@
 /* Actual resident registry, with native OS threads that have no XRT context.
  * Stack activity never grants residency or accepted-lease inheritance. */
-#include "release/include/xrt_decl.h"
+#include "release/win_x64/include/xrt_decl.h"
 #include "src/runtime/xl6_code_lease.h"
 #include "test/support/module_product_memory.h"
 #include <assert.h>

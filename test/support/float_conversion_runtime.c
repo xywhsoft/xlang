@@ -1,5 +1,5 @@
 #include "src/runtime/xl6_float_convert.h"
-#include "release/include/xruntime_decl.h"
+#include "release/win_x64/include/xruntime_decl.h"
 #include "test/support/module_product_memory.h"
 #include <assert.h>
 #include <float.h>

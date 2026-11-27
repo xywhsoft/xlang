@@ -1,6 +1,6 @@
 /* Public source-JIT execution. Hooks observe generated catch/finally only. */
 #include "xlc.h"
-#include "release/include/xruntime_decl.h"
+#include "release/win_x64/include/xruntime_decl.h"
 #include "src/api/xl_foreign_error.h"
 #include <assert.h>
 #include <stdio.h>

@@ -2,7 +2,7 @@
  * original TCP/Accept suite also runs, proving the shared carrier regression. */
 #define main tcpResourceRegressionMain
 #include "tcp_execution_resource.c"
-#include "release/include/xl_clock.h"
+#include "release/win_x64/include/xl_clock.h"
 #undef main
 #include "src/runtime/xl6_execution_tcp_dial.h"
 #include "src/runtime/xl6_execution_net_resolver.h"

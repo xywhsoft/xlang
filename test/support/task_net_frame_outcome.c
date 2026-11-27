@@ -7,7 +7,7 @@
 #define XRT_MODULE_WAIT
 #endif
 #include "lib/xrt/xrt.h"
-#include "release/include/xl_clock.h"
+#include "release/win_x64/include/xl_clock.h"
 #include "src/runtime/xl6_task_net.h"
 #include "src/runtime/xl6_closure.h"
 #include "src/api/xl_foreign_error.h"

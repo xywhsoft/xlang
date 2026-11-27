@@ -7,7 +7,7 @@
 #include <string.h>
 #include <stdio.h>
 
-#include "../../release/extlibs/mysql/include/mysql_native.h"
+#include "../../release/win_x64/extlibs/mysql/include/mysql_native.h"
 double xfaiss_l2_distance(const char* a, const char* b);
 double xfaiss_inner_product(const char* a, const char* b);
 double xfaiss_cosine(const char* a, const char* b);

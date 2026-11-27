@@ -1,7 +1,7 @@
 /* Actual TinyCC -> resident GCC ABI, including owned struct returns. This is
  * private C bridge acceptance, not the pending xlang Queue language cutover. */
 #include "lib/tcc/libtcc.h"
-#include "release/include/xl.h"
+#include "release/win_x64/include/xl.h"
 #include "src/runtime/xl6_concurrent_queue.h"
 #include "src/runtime/xl6_array_admission.h"
 #include "src/runtime/xl6_array_erased.h"

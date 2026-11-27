@@ -1,5 +1,5 @@
-#include "release/include/xl_clock.h"
-#include "release/include/xrt_decl.h"
+#include "release/win_x64/include/xl_clock.h"
+#include "release/win_x64/include/xrt_decl.h"
 #include "src/runtime/xl6_thread.h"
 #include "src/api/xl_foreign_error.h"
 #include "test/support/module_product_memory.h"

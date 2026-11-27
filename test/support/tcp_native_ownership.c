@@ -2,7 +2,7 @@
  * Adapted ONLY for the pinned millisecond/XL6_DeadlineV1 ABI and standalone include.
  * Actual RC, queue, payload, preparation and OOM semantics are unchanged. */
 #define XRT_IMPLEMENTATION
-#include "release/include/xl_clock.h"
+#include "release/win_x64/include/xl_clock.h"
 #include "xrt.h"
 #include <stdio.h>
 #include <stdlib.h>

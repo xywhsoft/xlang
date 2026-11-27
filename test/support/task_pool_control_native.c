@@ -22,7 +22,7 @@
 #define XRT_IMPLEMENTATION
 #include "lib/xrt/xrt.h"
 #endif
-#include "release/include/xl_clock.h"
+#include "release/win_x64/include/xl_clock.h"
 #include "src/runtime/xl6_task.h"
 #include "src/runtime/xl6_ownership_catalog.h"
 #include "src/runtime/xl6_ownership_domains.h"

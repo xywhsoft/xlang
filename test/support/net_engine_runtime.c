@@ -10,7 +10,7 @@
 #endif
 #include "lib/xrt/xrt.h"
 #include "lib/xruntime/xruntime.h"
-#include "release/include/xl_clock.h"
+#include "release/win_x64/include/xl_clock.h"
 #include "src/runtime/xl6_execution_resource_internal.h"
 #include "src/runtime/xl6_execution_net_engine.h"
 #include "src/runtime/xl6_detached_work.h"

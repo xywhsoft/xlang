@@ -4,13 +4,13 @@ call "%~dp0common.bat"
 if errorlevel 1 exit /b 1
 echo Running DEMO6 suite: async execution and generation...
 
-release\xl.exe check test\cases\cgen_async.xl
+release\win_x64\xl.exe check test\cases\cgen_async.xl
 if errorlevel 1 exit /b 1
 
-release\xl.exe run test\cases\cgen_async.xl
+release\win_x64\xl.exe run test\cases\cgen_async.xl
 if errorlevel 1 exit /b 1
 
-release\xl.exe build test\cases\cgen_async.xl -o build\test\cgen_async.exe
+release\win_x64\xl.exe build test\cases\cgen_async.xl -o build\test\cgen_async.exe
 if errorlevel 1 exit /b 1
 
 build\test\cgen_async.exe
@@ -23,20 +23,20 @@ for /L %%I in (1,1,3) do (
     )
 )
 
-release\xl.exe check test\cases\cgen_async_string_ownership.xl
+release\win_x64\xl.exe check test\cases\cgen_async_string_ownership.xl
 if errorlevel 1 exit /b 1
-release\xl.exe run test\cases\cgen_async_string_ownership.xl
+release\win_x64\xl.exe run test\cases\cgen_async_string_ownership.xl
 if errorlevel 1 exit /b 1
 
-release\xl.exe check test\cases\cgen_async_param_ownership.xl
+release\win_x64\xl.exe check test\cases\cgen_async_param_ownership.xl
 if errorlevel 1 exit /b 1
-release\xl.exe run test\cases\cgen_async_param_ownership.xl
+release\win_x64\xl.exe run test\cases\cgen_async_param_ownership.xl
 if errorlevel 1 exit /b 1
-release\xl.exe build test\cases\cgen_async_param_ownership.xl -o build\test\cgen_async_param_ownership.exe
+release\win_x64\xl.exe build test\cases\cgen_async_param_ownership.xl -o build\test\cgen_async_param_ownership.exe
 if errorlevel 1 exit /b 1
 build\test\cgen_async_param_ownership.exe
 if errorlevel 1 exit /b 1
-release\xl.exe cgen test\cases\cgen_async_param_ownership.xl --emit build\test\cgen_async_param_ownership.c
+release\win_x64\xl.exe cgen test\cases\cgen_async_param_ownership.xl --emit build\test\cgen_async_param_ownership.c
 if errorlevel 1 exit /b 1
 findstr /C:"xtarray values;" build\test\cgen_async_param_ownership.c >nul
 if errorlevel 1 (
@@ -74,7 +74,7 @@ if errorlevel 1 (
     exit /b 1
 )
 
-release\xl.exe cgen test\cases\cgen_async.xl --emit build\test\cgen_async.c
+release\win_x64\xl.exe cgen test\cases\cgen_async.xl --emit build\test\cgen_async.c
 if errorlevel 1 exit /b 1
 
 findstr /C:"xl6FutureRunThread" build\test\cgen_async.c >nul

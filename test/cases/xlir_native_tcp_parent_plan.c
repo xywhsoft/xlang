@@ -1,7 +1,7 @@
 /* Real TCP parents, including OPEN native IO, collected by the unchanged XLIR
  * planner. Test code is resident; this is not a dynamic-library unload proof. */
 #define main tcp_parent_network_main
-#include "release/include/xl_clock.h"
+#include "release/win_x64/include/xl_clock.h"
 #include "tests/network/test_net_tcp_parent_ownership.c"
 #undef main
 #include "src/runtime/xl6_ownership_plan.h"

@@ -6,7 +6,7 @@
 #define XRT_MODULE_WAIT
 #endif
 #include "lib/xrt/xrt.h"
-#include "release/include/xl_clock.h"
+#include "release/win_x64/include/xl_clock.h"
 #include "src/runtime/xl6_continuation_executor.h"
 #include "src/runtime/xl6_continuation_future.h"
 #include <assert.h>

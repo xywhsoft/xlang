@@ -1,4 +1,4 @@
-#include "release/include/xruntime_decl.h"
+#include "release/win_x64/include/xruntime_decl.h"
 #include "src/runtime/xl6_future_payload.h"
 #include "src/api/xl_foreign_error.h"
 #include "test/support/module_product_memory.h"

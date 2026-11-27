@@ -1,4 +1,4 @@
-#include "release/include/xrt_decl.h"
+#include "release/win_x64/include/xrt_decl.h"
 #include <assert.h>
 #include <string.h>
 

@@ -6,7 +6,7 @@ static int prepare_mixed_module(void);
 #ifndef JOINT_TCC_SOURCE_FILE
 #define JOINT_TCC_SOURCE_FILE "test/cases/xlir_module_mixed_dependency_artifact.c"
 #endif
-#include "release/include/xl_clock.h"
+#include "release/win_x64/include/xl_clock.h"
 #include "xlir_module_executor_host.c"
 static atomic_uint callback_finally[3][2];
 static unsigned callback_count;

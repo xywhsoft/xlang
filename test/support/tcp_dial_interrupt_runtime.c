@@ -1,6 +1,6 @@
 #define XL6_TCP_DIAL_TEST_ENTRY dialBasicRegressionMain
 #include "tcp_dial_language_runtime.c"
-#include "release/include/xl_clock.h"
+#include "release/win_x64/include/xl_clock.h"
 #undef XL6_TCP_DIAL_TEST_ENTRY
 #include "src/runtime/xl6_deadline_service.h"
 static unsigned interruptCases,interruptPrefixes,interruptFailures;

@@ -1,5 +1,5 @@
 /* Real resident Thread + closed, immutable Sequence policy. No provider stubs. */
-#include "release/include/xrt_decl.h"
+#include "release/win_x64/include/xrt_decl.h"
 #include "src/runtime/xl6_thread.h"
 #include "src/runtime/xl6_thread_admission.h"
 #include "src/runtime/xl6_stack.h"

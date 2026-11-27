@@ -2,7 +2,7 @@
 
 #if !defined(TEST_PROXY_DIAL_HTTP_CONNECT) || \
 	!(TEST_PROXY_DIAL_HTTP_CONNECT)
-	#include "release/include/xl_clock.h"
+	#include "release/win_x64/include/xl_clock.h"
 #include "tcp_proxy_socks5_peer.h"
 #endif
 

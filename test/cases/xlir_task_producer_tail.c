@@ -10,7 +10,7 @@
 #define XRT_MODULE_WAIT
 #endif
 #include "src/common/xl6_xrt.h"
-#include "release/include/xl_clock.h"
+#include "release/win_x64/include/xl_clock.h"
 #include "src/runtime/xl6_task_frame.c"
 #include "src/runtime/xl6_task_pool_internal.h"
 #include <assert.h>

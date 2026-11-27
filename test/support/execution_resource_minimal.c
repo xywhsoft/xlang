@@ -9,7 +9,7 @@
 #endif
 #include "lib/xrt/xrt.h"
 #include "lib/xruntime/xruntime.h"
-#include "release/include/xl_clock.h"
+#include "release/win_x64/include/xl_clock.h"
 #include "src/runtime/xl6_execution_resource.h"
 #include <assert.h>
 #include <stdio.h>

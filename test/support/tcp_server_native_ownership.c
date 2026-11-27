@@ -16,7 +16,7 @@
 #define XRT_IMPLEMENTATION
 #include "xrt.h"
 #endif
-#include "release/include/xl_clock.h"
+#include "release/win_x64/include/xl_clock.h"
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>

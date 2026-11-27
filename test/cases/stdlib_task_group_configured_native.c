@@ -6,7 +6,7 @@
 #define XRT_MODULE_WAIT
 #endif
 #include "lib/xrt/xrt.h"
-#include "release/include/xl_clock.h"
+#include "release/win_x64/include/xl_clock.h"
 #include <assert.h>
 #include <stdatomic.h>
 #include <stdio.h>

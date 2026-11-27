@@ -1,7 +1,7 @@
 /* Ordinary in-memory ABI/lifetime test. No provider replacement, external
  * network, fabricated Value shell or synthetic ownership count is used. */
 #define XRUNTIME_MODULE_RUNTIME_TYPE_FUTURE
-#include "release/include/xl_clock.h"
+#include "release/win_x64/include/xl_clock.h"
 #include "src/runtime/xl6_channel_direct_future.h"
 #include "src/runtime/xl6_channel_internal.h"
 #include "src/runtime/xl6_channel_case.h"

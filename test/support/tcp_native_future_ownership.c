@@ -1,6 +1,6 @@
 /* XRT 40704d47: only include and pinned millisecond deadline adaptation. */
 #define XRT_IMPLEMENTATION
-#include "release/include/xl_clock.h"
+#include "release/win_x64/include/xl_clock.h"
 #include "xrt.h"
 #include <stdio.h>
 #include <stdlib.h>

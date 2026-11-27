@@ -3,7 +3,7 @@
  * owns a native reference solely to supply real EOF and join private waiter
  * tails; this is not a public Process.wait/module-fini guarantee. Never clear
  * or free generated globals while a continuation can still access them. */
-#include "release/include/xl_clock.h"
+#include "release/win_x64/include/xl_clock.h"
 #include <assert.h>
 #include <stdio.h>
 #include <stdlib.h>

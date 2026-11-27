@@ -1,7 +1,7 @@
 import md4c
 
 string markdown = "# Title\n\nHello **xlang**"
-string path = "release/extlibs/md4c/test/fixture.md"
+string path = "release/win_x64/extlibs/md4c/test/fixture.md"
 
 assert md4c.available(), "md4c should be available"
 assert string.contains(md4c.html(markdown), "<strong>xlang</strong>"), "markdown should render emphasis"
@@ -10,7 +10,7 @@ assert string.contains(md4c.file_html(path, md4c.commonmark_flags(), md4c.skip_u
 assert not string.contains(md4c.html_flags("<script>x</script>", md4c.github_flags() + md4c.no_html_flag(), 0), "<script>"), "no_html should suppress HTML"
 bool missing = false
 try
-    md4c.file_html("release/extlibs/md4c/test/missing.md", md4c.commonmark_flags(), 0)
+    md4c.file_html("release/win_x64/extlibs/md4c/test/missing.md", md4c.commonmark_flags(), 0)
 catch IOError error
     missing = true
 end

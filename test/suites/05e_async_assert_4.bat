@@ -5,7 +5,7 @@ if errorlevel 1 exit /b 1
 echo Running DEMO6 suite: async cgen assertions 4/4...
 
 if not "%XL6_ASYNC_CGEN_READY%"=="1" (
-    release\xl.exe cgen test\cases\cgen_async.xl --emit build\test\cgen_async.c
+    release\win_x64\xl.exe cgen test\cases\cgen_async.xl --emit build\test\cgen_async.c
     if errorlevel 1 exit /b 1
 )
 powershell -NoProfile -ExecutionPolicy Bypass -Command "$text=[System.IO.File]::ReadAllText('build\test\cgen_async.c',[System.Text.Encoding]::UTF8).Replace('__xl6_user_global_',''); [System.IO.File]::WriteAllText('build\test\cgen_async.assert.c',$text,(New-Object System.Text.UTF8Encoding($false)))"

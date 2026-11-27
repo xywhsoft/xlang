@@ -4,7 +4,7 @@
  * real native process before managed boxing can fail. No provider implementation
  * or synthetic process, stream, allocator, Future or completion is installed.
  * The matching full snapshot supplies the PRIVATE waiter layout. Keep loaded. */
-#include "release/include/xl_clock.h"
+#include "release/win_x64/include/xl_clock.h"
 #include "test/support/process_product_observer.h"
 #include <assert.h>
 #include <stdio.h>

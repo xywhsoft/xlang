@@ -4,13 +4,13 @@ call "%~dp0common.bat"
 if errorlevel 1 exit /b 1
 echo Running DEMO6 suite: async task and async-generator part 1/3...
 
-release\xl.exe check test\cases\cgen_async_class_conditional_await.xl
+release\win_x64\xl.exe check test\cases\cgen_async_class_conditional_await.xl
 if errorlevel 1 exit /b 1
 
-release\xl.exe run test\cases\cgen_async_class_conditional_await.xl
+release\win_x64\xl.exe run test\cases\cgen_async_class_conditional_await.xl
 if errorlevel 1 exit /b 1
 
-release\xl.exe cgen test\cases\cgen_async_class_conditional_await.xl --emit build\test\cgen_async_class_conditional_await.c
+release\win_x64\xl.exe cgen test\cases\cgen_async_class_conditional_await.xl --emit build\test\cgen_async_class_conditional_await.c
 if errorlevel 1 exit /b 1
 powershell -NoProfile -ExecutionPolicy Bypass -Command "$text=[IO.File]::ReadAllText('build\test\cgen_async_class_conditional_await.c',[Text.Encoding]::UTF8).Replace('__xl6_user_global_',''); [IO.File]::WriteAllText('build\test\cgen_async_class_conditional_await.assert.c',$text,(New-Object Text.UTF8Encoding($false)))"
 if errorlevel 1 exit /b 1
@@ -26,13 +26,13 @@ if errorlevel 1 (
     exit /b 1
 )
 
-release\xl.exe check test\cases\cgen_async_exception_propagation.xl
+release\win_x64\xl.exe check test\cases\cgen_async_exception_propagation.xl
 if errorlevel 1 exit /b 1
 
-release\xl.exe run test\cases\cgen_async_exception_propagation.xl
+release\win_x64\xl.exe run test\cases\cgen_async_exception_propagation.xl
 if errorlevel 1 exit /b 1
 
-release\xl.exe build test\cases\cgen_async_exception_propagation.xl -o build\test\cgen_async_exception_propagation.exe
+release\win_x64\xl.exe build test\cases\cgen_async_exception_propagation.xl -o build\test\cgen_async_exception_propagation.exe
 if errorlevel 1 exit /b 1
 
 build\test\cgen_async_exception_propagation.exe
@@ -46,7 +46,7 @@ for /L %%I in (1,1,5) do (
     )
 )
 
-release\xl.exe cgen test\cases\cgen_async_exception_propagation.xl --emit build\test\cgen_async_exception_propagation.c
+release\win_x64\xl.exe cgen test\cases\cgen_async_exception_propagation.xl --emit build\test\cgen_async_exception_propagation.c
 if errorlevel 1 exit /b 1
 powershell -NoProfile -ExecutionPolicy Bypass -Command "$text=[IO.File]::ReadAllText('build\test\cgen_async_exception_propagation.c',[Text.Encoding]::UTF8).Replace('__xl6_user_global_',''); [IO.File]::WriteAllText('build\test\cgen_async_exception_propagation.assert.c',$text,(New-Object Text.UTF8Encoding($false)))"
 if errorlevel 1 exit /b 1
@@ -375,13 +375,13 @@ if errorlevel 1 (
     exit /b 1
 )
 
-release\xl.exe check test\cases\sem_await_non_future.xl >nul 2> build\test\sem_await_non_future.err.txt
+release\win_x64\xl.exe check test\cases\sem_await_non_future.xl >nul 2> build\test\sem_await_non_future.err.txt
 if not errorlevel 1 (
     echo sem_await_non_future.xl should fail.
     exit /b 1
 )
 
-release\xl.exe check test\cases\sem_future_receiver_expr.xl >nul 2> build\test\sem_future_receiver_expr.err.txt
+release\win_x64\xl.exe check test\cases\sem_future_receiver_expr.xl >nul 2> build\test\sem_future_receiver_expr.err.txt
 if not errorlevel 1 (
     echo sem_future_receiver_expr.xl should fail.
     exit /b 1
@@ -392,10 +392,10 @@ if errorlevel 1 (
     exit /b 1
 )
 
-release\xl.exe run test\cases\stdlib_future_receivers.xl
+release\win_x64\xl.exe run test\cases\stdlib_future_receivers.xl
 if errorlevel 1 exit /b 1
 
-release\xl.exe check test\cases\sem_future_unknown_method.xl >nul 2> build\test\sem_future_unknown_method.err.txt
+release\win_x64\xl.exe check test\cases\sem_future_unknown_method.xl >nul 2> build\test\sem_future_unknown_method.err.txt
 if not errorlevel 1 (
     echo sem_future_unknown_method.xl should fail.
     exit /b 1
@@ -406,7 +406,7 @@ if errorlevel 1 (
     exit /b 1
 )
 
-release\xl.exe check test\cases\sem_future_wait_timeout_type.xl >nul 2> build\test\sem_future_wait_timeout_type.err.txt
+release\win_x64\xl.exe check test\cases\sem_future_wait_timeout_type.xl >nul 2> build\test\sem_future_wait_timeout_type.err.txt
 if not errorlevel 1 (
     echo sem_future_wait_timeout_type.xl should fail.
     exit /b 1
@@ -417,13 +417,13 @@ if errorlevel 1 (
     exit /b 1
 )
 
-release\xl.exe check test\cases\sem_await_sync_func.xl >nul 2> build\test\sem_await_sync_func.err.txt
+release\win_x64\xl.exe check test\cases\sem_await_sync_func.xl >nul 2> build\test\sem_await_sync_func.err.txt
 if not errorlevel 1 (
     echo sem_await_sync_func.xl should fail.
     exit /b 1
 )
 
-release\xl.exe check test\cases\sem_await_sync_generator.xl >nul 2> build\test\sem_await_sync_generator.err.txt
+release\win_x64\xl.exe check test\cases\sem_await_sync_generator.xl >nul 2> build\test\sem_await_sync_generator.err.txt
 if not errorlevel 1 (
     echo sem_await_sync_generator.xl should fail.
     exit /b 1
@@ -434,7 +434,7 @@ if errorlevel 1 (
     exit /b 1
 )
 
-release\xl.exe check test\cases\sem_async_return_future.xl >nul 2> build\test\sem_async_return_future.err.txt
+release\win_x64\xl.exe check test\cases\sem_async_return_future.xl >nul 2> build\test\sem_async_return_future.err.txt
 if not errorlevel 1 (
     echo sem_async_return_future.xl should fail.
     exit /b 1
@@ -450,7 +450,7 @@ if not errorlevel 1 (
     exit /b 1
 )
 
-release\xl.exe check test\cases\sem_async_return_task.xl >nul 2> build\test\sem_async_return_task.err.txt
+release\win_x64\xl.exe check test\cases\sem_async_return_task.xl >nul 2> build\test\sem_async_return_task.err.txt
 if not errorlevel 1 (
     echo sem_async_return_task.xl should fail.
     exit /b 1
@@ -466,7 +466,7 @@ if not errorlevel 1 (
     exit /b 1
 )
 
-release\xl.exe check test\cases\sem_async_return_channel.xl >nul 2> build\test\sem_async_return_channel.err.txt
+release\win_x64\xl.exe check test\cases\sem_async_return_channel.xl >nul 2> build\test\sem_async_return_channel.err.txt
 if not errorlevel 1 (
     echo sem_async_return_channel.xl should fail.
     exit /b 1
@@ -477,7 +477,7 @@ if errorlevel 1 (
     exit /b 1
 )
 
-release\xl.exe check test\cases\sem_async_return_sync.xl >nul 2> build\test\sem_async_return_sync.err.txt
+release\win_x64\xl.exe check test\cases\sem_async_return_sync.xl >nul 2> build\test\sem_async_return_sync.err.txt
 if not errorlevel 1 (
     echo sem_async_return_sync.xl should fail.
     exit /b 1
@@ -488,7 +488,7 @@ if errorlevel 1 (
     exit /b 1
 )
 
-release\xl.exe check test\cases\sem_async_return_thread.xl >nul 2> build\test\sem_async_return_thread.err.txt
+release\win_x64\xl.exe check test\cases\sem_async_return_thread.xl >nul 2> build\test\sem_async_return_thread.err.txt
 if not errorlevel 1 (
     echo sem_async_return_thread.xl should fail.
     exit /b 1
@@ -499,7 +499,7 @@ if errorlevel 1 (
     exit /b 1
 )
 
-release\xl.exe check test\cases\sem_async_param_future.xl >nul 2> build\test\sem_async_param_future.err.txt
+release\win_x64\xl.exe check test\cases\sem_async_param_future.xl >nul 2> build\test\sem_async_param_future.err.txt
 if not errorlevel 1 (
     echo sem_async_param_future.xl should fail.
     exit /b 1
@@ -510,7 +510,7 @@ if errorlevel 1 (
     exit /b 1
 )
 
-release\xl.exe check test\cases\sem_async_param_generator.xl >nul 2> build\test\sem_async_param_generator.err.txt
+release\win_x64\xl.exe check test\cases\sem_async_param_generator.xl >nul 2> build\test\sem_async_param_generator.err.txt
 if not errorlevel 1 (
     echo sem_async_param_generator.xl should fail.
     exit /b 1
@@ -521,7 +521,7 @@ if errorlevel 1 (
     exit /b 1
 )
 
-release\xl.exe check test\cases\sem_async_param_channel.xl >nul 2> build\test\sem_async_param_channel.err.txt
+release\win_x64\xl.exe check test\cases\sem_async_param_channel.xl >nul 2> build\test\sem_async_param_channel.err.txt
 if not errorlevel 1 (
     echo sem_async_param_channel.xl should fail.
     exit /b 1
@@ -532,7 +532,7 @@ if errorlevel 1 (
     exit /b 1
 )
 
-release\xl.exe check test\cases\sem_async_param_sync.xl >nul 2> build\test\sem_async_param_sync.err.txt
+release\win_x64\xl.exe check test\cases\sem_async_param_sync.xl >nul 2> build\test\sem_async_param_sync.err.txt
 if not errorlevel 1 (
     echo sem_async_param_sync.xl should fail.
     exit /b 1
@@ -543,7 +543,7 @@ if errorlevel 1 (
     exit /b 1
 )
 
-release\xl.exe check test\cases\sem_async_param_thread.xl >nul 2> build\test\sem_async_param_thread.err.txt
+release\win_x64\xl.exe check test\cases\sem_async_param_thread.xl >nul 2> build\test\sem_async_param_thread.err.txt
 if not errorlevel 1 (
     echo sem_async_param_thread.xl should fail.
     exit /b 1
@@ -554,7 +554,7 @@ if errorlevel 1 (
     exit /b 1
 )
 
-release\xl.exe check test\cases\sem_async_multi_return.xl >nul 2> build\test\sem_async_multi_return.err.txt
+release\win_x64\xl.exe check test\cases\sem_async_multi_return.xl >nul 2> build\test\sem_async_multi_return.err.txt
 if not errorlevel 1 (
     echo sem_async_multi_return.xl should fail.
     exit /b 1
@@ -565,7 +565,7 @@ if errorlevel 1 (
     exit /b 1
 )
 
-release\xl.exe check test\cases\sem_task_unknown_member.xl >nul 2> build\test\sem_task_unknown_member.err.txt
+release\win_x64\xl.exe check test\cases\sem_task_unknown_member.xl >nul 2> build\test\sem_task_unknown_member.err.txt
 if not errorlevel 1 (
     echo sem_task_unknown_member.xl should fail.
     exit /b 1
@@ -576,7 +576,7 @@ if errorlevel 1 (
     exit /b 1
 )
 
-release\xl.exe check test\cases\sem_task_cancel_non_future.xl >nul 2> build\test\sem_task_cancel_non_future.err.txt
+release\win_x64\xl.exe check test\cases\sem_task_cancel_non_future.xl >nul 2> build\test\sem_task_cancel_non_future.err.txt
 if not errorlevel 1 (
     echo sem_task_cancel_non_future.xl should fail.
     exit /b 1
@@ -587,7 +587,7 @@ if errorlevel 1 (
     exit /b 1
 )
 
-release\xl.exe check test\cases\sem_task_cancel_channel.xl >nul 2> build\test\sem_task_cancel_channel.err.txt
+release\win_x64\xl.exe check test\cases\sem_task_cancel_channel.xl >nul 2> build\test\sem_task_cancel_channel.err.txt
 if not errorlevel 1 (
     echo sem_task_cancel_channel.xl should fail.
     exit /b 1
@@ -598,7 +598,7 @@ if errorlevel 1 (
     exit /b 1
 )
 
-release\xl.exe check test\cases\sem_task_cancel_generator.xl >nul 2> build\test\sem_task_cancel_generator.err.txt
+release\win_x64\xl.exe check test\cases\sem_task_cancel_generator.xl >nul 2> build\test\sem_task_cancel_generator.err.txt
 if not errorlevel 1 (
     echo sem_task_cancel_generator.xl should fail.
     exit /b 1

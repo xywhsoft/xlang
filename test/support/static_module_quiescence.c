@@ -1,5 +1,5 @@
 /* A real finalizer starts independently leased work before the next snapshot. */
-#include "release/include/xruntime_decl.h"
+#include "release/win_x64/include/xruntime_decl.h"
 #include "src/runtime/xl6_static_module.h"
 #include "src/runtime/xl6_ownership_domains.h"
 #include "src/runtime/xl6_code_lease.h"

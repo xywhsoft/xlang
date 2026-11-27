@@ -11,22 +11,22 @@ if not exist build\test mkdir build\test
 call build_dll.bat
 if errorlevel 1 exit /b 1
 
-release\xl_dll_null_context.exe
+release\win_x64\xl_dll_null_context.exe
 if errorlevel 1 exit /b 1
 
-release\xl_dll_threaded_host.exe
+release\win_x64\xl_dll_threaded_host.exe
 if errorlevel 1 exit /b 1
 
-release\xl_dll_module_dependency_lifetime.exe
+release\win_x64\xl_dll_module_dependency_lifetime.exe
 if errorlevel 1 exit /b 1
 
-release\xlc_dll_embed_string.exe
+release\win_x64\xlc_dll_embed_string.exe
 if errorlevel 1 exit /b 1
 
 release\xlc_api_embed.exe
 if errorlevel 1 exit /b 1
 
-release\xl_dll_xrt_exports.exe
+release\win_x64\xl_dll_xrt_exports.exe
 if errorlevel 1 exit /b 1
 
 python tools\check_xrt_exports.py --root . --out build\test\xrt_exports_%RANDOM%_%RANDOM%
@@ -37,13 +37,13 @@ if exist release\libtcc.dll (
     exit /b 1
 )
 
-cmd /c "set XL6_TCC_DLL=__missing_libtcc.dll&& set XL6_TCC_ROOT=__missing_root__&& set XL6_TCC_INCLUDE=__missing_include__&& set XL6_TCC_WIN_INCLUDE=__missing_win_include__&& set XL6_TCC_WINAPI_INCLUDE=__missing_winapi_include__&& set XL6_TCC_LIB=__missing_lib__&& set XL6_TCC_LIBTCC1=__missing_libtcc1.a&& set XL6_XRT_OBJ=__missing_xrt.o&& release\xl_dll_null_context.exe"
+cmd /c "set XL6_TCC_DLL=__missing_libtcc.dll&& set XL6_TCC_ROOT=__missing_root__&& set XL6_TCC_INCLUDE=__missing_include__&& set XL6_TCC_WIN_INCLUDE=__missing_win_include__&& set XL6_TCC_WINAPI_INCLUDE=__missing_winapi_include__&& set XL6_TCC_LIB=__missing_lib__&& set XL6_TCC_LIBTCC1=__missing_libtcc1.a&& set XL6_XRT_OBJ=__missing_xrt.o&& release\win_x64\xl_dll_null_context.exe"
 if errorlevel 1 (
     echo xl.dll static libtcc/runtime VFS verification failed.
     exit /b 1
 )
 
-cmd /c "set XL6_TCC_DLL=__missing_libtcc.dll&& set XL6_TCC_ROOT=__missing_root__&& set XL6_TCC_INCLUDE=__missing_include__&& set XL6_TCC_WIN_INCLUDE=__missing_win_include__&& set XL6_TCC_WINAPI_INCLUDE=__missing_winapi_include__&& set XL6_TCC_LIB=__missing_lib__&& set XL6_TCC_LIBTCC1=__missing_libtcc1.a&& set XL6_XRT_OBJ=__missing_xrt.o&& release\xlc_dll_embed_string.exe"
+cmd /c "set XL6_TCC_DLL=__missing_libtcc.dll&& set XL6_TCC_ROOT=__missing_root__&& set XL6_TCC_INCLUDE=__missing_include__&& set XL6_TCC_WIN_INCLUDE=__missing_win_include__&& set XL6_TCC_WINAPI_INCLUDE=__missing_winapi_include__&& set XL6_TCC_LIB=__missing_lib__&& set XL6_TCC_LIBTCC1=__missing_libtcc1.a&& set XL6_XRT_OBJ=__missing_xrt.o&& release\win_x64\xlc_dll_embed_string.exe"
 set XL6_XLC_STATIC_RC=%errorlevel%
 if not "%XL6_XLC_STATIC_RC%"=="0" (
     echo xlc.dll static libtcc/VFS verification failed.
@@ -57,11 +57,11 @@ if not "%XL6_XLC_API_STATIC_RC%"=="0" (
     exit /b 1
 )
 
-if not exist release\xlc.dll (
+if not exist release\win_x64\xlc.dll (
     echo xlc.dll missing.
     exit /b 1
 )
-if not exist release\xlc.def (
+if not exist release\win_x64\xlc.def (
     echo xlc.def missing.
     exit /b 1
 )

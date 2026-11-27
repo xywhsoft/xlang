@@ -1,7 +1,7 @@
 /* Included after one actual pinned implementation, never a native stub.
  * Observer pointers stored in ThreadKey borrow this caller-owned case through
  * join; they do not claim a language RC edge or a captured module owner. */
-#include "release/include/xl_clock.h"
+#include "release/win_x64/include/xl_clock.h"
 #include <assert.h>
 #include <stdio.h>
 typedef struct ExitTest {

@@ -2,7 +2,7 @@
  * Independent from real TCC/unmapping and shipping AOT acceptance. */
 #include XL6_ACTIVITY_GENERATED_C
 #include "test/support/module_product_memory.h"
-#include "release/include/xrt_decl.h"
+#include "release/win_x64/include/xrt_decl.h"
 #include <assert.h>
 
 static unsigned depth, pins, acquired, released, phases[4];

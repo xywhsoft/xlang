@@ -1,4 +1,4 @@
-#include "../../release/include/xruntime_decl.h"
+#include "../../release/win_x64/include/xruntime_decl.h"
 #include "../../build/test/export_class_handle.h"
 
 int main(void)

@@ -1,6 +1,6 @@
 /* Preinclude actual generated C. Sweep one batch through the first no-hit
  * logical allocation point, including strict graph reads of partial modules. */
-#include "release/include/xrt_decl.h"
+#include "release/win_x64/include/xrt_decl.h"
 #include "test/support/module_product_memory.h"
 #include <assert.h>
 #include <stdio.h>

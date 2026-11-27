@@ -1,6 +1,6 @@
 /* Actual managed handles and native graph. Normal literal loopback traffic
  * only; error-packet fields are tested using an offline native fixture. */
-#include "release/include/xl_clock.h"
+#include "release/win_x64/include/xl_clock.h"
 #include "include/xrt_decl.h"
 #include "include/xruntime_decl.h"
 #include "src/runtime/xl6_text_value.h"

@@ -1,7 +1,7 @@
 /* Private child process only: INT is raised only while a watch is installed.
  * Including the actual adapter allows deterministic overflow/race witnesses;
  * no production hook, substitute queue, or alternative algorithm is used. */
-#include "release/include/xl_clock.h"
+#include "release/win_x64/include/xl_clock.h"
 #include "src/runtime/xl6_signal_queue.c"
 #include <assert.h>
 #include <stdio.h>

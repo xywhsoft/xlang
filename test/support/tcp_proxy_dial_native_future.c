@@ -2,7 +2,7 @@
  * Execute valid fixed replies and normal own-loopback lifecycle only. */
 #ifdef TEST_PROXY_RUNTIME_PRODUCT
 #define XRUNTIME_IMPLEMENTATION
-#include "release/include/xl_clock.h"
+#include "release/win_x64/include/xl_clock.h"
 #include "xruntime.h"
 #else
 #define XRT_IMPLEMENTATION

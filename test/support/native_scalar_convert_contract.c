@@ -1,4 +1,4 @@
-#include "release/include/xruntime_decl.h"
+#include "release/win_x64/include/xruntime_decl.h"
 #include "src/runtime/xl6_native_scalar_value.h"
 #include "test/support/module_product_memory.h"
 #include <assert.h>

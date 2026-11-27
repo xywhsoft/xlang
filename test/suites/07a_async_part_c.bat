@@ -4,7 +4,7 @@ call "%~dp0common.bat"
 if errorlevel 1 exit /b 1
 echo Running DEMO6 suite: async task and async-generator part 3/3...
 
-release\xl.exe check test\cases\sem_task_spawn_arg_byref.xl >nul 2> build\test\sem_task_spawn_arg_byref.err.txt
+release\win_x64\xl.exe check test\cases\sem_task_spawn_arg_byref.xl >nul 2> build\test\sem_task_spawn_arg_byref.err.txt
 if not errorlevel 1 (
     echo sem_task_spawn_arg_byref.xl should fail.
     exit /b 1
@@ -15,7 +15,7 @@ if errorlevel 1 (
     exit /b 1
 )
 
-release\xl.exe check test\cases\sem_task_spawn_arg_out.xl >nul 2> build\test\sem_task_spawn_arg_out.err.txt
+release\win_x64\xl.exe check test\cases\sem_task_spawn_arg_out.xl >nul 2> build\test\sem_task_spawn_arg_out.err.txt
 if not errorlevel 1 (
     echo sem_task_spawn_arg_out.xl should fail.
     exit /b 1
@@ -27,43 +27,43 @@ if errorlevel 1 (
 )
 
 
-release\xl.exe check test\cases\sem_task_spawn_return_array.xl >nul
+release\win_x64\xl.exe check test\cases\sem_task_spawn_return_array.xl >nul
 if errorlevel 1 (
     echo sem_task_spawn_return_array.xl should pass language checking.
     exit /b 1
 )
 
-release\xl.exe check test\cases\sem_task_spawn_return_list.xl >nul
+release\win_x64\xl.exe check test\cases\sem_task_spawn_return_list.xl >nul
 if errorlevel 1 (
     echo sem_task_spawn_return_list.xl should pass language checking.
     exit /b 1
 )
 
-release\xl.exe check test\cases\sem_task_spawn_return_set.xl >nul
+release\win_x64\xl.exe check test\cases\sem_task_spawn_return_set.xl >nul
 if errorlevel 1 (
     echo sem_task_spawn_return_set.xl should pass language checking.
     exit /b 1
 )
 
-release\xl.exe check test\cases\sem_task_spawn_return_dict.xl >nul
+release\win_x64\xl.exe check test\cases\sem_task_spawn_return_dict.xl >nul
 if errorlevel 1 (
     echo sem_task_spawn_return_dict.xl should pass language checking.
     exit /b 1
 )
 
-release\xl.exe check test\cases\sem_task_spawn_return_function.xl >nul
+release\win_x64\xl.exe check test\cases\sem_task_spawn_return_function.xl >nul
 if errorlevel 1 (
     echo sem_task_spawn_return_function.xl should pass language checking.
     exit /b 1
 )
 
-release\xl.exe check test\cases\sem_task_spawn_return_class.xl >nul
+release\win_x64\xl.exe check test\cases\sem_task_spawn_return_class.xl >nul
 if errorlevel 1 (
     echo sem_task_spawn_return_class.xl should pass language checking.
     exit /b 1
 )
 
-release\xl.exe check test\cases\sem_task_spawn_return_channel.xl >nul 2> build\test\sem_task_spawn_return_channel.err.txt
+release\win_x64\xl.exe check test\cases\sem_task_spawn_return_channel.xl >nul 2> build\test\sem_task_spawn_return_channel.err.txt
 if not errorlevel 1 (
     echo sem_task_spawn_return_channel.xl should fail.
     exit /b 1
@@ -74,20 +74,20 @@ if errorlevel 1 (
     exit /b 1
 )
 
-release\xl.exe check test\cases\sem_task_spawn_return_future.xl >nul
+release\win_x64\xl.exe check test\cases\sem_task_spawn_return_future.xl >nul
 if errorlevel 1 (
     echo sem_task_spawn_return_future.xl should pass language checking.
     exit /b 1
 )
 
 rem Language-valid signature; task generator lowering remains incomplete.
-release\xl.exe check test\cases\sem_task_spawn_return_generator.xl >nul
+release\win_x64\xl.exe check test\cases\sem_task_spawn_return_generator.xl >nul
 if errorlevel 1 (
     echo sem_task_spawn_return_generator.xl should pass language checking.
     exit /b 1
 )
 
-release\xl.exe check test\cases\sem_task_spawn_return_sync.xl >nul 2> build\test\sem_task_spawn_return_sync.err.txt
+release\win_x64\xl.exe check test\cases\sem_task_spawn_return_sync.xl >nul 2> build\test\sem_task_spawn_return_sync.err.txt
 if not errorlevel 1 (
     echo sem_task_spawn_return_sync.xl should fail.
     exit /b 1
@@ -98,7 +98,7 @@ if errorlevel 1 (
     exit /b 1
 )
 
-release\xl.exe check test\cases\sem_task_spawn_return_thread.xl >nul 2> build\test\sem_task_spawn_return_thread.err.txt
+release\win_x64\xl.exe check test\cases\sem_task_spawn_return_thread.xl >nul 2> build\test\sem_task_spawn_return_thread.err.txt
 if not errorlevel 1 (
     echo sem_task_spawn_return_thread.xl should fail.
     exit /b 1
@@ -109,107 +109,107 @@ if errorlevel 1 (
     exit /b 1
 )
 
-release\xl.exe check test\cases\sem_task_spawn_arg_typed_array.xl >nul
+release\win_x64\xl.exe check test\cases\sem_task_spawn_arg_typed_array.xl >nul
 if errorlevel 1 (
     echo sem_task_spawn_arg_typed_array.xl should pass language checking.
     exit /b 1
 )
 
-release\xl.exe check test\cases\sem_task_spawn_arg_typed_list.xl >nul
+release\win_x64\xl.exe check test\cases\sem_task_spawn_arg_typed_list.xl >nul
 if errorlevel 1 (
     echo sem_task_spawn_arg_typed_list.xl should pass language checking.
     exit /b 1
 )
 
-release\xl.exe check test\cases\sem_task_spawn_arg_typed_set.xl >nul
+release\win_x64\xl.exe check test\cases\sem_task_spawn_arg_typed_set.xl >nul
 if errorlevel 1 (
     echo sem_task_spawn_arg_typed_set.xl should pass language checking.
     exit /b 1
 )
 
-release\xl.exe check test\cases\sem_task_spawn_arg_typed_dict.xl >nul
+release\win_x64\xl.exe check test\cases\sem_task_spawn_arg_typed_dict.xl >nul
 if errorlevel 1 (
     echo sem_task_spawn_arg_typed_dict.xl should pass language checking.
     exit /b 1
 )
 
-release\xl.exe check test\cases\sem_task_spawn_arg_array.xl >nul
+release\win_x64\xl.exe check test\cases\sem_task_spawn_arg_array.xl >nul
 if errorlevel 1 (
     echo sem_task_spawn_arg_array.xl should pass language checking.
     exit /b 1
 )
 
-release\xl.exe check test\cases\sem_task_spawn_arg_list.xl >nul
+release\win_x64\xl.exe check test\cases\sem_task_spawn_arg_list.xl >nul
 if errorlevel 1 (
     echo sem_task_spawn_arg_list.xl should pass language checking.
     exit /b 1
 )
 
-release\xl.exe check test\cases\sem_task_spawn_arg_set.xl >nul
+release\win_x64\xl.exe check test\cases\sem_task_spawn_arg_set.xl >nul
 if errorlevel 1 (
     echo sem_task_spawn_arg_set.xl should pass language checking.
     exit /b 1
 )
 
-release\xl.exe check test\cases\sem_task_spawn_arg_dict.xl >nul
+release\win_x64\xl.exe check test\cases\sem_task_spawn_arg_dict.xl >nul
 if errorlevel 1 (
     echo sem_task_spawn_arg_dict.xl should pass language checking.
     exit /b 1
 )
 
-release\xl.exe check test\cases\sem_task_spawn_arg_function.xl >nul
+release\win_x64\xl.exe check test\cases\sem_task_spawn_arg_function.xl >nul
 if errorlevel 1 (
     echo sem_task_spawn_arg_function.xl should pass language checking.
     exit /b 1
 )
 
-release\xl.exe check test\cases\sem_task_spawn_arg_class.xl >nul
+release\win_x64\xl.exe check test\cases\sem_task_spawn_arg_class.xl >nul
 if errorlevel 1 (
     echo sem_task_spawn_arg_class.xl should pass language checking.
     exit /b 1
 )
 
-release\xl.exe check test\cases\sem_task_spawn_arg_channel.xl >nul
+release\win_x64\xl.exe check test\cases\sem_task_spawn_arg_channel.xl >nul
 if errorlevel 1 (
     echo sem_task_spawn_arg_channel.xl should pass language checking.
     exit /b 1
 )
 
-release\xl.exe check test\cases\sem_task_spawn_arg_future.xl >nul
+release\win_x64\xl.exe check test\cases\sem_task_spawn_arg_future.xl >nul
 if errorlevel 1 (
     echo sem_task_spawn_arg_future.xl should pass language checking.
     exit /b 1
 )
 
 rem Language-valid signature; task generator lowering remains incomplete.
-release\xl.exe check test\cases\sem_task_spawn_arg_generator.xl >nul
+release\win_x64\xl.exe check test\cases\sem_task_spawn_arg_generator.xl >nul
 if errorlevel 1 (
     echo sem_task_spawn_arg_generator.xl should pass language checking.
     exit /b 1
 )
 
-release\xl.exe check test\cases\sem_task_spawn_arg_sync.xl >nul
+release\win_x64\xl.exe check test\cases\sem_task_spawn_arg_sync.xl >nul
 if errorlevel 1 (
     echo sem_task_spawn_arg_sync.xl should pass language checking.
     exit /b 1
 )
 
-release\xl.exe check test\cases\sem_task_spawn_arg_thread.xl >nul
+release\win_x64\xl.exe check test\cases\sem_task_spawn_arg_thread.xl >nul
 if errorlevel 1 (
     echo sem_task_spawn_arg_thread.xl should pass language checking.
     exit /b 1
 )
 
-release\xl.exe check test\cases\cgen_async_generator.xl
+release\win_x64\xl.exe check test\cases\cgen_async_generator.xl
 if errorlevel 1 (
     echo cgen_async_generator.xl check failed.
     exit /b 1
 )
 
-release\xl.exe run test\cases\cgen_async_generator.xl
+release\win_x64\xl.exe run test\cases\cgen_async_generator.xl
 if errorlevel 1 exit /b 1
 
-release\xl.exe cgen test\cases\cgen_async_generator.xl --emit build\test\cgen_async_generator.c
+release\win_x64\xl.exe cgen test\cases\cgen_async_generator.xl --emit build\test\cgen_async_generator.c
 if errorlevel 1 exit /b 1
 
 "%XL6_CGEN_CC%" %XL6_CGEN_FLAGS% %XL6_CGEN_INCLUDES% build\test\cgen_async_generator.c %XL6_CGEN_XLANG_LINKS% -o build\test\cgen_async_generator.exe

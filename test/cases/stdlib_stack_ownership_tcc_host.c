@@ -5,7 +5,7 @@
     Bind(xl6StackTryTakeV2); Bind(xl6StackReserveV1); Bind(xl6StackCloneV1); \
     Bind(xl6StackEqualsV1); Bind(xl6StackTrimV1); Bind(xl6StackClearV1); Bind(xl6StackSizeV1);
 #define main unused_stack_lifetime_main
-#include "release/include/xl_clock.h"
+#include "release/win_x64/include/xl_clock.h"
 #include "xlir_one_shot_tcc_host.c"
 #undef main
 typedef struct StackGraphHooks {

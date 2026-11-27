@@ -4,11 +4,11 @@ call "%~dp0common.bat"
 if errorlevel 1 exit /b 1
 echo Running DEMO6 suite: task spawn range and f-string expressions...
 
-release\xl.exe check test\cases\cgen_task_spawn_range_contains.xl
+release\win_x64\xl.exe check test\cases\cgen_task_spawn_range_contains.xl
 if errorlevel 1 exit /b 1
-release\xl.exe run test\cases\cgen_task_spawn_range_contains.xl
+release\win_x64\xl.exe run test\cases\cgen_task_spawn_range_contains.xl
 if errorlevel 1 exit /b 1
-release\xl.exe cgen test\cases\cgen_task_spawn_range_contains.xl --emit build\test\cgen_task_spawn_range_contains.c
+release\win_x64\xl.exe cgen test\cases\cgen_task_spawn_range_contains.xl --emit build\test\cgen_task_spawn_range_contains.c
 if errorlevel 1 exit /b 1
 powershell -NoProfile -ExecutionPolicy Bypass -Command "$text=[IO.File]::ReadAllText('build\test\cgen_task_spawn_range_contains.c',[Text.Encoding]::UTF8).Replace('__xl6_user_global_',''); [IO.File]::WriteAllText('build\test\cgen_task_spawn_range_contains.assert.c',$text,(New-Object Text.UTF8Encoding($false)))"
 if errorlevel 1 exit /b 1
@@ -23,11 +23,11 @@ if errorlevel 1 (
     exit /b 1
 )
 
-release\xl.exe check test\cases\cgen_task_literal_single_eval.xl
+release\win_x64\xl.exe check test\cases\cgen_task_literal_single_eval.xl
 if errorlevel 1 exit /b 1
-release\xl.exe run test\cases\cgen_task_literal_single_eval.xl
+release\win_x64\xl.exe run test\cases\cgen_task_literal_single_eval.xl
 if errorlevel 1 exit /b 1
-release\xl.exe cgen test\cases\cgen_task_literal_single_eval.xl --emit build\test\cgen_task_literal_single_eval.c
+release\win_x64\xl.exe cgen test\cases\cgen_task_literal_single_eval.xl --emit build\test\cgen_task_literal_single_eval.c
 if errorlevel 1 exit /b 1
 powershell -NoProfile -ExecutionPolicy Bypass -Command "$text=[IO.File]::ReadAllText('build\test\cgen_task_literal_single_eval.c',[Text.Encoding]::UTF8); foreach($value in 91001..91004){ $needle='xrtValueInt\(\(long long\)\('+$value+'LL\)\)'; if(([regex]::Matches($text,$needle)).Count -ne 1){ exit 1 } }; if($text -match 'xl6TypedArrayCreate\(xl6TypeFuture\(\)\)'){ exit 1 }"
 if errorlevel 1 (
@@ -35,11 +35,11 @@ if errorlevel 1 (
     exit /b 1
 )
 
-release\xl.exe check test\cases\cgen_task_spawn_fstring.xl
+release\win_x64\xl.exe check test\cases\cgen_task_spawn_fstring.xl
 if errorlevel 1 exit /b 1
-release\xl.exe run test\cases\cgen_task_spawn_fstring.xl
+release\win_x64\xl.exe run test\cases\cgen_task_spawn_fstring.xl
 if errorlevel 1 exit /b 1
-release\xl.exe cgen test\cases\cgen_task_spawn_fstring.xl --emit build\test\cgen_task_spawn_fstring.c
+release\win_x64\xl.exe cgen test\cases\cgen_task_spawn_fstring.xl --emit build\test\cgen_task_spawn_fstring.c
 if errorlevel 1 exit /b 1
 powershell -NoProfile -ExecutionPolicy Bypass -Command "$text=[IO.File]::ReadAllText('build\test\cgen_task_spawn_fstring.c',[Text.Encoding]::UTF8).Replace('__xl6_user_global_',''); [IO.File]::WriteAllText('build\test\cgen_task_spawn_fstring.assert.c',$text,(New-Object Text.UTF8Encoding($false)))"
 if errorlevel 1 exit /b 1

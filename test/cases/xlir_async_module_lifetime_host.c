@@ -2,7 +2,7 @@
 #ifndef XL_ENABLE_EXE_COMPILER
 #define XL_ENABLE_EXE_COMPILER 0
 #endif
-#include "release/include/xl_clock.h"
+#include "release/win_x64/include/xl_clock.h"
 #include "src/api/xl_api.c"
 #include "src/api/xl_api_path.c"
 #include "src/common/xl6_console.c"

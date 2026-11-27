@@ -1,7 +1,7 @@
 /* Real public source-JIT module lifetime, including deferred collection.
  * A successful run alone does not prove that cyclic globals were retired. */
 #include "xlc.h"
-#include "release/include/xruntime_decl.h"
+#include "release/win_x64/include/xruntime_decl.h"
 #include <assert.h>
 #include <stdio.h>
 #include <string.h>

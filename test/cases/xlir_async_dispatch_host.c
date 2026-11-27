@@ -1,5 +1,5 @@
 /* Generated C and target binding are preincluded in this TU only. */
-#include "release/include/xl_clock.h"
+#include "release/win_x64/include/xl_clock.h"
 #include <assert.h>
 #include <stdio.h>
 extern xwaitresult xrtFutureWaitFor(xfuture*, uint64_t);

@@ -1,6 +1,6 @@
 /* Preinclude the real generated module and its IR-derived export bindings. */
 #include "test/support/module_product_memory.h"
-#include "release/include/xrt_decl.h"
+#include "release/win_x64/include/xrt_decl.h"
 #include <assert.h>
 #include <stdio.h>
 
