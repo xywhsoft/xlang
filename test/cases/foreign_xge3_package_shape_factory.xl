@@ -1,0 +1,42 @@
+import xui
+extern "xuiProxyReleaseChecked" @header("xge3_runtime.h") @no_raise @c_result("status",0) func rollbackProxy(xui.Proxy proxy)
+extern "xuiFontReleaseChecked" @header("xge3_runtime.h") @no_raise @c_result("status",0) func rollbackFont(xui.Font font)
+extern "shape_cpu_proxy" @header("test/cases/foreign_xge3_package_shape_factory.h") @no_raise @c_result("owned_view") @factory(0,0,rollbackProxy) func cpuProxy() as xui.Proxy
+extern "shape_cpu_font" @header("test/cases/foreign_xge3_package_shape_factory.h") @no_raise @c_result("owned_view") @factory(1,0,rollbackFont) func cpuFont(xui.Proxy proxy) as xui.Font
+extern "shape_cpu_arm" @header("test/cases/foreign_xge3_package_shape_factory.h") @no_raise func arm(c_int partial)
+extern "shape_cpu_clear_oom" @header("test/cases/foreign_xge3_package_shape_factory.h") @no_raise func clearOom() as c_int
+extern "shape_cpu_observed" @header("test/cases/foreign_xge3_package_shape_factory.h") @no_raise func observed() as c_int
+extern "shape_cpu_ready" @header("test/cases/foreign_xge3_package_shape_factory.h") @no_raise func ready()
+extern "shape_cpu_finish" @header("test/cases/foreign_xge3_package_shape_factory.h") @no_raise @c_result("status",0) func finish()
+func main(...) as int
+ auto proxy=cpuProxy()
+ auto font=cpuFont(proxy)
+ arm(0)
+ auto shape=proxy.shapeText(font,"a\0b")
+ assert clearOom()==0
+ assert observed()==1
+ assert shape.textSize==3 and shape.clusterCount==3
+ bool busy=false
+ try
+  shape.close()
+ catch error
+  busy=true
+ end
+ assert busy
+ ready()
+ finish()
+ arm(1)
+ bool failed=false
+ try
+  auto partial=proxy.shapeText(font,"a\0b")
+ catch error
+  auto allocations=clearOom()
+  failed=true
+ end
+ assert failed and observed()==2
+ ready()
+ finish()
+ font.close()
+ proxy.close()
+ return 0
+end
