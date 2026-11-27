@@ -12,12 +12,12 @@ for package in "${packages[@]}"; do
     esac
 done
 work=$(mktemp -d "${TMPDIR:-/tmp}/xlang-native-globals-XXXXXX")
-export XLANG_PACKAGE_PATH="$root/release/extlibs"
+export XLANG_PACKAGE_PATH="$root/release/win_x64/extlibs"
 
 input_paths() {
     for package in "${packages[@]}"; do
-        find "release/extlibs/$package" -type f -print0
-        if [[ $package == bz2 ]]; then find release/extlibs/_bzip2 -type f -print0; fi
+        find "release/win_x64/extlibs/$package" -type f -print0
+        if [[ $package == bz2 ]]; then find release/win_x64/extlibs/_bzip2 -type f -print0; fi
     done
     printf '%s\0' lib/xrt/xrt.h lib/xruntime/xruntime.h release/xl release/libxl.so \
         release/libxlc.so tools/check_extlib_native_globals.ps1 tools/check_extlib_native_globals.sh
@@ -65,7 +65,7 @@ for package in "${packages[@]}"; do
     fixtures=(top_level)
     case "$package" in progress|roaring|trie) fixtures+=(local_top_level_control) ;; esac
     for fixture in "${fixtures[@]}"; do
-        source="release/extlibs/$package/test/$fixture.xl"
+        source="release/win_x64/extlibs/$package/test/$fixture.xl"
         label=$package
         if [[ $fixture != top_level ]]; then label="$package-local"; fi
         run "$label-jit" 90 ./release/xl run "$source"

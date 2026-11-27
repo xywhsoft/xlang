@@ -2,11 +2,11 @@
 set -euo pipefail
 
 ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-XL="$ROOT/release/xl"
+XL="$ROOT/release/linux_x64/xl"
 TEST_DIR="$ROOT/build/linux/test"
 RELEASE_TMP="$ROOT/release/tmp"
 BUILD_TMP="$ROOT/build/tmp"
-export XLANG_PACKAGE_PATH="$ROOT/release/extlibs:$ROOT/test/fixtures"
+export XLANG_PACKAGE_PATH="$ROOT/release/linux_x64/extlibs:$ROOT/test/fixtures"
 
 if [[ ! -x "$XL" ]]; then
     "$ROOT/build_linux.sh"
@@ -34,14 +34,14 @@ python3 "$ROOT/tools/check_xrt_exports.py" --root "$ROOT" \
     --out "$TEST_DIR/xrt-exports-$(date +%Y%m%d-%H%M%S)-$$"
 python3 "$ROOT/tools/check_linux_embedded_resources.py" \
     --root "$ROOT" --report "$TEST_DIR/embedded-resources-$(date +%Y%m%d-%H%M%S)-$$.json"
-"$XL" check "$ROOT/release/examples/hello.xl"
+"$XL" check "$ROOT/release/linux_x64/examples/language/basics/hello.xl"
 snapshot_runtime_temp >"$TEST_DIR/temp.before"
-"$XL" run "$ROOT/release/examples/hello.xl"
+"$XL" run "$ROOT/release/linux_x64/examples/language/basics/hello.xl"
 snapshot_runtime_temp >"$TEST_DIR/temp.after"
 cmp "$TEST_DIR/temp.before" "$TEST_DIR/temp.after"
 
 printf 'Running Linux ELF build tests...\n'
-"$XL" build "$ROOT/release/examples/hello.xl" -o "$TEST_DIR/hello"
+"$XL" build "$ROOT/release/linux_x64/examples/language/basics/hello.xl" -o "$TEST_DIR/hello"
 "$TEST_DIR/hello"
 
 printf 'Running foundation contracts and examples...\n'
@@ -54,11 +54,11 @@ printf 'Running Linux C and XRT integration tests...\n'
 # must fail without changing that thread's floating-point environment.
 gcc -std=c11 -Wall -Wextra -Werror -frounding-math -fno-builtin -I"$ROOT/lib/xrt" \
     "$ROOT/test/fixtures/crt_float_env_posix/float_env_native_test.c" \
-    "$ROOT/release/extlibs/floatEnv/float_env_native.c" \
+    "$ROOT/release/linux_x64/extlibs/floatEnv/float_env_native.c" \
     -L"$ROOT/release" -Wl,-rpath,"$ROOT/release" -lxl -pthread -lm -o "$TEST_DIR/float_env_native_test"
 "$TEST_DIR/float_env_native_test"
-"$XL" run "$ROOT/release/examples/stdlib_math_c.c"
-"$XL" build "$ROOT/release/examples/stdlib_math_c.c" -o "$TEST_DIR/stdlib_math_c"
+"$XL" run "$ROOT/release/linux_x64/examples/stdlib/core/stdlib_math_c.c"
+"$XL" build "$ROOT/release/linux_x64/examples/stdlib/core/stdlib_math_c.c" -o "$TEST_DIR/stdlib_math_c"
 "$TEST_DIR/stdlib_math_c"
 
 printf 'Running Linux embedded C/xlang compiler contracts...\n'
@@ -102,7 +102,7 @@ printf 'Running Linux UTF-8 path tests...\n'
     -o "$TEST_DIR/stdlib_release_string_abi"
 "$TEST_DIR/stdlib_release_string_abi"
 mkdir -p "$TEST_DIR/中文路径"
-cp "$ROOT/release/examples/hello.xl" "$TEST_DIR/中文路径/你好.xl"
+cp "$ROOT/release/linux_x64/examples/language/basics/hello.xl" "$TEST_DIR/中文路径/你好.xl"
 "$XL" check "$TEST_DIR/中文路径/你好.xl"
 "$XL" run "$TEST_DIR/中文路径/你好.xl"
 "$XL" build "$TEST_DIR/中文路径/你好.xl" -o "$TEST_DIR/中文路径/你好"
@@ -110,22 +110,22 @@ cp "$ROOT/release/examples/hello.xl" "$TEST_DIR/中文路径/你好.xl"
 
 printf 'Running Linux import and package tests...\n'
 "$XL" run "$ROOT/test/cases/import_source_use.xl"
-"$XL" run "$ROOT/release/examples/extlibs/pkg_math.xl"
+"$XL" run "$ROOT/release/linux_x64/examples/extlibs/algo/pkg_math.xl"
 "$XL" run "$ROOT/test/cases/import_package_include_dir.xl"
 "$XL" build "$ROOT/test/cases/import_package_include_dir.xl" \
     -o "$TEST_DIR/import_package_include_dir"
 "$TEST_DIR/import_package_include_dir"
-"$XL" run "$ROOT/release/extlibs/xregex/test/xregex_test.xl"
-"$XL" build "$ROOT/release/extlibs/xregex/test/xregex_test.xl" \
+"$XL" run "$ROOT/release/linux_x64/extlibs/xregex/test/xregex_test.xl"
+"$XL" build "$ROOT/release/linux_x64/extlibs/xregex/test/xregex_test.xl" \
     -o "$TEST_DIR/xregex_test"
 "$TEST_DIR/xregex_test"
-"$XL" run "$ROOT/release/extlibs/xssh/test/xssh_test.xl"
-"$XL" build "$ROOT/release/extlibs/xssh/test/xssh_test.xl" \
+"$XL" run "$ROOT/release/linux_x64/extlibs/xssh/test/xssh_test.xl"
+"$XL" build "$ROOT/release/linux_x64/extlibs/xssh/test/xssh_test.xl" \
     -o "$TEST_DIR/xssh_test"
 "$TEST_DIR/xssh_test"
-"$XL" run "$ROOT/release/extlibs/xssh/test/test_xssh.c" \
-    "$ROOT/release/extlibs/xssh/xssh_native.c" \
-    --inc-path "$ROOT/release/extlibs/xssh/include"
+"$XL" run "$ROOT/release/linux_x64/extlibs/xssh/test/test_xssh.c" \
+    "$ROOT/release/linux_x64/extlibs/xssh/xssh_native.c" \
+    --inc-path "$ROOT/release/linux_x64/extlibs/xssh/include"
 
 printf 'Running Linux embedded host string boundary tests...\n'
 # Include a self-contained embedded host, not only the outer JIT's symbols.
@@ -148,21 +148,21 @@ fi
     -o "$TEST_DIR/stdlib_net_engine_trim"
 "$TEST_DIR/stdlib_net_engine_trim"
 
-"$XL" run "$ROOT/release/extlibs/xmail/test/xmail_test.xl"
-"$XL" build "$ROOT/release/extlibs/xmail/test/xmail_test.xl" \
+"$XL" run "$ROOT/release/linux_x64/extlibs/xmail/test/xmail_test.xl"
+"$XL" build "$ROOT/release/linux_x64/extlibs/xmail/test/xmail_test.xl" \
     -o "$TEST_DIR/xmail_test"
 "$TEST_DIR/xmail_test"
 for protocol in smtp pop3 imap
 do
-    "$XL" run "$ROOT/release/extlibs/xmail/test/xmail_${protocol}_loopback_test.xl"
-    "$XL" build "$ROOT/release/extlibs/xmail/test/xmail_${protocol}_loopback_test.xl" \
+    "$XL" run "$ROOT/release/linux_x64/extlibs/xmail/test/xmail_${protocol}_loopback_test.xl"
+    "$XL" build "$ROOT/release/linux_x64/extlibs/xmail/test/xmail_${protocol}_loopback_test.xl" \
         -o "$TEST_DIR/xmail_${protocol}_loopback_test"
     "$TEST_DIR/xmail_${protocol}_loopback_test"
 done
 
 printf 'Running Linux async task runtime tests...\n'
-"$XL" run "$ROOT/release/examples/async_task_wait.xl"
-"$XL" run "$ROOT/release/examples/task_api.xl"
+"$XL" run "$ROOT/release/linux_x64/examples/language/concurrency/async_task_wait.xl"
+"$XL" run "$ROOT/release/linux_x64/examples/language/concurrency/task_api.xl"
 
 printf 'Running Linux TCP file fast-path tests...\n'
 "$XL" cgen "$ROOT/test/cases/stdlib_net_send_file.xl" \
@@ -222,14 +222,14 @@ python3 "$ROOT/tools/check_stdlib_websocket.py" --root "$ROOT" \
 
 printf 'Running Linux shared-library host API tests...\n'
 "${CC:-gcc}" -std=c11 -Wall -I"$ROOT/release" \
-    "$ROOT/release/examples/xl_dll_embed_string.c" \
+    "$ROOT/release/linux_x64/examples/embedding/xl_dll_embed_string.c" \
     -L"$ROOT/release" -lxl -pthread -ldl -lm \
     -o "$TEST_DIR/xl_embed_host"
 LD_LIBRARY_PATH="$ROOT/release${LD_LIBRARY_PATH:+:$LD_LIBRARY_PATH}" \
     "$TEST_DIR/xl_embed_host"
 
 "${CC:-gcc}" -std=c11 -Wall -I"$ROOT/release" \
-    "$ROOT/release/examples/xlc_api_embed.c" \
+    "$ROOT/release/linux_x64/examples/embedding/xlc_api_embed.c" \
     -L"$ROOT/release" -lxlc -pthread -ldl -lm \
     -o "$TEST_DIR/xlc_embed_host"
 LD_LIBRARY_PATH="$ROOT/release${LD_LIBRARY_PATH:+:$LD_LIBRARY_PATH}" \

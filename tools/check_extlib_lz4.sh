@@ -7,19 +7,19 @@ cd "$root"
 work=${LZ4_TEST_WORK:-"$root/build/test/lz4_linux_guard"}
 mkdir -p "$work"
 cc=${CC:-gcc}
-pkg=release/extlibs/lz4
+pkg=release/win_x64/extlibs/lz4
 input_paths() {
     find "$pkg" -type f -print0
     printf '%s\0' lib/xrt/xrt.h lib/xruntime/xruntime.h test/support/extlib_codec_runtime.c \
         test/support/extlib_codec_file_rollback.h \
         tools/check_extlib_lz4.sh tools/check_extlib_lz4_interop.py release/xl \
         tools/check_extlib_native_globals.ps1 tools/check_extlib_native_globals.sh \
-        release/libxl.so release/libxlc.so release/include/xrt_decl.h \
-        release/include/xruntime_decl.h release/include/xl_extlib_abi.h \
+        release/libxl.so release/libxlc.so release/win_x64/include/xrt_decl.h \
+        release/win_x64/include/xruntime_decl.h release/win_x64/include/xl_extlib_abi.h \
         test/cases/extlib_lz4.xl test/cases/extlib_lz4_progress.xl \
-        release/examples/extlibs/lz4.xl release/examples/extlibs/lz4_basic.xl \
-        release/examples/extlibs/lz4_files.xl \
-        release/examples/extlibs/lz4_basic.expected.txt release/examples/extlibs/lz4_files.expected.txt
+        release/win_x64/examples/extlibs/compression/lz4.xl release/win_x64/examples/extlibs/compression/lz4_basic.xl \
+        release/win_x64/examples/extlibs/compression/lz4_files.xl \
+        release/win_x64/examples/extlibs/compression/lz4_basic.expected.txt release/win_x64/examples/extlibs/compression/lz4_files.expected.txt
 }
 mapfile -d '' inputs < <(input_paths | sort -zu)
 sanitize=(-fsanitize=address,undefined -fno-omit-frame-pointer -fno-pie -no-pie -pthread)
@@ -90,7 +90,7 @@ python3 tools/check_extlib_lz4_interop.py "$work/interop" "$work/interop-files" 
 for name in basic files; do
     "$cc" "${flags[@]}" "$pkg/examples/$name.c" "${objects[@]}" -lm -ldl -o "$work/example-$name"
     timeout 30s "$work/example-$name" > "$work/example-$name.log"
-    golden_output "release/examples/extlibs/lz4_$name.expected.txt" "$work/example-$name.log"
+    golden_output "release/win_x64/examples/extlibs/lz4_$name.expected.txt" "$work/example-$name.log"
 done
 timeout 90s ./release/xl run "$pkg/examples/basic.c" > "$work/example-basic-single-file.log"
 timeout 90s ./release/xl run "$pkg/examples/files.c" > "$work/example-files-single-file.log"
@@ -99,13 +99,13 @@ diff -u "$work/example-basic.log" "$work/example-basic-single-file.log"
 timeout 90s ./release/xl run "$pkg/test/boundaries.xl"
 timeout 90s ./release/xl run test/cases/extlib_lz4_progress.xl
 for name in basic files; do
-    timeout 90s ./release/xl run "release/examples/extlibs/lz4_$name.xl" > "$work/example-xl-$name.log"
-    golden_output "release/examples/extlibs/lz4_$name.expected.txt" "$work/example-xl-$name.log"
+    timeout 90s ./release/xl run "release/win_x64/examples/extlibs/lz4_$name.xl" > "$work/example-xl-$name.log"
+    golden_output "release/win_x64/examples/extlibs/lz4_$name.expected.txt" "$work/example-xl-$name.log"
     diff -u "$work/example-$name.log" "$work/example-xl-$name.log"
 done
 printf '[lz4] XLang JIT/AOT gate\n'
 timeout 90s ./release/xl run test/cases/extlib_lz4.xl
-timeout 90s ./release/xl run release/examples/extlibs/lz4.xl > "$work/example-xl-full.log"
+timeout 90s ./release/xl run release/win_x64/examples/extlibs/compression/lz4.xl > "$work/example-xl-full.log"
 for name in central boundaries progress; do
     printf '[lz4] AOT %s\n' "$name"
     case "$name" in
@@ -118,8 +118,8 @@ for name in central boundaries progress; do
 done
 for name in full basic files; do
     printf '[lz4] AOT example %s\n' "$name"
-    source=release/examples/extlibs/lz4.xl
-    if [[ $name != full ]]; then source="release/examples/extlibs/lz4_$name.xl"; fi
+    source=release/win_x64/examples/extlibs/compression/lz4.xl
+    if [[ $name != full ]]; then source="release/win_x64/examples/extlibs/lz4_$name.xl"; fi
     timeout 180s ./release/xl build "$source" -o "$work/lz4-$name-aot"
     timeout 90s "$work/lz4-$name-aot" > "$work/example-xl-$name-aot.log"
     diff -u "$work/example-xl-$name.log" "$work/example-xl-$name-aot.log"

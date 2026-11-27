@@ -11,7 +11,7 @@ else
     work=$(mktemp -d "${TMPDIR:-/tmp}/xlang-brotli-XXXXXX")
 fi
 cc=${CC:-gcc}
-pkg=release/extlibs/brotli
+pkg=release/win_x64/extlibs/brotli
 sources=("$pkg/xrt_brotli.c" "$pkg/xrt_brotli_file.c" "$pkg/brotli_native.c" "$pkg"/third_party/{common,dec,enc}/*.c)
 cc_path=$(command -v "$cc" || true)
 input_paths() {
@@ -19,11 +19,11 @@ input_paths() {
     find release/include -type f -print0
     printf '%s\0' lib/xrt/xrt.h lib/xruntime/xruntime.h test/support/extlib_codec_runtime.c \
         test/cases/extlib_codec_file_allocation.c test/support/extlib_codec_file_rollback.h tools/check_extlib_brotli.sh \
-        release/xl release/libxl.so release/libxlc.so release/include/xrt_decl.h \
-        release/include/xruntime_decl.h release/include/xl_extlib_abi.h \
+        release/xl release/libxl.so release/libxlc.so release/win_x64/include/xrt_decl.h \
+        release/win_x64/include/xruntime_decl.h release/win_x64/include/xl_extlib_abi.h \
         test/cases/extlib_brotli.xl test/cases/extlib_brotli_progress.xl \
-        release/examples/extlibs/brotli.xl release/examples/extlibs/brotli_basic.xl \
-        release/examples/extlibs/brotli_basic.expected.txt
+        release/win_x64/examples/extlibs/compression/brotli.xl release/win_x64/examples/extlibs/compression/brotli_basic.xl \
+        release/win_x64/examples/extlibs/compression/brotli_basic.expected.txt
     if [[ -n ${XRT_INCLUDE:-} ]]; then printf '%s\0' "$XRT_INCLUDE/xrt.h" "$XRT_INCLUDE/xruntime.h"; fi
     if [[ -n "$cc_path" ]]; then printf '%s\0' "$cc_path"; fi
 }
@@ -87,7 +87,7 @@ done
 compile "${flags[@]}" -DNDEBUG "$pkg/examples/basic.c" "${objects[@]}" "$work/runtime.o" -lm -ldl -o "$work/basic"
 timeout 30s "$work/basic" > "$work/basic.log"
 # 已有 Windows 工作树可能仍将黄金文件检出为 CRLF。
-sed 's/\r$//' release/examples/extlibs/brotli_basic.expected.txt > "$work/basic.expected.txt"
+sed 's/\r$//' release/win_x64/examples/extlibs/compression/brotli_basic.expected.txt > "$work/basic.expected.txt"
 diff -u "$work/basic.expected.txt" "$work/basic.log"
 compile "${flags[@]}" -DNDEBUG "$pkg/test/file_allocation.c" "${objects[@]}" "$work/runtime.o" -lm -ldl -o "$work/file-allocation"
 timeout 90s "$work/file-allocation" "$work/files-$$" 2>&1 | tee "$work/file-allocation.log"
@@ -102,12 +102,12 @@ if [[ ! -x "$xl" ]]; then
 fi
 # WSL 挂载盘的语言编译可能静默失败；只把语言门禁所需输入暂存到原生目录。
 stage="$work/stage"
-mkdir -p "$stage/release/extlibs" "$stage/release/examples/extlibs" \
+mkdir -p "$stage/release/win_x64/extlibs" "$stage/release/win_x64/examples/extlibs" \
     "$stage/test/cases" "$stage/lib/xrt" "$stage/lib/xruntime"
 cp -a release/xl release/libxl.so release/libxlc.so release/include "$stage/release/"
-cp -a "$pkg" "$stage/release/extlibs/"
-cp -a release/examples/extlibs/brotli.xl release/examples/extlibs/brotli_basic.xl \
-    release/examples/extlibs/brotli_basic.expected.txt "$stage/release/examples/extlibs/"
+cp -a "$pkg" "$stage/release/win_x64/extlibs/"
+cp -a release/win_x64/examples/extlibs/compression/brotli.xl release/win_x64/examples/extlibs/compression/brotli_basic.xl \
+    release/win_x64/examples/extlibs/compression/brotli_basic.expected.txt "$stage/release/win_x64/examples/extlibs/"
 cp -a test/cases/extlib_brotli.xl test/cases/extlib_brotli_progress.xl \
     test/cases/extlib_codec_file_allocation.c "$stage/test/cases/"
 cp -a lib/xrt/xrt.h "$stage/lib/xrt/"
@@ -117,8 +117,8 @@ timeout 90s "$xl" run test/cases/extlib_brotli.xl
 timeout 90s "$xl" run test/cases/extlib_brotli_progress.xl
 timeout 90s "$xl" run "$pkg/test/error_dispatch.xl"
 timeout 90s "$xl" run "$pkg/test/wire_fixture.xl"
-timeout 90s "$xl" run release/examples/extlibs/brotli.xl > "$work/full_xl.log"
-timeout 90s "$xl" run release/examples/extlibs/brotli_basic.xl > "$work/basic_xl.log"
+timeout 90s "$xl" run release/win_x64/examples/extlibs/compression/brotli.xl > "$work/full_xl.log"
+timeout 90s "$xl" run release/win_x64/examples/extlibs/compression/brotli_basic.xl > "$work/basic_xl.log"
 diff -u "$work/basic.expected.txt" "$work/basic_xl.log"
 diff -u "$work/basic.log" "$work/basic_xl.log"
 timeout 90s "$xl" run "$pkg/examples/files.xl" > "$work/files-xl.log"
@@ -133,7 +133,7 @@ for name in extlib_brotli extlib_brotli_progress error_dispatch wire_fixture bro
     case "$name" in
         extlib_*) source="test/cases/$name.xl" ;;
         error_dispatch|wire_fixture) source="$pkg/test/$name.xl" ;;
-        *) source="release/examples/extlibs/$name.xl" ;;
+        *) source="release/win_x64/examples/extlibs/$name.xl" ;;
     esac
     timeout 180s "$xl" build "$source" -o "$work/$name"
     timeout 90s "$work/$name" > "$work/${name}_aot.log"

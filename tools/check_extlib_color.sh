@@ -10,7 +10,7 @@ else
     owned_work=1
 fi
 mkdir -p "$work"
-pkg=release/extlibs/color
+pkg=release/win_x64/extlibs/color
 cc=${CC:-gcc}
 snapshot() {
     local paths=()
@@ -18,8 +18,8 @@ snapshot() {
     mapfile -d '' headers < <(find release/include -type f -print0 | sort -z)
     paths+=("${headers[@]}")
     paths+=(lib/xrt/xrt.h lib/xruntime/xruntime.h test/support/extlib_color_runtime.c tools/check_extlib_color.sh
-            tools/check_extlib_color_oracle.py release/examples/extlibs/color_basic.expected.txt
-            release/examples/extlibs/color_basic.xl release/examples/extlibs/color.xl
+            tools/check_extlib_color_oracle.py release/win_x64/examples/extlibs/graphics/color_basic.expected.txt
+            release/win_x64/examples/extlibs/graphics/color_basic.xl release/win_x64/examples/extlibs/graphics/color.xl
             test/cases/extlib_color.xl release/xl release/libxl.so release/libxlc.so
             "$(command -v "$cc")" "$(command -v python3)")
     if [[ -n "${COLOR_DECLARATIONS:-}" ]]; then paths+=("$COLOR_DECLARATIONS"); fi
@@ -48,7 +48,7 @@ export ASAN_OPTIONS=detect_leaks=1:halt_on_error=1
 export UBSAN_OPTIONS=halt_on_error=1:print_stacktrace=1
 "$cc" "${flags[@]}" -c test/support/extlib_color_runtime.c -o "$work/runtime.o"
 objects=("$work/runtime.o")
-mapfile -t sources < <(python3 -c 'import json; print("\n".join(json.load(open("release/extlibs/color/xlang.package.json"))["artifact"]["cSources"]))')
+mapfile -t sources < <(python3 -c 'import json; print("\n".join(json.load(open("release/win_x64/extlibs/color/xlang.package.json"))["artifact"]["cSources"]))')
 for source in "${sources[@]}"; do
     object="$work/${source%.c}.o"
     "$cc" "${flags[@]}" -c "$pkg/$source" -o "$object"
@@ -62,7 +62,7 @@ done
 python3 tools/check_extlib_color_oracle.py "$work/oracle" "$work/oracle.json" | tee "$work/oracle.log"
 "$cc" "${flags[@]}" -DNDEBUG "$pkg/examples/basic.c" "$work/runtime.o" -lm -ldl -o "$work/basic"
 timeout 30s "$work/basic" > "$work/basic.log"
-diff -u <(tr -d '\r' < release/examples/extlibs/color_basic.expected.txt) "$work/basic.log"
+diff -u <(tr -d '\r' < release/win_x64/examples/extlibs/graphics/color_basic.expected.txt) "$work/basic.log"
 timeout 90s release/xl run "$pkg/examples/basic.c" > "$work/basic_direct.log"
 diff -u "$work/basic.log" "$work/basic_direct.log"
 if [[ ! -x release/xl ]]; then
@@ -72,9 +72,9 @@ fi
 timeout 90s release/xl run test/cases/extlib_color.xl
 timeout 90s release/xl run "$pkg/test/boundaries.xl"
 timeout 90s release/xl run "$pkg/test/allocations.xl"
-timeout 90s release/xl run release/examples/extlibs/color_basic.xl > "$work/basic_xl.log"
+timeout 90s release/xl run release/win_x64/examples/extlibs/graphics/color_basic.xl > "$work/basic_xl.log"
 diff -u "$work/basic.log" "$work/basic_xl.log"
-timeout 90s release/xl run release/examples/extlibs/color.xl > "$work/palette_xl.log"
+timeout 90s release/xl run release/win_x64/examples/extlibs/graphics/color.xl > "$work/palette_xl.log"
 timeout 90s release/xl run "$pkg/examples/theme.xl" > "$work/theme_xl.log"
 diff -u <(sed 's/\r$//' "$pkg/examples/theme.expected.txt") "$work/theme_xl.log"
 "$cc" "${flags[@]}" -DNDEBUG "$pkg/examples/theme_c.c" "$work/runtime.o" -lm -ldl -o "$work/theme-c"
@@ -103,11 +103,11 @@ for name in boundaries allocations; do
     timeout 120s release/xl build "$pkg/test/$name.xl" -o "$work/color_$name"
     timeout 90s "$work/color_$name"
 done
-timeout 120s release/xl build release/examples/extlibs/color_basic.xl \
+timeout 120s release/xl build release/win_x64/examples/extlibs/graphics/color_basic.xl \
     -o "$work/color_basic_xl"
 timeout 45s "$work/color_basic_xl" > "$work/basic_aot.log"
 diff -u "$work/basic.log" "$work/basic_aot.log"
-timeout 120s release/xl build release/examples/extlibs/color.xl \
+timeout 120s release/xl build release/win_x64/examples/extlibs/graphics/color.xl \
     -o "$work/color_palette_xl"
 timeout 45s "$work/color_palette_xl" > "$work/palette_aot.log"
 diff -u "$work/palette_xl.log" "$work/palette_aot.log"

@@ -42,7 +42,7 @@ literal_diagnostic=('未闭合的块注释' '括号不匹配' '未闭合' '未�
     printf '%s\0' test/cases/xlir_literal_span_contract.c test/fuzz/xl6_frontend_fuzz.c
     printf '%s\0' test/cases/cgen_fstring.xl
     printf '%s\0' test/cases/stdlib_string.xl test/cases/stdlib_string_support.c test/support/string_bridge_native.c
-    printf '%s\0' release/examples/stdlib_string_boundaries.xl release/examples/stdlib_string_boundaries_c.c
+    printf '%s\0' release/win_x64/examples/stdlib/core/stdlib_string_boundaries.xl release/win_x64/examples/stdlib/core/stdlib_string_boundaries_c.c
     for fixture in "${cases[@]}" "${negative[@]}" "${literal_negative[@]}"; do printf '%s\0' "test/cases/$fixture.xl"; done
 } | sort -zu | xargs -0 sha256sum >"$OUT/inputs.sha256"
 python3 tools/stage_runtime_headers.py --root "$ROOT" --out "$OUT"
@@ -143,8 +143,8 @@ run stdlib-aot "$OUT/stdlib"
 run legacy-fstring-jit "$CLI" run test/cases/cgen_fstring.xl test/cases/stdlib_string_support.c
 run legacy-fstring-build "$CLI" build test/cases/cgen_fstring.xl test/cases/stdlib_string_support.c -o "$OUT/legacy-fstring"
 run legacy-fstring-aot "$OUT/legacy-fstring"
-run example-xl "$CLI" run release/examples/stdlib_string_boundaries.xl
-run example-c-build "$CC" "${strict[@]}" -Ilib/xrt release/examples/stdlib_string_boundaries_c.c -lxl "${libs[@]}" -o "$OUT/example-c"
+run example-xl "$CLI" run release/win_x64/examples/stdlib/core/stdlib_string_boundaries.xl
+run example-c-build "$CC" "${strict[@]}" -Ilib/xrt release/win_x64/examples/stdlib/core/stdlib_string_boundaries_c.c -lxl "${libs[@]}" -o "$OUT/example-c"
 run example-c "$OUT/example-c"
 run examples-equal cmp "$OUT/example-xl.log" "$OUT/example-c.log"
 [[ "$(wc -l <"$OUT/example-xl.log")" = 21 ]]

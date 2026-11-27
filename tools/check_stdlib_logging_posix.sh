@@ -10,8 +10,8 @@ task_out="$(cd "$task_out" && pwd)"
 task_work="$task_out/work"
 test -x release/xl
 cp src/runtime/xl6_*.h "$task_out/include/__xl_runtime/"
-cp release/include/xl_runtime.h release/include/xl_extlib_abi.h \
-    release/include/xrt_decl.h release/include/xruntime_decl.h "$task_out/include/__xl_runtime/"
+cp release/win_x64/include/xl_runtime.h release/win_x64/include/xl_extlib_abi.h \
+    release/win_x64/include/xrt_decl.h release/win_x64/include/xruntime_decl.h "$task_out/include/__xl_runtime/"
 task_flags=(-std=c11 -D_GNU_SOURCE -Wall -Wextra -Werror -Wno-unused-function
     -Wno-unused-variable -Wno-unused-parameter -Wno-unused-label
     -Wno-unused-but-set-variable -Wno-missing-field-initializers
@@ -27,7 +27,7 @@ find src -type f -print0 | sort -z | xargs -0 sha256sum > "$task_out/inputs.sha2
 sha256sum release/xl release/libxl.so release/libxlc.so "$0" "$(command -v gcc)" >> "$task_out/inputs.sha256"
 for task_case in "${task_cases[@]}"; do sha256sum "test/cases/$task_case.xl" >> "$task_out/inputs.sha256"; done
 sha256sum test/cases/stdlib_log_cleanup_failure.xl test/cases/stdlib_log_cleanup_failure_host.c \
-    release/examples/stdlib_log_formats.xl lib/xruntime/xruntime.h lib/xrt/xrt.h >> "$task_out/inputs.sha256"
+    release/win_x64/examples/stdlib/io/stdlib_log_formats.xl lib/xruntime/xruntime.h lib/xrt/xrt.h >> "$task_out/inputs.sha256"
 printf 'fixture\tstrict\tjit\taot\n' > "$task_out/results.tsv"
 for task_case in "${task_cases[@]}"; do
     task_source="$task_root/test/cases/$task_case.xl"
@@ -62,7 +62,7 @@ if (cd "$task_work" && timeout 45 "$task_out/cleanup-failure.aot") > "$task_out/
     echo 'Lost module finalizer failure in ELF'; exit 1
 fi
 grep -F 'final flush failure' "$task_out/cleanup-failure.aot.log" > /dev/null
-task_example="$task_root/release/examples/stdlib_log_formats.xl"
+task_example="$task_root/release/win_x64/examples/stdlib/io/stdlib_log_formats.xl"
 (cd "$task_work" && timeout 45 "$task_root/release/xl" run "$task_example") > "$task_out/formats-example.jit.log" 2>&1
 (cd "$task_work" && timeout 45 "$task_root/release/xl" build "$task_example" -o "$task_out/formats-example.aot") > "$task_out/formats-example.aot-build.log" 2>&1
 (cd "$task_work" && timeout 45 "$task_out/formats-example.aot") > "$task_out/formats-example.aot.log" 2>&1

@@ -5,7 +5,7 @@ cd "$root"
 tmp_root=$(realpath -m -- "${TMPDIR:-/tmp}")
 work=$(mktemp -d "$tmp_root/xlang-blake2-XXXXXXXX")
 cc=${CC:-gcc}
-pkg=release/extlibs/blake2
+pkg=release/win_x64/extlibs/blake2
 xl=./release/xl
 phase=setup
 issues=0
@@ -14,7 +14,7 @@ input_paths() {
       printf '%s\0' lib/xrt/xrt.h lib/xruntime/xruntime.h release/xl release/libxl.so release/libxlc.so \
         test/support/extlib_codec_runtime.c test/support/extlib_hash_reader_contract.h tools/check_extlib_blake2.sh \
         test/cases/extlib_blake2.xl test/cases/extlib_blake2_boundaries.xl test/cases/extlib_blake2_progress.xl \
-        release/examples/extlibs/blake2.xl release/examples/extlibs/blake2_basic.xl release/examples/extlibs/blake2_basic.expected.txt
+        release/win_x64/examples/extlibs/crypto/blake2.xl release/win_x64/examples/extlibs/crypto/blake2_basic.xl release/win_x64/examples/extlibs/crypto/blake2_basic.expected.txt
       compiler=$(command -v "$cc" || true)
       if [[ -f $compiler ]]; then printf '%s\0' "$compiler"; fi
     } | sort -zu
@@ -97,9 +97,9 @@ for name in test_blake2 test_blake2_alloc test_blake2_native test_blake2_close; 
 done
 run basic-c-compile 90 "$cc" "${flags[@]}" -DNDEBUG "$pkg/examples/basic.c" "${objects[@]}" "$work/runtime.o" -lm -ldl -o "$work/basic"
 run basic-c-run 30 "$work/basic"
-golden release/examples/extlibs/blake2_basic.expected.txt "$work/basic-c-run.stdout"
+golden release/win_x64/examples/extlibs/crypto/blake2_basic.expected.txt "$work/basic-c-run.stdout"
 run basic-c-direct 90 "$xl" run "$pkg/examples/basic.c"
-golden release/examples/extlibs/blake2_basic.expected.txt "$work/basic-c-direct.stdout"
+golden release/win_x64/examples/extlibs/crypto/blake2_basic.expected.txt "$work/basic-c-direct.stdout"
 run core-c-direct 90 "$xl" run "$pkg/test/test_blake2.c" "${sources[@]}" --inc-path lib/xrt --inc-path lib/xruntime
 # 含分配器钩子的测试只在独立原生进程执行，不给卸载后的宿主留下回调地址。
 for name in native_b_visibility_negative native_b_keyed_visibility_negative native_s_visibility_negative native_s_keyed_visibility_negative; do
@@ -112,14 +112,14 @@ for name in extlib_blake2 extlib_blake2_boundaries extlib_blake2_progress vector
     case "$name" in
         extlib_*) source="test/cases/$name.xl" ;;
         vectors) source="$pkg/test/vectors.xl" ;;
-        *) source="release/examples/extlibs/$name.xl" ;;
+        *) source="release/win_x64/examples/extlibs/$name.xl" ;;
     esac
     run "$name-jit" 90 "$xl" run "$source"
     run "$name-build" 180 "$xl" build "$source" -o "$work/$name"
     run "$name-aot" 90 "$work/$name"
     diff -u "$work/$name-jit.stdout" "$work/$name-aot.stdout"
 done
-golden release/examples/extlibs/blake2_basic.expected.txt "$work/blake2_basic-aot.stdout"
+golden release/win_x64/examples/extlibs/crypto/blake2_basic.expected.txt "$work/blake2_basic-aot.stdout"
 for name in extlib_blake2 extlib_blake2_boundaries extlib_blake2_progress; do
     run "$name-cgen" 90 "$xl" cgen "test/cases/$name.xl" --emit "$work/module-$name.c"
 done
@@ -136,7 +136,7 @@ cat "$work/decls.txt" "$work/constants.txt" >> "$work/abi.c"
 run generated-abi 60 "$cc" "${flags[@]}" -DXRT_MODULE_IO_BUFFER -I"$pkg/include" -fsyntax-only "$work/abi.c"
 run basic-c-build 180 "$xl" build "$pkg/examples/basic.c" -o "$work/basic_c_aot"
 run basic-c-aot 30 "$work/basic_c_aot"
-golden release/examples/extlibs/blake2_basic.expected.txt "$work/basic-c-aot.stdout"
+golden release/win_x64/examples/extlibs/crypto/blake2_basic.expected.txt "$work/basic-c-aot.stdout"
 run file-progress-c-compile 90 "$cc" "${flags[@]}" -DNDEBUG "$pkg/examples/file_progress_c.c" "${objects[@]}" "$work/runtime.o" -lm -ldl -o "$work/file-progress-gcc"
 run file-progress-c-run 30 "$work/file-progress-gcc"
 golden "$pkg/examples/file_progress.expected.txt" "$work/file-progress-c-run.stdout"

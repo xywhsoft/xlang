@@ -16,7 +16,7 @@ negative=(xlir_signal_bad_result xlir_signal_bad_effect xlir_signal_bad_width xl
     printf '%s\0' tools/check_stdlib_signal_core.sh tools/check_stdlib_signal_core.ps1 tools/tcc_vfs_manifest_linux_xlc.txt
     printf '%s\0' test/cases/xlir_signal_core_host.c test/support/signal_native.c test/cases/xlir_text_value_contract.c
     printf '%s\0' test/cases/xlir_string_interpolation_host.c test/cases/xlir_artifact_runtime_contract.c
-    printf '%s\0' test/cases/xlir_time_text_closure_host.c release/examples/stdlib_signal_core.xl
+    printf '%s\0' test/cases/xlir_time_text_closure_host.c release/win_x64/examples/stdlib/process/stdlib_signal_core.xl
     for fixture in "${cases[@]}" "${negative[@]}"; do printf '%s\0' "test/cases/$fixture.xl"; done
 } | sort -zu | xargs -0 sha256sum >"$OUT/inputs.sha256"
 python3 tools/stage_runtime_headers.py --root "$ROOT" --out "$OUT"
@@ -75,8 +75,8 @@ for fixture in "${negative[@]}"; do
     grep -Eq 'XLIR direct runtime bridge has no exact declared ABI|has no exact compiler-runtime bridge ABI' "$OUT/$fixture.log"
     checks=$((checks+1))
 done
-run example-run "$CLI" run release/examples/stdlib_signal_core.xl
-run example-build "$CLI" build release/examples/stdlib_signal_core.xl -o "$OUT/example"
+run example-run "$CLI" run release/win_x64/examples/stdlib/process/stdlib_signal_core.xl
+run example-build "$CLI" build release/win_x64/examples/stdlib/process/stdlib_signal_core.xl -o "$OUT/example"
 run example-execute "$OUT/example"
 sha256sum --quiet -c "$OUT/inputs.sha256"
 printf '{"Complete":true,"Checks":%d,"InputsUnchanged":true,"Scope":"Signal scalar foundation only: eleven checked bridges, unsigned totals, range, owned names, native/ambient errors/OOM and dispositions/retirement. Native adapter and two actual generated-program XRT/resident/C closures ASan/UBSan/leaks; shared CLI/JIT uninstrumented, its sweep is a logical ledger. Only ignored/watched INT is raised in private processes. No xlang callbacks/routing or full signal/53-module acceptance claimed."}\n' "$checks" >"$OUT/results.json"

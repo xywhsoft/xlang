@@ -17,7 +17,7 @@ negative=(xlir_time_bad_result xlir_time_bad_input xlir_time_bad_component xlir_
     printf '%s\0' test/cases/xlir_time_core_host.c test/support/time_native.c test/cases/xlir_text_value_contract.c
     printf '%s\0' test/cases/xlir_string_interpolation_host.c test/cases/xlir_artifact_runtime_contract.c
     printf '%s\0' test/cases/xlir_time_closure_host.c
-    printf '%s\0' release/examples/stdlib_time_core.xl
+    printf '%s\0' release/win_x64/examples/stdlib/time/stdlib_time_core.xl
     for fixture in "${cases[@]}" "${negative[@]}"; do printf '%s\0' "test/cases/$fixture.xl"; done
 } | sort -zu | xargs -0 sha256sum >"$OUT/inputs.sha256"
 python3 tools/stage_runtime_headers.py --root "$ROOT" --out "$OUT"
@@ -73,8 +73,8 @@ for fixture in "${negative[@]}"; do
     grep -Eq 'XLIR direct runtime bridge has no exact declared ABI|has no exact compiler-runtime bridge ABI' "$OUT/$fixture.log"
     checks=$((checks+1))
 done
-run example-run "$CLI" run release/examples/stdlib_time_core.xl
-run example-build "$CLI" build release/examples/stdlib_time_core.xl -o "$OUT/example"
+run example-run "$CLI" run release/win_x64/examples/stdlib/time/stdlib_time_core.xl
+run example-build "$CLI" build release/win_x64/examples/stdlib/time/stdlib_time_core.xl -o "$OUT/example"
 run example-execute "$OUT/example"
 sha256sum --quiet -c "$OUT/inputs.sha256"
 printf '{"Complete":true,"Checks":%d,"InputsUnchanged":true,"Scope":"Time core subset only. Native adapter test plus two generated-program actual XRT/resident/C closures ASan/UBSan/leaks. Shared language libxl, CLI/JIT are uninstrumented; their allocation sweep uses a logical ledger only. No time/local/text/53-module completion claim."}\n' "$checks" >"$OUT/results.json"

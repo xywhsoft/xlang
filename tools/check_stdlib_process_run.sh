@@ -47,9 +47,9 @@ fi
     printf '%s\0' test/cases/xlir_process_io_loan.c test/support/process_io_loan_probe.h
     printf '%s\0' test/cases/xlir_process_oom_host.c test/cases/xlir_artifact_runtime_contract.c
     printf '%s\0' test/cases/xlir_time_text_closure_host.c test/cases/xlir_process_child.c
-    printf '%s\0' release/examples/stdlib_process_run.xl
-    printf '%s\0' release/examples/stdlib_process_support.xl
-    printf '%s\0' release/examples/stdlib_process_pipeline.xl
+    printf '%s\0' release/win_x64/examples/stdlib/process/stdlib_process_run.xl
+    printf '%s\0' release/win_x64/examples/stdlib/process/stdlib_process_support.xl
+    printf '%s\0' release/win_x64/examples/stdlib/process/stdlib_process_pipeline.xl
     for fixture in "${cases[@]}" "${negative[@]}"; do printf '%s\0' "test/cases/$fixture.xl"; done
 } | sort -zu | xargs -0 sha256sum >"$OUT/inputs.sha256"
 python3 tools/stage_runtime_headers.py --root "$ROOT" --out "$OUT"
@@ -237,14 +237,14 @@ for fixture in "${negative[@]}"; do
     checks=$((checks+1))
 done
 if [[ "$MODE" = --all ]]; then
-run example-run "$CLI" run release/examples/stdlib_process_run.xl
-run example-build "$CLI" build release/examples/stdlib_process_run.xl -o "$OUT/example"
+run example-run "$CLI" run release/win_x64/examples/stdlib/process/stdlib_process_run.xl
+run example-build "$CLI" build release/win_x64/examples/stdlib/process/stdlib_process_run.xl -o "$OUT/example"
 run example-execute "$OUT/example"
-run support-example-run "$CLI" run release/examples/stdlib_process_support.xl
-run support-example-build "$CLI" build release/examples/stdlib_process_support.xl -o "$OUT/support-example"
+run support-example-run "$CLI" run release/win_x64/examples/stdlib/process/stdlib_process_support.xl
+run support-example-build "$CLI" build release/win_x64/examples/stdlib/process/stdlib_process_support.xl -o "$OUT/support-example"
 run support-example-execute "$OUT/support-example"
-run pipeline-example-run "$CLI" run release/examples/stdlib_process_pipeline.xl
-run pipeline-example-build "$CLI" build release/examples/stdlib_process_pipeline.xl -o "$OUT/pipeline-example"
+run pipeline-example-run "$CLI" run release/win_x64/examples/stdlib/process/stdlib_process_pipeline.xl
+run pipeline-example-build "$CLI" build release/win_x64/examples/stdlib/process/stdlib_process_pipeline.xl -o "$OUT/pipeline-example"
 run pipeline-example-execute "$OUT/pipeline-example"
 fi
 sha256sum --quiet -c "$OUT/inputs.sha256"

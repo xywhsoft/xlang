@@ -5,12 +5,12 @@ cd "$root"
 work="$root/build/test/murmur3_linux_guard"
 mkdir -p "$work"
 cc=${CC:-gcc}
-pkg=release/extlibs/murmur3
+pkg=release/win_x64/extlibs/murmur3
 input_paths() {
     find "$pkg" -type f -print0
     printf '%s\0' .gitattributes lib/xrt/xrt.h lib/xruntime/xruntime.h \
         test/support/extlib_codec_runtime.c tools/check_extlib_murmur3.sh \
-        release/examples/extlibs/murmur3_basic.expected.txt release/examples/extlibs/murmur3.expected.txt
+        release/win_x64/examples/extlibs/algo/murmur3_basic.expected.txt release/win_x64/examples/extlibs/algo/murmur3.expected.txt
 }
 mapfile -d '' inputs < <(input_paths | sort -z)
 flags=(-std=c11 -D_GNU_SOURCE -O1 -g -Wall -Wextra -Werror -Ilib/xrt -Ilib/xruntime
@@ -39,7 +39,7 @@ for name in basic files; do
     if [[ "$name" == files ]]; then stem=murmur3; fi
     "$cc" "${flags[@]}" "$pkg/examples/$name.c" "${objects[@]}" "$work/runtime.o" -lm -ldl -o "$work/$name"
     timeout 30s "$work/$name" > "$work/$name.log"
-    diff -u "release/examples/extlibs/$stem.expected.txt" "$work/$name.log"
+    diff -u "release/win_x64/examples/extlibs/$stem.expected.txt" "$work/$name.log"
 done
 mapfile -d '' after < <(input_paths | sort -z)
 sha256sum "${after[@]}" > "$work/inputs.after.sha256"

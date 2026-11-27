@@ -4,13 +4,13 @@ root=$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")/.." && pwd)
 cd "$root"
 work=${CHARDET_WORK_DIR:-"$root/build/test/chardet_linux_guard"}
 mkdir -p "$work"
-pkg=release/extlibs/chardet
+pkg=release/win_x64/extlibs/chardet
 cc=${CC:-gcc}
 snapshot() {
     local paths=()
     mapfile -d '' paths < <(find "$pkg" -type f -print0 | sort -z)
     paths+=(lib/xrt/xrt.h test/support/extlib_chardet_runtime.c tools/check_extlib_chardet.sh
-            release/examples/extlibs/chardet_basic.expected.txt)
+            release/win_x64/examples/extlibs/data_format/chardet_basic.expected.txt)
     if [[ -n "${CHARDET_DECLARATIONS:-}" ]]; then paths+=("$CHARDET_DECLARATIONS"); fi
     sha256sum "${paths[@]}"
 }
@@ -28,7 +28,7 @@ for name in test_chardet test_threads; do
 done
 "$cc" "${flags[@]}" "$pkg/examples/basic.c" "$work/native.o" "$work/runtime.o" -lm -ldl -o "$work/basic"
 timeout 30s "$work/basic" > "$work/basic.log"
-diff -u <(tr -d '\r' < release/examples/extlibs/chardet_basic.expected.txt) "$work/basic.log"
+diff -u <(tr -d '\r' < release/win_x64/examples/extlibs/data_format/chardet_basic.expected.txt) "$work/basic.log"
 if [[ -n "${CHARDET_DECLARATIONS:-}" ]]; then
     "$cc" "${flags[@]}" -include "$pkg/include/chardet.h" -x c -fsyntax-only "$CHARDET_DECLARATIONS"
 fi

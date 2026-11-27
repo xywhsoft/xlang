@@ -6,8 +6,8 @@ work_root=$(realpath -m -- "${TMPDIR:-/tmp}")
 mkdir -p "$work_root"
 work=$(mktemp -d "$work_root/xlang-argon2-bloom-XXXXXXXX")
 stage="$work/stage"
-argon=release/extlibs/argon2
-bloom=release/extlibs/bloom
+argon=release/win_x64/extlibs/argon2
+bloom=release/win_x64/extlibs/bloom
 cc=${CC:-gcc}
 compiler=$(command -v "$cc" || true)
 if [[ -f $compiler ]]; then cc=$(realpath -- "$compiler"); compiler=$cc; fi
@@ -17,9 +17,9 @@ source_paths() {
       printf '%s\0' lib/xrt/xrt.h lib/xruntime/xruntime.h release/xl release/libxl.so release/libxlc.so \
         test/support/extlib_scalar_runtime.c test/cases/extlib_argon2_bloom_alloc.c tools/check_extlib_argon2_bloom.sh
       for name in argon2 bloom; do
-          printf '%s\0' "test/cases/extlib_$name.xl" "release/examples/extlibs/$name.xl" \
-            "release/examples/extlibs/${name}_basic.xl" "release/examples/extlibs/${name}_c.c" \
-            "release/examples/extlibs/${name}_basic.expected.txt"
+          printf '%s\0' "test/cases/extlib_$name.xl" "release/win_x64/examples/extlibs/$name.xl" \
+            "release/win_x64/examples/extlibs/${name}_basic.xl" "release/win_x64/examples/extlibs/${name}_c.c" \
+            "release/win_x64/examples/extlibs/${name}_basic.expected.txt"
       done
     } | sort -zu
 }
@@ -104,11 +104,11 @@ done
 for name in argon2 bloom; do
     test_flags=()
     if [[ $name == argon2 ]]; then test_flags=(-DNDEBUG); fi
-    run "$name-c-build" 90 "$cc" "${flags[@]}" "${test_flags[@]}" "release/extlibs/$name/test/test_$name.c" "${objects[@]}" "$work/runtime.o" -lm -ldl -o "$work/$name"
+    run "$name-c-build" 90 "$cc" "${flags[@]}" "${test_flags[@]}" "release/win_x64/extlibs/$name/test/test_$name.c" "${objects[@]}" "$work/runtime.o" -lm -ldl -o "$work/$name"
     run "$name-c" 30 "$work/$name"
-    run "$name-example-gcc-build" 90 "$cc" "${flags[@]}" "release/examples/extlibs/${name}_c.c" "$work/runtime.o" -lm -ldl -o "$work/$name-example"
+    run "$name-example-gcc-build" 90 "$cc" "${flags[@]}" "release/win_x64/examples/extlibs/${name}_c.c" "$work/runtime.o" -lm -ldl -o "$work/$name-example"
     run "$name-example-gcc" 30 "$work/$name-example"
-    golden "release/examples/extlibs/${name}_basic.expected.txt" "$work/$name-example-gcc.stdout"
+    golden "release/win_x64/examples/extlibs/${name}_basic.expected.txt" "$work/$name-example-gcc.stdout"
 done
 run allocation-build 90 "$cc" "${flags[@]}" test/cases/extlib_argon2_bloom_alloc.c "${objects[@]}" "$work/runtime.o" -lm -ldl -o "$work/allocation"
 run allocation 30 "$work/allocation"
@@ -123,16 +123,16 @@ for name in argon2 bloom; do
     for kind in central basic tutorial c; do
         case "$kind" in
             central) source="test/cases/extlib_$name.xl" ;;
-            basic) source="release/examples/extlibs/${name}_basic.xl" ;;
-            tutorial) source="release/examples/extlibs/$name.xl" ;;
-            c) source="release/examples/extlibs/${name}_c.c" ;;
+            basic) source="release/win_x64/examples/extlibs/${name}_basic.xl" ;;
+            tutorial) source="release/win_x64/examples/extlibs/$name.xl" ;;
+            c) source="release/win_x64/examples/extlibs/${name}_c.c" ;;
         esac
         run "$name-$kind-jit" 180 "$xl" run "$source"
         run "$name-$kind-build" 180 "$xl" build "$source" -o "$work/$name-$kind"
         run "$name-$kind-aot" 120 "$work/$name-$kind"
         if [[ $kind == basic || $kind == c ]]; then
-            golden "release/examples/extlibs/${name}_basic.expected.txt" "$work/$name-$kind-jit.stdout"
-            golden "release/examples/extlibs/${name}_basic.expected.txt" "$work/$name-$kind-aot.stdout"
+            golden "release/win_x64/examples/extlibs/${name}_basic.expected.txt" "$work/$name-$kind-jit.stdout"
+            golden "release/win_x64/examples/extlibs/${name}_basic.expected.txt" "$work/$name-$kind-aot.stdout"
         fi
     done
     run "$name-cgen" 90 "$xl" cgen "test/cases/extlib_$name.xl" --emit "$work/$name-module.c"
@@ -140,13 +140,13 @@ for name in argon2 bloom; do
     header=argon2_native.h
     if [[ $name == bloom ]]; then prefix='(xbloom_|xcounting_bloom_)'; header=bloom.h; fi
     grep -E "^extern .*$prefix[a-z_]+\\(" "$work/$name-module.c" | sort -u > "$work/$name-decls.txt"
-    grep -oE "extern[[:space:]]+\"$prefix[a-z_]+\"" "release/extlibs/$name/src/$name.xl" | cut -d '"' -f 2 | sort -u > "$work/$name-expected-symbols.txt"
+    grep -oE "extern[[:space:]]+\"$prefix[a-z_]+\"" "release/win_x64/extlibs/$name/src/$name.xl" | cut -d '"' -f 2 | sort -u > "$work/$name-expected-symbols.txt"
     grep -oE "$prefix[a-z_]+\\(" "$work/$name-decls.txt" | tr -d '(' | sort -u > "$work/$name-actual-symbols.txt"
     diff -u "$work/$name-expected-symbols.txt" "$work/$name-actual-symbols.txt"
     [[ $(wc -l < "$work/$name-decls.txt") == $(wc -l < "$work/$name-expected-symbols.txt") ]]
     printf '#include <stdint.h>\n#include "%s"\n' "$header" > "$work/$name-abi.c"
     cat "$work/$name-decls.txt" >> "$work/$name-abi.c"
-    run "$name-abi" 60 "$cc" "${flags[@]}" -I"release/extlibs/$name/include" -fsyntax-only "$work/$name-abi.c"
+    run "$name-abi" 60 "$cc" "${flags[@]}" -I"release/win_x64/extlibs/$name/include" -fsyntax-only "$work/$name-abi.c"
 done
 # 四条@owned出口必须直接接管，不让测试只验证结果而漏掉重复字符串复制。
 for symbol in xargon2_hash xargon2_hash_raw xargon2_extract xargon2_generate_salt; do

@@ -11,7 +11,7 @@ if [[ -n "${CSV_WORK_DIR:-}" ]]; then
 else
     work=$(mktemp -d "${TMPDIR:-/tmp}/xlang-csv-XXXXXX")
 fi
-pkg=release/extlibs/csv
+pkg=release/win_x64/extlibs/csv
 cc=${CC:-gcc}
 xl=release/xl
 phase=setup
@@ -20,9 +20,9 @@ mapfile -d '' inputs < <(
     { find "$pkg" release/include -type f -print0
       printf '%s\0' lib/xrt/xrt.h lib/xruntime/xruntime.h test/support/extlib_csv_runtime.c \
           tools/check_extlib_csv.sh tools/check_extlib_csv_interop.py release/xl release/libxl.so release/libxlc.so \
-          test/cases/extlib_csv.xl release/examples/extlibs/csv.xl \
-          release/examples/extlibs/csv_basic.xl release/examples/extlibs/csv_files.xl \
-          release/examples/extlibs/csv_basic.expected.txt release/examples/extlibs/csv_files.expected.txt
+          test/cases/extlib_csv.xl release/win_x64/examples/extlibs/data_format/csv.xl \
+          release/win_x64/examples/extlibs/data_format/csv_basic.xl release/win_x64/examples/extlibs/data_format/csv_files.xl \
+          release/win_x64/examples/extlibs/data_format/csv_basic.expected.txt release/win_x64/examples/extlibs/data_format/csv_files.expected.txt
       compiler=$(command -v "$cc" || true)
       if [[ -f "$compiler" ]]; then printf '%s\0' "$compiler"; fi
       if [[ -n ${CSV_DECLARATIONS:-} ]]; then printf '%s\0' "$CSV_DECLARATIONS"; fi
@@ -77,7 +77,7 @@ export UBSAN_OPTIONS=halt_on_error=1:print_stacktrace=1
 run compiler-info 120 "$cc" --version
 run runtime-compile 120 "$cc" "${flags[@]}" -DXRT_MODULE_THREAD -DXRT_MODULE_ATOMIC -c test/support/extlib_csv_runtime.c -o "$work/runtime.o"
 objects=("$work/runtime.o")
-mapfile -t sources < <(python3 -c 'import json; print("\n".join(json.load(open("release/extlibs/csv/xlang.package.json"))["artifact"]["cSources"]))')
+mapfile -t sources < <(python3 -c 'import json; print("\n".join(json.load(open("release/win_x64/extlibs/csv/xlang.package.json"))["artifact"]["cSources"]))')
 for source in "${sources[@]}"; do
     object="$work/${source%.c}.o"
     run "${source%.c}-compile" 120 "$cc" "${flags[@]}" -Wmissing-prototypes -c "$pkg/$source" -o "$object"
@@ -102,7 +102,7 @@ observe closed-rollback 90 "$work/file_rollback_closed" "$work"
 for name in central full boundaries files aot_core global_lifecycle bom_values; do
     source="$pkg/test/$name.xl"
     [[ $name != central ]] || source=test/cases/extlib_csv.xl
-    [[ $name != full ]] || source=release/examples/extlibs/csv.xl
+    [[ $name != full ]] || source=release/win_x64/examples/extlibs/data_format/csv.xl
     observe "$name-jit" 90 "$xl" run "$source"
     build_run "$name-aot" "$source"
     run "$name-cgen" 90 "$xl" cgen "$source" --emit "$work/module-$name.c"
@@ -125,8 +125,8 @@ for name in native constructor; do
 done
 for name in basic files streaming bom_values; do
     c_source="$pkg/examples/$name.c"
-    xl_source="release/examples/extlibs/csv_$name.xl"
-    expected="release/examples/extlibs/csv_$name.expected.txt"
+    xl_source="release/win_x64/examples/extlibs/csv_$name.xl"
+    expected="release/win_x64/examples/extlibs/csv_$name.expected.txt"
     if [[ $name == streaming || $name == bom_values ]]; then
         c_source="$pkg/examples/${name}_c.c"
         xl_source="$pkg/examples/$name.xl"

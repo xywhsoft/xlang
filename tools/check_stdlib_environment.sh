@@ -16,7 +16,7 @@ negative=(xlir_environment_bad_result xlir_environment_bad_effect xlir_environme
     printf '%s\0' tools/check_stdlib_environment.sh tools/check_stdlib_environment.ps1 tools/tcc_vfs_manifest_linux_xlc.txt
     printf '%s\0' test/cases/xlir_environment_host.c test/support/environment_native.c test/cases/xlir_text_value_contract.c
     printf '%s\0' test/cases/xlir_string_interpolation_host.c test/cases/xlir_artifact_runtime_contract.c
-    printf '%s\0' test/cases/xlir_time_text_closure_host.c release/examples/stdlib_environment.xl
+    printf '%s\0' test/cases/xlir_time_text_closure_host.c release/win_x64/examples/stdlib/process/stdlib_environment.xl
     for fixture in "${cases[@]}" "${negative[@]}"; do printf '%s\0' "test/cases/$fixture.xl"; done
 } | sort -zu | xargs -0 sha256sum >"$OUT/inputs.sha256"
 python3 tools/stage_runtime_headers.py --root "$ROOT" --out "$OUT"
@@ -74,8 +74,8 @@ for fixture in "${negative[@]}"; do
     grep -Eq 'XLIR direct runtime bridge has no exact declared ABI|has no exact compiler-runtime bridge ABI' "$OUT/$fixture.log"
     checks=$((checks+1))
 done
-run example-run "$CLI" run release/examples/stdlib_environment.xl
-run example-build "$CLI" build release/examples/stdlib_environment.xl -o "$OUT/example"
+run example-run "$CLI" run release/win_x64/examples/stdlib/process/stdlib_environment.xl
+run example-build "$CLI" build release/win_x64/examples/stdlib/process/stdlib_environment.xl -o "$OUT/example"
 run example-execute "$OUT/example"
 sha256sum --quiet -c "$OUT/inputs.sha256"
 printf '{"Complete":true,"Checks":%d,"InputsUnchanged":true,"Scope":"Environment subset. Native adapter and three actual generated-program XRT/resident/C closures ASan/UBSan/leaks. Shared CLI/JIT uninstrumented; its allocation sweep is a logical ledger. External writers require synchronization; libc/OS allocations are outside XRT failpoints. Other 53-module acceptance remains outside this gate."}\n' "$checks" >"$OUT/results.json"

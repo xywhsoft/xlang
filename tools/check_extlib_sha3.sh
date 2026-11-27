@@ -5,14 +5,14 @@ cd "$root"
 work=$(mktemp -d "${TMPDIR:-/tmp}/xlang-sha3-XXXXXX")
 trap 'rm -rf -- "$work"' EXIT
 cc=${CC:-gcc}
-pkg=release/extlibs/sha3
+pkg=release/win_x64/extlibs/sha3
 input_paths() {
     find "$pkg" -type f -print0
     printf '%s\0' .gitattributes lib/xrt/xrt.h lib/xruntime/xruntime.h \
         test/support/extlib_codec_runtime.c tools/check_extlib_sha3.sh \
         release/xl test/cases/extlib_sha3.xl test/cases/extlib_sha3_progress.xl \
-        release/examples/extlibs/sha3.xl release/examples/extlibs/sha3_basic.xl \
-        release/examples/extlibs/sha3_basic.expected.txt release/examples/extlibs/sha3.expected.txt
+        release/win_x64/examples/extlibs/crypto/sha3.xl release/win_x64/examples/extlibs/crypto/sha3_basic.xl \
+        release/win_x64/examples/extlibs/crypto/sha3_basic.expected.txt release/win_x64/examples/extlibs/crypto/sha3.expected.txt
 }
 mapfile -d '' inputs < <(input_paths | sort -z)
 flags=(-std=c11 -D_GNU_SOURCE -O1 -g -Wall -Wextra -Werror -Ilib/xrt -Ilib/xruntime
@@ -41,7 +41,7 @@ for name in basic files; do
     if [[ "$name" == files ]]; then stem=sha3; fi
     "$cc" "${flags[@]}" -DNDEBUG "$pkg/examples/$name.c" "${objects[@]}" "$work/runtime.o" -lm -ldl -o "$work/$name"
     timeout 30s "$work/$name" > "$work/$name.log"
-    diff -u "release/examples/extlibs/$stem.expected.txt" "$work/$name.log"
+    diff -u "release/win_x64/examples/extlibs/$stem.expected.txt" "$work/$name.log"
 done
 for name in extlib_sha3 extlib_sha3_progress; do
     timeout 90s ./release/xl run "test/cases/$name.xl" > "$work/$name.log"
@@ -52,8 +52,8 @@ if ./release/xl check "$pkg/test/private_update_negative.xl" > "$work/private_up
 fi
 grep -Fq 'no matching callable class member' "$work/private_update.log"
 for name in sha3 sha3_basic; do
-    timeout 90s ./release/xl run "release/examples/extlibs/$name.xl" > "$work/$name.log"
-    diff -u "release/examples/extlibs/$name.expected.txt" "$work/$name.log"
+    timeout 90s ./release/xl run "release/win_x64/examples/extlibs/$name.xl" > "$work/$name.log"
+    diff -u "release/win_x64/examples/extlibs/$name.expected.txt" "$work/$name.log"
 done
 timeout 90s ./release/xl run "$pkg/test/owned_text.xl" > "$work/owned_text.log"
 grep -Fxq 'sha3 owned text ok' "$work/owned_text.log"

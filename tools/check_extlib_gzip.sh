@@ -10,20 +10,20 @@ cc=${CC:-gcc}
 cc_path=$(command -v "$cc")
 cc1_path=$(timeout 30s "$cc" -print-prog-name=cc1)
 python_path=$(command -v python3)
-pkg=release/extlibs/gzip
+pkg=release/win_x64/extlibs/gzip
 input_paths() {
     find "$pkg" -type f -print0
     printf '%s\0' lib/xrt/xrt.h lib/xruntime/xruntime.h test/support/extlib_codec_runtime.c \
         test/support/extlib_codec_io_errors.h test/support/extlib_native_codec_file_rollback.h \
         test/cases/extlib_codec_file_allocation.c tools/check_extlib_gzip.sh \
         tools/check_extlib_gzip_interop.py release/xl \
-        release/libxl.so release/libxlc.so release/include/xrt_decl.h \
-        release/include/xruntime_decl.h release/include/xl_extlib_abi.h \
+        release/libxl.so release/libxlc.so release/win_x64/include/xrt_decl.h \
+        release/win_x64/include/xruntime_decl.h release/win_x64/include/xl_extlib_abi.h \
         tools/check_extlib_native_globals.ps1 tools/check_extlib_native_globals.sh \
         test/cases/extlib_gzip.xl test/cases/extlib_gzip_progress.xl \
-        release/examples/extlibs/gzip.xl \
-        release/examples/extlibs/gzip_basic.xl release/examples/extlibs/gzip_basic.expected.txt \
-        release/examples/extlibs/gzip_c.c
+        release/win_x64/examples/extlibs/compression/gzip.xl \
+        release/win_x64/examples/extlibs/compression/gzip_basic.xl release/win_x64/examples/extlibs/compression/gzip_basic.expected.txt \
+        release/win_x64/examples/extlibs/compression/gzip_c.c
     find release/include -type f -print0
     printf '%s\0' "$cc_path" "$cc1_path" "$python_path"
     if [[ -n ${XRT_INCLUDE:-} ]]; then printf '%s\0' "$XRT_INCLUDE/xrt.h" "$XRT_INCLUDE/xruntime.h"; fi
@@ -96,10 +96,10 @@ compile "$pkg/test/gzip_interop.c" "${objects[@]}" -lm -ldl -o "$work/interop"
 timeout 180s python3 tools/check_extlib_gzip_interop.py "$work/interop" "$work/interop-files" | tee "$work/interop.log"
 compile "$pkg/examples/basic.c" "${objects[@]}" -lm -ldl -o "$work/basic"
 timeout 30s "$work/basic" > "$work/basic.log"
-golden_output release/examples/extlibs/gzip_basic.expected.txt "$work/basic.log"
+golden_output release/win_x64/examples/extlibs/compression/gzip_basic.expected.txt "$work/basic.log"
 timeout 30s ./release/xl run "$pkg/examples/basic.c" > "$work/basic-direct.log"
 diff -u "$work/basic.log" "$work/basic-direct.log"
-timeout 30s ./release/xl run release/examples/extlibs/gzip_c.c > "$work/central-direct.log"
+timeout 30s ./release/xl run release/win_x64/examples/extlibs/compression/gzip_c.c > "$work/central-direct.log"
 printf 'gzip C example: PASS\n' > "$work/central-expected.log"
 diff -u "$work/central-expected.log" "$work/central-direct.log"
 compile -DNDEBUG -Itest/cases "$pkg/test/file_allocation_dll.c" "${objects[@]}" -lm -ldl -o "$work/file-allocation"
@@ -110,11 +110,11 @@ timeout 90s "$work/file-allocation.aot" "$work/aot-files"
 timeout 90s ./release/xl run "$pkg/test/file_ops.xl"
 timeout 90s ./release/xl run "$pkg/test/error_dispatch.xl"
 timeout 90s ./release/xl run test/cases/extlib_gzip_progress.xl
-timeout 90s ./release/xl run release/examples/extlibs/gzip_basic.xl > "$work/basic-xl.log"
-golden_output release/examples/extlibs/gzip_basic.expected.txt "$work/basic-xl.log"
+timeout 90s ./release/xl run release/win_x64/examples/extlibs/compression/gzip_basic.xl > "$work/basic-xl.log"
+golden_output release/win_x64/examples/extlibs/compression/gzip_basic.expected.txt "$work/basic-xl.log"
 diff -u "$work/basic.log" "$work/basic-xl.log"
 timeout 90s ./release/xl run test/cases/extlib_gzip.xl
-timeout 90s ./release/xl run release/examples/extlibs/gzip.xl > "$work/gzip-xl.log"
+timeout 90s ./release/xl run release/win_x64/examples/extlibs/compression/gzip.xl > "$work/gzip-xl.log"
 printf 'gzip example: PASS\n' > "$work/gzip-expected.log"
 diff -u "$work/gzip-expected.log" "$work/gzip-xl.log"
 
@@ -124,19 +124,19 @@ for source in test/cases/extlib_gzip.xl test/cases/extlib_gzip_progress.xl \
     timeout 90s ./release/xl build "$source" -o "$work/$name-aot"
     timeout 60s "$work/$name-aot"
 done
-for source in release/examples/extlibs/gzip.xl \
-    release/examples/extlibs/gzip_basic.xl "$pkg/examples/basic.c"; do
+for source in release/win_x64/examples/extlibs/compression/gzip.xl \
+    release/win_x64/examples/extlibs/compression/gzip_basic.xl "$pkg/examples/basic.c"; do
     name=$(basename "${source%.*}")
     timeout 90s ./release/xl build "$source" -o "$work/$name-aot"
     timeout 60s "$work/$name-aot" > "$work/$name-aot.log"
     if [[ $name == gzip ]]; then
         diff -u "$work/gzip-expected.log" "$work/$name-aot.log"
     else
-        golden_output release/examples/extlibs/gzip_basic.expected.txt \
+        golden_output release/win_x64/examples/extlibs/compression/gzip_basic.expected.txt \
             "$work/$name-aot.log"
     fi
 done
-timeout 180s ./release/xl build release/examples/extlibs/gzip_c.c -o "$work/central-c.aot"
+timeout 180s ./release/xl build release/win_x64/examples/extlibs/compression/gzip_c.c -o "$work/central-c.aot"
 timeout 90s "$work/central-c.aot" > "$work/central-c.aot.txt"
 diff -u "$work/central-expected.log" "$work/central-c.aot.txt"
 for name in extlib_gzip extlib_gzip_progress; do

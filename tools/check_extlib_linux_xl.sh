@@ -17,6 +17,6 @@ trap 'rm -rf -- "$work"' EXIT
 for name in "extlib_$package" "extlib_${package}_boundaries" "extlib_${package}_progress"; do
     timeout 90s ./release/xl run "test/cases/$name.xl"
 done
-timeout 90s ./release/xl run "release/examples/extlibs/${package}_basic.xl" > "$work/output.txt"
-diff -u "release/examples/extlibs/${package}_basic.expected.txt" "$work/output.txt"
+timeout 90s ./release/xl run "release/win_x64/examples/extlibs/${package}_basic.xl" > "$work/output.txt"
+diff -u "release/win_x64/examples/extlibs/${package}_basic.expected.txt" "$work/output.txt"
 printf '%s Linux XLang JIT gate: PASS\n' "$package"

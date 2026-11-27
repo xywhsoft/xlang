@@ -5,10 +5,10 @@ cd "$root"
 work="$root/build/test/aho_linux_guard"
 mkdir -p "$work"
 cc=${CC:-gcc}
-pkg=release/extlibs/aho_corasick
+pkg=release/win_x64/extlibs/aho_corasick
 mapfile -d '' inputs < <(find "$pkg" -type f \( -name '*.c' -o -name '*.h' -o -name '*.json' -o -name '*.xl' \) -print0 | sort -z)
 inputs+=(lib/xrt/xrt.h test/support/extlib_aho_runtime.c tools/check_extlib_aho.sh
-         release/examples/extlibs/aho_corasick_c.c release/examples/extlibs/aho_corasick_basic.expected.txt)
+         release/win_x64/examples/extlibs/algo/aho_corasick_c.c release/win_x64/examples/extlibs/algo/aho_corasick_basic.expected.txt)
 flags=(-std=c11 -D_GNU_SOURCE -O1 -g -Wall -Wextra -Werror -Ilib/xrt
        -fsanitize=address,undefined -fno-omit-frame-pointer -fno-pie -no-pie -pthread)
 export ASAN_OPTIONS=detect_leaks=1:halt_on_error=1
@@ -27,8 +27,8 @@ for name in test_aho_native test_aho_alloc test_aho_threads; do
 done
 "$cc" "${flags[@]}" "$pkg/examples/basic.c" "${objects[@]}" -lm -ldl -o "$work/basic"
 timeout 30s "$work/basic" > "$work/basic.log"
-diff -u release/examples/extlibs/aho_corasick_basic.expected.txt "$work/basic.log"
-"$cc" "${flags[@]}" release/examples/extlibs/aho_corasick_c.c "${objects[@]}" -lm -ldl -o "$work/tutorial"
+diff -u release/win_x64/examples/extlibs/algo/aho_corasick_basic.expected.txt "$work/basic.log"
+"$cc" "${flags[@]}" release/win_x64/examples/extlibs/algo/aho_corasick_c.c "${objects[@]}" -lm -ldl -o "$work/tutorial"
 timeout 30s "$work/tutorial" > "$work/tutorial.log"
 for name in private_add_pattern_native private_feed_native; do
     if timeout 30s ./release/xl check "$pkg/test/$name.xl" > "$work/$name.log" 2>&1; then

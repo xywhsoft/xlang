@@ -12,7 +12,7 @@ cleanup() {
 }
 trap cleanup EXIT
 cc=${CC:-gcc}
-pkg=release/extlibs/xxhash
+pkg=release/win_x64/extlibs/xxhash
 input_paths() {
     find "$pkg" -type f -print0
     printf '%s\0' .gitattributes lib/xrt/xrt.h lib/xruntime/xruntime.h \
@@ -21,9 +21,9 @@ input_paths() {
         release/xl release/libxlc.so test/cases/extlib_xxhash.xl \
         test/cases/extlib_xxhash_boundaries.xl \
         test/cases/extlib_xxhash_progress.xl \
-        release/examples/extlibs/xxhash.xl \
-        release/examples/extlibs/xxhash_basic.xl \
-        release/examples/extlibs/xxhash_basic.expected.txt
+        release/win_x64/examples/extlibs/algo/xxhash.xl \
+        release/win_x64/examples/extlibs/algo/xxhash_basic.xl \
+        release/win_x64/examples/extlibs/algo/xxhash_basic.expected.txt
 }
 mapfile -d '' inputs < <(input_paths | sort -z)
 flags=(-std=c11 -D_GNU_SOURCE -O1 -g -Wall -Wextra -Werror -Ilib/xrt -Ilib/xruntime
@@ -50,7 +50,7 @@ for name in test_xxhash test_xxhash_native; do
 done
 "$cc" "${flags[@]}" -DNDEBUG "$pkg/examples/basic.c" "${objects[@]}" "$work/runtime.o" -lm -ldl -o "$work/basic"
 timeout 30s "$work/basic" > "$work/basic.log"
-sed 's/\r$//' release/examples/extlibs/xxhash_basic.expected.txt > "$work/basic.expected.txt"
+sed 's/\r$//' release/win_x64/examples/extlibs/algo/xxhash_basic.expected.txt > "$work/basic.expected.txt"
 diff -u "$work/basic.expected.txt" "$work/basic.log"
 if [[ ! -x release/xl ]]; then
     printf 'xxhash Linux xl runner is missing: release/xl\n' >&2
@@ -58,14 +58,14 @@ if [[ ! -x release/xl ]]; then
 fi
 # 保留相同发布输入，在原生临时目录执行语言阶段，避开 WSL 挂载盘 I/O 超时。
 stage="$work/stage"
-mkdir -p "$stage/release/extlibs" "$stage/release/examples/extlibs" "$stage/test/cases" "$stage/test/support"
+mkdir -p "$stage/release/win_x64/extlibs" "$stage/release/win_x64/examples/extlibs" "$stage/test/cases" "$stage/test/support"
 cp -a test/support/extlib_hash_reader_contract.h "$stage/test/support/"
 cp -a release/xl release/libxlc.so "$stage/release/"
-cp -a "$pkg" "$stage/release/extlibs/"
+cp -a "$pkg" "$stage/release/win_x64/extlibs/"
 cp -a test/cases/extlib_xxhash.xl test/cases/extlib_xxhash_boundaries.xl \
     test/cases/extlib_xxhash_progress.xl "$stage/test/cases/"
-cp -a release/examples/extlibs/xxhash.xl release/examples/extlibs/xxhash_basic.xl \
-    release/examples/extlibs/xxhash_basic.expected.txt "$stage/release/examples/extlibs/"
+cp -a release/win_x64/examples/extlibs/algo/xxhash.xl release/win_x64/examples/extlibs/algo/xxhash_basic.xl \
+    release/win_x64/examples/extlibs/algo/xxhash_basic.expected.txt "$stage/release/win_x64/examples/extlibs/"
 cd "$stage"
 timeout 90s ./release/xl run "$pkg/examples/basic.c" > "$work/basic_direct.log"
 diff -u "$work/basic.log" "$work/basic_direct.log"
@@ -99,8 +99,8 @@ for symbol in xxxhash_hash64_hex xxxhash_hash64_str_hex xxxhash_hash32_hex \
         exit 1
     fi
 done
-timeout 90s ./release/xl run release/examples/extlibs/xxhash.xl > "$work/full_jit.log"
-timeout 90s ./release/xl run release/examples/extlibs/xxhash_basic.xl > "$work/basic_jit.log"
+timeout 90s ./release/xl run release/win_x64/examples/extlibs/algo/xxhash.xl > "$work/full_jit.log"
+timeout 90s ./release/xl run release/win_x64/examples/extlibs/algo/xxhash_basic.xl > "$work/basic_jit.log"
 diff -u "$work/basic.log" "$work/basic_jit.log"
 printf '[xxhash] XLang AOT gate\n'
 for name in extlib_xxhash extlib_xxhash_boundaries extlib_xxhash_progress seeded_boundaries stream_limit xxh3 ownership xxhash xxhash_basic; do
@@ -108,7 +108,7 @@ for name in extlib_xxhash extlib_xxhash_boundaries extlib_xxhash_progress seeded
     case "$name" in
         extlib_*) source="test/cases/$name.xl" ;;
         seeded_boundaries|stream_limit|xxh3|ownership) source="$pkg/test/$name.xl" ;;
-        *) source="release/examples/extlibs/$name.xl" ;;
+        *) source="release/win_x64/examples/extlibs/$name.xl" ;;
     esac
     timeout 180s ./release/xl build "$source" -o "$work/$name"
     timeout 90s "$work/$name" > "$work/${name}_aot.log"

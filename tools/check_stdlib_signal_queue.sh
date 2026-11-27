@@ -16,7 +16,7 @@ negative=(xlir_signal_queue_bad_count xlir_signal_queue_bad_effect xlir_signal_q
     printf '%s\0' tools/check_stdlib_signal_queue.sh tools/check_stdlib_signal_queue.ps1 tools/tcc_vfs_manifest_linux_xlc.txt
     printf '%s\0' test/cases/xlir_signal_queue_host.c test/support/signal_native.c test/cases/xlir_text_value_contract.c
     printf '%s\0' test/cases/xlir_signal_dispatch_host.c test/cases/xlir_artifact_runtime_contract.c test/cases/sem_channel_generic_class_element.xl test/cases/sem_channel_class_graph_element.xl
-    printf '%s\0' test/cases/xlir_signal_closure_host.c release/examples/stdlib_signal.xl
+    printf '%s\0' test/cases/xlir_signal_closure_host.c release/win_x64/examples/stdlib/process/stdlib_signal.xl
     for fixture in "${cases[@]}" "${negative[@]}"; do printf '%s\0' "test/cases/$fixture.xl"; done
 } | sort -zu | xargs -0 sha256sum >"$OUT/inputs.sha256"
 python3 tools/stage_runtime_headers.py --root "$ROOT" --out "$OUT"
@@ -79,8 +79,8 @@ for fixture in "${negative[@]}"; do
     grep -Eq 'XLIR direct runtime bridge has no exact declared ABI|has no exact compiler-runtime bridge ABI' "$OUT/$fixture.log"
     checks=$((checks+1))
 done
-run example-run "$CLI" run release/examples/stdlib_signal.xl
-run example-build "$CLI" build release/examples/stdlib_signal.xl -o "$OUT/example"
+run example-run "$CLI" run release/win_x64/examples/stdlib/process/stdlib_signal.xl
+run example-build "$CLI" build release/win_x64/examples/stdlib/process/stdlib_signal.xl -o "$OUT/example"
 run example-execute "$OUT/example"
 run generic-class-message "$CLI" run test/cases/sem_channel_generic_class_element.xl
 run class-graph-message "$CLI" run test/cases/sem_channel_class_graph_element.xl

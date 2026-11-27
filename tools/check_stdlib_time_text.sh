@@ -18,9 +18,9 @@ negative=(xlir_time_text_bad_result xlir_time_text_bad_owner xlir_time_text_bad_
     printf '%s\0' test/cases/xlir_time_core_host.c test/support/time_native.c test/cases/xlir_text_value_contract.c
     printf '%s\0' test/cases/xlir_string_interpolation_host.c test/cases/xlir_artifact_runtime_contract.c
     printf '%s\0' test/cases/xlir_time_text_closure_host.c
-    printf '%s\0' release/examples/stdlib_time_core.xl release/examples/stdlib_time_calendar.xl
-    printf '%s\0' test/cases/xlir_time_text_host.c test/support/time_text_native.c release/examples/stdlib_time.xl
-    printf '%s\0' release/examples/stdlib_time_c.c test/support/time_expect.c test/cases/stdlib_time.xl test/cases/stdlib_time_extra.xl
+    printf '%s\0' release/win_x64/examples/stdlib/time/stdlib_time_core.xl release/win_x64/examples/stdlib/time/stdlib_time_calendar.xl
+    printf '%s\0' test/cases/xlir_time_text_host.c test/support/time_text_native.c release/win_x64/examples/stdlib/time/stdlib_time.xl
+    printf '%s\0' release/win_x64/examples/stdlib/time/stdlib_time_c.c test/support/time_expect.c test/cases/stdlib_time.xl test/cases/stdlib_time_extra.xl
     for fixture in "${cases[@]}" "${negative[@]}"; do printf '%s\0' "test/cases/$fixture.xl"; done
 } | sort -zu | xargs -0 sha256sum >"$OUT/inputs.sha256"
 python3 tools/stage_runtime_headers.py --root "$ROOT" --out "$OUT"
@@ -81,16 +81,16 @@ for fixture in "${negative[@]}"; do
     grep -Eq "$marker" "$OUT/$fixture.log"
     checks=$((checks+1))
 done
-run example-run "$CLI" run release/examples/stdlib_time_core.xl
-run example-build "$CLI" build release/examples/stdlib_time_core.xl -o "$OUT/example"
+run example-run "$CLI" run release/win_x64/examples/stdlib/time/stdlib_time_core.xl
+run example-build "$CLI" build release/win_x64/examples/stdlib/time/stdlib_time_core.xl -o "$OUT/example"
 run example-execute "$OUT/example"
-run calendar-example-run "$CLI" run release/examples/stdlib_time_calendar.xl
-run calendar-example-build "$CLI" build release/examples/stdlib_time_calendar.xl -o "$OUT/calendar-example"
+run calendar-example-run "$CLI" run release/win_x64/examples/stdlib/time/stdlib_time_calendar.xl
+run calendar-example-build "$CLI" build release/win_x64/examples/stdlib/time/stdlib_time_calendar.xl -o "$OUT/calendar-example"
 run calendar-example-execute "$OUT/calendar-example"
-run text-example-run "$CLI" run release/examples/stdlib_time.xl
-run text-example-build "$CLI" build release/examples/stdlib_time.xl -o "$OUT/text-example"
+run text-example-run "$CLI" run release/win_x64/examples/stdlib/time/stdlib_time.xl
+run text-example-build "$CLI" build release/win_x64/examples/stdlib/time/stdlib_time.xl -o "$OUT/text-example"
 run text-example-execute "$OUT/text-example"
-run text-companion-build "$CC" "${strict[@]}" -Ilib/xrt release/examples/stdlib_time_c.c "${libs[@]}" -lxl -o "$OUT/text-companion"
+run text-companion-build "$CC" "${strict[@]}" -Ilib/xrt release/win_x64/examples/stdlib/time/stdlib_time_c.c "${libs[@]}" -lxl -o "$OUT/text-companion"
 run text-companion-run "$OUT/text-companion"
 cmp "$OUT/text-example-run.log" "$OUT/text-companion-run.log"
 run legacy-helper-build "$CC" "${strict[@]}" -c test/support/time_expect.c -o "$OUT/legacy-helper.o"

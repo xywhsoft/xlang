@@ -7,13 +7,13 @@ cd "$root"
 work="$root/build/test/mqtt_linux_guard"
 mkdir -p "$work"
 cc=${CC:-gcc}
-package=release/extlibs/mqtt
+package=release/win_x64/extlibs/mqtt
 sources=("$package/mqtt_frame.c" "$package/mqtt_build.c" "$package/mqtt_parse.c"
          "$package/mqtt_net.c" "$package/mqtt_native.c")
 inputs=("${sources[@]}" "$package/mqtt_internal.h" "$package"/include/*.h
         "$package"/test/*.c "$package"/test/*.h lib/xrt/xrt.h
-        release/examples/extlibs/mqtt_c.c release/examples/extlibs/mqtt_tcp_c.c
-        release/examples/extlibs/mqtt.expected.txt release/examples/extlibs/mqtt_tcp.expected.txt
+        release/win_x64/examples/extlibs/net/mqtt_c.c release/win_x64/examples/extlibs/net/mqtt_tcp_c.c
+        release/win_x64/examples/extlibs/net/mqtt.expected.txt release/win_x64/examples/extlibs/net/mqtt_tcp.expected.txt
         tools/check_extlib_mqtt.sh)
 flags=(-std=c11 -D_GNU_SOURCE -O1 -g -Wall -Wextra -Werror -Ilib/xrt
        -fsanitize=address,undefined -fno-omit-frame-pointer -fno-pie -no-pie -pthread)
@@ -37,9 +37,9 @@ done
 
 for example in mqtt mqtt_tcp
 do
-    "$cc" "${flags[@]}" "release/examples/extlibs/${example}_c.c" "$work/runtime.o" -lm -ldl -o "$work/$example"
+    "$cc" "${flags[@]}" "release/win_x64/examples/extlibs/${example}_c.c" "$work/runtime.o" -lm -ldl -o "$work/$example"
     timeout 30s "$work/$example" > "$work/$example.log"
-    diff -u "release/examples/extlibs/$example.expected.txt" "$work/$example.log"
+    diff -u "release/win_x64/examples/extlibs/$example.expected.txt" "$work/$example.log"
 done
 sha256sum "${inputs[@]}" > "$work/inputs.after.sha256"
 diff -u "$work/inputs.before.sha256" "$work/inputs.after.sha256"

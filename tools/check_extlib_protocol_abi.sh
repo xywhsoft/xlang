@@ -23,7 +23,7 @@ for package in record["coverage"]:
         assert hashlib.sha256(path.read_bytes()).hexdigest().upper() == package[digest], path
 PY
 mapfile -t packages < <(python3 -c 'import json,sys; print("\n".join(p["package"] for p in json.load(open(sys.argv[1]))["coverage"]))' "$NETWORK_ABI_DIR/results.json")
-mapfile -t input_packages < <(python3 -c 'import json,sys; r=json.load(open(sys.argv[1])); print("\n".join("release/extlibs/"+p for p in r.get("dependencyPackages",[p["package"] for p in r["coverage"]])))' "$NETWORK_ABI_DIR/results.json")
+mapfile -t input_packages < <(python3 -c 'import json,sys; r=json.load(open(sys.argv[1])); print("\n".join("release/win_x64/extlibs/"+p for p in r.get("dependencyPackages",[p["package"] for p in r["coverage"]])))' "$NETWORK_ABI_DIR/results.json")
 snapshot() {
     find "${input_packages[@]}" -type f -print0 |
         sort -z | xargs -0 sha256sum
@@ -35,7 +35,7 @@ snapshot > "$work/inputs.before.sha256"
 sanitizers=(-O1 -g -fsanitize=address,undefined -fno-omit-frame-pointer -fno-pie -no-pie)
 http_objects=()
 for package in "${packages[@]}"; do
-    pkg="release/extlibs/$package"
+    pkg="release/win_x64/extlibs/$package"
     flags=(-std=c11 -D_GNU_SOURCE -Wall -Wextra -Werror -Ilib/xrt -Ilib/xruntime -Irelease/include)
     mapfile -t extra < <(python3 -c 'import json,sys; p=sys.argv[1]; m=json.load(open(p+"/xlang.package.json"))["artifact"]; print("\n".join(["-I"+p+"/"+s for s in m.get("includeDirs",[])]+["-D"+s for s in m.get("xrtModules",[])]))' "$pkg")
     flags+=("${extra[@]}")

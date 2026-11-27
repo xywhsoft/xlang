@@ -20,7 +20,7 @@ negative=(xlir_time_bad_result xlir_time_bad_input xlir_time_bad_component xlir_
     printf '%s\0' test/cases/xlir_time_core_host.c test/support/time_native.c test/cases/xlir_text_value_contract.c
     printf '%s\0' test/cases/xlir_string_interpolation_host.c test/cases/xlir_artifact_runtime_contract.c
     printf '%s\0' test/cases/xlir_time_closure_host.c
-    printf '%s\0' release/examples/stdlib_time_core.xl release/examples/stdlib_time_calendar.xl
+    printf '%s\0' release/win_x64/examples/stdlib/time/stdlib_time_core.xl release/win_x64/examples/stdlib/time/stdlib_time_calendar.xl
     printf '%s\0' test/cases/xlir_time_calendar_host.c test/support/time_calendar_native.c
     for fixture in "${cases[@]}" "${negative[@]}"; do printf '%s\0' "test/cases/$fixture.xl"; done
 } | sort -zu | xargs -0 sha256sum >"$OUT/inputs.sha256"
@@ -83,11 +83,11 @@ for fixture in "${negative[@]}"; do
     grep -Eq "$marker" "$OUT/$fixture.log"
     checks=$((checks+1))
 done
-run example-run "$CLI" run release/examples/stdlib_time_core.xl
-run example-build "$CLI" build release/examples/stdlib_time_core.xl -o "$OUT/example"
+run example-run "$CLI" run release/win_x64/examples/stdlib/time/stdlib_time_core.xl
+run example-build "$CLI" build release/win_x64/examples/stdlib/time/stdlib_time_core.xl -o "$OUT/example"
 run example-execute "$OUT/example"
-run calendar-example-run "$CLI" run release/examples/stdlib_time_calendar.xl
-run calendar-example-build "$CLI" build release/examples/stdlib_time_calendar.xl -o "$OUT/calendar-example"
+run calendar-example-run "$CLI" run release/win_x64/examples/stdlib/time/stdlib_time_calendar.xl
+run calendar-example-build "$CLI" build release/win_x64/examples/stdlib/time/stdlib_time_calendar.xl -o "$OUT/calendar-example"
 run calendar-example-execute "$OUT/calendar-example"
 sha256sum --quiet -c "$OUT/inputs.sha256"
 printf '{"Complete":true,"Checks":%d,"InputsUnchanged":true,"Scope":"Time core/calendar/snapshot/local subset. Native adapter including NY and Lord Howe fold/gap plus seven actual generated-program XRT/resident/C closures ASan/UBSan/leaks. Shared libxl CLI/JIT uninstrumented; their allocation sweep is a logical ledger. Time text and all 53 modules remain outside this gate."}\n' "$checks" >"$OUT/results.json"

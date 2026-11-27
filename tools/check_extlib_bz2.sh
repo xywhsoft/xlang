@@ -7,22 +7,22 @@ cd "$root"
 work=${BZ2_TEST_WORK:-"$root/build/test/bz2_linux_guard"}
 mkdir -p "$work"
 cc=${CC:-gcc}
-pkg=release/extlibs/bz2
-vendor=release/extlibs/_bzip2/third_party/bzip2
+pkg=release/win_x64/extlibs/bz2
+vendor=release/win_x64/extlibs/_bzip2/third_party/bzip2
 includes=(-Ilib/xrt -Ilib/xruntime)
 if [[ -n ${XRT_INCLUDE:-} ]]; then includes=("-I$XRT_INCLUDE"); fi
 input_paths() {
     printf '%s\0' tools/check_extlib_native_globals.ps1 tools/check_extlib_native_globals.sh
-    find "$pkg" release/extlibs/_bzip2 -type f -print0
+    find "$pkg" release/win_x64/extlibs/_bzip2 -type f -print0
     printf '%s\0' lib/xrt/xrt.h lib/xruntime/xruntime.h test/support/extlib_codec_runtime.c \
         test/support/extlib_codec_file_rollback.h \
         tools/check_extlib_bz2.sh tools/check_extlib_bz2_interop.py release/xl \
-        release/libxl.so release/libxlc.so release/include/xrt_decl.h \
-        release/include/xruntime_decl.h release/include/xl_extlib_abi.h \
+        release/libxl.so release/libxlc.so release/win_x64/include/xrt_decl.h \
+        release/win_x64/include/xruntime_decl.h release/win_x64/include/xl_extlib_abi.h \
         test/cases/extlib_bz2.xl test/cases/extlib_bz2_progress.xl \
-        release/examples/extlibs/bz2.xl release/examples/extlibs/bz2_basic.xl \
-        release/examples/extlibs/bz2_files.xl \
-        release/examples/extlibs/bz2_basic.expected.txt release/examples/extlibs/bz2_files.expected.txt
+        release/win_x64/examples/extlibs/compression/bz2.xl release/win_x64/examples/extlibs/compression/bz2_basic.xl \
+        release/win_x64/examples/extlibs/compression/bz2_files.xl \
+        release/win_x64/examples/extlibs/compression/bz2_basic.expected.txt release/win_x64/examples/extlibs/compression/bz2_files.expected.txt
     if [[ -n ${XRT_INCLUDE:-} ]]; then printf '%s\0' "$XRT_INCLUDE/xrt.h" "$XRT_INCLUDE/xruntime.h"; fi
 }
 mapfile -d '' inputs < <(input_paths | sort -zu)
@@ -86,11 +86,11 @@ python3 tools/check_extlib_bz2_interop.py "$work/interop" "$work/interop-files" 
 for name in basic files; do
     "$cc" "${flags[@]}" "$pkg/examples/$name.c" "${objects[@]}" -lm -ldl -o "$work/$name"
     timeout 30s "$work/$name" > "$work/$name.log"
-    golden_output "release/examples/extlibs/bz2_$name.expected.txt" "$work/$name.log"
+    golden_output "release/win_x64/examples/extlibs/bz2_$name.expected.txt" "$work/$name.log"
     timeout 30s ./release/xl run "$pkg/examples/$name.c" > "$work/$name-direct.log"
     diff -u "$work/$name.log" "$work/$name-direct.log"
 done
-timeout 30s ./release/xl run release/examples/extlibs/bz2_c.c > "$work/central-direct.log"
+timeout 30s ./release/xl run release/win_x64/examples/extlibs/compression/bz2_c.c > "$work/central-direct.log"
 printf 'bz2 C example: PASS\n' > "$work/central-expected.log"
 diff -u "$work/central-expected.log" "$work/central-direct.log"
 "$cc" "${flags[@]}" -DNDEBUG "$pkg/test/test_bz2_files.c" "${objects[@]}" -lm -ldl -o "$work/test_bz2_files"
@@ -103,16 +103,16 @@ timeout 90s "$work/cleanup-aot" "$work/cleanup-aot-files"
 printf '[bz2] XLang file JIT gate\n'
 timeout 180s ./release/xl run "$pkg/test/file_ops.xl"
 timeout 90s ./release/xl run "$pkg/test/text_transfer.xl"
-timeout 90s ./release/xl run release/examples/extlibs/bz2_basic.xl > "$work/basic_xl.log"
-golden_output release/examples/extlibs/bz2_basic.expected.txt "$work/basic_xl.log"
+timeout 90s ./release/xl run release/win_x64/examples/extlibs/compression/bz2_basic.xl > "$work/basic_xl.log"
+golden_output release/win_x64/examples/extlibs/compression/bz2_basic.expected.txt "$work/basic_xl.log"
 diff -u "$work/basic.log" "$work/basic_xl.log"
-timeout 90s ./release/xl run release/examples/extlibs/bz2_files.xl > "$work/files_xl.log"
-golden_output release/examples/extlibs/bz2_files.expected.txt "$work/files_xl.log"
+timeout 90s ./release/xl run release/win_x64/examples/extlibs/compression/bz2_files.xl > "$work/files_xl.log"
+golden_output release/win_x64/examples/extlibs/compression/bz2_files.expected.txt "$work/files_xl.log"
 diff -u "$work/files.log" "$work/files_xl.log"
 printf '[bz2] XLang JIT/AOT gate\n'
 timeout 90s ./release/xl run test/cases/extlib_bz2.xl
 timeout 90s ./release/xl run test/cases/extlib_bz2_progress.xl
-timeout 90s ./release/xl run release/examples/extlibs/bz2.xl > "$work/example-xl-full.log"
+timeout 90s ./release/xl run release/win_x64/examples/extlibs/compression/bz2.xl > "$work/example-xl-full.log"
 for name in central progress file_ops text_transfer; do
     printf '[bz2] AOT %s\n' "$name"
     case "$name" in
@@ -130,8 +130,8 @@ done
 timeout 90s "$work/commit-cleanup" "$work/commit-cleanup-files" 2>&1 | tee "$work/commit-cleanup.log"
 for name in full basic files; do
     printf '[bz2] AOT example %s\n' "$name"
-    source=release/examples/extlibs/bz2.xl
-    if [[ $name != full ]]; then source="release/examples/extlibs/bz2_$name.xl"; fi
+    source=release/win_x64/examples/extlibs/compression/bz2.xl
+    if [[ $name != full ]]; then source="release/win_x64/examples/extlibs/bz2_$name.xl"; fi
     timeout 180s ./release/xl build "$source" -o "$work/bz2-$name-aot"
     timeout 90s "$work/bz2-$name-aot" > "$work/example-xl-$name-aot.log"
     if [[ $name == full ]]; then

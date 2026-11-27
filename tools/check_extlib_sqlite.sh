@@ -6,14 +6,14 @@ tmp_root=$(realpath -m -- "${TMPDIR:-/tmp}")
 work=$(mktemp -d "$tmp_root/xlang-sqlite-XXXXXXXX")
 phase=setup
 cc=${CC:-gcc}
-pkg=release/extlibs/sqlite
+pkg=release/win_x64/extlibs/sqlite
 xl=./release/xl
 input_paths() {
     { find "$pkg" release/include -type f -print0
       printf '%s\0' lib/xrt/xrt.h lib/xruntime/xruntime.h release/xl release/libxl.so release/libxlc.so \
           test/support/extlib_sqlite_runtime.c tools/check_extlib_sqlite.sh \
-          test/cases/extlib_sqlite.xl release/examples/extlibs/sqlite.xl \
-          release/examples/extlibs/sqlite_basic.xl release/examples/extlibs/sqlite_basic.expected.txt
+          test/cases/extlib_sqlite.xl release/win_x64/examples/extlibs/database/sqlite.xl \
+          release/win_x64/examples/extlibs/database/sqlite_basic.xl release/win_x64/examples/extlibs/database/sqlite_basic.expected.txt
       compiler=$(command -v "$cc" || true)
       if [[ -f $compiler ]]; then printf '%s\0' "$compiler"; fi
     } | sort -zu
@@ -87,9 +87,9 @@ for name in test_sqlite test_sqlite_threads; do
 done
 run basic-c-compile 120 "$cc" "${flags[@]}" "${strict[@]}" -DNDEBUG "$pkg/examples/basic.c" "${objects[@]}" -lm -ldl -o "$work/basic"
 run basic-c-run 90 "$work/basic"
-golden release/examples/extlibs/sqlite_basic.expected.txt "$work/basic-c-run.stdout"
+golden release/win_x64/examples/extlibs/database/sqlite_basic.expected.txt "$work/basic-c-run.stdout"
 run basic-c-direct 90 "$xl" run "$pkg/examples/basic.c"
-golden release/examples/extlibs/sqlite_basic.expected.txt "$work/basic-c-direct.stdout"
+golden release/win_x64/examples/extlibs/database/sqlite_basic.expected.txt "$work/basic-c-direct.stdout"
 
 for source in test/cases/extlib_sqlite.xl "$pkg/test/boundaries.xl" \
     "$pkg/test/file.xl" "$pkg/test/nul_inputs.xl" "$pkg/test/owned_results.xl"; do
@@ -113,16 +113,16 @@ cat "$work/decls.txt" "$work/constants.txt" >> "$work/abi.c"
 run generated-abi 120 "$cc" "${flags[@]}" "${strict[@]}" -I"$pkg/include" -I"$pkg/third_party" -fsyntax-only "$work/abi.c"
 
 for name in sqlite sqlite_basic; do
-    source="release/examples/extlibs/$name.xl"
+    source="release/win_x64/examples/extlibs/$name.xl"
     run "$name-example-jit" 90 "$xl" run "$source"
     run "$name-example-build" 120 "$xl" build "$source" -o "$work/$name-example"
     run "$name-example-aot" 45 "$work/$name-example"
     diff -u "$work/$name-example-jit.stdout" "$work/$name-example-aot.stdout"
 done
-golden release/examples/extlibs/sqlite_basic.expected.txt "$work/sqlite_basic-example-aot.stdout"
+golden release/win_x64/examples/extlibs/database/sqlite_basic.expected.txt "$work/sqlite_basic-example-aot.stdout"
 run basic-c-aot-build 120 "$xl" build "$pkg/examples/basic.c" -o "$work/basic_c_aot"
 run basic-c-aot 45 "$work/basic_c_aot"
-golden release/examples/extlibs/sqlite_basic.expected.txt "$work/basic-c-aot.stdout"
+golden release/win_x64/examples/extlibs/database/sqlite_basic.expected.txt "$work/basic-c-aot.stdout"
 
 for name in text_bytes column_storage transactions wal_snapshots; do
     run "$name-c-compile" 120 "$cc" "${flags[@]}" "${strict[@]}" -DNDEBUG "$pkg/examples/${name}_c.c" "${objects[@]}" -lm -ldl -o "$work/$name-gcc"

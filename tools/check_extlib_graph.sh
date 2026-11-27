@@ -5,14 +5,14 @@ cd "$root"
 own_work=true
 if [[ -n ${GRAPH_WORK_DIR:-} ]]; then work=$GRAPH_WORK_DIR; mkdir -p -- "$work"; own_work=false
 else work=$(mktemp -d "${TMPDIR:-/tmp}/xlang-graph-XXXXXX"); fi
-pkg=release/extlibs/graph
+pkg=release/win_x64/extlibs/graph
 cc=${CC:-gcc}; python=${PYTHON:-python3}; sequence=0
 cc_path=$(command -v "$cc" || true); python_path=$(command -v "$python" || true); cc1_path=''
 input_paths() {
     find "$pkg" release/include -type f -print0
     printf '%s\0' lib/xrt/xrt.h lib/xruntime/xruntime.h release/xl release/libxl.so release/libxlc.so \
         test/support/extlib_graph_runtime.c test/support/extlib_runtime_host.c tools/check_extlib_graph.sh test/cases/extlib_graph.xl \
-        release/examples/extlibs/graph.xl release/examples/extlibs/graph_basic.xl release/examples/extlibs/graph_basic.expected.txt
+        release/win_x64/examples/extlibs/algo/graph.xl release/win_x64/examples/extlibs/algo/graph_basic.xl release/win_x64/examples/extlibs/algo/graph_basic.expected.txt
     if [[ -n $cc_path ]]; then printf '%s\0' "$cc_path"; fi
     if [[ -n $python_path ]]; then printf '%s\0' "$python_path"; fi
     if [[ -n $cc1_path ]]; then printf '%s\0' "$cc1_path"; fi
@@ -48,17 +48,17 @@ run 10 "$cc" -print-prog-name=cc1 > "$work/cc1.txt"
 cc1_path=$(cat "$work/cc1.txt")
 mapfile -d '' inputs < <(input_paths | sort -zu)
 sha256sum "${inputs[@]}" > "$work/inputs.before.sha256"
-export PYTHONDONTWRITEBYTECODE=1 XLANG_PACKAGE_PATH="$root/release/extlibs"
-run 10 "$python" -c 'import json,sys; p=json.load(open("release/extlibs/graph/xlang.package.json")); assert sorted(p["artifact"]["xrtModules"])==["XRT_MODULE_ARRAY","XRT_MODULE_MAP","XRT_MODULE_VALUE_CONTAINER"]; print(sys.version)'
+export PYTHONDONTWRITEBYTECODE=1 XLANG_PACKAGE_PATH="$root/release/win_x64/extlibs"
+run 10 "$python" -c 'import json,sys; p=json.load(open("release/win_x64/extlibs/graph/xlang.package.json")); assert sorted(p["artifact"]["xrtModules"])==["XRT_MODULE_ARRAY","XRT_MODULE_MAP","XRT_MODULE_VALUE_CONTAINER"]; print(sys.version)'
 flags=(-std=c11 -D_GNU_SOURCE -O1 -g -Wall -Wextra -Werror -Ilib/xrt -I"$pkg/include"
        -fsanitize=address,undefined -fno-omit-frame-pointer -fno-pie -pthread)
 compile() { run 180 "$cc" "${flags[@]}" "$@"; }
 export ASAN_OPTIONS=detect_leaks=1:halt_on_error=1 UBSAN_OPTIONS=halt_on_error=1:print_stacktrace=1
-mapfile -t modules < <("$python" -c 'import json; print("\n".join("-D"+x for x in json.load(open("release/extlibs/graph/xlang.package.json"))["artifact"]["xrtModules"]))')
+mapfile -t modules < <("$python" -c 'import json; print("\n".join("-D"+x for x in json.load(open("release/win_x64/extlibs/graph/xlang.package.json"))["artifact"]["xrtModules"]))')
 compile "${modules[@]}" -DXRT_IMPLEMENTATION "$pkg/test/manifest_probe.c" -no-pie -lm -ldl -o "$work/minimal"
 run 120 "$work/minimal"
 compile -c test/support/extlib_graph_runtime.c -o "$work/runtime.o"
-mapfile -t sources < <("$python" -c 'import json; print("\n".join(json.load(open("release/extlibs/graph/xlang.package.json"))["artifact"]["cSources"]))')
+mapfile -t sources < <("$python" -c 'import json; print("\n".join(json.load(open("release/win_x64/extlibs/graph/xlang.package.json"))["artifact"]["cSources"]))')
 objects=()
 for source in "${sources[@]}"; do
     object="$work/native-${#objects[@]}.o"
@@ -89,7 +89,7 @@ cmp "$work/ordered.jsonl" "$work/ordered-direct.jsonl"
 example="$pkg/examples/basic.c"
 compile -DNDEBUG "$example" "$work/runtime.o" -no-pie -lm -ldl -o "$work/basic"
 run 90 "$work/basic" > "$work/basic.log"
-sed 's/\r$//' release/examples/extlibs/graph_basic.expected.txt > "$work/basic.expected"
+sed 's/\r$//' release/win_x64/examples/extlibs/algo/graph_basic.expected.txt > "$work/basic.expected"
 diff -u "$work/basic.expected" "$work/basic.log"
 run 90 ./release/xl run "$example" > "$work/basic-direct.log"; diff -u "$work/basic.expected" "$work/basic-direct.log"
 language="$pkg/examples/from_json.xl"
@@ -125,7 +125,7 @@ for library in xl xlc; do
 done
 # 保留原语言字面量输入及双语门禁，不能用 JSON 输入替代。
 for source in test/cases/extlib_graph.xl "$pkg/test/boundaries.xl" "$pkg/test/allocations.xl" \
-    release/examples/extlibs/graph.xl release/examples/extlibs/graph_basic.xl; do
+    release/win_x64/examples/extlibs/algo/graph.xl release/win_x64/examples/extlibs/algo/graph_basic.xl; do
     run 120 ./release/xl run "$source" > "$work/complete.txt"
     if [[ $source == */graph_basic.xl ]]; then diff -u "$work/basic.expected" "$work/complete.txt"; fi
     run 120 ./release/xl build "$source" -o "$work/complete"; run 90 "$work/complete"
