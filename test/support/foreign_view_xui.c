@@ -40,10 +40,10 @@ static bool native_busy(const void* root) { return xuiContextOwnershipBusy((xui_
 static const XL6_ForeignViewDescriptorV1 contextDescriptor={
     sizeof(contextDescriptor),XL6_FOREIGN_VIEW_V1_TAG,"xui_context",
     sizeof(xui_lifetime_link_t),_Alignof(xui_lifetime_link_t),watch_context,unwatch,destroy_context,
-    sizeof(xui_call_scope_t),_Alignof(xui_call_scope_t),native_begin,native_end,NULL,native_busy};
+    sizeof(xui_call_scope_t),_Alignof(xui_call_scope_t),native_begin,native_end,NULL,native_busy,0,NULL,NULL};
 static const XL6_ForeignViewDescriptorV1 widgetDescriptor={
     sizeof(widgetDescriptor),XL6_FOREIGN_VIEW_V1_TAG,"xui_widget",
-    sizeof(xui_lifetime_link_t),_Alignof(xui_lifetime_link_t),watch_widget,unwatch,destroy_widget,0,1,NULL,NULL,NULL,NULL};
+    sizeof(xui_lifetime_link_t),_Alignof(xui_lifetime_link_t),watch_widget,unwatch,destroy_widget,0,1,NULL,NULL,NULL,NULL,0,NULL,NULL};
 
 static void real_context_lifetime(void)
 {

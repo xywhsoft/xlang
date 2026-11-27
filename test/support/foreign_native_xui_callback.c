@@ -41,9 +41,9 @@ static bool trace(const void* raw,XL6_ModuleOwnershipVisit visit,void* user)
 {return xuiContextTraceOwnership((xui_context)raw,visit,user);}
 static const XL6_ForeignViewDescriptorV1 rootDescriptor={sizeof(rootDescriptor),XL6_FOREIGN_VIEW_V1_TAG,"xui_context",
     sizeof(xui_lifetime_link_t),_Alignof(xui_lifetime_link_t),watch_context,unwatch,destroy_context,
-    sizeof(xui_call_scope_t),_Alignof(xui_call_scope_t),begin,end,trace,busy};
+    sizeof(xui_call_scope_t),_Alignof(xui_call_scope_t),begin,end,trace,busy,0,NULL,NULL};
 static const XL6_ForeignViewDescriptorV1 widgetDescriptor={sizeof(widgetDescriptor),XL6_FOREIGN_VIEW_V1_TAG,"xui_widget",
-    sizeof(xui_lifetime_link_t),_Alignof(xui_lifetime_link_t),watch_widget,unwatch,destroy_widget,0,1,NULL,NULL,NULL,NULL};
+    sizeof(xui_lifetime_link_t),_Alignof(xui_lifetime_link_t),watch_widget,unwatch,destroy_widget,0,1,NULL,NULL,NULL,NULL,0,NULL,NULL};
 static const XL6_NativeCallbackRuntimeV1* api;
 static unsigned invocations;
 enum {READ,REMOVE,CLOSE,FAIL,REMOVE_LAYOUT};

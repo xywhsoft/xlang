@@ -7,7 +7,8 @@ class GridSaved
  int editorCalls=0
 end
 func main(...) as int
- Context context=create()
+ Proxy proxy=createProxy()
+ Context context=create(proxy)
  context.inputViewport(c_int(400),c_int(240))
  Widget root=context.widget()
  context.setRootWidget(root)

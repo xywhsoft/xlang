@@ -5,7 +5,8 @@ class TerminalSaved
  int calls=0
 end
 func main(...) as int
- Context context=create()
+ Proxy proxy=createProxy()
+ Context context=create(proxy)
  Terminal terminal=context.terminalNative()
  TerminalSaved saved=TerminalSaved()
  terminal.setInputCallback(func(Widget widget,ByteSlice data)

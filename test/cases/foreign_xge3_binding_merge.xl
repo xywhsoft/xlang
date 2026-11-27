@@ -5,7 +5,8 @@ class MergeSaved
  int calls=0
 end
 func main(...) as int
- Context context=create()
+ Proxy proxy=createProxy()
+ Context context=create(proxy)
  TableView table=context.tableViewNative()
  prepareColumn(table)
  table.setAdapter(func(Widget widget) as c_int

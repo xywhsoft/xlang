@@ -1,7 +1,8 @@
 // Native internal children refuse destructive ownership changes, without
 // invalidating an otherwise live managed view or poisoning the Context scope.
 func main(...) as int
- Context context=create()
+ Proxy proxy=createProxy()
+ Context context=create(proxy)
  NumericInput numeric=context.numericInputNative()
  Widget part=numeric.getInputWidget() as Widget
  auto before=part.getRect()

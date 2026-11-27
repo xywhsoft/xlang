@@ -6,14 +6,15 @@
 #include "src/runtime/xl6_callback_failure.h"
 #include <assert.h>
 #include <stdio.h>
-typedef struct State {unsigned ended,targetFreed;bool fail;} State;
+typedef struct State {unsigned ended,targetFreed;bool fail,current;} State;
+static bool canEnd(const void* raw){return (*(State*const*)raw)->current;}
 static int end(xui_proxy proxy,void* raw){State* s=*(State**)raw;assert(proxy && !s->ended && !s->targetFreed);++s->ended;return s->fail?-23:XUI_OK;}
 static int targetEnd(xui_proxy proxy,void* raw){State* s=*(State**)raw;assert(proxy && s->ended==1 && !s->targetFreed);++s->targetFreed;return XUI_OK;}
 static XL6_ForeignView* createDraw(xui_proxy proxy,State* state,xui_draw_context* output)
 {
     xui_surface target=NULL;void* payload=NULL;
     assert(xuiSurfaceCreateOwned(proxy,sizeof(State*),targetEnd,&target,&payload)==XUI_OK);*(State**)payload=state;
-    assert(xuiDrawCreateOwned(proxy,target,sizeof(State*),end,output,&payload)==XUI_OK);*(State**)payload=state;
+    state->current=true;assert(xuiDrawCreateOwnedEx(proxy,target,sizeof(State*),end,canEnd,output,&payload)==XUI_OK);*(State**)payload=state;
     assert(xuiSurfaceReleaseChecked(target)==XUI_OK);
     XL6_ForeignView* view=xl6ForeignViewCreateRootWithDomainV1(*output,&xl6Xui3DrawPolicy,&xl6Xui3OwnershipDomainV1,NULL);assert(view);return view;
 }
@@ -33,6 +34,24 @@ static void scope(bool fail,bool closeInside,bool oom,bool priorNull)
     if(priorNull)assert(!result.error);else if(fail && !oom)assert(result.error && xrtErrorCode(result.error)==-23);
     xrtErrorFree(result.error);assert(state.ended==1 && state.targetFreed==1);
     assert(xl6ForeignViewCloseV1(view) && xl6ForeignViewReleaseV1(view));
+}
+static void escapedChild(bool oom,bool priorNull)
+{
+    State state={0};xui_proxy proxy=NULL;assert(xuiProxyXgeCreate(&proxy)==XUI_OK);
+    xui_draw_context raw=NULL;XL6_ForeignView* view=createDraw(proxy,&state,&raw);assert(xuiProxyReleaseChecked(proxy)==XUI_OK);
+    XL6_ForeignViewCallV1 call={0};xui_draw_scope_t nativeScope={0};
+    assert(xl6ForeignViewCallBeginV1(view,&call,&nativeScope,sizeof(nativeScope)));
+    assert(xl6ForeignViewCloseV1(view) && !state.ended);
+    state.current=false; /* Real provider says a temporary child is still top. */
+    xl6_error_scope errors={0};assert(xl6ErrorScopeBegin(&errors));if(priorNull)xl6ErrorScopeCaptureFailure(&errors);
+    if(oom)assert(xrtMemDebugFailAfter(0));
+    assert(!xl6ForeignViewCallEndV1(&call));
+    xl6_error_result first=xl6ErrorScopeEnd(&errors);assert(!first.ok);
+    if(priorNull)assert(!first.error);else if(!oom)assert(first.error && xrtErrorCode(first.error)==XUI_ERROR_BUSY);
+    if(oom)xrtMemDebugFailClear();
+    xrtErrorFree(first.error);assert(!state.ended && !state.targetFreed && xl6ForeignViewPendingV1(0));
+    assert(!xl6ForeignViewReleaseV1(view));xrtClearError();
+    state.current=true;assert(xl6ForeignViewDrainV1());assert(state.ended==1 && state.targetFreed==1);
 }
 typedef struct Capture {XL6_ForeignView* view;unsigned* dropped;} Capture;
 static const int identity=1;
@@ -65,6 +84,6 @@ int main(void)
 {
     assert(!xl6Xge3RuntimeBindV1());assert(xrtMemDebugEnable(true));
     for(unsigned bits=0;bits<16;++bits)scope((bits&1)!=0,(bits&2)!=0,(bits&4)!=0,(bits&8)!=0);
-    cycle();assert(!xl6ForeignViewPendingV1(0));uint64_t pending,total;assert(xl6CallbackFailureCountV1(&pending,&total) && !pending);
+    escapedChild(false,false);escapedChild(true,false);escapedChild(true,true);cycle();assert(!xl6ForeignViewPendingV1(0));uint64_t pending,total;assert(xl6CallbackFailureCountV1(&pending,&total) && !pending);
     puts("Draw private policy: Native Scope tail, consumed End failure, aggregate domain and actual closure/callback cycle: PASS");return 0;
 }

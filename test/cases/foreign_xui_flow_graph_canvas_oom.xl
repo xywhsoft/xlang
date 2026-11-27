@@ -1,0 +1,49 @@
+import xui
+extern "fixtureRenderProxy" @header("test/cases/foreign_xui_render_backend.h") @no_raise @c_result("owned_view") @factory(0,0,dropProxy) func cpuProxy() as xui.Proxy
+extern "xuiProxyReleaseChecked" @header("xge3_runtime.h") @no_raise @c_result("status",0) func dropProxy(xui.Proxy proxy)
+extern "fixtureRenderBalanced" @no_raise func balanced() as c_int
+extern "flowModelReferences" @header("test/cases/foreign_xui_flow_graph.h") @no_raise func references(xui.FlowGraph graph) as c_size
+extern "flowModelBudget" @no_raise func budget(c_int count)
+extern "flowModelResetBudget" @no_raise func reset()
+extern "flowModelLiveCount" @no_raise func liveCount() as c_size
+
+func attempt(xui.FlowGraphWidget canvas,c_int allowance) as bool
+    budget(allowance)
+    try
+        auto acquired=canvas.getGraph()
+        reset()
+        assert references(acquired)==3
+        acquired.close()
+        return true
+    catch Error
+        reset()
+        return false
+    end
+end
+
+func sweep(xui.FlowGraphWidget canvas,xui.FlowGraph retained)
+    int failures=0
+    for allowance in range(32)
+        if not attempt(canvas,c_int(allowance)) then failures+=1 end
+        assert references(retained)==2
+    end
+    assert failures>0 and failures<32
+end
+
+func main(...) as int
+    auto proxy=cpuProxy()
+    auto ui=xui.create(proxy,c_int(xui.XUI_SYSTEM_FONT_DISABLED))
+    auto canvas=ui.flowGraphWidget()
+    auto retained=canvas.getGraph()
+    sweep(canvas,retained)
+    auto before=liveCount()
+    sweep(canvas,retained)
+    assert liveCount()==before
+    canvas.close()
+    ui.close()
+    proxy.close()
+    assert references(retained)==1 and retained.nodeCount==0 and balanced()==1
+    retained.close()
+    println("XUI_SHARED_FLOW_MODEL_OK")
+    return 0
+end

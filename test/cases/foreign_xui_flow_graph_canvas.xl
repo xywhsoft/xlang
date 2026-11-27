@@ -1,0 +1,41 @@
+// CPU-only integration of the language model, canvas owning slot and aliases.
+import xui
+extern "fixtureRenderProxy" @header("test/cases/foreign_xui_render_backend.h") @no_raise @c_result("owned_view") @factory(0,0,dropProxy) func cpuProxy() as xui.Proxy
+extern "xuiProxyReleaseChecked" @header("xge3_runtime.h") @no_raise @c_result("status",0) func dropProxy(xui.Proxy proxy)
+extern "fixtureRenderBalanced" @no_raise func balanced() as c_int
+extern "flowModelReferences" @header("test/cases/foreign_xui_flow_graph.h") @no_raise func references(xui.FlowGraph graph) as c_size
+
+func main(...) as int
+    auto proxy=cpuProxy()
+    auto ui=xui.create(proxy,c_int(xui.XUI_SYSTEM_FONT_DISABLED))
+    auto canvas=ui.flowGraphWidget()
+    auto original=canvas.getGraph()
+    assert references(original)==2 and original.nodeCount==0
+    auto replacement=xui.createFlowGraph()
+    assert replacement.addNode("replacement")==0
+    canvas.setGraph(replacement)
+    assert references(original)==1 and references(replacement)==2
+    auto installed=canvas.getGraph()
+    assert references(installed)==3 and installed.nodeCount==1
+    replacement.close()
+    assert references(installed)==2
+    func() as xui.FlowGraph bound=canvas.getGraph
+    canvas.close()
+    assert references(installed)==1
+    bool rejected=false
+    try
+        auto invalid=bound()
+    catch Error
+        rejected=true
+    end
+    assert rejected
+    ui.close()
+    proxy.close()
+    assert balanced()==1
+    assert original.addNode("detached")==0
+    assert installed.findNode("replacement")==0
+    original.close()
+    installed.close()
+    println("XUI_SHARED_FLOW_MODEL_OK")
+    return 0
+end
