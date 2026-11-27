@@ -1,6 +1,6 @@
 {
   "scope": "Default-provenance Model A direct declaration coverage; declarations are not ABI/runtime qualification",
-  "authority": "F:\\xlang-validation\\xge-full-20261110\\document-node-attributes-sdk-win-r1\\source\\include\\xui_document.h",
+  "authority": "F:\\xlang-validation\\xge-full-20261110\\codeedit-model-views-sdk-win-r2\\source\\include\\xui_document.h",
   "authoritySha256": "ed43d60aa1dedb167aff20177c02478813b0f28bf5083758e288df9f07572693",
   "roots": {
     "xui_document": {
@@ -2102,8 +2102,8 @@
     "sourceIndexCancellation": "The packed synchronous callback uses a stack thunk context and one closure pin per build. Each native poll enters the checked callback boundary. The native index never retains the closure or its userdata."
   },
   "externalTypeAuthority": {
-    "header": "F:\\xlang-validation\\xge-full-20261110\\document-node-attributes-sdk-win-r1\\source\\include\\xui.h",
-    "sha256": "241651b80db6258c67249c5ee88e6c8b3e4316f0ade1bc6f603add1ef7fc658d"
+    "header": "F:\\xlang-validation\\xge-full-20261110\\codeedit-model-views-sdk-win-r2\\source\\include\\xui.h",
+    "sha256": "957a121b8dd854671aaae747007491e0bdef04a1ed0f96d0a09e24872b2d3ecd"
   },
   "previousQualification": {
     "scope": "C11/C++11/C++17 exact Native ABI, 255 constants, 26 PODs and separate actual seven-model CPU script; no GUI/filesystem/network/shipping qualification",
