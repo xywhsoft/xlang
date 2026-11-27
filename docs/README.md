@@ -19,7 +19,7 @@
 - [WebSocket 标准库](WebSocket标准库实施与验收.md)：16 模块的帧、升级、压缩、受管 TCP/TLS、事件及真实 Future 等待。
 
 - [Embedded Compiler Delivery Closure](embedded-package-delivery-2026-10-28.md): the five requested delivery items, current verification and remaining work.
-- [Embedded Package Example](../release/examples/embedded_package/README.md): source-free host/script deployment.
+- [Embedded Package Example](../release/win_x64/examples/embedded_package/README.md): source-free host/script deployment.
 - [Extension Blocker Reproductions](../dev/extlib_blockers/README.md): isolated current-source blockers; not completed product features.
 
 - [Compiled Host Packages](compiled-host-packages.md): explicit per-package script-engine mounting, resident ABI/lifetime rules, transactional registration and focused acceptance.
@@ -365,7 +365,7 @@
 - `XRT与xlang系统整合任务.md`：当前长期整合范围、快照契约、实施顺序和 HTTP/WebSocket 快慢路径边界。
 - `扩展库开发问题清单.md`：六轮扩展库批次发现的语言/编译器/运行时问题账本（P0 崩溃类到 P4 C 库兼容），含最小复现、规避方案与修复优先级。
 - `剩余未压实扩展库清单.md`：2026-08-21 候选分组与处置规划；登记数量和旧分类不代表当前验收结果。
-- `../release/extlibs/xacme/README.md`：以 XRT XACME 为准的原生绑定、生命周期和验证说明。
+- `../release/win_x64/extlibs/xacme/README.md`：以 XRT XACME 为准的原生绑定、生命周期和验证说明。
 - `XRT与xlang能力矩阵.md`：从双产品快照和当前语言实现生成的模块覆盖、低层符号与扩展延期边界。
 - `xruntime语言桥接契约.md`：定义 xruntime 的语言内核语义、语言级抽象和显式底层能力三层边界。
 - `extlib_ecosystem_audit.generated.md`：由扩展库生态审计工具生成的包状态、实现范围和阻塞原因清单。
@@ -434,18 +434,18 @@
 
 范例目录中的 README 不作为语言设计来源，但属于当前可用功能的说明入口：
 
-- `../release/examples/README.md`：范例目录总入口、根目录范例和标准库范例索引。
-- `../release/examples/tutorial/README.md`：教学范例阅读顺序和运行入口。
-- `../release/examples/feature_suite/README.md`：功能范例套件索引、宿主文件和回归入口。
-- `../release/examples/apps/README.md`：复合应用范例索引和运行入口。
-- `../release/examples/games/README.md`：XGE 游戏范例、资源降级规则和无头冒烟入口。
+- `../release/win_x64/examples/README.md`：范例目录总入口、根目录范例和标准库范例索引。
+- `../release/win_x64/examples/tutorial/README.md`：教学范例阅读顺序和运行入口。
+- `../release/win_x64/examples/feature_suite/README.md`：功能范例套件索引、宿主文件和回归入口。
+- `../release/win_x64/examples/apps/README.md`：复合应用范例索引和运行入口。
+- `../release/win_x64/examples/games/README.md`：XGE 游戏范例、资源降级规则和无头冒烟入口。
 - `../release/projects/function_interop/README.md`：C/xlang 双向函数指针互操作范例及构建入口。
 
 ## 测试资产文档
 
 以下 README 只描述测试资产，不作为语言设计来源：
 
-- `../release/extlibs/README.md`：package/import 发布扩展库目录索引和验证入口。
+- `../release/win_x64/extlibs/README.md`：package/import 发布扩展库目录索引和验证入口。
 - `../test/README.md`：测试目录入口、用例前缀索引和测试资产守门脚本说明。
 
 - `IDE源码覆盖接口.md`：编译上下文的未保存入口/递归源码覆盖、CLI 快照、诊断文件来源及加载源码/包描述报告合同。
@@ -457,7 +457,7 @@
 - `../README.md`：DEMO6 根目录入口、常用命令和维护原则。
 - `../src/README.md`：源码分片职责、生成文件和源码维护规则。
 - `../tools/README.md`：工具链入口、守门脚本索引和 RC0 入口。
-- `../release/include/README.md`：公开 C API 头文件说明。
+- `../release/win_x64/include/README.md`：公开 C API 头文件说明。
 - `../lib/README.md`：XRT 单头文件、libprobe fixture 和依赖维护规则。
 - `../release/README.md`：构建产物目录说明。
 - `../release/projects/xs_static/README.md`：静态 xs 原型项目说明和 smoke 入口。
@@ -733,9 +733,9 @@ Maintain links when versioned documents are added or removed.
 | [扩展库现状复核：2026-09-27 晚间](扩展库现状复核_2026-09-27_晚间.md) | 历史验收快照；当前状态以本轮发布报告为准 |
 | [扩展库现状复核：2026-09-28](扩展库现状复核_2026-09-28.md) | 历史验收快照；当前状态以本轮发布报告为准 |
 | [ide/README.md](../ide/README.md) | 独立入口及示例说明 |
-| [release/examples/foundation/README.md](../release/examples/foundation/README.md) | 独立入口及示例说明 |
-| [release/examples/http/README.md](../release/examples/http/README.md) | 独立入口及示例说明 |
-| [release/examples/websocket/README.md](../release/examples/websocket/README.md) | 独立入口及示例说明 |
+| [release/win_x64/examples/foundation/README.md](../release/win_x64/examples/foundation/README.md) | 独立入口及示例说明 |
+| [release/win_x64/examples/stdlib/http/README.md](../release/win_x64/examples/stdlib/http/README.md) | 独立入口及示例说明 |
+| [release/win_x64/examples/stdlib/websocket/README.md](../release/win_x64/examples/stdlib/websocket/README.md) | 独立入口及示例说明 |
 | [test/fixtures/native_source_contract/README.md](../test/fixtures/native_source_contract/README.md) | 独立入口及示例说明 |
 
 - [标准库函数与常量登记参考](stdlib-function-reference.md)：从登记表生成完整签名；类方法合同仍在各模块文档中。

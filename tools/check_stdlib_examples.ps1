@@ -10,16 +10,16 @@ if ( $Root -eq "" ) {
     $Root = Split-Path -Parent $PSScriptRoot
 }
 
-$xl = Join-Path $Root "release\xl.exe"
-$exampleDir = Join-Path $Root "release\examples"
+$xl = Join-Path $Root "release\win_x64\xl.exe"
+$exampleDir = Join-Path $Root "release\win_x64\examples\stdlib"
 $minStdlibExampleFiles = 17
 
 if ( !(Test-Path $xl) ) {
-    Write-Host "release\xl.exe not found. Run build.bat before checking examples."
+    Write-Host "release\win_x64\xl.exe not found. Run build.bat before checking examples."
     exit 1
 }
 
-$examples = @(Get-ChildItem -Path $exampleDir -Filter "stdlib_*.xl" -File | Sort-Object Name)
+$examples = @(Get-ChildItem -Path $exampleDir -Filter "stdlib_*.xl" -File -Recurse | Sort-Object FullName)
 
 if ( $SkipDeferred ) {
     $deferred = @("stdlib_http*.xl", "stdlib_websocket*.xl")
@@ -36,6 +36,9 @@ if ( $SkipDeferred ) {
     }
 }
 
+# Interface-preview example kept for the upcoming xregex line; it cannot compile yet.
+$deferredAlways = @("stdlib_regex.xl")
+$examples = @($examples | Where-Object { $deferredAlways -notcontains $_.Name })
 if ( $examples.Count -eq 0 ) {
     Write-Host "No standard library examples found."
     exit 1

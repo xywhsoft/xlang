@@ -32,7 +32,7 @@ if errorlevel 1 exit /b 1
 powershell -NoProfile -ExecutionPolicy Bypass -File tools\check_xruntime_language_bridge.ps1
 if errorlevel 1 exit /b 1
 
-release\xl.exe cgen release\examples\hello.xl --emit build\test\trim_hello.c
+release\win_x64\xl.exe cgen release\win_x64\examples\language\basics\hello.xl --emit build\test\trim_hello.c
 if errorlevel 1 exit /b 1
 findstr /C:"DynamicFields" build\test\trim_hello.c >nul
 if not errorlevel 1 (
@@ -40,33 +40,33 @@ if not errorlevel 1 (
     exit /b 1
 )
 
-release\xl.exe build release\examples\hello.xl -o build\test\trim_hello.exe
+release\win_x64\xl.exe build release\win_x64\examples\language\basics\hello.xl -o build\test\trim_hello.exe
 if errorlevel 1 exit /b 1
 build\test\trim_hello.exe
 if errorlevel 1 exit /b 1
 
-release\xl.exe build release\examples\stdlib_crypto.xl -o build\test\trim_stdlib_crypto.exe
+release\win_x64\xl.exe build release\win_x64\examples\stdlib\crypto\stdlib_crypto.xl -o build\test\trim_stdlib_crypto.exe
 if errorlevel 1 exit /b 1
 build\test\trim_stdlib_crypto.exe > build\test\trim_stdlib_crypto.out
 if errorlevel 1 exit /b 1
 findstr /C:"signature=ok" build\test\trim_stdlib_crypto.out >nul
 if errorlevel 1 exit /b 1
 
-release\xl.exe build release\examples\stdlib_json.xl -o build\test\trim_stdlib_json.exe
+release\win_x64\xl.exe build release\win_x64\examples\stdlib\text\stdlib_json.xl -o build\test\trim_stdlib_json.exe
 if errorlevel 1 exit /b 1
 build\test\trim_stdlib_json.exe > build\test\trim_stdlib_json.out
 if errorlevel 1 exit /b 1
 findstr /C:"json=ok" build\test\trim_stdlib_json.out >nul
 if errorlevel 1 exit /b 1
 
-release\xl.exe build release\examples\stdlib_path_file.xl -o build\test\trim_stdlib_path_file.exe
+release\win_x64\xl.exe build release\win_x64\examples\stdlib\io\stdlib_path_file.xl -o build\test\trim_stdlib_path_file.exe
 if errorlevel 1 exit /b 1
 build\test\trim_stdlib_path_file.exe > build\test\trim_stdlib_path_file.out
 if errorlevel 1 exit /b 1
 findstr /C:"dir=ok" build\test\trim_stdlib_path_file.out >nul
 if errorlevel 1 exit /b 1
 
-release\xl.exe build release\examples\script_embed_tcc.xl -o build\test\trim_script_embed_tcc.exe
+release\win_x64\xl.exe build release\win_x64\examples\embedding\script_embed_tcc.xl -o build\test\trim_script_embed_tcc.exe
 if errorlevel 1 exit /b 1
 build\test\trim_script_embed_tcc.exe > build\test\trim_script_embed_tcc.out
 if errorlevel 1 exit /b 1
@@ -77,7 +77,7 @@ if errorlevel 1 exit /b 1
 findstr /C:"script_embed_tcc=ok" build\test\trim_script_embed_tcc.out >nul
 if errorlevel 1 exit /b 1
 
-release\xl.exe build test\cases\stdlib_tcc_embed.xl -o build\test\trim_stdlib_tcc_embed.exe
+release\win_x64\xl.exe build test\cases\stdlib_tcc_embed.xl -o build\test\trim_stdlib_tcc_embed.exe
 if errorlevel 1 exit /b 1
 build\test\trim_stdlib_tcc_embed.exe > build\test\trim_stdlib_tcc_embed.out
 if errorlevel 1 exit /b 1
@@ -86,7 +86,7 @@ if errorlevel 1 exit /b 1
 build\test\stdlib_tcc_compile.exe
 if errorlevel 1 exit /b 1
 
-release\xl.exe build release\examples\script_embed_xlang.xl -o build\test\trim_script_embed_xlang.exe
+release\win_x64\xl.exe build release\win_x64\examples\embedding\script_embed_xlang.xl -o build\test\trim_script_embed_xlang.exe
 if errorlevel 1 exit /b 1
 build\test\trim_script_embed_xlang.exe > build\test\trim_script_embed_xlang.out
 if errorlevel 1 exit /b 1
@@ -95,14 +95,14 @@ if errorlevel 1 exit /b 1
 findstr /C:"script_embed_xlang=ok" build\test\trim_script_embed_xlang.out >nul
 if errorlevel 1 exit /b 1
 
-release\xl.exe build test\fixtures\win_resource\main.xl --res test\fixtures\win_resource\app.res.json -o build\test\win_resource_cli.exe
+release\win_x64\xl.exe build test\fixtures\win_resource\main.xl --res test\fixtures\win_resource\app.res.json -o build\test\win_resource_cli.exe
 if errorlevel 1 exit /b 1
 build\test\win_resource_cli.exe
 if errorlevel 1 exit /b 1
 powershell -NoProfile -ExecutionPolicy Bypass -Command "$v=[System.Diagnostics.FileVersionInfo]::GetVersionInfo('build\test\win_resource_cli.exe'); if($v.FileVersion -notlike '1.2.3.4*'){ Write-Host ('win_resource_cli.exe FileVersion mismatch: '+$v.FileVersion); exit 1 }; if($v.ProductName -ne 'xlang resource smoke'){ Write-Host ('win_resource_cli.exe ProductName mismatch: '+$v.ProductName); exit 1 }"
 if errorlevel 1 exit /b 1
 
-release\xl.exe build test\fixtures\win_resource\app.xlp -o build\test\win_resource_xlp.exe
+release\win_x64\xl.exe build test\fixtures\win_resource\app.xlp -o build\test\win_resource_xlp.exe
 if errorlevel 1 exit /b 1
 build\test\win_resource_xlp.exe
 if errorlevel 1 exit /b 1

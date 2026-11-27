@@ -5,8 +5,8 @@ Push-Location $Root
 try {
     New-Item -ItemType Directory -Force -Path build/test | Out-Null
     if (!(Test-Path -LiteralPath build/test/xl.dll) -or
-        (Get-FileHash release/xl.dll).Hash -ne (Get-FileHash build/test/xl.dll).Hash) {
-        Copy-Item -LiteralPath release/xl.dll -Destination build/test/xl.dll -Force
+        (Get-FileHash release/win_x64/xl.dll).Hash -ne (Get-FileHash build/test/xl.dll).Hash) {
+        Copy-Item -LiteralPath release/win_x64/xl.dll -Destination build/test/xl.dll -Force
     }
     $compilerSources = @('src/ast/xl6_ast.c','src/type/xl6_type_model.c',
         'src/ir/xl6_ir.c','src/ir/xl6_ir_lower.c',
@@ -21,13 +21,13 @@ try {
         '-Wno-unused-variable','-Wno-unused-parameter','-Wno-unused-const-variable',
         '-Wno-unused-but-set-variable','-Wno-missing-field-initializers','-Wno-pointer-sign',
         '-Wno-format-truncation','-I.','-Ibuild/test')
-    & gcc @strict test/cases/xlir_owner_consumption_contract.c @compilerSources release/xl.dll -o build/test/xlir_owner_consumption_contract.exe
+    & gcc @strict test/cases/xlir_owner_consumption_contract.c @compilerSources release/win_x64/xl.dll -o build/test/xlir_owner_consumption_contract.exe
     if ($LASTEXITCODE -ne 0) { throw 'Owner consumption contract build failed' }
     & build/test/xlir_owner_consumption_contract.exe
     if ($LASTEXITCODE -ne 0) { throw 'Owner consumption CFG/invalid-IR contract failed' }
     foreach ($source in @('test/cases/xlir_managed_storage_inputs.xl', 'test/cases/xlir_parameter_cleanup_outcome.xl',
         'test/cases/xlir_loop_cleanup_outcome.xl', 'test/cases/xlir_pending_exception_outcome.xl',
-        'test/cases/cgen_error_model.xl', 'release/examples/error_model.xl', 'test/cases/xlir_checked_projection.xl')) {
+        'test/cases/cgen_error_model.xl', 'release/win_x64/examples/language/errors/error_model.xl', 'test/cases/xlir_checked_projection.xl')) {
         & build/test/xlir_owner_consumption_contract.exe $source build/test/xlir_owner_consumption.c build/test/xlir_owner_consumption.h build/test/xlir_owner_consumption.json
         if ($LASTEXITCODE -ne 0) { throw "Owner consumption lowering failed: $source" }
         $ir = Get-Content -Raw -LiteralPath build/test/xlir_owner_consumption.json | ConvertFrom-Json

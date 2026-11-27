@@ -63,9 +63,9 @@ function Should-SkipFile($file)
     $relative = $file.FullName.Substring($Root.Length).TrimStart("\", "/")
     $normalized = $relative.Replace("\", "/")
 
-    if ( $normalized.StartsWith("release/examples/", [System.StringComparison]::OrdinalIgnoreCase) -or
-         $normalized.StartsWith("release/extlibs/", [System.StringComparison]::OrdinalIgnoreCase) -or
-         $normalized.StartsWith("release/include/", [System.StringComparison]::OrdinalIgnoreCase) -or
+    if ( $normalized.StartsWith("release/win_x64/examples/", [System.StringComparison]::OrdinalIgnoreCase) -or
+         $normalized.StartsWith("release/win_x64/extlibs/", [System.StringComparison]::OrdinalIgnoreCase) -or
+         $normalized.StartsWith("release/win_x64/include/", [System.StringComparison]::OrdinalIgnoreCase) -or
          $normalized -eq "release/README.md" ) {
         return $false
     }

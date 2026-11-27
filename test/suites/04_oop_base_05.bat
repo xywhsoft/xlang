@@ -4,7 +4,7 @@ call "%~dp0common.bat"
 if errorlevel 1 exit /b 1
 echo Running DEMO6 suite: OOP ABI export and interop baseline 5/8...
 
-release\xl.exe cgen test\cases\cgen_generic_class.xl --emit build\test\cgen_generic_class.c
+release\win_x64\xl.exe cgen test\cases\cgen_generic_class.xl --emit build\test\cgen_generic_class.c
 if errorlevel 1 exit /b 1
 findstr /C:"typedef struct XL_Class_Box__int {" build\test\cgen_generic_class.c >nul
 if errorlevel 1 (
@@ -41,7 +41,7 @@ if errorlevel 1 exit /b 1
 build\test\cgen_generic_class.exe
 if errorlevel 1 exit /b 1
 
-release\xl.exe cgen test\cases\cgen_generic_class_fields.xl --emit build\test\cgen_generic_class_fields.c
+release\win_x64\xl.exe cgen test\cases\cgen_generic_class_fields.xl --emit build\test\cgen_generic_class_fields.c
 if errorlevel 1 exit /b 1
 findstr /C:"typedef struct XL_Class_Box__int {" build\test\cgen_generic_class_fields.c >nul
 if errorlevel 1 (
@@ -63,7 +63,7 @@ if errorlevel 1 exit /b 1
 build\test\cgen_generic_class_fields.exe
 if errorlevel 1 exit /b 1
 
-release\xl.exe cgen test\cases\cgen_generic_class_function_fields.xl --emit build\test\cgen_generic_class_function_fields.c
+release\win_x64\xl.exe cgen test\cases\cgen_generic_class_function_fields.xl --emit build\test\cgen_generic_class_function_fields.c
 if errorlevel 1 exit /b 1
 findstr /C:"static void xl6_type_copy_XL_Class_Mapper__int" build\test\cgen_generic_class_function_fields.c >nul
 if not errorlevel 1 (
@@ -110,7 +110,7 @@ if errorlevel 1 exit /b 1
 build\test\cgen_generic_class_function_fields.exe
 if errorlevel 1 exit /b 1
 
-release\xl.exe cgen test\cases\cgen_generic_class_nested_function_fields.xl --emit build\test\cgen_generic_class_nested_function_fields.c
+release\win_x64\xl.exe cgen test\cases\cgen_generic_class_nested_function_fields.xl --emit build\test\cgen_generic_class_nested_function_fields.c
 if errorlevel 1 exit /b 1
 findstr /C:"XL_Class_Mapper__T" build\test\cgen_generic_class_nested_function_fields.c >nul
 if not errorlevel 1 (
@@ -152,7 +152,7 @@ if errorlevel 1 exit /b 1
 build\test\cgen_generic_class_nested_function_fields.exe
 if errorlevel 1 exit /b 1
 
-release\xl.exe cgen test\cases\cgen_generic_class_deep_function_fields.xl --emit build\test\cgen_generic_class_deep_function_fields.c
+release\win_x64\xl.exe cgen test\cases\cgen_generic_class_deep_function_fields.xl --emit build\test\cgen_generic_class_deep_function_fields.c
 if errorlevel 1 exit /b 1
 findstr /C:"XL_Class_Mapper__T" build\test\cgen_generic_class_deep_function_fields.c >nul
 if not errorlevel 1 (
@@ -209,7 +209,7 @@ if errorlevel 1 exit /b 1
 build\test\cgen_generic_class_deep_function_fields.exe
 if errorlevel 1 exit /b 1
 
-release\xl.exe cgen test\cases\cgen_generic_class_methods.xl --emit build\test\cgen_generic_class_methods.c
+release\win_x64\xl.exe cgen test\cases\cgen_generic_class_methods.xl --emit build\test\cgen_generic_class_methods.c
 if errorlevel 1 exit /b 1
 findstr /C:"long long xl_class_Box__int__valueOf(XL_Class_Box__int* self);" build\test\cgen_generic_class_methods.c >nul
 if errorlevel 1 (
@@ -231,7 +231,7 @@ if errorlevel 1 exit /b 1
 build\test\cgen_generic_class_methods.exe
 if errorlevel 1 exit /b 1
 
-release\xl.exe cgen test\cases\cgen_generic_class_auto.xl --emit build\test\cgen_generic_class_auto.c
+release\win_x64\xl.exe cgen test\cases\cgen_generic_class_auto.xl --emit build\test\cgen_generic_class_auto.c
 if errorlevel 1 exit /b 1
 findstr /C:"__xl6_user_global_fromField = (*((XL_Class_Box__int*)xl6_class_data(__xl6_user_global_intBox" build\test\cgen_generic_class_auto.c >nul
 if errorlevel 1 (
@@ -248,7 +248,7 @@ if errorlevel 1 exit /b 1
 build\test\cgen_generic_class_auto.exe
 if errorlevel 1 exit /b 1
 
-release\xl.exe cgen test\cases\cgen_generic_class_overloads.xl --emit build\test\cgen_generic_class_overloads.c
+release\win_x64\xl.exe cgen test\cases\cgen_generic_class_overloads.xl --emit build\test\cgen_generic_class_overloads.c
 if errorlevel 1 exit /b 1
 findstr /C:"long long xl_class_Box__int__pick__int(XL_Class_Box__int* self, long long value);" build\test\cgen_generic_class_overloads.c >nul
 if errorlevel 1 (
@@ -275,7 +275,7 @@ if errorlevel 1 exit /b 1
 build\test\cgen_generic_class_overloads.exe
 if errorlevel 1 exit /b 1
 
-release\xl.exe cgen test\cases\cgen_generic_class_ctor.xl --emit build\test\cgen_generic_class_ctor.c
+release\win_x64\xl.exe cgen test\cases\cgen_generic_class_ctor.xl --emit build\test\cgen_generic_class_ctor.c
 if errorlevel 1 exit /b 1
 findstr /C:"void xl_class_Box__int__create(XL_Class_Box__int* self, long long value);" build\test\cgen_generic_class_ctor.c >nul
 if errorlevel 1 (
@@ -302,7 +302,7 @@ if errorlevel 1 exit /b 1
 build\test\cgen_generic_class_ctor.exe
 if errorlevel 1 exit /b 1
 
-release\xl.exe cgen test\cases\cgen_generic_class_iter_protocol.xl --emit build\test\cgen_generic_class_iter_protocol.c
+release\win_x64\xl.exe cgen test\cases\cgen_generic_class_iter_protocol.xl --emit build\test\cgen_generic_class_iter_protocol.c
 if errorlevel 1 exit /b 1
 findstr /C:"typedef struct XL_Class_PairIter__int {" build\test\cgen_generic_class_iter_protocol.c >nul
 if errorlevel 1 (
@@ -329,7 +329,7 @@ if errorlevel 1 exit /b 1
 build\test\cgen_generic_class_iter_protocol.exe
 if errorlevel 1 exit /b 1
 
-release\xl.exe cgen test\cases\cgen_generic_class_explicit_ctor.xl --emit build\test\cgen_generic_class_explicit_ctor.c
+release\win_x64\xl.exe cgen test\cases\cgen_generic_class_explicit_ctor.xl --emit build\test\cgen_generic_class_explicit_ctor.c
 if errorlevel 1 exit /b 1
 findstr /C:"static xvalue* __xl6_user_global_intBox;" build\test\cgen_generic_class_explicit_ctor.c >nul
 if errorlevel 1 (
@@ -351,7 +351,7 @@ if errorlevel 1 exit /b 1
 build\test\cgen_generic_class_explicit_ctor.exe
 if errorlevel 1 exit /b 1
 
-release\xl.exe cgen test\cases\cgen_generic_class_type_values.xl --emit build\test\cgen_generic_class_type_values.c
+release\win_x64\xl.exe cgen test\cases\cgen_generic_class_type_values.xl --emit build\test\cgen_generic_class_type_values.c
 if errorlevel 1 exit /b 1
 findstr /C:"__xl6_user_global_leftType = 0x" build\test\cgen_generic_class_type_values.c >nul
 if errorlevel 1 (
@@ -373,20 +373,20 @@ if errorlevel 1 exit /b 1
 build\test\cgen_generic_class_type_values.exe
 if errorlevel 1 exit /b 1
 
-release\xl.exe run test\cases\cgen_basic.xl
+release\win_x64\xl.exe run test\cases\cgen_basic.xl
 if errorlevel 1 exit /b 1
 
-release\xl.exe build test\cases\cgen_basic.xl -o build\test\xl6_build_basic.exe
+release\win_x64\xl.exe build test\cases\cgen_basic.xl -o build\test\xl6_build_basic.exe
 if errorlevel 1 exit /b 1
 build\test\xl6_build_basic.exe
 if errorlevel 1 exit /b 1
 
-release\xl.exe build test\cases\cgen_range.xl -o build\test\xl6_build_range.exe
+release\win_x64\xl.exe build test\cases\cgen_range.xl -o build\test\xl6_build_range.exe
 if errorlevel 1 exit /b 1
 build\test\xl6_build_range.exe
 if errorlevel 1 exit /b 1
 
-release\xl.exe build test\cases\cgen_main_entry.xl -o build\test\cgen_main_entry.exe
+release\win_x64\xl.exe build test\cases\cgen_main_entry.xl -o build\test\cgen_main_entry.exe
 if errorlevel 1 exit /b 1
 build\test\cgen_main_entry.exe alpha beta
 if not errorlevel 3 (
@@ -398,17 +398,17 @@ if errorlevel 4 (
     exit /b 1
 )
 
-release\xl.exe run test\cases\xl_run_args.xl -- alpha "two words" "quote\"value" beta ""
+release\win_x64\xl.exe run test\cases\xl_run_args.xl -- alpha "two words" "quote\"value" beta ""
 if errorlevel 1 exit /b 1
 
-release\xl.exe cgen test\cases\cgen_main_entry.xl --emit build\test\cgen_main_entry.c
+release\win_x64\xl.exe cgen test\cases\cgen_main_entry.xl --emit build\test\cgen_main_entry.c
 if errorlevel 1 exit /b 1
 findstr /C:"#define XL_RUNTIME_NEED_ARGV 1" build\test\cgen_main_entry.c >nul
 if errorlevel 1 (
     echo cgen_main_entry.c missing argv runtime need macro.
     exit /b 1
 )
-findstr /C:"static inline xvalue* xl6_argv_to_arg(int argc, char** argv)" release\include\xl_runtime.h >nul
+findstr /C:"static inline xvalue* xl6_argv_to_arg(int argc, char** argv)" release\win_x64\include\xl_runtime.h >nul
 if errorlevel 1 (
     echo xl_runtime.h missing argv-to-arg helper.
     exit /b 1
@@ -443,14 +443,14 @@ if errorlevel 1 (
     echo cgen_main_entry.c missing xlUnit call.
     exit /b 1
 )
-release\xl.exe cgen test\cases\cgen_main_uncaught.xl --emit build\test\cgen_main_uncaught.c
+release\win_x64\xl.exe cgen test\cases\cgen_main_uncaught.xl --emit build\test\cgen_main_uncaught.c
 if errorlevel 1 exit /b 1
 findstr /C:"xl6_error_print_uncaught();" build\test\cgen_main_uncaught.c >nul
 if errorlevel 1 (
     echo cgen_main_uncaught.c missing uncaught main error printer.
     exit /b 1
 )
-release\xl.exe run test\cases\cgen_main_uncaught.xl >nul 2> build\test\cgen_main_uncaught.err.txt
+release\win_x64\xl.exe run test\cases\cgen_main_uncaught.xl >nul 2> build\test\cgen_main_uncaught.err.txt
 if not errorlevel 1 (
     echo cgen_main_uncaught.xl should fail at runtime.
     exit /b 1
@@ -461,33 +461,33 @@ if errorlevel 1 (
     exit /b 1
 )
 
-release\xl.exe cgen test\cases\cgen_main_case_sensitive.xl --emit build\test\cgen_main_case_sensitive.c
+release\win_x64\xl.exe cgen test\cases\cgen_main_case_sensitive.xl --emit build\test\cgen_main_case_sensitive.c
 if errorlevel 1 exit /b 1
 powershell -NoProfile -ExecutionPolicy Bypass -Command "$t=Get-Content 'build\test\cgen_main_case_sensitive.c' -Raw; if($t -match 'xlang_main'){exit 1}; if($t -match 'int main\('){exit 2}; if($t -notmatch 'long long xl_fn_Main\(xvalue\* arg\)'){exit 3}"
 if errorlevel 1 (
     echo cgen_main_case_sensitive.c should treat Main as a normal function.
     exit /b 1
 )
-release\xl.exe check test\cases\cgen_main_case_sensitive_script.xl
+release\win_x64\xl.exe check test\cases\cgen_main_case_sensitive_script.xl
 if errorlevel 1 exit /b 1
-release\xl.exe cgen test\cases\cgen_main_case_sensitive_script.xl --emit build\test\cgen_main_case_sensitive_script.c
+release\win_x64\xl.exe cgen test\cases\cgen_main_case_sensitive_script.xl --emit build\test\cgen_main_case_sensitive_script.c
 if errorlevel 1 exit /b 1
 powershell -NoProfile -ExecutionPolicy Bypass -Command "$t=Get-Content 'build\test\cgen_main_case_sensitive_script.c' -Raw; if($t -notmatch 'int xlang_main\(xvalue\* arg\)'){exit 1}; if($t -notmatch 'int main\('){exit 2}; if($t -notmatch 'long long xl_fn_Main\(xvalue\* arg\)'){exit 3}; if($t -notmatch 'expect_i64\(1LL, 1LL\);'){exit 4}"
 if errorlevel 1 (
     echo cgen_main_case_sensitive_script.c should treat Main as normal function and top-level code as script main.
     exit /b 1
 )
-release\xl.exe build test\cases\cgen_main_case_sensitive_script.xl test\cases\cgen_class_host.c -o build\test\cgen_main_case_sensitive_script.exe
+release\win_x64\xl.exe build test\cases\cgen_main_case_sensitive_script.xl test\cases\cgen_class_host.c -o build\test\cgen_main_case_sensitive_script.exe
 if errorlevel 1 exit /b 1
 build\test\cgen_main_case_sensitive_script.exe
 if errorlevel 1 exit /b 1
 
-release\xl.exe build release\examples\feature_suite\09_c_export_abi.xl test\cases\build_mixed_host.c -o build\test\build_mixed_host.exe
+release\win_x64\xl.exe build release\win_x64\examples\feature_suite\09_c_export_abi.xl test\cases\build_mixed_host.c -o build\test\build_mixed_host.exe
 if errorlevel 1 exit /b 1
 build\test\build_mixed_host.exe
 if errorlevel 1 exit /b 1
 
-release\xl.exe help > build\test\xl_help.txt
+release\win_x64\xl.exe help > build\test\xl_help.txt
 if errorlevel 1 exit /b 1
 powershell -NoProfile -ExecutionPolicy Bypass -Command "if(-not (Select-String -Path 'build\test\xl_help.txt' -SimpleMatch 'xl build')){exit 1}"
 if errorlevel 1 (

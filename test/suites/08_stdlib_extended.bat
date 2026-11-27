@@ -12,40 +12,40 @@ if errorlevel 1 exit /b 1
 powershell -NoProfile -ExecutionPolicy Bypass -Command "$root=(Resolve-Path 'build\test').Path; for($i=0; $i -lt 20; $i++){ $left=@(Get-ChildItem -LiteralPath $root -Filter 'stdlib_*.exe' -File); if($left.Count -eq 0){ break }; foreach($f in $left){ Remove-Item -LiteralPath $f.FullName -Force -ErrorAction SilentlyContinue }; if($i -lt 19){ Start-Sleep -Milliseconds 250 } }; $left=@(Get-ChildItem -LiteralPath $root -Filter 'stdlib_*.exe' -File); if($left.Count -gt 0){ Write-Host 'stdlib test executables are still present before build.'; $left.FullName; exit 1 }"
 if errorlevel 1 exit /b 1
 
-release\xl.exe run test\cases\stdlib_buffer_file_runtime.xl
+release\win_x64\xl.exe run test\cases\stdlib_buffer_file_runtime.xl
 if errorlevel 1 exit /b 1
 
-release\xl.exe build test\cases\stdlib_file_bytes_only.xl -o build\test\stdlib_file_bytes_only.exe
+release\win_x64\xl.exe build test\cases\stdlib_file_bytes_only.xl -o build\test\stdlib_file_bytes_only.exe
 if errorlevel 1 exit /b 1
 build\test\stdlib_file_bytes_only.exe
 if errorlevel 1 exit /b 1
 
 powershell.exe -NoProfile -ExecutionPolicy Bypass -File tools\check_xlir_base64_text_codec_abi.ps1
 if errorlevel 1 exit /b 1
-release\xl.exe build test\cases\stdlib_codec_base64_text_only.xl -o build\test\stdlib_codec_base64_text_only.exe
+release\win_x64\xl.exe build test\cases\stdlib_codec_base64_text_only.xl -o build\test\stdlib_codec_base64_text_only.exe
 if errorlevel 1 exit /b 1
 build\test\stdlib_codec_base64_text_only.exe
 if errorlevel 1 exit /b 1
 
 powershell.exe -NoProfile -ExecutionPolicy Bypass -File tools\check_xlir_byte_codec_abi.ps1
 if errorlevel 1 exit /b 1
-release\xl.exe build test\cases\stdlib_codec_hex_bytes_only.xl -o build\test\stdlib_codec_hex_bytes_only.exe
+release\win_x64\xl.exe build test\cases\stdlib_codec_hex_bytes_only.xl -o build\test\stdlib_codec_hex_bytes_only.exe
 if errorlevel 1 exit /b 1
 build\test\stdlib_codec_hex_bytes_only.exe
 if errorlevel 1 exit /b 1
 
-release\xl.exe run test\cases\stdlib_dev_codec_crypto_buffer_build.xl
+release\win_x64\xl.exe run test\cases\stdlib_dev_codec_crypto_buffer_build.xl
 if errorlevel 1 exit /b 1
-release\xl.exe build test\cases\stdlib_dev_codec_crypto_buffer_build.xl -o build\test\stdlib_dev_codec_crypto_buffer_build.exe
+release\win_x64\xl.exe build test\cases\stdlib_dev_codec_crypto_buffer_build.xl -o build\test\stdlib_dev_codec_crypto_buffer_build.exe
 if errorlevel 1 exit /b 1
 build\test\stdlib_dev_codec_crypto_buffer_build.exe
 if errorlevel 1 exit /b 1
 
 powershell.exe -NoProfile -ExecutionPolicy Bypass -File tools\check_xlir_json_value_bridge.ps1
 if errorlevel 1 exit /b 1
-release\xl.exe check test\cases\stdlib_json.xl
+release\win_x64\xl.exe check test\cases\stdlib_json.xl
 if errorlevel 1 exit /b 1
-release\xl.exe cgen test\cases\stdlib_json.xl --emit build\test\stdlib_json.c
+release\win_x64\xl.exe cgen test\cases\stdlib_json.xl --emit build\test\stdlib_json.c
 if errorlevel 1 exit /b 1
 findstr /C:"xvalue* xl6_xrt_json_parse" build\test\stdlib_json.c >nul
 if errorlevel 1 (
@@ -75,9 +75,9 @@ powershell.exe -NoProfile -ExecutionPolicy Bypass -File tools\check_xlir_json_st
 if errorlevel 1 exit /b 1
 powershell.exe -NoProfile -ExecutionPolicy Bypass -File tools\check_xlir_native_factory_declaration_abi.ps1
 if errorlevel 1 exit /b 1
-release\xl.exe check test\cases\stdlib_json_stream.xl
+release\win_x64\xl.exe check test\cases\stdlib_json_stream.xl
 if errorlevel 1 exit /b 1
-release\xl.exe cgen test\cases\stdlib_json_stream.xl --emit build\test\stdlib_json_stream.c
+release\win_x64\xl.exe cgen test\cases\stdlib_json_stream.xl --emit build\test\stdlib_json_stream.c
 if errorlevel 1 exit /b 1
 findstr /C:"#include <__xl_runtime/xl_runtime.h>" build\test\stdlib_json_stream.c >nul
 if not errorlevel 1 (
@@ -93,9 +93,9 @@ if errorlevel 1 (
 if errorlevel 1 exit /b 1
 build\test\stdlib_json_stream.exe
 if errorlevel 1 exit /b 1
-release\xl.exe run release\examples\stdlib_json.xl %XL6_XL_DEFAULT_LINK_ARGS% > build\test\stdlib_json_xlang.out.txt
+release\win_x64\xl.exe run release\win_x64\examples\stdlib\text\stdlib_json.xl %XL6_XL_DEFAULT_LINK_ARGS% > build\test\stdlib_json_xlang.out.txt
 if errorlevel 1 exit /b 1
-"%XL6_CGEN_CC%" %XL6_CGEN_FLAGS% %XL6_CGEN_INCLUDES% release\examples\stdlib_json_c.c %XL6_CGEN_LINKS% -o build\test\stdlib_json_c.exe
+"%XL6_CGEN_CC%" %XL6_CGEN_FLAGS% %XL6_CGEN_INCLUDES% release\win_x64\examples\stdlib\text\stdlib_json_c.c %XL6_CGEN_LINKS% -o build\test\stdlib_json_c.exe
 if errorlevel 1 exit /b 1
 build\test\stdlib_json_c.exe > build\test\stdlib_json_c.out.txt
 if errorlevel 1 exit /b 1
@@ -110,9 +110,9 @@ powershell.exe -NoProfile -ExecutionPolicy Bypass -File tools\check_xlir_host_er
 if errorlevel 1 exit /b 1
 powershell.exe -NoProfile -ExecutionPolicy Bypass -File tools\check_xlir_serialization_callback_error.ps1
 if errorlevel 1 exit /b 1
-release\xl.exe check test\cases\stdlib_xlon.xl
+release\win_x64\xl.exe check test\cases\stdlib_xlon.xl
 if errorlevel 1 exit /b 1
-release\xl.exe cgen test\cases\stdlib_xlon.xl --emit build\test\stdlib_xlon.c
+release\win_x64\xl.exe cgen test\cases\stdlib_xlon.xl --emit build\test\stdlib_xlon.c
 if errorlevel 1 exit /b 1
 findstr /C:"xvalue* xl6_xrt_xlon_parse_options" build\test\stdlib_xlon.c >nul
 if errorlevel 1 (
@@ -138,9 +138,9 @@ if errorlevel 1 (
 if errorlevel 1 exit /b 1
 build\test\stdlib_xlon.exe
 if errorlevel 1 exit /b 1
-release\xl.exe run release\examples\stdlib_xlon.xl %XL6_XL_DEFAULT_LINK_ARGS% > build\test\stdlib_xlon_xlang.out.txt
+release\win_x64\xl.exe run release\win_x64\examples\stdlib\text\stdlib_xlon.xl %XL6_XL_DEFAULT_LINK_ARGS% > build\test\stdlib_xlon_xlang.out.txt
 if errorlevel 1 exit /b 1
-"%XL6_CGEN_CC%" %XL6_CGEN_FLAGS% %XL6_CGEN_INCLUDES% release\examples\stdlib_xlon_c.c %XL6_CGEN_LINKS% -o build\test\stdlib_xlon_c.exe
+"%XL6_CGEN_CC%" %XL6_CGEN_FLAGS% %XL6_CGEN_INCLUDES% release\win_x64\examples\stdlib\text\stdlib_xlon_c.c %XL6_CGEN_LINKS% -o build\test\stdlib_xlon_c.exe
 if errorlevel 1 exit /b 1
 build\test\stdlib_xlon_c.exe > build\test\stdlib_xlon_c.out.txt
 if errorlevel 1 exit /b 1
@@ -148,9 +148,9 @@ powershell -NoProfile -Command "$a=[System.IO.File]::ReadAllLines('build\test\st
 if errorlevel 1 exit /b 1
 
 for %%F in (stdlib_structured_lines stdlib_structured_options stdlib_structured_writer_complete stdlib_structured_sink stdlib_structured_visit_options stdlib_json_config_minimal stdlib_json_write_config_minimal stdlib_json_quote_minimal stdlib_xlon_custom_decode) do (
-    release\xl.exe check test\cases\%%F.xl
+    release\win_x64\xl.exe check test\cases\%%F.xl
     if errorlevel 1 exit /b 1
-    release\xl.exe run test\cases\%%F.xl
+    release\win_x64\xl.exe run test\cases\%%F.xl
     if errorlevel 1 exit /b 1
 )
 
@@ -158,9 +158,9 @@ powershell.exe -NoProfile -ExecutionPolicy Bypass -File tools\check_xlir_text_ou
 if errorlevel 1 exit /b 1
 powershell.exe -NoProfile -ExecutionPolicy Bypass -File tools\check_stdlib_io_console.ps1
 if errorlevel 1 exit /b 1
-release\xl.exe check test\cases\stdlib_print.xl
+release\win_x64\xl.exe check test\cases\stdlib_print.xl
 if errorlevel 1 exit /b 1
-release\xl.exe cgen test\cases\stdlib_print.xl --emit build\test\stdlib_print.c
+release\win_x64\xl.exe cgen test\cases\stdlib_print.xl --emit build\test\stdlib_print.c
 if errorlevel 1 exit /b 1
 findstr /C:"#include <__xl_runtime/xl_runtime.h>" build\test\stdlib_print.c >nul
 if not errorlevel 1 (
@@ -222,9 +222,9 @@ if errorlevel 1 (
     exit /b 1
 )
 
-release\xl.exe check test\cases\cgen_nested_typed_literal_trim.xl
+release\win_x64\xl.exe check test\cases\cgen_nested_typed_literal_trim.xl
 if errorlevel 1 exit /b 1
-release\xl.exe cgen test\cases\cgen_nested_typed_literal_trim.xl --emit build\test\cgen_nested_typed_literal_trim.c
+release\win_x64\xl.exe cgen test\cases\cgen_nested_typed_literal_trim.xl --emit build\test\cgen_nested_typed_literal_trim.c
 if errorlevel 1 exit /b 1
 findstr /C:"= xrtValueArray(" build\test\cgen_nested_typed_literal_trim.c >nul
 if errorlevel 1 (
@@ -236,7 +236,7 @@ if errorlevel 1 (
     echo cgen_nested_typed_literal_trim.c missing nested xvalue set constructor.
     exit /b 1
 )
-release\xl.exe build test\cases\cgen_nested_typed_literal_trim.xl -o build\test\cgen_nested_typed_literal_trim.exe
+release\win_x64\xl.exe build test\cases\cgen_nested_typed_literal_trim.xl -o build\test\cgen_nested_typed_literal_trim.exe
 if errorlevel 1 exit /b 1
 build\test\cgen_nested_typed_literal_trim.exe > build\test\cgen_nested_typed_literal_trim.out.txt
 if errorlevel 1 exit /b 1
@@ -248,9 +248,9 @@ if errorlevel 1 (
 
 powershell.exe -NoProfile -ExecutionPolicy Bypass -File tools\check_xlir_system_bridges.ps1
 if errorlevel 1 exit /b 1
-release\xl.exe check test\cases\stdlib_error_paths.xl
+release\win_x64\xl.exe check test\cases\stdlib_error_paths.xl
 if errorlevel 1 exit /b 1
-release\xl.exe cgen test\cases\stdlib_error_paths.xl --emit build\test\stdlib_error_paths.c
+release\win_x64\xl.exe cgen test\cases\stdlib_error_paths.xl --emit build\test\stdlib_error_paths.c
 if errorlevel 1 exit /b 1
 findstr /C:"#include <__xl_runtime/xl_runtime.h>" build\test\stdlib_error_paths.c >nul
 if not errorlevel 1 (
@@ -282,16 +282,16 @@ rem native destructor instrumentation, including partial-output failure/timeout.
 "%XL6_CGEN_CC%" %XL6_CGEN_FLAGS% %XL6_CGEN_INCLUDES% -Werror -DXLIR_GENERATED_MODULE=\"build/test/stdlib_error_paths.c\" test\cases\xlir_generated_module_host.c test\cases\cgen_class_host.c %XL6_CGEN_LINKS% -o build\test\stdlib_error_paths.exe
 if errorlevel 1 exit /b 1
 
-release\xl.exe run test\cases\stdlib_file_read_text_binary_reject.xl
+release\win_x64\xl.exe run test\cases\stdlib_file_read_text_binary_reject.xl
 if errorlevel 1 exit /b 1
 build\test\stdlib_error_paths.exe > build\test\stdlib_error_paths.out.txt 2> build\test\stdlib_error_paths.err.txt
 if errorlevel 1 exit /b 1
 powershell -NoProfile -ExecutionPolicy Bypass -Command "$out=[System.IO.File]::ReadAllBytes('build\test\stdlib_error_paths.out.txt'); $err=[System.IO.File]::ReadAllBytes('build\test\stdlib_error_paths.err.txt'); if($out.Length -ne 0){ Write-Host 'stdlib_error_paths.out.txt should be empty.'; exit 1 }; if($err.Length -ne 0){ Write-Host 'stdlib_error_paths.err.txt should be empty.'; exit 2 }"
 if errorlevel 1 exit /b 1
 
-release\xl.exe check test\cases\stdlib_codec.xl
+release\win_x64\xl.exe check test\cases\stdlib_codec.xl
 if errorlevel 1 exit /b 1
-release\xl.exe cgen test\cases\stdlib_codec.xl --emit build\test\stdlib_codec.c
+release\win_x64\xl.exe cgen test\cases\stdlib_codec.xl --emit build\test\stdlib_codec.c
 if errorlevel 1 exit /b 1
 findstr /C:"#include <__xl_runtime/xl_runtime.h>" build\test\stdlib_codec.c >nul
 if not errorlevel 1 (
@@ -322,18 +322,18 @@ if errorlevel 1 (
 if errorlevel 1 exit /b 1
 build\test\stdlib_codec.exe
 if errorlevel 1 exit /b 1
-release\xl.exe run release\examples\stdlib_codec.xl %XL6_XL_DEFAULT_LINK_ARGS% > build\test\stdlib_codec_xlang.out.txt
+release\win_x64\xl.exe run release\win_x64\examples\stdlib\text\stdlib_codec.xl %XL6_XL_DEFAULT_LINK_ARGS% > build\test\stdlib_codec_xlang.out.txt
 if errorlevel 1 exit /b 1
-"%XL6_CGEN_CC%" %XL6_CGEN_FLAGS% %XL6_CGEN_INCLUDES% release\examples\stdlib_codec_c.c %XL6_CGEN_LINKS% -o build\test\stdlib_codec_c.exe
+"%XL6_CGEN_CC%" %XL6_CGEN_FLAGS% %XL6_CGEN_INCLUDES% release\win_x64\examples\stdlib\text\stdlib_codec_c.c %XL6_CGEN_LINKS% -o build\test\stdlib_codec_c.exe
 if errorlevel 1 exit /b 1
 build\test\stdlib_codec_c.exe > build\test\stdlib_codec_c.out.txt
 if errorlevel 1 exit /b 1
 powershell -NoProfile -Command "$a=[System.IO.File]::ReadAllLines('build\test\stdlib_codec_xlang.out.txt'); $b=[System.IO.File]::ReadAllLines('build\test\stdlib_codec_c.out.txt'); if (($a -join \"`n\") -ne ($b -join \"`n\")) { Write-Host 'stdlib codec xlang/C output mismatch.'; Write-Host 'xlang:'; $a; Write-Host 'C:'; $b; exit 1 }"
 if errorlevel 1 exit /b 1
 
-release\xl.exe check test\cases\stdlib_encoding.xl
+release\win_x64\xl.exe check test\cases\stdlib_encoding.xl
 if errorlevel 1 exit /b 1
-release\xl.exe cgen test\cases\stdlib_encoding.xl --emit build\test\stdlib_encoding.c
+release\win_x64\xl.exe cgen test\cases\stdlib_encoding.xl --emit build\test\stdlib_encoding.c
 if errorlevel 1 exit /b 1
 findstr /C:"#include <__xl_runtime/xl_runtime.h>" build\test\stdlib_encoding.c >nul
 if not errorlevel 1 (
@@ -354,18 +354,18 @@ if not errorlevel 1 (
 if errorlevel 1 exit /b 1
 build\test\stdlib_encoding.exe
 if errorlevel 1 exit /b 1
-release\xl.exe run release\examples\stdlib_encoding.xl %XL6_XL_DEFAULT_LINK_ARGS% > build\test\stdlib_encoding_xlang.out.txt
+release\win_x64\xl.exe run release\win_x64\examples\stdlib\text\stdlib_encoding.xl %XL6_XL_DEFAULT_LINK_ARGS% > build\test\stdlib_encoding_xlang.out.txt
 if errorlevel 1 exit /b 1
-"%XL6_CGEN_CC%" %XL6_CGEN_FLAGS% %XL6_CGEN_INCLUDES% release\examples\stdlib_encoding_c.c %XL6_CGEN_LINKS% -o build\test\stdlib_encoding_c.exe
+"%XL6_CGEN_CC%" %XL6_CGEN_FLAGS% %XL6_CGEN_INCLUDES% release\win_x64\examples\stdlib\text\stdlib_encoding_c.c %XL6_CGEN_LINKS% -o build\test\stdlib_encoding_c.exe
 if errorlevel 1 exit /b 1
 build\test\stdlib_encoding_c.exe > build\test\stdlib_encoding_c.out.txt
 if errorlevel 1 exit /b 1
 powershell -NoProfile -Command "$a=[System.IO.File]::ReadAllLines('build\test\stdlib_encoding_xlang.out.txt'); $b=[System.IO.File]::ReadAllLines('build\test\stdlib_encoding_c.out.txt'); if (($a -join \"`n\") -ne ($b -join \"`n\")) { Write-Host 'stdlib encoding xlang/C output mismatch.'; Write-Host 'xlang:'; $a; Write-Host 'C:'; $b; exit 1 }"
 if errorlevel 1 exit /b 1
 
-release\xl.exe check test\cases\stdlib_hash.xl
+release\win_x64\xl.exe check test\cases\stdlib_hash.xl
 if errorlevel 1 exit /b 1
-release\xl.exe cgen test\cases\stdlib_hash.xl --emit build\test\stdlib_hash.c
+release\win_x64\xl.exe cgen test\cases\stdlib_hash.xl --emit build\test\stdlib_hash.c
 if errorlevel 1 exit /b 1
 findstr /C:"#include <string.h>" build\test\stdlib_hash.c >nul
 if errorlevel 1 (
@@ -406,20 +406,20 @@ if errorlevel 1 (
 if errorlevel 1 exit /b 1
 build\test\stdlib_hash.exe
 if errorlevel 1 exit /b 1
-release\xl.exe run release\examples\stdlib_hash.xl %XL6_XL_DEFAULT_LINK_ARGS% > build\test\stdlib_hash_xlang.out.txt
+release\win_x64\xl.exe run release\win_x64\examples\stdlib\core\stdlib_hash.xl %XL6_XL_DEFAULT_LINK_ARGS% > build\test\stdlib_hash_xlang.out.txt
 if errorlevel 1 exit /b 1
-"%XL6_CGEN_CC%" %XL6_CGEN_FLAGS% %XL6_CGEN_INCLUDES% release\examples\stdlib_hash_c.c %XL6_CGEN_LINKS% -o build\test\stdlib_hash_c.exe
+"%XL6_CGEN_CC%" %XL6_CGEN_FLAGS% %XL6_CGEN_INCLUDES% release\win_x64\examples\stdlib\core\stdlib_hash_c.c %XL6_CGEN_LINKS% -o build\test\stdlib_hash_c.exe
 if errorlevel 1 exit /b 1
 build\test\stdlib_hash_c.exe > build\test\stdlib_hash_c.out.txt
 if errorlevel 1 exit /b 1
 powershell -NoProfile -Command "$a=[System.IO.File]::ReadAllLines('build\test\stdlib_hash_xlang.out.txt'); $b=[System.IO.File]::ReadAllLines('build\test\stdlib_hash_c.out.txt'); if (($a -join \"`n\") -ne ($b -join \"`n\")) { Write-Host 'stdlib hash xlang/C output mismatch.'; Write-Host 'xlang:'; $a; Write-Host 'C:'; $b; exit 1 }"
 if errorlevel 1 exit /b 1
 
-release\xl.exe check test\cases\stdlib_siphash.xl
+release\win_x64\xl.exe check test\cases\stdlib_siphash.xl
 if errorlevel 1 exit /b 1
-release\xl.exe run test\cases\stdlib_siphash.xl
+release\win_x64\xl.exe run test\cases\stdlib_siphash.xl
 if errorlevel 1 exit /b 1
-release\xl.exe cgen test\cases\stdlib_siphash.xl --emit build\test\stdlib_siphash.c
+release\win_x64\xl.exe cgen test\cases\stdlib_siphash.xl --emit build\test\stdlib_siphash.c
 if errorlevel 1 exit /b 1
 findstr /C:"xrtSipHash(" build\test\stdlib_siphash.c >nul
 if errorlevel 1 (
@@ -430,14 +430,14 @@ if errorlevel 1 (
 if errorlevel 1 exit /b 1
 build\test\stdlib_siphash.exe
 if errorlevel 1 exit /b 1
-release\xl.exe cgen test\cases\stdlib_siphash_none.xl --emit build\test\stdlib_siphash_none.c
+release\win_x64\xl.exe cgen test\cases\stdlib_siphash_none.xl --emit build\test\stdlib_siphash_none.c
 if errorlevel 1 exit /b 1
 findstr /C:"xrtSipHash(" build\test\stdlib_siphash_none.c >nul
 if not errorlevel 1 (
     echo siphash code was emitted without a siphash use.
     exit /b 1
 )
-release\xl.exe cgen test\cases\stdlib_siphash_minimal.xl --emit build\test\stdlib_siphash_minimal.c
+release\win_x64\xl.exe cgen test\cases\stdlib_siphash_minimal.xl --emit build\test\stdlib_siphash_minimal.c
 if errorlevel 1 exit /b 1
 findstr /C:"xrtSipHash(" build\test\stdlib_siphash_minimal.c >nul
 if errorlevel 1 (
@@ -450,9 +450,9 @@ if not errorlevel 1 (
     exit /b 1
 )
 
-release\xl.exe check test\cases\stdlib_crypto.xl
+release\win_x64\xl.exe check test\cases\stdlib_crypto.xl
 if errorlevel 1 exit /b 1
-release\xl.exe cgen test\cases\stdlib_crypto.xl --emit build\test\stdlib_crypto.c
+release\win_x64\xl.exe cgen test\cases\stdlib_crypto.xl --emit build\test\stdlib_crypto.c
 if errorlevel 1 exit /b 1
 findstr /C:"#include <__xl_runtime/xl_runtime.h>" build\test\stdlib_crypto.c >nul
 if not errorlevel 1 (
@@ -494,18 +494,18 @@ if errorlevel 1 exit /b 1
 build\test\stdlib_crypto.exe
 if errorlevel 1 exit /b 1
 
-release\xl.exe run release\examples\stdlib_crypto.xl %XL6_XL_DEFAULT_LINK_ARGS% > build\test\stdlib_crypto_xlang.out.txt
+release\win_x64\xl.exe run release\win_x64\examples\stdlib\crypto\stdlib_crypto.xl %XL6_XL_DEFAULT_LINK_ARGS% > build\test\stdlib_crypto_xlang.out.txt
 if errorlevel 1 exit /b 1
-"%XL6_CGEN_CC%" %XL6_CGEN_FLAGS% %XL6_CGEN_INCLUDES% release\examples\stdlib_crypto_c.c %XL6_CGEN_LINKS% -o build\test\stdlib_crypto_c.exe
+"%XL6_CGEN_CC%" %XL6_CGEN_FLAGS% %XL6_CGEN_INCLUDES% release\win_x64\examples\stdlib\crypto\stdlib_crypto_c.c %XL6_CGEN_LINKS% -o build\test\stdlib_crypto_c.exe
 if errorlevel 1 exit /b 1
 build\test\stdlib_crypto_c.exe > build\test\stdlib_crypto_c.out.txt
 if errorlevel 1 exit /b 1
 powershell -NoProfile -Command "$a=[System.IO.File]::ReadAllLines('build\test\stdlib_crypto_xlang.out.txt'); $b=[System.IO.File]::ReadAllLines('build\test\stdlib_crypto_c.out.txt'); if (($a -join \"`n\") -ne ($b -join \"`n\")) { Write-Host 'stdlib crypto xlang/C output mismatch.'; Write-Host 'xlang:'; $a; Write-Host 'C:'; $b; exit 1 }"
 if errorlevel 1 exit /b 1
 
-release\xl.exe check test\cases\stdlib_id_net.xl
+release\win_x64\xl.exe check test\cases\stdlib_id_net.xl
 if errorlevel 1 exit /b 1
-release\xl.exe cgen test\cases\stdlib_id_net.xl --emit build\test\stdlib_id_net.c
+release\win_x64\xl.exe cgen test\cases\stdlib_id_net.xl --emit build\test\stdlib_id_net.c
 if errorlevel 1 exit /b 1
 findstr /C:"#include <__xl_runtime/xl_runtime.h>" build\test\stdlib_id_net.c >nul
 if not errorlevel 1 (
@@ -521,9 +521,9 @@ if errorlevel 1 (
 if errorlevel 1 exit /b 1
 build\test\stdlib_id_net.exe
 if errorlevel 1 exit /b 1
-release\xl.exe run release\examples\stdlib_id_net.xl %XL6_XL_DEFAULT_LINK_ARGS% > build\test\stdlib_id_net_xlang.out.txt
+release\win_x64\xl.exe run release\win_x64\examples\stdlib\core\stdlib_id_net.xl %XL6_XL_DEFAULT_LINK_ARGS% > build\test\stdlib_id_net_xlang.out.txt
 if errorlevel 1 exit /b 1
-"%XL6_CGEN_CC%" %XL6_CGEN_FLAGS% %XL6_CGEN_INCLUDES% release\examples\stdlib_id_net_c.c %XL6_CGEN_LINKS% -o build\test\stdlib_id_net_c.exe
+"%XL6_CGEN_CC%" %XL6_CGEN_FLAGS% %XL6_CGEN_INCLUDES% release\win_x64\examples\stdlib\core\stdlib_id_net_c.c %XL6_CGEN_LINKS% -o build\test\stdlib_id_net_c.exe
 if errorlevel 1 exit /b 1
 build\test\stdlib_id_net_c.exe > build\test\stdlib_id_net_c.out.txt
 if errorlevel 1 exit /b 1
@@ -533,9 +533,9 @@ if errorlevel 1 exit /b 1
 powershell -NoProfile -ExecutionPolicy Bypass -File tools\check_stdlib_logging.ps1
 if errorlevel 1 exit /b 1
 
-release\xl.exe check test\cases\stdlib_template.xl
+release\win_x64\xl.exe check test\cases\stdlib_template.xl
 if errorlevel 1 exit /b 1
-release\xl.exe cgen test\cases\stdlib_template.xl --emit build\test\stdlib_template.c
+release\win_x64\xl.exe cgen test\cases\stdlib_template.xl --emit build\test\stdlib_template.c
 if errorlevel 1 exit /b 1
 findstr /C:"#include <__xl_runtime/xl_runtime.h>" build\test\stdlib_template.c >nul
 if not errorlevel 1 (
@@ -566,36 +566,36 @@ if errorlevel 1 (
 if errorlevel 1 exit /b 1
 build\test\stdlib_template.exe
 if errorlevel 1 exit /b 1
-release\xl.exe check test\cases\stdlib_template_engine.xl
+release\win_x64\xl.exe check test\cases\stdlib_template_engine.xl
 if errorlevel 1 exit /b 1
-release\xl.exe run test\cases\stdlib_template_engine.xl
+release\win_x64\xl.exe run test\cases\stdlib_template_engine.xl
 if errorlevel 1 exit /b 1
-release\xl.exe build test\cases\stdlib_template_engine.xl -o build\test\stdlib_template_engine.exe
+release\win_x64\xl.exe build test\cases\stdlib_template_engine.xl -o build\test\stdlib_template_engine.exe
 if errorlevel 1 exit /b 1
 build\test\stdlib_template_engine.exe
 if errorlevel 1 exit /b 1
 for %%F in (stdlib_compress_values stdlib_template_values stdlib_template_privacy stdlib_template_engine_values stdlib_template_files stdlib_native_field_mixin) do (
-    release\xl.exe check test\cases\%%F.xl
+    release\win_x64\xl.exe check test\cases\%%F.xl
     if errorlevel 1 exit /b 1
-    release\xl.exe run test\cases\%%F.xl
+    release\win_x64\xl.exe run test\cases\%%F.xl
     if errorlevel 1 exit /b 1
-    release\xl.exe build test\cases\%%F.xl -o build\test\%%F.exe
+    release\win_x64\xl.exe build test\cases\%%F.xl -o build\test\%%F.exe
     if errorlevel 1 exit /b 1
     build\test\%%F.exe
     if errorlevel 1 exit /b 1
 )
-release\xl.exe run release\examples\stdlib_template.xl %XL6_XL_DEFAULT_LINK_ARGS% > build\test\stdlib_template_xlang.out.txt
+release\win_x64\xl.exe run release\win_x64\examples\stdlib\io\stdlib_template.xl %XL6_XL_DEFAULT_LINK_ARGS% > build\test\stdlib_template_xlang.out.txt
 if errorlevel 1 exit /b 1
-"%XL6_CGEN_CC%" %XL6_CGEN_FLAGS% %XL6_CGEN_INCLUDES% release\examples\stdlib_template_c.c %XL6_CGEN_LINKS% -o build\test\stdlib_template_c.exe
+"%XL6_CGEN_CC%" %XL6_CGEN_FLAGS% %XL6_CGEN_INCLUDES% release\win_x64\examples\stdlib\io\stdlib_template_c.c %XL6_CGEN_LINKS% -o build\test\stdlib_template_c.exe
 if errorlevel 1 exit /b 1
 build\test\stdlib_template_c.exe > build\test\stdlib_template_c.out.txt
 if errorlevel 1 exit /b 1
 powershell -NoProfile -Command "$a=[System.IO.File]::ReadAllLines('build\test\stdlib_template_xlang.out.txt'); $b=[System.IO.File]::ReadAllLines('build\test\stdlib_template_c.out.txt'); if (($a -join \"`n\") -ne ($b -join \"`n\")) { Write-Host 'stdlib template xlang/C output mismatch.'; Write-Host 'xlang:'; $a; Write-Host 'C:'; $b; exit 1 }"
 if errorlevel 1 exit /b 1
 
-release\xl.exe check test\cases\stdlib_os.xl
+release\win_x64\xl.exe check test\cases\stdlib_os.xl
 if errorlevel 1 exit /b 1
-release\xl.exe cgen test\cases\stdlib_os.xl --emit build\test\stdlib_os.c
+release\win_x64\xl.exe cgen test\cases\stdlib_os.xl --emit build\test\stdlib_os.c
 if errorlevel 1 exit /b 1
 findstr /C:"void* xl6_xrt_os_env" build\test\stdlib_os.c >nul
 if errorlevel 1 (
@@ -653,14 +653,14 @@ build\test\stdlib_os.exe > build\test\stdlib_os.out.txt
 if errorlevel 1 exit /b 1
 findstr /C:"stdlib_os=ok" build\test\stdlib_os.out.txt >nul
 if errorlevel 1 exit /b 1
-release\xl.exe run release\examples\stdlib_os.xl > build\test\stdlib_os_example.out.txt
+release\win_x64\xl.exe run release\win_x64\examples\stdlib\process\stdlib_os.xl > build\test\stdlib_os_example.out.txt
 if errorlevel 1 exit /b 1
 findstr /C:"missing_env=fallback" build\test\stdlib_os_example.out.txt >nul
 if errorlevel 1 exit /b 1
 
-release\xl.exe check test\cases\stdlib_process.xl
+release\win_x64\xl.exe check test\cases\stdlib_process.xl
 if errorlevel 1 exit /b 1
-release\xl.exe cgen test\cases\stdlib_process.xl --emit build\test\stdlib_process.c
+release\win_x64\xl.exe cgen test\cases\stdlib_process.xl --emit build\test\stdlib_process.c
 if errorlevel 1 exit /b 1
 findstr /C:"#include <__xl_runtime/xl_runtime.h>" build\test\stdlib_process.c >nul
 if not errorlevel 1 (
@@ -706,9 +706,9 @@ if not errorlevel 1 (
 if errorlevel 1 exit /b 1
 build\test\stdlib_process.exe
 if errorlevel 1 exit /b 1
-release\xl.exe check test\cases\stdlib_process_extended.xl
+release\win_x64\xl.exe check test\cases\stdlib_process_extended.xl
 if errorlevel 1 exit /b 1
-release\xl.exe cgen test\cases\stdlib_process_extended.xl --emit build\test\stdlib_process_extended.c
+release\win_x64\xl.exe cgen test\cases\stdlib_process_extended.xl --emit build\test\stdlib_process_extended.c
 if errorlevel 1 exit /b 1
 findstr /C:"= xl6_xrt_process_wait_future(" build\test\stdlib_process_extended.c >nul
 if errorlevel 1 (
@@ -720,24 +720,24 @@ if errorlevel 1 (
     echo stdlib_process_extended.c missing reachable incremental process-event call.
     exit /b 1
 )
-release\xl.exe run test\cases\stdlib_process_extended.xl
+release\win_x64\xl.exe run test\cases\stdlib_process_extended.xl
 if errorlevel 1 exit /b 1
-release\xl.exe check test\cases\stdlib_process_shell_quotes.xl
+release\win_x64\xl.exe check test\cases\stdlib_process_shell_quotes.xl
 if errorlevel 1 exit /b 1
-release\xl.exe run test\cases\stdlib_process_shell_quotes.xl
+release\win_x64\xl.exe run test\cases\stdlib_process_shell_quotes.xl
 if errorlevel 1 exit /b 1
-release\xl.exe run release\examples\stdlib_process.xl %XL6_XL_DEFAULT_LINK_ARGS% > build\test\stdlib_process_xlang.out.txt
+release\win_x64\xl.exe run release\win_x64\examples\stdlib\process\stdlib_process.xl %XL6_XL_DEFAULT_LINK_ARGS% > build\test\stdlib_process_xlang.out.txt
 if errorlevel 1 exit /b 1
-"%XL6_CGEN_CC%" %XL6_CGEN_FLAGS% %XL6_CGEN_INCLUDES% release\examples\stdlib_process_c.c %XL6_CGEN_LINKS% -o build\test\stdlib_process_c.exe
+"%XL6_CGEN_CC%" %XL6_CGEN_FLAGS% %XL6_CGEN_INCLUDES% release\win_x64\examples\stdlib\process\stdlib_process_c.c %XL6_CGEN_LINKS% -o build\test\stdlib_process_c.exe
 if errorlevel 1 exit /b 1
 build\test\stdlib_process_c.exe > build\test\stdlib_process_c.out.txt
 if errorlevel 1 exit /b 1
 powershell -NoProfile -Command "$a=[System.IO.File]::ReadAllLines('build\test\stdlib_process_xlang.out.txt'); $b=[System.IO.File]::ReadAllLines('build\test\stdlib_process_c.out.txt'); if (($a -join \"`n\") -ne ($b -join \"`n\")) { Write-Host 'stdlib process xlang/C output mismatch.'; Write-Host 'xlang:'; $a; Write-Host 'C:'; $b; exit 1 }"
 if errorlevel 1 exit /b 1
 
-release\xl.exe check test\cases\stdlib_net_engine_trim.xl
+release\win_x64\xl.exe check test\cases\stdlib_net_engine_trim.xl
 if errorlevel 1 exit /b 1
-release\xl.exe cgen test\cases\stdlib_net_engine_trim.xl --emit build\test\stdlib_net_engine_trim.c
+release\win_x64\xl.exe cgen test\cases\stdlib_net_engine_trim.xl --emit build\test\stdlib_net_engine_trim.c
 if errorlevel 1 exit /b 1
 findstr /C:"xl6NetEngineCreateWorkersV1(" build\test\stdlib_net_engine_trim.c >nul
 if errorlevel 1 (
@@ -751,34 +751,34 @@ for %%S in (xl6_net_resolver XRT_MODULE_NET_RESOLVER XRT_MODULE_NET_TCP_ XRT_MOD
         exit /b 1
     )
 )
-release\xl.exe run test\cases\stdlib_net_engine_trim.xl
+release\win_x64\xl.exe run test\cases\stdlib_net_engine_trim.xl
 if errorlevel 1 exit /b 1
-release\xl.exe build test\cases\stdlib_net_engine_trim.xl -o build\test\stdlib_net_engine_trim.exe
+release\win_x64\xl.exe build test\cases\stdlib_net_engine_trim.xl -o build\test\stdlib_net_engine_trim.exe
 if errorlevel 1 exit /b 1
 build\test\stdlib_net_engine_trim.exe
 if errorlevel 1 exit /b 1
 
-release\xl.exe check test\cases\stdlib_net_extended_config.xl
+release\win_x64\xl.exe check test\cases\stdlib_net_extended_config.xl
 if errorlevel 1 exit /b 1
-release\xl.exe run test\cases\stdlib_net_extended_config.xl
+release\win_x64\xl.exe run test\cases\stdlib_net_extended_config.xl
 if errorlevel 1 exit /b 1
-release\xl.exe build test\cases\stdlib_net_extended_config.xl -o build\test\stdlib_net_extended_config.exe
+release\win_x64\xl.exe build test\cases\stdlib_net_extended_config.xl -o build\test\stdlib_net_extended_config.exe
 if errorlevel 1 exit /b 1
 build\test\stdlib_net_extended_config.exe
 if errorlevel 1 exit /b 1
 
-release\xl.exe check test\cases\stdlib_net_extended_io.xl
+release\win_x64\xl.exe check test\cases\stdlib_net_extended_io.xl
 if errorlevel 1 exit /b 1
-release\xl.exe run test\cases\stdlib_net_extended_io.xl
+release\win_x64\xl.exe run test\cases\stdlib_net_extended_io.xl
 if errorlevel 1 exit /b 1
-release\xl.exe build test\cases\stdlib_net_extended_io.xl -o build\test\stdlib_net_extended_io.exe
+release\win_x64\xl.exe build test\cases\stdlib_net_extended_io.xl -o build\test\stdlib_net_extended_io.exe
 if errorlevel 1 exit /b 1
 build\test\stdlib_net_extended_io.exe
 if errorlevel 1 exit /b 1
 
-release\xl.exe check test\cases\stdlib_net_send_file.xl
+release\win_x64\xl.exe check test\cases\stdlib_net_send_file.xl
 if errorlevel 1 exit /b 1
-release\xl.exe cgen test\cases\stdlib_net_send_file.xl --emit build\test\stdlib_net_send_file.c
+release\win_x64\xl.exe cgen test\cases\stdlib_net_send_file.xl --emit build\test\stdlib_net_send_file.c
 if errorlevel 1 exit /b 1
 findstr /C:"xl6TcpStreamSendFileV1(" build\test\stdlib_net_send_file.c >nul
 if errorlevel 1 (
@@ -790,23 +790,23 @@ if not errorlevel 1 (
     echo stdlib_net_send_file.c unexpectedly contains retired file-send glue.
     exit /b 1
 )
-release\xl.exe cgen test\cases\stdlib_tcp_managed_sync.xl --emit build\test\stdlib_net_extended_io_trim.c
+release\win_x64\xl.exe cgen test\cases\stdlib_tcp_managed_sync.xl --emit build\test\stdlib_net_extended_io_trim.c
 if errorlevel 1 exit /b 1
 findstr /C:"XRT_MODULE_NET_TCP_FILE" build\test\stdlib_net_extended_io_trim.c >nul
 if not errorlevel 1 (
     echo ordinary TCP source unexpectedly keeps TCP file module.
     exit /b 1
 )
-release\xl.exe run test\cases\stdlib_net_send_file.xl
+release\win_x64\xl.exe run test\cases\stdlib_net_send_file.xl
 if errorlevel 1 exit /b 1
-release\xl.exe build test\cases\stdlib_net_send_file.xl -o build\test\stdlib_net_send_file.exe
+release\win_x64\xl.exe build test\cases\stdlib_net_send_file.xl -o build\test\stdlib_net_send_file.exe
 if errorlevel 1 exit /b 1
 build\test\stdlib_net_send_file.exe
 if errorlevel 1 exit /b 1
 
-release\xl.exe check test\cases\stdlib_net_interfaces.xl
+release\win_x64\xl.exe check test\cases\stdlib_net_interfaces.xl
 if errorlevel 1 exit /b 1
-release\xl.exe cgen test\cases\stdlib_net_interfaces.xl --emit build\test\stdlib_net_interfaces.c
+release\win_x64\xl.exe cgen test\cases\stdlib_net_interfaces.xl --emit build\test\stdlib_net_interfaces.c
 if errorlevel 1 exit /b 1
 findstr /C:"xl6NetInterfacesCreateV1(" build\test\stdlib_net_interfaces.c >nul
 if errorlevel 1 (
@@ -828,59 +828,59 @@ if not errorlevel 1 (
     echo raw interface enumeration unexpectedly creates a DNS resolver.
     exit /b 1
 )
-release\xl.exe run test\cases\stdlib_net_interfaces.xl
+release\win_x64\xl.exe run test\cases\stdlib_net_interfaces.xl
 if errorlevel 1 exit /b 1
-release\xl.exe build test\cases\stdlib_net_interfaces.xl -o build\test\stdlib_net_interfaces.exe
+release\win_x64\xl.exe build test\cases\stdlib_net_interfaces.xl -o build\test\stdlib_net_interfaces.exe
 if errorlevel 1 exit /b 1
 build\test\stdlib_net_interfaces.exe
 if errorlevel 1 exit /b 1
 
-release\xl.exe run release\examples\stdlib_net_interfaces.xl > build\test\stdlib_net_interfaces_xlang.out.txt
+release\win_x64\xl.exe run release\win_x64\examples\stdlib\net\stdlib_net_interfaces.xl > build\test\stdlib_net_interfaces_xlang.out.txt
 if errorlevel 1 exit /b 1
-"%XL6_CGEN_CC%" %XL6_CGEN_FLAGS% %XL6_CGEN_INCLUDES% release\examples\stdlib_net_interfaces_c.c %XL6_CGEN_LINKS% -o build\test\stdlib_net_interfaces_c.exe
+"%XL6_CGEN_CC%" %XL6_CGEN_FLAGS% %XL6_CGEN_INCLUDES% release\win_x64\examples\stdlib\net\stdlib_net_interfaces_c.c %XL6_CGEN_LINKS% -o build\test\stdlib_net_interfaces_c.exe
 if errorlevel 1 exit /b 1
 build\test\stdlib_net_interfaces_c.exe > build\test\stdlib_net_interfaces_c.out.txt
 if errorlevel 1 exit /b 1
 powershell -NoProfile -Command "$a=[System.IO.File]::ReadAllLines('build\test\stdlib_net_interfaces_xlang.out.txt'); $b=[System.IO.File]::ReadAllLines('build\test\stdlib_net_interfaces_c.out.txt'); if (($a -join \"`n\") -ne ($b -join \"`n\")) { Write-Host 'stdlib net interfaces xlang/C output mismatch.'; Write-Host 'xlang:'; $a; Write-Host 'C:'; $b; exit 1 }"
 if errorlevel 1 exit /b 1
 
-release\xl.exe check test\cases\stdlib_tls_stream_fast_path.xl
+release\win_x64\xl.exe check test\cases\stdlib_tls_stream_fast_path.xl
 if errorlevel 1 exit /b 1
-release\xl.exe cgen test\cases\stdlib_tls_stream_fast_path.xl --emit build\test\stdlib_tls_stream_fast_path.c
+release\win_x64\xl.exe cgen test\cases\stdlib_tls_stream_fast_path.xl --emit build\test\stdlib_tls_stream_fast_path.c
 if errorlevel 1 exit /b 1
 findstr /C:"xl6TlsStreamSendBytesAsyncV1" build\test\stdlib_tls_stream_fast_path.c >nul
 if errorlevel 1 (
     echo stdlib_tls_stream_fast_path.c missing managed TLS stream binary async declaration.
     exit /b 1
 )
-release\xl.exe build test\cases\stdlib_tls_stream_fast_path.xl -o build\test\stdlib_tls_stream_fast_path.exe
+release\win_x64\xl.exe build test\cases\stdlib_tls_stream_fast_path.xl -o build\test\stdlib_tls_stream_fast_path.exe
 if errorlevel 1 exit /b 1
 build\test\stdlib_tls_stream_fast_path.exe
 if errorlevel 1 exit /b 1
 
-release\xl.exe check test\cases\stdlib_tls_server_fast_path.xl
+release\win_x64\xl.exe check test\cases\stdlib_tls_server_fast_path.xl
 if errorlevel 1 exit /b 1
-release\xl.exe cgen test\cases\stdlib_tls_server_fast_path.xl --emit build\test\stdlib_tls_server_fast_path.c
+release\win_x64\xl.exe cgen test\cases\stdlib_tls_server_fast_path.xl --emit build\test\stdlib_tls_server_fast_path.c
 if errorlevel 1 exit /b 1
 findstr /C:"xl6TlsListenerAcceptAsyncV1" build\test\stdlib_tls_server_fast_path.c >nul
 if errorlevel 1 (
     echo stdlib_tls_server_fast_path.c missing managed TLS listener async declaration.
     exit /b 1
 )
-release\xl.exe build test\cases\stdlib_tls_server_fast_path.xl -o build\test\stdlib_tls_server_fast_path.exe
+release\win_x64\xl.exe build test\cases\stdlib_tls_server_fast_path.xl -o build\test\stdlib_tls_server_fast_path.exe
 if errorlevel 1 exit /b 1
 build\test\stdlib_tls_server_fast_path.exe
 if errorlevel 1 exit /b 1
 
-release\xl.exe check test\cases\stdlib_tls_server_loopback.xl
+release\win_x64\xl.exe check test\cases\stdlib_tls_server_loopback.xl
 if errorlevel 1 exit /b 1
-release\xl.exe build test\cases\stdlib_tls_server_loopback.xl -o build\test\stdlib_tls_server_loopback.exe
+release\win_x64\xl.exe build test\cases\stdlib_tls_server_loopback.xl -o build\test\stdlib_tls_server_loopback.exe
 if errorlevel 1 exit /b 1
 build\test\stdlib_tls_server_loopback.exe
 if errorlevel 1 exit /b 1
 
 
-release\xl.exe run test\cases\stdlib_tcc_import_only.xl > build\test\stdlib_tcc_import_only.out.txt
+release\win_x64\xl.exe run test\cases\stdlib_tcc_import_only.xl > build\test\stdlib_tcc_import_only.out.txt
 if errorlevel 1 exit /b 1
 findstr /C:"stdlib tcc import only ok" build\test\stdlib_tcc_import_only.out.txt >nul
 if errorlevel 1 (
@@ -888,7 +888,7 @@ if errorlevel 1 (
     exit /b 1
 )
 
-release\xl.exe run test\cases\stdlib_tcc_context_only.xl > build\test\stdlib_tcc_context_only.out.txt
+release\win_x64\xl.exe run test\cases\stdlib_tcc_context_only.xl > build\test\stdlib_tcc_context_only.out.txt
 if errorlevel 1 exit /b 1
 findstr /C:"after tcc context" build\test\stdlib_tcc_context_only.out.txt >nul
 if errorlevel 1 (
@@ -896,7 +896,7 @@ if errorlevel 1 (
     exit /b 1
 )
 
-release\xl.exe cgen test\cases\stdlib_tcc_embed.xl --emit build\test\stdlib_tcc_embed.c
+release\win_x64\xl.exe cgen test\cases\stdlib_tcc_embed.xl --emit build\test\stdlib_tcc_embed.c
 if errorlevel 1 exit /b 1
 findstr /C:"void* xl6_tcc_context_create(void)" build\test\stdlib_tcc_embed.c >nul
 if errorlevel 1 (
@@ -912,7 +912,7 @@ if not errorlevel 1 (
     echo stdlib_tcc_embed.c still contains the removed private XRT symbol registry.
     exit /b 1
 )
-release\xl.exe run test\cases\stdlib_tcc_embed.xl > build\test\stdlib_tcc_embed.out.txt
+release\win_x64\xl.exe run test\cases\stdlib_tcc_embed.xl > build\test\stdlib_tcc_embed.out.txt
 if errorlevel 1 exit /b 1
 findstr /C:"stdlib tcc embed ok" build\test\stdlib_tcc_embed.out.txt >nul
 if errorlevel 1 (
@@ -925,14 +925,14 @@ if errorlevel 1 (
     exit /b 1
 )
 
-release\xl.exe run test\cases\stdlib_tcc_runtime_contract.xl
+release\win_x64\xl.exe run test\cases\stdlib_tcc_runtime_contract.xl
 if errorlevel 1 exit /b 1
-release\xl.exe build test\cases\stdlib_tcc_runtime_contract.xl -o build\test\stdlib_tcc_runtime_contract.exe
+release\win_x64\xl.exe build test\cases\stdlib_tcc_runtime_contract.xl -o build\test\stdlib_tcc_runtime_contract.exe
 if errorlevel 1 exit /b 1
 build\test\stdlib_tcc_runtime_contract.exe
 if errorlevel 1 exit /b 1
 
-release\xl.exe run release\examples\script_embed_tcc.xl > build\test\script_embed_tcc.out.txt
+release\win_x64\xl.exe run release\win_x64\examples\embedding\script_embed_tcc.xl > build\test\script_embed_tcc.out.txt
 if errorlevel 1 exit /b 1
 findstr /C:"script_embed_tcc=ok" build\test\script_embed_tcc.out.txt >nul
 if errorlevel 1 (
@@ -940,7 +940,7 @@ if errorlevel 1 (
     exit /b 1
 )
 
-release\xl.exe cgen test\cases\stdlib_xlang_embed.xl --emit build\test\stdlib_xlang_embed.c
+release\win_x64\xl.exe cgen test\cases\stdlib_xlang_embed.xl --emit build\test\stdlib_xlang_embed.c
 if errorlevel 1 exit /b 1
 findstr /C:"void* xl6_xlang_context_create(void)" build\test\stdlib_xlang_embed.c >nul
 if errorlevel 1 (
@@ -952,7 +952,7 @@ if errorlevel 1 (
     echo stdlib_xlang_embed.c missing xlang run helper.
     exit /b 1
 )
-release\xl.exe run test\cases\stdlib_xlang_embed.xl > build\test\stdlib_xlang_embed.out.txt
+release\win_x64\xl.exe run test\cases\stdlib_xlang_embed.xl > build\test\stdlib_xlang_embed.out.txt
 if errorlevel 1 exit /b 1
 findstr /C:"nested xlang shortcut ok" build\test\stdlib_xlang_embed.out.txt >nul
 if errorlevel 1 (
@@ -970,7 +970,7 @@ if errorlevel 1 (
     exit /b 1
 )
 
-release\xl.exe run release\examples\script_embed_xlang.xl > build\test\script_embed_xlang.out.txt
+release\win_x64\xl.exe run release\win_x64\examples\embedding\script_embed_xlang.xl > build\test\script_embed_xlang.out.txt
 if errorlevel 1 exit /b 1
 findstr /C:"script_embed_xlang=ok" build\test\script_embed_xlang.out.txt >nul
 if errorlevel 1 (
@@ -978,7 +978,7 @@ if errorlevel 1 (
     exit /b 1
 )
 
-release\xl.exe run test\cases\xlang_nested_child.xl > build\test\xlang_nested_child.out.txt
+release\win_x64\xl.exe run test\cases\xlang_nested_child.xl > build\test\xlang_nested_child.out.txt
 if errorlevel 1 exit /b 1
 findstr /C:"nested xlang file ok" build\test\xlang_nested_child.out.txt >nul
 if errorlevel 1 (
@@ -986,11 +986,11 @@ if errorlevel 1 (
     exit /b 1
 )
 
-release\xl.exe run test\cases\stdlib_special_collections.xl > build\test\stdlib_special_collections.out.txt
+release\win_x64\xl.exe run test\cases\stdlib_special_collections.xl > build\test\stdlib_special_collections.out.txt
 if errorlevel 1 exit /b 1
 findstr /C:"stdlib special collections ok" build\test\stdlib_special_collections.out.txt >nul
 if errorlevel 1 exit /b 1
-release\xl.exe cgen test\cases\stdlib_special_collections.xl --emit build\test\stdlib_special_collections.c
+release\win_x64\xl.exe cgen test\cases\stdlib_special_collections.xl --emit build\test\stdlib_special_collections.c
 if errorlevel 1 exit /b 1
 findstr /C:"= xlir_special_queue_push_batch(" build\test\stdlib_special_collections.c >nul
 if errorlevel 1 exit /b 1
@@ -1000,36 +1000,36 @@ findstr /C:"XLIR_CHANNEL_PAYLOAD_STRING_COPY, sizeof(char*), xrtTypeString()" bu
 if errorlevel 1 exit /b 1
 findstr /C:"XLIR_CHANNEL_PAYLOAD_TRIVIAL_COPY, sizeof(int64_t), xrtTypeInt64()" build\test\stdlib_special_collections.c >nul
 if errorlevel 1 exit /b 1
-release\xl.exe build test\cases\stdlib_special_collections.xl -o build\test\stdlib_special_collections.exe
+release\win_x64\xl.exe build test\cases\stdlib_special_collections.xl -o build\test\stdlib_special_collections.exe
 if errorlevel 1 exit /b 1
 build\test\stdlib_special_collections.exe > build\test\stdlib_special_collections_static.out.txt
 if errorlevel 1 exit /b 1
 findstr /C:"stdlib special collections ok" build\test\stdlib_special_collections_static.out.txt >nul
 if errorlevel 1 exit /b 1
 
-release\xl.exe cgen test\cases\stdlib_special_collections_lifecycle.xl --emit build\test\stdlib_special_collections_lifecycle.c
+release\win_x64\xl.exe cgen test\cases\stdlib_special_collections_lifecycle.xl --emit build\test\stdlib_special_collections_lifecycle.c
 if errorlevel 1 exit /b 1
 findstr /C:"static void xlir_stack_handle_drop(void* opaque, void* user)" build\test\stdlib_special_collections_lifecycle.c >nul
 if errorlevel 1 (
     echo stdlib_special_collections_lifecycle.c missing managed stack payload lifetime ABI.
     exit /b 1
 )
-release\xl.exe run test\cases\stdlib_special_collections_lifecycle.xl > build\test\stdlib_special_collections_lifecycle.out.txt
+release\win_x64\xl.exe run test\cases\stdlib_special_collections_lifecycle.xl > build\test\stdlib_special_collections_lifecycle.out.txt
 if errorlevel 1 exit /b 1
 findstr /C:"stdlib special collection lifecycle ok" build\test\stdlib_special_collections_lifecycle.out.txt >nul
 if errorlevel 1 exit /b 1
 
-release\xl.exe run test\cases\stdlib_special_collections_concurrent.xl > build\test\stdlib_special_collections_concurrent.out.txt
+release\win_x64\xl.exe run test\cases\stdlib_special_collections_concurrent.xl > build\test\stdlib_special_collections_concurrent.out.txt
 if errorlevel 1 exit /b 1
 findstr /C:"stdlib special collection concurrent ok" build\test\stdlib_special_collections_concurrent.out.txt >nul
 if errorlevel 1 exit /b 1
 
-release\xl.exe run test\cases\stdlib_special_collections_async.xl > build\test\stdlib_special_collections_async.out.txt
+release\win_x64\xl.exe run test\cases\stdlib_special_collections_async.xl > build\test\stdlib_special_collections_async.out.txt
 if errorlevel 1 exit /b 1
 findstr /C:"stdlib special collection async ok" build\test\stdlib_special_collections_async.out.txt >nul
 if errorlevel 1 exit /b 1
 
-release\xl.exe check test\cases\sem_special_collection_temporary_receiver.xl >nul 2> build\test\sem_special_collection_temporary_receiver.err.txt
+release\win_x64\xl.exe check test\cases\sem_special_collection_temporary_receiver.xl >nul 2> build\test\sem_special_collection_temporary_receiver.err.txt
 if not errorlevel 1 (
     echo sem_special_collection_temporary_receiver.xl should fail.
     exit /b 1
@@ -1040,7 +1040,7 @@ if errorlevel 1 (
     exit /b 1
 )
 
-release\xl.exe check test\cases\sem_special_collection_contract.xl >nul 2> build\test\sem_special_collection_contract.err.txt
+release\win_x64\xl.exe check test\cases\sem_special_collection_contract.xl >nul 2> build\test\sem_special_collection_contract.err.txt
 if not errorlevel 1 (
     echo sem_special_collection_contract.xl should fail.
     exit /b 1
@@ -1061,9 +1061,9 @@ if errorlevel 1 (
     exit /b 1
 )
 
-release\xl.exe run release\examples\stdlib_special_collections.xl > build\test\stdlib_special_collections_example.out.txt
+release\win_x64\xl.exe run release\win_x64\examples\stdlib\core\stdlib_special_collections.xl > build\test\stdlib_special_collections_example.out.txt
 if errorlevel 1 exit /b 1
-release\xl.exe run release\examples\stdlib_special_collections_c.c > build\test\stdlib_special_collections_c_example.out.txt
+release\win_x64\xl.exe run release\win_x64\examples\stdlib\core\stdlib_special_collections_c.c > build\test\stdlib_special_collections_c_example.out.txt
 if errorlevel 1 exit /b 1
 fc build\test\stdlib_special_collections_example.out.txt build\test\stdlib_special_collections_c_example.out.txt >nul
 if errorlevel 1 (
@@ -1071,27 +1071,27 @@ if errorlevel 1 (
     exit /b 1
 )
 
-release\xl.exe run test\cases\stdlib_tls_session.xl > build\test\stdlib_tls_session.out.txt
+release\win_x64\xl.exe run test\cases\stdlib_tls_session.xl > build\test\stdlib_tls_session.out.txt
 if errorlevel 1 exit /b 1
 findstr /C:"tls_session=ok" build\test\stdlib_tls_session.out.txt >nul
 if errorlevel 1 exit /b 1
-release\xl.exe cgen test\cases\stdlib_tls_session.xl --emit build\test\stdlib_tls_session.c
+release\win_x64\xl.exe cgen test\cases\stdlib_tls_session.xl --emit build\test\stdlib_tls_session.c
 if errorlevel 1 exit /b 1
 findstr /C:"xl6TlsSessionClientCreateV1" build\test\stdlib_tls_session.c >nul
 if errorlevel 1 (
     echo stdlib_tls_session.c missing managed TLS Session declaration.
     exit /b 1
 )
-release\xl.exe build test\cases\stdlib_tls_session.xl -o build\test\stdlib_tls_session.exe
+release\win_x64\xl.exe build test\cases\stdlib_tls_session.xl -o build\test\stdlib_tls_session.exe
 if errorlevel 1 exit /b 1
 build\test\stdlib_tls_session.exe > build\test\stdlib_tls_session_static.out.txt
 if errorlevel 1 exit /b 1
 findstr /C:"tls_session=ok" build\test\stdlib_tls_session_static.out.txt >nul
 if errorlevel 1 exit /b 1
 
-release\xl.exe check test\cases\stdlib_tls_session_trim.xl
+release\win_x64\xl.exe check test\cases\stdlib_tls_session_trim.xl
 if errorlevel 1 exit /b 1
-release\xl.exe cgen test\cases\stdlib_tls_session_trim.xl --emit build\test\stdlib_tls_session_trim.c
+release\win_x64\xl.exe cgen test\cases\stdlib_tls_session_trim.xl --emit build\test\stdlib_tls_session_trim.c
 if errorlevel 1 exit /b 1
 findstr /C:"xl6TlsSessionClientCreateV1" build\test\stdlib_tls_session_trim.c >nul
 if errorlevel 1 (
@@ -1105,25 +1105,25 @@ for %%S in (xl6_xrt_net_engine_create xl6_xrt_tcp_stream_create xl6_xrt_tcp_clie
         exit /b 1
     )
 )
-release\xl.exe build test\cases\stdlib_tls_session_trim.xl -o build\test\stdlib_tls_session_trim.exe
+release\win_x64\xl.exe build test\cases\stdlib_tls_session_trim.xl -o build\test\stdlib_tls_session_trim.exe
 if errorlevel 1 exit /b 1
 build\test\stdlib_tls_session_trim.exe > build\test\stdlib_tls_session_trim.out.txt
 if errorlevel 1 exit /b 1
 findstr /C:"tls-session-trim-ok" build\test\stdlib_tls_session_trim.out.txt >nul
 if errorlevel 1 exit /b 1
 
-release\xl.exe run test\cases\stdlib_tls_session_pair.xl > build\test\stdlib_tls_session_pair.out.txt
+release\win_x64\xl.exe run test\cases\stdlib_tls_session_pair.xl > build\test\stdlib_tls_session_pair.out.txt
 if errorlevel 1 exit /b 1
 findstr /C:"tls_session_pair=ok" build\test\stdlib_tls_session_pair.out.txt >nul
 if errorlevel 1 exit /b 1
-release\xl.exe build test\cases\stdlib_tls_session_pair.xl -o build\test\stdlib_tls_session_pair.exe
+release\win_x64\xl.exe build test\cases\stdlib_tls_session_pair.xl -o build\test\stdlib_tls_session_pair.exe
 if errorlevel 1 exit /b 1
 build\test\stdlib_tls_session_pair.exe > build\test\stdlib_tls_session_pair_static.out.txt
 if errorlevel 1 exit /b 1
 findstr /C:"tls_session_pair=ok" build\test\stdlib_tls_session_pair_static.out.txt >nul
 if errorlevel 1 exit /b 1
 
-release\xl.exe run release\examples\stdlib_tls_session_pair.xl > build\test\stdlib_tls_session_pair_example.out.txt
+release\win_x64\xl.exe run release\win_x64\examples\stdlib\net\stdlib_tls_session_pair.xl > build\test\stdlib_tls_session_pair_example.out.txt
 if errorlevel 1 exit /b 1
 findstr /C:"tls_session_pair=ok" build\test\stdlib_tls_session_pair_example.out.txt >nul
 if errorlevel 1 (
@@ -1131,77 +1131,77 @@ if errorlevel 1 (
     exit /b 1
 )
 
-release\xl.exe run test\cases\stdlib_xid_object.xl
+release\win_x64\xl.exe run test\cases\stdlib_xid_object.xl
 if errorlevel 1 exit /b 1
-release\xl.exe run test\cases\stdlib_xid_value.xl
+release\win_x64\xl.exe run test\cases\stdlib_xid_value.xl
 if errorlevel 1 exit /b 1
-release\xl.exe build test\cases\stdlib_xid_value.xl -o build\test\stdlib_xid_value.exe
+release\win_x64\xl.exe build test\cases\stdlib_xid_value.xl -o build\test\stdlib_xid_value.exe
 if errorlevel 1 exit /b 1
 build\test\stdlib_xid_value.exe
 if errorlevel 1 exit /b 1
-release\xl.exe run release\examples\stdlib_xid.xl
+release\win_x64\xl.exe run release\win_x64\examples\stdlib\core\stdlib_xid.xl
 if errorlevel 1 exit /b 1
 
-release\xl.exe run release\examples\stdlib_id_net.xl > build\test\stdlib_id_extended_xlang.out.txt
+release\win_x64\xl.exe run release\win_x64\examples\stdlib\core\stdlib_id_net.xl > build\test\stdlib_id_extended_xlang.out.txt
 if errorlevel 1 exit /b 1
-release\xl.exe run release\examples\stdlib_id_net_c.c > build\test\stdlib_id_extended_c.out.txt
+release\win_x64\xl.exe run release\win_x64\examples\stdlib\core\stdlib_id_net_c.c > build\test\stdlib_id_extended_c.out.txt
 if errorlevel 1 exit /b 1
 fc build\test\stdlib_id_extended_xlang.out.txt build\test\stdlib_id_extended_c.out.txt >nul
 if errorlevel 1 exit /b 1
 
-release\xl.exe check test\cases\stdlib_signal.xl
+release\win_x64\xl.exe check test\cases\stdlib_signal.xl
 if errorlevel 1 exit /b 1
-release\xl.exe run test\cases\stdlib_signal.xl
+release\win_x64\xl.exe run test\cases\stdlib_signal.xl
 if errorlevel 1 exit /b 1
-release\xl.exe run release\examples\stdlib_signal.xl > build\test\stdlib_signal_xlang.out.txt
+release\win_x64\xl.exe run release\win_x64\examples\stdlib\process\stdlib_signal.xl > build\test\stdlib_signal_xlang.out.txt
 if errorlevel 1 exit /b 1
 
-release\xl.exe run release\examples\stdlib_os.xl > build\test\stdlib_os_xlang.out.txt
+release\win_x64\xl.exe run release\win_x64\examples\stdlib\process\stdlib_os.xl > build\test\stdlib_os_xlang.out.txt
 if errorlevel 1 exit /b 1
 findstr /C:"chain_exit=0" build\test\stdlib_os_xlang.out.txt >nul
 if errorlevel 1 exit /b 1
-release\xl.exe run release\examples\stdlib_os_c.c > build\test\stdlib_os_c.out.txt
+release\win_x64\xl.exe run release\win_x64\examples\stdlib\process\stdlib_os_c.c > build\test\stdlib_os_c.out.txt
 if errorlevel 1 exit /b 1
 for %%L in ("args=ok" "platform=ok" "cwd=ok" "env=ok" "run=ok" "startFile=ok" "chain=ok") do (
     findstr /C:%%L build\test\stdlib_os_c.out.txt >nul
     if errorlevel 1 exit /b 1
 )
 
-release\xl.exe run test\cases\xrt_secure_random.c > build\test\xrt_secure_random.out.txt
+release\win_x64\xl.exe run test\cases\xrt_secure_random.c > build\test\xrt_secure_random.out.txt
 if errorlevel 1 exit /b 1
 findstr /C:"xrt_secure_random=ok" build\test\xrt_secure_random.out.txt >nul
 if errorlevel 1 exit /b 1
 
 rem Random adapters must link and execute in JIT, strict generated C and AOT.
-release\xl.exe check test\cases\stdlib_random_extended.xl
+release\win_x64\xl.exe check test\cases\stdlib_random_extended.xl
 if errorlevel 1 exit /b 1
-release\xl.exe run test\cases\stdlib_random_extended.xl
+release\win_x64\xl.exe run test\cases\stdlib_random_extended.xl
 if errorlevel 1 exit /b 1
-release\xl.exe cgen test\cases\stdlib_random_extended.xl --emit build\test\stdlib_random_extended.c
+release\win_x64\xl.exe cgen test\cases\stdlib_random_extended.xl --emit build\test\stdlib_random_extended.c
 if errorlevel 1 exit /b 1
 "%XL6_CGEN_CC%" %XL6_CGEN_FLAGS% %XL6_CGEN_INCLUDES% -Werror -DXLIR_GENERATED_MODULE=\"build/test/stdlib_random_extended.c\" test\cases\xlir_generated_module_host.c %XL6_CGEN_LINKS% -o build\test\stdlib_random_extended.strict.exe
 if errorlevel 1 exit /b 1
 build\test\stdlib_random_extended.strict.exe
 if errorlevel 1 exit /b 1
-release\xl.exe build test\cases\stdlib_random_extended.xl -o build\test\stdlib_random_extended.exe
+release\win_x64\xl.exe build test\cases\stdlib_random_extended.xl -o build\test\stdlib_random_extended.exe
 if errorlevel 1 exit /b 1
 build\test\stdlib_random_extended.exe
 if errorlevel 1 exit /b 1
-release\xl.exe cgen test\cases\stdlib_random_minimal.xl --emit build\test\stdlib_random_minimal.c
+release\win_x64\xl.exe cgen test\cases\stdlib_random_minimal.xl --emit build\test\stdlib_random_minimal.c
 if errorlevel 1 exit /b 1
 findstr /C:"xl6_xrt_secure_" /C:"xl6_xrt_rng_" build\test\stdlib_random_minimal.c >nul
 if not errorlevel 1 (
     echo Minimal default random code unexpectedly includes secure or explicit-state adapters.
     exit /b 1
 )
-release\xl.exe cgen test\cases\stdlib_random_object_minimal.xl --emit build\test\stdlib_random_object_minimal.c
+release\win_x64\xl.exe cgen test\cases\stdlib_random_object_minimal.xl --emit build\test\stdlib_random_object_minimal.c
 if errorlevel 1 exit /b 1
 findstr /C:"xl6_xrt_rng_bytes" /C:"xl6_xrt_rng_string" /C:"xl6_xrt_random_" /C:"xl6_xrt_secure_" build\test\stdlib_random_object_minimal.c >nul
 if not errorlevel 1 (
     echo Minimal Random object code unexpectedly includes unused random adapters.
     exit /b 1
 )
-release\xl.exe cgen test\cases\stdlib_random_secure_minimal.xl --emit build\test\stdlib_random_secure_minimal.c
+release\win_x64\xl.exe cgen test\cases\stdlib_random_secure_minimal.xl --emit build\test\stdlib_random_secure_minimal.c
 if errorlevel 1 exit /b 1
 findstr /C:"xl6_xrt_random_" /C:"xl6_xrt_rng_" build\test\stdlib_random_secure_minimal.c >nul
 if not errorlevel 1 (
@@ -1209,11 +1209,11 @@ if not errorlevel 1 (
     exit /b 1
 )
 
-release\xl.exe run test\cases\stdlib_http1_core.xl > build\test\stdlib_http1_core.out.txt
+release\win_x64\xl.exe run test\cases\stdlib_http1_core.xl > build\test\stdlib_http1_core.out.txt
 if errorlevel 1 exit /b 1
 findstr /C:"stdlib http1 core ok" build\test\stdlib_http1_core.out.txt >nul
 if errorlevel 1 exit /b 1
-release\xl.exe cgen test\cases\stdlib_http1_core.xl --emit build\test\stdlib_http1_core.c
+release\win_x64\xl.exe cgen test\cases\stdlib_http1_core.xl --emit build\test\stdlib_http1_core.c
 if errorlevel 1 exit /b 1
 for %%S in (xl6Http1RequestHeadV2 xl6Http1BodyReaderReadBytesV2 xl6HttpContentDecoderCreateV2) do (
     findstr /C:"%%S" build\test\stdlib_http1_core.c >nul
@@ -1229,7 +1229,7 @@ for %%S in (xl6_xrt_http1_ xl6_xrt_http_decoder_ XRT_MODULE_HTTP_CLIENT XRT_MODU
         exit /b 1
     )
 )
-release\xl.exe build test\cases\stdlib_http1_core.xl -o build\test\stdlib_http1_core.exe
+release\win_x64\xl.exe build test\cases\stdlib_http1_core.xl -o build\test\stdlib_http1_core.exe
 if errorlevel 1 exit /b 1
 build\test\stdlib_http1_core.exe > build\test\stdlib_http1_core_static.out.txt
 if errorlevel 1 exit /b 1

@@ -10,7 +10,7 @@ $work = if ($WorkDirectory) { [IO.Path]::GetFullPath($WorkDirectory) } else { Jo
 . (Join-Path $PSScriptRoot 'extlib_smoke_process.ps1')
 $xl = Join-Path $RuntimeDirectory 'xl.exe'
 $gcc = (Get-Command gcc -CommandType Application -ErrorAction Stop | Select-Object -First 1).Source
-$pkg = 'release/extlibs/xregex'
+$pkg = 'release/win_x64/extlibs/xregex'
 $manifest = Get-Content (Join-Path $Root "$pkg/xlang.package.json") -Raw -Encoding UTF8 | ConvertFrom-Json
 $sources = @($manifest.artifact.cSources | ForEach-Object { "$pkg/$_" })
 $coreSources = @($sources | Where-Object { $_ -ne "$pkg/xregex_native.c" })
@@ -25,8 +25,8 @@ $inputs = [ordered]@{}
 $utf8 = [Text.UTF8Encoding]::new($false)
 $paths = @($xl,(Join-Path $RuntimeDirectory 'xl.dll'),(Join-Path $RuntimeDirectory 'xlc.dll'),$gcc,$PSCommandPath)
 $paths += @('lib/xrt/xrt.h','lib/xruntime/xruntime.h','test/support/extlib_xregex_runtime.c',
-    'test/cases/extlib_xregex.xl','release/examples/extlibs/xregex.xl',
-    'release/examples/extlibs/xregex_basic.xl','release/examples/extlibs/xregex_basic.expected.txt',
+    'test/cases/extlib_xregex.xl','release/win_x64/examples/extlibs/data_format/xregex.xl',
+    'release/win_x64/examples/extlibs/data_format/xregex_basic.xl','release/win_x64/examples/extlibs/data_format/xregex_basic.expected.txt',
     'tools/check_extlib_xregex.sh','tools/extlib_smoke_process.ps1','tools/xlir_native_process.ps1',
     'tools/run_extlib_c.ps1') | ForEach-Object { Join-Path $Root $_ }
 $paths += Get-ChildItem (Join-Path $Root $pkg) -Recurse -File | ForEach-Object FullName
@@ -37,7 +37,7 @@ if (Test-Path -LiteralPath $runtimeInclude) {
 foreach ($path in @($paths | Sort-Object -Unique)) { $inputs[$path] = (Get-FileHash -LiteralPath $path).Hash }
 
 function Check([string]$Name, [string]$Program, [string[]]$Arguments) {
-    $r = Invoke-ExtlibSmokeProcess $Program $Arguments $Root 120 @{XLANG_PACKAGE_PATH=(Join-Path $Root 'release/extlibs')}
+    $r = Invoke-ExtlibSmokeProcess $Program $Arguments $Root 120 @{XLANG_PACKAGE_PATH=(Join-Path $Root 'release/win_x64/extlibs')}
     $checks.Add([ordered]@{name=$Name;program=$Program;arguments=$Arguments;result=$r})
     Write-Host "[xregex] ${Name}: $($r.status)"
     if ($r.status -ne 'pass') { throw "$Name failed: $($r.stderr)`n$($r.stdout)" }
@@ -61,7 +61,7 @@ try {
     $null = Check 'native-ownership-oom' $binary @()
 
     $cases = @('test/cases/extlib_xregex.xl',"$pkg/test/xregex_test.xl", "$pkg/test/xregex_lifetime_test.xl",
-        'release/examples/extlibs/xregex.xl','release/examples/extlibs/xregex_basic.xl')
+        'release/win_x64/examples/extlibs/data_format/xregex.xl','release/win_x64/examples/extlibs/data_format/xregex_basic.xl')
     foreach ($case in $cases) {
         $name = [IO.Path]::GetFileNameWithoutExtension($case)
         $text = Check "$name-jit" $xl @('run',$case)
@@ -113,7 +113,7 @@ try {
     $aot = Check 'c-example-aot' $binary @()
     $helper = Check 'c-example-package-runner' (Get-Process -Id $PID).Path @('-NoProfile','-File','tools/run_extlib_c.ps1',
         '-Package','xregex','-Source',$example,'-RuntimeDirectory',$RuntimeDirectory)
-    $golden = [IO.File]::ReadAllText((Join-Path $Root 'release/examples/extlibs/xregex_basic.expected.txt')).Replace("`r`n","`n").TrimEnd("`n")
+    $golden = [IO.File]::ReadAllText((Join-Path $Root 'release/win_x64/examples/extlibs/data_format/xregex_basic.expected.txt')).Replace("`r`n","`n").TrimEnd("`n")
     foreach ($text in @($cOutput,$jit,$aot,$helper,$xlOutput)) {
         if ($text -cne $golden) { throw 'C/xlang example output differs from common golden' }
     }

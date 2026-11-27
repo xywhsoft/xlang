@@ -5,7 +5,7 @@ $ErrorActionPreference = 'Stop'
 if (!$Root) { $Root = Split-Path -Parent $PSScriptRoot }
 $Root = (Resolve-Path -LiteralPath $Root).Path
 . (Join-Path $PSScriptRoot 'extlib_smoke_process.ps1')
-$xl = Join-Path $Root 'release/xl.exe'
+$xl = Join-Path $Root 'release/win_x64/xl.exe'
 $gcc = (Get-Command gcc -CommandType Application -ErrorAction Stop | Select-Object -First 1).Source
 $workRoot = Join-Path $Root 'build/test/blake3_guard'
 $runId = [guid]::NewGuid().ToString('N')
@@ -15,17 +15,17 @@ $utf8 = [Text.UTF8Encoding]::new($false)
 $checks = [Collections.Generic.List[object]]::new()
 $hashes = [ordered]@{}
 $toolHashes = [ordered]@{}
-$manifest = Get-Content (Join-Path $Root 'release/extlibs/blake3/xlang.package.json') -Raw -Encoding UTF8 | ConvertFrom-Json
-$sources = @($manifest.artifact.cSources | ForEach-Object { "release/extlibs/blake3/$_" })
-$paths = @('.gitattributes','release/xl.exe','release/xl.dll','release/xlc.dll','lib/xrt/xrt.h','lib/xruntime/xruntime.h',
-    'release/include/xrt_decl.h','release/include/xruntime_decl.h',
+$manifest = Get-Content (Join-Path $Root 'release/win_x64/extlibs/blake3/xlang.package.json') -Raw -Encoding UTF8 | ConvertFrom-Json
+$sources = @($manifest.artifact.cSources | ForEach-Object { "release/win_x64/extlibs/blake3/$_" })
+$paths = @('.gitattributes','release/win_x64/xl.exe','release/win_x64/xl.dll','release/win_x64/xlc.dll','lib/xrt/xrt.h','lib/xruntime/xruntime.h',
+    'release/win_x64/include/xrt_decl.h','release/win_x64/include/xruntime_decl.h',
     'test/support/extlib_codec_runtime.c','test/support/extlib_hash_reader_contract.h','tools/check_extlib_blake3.ps1',
     'tools/extlib_smoke_process.ps1','tools/xlir_native_process.ps1','tools/run_extlib_c.ps1',
     'test/featured_extlibs.json','test/suites/11_featured_extlibs_rc.bat','tools/check_extlib_blake3.sh',
-    'test/cases/extlib_blake3.xl','test/cases/extlib_blake3_boundaries.xl','test/cases/extlib_blake3_progress.xl','release/examples/extlibs/blake3.xl',
-    'release/examples/extlibs/blake3_basic.xl','release/examples/extlibs/blake3_basic.expected.txt')
+    'test/cases/extlib_blake3.xl','test/cases/extlib_blake3_boundaries.xl','test/cases/extlib_blake3_progress.xl','release/win_x64/examples/extlibs/crypto/blake3.xl',
+    'release/win_x64/examples/extlibs/crypto/blake3_basic.xl','release/win_x64/examples/extlibs/crypto/blake3_basic.expected.txt')
 function Get-Blake3InputPaths {
-    @($paths) + @(Get-ChildItem (Join-Path $Root 'release/extlibs/blake3') -Recurse -File |
+    @($paths) + @(Get-ChildItem (Join-Path $Root 'release/win_x64/extlibs/blake3') -Recurse -File |
         Where-Object { $_.Extension -in @('.c','.h','.xl','.json','.md','.html') -or $_.Name -eq 'LICENSE' } |
         ForEach-Object { $_.FullName.Substring($Root.Length + 1).Replace('\','/') }) |
         Sort-Object -Unique
@@ -57,7 +57,7 @@ try {
     if (!(Test-Path -LiteralPath $cc1 -PathType Leaf)) { throw "Missing GCC cc1: $cc1" }
     $toolHashes[(Resolve-Path $cc1).Path] = (Get-FileHash $cc1).Hash
     # 固定上游来源和独立向量；构建不联网，也不自动更新 vendor。
-    $pkg = Join-Path $Root 'release/extlibs/blake3'
+    $pkg = Join-Path $Root 'release/win_x64/extlibs/blake3'
     $vendor = Get-Content (Join-Path $pkg 'third_party/manifest.json') -Raw -Encoding UTF8 | ConvertFrom-Json
     if ($vendor.commit -ne '5aa53f07f7188a569cadfc5daf1522972d9a9630' -or $vendor.files.Count -ne 6) { throw 'Unexpected vendor lock' }
     foreach ($file in $vendor.files) {
@@ -84,7 +84,7 @@ try {
         ('kdf: ' + $vectors.cases[1].derive_key.Substring(0,32))
         ('xof/65: ' + $vectors.cases[1].hash.Substring(0,130))
     ) -join "`n"
-    $expectedOutput = [IO.File]::ReadAllText((Join-Path $Root 'release/examples/extlibs/blake3_basic.expected.txt')).Replace("`r`n","`n").TrimEnd("`n")
+    $expectedOutput = [IO.File]::ReadAllText((Join-Path $Root 'release/win_x64/examples/extlibs/crypto/blake3_basic.expected.txt')).Replace("`r`n","`n").TrimEnd("`n")
     if ($golden -cne $expectedOutput) { throw 'Example output differs from independent vectors' }
     $checks.Add([ordered]@{name='vendor-vector-golden';status='pass';vectors=$rows.Count;files=$vendor.files.Count})
     $null = Check 'runtime' $gcc ($flags + @('-DXRT_MODULE_CODEC_HEX','-DXRT_MODULE_THREAD','-c','test/support/extlib_codec_runtime.c','-o',$runtime))
@@ -96,18 +96,18 @@ try {
         ++$index
     }
     $links = @($runtime,'-lWs2_32','-lAdvapi32','-lm')
-    $readerContract = 'release/extlibs/blake3/test/reader_contract_c.c'
+    $readerContract = 'release/win_x64/extlibs/blake3/test/reader_contract_c.c'
     $readerBinary = Join-Path $work 'reader-contract.exe'
     $null = Check 'reader-contract-compile' $gcc ($flags + @($readerContract) + $links + @('-o',$readerBinary))
     $readerSummary = Check 'reader-contract-GCC' $readerBinary @()
     if ($readerSummary -cnotmatch '^blake3 reader contract: 1 variants, 448 cases, [0-9]+ checks, 436 guarded failures, 4 real OOM, 0 failures$') { throw 'Incomplete reader contract' }
-    $test = 'release/extlibs/blake3/test/test_blake3.c'
+    $test = 'release/win_x64/extlibs/blake3/test/test_blake3.c'
     $exe = Join-Path $work 'blake3-c.exe'
     # 核心测试直接包含 core，以白盒覆盖 uint64 计数溢出，不重复链接该对象。
     $null = Check 'c-build' $gcc ($packageFlags + @('-DNDEBUG',$test,$objects[0]) + $links + @('-o',$exe))
     $null = Check 'c-boundaries' $exe @()
     # 新用例自己包含 core/portable，只链接同一份验证运行时。
-    $readerCause = 'release/extlibs/blake3/test/test_reader_cause.c'
+    $readerCause = 'release/win_x64/extlibs/blake3/test/test_reader_cause.c'
     $readerExe = Join-Path $work 'blake3-reader-cause.exe'
     $null = Check 'reader-cause-build' $gcc ($packageFlags + @('-DNDEBUG',$readerCause) + $links + @('-o',$readerExe))
     $null = Check 'reader-cause' $readerExe @()
@@ -118,15 +118,15 @@ try {
         $null = Check 'reader-cause-aot' $readerAot @()
     }
     $allocation = Join-Path $work 'blake3-alloc.exe'
-    $null = Check 'allocation-build' $gcc ($packageFlags + @('-DNDEBUG','release/extlibs/blake3/test/test_blake3_alloc.c') + $objects + $links + @('-o',$allocation))
+    $null = Check 'allocation-build' $gcc ($packageFlags + @('-DNDEBUG','release/win_x64/extlibs/blake3/test/test_blake3_alloc.c') + $objects + $links + @('-o',$allocation))
     $null = Check 'allocation' $allocation @()
     $native = Join-Path $work 'blake3-native.exe'
-    $null = Check 'native-boundaries-build' $gcc ($packageFlags + @('-DNDEBUG','release/extlibs/blake3/test/test_blake3_native.c') + $objects + $links + @('-o',$native))
+    $null = Check 'native-boundaries-build' $gcc ($packageFlags + @('-DNDEBUG','release/win_x64/extlibs/blake3/test/test_blake3_native.c') + $objects + $links + @('-o',$native))
     $null = Check 'native-boundaries' $native @()
     $close = Join-Path $work 'blake3-close.exe'
-    $null = Check 'close-build' $gcc ($packageFlags + @('-DNDEBUG','release/extlibs/blake3/test/test_blake3_close.c') + $objects[0..1] + $links + @('-o',$close))
+    $null = Check 'close-build' $gcc ($packageFlags + @('-DNDEBUG','release/win_x64/extlibs/blake3/test/test_blake3_close.c') + $objects[0..1] + $links + @('-o',$close))
     $null = Check 'close-boundaries' $close @()
-    $example = 'release/extlibs/blake3/examples/basic.c'
+    $example = 'release/win_x64/extlibs/blake3/examples/basic.c'
     $releaseExample = Join-Path $work 'blake3-c-example-ndebug.exe'
     $null = Check 'c-example-ndebug-build' $gcc ($packageFlags + @('-DNDEBUG',$example) + $objects + $links + @('-o',$releaseExample))
     $releaseOutput = Check 'c-example-ndebug' $releaseExample @()
@@ -136,7 +136,7 @@ try {
     $null = Check 'c-jit' $xl @('run',$test,$sources[0],'--inc-path','lib/xrt','--inc-path','lib/xruntime')
     $null = Check 'c-package-runner' (Get-Process -Id $PID).Path @('-NoProfile','-File','tools/run_extlib_c.ps1','-Package','blake3','-Source',$test)
     foreach ($name in @('native_update_visibility_negative','native_keyed_update_visibility_negative')) {
-        $case = "release/extlibs/blake3/test/$name.xl"
+        $case = "release/win_x64/extlibs/blake3/test/$name.xl"
         $result = Invoke-ExtlibSmokeProcess $xl @('check',$case) $Root 30
         $rejected = $result.status -eq 'fail' -and
             ($result.stdout + $result.stderr) -match 'no matching callable class member'
@@ -146,7 +146,7 @@ try {
         }
         Write-Host "[blake3] ${name}: PASS"
     }
-    $case = 'release/extlibs/blake3/test/keyed_pointer_length_negative.xl'
+    $case = 'release/win_x64/extlibs/blake3/test/keyed_pointer_length_negative.xl'
     $result = Invoke-ExtlibSmokeProcess $xl @('check',$case) $Root 30
     $rejected = $result.status -eq 'fail' -and
         ($result.stdout + $result.stderr) -match '\[sem\].*create'
@@ -162,10 +162,10 @@ try {
             $null = Check "$name-aot" $binary @()
         }
     }
-    $null = Check 'official-vectors-xlang' $xl @('run','release/extlibs/blake3/test/vectors.xl')
+    $null = Check 'official-vectors-xlang' $xl @('run','release/win_x64/extlibs/blake3/test/vectors.xl')
     if (!$SkipAot) {
         $vectorsExe = Join-Path $work 'official-vectors.exe'
-        $null = Check 'official-vectors-aot-build' $xl @('build','release/extlibs/blake3/test/vectors.xl','-o',$vectorsExe)
+        $null = Check 'official-vectors-aot-build' $xl @('build','release/win_x64/extlibs/blake3/test/vectors.xl','-o',$vectorsExe)
         $null = Check 'official-vectors-aot' $vectorsExe @()
     }
     $decls = @()
@@ -175,7 +175,7 @@ try {
         $decls += @(Get-Content $module -Encoding UTF8 | Where-Object { $_ -match '^extern .*\bxblake3_[a-z_]+\(' })
     }
     $decls = @($decls | Sort-Object -Unique)
-    $source = Get-Content (Join-Path $Root 'release/extlibs/blake3/src/blake3.xl') -Raw -Encoding UTF8
+    $source = Get-Content (Join-Path $Root 'release/win_x64/extlibs/blake3/src/blake3.xl') -Raw -Encoding UTF8
     $expected = @([regex]::Matches($source,'extern "(xblake3_[a-z_]+)"') | ForEach-Object { $_.Groups[1].Value } | Sort-Object -Unique)
     $actual = @([regex]::Matches(($decls -join "`n"),'\bxblake3_[a-z_]+(?=\()') | ForEach-Object Value | Sort-Object -Unique)
     if (@(Compare-Object $expected $actual).Count -ne 0 -or $decls.Count -ne $expected.Count) {
@@ -183,7 +183,7 @@ try {
     }
     $abi = Join-Path $work 'abi.c'
     [IO.File]::WriteAllText($abi,"#include <stdint.h>`n#include `"blake3_native.h`"`n" + ($decls -join "`n"),$utf8)
-    $null = Check 'generated-prototypes' $gcc ($packageFlags + @('-Irelease/extlibs/blake3/include','-fsyntax-only',$abi))
+    $null = Check 'generated-prototypes' $gcc ($packageFlags + @('-Irelease/win_x64/extlibs/blake3/include','-fsyntax-only',$abi))
     $ownedModule = [IO.File]::ReadAllText((Join-Path $work 'extlib_blake3.c'))
     foreach ($symbol in @(
         'xblake3_hash_hex_owned', 'xblake3_hash_str_hex_owned',
@@ -198,7 +198,7 @@ try {
     }
     Write-Host '[blake3] owned text direct adoption: PASS'
     foreach ($name in @('blake3','blake3_basic')) {
-        $case = "release/examples/extlibs/$name.xl"
+        $case = "release/win_x64/examples/extlibs/$name.xl"
         $text = Check "$name-example-jit" $xl @('run',$case)
         if ($name -eq 'blake3_basic') { $xlangOutput = $text }
         if (!$SkipAot) {
@@ -208,7 +208,7 @@ try {
             if ($aot -cne $text) { throw "$name JIT/AOT example output differs" }
         }
     }
-    $example = 'release/extlibs/blake3/examples/basic.c'
+    $example = 'release/win_x64/extlibs/blake3/examples/basic.c'
     $binary = Join-Path $work 'blake3-c-example.exe'
     $null = Check 'c-example-build' $gcc ($packageFlags + @($example) + $objects + $links + @('-o',$binary))
     $cOutput = Check 'c-example' $binary @()
@@ -219,7 +219,7 @@ try {
         $cAot = Check 'c-example-aot' $binary @()
     }
     $helperOutput = Check 'c-example-package-runner' (Get-Process -Id $PID).Path @('-NoProfile','-File','tools/run_extlib_c.ps1','-Package','blake3','-Source',$example)
-    $expectedOutput = [IO.File]::ReadAllText((Join-Path $Root 'release/examples/extlibs/blake3_basic.expected.txt')).Replace("`r`n","`n").TrimEnd("`n")
+    $expectedOutput = [IO.File]::ReadAllText((Join-Path $Root 'release/win_x64/examples/extlibs/crypto/blake3_basic.expected.txt')).Replace("`r`n","`n").TrimEnd("`n")
     if ($cOutput -cne $expectedOutput -or $jitOutput -cne $expectedOutput -or $xlangOutput -cne $expectedOutput -or
         (!$SkipAot -and $cAot -cne $expectedOutput) -or $helperOutput -cne $expectedOutput) {
         throw 'C/xlang examples differ from the common golden output'
@@ -242,14 +242,14 @@ try {
         if ((Get-FileHash -LiteralPath $path).Hash -ne $toolHashes[$path]) { throw "Tool changed: $path" }
     }
     $blockers = @()
-    $privateCase = 'release/extlibs/blake3/test/private_adopt_constructor_negative.xl'
+    $privateCase = 'release/win_x64/extlibs/blake3/test/private_adopt_constructor_negative.xl'
     $private = Invoke-ExtlibSmokeProcess $xl @('check',$privateCase) $Root 30
     $privateRejected = $private.status -eq 'fail' -and
         ($private.stdout + $private.stderr) -match '\[sem\]'
     $checks.Add([ordered]@{name='private-adopt-constructor';status=$(if ($privateRejected) { 'pass' } else { 'fail' });exitCode=$private.exitCode;stdout=$private.stdout;stderr=$private.stderr})
     if (!$privateRejected) { $blockers += 'private native handle adoption remains accessible' }
     if (!$SkipAot) {
-        $globalCase = 'release/extlibs/blake3/test/aot_global_hasher_repro.xl'
+        $globalCase = 'release/win_x64/extlibs/blake3/test/aot_global_hasher_repro.xl'
         $globalJit = Check 'global-hasher-jit' $xl @('run',$globalCase)
         $globalExe = Join-Path $work 'global-hasher.exe'
         $null = Check 'global-hasher-build' $xl @('build',$globalCase,'-o',$globalExe)

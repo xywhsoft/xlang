@@ -18,8 +18,8 @@ CASES=[
  'stdlib_tree_bytes_keys','stdlib_concurrent_queue_owned']
 BAD=['bad_stdlib_foundation_memory_import','bad_stdlib_foundation_memory_handle',
  'bad_stdlib_foundation_stats_no_raise','bad_stdlib_foundation_pool_scalar','bad_stdlib_foundation_pool_private']
-EXAMPLES=['release/examples/foundation/system.xl','release/examples/foundation/memory.xl',
- 'release/examples/foundation/pools.xl']
+EXAMPLES=['release/win_x64/examples/foundation/system.xl','release/win_x64/examples/foundation/memory.xl',
+ 'release/win_x64/examples/foundation/pools.xl']
 def sha(p):return hashlib.sha256(Path(p).read_bytes()).hexdigest()
 
 def main():

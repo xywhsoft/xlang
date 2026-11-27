@@ -6,17 +6,17 @@ $Root = (Resolve-Path -LiteralPath $Root).Path
 $work = Join-Path $Root 'build/test/partial_helpers'
 [IO.Directory]::CreateDirectory($work) | Out-Null
 $checks = [Collections.Generic.List[object]]::new()
-$fixedPaths = @('release/xl.exe','release/xl.dll','release/xlc.dll',
-    'lib/xrt/xrt.h','lib/xruntime/xruntime.h','release/include/xrt_decl.h',
-    'release/include/xruntime_decl.h','test/support/extlib_helper_runtime.c',
+$fixedPaths = @('release/win_x64/xl.exe','release/win_x64/xl.dll','release/win_x64/xlc.dll',
+    'lib/xrt/xrt.h','lib/xruntime/xruntime.h','release/win_x64/include/xrt_decl.h',
+    'release/win_x64/include/xruntime_decl.h','test/support/extlib_helper_runtime.c',
     'tools/check_extlib_helper_boundaries.ps1','tools/check_extlib_helper_boundaries.sh',
     'test/suites/12_phase1_extlibs.bat','tools/rc0_guard.ps1',
     'tools/extlib_smoke_process.ps1','tools/xlir_native_process.ps1',
     'test/cases/extlib_partial_helper_boundaries.xl','test/cases/extlib_partial_helper_boundaries_c.c',
-    'release/examples/extlibs/mysql.xl','test/cases/extlib_mysql.xl')
+    'release/win_x64/examples/extlibs/database/mysql.xl','test/cases/extlib_mysql.xl')
 function Snapshot {
     $result = [ordered]@{}
-    $paths = $fixedPaths + @(Get-ChildItem (Join-Path $Root 'release/extlibs/mysql'),(Join-Path $Root 'release/extlibs/faiss') -Recurse -File |
+    $paths = $fixedPaths + @(Get-ChildItem (Join-Path $Root 'release/win_x64/extlibs/mysql'),(Join-Path $Root 'release/win_x64/extlibs/faiss') -Recurse -File |
         ForEach-Object { $_.FullName.Substring($Root.Length+1).Replace('\','/') })
     foreach ($p in @($paths | Sort-Object -Unique)) { $result[$p] = (Get-FileHash (Join-Path $Root $p)).Hash }
     return $result
@@ -31,12 +31,12 @@ function Check([string]$Name,[string]$Program,[string[]]$Arguments) {
 function CheckExample([string]$Name,[string]$Program,[string[]]$Arguments) {
     Check $Name $Program $Arguments
     $r = $checks[$checks.Count - 1].result
-    $expected = [IO.File]::ReadAllText((Join-Path $Root 'release/extlibs/mysql/examples/basic.expected.txt')).Replace("`r",'')
+    $expected = [IO.File]::ReadAllText((Join-Path $Root 'release/win_x64/extlibs/mysql/examples/basic.expected.txt')).Replace("`r",'')
     if ($r.stdout.Replace("`r",'') -cne $expected -or $r.stderr.Length -ne 0) { throw "$Name output mismatch" }
 }
-$xl = Join-Path $Root 'release/xl.exe'
+$xl = Join-Path $Root 'release/win_x64/xl.exe'
 $gcc = (Get-Command gcc).Source
-$src = @('release/extlibs/mysql/mysql_native.c','release/extlibs/faiss/faiss_native.c')
+$src = @('release/win_x64/extlibs/mysql/mysql_native.c','release/win_x64/extlibs/faiss/faiss_native.c')
 $c = 'test/cases/extlib_partial_helper_boundaries_c.c'
 $x = 'test/cases/extlib_partial_helper_boundaries.xl'
 $outcome = 'failed'
@@ -56,9 +56,9 @@ try {
     $exe = Join-Path $work 'mysql-regression.exe'
     Check 'mysql-regression-build' $xl @('build','test/cases/extlib_mysql.xl','-o',$exe)
     Check 'mysql-regression-aot' $exe @()
-    $exampleC = 'release/extlibs/mysql/examples/basic.c'
-    $exampleXL = 'release/examples/extlibs/mysql.xl'
-    $mysql = 'release/extlibs/mysql/mysql_native.c'
+    $exampleC = 'release/win_x64/extlibs/mysql/examples/basic.c'
+    $exampleXL = 'release/win_x64/examples/extlibs/database/mysql.xl'
+    $mysql = 'release/win_x64/extlibs/mysql/mysql_native.c'
     $exe = Join-Path $work 'mysql-example-gcc.exe'
     Check 'mysql-example-gcc-build' $gcc @('-std=c11','-O2','-Wall','-Wextra','-Werror','-Ilib/xrt',$exampleC,$mysql,'test/support/extlib_helper_runtime.c','-lWs2_32','-lAdvapi32','-lm','-o',$exe)
     CheckExample 'mysql-example-gcc' $exe @()

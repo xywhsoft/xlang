@@ -1,7 +1,7 @@
 import imagehash
 
 func main(...) as int
-    string path = "release/examples/extlibs/assets/tiny.png"
+    string path = "release/win_x64/examples/extlibs/assets/tiny.png"
     string a = imagehash.ahash(path)
     string d = imagehash.dhash(path)
     string p = imagehash.phash(path)
@@ -47,7 +47,7 @@ func main(...) as int
     end
     assert caught == 3
     try
-        imagehash.ahash("release/examples/extlibs/assets/missing.png")
+        imagehash.ahash("release/win_x64/examples/extlibs/assets/missing.png")
     catch RuntimeError
         caught += 1
     end

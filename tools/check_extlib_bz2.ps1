@@ -7,7 +7,7 @@ $Root = (Resolve-Path -LiteralPath $Root).Path
 if (!$RuntimeDirectory) { $RuntimeDirectory = Join-Path $Root 'release' }
 $RuntimeDirectory = (Resolve-Path -LiteralPath $RuntimeDirectory).Path
 $xl = Join-Path $RuntimeDirectory 'xl.exe'
-$environment = @{XLANG_PACKAGE_PATH = Join-Path $Root 'release/extlibs'}
+$environment = @{XLANG_PACKAGE_PATH = Join-Path $Root 'release/win_x64/extlibs'}
 $gcc = (Get-Command gcc -CommandType Application -ErrorAction Stop | Select-Object -First 1).Source
 $python = (Get-Command python -CommandType Application -ErrorAction Stop | Select-Object -First 1).Source
 $work = if (!$WorkDirectory) { Join-Path $Root 'build/test/bz2_guard' } elseif ([IO.Path]::IsPathRooted($WorkDirectory)) { [IO.Path]::GetFullPath($WorkDirectory) } else { [IO.Path]::GetFullPath((Join-Path $Root $WorkDirectory)) }
@@ -15,10 +15,10 @@ $work = if (!$WorkDirectory) { Join-Path $Root 'build/test/bz2_guard' } elseif (
 $utf8 = [Text.UTF8Encoding]::new($false)
 $checks = [Collections.Generic.List[object]]::new()
 $hashes = [ordered]@{}
-$manifest = Get-Content (Join-Path $Root 'release/extlibs/bz2/xlang.package.json') -Raw -Encoding UTF8 | ConvertFrom-Json
-$vendor = Get-Content (Join-Path $Root 'release/extlibs/_bzip2/xlang.package.json') -Raw -Encoding UTF8 | ConvertFrom-Json
-$sources = @($manifest.artifact.cSources | ForEach-Object { "release/extlibs/bz2/$_" })
-$vendorSources = @($vendor.artifact.cSources | ForEach-Object { "release/extlibs/_bzip2/$_" })
+$manifest = Get-Content (Join-Path $Root 'release/win_x64/extlibs/bz2/xlang.package.json') -Raw -Encoding UTF8 | ConvertFrom-Json
+$vendor = Get-Content (Join-Path $Root 'release/win_x64/extlibs/_bzip2/xlang.package.json') -Raw -Encoding UTF8 | ConvertFrom-Json
+$sources = @($manifest.artifact.cSources | ForEach-Object { "release/win_x64/extlibs/bz2/$_" })
+$vendorSources = @($vendor.artifact.cSources | ForEach-Object { "release/win_x64/extlibs/_bzip2/$_" })
 $includes = @('-Ilib/xrt','-Ilib/xruntime')
 if ($XrtInclude) {
     $XrtInclude = (Resolve-Path -LiteralPath $XrtInclude).Path
@@ -27,20 +27,20 @@ if ($XrtInclude) {
 
 function InputPaths {
     foreach ($pkg in @('bz2','_bzip2')) {
-        Get-ChildItem (Join-Path $Root "release/extlibs/$pkg") -Recurse -File | ForEach-Object FullName
+        Get-ChildItem (Join-Path $Root "release/win_x64/extlibs/$pkg") -Recurse -File | ForEach-Object FullName
     }
     foreach ($path in @('lib/xrt/xrt.h','lib/xruntime/xruntime.h',
-        'release/include/xrt_decl.h','release/include/xruntime_decl.h','release/include/xl_extlib_abi.h',
+        'release/win_x64/include/xrt_decl.h','release/win_x64/include/xruntime_decl.h','release/win_x64/include/xl_extlib_abi.h',
         'test/support/extlib_codec_runtime.c','test/support/extlib_codec_file_rollback.h',
         'tools/check_extlib_bz2.ps1','tools/check_extlib_bz2.sh',
         'tools/check_extlib_native_globals.ps1','tools/check_extlib_native_globals.sh',
         'tools/check_extlib_bz2_interop.py','tools/extlib_smoke_process.ps1','tools/xlir_native_process.ps1',
         'tools/run_extlib_c.ps1','test/featured_extlibs.json','test/suites/11_featured_extlibs_rc.bat',
         'test/cases/extlib_bz2.xl','test/cases/extlib_bz2_progress.xl',
-        'release/examples/extlibs/bz2.xl','release/examples/extlibs/bz2_basic.xl',
-        'release/examples/extlibs/bz2_files.xl','release/examples/extlibs/bz2_basic.expected.txt',
-        'release/examples/extlibs/bz2_files.expected.txt',
-        'release/examples/extlibs/bz2_c.c')) { Join-Path $Root $path }
+        'release/win_x64/examples/extlibs/compression/bz2.xl','release/win_x64/examples/extlibs/compression/bz2_basic.xl',
+        'release/win_x64/examples/extlibs/compression/bz2_files.xl','release/win_x64/examples/extlibs/compression/bz2_basic.expected.txt',
+        'release/win_x64/examples/extlibs/compression/bz2_files.expected.txt',
+        'release/win_x64/examples/extlibs/compression/bz2_c.c')) { Join-Path $Root $path }
     foreach ($name in @('xl.exe','xl.dll','xlc.dll')) { Join-Path $RuntimeDirectory $name }
     if ($XrtInclude) { Join-Path $XrtInclude 'xrt.h'; Join-Path $XrtInclude 'xruntime.h' }
 }
@@ -62,7 +62,7 @@ $changed = @()
 try {
     foreach ($kind in @('compressor','decompressor')) {
         $name = "private_${kind}_negative"
-        $args = @('check',"release/extlibs/bz2/test/$name.xl")
+        $args = @('check',"release/win_x64/extlibs/bz2/test/$name.xl")
         $result = Invoke-ExtlibSmokeProcess $xl $args $Root 90 $environment
         $checks.Add([ordered]@{name=$name;program=$xl;arguments=$args;status=$result.status;exitCode=$result.exitCode;elapsedMs=$result.elapsedMs;stdout=$result.stdout;stderr=$result.stderr})
         if ($result.status -ne 'fail' -or
@@ -75,7 +75,7 @@ try {
     $null = Check 'compiler-version' $gcc @('--version')
     foreach ($order in @(@(), @('-DBZ2_CORE_FIRST'), @('-DBZ2_NATIVE_FIRST'), @('-DBZ2_XRT_FIRST'))) {
         $null = Check 'native-header-order' $gcc ($flags + $order + @('-fsyntax-only',
-            'release/extlibs/bz2/test/native_header.c'))
+            'release/win_x64/extlibs/bz2/test/native_header.c'))
     }
     $runtime = Join-Path $work 'runtime.o'
     $null = Check 'runtime' $gcc ($flags + @('-DXRT_MODULE_DIR','-DXRT_MODULE_DIR_TEMP','-DXRT_MODULE_FILE_WHOLE','-DXRT_MODULE_PATH','-c','test/support/extlib_codec_runtime.c','-o',$runtime))
@@ -91,16 +91,16 @@ try {
     $links = @('-lWs2_32','-lAdvapi32','-lm')
     foreach ($name in @('test_bz2','test_bz2_boundaries','test_bz2_stream','test_bz2_alloc')) {
         $binary = Join-Path $work "$name.exe"
-        $null = Check "$name-build" $gcc ($flags + @('-DNDEBUG',"release/extlibs/bz2/test/$name.c") + $objects + $links + @('-o',$binary))
+        $null = Check "$name-build" $gcc ($flags + @('-DNDEBUG',"release/win_x64/extlibs/bz2/test/$name.c") + $objects + $links + @('-o',$binary))
         $null = Check $name $binary @()
     }
     $interop = Join-Path $work 'interop.exe'
-    $null = Check 'interop-build' $gcc ($flags + @('release/extlibs/bz2/test/bz2_interop.c') + $objects + $links + @('-o',$interop))
+    $null = Check 'interop-build' $gcc ($flags + @('release/win_x64/extlibs/bz2/test/bz2_interop.c') + $objects + $links + @('-o',$interop))
     $null = Check 'python-bz2-interop' $python @('tools/check_extlib_bz2_interop.py',$interop,(Join-Path $work 'interop-files')) 180
     $fileTest = Join-Path $work 'files.exe'
-    $null = Check 'file-boundaries-build' $gcc ($flags + @('-DNDEBUG','release/extlibs/bz2/test/test_bz2_files.c') + $objects + $links + @('-o',$fileTest))
+    $null = Check 'file-boundaries-build' $gcc ($flags + @('-DNDEBUG','release/win_x64/extlibs/bz2/test/test_bz2_files.c') + $objects + $links + @('-o',$fileTest))
     $null = Check 'file-boundaries' $fileTest @((Join-Path $work ('files-'+[Guid]::NewGuid().ToString('N'))))
-    $cleanupProbe = 'release/extlibs/bz2/test/test_bz2_cleanup.c'
+    $cleanupProbe = 'release/win_x64/extlibs/bz2/test/test_bz2_cleanup.c'
     $cleanupTest = Join-Path $work 'cleanup.exe'
     $null = Check 'cleanup-build' $gcc ($flags + @($cleanupProbe) + $objects + $links + @('-o',$cleanupTest))
     $null = Check 'cleanup' $cleanupTest @((Join-Path $work ('cleanup-'+[Guid]::NewGuid().ToString('N'))))
@@ -111,19 +111,19 @@ try {
         $null = Check 'cleanup-aot-build' $xl @('build',$cleanupProbe,'-o',$cleanupAot)
         $null = Check 'cleanup-aot' $cleanupAot @((Join-Path $work ('aot-cleanup-'+[Guid]::NewGuid().ToString('N'))))
     }
-    $fileProbe = 'release/extlibs/bz2/test/test_bz2_files.c'
+    $fileProbe = 'release/win_x64/extlibs/bz2/test/test_bz2_files.c'
     $null = Check 'file-boundaries-jit' $xl (@('run',$fileProbe) + $sources + $vendorSources + @('--inc-path','lib/xrt','--inc-path','lib/xruntime','--',(Join-Path $work ('jit-files-'+[Guid]::NewGuid().ToString('N')))))
-    $null = Check 'file-ops-jit' $xl @('run','release/extlibs/bz2/test/file_ops.xl')
-    $null = Check 'text-transfer-jit' $xl @('run','release/extlibs/bz2/test/text_transfer.xl')
+    $null = Check 'file-ops-jit' $xl @('run','release/win_x64/extlibs/bz2/test/file_ops.xl')
+    $null = Check 'text-transfer-jit' $xl @('run','release/win_x64/extlibs/bz2/test/text_transfer.xl')
     if (!$SkipAot) {
         $textAot = Join-Path $work 'text-transfer-aot.exe'
-        $null = Check 'text-transfer-aot-build' $xl @('build','release/extlibs/bz2/test/text_transfer.xl','-o',$textAot)
+        $null = Check 'text-transfer-aot-build' $xl @('build','release/win_x64/extlibs/bz2/test/text_transfer.xl','-o',$textAot)
         $null = Check 'text-transfer-aot' $textAot @()
         $fileAot = Join-Path $work 'file-boundaries-aot.exe'
         $null = Check 'file-boundaries-aot-build' $xl (@('build',$fileProbe) + $sources + $vendorSources + @('--inc-path','lib/xrt','--inc-path','lib/xruntime','-o',$fileAot))
         $null = Check 'file-boundaries-aot' $fileAot @((Join-Path $work ('aot-files-'+[Guid]::NewGuid().ToString('N'))))
     }
-    $central = 'release/examples/extlibs/bz2_c.c'
+    $central = 'release/win_x64/examples/extlibs/compression/bz2_c.c'
     $centralOutput = Check 'central-c-jit' $xl @('run',$central)
     if (!$SkipAot) {
         $binary = Join-Path $work 'bz2-central-c.exe'
@@ -149,15 +149,15 @@ try {
         $decls += @(Get-Content $module -Encoding UTF8 | Where-Object { $_ -match '^extern .*\bxbz2_[a-z_]+\(' })
     }
     $decls = @($decls | Sort-Object -Unique)
-    $source = Get-Content (Join-Path $Root 'release/extlibs/bz2/src/bz2.xl') -Raw -Encoding UTF8
+    $source = Get-Content (Join-Path $Root 'release/win_x64/extlibs/bz2/src/bz2.xl') -Raw -Encoding UTF8
     $expected = @([regex]::Matches($source,'extern "(xbz2_[a-z_]+)"') | ForEach-Object { $_.Groups[1].Value } | Sort-Object -Unique)
     $actual = @([regex]::Matches(($decls -join "`n"),'\bxbz2_[a-z_]+(?=\()') | ForEach-Object Value | Sort-Object -Unique)
     if (@(Compare-Object $expected $actual).Count -ne 0 -or $decls.Count -ne $expected.Count) { throw 'Incomplete generated ABI coverage' }
     $abi = Join-Path $work 'abi.c'
     [IO.File]::WriteAllText($abi,"#include <stdint.h>`n#include `"bz2_native.h`"`n" + ($decls -join "`n"),$utf8)
-    $null = Check "generated-$($expected.Count)-prototypes" $gcc ($flags + @('-Irelease/extlibs/bz2/include','-fsyntax-only',$abi))
+    $null = Check "generated-$($expected.Count)-prototypes" $gcc ($flags + @('-Irelease/win_x64/extlibs/bz2/include','-fsyntax-only',$abi))
     foreach ($name in @('bz2','bz2_basic','bz2_files')) {
-        $case = "release/examples/extlibs/$name.xl"
+        $case = "release/win_x64/examples/extlibs/$name.xl"
         $text = Check "$name-example-jit" $xl @('run',$case)
         if (!$SkipAot) {
             $binary = Join-Path $work "$name-example.exe"
@@ -167,9 +167,9 @@ try {
         }
         if ($name -eq 'bz2') { continue }
         $short = $name.Substring(4)
-        $golden = [IO.File]::ReadAllText((Join-Path $Root "release/examples/extlibs/$name.expected.txt")).Replace("`r`n","`n").TrimEnd("`n")
+        $golden = [IO.File]::ReadAllText((Join-Path $Root "release/win_x64/examples/extlibs/$name.expected.txt")).Replace("`r`n","`n").TrimEnd("`n")
         if ($text -cne $golden) { throw "$name golden output mismatch" }
-        $c = "release/extlibs/bz2/examples/$short.c"
+        $c = "release/win_x64/extlibs/bz2/examples/$short.c"
         $binary = Join-Path $work "$name-c.exe"
         $null = Check "$name-c-build" $gcc ($flags + @($c) + $objects + $links + @('-o',$binary))
         $cOutput = Check "$name-c" $binary @()
@@ -186,7 +186,7 @@ try {
     # 关闭后提交失败的二次 OOM 不能被打开态回滚修复掩盖。
     $commitTest = Join-Path $work 'commit-cleanup.exe'
     $null = Check 'commit-cleanup-build' $gcc ($flags + @(
-        'release/extlibs/bz2/test/test_bz2_commit_cleanup.c') + $objects + $links + @('-o',$commitTest))
+        'release/win_x64/extlibs/bz2/test/test_bz2_commit_cleanup.c') + $objects + $links + @('-o',$commitTest))
     $null = Check 'commit-cleanup' $commitTest @((Join-Path $work ('commit-cleanup-'+[Guid]::NewGuid().ToString('N'))))
     $lifecycle = @('-NoProfile','-ExecutionPolicy','Bypass','-File','tools/check_extlib_native_globals.ps1',
         '-Root',$Root,'-RuntimeDirectory',$RuntimeDirectory,'-Package','bz2')

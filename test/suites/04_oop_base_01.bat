@@ -4,7 +4,7 @@ call "%~dp0common.bat"
 if errorlevel 1 exit /b 1
 echo Running DEMO6 suite: OOP ABI export and interop baseline 1/8...
 
-release\xl.exe cgen test\cases\control_flow_do_while.xl --emit build\test\control_flow_do_while.c
+release\win_x64\xl.exe cgen test\cases\control_flow_do_while.xl --emit build\test\control_flow_do_while.c
 if errorlevel 1 exit /b 1
 findstr /C:"while (1) {" build\test\control_flow_do_while.c >nul
 if errorlevel 1 (
@@ -26,7 +26,7 @@ if errorlevel 1 exit /b 1
 build\test\control_flow_do_while.exe
 if errorlevel 1 exit /b 1
 
-release\xl.exe cgen test\cases\cgen_loop_levels.xl --emit build\test\cgen_loop_levels.c
+release\win_x64\xl.exe cgen test\cases\cgen_loop_levels.xl --emit build\test\cgen_loop_levels.c
 if errorlevel 1 exit /b 1
 findstr /C:"goto __xl6_break_" build\test\cgen_loop_levels.c >nul
 if errorlevel 1 (
@@ -43,10 +43,10 @@ if errorlevel 1 exit /b 1
 build\test\cgen_loop_levels.exe
 if errorlevel 1 exit /b 1
 
-release\xl.exe check test\cases\cgen_loop_multilevel_cleanup.xl
+release\win_x64\xl.exe check test\cases\cgen_loop_multilevel_cleanup.xl
 if errorlevel 1 exit /b 1
 
-release\xl.exe cgen test\cases\cgen_loop_multilevel_cleanup.xl --emit build\test\cgen_loop_multilevel_cleanup.c
+release\win_x64\xl.exe cgen test\cases\cgen_loop_multilevel_cleanup.xl --emit build\test\cgen_loop_multilevel_cleanup.c
 if errorlevel 1 exit /b 1
 powershell -NoProfile -ExecutionPolicy Bypass -Command "$lines=Get-Content 'build\test\cgen_loop_multilevel_cleanup.c'; $breakGoto=($lines | Select-String -SimpleMatch 'goto __xl6_break_' | Select-Object -First 1).LineNumber; $breakInner=($lines | Select-String -SimpleMatch 'xrtValueRelease(innerTracker);' | Where-Object { $_.LineNumber -lt $breakGoto } | Select-Object -Last 1).LineNumber; $breakOuter=($lines | Select-String -SimpleMatch 'xrtValueRelease(outerTracker);' | Where-Object { $_.LineNumber -lt $breakGoto } | Select-Object -Last 1).LineNumber; $continueGoto=($lines | Select-String -SimpleMatch 'goto __xl6_continue_' | Select-Object -First 1).LineNumber; $continueInner=($lines | Select-String -SimpleMatch 'xrtValueRelease(innerTracker);' | Where-Object { $_.LineNumber -gt $breakGoto -and $_.LineNumber -lt $continueGoto } | Select-Object -Last 1).LineNumber; $continueOuter=($lines | Select-String -SimpleMatch 'xrtValueRelease(outerTracker);' | Where-Object { $_.LineNumber -gt $breakGoto -and $_.LineNumber -lt $continueGoto } | Select-Object -Last 1).LineNumber; if(-not $breakInner -or -not $breakOuter -or -not $breakGoto -or -not ($breakInner -lt $breakOuter -and $breakOuter -lt $breakGoto)){exit 1}; if(-not $continueInner -or -not $continueOuter -or -not $continueGoto -or -not ($continueInner -lt $continueOuter -and $continueOuter -lt $continueGoto)){exit 1}"
 if errorlevel 1 (
@@ -105,7 +105,7 @@ for /L %%I in (1,1,3) do (
     )
 )
 
-release\xl.exe cgen test\cases\cgen_named_args.xl --emit build\test\cgen_named_args.c
+release\win_x64\xl.exe cgen test\cases\cgen_named_args.xl --emit build\test\cgen_named_args.c
 if errorlevel 1 exit /b 1
 findstr /C:"expect_i64(xl_fn_add(1LL, 1LL, 2LL), 4LL);" build\test\cgen_named_args.c >nul
 if errorlevel 1 (
@@ -132,7 +132,7 @@ if errorlevel 1 exit /b 1
 build\test\cgen_named_args.exe
 if errorlevel 1 exit /b 1
 
-release\xl.exe cgen test\cases\cgen_multi_return.xl --emit build\test\cgen_multi_return.c
+release\win_x64\xl.exe cgen test\cases\cgen_multi_return.xl --emit build\test\cgen_multi_return.c
 if errorlevel 1 exit /b 1
 powershell -NoProfile -ExecutionPolicy Bypass -Command "$t=Get-Content 'build\test\cgen_multi_return.c' -Raw; if($t -notmatch 'typedef struct XL6_Function_Return_[0-9A-F]+'){exit 1}; if($t -notmatch 'XL6_Function_Return_[0-9A-F]+ __xl6_multi_'){exit 2}"
 if errorlevel 1 (
@@ -149,7 +149,7 @@ if errorlevel 1 exit /b 1
 build\test\cgen_multi_return.exe
 if errorlevel 1 exit /b 1
 
-release\xl.exe cgen test\cases\cgen_multi_return_struct_dedupe.xl --emit build\test\cgen_multi_return_struct_dedupe.c
+release\win_x64\xl.exe cgen test\cases\cgen_multi_return_struct_dedupe.xl --emit build\test\cgen_multi_return_struct_dedupe.c
 if errorlevel 1 exit /b 1
 powershell -NoProfile -ExecutionPolicy Bypass -Command "$t=Get-Content 'build\test\cgen_multi_return_struct_dedupe.c' -Raw; if(([regex]::Matches($t, 'typedef struct XL6_Function_Return_[0-9A-F]+')).Count -ne 1){exit 1}; if($t -match 'XL6_Return_leftPair'){exit 2}; if($t -match 'XL6_Return_rightPair'){exit 3}; if(([regex]::Matches($t, 'XL6_Function_Return_[0-9A-F]+ xl_fn_leftPair\(void\);')).Count -ne 1){exit 4}; if(([regex]::Matches($t, 'XL6_Function_Return_[0-9A-F]+ xl_fn_rightPair\(void\);')).Count -ne 1){exit 5}"
 if errorlevel 1 (
@@ -161,7 +161,7 @@ if errorlevel 1 exit /b 1
 build\test\cgen_multi_return_struct_dedupe.exe
 if errorlevel 1 exit /b 1
 
-release\xl.exe cgen test\cases\cgen_multi_assign_index.xl --emit build\test\cgen_multi_assign_index.c
+release\win_x64\xl.exe cgen test\cases\cgen_multi_assign_index.xl --emit build\test\cgen_multi_assign_index.c
 if errorlevel 1 exit /b 1
 findstr /C:"xl6_xrt_typed_array_set_at(__xl6_user_global_values, (long long)(0LL), __xl6_multi_index_" build\test\cgen_multi_assign_index.c >nul
 if errorlevel 1 (
@@ -173,7 +173,7 @@ if errorlevel 1 exit /b 1
 build\test\cgen_multi_assign_index.exe
 if errorlevel 1 exit /b 1
 
-release\xl.exe cgen test\cases\cgen_varargs.xl --emit build\test\cgen_varargs.c
+release\win_x64\xl.exe cgen test\cases\cgen_varargs.xl --emit build\test\cgen_varargs.c
 if errorlevel 1 exit /b 1
 findstr /C:"xvalue* arg" build\test\cgen_varargs.c >nul
 if errorlevel 1 (
@@ -205,7 +205,7 @@ if errorlevel 1 exit /b 1
 build\test\cgen_varargs.exe
 if errorlevel 1 exit /b 1
 
-release\xl.exe cgen test\cases\cgen_extern_xvalue_vararg.xl --emit build\test\cgen_extern_xvalue_vararg.c
+release\win_x64\xl.exe cgen test\cases\cgen_extern_xvalue_vararg.xl --emit build\test\cgen_extern_xvalue_vararg.c
 if errorlevel 1 exit /b 1
 findstr /C:"xvalue* arg" build\test\cgen_extern_xvalue_vararg.c >nul
 if errorlevel 1 (
@@ -227,10 +227,10 @@ if errorlevel 1 exit /b 1
 build\test\cgen_extern_xvalue_vararg.exe
 if errorlevel 1 exit /b 1
 
-release\xl.exe run release\examples\c_vararg_printf.xl
+release\win_x64\xl.exe run release\win_x64\examples\language\interop\c_vararg_printf.xl
 if errorlevel 1 exit /b 1
 
-release\xl.exe cgen test\cases\cgen_extern_c_vararg.xl --emit build\test\cgen_extern_c_vararg.c
+release\win_x64\xl.exe cgen test\cases\cgen_extern_c_vararg.xl --emit build\test\cgen_extern_c_vararg.c
 if errorlevel 1 exit /b 1
 findstr /C:"printf(const char* fmt, ..." build\test\cgen_extern_c_vararg.c >nul
 if errorlevel 1 (
@@ -254,14 +254,14 @@ if errorlevel 1 exit /b 1
 findstr /C:"c_vararg:42:ok" build\test\cgen_extern_c_vararg.out.txt >nul
 if errorlevel 1 exit /b 1
 
-release\xl.exe ir test\cases\cgen_extern_c_vararg.xl --lowered --emit build\test\xlir_extern_c_vararg.xlir
+release\win_x64\xl.exe ir test\cases\cgen_extern_c_vararg.xl --lowered --emit build\test\xlir_extern_c_vararg.xlir
 if errorlevel 1 exit /b 1
 findstr /C:"scalar-convert" build\test\xlir_extern_c_vararg.xlir >nul
 if errorlevel 1 (
     echo xlir_extern_c_vararg.xlir missing explicit foreign scalar normalization.
     exit /b 1
 )
-release\xl.exe cgen test\cases\cgen_extern_c_vararg.xl --backend xlir --emit build\test\xlir_extern_c_vararg_generated.c
+release\win_x64\xl.exe cgen test\cases\cgen_extern_c_vararg.xl --backend xlir --emit build\test\xlir_extern_c_vararg_generated.c
 if errorlevel 1 exit /b 1
 "%XL6_CGEN_CC%" %XL6_CGEN_FLAGS% %XL6_CGEN_INCLUDES% -Werror test\cases\xlir_extern_c_vararg_host.c %XL6_CGEN_LINKS% -o build\test\xlir_extern_c_vararg_host.exe
 if errorlevel 1 exit /b 1
@@ -270,7 +270,7 @@ if errorlevel 1 exit /b 1
 findstr /C:"c_vararg:42:ok" build\test\xlir_extern_c_vararg.out.txt >nul
 if errorlevel 1 exit /b 1
 
-release\xl.exe cgen test\cases\cgen_index_access.xl --emit build\test\cgen_index_access.c
+release\win_x64\xl.exe cgen test\cases\cgen_index_access.xl --emit build\test\cgen_index_access.c
 if errorlevel 1 exit /b 1
 findstr /C:"xl6_xrt_typed_array_get_at(__xl6_user_global_values, (long long)(1LL))" build\test\cgen_index_access.c >nul
 if errorlevel 1 (
@@ -382,13 +382,13 @@ if errorlevel 1 exit /b 1
 build\test\cgen_index_access.exe
 if errorlevel 1 exit /b 1
 
-release\xl.exe run test\cases\cgen_generic_array_param.xl
+release\win_x64\xl.exe run test\cases\cgen_generic_array_param.xl
 if errorlevel 1 exit /b 1
 
-release\xl.exe run test\cases\cgen_protocol_field_neg_compare.xl
+release\win_x64\xl.exe run test\cases\cgen_protocol_field_neg_compare.xl
 if errorlevel 1 exit /b 1
 
-release\xl.exe cgen test\cases\cgen_safe_index.xl --emit build\test\cgen_safe_index.c
+release\win_x64\xl.exe cgen test\cases\cgen_safe_index.xl --emit build\test\cgen_safe_index.c
 if errorlevel 1 exit /b 1
 powershell -NoProfile -ExecutionPolicy Bypass -Command "$t=Get-Content 'build\test\cgen_safe_index.c' -Raw; if($t -notmatch '__xl6_safe_container_[0-9]+ = __xl6_user_global_values.*xl6_xrt_typed_array_get_at\(.*\? \(XL6_Nullable_[0-9a-f]+\)\{ true, \(\*\(long long\*\)'){exit 1}"
 if errorlevel 1 (
@@ -415,12 +415,12 @@ if errorlevel 1 (
     echo cgen_safe_index.c missing null safe index lowering.
     exit /b 1
 )
-findstr /C:"return xl6_xrt_retain(xl6_xrt_index_get_i64(values, index));" release\include\xl_runtime.h >nul
+findstr /C:"return xl6_xrt_retain(xl6_xrt_index_get_i64(values, index));" release\win_x64\include\xl_runtime.h >nul
 if errorlevel 1 (
     echo xl_runtime.h should delegate numeric safe index misses to XRT.
     exit /b 1
 )
-findstr /C:"return xl6_xrt_retain(xl6_xrt_index_get_key(values, key));" release\include\xl_runtime.h >nul
+findstr /C:"return xl6_xrt_retain(xl6_xrt_index_get_key(values, key));" release\win_x64\include\xl_runtime.h >nul
 if errorlevel 1 (
     echo xl_runtime.h should delegate keyed safe index misses to XRT.
     exit /b 1
@@ -455,7 +455,7 @@ if errorlevel 1 exit /b 1
 build\test\cgen_safe_index.exe
 if errorlevel 1 exit /b 1
 
-release\xl.exe cgen test\cases\cgen_typed_container_safe_index.xl --emit build\test\cgen_typed_container_safe_index.c
+release\win_x64\xl.exe cgen test\cases\cgen_typed_container_safe_index.xl --emit build\test\cgen_typed_container_safe_index.c
 if errorlevel 1 exit /b 1
 findstr /C:"static XL6_Nullable_" build\test\cgen_typed_container_safe_index.c >nul
 if errorlevel 1 (
@@ -522,7 +522,7 @@ if errorlevel 1 exit /b 1
 build\test\cgen_typed_container_safe_index.exe
 if errorlevel 1 exit /b 1
 
-release\xl.exe cgen test\cases\cgen_typed_container_safe_index_objects_functions.xl --emit build\test\cgen_typed_container_safe_index_objects_functions.c
+release\win_x64\xl.exe cgen test\cases\cgen_typed_container_safe_index_objects_functions.xl --emit build\test\cgen_typed_container_safe_index_objects_functions.c
 if errorlevel 1 exit /b 1
 findstr /C:"__xl6_user_global_maybePair = ((__xl6_safe_container_" build\test\cgen_typed_container_safe_index_objects_functions.c | findstr /C:"xl6_xrt_retain" >nul
 if errorlevel 1 (
@@ -619,14 +619,14 @@ if errorlevel 1 exit /b 1
 build\test\cgen_typed_container_safe_index_objects_functions.exe
 if errorlevel 1 exit /b 1
 
-release\xl.exe cgen test\cases\cgen_typed_container_class_handle_items.xl --emit build\test\cgen_typed_container_class_handle_items.c
+release\win_x64\xl.exe cgen test\cases\cgen_typed_container_class_handle_items.xl --emit build\test\cgen_typed_container_class_handle_items.c
 if errorlevel 1 exit /b 1
 "%XL6_CGEN_CC%" %XL6_CGEN_FLAGS% %XL6_CGEN_INCLUDES% build\test\cgen_typed_container_class_handle_items.c test\cases\cgen_class_host.c %XL6_CGEN_LINKS% -o build\test\cgen_typed_container_class_handle_items.exe
 if errorlevel 1 exit /b 1
 build\test\cgen_typed_container_class_handle_items.exe
 if errorlevel 1 exit /b 1
 
-release\xl.exe cgen test\cases\cgen_typed_container_native_class_items.xl --emit build\test\cgen_typed_container_native_class_items.c
+release\win_x64\xl.exe cgen test\cases\cgen_typed_container_native_class_items.xl --emit build\test\cgen_typed_container_native_class_items.c
 if errorlevel 1 exit /b 1
 "%XL6_CGEN_CC%" %XL6_CGEN_FLAGS% %XL6_CGEN_INCLUDES% build\test\cgen_typed_container_native_class_items.c test\cases\cgen_class_host.c %XL6_CGEN_LINKS% -o build\test\cgen_typed_container_native_class_items.exe
 if errorlevel 1 exit /b 1

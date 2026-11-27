@@ -16,7 +16,7 @@ $wiringFiles = @(
     "test_all.bat",
     "test_tutorial.bat",
     "test_dll.bat",
-    "release\examples\feature_suite\run_feature_suite.bat",
+    "release\win_x64\examples\feature_suite/run_feature_suite.bat",
     # These runners are invoked by the full regression and validate their
     # declared data inputs before dispatching the owning scenario workers.
     "tools\run_xlir_guards.ps1",

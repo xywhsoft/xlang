@@ -11,7 +11,7 @@ try {
     if(Test-Path -LiteralPath $work){throw 'Preserve prior process_run evidence'}
     $build=Get-Content "$public/build.json" -Raw|ConvertFrom-Json
     if($build.RuntimeOnly){throw 'Full current-source compiler required'}
-    if((Get-FileHash release/xl.dll).Hash-ne$build.RuntimeSha256){throw 'Source build runtime changed'}
+    if((Get-FileHash release/win_x64/xl.dll).Hash-ne$build.RuntimeSha256){throw 'Source build runtime changed'}
     foreach($row in $build.Inputs){if((Get-FileHash $row.Path).Hash-ne$row.Sha256){throw 'Source build changed'}}
     & ./tools/stage_xlir_artifact_runtime_sources.ps1 -Directory $public
     if(!$?){throw 'Stage failed'}
@@ -49,7 +49,7 @@ try {
         'test/cases/xlir_process_file_host.c',
         'test/cases/xlir_process_terminal_host.c',
         'tools/extlib_smoke_process.ps1','tools/stage_xlir_artifact_runtime_sources.ps1',
-        'release/xl.exe','release/xlc.dll','release/xl.dll','release/examples/stdlib_process_run.xl','release/examples/stdlib_process_support.xl','release/examples/stdlib_process_pipeline.xl',"$public/build.json","$public/artifact_sources.json",$build.Driver,(Get-Command gcc).Source)
+        'release/win_x64/xl.exe','release/win_x64/xlc.dll','release/win_x64/xl.dll','release/win_x64/examples/stdlib/process/stdlib_process_run.xl','release/win_x64/examples/stdlib/process/stdlib_process_support.xl','release/win_x64/examples/stdlib/process/stdlib_process_pipeline.xl',"$public/build.json","$public/artifact_sources.json",$build.Driver,(Get-Command gcc).Source)
     $extra+=@('tools/stage_stdlib_process_observer.py','tools/check_stdlib_process_source_contracts.py',
         'tools/check_xlir_resident_catalog.py','tools/xlir_public_build_inputs.py')
     $python=(Get-Command python -ErrorAction Stop).Source;$extra+=@($python)
@@ -58,7 +58,7 @@ try {
     $inputs=[ordered]@{}
     foreach($path in @($paths|ForEach-Object {(Resolve-Path -LiteralPath $_).Path}|Sort-Object -Unique)){$inputs[$path]=(Get-FileHash $path).Hash}
     New-Item -ItemType Directory -Path $work|Out-Null
-    Copy-Item -LiteralPath release/xl.dll -Destination "$work/xl.dll"
+    Copy-Item -LiteralPath release/win_x64/xl.dll -Destination "$work/xl.dll"
     $inputs["$work/xl.dll"]=(Get-FileHash "$work/xl.dll").Hash
     $rows=[Collections.Generic.List[object]]::new(); $utf8=[Text.UTF8Encoding]::new($false)
     $child="$work/child.exe"
@@ -84,7 +84,7 @@ try {
         if(!$FutureOnly){
         $null=Check 'terminal-observer-stage' $python @('tools/stage_stdlib_process_observer.py','--root',$root,'--out',"$work/observer")
         $inputs["$work/observer/process_observer_layout.h"]=(Get-FileHash "$work/observer/process_observer_layout.h").Hash
-        $null=Check 'terminal-native-build' gcc ($flags+@("-I$work/observer",'test/cases/xlir_process_terminal_host.c','release/xl.dll')+$libs+@('-o',"$work/terminal-native.exe"))
+        $null=Check 'terminal-native-build' gcc ($flags+@("-I$work/observer",'test/cases/xlir_process_terminal_host.c','release/win_x64/xl.dll')+$libs+@('-o',"$work/terminal-native.exe"))
         $terminalNative=Check 'terminal-native' "$work/terminal-native.exe" @($child)
         if($terminalNative-notmatch 'terminal: real tty/merged stderr, child-observed resize, independent stream leases; 13 guards, heap/owned handles balanced; raw Win32 platform retention=[0-9]+, no extra handles'){throw 'Real terminal IO/resize/lifetime witness missing'}
         $fileNative=$sourceContracts
@@ -119,7 +119,7 @@ try {
         $retirementObjects=@($nativeObjects|Where-Object {[IO.Path]::GetFileName($_)-ne'xrt_single_header_impl.o'})+@("$work/live-oom-observer.o")
         $future=$sourceContracts
         if($future-notmatch 'mapper/pending/terminal OOM 1/[0-9]+/[0-9]+ failures \+ 3 first no-hit, waiter retired, balanced'){throw 'Process Future native/OOM witness missing'}
-        $null=Check 'contract-build' gcc ($flags+@('-DXL_STATIC_EMBED','-Ilib/tcc','test/cases/xlir_text_value_contract.c')+$compilerObjects+@('release/xl.dll')+$libs+@('-o',"$work/contract.exe"))
+        $null=Check 'contract-build' gcc ($flags+@('-DXL_STATIC_EMBED','-Ilib/tcc','test/cases/xlir_text_value_contract.c')+$compilerObjects+@('release/win_x64/xl.dll')+$libs+@('-o',"$work/contract.exe"))
         foreach($case in $cases) {
             $source="test/cases/$case.xl";$prefix="$work/$case"
             $null=Check "$case-emit" $build.Driver @($source,'emit',$prefix)
@@ -138,8 +138,8 @@ try {
             $null=Check "$case-jit" $build.Driver @($source,'run',"$prefix.jit")
             $null=Check "$case-aot-build" $build.Driver @($source,'exe',"$prefix.aot")
             $null=Check "$case-aot-run" "$prefix.aot.exe" @()
-            $null=Check "$case-formal-run" 'release/xl.exe' @('run',$source)
-            $null=Check "$case-formal-build" 'release/xl.exe' @('build',$source,'-o',"$prefix.formal.exe")
+            $null=Check "$case-formal-run" 'release/win_x64/xl.exe' @('run',$source)
+            $null=Check "$case-formal-build" 'release/win_x64/xl.exe' @('build',$source,'-o',"$prefix.formal.exe")
             $null=Check "$case-formal-execute" "$prefix.formal.exe" @()
             if($case-in@('stdlib_process_run_allocations','stdlib_process_pipeline_allocations','stdlib_process_file_allocations')){
                 $terminal=$false
@@ -173,14 +173,14 @@ try {
             foreach($ext in @('c','h','json')){if(Test-Path "$prefix.$ext"){throw 'Unsafe process_run ABI produced output'}}
         }
         if(!$FutureOnly){
-        $null=Check 'example-run' 'release/xl.exe' @('run','release/examples/stdlib_process_run.xl')
-        $null=Check 'example-build' 'release/xl.exe' @('build','release/examples/stdlib_process_run.xl','-o',"$work/example.exe")
+        $null=Check 'example-run' 'release/win_x64/xl.exe' @('run','release/win_x64/examples/stdlib/process/stdlib_process_run.xl')
+        $null=Check 'example-build' 'release/win_x64/xl.exe' @('build','release/win_x64/examples/stdlib/process/stdlib_process_run.xl','-o',"$work/example.exe")
         $null=Check 'example-execute' "$work/example.exe" @()
-        $null=Check 'support-example-run' 'release/xl.exe' @('run','release/examples/stdlib_process_support.xl')
-        $null=Check 'support-example-build' 'release/xl.exe' @('build','release/examples/stdlib_process_support.xl','-o',"$work/support-example.exe")
+        $null=Check 'support-example-run' 'release/win_x64/xl.exe' @('run','release/win_x64/examples/stdlib/process/stdlib_process_support.xl')
+        $null=Check 'support-example-build' 'release/win_x64/xl.exe' @('build','release/win_x64/examples/stdlib/process/stdlib_process_support.xl','-o',"$work/support-example.exe")
         $null=Check 'support-example-execute' "$work/support-example.exe" @()
-        $null=Check 'pipeline-example-run' 'release/xl.exe' @('run','release/examples/stdlib_process_pipeline.xl')
-        $null=Check 'pipeline-example-build' 'release/xl.exe' @('build','release/examples/stdlib_process_pipeline.xl','-o',"$work/pipeline-example.exe")
+        $null=Check 'pipeline-example-run' 'release/win_x64/xl.exe' @('run','release/win_x64/examples/stdlib/process/stdlib_process_pipeline.xl')
+        $null=Check 'pipeline-example-build' 'release/win_x64/xl.exe' @('build','release/win_x64/examples/stdlib/process/stdlib_process_pipeline.xl','-o',"$work/pipeline-example.exe")
         $null=Check 'pipeline-example-execute' "$work/pipeline-example.exe" @()
         }
         $complete=$true

@@ -3,19 +3,19 @@
 $ErrorActionPreference = "Stop"
 if ($Root -eq "") { $Root = Split-Path -Parent $PSScriptRoot }
 $Root = (Resolve-Path -LiteralPath $Root).Path
-$xl = Join-Path $Root "release\xl.exe"
+$xl = Join-Path $Root "release\win_x64\xl.exe"
 $gcc = (Get-Command gcc -CommandType Application -ErrorAction Stop).Source
 $work = Join-Path $Root "build\test\serial_guard"
 $utf8 = [Text.UTF8Encoding]::new($false)
 $checks = [Collections.Generic.List[object]]::new()
-$binaries = @("release/xl.exe", "release/xl.dll", "release/xlc.dll", "lib/xrt/xrt.h")
+$binaries = @("release/win_x64/xl.exe", "release/win_x64/xl.dll", "release/win_x64/xlc.dll", "lib/xrt/xrt.h")
 $before = @{}
 foreach ($file in $binaries) { $before[$file] = (Get-FileHash -LiteralPath (Join-Path $Root $file)).Hash }
 $sourceHashes = @{}
-$sourceFiles = @(Get-ChildItem -LiteralPath (Join-Path $Root "release/extlibs/serial") -Recurse -File |
+$sourceFiles = @(Get-ChildItem -LiteralPath (Join-Path $Root "release/win_x64/extlibs/serial") -Recurse -File |
     Where-Object { $_.Extension -in @(".c", ".h", ".xl", ".json") } | ForEach-Object { $_.FullName })
 $sourceFiles += @("tools/check_extlib_serial.ps1", "test/cases/extlib_serial.xl",
-    "release/examples/extlibs/serial.xl", "release/examples/extlibs/serial_c.c") |
+    "release/win_x64/examples/extlibs/system/serial.xl", "release/win_x64/examples/extlibs/system/serial_c.c") |
     ForEach-Object { Join-Path $Root $_ }
 foreach ($file in $sourceFiles) {
     $relative = $file.Substring($Root.Length + 1).Replace('\', '/')
@@ -59,7 +59,7 @@ function Run-Check([string]$Name, [string]$Program, [string[]]$Arguments, [bool]
 
 
 
-$package = "release/extlibs/serial"
+$package = "release/win_x64/extlibs/serial"
 $native = "$package/serial_native.c"
 $flags = @("-std=c11", "-Wall", "-Wextra", "-Werror", "-Ilib/xrt")
 $runtime = Join-Path $work "runtime.o"
@@ -116,14 +116,14 @@ try {
         if ($text -ne "serial xlang boundaries: PASS") { throw "xlang AOT marker missing" }
     }
 
-    $exampleXl = Run-Check "example-xlang" $xl @("run", "release/examples/extlibs/serial.xl")
-    $exampleC = Run-Check "example-c" $xl @("run", "release/examples/extlibs/serial_c.c")
+    $exampleXl = Run-Check "example-xlang" $xl @("run", "release/win_x64/examples/extlibs/system/serial.xl")
+    $exampleC = Run-Check "example-c" $xl @("run", "release/win_x64/examples/extlibs/system/serial_c.c")
     $exampleExe = Join-Path $work "example.exe"
-    $null = Run-Check "example-gcc-build" $gcc ($flags + @("release/examples/extlibs/serial_c.c", $runtime, "-o", $exampleExe, "-lWs2_32", "-lIPHLPAPI", "-lShell32"))
+    $null = Run-Check "example-gcc-build" $gcc ($flags + @("release/win_x64/examples/extlibs/system/serial_c.c", $runtime, "-o", $exampleExe, "-lWs2_32", "-lIPHLPAPI", "-lShell32"))
     $exampleGcc = Run-Check "example-gcc" $exampleExe @()
     if (!$SkipAot) {
         $cAot = Join-Path $work "c-example.exe"
-        $null = Run-Check "example-c-build" $xl @("build", "release/examples/extlibs/serial_c.c", "-o", $cAot)
+        $null = Run-Check "example-c-build" $xl @("build", "release/win_x64/examples/extlibs/system/serial_c.c", "-o", $cAot)
         $exampleAot = Run-Check "example-c-aot" $cAot @()
         if ($exampleXl -cne $exampleAot) { throw "C AOT example output differs" }
     }

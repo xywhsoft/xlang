@@ -10,7 +10,7 @@ try {
     if(Test-Path -LiteralPath $work){throw 'Preserve prior time evidence'}
     $build=Get-Content "$public/build.json" -Raw|ConvertFrom-Json
     if($build.RuntimeOnly){throw 'Full current-source compiler required'}
-    if((Get-FileHash release/xl.dll).Hash-ne$build.RuntimeSha256){throw 'Source build runtime changed'}
+    if((Get-FileHash release/win_x64/xl.dll).Hash-ne$build.RuntimeSha256){throw 'Source build runtime changed'}
     foreach($row in $build.Inputs){if((Get-FileHash $row.Path).Hash-ne$row.Sha256){throw 'Source build changed'}}
     & ./tools/stage_xlir_artifact_runtime_sources.ps1 -Directory $public
     if(!$?){throw 'Stage failed'}
@@ -19,9 +19,9 @@ try {
     $negatives=@('xlir_time_bad_result','xlir_time_bad_input','xlir_time_bad_component','xlir_time_bad_tolerance','xlir_time_bad_effect')
     $extra=@($PSCommandPath,'tools/check_stdlib_time_core.sh','test/cases/xlir_time_core_host.c','test/support/time_native.c',
         'test/cases/xlir_text_value_contract.c','test/cases/xlir_string_interpolation_host.c',
-        'test/cases/xlir_time_closure_host.c','release/examples/stdlib_time_core.xl',
+        'test/cases/xlir_time_closure_host.c','release/win_x64/examples/stdlib/time/stdlib_time_core.xl',
         'tools/extlib_smoke_process.ps1','tools/stage_xlir_artifact_runtime_sources.ps1',
-        'release/xl.exe','release/xlc.dll','release/xl.dll',"$public/build.json","$public/artifact_sources.json",$build.Driver,(Get-Command gcc).Source)
+        'release/win_x64/xl.exe','release/win_x64/xlc.dll','release/win_x64/xl.dll',"$public/build.json","$public/artifact_sources.json",$build.Driver,(Get-Command gcc).Source)
     $paths=@($build.Inputs.Path)+@($build.Headers.Path)+@($build.Objects.Path)+@($stage.Files.Source)+@($stage.Files.Path)+$extra
     $paths+=@($cases+$negatives|ForEach-Object {"test/cases/$_.xl"})
     $inputs=[ordered]@{}
@@ -48,8 +48,8 @@ try {
         $compilerObjects=@($build.Objects|Where-Object {[IO.Path]::GetFileName($_.Path)-ne'xlir_public_source_driver.o'}|ForEach-Object Path)
         $nativeObjects=@($build.Sources|Where-Object {$_-like'src/runtime/*'-or$_-eq'tools/xrt_single_header_impl.c'}|
             ForEach-Object {Join-Path $public ([IO.Path]::GetFileNameWithoutExtension($_)+'.o')})
-        $null=Check 'contract-build' gcc ($flags+@('-DXL_STATIC_EMBED','-Ilib/tcc','test/cases/xlir_text_value_contract.c')+$compilerObjects+@('release/xl.dll')+$libs+@('-o',"$work/contract.exe"))
-        Copy-Item release/xl.dll "$work/xl.dll"
+        $null=Check 'contract-build' gcc ($flags+@('-DXL_STATIC_EMBED','-Ilib/tcc','test/cases/xlir_text_value_contract.c')+$compilerObjects+@('release/win_x64/xl.dll')+$libs+@('-o',"$work/contract.exe"))
+        Copy-Item release/win_x64/xl.dll "$work/xl.dll"
         foreach($case in $cases) {
             $source="test/cases/$case.xl";$prefix="$work/$case"
             $null=Check "$case-emit" $build.Driver @($source,'emit',$prefix)
@@ -62,8 +62,8 @@ try {
             $null=Check "$case-jit" $build.Driver @($source,'run',"$prefix.jit")
             $null=Check "$case-aot-build" $build.Driver @($source,'exe',"$prefix.aot")
             $null=Check "$case-aot-run" "$prefix.aot.exe" @()
-            $null=Check "$case-formal-run" 'release/xl.exe' @('run',$source)
-            $null=Check "$case-formal-build" 'release/xl.exe' @('build',$source,'-o',"$prefix.formal.exe")
+            $null=Check "$case-formal-run" 'release/win_x64/xl.exe' @('run',$source)
+            $null=Check "$case-formal-build" 'release/win_x64/xl.exe' @('build',$source,'-o',"$prefix.formal.exe")
             $null=Check "$case-formal-execute" "$prefix.formal.exe" @()
             if($case-eq'stdlib_time_core'){
                 $terminal=$false
@@ -78,8 +78,8 @@ try {
             $null=Check $case $build.Driver @("test/cases/$case.xl",'emit',$prefix) 'XLIR direct runtime bridge has no exact declared ABI|has no exact compiler-runtime bridge ABI'
             foreach($ext in @('c','h','json')){if(Test-Path "$prefix.$ext"){throw 'Unsafe time ABI produced output'}}
         }
-        $null=Check 'example-run' 'release/xl.exe' @('run','release/examples/stdlib_time_core.xl')
-        $null=Check 'example-build' 'release/xl.exe' @('build','release/examples/stdlib_time_core.xl','-o',"$work/example.exe")
+        $null=Check 'example-run' 'release/win_x64/xl.exe' @('run','release/win_x64/examples/stdlib/time/stdlib_time_core.xl')
+        $null=Check 'example-build' 'release/win_x64/xl.exe' @('build','release/win_x64/examples/stdlib/time/stdlib_time_core.xl','-o',"$work/example.exe")
         $null=Check 'example-execute' "$work/example.exe" @()
         $complete=$true
     } finally {

@@ -12,14 +12,14 @@
       "name": "com",
       "platform": "windows-desktop",
       "example": "system/com.xl",
-      "cSmoke": "release/extlibs/com/test/test_com.c",
+      "cSmoke": "release/win_x64/extlibs/com/test/test_com.c",
       "notes": "Uses an in-process IDispatch test object and verifies COM VARIANT to current XRT xvalue conversion."
     },
     {
       "name": "uia",
       "platform": "windows-desktop",
       "example": "ui/uia.xl",
-      "cSmoke": "release/extlibs/uia/test/test_uia.c",
+      "cSmoke": "release/win_x64/extlibs/uia/test/test_uia.c",
       "notes": "Creates an in-process native test window and verifies UI Automation element collections use current XRT xvalue arrays."
     },
     {
@@ -63,7 +63,7 @@
       "platform": "windows-desktop",
       "case": "extlib_serial.xl",
       "example": "system/serial.xl",
-      "cSmoke": "release/extlibs/serial/test/test_serial.c",
+      "cSmoke": "release/win_x64/extlibs/serial/test/test_serial.c",
       "notes": "Loopback byte/text I/O, capacity/short-write, lifetime and error tests; C also covers concurrent streams. Allocation failure is verified separately by check_extlib_serial.ps1. No physical serial device is required; real device validation is separate."
     }
   ]

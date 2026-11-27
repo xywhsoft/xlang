@@ -10,9 +10,9 @@ if ($Root -eq "") {
 
 $Root = (Resolve-Path -LiteralPath $Root).Path
 $ManifestPath = Join-Path $Root "test\featured_extlibs.json"
-$Xl = Join-Path $Root "release\xl.exe"
+$Xl = Join-Path $Root "release\win_x64\xl.exe"
 $CaseDir = Join-Path $Root "test\cases"
-$ExampleDir = Join-Path $Root "release\examples\extlibs"
+$ExampleDir = Join-Path $Root "release\win_x64\examples\extlibs"
 
 if (!(Test-Path -LiteralPath $Xl -PathType Leaf)) {
     throw "xl.exe not found: $Xl"
@@ -50,7 +50,7 @@ function Invoke-CSource([string]$packageName, [string]$sourceName, [string]$kind
 }
 
 foreach ($package in @($manifest.packages)) {
-    if (!(Test-Path -LiteralPath (Join-Path $Root "release\extlibs\$($package.name)\xlang.package.json") -PathType Leaf)) {
+    if (!(Test-Path -LiteralPath (Join-Path $Root "release\win_x64\extlibs\$($package.name)\xlang.package.json") -PathType Leaf)) {
         throw "Featured extension package manifest is missing: $($package.name)"
     }
     Invoke-XlangCase ([string]$package.case)

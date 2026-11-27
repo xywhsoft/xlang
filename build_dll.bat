@@ -416,7 +416,7 @@ if errorlevel 1 (
 )
 
 echo Building xl.dll dependency fixtures...
-"%XL6_TCC%" %XL6_TCC_INCLUDES% -DXL6_EXAMPLE_NO_STANDALONE_MAIN -c release\win_x64\examples\xl_dll_link_host.c -o "%XL6_BUILD_TMP%\xl_dll_link_host.o"
+"%XL6_TCC%" %XL6_TCC_INCLUDES% -DXL6_EXAMPLE_NO_STANDALONE_MAIN -c release\win_x64\examples\embedding\xl_dll_link_host.c -o "%XL6_BUILD_TMP%\xl_dll_link_host.o"
 if errorlevel 1 (
     echo DEMO6 xl.dll static dependency fixture build failed.
     exit /b 1
@@ -426,7 +426,7 @@ if errorlevel 1 (
     echo DEMO6 xl.dll static dependency fixture archive failed.
     exit /b 1
 )
-"%XL6_TCC%" -shared %XL6_TCC_INCLUDES% %XL6_TCC_LIB_FLAGS% -DXL6_EXAMPLE_NO_STANDALONE_MAIN release\win_x64\examples\xl_dll_loadlib_host.c -o "%XL6_BUILD_TMP%\xl_dll_loadlib_host.dll"
+"%XL6_TCC%" -shared %XL6_TCC_INCLUDES% %XL6_TCC_LIB_FLAGS% -DXL6_EXAMPLE_NO_STANDALONE_MAIN release\win_x64\examples\embedding\xl_dll_loadlib_host.c -o "%XL6_BUILD_TMP%\xl_dll_loadlib_host.dll"
 if errorlevel 1 (
     echo DEMO6 xl.dll loadlib dependency fixture build failed.
     exit /b 1
@@ -439,7 +439,7 @@ if errorlevel 1 (
 
 echo Building xlc.dll compile verification program...
 "%XL6_TCC%" -std=c11 -Wall -D_CRT_SECURE_NO_WARNINGS -DXL6_EXAMPLE_BOUNDARY_TEST -I. -Irelease/win_x64 %XL6_TCC_INCLUDES_WINAPI% %XL6_TCC_LIB_FLAGS% -o "%XL6_RELEASE_DIR%\xlc_dll_embed_string.exe" ^
-    release\win_x64\examples\xl_dll_embed_string.c ^
+    release\win_x64\examples\embedding\xl_dll_embed_string.c ^
     "%XL6_RELEASE_DIR%\xlc.def"
 
 if errorlevel 1 (
@@ -449,7 +449,7 @@ if errorlevel 1 (
 
 echo Building xlc.dll compiler API verification program...
 "%XL6_TCC%" -std=c11 -Wall -D_CRT_SECURE_NO_WARNINGS -DXL6_EXAMPLE_BOUNDARY_TEST -I. -Irelease/win_x64 %XL6_TCC_INCLUDES_WINAPI% %XL6_TCC_LIB_FLAGS% -o "%XL6_RELEASE_DIR%\xlc_api_embed.exe" ^
-    release\win_x64\examples\xlc_api_embed.c ^
+    release\win_x64\examples\embedding\xlc_api_embed.c ^
     "%XL6_RELEASE_DIR%\xlc.def"
 
 if errorlevel 1 (
@@ -459,7 +459,7 @@ if errorlevel 1 (
 
 echo Building xl.dll XRT export verification program...
 "%XL6_TCC%" -std=c11 -Wall -D_CRT_SECURE_NO_WARNINGS -I. -Irelease/win_x64 %XL6_TCC_INCLUDES_WINAPI% %XL6_TCC_LIB_FLAGS% -o "%XL6_RELEASE_DIR%\xl_dll_xrt_exports.exe" ^
-    release\win_x64\examples\xl_dll_xrt_exports.c ^
+    release\win_x64\examples\embedding\xl_dll_xrt_exports.c ^
     "%XL6_RELEASE_DIR%\xl.def"
 
 if errorlevel 1 (
@@ -469,7 +469,7 @@ if errorlevel 1 (
 
 echo Building xl.dll dynamic run GUI demo...
 "%XL6_TCC%" -std=c11 -Wall -D_CRT_SECURE_NO_WARNINGS -I. -Irelease/win_x64 %XL6_TCC_INCLUDES_WINAPI% %XL6_TCC_LIB_FLAGS% -mwindows -o "%XL6_RELEASE_DIR%\xl_run_demo.exe" ^
-    release\win_x64\examples\xl_run_demo_win32.c ^
+    release\win_x64\examples\embedding\xl_run_demo_win32.c ^
     "%XL6_RELEASE_DIR%\xl.def" ^
     -luser32 -lgdi32
 
@@ -480,7 +480,7 @@ if errorlevel 1 (
 
 echo Building xl.dll API boundary verification program...
 "%XL6_TCC%" -std=c11 -Wall -DXL_RUNTIME_ONLY_API -D_CRT_SECURE_NO_WARNINGS -DXL6_EXAMPLE_BOUNDARY_TEST -I. -Irelease/win_x64 %XL6_TCC_INCLUDES_WINAPI% %XL6_TCC_LIB_FLAGS% -o "%XL6_RELEASE_DIR%\xl_dll_null_context.exe" ^
-    release\win_x64\examples\xl_dll_null_context.c ^
+    release\win_x64\examples\embedding\xl_dll_null_context.c ^
     "%XL6_RELEASE_DIR%\xl.def"
 
 if errorlevel 1 (
@@ -490,7 +490,7 @@ if errorlevel 1 (
 
 echo Building xl.dll threaded host verification program...
 "%XL6_TCC%" -std=c11 -Wall -DXL_RUNTIME_ONLY_API -D_CRT_SECURE_NO_WARNINGS -DXL6_EXAMPLE_BOUNDARY_TEST -I. -Irelease/win_x64 %XL6_TCC_INCLUDES_WINAPI% %XL6_TCC_LIB_FLAGS% -o "%XL6_RELEASE_DIR%\xl_dll_threaded_host.exe" ^
-    release\win_x64\examples\xl_dll_threaded_host.c ^
+    release\win_x64\examples\embedding\xl_dll_threaded_host.c ^
     "%XL6_RELEASE_DIR%\xl.def"
 
 if errorlevel 1 (

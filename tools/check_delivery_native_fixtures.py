@@ -107,7 +107,7 @@ def main():
     response.write_text('\n'.join('"' + str(path).replace('\\', '/') + '"' for path in objects), encoding='utf-8')
     if not run('archive', [ar, 'rcs', archive, '@' + str(response)]):
         return 1
-    shutil.copy2(root / 'release/xl.dll', out / 'xl.dll')
+    shutil.copy2(root / 'release/win_x64/xl.dll', out / 'xl.dll')
     flags = ['-std=c11', '-Wall', '-Wextra', '-Werror', '-DXL_STATIC_EMBED', '-DXRT_MODULE_ALL=',
              '-Wno-unused-function', '-Wno-unused-variable', '-Wno-unused-parameter', '-Wno-unused-label',
              '-Wno-unused-const-variable', '-Wno-unused-but-set-variable', '-Wno-missing-field-initializers',
@@ -115,7 +115,7 @@ def main():
     for folder in (root, root/'release', root/'release/include', root/'lib/xrt', root/'lib/xruntime',
                    root/'lib/tcc', public/'include'):
         flags.append('-I' + str(folder))
-    links = [archive, root/'release/xl.dll', '-lws2_32', '-liphlpapi', '-lshell32', '-lole32', '-ladvapi32', '-lm']
+    links = [archive, root/'release/win_x64/xl.dll', '-lws2_32', '-liphlpapi', '-lshell32', '-lole32', '-ladvapi32', '-lm']
 
     if args.group in ('all', 'contracts'):
         tls = out / 'tls-peer.xl'
@@ -134,7 +134,7 @@ assert 6 * 7 == 42
                 binary = out / (name + '.exe')
                 if run(name + '.build', [cc, *flags, '-'+level, source, *links, '-o', binary]):
                     run(name, [binary, *[tls if value == '$TLS_PEER' else root/value for value in arguments]])
-        source = root / 'release/examples/stdlib_tls_session_pair_c.c'
+        source = root / 'release/win_x64/examples/stdlib/net/stdlib_tls_session_pair_c.c'
         inputs[str(source)] = sha(source)
         for level in ('O0', 'O2'):
             binary = out / ('tls-pair-' + level + '.exe')
@@ -142,7 +142,7 @@ assert 6 * 7 == 42
                 run('tls-pair-'+level, [binary])
         source = root / 'test/cases/xlir_serialization_visit_expect_host.c'
         inputs[str(source)] = sha(source)
-        run('serialization-native-assertions', [root/'release/xl.exe', 'run',
+        run('serialization-native-assertions', [root/'release/win_x64/xl.exe', 'run',
             root/'test/cases/stdlib_json_stream.xl', source])
         source = root / 'test/cases/xlir_network_source_host.c'
         inputs[str(source)] = sha(source)
@@ -158,7 +158,7 @@ assert 6 * 7 == 42
         if package in visited:
             return [], []
         visited.add(package)
-        directory = root / 'release/extlibs' / package
+        directory = root / 'release/win_x64/extlibs' / package
         manifest = directory / 'xlang.package.json'
         inputs[str(manifest)] = sha(manifest)
         metadata = json.loads(manifest.read_text(encoding='utf-8-sig'))
@@ -197,10 +197,10 @@ assert 6 * 7 == 42
         except ImportError as error:
             report['ExternalEncoderError'] = repr(error)
         for package, relative in PACKAGES:
-            source = root / 'release/extlibs' / package / relative
+            source = root / 'release/win_x64/extlibs' / package / relative
             name = package.replace('.', '-') + '-' + source.stem
             if package == 'imagehash':
-                asset = root / 'release/examples/extlibs/assets/tiny.png'
+                asset = root / 'release/win_x64/examples/extlibs/assets/tiny.png'
                 inputs[str(asset)] = sha(asset)
             if source.is_file():
                 inputs[str(source)] = sha(source)
@@ -224,7 +224,7 @@ assert 6 * 7 == 42
                         run(name+'-'+level+'.invalid', [binary, invalid], expected=1)
                     else:
                         run(name+'-'+level, [binary])
-        source = root / 'release/extlibs/_expat/vendor/expat/lib/random_rand_s.c'
+        source = root / 'release/win_x64/extlibs/_expat/vendor/expat/lib/random_rand_s.c'
         inputs[str(source)] = sha(source)
         run('retained-expat-win32-alternative-syntax', [cc, *flags, '-fsyntax-only', source])
     report['InputsUnchanged'] = all(sha(path) == digest for path, digest in inputs.items())

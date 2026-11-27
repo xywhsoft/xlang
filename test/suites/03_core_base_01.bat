@@ -4,7 +4,7 @@ call "%~dp0common.bat"
 if errorlevel 1 exit /b 1
 echo Running DEMO6 suite: core C generation and runtime baseline 1/10...
 
-release\xl.exe cgen test\cases\cgen_array_negative_index.xl --emit build\test\cgen_array_negative_index.c
+release\win_x64\xl.exe cgen test\cases\cgen_array_negative_index.xl --emit build\test\cgen_array_negative_index.c
 if errorlevel 1 exit /b 1
 findstr /C:"xlir_xvalue_array_set_i64_new" build\test\cgen_array_negative_index.c >nul
 if errorlevel 1 (
@@ -16,19 +16,19 @@ if errorlevel 1 (
     echo cgen_array_negative_index.c missing signed typed array read.
     exit /b 1
 )
-findstr /C:"xl6_xrt_typed_array_resolve_index" release\include\xl_runtime.h >nul
+findstr /C:"xl6_xrt_typed_array_resolve_index" release\win_x64\include\xl_runtime.h >nul
 if errorlevel 1 (
     echo xl_runtime.h missing typed array negative index resolver.
     exit /b 1
 )
-release\xl.exe run test\cases\cgen_array_negative_index.xl
+release\win_x64\xl.exe run test\cases\cgen_array_negative_index.xl
 if errorlevel 1 exit /b 1
-release\xl.exe build test\cases\cgen_array_negative_index.xl -o build\test\cgen_array_negative_index.exe
+release\win_x64\xl.exe build test\cases\cgen_array_negative_index.xl -o build\test\cgen_array_negative_index.exe
 if errorlevel 1 exit /b 1
 build\test\cgen_array_negative_index.exe
 if errorlevel 1 exit /b 1
 
-release\xl.exe ir release\examples\hello.xl > build\test\hello.xlir
+release\win_x64\xl.exe ir release\win_x64\examples\language\basics\hello.xl > build\test\hello.xlir
 if errorlevel 1 exit /b 1
 findstr /C:"kind=function-declaration/4 source=func/3" build\test\hello.xlir >nul
 if errorlevel 1 (
@@ -40,7 +40,7 @@ if errorlevel 1 (
     echo hello.xlir missing function name binding.
     exit /b 1
 )
-release\xl.exe ir release\examples\hello.xl --json --emit build\test\hello.ir.json
+release\win_x64\xl.exe ir release\win_x64\examples\language\basics\hello.xl --json --emit build\test\hello.ir.json
 if errorlevel 1 exit /b 1
 findstr /C:"stage" build\test\hello.ir.json >nul
 if errorlevel 1 (
@@ -53,7 +53,7 @@ if errorlevel 1 (
     exit /b 1
 )
 
-release\xl.exe ir test\cases\control_flow.xl --emit build\test\control_flow.xlir
+release\win_x64\xl.exe ir test\cases\control_flow.xl --emit build\test\control_flow.xlir
 if errorlevel 1 exit /b 1
 findstr /C:"loop=range-i64-index-value" build\test\control_flow.xlir >nul
 if errorlevel 1 (
@@ -61,7 +61,7 @@ if errorlevel 1 (
     exit /b 1
 )
 
-release\xl.exe ir test\cases\control_flow_do_while.xl --emit build\test\control_flow_do_while.xlir
+release\win_x64\xl.exe ir test\cases\control_flow_do_while.xl --emit build\test\control_flow_do_while.xlir
 if errorlevel 1 exit /b 1
 findstr /C:"kind=loop/19 source=do_while/72" build\test\control_flow_do_while.xlir >nul
 if errorlevel 1 (
@@ -74,7 +74,7 @@ if errorlevel 1 (
     exit /b 1
 )
 
-release\xl.exe ir test\cases\control_flow_inline_if.xl --emit build\test\control_flow_inline_if.xlir
+release\win_x64\xl.exe ir test\cases\control_flow_inline_if.xl --emit build\test\control_flow_inline_if.xlir
 if errorlevel 1 exit /b 1
 findstr /C:"kind=return/12 source=return/34" build\test\control_flow_inline_if.xlir >nul
 if errorlevel 1 (
@@ -87,7 +87,7 @@ if errorlevel 1 (
     exit /b 1
 )
 
-release\xl.exe ir test\cases\operators.xl --emit build\test\operators.xlir
+release\win_x64\xl.exe ir test\cases\operators.xl --emit build\test\operators.xlir
 if errorlevel 1 exit /b 1
 findstr /C:"kind=assign/29 source=assign/55" build\test\operators.xlir | findstr /C:"opcode=add" >nul
 if errorlevel 1 (
@@ -100,7 +100,7 @@ if errorlevel 1 (
     exit /b 1
 )
 
-release\xl.exe ir test\cases\member_index.xl --emit build\test\member_index.xlir
+release\win_x64\xl.exe ir test\cases\member_index.xl --emit build\test\member_index.xlir
 if errorlevel 1 exit /b 1
 findstr /C:"kind=member/27 source=member/48" build\test\member_index.xlir >nul
 if errorlevel 1 (
@@ -123,7 +123,7 @@ if errorlevel 1 (
     exit /b 1
 )
 
-release\xl.exe ir test\cases\function_types.xl --emit build\test\function_types.xlir
+release\win_x64\xl.exe ir test\cases\function_types.xl --emit build\test\function_types.xlir
 if errorlevel 1 exit /b 1
 findstr /C:"callable=fixed" build\test\function_types.xlir | findstr /C:"params=[t4/default/value,t4/default/value]" >nul
 if errorlevel 1 (
@@ -136,7 +136,7 @@ if errorlevel 1 (
     exit /b 1
 )
 
-release\xl.exe ir test\cases\anonymous_functions.xl --emit build\test\anonymous_functions.xlir
+release\win_x64\xl.exe ir test\cases\anonymous_functions.xl --emit build\test\anonymous_functions.xlir
 if errorlevel 1 exit /b 1
 findstr /C:"kind=function-declaration/4 source=anon_func/5" build\test\anonymous_functions.xlir | findstr /C:"text=func @1:12" >nul
 if errorlevel 1 (
@@ -149,7 +149,7 @@ if errorlevel 1 (
     exit /b 1
 )
 
-release\xl.exe ir test\cases\class_native_backed.xl --emit build\test\class_native_backed.xlir
+release\win_x64\xl.exe ir test\cases\class_native_backed.xl --emit build\test\class_native_backed.xlir
 if errorlevel 1 exit /b 1
 findstr /C:"kind=type-declaration/5 source=class/13" build\test\class_native_backed.xlir | findstr /C:"text=Point @" >nul
 if errorlevel 1 (
@@ -167,7 +167,7 @@ if errorlevel 1 (
     exit /b 1
 )
 
-release\xl.exe ir test\cases\generics.xl --emit build\test\generics.xlir
+release\win_x64\xl.exe ir test\cases\generics.xl --emit build\test\generics.xlir
 if errorlevel 1 exit /b 1
 findstr /C:"source=type_params/25" build\test\generics.xlir >nul
 if errorlevel 1 (
@@ -185,7 +185,7 @@ if errorlevel 1 (
     exit /b 1
 )
 
-release\xl.exe ir test\cases\overloads.xl --emit build\test\overloads.xlir
+release\win_x64\xl.exe ir test\cases\overloads.xl --emit build\test\overloads.xlir
 if errorlevel 1 exit /b 1
 findstr /C:"kind=parameter-declaration/9 source=param/28" build\test\overloads.xlir | findstr /C:"text=value @1:15" >nul
 if errorlevel 1 (
@@ -198,7 +198,7 @@ if errorlevel 1 (
     exit /b 1
 )
 
-release\xl.exe ir test\cases\overload_varargs.xl --emit build\test\overload_varargs.xlir
+release\win_x64\xl.exe ir test\cases\overload_varargs.xl --emit build\test\overload_varargs.xlir
 if errorlevel 1 exit /b 1
 findstr /C:"call-site c0" build\test\overload_varargs.xlir | findstr /C:"fixed=1 variadic=none" >nul
 if errorlevel 1 (
@@ -216,7 +216,7 @@ if errorlevel 1 (
     exit /b 1
 )
 
-release\xl.exe cgen test\cases\cgen_basic.xl --emit build\test\cgen_basic.c
+release\win_x64\xl.exe cgen test\cases\cgen_basic.xl --emit build\test\cgen_basic.c
 if errorlevel 1 exit /b 1
 findstr /C:"static int64_t xlir_fn_1(int64_t" build\test\cgen_basic.c >nul
 if errorlevel 1 (
@@ -225,34 +225,34 @@ if errorlevel 1 (
 )
 "%XL6_CGEN_CC%" %XL6_CGEN_FLAGS% %XL6_CGEN_INCLUDES% -c build\test\cgen_basic.c -o build\test\cgen_basic.o
 if errorlevel 1 exit /b 1
-release\xl.exe build test\cases\cgen_basic.xl -o build\test\cgen_basic.exe
+release\win_x64\xl.exe build test\cases\cgen_basic.xl -o build\test\cgen_basic.exe
 if errorlevel 1 exit /b 1
 build\test\cgen_basic.exe
 if errorlevel 1 exit /b 1
 
-release\xl.exe run test\cases\cgen_module_globals.xl
+release\win_x64\xl.exe run test\cases\cgen_module_globals.xl
 if errorlevel 1 exit /b 1
-release\xl.exe build test\cases\cgen_module_globals.xl -o build\test\cgen_module_globals.exe
+release\win_x64\xl.exe build test\cases\cgen_module_globals.xl -o build\test\cgen_module_globals.exe
 if errorlevel 1 exit /b 1
 build\test\cgen_module_globals.exe
 if errorlevel 1 exit /b 1
 
-release\xl.exe run test\cases\cgen_class_static_only.xl
+release\win_x64\xl.exe run test\cases\cgen_class_static_only.xl
 if errorlevel 1 exit /b 1
-release\xl.exe build test\cases\cgen_class_static_only.xl -o build\test\cgen_class_static_only.exe
+release\win_x64\xl.exe build test\cases\cgen_class_static_only.xl -o build\test\cgen_class_static_only.exe
 if errorlevel 1 exit /b 1
 build\test\cgen_class_static_only.exe
 if errorlevel 1 exit /b 1
 
-release\xl.exe run test\cases\cgen_issue_dynamic_array_concat.xl
+release\win_x64\xl.exe run test\cases\cgen_issue_dynamic_array_concat.xl
 if errorlevel 1 exit /b 1
-release\xl.exe run test\cases\cgen_multi_return_typed_containers.xl
+release\win_x64\xl.exe run test\cases\cgen_multi_return_typed_containers.xl
 if errorlevel 1 exit /b 1
-release\xl.exe build test\cases\cgen_multi_return_typed_containers.xl -o build\test\cgen_multi_return_typed_containers.exe
+release\win_x64\xl.exe build test\cases\cgen_multi_return_typed_containers.xl -o build\test\cgen_multi_return_typed_containers.exe
 if errorlevel 1 exit /b 1
 build\test\cgen_multi_return_typed_containers.exe
 if errorlevel 1 exit /b 1
-release\xl.exe cgen test\cases\cgen_multi_return_typed_containers.xl --emit build\test\cgen_multi_return_typed_containers.c
+release\win_x64\xl.exe cgen test\cases\cgen_multi_return_typed_containers.xl --emit build\test\cgen_multi_return_typed_containers.c
 if errorlevel 1 exit /b 1
 findstr /C:"struct xvalue* e0;" build\test\cgen_multi_return_typed_containers.c >nul
 if errorlevel 1 exit /b 1
@@ -264,9 +264,9 @@ findstr /C:"struct xvalue* e3;" build\test\cgen_multi_return_typed_containers.c 
 if errorlevel 1 exit /b 1
 findstr /C:"xrtValueRelease(v" build\test\cgen_multi_return_typed_containers.c | findstr /C:".e0);" >nul
 if errorlevel 1 exit /b 1
-release\xl.exe check test\cases\cgen_dynamic_to_typed_containers.xl
+release\win_x64\xl.exe check test\cases\cgen_dynamic_to_typed_containers.xl
 if errorlevel 1 exit /b 1
-release\xl.exe cgen test\cases\cgen_dynamic_to_typed_containers.xl --emit build\test\cgen_dynamic_to_typed_containers.c
+release\win_x64\xl.exe cgen test\cases\cgen_dynamic_to_typed_containers.xl --emit build\test\cgen_dynamic_to_typed_containers.c
 if errorlevel 1 exit /b 1
 findstr /C:"xlir_xvalue_collection_checked_take(" build\test\cgen_dynamic_to_typed_containers.c | findstr /C:", 9, 2)" >nul
 if errorlevel 1 exit /b 1
@@ -291,19 +291,19 @@ if errorlevel 1 (
     echo cgen_dynamic_to_typed_containers.c missing checked conversion error path.
     exit /b 1
 )
-release\xl.exe run test\cases\cgen_dynamic_to_typed_containers.xl
+release\win_x64\xl.exe run test\cases\cgen_dynamic_to_typed_containers.xl
 if errorlevel 1 exit /b 1
-release\xl.exe build test\cases\cgen_dynamic_to_typed_containers.xl -o build\test\cgen_dynamic_to_typed_containers.exe
+release\win_x64\xl.exe build test\cases\cgen_dynamic_to_typed_containers.xl -o build\test\cgen_dynamic_to_typed_containers.exe
 if errorlevel 1 exit /b 1
 build\test\cgen_dynamic_to_typed_containers.exe
 if errorlevel 1 exit /b 1
-release\xl.exe run test\cases\cgen_var_string_concat.xl
+release\win_x64\xl.exe run test\cases\cgen_var_string_concat.xl
 if errorlevel 1 exit /b 1
-release\xl.exe build test\cases\cgen_var_string_concat.xl -o build\test\cgen_var_string_concat.exe
+release\win_x64\xl.exe build test\cases\cgen_var_string_concat.xl -o build\test\cgen_var_string_concat.exe
 if errorlevel 1 exit /b 1
 build\test\cgen_var_string_concat.exe
 if errorlevel 1 exit /b 1
-release\xl.exe check test\cases\sem_var_to_concrete_implicit.xl >nul 2> build\test\sem_var_to_concrete_implicit.err.txt
+release\win_x64\xl.exe check test\cases\sem_var_to_concrete_implicit.xl >nul 2> build\test\sem_var_to_concrete_implicit.err.txt
 if not errorlevel 1 (
     echo sem_var_to_concrete_implicit.xl should fail.
     exit /b 1
@@ -323,33 +323,33 @@ if errorlevel 1 (
     echo sem_var_to_concrete_implicit.err.txt missing explicit-conversion call diagnostic.
     exit /b 1
 )
-release\xl.exe run test\cases\cgen_issue_json_typed_class_array.xl
+release\win_x64\xl.exe run test\cases\cgen_issue_json_typed_class_array.xl
 if errorlevel 1 exit /b 1
-release\xl.exe run test\cases\cgen_issue_list_json_dict_remove_type.xl
+release\win_x64\xl.exe run test\cases\cgen_issue_list_json_dict_remove_type.xl
 if errorlevel 1 exit /b 1
-release\xl.exe run test\cases\cgen_dict_json_order.xl
+release\win_x64\xl.exe run test\cases\cgen_dict_json_order.xl
 if errorlevel 1 exit /b 1
-release\xl.exe run test\cases\stdlib_dict.xl
+release\win_x64\xl.exe run test\cases\stdlib_dict.xl
 if errorlevel 1 exit /b 1
-release\xl.exe run release\examples\stdlib_dict.xl
+release\win_x64\xl.exe run release\win_x64\examples\stdlib\core\stdlib_dict.xl
 if errorlevel 1 exit /b 1
-release\xl.exe run test\cases\cgen_container_index_errors.xl
+release\win_x64\xl.exe run test\cases\cgen_container_index_errors.xl
 if errorlevel 1 exit /b 1
-release\xl.exe run test\cases\cgen_dev_feedback_priority.xl
+release\win_x64\xl.exe run test\cases\cgen_dev_feedback_priority.xl
 if errorlevel 1 exit /b 1
-release\xl.exe build test\cases\cgen_dev_feedback_priority.xl -o build\test\cgen_dev_feedback_priority.exe
+release\win_x64\xl.exe build test\cases\cgen_dev_feedback_priority.xl -o build\test\cgen_dev_feedback_priority.exe
 if errorlevel 1 exit /b 1
 build\test\cgen_dev_feedback_priority.exe
 if errorlevel 1 exit /b 1
-release\xl.exe run test\cases\cgen_overload_var_unique.xl
+release\win_x64\xl.exe run test\cases\cgen_overload_var_unique.xl
 if errorlevel 1 exit /b 1
-release\xl.exe build test\cases\cgen_overload_var_unique.xl -o build\test\cgen_overload_var_unique.exe
+release\win_x64\xl.exe build test\cases\cgen_overload_var_unique.xl -o build\test\cgen_overload_var_unique.exe
 if errorlevel 1 exit /b 1
 build\test\cgen_overload_var_unique.exe
 if errorlevel 1 exit /b 1
-release\xl.exe run test\cases\cgen_dev_handfeel_regression.xl
+release\win_x64\xl.exe run test\cases\cgen_dev_handfeel_regression.xl
 if errorlevel 1 exit /b 1
-release\xl.exe build test\cases\cgen_dev_handfeel_regression.xl -o build\test\cgen_dev_handfeel_regression.exe
+release\win_x64\xl.exe build test\cases\cgen_dev_handfeel_regression.xl -o build\test\cgen_dev_handfeel_regression.exe
 if errorlevel 1 exit /b 1
 build\test\cgen_dev_handfeel_regression.exe
 if errorlevel 1 exit /b 1
@@ -357,7 +357,7 @@ if errorlevel 1 exit /b 1
 powershell -NoProfile -ExecutionPolicy Bypass -File test\suites\check_cgen_issue_runtime.ps1
 if errorlevel 1 exit /b 1
 
-release\xl.exe cgen test\cases\cgen_default_init.xl --emit build\test\cgen_default_init.c
+release\win_x64\xl.exe cgen test\cases\cgen_default_init.xl --emit build\test\cgen_default_init.c
 if errorlevel 1 exit /b 1
 findstr /C:"static int64_t s3;" build\test\cgen_default_init.c >nul
 if errorlevel 1 (
@@ -374,12 +374,12 @@ if errorlevel 1 (
     echo cgen_default_init.c missing point default init.
     exit /b 1
 )
-release\xl.exe build test\cases\cgen_default_init.xl test\cases\cgen_class_host.c -o build\test\cgen_default_init.exe
+release\win_x64\xl.exe build test\cases\cgen_default_init.xl test\cases\cgen_class_host.c -o build\test\cgen_default_init.exe
 if errorlevel 1 exit /b 1
 build\test\cgen_default_init.exe
 if errorlevel 1 exit /b 1
 
-release\xl.exe cgen test\cases\cgen_union.xl --emit build\test\cgen_union.c
+release\win_x64\xl.exe cgen test\cases\cgen_union.xl --emit build\test\cgen_union.c
 if errorlevel 1 exit /b 1
 findstr /C:"typedef union XL_Union_Payload" build\test\cgen_union.c >nul
 if errorlevel 1 (
@@ -391,12 +391,12 @@ if errorlevel 1 (
     echo cgen_union.c missing verified union boxing ABI.
     exit /b 1
 )
-release\xl.exe build test\cases\cgen_union.xl test\cases\cgen_class_host.c -o build\test\cgen_union.exe
+release\win_x64\xl.exe build test\cases\cgen_union.xl test\cases\cgen_class_host.c -o build\test\cgen_union.exe
 if errorlevel 1 exit /b 1
 build\test\cgen_union.exe
 if errorlevel 1 exit /b 1
 
-release\xl.exe cgen test\cases\cgen_union_var_box.xl --emit build\test\cgen_union_var_box.c
+release\win_x64\xl.exe cgen test\cases\cgen_union_var_box.xl --emit build\test\cgen_union_var_box.c
 if errorlevel 1 exit /b 1
 findstr /C:"typedef union XL_Union_Payload" build\test\cgen_union_var_box.c >nul
 if errorlevel 1 (
@@ -428,12 +428,12 @@ if errorlevel 1 (
     echo cgen_union_var_box.c missing canonical runtime TypeId binding.
     exit /b 1
 )
-release\xl.exe build test\cases\cgen_union_var_box.xl test\cases\cgen_class_host.c -o build\test\cgen_union_var_box.exe
+release\win_x64\xl.exe build test\cases\cgen_union_var_box.xl test\cases\cgen_class_host.c -o build\test\cgen_union_var_box.exe
 if errorlevel 1 exit /b 1
 build\test\cgen_union_var_box.exe
 if errorlevel 1 exit /b 1
 
-release\xl.exe cgen test\cases\export_union.xl --dump-dir build\test\dump_export_union
+release\win_x64\xl.exe cgen test\cases\export_union.xl --dump-dir build\test\dump_export_union
 if errorlevel 1 exit /b 1
 findstr /C:"typedef union XL_Union_Payload" build\test\dump_export_union\export_union.h >nul
 if errorlevel 1 (
@@ -445,7 +445,7 @@ if errorlevel 1 (
     echo export_union.h missing union parameter.
     exit /b 1
 )
-release\xl.exe check test\cases\sem_union_top_anon.xl >nul 2> build\test\sem_union_top_anon.err.txt
+release\win_x64\xl.exe check test\cases\sem_union_top_anon.xl >nul 2> build\test\sem_union_top_anon.err.txt
 if not errorlevel 1 (
     echo sem_union_top_anon.xl should fail.
     exit /b 1
@@ -455,7 +455,7 @@ if errorlevel 1 (
     echo sem_union_top_anon.err.txt missing named top-level union diagnostic.
     exit /b 1
 )
-release\xl.exe check test\cases\sem_union_empty.xl >nul 2> build\test\sem_union_empty.err.txt
+release\win_x64\xl.exe check test\cases\sem_union_empty.xl >nul 2> build\test\sem_union_empty.err.txt
 if not errorlevel 1 (
     echo sem_union_empty.xl should fail.
     exit /b 1
@@ -465,7 +465,7 @@ if errorlevel 1 (
     echo sem_union_empty.err.txt missing empty union diagnostic.
     exit /b 1
 )
-release\xl.exe check test\cases\sem_union_default.xl >nul 2> build\test\sem_union_default.err.txt
+release\win_x64\xl.exe check test\cases\sem_union_default.xl >nul 2> build\test\sem_union_default.err.txt
 if not errorlevel 1 (
     echo sem_union_default.xl should fail.
     exit /b 1
@@ -475,7 +475,7 @@ if errorlevel 1 (
     echo sem_union_default.err.txt missing union default diagnostic.
     exit /b 1
 )
-release\xl.exe check test\cases\sem_union_duplicate_field.xl >nul 2> build\test\sem_union_duplicate_field.err.txt
+release\win_x64\xl.exe check test\cases\sem_union_duplicate_field.xl >nul 2> build\test\sem_union_duplicate_field.err.txt
 if not errorlevel 1 (
     echo sem_union_duplicate_field.xl should fail.
     exit /b 1

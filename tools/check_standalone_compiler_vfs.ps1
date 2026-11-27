@@ -15,7 +15,7 @@ $releaseDir = (Resolve-Path -LiteralPath $RuntimeDirectory).Path
 $testDir = Join-Path ([System.IO.Path]::GetTempPath()) ("xlang_demo6_standalone_compiler_vfs_" + [Guid]::NewGuid().ToString('N'))
 $xlExe = Join-Path $releaseDir "xl.exe"
 $xlcDll = Join-Path $releaseDir "xlc.dll"
-$source = Join-Path $Root "release\examples\hello.xl"
+$source = Join-Path $Root "release\win_x64\examples\language/basics/hello.xl"
 $completed = $false
 
 foreach ( $path in @($xlExe, $xlcDll, $source) ) {

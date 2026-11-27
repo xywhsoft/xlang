@@ -8,16 +8,16 @@ $gcc = (Get-Command gcc -CommandType Application -ErrorAction Stop | Select-Obje
 $work = if (!$WorkDirectory) { Join-Path $Root 'build/test/lz4_guard' } else { [IO.Path]::GetFullPath((Join-Path $Root $WorkDirectory)) }
 [IO.Directory]::CreateDirectory($work) | Out-Null
 $utf8 = [Text.UTF8Encoding]::new($false)
-$xl = Join-Path $Root 'release/xl.exe'
-$environment = @{XLANG_PACKAGE_PATH=(Join-Path $Root 'release/extlibs')}
+$xl = Join-Path $Root 'release/win_x64/xl.exe'
+$environment = @{XLANG_PACKAGE_PATH=(Join-Path $Root 'release/win_x64/extlibs')}
 $checks = [Collections.Generic.List[object]]::new()
 $inputs = [ordered]@{}
-$manifest = Get-Content (Join-Path $Root 'release/extlibs/lz4/xlang.package.json') -Raw | ConvertFrom-Json
-$sources = @($manifest.artifact.cSources | ForEach-Object { "release/extlibs/lz4/$_" })
+$manifest = Get-Content (Join-Path $Root 'release/win_x64/extlibs/lz4/xlang.package.json') -Raw | ConvertFrom-Json
+$sources = @($manifest.artifact.cSources | ForEach-Object { "release/win_x64/extlibs/lz4/$_" })
 
 function InputPaths {
     foreach ($pkg in @('lz4','xxhash')) {
-        Get-ChildItem (Join-Path $Root "release/extlibs/$pkg") -Recurse -File | ForEach-Object FullName
+        Get-ChildItem (Join-Path $Root "release/win_x64/extlibs/$pkg") -Recurse -File | ForEach-Object FullName
     }
     foreach ($p in @('lib/xrt/xrt.h','lib/xruntime/xruntime.h','test/support/extlib_codec_runtime.c',
         'test/support/extlib_codec_file_rollback.h',
@@ -26,10 +26,10 @@ function InputPaths {
         'tools/extlib_smoke_process.ps1','tools/xlir_native_process.ps1','tools/run_extlib_c.ps1',
         'test/featured_extlibs.json','test/suites/11_featured_extlibs_rc.bat',
         'test/cases/extlib_lz4.xl','test/cases/extlib_lz4_progress.xl',
-        'release/examples/extlibs/lz4.xl','release/examples/extlibs/lz4_basic.xl',
-        'release/examples/extlibs/lz4_files.xl','release/examples/extlibs/lz4_basic.expected.txt',
-        'release/examples/extlibs/lz4_files.expected.txt','release/xl.exe','release/xl.dll','release/xlc.dll',
-        'release/include/xrt_decl.h','release/include/xruntime_decl.h','release/include/xl_extlib_abi.h')) {
+        'release/win_x64/examples/extlibs/compression/lz4.xl','release/win_x64/examples/extlibs/compression/lz4_basic.xl',
+        'release/win_x64/examples/extlibs/compression/lz4_files.xl','release/win_x64/examples/extlibs/compression/lz4_basic.expected.txt',
+        'release/win_x64/examples/extlibs/compression/lz4_files.expected.txt','release/win_x64/xl.exe','release/win_x64/xl.dll','release/win_x64/xlc.dll',
+        'release/win_x64/include/xrt_decl.h','release/win_x64/include/xruntime_decl.h','release/win_x64/include/xl_extlib_abi.h')) {
         Join-Path $Root $p
     }
     $gcc
@@ -51,7 +51,7 @@ $failure = ''
 try {
     foreach ($kind in @('compressor','decompressor')) {
         $name = "private_${kind}_negative"
-        $args = @('check',"release/extlibs/lz4/test/$name.xl")
+        $args = @('check',"release/win_x64/extlibs/lz4/test/$name.xl")
         $result = Invoke-ExtlibSmokeProcess $xl $args $Root 90 $environment
         $checks.Add([ordered]@{name=$name;program=$xl;arguments=$args;result=$result})
         if ($result.status -ne 'fail' -or
@@ -76,13 +76,13 @@ try {
     }
     foreach ($name in @('boundaries','stream','alloc','threads','native','files','cleanup')) {
         $exe = Join-Path $work "$name.exe"
-        $null = Check "$name-build" $gcc ($flags + @('-DNDEBUG',"release/extlibs/lz4/test/test_lz4_$name.c") +
+        $null = Check "$name-build" $gcc ($flags + @('-DNDEBUG',"release/win_x64/extlibs/lz4/test/test_lz4_$name.c") +
             $objects + @('-lWs2_32','-lAdvapi32','-lm','-o',$exe))
         $arguments = if ($name -in @('native','files','cleanup')) { @((Join-Path $work ($name+'-'+[Guid]::NewGuid().ToString('N')))) } else { @() }
         $null = Check $name $exe $arguments
     }
     $interopExe = Join-Path $work 'interop.exe'
-    $null = Check 'interop-build' $gcc ($flags + @('release/extlibs/lz4/test/lz4_interop.c') +
+    $null = Check 'interop-build' $gcc ($flags + @('release/win_x64/extlibs/lz4/test/lz4_interop.c') +
         $objects + @('-lWs2_32','-lAdvapi32','-lm','-o',$interopExe))
     if ($Interop) {
         $wsl = (Get-Command wsl.exe -CommandType Application -ErrorAction Stop | Select-Object -First 1).Source
@@ -96,8 +96,8 @@ try {
     }
 
     foreach ($name in @('basic','files')) {
-        $directSource = "release/extlibs/lz4/examples/$name.c"
-        $directGolden = [IO.File]::ReadAllText((Join-Path $Root "release/examples/extlibs/lz4_$name.expected.txt")).Replace("`r`n","`n").TrimEnd("`n")
+        $directSource = "release/win_x64/extlibs/lz4/examples/$name.c"
+        $directGolden = [IO.File]::ReadAllText((Join-Path $Root "release/win_x64/examples/extlibs/lz4_$name.expected.txt")).Replace("`r`n","`n").TrimEnd("`n")
         $directRun = Check "$name-c-single-file-run" $xl @('run',$directSource)
         $directExe = Join-Path $work "$name-c-single-file.exe"
         $null = Check "$name-c-single-file-build" $xl @('build',$directSource,'-o',$directExe)
@@ -109,7 +109,7 @@ try {
 
     $decls = @()
     foreach ($name in @('extlib_lz4','extlib_lz4_boundaries','extlib_lz4_progress')) {
-        $case = if ($name -eq 'extlib_lz4_boundaries') { 'release/extlibs/lz4/test/boundaries.xl' } else { "test/cases/$name.xl" }
+        $case = if ($name -eq 'extlib_lz4_boundaries') { 'release/win_x64/extlibs/lz4/test/boundaries.xl' } else { "test/cases/$name.xl" }
         $exe = Join-Path $work "$name.exe"
         $null = Check "$name-jit" $xl @('run',$case)
         $null = Check "$name-build" $xl @('build',$case,'-o',$exe)
@@ -119,24 +119,24 @@ try {
         $decls += @(Get-Content $cgen | Where-Object { $_ -match '^extern .*\bxlz4_[a-z_]+\(' })
     }
     $decls = @($decls | Sort-Object -Unique)
-    $binding = Get-Content (Join-Path $Root 'release/extlibs/lz4/src/lz4.xl') -Raw
+    $binding = Get-Content (Join-Path $Root 'release/win_x64/extlibs/lz4/src/lz4.xl') -Raw
     $expected = @([regex]::Matches($binding,'extern "(xlz4_[a-z_]+)"') | ForEach-Object {$_.Groups[1].Value} | Sort-Object -Unique)
     $actual = @([regex]::Matches(($decls -join "`n"),'\bxlz4_[a-z_]+(?=\()') | ForEach-Object Value | Sort-Object -Unique)
     if (@(Compare-Object $expected $actual).Count -ne 0 -or $decls.Count -ne $expected.Count) { throw 'Incomplete generated LZ4 ABI coverage' }
     $abi = Join-Path $work 'abi.c'
     [IO.File]::WriteAllText($abi,"#include <stdint.h>`n#include `"lz4_native.h`"`n" + ($decls -join "`n"),$utf8)
-    $null = Check "generated-$($expected.Count)-prototypes" $gcc ($flags + @('-Irelease/extlibs/lz4/include','-fsyntax-only',$abi))
+    $null = Check "generated-$($expected.Count)-prototypes" $gcc ($flags + @('-Irelease/win_x64/extlibs/lz4/include','-fsyntax-only',$abi))
 
     foreach ($name in @('lz4','lz4_basic','lz4_files')) {
-        $case = "release/examples/extlibs/$name.xl"
+        $case = "release/win_x64/examples/extlibs/$name.xl"
         $text = Check "$name-example-jit" $xl @('run',$case)
         $exe = Join-Path $work "$name-example.exe"
         $null = Check "$name-example-build" $xl @('build',$case,'-o',$exe)
         $aot = Check "$name-example-aot" $exe @()
         if ($text -cne $aot) { throw "$name JIT/AOT output mismatch" }
         if ($name -eq 'lz4') { continue }
-        $golden = [IO.File]::ReadAllText((Join-Path $Root "release/examples/extlibs/$name.expected.txt")).Replace("`r`n","`n").TrimEnd("`n")
-        $c = "release/extlibs/lz4/examples/$($name.Substring(4)).c"
+        $golden = [IO.File]::ReadAllText((Join-Path $Root "release/win_x64/examples/extlibs/$name.expected.txt")).Replace("`r`n","`n").TrimEnd("`n")
+        $c = "release/win_x64/extlibs/lz4/examples/$($name.Substring(4)).c"
         $exe = Join-Path $work "$name-c.exe"
         $null = Check "$name-c-build" $gcc ($flags + @($c) + $objects + @('-lWs2_32','-lAdvapi32','-lm','-o',$exe))
         $native = Check "$name-c" $exe @()
@@ -153,7 +153,7 @@ try {
             throw "$name bilingual golden output mismatch ($($mismatches -join ', '))"
         }
     }
-    $probe = 'release/extlibs/lz4/test/test_lz4_files.c'
+    $probe = 'release/win_x64/extlibs/lz4/test/test_lz4_files.c'
     $null = Check 'files-jit' $xl (@('run',$probe) + $sources + @('--inc-path','lib/xrt','--inc-path','lib/xruntime','--',
         (Join-Path $work ('jit-files-'+[Guid]::NewGuid().ToString('N')))))
     $exe = Join-Path $work 'files-aot.exe'
@@ -161,7 +161,7 @@ try {
     $null = Check 'files-aot' $exe @((Join-Path $work ('aot-files-'+[Guid]::NewGuid().ToString('N'))))
 
     # C 单文件路径也验证同一文件实现，不只测试正式分离链接的对象。
-    $cleanupProbe = 'release/extlibs/lz4/test/test_lz4_cleanup.c'
+    $cleanupProbe = 'release/win_x64/extlibs/lz4/test/test_lz4_cleanup.c'
     $null = Check 'cleanup-jit' $xl @('run',$cleanupProbe,'--',
         (Join-Path $work ('jit-cleanup-'+[Guid]::NewGuid().ToString('N'))))
     $cleanupExe = Join-Path $work 'cleanup-aot.exe'
@@ -171,7 +171,7 @@ try {
     # 已关闭事务的回滚必须验收；不能用仍打开时的修复掩盖此红色边界。
     $commitExe = Join-Path $work 'commit-cleanup.exe'
     $null = Check 'commit-cleanup-build' $gcc ($flags + @(
-        'release/extlibs/lz4/test/test_lz4_commit_cleanup.c') + $objects +
+        'release/win_x64/extlibs/lz4/test/test_lz4_commit_cleanup.c') + $objects +
         @('-lWs2_32','-lAdvapi32','-lm','-o',$commitExe))
     $null = Check 'commit-cleanup' $commitExe @((Join-Path $work ('commit-cleanup-'+[Guid]::NewGuid().ToString('N'))))
     $null = Check 'top-level-lifecycle' (Get-Process -Id $PID).Path @('-NoProfile','-ExecutionPolicy','Bypass',

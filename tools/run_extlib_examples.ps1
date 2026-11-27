@@ -9,8 +9,8 @@ if ( $Root -eq "" ) {
     $Root = Split-Path -Parent $PSScriptRoot
 }
 
-$xl = Join-Path $Root "release\xl.exe"
-$exampleDir = Join-Path $Root "release\examples\extlibs"
+$xl = Join-Path $Root "release\win_x64\xl.exe"
+$exampleDir = Join-Path $Root "release\win_x64\examples\extlibs"
 $legacyBatch = Join-Path $exampleDir "run_extlibs.bat"
 
 if ( ! (Test-Path -LiteralPath $xl -PathType Leaf) ) {
@@ -20,8 +20,8 @@ if ( ! (Test-Path -LiteralPath $xl -PathType Leaf) ) {
 
 $legacyText = [System.IO.File]::ReadAllText($legacyBatch, [System.Text.Encoding]::UTF8)
 
-# Wires: release/examples/extlibs/*.xl
-$examples = @(Get-ChildItem -LiteralPath $exampleDir -File -Filter "*.xl" | Sort-Object Name)
+# Wires: release/win_x64/examples/extlibs/*/*.xl
+$examples = @(Get-ChildItem -LiteralPath $exampleDir -File -Filter "*.xl" -Recurse | Sort-Object FullName)
 $started = $StartAt -eq ""
 $runCount = 0
 foreach ( $example in $examples ) {

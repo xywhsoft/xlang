@@ -35,13 +35,13 @@ def main():
     args=parser.parse_args(); project=Path(__file__).resolve().parents[2]
     out=args.out.resolve(); runtime=args.runtime_root.resolve() if args.runtime_root else None
     assert not out.exists() and not out.is_relative_to(project)
-    assert runtime is None or (runtime/'release/xl.dll').is_file()
+    assert runtime is None or (runtime/'release/win_x64/xl.dll').is_file()
     paths=[''+name for name in ('src','lib','tools','docs','test',
         'res','release/include','include','build.bat','build_dll.bat','build_linux.sh','.gitattributes','.gitignore')]
     # The ordinary Windows build compiles its committed host examples too.
     # Export source fixtures, never old binaries or extension packages.
-    paths.append('release/examples/*.c')
-    paths.append('release/examples/*.xl')
+    paths.append('release/win_x64/examples/*.c')
+    paths.append('release/win_x64/examples/*.xl')
     index=subprocess.check_output(['git','write-tree'],cwd=project,text=True).strip()
     base=subprocess.check_output(['git','rev-parse','HEAD'],cwd=project,text=True).strip()
     files=subprocess.check_output(['git','ls-files','-z','--',*paths],cwd=project)

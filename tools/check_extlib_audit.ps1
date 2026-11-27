@@ -17,15 +17,15 @@ function New-Package([string]$Name, [string[]]$Dependencies = @()) {
         artifact=@{ kind='source'; cSources=@('native.c'); xlSources=@('src/public.xl') }
         dependencies=@($Dependencies | ForEach-Object { @{ name=$_ } })
     }
-    Write-Fixture "release/extlibs/$Name/xlang.package.json" ($manifest | ConvertTo-Json -Depth 6)
-    Write-Fixture "release/extlibs/$Name/native.c" '#include <stdbool.h>
+    Write-Fixture "release/win_x64/extlibs/$Name/xlang.package.json" ($manifest | ConvertTo-Json -Depth 6)
+    Write-Fixture "release/win_x64/extlibs/$Name/native.c" '#include <stdbool.h>
 /* TODO documentation; unsupported input is a legitimate negative path. */
 bool valid(int count) { if (count < 0) return false; return true; }
 '
-    Write-Fixture "release/extlibs/$Name/src/public.xl" "export func publicApi() as int`n    return 1`nend`n"
+    Write-Fixture "release/win_x64/extlibs/$Name/src/public.xl" "export func publicApi() as int`n    return 1`nend`n"
     # 未声明的旧副本与测试中的导出不能污染正式 API 和实现计数。
-    Write-Fixture "release/extlibs/$Name/test/helper.xl" "export func testOnly()`nend`n"
-    Write-Fixture "release/extlibs/$Name/unused.c" "extern void xrtRetired(void);`n"
+    Write-Fixture "release/win_x64/extlibs/$Name/test/helper.xl" "export func testOnly()`nend`n"
+    Write-Fixture "release/win_x64/extlibs/$Name/unused.c" "extern void xrtRetired(void);`n"
 }
 
 foreach ($name in @('guard','registered','broken','root_dep','middle_dep','bad_json','wrong_name','onnxruntime','mysql','gpio','_zlib','abi_hint')) {
@@ -33,16 +33,16 @@ foreach ($name in @('guard','registered','broken','root_dep','middle_dep','bad_j
 }
 New-Package 'middle_dep' @('not_present')
 New-Package 'root_dep' @('middle_dep')
-Write-Fixture 'release/extlibs/broken/xlang.package.json' '{"format":"xlang-package-1","name":"broken","artifact":{"kind":"source","cSources":["absent.c"]}}'
-Write-Fixture 'release/extlibs/bad_json/xlang.package.json' '{broken'
-Write-Fixture 'release/extlibs/wrong_name/xlang.package.json' '{"format":"xlang-package-1","name":"other","artifact":{"kind":"source","cSources":["native.c"]}}'
-Write-Fixture 'release/extlibs/abi_hint/native.c' 'extern void xrtExample(void);'
+Write-Fixture 'release/win_x64/extlibs/broken/xlang.package.json' '{"format":"xlang-package-1","name":"broken","artifact":{"kind":"source","cSources":["absent.c"]}}'
+Write-Fixture 'release/win_x64/extlibs/bad_json/xlang.package.json' '{broken'
+Write-Fixture 'release/win_x64/extlibs/wrong_name/xlang.package.json' '{"format":"xlang-package-1","name":"other","artifact":{"kind":"source","cSources":["native.c"]}}'
+Write-Fixture 'release/win_x64/extlibs/abi_hint/native.c' 'extern void xrtExample(void);'
 Write-Fixture 'test/featured_extlibs.json' '{"packages":[{"name":"registered"}]}'
 Write-Fixture 'test/phase1_extlibs.json' '{"packages":[{"name":"registered"},{"name":"broken"},{"name":"onnxruntime"}]}'
 Write-Fixture 'test/platform_extlibs.json' '{"packages":[]}'
 [IO.Directory]::CreateDirectory((Join-Path $work 'docs')) | Out-Null
 [IO.Directory]::CreateDirectory((Join-Path $work 'test/cases')) | Out-Null
-[IO.Directory]::CreateDirectory((Join-Path $work 'release/examples/extlibs')) | Out-Null
+[IO.Directory]::CreateDirectory((Join-Path $work 'release/win_x64/examples/extlibs')) | Out-Null
 & powershell -NoProfile -ExecutionPolicy Bypass -File (Join-Path $PSScriptRoot 'audit_extlib_ecosystem.ps1') -Root $work
 if ($LASTEXITCODE -ne 0) { throw 'Fixture audit failed' }
 $report = [IO.File]::ReadAllText((Join-Path $work 'test/extlib_ecosystem.json')) | ConvertFrom-Json

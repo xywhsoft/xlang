@@ -304,7 +304,7 @@ int main(int argc, char** argv)
     moduleMutations("test/cases/xlir_managed_storage_inputs.xl");
     moduleMutations("test/cases/xlir_parameter_cleanup_outcome.xl");
     moduleMutations("test/cases/xlir_loop_cleanup_outcome.xl");
-    moduleMutations("release/examples/error_model.xl");
+    moduleMutations("release/win_x64/examples/language/errors/error_model.xl");
     productMutations();
     assert(rejected >= 14 && transfers >= 20 && graphChecks >= 46);
     printf("owner consumption: %llu RuntimeOps classified, %llu consuming inputs, %llu rejected mutations, %llu CFG checks\n",

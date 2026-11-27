@@ -5,7 +5,7 @@ $Root=(Resolve-Path -LiteralPath $Root).Path
 . (Join-Path $PSScriptRoot 'extlib_smoke_process.ps1')
 $gcc=(Get-Command gcc -CommandType Application -ErrorAction Stop|Select-Object -First 1).Source
 $cc1=(& $gcc -print-prog-name=cc1).Trim()
-$xl=Join-Path $Root 'release/xl.exe'
+$xl=Join-Path $Root 'release/win_x64/xl.exe'
 $python=(Get-Command python -CommandType Application -ErrorAction Stop|Select-Object -First 1).Source
 $compiler=$null
 $artifact=$null
@@ -40,19 +40,19 @@ if($ownWork -and (Test-Path -LiteralPath $work)){throw "CSV work directory alrea
 $utf8=[Text.UTF8Encoding]::new($false)
 $checks=[Collections.Generic.List[object]]::new()
 $problems=[Collections.Generic.List[string]]::new()
-$environment=@{XLANG_PACKAGE_PATH=(Join-Path $Root 'release/extlibs')}
-$manifest=Get-Content (Join-Path $Root 'release/extlibs/csv/xlang.package.json') -Raw|ConvertFrom-Json
-$sources=@($manifest.artifact.cSources|ForEach-Object{"release/extlibs/csv/$_"})
+$environment=@{XLANG_PACKAGE_PATH=(Join-Path $Root 'release/win_x64/extlibs')}
+$manifest=Get-Content (Join-Path $Root 'release/win_x64/extlibs/csv/xlang.package.json') -Raw|ConvertFrom-Json
+$sources=@($manifest.artifact.cSources|ForEach-Object{"release/win_x64/extlibs/csv/$_"})
 function InputPaths {
-    Get-ChildItem (Join-Path $Root 'release/extlibs/csv') -Recurse -File|ForEach-Object FullName
+    Get-ChildItem (Join-Path $Root 'release/win_x64/extlibs/csv') -Recurse -File|ForEach-Object FullName
     foreach($p in @('lib/xrt/xrt.h','lib/xruntime/xruntime.h','test/support/extlib_csv_runtime.c',
         'tools/check_extlib_csv.ps1','tools/extlib_smoke_process.ps1','tools/xlir_native_process.ps1',
         'tools/run_extlib_c.ps1','tools/check_extlib_csv.sh','tools/check_extlib_csv_interop.py',
-        'test/cases/extlib_csv.xl','release/examples/extlibs/csv.xl',
-        'release/examples/extlibs/csv_basic.xl','release/examples/extlibs/csv_files.xl',
-        'release/examples/extlibs/csv_basic.expected.txt','release/examples/extlibs/csv_files.expected.txt',
-        'release/xl.exe','release/xl.dll','release/xlc.dll','release/include/xrt_decl.h',
-        'release/include/xruntime_decl.h','release/include/xl_extlib_abi.h')){Join-Path $Root $p}
+        'test/cases/extlib_csv.xl','release/win_x64/examples/extlibs/data_format/csv.xl',
+        'release/win_x64/examples/extlibs/data_format/csv_basic.xl','release/win_x64/examples/extlibs/data_format/csv_files.xl',
+        'release/win_x64/examples/extlibs/data_format/csv_basic.expected.txt','release/win_x64/examples/extlibs/data_format/csv_files.expected.txt',
+        'release/win_x64/xl.exe','release/win_x64/xl.dll','release/win_x64/xlc.dll','release/win_x64/include/xrt_decl.h',
+        'release/win_x64/include/xruntime_decl.h','release/win_x64/include/xl_extlib_abi.h')){Join-Path $Root $p}
     $gcc
     $cc1
     $python
@@ -99,19 +99,19 @@ $flags=@('-std=c11','-O2','-Wall','-Wextra','-Werror','-Ilib/xrt')
 $outcome='failed';$failure=''
 try {
     $null=Check 'compiler-version' $gcc @('--version')
-    $access=Invoke-ExtlibSmokeProcess $xl @('check','release/extlibs/csv/test/private_native.xl') $Root 120 $environment
+    $access=Invoke-ExtlibSmokeProcess $xl @('check','release/win_x64/extlibs/csv/test/private_native.xl') $Root 120 $environment
     $accessText="$($access.stderr)`n$($access.stdout)"
     if($access.status -ne 'fail' -or $access.exitCode -ne 1 -or !$accessText.Contains('fieldNative') -or !$accessText.Contains('access')){
         throw "CSV Native member access check failed: $accessText"
     }
     $checks.Add([ordered]@{name='private-native-access';program=$xl;
-        arguments=@('check','release/extlibs/csv/test/private_native.xl');
+        arguments=@('check','release/win_x64/extlibs/csv/test/private_native.xl');
         result=[ordered]@{status='pass';expected='access-rejected';observed=$access}})
     Write-Host '[csv] private-native-access: PASS (rejected as expected)'
     # 私有原生构造器只 check，绝不能执行伪造的空地址和长度。
-    $access=Invoke-ExtlibSmokeProcess $xl @('check','release/extlibs/csv/test/private_constructor.xl') $Root 120 $environment
+    $access=Invoke-ExtlibSmokeProcess $xl @('check','release/win_x64/extlibs/csv/test/private_constructor.xl') $Root 120 $environment
     $checks.Add([ordered]@{name='private-constructor-access';program=$xl;expectedExitCode=1;
-        arguments=@('check','release/extlibs/csv/test/private_constructor.xl');result=$access})
+        arguments=@('check','release/win_x64/extlibs/csv/test/private_constructor.xl');result=$access})
     if($access.status -ne 'fail' -or $access.exitCode -ne 1 -or
        !("$($access.stderr)`n$($access.stdout)".Contains('access'))){
         $problems.Add("private-constructor-access: expected access rejection/exit 1, observed $($access.status)/$($access.exitCode)")
@@ -126,27 +126,27 @@ try {
     }
     foreach($name in @('test_csv','test_csv_boundary','test_csv_stream','test_csv_error_cause','test_csv_alloc','test_csv_files','test_csv_contracts','test_csv_threads','test_csv_bom_values')) {
         $exe=Join-Path $work "$name.exe"
-        $null=Check "$name-build" $gcc ($flags+@("release/extlibs/csv/test/$name.c")+$objects+@('-lws2_32','-ladvapi32','-lm','-o',$exe))
+        $null=Check "$name-build" $gcc ($flags+@("release/win_x64/extlibs/csv/test/$name.c")+$objects+@('-lws2_32','-ladvapi32','-lm','-o',$exe))
         $null=Check $name $exe @()
     }
-    $bomOracle='release/extlibs/csv/test/check_bom_records.py'
+    $bomOracle='release/win_x64/extlibs/csv/test/check_bom_records.py'
     $null=Check 'bom-independent-gcc' $python @($bomOracle,'--driver',(Join-Path $work 'test_csv_bom_values.exe'),'--records-out',(Join-Path $work 'bom-gcc.tsv')) 150
-    $null=Check 'bom-direct-c' $xl @('run','release/extlibs/csv/test/test_csv_bom_values.c')
-    $null=Check 'bom-independent-tcc' $python @($bomOracle,'--xl',$xl,'--source','release/extlibs/csv/test/test_csv_bom_values.c','--records-out',(Join-Path $work 'bom-tcc.tsv')) 150
+    $null=Check 'bom-direct-c' $xl @('run','release/win_x64/extlibs/csv/test/test_csv_bom_values.c')
+    $null=Check 'bom-independent-tcc' $python @($bomOracle,'--xl',$xl,'--source','release/win_x64/extlibs/csv/test/test_csv_bom_values.c','--records-out',(Join-Path $work 'bom-tcc.tsv')) 150
     if(!$SkipAot){
         $bomAot=Join-Path $work 'bom-c-aot.exe'
-        $null=Check 'bom-c-aot-build' $xl @('build','release/extlibs/csv/test/test_csv_bom_values.c','-o',$bomAot)
+        $null=Check 'bom-c-aot-build' $xl @('build','release/win_x64/extlibs/csv/test/test_csv_bom_values.c','-o',$bomAot)
         $null=Check 'bom-c-aot' $bomAot @()
         $null=Check 'bom-independent-aot' $python @($bomOracle,'--driver',$bomAot,'--records-out',(Join-Path $work 'bom-aot.tsv')) 150
     }
     $interop=Join-Path $work 'interop.exe'
-    $null=Check 'interop-build' $gcc ($flags+@('release/extlibs/csv/test/csv_interop.c')+$objects+@('-lws2_32','-ladvapi32','-lm','-o',$interop))
+    $null=Check 'interop-build' $gcc ($flags+@('release/win_x64/extlibs/csv/test/csv_interop.c')+$objects+@('-lws2_32','-ladvapi32','-lm','-o',$interop))
     $null=Check 'python-csv-interop' $python @('tools/check_extlib_csv_interop.py',$interop,(Join-Path $work 'interop-data')) 180
     $closed=Join-Path $work 'file_rollback_closed.exe'
-    $null=Check 'closed-rollback-build' $gcc ($flags+@('release/extlibs/csv/test/file_rollback_closed.c')+$objects+@('-lws2_32','-ladvapi32','-lm','-o',$closed))
+    $null=Check 'closed-rollback-build' $gcc ($flags+@('release/win_x64/extlibs/csv/test/file_rollback_closed.c')+$objects+@('-lws2_32','-ladvapi32','-lm','-o',$closed))
     $null=Observe { Check 'closed-rollback' $closed @($work) }
     $generated=[Collections.Generic.List[string]]::new()
-    foreach($case in @('test/cases/extlib_csv.xl','release/examples/extlibs/csv.xl','release/extlibs/csv/test/aot_core.xl','release/extlibs/csv/test/global_lifecycle.xl')+@($manifest.coverage.tests|Where-Object { $_ }|ForEach-Object{"release/extlibs/csv/$_"})) {
+    foreach($case in @('test/cases/extlib_csv.xl','release/win_x64/examples/extlibs/data_format/csv.xl','release/win_x64/extlibs/csv/test/aot_core.xl','release/win_x64/extlibs/csv/test/global_lifecycle.xl')+@($manifest.coverage.tests|Where-Object { $_ }|ForEach-Object{"release/win_x64/extlibs/csv/$_"})) {
         $name=[IO.Path]::GetFileNameWithoutExtension($case)
         $prefix=Join-Path $work $name
         $jit=Observe { Language "$name-jit" $case 'run' $prefix }
@@ -167,25 +167,25 @@ try {
         Get-Content -LiteralPath $_ | Where-Object{$_ -match '^extern .*\bxcsv_[a-z_]+\('}
     })
     $decls=@($decls|Sort-Object -Unique)
-    $binding=Get-Content (Join-Path $Root 'release/extlibs/csv/src/csv.xl') -Raw
+    $binding=Get-Content (Join-Path $Root 'release/win_x64/extlibs/csv/src/csv.xl') -Raw
     $expected=@([regex]::Matches($binding,'extern "(xcsv_[a-z_]+)"')|ForEach-Object{$_.Groups[1].Value}|Sort-Object -Unique)
     $actual=@([regex]::Matches(($decls -join "`n"),'\bxcsv_[a-z_]+(?=\()')|ForEach-Object Value|Sort-Object -Unique)
     if(@(Compare-Object $expected $actual).Count -ne 0 -or $expected.Count -ne $decls.Count){throw 'CSV generated ABI coverage is incomplete'}
     $abi=Join-Path $work 'abi.c'
     [IO.File]::WriteAllText($abi,"#include <stdint.h>`n#include `"csv_native.h`"`n"+($decls -join "`n"),$utf8)
-    $null=Check "generated-$($expected.Count)-prototypes" $gcc ($flags+@('-Irelease/extlibs/csv/include','-fsyntax-only',$abi))
+    $null=Check "generated-$($expected.Count)-prototypes" $gcc ($flags+@('-Irelease/win_x64/extlibs/csv/include','-fsyntax-only',$abi))
     foreach($name in @('basic','files','streaming','bom_values')) {
         $prefix=Join-Path $work "example-$name"
-        $golden=if($name -in @('streaming','bom_values')){"release/extlibs/csv/examples/$name.expected.txt"}else{"release/examples/extlibs/csv_$name.expected.txt"}
+        $golden=if($name -in @('streaming','bom_values')){"release/win_x64/extlibs/csv/examples/$name.expected.txt"}else{"release/win_x64/examples/extlibs/csv_$name.expected.txt"}
         $expected=[IO.File]::ReadAllText((Join-Path $Root $golden)).Replace("`r`n","`n").TrimEnd("`n")
-        $case=if($name -in @('streaming','bom_values')){"release/extlibs/csv/examples/$name.xl"}else{"release/examples/extlibs/csv_$name.xl"}
+        $case=if($name -in @('streaming','bom_values')){"release/win_x64/extlibs/csv/examples/$name.xl"}else{"release/win_x64/examples/extlibs/csv_$name.xl"}
         $jit=Observe { Language "example-$name-jit" $case 'run' $prefix }
         $aot=$null
         if(!$SkipAot){
             $built=Observe { $null=Language "example-$name-build" $case 'build' $prefix; $true }
             if($built){$aot=Observe { Check "example-$name-aot" "$prefix.exe" @() }}
         }
-        $c=if($name -in @('streaming','bom_values')){"release/extlibs/csv/examples/${name}_c.c"}else{"release/extlibs/csv/examples/$name.c"}
+        $c=if($name -in @('streaming','bom_values')){"release/win_x64/extlibs/csv/examples/${name}_c.c"}else{"release/win_x64/extlibs/csv/examples/$name.c"}
         $null=Check "example-$name-c-build" $gcc ($flags+@($c,$runtime,'-lws2_32','-ladvapi32','-lm','-o',"$prefix-c.exe"))
         $native=Check "example-$name-c" "$prefix-c.exe" @()
         $cjit=Check "example-$name-c-jit" $xl @('run',$c)

@@ -11,9 +11,9 @@ if ($Root -eq "") {
     $Root = Split-Path -Parent $PSScriptRoot
 }
 
-$extlibRoot = Join-Path $Root "release\extlibs"
+$extlibRoot = Join-Path $Root "release\win_x64\extlibs"
 $caseRoot = Join-Path $Root "test\cases"
-$exampleRoot = Join-Path $Root "release\examples\extlibs"
+$exampleRoot = Join-Path $Root "release\win_x64\examples\extlibs"
 $exampleIndex = @{}
 foreach ($example in Get-ChildItem -LiteralPath $exampleRoot -File -Filter '*.xl' -Recurse) {
     if ($exampleIndex.ContainsKey($example.Name)) { throw "Ambiguous extension example: $($example.Name)" }
@@ -282,7 +282,7 @@ for ($pass = 0; $pass -lt $packages.Count; ++$pass) {
 $report = [pscustomobject]@{
     format = "xlang-extlib-ecosystem-2"
     generatedAt = (Get-Date).ToUniversalTime().ToString("o")
-    root = "release/extlibs"
+    root = "release/win_x64/extlibs"
     packages = $packages.ToArray()
 }
 if (!$CheckOnly) {

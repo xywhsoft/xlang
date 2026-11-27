@@ -2,7 +2,7 @@ param([string]$Root = "")
 $ErrorActionPreference = "Stop"
 if ($Root -eq "") { $Root = Split-Path -Parent $PSScriptRoot }
 $Root = (Resolve-Path -LiteralPath $Root).Path
-$xl = Join-Path $Root "release\xl.exe"
+$xl = Join-Path $Root "release\win_x64\xl.exe"
 $outputDir = Join-Path $Root "build\test"
 [System.IO.Directory]::CreateDirectory($outputDir) | Out-Null
 
@@ -98,7 +98,7 @@ try {
         if (Test-Path -LiteralPath $cPath) { throw "Invalid ABI emitted C: $name" }
     }
     foreach ($name in @("stdlib_io", "stdlib_console")) {
-        $source = Join-Path $Root "release\examples\$name.xl"
+        $source = Join-Path $Root "release\win_x64\examples\$name.xl"
         $exe = Join-Path $outputDir "$name.example.exe"
         Invoke-Test $xl ('run "{0}"' -f $source)
         Invoke-Test $xl ('build "{0}" -o "{1}"' -f $source,$exe)

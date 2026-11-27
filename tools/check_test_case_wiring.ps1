@@ -18,7 +18,7 @@ $wiringFiles = @(
     "test.bat",
     "test_linux.sh",
     "test_tutorial.bat",
-    "release\examples\feature_suite\run_feature_suite.bat",
+    "release\win_x64\examples\feature_suite/run_feature_suite.bat",
     "tools\run_extlib_tests.ps1"
 )
 

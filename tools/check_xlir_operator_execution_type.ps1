@@ -3,11 +3,11 @@ param([string]$Root = "")
 $ErrorActionPreference = "Stop"
 if ( $Root -eq "" ) { $Root = Split-Path -Parent $PSScriptRoot }
 
-$compiler = Join-Path $Root "release\xl.exe"
+$compiler = Join-Path $Root "release\win_x64\xl.exe"
 $unsignedSource = Join-Path $Root "test\cases\type_int_minmax_bounds.xl"
 $foreignSource = Join-Path $Root "test\cases\extlib_imagehash.xl"
 $foreignBoolSource = Join-Path $Root "test\cases\stdlib_json.xl"
-$languageBoolSource = Join-Path $Root "release\examples\class_field_persistence_attrs.xl"
+$languageBoolSource = Join-Path $Root "release\win_x64\examples\language/oop/class_field_persistence_attrs.xl"
 $flowSource = Join-Path $Root "test\cases\runtime_var_type_storage_matrix.xl"
 $moduleHost = Join-Path $Root "test\cases\xlir_module_init_host.c"
 $outputDir = Join-Path $Root "build\test"

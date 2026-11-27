@@ -10,9 +10,9 @@ if ($Root -eq "") {
 }
 
 $rootPath = (Resolve-Path -LiteralPath $Root).Path
-$xl = Join-Path $rootPath "release\xl.exe"
+$xl = Join-Path $rootPath "release\win_x64\xl.exe"
 $manifestPath = Join-Path $rootPath "test\platform_extlibs.json"
-$exampleRoot = Join-Path $rootPath "release\examples\extlibs"
+$exampleRoot = Join-Path $rootPath "release\win_x64\examples\extlibs"
 
 if (!(Test-Path -LiteralPath $xl -PathType Leaf)) { throw "xl.exe is missing: $xl" }
 $manifest = Get-Content -LiteralPath $manifestPath -Raw -Encoding UTF8 | ConvertFrom-Json

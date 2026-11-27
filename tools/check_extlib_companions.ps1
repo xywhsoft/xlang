@@ -7,8 +7,8 @@ if ($Root -eq '') {
 $Root = (Resolve-Path -LiteralPath $Root).Path
 
 $sourceDirs = @(
-    (Join-Path $Root 'release/extlibs'),
-    (Join-Path $Root 'release/examples/extlibs')
+    (Join-Path $Root 'release/win_x64/extlibs'),
+    (Join-Path $Root 'release/win_x64/examples/extlibs')
 )
 $collisions = New-Object System.Collections.Generic.List[string]
 foreach ($sourceDir in $sourceDirs) {

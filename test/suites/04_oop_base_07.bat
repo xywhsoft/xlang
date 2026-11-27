@@ -4,7 +4,7 @@ call "%~dp0common.bat"
 if errorlevel 1 exit /b 1
 echo Running DEMO6 suite: OOP ABI export and interop baseline 7/8...
 
-release\xl.exe cgen test\cases\export_c_abi_types.xl --emit build\test\export_c_abi_types.c --emit-header build\test\export_c_abi_types.h
+release\win_x64\xl.exe cgen test\cases\export_c_abi_types.xl --emit build\test\export_c_abi_types.c --emit-header build\test\export_c_abi_types.h
 if errorlevel 1 exit /b 1
 findstr /C:"#include <stddef.h>" build\test\export_c_abi_types.h >nul
 if errorlevel 1 (
@@ -41,28 +41,28 @@ if errorlevel 1 exit /b 1
 build\test\export_c_abi_types_header_host.exe
 if errorlevel 1 exit /b 1
 
-release\xl.exe ir test\cases\export_c_abi_types.xl --lowered --emit build\test\xlir_export_c_abi_types.xlir
+release\win_x64\xl.exe ir test\cases\export_c_abi_types.xl --lowered --emit build\test\xlir_export_c_abi_types.xlir
 if errorlevel 1 exit /b 1
 findstr /C:"scalar-convert" build\test\xlir_export_c_abi_types.xlir >nul
 if errorlevel 1 (
     echo xlir_export_c_abi_types.xlir missing explicit c_bool normalization.
     exit /b 1
 )
-release\xl.exe cgen test\cases\export_c_abi_types.xl --backend xlir --emit build\test\xlir_export_c_abi_types_generated.c
+release\win_x64\xl.exe cgen test\cases\export_c_abi_types.xl --backend xlir --emit build\test\xlir_export_c_abi_types_generated.c
 if errorlevel 1 exit /b 1
 "%XL6_CGEN_CC%" %XL6_CGEN_FLAGS% %XL6_CGEN_INCLUDES% -Werror test\cases\xlir_export_c_abi_types_host.c %XL6_CGEN_LINKS% -o build\test\xlir_export_c_abi_types_host.exe
 if errorlevel 1 exit /b 1
 build\test\xlir_export_c_abi_types_host.exe
 if errorlevel 1 exit /b 1
 
-release\xl.exe abi test\cases\export_alias.xl --emit build\test\export_alias.abi.txt
+release\win_x64\xl.exe abi test\cases\export_alias.xl --emit build\test\export_alias.abi.txt
 if errorlevel 1 exit /b 1
 findstr /C:"signature: fn:app.aliasAdd(int,int) as int" build\test\export_alias.abi.txt >nul
 if errorlevel 1 (
     echo export_alias.abi.txt missing canonical alias signature.
     exit /b 1
 )
-release\xl.exe abi test\cases\export_alias.xl --json --emit build\test\export_alias.abi.json
+release\win_x64\xl.exe abi test\cases\export_alias.xl --json --emit build\test\export_alias.abi.json
 if errorlevel 1 exit /b 1
 findstr /C:"abiVersion" build\test\export_alias.abi.json >nul
 if errorlevel 1 (
@@ -79,7 +79,7 @@ if errorlevel 1 (
     echo export_alias.abi.json missing C export symbol.
     exit /b 1
 )
-release\xl.exe abi test\cases\extern_puts.xl --json --emit build\test\extern_puts.abi.json
+release\win_x64\xl.exe abi test\cases\extern_puts.xl --json --emit build\test\extern_puts.abi.json
 if errorlevel 1 exit /b 1
 findstr /C:"cSymbol" build\test\extern_puts.abi.json >nul
 if errorlevel 1 (
@@ -91,7 +91,7 @@ if errorlevel 1 (
     echo extern_puts.abi.json missing puts symbol.
     exit /b 1
 )
-release\xl.exe cgen test\cases\export_alias.xl --emit build\test\export_alias.c --emit-header build\test\export_alias.h
+release\win_x64\xl.exe cgen test\cases\export_alias.xl --emit build\test\export_alias.c --emit-header build\test\export_alias.h
 if errorlevel 1 exit /b 1
 findstr /C:"long long xl6_export_aliasAdd(long long a, long long b);" build\test\export_alias.c >nul
 if errorlevel 1 (
@@ -108,10 +108,10 @@ if errorlevel 1 exit /b 1
 build\test\export_alias_header_host.exe
 if errorlevel 1 exit /b 1
 
-release\xl.exe check release\examples\c_variables.xl
+release\win_x64\xl.exe check release\win_x64\examples\language\interop\c_variables.xl
 if errorlevel 1 exit /b 1
 
-release\xl.exe ir test\cases\export_vars.xl --lowered --emit build\test\export_vars.xlir
+release\win_x64\xl.exe ir test\cases\export_vars.xl --lowered --emit build\test\export_vars.xlir
 if errorlevel 1 exit /b 1
 findstr /C:"mutability=mutable cname=xl6_counter value=1LL" build\test\export_vars.xlir >nul
 if errorlevel 1 (
@@ -124,7 +124,7 @@ if errorlevel 1 (
     exit /b 1
 )
 
-release\xl.exe abi test\cases\export_vars.xl --emit build\test\export_vars.abi.txt
+release\win_x64\xl.exe abi test\cases\export_vars.xl --emit build\test\export_vars.abi.txt
 if errorlevel 1 exit /b 1
 findstr /C:"export xl6_counter" build\test\export_vars.abi.txt >nul
 if errorlevel 1 (
@@ -137,7 +137,7 @@ if errorlevel 1 (
     exit /b 1
 )
 
-release\xl.exe cgen test\cases\export_vars.xl --emit build\test\export_vars.c --emit-header build\test\export_vars.h
+release\win_x64\xl.exe cgen test\cases\export_vars.xl --emit build\test\export_vars.c --emit-header build\test\export_vars.h
 if errorlevel 1 exit /b 1
 findstr /C:"int64_t xl6_counter = 1LL;" build\test\export_vars.c >nul
 if errorlevel 1 (
@@ -169,9 +169,9 @@ if errorlevel 1 exit /b 1
 build\test\export_vars_header_host.exe
 if errorlevel 1 exit /b 1
 
-release\xl.exe run test\cases\export_package_vars.xl
+release\win_x64\xl.exe run test\cases\export_package_vars.xl
 if errorlevel 1 exit /b 1
-release\xl.exe cgen test\cases\export_package_vars.xl --emit build\test\export_package_vars.c --emit-header build\test\export_package_vars.h
+release\win_x64\xl.exe cgen test\cases\export_package_vars.xl --emit build\test\export_package_vars.c --emit-header build\test\export_package_vars.h
 if errorlevel 1 exit /b 1
 findstr /C:"packageCounter" build\test\export_package_vars.h >nul
 if not errorlevel 1 (
@@ -179,7 +179,7 @@ if not errorlevel 1 (
     exit /b 1
 )
 
-release\xl.exe cgen test\cases\cgen_extern_string_return.xl --emit build\test\cgen_extern_string_return.c
+release\win_x64\xl.exe cgen test\cases\cgen_extern_string_return.xl --emit build\test\cgen_extern_string_return.c
 if errorlevel 1 exit /b 1
 findstr /C:"xl6_xrt_external_string_copy(native_shared_text(" build\test\cgen_extern_string_return.c >nul
 if errorlevel 1 (
@@ -192,7 +192,7 @@ if errorlevel 1 (
     exit /b 1
 )
 
-release\xl.exe cgen test\cases\export_call.xl --emit build\test\export_call.c
+release\win_x64\xl.exe cgen test\cases\export_call.xl --emit build\test\export_call.c
 if errorlevel 1 exit /b 1
 findstr /C:"value = xl6_export_add__i64(1LL, 2LL);" build\test\export_call.c >nul
 if errorlevel 1 (
@@ -204,31 +204,31 @@ if errorlevel 1 exit /b 1
 build\test\export_call.exe
 if errorlevel 1 exit /b 1
 
-release\xl.exe abi release\examples\c_export.xl --emit build\test\example_c_export.abi.txt
+release\win_x64\xl.exe abi release\win_x64\examples\embedding\c_export.xl --emit build\test\example_c_export.abi.txt
 if errorlevel 1 exit /b 1
 findstr /C:"export app_add_i64" build\test\example_c_export.abi.txt >nul
 if errorlevel 1 (
-    echo release\examples\c_export.xl ABI dump missing export.
+    echo release\win_x64\examples\embedding\c_export.xl ABI dump missing export.
     exit /b 1
 )
 
-release\xl.exe cgen release\examples\class_c_export.xl --emit build\test\example_class_c_export.c --emit-header build\test\example_class_c_export.h
+release\win_x64\xl.exe cgen release\win_x64\examples\embedding\class_c_export.xl --emit build\test\example_class_c_export.c --emit-header build\test\example_class_c_export.h
 if errorlevel 1 exit /b 1
 findstr /C:"int64_t gauge_add(XL_Class_Gauge* self, int64_t delta);" build\test\example_class_c_export.h >nul
 if errorlevel 1 (
-    echo release\examples\class_c_export.xl header missing class method export.
+    echo release\win_x64\examples\embedding\class_c_export.xl header missing class method export.
     exit /b 1
 )
-release\xl.exe abi release\examples\class_c_export.xl --emit build\test\example_class_c_export.abi.txt
+release\win_x64\xl.exe abi release\win_x64\examples\embedding\class_c_export.xl --emit build\test\example_class_c_export.abi.txt
 if errorlevel 1 exit /b 1
 findstr /C:"owner: Gauge" build\test\example_class_c_export.abi.txt >nul
 if errorlevel 1 (
-    echo release\examples\class_c_export.xl ABI dump missing class method owner.
+    echo release\win_x64\examples\embedding\class_c_export.xl ABI dump missing class method owner.
     exit /b 1
 )
 
 if exist cgen_basic.exe del /f /q cgen_basic.exe
-release\xl.exe build test\cases\cgen_basic.xl >nul
+release\win_x64\xl.exe build test\cases\cgen_basic.xl >nul
 if errorlevel 1 (
     echo build without -o should use default output path.
     exit /b 1
@@ -241,30 +241,30 @@ cgen_basic.exe
 if errorlevel 1 exit /b 1
 del /f /q cgen_basic.exe
 
-release\xl.exe check test\cases\sem_duplicate.xl >nul 2> build\test\sem_duplicate.err.txt
+release\win_x64\xl.exe check test\cases\sem_duplicate.xl >nul 2> build\test\sem_duplicate.err.txt
 if not errorlevel 1 (
     echo sem_duplicate.xl should fail.
     exit /b 1
 )
 
-release\xl.exe check test\cases\sem_global_func_value_conflict.xl >nul 2> build\test\sem_global_func_value_conflict.err.txt
+release\win_x64\xl.exe check test\cases\sem_global_func_value_conflict.xl >nul 2> build\test\sem_global_func_value_conflict.err.txt
 if not errorlevel 1 (
     echo sem_global_func_value_conflict.xl should fail.
     exit /b 1
 )
 
-release\xl.exe check test\cases\sem_const_assign.xl >nul 2> build\test\sem_const_assign.err.txt
+release\win_x64\xl.exe check test\cases\sem_const_assign.xl >nul 2> build\test\sem_const_assign.err.txt
 if not errorlevel 1 (
     echo sem_const_assign.xl should fail.
     exit /b 1
 )
 
-release\xl.exe check test\cases\sem_safe_member_assign.xl >nul 2> build\test\sem_safe_member_assign.err.txt
+release\win_x64\xl.exe check test\cases\sem_safe_member_assign.xl >nul 2> build\test\sem_safe_member_assign.err.txt
 if not errorlevel 1 (
     echo sem_safe_member_assign.xl should fail.
     exit /b 1
 )
-release\xl.exe check test\cases\sem_safe_member_unknown.xl >nul 2> build\test\sem_safe_member_unknown.err.txt
+release\win_x64\xl.exe check test\cases\sem_safe_member_unknown.xl >nul 2> build\test\sem_safe_member_unknown.err.txt
 if not errorlevel 1 (
     echo sem_safe_member_unknown.xl should fail.
     exit /b 1
@@ -279,12 +279,12 @@ if not errorlevel 1 (
     echo sem_safe_member_unknown.err.txt regressed to generic cgen diagnostic.
     exit /b 1
 )
-release\xl.exe check test\cases\sem_safe_member_typed_container.xl >nul
+release\win_x64\xl.exe check test\cases\sem_safe_member_typed_container.xl >nul
 if errorlevel 1 (
     echo sem_safe_member_typed_container.xl should pass.
     exit /b 1
 )
-release\xl.exe check test\cases\sem_safe_member_non_container.xl >nul 2> build\test\sem_safe_member_non_container.err.txt
+release\win_x64\xl.exe check test\cases\sem_safe_member_non_container.xl >nul 2> build\test\sem_safe_member_non_container.err.txt
 if not errorlevel 1 (
     echo sem_safe_member_non_container.xl should fail.
     exit /b 1
@@ -300,7 +300,7 @@ if not errorlevel 1 (
     exit /b 1
 )
 
-release\xl.exe check test\cases\sem_member_key_array.xl >nul 2> build\test\sem_member_key_array.err.txt
+release\win_x64\xl.exe check test\cases\sem_member_key_array.xl >nul 2> build\test\sem_member_key_array.err.txt
 if not errorlevel 1 (
     echo sem_member_key_array.xl should fail.
     exit /b 1
@@ -316,7 +316,7 @@ if not errorlevel 1 (
     exit /b 1
 )
 
-release\xl.exe check test\cases\sem_member_key_set.xl >nul 2> build\test\sem_member_key_set.err.txt
+release\win_x64\xl.exe check test\cases\sem_member_key_set.xl >nul 2> build\test\sem_member_key_set.err.txt
 if not errorlevel 1 (
     echo sem_member_key_set.xl should fail.
     exit /b 1
@@ -332,7 +332,7 @@ if not errorlevel 1 (
     exit /b 1
 )
 
-release\xl.exe check test\cases\sem_member_key_typed_dict.xl >nul 2> build\test\sem_member_key_typed_dict.err.txt
+release\win_x64\xl.exe check test\cases\sem_member_key_typed_dict.xl >nul 2> build\test\sem_member_key_typed_dict.err.txt
 if not errorlevel 1 (
     echo sem_member_key_typed_dict.xl should fail.
     exit /b 1
@@ -348,7 +348,7 @@ if not errorlevel 1 (
     exit /b 1
 )
 
-release\xl.exe check test\cases\sem_dynamic_member_assign_length.xl >nul 2> build\test\sem_dynamic_member_assign_length.err.txt
+release\win_x64\xl.exe check test\cases\sem_dynamic_member_assign_length.xl >nul 2> build\test\sem_dynamic_member_assign_length.err.txt
 if not errorlevel 1 (
     echo sem_dynamic_member_assign_length.xl should fail.
     exit /b 1
@@ -359,7 +359,7 @@ if errorlevel 1 (
     exit /b 1
 )
 
-release\xl.exe check test\cases\sem_dynamic_member_assign_container.xl >nul 2> build\test\sem_dynamic_member_assign_container.err.txt
+release\win_x64\xl.exe check test\cases\sem_dynamic_member_assign_container.xl >nul 2> build\test\sem_dynamic_member_assign_container.err.txt
 if not errorlevel 1 (
     echo sem_dynamic_member_assign_container.xl should fail.
     exit /b 1
@@ -375,7 +375,7 @@ if not errorlevel 1 (
     exit /b 1
 )
 
-release\xl.exe check test\cases\sem_dynamic_member_assign_typed_dict.xl >nul 2> build\test\sem_dynamic_member_assign_typed_dict.err.txt
+release\win_x64\xl.exe check test\cases\sem_dynamic_member_assign_typed_dict.xl >nul 2> build\test\sem_dynamic_member_assign_typed_dict.err.txt
 if not errorlevel 1 (
     echo sem_dynamic_member_assign_typed_dict.xl should fail.
     exit /b 1
@@ -391,7 +391,7 @@ if not errorlevel 1 (
     exit /b 1
 )
 
-release\xl.exe check test\cases\sem_dynamic_member_assign_compound.xl >nul 2> build\test\sem_dynamic_member_assign_compound.err.txt
+release\win_x64\xl.exe check test\cases\sem_dynamic_member_assign_compound.xl >nul 2> build\test\sem_dynamic_member_assign_compound.err.txt
 if not errorlevel 1 (
     echo sem_dynamic_member_assign_compound.xl should fail.
     exit /b 1
@@ -402,7 +402,7 @@ if errorlevel 1 (
     exit /b 1
 )
 
-release\xl.exe check test\cases\sem_dynamic_member_assign_temporary.xl >nul 2> build\test\sem_dynamic_member_assign_temporary.err.txt
+release\win_x64\xl.exe check test\cases\sem_dynamic_member_assign_temporary.xl >nul 2> build\test\sem_dynamic_member_assign_temporary.err.txt
 if not errorlevel 1 (
     echo sem_dynamic_member_assign_temporary.xl should fail.
     exit /b 1
@@ -413,13 +413,13 @@ if errorlevel 1 (
     exit /b 1
 )
 
-release\xl.exe check test\cases\sem_index_array_key_type.xl >nul 2> build\test\sem_index_array_key_type.err.txt
+release\win_x64\xl.exe check test\cases\sem_index_array_key_type.xl >nul 2> build\test\sem_index_array_key_type.err.txt
 if not errorlevel 1 (
     echo sem_index_array_key_type.xl should fail.
     exit /b 1
 )
 
-release\xl.exe check test\cases\sem_index_dict_key_type.xl >nul 2> build\test\sem_index_dict_key_type.err.txt
+release\win_x64\xl.exe check test\cases\sem_index_dict_key_type.xl >nul 2> build\test\sem_index_dict_key_type.err.txt
 if not errorlevel 1 (
     echo sem_index_dict_key_type.xl should fail.
     exit /b 1
@@ -430,63 +430,63 @@ if not errorlevel 1 (
     exit /b 1
 )
 
-release\xl.exe check test\cases\sem_var_container_index_key_type.xl >nul 2> build\test\sem_var_container_index_key_type.err.txt
+release\win_x64\xl.exe check test\cases\sem_var_container_index_key_type.xl >nul 2> build\test\sem_var_container_index_key_type.err.txt
 if not errorlevel 1 (
     echo sem_var_container_index_key_type.xl should fail.
     exit /b 1
 )
 
-release\xl.exe check test\cases\sem_break_outside_loop.xl >nul 2> build\test\sem_break_outside_loop.err.txt
+release\win_x64\xl.exe check test\cases\sem_break_outside_loop.xl >nul 2> build\test\sem_break_outside_loop.err.txt
 if not errorlevel 1 (
     echo sem_break_outside_loop.xl should fail.
     exit /b 1
 )
 
-release\xl.exe check test\cases\sem_continue_zero.xl >nul 2> build\test\sem_continue_zero.err.txt
+release\win_x64\xl.exe check test\cases\sem_continue_zero.xl >nul 2> build\test\sem_continue_zero.err.txt
 if not errorlevel 1 (
     echo sem_continue_zero.xl should fail.
     exit /b 1
 )
 
-release\xl.exe check test\cases\sem_break_too_deep.xl >nul 2> build\test\sem_break_too_deep.err.txt
+release\win_x64\xl.exe check test\cases\sem_break_too_deep.xl >nul 2> build\test\sem_break_too_deep.err.txt
 if not errorlevel 1 (
     echo sem_break_too_deep.xl should fail.
     exit /b 1
 )
 
-release\xl.exe check test\cases\sem_if_condition_type.xl >nul 2> build\test\sem_if_condition_type.err.txt
+release\win_x64\xl.exe check test\cases\sem_if_condition_type.xl >nul 2> build\test\sem_if_condition_type.err.txt
 if not errorlevel 1 (
     echo sem_if_condition_type.xl should fail.
     exit /b 1
 )
 
-release\xl.exe check test\cases\sem_while_condition_type.xl >nul 2> build\test\sem_while_condition_type.err.txt
+release\win_x64\xl.exe check test\cases\sem_while_condition_type.xl >nul 2> build\test\sem_while_condition_type.err.txt
 if not errorlevel 1 (
     echo sem_while_condition_type.xl should fail.
     exit /b 1
 )
 
-release\xl.exe check test\cases\sem_conditional_condition_type.xl >nul 2> build\test\sem_conditional_condition_type.err.txt
+release\win_x64\xl.exe check test\cases\sem_conditional_condition_type.xl >nul 2> build\test\sem_conditional_condition_type.err.txt
 if not errorlevel 1 (
     echo sem_conditional_condition_type.xl should fail.
     exit /b 1
 )
 
-release\xl.exe cgen test\cases\cgen_class_implicit_upcast.xl --emit build\test\cgen_class_implicit_upcast.c
+release\win_x64\xl.exe cgen test\cases\cgen_class_implicit_upcast.xl --emit build\test\cgen_class_implicit_upcast.c
 if errorlevel 1 exit /b 1
 findstr /C:"xl6_record_field_set_borrow(boxedHolder, \"items\"" build\test\cgen_class_implicit_upcast.c >nul
 if errorlevel 1 (
     echo cgen_class_implicit_upcast.c lost dynamic field assignment through var storage.
     exit /b 1
 )
-release\xl.exe run test\cases\cgen_class_implicit_upcast.xl
+release\win_x64\xl.exe run test\cases\cgen_class_implicit_upcast.xl
 if errorlevel 1 exit /b 1
 
-release\xl.exe ir test\cases\cgen_class_virtual_return_move.xl --emit build\test\cgen_class_virtual_return_move.xlir
+release\win_x64\xl.exe ir test\cases\cgen_class_virtual_return_move.xl --emit build\test\cgen_class_virtual_return_move.xlir
 if errorlevel 1 exit /b 1
 powershell -NoProfile -Command "$lines=Get-Content 'build\test\cgen_class_virtual_return_move.xlir'; $slots=@($lines | Where-Object { $_ -match '^  class-dispatch-slot .* name=value$' }); $impls=@($lines | Where-Object { $_ -match '^  class-dispatch-impl ' }); if($slots.Count -ne 1 -or $impls.Count -ne 2){ Write-Host 'cgen_class_virtual_return_move.xlir missing exact base/derived dispatch rows.'; exit 1 }"
 if errorlevel 1 exit /b 1
-release\xl.exe cgen test\cases\cgen_class_virtual_return_move.xl --emit build\test\cgen_class_virtual_return_move.c
+release\win_x64\xl.exe cgen test\cases\cgen_class_virtual_return_move.xl --emit build\test\cgen_class_virtual_return_move.c
 if errorlevel 1 exit /b 1
 findstr /C:"return __xl6_return_" build\test\cgen_class_virtual_return_move.c >nul
 if errorlevel 1 (
@@ -498,16 +498,16 @@ if errorlevel 1 exit /b 1
 build\test\cgen_class_virtual_return_move.exe
 if errorlevel 1 exit /b 1
 
-release\xl.exe ir test\cases\cgen_class_virtual_return_move.xl --lowered --emit build\test\xlir_class_virtual_return_move.xlir
+release\win_x64\xl.exe ir test\cases\cgen_class_virtual_return_move.xl --lowered --emit build\test\xlir_class_virtual_return_move.xlir
 if errorlevel 1 exit /b 1
-release\xl.exe cgen test\cases\cgen_class_virtual_return_move.xl --backend xlir --emit build\test\xlir_class_virtual_return_move_generated.c
+release\win_x64\xl.exe cgen test\cases\cgen_class_virtual_return_move.xl --backend xlir --emit build\test\xlir_class_virtual_return_move_generated.c
 if errorlevel 1 exit /b 1
 "%XL6_CGEN_CC%" %XL6_CGEN_FLAGS% %XL6_CGEN_INCLUDES% -Werror test\cases\xlir_class_virtual_return_move_host.c %XL6_CGEN_LINKS% -o build\test\xlir_class_virtual_return_move_host.exe
 if errorlevel 1 exit /b 1
 build\test\xlir_class_virtual_return_move_host.exe
 if errorlevel 1 exit /b 1
 
-release\xl.exe run test\cases\cgen_class_identity_equality.xl
+release\win_x64\xl.exe run test\cases\cgen_class_identity_equality.xl
 if errorlevel 1 exit /b 1
 
 

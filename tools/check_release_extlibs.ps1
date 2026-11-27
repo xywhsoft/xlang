@@ -9,8 +9,8 @@ if ( $Root -eq "" ) {
     $Root = Split-Path -Parent $PSScriptRoot
 }
 
-$releaseDir = Join-Path $Root "release\extlibs"
-$exampleDir = Join-Path $Root "release\examples\extlibs"
+$releaseDir = Join-Path $Root "release\win_x64\extlibs"
+$exampleDir = Join-Path $Root "release\win_x64\examples\extlibs"
 $runnerPath = Join-Path $exampleDir "run_extlibs.bat"
 $dynamicRunnerPath = Join-Path $Root "tools\run_extlib_examples.ps1"
 $expectedMinPackages = 31
@@ -41,8 +41,8 @@ $badPathFragments = @(
     "release\libs",
     "examples/libs",
     "examples\libs",
-    "release/extlibs/x.",
-    "release\extlibs\x."
+    "release/win_x64/extlibs/x.",
+    "release\win_x64\extlibs\x."
 )
 $releaseTextExtensions = New-Object System.Collections.Generic.HashSet[string]([System.StringComparer]::OrdinalIgnoreCase)
 @(".xl", ".json", ".md", ".bat", ".ps1", ".c", ".h", ".hpp", ".cpp") | ForEach-Object {
@@ -317,7 +317,7 @@ if ( $packages.Count -lt $expectedMinPackages ) {
 
 foreach ( $fixture in $fixtureNames ) {
     if ( Test-Path -LiteralPath (Join-Path $releaseDir $fixture) -PathType Container ) {
-        Add-Failure "test fixture must not be published under release/extlibs: $fixture"
+        Add-Failure "test fixture must not be published under release/win_x64/extlibs: $fixture"
     }
 }
 
@@ -330,7 +330,7 @@ $runnerText = Read-Utf8Text $runnerPath
 $dynamicRunnerText = Read-Utf8Text $dynamicRunnerPath
 $hasDynamicRunner =
     $runnerText.Contains("tools\run_extlib_examples.ps1") -and
-    $dynamicRunnerText.Contains("Wires: release/examples/extlibs/*.xl")
+    $dynamicRunnerText.Contains("Wires: release/win_x64/examples/extlibs/*.xl")
 $exampleFiles = @(Get-ChildItem -LiteralPath $exampleDir -File -Filter "*.xl" | Sort-Object Name)
 $exampleTextByFile = @{}
 $importsByPackage = @{}
@@ -354,8 +354,8 @@ foreach ( $file in $exampleFiles ) {
         }
         $importsByPackage[$importName].Add($file.Name) | Out-Null
     }
-    if ( ! $runnerText.Contains("release\examples\extlibs\$($file.Name)") -and
-         ! $runnerText.Contains("release/examples/extlibs/$($file.Name)") -and
+    if ( ! $runnerText.Contains("release\win_x64\examples\extlibs\$($file.Name)") -and
+         ! $runnerText.Contains("release/win_x64/examples/extlibs/$($file.Name)") -and
          ! $hasDynamicRunner ) {
         Add-Failure "release extlib example is not executed by run_extlibs.bat: $($file.Name)"
     }
@@ -388,7 +388,7 @@ $dirsByPackage = @{}
 foreach ( $pkg in $packages ) {
     $name = $pkg.Name
     $manifestPath = Join-Path $pkg.FullName "xlang.package.json"
-    $manifestRel = "release/extlibs/$name/xlang.package.json"
+    $manifestRel = "release/win_x64/extlibs/$name/xlang.package.json"
 
     if ( $name.StartsWith("x.") ) {
         Add-Failure "release extlib package keeps old x. namespace prefix: $name"

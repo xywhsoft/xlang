@@ -2,7 +2,7 @@ param([string]$Root = "", [switch]$ContractsOnly, [string]$Compiler = "", [strin
 $ErrorActionPreference = "Stop"
 if ($Root -eq "") { $Root = Split-Path -Parent $PSScriptRoot }
 $Root = (Resolve-Path -LiteralPath $Root).Path
-$xl = if ($Compiler) { [IO.Path]::GetFullPath($Compiler) } else { Join-Path $Root "release\xl.exe" }
+$xl = if ($Compiler) { [IO.Path]::GetFullPath($Compiler) } else { Join-Path $Root "release\win_x64\xl.exe" }
 $outputDir = Join-Path $Root "build\test"
 [System.IO.Directory]::CreateDirectory($outputDir) | Out-Null
 $batchFailures = New-Object System.Collections.Generic.List[string]
@@ -191,9 +191,9 @@ for legacy in (False,True):
         if (Test-Path -LiteralPath $cPath) { throw "Invalid VFS resource ABI emitted C: $name" }
         } catch { $batchFailures.Add("${relative}: $($_.Exception.Message)"); Write-Output "FAILED: $relative" }
     }
-    foreach ($relative in @('release/examples/stdlib_vfs.xl', 'release/examples/stdlib_fs_file.xl',
-        'release/examples/stdlib_fs_paths_text.xl','release/examples/stdlib_fs_tree_temp.xl',
-        'release/examples/stdlib_fs_walk.xl','release/examples/stdlib_fs_async.xl')) {
+    foreach ($relative in @('release/win_x64/examples/stdlib/io/stdlib_vfs.xl', 'release/win_x64/examples/stdlib/io/stdlib_fs_file.xl',
+        'release/win_x64/examples/stdlib/io/stdlib_fs_paths_text.xl','release/win_x64/examples/stdlib/io/stdlib_fs_tree_temp.xl',
+        'release/win_x64/examples/stdlib/io/stdlib_fs_walk.xl','release/win_x64/examples/stdlib/io/stdlib_fs_async.xl')) {
         try {
         $example = Join-Path $Root $relative
         $exampleExe = Join-Path $outputDir ([IO.Path]::GetFileNameWithoutExtension($relative) + '.example.exe')

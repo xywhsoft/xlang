@@ -4,7 +4,7 @@ $ErrorActionPreference = 'Stop'
 if (!$Root) { $Root = Split-Path -Parent $PSScriptRoot }
 $Root = (Resolve-Path -LiteralPath $Root).Path
 . (Join-Path $PSScriptRoot 'extlib_smoke_process.ps1')
-$xl = Join-Path $Root 'release/xl.exe'
+$xl = Join-Path $Root 'release/win_x64/xl.exe'
 $gcc = (Get-Command gcc -CommandType Application -ErrorAction Stop | Select-Object -First 1).Source
 $gccHash = (Get-FileHash -LiteralPath $gcc).Hash
 $workRoot = Join-Path $Root 'build/test/argon2_bloom_guard'
@@ -19,20 +19,20 @@ $sources = @{}
 
 # 固定宿主与库输入；分配故障只注入独立 C 进程，不改变 xl.dll 的内存策略。
 function InputPaths {
-    @('release/xl.exe','release/xl.dll','release/xlc.dll','lib/xrt/xrt.h','lib/xruntime/xruntime.h',
-    'release/include/xrt_decl.h','test/support/extlib_scalar_runtime.c',
+    @('release/win_x64/xl.exe','release/win_x64/xl.dll','release/win_x64/xlc.dll','lib/xrt/xrt.h','lib/xruntime/xruntime.h',
+    'release/win_x64/include/xrt_decl.h','test/support/extlib_scalar_runtime.c',
     'test/cases/extlib_argon2_bloom_alloc.c','tools/check_extlib_argon2_bloom.ps1',
     'tools/extlib_smoke_process.ps1','tools/xlir_native_process.ps1','tools/check_extlib_argon2_bloom.sh')
     foreach ($name in @('argon2','bloom')) {
-        Get-ChildItem (Join-Path $Root "release/extlibs/$name") -Recurse -File |
+        Get-ChildItem (Join-Path $Root "release/win_x64/extlibs/$name") -Recurse -File |
             ForEach-Object { $_.FullName.Substring($Root.Length + 1).Replace('\','/') }
-        @("test/cases/extlib_$name.xl","release/examples/extlibs/$name.xl",
-          "release/examples/extlibs/${name}_basic.xl","release/examples/extlibs/${name}_c.c",
-          "release/examples/extlibs/${name}_basic.expected.txt")
+        @("test/cases/extlib_$name.xl","release/win_x64/examples/extlibs/$name.xl",
+          "release/win_x64/examples/extlibs/${name}_basic.xl","release/win_x64/examples/extlibs/${name}_c.c",
+          "release/win_x64/examples/extlibs/${name}_basic.expected.txt")
     }
 }
 foreach ($name in @('argon2','bloom')) {
-    $package = "release/extlibs/$name"
+    $package = "release/win_x64/extlibs/$name"
     $manifest = Get-Content (Join-Path $Root "$package/xlang.package.json") -Raw -Encoding UTF8 | ConvertFrom-Json
     $sources[$name] = @($manifest.artifact.cSources | ForEach-Object { "$package/$_" })
 }
@@ -70,15 +70,15 @@ try {
             $objects[$name] += $object
             ++$index
         }
-        $test = "release/extlibs/$name/test/test_$name.c"
+        $test = "release/win_x64/extlibs/$name/test/test_$name.c"
         $exe = Join-Path $work "$name-c.exe"
         $testFlags = if ($name -eq 'argon2') { @('-DNDEBUG') } else { @() }
         $null = Check "$name-c-build" $gcc ($flags + $testFlags + @($test) + $objects[$name] + $links + @('-o',$exe))
         $null = Check "$name-c" $exe @()
         $null = Check "$name-c-jit" $xl (@('run',$test) + $sources[$name])
 
-        $golden = [IO.File]::ReadAllText((Join-Path $Root "release/examples/extlibs/${name}_basic.expected.txt")).Replace("`r`n","`n").TrimEnd("`n")
-        $example = "release/examples/extlibs/${name}_c.c"
+        $golden = [IO.File]::ReadAllText((Join-Path $Root "release/win_x64/examples/extlibs/${name}_basic.expected.txt")).Replace("`r`n","`n").TrimEnd("`n")
+        $example = "release/win_x64/examples/extlibs/${name}_c.c"
         $text = Check "$name-example-c" $xl @('run',$example)
         if ($text -cne $golden) { throw "$name C example differs from golden output" }
         $binary = Join-Path $work "$name-example-c.exe"
@@ -97,15 +97,15 @@ try {
 
     # 逐点OOM测试只在独立原生进程运行，避免修改动态宿主的分配策略。
     $phc = Join-Path $work 'argon2-phc.exe'
-    $null = Check 'argon2-phc-c-build' $gcc ($flags + @('-DNDEBUG','release/extlibs/argon2/test/test_argon2_phc.c') + $objects.argon2 + $links + @('-o',$phc))
+    $null = Check 'argon2-phc-c-build' $gcc ($flags + @('-DNDEBUG','release/win_x64/extlibs/argon2/test/test_argon2_phc.c') + $objects.argon2 + $links + @('-o',$phc))
     $null = Check 'argon2-phc-c' $phc @()
-    $golden = [IO.File]::ReadAllText((Join-Path $Root 'release/extlibs/argon2/examples/phc_policy.expected.txt')).Replace("`r`n","`n").TrimEnd("`n")
+    $golden = [IO.File]::ReadAllText((Join-Path $Root 'release/win_x64/extlibs/argon2/examples/phc_policy.expected.txt')).Replace("`r`n","`n").TrimEnd("`n")
     $binary = Join-Path $work 'argon2-phc-policy-gcc.exe'
-    $null = Check 'argon2-phc-policy-gcc-build' $gcc ($flags + @('-DNDEBUG','release/extlibs/argon2/examples/phc_policy_c.c') + $objects.argon2 + $links + @('-o',$binary))
+    $null = Check 'argon2-phc-policy-gcc-build' $gcc ($flags + @('-DNDEBUG','release/win_x64/extlibs/argon2/examples/phc_policy_c.c') + $objects.argon2 + $links + @('-o',$binary))
     $text = Check 'argon2-phc-policy-gcc' $binary @()
     if ($text -cne $golden) { throw 'PHC C example differs from golden' }
     foreach ($language in @('c','xl')) {
-        $source = if ($language -eq 'c') { 'release/extlibs/argon2/examples/phc_policy_c.c' } else { 'release/extlibs/argon2/examples/phc_policy.xl' }
+        $source = if ($language -eq 'c') { 'release/win_x64/extlibs/argon2/examples/phc_policy_c.c' } else { 'release/win_x64/extlibs/argon2/examples/phc_policy.xl' }
         $text = Check "argon2-phc-policy-$language-jit" $xl @('run',$source)
         if ($text -cne $golden) { throw "$language PHC example JIT differs from golden" }
         $binary = Join-Path $work "argon2-phc-policy-$language.exe"
@@ -144,9 +144,9 @@ try {
         $header = if ($name -eq 'argon2') { 'argon2_native.h' } else { 'bloom.h' }
         $prefix = if ($name -eq 'argon2') { 'xargon2_' } else { '(?:xbloom_|xcounting_bloom_)' }
         $decls = @(Get-Content $module -Encoding UTF8 | Where-Object { $_ -match "^extern .*\b${prefix}[a-z_]+\(" })
-        $text = Get-Content (Join-Path $Root "release/extlibs/$name/include/$header") -Raw -Encoding UTF8
+        $text = Get-Content (Join-Path $Root "release/win_x64/extlibs/$name/include/$header") -Raw -Encoding UTF8
         $symbols = @([regex]::Matches($text,"\b${prefix}[a-z_]+(?=\()") | ForEach-Object Value | Sort-Object -Unique)
-        $binding = Get-Content (Join-Path $Root "release/extlibs/$name/src/$name.xl") -Raw -Encoding UTF8
+        $binding = Get-Content (Join-Path $Root "release/win_x64/extlibs/$name/src/$name.xl") -Raw -Encoding UTF8
         $declared = @([regex]::Matches($binding,('extern\s+"(?<symbol>' + $prefix + '[a-z_]+)"')) |
             ForEach-Object { $_.Groups['symbol'].Value } | Sort-Object -Unique)
         $emitted = @([regex]::Matches(($decls -join "`n"),"\b${prefix}[a-z_]+(?=\()") | ForEach-Object Value | Sort-Object -Unique)
@@ -158,14 +158,14 @@ try {
         $abi = Join-Path $work "$name-abi.c"
         $abiCounts[$name] = $decls.Count
         [IO.File]::WriteAllText($abi,"#include <stdint.h>`n#include `"$header`"`n" + ($decls -join "`n"),$utf8)
-        $null = Check "$name-generated-prototypes" $gcc ($flags + @("-Irelease/extlibs/$name/include",'-fsyntax-only',$abi))
+        $null = Check "$name-generated-prototypes" $gcc ($flags + @("-Irelease/win_x64/extlibs/$name/include",'-fsyntax-only',$abi))
         $null = Check "$name-xlang-jit" $xl @('run',$case)
         $aot = Join-Path $work "$name-xlang.exe"
         $null = Check "$name-xlang-build" $xl @('build',$case,'-o',$aot)
         $null = Check "$name-xlang-aot" $aot @()
 
-        $golden = [IO.File]::ReadAllText((Join-Path $Root "release/examples/extlibs/${name}_basic.expected.txt")).Replace("`r`n","`n").TrimEnd("`n")
-        $example = "release/examples/extlibs/${name}_basic.xl"
+        $golden = [IO.File]::ReadAllText((Join-Path $Root "release/win_x64/examples/extlibs/${name}_basic.expected.txt")).Replace("`r`n","`n").TrimEnd("`n")
+        $example = "release/win_x64/examples/extlibs/${name}_basic.xl"
         $text = Check "$name-example-xl" $xl @('run',$example)
         if ($text -cne $golden) { throw "$name XLang example differs from golden output" }
         $binary = Join-Path $work "$name-example-xl.exe"
@@ -174,19 +174,19 @@ try {
         if ($text -cne $golden) { throw "$name XLang AOT example differs from golden output" }
     }
     foreach ($name in @('argon2','bloom')) {
-        $null = Check "$name-tutorial" $xl @('run',"release/examples/extlibs/$name.xl") 180
+        $null = Check "$name-tutorial" $xl @('run',"release/win_x64/examples/extlibs/$name.xl") 180
     }
-    $ownedCase = 'release/extlibs/argon2/test/ownership.xl'
+    $ownedCase = 'release/win_x64/extlibs/argon2/test/ownership.xl'
     $null = Check 'argon2-ownership-jit' $xl @('run',$ownedCase)
     $ownedBinary = Join-Path $work 'argon2-owned.exe'
     $null = Check 'argon2-ownership-build' $xl @('build',$ownedCase,'-o',$ownedBinary)
     $null = Check 'argon2-ownership-aot' $ownedBinary @()
-    $phcCase = 'release/extlibs/argon2/test/phc.xl'
+    $phcCase = 'release/win_x64/extlibs/argon2/test/phc.xl'
     $null = Check 'argon2-phc-jit' $xl @('run',$phcCase)
     $phcBinary = Join-Path $work 'argon2-phc-language.exe'
     $null = Check 'argon2-phc-build' $xl @('build',$phcCase,'-o',$phcBinary)
     $null = Check 'argon2-phc-aot' $phcBinary @()
-    $nulKeys = 'release/extlibs/bloom/test/nul_keys.xl'
+    $nulKeys = 'release/win_x64/extlibs/bloom/test/nul_keys.xl'
     $null = Check 'bloom-nul-keys-jit' $xl @('run',$nulKeys)
     $nulBinary = Join-Path $work 'bloom-nul-keys.exe'
     $null = Check 'bloom-nul-keys-build' $xl @('build',$nulKeys,'-o',$nulBinary)

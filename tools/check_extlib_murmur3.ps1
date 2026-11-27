@@ -3,24 +3,24 @@ $ErrorActionPreference = 'Stop'
 if (!$Root) { $Root = Split-Path -Parent $PSScriptRoot }
 $Root = (Resolve-Path -LiteralPath $Root).Path
 . (Join-Path $PSScriptRoot 'extlib_smoke_process.ps1')
-$xl = Join-Path $Root 'release/xl.exe'
+$xl = Join-Path $Root 'release/win_x64/xl.exe'
 $gcc = (Get-Command gcc -CommandType Application -ErrorAction Stop).Source
 $work = Join-Path $Root 'build/test/murmur3_guard'
 [IO.Directory]::CreateDirectory($work) | Out-Null
 $utf8 = [Text.UTF8Encoding]::new($false)
 $checks = [Collections.Generic.List[object]]::new()
 $hashes = [ordered]@{}
-$manifest = Get-Content (Join-Path $Root 'release/extlibs/murmur3/xlang.package.json') -Raw -Encoding UTF8 | ConvertFrom-Json
-$sources = @($manifest.artifact.cSources | ForEach-Object { "release/extlibs/murmur3/$_" })
+$manifest = Get-Content (Join-Path $Root 'release/win_x64/extlibs/murmur3/xlang.package.json') -Raw -Encoding UTF8 | ConvertFrom-Json
+$sources = @($manifest.artifact.cSources | ForEach-Object { "release/win_x64/extlibs/murmur3/$_" })
 $cases = @('extlib_murmur3','extlib_murmur3_progress')
 function Inputs {
-    @('.gitattributes','release/xl.exe','release/xl.dll','release/xlc.dll','lib/xrt/xrt.h','lib/xruntime/xruntime.h',
-      'release/include/xrt_decl.h','release/include/xruntime_decl.h','test/support/extlib_codec_runtime.c',
+    @('.gitattributes','release/win_x64/xl.exe','release/win_x64/xl.dll','release/win_x64/xlc.dll','lib/xrt/xrt.h','lib/xruntime/xruntime.h',
+      'release/win_x64/include/xrt_decl.h','release/win_x64/include/xruntime_decl.h','test/support/extlib_codec_runtime.c',
       'tools/check_extlib_murmur3.ps1','tools/check_extlib_murmur3.sh','tools/extlib_smoke_process.ps1',
       'tools/xlir_native_process.ps1','tools/run_extlib_c.ps1','test/featured_extlibs.json','test/suites/11_featured_extlibs_rc.bat',
-      'release/examples/extlibs/murmur3.xl','release/examples/extlibs/murmur3_basic.xl','release/examples/extlibs/murmur3_basic.expected.txt','release/examples/extlibs/murmur3.expected.txt') +
+      'release/win_x64/examples/extlibs/algo/murmur3.xl','release/win_x64/examples/extlibs/algo/murmur3_basic.xl','release/win_x64/examples/extlibs/algo/murmur3_basic.expected.txt','release/win_x64/examples/extlibs/algo/murmur3.expected.txt') +
       @($cases | ForEach-Object { "test/cases/$_.xl" }) +
-      @(Get-ChildItem (Join-Path $Root 'release/extlibs/murmur3') -Recurse -File |
+      @(Get-ChildItem (Join-Path $Root 'release/win_x64/extlibs/murmur3') -Recurse -File |
         ForEach-Object { $_.FullName.Substring($Root.Length + 1).Replace('\','/') }) | Sort-Object -Unique
 }
 foreach ($path in @(Inputs)) { $hashes[$path] = (Get-FileHash -LiteralPath (Join-Path $Root $path)).Hash }
@@ -39,7 +39,7 @@ $runtime = Join-Path $work 'runtime.o'
 $outcome = 'failed'
 $decls = @()
 try {
-    $pkg = Join-Path $Root 'release/extlibs/murmur3'
+    $pkg = Join-Path $Root 'release/win_x64/extlibs/murmur3'
     $null = Check 'runtime' $gcc ($baseFlags + @('-DXRT_MODULE_THREAD','-DXRT_MODULE_ATOMIC','-DXRT_MODULE_CODEC_HEX','-DXRT_MODULE_BUFFER','-DXRT_MODULE_DIR','-DXRT_MODULE_FILE_WHOLE','-c','test/support/extlib_codec_runtime.c','-o',$runtime))
     for ($i=0; $i -lt $sources.Count; ++$i) {
         $obj = Join-Path $work "source-$i.o"
@@ -48,15 +48,15 @@ try {
     }
     $links = @($runtime,'-lWs2_32','-lAdvapi32','-lm')
     $standalone = Join-Path $work 'standalone.exe'
-    $null = Check 'standalone-build' $gcc ($baseFlags + @('release/extlibs/murmur3/test/test_murmur3_standalone.c',$objects[0],$objects[1],'-lWs2_32','-lAdvapi32','-lm','-o',$standalone))
+    $null = Check 'standalone-build' $gcc ($baseFlags + @('release/win_x64/extlibs/murmur3/test/test_murmur3_standalone.c',$objects[0],$objects[1],'-lWs2_32','-lAdvapi32','-lm','-o',$standalone))
     $null = Check 'standalone' $standalone @()
     foreach ($name in @('test_murmur3','test_murmur3_native')) {
         $selected = if ($name -eq 'test_murmur3') { @() } else { $objects }
         $binary = Join-Path $work "$name.exe"
-        $null = Check "$name-build" $gcc ($flags + @("release/extlibs/murmur3/test/$name.c") + $selected + $links + @('-o',$binary))
+        $null = Check "$name-build" $gcc ($flags + @("release/win_x64/extlibs/murmur3/test/$name.c") + $selected + $links + @('-o',$binary))
         $null = Check $name $binary @()
     }
-    $core = 'release/extlibs/murmur3/test/test_murmur3.c'
+    $core = 'release/win_x64/extlibs/murmur3/test/test_murmur3.c'
     $null = Check 'core-c-jit' $xl @('run',$core,'--inc-path','lib/xrt')
     $null = Check 'core-c-package-runner' (Get-Process -Id $PID).Path @('-NoProfile','-ExecutionPolicy','Bypass','-File','tools/run_extlib_c.ps1','-Package','murmur3','-Source',$core)
     foreach ($name in $cases) {
@@ -74,11 +74,11 @@ try {
     if (@(Compare-Object $expected $actual).Count -or $decls.Count -ne $expected.Count) { throw 'Generated ABI coverage incomplete' }
     $abi = Join-Path $work 'abi.c'
     [IO.File]::WriteAllText($abi,"#define XRT_MODULE_VALUE`n#include <stdint.h>`n#include `"murmur3_native.h`"`n"+($decls -join "`n"),$utf8)
-    $null = Check 'generated-prototypes' $gcc ($flags + @('-Irelease/extlibs/murmur3/include','-fsyntax-only',$abi))
+    $null = Check 'generated-prototypes' $gcc ($flags + @('-Irelease/win_x64/extlibs/murmur3/include','-fsyntax-only',$abi))
 
     foreach ($name in @('murmur3','murmur3_basic')) {
-        $golden = [IO.File]::ReadAllText((Join-Path $Root "release/examples/extlibs/$name.expected.txt")).Replace("`r`n","`n").TrimEnd("`n")
-        $case = "release/examples/extlibs/$name.xl"; $binary = Join-Path $work "$name-example.exe"
+        $golden = [IO.File]::ReadAllText((Join-Path $Root "release/win_x64/examples/extlibs/$name.expected.txt")).Replace("`r`n","`n").TrimEnd("`n")
+        $case = "release/win_x64/examples/extlibs/$name.xl"; $binary = Join-Path $work "$name-example.exe"
         $output = Check "$name-example-jit" $xl @('run',$case)
         $null = Check "$name-example-build" $xl @('build',$case,'-o',$binary)
         $aot = Check "$name-example-aot" $binary @()
@@ -86,8 +86,8 @@ try {
     }
     foreach ($name in @('basic','files')) {
         $stem = if ($name -eq 'basic') { 'murmur3_basic' } else { 'murmur3' }
-        $golden = [IO.File]::ReadAllText((Join-Path $Root "release/examples/extlibs/$stem.expected.txt")).Replace("`r`n","`n").TrimEnd("`n")
-        $example = "release/extlibs/murmur3/examples/$name.c"; $binary = Join-Path $work "c-$name.exe"
+        $golden = [IO.File]::ReadAllText((Join-Path $Root "release/win_x64/examples/extlibs/$stem.expected.txt")).Replace("`r`n","`n").TrimEnd("`n")
+        $example = "release/win_x64/extlibs/murmur3/examples/$name.c"; $binary = Join-Path $work "c-$name.exe"
         $null = Check "c-$name-build" $gcc ($flags + @($example) + $objects + $links + @('-o',$binary))
         $c = Check "c-$name" $binary @()
         $jit = Check "c-$name-jit" $xl (@('run',$example) + $sources + @('--inc-path','lib/xrt','--inc-path','lib/xruntime'))

@@ -9,11 +9,11 @@ $work=if ($WorkDirectory) {[IO.Path]::GetFullPath($WorkDirectory)} else {Join-Pa
 . (Join-Path $PSScriptRoot 'extlib_smoke_process.ps1')
 $xl=Join-Path $RuntimeDirectory 'xl.exe'
 $gcc=(Get-Command gcc -CommandType Application -ErrorAction Stop | Select-Object -First 1).Source
-$pkg='release/extlibs/chardet'
+$pkg='release/win_x64/extlibs/chardet'
 $manifest=Get-Content (Join-Path $Root "$pkg/xlang.package.json") -Raw | ConvertFrom-Json
 $sources=@($manifest.artifact.cSources | ForEach-Object {"$pkg/$_"})
 $flags=@('-std=c11','-O2','-Wall','-Wextra','-Werror','-Ilib/xrt',"-I$pkg/include")
-$cases=@('test/cases/extlib_chardet.xl',"$pkg/test/boundaries.xl",'release/examples/extlibs/chardet.xl','release/examples/extlibs/chardet_basic.xl')
+$cases=@('test/cases/extlib_chardet.xl',"$pkg/test/boundaries.xl",'release/win_x64/examples/extlibs/data_format/chardet.xl','release/win_x64/examples/extlibs/data_format/chardet_basic.xl')
 $checks=[Collections.Generic.List[object]]::new()
 $inputs=[ordered]@{}
 $utf8=[Text.UTF8Encoding]::new($false)
@@ -23,12 +23,12 @@ function InputPaths {
     Get-ChildItem (Join-Path $RuntimeDirectory 'include') -Recurse -File | ForEach-Object FullName
     Get-ChildItem (Join-Path $Root $pkg) -Recurse -File | ForEach-Object FullName
     foreach($file in $cases+@('lib/xrt/xrt.h','lib/xruntime/xruntime.h','test/support/extlib_chardet_runtime.c','test/support/extlib_runtime_host.c',
-        'release/examples/extlibs/chardet_basic.expected.txt','tools/check_extlib_chardet.sh',
+        'release/win_x64/examples/extlibs/data_format/chardet_basic.expected.txt','tools/check_extlib_chardet.sh',
         'tools/run_extlib_c.ps1','tools/extlib_smoke_process.ps1','tools/xlir_native_process.ps1')) {Join-Path $Root $file}
 }
 foreach($path in @(InputPaths | Sort-Object -Unique)) {$inputs[$path]=(Get-FileHash -LiteralPath $path).Hash}
 function Check([string]$name,[string]$program,[string[]]$arguments) {
-    $r=Invoke-ExtlibSmokeProcess $program $arguments $Root 120 @{XLANG_PACKAGE_PATH=(Join-Path $Root 'release/extlibs')}
+    $r=Invoke-ExtlibSmokeProcess $program $arguments $Root 120 @{XLANG_PACKAGE_PATH=(Join-Path $Root 'release/win_x64/extlibs')}
     $checks.Add([ordered]@{name=$name;program=$program;arguments=$arguments;result=$r})
     Write-Host "[chardet] ${name}: $($r.status)"
     if($r.status -ne 'pass') {throw "$name failed: $($r.stderr)`n$($r.stdout)"}
@@ -94,7 +94,7 @@ try {
             '-I',(Join-Path $RuntimeDirectory 'include'),'test/support/extlib_runtime_host.c',$library,'-o',$hostExe)
         $null=Check "$dll-host-reuse" $hostExe @($Root,(Join-Path $Root "$pkg/test/boundaries.xl"))
     }
-    $golden=(Get-Content (Join-Path $Root 'release/examples/extlibs/chardet_basic.expected.txt') -Raw).Replace("`r`n","`n").TrimEnd("`n")
+    $golden=(Get-Content (Join-Path $Root 'release/win_x64/examples/extlibs/data_format/chardet_basic.expected.txt') -Raw).Replace("`r`n","`n").TrimEnd("`n")
     foreach($output in @($xlOutput,$cOutput,$cJit,$cAot,$helper)) {if($output -cne $golden) {throw 'Paired example differs from golden'}}
     $outcome='passed-scoped'
 } finally {

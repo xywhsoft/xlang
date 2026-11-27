@@ -1,4 +1,4 @@
-param(
+﻿param(
     [string]$Root = ""
 )
 
@@ -8,7 +8,7 @@ if ( $Root -eq "" ) {
     $Root = Split-Path -Parent $PSScriptRoot
 }
 
-$exampleDir = Join-Path $Root "release\examples"
+$exampleDir = Join-Path $Root "release\win_x64\examples"
 $testSuiteDir = Join-Path $Root "test\suites"
 $minExampleFiles = 73
 $wiringFiles = @(
@@ -27,14 +27,22 @@ $wiringFiles = @(
     "tools\run_game_examples.ps1",
     "tools\run_xge_examples.ps1",
     "tools\run_xui_examples.ps1",
-    "release\examples\apps\run_apps.bat",
-    "release\examples\extlibs\run_extlibs.bat",
-    "release\examples\games\run_games.bat",
-    "release\examples\xge\run_xge_examples.bat",
-    "release\examples\xui\run_xui_examples.bat",
-    "release\examples\feature_suite\run_feature_suite.bat"
+    "release\win_x64\examples\apps/run_apps.bat",
+    "release\win_x64\examples\extlibs/run_extlibs.bat",
+    "release\win_x64\examples\games/run_games.bat",
+    "release\win_x64\examples\xui/run_xui_examples.bat",
+    "release\win_x64\examples\feature_suite/run_feature_suite.bat"
 )
-$draftExampleFiles = @()
+$draftExampleFiles = @(
+    "release/win_x64/examples/http_apps/stdlib_http_client.xl",
+    "release/win_x64/examples/http_apps/stdlib_http_server.xl",
+    "release/win_x64/examples/http_apps/stdlib_http_server_app.xl",
+    "release/win_x64/examples/http_apps/stdlib_query.xl",
+    "release/win_x64/examples/http_apps/stdlib_url.xl",
+    "release/win_x64/examples/http_apps/url_batch_builder.xl",
+    "release/win_x64/examples/stdlib/text/stdlib_regex.xl",
+    "release/win_x64/examples/embedding/stdlib_tcc_xlang_embed.xl"
+)
 
 $failures = New-Object System.Collections.Generic.List[string]
 
@@ -89,24 +97,39 @@ function Read-TestRegressionText()
 
 function Test-WildcardCovered($relative, $text)
 {
-    if ( $relative -like "release/examples/feature_suite/*.xl" ) {
+    if ( $relative -like "release/win_x64/examples/feature_suite/*.xl" ) {
         return $true
     }
-    if ( $relative -like "release/examples/tutorial/*.xl" ) {
+    if ( $relative -like "release/win_x64/examples/tutorial/*.xl" ) {
         return $true
     }
-    if ( $relative -like "release/examples/apps/*.xl" ) {
+    if ( $relative -like "release/win_x64/examples/apps/*.xl" ) {
         return $true
     }
-    if ( $relative -like "release/examples/stdlib_*.xl" ) {
+    if ( $relative -like "release/win_x64/examples/stdlib/*/stdlib_*.xl" ) {
+        return $true
+    }
+    if ( $relative -like "release/win_x64/examples/games/*.xl" ) {
+        return $true
+    }
+    if ( $relative -like "release/win_x64/examples/xge/*.xl" ) {
+        return $true
+    }
+    if ( $relative -like "release/win_x64/examples/xge/*/*.xl" ) {
+        return $true
+    }
+    if ( $relative -like "release/win_x64/examples/xui/*/*.xl" ) {
+        return $true
+    }
+    if ( $relative -like "release/win_x64/examples/templates/*/*.xl" ) {
         return $true
     }
 
     $patterns = [regex]::Matches(
         $text,
-        'release[\\/]+examples[\\/]+([^"''\s>]*[*?][^"''\s>]*\.xl)')
+        'release[\\/]+win_x64[\\/]+examples[\\/]+([^"''\s>]*[*?][^"''\s>]*\.xl)')
     foreach ( $patternMatch in $patterns ) {
-        $pattern = Normalize-ExamplePath ("release/examples/" + $patternMatch.Groups[1].Value)
+        $pattern = Normalize-ExamplePath ("release/win_x64/examples/" + $patternMatch.Groups[1].Value)
         if ( $relative -like $pattern ) {
             return $true
         }
@@ -158,24 +181,27 @@ function Test-ExampleReadmeIndex($relativeDir)
 
     $readme = (Read-Utf8Text $readmePath).Replace("`r`n", "`n").Replace("`r", "`n")
     $files = @(
-        Get-ChildItem -LiteralPath $dir -File -Filter "*.xl" |
-            Where-Object {
-                $relative = ($relativeDir + "/" + $_.Name).Replace("\", "/")
-                ! (Test-DraftExample $relative)
-            } |
+        Get-ChildItem -LiteralPath $dir -File -Filter "*.xl" -Recurse |
             Sort-Object Name
     )
     $known = New-Object System.Collections.Generic.HashSet[string]
 
     foreach ( $file in $files ) {
         $known.Add($file.Name) | Out-Null
-        if ( ! $readme.Contains($file.Name) ) {
+        $relative = ($relativeDir + "/" + $file.Name).Replace("\", "/")
+        if ( ! (Test-DraftExample $relative) -and ! $readme.Contains($file.Name) ) {
             Add-Failure "example README does not list ${relativeDir}/$($file.Name)"
         }
     }
 
     $matches = [regex]::Matches($readme, '[A-Za-z0-9_]+[.]xl')
     foreach ( $match in $matches ) {
+        if ( $match.Index -gt 0 ) {
+            $prefix = $readme[$match.Index - 1]
+            if ( $prefix -eq "/" -or $prefix -eq "\" -or $prefix -eq "%" ) {
+                continue
+            }
+        }
         $name = $match.Value
         if ( ! $known.Contains($name) ) {
             Add-Failure "example README references missing file ${relativeDir}/${name}"
@@ -188,7 +214,7 @@ function Test-RootExampleReadmeIndex()
     $readmePath = Join-Path $exampleDir "README.md"
 
     if ( ! (Test-Path -LiteralPath $readmePath -PathType Leaf) ) {
-        Add-Failure "examples README missing: release/examples/README.md"
+        Add-Failure "examples README missing: release/win_x64/examples/README.md"
         return
     }
 
@@ -199,7 +225,7 @@ function Test-RootExampleReadmeIndex()
     foreach ( $file in $files ) {
         $known.Add($file.Name) | Out-Null
         if ( ! $readme.Contains($file.Name) ) {
-            Add-Failure "examples README does not list release/examples/$($file.Name)"
+            Add-Failure "examples README does not list release/win_x64/examples/$($file.Name)"
         }
     }
 
@@ -213,7 +239,7 @@ function Test-RootExampleReadmeIndex()
         }
         $name = $match.Value
         if ( ! $known.Contains($name) ) {
-            Add-Failure "examples README references missing root example release/examples/${name}"
+            Add-Failure "examples README references missing root example release/win_x64/examples/${name}"
         }
     }
 
@@ -223,7 +249,7 @@ function Test-RootExampleReadmeIndex()
     foreach ( $file in $cFiles ) {
         $knownC.Add($file.Name) | Out-Null
         if ( ! $readme.Contains($file.Name) ) {
-            Add-Failure "examples README does not list release/examples/$($file.Name)"
+            Add-Failure "examples README does not list release/win_x64/examples/$($file.Name)"
         }
     }
 
@@ -237,7 +263,7 @@ function Test-RootExampleReadmeIndex()
         }
         $name = $match.Value
         if ( ! $knownC.Contains($name) ) {
-            Add-Failure "examples README references missing root C host release/examples/${name}"
+            Add-Failure "examples README references missing root C host release/win_x64/examples/${name}"
         }
     }
 
@@ -254,7 +280,7 @@ function Test-RootExampleCoverageModes()
     $testBatPath = Join-Path $Root "test.bat"
 
     if ( ! (Test-Path -LiteralPath $readmePath -PathType Leaf) ) {
-        Add-Failure "examples README missing: release/examples/README.md"
+        Add-Failure "examples README missing: release/win_x64/examples/README.md"
         return
     }
 
@@ -264,6 +290,12 @@ function Test-RootExampleCoverageModes()
     }
 
     $readme = (Read-Utf8Text $readmePath).Replace("`r`n", "`n").Replace("`r", "`n")
+    foreach ( $categoryReadme in @("language", "embedding") ) {
+        $categoryPath = Join-Path $exampleDir (Join-Path $categoryReadme "README.md")
+        if ( Test-Path -LiteralPath $categoryPath -PathType Leaf ) {
+            $readme = $readme + "`n" + (Read-Utf8Text $categoryPath)
+        }
+    }
     $testText = Read-TestRegressionText
     $coverageMarker = [string]::Concat([char]0x56DE, [char]0x5F52, [char]0xFF1A)
     $modeMap = [ordered]@{
@@ -311,46 +343,46 @@ function Test-RootExampleCoverageModes()
         "class_c_export.xl" = @("cgen", "abi")
     }
 
-    $rootExamples = @(Get-ChildItem -LiteralPath $exampleDir -File -Filter "*.xl" | Where-Object { $_.Name -notlike "stdlib_*.xl" } | Sort-Object Name)
+    $rootExamples = @(Get-ChildItem -LiteralPath (Join-Path $exampleDir "language"),(Join-Path $exampleDir "embedding") -File -Filter "*.xl" -Recurse | Where-Object { $_.Name -notlike "stdlib_*" } | Sort-Object Name)
     $rootNames = New-Object System.Collections.Generic.HashSet[string]
 
     foreach ( $example in $rootExamples ) {
         $rootNames.Add($example.Name) | Out-Null
         if ( ! $modeMap.Contains($example.Name) ) {
-            Add-Failure "root example has no coverage mode declaration in guard: release/examples/$($example.Name)"
+            Add-Failure "root example has no coverage mode declaration in guard: release/win_x64/examples/$($example.Name)"
         }
     }
 
     foreach ( $name in $modeMap.Keys ) {
         if ( ! $rootNames.Contains($name) ) {
-            Add-Failure "root example coverage mode guard references missing file: release/examples/${name}"
+            Add-Failure "root example coverage mode guard references missing file: release/win_x64/examples/${name}"
         }
     }
 
     foreach ( $name in $modeMap.Keys ) {
-        $readmePattern = '(?m)^-\s+`' + [regex]::Escape($name) + '`[^\r\n]*$'
+        $readmePattern = '(?m)^-\s+[`\[]' + [regex]::Escape($name) + '[\]`][^\r\n]*$'
         $match = [regex]::Match($readme, $readmePattern)
 
         if ( ! $match.Success ) {
-            Add-Failure "examples README does not declare coverage modes for release/examples/${name}"
+            Add-Failure "examples README does not declare coverage modes for release/win_x64/examples/${name}"
             continue
         }
 
         $lineText = $match.Value
         if ( ! $lineText.Contains($coverageMarker) ) {
-            Add-Failure "examples README coverage line for release/examples/${name} misses coverage marker"
+            Add-Failure "examples README coverage line for release/win_x64/examples/${name} misses coverage marker"
             continue
         }
 
         foreach ( $mode in $modeMap[$name] ) {
             $modeToken = [string]::Concat([char]0x60, $mode, [char]0x60)
             if ( ! $lineText.Contains($modeToken) ) {
-                Add-Failure "examples README coverage for release/examples/${name} misses mode: $mode"
+                Add-Failure "examples README coverage for release/win_x64/examples/${name} misses mode: $mode"
             }
 
-            $commandPattern = '(?m)release\\xl[.]exe\s+' + [regex]::Escape($mode) + '\s+release\\examples\\' + [regex]::Escape($name)
+            $commandPattern = '(?m)release\\win_x64\\xl[.]exe\s+' + [regex]::Escape($mode) + '\s+release\\win_x64\\examples\\[A-Za-z0-9_\\/]+\\' + [regex]::Escape($name)
             if ( ! ($testText -match $commandPattern) ) {
-                Add-Failure "test.bat/test suites do not cover release/examples/${name} with mode: $mode"
+                Add-Failure "test.bat/test suites do not cover release/win_x64/examples/${name} with mode: $mode"
             }
         }
     }
@@ -373,7 +405,7 @@ function Test-ExampleExecutionIndex($relativeDir, $batchRelative, $exportOnlyNam
 
     $batchText = Read-Utf8Text $batchPath
     $files = @(
-        Get-ChildItem -LiteralPath $dir -File -Filter "*.xl" |
+        Get-ChildItem -LiteralPath $dir -File -Filter "*.xl" -Recurse |
             Where-Object {
                 $relative = ($relativeDir + "/" + $_.Name).Replace("\", "/")
                 -not (Test-DraftExample $relative)
@@ -385,13 +417,17 @@ function Test-ExampleExecutionIndex($relativeDir, $batchRelative, $exportOnlyNam
     foreach ( $file in $files ) {
         $known.Add($file.Name) | Out-Null
         $wildcardMarker = "Wires: " + (Normalize-ExamplePath $relativeDir) + "/*.xl"
-        if ( ! $batchText.Contains($file.Name) -and ! $batchText.Contains($wildcardMarker) ) {
+        $wildcardMarkerDeep = "Wires: " + (Normalize-ExamplePath $relativeDir) + "/*/*.xl"
+        if ( ! $batchText.Contains($file.Name) -and ! $batchText.Contains($wildcardMarker) -and ! $batchText.Contains($wildcardMarkerDeep) ) {
             Add-Failure "example batch does not explicitly execute or export ${relativeDir}/$($file.Name)"
         }
     }
 
     $matches = [regex]::Matches($batchText, '[A-Za-z0-9_]+[.]xl')
     foreach ( $match in $matches ) {
+        if ( $match.Index -gt 0 -and $batchText[$match.Index - 1] -eq "%" ) {
+            continue
+        }
         $name = $match.Value
         if ( ! $known.Contains($name) ) {
             Add-Failure "example batch references missing file ${relativeDir}/${name}"
@@ -453,9 +489,9 @@ foreach ( $example in $examples ) {
 }
 
 $referenced = New-Object System.Collections.Generic.HashSet[string]
-$matches = [regex]::Matches($wiringText, 'release[\\/]+examples[\\/]+([^"''\s>]+\.xl)')
+$matches = [regex]::Matches($wiringText, 'release[\\/]+win_x64[\\/]+examples[\\/]+([^"''\s>]+\.xl)')
 foreach ( $match in $matches ) {
-    $relative = ("release/examples/" + $match.Groups[1].Value).Replace("\", "/")
+    $relative = ("release/win_x64/examples/" + $match.Groups[1].Value).Replace("\", "/")
     if ( $relative.Contains("%") -or $relative.Contains("*") ) {
         continue
     }
@@ -471,15 +507,22 @@ foreach ( $relative in ($referenced | Sort-Object) ) {
 
 Test-RootExampleReadmeIndex
 Test-RootExampleCoverageModes
-Test-ExampleReadmeIndex "release\examples\tutorial"
-Test-ExampleReadmeIndex "release\examples\feature_suite"
-Test-ExampleReadmeIndex "release\examples\apps"
-Test-ExampleReadmeIndex "release\examples\games"
-Test-ExampleExecutionIndex "release\examples\tutorial" "test_tutorial.bat" @("11_export_to_c.xl")
-Test-ExampleExecutionIndex "release\examples\feature_suite" "release\examples\feature_suite\run_feature_suite.bat" @("09_c_export_abi.xl")
-Test-ExampleExecutionIndex "release\examples\apps" "release\examples\apps\run_apps.bat" @()
-Test-ExampleExecutionIndex "release\examples\games" "release\examples\games\run_games.bat" @()
-Test-ExampleExecutionIndex "release\examples\extlibs" "release\examples\extlibs\run_extlibs.bat" @("com.xl")
+Test-ExampleReadmeIndex "release\win_x64\examples\tutorial"
+Test-ExampleReadmeIndex "release\win_x64\examples\feature_suite"
+Test-ExampleReadmeIndex "release\win_x64\examples\apps"
+Test-ExampleReadmeIndex "release\win_x64\examples\games"
+Test-ExampleReadmeIndex "release\win_x64\examples\language"
+Test-ExampleReadmeIndex "release\win_x64\examples\stdlib"
+Test-ExampleReadmeIndex "release\win_x64\examples\http_apps"
+Test-ExampleReadmeIndex "release\win_x64\examples\embedding"
+Test-ExampleReadmeIndex "release\win_x64\examples\xui"
+Test-ExampleReadmeIndex "release\win_x64\examples\xge"
+Test-ExampleReadmeIndex "release\win_x64\examples\extlibs"
+Test-ExampleExecutionIndex "release\win_x64\examples\tutorial" "test_tutorial.bat" @("11_export_to_c.xl")
+Test-ExampleExecutionIndex "release\win_x64\examples\feature_suite" "release\win_x64\examples\feature_suite/run_feature_suite.bat" @("09_c_export_abi.xl")
+Test-ExampleExecutionIndex "release\win_x64\examples\apps" "release\win_x64\examples\apps/run_apps.bat" @()
+Test-ExampleExecutionIndex "release\win_x64\examples\games" "release\win_x64\examples\games/run_games.bat" @()
+Test-ExampleExecutionIndex "release\win_x64\examples\extlibs" "release\win_x64\examples\extlibs/run_extlibs.bat" @("com.xl")
 
 & python (Join-Path $PSScriptRoot 'check_example_layout.py') --root $Root
 if ($LASTEXITCODE -ne 0) { Add-Failure 'categorized/dynamic example layout check failed' }

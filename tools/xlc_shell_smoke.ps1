@@ -105,7 +105,7 @@ foreach ( $cmd in @("xl lex", "xl parse", "xl check", "xl ir", "xl cgen", "xl ab
     Assert-Contains "help" $help $cmd
 }
 
-$case = "release\examples\stdlib_print.xl"
+$case = "release\win_x64\examples\stdlib/core/stdlib_print.xl"
 
 Invoke-XlCapture -Name "check" -CommandArgs @("check", $case) -Stdout (Join-Path $tmpDir "xlc_shell_check.out.txt") -Stderr (Join-Path $tmpDir "xlc_shell_check.err.txt") | Out-Null
 Invoke-XlCapture -Name "lex json" -CommandArgs @("lex", $case, "--format", "json", "--emit", "build\test\xlc_shell.tokens.json") -Stdout (Join-Path $tmpDir "xlc_shell_lex.out.txt") -Stderr (Join-Path $tmpDir "xlc_shell_lex.err.txt") | Out-Null
@@ -219,7 +219,7 @@ $linkScript = Join-Path $tmpDir 'xlc_shell_default_links.bat'
     'setlocal',
     'call tools\xl6_toolchain_env.bat',
     'if errorlevel 1 exit /b 1',
-    ('"' + $xl + '" run release\examples\stdlib_print.xl %XL6_XL_DEFAULT_LINK_ARGS%'),
+    ('"' + $xl + '" run release\win_x64\examples\stdlib/core/stdlib_print.xl %XL6_XL_DEFAULT_LINK_ARGS%'),
     'exit /b %errorlevel%'
 ) -join "`r`n"), [Text.UTF8Encoding]::new($false))
 Invoke-NativeCapture `

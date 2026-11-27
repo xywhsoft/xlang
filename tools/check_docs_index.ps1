@@ -141,24 +141,24 @@ $extraMarkdownDocs = @(
     "cgenrule\README.md",
     "src\README.md",
     "tools\README.md",
-    "release\include\README.md",
-    "release\examples\embedded_package\README.md",
+    "release\win_x64\include\README.md",
+    "release\win_x64\examples\embedded_package\README.md",
     "dev\extlib_blockers\README.md",
     "lib\README.md",
     "release\README.md",
-	"release\examples\README.md",
-	"release\examples\apps\README.md",
-	"release\examples\feature_suite\README.md",
-	"release\examples\games\README.md",
-	"release\examples\tutorial\README.md",
+	"release\win_x64\examples\README.md",
+	"release\win_x64\examples\apps\README.md",
+	"release\win_x64\examples\feature_suite\README.md",
+	"release\win_x64\examples\games\README.md",
+	"release\win_x64\examples\tutorial\README.md",
 	"release\projects\function_interop\README.md",
 	"release\projects\xs_static\README.md",
-    "release\extlibs\README.md",
+    "release\win_x64\extlibs\README.md",
     "test\README.md",
     "ide\README.md",
-    "release\examples\foundation\README.md",
-    "release\examples\http\README.md",
-    "release\examples\websocket\README.md",
+    "release\win_x64\examples\foundation\README.md",
+    "release\win_x64\examples\stdlib\http\README.md",
+    "release\win_x64\examples\stdlib\websocket\README.md",
     "test\fixtures\native_source_contract\README.md"
 )
 
@@ -179,7 +179,7 @@ foreach ( $relative in $extraMarkdownDocs ) {
 $ignoredReadmePrefixes = @(
     "ide\",
 	"dev\deferred\",
-	"release\extlibs\",
+	"release\win_x64\extlibs\",
 	"build\",
     "release\tcc\",
     "lib\xrt\",
@@ -253,8 +253,8 @@ foreach ( $doc in $docs ) {
     }
 
     if ( $doc.Name -eq $workspaceSnapshotName ) {
-        if ( $text -notmatch 'release/examples' -or $text -notmatch 'release/extlibs' -or $text -notmatch '\u5F53\u524D RC0 \u57FA\u7EBF' ) {
-            Add-Failure "RC0 workspace inventory must use current release/examples and release/extlibs asset roots"
+        if ( $text -notmatch 'release/examples' -or $text -notmatch 'release/win_x64/extlibs' -or $text -notmatch '\u5F53\u524D RC0 \u57FA\u7EBF' ) {
+            Add-Failure "RC0 workspace inventory must use current release/examples and release/win_x64/extlibs asset roots"
         }
     }
 }

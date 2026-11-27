@@ -1,7 +1,7 @@
 import stb_image
 
 func main(...) as int
-    string imagePath = "release/examples/extlibs/assets/tiny.png"
+    string imagePath = "release/win_x64/examples/extlibs/assets/tiny.png"
     assert stb_image.available()
     assert not stb_image.isHdr(imagePath)
 

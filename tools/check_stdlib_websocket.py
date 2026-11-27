@@ -16,7 +16,7 @@ CASES=['stdlib_websocket_values_v2','stdlib_websocket_extensions_v2',
  'stdlib_websocket_stream_trim','stdlib_websocket_stream_tls_trim']
 BAD=['bad_stdlib_websocket_native_handle','bad_stdlib_websocket_raw_callback',
  'bad_stdlib_websocket_no_raise','bad_stdlib_websocket_enum_result','bad_stdlib_websocket_legacy']
-EXAMPLES=['release/examples/websocket/protocol.xl','release/examples/websocket/loopback.xl']
+EXAMPLES=['release/win_x64/examples/stdlib/websocket/protocol.xl','release/win_x64/examples/stdlib/websocket/loopback.xl']
 
 def sha(p):return hashlib.sha256(Path(p).read_bytes()).hexdigest()
 def main():
@@ -33,7 +33,7 @@ def main():
  inputs.update(root/'test/cases'/n for n in ['stdlib_websocket_native_host.c','stdlib_codec_template_language_host.c','stdlib_codec_template_language_oom_host.c'])
  inputs.update(root/'test/support'/n for n in ['module_product_memory.c','module_product_memory.h'])
  inputs.update(root/'tools'/n for n in ['stage_runtime_headers.py','gen_tcc_vfs_resources.py'])
- for n in ['lib/xrt/xrt.h','lib/xruntime/xruntime.h','release/include/xruntime_decl.h','src/cgen/xl6_ir_cgen.c','src/cgen/xl6_ir_cgen_module_emit.c']:inputs.add(root/n)
+ for n in ['lib/xrt/xrt.h','lib/xruntime/xruntime.h','release/win_x64/include/xruntime_decl.h','src/cgen/xl6_ir_cgen.c','src/cgen/xl6_ir_cgen_module_emit.c']:inputs.add(root/n)
  env={k:v for k,v in os.environ.items() if not k.upper().startswith('XL6_') and k.upper() not in ('LD_LIBRARY_PATH','LD_PRELOAD','LD_AUDIT','CPATH','C_INCLUDE_PATH','LIBRARY_PATH')}
  def run(name,args,cwd=root,negative=False):
   log=out/(name+'.log');args=list(map(str,args))

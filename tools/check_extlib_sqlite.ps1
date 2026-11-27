@@ -3,7 +3,7 @@ $ErrorActionPreference = 'Stop'
 if (!$Root) { $Root = Split-Path -Parent $PSScriptRoot }
 $Root = (Resolve-Path -LiteralPath $Root).Path
 . (Join-Path $PSScriptRoot 'extlib_smoke_process.ps1')
-$xl = Join-Path $Root 'release/xl.exe'
+$xl = Join-Path $Root 'release/win_x64/xl.exe'
 $gcc = (Get-Command gcc -CommandType Application -ErrorAction Stop | Select-Object -First 1).Source
 $gccHash = (Get-FileHash -LiteralPath $gcc).Hash
 $workParent = Join-Path $Root 'build/test/sqlite_guard'
@@ -14,18 +14,18 @@ $reportPath = Join-Path $workParent ("results_$runId.json")
 $utf8 = [Text.UTF8Encoding]::new($false)
 $checks = [Collections.Generic.List[object]]::new()
 $hashes = [ordered]@{}
-$pkg = 'release/extlibs/sqlite'
+$pkg = 'release/win_x64/extlibs/sqlite'
 $sources = @("$pkg/sqlite_native.c", "$pkg/third_party/sqlite3.c")
 $cases = @('test/cases/extlib_sqlite.xl', "$pkg/test/boundaries.xl", "$pkg/test/file.xl",
     "$pkg/test/nul_inputs.xl", "$pkg/test/owned_results.xl")
 function InputPaths {
-    @('release/xl.exe','release/xl.dll','release/xlc.dll','lib/xrt/xrt.h','lib/xruntime/xruntime.h',
-      'release/include/xrt_decl.h','release/include/xruntime_decl.h','release/include/xl_extlib_abi.h',
+    @('release/win_x64/xl.exe','release/win_x64/xl.dll','release/win_x64/xlc.dll','lib/xrt/xrt.h','lib/xruntime/xruntime.h',
+      'release/win_x64/include/xrt_decl.h','release/win_x64/include/xruntime_decl.h','release/win_x64/include/xl_extlib_abi.h',
       'test/support/extlib_sqlite_runtime.c','tools/check_extlib_sqlite.ps1','tools/check_extlib_sqlite.sh',
       'tools/extlib_smoke_process.ps1','tools/xlir_native_process.ps1','tools/run_extlib_c.ps1',
       'test/phase1_extlibs.json','test/suites/12_phase1_extlibs.bat','test/cases/extlib_sqlite.xl',
-      'release/examples/extlibs/sqlite.xl','release/examples/extlibs/sqlite_basic.xl',
-      'release/examples/extlibs/sqlite_basic.expected.txt')
+      'release/win_x64/examples/extlibs/database/sqlite.xl','release/win_x64/examples/extlibs/database/sqlite_basic.xl',
+      'release/win_x64/examples/extlibs/database/sqlite_basic.expected.txt')
     Get-ChildItem (Join-Path $Root $pkg) -Recurse -File |
         ForEach-Object { $_.FullName.Substring($Root.Length + 1).Replace('\','/') }
 }
@@ -85,7 +85,7 @@ try {
     [IO.File]::WriteAllText($abi,"#include `"sqlite_native.h`"`n#include `"sqlite3.h`"`n" + (($decls + $constants) -join "`n"),$utf8)
     $null = Check 'generated-prototypes-and-constants' $gcc ($flags + @("-I$pkg/include","-I$pkg/third_party",'-fsyntax-only',$abi))
     foreach ($name in @('sqlite','sqlite_basic')) {
-        $case = "release/examples/extlibs/$name.xl"
+        $case = "release/win_x64/examples/extlibs/$name.xl"
         $jit = Check "$name-example-jit" $xl @('run',$case)
         $binary = Join-Path $work "$name-example.exe"
         $null = Check "$name-example-build" $xl @('build',$case,'-o',$binary)
@@ -102,7 +102,7 @@ try {
     $null = Check 'c-example-aot-build' $xl @('build',$example,'-o',$binary)
     $aotOutput = Check 'c-example-aot' $binary @()
     $helperOutput = Check 'c-example-runner' (Get-Process -Id $PID).Path @('-NoProfile','-File','tools/run_extlib_c.ps1','-Package','sqlite','-Source',$example)
-    $golden = [IO.File]::ReadAllText((Join-Path $Root 'release/examples/extlibs/sqlite_basic.expected.txt')).Replace("`r`n","`n").TrimEnd("`n")
+    $golden = [IO.File]::ReadAllText((Join-Path $Root 'release/win_x64/examples/extlibs/database/sqlite_basic.expected.txt')).Replace("`r`n","`n").TrimEnd("`n")
     foreach ($text in @($xlangOutput,$cOutput,$jitOutput,$aotOutput,$helperOutput)) { if ($text -cne $golden) { throw 'C/xlang example golden mismatch' } }
     $paired = [ordered]@{
         text_bytes = "TEXT: 3 bytes`nBLOB: 3 bytes`nmiddle byte: 0"

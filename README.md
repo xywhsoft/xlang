@@ -182,11 +182,11 @@ source (.xl) ─▶ lex ─▶ parse ─▶ semantic / typed HIR (XLIR) ─▶ C
 ## Standard library & package ecosystem
 
 - **Core standard library**: 500+ public functions across dozens of modules — `net` (TCP / UDP / TLS / resolver / proxy), `crypto` (AES-GCM, ChaCha20-Poly1305, SHA family, Ed25519, X25519, RSA...), `json` / `xson`, `regex`, `template`, `fs` / `dir` / `file` (sync + async), `process`, `os`, `time`, `encoding`, `codec`, `log`, `math`, `random`, `signal`, `task`, and more — built on [XRT](docs/XRT集成原则.md), the shared runtime base.
-- **214 ready extension packages** (`release/extlibs/`), one `xlang.package.json` manifest each, multi-version coexistence supported: `sqlite`, `zeromq`, `imgui`, `webview`, `glad`, `freetype`, `harfbuzz`, `stb_image`, `zip` / `zstd` / `brotli` / `lz4`, `yaml` / `toml` / `xml` / `csv`, `jwt`, `etcd`, `docker`, `kubernetes`, plus an AI corner (`ggml`, `whisper`, `faiss`, `hnswlib`, `tokenizers`) and the full `xge` game stack and `xui` / `ui.auto` UI stacks.
-- **Real games, shipped as examples** (`release/examples/games/`): nine complete games — Snake, Tetris, 2048, Flappy, Pong, Breakout, Minesweeper, Asteroids, Shooter — written in xlang on the XGE extension library (window, input, shapes, fonts, textures, sound).
+- **214 ready extension packages** (`release/win_x64/extlibs/`), one `xlang.package.json` manifest each, multi-version coexistence supported: `sqlite`, `zeromq`, `imgui`, `webview`, `glad`, `freetype`, `harfbuzz`, `stb_image`, `zip` / `zstd` / `brotli` / `lz4`, `yaml` / `toml` / `xml` / `csv`, `jwt`, `etcd`, `docker`, `kubernetes`, plus an AI corner (`ggml`, `whisper`, `faiss`, `hnswlib`, `tokenizers`) and the full `xge` game stack and `xui` / `ui.auto` UI stacks.
+- **Real games, shipped as examples** (`release/win_x64/examples/games/`): nine complete games — Snake, Tetris, 2048, Flappy, Pong, Breakout, Minesweeper, Asteroids, Shooter — written in xlang on the XGE extension library (window, input, shapes, fonts, textures, sound).
 
 ```bat
-release\xl.exe run release\examples\games\snake.xl
+release\win_x64\xl.exe run release\win_x64\examples\games\snake.xl
 ```
 
 ## Toolchain
@@ -222,7 +222,7 @@ bash build.sh && bash test_linux.sh
 |---|---|
 | `src/` | Compiler, runtime, standard library, tests, docs, examples |
 | `docs/` | Design documents (Chinese) — the single source of truth for design decisions |
-| `release/examples/` | 450+ example programs incl. games and apps |
+| `release/win_x64/examples/` | 450+ example programs incl. games and apps |
 | `test/` | Regression assets: cases, suites, fixtures, interop tests |
 | `ide/` | xlang IDE sources, builds, and portable releases |
 | `DEMO6说明.md` | Feature checklist of the current compiler (Chinese) |

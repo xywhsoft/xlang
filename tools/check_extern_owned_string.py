@@ -18,7 +18,7 @@ def main():
         help='Verified source runtime receipt for the independent C consumer gate')
     args=p.parse_args();work=args.directory.resolve();work.mkdir(parents=True,exist_ok=False)
     binary=(args.driver or args.cli).resolve();checks=[]
-    env=os.environ.copy();env['XLANG_PACKAGE_PATH']=os.pathsep.join([str(ROOT/'test/fixtures'),str(ROOT/'release/extlibs')])
+    env=os.environ.copy();env['XLANG_PACKAGE_PATH']=os.pathsep.join([str(ROOT/'test/fixtures'),str(ROOT/'release/win_x64/extlibs')])
     def run(name,argv,expected=True,diagnostic=None,timeout=300):
         if args.cli and argv[0]==binary:
             argv=[*argv,'--inc-path',ROOT/'release/include']
@@ -49,7 +49,7 @@ def main():
         ('extern_owned_string_package','test/cases/extern_owned_string_package.xl',[],['owned_package_text','owned_package_optional']),
         ('extern_owned_string_export','test/cases/extern_owned_string_export.xl',['test/cases/extern_owned_string_host.c'],['owned_text']),
         ('extern_owned_string_forward','test/cases/extern_owned_string_forward.xl',['test/cases/extern_owned_string_host.c'],['owned_optional']),
-        ('example','release/examples/extern_owned_string.xl',['release/examples/extern_owned_string_native.c'],['example_owned_text']),
+        ('example','release/win_x64/examples/language/interop/extern_owned_string.xl',['release/win_x64/examples/language/interop/extern_owned_string_native.c'],['example_owned_text']),
         ('cstring-regression','test/cases/xlir_c_owned_basic.xl',['test/cases/xlir_c_owned_native.c'],[]),
         ('cstring-package-regression','test/cases/xlir_c_owned_import_exports.xl',[],[]),
         ('ordinary-string-export-regression','test/cases/sem_export_string_return.xl',[],[]),

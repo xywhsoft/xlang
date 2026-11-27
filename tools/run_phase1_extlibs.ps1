@@ -8,10 +8,10 @@ if ($Root -eq "") {
     $Root = Split-Path -Parent $PSScriptRoot
 }
 
-$xl = Join-Path $Root "release\xl.exe"
+$xl = Join-Path $Root "release\win_x64\xl.exe"
 $manifestPath = Join-Path $Root "test\phase1_extlibs.json"
 $caseRoot = Join-Path $Root "test\cases"
-$exampleRoot = Join-Path $Root "release\examples\extlibs"
+$exampleRoot = Join-Path $Root "release\win_x64\examples\extlibs"
 $exampleRunner = Join-Path $PSScriptRoot "run_xl_example.ps1"
 
 if (!(Test-Path -LiteralPath $xl -PathType Leaf)) { throw "xl.exe is missing: $xl" }

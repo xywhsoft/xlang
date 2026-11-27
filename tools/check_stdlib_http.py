@@ -14,7 +14,7 @@ CASES=['stdlib_http1_core','stdlib_http_headers_v2','stdlib_http_syntax_v2','std
     'stdlib_http1_tls_transport','stdlib_http1_tcp_transport_stops','stdlib_http_minimal_v2','stdlib_http_language_oom','stdlib_http_perf']
 BAD=['bad_stdlib_http_native_handle','bad_stdlib_http_legacy_body','bad_stdlib_http_legacy_decoder',
      'bad_stdlib_http_no_raise','bad_stdlib_http_enum_result']
-EXAMPLES=['release/examples/http/parse.xl','release/examples/http/tcp.xl']
+EXAMPLES=['release/win_x64/examples/stdlib/http/parse.xl','release/win_x64/examples/stdlib/http/tcp.xl']
 def sha(path):return hashlib.sha256(Path(path).read_bytes()).hexdigest()
 
 def main():

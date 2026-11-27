@@ -8,13 +8,13 @@ if ( $Root -eq "" ) {
     $Root = Split-Path -Parent $PSScriptRoot
 }
 
-$compiler = Join-Path $Root "release\xl.exe"
+$compiler = Join-Path $Root "release\win_x64\xl.exe"
 $opsSource = Join-Path $Root "test\cases\cgen_protocol_ops.xl"
 $complexSource = Join-Path $Root "test\cases\cgen_protocol_complex_receiver.xl"
 $genericSource = Join-Path $Root "test\cases\xlir_class_protocol_syntax_generic.xl"
 $overloadIndexSource = Join-Path $Root "test\cases\cgen_protocol_overload_index.xl"
 $fieldSetterSource = Join-Path $Root "test\cases\cgen_protocol_field_neg_compare.xl"
-$virtualPropertySource = Join-Path $Root "release\examples\oop_virtual_dispatch.xl"
+$virtualPropertySource = Join-Path $Root "release\win_x64\examples\language/oop/oop_virtual_dispatch.xl"
 $outputDir = Join-Path $Root "build\tmp"
 $opsTypedPath = Join-Path $outputDir "xlir_class_protocol_ops.typed.ir"
 $opsLoweredPath = Join-Path $outputDir "xlir_class_protocol_ops.lowered.ir"

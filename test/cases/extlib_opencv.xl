@@ -1,7 +1,7 @@
 import opencv
 
 func main(...) as int
-    string imagePath = "release/examples/extlibs/assets/tiny.png"
+    string imagePath = "release/win_x64/examples/extlibs/assets/tiny.png"
     if not opencv.available() then return 1 end
 
     auto source = opencv.imread(imagePath)

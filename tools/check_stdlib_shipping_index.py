@@ -21,7 +21,7 @@ def main():
     index=subprocess.check_output(['git','write-tree'],cwd=project,text=True).strip()
     names=[name.decode() for name in subprocess.check_output(['git','ls-files','-z','--',
         'src','lib','tools','res','release/include',
-        'include','release/examples/*.c','test/cases','test/support',
+        'include','release/win_x64/examples/*.c','test/cases','test/support',
         'test/fixtures/native_stack_batch_rejected',
         'build.bat','build_dll.bat','build_linux.sh'],cwd=project).split(b'\0') if name]
     objects=subprocess.check_output(['git','cat-file','--batch'],cwd=project,

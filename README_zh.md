@@ -181,11 +181,11 @@ end
 ## 标准库与包生态
 
 - **核心标准库**:500+ 公开函数、数十个模块——`net`(TCP / UDP / TLS / 解析器 / 代理)、`crypto`(AES-GCM、ChaCha20-Poly1305、SHA 家族、Ed25519、X25519、RSA 等)、`json` / `xson`、`regex`、`template`、`fs` / `dir` / `file`(同步 + 异步)、`process`、`os`、`time`、`encoding`、`codec`、`log`、`math`、`random`、`signal`、`task` 等——构建在共享运行时基座 [XRT](docs/XRT集成原则.md) 之上。
-- **214 个现成扩展包**(`release/extlibs/`),每个仅一份 `xlang.package.json` 清单,支持多版本共存:`sqlite`、`zeromq`、`imgui`、`webview`、`glad`、`freetype`、`harfbuzz`、`stb_image`、`zip` / `zstd` / `brotli` / `lz4`、`yaml` / `toml` / `xml` / `csv`、`jwt`、`etcd`、`docker`、`kubernetes`,还有 AI 一角(`ggml`、`whisper`、`faiss`、`hnswlib`、`tokenizers`),以及完整的 `xge` 游戏栈与 `xui` / `ui.auto` UI 栈。
-- **真实游戏作为范例**(`release/examples/games/`):九个完整游戏——贪吃蛇、俄罗斯方块、2048、Flappy、Pong、打砖块、扫雷、小行星、射击——全部用 xlang 基于 XGE 扩展库(窗口、输入、图形、字体、纹理、音频)编写。
+- **214 个现成扩展包**(`release/win_x64/extlibs/`),每个仅一份 `xlang.package.json` 清单,支持多版本共存:`sqlite`、`zeromq`、`imgui`、`webview`、`glad`、`freetype`、`harfbuzz`、`stb_image`、`zip` / `zstd` / `brotli` / `lz4`、`yaml` / `toml` / `xml` / `csv`、`jwt`、`etcd`、`docker`、`kubernetes`,还有 AI 一角(`ggml`、`whisper`、`faiss`、`hnswlib`、`tokenizers`),以及完整的 `xge` 游戏栈与 `xui` / `ui.auto` UI 栈。
+- **真实游戏作为范例**(`release/win_x64/examples/games/`):九个完整游戏——贪吃蛇、俄罗斯方块、2048、Flappy、Pong、打砖块、扫雷、小行星、射击——全部用 xlang 基于 XGE 扩展库(窗口、输入、图形、字体、纹理、音频)编写。
 
 ```bat
-release\xl.exe run release\examples\games\snake.xl
+release\win_x64\xl.exe run release\win_x64\examples\games\snake.xl
 ```
 
 ## 工具链
@@ -221,7 +221,7 @@ bash build.sh && bash test_linux.sh
 |---|---|
 | `src/` | 编译器、运行时、标准库、测试、文档、范例 |
 | `docs/` | 设计文档(中文)——设计决策的唯一口径 |
-| `release/examples/` | 450+ 范例程序,含游戏与应用 |
+| `release/win_x64/examples/` | 450+ 范例程序,含游戏与应用 |
 | `test/` | 回归资产:用例、套件、fixture、interop 测试 |
 | `ide/` | xlang IDE 源码、构建与便携发布 |
 | `DEMO6说明.md` | 当前编译器功能清单(中文) |

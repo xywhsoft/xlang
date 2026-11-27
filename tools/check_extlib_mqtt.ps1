@@ -4,7 +4,7 @@ $ErrorActionPreference = "Stop"
 if ( $Root -eq "" ) { $Root = Split-Path -Parent $PSScriptRoot }
 $Root = (Resolve-Path -LiteralPath $Root).Path
 $gcc = (Get-Command gcc -CommandType Application -ErrorAction Stop).Source
-$xl = Join-Path $Root "release\xl.exe"
+$xl = Join-Path $Root "release\win_x64\xl.exe"
 $work = Join-Path $Root "build\test\mqtt_guard"
 $utf8 = [Text.UTF8Encoding]::new($false)
 $checks = [Collections.Generic.List[object]]::new()
@@ -14,7 +14,7 @@ if ( ! (Test-Path -LiteralPath $xl -PathType Leaf) ) {
 }
 [IO.Directory]::CreateDirectory($work) | Out-Null
 
-$package = "release/extlibs/mqtt"
+$package = "release/win_x64/extlibs/mqtt"
 $packageSources = @(
     "$package/mqtt_frame.c",
     "$package/mqtt_build.c",
@@ -41,14 +41,14 @@ $required = @(
     "$package/test/mqtt_boundaries.xl",
     "$package/test/mqtt_net_test.xl",
     "test/cases/extlib_mqtt.xl",
-    "release/examples/extlibs/mqtt.xl",
-    "release/examples/extlibs/mqtt_c.c",
-    "release/examples/extlibs/mqtt.expected.txt",
-    "release/examples/extlibs/mqtt_tcp.xl",
-    "release/examples/extlibs/mqtt_tcp_c.c",
-    "release/examples/extlibs/mqtt_tcp.expected.txt"
+    "release/win_x64/examples/extlibs/net/mqtt.xl",
+    "release/win_x64/examples/extlibs/net/mqtt_c.c",
+    "release/win_x64/examples/extlibs/net/mqtt.expected.txt",
+    "release/win_x64/examples/extlibs/net/mqtt_tcp.xl",
+    "release/win_x64/examples/extlibs/net/mqtt_tcp_c.c",
+    "release/win_x64/examples/extlibs/net/mqtt_tcp.expected.txt"
 ) + $packageSources
-$productFiles = @("release/xl.exe", "release/xl.dll", "release/xlc.dll", "lib/xrt/xrt.h")
+$productFiles = @("release/win_x64/xl.exe", "release/win_x64/xl.dll", "release/win_x64/xlc.dll", "lib/xrt/xrt.h")
 $inputHashes = @{}
 $productHashes = @{}
 foreach ( $relative in $required ) {
@@ -120,7 +120,7 @@ try {
         }
     }
 
-    [Environment]::SetEnvironmentVariable("XLANG_PACKAGE_PATH", "release\extlibs;test\fixtures", "Process")
+    [Environment]::SetEnvironmentVariable("XLANG_PACKAGE_PATH", "release\win_x64\extlibs;test\fixtures", "Process")
     $codecSource = "$package/test/mqtt_boundaries.xl"
     $netSource = "$package/test/mqtt_net_test.xl"
     $fixtureSource = "$package/test/mqtt_fixture.c"
@@ -159,8 +159,8 @@ try {
     if ( $text -ne "mqtt xlang TCP boundaries: PASS" ) { throw "MQTT xlang TCP AOT marker missing" }
 
     foreach ($example in @("mqtt", "mqtt_tcp")) {
-        $sourceXl = "release/examples/extlibs/$example.xl"
-        $sourceC = "release/examples/extlibs/${example}_c.c"
+        $sourceXl = "release/win_x64/examples/extlibs/$example.xl"
+        $sourceC = "release/win_x64/examples/extlibs/${example}_c.c"
         $outputs = @()
         $outputs += Invoke-MqttProcess "$example-example-xlang-jit" $xl @("run", $sourceXl)
         $outputs += Invoke-MqttProcess "$example-example-c-jit" $xl @("run", $sourceC)
@@ -173,7 +173,7 @@ try {
             $null = Invoke-MqttProcess "$example-example-$language-build" $xl @("build", $source, "-o", $exe)
             $outputs += Invoke-MqttProcess "$example-example-$language-aot" $exe @()
         }
-        $expected = [IO.File]::ReadAllText((Join-Path $Root "release/examples/extlibs/$example.expected.txt")).Replace("`r`n", "`n").TrimEnd("`n")
+        $expected = [IO.File]::ReadAllText((Join-Path $Root "release/win_x64/examples/extlibs/$example.expected.txt")).Replace("`r`n", "`n").TrimEnd("`n")
         foreach ($output in $outputs) {
             if ($output -cne $expected) { throw "MQTT $example output differs from the checked wire/result values" }
         }

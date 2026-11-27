@@ -12,10 +12,10 @@
     {"Name":"xlir_net_resolver_standalone","Source":"test/cases/xlir_net_resolver_standalone.xl","Negative":false},
     {"Name":"stdlib_net_resolver_default","Source":"test/cases/stdlib_net_resolver_default.xl","Negative":false},
     {"Name":"stdlib_net_fast_path","Source":"test/cases/stdlib_net_fast_path.xl","Negative":false},
-    {"Name":"example_net_tcp_udp","Source":"release/examples/stdlib_net_tcp_udp.xl","Negative":false},
-    {"Name":"example_net_fast_path","Source":"release/examples/stdlib_net_fast_path.xl","Negative":false},
-    {"Name":"example_id_net","Source":"release/examples/stdlib_id_net.xl","Negative":false},
-    {"Name":"example_net_interfaces","Source":"release/examples/stdlib_net_interfaces.xl","Negative":false},
+    {"Name":"example_net_tcp_udp","Source":"release/win_x64/examples/stdlib/net/stdlib_net_tcp_udp.xl","Negative":false},
+    {"Name":"example_net_fast_path","Source":"release/win_x64/examples/stdlib/net/stdlib_net_fast_path.xl","Negative":false},
+    {"Name":"example_id_net","Source":"release/win_x64/examples/stdlib/core/stdlib_id_net.xl","Negative":false},
+    {"Name":"example_net_interfaces","Source":"release/win_x64/examples/stdlib/net/stdlib_net_interfaces.xl","Negative":false},
     {"Name":"bad_stdlib_udp_vector_dynamic_array","Source":"test/cases/bad_stdlib_udp_vector_dynamic_array.xl","Negative":true},
     {"Name":"bad_stdlib_udp_batch_dynamic_array","Source":"test/cases/bad_stdlib_udp_batch_dynamic_array.xl","Negative":true}
   ]

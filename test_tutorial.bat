@@ -7,22 +7,22 @@ if errorlevel 1 exit /b 1
 
 if not exist build\test\tutorial mkdir build\test\tutorial
 if not exist build\test\__xl_runtime mkdir build\test\__xl_runtime
-copy /Y release\include\xl_runtime.h build\test\__xl_runtime\xl_runtime.h >nul
+copy /Y release\win_x64\include\xl_runtime.h build\test\__xl_runtime\xl_runtime.h >nul
 if errorlevel 1 exit /b 1
-copy /Y release\include\xl_extlib_abi.h build\test\__xl_runtime\xl_extlib_abi.h >nul
+copy /Y release\win_x64\include\xl_extlib_abi.h build\test\__xl_runtime\xl_extlib_abi.h >nul
 if errorlevel 1 exit /b 1
-copy /Y release\include\xrt_decl.h build\test\__xl_runtime\xrt_decl.h >nul
+copy /Y release\win_x64\include\xrt_decl.h build\test\__xl_runtime\xrt_decl.h >nul
 if errorlevel 1 exit /b 1
-copy /Y release\include\xruntime_decl.h build\test\__xl_runtime\xruntime_decl.h >nul
+copy /Y release\win_x64\include\xruntime_decl.h build\test\__xl_runtime\xruntime_decl.h >nul
 if errorlevel 1 exit /b 1
 
 rem Generated C uses the private runtime mirror and the Windows TLS headers.
 set "XL6_TCC_INCLUDES=-Ibuild\test %XL6_TCC_INCLUDES_WINAPI%"
 
 echo Checking tutorial examples...
-for %%f in (release\examples\tutorial\*.xl) do (
+for %%f in (release\win_x64\examples\tutorial\*.xl) do (
     echo CHECK %%~nxf
-    release\xl.exe check "%%f"
+    release\win_x64\xl.exe check "%%f"
     if errorlevel 1 exit /b 1
 )
 
@@ -40,7 +40,7 @@ for %%f in (
     13_modern_type_semantics.xl
 ) do (
     echo RUN %%f
-    release\xl.exe run "release\examples\tutorial\%%f"
+    release\win_x64\xl.exe run "release\win_x64\examples\tutorial\%%f"
     if errorlevel 1 exit /b 1
 )
 
@@ -50,19 +50,19 @@ for %%f in (
     10_c_interop_and_native_class.xl
 ) do (
     echo RUN %%f
-    release\xl.exe run "release\examples\tutorial\%%f" --link release\examples\tutorial\host.c
+    release\win_x64\xl.exe run "release\win_x64\examples\tutorial\%%f" --link release\win_x64\examples\tutorial\host.c
     if errorlevel 1 exit /b 1
 )
 
 echo Verifying tutorial C export ABI...
-release\xl.exe cgen release\examples\tutorial\11_export_to_c.xl --emit build\test\tutorial\11_export_to_c.c --emit-header build\test\tutorial\11_export_to_c.h
+release\win_x64\xl.exe cgen release\win_x64\examples\tutorial\11_export_to_c.xl --emit build\test\tutorial\11_export_to_c.c --emit-header build\test\tutorial\11_export_to_c.h
 if errorlevel 1 exit /b 1
 
 powershell -NoProfile -ExecutionPolicy Bypass -Command "$path='build\test\tutorial\host_export.exe'; for($i=0; $i -lt 20 -and (Test-Path -LiteralPath $path -PathType Leaf); $i++){ Remove-Item -LiteralPath $path -Force -ErrorAction SilentlyContinue; if(Test-Path -LiteralPath $path -PathType Leaf){ Start-Sleep -Milliseconds 250 } }; if(Test-Path -LiteralPath $path -PathType Leaf){ Write-Host 'tutorial host_export.exe is still present before build.'; exit 1 }"
 if errorlevel 1 exit /b 1
 
 rem Compile the exported ABI as an independent C consumer with the bootstrap toolchain.
-"%XL6_BOOTSTRAP_CC%" -std=c11 -Wall -Wextra -Werror -Wno-unused-function -DXL6_EXAMPLE_LINK_EXPORTS -Ibuild\test\tutorial -Ibuild\test -Irelease\include -I. build\test\tutorial\11_export_to_c.c release\examples\tutorial\host_export.c tools\xrt_single_header_impl.c -lWs2_32 -lIPHLPAPI -lShell32 -o build\test\tutorial\host_export.exe
+"%XL6_BOOTSTRAP_CC%" -std=c11 -Wall -Wextra -Werror -Wno-unused-function -DXL6_EXAMPLE_LINK_EXPORTS -Ibuild\test\tutorial -Ibuild\test -Irelease\win_x64\include -I. build\test\tutorial\11_export_to_c.c release\win_x64\examples\tutorial\host_export.c tools\xrt_single_header_impl.c -lWs2_32 -lIPHLPAPI -lShell32 -o build\test\tutorial\host_export.exe
 if errorlevel 1 exit /b 1
 
 build\test\tutorial\host_export.exe

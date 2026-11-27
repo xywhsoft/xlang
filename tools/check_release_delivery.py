@@ -74,7 +74,7 @@ def main():
 
     for library_name in names[1:]:
         library = payload / library_name
-        for relative in ["release/examples/xl_dll_embed_string.c", "test/cases/stdlib_nested_sdk_host.c"]:
+        for relative in ["release/win_x64/examples/embedding/xl_dll_embed_string.c", "test/cases/stdlib_nested_sdk_host.c"]:
             source = root / relative
             if not source.is_file() and relative.startswith("release/"):
                 portable = Path(relative).relative_to("release")

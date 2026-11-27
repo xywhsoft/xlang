@@ -25,8 +25,8 @@ $entryWiringFiles = @(
     "tools\run_platform_extlibs.ps1",
     "tools\run_xlir_parameterized_guards.ps1",
     "tools\build_xlir_public_source_driver.ps1",
-    "release\examples\extlibs\run_extlibs.bat",
-    "release\examples\feature_suite\run_feature_suite.bat"
+    "release\win_x64\examples\extlibs/run_extlibs.bat",
+    "release\win_x64\examples\feature_suite/run_feature_suite.bat"
 )
 
 $minEntryFixtures = 45
@@ -176,7 +176,7 @@ $entryWiringFiles += Get-ManualCjsWiringFiles
 # Package-local native test entrypoints are executable owners too, not just
 # the central xlang coverage lists. Execution acceptance is recorded separately.
 if (!$CoreOnly) {
-    $packageRoot=Join-Path $Root 'release/extlibs'
+    $packageRoot=Join-Path $Root 'release/win_x64/extlibs'
     foreach ($package in @(Get-ChildItem -LiteralPath $packageRoot -Directory)) {
         foreach ($folder in @('test','tests','examples')) {
             $directory=Join-Path $package.FullName $folder
@@ -216,7 +216,7 @@ foreach ($record in $closure) {
 }
 $literalCPaths = Get-LiteralCReferencePaths $entryText
 $rootPath = (Resolve-Path -LiteralPath $Root).Path
-$entryAssetRoots = @("test\cases", "release\examples")
+$entryAssetRoots = @("test\cases", "release\win_x64\examples")
 $entryAssets = New-Object System.Collections.Generic.List[object]
 
 foreach ( $assetRoot in $entryAssetRoots ) {
@@ -229,7 +229,7 @@ foreach ( $assetRoot in $entryAssetRoots ) {
     $assets = @(Get-ChildItem -LiteralPath $fullRoot -File -Recurse | Where-Object {
         $relative = $_.FullName.Substring($rootPath.Length + 1).Replace("\", "/")
         ($_.Extension -in ".c", ".h") -and
-            (! $CoreOnly -or ! $relative.StartsWith("release/examples/extlibs/"))
+            (! $CoreOnly -or ! $relative.StartsWith("release/win_x64/examples/extlibs/"))
     } | Sort-Object FullName)
     foreach ( $asset in $assets ) {
         $entryAssets.Add($asset) | Out-Null
@@ -301,7 +301,7 @@ foreach ( $match in $matches ) {
 }
 
 foreach ( $relative in ($referenced | Sort-Object) ) {
-    if ( $CoreOnly -and $relative.StartsWith("release/examples/extlibs/") ) {
+    if ( $CoreOnly -and $relative.StartsWith("release/win_x64/examples/extlibs/") ) {
         continue
     }
     $path = Join-Path $Root ($relative.Replace("/", "\"))
@@ -312,7 +312,7 @@ foreach ( $relative in ($referenced | Sort-Object) ) {
 
 $packageDirs = @((Join-Path $Root "test\fixtures"))
 if ( ! $CoreOnly ) {
-    $packageDirs = @((Join-Path $Root "release\extlibs")) + $packageDirs
+    $packageDirs = @((Join-Path $Root "release\win_x64\extlibs")) + $packageDirs
 }
 $packageDeclaredSources = @{}
 
@@ -403,10 +403,10 @@ foreach ( $packageDir in $packageDirs ) {
     }
 }
 
-$entryCount = @(Get-ChildItem -Path (Join-Path $Root "test\cases"), (Join-Path $Root "release\examples") -File -Recurse | Where-Object {
+$entryCount = @(Get-ChildItem -Path (Join-Path $Root "test\cases"), (Join-Path $Root "release\win_x64\examples") -File -Recurse | Where-Object {
     $relative = $_.FullName.Substring($rootPath.Length + 1).Replace("\", "/")
     ($_.Extension -in ".c", ".h") -and
-        (! $CoreOnly -or ! $relative.StartsWith("release/examples/extlibs/"))
+        (! $CoreOnly -or ! $relative.StartsWith("release/win_x64/examples/extlibs/"))
 }).Count
 $packageCount = 0
 foreach ( $packageDir in $packageDirs ) {

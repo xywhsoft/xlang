@@ -40,15 +40,15 @@ $work = [IO.Path]::GetFullPath($(if ([IO.Path]::IsPathRooted($WorkDirectory)) {
 } else { Join-Path $Root $WorkDirectory }))
 if (Test-Path -LiteralPath $work) { throw 'Choose a fresh gate directory' }
 [IO.Directory]::CreateDirectory($work) | Out-Null
-Copy-Item -LiteralPath (Join-Path $Root 'release/xl.dll') -Destination (Join-Path $work 'xl.dll')
+Copy-Item -LiteralPath (Join-Path $Root 'release/win_x64/xl.dll') -Destination (Join-Path $work 'xl.dll')
 $gcc = (Get-Command gcc.exe -ErrorAction Stop).Source
 $checks = [Collections.Generic.List[object]]::new()
 $inputs = [ordered]@{}
 $utf8 = [Text.UTF8Encoding]::new($false)
 $source = 'test/cases/xlir_string_bridge_abi.xl'
 $failure = 'test/cases/xlir_string_join_failure.xl'
-$example = 'release/examples/stdlib_string_boundaries.xl'
-$cExample = 'release/examples/stdlib_string_boundaries_c.c'
+$example = 'release/win_x64/examples/stdlib/core/stdlib_string_boundaries.xl'
+$cExample = 'release/win_x64/examples/stdlib/core/stdlib_string_boundaries_c.c'
 $negatives = @('xlir_string_bridge_bad_result','xlir_string_bridge_bad_parameter',
     'xlir_string_join_bad_result','xlir_string_join_bad_parameter',
     'xlir_string_bytes_bad_result','xlir_string_bytes_bad_parameter',
@@ -150,7 +150,7 @@ try {
     $compilerObjects = $objects
     $projection = Join-Path $work 'projection-contract.exe'
     $null = Check 'projection-contract-build' $gcc ($flags+@('test/cases/xlir_string_projection_outcome_contract.c')+
-        $compilerObjects+@('release/xl.dll','-lWs2_32','-lIPHLPAPI','-lShell32','-lOle32','-lAdvapi32','-o',$projection))
+        $compilerObjects+@('release/win_x64/xl.dll','-lWs2_32','-lIPHLPAPI','-lShell32','-lOle32','-lAdvapi32','-o',$projection))
     foreach ($entry in @(@('projection','test/cases/xlir_string_projection_outcome.xl'),
                          @('value-ownership','test/cases/cgen_string_value_ownership.xl'))) {
         if ((Check "$($entry[0])-contract" $projection @($entry[1])) -notmatch 'immediate single observations; missing outcomes reject C and header') {
@@ -164,13 +164,13 @@ try {
     if ((Check 'projection-oom-aot' "$projectionAot.exe" @()) -notmatch '128 checked cases passed') {throw 'Projection AOT oracle incomplete'}
     $display = Join-Path $work 'display-contract.exe'
     $null = Check 'display-contract-build' $gcc ($flags+@('test/cases/xlir_value_display_graph_contract.c')+
-        $compilerObjects+@('release/xl.dll','-lWs2_32','-lIPHLPAPI','-lShell32','-lOle32','-lAdvapi32','-o',$display))
+        $compilerObjects+@('release/win_x64/xl.dll','-lWs2_32','-lIPHLPAPI','-lShell32','-lOle32','-lAdvapi32','-o',$display))
     if ((Check 'display-contract' $display @('test/cases/xlir_value_display_graph.xl')) -notmatch '7 independent provider domains, 28 rejected metadata mutations') {
         throw 'Native display provider contract incomplete'
     }
     $displayPruning = Join-Path $work 'display-pruning.exe'
     $null = Check 'display-pruning-build' $gcc ($flags+@('test/cases/xlir_value_display_pruning_contract.c')+
-        $compilerObjects+@('release/xl.dll','-lWs2_32','-lIPHLPAPI','-lShell32','-lOle32','-lAdvapi32','-o',$displayPruning))
+        $compilerObjects+@('release/win_x64/xl.dll','-lWs2_32','-lIPHLPAPI','-lShell32','-lOle32','-lAdvapi32','-o',$displayPruning))
     $displayFixtures = @(
         @('scalar',0,"println(42)`n"),
         @('text',0,"println(`"hello`")`n"),
@@ -202,14 +202,14 @@ try {
         $null = Check "$($entry[0])-native-emit" $driver @($entry[1],'cgen-default',$emitted)
         $nativeDisplay = Join-Path $work "$($entry[0])-native.exe"
         $null = Check "$($entry[0])-native-build" $gcc ($flags+@('-O2','-include',$emitted,'test/cases/xlir_value_display_host.c')+
-            $objects+@('release/xl.dll','-lWs2_32','-lIPHLPAPI','-lShell32','-lOle32','-lAdvapi32','-o',$nativeDisplay))
+            $objects+@('release/win_x64/xl.dll','-lWs2_32','-lIPHLPAPI','-lShell32','-lOle32','-lAdvapi32','-o',$nativeDisplay))
         if ((Check "$($entry[0])-native" $nativeDisplay @()) -notmatch 'three complete module lifetimes balanced') {
             throw 'Native display lifetime oracle incomplete'
         }
     }
     $native = Join-Path $work 'native.exe'
     $null = Check 'native-build' $gcc ($flags+@('-include',"$module.c",'test/cases/xlir_string_bridge_abi_host.c')+
-        $objects+@('release/xl.dll','-lWs2_32','-lIPHLPAPI','-lShell32','-lOle32','-lAdvapi32','-o',$native))
+        $objects+@('release/win_x64/xl.dll','-lWs2_32','-lIPHLPAPI','-lShell32','-lOle32','-lAdvapi32','-o',$native))
     $nativeOutput = Check 'native' $native @()
     if ($nativeOutput -notmatch 'string join allocation failures ok' -or
         $nativeOutput -notmatch 'string join threads ok: 2000 rounds' -or
@@ -225,18 +225,18 @@ try {
     if ($repeatC -notmatch 'xl6TextRepeatV1\(' -or $repeatC -match 'xl6Text(?:Replace|Split|Join)V1\(') {throw 'Repeat-only calls are not minimal'}
     $repeatExe = Join-Path $work 'repeat.exe'
     $null = Check 'repeat-strict-build' $gcc ($flags+@('-include',"$repeat.c",'test/cases/xlir_string_repeat_host.c')+
-        $objects+@('release/xl.dll','-lWs2_32','-lIPHLPAPI','-lShell32','-lOle32','-lAdvapi32','-o',$repeatExe))
+        $objects+@('release/win_x64/xl.dll','-lWs2_32','-lIPHLPAPI','-lShell32','-lOle32','-lAdvapi32','-o',$repeatExe))
     if ((Check 'repeat-native' $repeatExe @()) -notmatch '600 cases, 300 real allocation failures, balanced memory') {throw 'Repeat native oracle incomplete'}
     $contract = Join-Path $work 'contract.exe'
     $null = Check 'contract-build' $gcc ($flags+@('-DXL_STATIC_EMBED','-Ilib/tcc','test/cases/xlir_text_value_contract.c')+
-        $compilerObjects+@('release/xl.dll','-lWs2_32','-lIPHLPAPI','-lShell32','-lOle32','-lAdvapi32','-o',$contract))
+        $compilerObjects+@('release/win_x64/xl.dll','-lWs2_32','-lIPHLPAPI','-lShell32','-lOle32','-lAdvapi32','-o',$contract))
     $literal = Join-Path $work 'literal-span.exe'
     $null = Check 'literal-build' $gcc ($flags+@('test/cases/xlir_literal_span_contract.c')+
-        $compilerObjects+@('release/xl.dll','-lWs2_32','-lIPHLPAPI','-lShell32','-lOle32','-lAdvapi32','-o',$literal))
+        $compilerObjects+@('release/win_x64/xl.dll','-lWs2_32','-lIPHLPAPI','-lShell32','-lOle32','-lAdvapi32','-o',$literal))
     if ((Check 'literal-native' $literal @()) -notmatch 'literal-span contract: 101\d+ checks passed') {throw 'Literal oracle incomplete'}
     $fuzz = Join-Path $work 'frontend-fuzz.exe'
     $null = Check 'frontend-fuzz-build' $gcc ($flags+@('test/fuzz/xl6_frontend_fuzz.c')+
-        $compilerObjects+@('release/xl.dll','-lWs2_32','-lIPHLPAPI','-lShell32','-lOle32','-lAdvapi32','-o',$fuzz))
+        $compilerObjects+@('release/win_x64/xl.dll','-lWs2_32','-lIPHLPAPI','-lShell32','-lOle32','-lAdvapi32','-o',$fuzz))
     if ((Check 'frontend-fuzz' $fuzz @('10000','1481397778')) -notmatch 'frontend fuzz ok: 10000 iterations') {throw 'Frontend fuzz incomplete'}
     foreach ($negative in @(
             @('parse_fstring_unclosed_comment','未闭合的块注释'),
@@ -271,7 +271,7 @@ try {
     $interpolation = Join-Path $work 'interpolation-native.exe'
     $null = Check 'interpolation-strict-build' $gcc ($flags+@('-include',(Join-Path $work 'interpolation-default.c'),
         'test/cases/xlir_string_interpolation_host.c')+$objects+
-        @('release/xl.dll','-lWs2_32','-lIPHLPAPI','-lShell32','-lOle32','-lAdvapi32','-o',$interpolation))
+        @('release/win_x64/xl.dll','-lWs2_32','-lIPHLPAPI','-lShell32','-lOle32','-lAdvapi32','-o',$interpolation))
     $null = Check 'interpolation-native' $interpolation @()
     for ($point=0; $point -le 256; ++$point) {
         $output = Check "interpolation-oom-$point" $interpolation @("$point")
@@ -281,7 +281,7 @@ try {
     $nested = Join-Path $work 'nested-literals-native.exe'
     $null = Check 'nested-literals-strict-build' $gcc ($flags+@('-include',(Join-Path $work 'nested-literals-default.c'),
         'test/cases/xlir_string_interpolation_host.c')+$objects+
-        @('release/xl.dll','-lWs2_32','-lIPHLPAPI','-lShell32','-lOle32','-lAdvapi32','-o',$nested))
+        @('release/win_x64/xl.dll','-lWs2_32','-lIPHLPAPI','-lShell32','-lOle32','-lAdvapi32','-o',$nested))
     $null = Check 'nested-literals-native' $nested @()
     for ($point=0; $point -le 512; ++$point) {
         $output = Check "nested-literals-oom-$point" $nested @("$point")

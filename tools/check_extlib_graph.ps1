@@ -18,7 +18,7 @@ foreach($name in @('gcc','python')){
     $command=Get-Command (Get-Variable $name -ValueOnly) -CommandType Application -ErrorAction SilentlyContinue|Select-Object -First 1
     if($command){Set-Variable $name $command.Source}
 }
-$pkg = 'release/extlibs/graph'
+$pkg = 'release/win_x64/extlibs/graph'
 $manifest = Get-Content (Join-Path $Root "$pkg/xlang.package.json") -Raw | ConvertFrom-Json
 $sources = @($manifest.artifact.cSources | ForEach-Object {"$pkg/$_"})
 $flags = @('-std=c11','-O2','-Wall','-Wextra','-Werror','-Ilib/xrt',"-I$pkg/include")
@@ -30,8 +30,8 @@ function InputPaths {
     @($xl,(Join-Path $RuntimeDirectory 'xl.dll'),(Join-Path $RuntimeDirectory 'xlc.dll'),$PSCommandPath)
     foreach($tool in @($gcc,$python)){if(Test-Path -LiteralPath $tool -PathType Leaf){$tool}}
     foreach ($relative in @('lib/xrt/xrt.h','lib/xruntime/xruntime.h','test/support/extlib_graph_runtime.c',
-        'test/cases/extlib_graph.xl','test/support/extlib_runtime_host.c','release/examples/extlibs/graph.xl','release/examples/extlibs/graph_basic.xl',
-        'release/examples/extlibs/graph_basic.expected.txt','tools/check_extlib_graph.sh','tools/extlib_smoke_process.ps1',
+        'test/cases/extlib_graph.xl','test/support/extlib_runtime_host.c','release/win_x64/examples/extlibs/algo/graph.xl','release/win_x64/examples/extlibs/algo/graph_basic.xl',
+        'release/win_x64/examples/extlibs/algo/graph_basic.expected.txt','tools/check_extlib_graph.sh','tools/extlib_smoke_process.ps1',
         'tools/xlir_native_process.ps1','tools/run_extlib_c.ps1',
         'test/fixtures/extlib_boundary_pending/string_byte_len_nul.xl',
         'test/fixtures/extlib_boundary_pending/graph_nul_name.xl',
@@ -42,7 +42,7 @@ function InputPaths {
 foreach ($path in @(InputPaths | Sort-Object -Unique)) { $inputs[$path]=(Get-FileHash -LiteralPath $path).Hash }
 function Check([string]$name,[string]$program,[string[]]$arguments) {
     if($null -eq $arguments){$arguments=@()}
-    $r = Invoke-ExtlibSmokeProcess $program $arguments $Root 120 @{XLANG_PACKAGE_PATH=(Join-Path $Root 'release/extlibs');PYTHONDONTWRITEBYTECODE='1';TEMP=$work;TMP=$work}
+    $r = Invoke-ExtlibSmokeProcess $program $arguments $Root 120 @{XLANG_PACKAGE_PATH=(Join-Path $Root 'release/win_x64/extlibs');PYTHONDONTWRITEBYTECODE='1';TEMP=$work;TMP=$work}
     $checks.Add([ordered]@{name=$name;program=$program;arguments=$arguments;result=$r})
     Write-Host "[graph] ${name}: $($r.status)"
     if ($r.status -ne 'pass') {throw "$name failed: $($r.stderr)`n$($r.stdout)"}
@@ -90,7 +90,7 @@ try {
     [IO.File]::WriteAllText($orderedPath,$orderedRecords+"`n",$utf8)
     $null=Check 'ordered-oracle' $python @("$pkg/test/check_ordered_records.py",$orderedPath)
     if((Check 'ordered-direct-C' $xl @('run',"$pkg/test/ordered_records_c.c",'--','--records')) -cne $orderedRecords){throw 'GCC/TCC ordered records differ'}
-    $golden=(Get-Content (Join-Path $Root 'release/examples/extlibs/graph_basic.expected.txt') -Raw).Replace("`r`n","`n").TrimEnd("`n")
+    $golden=(Get-Content (Join-Path $Root 'release/win_x64/examples/extlibs/algo/graph_basic.expected.txt') -Raw).Replace("`r`n","`n").TrimEnd("`n")
     $language="$pkg/examples/from_json.xl"
     if((Check 'from-json-jit' $xl @('run',$language)) -cne $golden){throw 'JSON input golden differs'}
     $module=Join-Path $work 'from-json.c'
@@ -142,7 +142,7 @@ try {
     }
     # 原字面量输入仍为必过，正常 JSON 输入不能替代共享投影验收。
     foreach($case in @('test/cases/extlib_graph.xl',"$pkg/test/boundaries.xl", "$pkg/test/allocations.xl",
-        'release/examples/extlibs/graph.xl','release/examples/extlibs/graph_basic.xl')) {
+        'release/win_x64/examples/extlibs/algo/graph.xl','release/win_x64/examples/extlibs/algo/graph_basic.xl')) {
         $name=[IO.Path]::GetFileNameWithoutExtension($case)
         $jit=Check "$name-jit" $xl @('run',$case)
         if(-not $SkipAot) {
@@ -169,12 +169,12 @@ try {
     foreach($dll in @('xl','xlc')) {
         $null=Check "$dll-host-reuse" $hostExes[$dll] @($Root,(Join-Path $Root "$pkg/test/boundaries.xl"))
     }
-    $golden=(Get-Content (Join-Path $Root 'release/examples/extlibs/graph_basic.expected.txt') -Raw).Replace("`r`n","`n").TrimEnd("`n")
+    $golden=(Get-Content (Join-Path $Root 'release/win_x64/examples/extlibs/algo/graph_basic.expected.txt') -Raw).Replace("`r`n","`n").TrimEnd("`n")
     $outputs=@($xlOutput,$cOutput,$cJit,$helper)
     foreach($output in $outputs) {if($output -cne $golden) {throw 'Paired example output differs from golden'}}
     # Keep shared language failures separate from graph algorithm checks.
     foreach($name in @('string_byte_len_nul','graph_nul_name','string_join_symbol')) {
-        $result=Invoke-ExtlibSmokeProcess $xl @('run',"test/fixtures/extlib_boundary_pending/$name.xl") $Root 45 @{XLANG_PACKAGE_PATH=(Join-Path $Root 'release/extlibs')}
+        $result=Invoke-ExtlibSmokeProcess $xl @('run',"test/fixtures/extlib_boundary_pending/$name.xl") $Root 45 @{XLANG_PACKAGE_PATH=(Join-Path $Root 'release/win_x64/extlibs')}
         $pending.Add([ordered]@{name=$name;result=$result})
         Write-Host "[shared-boundary] ${name}: $($result.status)"
     }

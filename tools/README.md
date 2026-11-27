@@ -727,7 +727,7 @@ Representative and cross-cutting guards include:
 - `check_xrt_ownership_contract.ps1`
 - `check_xruntime_language_bridge.ps1`
 
-`check_async_task_soak.ps1` runs a focused async/task/concurrency soak guard. The default mode covers direct `xl run` entries plus the `cgen_task_spawn.xl` build/run artifact path; use `-Repeat N -IncludeHeavy` before release cuts to include the larger `release\examples\task_api.xl` and `cgen_task_api.xl` paths.
+`check_async_task_soak.ps1` runs a focused async/task/concurrency soak guard. The default mode covers direct `xl run` entries plus the `cgen_task_spawn.xl` build/run artifact path; use `-Repeat N -IncludeHeavy` before release cuts to include the larger `release\win_x64\examples\language/concurrency/task_api.xl` and `cgen_task_api.xl` paths.
 
 `check_frontend_fuzz.ps1` builds and runs the deterministic lexer/parser mutation harness. CI enables `-Sanitize` on Linux so address and undefined-behavior failures stop the build; the normal Windows suite runs the same corpus without requiring an external sanitizer runtime.
 

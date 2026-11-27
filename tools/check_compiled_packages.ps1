@@ -51,7 +51,7 @@ try {
         @(Get-ChildItem -LiteralPath 'test/cases' -Filter '*compiled_package*' -File)+
         @(Get-ChildItem -LiteralPath 'test/fixtures' -Directory | Where-Object Name -Like 'compiled_*' |
             Get-ChildItem -Recurse -File)+
-        @(Get-ChildItem -LiteralPath 'release/examples/embedded_package','release/include' -Recurse -File)+
+        @(Get-ChildItem -LiteralPath 'release/win_x64/examples/embedded_package','release/include' -Recurse -File)+
         @((Get-Item -LiteralPath 'src/ast/xl6_ast.h'))
     if($runtime){$inputs+=@('xl.exe','xl.dll','xlc.dll'|ForEach-Object {Get-Item -LiteralPath (Join-Path $runtime $_)})}
     if($public){$inputs+=@((Get-Item -LiteralPath (Join-Path $public 'build.json')))}
@@ -149,16 +149,16 @@ try {
             throw "Non-system DLL dependency: $name"
         }
     }
-    $env:XLANG_PACKAGE_PATH=Join-Path $root 'release/examples/embedded_package/packages'
-    foreach($source in @('release/examples/embedded_package/packages/embedded_math/math.xl',
-        'release/examples/embedded_package/packages/embedded_math/native.c')) {
+    $env:XLANG_PACKAGE_PATH=Join-Path $root 'release/win_x64/examples/embedded_package/packages'
+    foreach($source in @('release/win_x64/examples/embedded_package/packages/embedded_math/math.xl',
+        'release/win_x64/examples/embedded_package/packages/embedded_math/native.c')) {
         if(!(Test-Path -LiteralPath $source -PathType Leaf)){throw "Example package source missing: $source"}
     }
     $example=Join-Path $out 'example.exe'
-    Build-Xlang 'example-build' 'release/examples/embedded_package/host.xl' $example
+    Build-Xlang 'example-build' 'release/win_x64/examples/embedded_package/host.xl' $example
     $exampleDeploy=Join-Path $out 'example-deploy';New-Item -ItemType Directory -Path $exampleDeploy | Out-Null
     Copy-Item -LiteralPath $example -Destination (Join-Path $exampleDeploy 'host.exe')
-    Copy-Item -LiteralPath 'release/examples/embedded_package/external.xl' -Destination $exampleDeploy
+    Copy-Item -LiteralPath 'release/win_x64/examples/embedded_package/external.xl' -Destination $exampleDeploy
     $env:XLANG_PACKAGE_PATH='';Push-Location -LiteralPath $exampleDeploy
     try {Invoke-Step 'example-source-free' (Join-Path $exampleDeploy 'host.exe') @()}
     finally {Pop-Location}

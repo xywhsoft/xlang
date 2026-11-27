@@ -3,7 +3,7 @@ $ErrorActionPreference = 'Stop'
 if (!$Root) { $Root = Split-Path -Parent $PSScriptRoot }
 $Root = (Resolve-Path -LiteralPath $Root).Path
 . (Join-Path $PSScriptRoot 'extlib_smoke_process.ps1')
-$xl = Join-Path $Root 'release/xl.exe'
+$xl = Join-Path $Root 'release/win_x64/xl.exe'
 $gcc = (Get-Command gcc -CommandType Application -ErrorAction Stop).Source
 $workRoot = Join-Path $Root 'build/test/xxhash_guard'
 $runId = [guid]::NewGuid().ToString('N')
@@ -12,18 +12,18 @@ $work = Join-Path $workRoot ('run_' + $runId)
 $utf8 = [Text.UTF8Encoding]::new($false)
 $checks = [Collections.Generic.List[object]]::new()
 $hashes = [ordered]@{}
-$manifest = Get-Content (Join-Path $Root 'release/extlibs/xxhash/xlang.package.json') -Raw -Encoding UTF8 | ConvertFrom-Json
-$sources = @($manifest.artifact.cSources | ForEach-Object { "release/extlibs/xxhash/$_" })
+$manifest = Get-Content (Join-Path $Root 'release/win_x64/extlibs/xxhash/xlang.package.json') -Raw -Encoding UTF8 | ConvertFrom-Json
+$sources = @($manifest.artifact.cSources | ForEach-Object { "release/win_x64/extlibs/xxhash/$_" })
 $cases = @('extlib_xxhash','extlib_xxhash_boundaries','extlib_xxhash_progress')
 function Inputs {
-    @('.gitattributes','release/xl.exe','release/xl.dll','release/xlc.dll','lib/xrt/xrt.h','lib/xruntime/xruntime.h',
-      'release/include/xrt_decl.h','release/include/xruntime_decl.h','test/support/extlib_codec_runtime.c','test/support/extlib_hash_reader_contract.h',
+    @('.gitattributes','release/win_x64/xl.exe','release/win_x64/xl.dll','release/win_x64/xlc.dll','lib/xrt/xrt.h','lib/xruntime/xruntime.h',
+      'release/win_x64/include/xrt_decl.h','release/win_x64/include/xruntime_decl.h','test/support/extlib_codec_runtime.c','test/support/extlib_hash_reader_contract.h',
       'tools/check_extlib_xxhash.ps1','tools/check_extlib_xxhash.sh','tools/extlib_smoke_process.ps1',
       'tools/check_extlib_native_globals.ps1','tools/check_extlib_native_globals.sh',
       'tools/xlir_native_process.ps1','tools/run_extlib_c.ps1','test/featured_extlibs.json','test/suites/11_featured_extlibs_rc.bat',
-      'release/examples/extlibs/xxhash.xl','release/examples/extlibs/xxhash_basic.xl','release/examples/extlibs/xxhash_basic.expected.txt') +
+      'release/win_x64/examples/extlibs/algo/xxhash.xl','release/win_x64/examples/extlibs/algo/xxhash_basic.xl','release/win_x64/examples/extlibs/algo/xxhash_basic.expected.txt') +
       @($cases | ForEach-Object { "test/cases/$_.xl" }) +
-      @(Get-ChildItem (Join-Path $Root 'release/extlibs/xxhash') -Recurse -File |
+      @(Get-ChildItem (Join-Path $Root 'release/win_x64/extlibs/xxhash') -Recurse -File |
         ForEach-Object { $_.FullName.Substring($Root.Length + 1).Replace('\','/') }) | Sort-Object -Unique
 }
 foreach ($path in @(Inputs)) { $hashes[$path] = (Get-FileHash -LiteralPath (Join-Path $Root $path)).Hash }
@@ -44,7 +44,7 @@ $decls = @()
 try {
     $negativeCases = [ordered]@{ private_update_negative='updateNative'; private_string_length_negative='updateStrNative' }
     foreach ($name in $negativeCases.Keys) {
-        $args = @('check',"release/extlibs/xxhash/test/$name.xl")
+        $args = @('check',"release/win_x64/extlibs/xxhash/test/$name.xl")
         $result = Invoke-ExtlibSmokeProcess $xl $args $Root 30
         $checks.Add([ordered]@{name=$name;program=$xl;arguments=$args;status=$result.status;exitCode=$result.exitCode;elapsedMs=$result.elapsedMs;stdout=$result.stdout;stderr=$result.stderr})
         if ($result.status -ne 'fail' -or
@@ -54,7 +54,7 @@ try {
         }
         Write-Host "[xxhash] ${name}: rejected as expected"
     }
-    $pkg = Join-Path $Root 'release/extlibs/xxhash'
+    $pkg = Join-Path $Root 'release/win_x64/extlibs/xxhash'
     $lock = Get-Content (Join-Path $pkg 'third_party/manifest.json') -Raw -Encoding UTF8 | ConvertFrom-Json
     if ($lock.commit -ne 'e626a72bc2321cd320e953a0ccf1584cad60f363' -or !$lock.headerUnmodified) { throw 'Invalid xxHash vendor lock' }
     foreach ($file in $lock.files) {
@@ -76,7 +76,7 @@ try {
         $objects += $obj
     }
     $links = @($runtime,'-lWs2_32','-lAdvapi32','-lm')
-    $readerContract='release/extlibs/xxhash/test/reader_contract_c.c'
+    $readerContract='release/win_x64/extlibs/xxhash/test/reader_contract_c.c'
     $readerBinary=Join-Path $work 'reader-contract.exe'
     $null=Check 'reader-contract-compile' $gcc ($flags+@($readerContract)+$links+@('-o',$readerBinary))
     $readerSummary=Check 'reader-contract-GCC' $readerBinary @()
@@ -84,33 +84,33 @@ try {
     foreach ($name in @('test_xxhash','test_xxhash_native')) {
         $selected = if ($name -eq 'test_xxhash') { @($objects[2]) } else { $objects }
         $binary = Join-Path $work "$name.exe"
-        $null = Check "$name-build" $gcc ($flags + @('-DNDEBUG',"release/extlibs/xxhash/test/$name.c") + $selected + $links + @('-o',$binary))
+        $null = Check "$name-build" $gcc ($flags + @('-DNDEBUG',"release/win_x64/extlibs/xxhash/test/$name.c") + $selected + $links + @('-o',$binary))
         $null = Check $name $binary @()
     }
-    $example = 'release/extlibs/xxhash/examples/basic.c'
+    $example = 'release/win_x64/extlibs/xxhash/examples/basic.c'
     $releaseExample = Join-Path $work 'xxhash-c-example-ndebug.exe'
     $null = Check 'c-example-ndebug-build' $gcc ($flags + @('-DNDEBUG',$example) + $objects + $links + @('-o',$releaseExample))
     $releaseOutput = Check 'c-example-ndebug' $releaseExample @()
-    $releaseGolden = [IO.File]::ReadAllText((Join-Path $Root 'release/examples/extlibs/xxhash_basic.expected.txt')).Replace("`r`n","`n").TrimEnd("`n")
+    $releaseGolden = [IO.File]::ReadAllText((Join-Path $Root 'release/win_x64/examples/extlibs/algo/xxhash_basic.expected.txt')).Replace("`r`n","`n").TrimEnd("`n")
     if ($releaseOutput -cne $releaseGolden) { throw 'xxHash -DNDEBUG C example output differs from golden' }
     $directOutput = Check 'c-example-direct-jit' $xl @('run',$example)
     if ($directOutput -cne $releaseGolden) { throw 'Direct C example output differs from golden' }
-    $core = 'release/extlibs/xxhash/test/test_xxhash.c'
+    $core = 'release/win_x64/extlibs/xxhash/test/test_xxhash.c'
     $null = Check 'core-c-jit' $xl @('run',$core,$sources[2],'--inc-path','lib/xrt')
     $null = Check 'core-c-package-runner' (Get-Process -Id $PID).Path @('-NoProfile','-ExecutionPolicy','Bypass','-File','tools/run_extlib_c.ps1','-Package','xxhash','-Source',$core)
-    $null = Check 'seeded-boundaries-jit' $xl @('run','release/extlibs/xxhash/test/seeded_boundaries.xl')
-    $null = Check 'stream-limit-jit' $xl @('run','release/extlibs/xxhash/test/stream_limit.xl')
-    $null = Check 'xxh3-jit' $xl @('run','release/extlibs/xxhash/test/xxh3.xl')
-    $null = Check 'ownership-jit' $xl @('run','release/extlibs/xxhash/test/ownership.xl')
+    $null = Check 'seeded-boundaries-jit' $xl @('run','release/win_x64/extlibs/xxhash/test/seeded_boundaries.xl')
+    $null = Check 'stream-limit-jit' $xl @('run','release/win_x64/extlibs/xxhash/test/stream_limit.xl')
+    $null = Check 'xxh3-jit' $xl @('run','release/win_x64/extlibs/xxhash/test/xxh3.xl')
+    $null = Check 'ownership-jit' $xl @('run','release/win_x64/extlibs/xxhash/test/ownership.xl')
     if (!$SkipAot) {
         foreach ($name in @('xxh3','ownership')) {
             $binary = Join-Path $work "$name.exe"
-            $null = Check "$name-build" $xl @('build',"release/extlibs/xxhash/test/$name.xl",'-o',$binary)
+            $null = Check "$name-build" $xl @('build',"release/win_x64/extlibs/xxhash/test/$name.xl",'-o',$binary)
             $null = Check "$name-aot" $binary @()
         }
     }
     $ownedModule = Join-Path $work 'ownership.c'
-    $null = Check 'ownership-cgen' $xl @('cgen','release/extlibs/xxhash/test/ownership.xl','--emit',$ownedModule)
+    $null = Check 'ownership-cgen' $xl @('cgen','release/win_x64/extlibs/xxhash/test/ownership.xl','--emit',$ownedModule)
     $ownedText = [IO.File]::ReadAllText($ownedModule)
     foreach ($symbol in @('xxxhash_hash64_hex','xxxhash_hash64_str_hex',
         'xxxhash_hash32_hex','xxxhash_hash32_str_hex','xxxhash_hash3_64_hex',
@@ -121,7 +121,7 @@ try {
         }
     }
     $xxh3Module = Join-Path $work 'xxh3.c'
-    $null = Check 'xxh3-cgen' $xl @('cgen','release/extlibs/xxhash/test/xxh3.xl','--emit',$xxh3Module)
+    $null = Check 'xxh3-cgen' $xl @('cgen','release/win_x64/extlibs/xxhash/test/xxh3.xl','--emit',$xxh3Module)
     $decls += @(Get-Content $xxh3Module -Encoding UTF8 | Where-Object { $_ -match '^extern .*\bxxxhash_[a-z0-9_]+\(' })
     foreach ($name in $cases) {
         $case = "test/cases/$name.xl"; $binary = Join-Path $work "$name.exe"; $module = Join-Path $work "$name.c"
@@ -140,20 +140,20 @@ try {
     if (@(Compare-Object $expected $actual).Count -or $decls.Count -ne $expected.Count) { throw 'Generated ABI coverage incomplete' }
     $abi = Join-Path $work 'abi.c'
     [IO.File]::WriteAllText($abi,"#include <stdint.h>`n#include `"xxhash_native.h`"`n"+($decls -join "`n"),$utf8)
-    $null = Check 'generated-prototypes' $gcc ($flags + @('-Irelease/extlibs/xxhash/include','-fsyntax-only',$abi))
+    $null = Check 'generated-prototypes' $gcc ($flags + @('-Irelease/win_x64/extlibs/xxhash/include','-fsyntax-only',$abi))
 
     # 负数或超宽种子必须在语义阶段拒绝，而不是依赖 C 截断。
     foreach ($name in @('invalid_seed_negative','invalid_seed32_overflow')) {
-        $case = "release/extlibs/xxhash/test/$name.xl"
+        $case = "release/win_x64/extlibs/xxhash/test/$name.xl"
         $r = Invoke-ExtlibSmokeProcess $xl @('check',$case) $Root 30
         $ok = $r.status -eq 'fail' -and $r.exitCode -eq 1 -and $r.stderr -match '\[sem\]'
         $checks.Add([ordered]@{name=$name;status=$(if ($ok) {'pass'} else {'fail'});program=$xl;arguments=@('check',$case);exitCode=$r.exitCode;elapsedMs=$r.elapsedMs;stdout=$r.stdout;stderr=$r.stderr})
         if (!$ok) { throw "Seed range rejection failed: $name $($r.stderr)" }
         Write-Host "[xxhash] ${name}: PASS"
     }
-    $golden = [IO.File]::ReadAllText((Join-Path $Root 'release/examples/extlibs/xxhash_basic.expected.txt')).Replace("`r`n","`n").TrimEnd("`n")
+    $golden = [IO.File]::ReadAllText((Join-Path $Root 'release/win_x64/examples/extlibs/algo/xxhash_basic.expected.txt')).Replace("`r`n","`n").TrimEnd("`n")
     foreach ($name in @('xxhash','xxhash_basic')) {
-        $case = "release/examples/extlibs/$name.xl"; $binary = Join-Path $work "$name-example.exe"
+        $case = "release/win_x64/examples/extlibs/$name.xl"; $binary = Join-Path $work "$name-example.exe"
         $output = Check "$name-example-jit" $xl @('run',$case)
         if (!$SkipAot) {
             $null = Check "$name-example-build" $xl @('build',$case,'-o',$binary)
@@ -162,7 +162,7 @@ try {
         }
         if ($name -eq 'xxhash_basic' -and $output -cne $golden) { throw 'Language example output mismatch' }
     }
-    $example = 'release/extlibs/xxhash/examples/basic.c'; $binary = Join-Path $work 'c-example.exe'
+    $example = 'release/win_x64/extlibs/xxhash/examples/basic.c'; $binary = Join-Path $work 'c-example.exe'
     $null = Check 'c-example-build' $gcc ($flags + @($example) + $objects + $links + @('-o',$binary))
     $c = Check 'c-example' $binary @()
     $jit = Check 'c-example-jit' $xl @('run',$example)

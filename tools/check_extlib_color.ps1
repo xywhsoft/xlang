@@ -2,8 +2,8 @@ param([string]$Root='', [string]$WorkDirectory='', [string]$PublicSourceDirector
 $ErrorActionPreference='Stop'
 if(!$Root){$Root=Split-Path -Parent $PSScriptRoot}
 $Root=(Resolve-Path $Root).Path
-$pkg='release/extlibs/color'
-$xl=Join-Path $Root 'release/xl.exe'
+$pkg='release/win_x64/extlibs/color'
+$xl=Join-Path $Root 'release/win_x64/xl.exe'
 $gcc=(Get-Command gcc -CommandType Application|Select-Object -First 1).Source
 $python=(Get-Command python -CommandType Application|Select-Object -First 1).Source
 $work=if($WorkDirectory){[IO.Path]::GetFullPath($(if([IO.Path]::IsPathRooted($WorkDirectory)){$WorkDirectory}else{Join-Path $Root $WorkDirectory}))}else{Join-Path $Root ('build/test/color_guard/run_'+[guid]::NewGuid().ToString('N'))}
@@ -25,14 +25,14 @@ if($PublicSourceDirectory){
 }
 $manifest=Get-Content (Join-Path $Root "$pkg/xlang.package.json") -Raw|ConvertFrom-Json
 $sources=@($manifest.artifact.cSources|ForEach-Object{"$pkg/$_"})
-$cases=@('test/cases/extlib_color.xl','release/examples/extlibs/color.xl','release/examples/extlibs/color_basic.xl',"$pkg/examples/theme.xl")+@($manifest.coverage.tests|ForEach-Object{"$pkg/$_"})
-$environment=@{XLANG_PACKAGE_PATH=(Join-Path $Root 'release/extlibs')}
+$cases=@('test/cases/extlib_color.xl','release/win_x64/examples/extlibs/graphics/color.xl','release/win_x64/examples/extlibs/graphics/color_basic.xl',"$pkg/examples/theme.xl")+@($manifest.coverage.tests|ForEach-Object{"$pkg/$_"})
+$environment=@{XLANG_PACKAGE_PATH=(Join-Path $Root 'release/win_x64/extlibs')}
 $inputs=[ordered]@{}; $checks=[Collections.Generic.List[object]]::new()
 function InputPaths {
     $gcc; $python; $PSCommandPath
     Get-ChildItem (Join-Path $Root $pkg) -Recurse -File|ForEach-Object FullName
     foreach($file in $cases+@('lib/xrt/xrt.h','lib/xruntime/xruntime.h','test/support/extlib_color_runtime.c','test/support/extlib_runtime_host.c',
-        'release/examples/extlibs/color_basic.expected.txt','release/xl.exe','release/xl.dll','release/xlc.dll',
+        'release/win_x64/examples/extlibs/graphics/color_basic.expected.txt','release/win_x64/xl.exe','release/win_x64/xl.dll','release/win_x64/xlc.dll',
         'tools/check_extlib_color.sh','tools/check_extlib_color_oracle.py','tools/run_extlib_c.ps1','tools/extlib_smoke_process.ps1','tools/xlir_native_process.ps1')){Join-Path $Root $file}
     Get-ChildItem (Join-Path $Root 'release/include') -Recurse -File|ForEach-Object FullName
     if($compiler){
@@ -138,7 +138,7 @@ try {
         $caot=Check 'example-c-aot' $exe @()
     }
     $helper=Check 'example-package-runner' (Get-Process -Id $PID).Path @('-NoProfile','-File','tools/run_extlib_c.ps1','-Package','color','-Source',$example)
-    $golden=[IO.File]::ReadAllText((Join-Path $Root 'release/examples/extlibs/color_basic.expected.txt')).Replace("`r`n","`n").TrimEnd("`n")
+    $golden=[IO.File]::ReadAllText((Join-Path $Root 'release/win_x64/examples/extlibs/graphics/color_basic.expected.txt')).Replace("`r`n","`n").TrimEnd("`n")
     $outputs=@($xlOutput,$native,$cjit,$helper)
     if(-not $SkipAot){$outputs+=@($caot)}
     foreach($output in $outputs){if($output -cne $golden){throw 'Color bilingual output mismatch'}}

@@ -32,7 +32,7 @@
 
 ## 分类套件
 
-`test/suites/common.bat` 是分类套件的公共初始化入口。单独运行某个套件时，它会切换到 demo6 根目录，设置 `XLANG_PACKAGE_PATH=release\extlibs;test\fixtures`，在缺少 `release\xl.exe` 或 `release\xlc.dll` 时自动构建，并准备 TCC bootstrap 与 XRT object。
+`test/suites/common.bat` 是分类套件的公共初始化入口。单独运行某个套件时，它会切换到 demo6 根目录，设置 `XLANG_PACKAGE_PATH=release\win_x64\extlibs;test\fixtures`，在缺少 `release\win_x64\xl.exe` 或 `release\win_x64\xlc.dll` 时自动构建，并准备 TCC bootstrap 与 XRT object。
 
 可以按需运行：
 
@@ -76,7 +76,7 @@ test\suites\02_language_frontend.bat
 
 ## fixtures
 
-- `fixtures/libprobe`：package/import 测试用裸包名 fixture，用于验证 `XLANG_PACKAGE_PATH=release\extlibs;test\fixtures` 下的非发布物搜索路径。
+- `fixtures/libprobe`：package/import 测试用裸包名 fixture，用于验证 `XLANG_PACKAGE_PATH=release\win_x64\extlibs;test\fixtures` 下的非发布物搜索路径。
 
 ## 用例前缀索引
 

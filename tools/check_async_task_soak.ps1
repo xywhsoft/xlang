@@ -11,7 +11,7 @@ if ( $Root -eq "" ) {
     $Root = Split-Path -Parent $PSScriptRoot
 }
 
-$xl = Join-Path $Root "release\xl.exe"
+$xl = Join-Path $Root "release\win_x64\xl.exe"
 $tmpDir = Join-Path $Root "build\test"
 $failures = New-Object System.Collections.Generic.List[string]
 $strictUtf8 = New-Object System.Text.UTF8Encoding($false, $true)
@@ -260,8 +260,8 @@ if ( ! (Test-Path -LiteralPath $tmpDir -PathType Container) ) {
 }
 
 $commands = @(
-    @{ Name = "concurrency example"; Args = @("run", "release\examples\concurrency.xl") },
-    @{ Name = "async generator example"; Args = @("run", "release\examples\async_generator.xl") },
+    @{ Name = "concurrency example"; Args = @("run", "release\win_x64\examples\language/concurrency/concurrency.xl") },
+    @{ Name = "async generator example"; Args = @("run", "release\win_x64\examples\language/concurrency/async_generator.xl") },
     @{ Name = "async case"; Args = @("run", "test\cases\cgen_async.xl") },
     @{ Name = "thread case"; Args = @("run", "test\cases\cgen_thread.xl") },
     @{ Name = "sync case"; Args = @("run", "test\cases\cgen_sync.xl") },
@@ -269,7 +269,7 @@ $commands = @(
 )
 
 if ( $IncludeHeavy ) {
-    $commands += @{ Name = "task api example"; Args = @("run", "release\examples\task_api.xl") }
+    $commands += @{ Name = "task api example"; Args = @("run", "release\win_x64\examples\language/concurrency/task_api.xl") }
 }
 
 $buildCases = @(

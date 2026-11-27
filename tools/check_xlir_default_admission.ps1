@@ -82,13 +82,13 @@ foreach ($name in @('xl6_ir.o','xlir_public_source_driver.o')) {
     }
 }
 $ancestryResults = @()
-Copy-Item -LiteralPath (Join-Path $Root 'release/xl.dll') -Destination (Join-Path $outputPath 'xl.dll')
+Copy-Item -LiteralPath (Join-Path $Root 'release/win_x64/xl.dll') -Destination (Join-Path $outputPath 'xl.dll')
 Push-Location $Root
 try {
     foreach ($level in @(0,2)) {
         $prefix = Join-Path $outputPath "cleanup-ancestry-O$level"
         $arguments = @($session.Manifest.CompileFlags) + @("-O$level",$ancestryFixture) +
-            $ancestryObjects + @((Join-Path $Root 'release/xl.dll'),'-lws2_32','-liphlpapi',
+            $ancestryObjects + @((Join-Path $Root 'release/win_x64/xl.dll'),'-lws2_32','-liphlpapi',
                 '-lshell32','-lole32','-ladvapi32','-o',"$prefix.exe")
         $buildExit = Invoke-XlirGccToLog $arguments "$prefix.build.log"
         if ($buildExit) { throw 'Cleanup ancestry reference contract failed to build' }
@@ -120,7 +120,7 @@ $index = 0
 # an unoptimized source-built compiler. Keep them in one batch so the gate pays
 # the measured CPU-bound tail once instead of serially by directory/name order.
 $prioritySources = @(
-    'release\examples\task_api.xl',
+    'release\win_x64\examples\language/concurrency/task_api.xl',
     'test\cases\cgen_task_api.xl',
     'test\cases\cgen_task_spawn.xl'
 )

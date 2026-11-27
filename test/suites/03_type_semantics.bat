@@ -30,15 +30,15 @@ for %%F in (
     cgen_repeated_probe
     runtime_is_flow_narrowing
 ) do (
-    release\xl.exe check test\cases\%%F.xl
+    release\win_x64\xl.exe check test\cases\%%F.xl
     if errorlevel 1 exit /b 1
-    release\xl.exe run test\cases\%%F.xl
+    release\win_x64\xl.exe run test\cases\%%F.xl
     if errorlevel 1 exit /b 1
 )
 
 rem XLIR must carry ordinary class values as xvalue objects, while native
 rem standard-library construction stays an explicit C-linkage boundary.
-release\xl.exe cgen test\cases\cgen_typed_array_class_return.xl --backend xlir --emit build\test\xlir_typed_array_class_return_generated.c
+release\win_x64\xl.exe cgen test\cases\cgen_typed_array_class_return.xl --backend xlir --emit build\test\xlir_typed_array_class_return_generated.c
 if errorlevel 1 exit /b 1
 findstr /C:"xrtValueObject()" build\test\xlir_typed_array_class_return_generated.c >nul
 if errorlevel 1 (
@@ -57,7 +57,7 @@ if errorlevel 1 exit /b 1
 
 rem Class property and native method calls use the same explicit receiver slot
 rem in XLIR.  The generated unit must remain independently C-syntax-valid.
-release\xl.exe cgen test\cases\xlir_native_dynamic_fields_receiver.xl --backend xlir --emit build\test\xlir_native_dynamic_fields_receiver.c
+release\win_x64\xl.exe cgen test\cases\xlir_native_dynamic_fields_receiver.xl --backend xlir --emit build\test\xlir_native_dynamic_fields_receiver.c
 if errorlevel 1 exit /b 1
 findstr /C:"xrtDynamicFieldsCreate" build\test\xlir_native_dynamic_fields_receiver.c >nul
 if errorlevel 1 exit /b 1
@@ -68,7 +68,7 @@ if errorlevel 1 exit /b 1
 build\test\xlir_native_dynamic_fields_receiver.exe
 if errorlevel 1 exit /b 1
 
-release\xl.exe cgen test\cases\xlir_native_dynamic_fields_values.xl --backend xlir --emit build\test\xlir_native_dynamic_fields_values.c
+release\win_x64\xl.exe cgen test\cases\xlir_native_dynamic_fields_values.xl --backend xlir --emit build\test\xlir_native_dynamic_fields_values.c
 if errorlevel 1 exit /b 1
 "%XL6_CGEN_CC%" %XL6_CGEN_FLAGS% %XL6_CGEN_INCLUDES% -Werror test\cases\xlir_native_dynamic_fields_values_host.c %XL6_CGEN_LINKS% -o build\test\xlir_native_dynamic_fields_values.exe
 if errorlevel 1 exit /b 1
@@ -77,7 +77,7 @@ if errorlevel 1 exit /b 1
 
 rem Native lifecycle specials are explicit void extern C calls with a borrowed
 rem handle receiver, never a late Cgen-specific destructor rewrite.
-release\xl.exe cgen test\cases\xlir_native_dynamic_fields_destroy.xl --backend xlir --emit build\test\xlir_native_dynamic_fields_destroy.c
+release\win_x64\xl.exe cgen test\cases\xlir_native_dynamic_fields_destroy.xl --backend xlir --emit build\test\xlir_native_dynamic_fields_destroy.c
 if errorlevel 1 exit /b 1
 findstr /C:"extern void xl6_xrt_dynamic_fields_destroy(void*);" build\test\xlir_native_dynamic_fields_destroy.c >nul
 if errorlevel 1 exit /b 1
@@ -90,7 +90,7 @@ if errorlevel 1 exit /b 1
 
 rem Native handles acquire their lifecycle cleanup from typed XLIR exit plans.
 rem On normal scope exit lowering must materialize the same destructor target.
-release\xl.exe cgen test\cases\xlir_native_dynamic_fields_auto_destroy.xl --backend xlir --emit build\test\xlir_native_dynamic_fields_auto_destroy.c
+release\win_x64\xl.exe cgen test\cases\xlir_native_dynamic_fields_auto_destroy.xl --backend xlir --emit build\test\xlir_native_dynamic_fields_auto_destroy.c
 if errorlevel 1 exit /b 1
 findstr /C:"xl6_xrt_dynamic_fields_destroy(v" build\test\xlir_native_dynamic_fields_auto_destroy.c >nul
 if errorlevel 1 exit /b 1
@@ -100,7 +100,7 @@ build\test\xlir_native_dynamic_fields_auto_destroy.exe
 if errorlevel 1 exit /b 1
 
 rem An explicit lifecycle call consumes the matching owned local cleanup.
-release\xl.exe cgen test\cases\xlir_native_dynamic_fields_explicit_destroy.xl --backend xlir --emit build\test\xlir_native_dynamic_fields_explicit_destroy.c
+release\win_x64\xl.exe cgen test\cases\xlir_native_dynamic_fields_explicit_destroy.xl --backend xlir --emit build\test\xlir_native_dynamic_fields_explicit_destroy.c
 if errorlevel 1 exit /b 1
 powershell -NoProfile -Command "$t=[IO.File]::ReadAllText('build/test/xlir_native_dynamic_fields_explicit_destroy.c');if(([regex]::Matches($t,'xl6_xrt_dynamic_fields_destroy\(v[0-9]+\)')).Count -ne 1){exit 1}"
 if errorlevel 1 (
@@ -112,7 +112,7 @@ if errorlevel 1 exit /b 1
 build\test\xlir_native_dynamic_fields_explicit_destroy.exe
 if errorlevel 1 exit /b 1
 
-release\xl.exe cgen test\cases\hir_nullable_parse_probe.xl --emit build\test\hir_nullable_parse_probe.c
+release\win_x64\xl.exe cgen test\cases\hir_nullable_parse_probe.xl --emit build\test\hir_nullable_parse_probe.c
 if errorlevel 1 exit /b 1
 findstr /C:"#define XL_RUNTIME_NEED_TYPE_STRING_VALUE 1" build\test\hir_nullable_parse_probe.c >nul
 if errorlevel 1 (
@@ -125,7 +125,7 @@ if not errorlevel 1 (
     exit /b 1
 )
 
-release\xl.exe cgen test\cases\typed_container_iteration_ownership.xl --emit build\test\typed_container_iteration_ownership.c
+release\win_x64\xl.exe cgen test\cases\typed_container_iteration_ownership.xl --emit build\test\typed_container_iteration_ownership.c
 if errorlevel 1 exit /b 1
 findstr /C:"xl6_xrt_retain(0)" build\test\typed_container_iteration_ownership.c >nul
 if not errorlevel 1 (
@@ -138,7 +138,7 @@ if errorlevel 1 (
     exit /b 1
 )
 
-release\xl.exe cgen test\cases\weak_async_lifecycle.xl --emit build\test\weak_async_lifecycle.c
+release\win_x64\xl.exe cgen test\cases\weak_async_lifecycle.xl --emit build\test\weak_async_lifecycle.c
 if errorlevel 1 exit /b 1
 findstr /C:"= xl6_future_await_weak_copy(__xl6_user_global_aliveFuture" build\test\weak_async_lifecycle.c >nul
 if errorlevel 1 (
@@ -162,9 +162,9 @@ if not errorlevel 1 (
     exit /b 1
 )
 
-release\xl.exe check test\cases\cgen_threaded_context_matrix.xl
+release\win_x64\xl.exe check test\cases\cgen_threaded_context_matrix.xl
 if errorlevel 1 exit /b 1
-release\xl.exe cgen test\cases\cgen_threaded_context_matrix.xl --emit build\test\cgen_threaded_context_matrix.c
+release\win_x64\xl.exe cgen test\cases\cgen_threaded_context_matrix.xl --emit build\test\cgen_threaded_context_matrix.c
 if errorlevel 1 exit /b 1
 findstr /C:"xl6_temp_managed_state_existing" build\test\cgen_threaded_context_matrix.c >nul
 if errorlevel 1 exit /b 1
@@ -187,7 +187,7 @@ for %%F in (
     sem_nullable_function_direct_call_error
     bad_nullable_guard_reassign
 ) do (
-    release\xl.exe check test\cases\%%F.xl > build\test\%%F.err.txt 2>&1
+    release\win_x64\xl.exe check test\cases\%%F.xl > build\test\%%F.err.txt 2>&1
     if not errorlevel 1 (
         echo %%F.xl should fail.
         exit /b 1
@@ -200,14 +200,14 @@ for %%F in (
     )
 )
 
-release\xl.exe ir test\cases\hir_nullable_types_check.xl --emit build\test\hir_nullable_types_check.xlir
+release\win_x64\xl.exe ir test\cases\hir_nullable_types_check.xl --emit build\test\hir_nullable_types_check.xlir
 if errorlevel 1 exit /b 1
 findstr /C:"nullable<__class_handle<Node>>" build\test\hir_nullable_types_check.xlir >nul
 if errorlevel 1 exit /b 1
 findstr /C:"weak<__class_handle<Node>>" build\test\hir_nullable_types_check.xlir >nul
 if errorlevel 1 exit /b 1
 
-release\xl.exe cgen test\cases\nullable_string_lifecycle.xl --emit build\test\nullable_string_lifecycle.c
+release\win_x64\xl.exe cgen test\cases\nullable_string_lifecycle.xl --emit build\test\nullable_string_lifecycle.c
 if errorlevel 1 exit /b 1
 findstr /C:"= xl6_nullable_string_copy(__xl6_return_" build\test\nullable_string_lifecycle.c >nul
 if errorlevel 1 (
@@ -215,7 +215,7 @@ if errorlevel 1 (
     exit /b 1
 )
 
-release\xl.exe cgen test\cases\typed_nullable_container_matrix.xl --emit build\test\typed_nullable_container_matrix.c
+release\win_x64\xl.exe cgen test\cases\typed_nullable_container_matrix.xl --emit build\test\typed_nullable_container_matrix.c
 if errorlevel 1 exit /b 1
 findstr /C:"_owned_copy" build\test\typed_nullable_container_matrix.c >nul
 if errorlevel 1 (
@@ -231,7 +231,7 @@ if errorlevel 1 (
 )
 powershell -NoProfile -Command "$t=[IO.File]::ReadAllText('build/test/typed_nullable_container_matrix.c');if($t -match 'xrtTyped(Array|List|Set|Dict)Create\(0(?:,|\))'){Write-Host 'typed nullable container used a null TypeDesc';exit 1};$m=[regex]::Matches($t,'static const xrt_type_desc\* (xl6_runtime_type_desc_[0-9A-F]+)\(void\) \{');$g=$m|%%{$_.Groups[1].Value}|Group-Object|?{$_.Count -ne 1};if($g){Write-Host 'nullable TypeDesc was emitted more than once';exit 1}"
 if errorlevel 1 exit /b 1
-release\xl.exe cgen test\cases\hir_flow_value_ownership_matrix.xl --emit build\test\hir_flow_value_ownership_matrix.c
+release\win_x64\xl.exe cgen test\cases\hir_flow_value_ownership_matrix.xl --emit build\test\hir_flow_value_ownership_matrix.c
 if errorlevel 1 exit /b 1
 findstr /C:"boxed = xl6_enum_op_box_value_" build\test\hir_flow_value_ownership_matrix.c >nul
 if errorlevel 1 (
@@ -248,9 +248,9 @@ if errorlevel 1 exit /b 1
 "%XL6_BOOTSTRAP_CC%" -std=c11 -Werror=incompatible-pointer-types -Ibuild\test -fsyntax-only build\test\hir_flow_value_ownership_matrix.c
 if errorlevel 1 exit /b 1
 
-release\xl.exe check release\examples\tutorial\13_modern_type_semantics.xl
+release\win_x64\xl.exe check release\win_x64\examples\tutorial\13_modern_type_semantics.xl
 if errorlevel 1 exit /b 1
-release\xl.exe run release\examples\tutorial\13_modern_type_semantics.xl
+release\win_x64\xl.exe run release\win_x64\examples\tutorial\13_modern_type_semantics.xl
 if errorlevel 1 exit /b 1
 
 echo DEMO6 suite ok: typed XLIR, nullable, weak, and definite assignment

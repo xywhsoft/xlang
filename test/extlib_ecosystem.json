@@ -1,7 +1,7 @@
 {
   "format": "xlang-extlib-ecosystem-2",
   "generatedAt": "2026-10-22T02:11:55.0023318Z",
-  "root": "release/extlibs",
+  "root": "release/win_x64/extlibs",
   "packages": [
     {
       "name": "_bzip2",

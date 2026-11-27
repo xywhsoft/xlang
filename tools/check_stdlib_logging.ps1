@@ -8,7 +8,7 @@ if (Test-Path -LiteralPath $outputPath) { throw 'Choose a fresh logging evidence
 New-Item -ItemType Directory -Path $outputPath | Out-Null
 $temporaryPath = Join-Path $outputPath 'tmp'
 New-Item -ItemType Directory -Path $temporaryPath | Out-Null
-$xl = Join-Path $rootPath 'release/xl.exe'
+$xl = Join-Path $rootPath 'release/win_x64/xl.exe'
 $compiler = (Get-Command gcc -CommandType Application -ErrorAction Stop).Source
 $rows = [Collections.Generic.List[object]]::new()
 
@@ -50,9 +50,9 @@ try {
     }
     # Freeze the toolchain and the project-owned source inputs before one batch.
     $files = @(@(Get-ChildItem src -Recurse -File) + @(Get-ChildItem test/cases/stdlib_log* -File) +
-        @(Get-ChildItem test/cases/bad_log_printf* -File) + @(Get-Item release/xl.exe,release/xl.dll,release/xlc.dll,
+        @(Get-ChildItem test/cases/bad_log_printf* -File) + @(Get-Item release/win_x64/xl.exe,release/win_x64/xl.dll,release/win_x64/xlc.dll,
         test/cases/xlir_log_adapter_contract.c,test/cases/bad_xlir_log_input.xl,test/cases/bad_xlir_log_result.xl,
-        release/examples/stdlib_logging.xl,release/examples/stdlib_log.xl,release/examples/stdlib_log_formats.xl,release/examples/stdlib_log_c.c,
+        release/win_x64/examples/stdlib/io/stdlib_logging.xl,release/win_x64/examples/stdlib/io/stdlib_log.xl,release/win_x64/examples/stdlib/io/stdlib_log_formats.xl,release/win_x64/examples/stdlib/io/stdlib_log_c.c,
         test/support/log_selected_native.c,lib/xruntime/xruntime.h,tools/check_stdlib_coverage.ps1,$compiler,$PSCommandPath)) | Sort-Object FullName -Unique
     $inputs = @($files | ForEach-Object { [pscustomobject]@{Path=$_.FullName;Sha256=(Get-FileHash -LiteralPath $_.FullName).Hash} })
     # This gate links the actual DLL ABI, so it needs declarations, not the two
@@ -61,18 +61,18 @@ try {
     $sdk = "$outputPath/include/__xl_runtime"
     New-Item -ItemType Directory -Path $sdk -Force | Out-Null
     Get-ChildItem src/runtime/xl6_*.h -File | Copy-Item -Destination $sdk
-    Copy-Item release/include/xl_runtime.h,release/include/xl_extlib_abi.h,release/include/xrt_decl.h,release/include/xruntime_decl.h -Destination $sdk
+    Copy-Item release/win_x64/include/xl_runtime.h,release/win_x64/include/xl_extlib_abi.h,release/win_x64/include/xrt_decl.h,release/win_x64/include/xruntime_decl.h -Destination $sdk
     $configuration = @{
         XL6_CGEN_CC='"' + $compiler + '"';
         XL6_CGEN_FLAGS='-std=c11 -Wall -Wextra -Wno-unused-function -Wno-unused-label -Wno-unused-variable -Wno-unused-parameter -Wno-unused-const-variable -Wno-missing-field-initializers';
         XL6_CGEN_INCLUDES='-I"' + "$outputPath/include" + '" -Irelease -Irelease/include -Ilib/xrt -Ilib/xruntime -I.';
-        XL6_CGEN_LINKS='release/xl.dll -lWs2_32 -lIPHLPAPI -lShell32'
+        XL6_CGEN_LINKS='release/win_x64/xl.dll -lWs2_32 -lIPHLPAPI -lShell32'
     }
     foreach ($key in $configuration.Keys) {
         $savedEnvironment[$key] = [Environment]::GetEnvironmentVariable($key,'Process')
         [Environment]::SetEnvironmentVariable($key,$configuration[$key],'Process')
     }
-    Copy-Item -LiteralPath release/xl.dll -Destination "$outputPath/xl.dll"
+    Copy-Item -LiteralPath release/win_x64/xl.dll -Destination "$outputPath/xl.dll"
     Invoke-Checked 'native-build' cmd.exe ('/d /v:on /c !XL6_CGEN_CC! -std=c11 -Wall -Wextra -Werror !XL6_CGEN_INCLUDES! test\cases\stdlib_log_core_host.c !XL6_CGEN_LINKS! -o "{0}/native.exe"' -f $outputPath)
     Invoke-Checked 'native-run' "$outputPath/native.exe" ''
     Invoke-Checked 'remaining-native-build' cmd.exe ('/d /v:on /c !XL6_CGEN_CC! -std=c11 -Wall -Wextra -Werror !XL6_CGEN_INCLUDES! test\cases\stdlib_log_remaining_host.c !XL6_CGEN_LINKS! -o "{0}/remaining-native.exe"' -f $outputPath)
@@ -141,18 +141,18 @@ try {
     foreach ($name in @('stdlib_io_writer_only','stdlib_fs_names','stdlib_crt_math')) {
         Invoke-Checked "$name.regression" $xl "run test/cases/$name.xl"
     }
-    $example = 'release/examples/stdlib_logging.xl'
+    $example = 'release/win_x64/examples/stdlib/io/stdlib_logging.xl'
     Invoke-Checked 'example.jit' $xl "run $example"
     Invoke-Checked 'example.aot-build' $xl ('build {0} -o "{1}/example.exe"' -f $example,$outputPath)
     Invoke-Checked 'example.aot-run' "$outputPath/example.exe" ''
     $parity = "level=ok`nfile=ok`nrolling=ok`ncustom=ok`n"
-    Invoke-Checked 'legacy-example.jit' $xl 'run release/examples/stdlib_log.xl' -ExpectedOutput $parity -CheckOutput
-    Invoke-Checked 'legacy-example.aot-build' $xl ('build release/examples/stdlib_log.xl -o "{0}/legacy-example.exe"' -f $outputPath)
+    Invoke-Checked 'legacy-example.jit' $xl 'run release/win_x64/examples/stdlib/io/stdlib_log.xl' -ExpectedOutput $parity -CheckOutput
+    Invoke-Checked 'legacy-example.aot-build' $xl ('build release/win_x64/examples/stdlib/io/stdlib_log.xl -o "{0}/legacy-example.exe"' -f $outputPath)
     Invoke-Checked 'legacy-example.aot-run' "$outputPath/legacy-example.exe" '' -ExpectedOutput $parity -CheckOutput
-    Invoke-Checked 'parity-native-build' cmd.exe ('/d /v:on /c !XL6_CGEN_CC! !XL6_CGEN_FLAGS! !XL6_CGEN_INCLUDES! release\examples\stdlib_log_c.c !XL6_CGEN_LINKS! -o "{0}/parity-native.exe"' -f $outputPath)
+    Invoke-Checked 'parity-native-build' cmd.exe ('/d /v:on /c !XL6_CGEN_CC! !XL6_CGEN_FLAGS! !XL6_CGEN_INCLUDES! release\win_x64\examples\stdlib/io/stdlib_log_c.c !XL6_CGEN_LINKS! -o "{0}/parity-native.exe"' -f $outputPath)
     Invoke-Checked 'parity-native-run' "$outputPath/parity-native.exe" '' -ExpectedOutput $parity -CheckOutput
-    Invoke-Checked 'formats-example.jit' $xl 'run release/examples/stdlib_log_formats.xl'
-    Invoke-Checked 'formats-example.aot-build' $xl ('build release/examples/stdlib_log_formats.xl -o "{0}/formats-example.exe"' -f $outputPath)
+    Invoke-Checked 'formats-example.jit' $xl 'run release/win_x64/examples/stdlib/io/stdlib_log_formats.xl'
+    Invoke-Checked 'formats-example.aot-build' $xl ('build release/win_x64/examples/stdlib/io/stdlib_log_formats.xl -o "{0}/formats-example.exe"' -f $outputPath)
     Invoke-Checked 'formats-example.aot-run' "$outputPath/formats-example.exe" ''
     & "$PSScriptRoot/check_stdlib_coverage.ps1"
     if (!$?) { throw 'Standard library coverage failed' }

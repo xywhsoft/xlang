@@ -3,24 +3,24 @@ $ErrorActionPreference = 'Stop'
 if (!$Root) { $Root = Split-Path -Parent $PSScriptRoot }
 $Root = (Resolve-Path -LiteralPath $Root).Path
 . (Join-Path $PSScriptRoot 'extlib_smoke_process.ps1')
-$xl = Join-Path $Root 'release/xl.exe'
+$xl = Join-Path $Root 'release/win_x64/xl.exe'
 $gcc = (Get-Command gcc -CommandType Application -ErrorAction Stop).Source
 $work = Join-Path $Root 'build/test/aho_guard'
 [IO.Directory]::CreateDirectory($work) | Out-Null
 $utf8 = [Text.UTF8Encoding]::new($false)
 $checks = [Collections.Generic.List[object]]::new()
 $hashes = [ordered]@{}
-$pkg = 'release/extlibs/aho_corasick'
+$pkg = 'release/win_x64/extlibs/aho_corasick'
 $sources = @("$pkg/xrt_aho_corasick.c", "$pkg/aho_corasick_native.c")
 $cases = @('test/cases/extlib_aho_corasick.xl', "$pkg/test/boundaries.xl")
 function InputPaths {
-    @('release/xl.exe','release/xl.dll','release/xlc.dll','lib/xrt/xrt.h','lib/xruntime/xruntime.h',
-      'release/include/xrt_decl.h','release/include/xruntime_decl.h','release/include/xl_extlib_abi.h',
+    @('release/win_x64/xl.exe','release/win_x64/xl.dll','release/win_x64/xlc.dll','lib/xrt/xrt.h','lib/xruntime/xruntime.h',
+      'release/win_x64/include/xrt_decl.h','release/win_x64/include/xruntime_decl.h','release/win_x64/include/xl_extlib_abi.h',
       'test/support/extlib_aho_runtime.c','tools/check_extlib_aho.ps1','tools/check_extlib_aho.sh',
       'tools/extlib_smoke_process.ps1','tools/xlir_native_process.ps1','tools/run_extlib_c.ps1',
       'test/featured_extlibs.json','test/suites/11_featured_extlibs_rc.bat','test/cases/extlib_aho_corasick.xl',
-      'release/examples/extlibs/aho_corasick.xl','release/examples/extlibs/aho_corasick_c.c',
-      'release/examples/extlibs/aho_corasick_basic.xl','release/examples/extlibs/aho_corasick_basic.expected.txt')
+      'release/win_x64/examples/extlibs/algo/aho_corasick.xl','release/win_x64/examples/extlibs/algo/aho_corasick_c.c',
+      'release/win_x64/examples/extlibs/algo/aho_corasick_basic.xl','release/win_x64/examples/extlibs/algo/aho_corasick_basic.expected.txt')
     Get-ChildItem (Join-Path $Root $pkg) -Recurse -File | Where-Object Extension -in @('.c','.h','.xl','.json') |
         ForEach-Object { $_.FullName.Substring($Root.Length + 1).Replace('\','/') }
 }
@@ -95,7 +95,7 @@ try {
     }
 
     foreach ($name in @('aho_corasick','aho_corasick_basic')) {
-        $case = "release/examples/extlibs/$name.xl"
+        $case = "release/win_x64/examples/extlibs/$name.xl"
         $jit = Check "$name-example-jit" $xl @('run',$case)
         $binary = Join-Path $work "$name-example.exe"
         $null = Check "$name-example-build" $xl @('build',$case,'-o',$binary)
@@ -103,8 +103,8 @@ try {
         if ($jit -cne $aot) { throw "$name JIT/AOT output mismatch" }
         if ($name -eq 'aho_corasick_basic') { $xlangOutput = $jit }
     }
-    $golden = [IO.File]::ReadAllText((Join-Path $Root 'release/examples/extlibs/aho_corasick_basic.expected.txt')).Replace("`r`n","`n").TrimEnd("`n")
-    foreach ($example in @('release/examples/extlibs/aho_corasick_c.c',"$pkg/examples/basic.c")) {
+    $golden = [IO.File]::ReadAllText((Join-Path $Root 'release/win_x64/examples/extlibs/algo/aho_corasick_basic.expected.txt')).Replace("`r`n","`n").TrimEnd("`n")
+    foreach ($example in @('release/win_x64/examples/extlibs/algo/aho_corasick_c.c',"$pkg/examples/basic.c")) {
         $name = [IO.Path]::GetFileNameWithoutExtension($example)
         $binary = Join-Path $work "$name-gcc.exe"
         $null = Check "$name-c-build" $gcc ($flags + @($example) + $objects + @('-o',$binary))

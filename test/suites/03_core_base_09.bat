@@ -49,38 +49,38 @@ powershell.exe -NoProfile -ExecutionPolicy Bypass -File tools\check_xlir_string_
 if errorlevel 1 exit /b 1
 
 rem Keep explicit production-command inputs visible to the admission inventory.
-release\xl.exe cgen test\cases\cgen_in_range.xl --emit build\test\cgen_in_range.c
+release\win_x64\xl.exe cgen test\cases\cgen_in_range.xl --emit build\test\cgen_in_range.c
 if errorlevel 1 exit /b 1
-release\xl.exe cgen test\cases\cgen_in_containers.xl --emit build\test\cgen_in_containers.c
+release\win_x64\xl.exe cgen test\cases\cgen_in_containers.xl --emit build\test\cgen_in_containers.c
 if errorlevel 1 exit /b 1
-release\xl.exe cgen test\cases\cgen_for_in_containers.xl --emit build\test\cgen_for_in_containers.c
+release\win_x64\xl.exe cgen test\cases\cgen_for_in_containers.xl --emit build\test\cgen_for_in_containers.c
 if errorlevel 1 exit /b 1
-release\xl.exe cgen test\cases\cgen_approx.xl --emit build\test\cgen_approx.c
+release\win_x64\xl.exe cgen test\cases\cgen_approx.xl --emit build\test\cgen_approx.c
 if errorlevel 1 exit /b 1
-release\xl.exe cgen test\cases\stdlib_math.xl --emit build\test\stdlib_math.c
+release\win_x64\xl.exe cgen test\cases\stdlib_math.xl --emit build\test\stdlib_math.c
 if errorlevel 1 exit /b 1
-release\xl.exe cgen test\cases\stdlib_crt_math.xl --emit build\test\stdlib_crt_math.c
+release\win_x64\xl.exe cgen test\cases\stdlib_crt_math.xl --emit build\test\stdlib_crt_math.c
 if errorlevel 1 exit /b 1
-release\xl.exe cgen test\cases\stdlib_ascii.xl --emit build\test\stdlib_ascii.c
+release\win_x64\xl.exe cgen test\cases\stdlib_ascii.xl --emit build\test\stdlib_ascii.c
 if errorlevel 1 exit /b 1
-release\xl.exe cgen test\cases\stdlib_string.xl --emit build\test\stdlib_string.c
+release\win_x64\xl.exe cgen test\cases\stdlib_string.xl --emit build\test\stdlib_string.c
 if errorlevel 1 exit /b 1
-release\xl.exe cgen test\cases\stdlib_time.xl --emit build\test\stdlib_time.c
+release\win_x64\xl.exe cgen test\cases\stdlib_time.xl --emit build\test\stdlib_time.c
 if errorlevel 1 exit /b 1
-release\xl.exe cgen test\cases\stdlib_time_extra.xl --emit build\test\stdlib_time_extra.c
+release\win_x64\xl.exe cgen test\cases\stdlib_time_extra.xl --emit build\test\stdlib_time_extra.c
 if errorlevel 1 exit /b 1
-release\xl.exe cgen test\cases\stdlib_time_calendar.xl --emit build\test\stdlib_time_calendar.c
+release\win_x64\xl.exe cgen test\cases\stdlib_time_calendar.xl --emit build\test\stdlib_time_calendar.c
 if errorlevel 1 exit /b 1
-release\xl.exe cgen test\cases\stdlib_time_runtime.xl --emit build\test\stdlib_time_runtime.c
+release\win_x64\xl.exe cgen test\cases\stdlib_time_runtime.xl --emit build\test\stdlib_time_runtime.c
 if errorlevel 1 exit /b 1
-release\xl.exe cgen test\cases\stdlib_random.xl --emit build\test\stdlib_random.c
+release\win_x64\xl.exe cgen test\cases\stdlib_random.xl --emit build\test\stdlib_random.c
 if errorlevel 1 exit /b 1
-release\xl.exe cgen test\cases\xlir_membership_operand_lifetime.xl --emit build\test\xlir_membership_operand_lifetime.c
+release\win_x64\xl.exe cgen test\cases\xlir_membership_operand_lifetime.xl --emit build\test\xlir_membership_operand_lifetime.c
 if errorlevel 1 exit /b 1
 
 rem Every language positive remains mandatory in strict C, run and build modes.
-rem Public example companions: release/examples/stdlib_math_c.c,
-rem release/examples/stdlib_string_c.c, release/examples/stdlib_time_c.c.
+rem Public example companions: release/win_x64/examples/stdlib\core\stdlib_math_c.c,
+rem release/win_x64/examples/stdlib\core\stdlib_string_c.c, release/win_x64/examples/stdlib\time\stdlib_time_c.c.
 for %%F in (
     cgen_in_range
     cgen_in_containers
@@ -94,15 +94,15 @@ for %%F in (
     echo Verifying core 9 runtime: %%F
     set "XL6_ENTRY_FLAG="
     if "%%F"=="stdlib_time_runtime" set "XL6_ENTRY_FLAG=-DXLIR_GENERATED_MODULE_USER_ENTRY"
-    release\xl.exe check test\cases\%%F.xl
+    release\win_x64\xl.exe check test\cases\%%F.xl
     if errorlevel 1 exit /b 1
     "!XL6_CGEN_CC!" !XL6_CGEN_FLAGS! !XL6_CGEN_INCLUDES! -Werror -DXLIR_GENERATED_MODULE=\"build/test/%%F.c\" !XL6_ENTRY_FLAG! test\cases\xlir_generated_module_host.c test\cases\cgen_class_host.c !XL6_CGEN_LINKS! -o build\test\%%F.strict.exe
     if errorlevel 1 exit /b 1
     build\test\%%F.strict.exe
     if errorlevel 1 exit /b 1
-    release\xl.exe run test\cases\%%F.xl test\cases\cgen_class_host.c
+    release\win_x64\xl.exe run test\cases\%%F.xl test\cases\cgen_class_host.c
     if errorlevel 1 exit /b 1
-    release\xl.exe build test\cases\%%F.xl test\cases\cgen_class_host.c -o build\test\%%F.exe
+    release\win_x64\xl.exe build test\cases\%%F.xl test\cases\cgen_class_host.c -o build\test\%%F.exe
     if errorlevel 1 exit /b 1
     build\test\%%F.exe
     if errorlevel 1 exit /b 1
@@ -112,7 +112,7 @@ rem User-approved minimum stdlib scope: admission/strict syntax stays mandatory.
 rem Legacy string/time/random wrappers remain deferred, NOT runtime passes.
 rem XL6_EXTENDED_STDLIB_RUNTIME=1 explicitly reruns their known runtime gaps.
 for %%F in (stdlib_string stdlib_time stdlib_time_extra stdlib_time_calendar stdlib_time_runtime stdlib_random) do (
-    release\xl.exe check test\cases\%%F.xl
+    release\win_x64\xl.exe check test\cases\%%F.xl
     if errorlevel 1 exit /b 1
     "!XL6_CGEN_CC!" !XL6_CGEN_FLAGS! !XL6_CGEN_INCLUDES! -Werror -fsyntax-only build\test\%%F.c
     if errorlevel 1 exit /b 1
@@ -123,9 +123,9 @@ for %%F in (stdlib_string stdlib_time stdlib_time_extra stdlib_time_calendar std
         if errorlevel 1 exit /b 1
         build\test\%%F.strict.exe
         if errorlevel 1 exit /b 1
-        release\xl.exe run test\cases\%%F.xl test\cases\cgen_class_host.c
+        release\win_x64\xl.exe run test\cases\%%F.xl test\cases\cgen_class_host.c
         if errorlevel 1 exit /b 1
-        release\xl.exe build test\cases\%%F.xl test\cases\cgen_class_host.c -o build\test\%%F.exe
+        release\win_x64\xl.exe build test\cases\%%F.xl test\cases\cgen_class_host.c -o build\test\%%F.exe
         if errorlevel 1 exit /b 1
         build\test\%%F.exe
         if errorlevel 1 exit /b 1
@@ -140,13 +140,13 @@ if errorlevel 1 exit /b 1
 build\test\xlir_membership_operand_lifetime.alloc.exe
 if errorlevel 1 exit /b 1
 
-release\xl.exe ir test\cases\cgen_approx.xl --lowered --emit build\test\xlir_approx.xlir
+release\win_x64\xl.exe ir test\cases\cgen_approx.xl --lowered --emit build\test\xlir_approx.xlir
 if errorlevel 1 exit /b 1
 findstr /C:"runtime=i64-approx" build\test\xlir_approx.xlir >nul
 if errorlevel 1 exit /b 1
 findstr /C:"runtime=f64-approx" build\test\xlir_approx.xlir >nul
 if errorlevel 1 exit /b 1
-release\xl.exe cgen test\cases\cgen_approx.xl --backend xlir --emit build\test\xlir_approx_generated.c
+release\win_x64\xl.exe cgen test\cases\cgen_approx.xl --backend xlir --emit build\test\xlir_approx_generated.c
 if errorlevel 1 exit /b 1
 "!XL6_CGEN_CC!" !XL6_CGEN_FLAGS! !XL6_CGEN_INCLUDES! -Werror test\cases\xlir_approx_host.c test\cases\cgen_class_host.c !XL6_CGEN_LINKS! -o build\test\xlir_approx_host.exe
 if errorlevel 1 exit /b 1
@@ -154,7 +154,7 @@ build\test\xlir_approx_host.exe
 if errorlevel 1 exit /b 1
 
 rem A non-container var must fail through the language error path in every mode.
-release\xl.exe cgen test\cases\cgen_for_in_var_non_container.xl --emit build\test\cgen_for_in_var_non_container.c
+release\win_x64\xl.exe cgen test\cases\cgen_for_in_var_non_container.xl --emit build\test\cgen_for_in_var_non_container.c
 if errorlevel 1 exit /b 1
 "!XL6_CGEN_CC!" !XL6_CGEN_FLAGS! !XL6_CGEN_INCLUDES! -Werror -DXLIR_GENERATED_MODULE=\"build/test/cgen_for_in_var_non_container.c\" test\cases\xlir_generated_module_diagnostic_host.c !XL6_CGEN_LINKS! -o build\test\cgen_for_in_var_non_container.strict.exe
 if errorlevel 1 exit /b 1
@@ -162,9 +162,9 @@ build\test\cgen_for_in_var_non_container.strict.exe >nul 2> build\test\cgen_for_
 if not errorlevel 1 exit /b 1
 findstr /C:"for in value must be array, list, set or dict" build\test\cgen_for_in_var_non_container.strict.err.txt >nul
 if errorlevel 1 exit /b 1
-release\xl.exe run test\cases\cgen_for_in_var_non_container.xl >nul 2> build\test\cgen_for_in_var_non_container.run.err.txt
+release\win_x64\xl.exe run test\cases\cgen_for_in_var_non_container.xl >nul 2> build\test\cgen_for_in_var_non_container.run.err.txt
 if not errorlevel 1 exit /b 1
-release\xl.exe build test\cases\cgen_for_in_var_non_container.xl -o build\test\cgen_for_in_var_non_container.exe
+release\win_x64\xl.exe build test\cases\cgen_for_in_var_non_container.xl -o build\test\cgen_for_in_var_non_container.exe
 if errorlevel 1 exit /b 1
 build\test\cgen_for_in_var_non_container.exe >nul 2> build\test\cgen_for_in_var_non_container.err.txt
 if not errorlevel 1 exit /b 1
@@ -177,13 +177,13 @@ for %%F in (cgen_for_in_var_non_container.run.err.txt cgen_for_in_var_non_contai
 
 rem Retain the existing minimal public-XRT declaration and example parity checks.
 for %%P in (xrtMathClamp xrtTimer xrtSleep xrtTimeOverlap xrtTimeUnix xrtIsLeapYear xrtDaysInMonth xrtDaysInYear xrtRand32) do (
-    findstr /C:"%%P(" release\include\xrt_decl.h >nul
+    findstr /C:"%%P(" release\win_x64\include\xrt_decl.h >nul
     if errorlevel 1 exit /b 1
 )
-release\xl.exe run release\examples\stdlib_math.xl !XL6_XL_DEFAULT_LINK_ARGS! > build\test\stdlib_math_xlang.out.txt
+release\win_x64\xl.exe run release\win_x64\examples\stdlib\core\stdlib_math.xl !XL6_XL_DEFAULT_LINK_ARGS! > build\test\stdlib_math_xlang.out.txt
 if errorlevel 1 exit /b 1
 for %%F in (stdlib_math) do (
-    "!XL6_CGEN_CC!" !XL6_CGEN_FLAGS! !XL6_CGEN_INCLUDES! release\examples\%%F_c.c !XL6_CGEN_LINKS! -o build\test\%%F_c.exe
+    "!XL6_CGEN_CC!" !XL6_CGEN_FLAGS! !XL6_CGEN_INCLUDES! release\win_x64\examples\%%F_c.c !XL6_CGEN_LINKS! -o build\test\%%F_c.exe
     if errorlevel 1 exit /b 1
     build\test\%%F_c.exe > build\test\%%F_c.out.txt
     if errorlevel 1 exit /b 1
@@ -191,12 +191,12 @@ for %%F in (stdlib_math) do (
     if errorlevel 1 exit /b 1
 )
 if "!XL6_EXTENDED_STDLIB_RUNTIME!"=="1" (
-    release\xl.exe run release\examples\stdlib_string.xl !XL6_XL_DEFAULT_LINK_ARGS! > build\test\stdlib_string_xlang.out.txt
+    release\win_x64\xl.exe run release\win_x64\examples\stdlib\core\stdlib_string.xl !XL6_XL_DEFAULT_LINK_ARGS! > build\test\stdlib_string_xlang.out.txt
     if errorlevel 1 exit /b 1
-    release\xl.exe run release\examples\stdlib_time.xl !XL6_XL_DEFAULT_LINK_ARGS! > build\test\stdlib_time_xlang.out.txt
+    release\win_x64\xl.exe run release\win_x64\examples\stdlib\time\stdlib_time.xl !XL6_XL_DEFAULT_LINK_ARGS! > build\test\stdlib_time_xlang.out.txt
     if errorlevel 1 exit /b 1
     for %%F in (stdlib_string stdlib_time) do (
-        "!XL6_CGEN_CC!" !XL6_CGEN_FLAGS! !XL6_CGEN_INCLUDES! release\examples\%%F_c.c !XL6_CGEN_LINKS! -o build\test\%%F_c.exe
+        "!XL6_CGEN_CC!" !XL6_CGEN_FLAGS! !XL6_CGEN_INCLUDES! release\win_x64\examples\%%F_c.c !XL6_CGEN_LINKS! -o build\test\%%F_c.exe
         if errorlevel 1 exit /b 1
         build\test\%%F_c.exe > build\test\%%F_c.out.txt
         if errorlevel 1 exit /b 1
@@ -204,7 +204,7 @@ if "!XL6_EXTENDED_STDLIB_RUNTIME!"=="1" (
         if errorlevel 1 exit /b 1
     )
 )
-release\xl.exe build release\examples\stdlib_math.xl -o build\test\stdlib_math_trim.exe
+release\win_x64\xl.exe build release\win_x64\examples\stdlib\core\stdlib_math.xl -o build\test\stdlib_math_trim.exe
 if errorlevel 1 exit /b 1
 build\test\stdlib_math_trim.exe > build\test\stdlib_math_trim.out.txt
 if errorlevel 1 exit /b 1

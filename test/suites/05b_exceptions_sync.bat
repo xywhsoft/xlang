@@ -4,25 +4,25 @@ call "%~dp0common.bat"
 if errorlevel 1 exit /b 1
 echo Running DEMO6 suite: exceptions and synchronization...
 
-release\xl.exe check test\cases\sem_native_class_duplicate_c_symbol.xl >nul 2> build\test\sem_native_class_duplicate_c_symbol.err.txt
+release\win_x64\xl.exe check test\cases\sem_native_class_duplicate_c_symbol.xl >nul 2> build\test\sem_native_class_duplicate_c_symbol.err.txt
 if not errorlevel 1 (
     echo sem_native_class_duplicate_c_symbol.xl should fail.
     exit /b 1
 )
 
-release\xl.exe check test\cases\sem_native_class_bind_non_point.xl >nul 2> build\test\sem_native_class_bind_non_point.err.txt
+release\win_x64\xl.exe check test\cases\sem_native_class_bind_non_point.xl >nul 2> build\test\sem_native_class_bind_non_point.err.txt
 if not errorlevel 1 (
     echo sem_native_class_bind_non_point.xl should fail.
     exit /b 1
 )
 
-release\xl.exe check test\cases\sem_native_class_create_point_bind_conflict.xl >nul 2> build\test\sem_native_class_create_point_bind_conflict.err.txt
+release\win_x64\xl.exe check test\cases\sem_native_class_create_point_bind_conflict.xl >nul 2> build\test\sem_native_class_create_point_bind_conflict.err.txt
 if not errorlevel 1 (
     echo sem_native_class_create_point_bind_conflict.xl should fail.
     exit /b 1
 )
 
-release\xl.exe check test\cases\sem_native_class_extern_bad_type.xl >nul 2> build\test\sem_native_class_extern_bad_type.err.txt
+release\win_x64\xl.exe check test\cases\sem_native_class_extern_bad_type.xl >nul 2> build\test\sem_native_class_extern_bad_type.err.txt
 if not errorlevel 1 (
     echo sem_native_class_extern_bad_type.xl should fail.
     exit /b 1
@@ -33,7 +33,7 @@ if not errorlevel 1 (
     exit /b 1
 )
 
-release\xl.exe check test\cases\sem_native_class_extern_return_bad.xl >nul 2> build\test\sem_native_class_extern_return_bad.err.txt
+release\win_x64\xl.exe check test\cases\sem_native_class_extern_return_bad.xl >nul 2> build\test\sem_native_class_extern_return_bad.err.txt
 if not errorlevel 1 (
     echo sem_native_class_extern_return_bad.xl should fail.
     exit /b 1
@@ -44,7 +44,7 @@ if not errorlevel 1 (
     exit /b 1
 )
 
-release\xl.exe check test\cases\sem_native_class_extern_vararg.xl >nul 2> build\test\sem_native_class_extern_vararg.err.txt
+release\win_x64\xl.exe check test\cases\sem_native_class_extern_vararg.xl >nul 2> build\test\sem_native_class_extern_vararg.err.txt
 if not errorlevel 1 (
     echo sem_native_class_extern_vararg.xl should fail.
     exit /b 1
@@ -55,85 +55,85 @@ if not errorlevel 1 (
     exit /b 1
 )
 
-release\xl.exe check test\cases\sem_native_class_method_overload_conflict.xl >nul 2> build\test\sem_native_class_method_overload_conflict.err.txt
+release\win_x64\xl.exe check test\cases\sem_native_class_method_overload_conflict.xl >nul 2> build\test\sem_native_class_method_overload_conflict.err.txt
 if not errorlevel 1 (
     echo sem_native_class_method_overload_conflict.xl should fail.
     exit /b 1
 )
 
-release\xl.exe check test\cases\sem_auto_param.xl >nul 2> build\test\sem_auto_param.err.txt
+release\win_x64\xl.exe check test\cases\sem_auto_param.xl >nul 2> build\test\sem_auto_param.err.txt
 if not errorlevel 1 (
     echo sem_auto_param.xl should fail.
     exit /b 1
 )
 
-release\xl.exe check test\cases\sem_auto_return.xl >nul 2> build\test\sem_auto_return.err.txt
+release\win_x64\xl.exe check test\cases\sem_auto_return.xl >nul 2> build\test\sem_auto_return.err.txt
 if not errorlevel 1 (
     echo sem_auto_return.xl should fail.
     exit /b 1
 )
 
-release\xl.exe check test\cases\sem_auto_field.xl >nul 2> build\test\sem_auto_field.err.txt
+release\win_x64\xl.exe check test\cases\sem_auto_field.xl >nul 2> build\test\sem_auto_field.err.txt
 if not errorlevel 1 (
     echo sem_auto_field.xl should fail.
     exit /b 1
 )
 
-release\xl.exe check test\cases\sem_auto_alias.xl >nul 2> build\test\sem_auto_alias.err.txt
+release\win_x64\xl.exe check test\cases\sem_auto_alias.xl >nul 2> build\test\sem_auto_alias.err.txt
 if not errorlevel 1 (
     echo sem_auto_alias.xl should fail.
     exit /b 1
 )
 
-release\xl.exe check test\cases\sem_auto_function_type.xl >nul 2> build\test\sem_auto_function_type.err.txt
+release\win_x64\xl.exe check test\cases\sem_auto_function_type.xl >nul 2> build\test\sem_auto_function_type.err.txt
 if not errorlevel 1 (
     echo sem_auto_function_type.xl should fail.
     exit /b 1
 )
 
-release\xl.exe check test\cases\sem_void_type.xl >nul 2> build\test\sem_void_type.err.txt
+release\win_x64\xl.exe check test\cases\sem_void_type.xl >nul 2> build\test\sem_void_type.err.txt
 if not errorlevel 1 (
     echo sem_void_type.xl should fail.
     exit /b 1
 )
 
-release\xl.exe check test\cases\sem_as_return.xl
+release\win_x64\xl.exe check test\cases\sem_as_return.xl
 if errorlevel 1 exit /b 1
 
-release\xl.exe check test\cases\sem_type_builtin_name.xl >nul 2> build\test\sem_type_builtin_name.err.txt
+release\win_x64\xl.exe check test\cases\sem_type_builtin_name.xl >nul 2> build\test\sem_type_builtin_name.err.txt
 if not errorlevel 1 (
     echo sem_type_builtin_name.xl should fail.
     exit /b 1
 )
 
-release\xl.exe check test\cases\sem_type_duplicate_decl.xl >nul 2> build\test\sem_type_duplicate_decl.err.txt
+release\win_x64\xl.exe check test\cases\sem_type_duplicate_decl.xl >nul 2> build\test\sem_type_duplicate_decl.err.txt
 if not errorlevel 1 (
     echo sem_type_duplicate_decl.xl should fail.
     exit /b 1
 )
 
-release\xl.exe check test\cases\sem_unknown_type.xl >nul 2> build\test\sem_unknown_type.err.txt
+release\win_x64\xl.exe check test\cases\sem_unknown_type.xl >nul 2> build\test\sem_unknown_type.err.txt
 if not errorlevel 1 (
     echo sem_unknown_type.xl should fail.
     exit /b 1
 )
 
-release\xl.exe check test\cases\sem_export_duplicate.xl >nul 2> build\test\sem_export_duplicate.err.txt
+release\win_x64\xl.exe check test\cases\sem_export_duplicate.xl >nul 2> build\test\sem_export_duplicate.err.txt
 if not errorlevel 1 (
     echo sem_export_duplicate.xl should fail.
     exit /b 1
 )
 
-release\xl.exe check test\cases\sem_export_optional.xl >nul 2> build\test\sem_export_optional.err.txt
+release\win_x64\xl.exe check test\cases\sem_export_optional.xl >nul 2> build\test\sem_export_optional.err.txt
 if not errorlevel 1 (
     echo sem_export_optional.xl should fail.
     exit /b 1
 )
 
-release\xl.exe check test\cases\sem_export_vararg.xl
+release\win_x64\xl.exe check test\cases\sem_export_vararg.xl
 if errorlevel 1 exit /b 1
 
-release\xl.exe check test\cases\sem_c_vararg_export.xl >nul 2> build\test\sem_c_vararg_export.err.txt
+release\win_x64\xl.exe check test\cases\sem_c_vararg_export.xl >nul 2> build\test\sem_c_vararg_export.err.txt
 if not errorlevel 1 (
     echo sem_c_vararg_export.xl should fail.
     exit /b 1
@@ -149,7 +149,7 @@ if errorlevel 1 (
     exit /b 1
 )
 
-release\xl.exe check test\cases\sem_export_var_init_type.xl >nul 2> build\test\sem_export_var_init_type.err.txt
+release\win_x64\xl.exe check test\cases\sem_export_var_init_type.xl >nul 2> build\test\sem_export_var_init_type.err.txt
 if not errorlevel 1 (
     echo sem_export_var_init_type.xl should fail.
     exit /b 1
@@ -160,25 +160,25 @@ if errorlevel 1 (
     exit /b 1
 )
 
-release\xl.exe check test\cases\sem_export_string_return.xl >nul
+release\win_x64\xl.exe check test\cases\sem_export_string_return.xl >nul
 if errorlevel 1 (
     echo sem_export_string_return.xl should pass with the owned public string ABI.
     exit /b 1
 )
-release\xl.exe run test\cases\sem_export_string_return.xl >nul
+release\win_x64\xl.exe run test\cases\sem_export_string_return.xl >nul
 if errorlevel 1 exit /b 1
-python tools\check_extern_owned_string.py --directory build\test\extern-owned-string-%RANDOM%-%RANDOM% --cli release\xl.exe
+python tools\check_extern_owned_string.py --directory build\test\extern-owned-string-%RANDOM%-%RANDOM% --cli release\win_x64\xl.exe
 if errorlevel 1 exit /b 1
-release\xl.exe run release\examples\extern_owned_string.xl release\examples\extern_owned_string_native.c >nul
+release\win_x64\xl.exe run release\win_x64\examples\language\interop\extern_owned_string.xl release\win_x64\examples\language\interop\extern_owned_string_native.c >nul
 if errorlevel 1 exit /b 1
 
-release\xl.exe check test\cases\sem_export_generic.xl >nul 2> build\test\sem_export_generic.err.txt
+release\win_x64\xl.exe check test\cases\sem_export_generic.xl >nul 2> build\test\sem_export_generic.err.txt
 if not errorlevel 1 (
     echo sem_export_generic.xl should fail.
     exit /b 1
 )
 
-release\xl.exe check test\cases\sem_class_export_static.xl >nul 2> build\test\sem_class_export_static.err.txt
+release\win_x64\xl.exe check test\cases\sem_class_export_static.xl >nul 2> build\test\sem_class_export_static.err.txt
 if not errorlevel 1 (
     echo sem_class_export_static.xl should fail.
     exit /b 1
@@ -189,7 +189,7 @@ if errorlevel 1 (
     exit /b 1
 )
 
-release\xl.exe check test\cases\sem_class_export_generic.xl >nul 2> build\test\sem_class_export_generic.err.txt
+release\win_x64\xl.exe check test\cases\sem_class_export_generic.xl >nul 2> build\test\sem_class_export_generic.err.txt
 if not errorlevel 1 (
     echo sem_class_export_generic.xl should fail.
     exit /b 1
@@ -200,7 +200,7 @@ if errorlevel 1 (
     exit /b 1
 )
 
-release\xl.exe check test\cases\sem_class_export_duplicate.xl >nul 2> build\test\sem_class_export_duplicate.err.txt
+release\win_x64\xl.exe check test\cases\sem_class_export_duplicate.xl >nul 2> build\test\sem_class_export_duplicate.err.txt
 if not errorlevel 1 (
     echo sem_class_export_duplicate.xl should fail.
     exit /b 1
@@ -211,7 +211,7 @@ if errorlevel 1 (
     exit /b 1
 )
 
-release\xl.exe check test\cases\sem_generic_arity.xl >nul 2> build\test\sem_generic_arity.err.txt
+release\win_x64\xl.exe check test\cases\sem_generic_arity.xl >nul 2> build\test\sem_generic_arity.err.txt
 if not errorlevel 1 (
     echo sem_generic_arity.xl should fail.
     exit /b 1
@@ -222,19 +222,19 @@ if errorlevel 1 (
     exit /b 1
 )
 
-release\xl.exe check test\cases\sem_generic_param_duplicate.xl >nul 2> build\test\sem_generic_param_duplicate.err.txt
+release\win_x64\xl.exe check test\cases\sem_generic_param_duplicate.xl >nul 2> build\test\sem_generic_param_duplicate.err.txt
 if not errorlevel 1 (
     echo sem_generic_param_duplicate.xl should fail.
     exit /b 1
 )
 
-release\xl.exe check test\cases\sem_generic_unknown_type_arg.xl >nul 2> build\test\sem_generic_unknown_type_arg.err.txt
+release\win_x64\xl.exe check test\cases\sem_generic_unknown_type_arg.xl >nul 2> build\test\sem_generic_unknown_type_arg.err.txt
 if not errorlevel 1 (
     echo sem_generic_unknown_type_arg.xl should fail.
     exit /b 1
 )
 
-release\xl.exe check test\cases\sem_generic_infer_conflict.xl >nul 2> build\test\sem_generic_infer_conflict.err.txt
+release\win_x64\xl.exe check test\cases\sem_generic_infer_conflict.xl >nul 2> build\test\sem_generic_infer_conflict.err.txt
 if not errorlevel 1 (
     echo sem_generic_infer_conflict.xl should fail.
     exit /b 1
@@ -245,7 +245,7 @@ if errorlevel 1 (
     exit /b 1
 )
 
-release\xl.exe check test\cases\sem_generic_func_inst_arity.xl >nul 2> build\test\sem_generic_func_inst_arity.err.txt
+release\win_x64\xl.exe check test\cases\sem_generic_func_inst_arity.xl >nul 2> build\test\sem_generic_func_inst_arity.err.txt
 if not errorlevel 1 (
     echo sem_generic_func_inst_arity.xl should fail.
     exit /b 1
@@ -256,7 +256,7 @@ if errorlevel 1 (
     exit /b 1
 )
 
-release\xl.exe check test\cases\sem_generic_class_ctor_arity.xl >nul 2> build\test\sem_generic_class_ctor_arity.err.txt
+release\win_x64\xl.exe check test\cases\sem_generic_class_ctor_arity.xl >nul 2> build\test\sem_generic_class_ctor_arity.err.txt
 if not errorlevel 1 (
     echo sem_generic_class_ctor_arity.xl should fail.
     exit /b 1
@@ -267,19 +267,19 @@ if errorlevel 1 (
     exit /b 1
 )
 
-release\xl.exe check test\cases\sem_generic_class_open_ctor.xl >nul 2> build\test\sem_generic_class_open_ctor.err.txt
+release\win_x64\xl.exe check test\cases\sem_generic_class_open_ctor.xl >nul 2> build\test\sem_generic_class_open_ctor.err.txt
 if not errorlevel 1 (
     echo sem_generic_class_open_ctor.xl should fail.
     exit /b 1
 )
 
-release\xl.exe check test\cases\sem_generic_class_ctor_type_mismatch.xl >nul 2> build\test\sem_generic_class_ctor_type_mismatch.err.txt
+release\win_x64\xl.exe check test\cases\sem_generic_class_ctor_type_mismatch.xl >nul 2> build\test\sem_generic_class_ctor_type_mismatch.err.txt
 if not errorlevel 1 (
     echo sem_generic_class_ctor_type_mismatch.xl should fail.
     exit /b 1
 )
 
-release\xl.exe check test\cases\sem_generic_class_arity.xl >nul 2> build\test\sem_generic_class_arity.err.txt
+release\win_x64\xl.exe check test\cases\sem_generic_class_arity.xl >nul 2> build\test\sem_generic_class_arity.err.txt
 if not errorlevel 1 (
     echo sem_generic_class_arity.xl should fail.
     exit /b 1
@@ -290,37 +290,37 @@ if errorlevel 1 (
     exit /b 1
 )
 
-release\xl.exe check test\cases\sem_generic_class_extends.xl >nul 2> build\test\sem_generic_class_extends.err.txt
+release\win_x64\xl.exe check test\cases\sem_generic_class_extends.xl >nul 2> build\test\sem_generic_class_extends.err.txt
 if not errorlevel 1 (
     echo sem_generic_class_extends.xl should fail.
     exit /b 1
 )
 
-release\xl.exe check test\cases\sem_overload_return_only.xl >nul 2> build\test\sem_overload_return_only.err.txt
+release\win_x64\xl.exe check test\cases\sem_overload_return_only.xl >nul 2> build\test\sem_overload_return_only.err.txt
 if not errorlevel 1 (
     echo sem_overload_return_only.xl should fail.
     exit /b 1
 )
 
-release\xl.exe check test\cases\sem_overload_optional_conflict.xl >nul 2> build\test\sem_overload_optional_conflict.err.txt
+release\win_x64\xl.exe check test\cases\sem_overload_optional_conflict.xl >nul 2> build\test\sem_overload_optional_conflict.err.txt
 if not errorlevel 1 (
     echo sem_overload_optional_conflict.xl should fail.
     exit /b 1
 )
 
-release\xl.exe check test\cases\sem_overload_vararg_same_kind.xl >nul 2> build\test\sem_overload_vararg_same_kind.err.txt
+release\win_x64\xl.exe check test\cases\sem_overload_vararg_same_kind.xl >nul 2> build\test\sem_overload_vararg_same_kind.err.txt
 if not errorlevel 1 (
     echo sem_overload_vararg_same_kind.xl should fail.
     exit /b 1
 )
 
-release\xl.exe check test\cases\sem_alias_overload_conflict.xl >nul 2> build\test\sem_alias_overload_conflict.err.txt
+release\win_x64\xl.exe check test\cases\sem_alias_overload_conflict.xl >nul 2> build\test\sem_alias_overload_conflict.err.txt
 if not errorlevel 1 (
     echo sem_alias_overload_conflict.xl should fail.
     exit /b 1
 )
 
-release\xl.exe check test\cases\sem_alias_cycle.xl >nul 2> build\test\sem_alias_cycle.err.txt
+release\win_x64\xl.exe check test\cases\sem_alias_cycle.xl >nul 2> build\test\sem_alias_cycle.err.txt
 if not errorlevel 1 (
     echo sem_alias_cycle.xl should fail.
     exit /b 1
@@ -336,36 +336,36 @@ if not errorlevel 1 (
     exit /b 1
 )
 
-release\xl.exe check test\cases\sem_extern_c_symbol_mismatch.xl >nul 2> build\test\sem_extern_c_symbol_mismatch.err.txt
+release\win_x64\xl.exe check test\cases\sem_extern_c_symbol_mismatch.xl >nul 2> build\test\sem_extern_c_symbol_mismatch.err.txt
 if not errorlevel 1 (
     echo sem_extern_c_symbol_mismatch.xl should fail.
     exit /b 1
 )
 
-release\xl.exe check test\cases\sem_extern_c_symbol_kind_mismatch.xl >nul 2> build\test\sem_extern_c_symbol_kind_mismatch.err.txt
+release\win_x64\xl.exe check test\cases\sem_extern_c_symbol_kind_mismatch.xl >nul 2> build\test\sem_extern_c_symbol_kind_mismatch.err.txt
 if not errorlevel 1 (
     echo sem_extern_c_symbol_kind_mismatch.xl should fail.
     exit /b 1
 )
 
-release\xl.exe check test\cases\sem_extern_typed_container.xl
+release\win_x64\xl.exe check test\cases\sem_extern_typed_container.xl
 if errorlevel 1 exit /b 1
 
-release\xl.exe check test\cases\sem_extern_multi_return.xl >nul 2> build\test\sem_extern_multi_return.err.txt
+release\win_x64\xl.exe check test\cases\sem_extern_multi_return.xl >nul 2> build\test\sem_extern_multi_return.err.txt
 if not errorlevel 1 (
     echo sem_extern_multi_return.xl should fail.
     exit /b 1
 )
 
-release\xl.exe check test\cases\sem_extern_optional.xl >nul 2> build\test\sem_extern_optional.err.txt
+release\win_x64\xl.exe check test\cases\sem_extern_optional.xl >nul 2> build\test\sem_extern_optional.err.txt
 if errorlevel 1 exit /b 1
-release\xl.exe run test\cases\cgen_extern_defaults.xl
-if errorlevel 1 exit /b 1
-
-release\xl.exe check test\cases\sem_extern_vararg.xl
+release\win_x64\xl.exe run test\cases\cgen_extern_defaults.xl
 if errorlevel 1 exit /b 1
 
-release\xl.exe check test\cases\sem_c_vararg_nonextern.xl >nul 2> build\test\sem_c_vararg_nonextern.err.txt
+release\win_x64\xl.exe check test\cases\sem_extern_vararg.xl
+if errorlevel 1 exit /b 1
+
+release\win_x64\xl.exe check test\cases\sem_c_vararg_nonextern.xl >nul 2> build\test\sem_c_vararg_nonextern.err.txt
 if not errorlevel 1 (
     echo sem_c_vararg_nonextern.xl should fail.
     exit /b 1
@@ -376,7 +376,7 @@ if errorlevel 1 (
     exit /b 1
 )
 
-release\xl.exe check test\cases\sem_c_vararg_not_last.xl >nul 2> build\test\sem_c_vararg_not_last.err.txt
+release\win_x64\xl.exe check test\cases\sem_c_vararg_not_last.xl >nul 2> build\test\sem_c_vararg_not_last.err.txt
 if not errorlevel 1 (
     echo sem_c_vararg_not_last.xl should fail.
     exit /b 1
@@ -387,7 +387,7 @@ if errorlevel 1 (
     exit /b 1
 )
 
-release\xl.exe check test\cases\sem_c_vararg_xvalue_fixed.xl >nul 2> build\test\sem_c_vararg_xvalue_fixed.err.txt
+release\win_x64\xl.exe check test\cases\sem_c_vararg_xvalue_fixed.xl >nul 2> build\test\sem_c_vararg_xvalue_fixed.err.txt
 if not errorlevel 1 (
     echo sem_c_vararg_xvalue_fixed.xl should fail.
     exit /b 1
@@ -398,13 +398,13 @@ if errorlevel 1 (
     exit /b 1
 )
 
-release\xl.exe check test\cases\sem_extern_generic.xl >nul 2> build\test\sem_extern_generic.err.txt
+release\win_x64\xl.exe check test\cases\sem_extern_generic.xl >nul 2> build\test\sem_extern_generic.err.txt
 if not errorlevel 1 (
     echo sem_extern_generic.xl should fail.
     exit /b 1
 )
 
-release\xl.exe check test\cases\sem_string_concat_mismatch.xl >nul 2> build\test\sem_string_concat_mismatch.err.txt
+release\win_x64\xl.exe check test\cases\sem_string_concat_mismatch.xl >nul 2> build\test\sem_string_concat_mismatch.err.txt
 if not errorlevel 1 (
     echo sem_string_concat_mismatch.xl should fail.
     exit /b 1
@@ -415,7 +415,7 @@ if not errorlevel 1 (
     exit /b 1
 )
 
-release\xl.exe check test\cases\sem_string_assign_mismatch.xl >nul 2> build\test\sem_string_assign_mismatch.err.txt
+release\win_x64\xl.exe check test\cases\sem_string_assign_mismatch.xl >nul 2> build\test\sem_string_assign_mismatch.err.txt
 if not errorlevel 1 (
     echo sem_string_assign_mismatch.xl should fail.
     exit /b 1
@@ -431,25 +431,25 @@ if errorlevel 1 (
     exit /b 1
 )
 
-release\xl.exe check test\cases\sem_string_compare_mismatch.xl >nul 2> build\test\sem_string_compare_mismatch.err.txt
+release\win_x64\xl.exe check test\cases\sem_string_compare_mismatch.xl >nul 2> build\test\sem_string_compare_mismatch.err.txt
 if not errorlevel 1 (
     echo sem_string_compare_mismatch.xl should fail.
     exit /b 1
 )
 
-release\xl.exe check test\cases\sem_time_literal_bad.xl >nul 2> build\test\sem_time_literal_bad.err.txt
+release\win_x64\xl.exe check test\cases\sem_time_literal_bad.xl >nul 2> build\test\sem_time_literal_bad.err.txt
 if not errorlevel 1 (
     echo sem_time_literal_bad.xl should fail.
     exit /b 1
 )
 
-release\xl.exe check test\cases\sem_time_literal_newline.xl >nul 2> build\test\sem_time_literal_newline.err.txt
+release\win_x64\xl.exe check test\cases\sem_time_literal_newline.xl >nul 2> build\test\sem_time_literal_newline.err.txt
 if not errorlevel 1 (
     echo sem_time_literal_newline.xl should fail.
     exit /b 1
 )
 
-release\xl.exe check test\cases\sem_time_assign_mismatch.xl >nul 2> build\test\sem_time_assign_mismatch.err.txt
+release\win_x64\xl.exe check test\cases\sem_time_assign_mismatch.xl >nul 2> build\test\sem_time_assign_mismatch.err.txt
 if not errorlevel 1 (
     echo sem_time_assign_mismatch.xl should fail.
     exit /b 1
@@ -460,31 +460,31 @@ if errorlevel 1 (
     exit /b 1
 )
 
-release\xl.exe check test\cases\sem_time_compare_mismatch.xl >nul 2> build\test\sem_time_compare_mismatch.err.txt
+release\win_x64\xl.exe check test\cases\sem_time_compare_mismatch.xl >nul 2> build\test\sem_time_compare_mismatch.err.txt
 if not errorlevel 1 (
     echo sem_time_compare_mismatch.xl should fail.
     exit /b 1
 )
 
-release\xl.exe check test\cases\sem_var_native_class_init.xl
+release\win_x64\xl.exe check test\cases\sem_var_native_class_init.xl
 if errorlevel 1 exit /b 1
 
-release\xl.exe check test\cases\sem_var_native_class_assign.xl
+release\win_x64\xl.exe check test\cases\sem_var_native_class_assign.xl
 if errorlevel 1 exit /b 1
 
-release\xl.exe check test\cases\sem_var_native_class_arg.xl
+release\win_x64\xl.exe check test\cases\sem_var_native_class_arg.xl
 if errorlevel 1 exit /b 1
 
-release\xl.exe check test\cases\sem_var_class_init.xl
+release\win_x64\xl.exe check test\cases\sem_var_class_init.xl
 if errorlevel 1 exit /b 1
 
-release\xl.exe check test\cases\sem_var_class_return.xl
+release\win_x64\xl.exe check test\cases\sem_var_class_return.xl
 if errorlevel 1 exit /b 1
 
-release\xl.exe check test\cases\sem_var_function_init.xl
+release\win_x64\xl.exe check test\cases\sem_var_function_init.xl
 if errorlevel 1 exit /b 1
 
-release\xl.exe check test\cases\sem_function_implicit_var_invalid.xl >nul 2> build\test\sem_function_implicit_var_invalid.err.txt
+release\win_x64\xl.exe check test\cases\sem_function_implicit_var_invalid.xl >nul 2> build\test\sem_function_implicit_var_invalid.err.txt
 if not errorlevel 1 (
     echo sem_function_implicit_var_invalid.xl should fail.
     exit /b 1
@@ -492,7 +492,7 @@ if not errorlevel 1 (
 findstr /C:"target var, value function" build\test\sem_function_implicit_var_invalid.err.txt >nul
 if errorlevel 1 exit /b 1
 
-release\xl.exe check test\cases\sem_xcall_byref_invalid.xl >nul 2> build\test\sem_xcall_byref_invalid.err.txt
+release\win_x64\xl.exe check test\cases\sem_xcall_byref_invalid.xl >nul 2> build\test\sem_xcall_byref_invalid.err.txt
 if not errorlevel 1 (
     echo sem_xcall_byref_invalid.xl should fail.
     exit /b 1
@@ -500,7 +500,7 @@ if not errorlevel 1 (
 findstr /C:"[parse]" build\test\sem_xcall_byref_invalid.err.txt >nul
 if errorlevel 1 exit /b 1
 
-release\xl.exe check test\cases\sem_xcall_overload_invalid.xl >nul 2> build\test\sem_xcall_overload_invalid.err.txt
+release\win_x64\xl.exe check test\cases\sem_xcall_overload_invalid.xl >nul 2> build\test\sem_xcall_overload_invalid.err.txt
 if not errorlevel 1 (
     echo sem_xcall_overload_invalid.xl should fail.
     exit /b 1
@@ -508,76 +508,76 @@ if not errorlevel 1 (
 findstr /C:"explicit func signature" build\test\sem_xcall_overload_invalid.err.txt >nul
 if errorlevel 1 exit /b 1
 
-release\xl.exe check test\cases\cgen_var_call_arg_destroy_class.xl
+release\win_x64\xl.exe check test\cases\cgen_var_call_arg_destroy_class.xl
 if errorlevel 1 exit /b 1
-release\xl.exe cgen test\cases\cgen_var_call_arg_destroy_class.xl --emit build\test\cgen_var_call_arg_destroy_class.c
+release\win_x64\xl.exe cgen test\cases\cgen_var_call_arg_destroy_class.xl --emit build\test\cgen_var_call_arg_destroy_class.c
 if errorlevel 1 exit /b 1
 findstr /C:"xl6_function_to_xvalue(" build\test\cgen_var_call_arg_destroy_class.c >nul
 if errorlevel 1 exit /b 1
 findstr /C:"xl6_xrt_retain(__xl6_class_arg_" build\test\cgen_var_call_arg_destroy_class.c >nul
 if errorlevel 1 exit /b 1
-release\xl.exe run test\cases\cgen_var_call_arg_destroy_class.xl
+release\win_x64\xl.exe run test\cases\cgen_var_call_arg_destroy_class.xl
 if errorlevel 1 exit /b 1
 
-release\xl.exe check test\cases\sem_var_call_named_order.xl >nul 2> build\test\sem_var_call_named_order.err.txt
+release\win_x64\xl.exe check test\cases\sem_var_call_named_order.xl >nul 2> build\test\sem_var_call_named_order.err.txt
 if not errorlevel 1 (
     echo sem_var_call_named_order.xl should fail.
     exit /b 1
 )
 
-release\xl.exe check test\cases\cgen_var_destroy_class_init.xl
+release\win_x64\xl.exe check test\cases\cgen_var_destroy_class_init.xl
 if errorlevel 1 exit /b 1
-release\xl.exe run test\cases\cgen_var_destroy_class_init.xl
-if errorlevel 1 exit /b 1
-
-release\xl.exe check test\cases\cgen_var_destroy_class_return.xl
-if errorlevel 1 exit /b 1
-release\xl.exe run test\cases\cgen_var_destroy_class_return.xl
+release\win_x64\xl.exe run test\cases\cgen_var_destroy_class_init.xl
 if errorlevel 1 exit /b 1
 
-release\xl.exe check test\cases\sem_overload_ambiguous.xl >nul 2> build\test\sem_overload_ambiguous.err.txt
+release\win_x64\xl.exe check test\cases\cgen_var_destroy_class_return.xl
+if errorlevel 1 exit /b 1
+release\win_x64\xl.exe run test\cases\cgen_var_destroy_class_return.xl
+if errorlevel 1 exit /b 1
+
+release\win_x64\xl.exe check test\cases\sem_overload_ambiguous.xl >nul 2> build\test\sem_overload_ambiguous.err.txt
 if not errorlevel 1 (
     echo sem_overload_ambiguous.xl should fail.
     exit /b 1
 )
 
-release\xl.exe check test\cases\sem_typed_literal.xl >nul 2> build\test\sem_typed_literal.err.txt
+release\win_x64\xl.exe check test\cases\sem_typed_literal.xl >nul 2> build\test\sem_typed_literal.err.txt
 if not errorlevel 1 (
     echo sem_typed_literal.xl should fail.
     exit /b 1
 )
 
-release\xl.exe check test\cases\sem_typed_set_pair.xl >nul 2> build\test\sem_typed_set_pair.err.txt
+release\win_x64\xl.exe check test\cases\sem_typed_set_pair.xl >nul 2> build\test\sem_typed_set_pair.err.txt
 if not errorlevel 1 (
     echo sem_typed_set_pair.xl should fail.
     exit /b 1
 )
 
-release\xl.exe check test\cases\sem_type_value_mismatch.xl >nul 2> build\test\sem_type_value_mismatch.err.txt
+release\win_x64\xl.exe check test\cases\sem_type_value_mismatch.xl >nul 2> build\test\sem_type_value_mismatch.err.txt
 if not errorlevel 1 (
     echo sem_type_value_mismatch.xl should fail.
     exit /b 1
 )
 
-release\xl.exe check test\cases\sem_type_compare_int.xl >nul 2> build\test\sem_type_compare_int.err.txt
+release\win_x64\xl.exe check test\cases\sem_type_compare_int.xl >nul 2> build\test\sem_type_compare_int.err.txt
 if not errorlevel 1 (
     echo sem_type_compare_int.xl should fail.
     exit /b 1
 )
 
-release\xl.exe check test\cases\sem_type_order_compare.xl >nul 2> build\test\sem_type_order_compare.err.txt
+release\win_x64\xl.exe check test\cases\sem_type_order_compare.xl >nul 2> build\test\sem_type_order_compare.err.txt
 if not errorlevel 1 (
     echo sem_type_order_compare.xl should fail.
     exit /b 1
 )
 
-release\xl.exe check test\cases\sem_type_call_arity.xl >nul 2> build\test\sem_type_call_arity.err.txt
+release\win_x64\xl.exe check test\cases\sem_type_call_arity.xl >nul 2> build\test\sem_type_call_arity.err.txt
 if not errorlevel 1 (
     echo sem_type_call_arity.xl should fail.
     exit /b 1
 )
 
-release\xl.exe check test\cases\sem_range_arity.xl >nul 2> build\test\sem_range_arity.err.txt
+release\win_x64\xl.exe check test\cases\sem_range_arity.xl >nul 2> build\test\sem_range_arity.err.txt
 if not errorlevel 1 (
     echo sem_range_arity.xl should fail.
     exit /b 1
@@ -588,13 +588,13 @@ if not errorlevel 1 (
     exit /b 1
 )
 
-release\xl.exe check test\cases\sem_range_step_zero.xl >nul 2> build\test\sem_range_step_zero.err.txt
+release\win_x64\xl.exe check test\cases\sem_range_step_zero.xl >nul 2> build\test\sem_range_step_zero.err.txt
 if not errorlevel 1 (
     echo sem_range_step_zero.xl should fail.
     exit /b 1
 )
 
-release\xl.exe check test\cases\sem_for_in_three_targets.xl >nul 2> build\test\sem_for_in_three_targets.err.txt
+release\win_x64\xl.exe check test\cases\sem_for_in_three_targets.xl >nul 2> build\test\sem_for_in_three_targets.err.txt
 if not errorlevel 1 (
     echo sem_for_in_three_targets.xl should fail.
     exit /b 1
@@ -605,7 +605,7 @@ if not errorlevel 1 (
     exit /b 1
 )
 
-release\xl.exe check test\cases\sem_for_await_three_targets.xl >nul 2> build\test\sem_for_await_three_targets.err.txt
+release\win_x64\xl.exe check test\cases\sem_for_await_three_targets.xl >nul 2> build\test\sem_for_await_three_targets.err.txt
 if not errorlevel 1 (
     echo sem_for_await_three_targets.xl should fail.
     exit /b 1
@@ -616,19 +616,19 @@ if not errorlevel 1 (
     exit /b 1
 )
 
-release\xl.exe check test\cases\cgen_exceptions.xl
+release\win_x64\xl.exe check test\cases\cgen_exceptions.xl
 if errorlevel 1 exit /b 1
 
-release\xl.exe run test\cases\cgen_exceptions.xl
+release\win_x64\xl.exe run test\cases\cgen_exceptions.xl
 if errorlevel 1 exit /b 1
 
-release\xl.exe build test\cases\cgen_exceptions.xl -o build\test\cgen_exceptions.exe
+release\win_x64\xl.exe build test\cases\cgen_exceptions.xl -o build\test\cgen_exceptions.exe
 if errorlevel 1 exit /b 1
 
 build\test\cgen_exceptions.exe
 if errorlevel 1 exit /b 1
 
-release\xl.exe cgen test\cases\cgen_exceptions.xl --emit build\test\cgen_exceptions.c
+release\win_x64\xl.exe cgen test\cases\cgen_exceptions.xl --emit build\test\cgen_exceptions.c
 if errorlevel 1 exit /b 1
 
 findstr /C:"xl6_error_raise" build\test\cgen_exceptions.c >nul
@@ -656,24 +656,24 @@ if errorlevel 1 (
     echo cgen_exceptions.c missing executable error TLS cleanup call.
     exit /b 1
 )
-release\xl.exe run test\cases\cgen_error_member_lifetime.xl
+release\win_x64\xl.exe run test\cases\cgen_error_member_lifetime.xl
 if errorlevel 1 exit /b 1
-release\xl.exe build test\cases\cgen_error_member_lifetime.xl -o build\test\cgen_error_member_lifetime.exe
+release\win_x64\xl.exe build test\cases\cgen_error_member_lifetime.xl -o build\test\cgen_error_member_lifetime.exe
 if errorlevel 1 exit /b 1
 build\test\cgen_error_member_lifetime.exe
 if errorlevel 1 exit /b 1
-release\xl.exe cgen test\cases\cgen_error_member_lifetime.xl --emit build\test\cgen_error_member_lifetime.c
+release\win_x64\xl.exe cgen test\cases\cgen_error_member_lifetime.xl --emit build\test\cgen_error_member_lifetime.c
 if errorlevel 1 exit /b 1
 findstr /C:"xl6_error_text_copy" build\test\cgen_error_member_lifetime.c >nul
 if errorlevel 1 exit /b 1
 
-release\xl.exe check test\cases\cgen_loop_exception_propagation.xl
+release\win_x64\xl.exe check test\cases\cgen_loop_exception_propagation.xl
 if errorlevel 1 exit /b 1
 
-release\xl.exe run test\cases\cgen_loop_exception_propagation.xl
+release\win_x64\xl.exe run test\cases\cgen_loop_exception_propagation.xl
 if errorlevel 1 exit /b 1
 
-release\xl.exe build test\cases\cgen_loop_exception_propagation.xl -o build\test\cgen_loop_exception_propagation.exe
+release\win_x64\xl.exe build test\cases\cgen_loop_exception_propagation.xl -o build\test\cgen_loop_exception_propagation.exe
 if errorlevel 1 exit /b 1
 
 build\test\cgen_loop_exception_propagation.exe
@@ -686,7 +686,7 @@ for /L %%I in (1,1,3) do (
     )
 )
 
-release\xl.exe cgen test\cases\cgen_loop_exception_propagation.xl --emit build\test\cgen_loop_exception_propagation.c
+release\win_x64\xl.exe cgen test\cases\cgen_loop_exception_propagation.xl --emit build\test\cgen_loop_exception_propagation.c
 if errorlevel 1 exit /b 1
 
 findstr /C:"xl6_error_raise(\"Error\", \"loop boom\"" build\test\cgen_loop_exception_propagation.c >nul
@@ -701,7 +701,7 @@ if errorlevel 1 (
     exit /b 1
 )
 
-release\xl.exe run test\cases\cgen_exception_uncaught.xl >nul 2> build\test\cgen_exception_uncaught.err.txt
+release\win_x64\xl.exe run test\cases\cgen_exception_uncaught.xl >nul 2> build\test\cgen_exception_uncaught.err.txt
 if not errorlevel 1 (
     echo cgen_exception_uncaught.xl should fail at runtime.
     exit /b 1
@@ -712,16 +712,16 @@ if errorlevel 1 (
     exit /b 1
 )
 
-release\xl.exe check test\cases\cgen_channel.xl
+release\win_x64\xl.exe check test\cases\cgen_channel.xl
 if errorlevel 1 exit /b 1
 
-release\xl.exe check test\cases\cgen_global_shared_publish.xl
+release\win_x64\xl.exe check test\cases\cgen_global_shared_publish.xl
 if errorlevel 1 exit /b 1
 
-release\xl.exe run test\cases\cgen_global_shared_publish.xl
+release\win_x64\xl.exe run test\cases\cgen_global_shared_publish.xl
 if errorlevel 1 exit /b 1
 
-release\xl.exe build test\cases\cgen_global_shared_publish.xl -o build\test\cgen_global_shared_publish.exe
+release\win_x64\xl.exe build test\cases\cgen_global_shared_publish.xl -o build\test\cgen_global_shared_publish.exe
 if errorlevel 1 exit /b 1
 
 for /L %%I in (1,1,5) do (
@@ -732,7 +732,7 @@ for /L %%I in (1,1,5) do (
     )
 )
 
-release\xl.exe cgen test\cases\cgen_global_shared_publish.xl --emit build\test\cgen_global_shared_publish.c
+release\win_x64\xl.exe cgen test\cases\cgen_global_shared_publish.xl --emit build\test\cgen_global_shared_publish.c
 if errorlevel 1 exit /b 1
 
 powershell -NoProfile -ExecutionPolicy Bypass -Command "$text=[System.IO.File]::ReadAllText('build\test\cgen_global_shared_publish.c',[System.Text.Encoding]::UTF8); $required=@('__xl6_user_global_gPublished = __xl6_global_init_','__xl6_user_global_gRebound = __xl6_assign_','__xl6_user_global_gFiles = __xl6_typed_container_assign_','__xl6_user_global_gNumbers = __xl6_typed_container_assign_','__xl6_user_global_gScores = __xl6_typed_container_assign_','.posts = xl6_xrt_array_varargs(0)','.values = xl6TypedArrayCreate('); foreach($p in $required){ if($text.IndexOf($p) -lt 0){ Write-Host ('cgen_global_shared_publish.c missing '+$p); exit 1 } }; $forbidden=@('xl6_xrt_move_to_shared','XRT_OBJMODE_','XL6_OBJMODE_','xl6TypedArrayShare(','xl6TypedListShare(','xl6TypedSetShare(','xl6TypedDictShare(','_copy_mode('); foreach($p in $forbidden){ if($text.IndexOf($p) -ge 0){ Write-Host ('cgen_global_shared_publish.c contains obsolete '+$p); exit 1 } }"
@@ -741,13 +741,13 @@ if errorlevel 1 (
     exit /b 1
 )
 
-release\xl.exe check test\cases\cgen_sync.xl
+release\win_x64\xl.exe check test\cases\cgen_sync.xl
 if errorlevel 1 exit /b 1
 
-release\xl.exe run test\cases\cgen_sync.xl
+release\win_x64\xl.exe run test\cases\cgen_sync.xl
 if errorlevel 1 exit /b 1
 
-release\xl.exe build test\cases\cgen_sync.xl -o build\test\cgen_sync.exe
+release\win_x64\xl.exe build test\cases\cgen_sync.xl -o build\test\cgen_sync.exe
 if errorlevel 1 exit /b 1
 
 build\test\cgen_sync.exe
@@ -760,7 +760,7 @@ for /L %%I in (1,1,3) do (
     )
 )
 
-release\xl.exe cgen test\cases\cgen_sync.xl --emit build\test\cgen_sync.c
+release\win_x64\xl.exe cgen test\cases\cgen_sync.xl --emit build\test\cgen_sync.c
 if errorlevel 1 exit /b 1
 
 findstr /C:"xrtMutexCreate" build\test\cgen_sync.c >nul

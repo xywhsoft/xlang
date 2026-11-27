@@ -13,11 +13,11 @@ def main():
     build=json.loads((public/'build.json').read_text(encoding='utf-8-sig'))
     driver=Path(build['Driver']); cc=shutil.which('gcc'); nm=shutil.which('nm')
     assert cc and nm and not out.exists() and build['SourceXrt'] and not build['RuntimeOnly'] and build['EnableExeCompiler']
-    runtime=root/'release/xl.dll' if os.name=='nt' else Path(build['NativeRoot'])/'release/libxl.so'
+    runtime=root/'release/win_x64/xl.dll' if os.name=='nt' else Path(build['NativeRoot'])/'release/libxl.so'
     manifest,sdk,skipped=stage_private_sdk(root)
     primary=root/'test/cases/stdlib_container_public_names.xl'; queue=root/'test/cases/stdlib_default_queue.xl'
     cases=sorted(p for p in (root/'test/cases').glob('*.xl') if 'OrderedMap' in p.read_text(encoding='utf-8-sig'))
-    example=root/'release/examples/stdlib_special_collections.xl'; cases=sorted(set([*cases,queue,example]))
+    example=root/'release/win_x64/examples/stdlib/core/stdlib_special_collections.xl'; cases=sorted(set([*cases,queue,example]))
     host=root/'test/cases/stdlib_container_names_host.c'; memory=root/'test/support/module_product_memory.c'
     artifact=root/'test/cases/xlir_artifact_runtime_contract.c'; contract=root/'test/cases/xlir_tree_native_contract.c'
     guards=[root/'tools'/name for name in ('check_xlir_avl_resource_abi.ps1','check_xlir_cgen_runtime_matrix.ps1',

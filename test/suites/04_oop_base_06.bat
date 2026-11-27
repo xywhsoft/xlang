@@ -4,7 +4,7 @@ call "%~dp0common.bat"
 if errorlevel 1 exit /b 1
 echo Running DEMO6 suite: OOP ABI export and interop baseline 6/8...
 
-release\xl.exe build test\cases\cgen_basic.xl >nul
+release\win_x64\xl.exe build test\cases\cgen_basic.xl >nul
 if errorlevel 1 (
     echo build without -o should use default output path.
     exit /b 1
@@ -17,18 +17,18 @@ cgen_basic.exe
 if errorlevel 1 exit /b 1
 del /f /q cgen_basic.exe
 
-release\xl.exe build release\examples\feature_suite\09_c_export_abi.xl test\cases\build_mixed_host.c test\cases\build_mixed_extra.c -o build\test\build_mixed_two_c.exe
+release\win_x64\xl.exe build release\win_x64\examples\feature_suite\09_c_export_abi.xl test\cases\build_mixed_host.c test\cases\build_mixed_extra.c -o build\test\build_mixed_two_c.exe
 if errorlevel 1 exit /b 1
 build\test\build_mixed_two_c.exe
 if errorlevel 1 exit /b 1
 
-powershell -NoProfile -ExecutionPolicy Bypass -Command "$argsList=@('build','release\examples\feature_suite\09_c_export_abi.xl'); for($i=0;$i -lt 257;$i++){ $argsList += 'test\cases\build_mixed_extra.c' }; $argsList += @('-o','build\test\too_many_c.exe'); $p=Start-Process -FilePath 'release\xl.exe' -ArgumentList $argsList -NoNewWindow -PassThru -Wait -RedirectStandardOutput 'build\test\build_too_many_c.out.txt' -RedirectStandardError 'build\test\build_too_many_c.err.txt'; if($p.ExitCode -eq 0){exit 1}; if(-not (Select-String -Path 'build\test\build_too_many_c.err.txt' -SimpleMatch 'too many C source files')){exit 2}"
+powershell -NoProfile -ExecutionPolicy Bypass -Command "$argsList=@('build','release\win_x64\examples\feature_suite\09_c_export_abi.xl'); for($i=0;$i -lt 257;$i++){ $argsList += 'test\cases\build_mixed_extra.c' }; $argsList += @('-o','build\test\too_many_c.exe'); $p=Start-Process -FilePath 'release\win_x64\xl.exe' -ArgumentList $argsList -NoNewWindow -PassThru -Wait -RedirectStandardOutput 'build\test\build_too_many_c.out.txt' -RedirectStandardError 'build\test\build_too_many_c.err.txt'; if($p.ExitCode -eq 0){exit 1}; if(-not (Select-String -Path 'build\test\build_too_many_c.err.txt' -SimpleMatch 'too many C source files')){exit 2}"
 if errorlevel 1 (
     echo build too many C source diagnostic missing.
     exit /b 1
 )
 
-release\xl.exe build release\examples\feature_suite\09_c_export_abi.xl test\cases\build_mixed_host.c test\cases\build_mixed_extra.c --save-temps -o build\test\build_mixed_save_temps.exe > build\test\build_mixed_save_temps.log 2>&1
+release\win_x64\xl.exe build release\win_x64\examples\feature_suite\09_c_export_abi.xl test\cases\build_mixed_host.c test\cases\build_mixed_extra.c --save-temps -o build\test\build_mixed_save_temps.exe > build\test\build_mixed_save_temps.log 2>&1
 if errorlevel 1 exit /b 1
 build\test\build_mixed_save_temps.exe
 if errorlevel 1 exit /b 1
@@ -44,7 +44,7 @@ if errorlevel 1 exit /b 1
 call tools\build_xrt_obj.bat
 if errorlevel 1 exit /b 1
 
-release\xl.exe build test\cases\cgen_main_entry.xl -o build\test\explicit_xrt_link.exe --link %XL6_XRT_OBJ%
+release\win_x64\xl.exe build test\cases\cgen_main_entry.xl -o build\test\explicit_xrt_link.exe --link %XL6_XRT_OBJ%
 if errorlevel 1 exit /b 1
 build\test\explicit_xrt_link.exe one
 if not errorlevel 2 (
@@ -58,7 +58,7 @@ if errorlevel 3 (
 
 powershell -NoProfile -ExecutionPolicy Bypass -Command "$before=@(Get-ChildItem 'build\test' -Directory -Filter 'xl6_build_*').Count; Set-Content 'build\test\build_fail_dirs.before' $before"
 if errorlevel 1 exit /b 1
-release\xl.exe build test\cases\cgen_main_entry.xl -shared -o build\test\bad_main_shared.dll >nul 2> build\test\bad_main_shared.err.txt
+release\win_x64\xl.exe build test\cases\cgen_main_entry.xl -shared -o build\test\bad_main_shared.dll >nul 2> build\test\bad_main_shared.err.txt
 if not errorlevel 1 (
     echo shared build with xlang main should fail.
     exit /b 1
@@ -76,7 +76,7 @@ if errorlevel 1 (
 
 powershell -NoProfile -ExecutionPolicy Bypass -Command "$before=@(Get-ChildItem 'build\test' -Directory -Filter 'xl6_run_*').Count; Set-Content 'build\test\run_fail_dirs.before' $before"
 if errorlevel 1 exit /b 1
-release\xl.exe run test\cases\sem_time_literal_bad.xl >nul 2> build\test\run_bad_script.err.txt
+release\win_x64\xl.exe run test\cases\sem_time_literal_bad.xl >nul 2> build\test\run_bad_script.err.txt
 if not errorlevel 1 (
     echo bad script run should fail.
     exit /b 1
@@ -91,19 +91,19 @@ if errorlevel 1 (
 if errorlevel 1 exit /b 1
 "%XL6_TCC%" -ar rcs build\test\libxl6clitest.a build\test\cli_link_host.o
 if errorlevel 1 exit /b 1
-release\xl.exe run test\cases\cli_link.xl --lib-path build\test --link xl6clitest
+release\win_x64\xl.exe run test\cases\cli_link.xl --lib-path build\test --link xl6clitest
 if errorlevel 1 exit /b 1
-release\xl.exe build test\cases\cli_link.xl -o build\test\cli_link_build.exe --lib-path build\test --link xl6clitest
+release\win_x64\xl.exe build test\cases\cli_link.xl -o build\test\cli_link_build.exe --lib-path build\test --link xl6clitest
 if errorlevel 1 exit /b 1
 build\test\cli_link_build.exe
 if errorlevel 1 exit /b 1
 
 "%XL6_TCC%" -shared %XL6_TCC_INCLUDES% %XL6_TCC_LIB_FLAGS% test\cases\cli_loadlib_host.c -o build\test\cli_loadlib_host.dll
 if errorlevel 1 exit /b 1
-cmd /c "set XL6_TCC=__missing_tcc__.exe&& release\xl.exe run test\cases\cli_loadlib.xl --loadlib build\test\cli_loadlib_host.dll"
+cmd /c "set XL6_TCC=__missing_tcc__.exe&& release\win_x64\xl.exe run test\cases\cli_loadlib.xl --loadlib build\test\cli_loadlib_host.dll"
 if errorlevel 1 exit /b 1
 
-release\xl.exe ir test\cases\extern_puts.xl --emit build\test\extern_puts.xlir
+release\win_x64\xl.exe ir test\cases\extern_puts.xl --emit build\test\extern_puts.xlir
 if errorlevel 1 exit /b 1
 findstr /C:"source=extern_func/6" build\test\extern_puts.xlir | findstr /C:"text=\"puts\"" >nul
 if errorlevel 1 (
@@ -111,7 +111,7 @@ if errorlevel 1 (
     exit /b 1
 )
 
-release\xl.exe cgen test\cases\extern_puts.xl --emit build\test\extern_puts.c
+release\win_x64\xl.exe cgen test\cases\extern_puts.xl --emit build\test\extern_puts.c
 if errorlevel 1 exit /b 1
 findstr /C:"int32_t puts(const char* text);" build\test\extern_puts.c >nul
 if errorlevel 1 (
@@ -119,7 +119,7 @@ if errorlevel 1 (
     exit /b 1
 )
 
-release\xl.exe run test\cases\extern_puts.xl > build\test\extern_puts.out.txt
+release\win_x64\xl.exe run test\cases\extern_puts.xl > build\test\extern_puts.out.txt
 if errorlevel 1 exit /b 1
 findstr /C:"xlang calls c" build\test\extern_puts.out.txt >nul
 if errorlevel 1 (
@@ -127,15 +127,15 @@ if errorlevel 1 (
     exit /b 1
 )
 
-release\xl.exe run release\examples\c_hello.xl > build\test\example_c_hello.out.txt
+release\win_x64\xl.exe run release\win_x64\examples\language\interop\c_hello.xl > build\test\example_c_hello.out.txt
 if errorlevel 1 exit /b 1
 findstr /C:"hello from c" build\test\example_c_hello.out.txt >nul
 if errorlevel 1 (
-    echo release\examples\c_hello.xl did not run.
+    echo release\win_x64\examples\language\interop\c_hello.xl did not run.
     exit /b 1
 )
 
-release\xl.exe cgen test\cases\extern_bool.xl --emit build\test\extern_bool.c
+release\win_x64\xl.exe cgen test\cases\extern_bool.xl --emit build\test\extern_bool.c
 if errorlevel 1 exit /b 1
 findstr /C:"bool native_flip_bool(bool value);" build\test\extern_bool.c >nul
 if errorlevel 1 (
@@ -152,9 +152,9 @@ if errorlevel 1 exit /b 1
 build\test\extern_bool.exe
 if errorlevel 1 exit /b 1
 
-release\xl.exe check test\cases\c_abi_types.xl
+release\win_x64\xl.exe check test\cases\c_abi_types.xl
 if errorlevel 1 exit /b 1
-release\xl.exe cgen test\cases\c_abi_types.xl --emit build\test\c_abi_types.c
+release\win_x64\xl.exe cgen test\cases\c_abi_types.xl --emit build\test\c_abi_types.c
 if errorlevel 1 exit /b 1
 findstr /C:"#include <stddef.h>" build\test\c_abi_types.c >nul
 if errorlevel 1 (
@@ -191,14 +191,14 @@ if errorlevel 1 exit /b 1
 build\test\c_abi_types.exe
 if errorlevel 1 exit /b 1
 
-release\xl.exe cgen test\cases\c_abi_mismatch_extern_header.xl --emit build\test\c_abi_mismatch_extern_header.c --emit-header build\test\c_abi_mismatch_extern_header.h
+release\win_x64\xl.exe cgen test\cases\c_abi_mismatch_extern_header.xl --emit build\test\c_abi_mismatch_extern_header.c --emit-header build\test\c_abi_mismatch_extern_header.h
 if errorlevel 1 exit /b 1
 findstr /C:"int64_t xl6_bad_native_add(int64_t a, int64_t b);" build\test\c_abi_mismatch_extern_header.h >nul
 if errorlevel 1 (
     echo c_abi_mismatch_extern_header.h missing extern prototype.
     exit /b 1
 )
-release\xl.exe build test\cases\c_abi_mismatch_extern_header.xl test\cases\c_abi_mismatch_extern_header_host.c -o build\test\c_abi_mismatch_extern_header.exe > build\test\c_abi_mismatch_extern_header.out.txt 2> build\test\c_abi_mismatch_extern_header.err.txt
+release\win_x64\xl.exe build test\cases\c_abi_mismatch_extern_header.xl test\cases\c_abi_mismatch_extern_header_host.c -o build\test\c_abi_mismatch_extern_header.exe > build\test\c_abi_mismatch_extern_header.out.txt 2> build\test\c_abi_mismatch_extern_header.err.txt
 if not errorlevel 1 (
     echo c_abi_mismatch_extern_header should fail.
     exit /b 1
@@ -209,7 +209,7 @@ if errorlevel 1 (
     exit /b 1
 )
 
-release\xl.exe cgen test\cases\cgen_extern_string_return.xl --emit build\test\cgen_extern_string_return.c
+release\win_x64\xl.exe cgen test\cases\cgen_extern_string_return.xl --emit build\test\cgen_extern_string_return.c
 if errorlevel 1 exit /b 1
 findstr /C:"const char* native_text(void);" build\test\cgen_extern_string_return.c >nul
 if errorlevel 1 (
@@ -221,7 +221,7 @@ if errorlevel 1 exit /b 1
 build\test\cgen_extern_string_return.exe
 if errorlevel 1 exit /b 1
 
-release\xl.exe ir test\cases\extern_var.xl --emit build\test\extern_var.xlir
+release\win_x64\xl.exe ir test\cases\extern_var.xl --emit build\test\extern_var.xlir
 if errorlevel 1 exit /b 1
 findstr /C:"source=extern_var/8" build\test\extern_var.xlir | findstr /C:"text=\"host_counter\"" >nul
 if errorlevel 1 (
@@ -229,7 +229,7 @@ if errorlevel 1 (
     exit /b 1
 )
 
-release\xl.exe cgen test\cases\extern_var.xl --emit build\test\extern_var.c
+release\win_x64\xl.exe cgen test\cases\extern_var.xl --emit build\test\extern_var.c
 if errorlevel 1 exit /b 1
 findstr /C:"extern int64_t host_counter;" build\test\extern_var.c >nul
 if errorlevel 1 (
@@ -246,7 +246,7 @@ if errorlevel 1 exit /b 1
 build\test\extern_var.exe
 if errorlevel 1 exit /b 1
 
-release\xl.exe ir test\cases\export_add.xl --lowered --emit build\test\export_add.xlir
+release\win_x64\xl.exe ir test\cases\export_add.xl --lowered --emit build\test\export_add.xlir
 if errorlevel 1 exit /b 1
 findstr /C:"cname=xl6_add_i64 return=t3/value/type params=[a:t3/value/type,b:t3/value/type]" build\test\export_add.xlir >nul
 if errorlevel 1 (
@@ -254,7 +254,7 @@ if errorlevel 1 (
     exit /b 1
 )
 
-release\xl.exe abi test\cases\export_add.xl --emit build\test\export_add.abi.txt
+release\win_x64\xl.exe abi test\cases\export_add.xl --emit build\test\export_add.abi.txt
 if errorlevel 1 exit /b 1
 findstr /C:"export xl6_add_i64" build\test\export_add.abi.txt >nul
 if errorlevel 1 (
@@ -267,7 +267,7 @@ if errorlevel 1 (
     exit /b 1
 )
 
-release\xl.exe cgen test\cases\export_add.xl --emit build\test\export_add.c --emit-header build\test\export_add.h
+release\win_x64\xl.exe cgen test\cases\export_add.xl --emit build\test\export_add.c --emit-header build\test\export_add.h
 if errorlevel 1 exit /b 1
 findstr /C:"long long xl6_export_add__i64(long long a, long long b);" build\test\export_add.c >nul
 if errorlevel 1 (
@@ -284,7 +284,7 @@ if errorlevel 1 exit /b 1
 build\test\export_add_host.exe
 if errorlevel 1 exit /b 1
 
-release\xl.exe cgen test\cases\export_add.xl --emit build\test\export_add_header.c --emit-header build\test\export_add.h
+release\win_x64\xl.exe cgen test\cases\export_add.xl --emit build\test\export_add_header.c --emit-header build\test\export_add.h
 if errorlevel 1 exit /b 1
 findstr /C:"#ifndef XL6_EXPORT_ADD_H" build\test\export_add.h >nul
 if errorlevel 1 (
@@ -301,7 +301,7 @@ if errorlevel 1 exit /b 1
 build\test\export_add_header_host.exe
 if errorlevel 1 exit /b 1
 
-release\xl.exe cgen test\cases\export_class.xl --emit build\test\export_class.c --emit-header build\test\export_class.h
+release\win_x64\xl.exe cgen test\cases\export_class.xl --emit build\test\export_class.c --emit-header build\test\export_class.h
 if errorlevel 1 exit /b 1
 findstr /C:"typedef struct XL_Class_Point" build\test\export_class.h >nul
 if errorlevel 1 (
@@ -323,7 +323,7 @@ if errorlevel 1 exit /b 1
 build\test\export_class_header_host.exe
 if errorlevel 1 exit /b 1
 
-release\xl.exe cgen test\cases\export_class_method.xl --emit build\test\export_class_method.c --emit-header build\test\export_class_method.h
+release\win_x64\xl.exe cgen test\cases\export_class_method.xl --emit build\test\export_class_method.c --emit-header build\test\export_class_method.h
 if errorlevel 1 exit /b 1
 findstr /C:"int64_t xl6_point_move(XL_Class_Point* self, int64_t dx, int64_t dy);" build\test\export_class_method.h >nul
 if errorlevel 1 (
@@ -344,14 +344,14 @@ if errorlevel 1 (
 if errorlevel 1 exit /b 1
 build\test\export_class_method_header_host.exe
 if errorlevel 1 exit /b 1
-release\xl.exe abi test\cases\export_class_method.xl --emit build\test\export_class_method.abi.txt
+release\win_x64\xl.exe abi test\cases\export_class_method.xl --emit build\test\export_class_method.abi.txt
 if errorlevel 1 exit /b 1
 findstr /C:"signature: fn:app.Point.move(int,int) as int" build\test\export_class_method.abi.txt >nul
 if errorlevel 1 (
     echo export_class_method.abi.txt missing class method ABI signature.
     exit /b 1
 )
-release\xl.exe abi test\cases\export_class_method.xl --json --emit build\test\export_class_method.abi.json
+release\win_x64\xl.exe abi test\cases\export_class_method.xl --json --emit build\test\export_class_method.abi.json
 if errorlevel 1 exit /b 1
 findstr /C:"\"kind\":\"export_class_method\"" build\test\export_class_method.abi.json >nul
 if errorlevel 1 (
@@ -359,7 +359,7 @@ if errorlevel 1 (
     exit /b 1
 )
 
-release\xl.exe cgen test\cases\export_class_inherit.xl --emit build\test\export_class_inherit.c --emit-header build\test\export_class_inherit.h
+release\win_x64\xl.exe cgen test\cases\export_class_inherit.xl --emit build\test\export_class_inherit.c --emit-header build\test\export_class_inherit.h
 if errorlevel 1 exit /b 1
 findstr /C:"typedef struct XL_Class_Entity" build\test\export_class_inherit.h >nul
 if errorlevel 1 (
@@ -381,7 +381,7 @@ if errorlevel 1 exit /b 1
 build\test\export_class_inherit_header_host.exe
 if errorlevel 1 exit /b 1
 
-release\xl.exe cgen test\cases\export_class_union_field.xl --emit build\test\export_class_union_field.c --emit-header build\test\export_class_union_field.h
+release\win_x64\xl.exe cgen test\cases\export_class_union_field.xl --emit build\test\export_class_union_field.c --emit-header build\test\export_class_union_field.h
 if errorlevel 1 exit /b 1
 findstr /C:"typedef union XL_Union_Payload" build\test\export_class_union_field.h >nul
 if errorlevel 1 (
@@ -403,7 +403,7 @@ if errorlevel 1 exit /b 1
 build\test\export_class_union_field_header_host.exe
 if errorlevel 1 exit /b 1
 
-release\xl.exe cgen test\cases\export_union_class_field.xl --emit build\test\export_union_class_field.c --emit-header build\test\export_union_class_field.h
+release\win_x64\xl.exe cgen test\cases\export_union_class_field.xl --emit build\test\export_union_class_field.c --emit-header build\test\export_union_class_field.h
 if errorlevel 1 exit /b 1
 findstr /C:"typedef union XL_Union_Payload" build\test\export_union_class_field.h >nul
 if errorlevel 1 (
@@ -425,7 +425,7 @@ if errorlevel 1 exit /b 1
 build\test\export_union_class_field_header_host.exe
 if errorlevel 1 exit /b 1
 
-release\xl.exe build test\cases\export_add.xl -shared -o build\test\xl6_export_add.dll --emit-header build\test\xl6_export_add_shared.h
+release\win_x64\xl.exe build test\cases\export_add.xl -shared -o build\test\xl6_export_add.dll --emit-header build\test\xl6_export_add_shared.h
 if errorlevel 1 exit /b 1
 if not exist build\test\xl6_export_add.dll (
     echo xl6_export_add.dll missing after build -shared.
@@ -436,7 +436,7 @@ if not exist build\test\xl6_export_add_shared.h (
     exit /b 1
 )
 
-release\xl.exe abi test\cases\export_multi_return.xl --emit build\test\export_multi_return.abi.txt
+release\win_x64\xl.exe abi test\cases\export_multi_return.xl --emit build\test\export_multi_return.abi.txt
 if errorlevel 1 exit /b 1
 findstr /C:"signature: fn:app.pair(int) as (int,int)" build\test\export_multi_return.abi.txt >nul
 if errorlevel 1 (
@@ -444,7 +444,7 @@ if errorlevel 1 (
     exit /b 1
 )
 
-release\xl.exe cgen test\cases\export_multi_return.xl --emit build\test\export_multi_return.c --emit-header build\test\export_multi_return.h
+release\win_x64\xl.exe cgen test\cases\export_multi_return.xl --emit build\test\export_multi_return.c --emit-header build\test\export_multi_return.h
 if errorlevel 1 exit /b 1
 powershell -NoProfile -ExecutionPolicy Bypass -Command "$t=Get-Content 'build\test\export_multi_return.c' -Raw; if($t -notmatch 'typedef struct XL6_Function_Return_[0-9A-F]+'){exit 1}"
 if errorlevel 1 (
@@ -471,7 +471,7 @@ if errorlevel 1 exit /b 1
 build\test\export_multi_return_header_host.exe
 if errorlevel 1 exit /b 1
 
-release\xl.exe cgen test\cases\export_bool.xl --emit build\test\export_bool.c --emit-header build\test\export_bool.h
+release\win_x64\xl.exe cgen test\cases\export_bool.xl --emit build\test\export_bool.c --emit-header build\test\export_bool.h
 if errorlevel 1 exit /b 1
 findstr /C:"int xl6_export_isEven(long long value);" build\test\export_bool.c >nul
 if errorlevel 1 (
@@ -493,7 +493,7 @@ if errorlevel 1 exit /b 1
 build\test\export_bool_header_host.exe
 if errorlevel 1 exit /b 1
 
-release\xl.exe cgen test\cases\export_primitive_widths.xl --emit build\test\export_primitive_widths.c --emit-header build\test\export_primitive_widths.h
+release\win_x64\xl.exe cgen test\cases\export_primitive_widths.xl --emit build\test\export_primitive_widths.c --emit-header build\test\export_primitive_widths.h
 if errorlevel 1 exit /b 1
 findstr /C:"uint64_t xl6_pick_u64(" build\test\export_primitive_widths.h >nul
 if errorlevel 1 (

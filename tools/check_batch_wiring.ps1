@@ -55,20 +55,20 @@ function Check-SmokeBatch($text)
         "test_tutorial.bat",
         "test_feature_suite.bat",
         "test_dll.bat",
-        "release\examples\feature_suite\run_feature_suite.bat"
+        "release\win_x64\examples\feature_suite\run_feature_suite.bat"
     )
     $requiredPatterns = @(
         '(?im)^\s*call\s+build\.bat\s*$',
         'tools\\check_docs_index\.ps1',
         'tools\\check_source_wiring\.ps1',
         'tools\\check_tool_wiring\.ps1',
-        'release\\xl\.exe\s+lex\s+',
-        'release\\xl\.exe\s+parse\s+',
-        'release\\xl\.exe\s+check\s+',
-        'release\\xl\.exe\s+cgen\s+',
-        'release\\xl\.exe\s+abi\s+',
-        'release\\xl\.exe\s+run\s+release\\examples\\containers\.xl',
-        'release\\xl\.exe\s+run\s+release\\examples\\stdlib_string\.xl'
+        'release\\win_x64\\xl\.exe\s+lex\s+',
+        'release\\win_x64\\xl\.exe\s+parse\s+',
+        'release\\win_x64\\xl\.exe\s+check\s+',
+        'release\\win_x64\\xl\.exe\s+cgen\s+',
+        'release\\win_x64\\xl\.exe\s+abi\s+',
+        'release[\\/]win_x64[\\/]xl[.]exe\s+run\s+release[\\/]win_x64[\\/]examples[\\/]language[\\/]containers[\\/]containers[.]xl',
+        'release[\\/]win_x64[\\/]xl[.]exe\s+run\s+release[\\/]win_x64[\\/]examples[\\/]stdlib[\\/]core[\\/]stdlib_string[.]xl'
     )
 
     foreach ( $call in $forbiddenCalls ) {
@@ -111,15 +111,15 @@ function Check-AllBatch($text)
 function Check-TutorialBatch($text)
 {
     $requiredPatterns = @(
-        'for\s+%%f\s+in\s+\(release\\examples\\tutorial\\\*\.xl\)',
-        'release\\xl\.exe\s+check\s+"%%f"',
-        'release\\xl\.exe\s+run\s+"release\\examples\\tutorial\\%%f"',
-        'release\\xl\.exe\s+run\s+"release\\examples\\tutorial\\%%f"\s+--link\s+release\\examples\\tutorial\\host\.c',
-        'release\\xl\.exe\s+cgen\s+release\\examples\\tutorial\\11_export_to_c\.xl\s+--emit\s+build\\test\\tutorial\\11_export_to_c\.c\s+--emit-header\s+build\\test\\tutorial\\11_export_to_c\.h',
-        '"%XL6_BOOTSTRAP_CC%"\s+-std=c11\s+-Wall\s+-Wextra\s+-Werror\s+-Wno-unused-function\s+-DXL6_EXAMPLE_LINK_EXPORTS\s+-Ibuild\\test\\tutorial\s+-Ibuild\\test\s+-Irelease\\include\s+-I\.\s+build\\test\\tutorial\\11_export_to_c\.c\s+release\\examples\\tutorial\\host_export\.c\s+tools\\xrt_single_header_impl\.c\s+-lWs2_32\s+-lIPHLPAPI\s+-lShell32\s+-o\s+build\\test\\tutorial\\host_export\.exe',
+        'for\s+%%f\s+in\s+\(release\\win_x64\\examples\\tutorial\\\*\.xl\)',
+        'release\\win_x64\\xl\.exe\s+check\s+"%%f"',
+        'release\\win_x64\\xl\.exe\s+run\s+"release\\win_x64\\examples\\tutorial\\%%f"',
+        'release\\win_x64\\xl\.exe\s+run\s+"release\\win_x64\\examples\\tutorial\\%%f"\s+--link\s+release\\win_x64\\examples\\tutorial\\host\.c',
+        'release\\win_x64\\xl\.exe\s+cgen\s+release\\win_x64\\examples\\tutorial\\11_export_to_c\.xl\s+--emit\s+build\\test\\tutorial\\11_export_to_c\.c\s+--emit-header\s+build\\test\\tutorial\\11_export_to_c\.h',
+        '"%XL6_BOOTSTRAP_CC%"\s+-std=c11\s+-Wall\s+-Wextra\s+-Werror\s+-Wno-unused-function\s+-DXL6_EXAMPLE_LINK_EXPORTS\s+-Ibuild\\test\\tutorial\s+-Ibuild\\test\s+-Irelease\\win_x64\\include\s+-I\.\s+build\\test\\tutorial\\11_export_to_c\.c\s+release\\win_x64\\examples\\tutorial\\host_export\.c\s+tools\\xrt_single_header_impl\.c\s+-lWs2_32\s+-lIPHLPAPI\s+-lShell32\s+-o\s+build\\test\\tutorial\\host_export\.exe',
         'build\\test\\tutorial\\host_export\.exe',
-        'copy\s+/Y\s+release\\include\\xrt_decl\.h\s+build\\test\\__xl_runtime\\xrt_decl\.h',
-        'copy\s+/Y\s+release\\include\\xruntime_decl\.h\s+build\\test\\__xl_runtime\\xruntime_decl\.h'
+        'copy\s+/Y\s+release\\win_x64\\include\\xrt_decl\.h\s+build\\test\\__xl_runtime\\xrt_decl\.h',
+        'copy\s+/Y\s+release\\win_x64\\include\\xruntime_decl\.h\s+build\\test\\__xl_runtime\\xruntime_decl\.h'
     )
     $requiredTutorialFiles = @(
         "01_entry_and_layout.xl",
@@ -154,11 +154,11 @@ function Check-DllBatch($text)
     $requiredPatterns = @(
         '(?im)^\s*call\s+tools\\xl6_toolchain_env\.bat\s*$',
         '(?im)^\s*call\s+build_dll\.bat\s*$',
-        'release\\xl_dll_null_context\.exe',
-        'release\\xl_dll_threaded_host\.exe',
-        'release\\xlc_dll_embed_string\.exe',
-        'release\\xlc\.dll',
-        'release\\xlc\.def',
+        'release\\win_x64\\xl_dll_null_context\.exe',
+        'release\\win_x64\\xl_dll_threaded_host\.exe',
+        'release[\\/]win_x64[\\/]xlc_dll_embed_string[.]exe',
+        'release\\win_x64\\xlc\.dll',
+        'release\\win_x64\\xlc\.def',
         'build\\test\\xl_dll_embed_string_script\.exe',
         'build\\test\\xl_dll_embed_file_script\.exe',
         'build\\tmp\\xl_dll_link_host\.o',
@@ -182,8 +182,8 @@ function Check-MainRegressionBatch($text)
         "Remove-Item -LiteralPath `$dir -Recurse -Force"
     )
     $requiredSnippets += @(
-        "copy /Y release\include\xrt_decl.h build\test\__xl_runtime\xrt_decl.h",
-        "copy /Y release\include\xruntime_decl.h build\test\__xl_runtime\xruntime_decl.h"
+        "copy /Y release\win_x64\include\xrt_decl.h build\test\__xl_runtime\xrt_decl.h",
+        "copy /Y release\win_x64\include\xruntime_decl.h build\test\__xl_runtime\xruntime_decl.h"
     )
 
     foreach ( $snippet in $requiredSnippets ) {
@@ -278,7 +278,7 @@ if ( Test-Path -LiteralPath $testSuiteDir -PathType Container ) {
     $suiteBatchFiles = @(Get-ChildItem -LiteralPath $testSuiteDir -File -Filter "*.bat" | Sort-Object Name)
 }
 $extraBatchFiles = @(
-    (Join-Path $Root "release\examples\feature_suite\run_feature_suite.bat")
+    (Join-Path $Root "release\win_x64\examples\feature_suite\run_feature_suite.bat")
 ) | Where-Object { Test-Path -LiteralPath $_ -PathType Leaf }
 $toolchainEnv = "tools\xl6_toolchain_env.bat"
 $toolchainEnvPath = Join-Path $Root $toolchainEnv

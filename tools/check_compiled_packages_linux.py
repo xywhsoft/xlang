@@ -31,7 +31,7 @@ def main():
     files.add(root/'test/cases/xlir_artifact_runtime_contract.c')
     files.add(root/'test/cases/tcc_runtime_generated_host.c')
     files.add(root/'test/cases/stdlib_tcc_runtime_contract.xl')
-    for parent in ('release/include','release/examples/embedded_package'):
+    for parent in ('release/include','release/win_x64/examples/embedded_package'):
         files.update(p for p in (root/parent).rglob('*') if p.is_file())
     for parent in (root/'test/fixtures').glob('compiled_*'):
         files.update(p for p in parent.rglob('*') if p.is_file())
@@ -160,10 +160,10 @@ def main():
         elf=run('host-elf',['readelf','-d',host]).decode()
         needed=re.findall(r'Shared library: \[([^]]+)\]',elf)
         assert needed and all(name in ('libc.so.6','libm.so.6','libmvec.so.1','libdl.so.2','libpthread.so.0','libgcc_s.so.1','ld-linux-x86-64.so.2') for name in needed),needed
-        env['XLANG_PACKAGE_PATH']=str(root/'release/examples/embedded_package/packages')
-        example=out/'example';build('example-build','release/examples/embedded_package/host.xl',example)
+        env['XLANG_PACKAGE_PATH']=str(root/'release/win_x64/examples/embedded_package/packages')
+        example=out/'example';build('example-build','release/win_x64/examples/embedded_package/host.xl',example)
         deploy=out/'example-deploy';deploy.mkdir();shutil.copy2(example,deploy/'host')
-        shutil.copy2(root/'release/examples/embedded_package/external.xl',deploy)
+        shutil.copy2(root/'release/win_x64/examples/embedded_package/external.xl',deploy)
         env['XLANG_PACKAGE_PATH']='';data=run('example-source-free',[deploy/'host'],deploy)
         assert b'embedded_package=ok' in data and len(list(deploy.iterdir()))==2
         if args.public_directory:verify_public_build(root,public)
