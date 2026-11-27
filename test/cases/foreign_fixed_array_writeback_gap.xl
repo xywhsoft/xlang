@@ -1,0 +1,14 @@
+extern "RegionVertex" struct Vertex @header("test/cases/foreign_region.h")
+ c_float x
+ c_float y
+end
+extern "RegionQuad" struct Quad @header("test/cases/foreign_region.h")
+ Vertex vertices[4]
+end
+extern "region_vertices" @header("test/cases/foreign_region.h") @no_raise func vertices() as Quad
+func main(...) as int
+ auto values=vertices().vertices
+ values[0].x=c_float(9)
+ assert values[0].x==c_float(9)
+ return 0
+end

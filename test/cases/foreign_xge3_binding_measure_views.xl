@@ -1,0 +1,41 @@
+extern "BindingMeasureVec*" class MeasureSize @header("test/cases/foreign_xge3_binding_measure_views.h") @lifetime("callback")
+ native point handle
+ extern "fX" @c_field get x() as c_float
+ extern "fX" @c_field let x(c_float value)
+ extern "fY" @c_field get y() as c_float
+ extern "fY" @c_field let y(c_float value)
+end
+extern "float*" class MeasureBaseline @header("test/cases/foreign_xge3_binding_measure_views.h") @lifetime("callback")
+ native point handle
+ extern "value" @c_deref get value() as c_float
+ extern "value" @c_deref let value(c_float next)
+end
+extern "binding_measure_views" @header("test/cases/foreign_xge3_binding_measure_views.h") @no_raise @c_sync_callback(0,-1,-16) func measure(func(MeasureSize,MeasureBaseline) as c_int callback) as c_int
+func main(...) as int
+ MeasureSize? saved=null
+ MeasureBaseline? baselineSaved=null
+ assert measure(func(MeasureSize size,MeasureBaseline baseline) as c_int
+  assert size.x==c_float(1) and size.y==c_float(2) and baseline.value==c_float(3)
+  size.x=c_float(10)
+  size.y=c_float(20)
+  baseline.value=c_float(15)
+  saved=size
+  baselineSaved=baseline
+  return c_int(0)
+ end)==c_int(0)
+ bool caught=false
+ try
+  (saved as MeasureSize).x=c_float(99)
+ catch error
+  caught=true
+ end
+ assert caught
+ caught=false
+ try
+  (baselineSaved as MeasureBaseline).value=c_float(99)
+ catch error
+  caught=true
+ end
+ assert caught
+ return 0
+end

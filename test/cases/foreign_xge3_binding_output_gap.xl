@@ -1,0 +1,17 @@
+// Real native void output: requires @c_output(index) support.
+extern "xui_interaction_policy_t" struct InteractionPolicy @header("xui.h")
+ c_uint iSize
+ c_float fDoubleClickSeconds
+ c_int iDoubleClickWidth
+ c_int iDoubleClickHeight
+ c_int iDragWidth
+ c_int iDragHeight
+ c_int iWheelScrollLines
+ c_float fTooltipInitialDelay
+ c_float fCaretBlinkSeconds
+end
+extern "xuiInteractionPolicyDefault" @no_raise @c_output(0) func defaultPolicy() as InteractionPolicy
+func main(...) as int
+ auto value=defaultPolicy()
+ return int(value.iSize)
+end
