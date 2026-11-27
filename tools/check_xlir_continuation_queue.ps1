@@ -5,7 +5,7 @@ Push-Location $Root
 try {
     $prefix = 'build/test/xlir_continuation_queue'
     $flags = @('-std=c11','-Wall','-Wextra','-Werror','-O2','-I.')
-    & gcc @flags test/cases/xlir_continuation_queue_contract.c src/runtime/xl6_code_lease.c src/runtime/xl6_continuation_queue.c release/xl.dll -o "$prefix.exe"
+    & gcc @flags test/cases/xlir_continuation_queue_contract.c src/runtime/xl6_code_lease.c src/runtime/xl6_continuation_queue.c release/win_x64/xl.dll -o "$prefix.exe"
     if ($LASTEXITCODE -ne 0) { throw 'Continuation queue strict build failed' }
     & "$prefix.exe"
     if ($LASTEXITCODE -ne 0) { throw 'Continuation queue lifecycle/ownership failed' }

@@ -66,8 +66,8 @@ def main():
             obj=out/('contract.'+opt+'.o');binary=out/('contract.'+opt+('.exe' if os.name=='nt' else ''))
             run('contract.'+opt+'.build',[cc,*flags,'-'+opt,'-c',contract,'-o',obj]);product(obj)
             if os.name=='nt':
-                link=[*objects,obj,root/'release/xl.dll','-lws2_32','-liphlpapi','-lshell32','-lole32','-ladvapi32','-o',binary]
-                if not (out/'xl.dll').exists():shutil.copy2(root/'release/xl.dll',out/'xl.dll');product(out/'xl.dll')
+                link=[*objects,obj,root/'release/win_x64/xl.dll','-lws2_32','-liphlpapi','-lshell32','-lole32','-ladvapi32','-o',binary]
+                if not (out/'xl.dll').exists():shutil.copy2(root/'release/win_x64/xl.dll',out/'xl.dll');product(out/'xl.dll')
             else:
                 lib=a.native_root.resolve()/'release'
                 link=[*objects,obj,'-L'+str(lib),'-lxl','-Wl,-rpath,'+str(lib),'-Wl,--export-dynamic','-pthread','-ldl','-lm','-o',binary]

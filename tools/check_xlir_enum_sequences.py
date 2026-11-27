@@ -110,11 +110,11 @@ def main():
               '-Wno-unused-variable', '-Wno-unused-parameter', '-Wno-unused-const-variable',
               '-Wno-unused-but-set-variable', '-Wno-missing-field-initializers',
               '-Wno-pointer-sign', '-Wno-format-truncation']
-    libraries = [root/'release/xl.dll', '-lws2_32', '-liphlpapi', '-lshell32', '-lole32',
+    libraries = [root/'release/win_x64/xl.dll', '-lws2_32', '-liphlpapi', '-lshell32', '-lole32',
                  '-ladvapi32'] if windows else ['-L'+str(native/'release'), '-lxl',
                  '-Wl,-rpath,'+str(native/'release'), '-Wl,--export-dynamic', '-pthread', '-ldl', '-lm']
     if windows:
-        shutil.copyfile(root/'release/xl.dll', work/'xl.dll')
+        shutil.copyfile(root/'release/win_x64/xl.dll', work/'xl.dll')
     contract = work/('enum-sequence-contract'+suffix)
     if archive_ready and compile_c('contract-build', [*flags, '-O2', cases/'xlir_tagged_enum_sequence_contract.c',
                                                     archive, *libraries, '-o', contract]):

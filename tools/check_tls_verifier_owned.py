@@ -14,7 +14,7 @@ def main():
     assert fixtures(root,out)==['rsa','p256','p384','ed25519']
     inputs=[Path(__file__),gcc,tcc,root/'tools/tls_verifier_fixtures.py',root/'tools/x509_path_fixtures.py',root/'tools/check_key_format_wire.py',
         *[root/'test/support'/('crypto_'+n+'_runtime.c') for n in ['rsa','nist','ed25519','xdh']],support,root/'test/support/tls_verifier_plan.c',root/'src/compile/xl6_compile_unit.c',
-        *[p for p in (root/'src').rglob('*') if p.is_file() and p.suffix in ['.h','.inc']],root/'lib/xrt/xrt.h',root/'lib/xruntime/xruntime.h',root/'release/include/xrt_decl.h',root/'release/include/xruntime_decl.h',
+        *[p for p in (root/'src').rglob('*') if p.is_file() and p.suffix in ['.h','.inc']],root/'lib/xrt/xrt.h',root/'lib/xruntime/xruntime.h',root/'release/win_x64/include/xrt_decl.h',root/'release/win_x64/include/xruntime_decl.h',
         *[p for p in out.iterdir() if p.is_file()]]
     r=dict(Complete=False,Root=str(root),Inputs={str(p):sha(p) for p in inputs},Rows=[],Failures=[],NetworkTraffic=False,SecurityTests=False,MalformedCryptoTests=False,ShippingAccepted=False,FullTlsAccepted=False)
     def save():(out/'results.json').write_text(json.dumps(r,indent=2)+'\n')

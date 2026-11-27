@@ -8,7 +8,7 @@ if ( $Root -eq "" ) {
     $Root = Split-Path -Parent $PSScriptRoot
 }
 
-$xl = Join-Path $Root "release\xl.exe"
+$xl = Join-Path $Root "release\win_x64\xl.exe"
 $defaultSource = Join-Path $Root "test\cases\xlir_value_initializer_defaults.xl"
 $classDefaultSource = Join-Path $Root "test\cases\xlir_value_initializer_class_default.xl"
 $classNullSource = Join-Path $Root "test\cases\xlir_value_initializer_class_null.xl"

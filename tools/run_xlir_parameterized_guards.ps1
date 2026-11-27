@@ -399,7 +399,7 @@ try {
     Get-ChildItem -LiteralPath (Join-Path $publicDirectory 'include/__xl_runtime') -File | ForEach-Object {
         Copy-Item -LiteralPath $_.FullName -Destination (Join-Path $sharedRuntimeDirectory $_.Name) -Force
     }
-    Copy-Item -LiteralPath (Join-Path $Root 'release/xl.dll') -Destination (Join-Path $Root 'build/test/xl.dll') -Force
+    Copy-Item -LiteralPath (Join-Path $Root 'release/win_x64/xl.dll') -Destination (Join-Path $Root 'build/test/xl.dll') -Force
 
     $phaseOneGates = @($reviewedGuards | Where-Object { $_ -notin $dependentGuards } |
         ForEach-Object { New-ScenarioGate $_ $phaseOneDirectory })

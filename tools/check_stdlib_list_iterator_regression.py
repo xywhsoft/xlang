@@ -16,7 +16,7 @@ def main():
     assert build['SourceXrt'] and not build['RuntimeOnly'] and build['EnableExeCompiler']==1
     if os.name!='nt': assert build['Complete'] and build['InputsUnchanged']
     cc=Path(shutil.which('gcc')); driver=Path(build['Driver']); assert sha(driver)==build['DriverSha256'].lower()
-    product=root/'release/xl.dll' if os.name=='nt' else Path(build['NativeRoot'])/'release/libxl.so'
+    product=root/'release/win_x64/xl.dll' if os.name=='nt' else Path(build['NativeRoot'])/'release/libxl.so'
     # Exact current native families, independently checked against the last
     # committed source driver. Set/Dict factories are no longer wire cursors.
     fixtures=[('xlir_list_i64_iterator_abi',9,0,0,0,0,0),('xlir_xvalue_iterator_scalar_projection',3,0,0,0,2,0),

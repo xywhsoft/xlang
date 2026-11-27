@@ -14,7 +14,7 @@ def main():
     build=json.loads(a.build.read_text(encoding='utf-8-sig'));assert build['Complete'] and build['InputsUnchanged'] and build['SourceXrt'] and not build['RuntimeOnly'] and build['Optimization']=='O2'
     for row in build['Inputs']+build['Objects']+build['Headers']:assert sha(row['Path'])==row['Sha256'].lower(),row['Path']
     driver=Path(build['Driver']);assert sha(driver)==build['DriverSha256'].lower()
-    runtime=root/'release/xl.dll' if os.name=='nt' else Path(build['NativeRoot'])/'release/libxl.so'
+    runtime=root/'release/win_x64/xl.dll' if os.name=='nt' else Path(build['NativeRoot'])/'release/libxl.so'
     gcc=Path(shutil.which('gcc') or 'E:/software/w64devkit/bin/gcc.exe').resolve();env=dict(os.environ)
     if os.name=='nt':shutil.copy2(runtime,out/'xl.dll')
     else:env['XL6_SOURCE_NATIVE_ROOT']=build['NativeRoot']

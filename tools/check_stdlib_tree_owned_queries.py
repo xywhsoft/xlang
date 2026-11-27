@@ -19,7 +19,7 @@ def main():
     driver=Path(build['Driver']); cc=shutil.which('gcc'); nm=shutil.which('nm')
     assert cc and nm and not out.exists() and build['SourceXrt'] and not build['RuntimeOnly']
     assert not a.sanitize or os.name!='nt'
-    runtime=root/'release/xl.dll' if os.name=='nt' else Path(build['NativeRoot'])/'release/libxl.so'
+    runtime=root/'release/win_x64/xl.dll' if os.name=='nt' else Path(build['NativeRoot'])/'release/libxl.so'
     case=root/'test/cases/stdlib_tree_owned_queries.xl'
     host=root/'test/cases/stdlib_tree_owned_language_host.c'; memory=root/'test/support/module_product_memory.c'
     contract=root/'test/cases/xlir_tree_native_contract.c'; artifact=root/'test/cases/xlir_artifact_runtime_contract.c'

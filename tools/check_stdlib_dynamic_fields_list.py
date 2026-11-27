@@ -17,7 +17,7 @@ def main():
     manifest=public/'build.json'; build=json.loads(manifest.read_text(encoding='utf-8-sig'))
     assert build['SourceXrt'] and not build['RuntimeOnly'] and build['EnableExeCompiler']==1
     cc=shutil.which('gcc'); assert cc and (not a.sanitize or os.name!='nt')
-    native=root/'release/xl.dll' if os.name=='nt' else Path(build['NativeRoot'])/'release/libxl.so'
+    native=root/'release/win_x64/xl.dll' if os.name=='nt' else Path(build['NativeRoot'])/'release/libxl.so'
     source=['test/support/dynamic_fields_list_native.c','test/support/module_product_memory.c',
         'src/runtime/xl6_set.c','src/runtime/xl6_set_key_policy.c',
         'src/runtime/xl6_native_leaf_value.c',

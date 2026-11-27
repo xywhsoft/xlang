@@ -10,7 +10,7 @@ $ErrorActionPreference = 'Stop'
 
 $demoRoot = Split-Path -Parent $PSScriptRoot
 $devRoot = Join-Path $demoRoot 'release\projects\dev'
-$xl = Join-Path $demoRoot 'release\xl.exe'
+$xl = Join-Path $demoRoot 'release\win_x64\xl.exe'
 $outputRoot = Join-Path $demoRoot 'build\dev_project_audit'
 
 if (-not (Test-Path -LiteralPath $xl -PathType Leaf)) {

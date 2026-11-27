@@ -48,7 +48,7 @@ def main():
         assert public['SourceXrt'] and not public['RuntimeOnly'] and public['EnableExeCompiler']==1
         if os.name!='nt': assert public['Complete'] and public['InputsUnchanged']
         driver=Path(public['Driver']); assert sha(driver).lower()==public['DriverSha256'].lower()
-        product=root/'release/xl.dll' if os.name=='nt' else Path(public['NativeRoot'])/'release/libxl.so'
+        product=root/'release/win_x64/xl.dll' if os.name=='nt' else Path(public['NativeRoot'])/'release/libxl.so'
         files.update((manifest,driver,product))
         for row in public['Inputs']+public['Headers']+public['Objects']:
             assert sha(row['Path']).lower()==row['Sha256'].lower(),row['Path']; files.add(Path(row['Path']))

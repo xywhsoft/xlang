@@ -13,7 +13,7 @@ function Read-Utf8([string]$path)
     return [System.IO.File]::ReadAllText($path, [System.Text.Encoding]::UTF8)
 }
 
-$xl = Join-Path $Root "release\xl.exe"
+$xl = Join-Path $Root "release\win_x64\xl.exe"
 $source = Join-Path $Root "test\cases\xlir_type_value_abi.xl"
 $hostSource = Join-Path $Root "test\cases\xlir_type_value_abi_host.c"
 $historicalHost = Join-Path $Root "test\cases\xlir_type_value_host.c"

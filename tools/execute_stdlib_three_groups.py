@@ -50,7 +50,7 @@ def main():
     child_source=root/'test/cases/xlir_process_child.c';expect=root/'test/cases/stdlib_string_support.c'
     pinned.update((Path(__file__).resolve(),Path(cc),child_source,expect,manifest,*sources))
     pinned.update(root/'test/cases'/name for name in FIXTURE_C_SUPPORT.values())
-    runtime=root/'release/xl.dll' if os.name=='nt' else Path(build['NativeRoot'])/'release/libxl.so'
+    runtime=root/'release/win_x64/xl.dll' if os.name=='nt' else Path(build['NativeRoot'])/'release/libxl.so'
     pinned.add(runtime)
     pinned.update(Path(row[k]) for row in sdk for k in ('Source','Path'))
     inputs=[dict(Path=str(f),Sha256=sha(f)) for f in sorted(pinned)]
@@ -83,7 +83,7 @@ def main():
                     HostedReportSha256=sha(a.hosted_report));return record
             record.update(Status='requires-host',Reason=HOSTED[source.stem]);return record
         if source.stem=='stdlib_process_shell_quotes':
-            record.update(Status='requires-product',Reason='explicit release/xl.exe check helper; requires separately verified CLI product');return record
+            record.update(Status='requires-product',Reason='explicit release/win_x64/xl.exe check helper; requires separately verified CLI product');return record
         if os.name=='nt' and source.stem=='stdlib_time_dst':
             record.update(Status='requires-platform',Reason='IANA process TZ fixture; Windows explicit transition coverage requires a separate native host');return record
         if os.name!='nt' and source.stem=='stdlib_process':

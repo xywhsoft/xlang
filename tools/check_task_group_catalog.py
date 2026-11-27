@@ -27,7 +27,7 @@ def main():
     static_quiescence=root/'test/support/static_module_quiescence.c'
     group_transient=root/'test/support/task_group_transient_admission.c'
     inspector=shutil.which('objdump' if os.name=='nt' else 'readelf');assert inspector
-    runtime=root/'release/xl.dll' if os.name=='nt' else Path(build['NativeRoot'])/'release/libxl.so'
+    runtime=root/'release/win_x64/xl.dll' if os.name=='nt' else Path(build['NativeRoot'])/'release/libxl.so'
     pinned.update((Path(__file__).resolve(),Path(sys.executable),Path(cc),Path(inspector),fixture,host,language,standalone,runtime,quiescence,cli,pool_language,static_quiescence,group_transient))
     inputs=[dict(Path=str(path),Sha256=sha(path)) for path in sorted(pinned)]
     objects=[Path(row['Path']) for row in build['Objects'] if Path(row['Path']).stem not in ('xlir_public_source_driver','xlir_public_source_linux_driver')]

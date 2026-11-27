@@ -68,7 +68,7 @@ def main() -> int:
     if args.project: files.update((root/'test/cases/stdlib_array_graph_native_host.c',root/'test/support/array_graph_native.c'))
     for profile,extras,_ in profiles: files.update(root/name for name in [f'src/runtime/xl6_array_{profile}_admission.c',*extras])
     for directory in ('src/runtime','release/include'): files.update((root/directory).rglob('*.h'))
-    product=root/('release/xl.dll' if os.name=='nt' else 'release/libxl.so')
+    product=root/('release/win_x64/xl.dll' if os.name=='nt' else 'release/libxl.so')
     if args.shared: files.add(product)
     inputs=[{'Path':str(path.resolve()),'Sha256':digest(path)} for path in sorted(files)]
     out.mkdir(parents=True); rows=[]; sweeps=[]

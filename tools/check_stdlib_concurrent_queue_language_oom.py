@@ -63,7 +63,7 @@ def main():
                 # one resident island. Never link new methods to old DLL ops.
                 objects = [row['Path'] for row in build['Objects']
                            if Path(row['Path']).name != 'xlir_public_source_driver.o']
-        dll = root / 'release/xl.dll'
+        dll = root / 'release/win_x64/xl.dll'
         files.add(dll)
         links = [*objects, str(dll), '-lws2_32', '-liphlpapi', '-lshell32', '-lole32', '-ladvapi32']
         include = public / 'include'

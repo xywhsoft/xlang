@@ -20,7 +20,7 @@ def main():
     plan=controls/'test/support/tls_resume_peer_plan.c';support=controls/'test/support/tls_resume_peer_runtime.c'
     files={Path(__file__),gcc,tcc,plan,support,root/'src/compile/xl6_compile_unit.c',
         *[p for p in (root/'src').rglob('*') if p.is_file() and p.suffix in ['.h','.inc']],
-        *[root/p for p in ['lib/xrt/xrt.h','lib/xruntime/xruntime.h','release/include/xrt_decl.h','release/include/xruntime_decl.h']],
+        *[root/p for p in ['lib/xrt/xrt.h','lib/xruntime/xruntime.h','release/win_x64/include/xrt_decl.h','release/win_x64/include/xruntime_decl.h']],
         *[p for p in out.iterdir() if p.is_file()]}
     files.update(controls/'tools'/name for name in ['tls_verifier_fixtures.py','x509_path_fixtures.py','check_key_format_wire.py'])
     report=dict(Complete=False,Inputs={str(p):sha(p) for p in sorted(files)},Rows=[],NetworkTraffic=False,

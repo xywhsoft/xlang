@@ -8,7 +8,7 @@ if ( $Root -eq "" ) {
     $Root = Split-Path -Parent $PSScriptRoot
 }
 
-$packageDir = Join-Path $Root "release\extlibs"
+$packageDir = Join-Path $Root "release\win_x64\extlibs"
 $commonPath = Join-Path $PSScriptRoot "xrt_snapshot_contract.ps1"
 $failures = New-Object System.Collections.Generic.List[string]
 

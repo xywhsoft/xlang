@@ -7,10 +7,10 @@ try {
     $prefix = 'build/test/xlir_error_unwind'
     New-Item -ItemType Directory -Force -Path build/test | Out-Null
     if (!(Test-Path -LiteralPath build/test/xl.dll) -or
-        (Get-FileHash release/xl.dll).Hash -ne (Get-FileHash build/test/xl.dll).Hash) {
-        Copy-Item -LiteralPath release/xl.dll -Destination build/test/xl.dll -Force
+        (Get-FileHash release/win_x64/xl.dll).Hash -ne (Get-FileHash build/test/xl.dll).Hash) {
+        Copy-Item -LiteralPath release/win_x64/xl.dll -Destination build/test/xl.dll -Force
     }
-    & release/xl.exe ir $source --lowered --format json --emit "$prefix.json"
+    & release/win_x64/xl.exe ir $source --lowered --format json --emit "$prefix.json"
     if ($LASTEXITCODE -ne 0) { throw 'Exceptional cleanup lowering failed' }
     $ir = [IO.File]::ReadAllText("$prefix.json") | ConvertFrom-Json
     $async = @($ir.callTargets | Where-Object { $_.kind -eq 4 -and $_.asyncMachine -ne 4294967295 })
@@ -66,9 +66,9 @@ try {
             }
         }
     }
-    & release/xl.exe cgen $source --backend xlir --emit "$prefix.c"
+    & release/win_x64/xl.exe cgen $source --backend xlir --emit "$prefix.c"
     if ($LASTEXITCODE -ne 0) { throw 'Exceptional cleanup Cgen failed' }
-    & release/xl.exe cgen $source --backend xlir --emit "$prefix.repeat.c"
+    & release/win_x64/xl.exe cgen $source --backend xlir --emit "$prefix.repeat.c"
     if ($LASTEXITCODE -ne 0 -or [IO.File]::ReadAllText("$prefix.c") -cne [IO.File]::ReadAllText("$prefix.repeat.c")) {
         throw 'Exceptional cleanup C is not deterministic'
     }
@@ -77,12 +77,12 @@ try {
         '-Wno-unused-const-variable','-Wno-unused-but-set-variable','-Wno-missing-field-initializers','-I.','-Ibuild/test')
     $runtime = 'test/cases/xlir_error_unwind_runtime.c'
     $hostSource = 'test/cases/xlir_error_unwind_host.c'
-    & gcc @strict $runtime $hostSource release/xl.dll -o "$prefix.exe"
+    & gcc @strict $runtime $hostSource release/win_x64/xl.dll -o "$prefix.exe"
     if ($LASTEXITCODE -ne 0) { throw 'Exceptional cleanup strict C build failed' }
     & "$prefix.exe"
     if ($LASTEXITCODE -ne 0) { throw 'Exceptional cleanup lost original error or ownership' }
     if (!$ProbeBefore) {
-        & release/xl.exe run $runtime $hostSource --inc-path . --inc-path build/test -- --smoke
+        & release/win_x64/xl.exe run $runtime $hostSource --inc-path . --inc-path build/test -- --smoke
         if ($LASTEXITCODE -ne 0) { throw 'Exceptional cleanup C-host JIT failed' }
         $artifactRuntimeSources = @(
             'src/runtime/xl6_slot.c', 'src/runtime/xl6_code_lease.c',
@@ -96,7 +96,7 @@ try {
             'src/runtime/xl6_future_wait.c',
             'src/runtime/xl6_future_payload.c',
             'src/runtime/xl6_code_finalizer.c')
-        & release/xl.exe build $runtime $hostSource @artifactRuntimeSources src/api/xl_foreign_error.c --inc-path . --inc-path build/test -o "$prefix.aot.exe"
+        & release/win_x64/xl.exe build $runtime $hostSource @artifactRuntimeSources src/api/xl_foreign_error.c --inc-path . --inc-path build/test -o "$prefix.aot.exe"
         if ($LASTEXITCODE -ne 0) { throw 'Exceptional cleanup AOT build failed' }
         & "$prefix.aot.exe" --smoke
         if ($LASTEXITCODE -ne 0) { throw 'Exceptional cleanup AOT runtime failed' }
@@ -109,7 +109,7 @@ try {
             'src/sem/xl6_sem.c','src/sem/xl6_protocol.c','src/sem/xl6_type_registry.c',
             'src/sem/xl6_sem_docs.c','src/sem/xl6_sem_field_attrs.c',
             'src/stdlib/xl6_stdlib.c','src/stdlib/xl6_stdlib_data.c')
-        & gcc @strict '-Wno-pointer-sign' '-Wno-format-truncation' test/cases/xlir_error_unwind_contract.c @compilerSources release/xl.dll -o "$prefix.contract.exe"
+        & gcc @strict '-Wno-pointer-sign' '-Wno-format-truncation' test/cases/xlir_error_unwind_contract.c @compilerSources release/win_x64/xl.dll -o "$prefix.contract.exe"
         if ($LASTEXITCODE -ne 0) { throw 'Exceptional cleanup contract build failed' }
         & "$prefix.contract.exe"
         if ($LASTEXITCODE -ne 0) { throw 'Exceptional cleanup verifier mutations failed' }

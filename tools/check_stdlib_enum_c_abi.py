@@ -19,9 +19,9 @@ def main() -> int:
     parser.add_argument('--sanitize',action='store_true',help='Linux generated C/host only; shared runtime not instrumented')
     args=parser.parse_args()
     root=Path(__file__).resolve().parents[1]; out=args.out.resolve()
-    cc=shutil.which('gcc'); cli=root/('release/xl.exe' if os.name=='nt' else 'release/xl')
-    product=root/('release/xl.dll' if os.name=='nt' else 'release/libxl.so')
-    compiler=root/('release/xlc.dll' if os.name=='nt' else 'release/libxlc.so')
+    cc=shutil.which('gcc'); cli=root/('release/win_x64/xl.exe' if os.name=='nt' else 'release/xl')
+    product=root/('release/win_x64/xl.dll' if os.name=='nt' else 'release/libxl.so')
+    compiler=root/('release/win_x64/xlc.dll' if os.name=='nt' else 'release/libxlc.so')
     if out.exists() or not cc or (args.sanitize and os.name=='nt'):
         parser.error('Require gcc, fresh output and Linux for sanitizers')
     source='test/cases/export_enum_abi.xl'; host='test/cases/export_enum_abi_host.c'

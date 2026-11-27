@@ -71,9 +71,9 @@ def main():
         '-Wall','-Wextra','-Werror','-Wno-unused-function','-Wno-unused-label','-Wno-unused-variable',
         '-Wno-unused-parameter','-Wno-unused-const-variable','-Wno-unused-but-set-variable',
         '-Wno-missing-field-initializers','-Wno-pointer-sign','-Wno-format-truncation']
-    libs=[root/'release/xl.dll','-lws2_32','-liphlpapi','-lshell32','-lole32','-ladvapi32']if windows else[
+    libs=[root/'release/win_x64/xl.dll','-lws2_32','-liphlpapi','-lshell32','-lole32','-ladvapi32']if windows else[
         '-L'+str(native/'release'),'-lxl','-Wl,-rpath,'+str(native/'release'),'-Wl,--export-dynamic','-pthread','-ldl','-lm']
-    if windows:shutil.copyfile(root/'release/xl.dll',work/'xl.dll')
+    if windows:shutil.copyfile(root/'release/win_x64/xl.dll',work/'xl.dll')
     contract=work/('alias-contract'+suffix)
     if archive_ready and build('contract-build',[*flags,'-O2',cases/(name+'_contract.c'),archive,*libs,'-o',contract]):
         run('contract',[contract,source],'30 mutations refused before C/public/native output')

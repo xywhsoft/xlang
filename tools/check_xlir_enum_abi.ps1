@@ -3,7 +3,7 @@ param([string]$Root = "")
 $ErrorActionPreference = "Stop"
 if ( $Root -eq "" ) { $Root = Split-Path -Parent $PSScriptRoot }
 
-$xl = Join-Path $Root "release\xl.exe"
+$xl = Join-Path $Root "release\win_x64\xl.exe"
 $matrixSource = Join-Path $Root "test\cases\enum_match_matrix.xl"
 $numericSource = Join-Path $Root "test\cases\enum_numeric_runtime.xl"
 $genericSource = Join-Path $Root "test\cases\cgen_generic_enum_match_top_level.xl"

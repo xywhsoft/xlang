@@ -18,7 +18,7 @@ try {
     if ($public.RuntimeOnly -or !$public.SourceXrt) { throw 'Current full source compiler/runtime required' }
     $gcc = (Get-Command gcc -CommandType Application | Select-Object -First 1).Source
     $python = (Get-Command python -CommandType Application | Select-Object -First 1).Source
-    $files = @(Get-Item -LiteralPath $PSCommandPath,$gcc,'release/xl.dll','release/xlc.dll',
+    $files = @(Get-Item -LiteralPath $PSCommandPath,$gcc,'release/win_x64/xl.dll','release/win_x64/xlc.dll',
         'test/cases/stdlib_stack_ownership_host.c','test/cases/stdlib_stack_ownership_public.c',
         'test/cases/stdlib_stack_ownership.xl','test/cases/stdlib_stack_ownership_artifact.c',
         'test/cases/stdlib_stack_ownership_tcc_host.c','test/cases/xlir_one_shot_tcc_host.c',
@@ -36,7 +36,7 @@ try {
         if ((Get-FileHash -LiteralPath $inputRecord.Path).Hash -ne $inputRecord.Sha256) { throw "Stale Stack input $($inputRecord.Path)" }
     }
     New-Item -ItemType Directory -Path "$outPath/__xl_runtime" | Out-Null
-    Copy-Item -LiteralPath release/xl.dll,release/xlc.dll -Destination $outPath
+    Copy-Item -LiteralPath release/win_x64/xl.dll,release/win_x64/xlc.dll -Destination $outPath
     foreach ($header in $public.Headers | Where-Object Path -match '[/\\]__xl_runtime[/\\]') {
         Copy-Item -LiteralPath $header.Path -Destination (Join-Path "$outPath/__xl_runtime" ([IO.Path]::GetFileName($header.Path)))
     }
@@ -101,7 +101,7 @@ try {
     }
     $excluded = @('xl_api.o','xl_api_path.o','xl6_console.o','xlir_public_source_driver.o')
     $objects = @($public.Objects | Where-Object { [IO.Path]::GetFileName($_.Path) -notin $excluded } | ForEach-Object Path)
-    $libraries = @('release/xl.dll','-lWs2_32','-lIPHLPAPI','-lShell32','-lOle32','-lAdvapi32')
+    $libraries = @('release/win_x64/xl.dll','-lWs2_32','-lIPHLPAPI','-lShell32','-lOle32','-lAdvapi32')
     foreach ($level in @(0,2)) {
         $name = "module-O$level"; $binary = "$outPath/$name.exe"
         Run "$name.build" $gcc ($strict + @("-O$level",'-DJOINT_SOURCE_XRT','-DXL_ENABLE_EXE_COMPILER=1',
@@ -109,10 +109,10 @@ try {
             'test/cases/stdlib_stack_ownership_tcc_host.c') + $objects + $libraries + @('-o',$binary))
         foreach ($mode in 0..3) { Run "$name.mode-$mode" $binary @("$mode") }
     }
-    Run 'public.build' $gcc ($strict + @('test/cases/stdlib_stack_ownership_public.c','release/xlc.dll','-o',"$outPath/public.exe"))
+    Run 'public.build' $gcc ($strict + @('test/cases/stdlib_stack_ownership_public.c','release/win_x64/xlc.dll','-o',"$outPath/public.exe"))
     foreach ($mode in 0..3) {
         Run "public.mode-$mode" "$outPath/public.exe" @("$mode",$outPath,"$outPath/public-$mode.temps",
-            "$rootPath/release/xl.dll","$rootPath/res/tcc/win64/x86_64",$Fixture)
+            "$rootPath/release/win_x64/xl.dll","$rootPath/res/tcc/win64/x86_64",$Fixture)
     }
     # Array/snapshot owners share Sequence's phased graph with Stack. Run the
     # actual selected native gate, not just a source-reference wiring marker.

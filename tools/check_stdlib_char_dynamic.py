@@ -17,7 +17,7 @@ def main():
     fixtures=[(project if name.startswith('stdlib_char_') else root)/'test/cases'/(name+'.xl') for name in names]
     contract=project/'test/support/char_dynamic_contract.c'; faultHost=project/'test/support/char_dynamic_status_host.c'
     host=root/'test/cases/xlir_module_product_oom_host.c'; memory=root/'test/support/module_product_memory.c'
-    native=root/'release/xl.dll' if os.name=='nt' else Path(build['NativeRoot'])/'release/libxl.so'
+    native=root/'release/win_x64/xl.dll' if os.name=='nt' else Path(build['NativeRoot'])/'release/libxl.so'
     pinned.update((Path(__file__).resolve(),Path(cc),Path(nm),*fixtures,contract,faultHost,host,memory,native))
     inputs=[dict(Path=str(path),Sha256=sha(path)) for path in sorted(pinned)]; out.mkdir(parents=True)
     rows=[]; prefixes=[]; products=[]; env=dict(os.environ); suffix='.exe' if os.name=='nt' else ''

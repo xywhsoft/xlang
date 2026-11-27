@@ -6,8 +6,8 @@ try {
     $prefix = 'build/test/xlir_boxing_allocation_outcome'
     New-Item -ItemType Directory -Force -Path build/test | Out-Null
     if (!(Test-Path -LiteralPath build/test/xl.dll) -or
-        (Get-FileHash release/xl.dll).Hash -ne (Get-FileHash build/test/xl.dll).Hash) {
-        Copy-Item -LiteralPath release/xl.dll -Destination build/test/xl.dll -Force
+        (Get-FileHash release/win_x64/xl.dll).Hash -ne (Get-FileHash build/test/xl.dll).Hash) {
+        Copy-Item -LiteralPath release/win_x64/xl.dll -Destination build/test/xl.dll -Force
     }
     $compilerSources = @('src/ast/xl6_ast.c','src/type/xl6_type_model.c',
         'src/ir/xl6_ir.c','src/ir/xl6_ir_lower.c',
@@ -22,7 +22,7 @@ try {
         '-Wno-unused-variable','-Wno-unused-parameter','-Wno-unused-const-variable',
         '-Wno-unused-but-set-variable','-Wno-missing-field-initializers',
         '-Wno-pointer-sign','-Wno-format-truncation','-I.','-Ibuild/test')
-    & gcc @strict test/cases/xlir_boxing_allocation_outcome_contract.c @compilerSources release/xl.dll -o "$prefix.contract.exe"
+    & gcc @strict test/cases/xlir_boxing_allocation_outcome_contract.c @compilerSources release/win_x64/xl.dll -o "$prefix.contract.exe"
     if ($LASTEXITCODE -ne 0) { throw 'Boxing allocation outcome source contract build failed' }
     & "$prefix.contract.exe" "$prefix.c" "$prefix.h" "$prefix.json"
     if ($LASTEXITCODE -ne 0) { throw 'Boxing allocation outcome mutation/verification failed' }
@@ -35,11 +35,11 @@ try {
     }
     $hostSource = 'test/cases/xlir_boxing_allocation_outcome_host.c'
     $runtimeSource = 'test/cases/xlir_boxing_allocation_outcome_runtime.c'
-    & gcc @strict $runtimeSource $hostSource release/xl.dll -o "$prefix.strict.exe"
+    & gcc @strict $runtimeSource $hostSource release/win_x64/xl.dll -o "$prefix.strict.exe"
     if ($LASTEXITCODE -ne 0) { throw 'Boxing allocation outcome strict C build failed' }
     & "$prefix.strict.exe"
     if ($LASTEXITCODE -ne 0) { throw 'Boxing allocation outcome runtime/memory failed' }
-    & release/xl.exe run $runtimeSource $hostSource --inc-path . --inc-path build/test -- --smoke
+    & release/win_x64/xl.exe run $runtimeSource $hostSource --inc-path . --inc-path build/test -- --smoke
     if ($LASTEXITCODE -ne 0) { throw 'Boxing allocation outcome C-host JIT failed' }
     # A raw C host cannot supply language IR to the executable planner. Use
     # the verified language plan to select ALL resident providers, rather
@@ -54,13 +54,13 @@ try {
         if ((Get-FileHash -LiteralPath $row.Path).Hash-ne$row.Sha256) { throw "Stale plan input: $($row.Path)" }
     }
     $objects=@($public.Objects | Where-Object {[IO.Path]::GetFileName($_.Path)-ne'xlir_public_source_driver.o'} | ForEach-Object Path)
-    & gcc @strict -DXL_STATIC_EMBED -Ilib/tcc test/cases/xlir_artifact_runtime_contract.c @objects release/xl.dll -lWs2_32 -lIPHLPAPI -lShell32 -lOle32 -lAdvapi32 -o "$prefix.plan.exe"
+    & gcc @strict -DXL_STATIC_EMBED -Ilib/tcc test/cases/xlir_artifact_runtime_contract.c @objects release/win_x64/xl.dll -lWs2_32 -lIPHLPAPI -lShell32 -lOle32 -lAdvapi32 -o "$prefix.plan.exe"
     if ($LASTEXITCODE -ne 0) { throw 'Boxing allocation outcome artifact plan build failed' }
     & "$prefix.plan.exe" --emit-native test/cases/xlir_boxing_allocation_outcome.xl "$prefix.native.c" 1> "$prefix.plan.log"
     if ($LASTEXITCODE -ne 0) { throw 'Boxing allocation outcome verified artifact plan failed' }
     $plan=Get-Content -LiteralPath "$prefix.plan.log" | Where-Object {$_-match '^\{"Fixture"'} | ConvertFrom-Json
     if (!$plan.Sources.Count) { throw 'Boxing allocation outcome resident plan is empty' }
-    & release/xl.exe build $runtimeSource $hostSource @($plan.Sources) --inc-path . --inc-path release --inc-path build/test -o "$prefix.aot.exe"
+    & release/win_x64/xl.exe build $runtimeSource $hostSource @($plan.Sources) --inc-path . --inc-path release --inc-path build/test -o "$prefix.aot.exe"
     if ($LASTEXITCODE -ne 0) { throw 'Boxing allocation outcome C-host AOT build failed' }
     & "$prefix.aot.exe" --smoke
     if ($LASTEXITCODE -ne 0) { throw 'Boxing allocation outcome C-host AOT runtime failed' }

@@ -38,7 +38,7 @@ def main():
     # Preflight every target before publishing any generated section.
     for product in ('xrt','xruntime'):
         for declaration in (False,True):
-            path=root/('release/include/'+product+'_decl.h' if declaration else
+            path=root/('release/win_x64/include/'+product+'_decl.h' if declaration else
                 'lib/'+product+'/'+product+'.h')
             data=path.read_bytes(); before[path]=data
             text=data.decode().replace('\r\n','\n')
@@ -54,7 +54,7 @@ def main():
     for product,count,extra in (('xrt',len(core_names),None),
         ('xruntime',len(runtime_names),len(runtime_names-core_names))):
         header=root/('lib/'+product+'/'+product+'.h')
-        declarations=root/('release/include/'+product+'_decl.h')
+        declarations=root/('release/win_x64/include/'+product+'_decl.h')
         prefix='xrt/single/' if product=='xrt' else 'xrt/extlibs/xruntime/single/'
         metadata=snapshot._metadata(product,prefix+product+'.h',prefix+product+'_decl.h',
             header.read_bytes(),declarations.read_bytes(),count,extra)

@@ -16,14 +16,14 @@ try {
     $files=@(Get-Item -LiteralPath $PSCommandPath,(Get-Command gcc).Source,
         'test/cases/xlir_pending_module_preparation.xl','test/cases/xlir_pending_module_preparation_artifact.c',
         'test/cases/xlir_pending_module_preparation_tcc_host.c','test/cases/xlir_one_shot_tcc_host.c',
-        'test/cases/xlir_async_module_lifetime_host.c','release/xl.dll')
+        'test/cases/xlir_async_module_lifetime_host.c','release/win_x64/xl.dll')
     $inputs=@($build.Inputs)+@($build.Headers)+@($build.Objects)+@($contracts.Inputs)+@($contracts.Drivers)+
         @($files | ForEach-Object {[pscustomobject]@{Path=$_.FullName;Sha256=(Get-FileHash -LiteralPath $_.FullName).Hash}})
     if(@($inputs | Where-Object {(Get-FileHash -LiteralPath $_.Path).Hash -ne $_.Sha256}).Count){throw 'Stale pending module preparation inputs'}
     New-Item -ItemType Directory -Path $outputPath | Out-Null
     $headers=New-Item -ItemType Directory -Path "$outputPath/__xl_runtime"
     foreach($header in $build.Headers){Copy-Item -LiteralPath $header.Path -Destination (Join-Path $headers ([IO.Path]::GetFileName($header.Path)))}
-    Copy-Item -LiteralPath release/xl.dll -Destination "$outputPath/xl.dll"
+    Copy-Item -LiteralPath release/win_x64/xl.dll -Destination "$outputPath/xl.dll"
     $prefix="$outputPath/xlir_pending_module_preparation";$emission=@()
     foreach($pass in @('','repeat.')){
         & $driver test/cases/xlir_pending_module_preparation.xl "$prefix.${pass}c" "$prefix.${pass}h" "$prefix.${pass}json" --script *> "$outputPath/emit.${pass}log"
@@ -42,7 +42,7 @@ try {
     foreach($level in $Levels){
         $binary="$outputPath/tcc-host-$level.exe";$buildExit=$null
         if($deterministic){
-            $buildExit=Invoke-XlirGccToLog ($flags+@("-$level",'test/cases/xlir_pending_module_preparation_tcc_host.c')+$dependencies+@('release/xl.dll')+$libs+@('-o',$binary)) "$outputPath/tcc-host-$level.build.log"
+            $buildExit=Invoke-XlirGccToLog ($flags+@("-$level",'test/cases/xlir_pending_module_preparation_tcc_host.c')+$dependencies+@('release/win_x64/xl.dll')+$libs+@('-o',$binary)) "$outputPath/tcc-host-$level.build.log"
         }
         foreach($mode in $Modes){
             $run=$null;$complete=$false;$log="$outputPath/tcc-host-$level-mode$mode"

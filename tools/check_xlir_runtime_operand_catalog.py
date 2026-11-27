@@ -35,7 +35,7 @@ def main():
                 pinned.add(current); production.append(relative.as_posix())
     assert 'src/ir/xl6_ir.c' in production and 'src/ir/xl6_ir_ownership.c' in production
     assert sha(driver)==build['DriverSha256'].lower()
-    runtime=root/'release/xl.dll' if windows else Path(build['NativeRoot'])/'release/libxl.so'
+    runtime=root/'release/win_x64/xl.dll' if windows else Path(build['NativeRoot'])/'release/libxl.so'
     pinned.add(runtime)
     objdump=shutil.which('objdump'); assert objdump; pinned.add(Path(objdump))
     pinned.update(root/'test/cases'/(name+'.xl') for name in CASES)

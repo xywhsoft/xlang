@@ -33,7 +33,7 @@ def main():
     env = {key: value for key, value in os.environ.items()
            if key.lower() != 'psmodulepath' and not key.upper().startswith('XL6_')}
     if windows:
-        provider = root / 'release/xl.dll'
+        provider = root / 'release/win_x64/xl.dll'
         shutil.copyfile(provider, out / 'xl.dll')
         pins[str(provider)] = sha(provider)
         pins[str(out / 'xl.dll')] = sha(out / 'xl.dll')

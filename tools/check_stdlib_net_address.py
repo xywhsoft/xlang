@@ -69,12 +69,12 @@ def main():
   for opt in ('O0','O2'):
    obj=out/('contract.'+opt+'.o');run('contract.'+opt+'.build',[cc,*flags,'-'+opt,'-c',contract,'-o',obj]);product(obj)
    binary=out/('contract.'+opt+('.exe' if os.name=='nt' else ''))
-   if os.name=='nt':link=[*objects,obj,root/'release/xl.dll','-lws2_32','-liphlpapi','-lshell32','-lole32','-ladvapi32','-o',binary]
+   if os.name=='nt':link=[*objects,obj,root/'release/win_x64/xl.dll','-lws2_32','-liphlpapi','-lshell32','-lole32','-ladvapi32','-o',binary]
    else:
     lib=a.native_root.resolve()/'release';link=[*objects,obj,'-L'+str(lib),'-lxl','-Wl,-rpath,'+str(lib),'-Wl,--export-dynamic','-pthread','-ldl','-lm','-o',binary]
    response=out/('contract.'+opt+'.rsp');response.write_text('\n'.join('"'+str(arg).replace('\\','/')+'"' for arg in link)+'\n',encoding='utf8');product(response)
    run('contract.'+opt+'.link',[cc,'@'+str(response)]);product(binary)
-   if os.name=='nt' and not (out/'xl.dll').exists():shutil.copy2(root/'release/xl.dll',out/'xl.dll');product(out/'xl.dll')
+   if os.name=='nt' and not (out/'xl.dll').exists():shutil.copy2(root/'release/win_x64/xl.dll',out/'xl.dll');product(out/'xl.dll')
    proof=run('contract.'+opt+'.run',[binary,*[root/('test/cases/'+n+'.xl') for n in cases]])
    assert 'address XLIR:' in proof and 'balanced storage' in proof
   report['InputsUnchanged']=all(sha(path)==digest for path,digest in inputs.items()) and all(sha(row['Path'])==row['Sha256'].lower() for row in build['Inputs'])

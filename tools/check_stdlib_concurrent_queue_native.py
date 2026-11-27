@@ -33,7 +33,7 @@ def main():
         objects=[row['Path'] for row in build['Objects'] if Path(row['Path']).name not in exclude]
         # Fresh providers are compiled at each optimization, never hidden by an
         # older source build or a DLL exporting another implementation.
-        dll=root/'release/xl.dll' if os.name=='nt' else Path(build['NativeRoot'])/'release/libxl.so';files.add(dll)
+        dll=root/'release/win_x64/xl.dll' if os.name=='nt' else Path(build['NativeRoot'])/'release/libxl.so';files.add(dll)
         links=[str(dll),*(['-lws2_32','-liphlpapi','-lshell32','-lole32','-ladvapi32'] if os.name=='nt' else
             ['-Wl,--export-dynamic','-Wl,-rpath,'+str(dll.parent),'-pthread','-ldl','-lm'])]
         suffix='.exe' if os.name=='nt' else ''

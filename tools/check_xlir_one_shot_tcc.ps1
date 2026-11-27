@@ -35,9 +35,9 @@ try {
         (New-XlirCStringDefine 'JOINT_TCC_INCLUDE_DIRECTORY' $cohort.IncludeDirectory.Replace('\','/') -RawArgument))
     $code=Invoke-XlirGccToLog ($flags+@('-O2')+$defines+@('-c','test/cases/xlir_one_shot_tcc_host.c','-o',"$prefix.host.o")) "$work/host.build.log"
     if($code){throw 'TCC joint source host build failed'}
-    $code=Invoke-XlirGccToLog ($flags+@('-O2',"$prefix.host.o")+@($cohort.Objects)+@('release/xl.dll')+$libs+@('-o',"$prefix.exe")) "$work/host.link.log"
+    $code=Invoke-XlirGccToLog ($flags+@('-O2',"$prefix.host.o")+@($cohort.Objects)+@('release/win_x64/xl.dll')+$libs+@('-o',"$prefix.exe")) "$work/host.link.log"
     if($code){throw 'TCC joint complete source resident link failed'}
-    Copy-Item -LiteralPath release/xl.dll -Destination "$work/xl.dll"
+    Copy-Item -LiteralPath release/win_x64/xl.dll -Destination "$work/xl.dll"
     $failed = @()
     $rows=@()
     foreach ($mode in 0..6) {

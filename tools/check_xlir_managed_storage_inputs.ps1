@@ -6,8 +6,8 @@ try {
     $source = 'test/cases/xlir_managed_storage_inputs.xl'
     $prefix = 'build/test/xlir_managed_storage_inputs'
     New-Item -ItemType Directory -Force -Path build/test | Out-Null
-    Copy-Item -LiteralPath release/xl.dll -Destination build/test/xl.dll -Force
-    & release/xl.exe ir $source --lowered --format json --emit "$prefix.json"
+    Copy-Item -LiteralPath release/win_x64/xl.dll -Destination build/test/xl.dll -Force
+    & release/win_x64/xl.exe ir $source --lowered --format json --emit "$prefix.json"
     if ($LASTEXITCODE -ne 0) { throw 'Managed storage input lowered IR failed' }
     $ir = [IO.File]::ReadAllText("$prefix.json") | ConvertFrom-Json
     foreach ($kind in @('cell-new','cell-init','cell-exchange','virtual-call','move')) {
@@ -17,10 +17,10 @@ try {
     if (@($ir.instructions | Where-Object { $_.kindName -eq 'value' -and $_.targetValue -ne 0 -and $_.type -in $managedTypes }).Count -ne 0) {
         throw 'Managed match result must use owned storage instead of cross-branch VALUE reassignment'
     }
-    & release/xl.exe cgen $source --backend xlir --emit "$prefix.c" --emit-header "$prefix.h"
+    & release/win_x64/xl.exe cgen $source --backend xlir --emit "$prefix.c" --emit-header "$prefix.h"
     if ($LASTEXITCODE -ne 0) { throw 'Managed storage C/header failed' }
     $header = [IO.File]::ReadAllText("$prefix.h")
-    & release/xl.exe cgen $source --backend xlir --emit "$prefix.repeat.c" --emit-header "$prefix.h"
+    & release/win_x64/xl.exe cgen $source --backend xlir --emit "$prefix.repeat.c" --emit-header "$prefix.h"
     if ($LASTEXITCODE -ne 0 -or [IO.File]::ReadAllText("$prefix.c") -cne [IO.File]::ReadAllText("$prefix.repeat.c") -or
         [IO.File]::ReadAllText("$prefix.h") -cne $header) { throw 'Managed storage C/header is not deterministic' }
     $strict = @('-std=c11','-Wall','-Wextra','-Werror','-O0','-Wno-unused-function','-Wno-unused-label',
@@ -28,13 +28,13 @@ try {
         '-Wno-unused-but-set-variable','-Wno-missing-field-initializers','-I.','-Ibuild/test')
     $runtime = 'test/cases/xlir_managed_storage_inputs_runtime.c'
     $hostSource = 'test/cases/xlir_managed_storage_inputs_host.c'
-    & gcc @strict $runtime $hostSource release/xl.dll -o "$prefix.strict.exe"
+    & gcc @strict $runtime $hostSource release/win_x64/xl.dll -o "$prefix.strict.exe"
     if ($LASTEXITCODE -ne 0) { throw 'Managed storage strict C build failed' }
     & "$prefix.strict.exe"
     if ($LASTEXITCODE -ne 0) { throw 'Managed storage value/lifetime/allocation balance failed' }
-    & release/xl.exe run $runtime $hostSource --inc-path . --inc-path build/test -- --smoke
+    & release/win_x64/xl.exe run $runtime $hostSource --inc-path . --inc-path build/test -- --smoke
     if ($LASTEXITCODE -ne 0) { throw 'Managed storage C-host JIT failed' }
-    & release/xl.exe build $runtime $hostSource src/api/xl_foreign_error.c --inc-path . --inc-path build/test -o "$prefix.aot.exe"
+    & release/win_x64/xl.exe build $runtime $hostSource src/api/xl_foreign_error.c --inc-path . --inc-path build/test -o "$prefix.aot.exe"
     if ($LASTEXITCODE -ne 0) { throw 'Managed storage AOT build failed' }
     & "$prefix.aot.exe" --smoke
     if ($LASTEXITCODE -ne 0) { throw 'Managed storage AOT runtime failed' }
@@ -47,13 +47,13 @@ try {
         'src/sem/xl6_sem.c','src/sem/xl6_protocol.c','src/sem/xl6_type_registry.c',
         'src/sem/xl6_sem_docs.c','src/sem/xl6_sem_field_attrs.c',
         'src/stdlib/xl6_stdlib.c','src/stdlib/xl6_stdlib_data.c')
-    & gcc @strict '-Wno-pointer-sign' '-Wno-format-truncation' test/cases/xlir_managed_storage_inputs_contract.c @compilerSources release/xl.dll -o "$prefix.contract.exe"
+    & gcc @strict '-Wno-pointer-sign' '-Wno-format-truncation' test/cases/xlir_managed_storage_inputs_contract.c @compilerSources release/win_x64/xl.dll -o "$prefix.contract.exe"
     if ($LASTEXITCODE -ne 0) { throw 'Managed storage verifier contract build failed' }
     & "$prefix.contract.exe"
     if ($LASTEXITCODE -ne 0) { throw 'Managed storage verifier contract failed' }
     foreach ($original in @('cgen_dynamic_member_access','cgen_derive_persistence','cgen_threaded_context_matrix',
         'hir_flow_value_ownership_matrix','nullable_string_lifecycle','cgen_base_method_static_dispatch','cgen_async_generator')) {
-        & release/xl.exe cgen "test/cases/$original.xl" --backend xlir --emit "$prefix.original.c"
+        & release/win_x64/xl.exe cgen "test/cases/$original.xl" --backend xlir --emit "$prefix.original.c"
         if ($LASTEXITCODE -ne 0) { throw "Original managed storage representative regressed: $original" }
     }
 } finally { Pop-Location }

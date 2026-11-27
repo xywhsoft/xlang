@@ -1,7 +1,7 @@
 param([string]$Root = "")
 $ErrorActionPreference = "Stop"
 if ($Root -eq "") { $Root = Split-Path -Parent $PSScriptRoot }
-$xl = Join-Path $Root "release\xl.exe"
+$xl = Join-Path $Root "release\win_x64\xl.exe"
 $fixtures = @("xlir_module_finalization", "xlir_module_native_finalization", "xlir_module_scalar_finalization")
 $hosts = @{
     xlir_module_finalization = "test\cases\xlir_module_finalization_host.c"
@@ -98,7 +98,7 @@ try {
     if ($LASTEXITCODE -ne 0 -or ($aotOutput -join "`n").Trim() -cne $expectedOutput) {
         throw "Module finalization AOT host did not release globals after main: $aotOutput"
     }
-    & $env:ComSpec /d /c 'release\xl.exe run test\cases\xlir_module_finalization_cli_error.xl > build\test\xlir_module_finalization_cli_error.jit.log 2>&1'
+    & $env:ComSpec /d /c 'release\win_x64\xl.exe run test\cases\xlir_module_finalization_cli_error.xl > build\test\xlir_module_finalization_cli_error.jit.log 2>&1'
     if ($LASTEXITCODE -ne 1) { throw "Module finalization JIT lost the language-error exit status: $LASTEXITCODE" }
     $failure = [IO.File]::ReadAllText((Join-Path $Root 'build\test\xlir_module_finalization_cli_error.jit.log'))
     if (!$failure.Contains('module-main-failure-sentinel') -or $failure -notmatch '(?m)^2\r?\n1\r?$') {

@@ -12,14 +12,14 @@ try {
     $build=Get-Content "$public/build.json" -Raw|ConvertFrom-Json
     if($build.RuntimeOnly){throw 'Full current-source compiler required'}
     foreach($row in $build.Inputs){if((Get-FileHash $row.Path).Hash-ne$row.Sha256){throw 'Source build changed'}}
-    if((Get-FileHash release/xl.dll).Hash-ne$build.RuntimeSha256){throw 'Runtime provider changed'}
+    if((Get-FileHash release/win_x64/xl.dll).Hash-ne$build.RuntimeSha256){throw 'Runtime provider changed'}
     $fixture=if($GlobalNativeHandles){'test/cases/xlir_process_future_module_globals.xl'}else{'test/cases/xlir_process_future_module_lifetime.xl'}
     $paths=@($build.Inputs.Path)+@($build.Headers.Path)+@($build.Objects.Path)+@($fixture,$PSCommandPath,
         'tools/extlib_smoke_process.ps1','test/cases/xlir_process_future_module_lifetime.xl',
         'test/cases/xlir_process_future_module_host.c','test/cases/xlir_process_future_module_artifact.c',
         'test/cases/xlir_process_child.c','test/support/process_oom_observer.c','test/support/process_module_tcc_provider.h',
         'test/cases/xlir_code_owner_binding_contract.c','test/cases/xlir_owner_consumption_contract.c',
-        'release/xl.dll',"$public/build.json",(Get-Command gcc).Source)
+        'release/win_x64/xl.dll',"$public/build.json",(Get-Command gcc).Source)
     $inputs=[ordered]@{}
     foreach($path in @($paths|ForEach-Object {(Resolve-Path -LiteralPath $_).Path}|Sort-Object -Unique)){
         $inputs[$path]=(Get-FileHash $path).Hash
@@ -41,8 +41,8 @@ try {
         $libs=@('-lws2_32','-liphlpapi','-lshell32','-lole32','-ladvapi32')
         $compiler=@($build.Objects|Where-Object {[IO.Path]::GetFileName($_.Path)-ne'xlir_public_source_driver.o'}|ForEach-Object Path)
         $null=Check 'emitter-build' gcc ($flags+@('-DXL_STATIC_EMBED','test/cases/xlir_code_owner_binding_contract.c')+
-            $compiler+@('release/xl.dll')+$libs+@('-o',"$work/emitter.exe"))
-        Copy-Item release/xl.dll "$work/xl.dll"
+            $compiler+@('release/win_x64/xl.dll')+$libs+@('-o',"$work/emitter.exe"))
+        Copy-Item release/win_x64/xl.dll "$work/xl.dll"
         $contract=Check 'native-ir-contract' "$work/emitter.exe" @('--native-handles')
         if($contract-notmatch 'Native resource policy: 3 typed fields, 3 lowered declarations, 29 rejected mutations before C/header output'){throw 'Native typed/lowered mutation witness missing'}
         foreach($pass in @('generated','repeat')){
@@ -84,12 +84,12 @@ try {
             'test/support/process_oom_observer.c','-o',"$work/observer.o"))
         $native=@($build.Sources|Where-Object {$_-like'src/runtime/*'-or$_-eq'src/api/xl_task_group_bridge.c'}|
             ForEach-Object {Join-Path $public ([IO.Path]::GetFileNameWithoutExtension($_)+'.o')})
-        $null=Check 'host-link' gcc ($flags+@("$work/host.o","$work/observer.o")+$native+@('release/xl.dll',
+        $null=Check 'host-link' gcc ($flags+@("$work/host.o","$work/observer.o")+$native+@('release/win_x64/xl.dll',
             '-Wl,--wrap=xrtProcessSpawn',"-Wl,--out-implib,$work/host.a",'-Wl,--export-all-symbols')+$libs+@('-o',"$work/host.exe"))
         $null=Check 'artifact-build' gcc ($flags+@('-O2','-shared','-DXL6_BUILD_SHARED',
             "-DPROCESS_GENERATED_C=`"$work/generated.c`"","-DPROCESS_GENERATED_H=`"$work/generated.h`"",
             "-DPROCESS_BINDING_H=`"$work/binding.h`"",'test/cases/xlir_process_future_module_artifact.c',
-            "$work/host.a",'release/xl.dll','-o',$dll))
+            "$work/host.a",'release/win_x64/xl.dll','-o',$dll))
         foreach($mode in 0..1){
             $witness=Check "dll-mode-$mode" "$work/host.exe" @("$mode")
             if($witness-notmatch "Process Future provider DLL/FreeLibrary mode=$mode`: 25 real unloads; pending/cancel isolation, independent statuses, escaped class pins, finally twice, native waiter and heap balanced"){
@@ -104,7 +104,7 @@ try {
         $null=Check 'tcc-host-build' gcc ($flags+@('-O2','-fwhole-program')+$tccFlags+@('-c',
             'test/cases/xlir_process_future_module_host.c','-o',"$work/tcc-host.o"))
         $null=Check 'tcc-host-link' gcc ($flags+@("$work/tcc-host.o","$work/observer.o")+$native+
-            @('release/xl.dll','-Wl,--wrap=xrtProcessSpawn','-Wl,--export-all-symbols')+$libs+@('-o',"$work/tcc-host.exe"))
+            @('release/win_x64/xl.dll','-Wl,--wrap=xrtProcessSpawn','-Wl,--export-all-symbols')+$libs+@('-o',"$work/tcc-host.exe"))
         foreach($mode in 0..1){
             $witness=Check "tcc-mode-$mode" "$work/tcc-host.exe" @("$mode")
             if($witness-notmatch "Process Future provider TCC/MEM_FREE mode=$mode`: 25 real unloads; pending/cancel isolation, independent statuses, escaped class pins, finally twice, native waiter and heap balanced"){

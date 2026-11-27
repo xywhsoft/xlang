@@ -15,7 +15,7 @@ def main():
     build=json.loads(a.build.read_text(encoding='utf-8-sig'));assert build['Complete'] and build['InputsUnchanged'] and build['SourceXrt'] and not build['RuntimeOnly']
     for row in build['Inputs']+build['Objects']+build['Headers']:assert sha(row['Path'])==row['Sha256'].lower()
     driver=Path(build['Driver']);assert sha(driver)==build['DriverSha256'].lower()
-    runtime=root/'release/xl.dll' if os.name=='nt' else Path(build['NativeRoot'])/'release/libxl.so'
+    runtime=root/'release/win_x64/xl.dll' if os.name=='nt' else Path(build['NativeRoot'])/'release/libxl.so'
     if os.name=='nt':shutil.copy2(runtime,out/'xl.dll')
     case=Path(__file__).resolve().parents[1]/'test/cases/stdlib_tls_metadata_oom_host.c'
     gcc=Path(shutil.which('gcc') or 'E:/software/w64devkit/bin/gcc.exe').resolve()

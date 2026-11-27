@@ -26,7 +26,7 @@ def main():
         text+='export func rejected(TlsStream stream) as '+result+'\n return wrong(stream,false'+('' if async_ else ',10000')+')\nend\n'
         path=inputs/('reject_'+name+'.xl');path.write_text(text,encoding='utf8');negative.append(path)
     cc=Path(shutil.which('gcc') or 'E:/software/w64devkit/bin/gcc.exe').resolve();driver=Path(build['Driver'])
-    runtime=root/'release/xl.dll' if os.name=='nt' else Path(build['NativeRoot'])/'release/libxl.so'
+    runtime=root/'release/win_x64/xl.dll' if os.name=='nt' else Path(build['NativeRoot'])/'release/libxl.so'
     env=dict(os.environ)
     if os.name=='nt':shutil.copy2(runtime,out/'xl.dll')
     else:env['XL6_SOURCE_NATIVE_ROOT']=build['NativeRoot']

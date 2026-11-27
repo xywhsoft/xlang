@@ -16,7 +16,7 @@ def main():
     assert build.get('Complete',os.name=='nt') and build['SourceXrt'] and not build['RuntimeOnly'] and not out.exists()
     cc=shutil.which('gcc'); nm=shutil.which('nm'); assert cc and nm
     assert not a.sanitize or os.name!='nt'
-    runtime=root/'release/xl.dll' if os.name=='nt' else Path(build['NativeRoot'])/'release/libxl.so'
+    runtime=root/'release/win_x64/xl.dll' if os.name=='nt' else Path(build['NativeRoot'])/'release/libxl.so'
     host=root/'test/cases/stdlib_channel_native.c'; provider=root/'src/runtime/xl6_channel.c'
     planner=root/'test/cases/stdlib_channel_native_plan.c'; memory=root/'test/support/module_product_memory.c'
     files={Path(__file__).resolve(),public/'build.json',Path(cc),Path(nm),runtime,host,provider,planner,memory}

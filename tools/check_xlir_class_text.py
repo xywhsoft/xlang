@@ -30,9 +30,9 @@ def main():
     cc = Path(shutil.which('gcc') or '')
     if not cc.is_file():
         parser.error('gcc required')
-    runtime = root / ('release/xl.dll' if os.name == 'nt' else 'release/libxl.so')
-    compiler_runtime = root / ('release/xlc.dll' if os.name == 'nt' else 'release/libxlc.so')
-    cli = root / ('release/xl.exe' if os.name == 'nt' else 'release/xl')
+    runtime = root / ('release/win_x64/xl.dll' if os.name == 'nt' else 'release/libxl.so')
+    compiler_runtime = root / ('release/win_x64/xlc.dll' if os.name == 'nt' else 'release/libxlc.so')
+    cli = root / ('release/win_x64/xl.exe' if os.name == 'nt' else 'release/xl')
     cases = ['stdlib_class_value_fields', 'stdlib_class_interpolation', 'stdlib_class_values_continuation',
              'stdlib_class_text', 'stdlib_class_text_derive_only', 'xlir_string_conversion_abi',
              'cgen_derive_string_hash_equals', 'cgen_basic']

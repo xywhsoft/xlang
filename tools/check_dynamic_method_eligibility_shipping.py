@@ -70,8 +70,8 @@ def main():
             shutil.copy2(product, isolated / name)
             pinned.add(product)
         pinned.update((receipt.resolve(), source / 'src/ir/xl6_ir.c'))
-        assert (root / 'release/include/xlc.h').read_bytes() == (source / 'release/include/xlc.h').read_bytes()
-        assert (root / 'release/include/xl.h').read_bytes() == (source / 'release/include/xl.h').read_bytes()
+        assert (root / 'release/win_x64/include/xlc.h').read_bytes() == (source / 'release/win_x64/include/xlc.h').read_bytes()
+        assert (root / 'release/win_x64/include/xl.h').read_bytes() == (source / 'release/win_x64/include/xl.h').read_bytes()
         cohorts[label] = dict(Root=source, Products=isolated,
                               Host=isolated / ('audit-host.exe' if windows else 'audit-host'))
     manifest = root / 'tools' / ('tcc_vfs_manifest_win64_runtime.txt' if windows else 'tcc_vfs_manifest_linux_runtime.txt')

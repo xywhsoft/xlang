@@ -8,8 +8,8 @@ try {
     $prefix = 'build/test/xlir_member_assignment_transaction'
     New-Item -ItemType Directory -Force -Path build/test | Out-Null
     if (!(Test-Path -LiteralPath build/test/xl.dll) -or
-        (Get-FileHash release/xl.dll).Hash -ne (Get-FileHash build/test/xl.dll).Hash) {
-        Copy-Item -LiteralPath release/xl.dll -Destination build/test/xl.dll -Force
+        (Get-FileHash release/win_x64/xl.dll).Hash -ne (Get-FileHash build/test/xl.dll).Hash) {
+        Copy-Item -LiteralPath release/win_x64/xl.dll -Destination build/test/xl.dll -Force
     }
     $compilerSources = @('src/ast/xl6_ast.c','src/type/xl6_type_model.c',
         'src/ir/xl6_ir.c','src/ir/xl6_ir_lower.c',
@@ -24,7 +24,7 @@ try {
         '-Wno-unused-variable','-Wno-unused-parameter','-Wno-unused-const-variable',
         '-Wno-unused-but-set-variable','-Wno-missing-field-initializers',
         '-Wno-pointer-sign','-Wno-format-truncation','-I.','-Ibuild/test')
-    & gcc @strict test/cases/xlir_member_assignment_transaction_contract.c @compilerSources release/xl.dll -o "$prefix.contract.exe"
+    & gcc @strict test/cases/xlir_member_assignment_transaction_contract.c @compilerSources release/win_x64/xl.dll -o "$prefix.contract.exe"
     if ($LASTEXITCODE -ne 0) { throw 'Member assignment source contract build failed' }
     & "$prefix.contract.exe" "$prefix.c" "$prefix.h" "$prefix.bind.h"
     if ($LASTEXITCODE -ne 0) { throw 'Member assignment module mutation or CFG contract failed' }
@@ -34,11 +34,11 @@ try {
         [IO.File]::ReadAllText("$prefix.bind.h") -cne [IO.File]::ReadAllText("$prefix.repeat.bind.h")) {
         throw 'Member assignment C/header determinism failed'
     }
-    & gcc @strict test/cases/xlir_member_assignment_transaction_runtime.c test/cases/xlir_member_assignment_transaction_host.c release/xl.dll -o "$prefix.strict.exe"
+    & gcc @strict test/cases/xlir_member_assignment_transaction_runtime.c test/cases/xlir_member_assignment_transaction_host.c release/win_x64/xl.dll -o "$prefix.strict.exe"
     if ($LASTEXITCODE -ne 0) { throw 'Member assignment generated C strict build failed' }
     & "$prefix.strict.exe"
     if ($LASTEXITCODE -ne 0) { throw 'Member assignment storage snapshot/runtime semantics failed' }
-    & release/xl.exe run test/cases/xlir_member_assignment_transaction_runtime.c test/cases/xlir_member_assignment_transaction_host.c --inc-path . --inc-path build/test -- --smoke
+    & release/win_x64/xl.exe run test/cases/xlir_member_assignment_transaction_runtime.c test/cases/xlir_member_assignment_transaction_host.c --inc-path . --inc-path build/test -- --smoke
     if ($LASTEXITCODE -ne 0) { throw 'Member assignment generated C-host JIT failed' }
     # Raw native C input has no XLIR module dependency graph. Supply the
     # runtime implementation closure explicitly, just as the storage gate does.
@@ -53,7 +53,7 @@ try {
         'src/runtime/xl6_continuation_executor.c', 'src/runtime/xl6_continuation_future.c',
         'src/runtime/xl6_future_payload.c'
     )
-    & release/xl.exe build test/cases/xlir_member_assignment_transaction_runtime.c test/cases/xlir_member_assignment_transaction_host.c @artifactRuntimeSources src/api/xl_foreign_error.c --inc-path . --inc-path build/test -o "$prefix.aot.exe"
+    & release/win_x64/xl.exe build test/cases/xlir_member_assignment_transaction_runtime.c test/cases/xlir_member_assignment_transaction_host.c @artifactRuntimeSources src/api/xl_foreign_error.c --inc-path . --inc-path build/test -o "$prefix.aot.exe"
     if ($LASTEXITCODE -ne 0) { throw 'Member assignment generated C-host AOT build failed' }
     & "$prefix.aot.exe" --smoke
     if ($LASTEXITCODE -ne 0) { throw 'Member assignment generated C-host AOT runtime failed' }

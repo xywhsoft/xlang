@@ -69,8 +69,8 @@ def main():
     objects=[row['Path'] for row in build['Objects'] if Path(row['Path']).name not in
         {'xlir_public_source_driver.o','xlir_public_source_linux_driver.o'}]
     if windows:
-        suffix='.exe'; shutil.copy2(root/'release/xl.dll',out/'xl.dll')
-        libraries=[*objects,root/'release/xl.dll','-lws2_32','-liphlpapi','-lshell32','-lole32','-ladvapi32']
+        suffix='.exe'; shutil.copy2(root/'release/win_x64/xl.dll',out/'xl.dll')
+        libraries=[*objects,root/'release/win_x64/xl.dll','-lws2_32','-liphlpapi','-lshell32','-lole32','-ladvapi32']
     else:
         suffix=''; flags+=['-D_GNU_SOURCE']; native=Path(build['NativeRoot'])
         libraries=[*objects,'-L'+str(native/'release'),'-lxl','-Wl,-rpath,'+str(native/'release'),

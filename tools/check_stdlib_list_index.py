@@ -23,7 +23,7 @@ def main():
     if os.name!='nt': assert public['Complete'] and public['InputsUnchanged']
     cc=shutil.which('gcc'); assert cc
     driver=Path(public['Driver']); assert sha(driver).lower()==public['DriverSha256'].lower()
-    product=root/'release/xl.dll' if os.name=='nt' else Path(public['NativeRoot'])/'release/libxl.so'
+    product=root/'release/win_x64/xl.dll' if os.name=='nt' else Path(public['NativeRoot'])/'release/libxl.so'
     sources=['test/support/list_native.c','test/support/module_product_memory.c',
         'src/runtime/xl6_set.c','src/runtime/xl6_set_key_policy.c','src/runtime/xl6_dict.c',
         'src/runtime/xl6_native_leaf_value.c',

@@ -3,7 +3,7 @@ param([string]$Root = "")
 $ErrorActionPreference = "Stop"
 if ( $Root -eq "" ) { $Root = Split-Path -Parent $PSScriptRoot }
 
-$xl = Join-Path $Root "release\xl.exe"
+$xl = Join-Path $Root "release\win_x64\xl.exe"
 $source = Join-Path $Root "test\cases\xlir_union_dynamic_box_abi.xl"
 $iteratorSource = Join-Path $Root "test\cases\cgen_union_var_box.xl"
 $classSource = Join-Path $Root "test\cases\export_class_union_field.xl"

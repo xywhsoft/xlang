@@ -55,7 +55,7 @@ def main() -> int:
             'src/runtime/xl6_array_value_iterator.c','src/runtime/xl6_array_iterator.c','src/runtime/xl6_sequence.c']
     if not args.checked_iterator:
         sources.append('src/api/xl_foreign_error.c')
-    product = root / ('release/xl.dll' if os.name == 'nt' else 'release/libxl.so')
+    product = root / ('release/win_x64/xl.dll' if os.name == 'nt' else 'release/libxl.so')
     files = {Path(__file__), Path(cc), Path(nm), Path(sys.executable),
         root / 'lib/xrt/xrt.h', root / 'lib/xruntime/xruntime.h'}
     files.update(root / source for source in sources)

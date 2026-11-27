@@ -48,7 +48,7 @@ def main():
     fixture.write_text(text, encoding='utf8')
     cc = Path(shutil.which('gcc') or 'E:/software/w64devkit/bin/gcc.exe').resolve()
     driver = Path(build['Driver'])
-    runtime = root / 'release/xl.dll' if os.name == 'nt' else Path(build['NativeRoot']) / 'release/libxl.so'
+    runtime = root / 'release/win_x64/xl.dll' if os.name == 'nt' else Path(build['NativeRoot']) / 'release/libxl.so'
     env = dict(os.environ)
     if os.name == 'nt':
         shutil.copy2(runtime, out / 'xl.dll')

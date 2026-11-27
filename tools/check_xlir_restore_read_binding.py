@@ -35,7 +35,7 @@ def main():
     if args.before_root: before = (args.before_root.resolve(), args.before_public.resolve(), read_build(args.before_public.resolve()))
     cc, cxx = shutil.which('gcc'), shutil.which('g++'); assert cc and cxx
     files.update((Path(cc), Path(cxx)))
-    runtime = root/'release/xl.dll' if os.name == 'nt' else Path(build['NativeRoot'])/'release/libxl.so'; files.add(runtime)
+    runtime = root/'release/win_x64/xl.dll' if os.name == 'nt' else Path(build['NativeRoot'])/'release/libxl.so'; files.add(runtime)
     names = ('xlir_restore_read_binding.xl', 'xlir_restore_read_binding_pruned.xl',
         'xlir_restore_read_binding_contract.c', 'xlir_restore_read_binding_api_host.c',
         'xlir_restore_read_binding_static_host.c', 'xlir_restore_read_binding_header_host.c')
@@ -43,7 +43,7 @@ def main():
     files.update((root/'test/support/module_product_memory.c', root/'test/support/module_product_memory.h'))
     if before:
         br, bp, bb = before
-        files.add(br/'release/xl.dll' if os.name == 'nt' else Path(bb['NativeRoot'])/'release/libxl.so')
+        files.add(br/'release/win_x64/xl.dll' if os.name == 'nt' else Path(bb['NativeRoot'])/'release/libxl.so')
     inputs = [{'Path': str(path), 'Sha256': sha(path)} for path in sorted(files)]
     out.mkdir(parents=True); rows, products, errors = [], [], []
     if os.name == 'nt': shutil.copy2(runtime,out/'xl.dll')
@@ -64,7 +64,7 @@ def main():
             '-I'+str(r/'release'), '-I'+str(r/'release/include'), '-I'+str(r/'lib/tcc'), '-I'+str(p/'include')]
         links = [row['Path'] for row in b['Objects'] if Path(row['Path']).name not in
             ('xlir_public_source_driver.o', 'xlir_public_source_linux_driver.o')]
-        product = r/'release/xl.dll' if os.name == 'nt' else Path(b['NativeRoot'])/'release/libxl.so'
+        product = r/'release/win_x64/xl.dll' if os.name == 'nt' else Path(b['NativeRoot'])/'release/libxl.so'
         if os.name == 'nt': links += [str(product), '-lws2_32', '-liphlpapi', '-lshell32', '-lole32', '-ladvapi32']
         else: flags += ['-D_GNU_SOURCE']; links += [str(product), '-Wl,-rpath,'+str(product.parent), '-pthread', '-ldl', '-lm']
         return flags,links,product

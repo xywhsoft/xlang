@@ -77,7 +77,7 @@ function Assert-RebindLowering(
     }
 }
 
-$xl = Join-Path $Root "release\xl.exe"
+$xl = Join-Path $Root "release\win_x64\xl.exe"
 $projectionSource = Join-Path $Root "test\cases\xlir_dynamic_typed_collection_projection.xl"
 $projectionHost = Join-Path $Root "test\cases\xlir_dynamic_typed_collection_projection_host.c"
 $completeSource = Join-Path $Root "test\cases\cgen_dynamic_to_typed_containers.xl"

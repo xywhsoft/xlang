@@ -1,7 +1,7 @@
 param([string]$Root = "")
 $ErrorActionPreference = "Stop"
 if ($Root -eq "") { $Root = Split-Path -Parent $PSScriptRoot }
-$xl = Join-Path $Root "release\xl.exe"
+$xl = Join-Path $Root "release\win_x64\xl.exe"
 $cases = @("cgen_runtime_type_baseline", "cgen_type_conversions", "cgen_implicit_methods",
     "cgen_closure", "cgen_closure_resource_capture", "xlir_open_object_field_lifetime",
     "xlir_refcounted_storage_assignment_lifetime")

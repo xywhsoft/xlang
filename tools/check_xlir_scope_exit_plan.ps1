@@ -6,11 +6,11 @@ try {
     $source = 'test/cases/xlir_scope_exit_plan.xl'
     $prefix = 'build/test/xlir_scope_exit_plan'
     New-Item -ItemType Directory -Force -Path build/test | Out-Null
-    Copy-Item -LiteralPath release/xl.dll -Destination build/test/xl.dll -Force
+    Copy-Item -LiteralPath release/win_x64/xl.dll -Destination build/test/xl.dll -Force
     foreach ($stage in @('typed', 'lowered')) {
         $arguments = @('ir', $source, '--format', 'json', '--emit', "$prefix.$stage.json")
         if ($stage -eq 'lowered') { $arguments += '--lowered' }
-        & release/xl.exe @arguments
+        & release/win_x64/xl.exe @arguments
         if ($LASTEXITCODE -ne 0) { throw "Scope exit plan $stage IR failed" }
         $ir = [IO.File]::ReadAllText("$prefix.$stage.json") | ConvertFrom-Json
         $blocks = @($ir.nodes | Where-Object kindName -eq 'block')
@@ -32,9 +32,9 @@ try {
             throw 'Promoted scalar lifetime did not become explicit CELL_RELEASE'
         }
     }
-    & release/xl.exe cgen $source --backend xlir --emit "$prefix.c"
+    & release/win_x64/xl.exe cgen $source --backend xlir --emit "$prefix.c"
     if ($LASTEXITCODE -ne 0) { throw 'Scope plan Cgen failed' }
-    & release/xl.exe cgen $source --backend xlir --emit "$prefix.repeat.c"
+    & release/win_x64/xl.exe cgen $source --backend xlir --emit "$prefix.repeat.c"
     if ($LASTEXITCODE -ne 0) { throw 'Repeated scope plan Cgen failed' }
     if (![System.Linq.Enumerable]::SequenceEqual(
         [byte[]][IO.File]::ReadAllBytes("$prefix.c"),
@@ -45,13 +45,13 @@ try {
         '-Wno-pointer-sign', '-Wno-unused-function', '-Wno-unused-label', '-Wno-unused-variable',
         '-Wno-unused-parameter', '-Wno-unused-const-variable', '-Wno-unused-but-set-variable',
         '-Wno-missing-field-initializers', '-I.', '-Ibuild/test')
-    & gcc @strict test/cases/xlir_scope_exit_plan_host.c test/cases/xlir_scope_exit_plan_runtime.c release/xl.dll -o "$prefix.exe"
+    & gcc @strict test/cases/xlir_scope_exit_plan_host.c test/cases/xlir_scope_exit_plan_runtime.c release/win_x64/xl.dll -o "$prefix.exe"
     if ($LASTEXITCODE -ne 0) { throw 'Scope plan strict C compilation failed' }
     & "$prefix.exe"
     if ($LASTEXITCODE -ne 0) { throw 'Scope plan runtime order or ownership balance failed' }
-    & release/xl.exe run $source --backend xlir
+    & release/win_x64/xl.exe run $source --backend xlir
     if ($LASTEXITCODE -ne 0) { throw 'Scope plan language JIT failed' }
-    & release/xl.exe build $source --backend xlir -o "$prefix.aot.exe"
+    & release/win_x64/xl.exe build $source --backend xlir -o "$prefix.aot.exe"
     if ($LASTEXITCODE -ne 0) { throw 'Scope plan language AOT build failed' }
     & "$prefix.aot.exe"
     if ($LASTEXITCODE -ne 0) { throw 'Scope plan language AOT runtime failed' }
@@ -59,7 +59,7 @@ try {
         'src/ir/xl6_ir.c', 'src/ir/xl6_ir_lower.c',
         'src/cgen/xl6_ir_cgen.c', 'src/cgen/xl6_cgen_shared_runtime.c',
         'src/diag/xl6_diag.c', 'src/common/xl6_output.c', 'src/common/xl6_console.c')
-    & gcc @strict test/cases/xlir_scope_exit_plan_contract.c @compilerSources release/xl.dll -o "$prefix.contract.exe"
+    & gcc @strict test/cases/xlir_scope_exit_plan_contract.c @compilerSources release/win_x64/xl.dll -o "$prefix.contract.exe"
     if ($LASTEXITCODE -ne 0) { throw 'Scope plan verifier contract compilation failed' }
     & "$prefix.contract.exe"
     if ($LASTEXITCODE -ne 0) { throw 'Scope plan verifier/Cgen mutation contract failed' }

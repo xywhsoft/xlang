@@ -17,7 +17,7 @@ def main():
     files={Path(__file__).resolve(),gcc,tcc,plan,support,root/'src/compile/xl6_compile_unit.c',
         controls/'test/support/ownership_test_thread.h',
         *[p for p in (root/'src').rglob('*') if p.is_file() and p.suffix in ['.h','.inc']],
-        *[root/p for p in ['lib/xrt/xrt.h','lib/xruntime/xruntime.h','release/include/xrt_decl.h','release/include/xruntime_decl.h']]}
+        *[root/p for p in ['lib/xrt/xrt.h','lib/xruntime/xruntime.h','release/win_x64/include/xrt_decl.h','release/win_x64/include/xruntime_decl.h']]}
     report=dict(Complete=False,Inputs={str(p):sha(p) for p in sorted(files)},Rows=[],
         NetworkTraffic=False,SecurityTests=False,ShippingAccepted=False,FullGoalComplete=False)
     def save():(out/'results.json').write_text(json.dumps(report,indent=2)+'\n',encoding='utf8')

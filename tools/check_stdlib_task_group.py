@@ -31,7 +31,7 @@ def main():
         'sem_task_group_private_handle','sem_task_group_raw_construct','sem_task_group_snapshot_default',
         'bad_task_group_start_return','bad_task_group_start_arity','bad_task_group_start_width',
         'bad_task_group_start_no_raise','bad_static_method_value_private')]
-    runtime=root/'release/xl.dll' if os.name=='nt' else Path(build['NativeRoot'])/'release/libxl.so'
+    runtime=root/'release/win_x64/xl.dll' if os.name=='nt' else Path(build['NativeRoot'])/'release/libxl.so'
     pinned.update((Path(__file__).resolve(),Path(sys.executable),Path(cc),Path(inspector),native,lifetime,planner,
         configured,contract,starter,starter_contract,quiescence,zero_contract,runtime,*fixtures,*negatives))
     inputs=[dict(Path=str(path),Sha256=sha(path)) for path in sorted(pinned)]

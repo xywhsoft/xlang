@@ -14,7 +14,7 @@ def main():
     root,public,out=a.root.resolve(),a.public_directory.resolve(),a.out.resolve()
     assert not out.exists() and (not a.sanitize or os.name!='nt');cc=shutil.which('gcc');assert cc
     build,pinned,compared=verify_public_build(root,public)
-    runtime=root/'release/xl.dll' if os.name=='nt' else Path(build['NativeRoot'])/'release/libxl.so'
+    runtime=root/'release/win_x64/xl.dll' if os.name=='nt' else Path(build['NativeRoot'])/'release/libxl.so'
     files=pinned|{Path(__file__).resolve(),Path(cc),runtime,root/'test/cases/xlir_artifact_runtime_contract.c'}
     for pattern in ('xlir_generator*.c','xlir_generator*.h','xlir_generator*.xl','xlir_*assert.h','xlir_continuation_owner_test.h','xlir_lifetime_platform.h'):
         files.update((root/'test/cases').glob(pattern))

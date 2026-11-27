@@ -3,7 +3,7 @@ param([string]$Root = "")
 $ErrorActionPreference = "Stop"
 if ( $Root -eq "" ) { $Root = Split-Path -Parent $PSScriptRoot }
 
-$xl = Join-Path $Root "release\xl.exe"
+$xl = Join-Path $Root "release\win_x64\xl.exe"
 $source = Join-Path $Root "test\cases\xlir_dynamic_boxing_extended_abi.xl"
 $support = Join-Path $Root "test\cases\xlir_dynamic_boxing_extended_support.c"
 $runtimeHost = Join-Path $Root "test\cases\xlir_dynamic_boxing_extended_host.c"

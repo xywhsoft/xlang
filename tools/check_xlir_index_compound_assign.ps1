@@ -8,7 +8,7 @@ if ( $Root -eq "" ) {
     $Root = Split-Path -Parent $PSScriptRoot
 }
 
-$xl = Join-Path $Root "release\xl.exe"
+$xl = Join-Path $Root "release\win_x64\xl.exe"
 $source = Join-Path $Root "test\cases\cgen_typed_container_index_compound_assign.xl"
 $stringSource = Join-Path $Root "test\cases\cgen_string_value_ownership.xl"
 $dynamicSource = Join-Path $Root "test\cases\index_ownership_top_level_typed_mix.xl"

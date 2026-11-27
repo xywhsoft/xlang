@@ -18,7 +18,7 @@ try {
         '-Wno-unused-parameter','-Wno-unused-const-variable','-Wno-unused-but-set-variable','-Wno-missing-field-initializers','-I.','-Ibuild/test')
     & gcc @flags -DxrtStrDupN=await_status_copy -include "$prefix.c" -c test/cases/xlir_await_status_host.c -o "$prefix.host.o"
     if ($LASTEXITCODE -ne 0) { throw 'Await status strict C compile failed' }
-    & gcc @flags "$prefix.host.o" test/cases/xlir_await_status_runtime.c release/xl.dll -o "$prefix.exe"
+    & gcc @flags "$prefix.host.o" test/cases/xlir_await_status_runtime.c release/win_x64/xl.dll -o "$prefix.exe"
     if ($LASTEXITCODE -ne 0) { throw 'Await status link failed' }
     & "$prefix.exe"
     if ($LASTEXITCODE -ne 0) { throw 'Await status acquisition/cleanup contract failed' }

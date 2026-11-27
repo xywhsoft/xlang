@@ -16,7 +16,7 @@ function Run([string]$name, [string]$program, [string[]]$arguments, [int]$expect
     Write-Host "[foreign bridges] ${name}: PASS"
 }
 $previousPackages = $env:XLANG_PACKAGE_PATH
-$env:XLANG_PACKAGE_PATH = Join-Path $root 'release/extlibs'
+$env:XLANG_PACKAGE_PATH = Join-Path $root 'release/win_x64/extlibs'
 Push-Location $root
 try {
     $gcc = (Get-Command gcc -CommandType Application -ErrorAction Stop | Select-Object -First 1).Source
@@ -65,7 +65,7 @@ try {
         Run 'jit' $PublicDriver @($source,'run',($prefix + '_jit'),$native)
         Run 'aot_build' $PublicDriver @($source,'exe',$prefix,$native)
     } else {
-        $xl = if ($Compiler) { $Compiler } else { Join-Path $root 'release/xl.exe' }
+        $xl = if ($Compiler) { $Compiler } else { Join-Path $root 'release/win_x64/xl.exe' }
         Run 'jit' $xl @('run',$source,$native,'--backend','xlir')
         Run 'aot_build' $xl @('build',$source,$native,'-o',($prefix + '.exe'),'--backend','xlir')
     }

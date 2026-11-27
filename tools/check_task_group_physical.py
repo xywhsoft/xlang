@@ -45,7 +45,7 @@ def main():
         if linked:
             objects=[row['Path'] for row in linked['Objects'] if Path(row['Path']).stem not in
                 ('xlir_public_source_driver','xlir_public_source_linux_driver')]
-            runtime=root/'release/xl.dll' if os.name=='nt' else Path(linked['NativeRoot'])/'release/libxl.so'
+            runtime=root/'release/win_x64/xl.dll' if os.name=='nt' else Path(linked['NativeRoot'])/'release/libxl.so'
             libraries=[str(runtime)]
             if os.name=='nt':
                 libraries+=['-lws2_32','-liphlpapi','-lshell32','-lole32','-ladvapi32'];shutil.copy2(runtime,out/runtime.name)

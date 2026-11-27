@@ -33,7 +33,7 @@ def main():
             obj=out/('plan.'+mode+'.o');binary=out/('plan.'+mode+('.exe' if os.name=='nt' else '.out'))
             flags=['-std=c11','-Wall','-Wextra','-Werror','-'+mode,'-I'+str(root),'-I'+str(root/'release'),'-I'+str(root/'include')]
             run(mode+'.build',[cc,*flags,'-c',fixture,'-o',obj]);product(obj)
-            if os.name=='nt':links=[root/'release/xl.dll','-lws2_32','-liphlpapi','-lshell32','-lole32','-ladvapi32']
+            if os.name=='nt':links=[root/'release/win_x64/xl.dll','-lws2_32','-liphlpapi','-lshell32','-lole32','-ladvapi32']
             else:
                 assert a.native_root;lib=a.native_root.resolve()/'release'
                 links=['-L'+str(lib),'-lxl','-Wl,-rpath,'+str(lib),'-Wl,--export-dynamic','-pthread','-ldl','-lm']

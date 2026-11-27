@@ -1,4 +1,4 @@
-param([string]$Root = '', [string]$SourceCompiler = 'release/xl.exe')
+param([string]$Root = '', [string]$SourceCompiler = 'release/win_x64/xl.exe')
 $ErrorActionPreference = 'Stop'
 if ($Root -eq '') { $Root = Split-Path -Parent $PSScriptRoot }
 Push-Location $Root
@@ -7,8 +7,8 @@ try {
     $prefix = 'build/test/xlir_parameter_cleanup_outcome'
     New-Item -ItemType Directory -Force -Path build/test | Out-Null
     if (!(Test-Path -LiteralPath build/test/xl.dll) -or
-        (Get-FileHash release/xl.dll).Hash -ne (Get-FileHash build/test/xl.dll).Hash) {
-        Copy-Item -LiteralPath release/xl.dll -Destination build/test/xl.dll -Force
+        (Get-FileHash release/win_x64/xl.dll).Hash -ne (Get-FileHash build/test/xl.dll).Hash) {
+        Copy-Item -LiteralPath release/win_x64/xl.dll -Destination build/test/xl.dll -Force
     }
     foreach ($stage in @('typed', 'lowered')) {
         $arguments = @('ir', $source, '--format', 'json', '--emit', "$prefix.$stage.json")
@@ -40,17 +40,17 @@ try {
         '-Wno-unused-but-set-variable','-Wno-missing-field-initializers','-I.','-Ibuild/test')
     $runtime = 'test/cases/xlir_parameter_cleanup_outcome_runtime.c'
     $hostSource = 'test/cases/xlir_parameter_cleanup_outcome_host.c'
-    & gcc @strict $runtime $hostSource release/xl.dll -o "$prefix.strict.exe"
+    & gcc @strict $runtime $hostSource release/win_x64/xl.dll -o "$prefix.strict.exe"
     if ($LASTEXITCODE -ne 0) { throw 'Parameter cleanup strict C build failed' }
     & "$prefix.strict.exe"
     if ($LASTEXITCODE -ne 0) { throw 'Parameter cleanup lost an outcome, pending owner or visible binding' }
-    & release/xl.exe run $runtime $hostSource --inc-path . --inc-path build/test -- --smoke
+    & release/win_x64/xl.exe run $runtime $hostSource --inc-path . --inc-path build/test -- --smoke
     if ($LASTEXITCODE -ne 0) { throw 'Parameter cleanup C-host JIT failed' }
     $artifactRuntimeSources = @(
         'src/runtime/xl6_slot.c', 'src/runtime/xl6_code_lease.c',
         'src/runtime/xl6_cell.c', 'src/runtime/xl6_closure.c',
         'src/runtime/xl6_code_finalizer.c')
-    & release/xl.exe build $runtime $hostSource @artifactRuntimeSources src/api/xl_foreign_error.c --inc-path . --inc-path build/test -o "$prefix.aot.exe"
+    & release/win_x64/xl.exe build $runtime $hostSource @artifactRuntimeSources src/api/xl_foreign_error.c --inc-path . --inc-path build/test -o "$prefix.aot.exe"
     if ($LASTEXITCODE -ne 0) { throw 'Parameter cleanup AOT build failed' }
     & "$prefix.aot.exe" --smoke
     if ($LASTEXITCODE -ne 0) { throw 'Parameter cleanup AOT runtime failed' }
@@ -63,7 +63,7 @@ try {
         'src/sem/xl6_sem.c','src/sem/xl6_protocol.c','src/sem/xl6_type_registry.c',
         'src/sem/xl6_sem_docs.c','src/sem/xl6_sem_field_attrs.c',
         'src/stdlib/xl6_stdlib.c','src/stdlib/xl6_stdlib_data.c')
-    & gcc @strict '-Wno-pointer-sign' '-Wno-format-truncation' test/cases/xlir_parameter_cleanup_contract.c @compilerSources release/xl.dll -o "$prefix.contract.exe"
+    & gcc @strict '-Wno-pointer-sign' '-Wno-format-truncation' test/cases/xlir_parameter_cleanup_contract.c @compilerSources release/win_x64/xl.dll -o "$prefix.contract.exe"
     if ($LASTEXITCODE -ne 0) { throw 'Parameter cleanup verifier build failed' }
     & "$prefix.contract.exe"
     if ($LASTEXITCODE -ne 0) { throw 'Parameter cleanup verifier mutation failed' }

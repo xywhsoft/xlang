@@ -50,7 +50,7 @@ def main():
     a=p.parse_args();root,public,out=a.root.resolve(),a.public_directory.resolve(),a.out.resolve()
     cc=shutil.which('gcc');assert cc and not out.exists();build,pinned,compared=verify_public_build(root,public)
     windows=os.name=='nt';cases=root/'test/cases';driver=Path(build['Driver'])
-    runtime=root/'release/xl.dll' if windows else Path(build['NativeRoot'])/'release/libxl.so'
+    runtime=root/'release/win_x64/xl.dll' if windows else Path(build['NativeRoot'])/'release/libxl.so'
     libraries=root/'res/tcc/win64/x86_64' if windows else Path(build['NativeRoot'])/'build/linux/tcc-dist'
     links=[row['Path'] for row in build['Objects'] if Path(row['Path']).stem not in ('xlir_public_source_driver','xlir_public_source_linux_driver')]
     links+=[str(runtime),*(['-lws2_32','-liphlpapi','-lshell32','-lole32','-ladvapi32'] if windows else ['-pthread','-ldl','-lm','-Wl,-rpath,'+str(runtime.parent)])]

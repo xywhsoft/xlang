@@ -200,7 +200,7 @@ static void testRegisterPinnedCompletion(xrtownershipref ref,const xrtownershipa
 #endif
 #include "lib/xrt/xrt.h"
 #include "lib/xruntime/xruntime.h"
-#include "release/include/xl_clock.h"
+#include "release/win_x64/include/xl_clock.h"
 #define TLS_DIAL_OWNERSHIP_PINNED
 #include "'''+fixtureName+'''.fixture.c"
 ''')

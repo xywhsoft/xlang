@@ -40,8 +40,8 @@ def main():
         files.add(directory / 'build.json')
         objects = [r['Path'] for r in build['Objects'] if Path(r['Path']).name != 'xlir_public_source_driver.o']
         flags = ['-I' + str(directory / 'include')]
-        links = [str(root / 'release/xl.dll'), '-lws2_32', '-liphlpapi', '-lshell32', '-lole32', '-ladvapi32']
-        files.add(root / 'release/xl.dll')
+        links = [str(root / 'release/win_x64/xl.dll'), '-lws2_32', '-liphlpapi', '-lshell32', '-lole32', '-ladvapi32']
+        files.add(root / 'release/win_x64/xl.dll')
     else:
         flags = ['-D_GNU_SOURCE']
         links = [str(root / 'release/libxlc.so'), '-Wl,-rpath,' + str(root / 'release'), '-pthread', '-lm', '-ldl']
@@ -68,7 +68,7 @@ def main():
         for level in (0, 2):
             binary = out / ('contract-O' + str(level) + ('.exe' if os.name == 'nt' else ''))
             run('build-O' + str(level), [cc, *flags, '-O' + str(level), source, *objects, *links, '-o', binary])
-            if os.name == 'nt': shutil.copy2(root / 'release/xl.dll', out / 'xl.dll')
+            if os.name == 'nt': shutil.copy2(root / 'release/win_x64/xl.dll', out / 'xl.dll')
             for name in cases:
                 prefix = out / (name + '-O' + str(level))
                 targets = [Path(str(prefix) + suffix) for suffix in ('.c', '.h', '.json')]

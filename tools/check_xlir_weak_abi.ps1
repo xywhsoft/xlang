@@ -3,13 +3,13 @@ param([string]$Root = "")
 $ErrorActionPreference = "Stop"
 if ( $Root -eq "" ) { $Root = Split-Path -Parent $PSScriptRoot }
 
-$compiler = Join-Path $Root "release\xl.exe"
+$compiler = Join-Path $Root "release\win_x64\xl.exe"
 $fixture = Join-Path $Root "test\cases\protocol_weak_lifecycle.xl"
 $assignmentFixture = Join-Path $Root "test\cases\hir_nullable_types_check.xl"
 $classFixture = Join-Path $Root "test\cases\weak_class_lifecycle.xl"
 $entryHost = Join-Path $Root "test\cases\xlir_program_entry_diagnostic_host.c"
 $nullArgsHost = Join-Path $Root "test\cases\xlir_program_null_args_host.c"
-$xrtDeclaration = Join-Path $Root "release\include\xrt_decl.h"
+$xrtDeclaration = Join-Path $Root "release\win_x64\include\xrt_decl.h"
 $outputDir = Join-Path $Root "build\test"
 $typedPath = Join-Path $outputDir "xlir_weak_abi.typed.json"
 $loweredPath = Join-Path $outputDir "xlir_weak_abi.lowered.json"

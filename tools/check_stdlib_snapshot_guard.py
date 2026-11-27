@@ -24,8 +24,8 @@ def main():
     names = [
         'lib/xrt/xrt.h', 'lib/xrt/xrt.snapshot.json',
         'lib/xruntime/xruntime.h', 'lib/xruntime/xruntime.snapshot.json',
-        'release/include/xrt_decl.h', 'release/include/xruntime_decl.h',
-        'release/include/xl_runtime.h', 'docs/XRT与xlang能力矩阵.md',
+        'release/win_x64/include/xrt_decl.h', 'release/win_x64/include/xruntime_decl.h',
+        'release/win_x64/include/xl_runtime.h', 'docs/XRT与xlang能力矩阵.md',
         'tools/xrt_xlang_deferred_apis.txt', 'tools/sync_xrt_snapshot.py',
         'tools/gen_xrt_symbol_table.py', 'tools/gen_xrt_xlang_matrix.py',
         'tools/gen_xrt_symbol_table.ps1', 'tools/check_xrt_snapshot.ps1',

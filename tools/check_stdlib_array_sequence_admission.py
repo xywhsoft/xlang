@@ -33,7 +33,7 @@ def main() -> int:
         'src/runtime/xl6_array_reference_admission.c','src/runtime/xl6_value_admission.c',
         'src/runtime/xl6_string_type.c','src/runtime/xl6_nullable_string.c','src/runtime/xl6_ownership_plan.c']
     sources.append('src/api/xl_foreign_error.c')
-    product=root/('release/xl.dll' if os.name=='nt' else 'release/libxl.so')
+    product=root/('release/win_x64/xl.dll' if os.name=='nt' else 'release/libxl.so')
     files={Path(__file__),Path(cc),Path(nm),Path(sys.executable),root/'lib/xrt/xrt.h',root/'lib/xruntime/xruntime.h'}
     files.update(root/name for name in sources)
     files.add(root/'src/api/xl_foreign_error.h')

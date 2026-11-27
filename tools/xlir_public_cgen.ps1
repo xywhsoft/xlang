@@ -228,7 +228,7 @@ function Start-XlirPublicCgen {
     $process.StartInfo.RedirectStandardOutput = $true
     $process.StartInfo.RedirectStandardError = $true
     $process.StartInfo.EnvironmentVariables['XLANG_PACKAGE_PATH'] =
-        (Join-Path $Session.Root 'release\extlibs') + ';' +
+        (Join-Path $Session.Root 'release\win_x64\extlibs') + ';' +
         (Join-Path $Session.Root 'test\fixtures')
     $timer = [Diagnostics.Stopwatch]::StartNew()
     try {

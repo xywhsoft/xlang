@@ -6,8 +6,8 @@ try {
     $prefix = 'build/test/xlir_dynamic_iteration_allocation'
     New-Item -ItemType Directory -Force -Path build/test | Out-Null
     if (!(Test-Path -LiteralPath build/test/xl.dll) -or
-        (Get-FileHash release/xl.dll).Hash -ne (Get-FileHash build/test/xl.dll).Hash) {
-        Copy-Item -LiteralPath release/xl.dll -Destination build/test/xl.dll -Force
+        (Get-FileHash release/win_x64/xl.dll).Hash -ne (Get-FileHash build/test/xl.dll).Hash) {
+        Copy-Item -LiteralPath release/win_x64/xl.dll -Destination build/test/xl.dll -Force
     }
     $compilerSources = @('src/ast/xl6_ast.c','src/type/xl6_type_model.c',
         'src/ir/xl6_ir.c','src/ir/xl6_ir_lower.c',
@@ -22,7 +22,7 @@ try {
         '-Wno-unused-variable','-Wno-unused-parameter','-Wno-unused-const-variable',
         '-Wno-unused-but-set-variable','-Wno-missing-field-initializers','-Wno-pointer-sign',
         '-Wno-format-truncation','-I.','-Ibuild/test')
-    & gcc @strict test/cases/xlir_dynamic_iteration_allocation_contract.c @compilerSources release/xl.dll -o "$prefix.contract.exe"
+    & gcc @strict test/cases/xlir_dynamic_iteration_allocation_contract.c @compilerSources release/win_x64/xl.dll -o "$prefix.contract.exe"
     if ($LASTEXITCODE -ne 0) { throw 'Dynamic iteration source contract build failed' }
     & "$prefix.contract.exe" "$prefix.c" "$prefix.h" "$prefix.json"
     if ($LASTEXITCODE -ne 0) { throw 'Dynamic iteration mutation/verification failed' }
@@ -35,11 +35,11 @@ try {
     }
     $hostSource = 'test/cases/xlir_dynamic_iteration_allocation_host.c'
     $runtimeSource = 'test/cases/xlir_dynamic_iteration_allocation_runtime.c'
-    & gcc @strict $runtimeSource $hostSource release/xl.dll -o "$prefix.strict.exe"
+    & gcc @strict $runtimeSource $hostSource release/win_x64/xl.dll -o "$prefix.strict.exe"
     if ($LASTEXITCODE -ne 0) { throw 'Dynamic iteration strict C build failed' }
     & "$prefix.strict.exe"
     if ($LASTEXITCODE -ne 0) { throw 'Dynamic iteration allocation/close runtime failed (all finally assertions are mandatory)' }
-    & release/xl.exe run $runtimeSource $hostSource --inc-path . --inc-path build/test -- --smoke
+    & release/win_x64/xl.exe run $runtimeSource $hostSource --inc-path . --inc-path build/test -- --smoke
     if ($LASTEXITCODE -ne 0) { throw 'Dynamic iteration C-host JIT failed' }
     # This is a private C-host smoke fixture, not an xlang artifact plan. Its
     # explicit resident probes must have a source closure in standalone AOT.
@@ -50,7 +50,7 @@ try {
         'src/runtime/xl6_array_value_iterator.c','src/runtime/xl6_array_iterator.c','src/runtime/xl6_sequence.c',
         'src/runtime/xl6_future_callback.c','src/runtime/xl6_continuation_frame.c','src/runtime/xl6_future_wait.c',
         'src/runtime/xl6_task.c','src/runtime/xl6_task_frame.c','src/runtime/xl6_task_pool.c','src/runtime/xl6_ownership_plan.c')
-    & release/xl.exe build $runtimeSource $hostSource src/api/xl_foreign_error.c @residentSources --inc-path . --inc-path build/test --inc-path release -o "$prefix.aot.exe"
+    & release/win_x64/xl.exe build $runtimeSource $hostSource src/api/xl_foreign_error.c @residentSources --inc-path . --inc-path build/test --inc-path release -o "$prefix.aot.exe"
     if ($LASTEXITCODE -ne 0) { throw 'Dynamic iteration C-host AOT build failed' }
     & "$prefix.aot.exe" --smoke
     if ($LASTEXITCODE -ne 0) { throw 'Dynamic iteration C-host AOT runtime failed' }

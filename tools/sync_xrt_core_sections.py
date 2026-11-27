@@ -177,7 +177,7 @@ def main() -> int:
             leaf = "xrt_decl.h" if declarations else "xrt.h"
             old = (args.previous / leaf).read_text(encoding="utf-8")
             new = (args.current / leaf).read_text(encoding="utf-8")
-            paths = (root / "release/include/xrt_decl.h", root / "release/include/xruntime_decl.h") if declarations else (
+            paths = (root / "release/win_x64/include/xrt_decl.h", root / "release/win_x64/include/xruntime_decl.h") if declarations else (
                 root / "lib/xrt/xrt.h", root / "lib/xruntime/xruntime.h")
             for path in paths:
                 text = path.read_text(encoding="utf-8")
@@ -193,7 +193,7 @@ def main() -> int:
             leaf = "xruntime_decl.h" if declarations else "xruntime.h"
             old = (args.previous / "extlibs" / leaf).read_text(encoding="utf-8")
             new = (args.current / "extlibs" / leaf).read_text(encoding="utf-8")
-            path = root / ("release/include/xruntime_decl.h" if declarations else "lib/xruntime/xruntime.h")
+            path = root / ("release/win_x64/include/xruntime_decl.h" if declarations else "lib/xruntime/xruntime.h")
             text = replacements.get(path, path.read_bytes()).decode("utf-8")
             for name in args.runtime_public: text = replace(text, old, new, "public", name, context_lines=args.context_lines)
             if not declarations:
@@ -207,8 +207,8 @@ def main() -> int:
     runtime = root / "lib/xruntime/xruntime.h"
     core_names, runtime_names = set(_api_names(core)), set(_api_names(runtime))
     for product, implementation, declarations, owned in (
-        ("xrt", core, root / "release/include/xrt_decl.h", None),
-        ("xruntime", runtime, root / "release/include/xruntime_decl.h", len(runtime_names - core_names)),
+        ("xrt", core, root / "release/win_x64/include/xrt_decl.h", None),
+        ("xruntime", runtime, root / "release/win_x64/include/xruntime_decl.h", len(runtime_names - core_names)),
     ):
         prefix = "xrt/single/" if product == "xrt" else "xrt/extlibs/xruntime/single/"
         metadata = _metadata(product, prefix + implementation.name, prefix + declarations.name,

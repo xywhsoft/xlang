@@ -50,7 +50,7 @@ def main():
             files.add(Path(row['Path']))
         files.add(manifest)
         cli=Path(build['Driver']); assert sha(cli)==build['DriverSha256'].lower()
-        runtime=root/'release/xl.dll'; libraries=root/'res/tcc/win64/x86_64'
+        runtime=root/'release/win_x64/xl.dll'; libraries=root/'res/tcc/win64/x86_64'
         omitted={'xlir_public_source_driver.o'} | ({'xl6_tree.o'} if provider else set())
         objects=[row['Path'] for row in build['Objects'] if Path(row['Path']).name not in omitted]
         links=[*objects,str(runtime),'-lws2_32','-liphlpapi','-lshell32','-lole32','-ladvapi32']

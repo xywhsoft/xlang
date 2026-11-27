@@ -24,7 +24,7 @@ try {
     if (@($inputs | Where-Object {(Get-FileHash -LiteralPath $_.Path).Hash -ne $_.Sha256}).Count -or
         (Get-FileHash -LiteralPath $build.Driver).Hash -ne $build.DriverSha256) { throw 'Stale class-copy inputs' }
     New-Item -ItemType Directory -Path $outputPath | Out-Null
-    Copy-Item -LiteralPath release/xl.dll -Destination "$outputPath/xl.dll"
+    Copy-Item -LiteralPath release/win_x64/xl.dll -Destination "$outputPath/xl.dll"
     New-Item -ItemType Directory -Path "$outputPath/__xl_runtime" | Out-Null
     foreach ($header in $build.Headers) {
         if ($header.Path -match '[/\\]__xl_runtime[/\\]') {
@@ -79,7 +79,7 @@ $process=Start-Process -FilePath $build.Driver -ArgumentList @("test/cases/$name
             if ($kind -eq 'native') {
                 $buildExit=Invoke-XlirGccToLog ($strict+@("-O$level",'test/cases/xlir_class_copy_storage_contract.c','src/runtime/xl6_code_finalizer.c','src/runtime/xl6_code_lease.c',$runtime[0].Path)+$libs+@('-o',"$lane.exe")) "$lane.build.log"
             } else {
-                $buildExit=Invoke-XlirGccToLog ($strict+$hostFlags+@("-O$level",'test/cases/xlir_class_copy_storage_tcc_host.c')+$dependencies+@('release/xl.dll','-Wl,--gc-sections')+$libs+@('-o',"$lane.exe")) "$lane.build.log"
+                $buildExit=Invoke-XlirGccToLog ($strict+$hostFlags+@("-O$level",'test/cases/xlir_class_copy_storage_tcc_host.c')+$dependencies+@('release/win_x64/xl.dll','-Wl,--gc-sections')+$libs+@('-o',"$lane.exe")) "$lane.build.log"
             }
             $runExit=$null; $complete=$false
             if ($buildExit -eq 0) {

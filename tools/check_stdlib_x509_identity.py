@@ -21,7 +21,7 @@ def main():
             *[root/'test/support'/('crypto_'+n+'_runtime.c') for n in ('rsa','nist','ed25519','xdh')],root/'test/cases/xlir_x509_identity_contract.c',root/'test/support/container_projection_artifact.c']},
         NormalFamilies=4,EverySignatureIndependentlyVerified=True,NetworkTraffic=False,SecurityTests=False,MalformedCryptoTests=False,
         TrustAcceptance=False,TlsAcceptance=False,ShippingAcceptance=False)
-    env=dict(os.environ);runtime=root/'release/xl.dll' if os.name=='nt' else Path(build['NativeRoot'])/'release/libxl.so'
+    env=dict(os.environ);runtime=root/'release/win_x64/xl.dll' if os.name=='nt' else Path(build['NativeRoot'])/'release/libxl.so'
     if os.name=='nt':shutil.copy2(runtime,out/'xl.dll')
     else:env['XL6_SOURCE_NATIVE_ROOT']=build['NativeRoot']
     def save():(out/'results.json').write_text(json.dumps(r,indent=2)+'\n')

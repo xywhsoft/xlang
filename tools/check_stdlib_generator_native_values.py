@@ -15,7 +15,7 @@ def main():
     root,public,out=a.root.resolve(),a.public_directory.resolve(),a.out.resolve()
     cc,nm=shutil.which('gcc'),shutil.which('nm');assert cc and nm and not out.exists() and (not a.sanitize or os.name!='nt')
     build=json.loads((public/'build.json').read_text(encoding='utf-8-sig'));assert build['SourceXrt'] and not build['RuntimeOnly']
-    driver=Path(build['Driver']);runtime=root/'release/xl.dll' if os.name=='nt' else Path(build['NativeRoot'])/'release/libxl.so'
+    driver=Path(build['Driver']);runtime=root/'release/win_x64/xl.dll' if os.name=='nt' else Path(build['NativeRoot'])/'release/libxl.so'
     host=root/'test/cases/stdlib_native_generator_host.c';planner=root/'test/cases/xlir_native_generator_plan.c'
     source=root/'test/cases/stdlib_slot_map_generator_keys.xl';languageHost=root/'test/cases/stdlib_generator_native_values_host.c'
     contract=root/'test/cases/xlir_generator_native_values_contract.c';artifact=root/'test/cases/xlir_artifact_runtime_contract.c';memory=root/'test/support/module_product_memory.c'

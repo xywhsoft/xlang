@@ -31,7 +31,7 @@ def main():
         'src/runtime/xl6_fs_map_owner.c','src/runtime/xl6_fs_lock_owner.c','src/runtime/xl6_fs_root_owner.c',
         *[path.relative_to(root).as_posix() for path in sorted((root/'src/runtime').glob('xl6_io_*.c'))]]
     assert len(selected)==22
-    runtime=root/'release/xl.dll' if windows else Path(build['NativeRoot'])/'release/libxl.so'
+    runtime=root/'release/win_x64/xl.dll' if windows else Path(build['NativeRoot'])/'release/libxl.so'
     fixtures=[root/'test/cases'/(name+'.xl') for name in FIXTURES]
     pinned.update((Path(__file__).resolve(),Path(stdlib_io_dependencies.__file__).resolve(),Path(sys.executable),Path(cc),Path(shutil.which('nm')),a.build_report.resolve(),native,runtime,*fixtures,*[root/name for name in selected]))
     inputs=[dict(Path=str(path),Sha256=sha(path)) for path in sorted(pinned)];out.mkdir(parents=True)

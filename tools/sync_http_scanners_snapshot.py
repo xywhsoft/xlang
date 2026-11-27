@@ -32,7 +32,7 @@ def main():
     selected=[('xrtHttpListNext','xrtHttpTokenNext','http.c'),('xrtHttpNameValueNext','xrtHttpParamNext','http_param.c')]
     declarations=upstream('include/xrt/http.h')
     updates=[]
-    for relative in ['lib/xrt/xrt.h','lib/xruntime/xruntime.h','release/include/xrt_decl.h','release/include/xruntime_decl.h']:
+    for relative in ['lib/xrt/xrt.h','lib/xruntime/xruntime.h','release/win_x64/include/xrt_decl.h','release/win_x64/include/xruntime_decl.h']:
         path=root/relative;before=path.read_bytes();ending=b'\r\n' if b'\r\n' in before else b'\n'
         text=before.decode('utf-8-sig').replace('\r\n','\n');original=text;insertions=[]
         for name,anchor,source in selected:
@@ -55,7 +55,7 @@ def main():
     for path,data in updates:metadata._write_if_changed(path,data)
     core=set(metadata._api_names(root/'lib/xrt/xrt.h'))
     for product in ['xrt','xruntime']:
-        impl=root/f'lib/{product}/{product}.h';decl=root/f'release/include/{product}_decl.h'
+        impl=root/f'lib/{product}/{product}.h';decl=root/f'release/win_x64/include/{product}_decl.h'
         names=set(metadata._api_names(impl));prefix='xrt/single/' if product=='xrt' else 'xrt/extlibs/xruntime/single/'
         value=metadata._metadata(product,prefix+product+'.h',prefix+product+'_decl.h',impl.read_bytes(),decl.read_bytes(),len(names),len(names-core) if product=='xruntime' else None)
         metadata._write_if_changed(root/f'lib/{product}/{product}.snapshot.json',(json.dumps(value,indent=2)+'\n').encode())

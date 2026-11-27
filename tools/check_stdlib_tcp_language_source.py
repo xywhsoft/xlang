@@ -129,23 +129,23 @@ def main():
             obj=out/'continuation-requirements.o'
             run('continuation-requirements.build',[cc,*flags,'-Wno-missing-field-initializers','-O0','-c',requirements,'-o',obj]);product(obj)
             links=[*objects,obj]
-            if os.name=='nt':links+=[root/'release/xl.dll','-lws2_32','-liphlpapi','-lshell32','-lole32','-ladvapi32']
+            if os.name=='nt':links+=[root/'release/win_x64/xl.dll','-lws2_32','-liphlpapi','-lshell32','-lole32','-ladvapi32']
             else:
                 lib=args.native_root.resolve()/'release';links+=['-L'+str(lib),'-lxl','-Wl,-rpath,'+str(lib),'-Wl,--export-dynamic','-pthread','-ldl','-lm']
             links+=['-o',binary];rsp=out/'continuation-requirements.rsp'
             rsp.write_text('\n'.join('"'+str(arg).replace('\\','/')+'"' for arg in links)+'\n',encoding='utf8');product(rsp)
             run('continuation-requirements.link',[cc,'@'+str(rsp)]);product(binary)
-            if os.name=='nt' and not (out/'xl.dll').exists():shutil.copy2(root/'release/xl.dll',out/'xl.dll');product(out/'xl.dll')
+            if os.name=='nt' and not (out/'xl.dll').exists():shutil.copy2(root/'release/win_x64/xl.dll',out/'xl.dll');product(out/'xl.dll')
             run('continuation-requirements.run',[binary])
         for opt in ('O0','O2'):
             obj=out/('contract.'+opt+'.o');run('contract.'+opt+'.build',[cc,*flags,'-Wno-missing-field-initializers','-'+opt,'-c',contract,'-o',obj]);product(obj)
             binary=out/('contract.'+opt+('.exe' if os.name=='nt' else ''))
-            if os.name=='nt':link=[*objects,obj,root/'release/xl.dll','-lws2_32','-liphlpapi','-lshell32','-lole32','-ladvapi32','-o',binary]
+            if os.name=='nt':link=[*objects,obj,root/'release/win_x64/xl.dll','-lws2_32','-liphlpapi','-lshell32','-lole32','-ladvapi32','-o',binary]
             else:
                 lib=args.native_root.resolve()/'release';link=[*objects,obj,'-L'+str(lib),'-lxl','-Wl,-rpath,'+str(lib),'-Wl,--export-dynamic','-pthread','-ldl','-lm','-o',binary]
             response=out/('contract.'+opt+'.rsp');response.write_text('\n'.join('"'+str(arg).replace('\\','/')+'"' for arg in link)+'\n',encoding='utf8');product(response)
             run('contract.'+opt+'.link',[cc,'@'+str(response)]);product(binary)
-            if os.name=='nt' and not (out/'xl.dll').exists():shutil.copy2(root/'release/xl.dll',out/'xl.dll');product(out/'xl.dll')
+            if os.name=='nt' and not (out/'xl.dll').exists():shutil.copy2(root/'release/win_x64/xl.dll',out/'xl.dll');product(out/'xl.dll')
             family='stdlib_tcp_dial_' if args.dial else 'stdlib_tcp_managed_'
             proof=run('contract.'+opt+'.run',[binary,root/('test/cases/'+family+('controls_sync' if args.dial_sync_controls else 'sync')+'.xl'),
                 root/('test/cases/'+family+('interrupt' if args.dial_interrupt else 'async')+'.xl')])

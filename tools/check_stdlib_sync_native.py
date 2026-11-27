@@ -27,8 +27,8 @@ def main():
         project/'src/runtime/xl6_sync_internal.h',project/'src/runtime/xl6_mutex_internal.h',
         project/'src/runtime/xl6_sync_admission.h',project/'src/runtime/xl6_sequence.h',
         project/'src/runtime/xl6_array_admission.h',project/'src/runtime/xl6_array.h',
-        project/'src/runtime/xl6_ownership_plan.h',project/'release/include/xl_sync_retirement.h',
-        project/'release/include/xl.h',project/'src/api/xl_foreign_error.h',
+        project/'src/runtime/xl6_ownership_plan.h',project/'release/win_x64/include/xl_sync_retirement.h',
+        project/'release/win_x64/include/xl.h',project/'src/api/xl_foreign_error.h',
         root/'test/support/module_product_memory.c',root/'test/support/module_product_memory.h'}
     # This native probe needs no compiler, IR, API or unrelated providers.
     # All kernels/value ABI and the neutral error boundary come from the real
@@ -65,8 +65,8 @@ def main():
     if args.race: flags+=['-g','-fsanitize=thread','-fno-omit-frame-pointer','-fno-pie','-no-pie']
     objects=[row['Path'] for row in selected]
     if os.name=='nt':
-        shutil.copy2(root/'release/xl.dll',out/'xl.dll'); suffix='.exe'
-        libraries=[*objects,root/'release/xl.dll','-lws2_32','-liphlpapi','-lshell32','-lole32','-ladvapi32']
+        shutil.copy2(root/'release/win_x64/xl.dll',out/'xl.dll'); suffix='.exe'
+        libraries=[*objects,root/'release/win_x64/xl.dll','-lws2_32','-liphlpapi','-lshell32','-lole32','-ladvapi32']
     else:
         flags+=['-D_GNU_SOURCE']; suffix=''
         libraries=[*objects,'-L'+str(root/'release'),'-lxl','-Wl,-rpath,'+str(root/'release'),'-pthread','-ldl','-lm']

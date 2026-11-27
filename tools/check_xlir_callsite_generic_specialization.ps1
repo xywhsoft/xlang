@@ -8,7 +8,7 @@ if ( $Root -eq "" ) {
     $Root = Split-Path -Parent $PSScriptRoot
 }
 
-$xl = Join-Path $Root "release\xl.exe"
+$xl = Join-Path $Root "release\win_x64\xl.exe"
 $source = Join-Path $Root "test\cases\xlir_callsite_generic_specialization.xl"
 $hostSource = Join-Path $Root "test\cases\xlir_callsite_generic_specialization_host.c"
 $classProtocolSource = Join-Path $Root "test\cases\cgen_class_generic_handle.xl"

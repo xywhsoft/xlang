@@ -60,7 +60,7 @@ function InputSnapshot {
                     Where-Object { $_.Extension -in '.c','.h','.inc','.l','.y','.xl','.ps1','.bat','.json','.def','.lib','.a','.dll','.exe' }
             }
         }
-        foreach ($relative in @('release/xl.dll','release/xlc.dll','release/xl.exe')) {
+        foreach ($relative in @('release/win_x64/xl.dll','release/win_x64/xlc.dll','release/win_x64/xl.exe')) {
             $path = Join-Path $Root $relative
             if (Test-Path -LiteralPath $path -PathType Leaf) { Get-Item -LiteralPath $path }
         }

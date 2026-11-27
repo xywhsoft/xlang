@@ -5,7 +5,7 @@ param(
 $ErrorActionPreference = "Stop"
 if ( $Root -eq "" ) { $Root = Split-Path -Parent $PSScriptRoot }
 
-$xl = Join-Path $Root "release\xl.exe"
+$xl = Join-Path $Root "release\win_x64\xl.exe"
 $source = Join-Path $Root "test\cases\xlir_checked_integer_arithmetic_abi.xl"
 $compoundSource = Join-Path $Root "test\cases\xlir_checked_integer_compound_error_abi.xl"
 $continuationSource = Join-Path $Root "test\cases\xlir_checked_integer_continuation_abi.xl"

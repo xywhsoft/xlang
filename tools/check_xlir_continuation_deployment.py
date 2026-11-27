@@ -28,10 +28,10 @@ def main():
     flags=['-std=c11','-Wall','-Wextra','-Werror','-Wno-missing-field-initializers','-I'+str(root),
         '-I'+str(root/'release'),'-I'+str(root/'release/include'),'-I'+str(Path(build['Driver']).parent/'include')]
     if os.name!='nt':flags+=['-D_GNU_SOURCE']
-    libraries=[root/'release/xl.dll','-lws2_32','-liphlpapi','-lshell32','-lole32','-ladvapi32']
+    libraries=[root/'release/win_x64/xl.dll','-lws2_32','-liphlpapi','-lshell32','-lole32','-ladvapi32']
     if os.name!='nt':
         lib=Path(build['NativeRoot'])/'release';libraries=['-L'+str(lib),'-lxl','-Wl,-rpath,'+str(lib),'-Wl,--export-dynamic','-pthread','-ldl','-lm']
-    else:shutil.copy2(root/'release/xl.dll',out/'xl.dll');product(out/'xl.dll')
+    else:shutil.copy2(root/'release/win_x64/xl.dll',out/'xl.dll');product(out/'xl.dll')
     for opt in ('O0','O2'):
         obj=out/(opt+'.o');binary=out/(opt+('.exe' if os.name=='nt' else ''))
         run(opt+'.build',[cc,*flags,'-'+opt,'-c',fixture,'-o',obj]);product(obj)

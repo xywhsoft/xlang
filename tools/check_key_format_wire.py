@@ -141,7 +141,7 @@ def main():
     sources = [root / ('src/runtime/' + name + '.c') for name in SOURCES]
     native = root / 'test/support/key_format_wire.c'
     fixtures = [root / ('test/support/crypto_' + name + '_runtime.c') for name in ['rsa', 'nist', 'ed25519', 'xdh']]
-    includes = [root / 'lib/xrt/xrt.h', root / 'release/include/xrt_decl.h', root / 'release/include/xruntime_decl.h',
+    includes = [root / 'lib/xrt/xrt.h', root / 'release/win_x64/include/xrt_decl.h', root / 'release/win_x64/include/xruntime_decl.h',
                 root / 'src/runtime/xl6_key_format_internal.h']
     inputs = {str(path): sha(path) for path in [Path(__file__).resolve(), gcc, tcc, native, *sources, *fixtures, *includes]}
     out.mkdir(parents=True)

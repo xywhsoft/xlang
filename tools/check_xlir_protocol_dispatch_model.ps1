@@ -8,7 +8,7 @@ if ( $Root -eq "" ) {
     $Root = Split-Path -Parent $PSScriptRoot
 }
 
-$compiler = Join-Path $Root "release\xl.exe"
+$compiler = Join-Path $Root "release\win_x64\xl.exe"
 $declarationFixture = Join-Path $Root "test\cases\protocol_declaration.xl"
 $declarationLoweredJson = Join-Path $Root "build\tmp\xlir_protocol_declaration.lowered.json"
 $declarationGeneratedC = Join-Path $Root "build\tmp\xlir_protocol_declaration.c"
@@ -35,7 +35,7 @@ $runtimeHost = Join-Path $Root "test\cases\xlir_default_class_layout_host.c"
 $programRuntimeHost = Join-Path $Root "test\cases\xlir_program_null_args_host.c"
 
 if ( ! (Test-Path -LiteralPath $compiler -PathType Leaf) ) {
-    throw "XLIR protocol dispatch gate requires release\\xl.exe"
+    throw "XLIR protocol dispatch gate requires release\\win_x64\\xl.exe"
 }
 if ( ! (Test-Path -LiteralPath $fixture -PathType Leaf) ) {
     throw "XLIR protocol dispatch fixture is missing"

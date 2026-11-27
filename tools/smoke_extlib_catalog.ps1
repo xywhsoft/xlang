@@ -10,13 +10,13 @@ $ErrorActionPreference = 'Stop'
 if ($Root -eq '') { $Root = Split-Path -Parent $PSScriptRoot }
 $Root = (Resolve-Path -LiteralPath $Root).Path
 . (Join-Path $PSScriptRoot 'extlib_smoke_process.ps1')
-$xl = Join-Path $Root 'release/xl.exe'
+$xl = Join-Path $Root 'release/win_x64/xl.exe'
 if (!(Test-Path -LiteralPath $xl -PathType Leaf)) { throw "xl.exe missing: $xl" }
 $utf8 = [Text.UTF8Encoding]::new($false)
 $cases = @{}
 $skipped = [Collections.Generic.List[object]]::new()
 $platformNames = @()
-$packageRoot = Join-Path $Root 'release/extlibs'
+$packageRoot = Join-Path $Root 'release/win_x64/extlibs'
 $platform = [IO.File]::ReadAllText((Join-Path $Root 'test/platform_extlibs.json')) | ConvertFrom-Json
 $platformNames = @($platform.packages.name)
 foreach ($name in $Package) {
@@ -59,7 +59,7 @@ if (!$FocusedOnly) {
         if (!(Test-Path -LiteralPath $path)) { continue }
         $manifest = [IO.File]::ReadAllText($path) | ConvertFrom-Json
         foreach ($case in @($manifest.coverage.tests)) {
-            if ($case) { Add-SmokeCase "release/extlibs/$($directory.Name)/$case" $directory.Name 'package coverage.tests' }
+            if ($case) { Add-SmokeCase "release/win_x64/extlibs/$($directory.Name)/$case" $directory.Name 'package coverage.tests' }
         }
     }
 }
@@ -81,8 +81,8 @@ function Get-SmokeInputPaths {
         $path = Join-Path $Root $case.case
         if (Test-Path -LiteralPath $path -PathType Leaf) { $path }
     }
-    foreach ($relative in @('release/xl.exe','release/xl.dll','release/xlc.dll','lib/xrt/xrt.h','lib/xruntime/xruntime.h',
-        'release/include/xrt_decl.h','release/include/xruntime_decl.h','release/include/xl_extlib_abi.h',
+    foreach ($relative in @('release/win_x64/xl.exe','release/win_x64/xl.dll','release/win_x64/xlc.dll','lib/xrt/xrt.h','lib/xruntime/xruntime.h',
+        'release/win_x64/include/xrt_decl.h','release/win_x64/include/xruntime_decl.h','release/win_x64/include/xl_extlib_abi.h',
         'test/featured_extlibs.json','test/phase1_extlibs.json','test/platform_extlibs.json',
         'tools/smoke_extlib_catalog.ps1','tools/extlib_smoke_process.ps1','tools/xlir_native_process.ps1')) {
         Join-Path $Root $relative
@@ -96,7 +96,7 @@ foreach ($path in @(Get-SmokeInputPaths | Sort-Object -Unique)) {
 $results = [Collections.Generic.List[object]]::new()
 $oldPackagePath = [Environment]::GetEnvironmentVariable('XLANG_PACKAGE_PATH', 'Process')
 try {
-    [Environment]::SetEnvironmentVariable('XLANG_PACKAGE_PATH', (Join-Path $Root 'release/extlibs'), 'Process')
+    [Environment]::SetEnvironmentVariable('XLANG_PACKAGE_PATH', (Join-Path $Root 'release/win_x64/extlibs'), 'Process')
     foreach ($case in $selected) {
         Write-Host "[catalog] $($case.case)"
         $path = Join-Path $Root $case.case

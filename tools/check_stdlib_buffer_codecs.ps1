@@ -22,7 +22,7 @@ try {
     $gcc = (Get-Command gcc -CommandType Application | Select-Object -First 1).Source
     $python = (Get-Command python -CommandType Application | Select-Object -First 1).Source
     $files = @($cases + $negative | ForEach-Object { Get-Item "test/cases/$_.xl" }) +
-        @(Get-Item -LiteralPath @($PSCommandPath,$gcc,$python,'release/xl.dll','test/cases/stdlib_buffer_codec_host.c',
+        @(Get-Item -LiteralPath @($PSCommandPath,$gcc,$python,'release/win_x64/xl.dll','test/cases/stdlib_buffer_codec_host.c',
             'test/support/buffer_codec_native.c','test/cases/xlir_module_product_oom_host.c',
             'test/support/module_product_memory.c','test/support/module_product_memory.h',
             'tools/check_xlir_buffer_codec_ir.py','test/cases/xlir_text_value_contract.c','tools/check_xlir_artifact_runtime.ps1'))
@@ -65,7 +65,7 @@ try {
         if ("src/runtime/xl6_buffer_$wanted.c" -notin $plan.Sources -or
             "src/runtime/xl6_buffer_$other.c" -in $plan.Sources) { throw 'Codec pruning selected the wrong resident closure' }
     }
-    Copy-Item -LiteralPath release/xl.dll -Destination "$outPath/xl.dll"
+    Copy-Item -LiteralPath release/win_x64/xl.dll -Destination "$outPath/xl.dll"
     $objects = @($public.Objects | Where-Object { [IO.Path]::GetFileName($_.Path) -ne 'xlir_public_source_driver.o' } | ForEach-Object Path)
     $strict = @('-std=c11','-Wall','-Wextra','-Werror','-Wno-unused-function','-Wno-unused-label',
         '-Wno-unused-variable','-Wno-unused-parameter','-Wno-unused-const-variable','-Wno-unused-but-set-variable',
@@ -85,7 +85,7 @@ try {
         $sweeps += [pscustomobject]@{Fixture=$operation;FirstNoHit=$point}
     }
     Run 'contract-build' $gcc ($strict + @('-DXL_STATIC_EMBED','-Ilib/tcc','test/cases/xlir_text_value_contract.c') +
-        $objects + @('release/xl.dll','-lWs2_32','-lIPHLPAPI','-lShell32','-lOle32','-lAdvapi32','-o',"$outPath/contract.exe"))
+        $objects + @('release/win_x64/xl.dll','-lWs2_32','-lIPHLPAPI','-lShell32','-lOle32','-lAdvapi32','-o',"$outPath/contract.exe"))
     foreach ($case in $cases[0..3]) {
         $prefix = "$outPath/$case"
         Run "$case.emit" $public.Driver @("test/cases/$case.xl",'emit',$prefix)
@@ -97,7 +97,7 @@ try {
     Run 'debug-host-build' $gcc ($strict + @('-c','test/support/module_product_memory.c','-o',"$outPath/debug-host.o"))
     $prefix = "$outPath/xlir_buffer_codec_oom"
     Run 'factory-oom-build' $gcc ($strict + @('-include',"$prefix.c",'test/cases/xlir_module_product_oom_host.c',"$outPath/debug-host.o") +
-        $objects + @('release/xl.dll','-lWs2_32','-lIPHLPAPI','-lShell32','-lOle32','-lAdvapi32','-o',"$prefix.host.exe"))
+        $objects + @('release/win_x64/xl.dll','-lWs2_32','-lIPHLPAPI','-lShell32','-lOle32','-lAdvapi32','-o',"$prefix.host.exe"))
     Run 'factory-oom-normal' "$prefix.host.exe" @()
     for ($point=0; $point -le 4096; ++$point) {
         $name = "factory.oom-$point"

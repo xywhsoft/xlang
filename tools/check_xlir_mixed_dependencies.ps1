@@ -13,7 +13,7 @@ try {
     $driver=Join-Path $ContractDirectory 'xlir_code_owner_binding_contract.exe'
     if(!$public.SourceXrt){throw 'Require source runtime'}
     $case=if($Aggregate){'xlir_module_aggregate_dependency'}else{'xlir_module_mixed_dependency'}
-    $files=@(Get-Item -LiteralPath $PSCommandPath,(Get-Command gcc).Source,'release/xl.dll',
+    $files=@(Get-Item -LiteralPath $PSCommandPath,(Get-Command gcc).Source,'release/win_x64/xl.dll',
         'test/cases/xlir_module_mixed_dependency.xl','test/cases/xlir_module_mixed_dependency_host.c',
         'test/cases/xlir_module_mixed_dependency_artifact.c','test/cases/xlir_module_executor_host.c',
         'test/cases/xlir_module_executor_artifact.c','test/cases/xlir_one_shot_tcc_host.c','test/cases/xlir_async_module_lifetime_host.c')
@@ -22,7 +22,7 @@ try {
         @($files|ForEach-Object {[pscustomobject]@{Path=$_.FullName;Sha256=(Get-FileHash -LiteralPath $_.FullName).Hash}})
     if(@($inputs|Where-Object {(Get-FileHash -LiteralPath $_.Path).Hash-ne$_.Sha256}).Count){throw 'Stale mixed dependency inputs'}
     New-Item -ItemType Directory -Path $out,"$out/__xl_runtime"|Out-Null
-    Copy-Item -LiteralPath release/xl.dll -Destination "$out/xl.dll"
+    Copy-Item -LiteralPath release/win_x64/xl.dll -Destination "$out/xl.dll"
     foreach($header in $public.Headers|Where-Object Path -match '[/\\]__xl_runtime[/\\]'){
         Copy-Item -LiteralPath $header.Path -Destination (Join-Path "$out/__xl_runtime" ([IO.Path]::GetFileName($header.Path)))
     }
@@ -77,7 +77,7 @@ try {
             $buildExit=1
             if($waitObjects[$level].Count-eq3){
                 $linked=@($commonDependencies)+@($waitObjects[$level])
-                $buildExit=Invoke-XlirGccToLog ($flags+@("-O$level")+$extra+@("test/cases/${case}_host.c")+$linked+@('release/xl.dll')+$libs+@('-o',$binary)) "$out/$name.build.log"
+                $buildExit=Invoke-XlirGccToLog ($flags+@("-O$level")+$extra+@("test/cases/${case}_host.c")+$linked+@('release/win_x64/xl.dll')+$libs+@('-o',$binary)) "$out/$name.build.log"
             }
             $run=$null;$complete=$false;$oom=0;$admissionDeferrals=0;$snapshotDeferrals=0
             if(!$buildExit-and$kind-eq'dll'){

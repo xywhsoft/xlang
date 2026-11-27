@@ -82,7 +82,7 @@ def main():
     build=json.loads((public/'build.json').read_text(encoding='utf-8-sig'))
     assert build.get('Complete',os.name=='nt') and build['SourceXrt'] and not build['RuntimeOnly']
     cc=shutil.which('gcc'); assert cc
-    driver=Path(build['Driver']); runtime=root/'release/xl.dll' if os.name=='nt' else Path(build['NativeRoot'])/'release/libxl.so'
+    driver=Path(build['Driver']); runtime=root/'release/win_x64/xl.dll' if os.name=='nt' else Path(build['NativeRoot'])/'release/libxl.so'
     inputs={Path(__file__).resolve(),public/'build.json',Path(cc),runtime,driver}
     names=(*CASES,*('sem_channel_'+n for n in NEGATIVE),'cgen_dev_handfeel_regression')
     inputs.update(root/'test/cases'/(name+'.xl') for name in names)

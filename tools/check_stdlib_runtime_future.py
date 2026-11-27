@@ -34,7 +34,7 @@ def main():
     variadicErrorHost=root/'test/support/runtime_variadic_func_oom_host.c'
     funcErrorHost=root/'test/support/runtime_callable_func_oom_host.c'
     defaultErrorHost=root/'test/support/runtime_callable_defaults_oom_host.c'
-    native=root/'release/xl.dll' if os.name=='nt' else Path(build['NativeRoot'])/'release/libxl.so'
+    native=root/'release/win_x64/xl.dll' if os.name=='nt' else Path(build['NativeRoot'])/'release/libxl.so'
     frameContract=root/'test/support/future_value_contract.c'
     arrayOnly=root/'test/cases/stdlib_runtime_callable_variadic_array_only.xl'
     pinned.update((Path(__file__).resolve(),Path(cc),Path(nm),*fixtures,contract,funcContract,defaultContract,methodContract,integerContract,artifact,host,funcErrorHost,defaultErrorHost,memory,native,frameContract,arrayOnly,variadicContract,variadicErrorHost))

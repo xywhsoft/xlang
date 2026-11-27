@@ -26,7 +26,7 @@ def main():
         *[root/'test/support'/('crypto_'+name+'_runtime.c') for name in ('rsa','nist','ed25519','xdh')],
         *root.glob('src/runtime/*.h'),*root.glob('src/runtime/*.inc'),*root.glob('src/compile/*.h'),*root.glob('src/compile/*.inc'),
         root/'src/ir/xl6_ir_tls_identity_contracts.inc',root/'src/abi/xl6_tls_identity_collection_contracts.inc',
-        root/'lib/xrt/xrt.h',root/'lib/xruntime/xruntime.h',root/'release/include/xrt_decl.h',root/'release/include/xruntime_decl.h',
+        root/'lib/xrt/xrt.h',root/'lib/xruntime/xruntime.h',root/'release/win_x64/include/xrt_decl.h',root/'release/win_x64/include/xruntime_decl.h',
         *[f for f in out.iterdir() if f.is_file()]]
     r=dict(Complete=False,Inputs={str(f):sha(f) for f in files},Rows=[],Failures=[],NormalFamilies=4,ResidentEntries=8,
         EverySignatureIndependentlyVerified=True,NetworkTraffic=False,SecurityTests=False,MalformedCryptoTests=False,

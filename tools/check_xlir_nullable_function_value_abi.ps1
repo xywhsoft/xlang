@@ -5,7 +5,7 @@ param(
 $ErrorActionPreference = "Stop"
 if ( $Root -eq "" ) { $Root = Split-Path -Parent $PSScriptRoot }
 
-$xl = Join-Path $Root "release\xl.exe"
+$xl = Join-Path $Root "release\win_x64\xl.exe"
 $moduleHost = Join-Path $Root "test\cases\xlir_generated_module_host.c"
 $fixtures = @(
     "nullable_function_frames",

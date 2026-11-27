@@ -39,7 +39,7 @@ def main():
         # Source island contains no changed DLL: the real source-XRT objects
         # implement the tested providers; the base DLL remains only a link input.
         base=Path(next(row['Path'] for row in build['Inputs'] if str(row['Path']).replace('\\','/').endswith('/src/runtime/xl6_tree.c'))).parents[2]
-        dll=base/'release/xl.dll'; files.add(dll)
+        dll=base/'release/win_x64/xl.dll'; files.add(dll)
         links=[*objects,str(dll),'-lws2_32','-liphlpapi','-lshell32','-lole32','-ladvapi32']; suffix='.exe'
     else:
         assert sys.platform=='linux'; runtime=args.runtime.resolve(); suffix=''

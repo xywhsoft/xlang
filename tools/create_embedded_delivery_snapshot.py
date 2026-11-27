@@ -21,7 +21,7 @@ def main():
     head = subprocess.check_output(['git', '-C', str(source), 'rev-parse', 'HEAD'], text=True).strip()
     directories = ['.github'] + ['' + item for item in (
         'src', 'lib', 'tools', 'res', 'docs', 'cgenrule', 'dev', 'test',
-        'release/include', 'release/examples', 'release/extlibs', 'release/projects')]
+        'release/include', 'release/examples', 'release/win_x64/extlibs', 'release/projects')]
     files = {path for folder in directories for path in (source / folder).rglob('*') if path.is_file()}
     print('Pinning source inputs:', len(files), flush=True)
     files.update(path for path in source.iterdir() if path.is_file())

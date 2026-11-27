@@ -15,7 +15,7 @@ def main():
     for item in build['Inputs']+build['Headers']+build['Objects']:assert sha(item['Path'])==item['Sha256'].lower(),item['Path']
     driver=Path(build['Driver']);assert sha(driver)==build['DriverSha256'].lower()
     cc=Path(shutil.which('gcc') or 'E:/software/w64devkit/bin/gcc.exe').resolve()
-    native=root/'release/xl.dll' if os.name=='nt' else Path(build['NativeRoot'])/'release/libxl.so'
+    native=root/'release/win_x64/xl.dll' if os.name=='nt' else Path(build['NativeRoot'])/'release/libxl.so'
     source=root/'test/cases/xlir_nullable_union_member.xl';contract=root/'test/cases/xlir_nullable_union_member_contract.c'
     regressions=('cgen_union_value_semantics','xlir_union_container_domain','xlir_union_dynamic_box_abi',
         'stdlib_channel_union','stdlib_channel_codec_matrix','cgen_union','xlir_union_class_field_write_abi')

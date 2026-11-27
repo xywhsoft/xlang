@@ -27,13 +27,13 @@ function Invoke-XlirStrict([string]$cPath, [string]$hostPath, [string]$exePath, 
         '-Wno-unused-const-variable','-Wno-unused-but-set-variable','-Wno-missing-field-initializers',
         '-I.','-Ibuild/test','-Irelease','-Irelease/include')
     if ($preincluded) { $flags += '-DXLIR_GENERATED_MODULE_PREINCLUDED' }
-    & gcc @flags -include $cPath $hostPath release/xl.dll -o $exePath
+    & gcc @flags -include $cPath $hostPath release/win_x64/xl.dll -o $exePath
     if ($LASTEXITCODE -ne 0) { throw "XCall strict C compilation failed: $cPath" }
     & $exePath
     if ($LASTEXITCODE -ne 0) { throw "XCall strict runtime failed: $exePath" }
 }
 if ($SourceDriver -ne "") { $SourceDriver = (Resolve-Path -LiteralPath $SourceDriver).Path }
-$xl = Join-Path $Root "release\xl.exe"
+$xl = Join-Path $Root "release\win_x64\xl.exe"
 $source = Join-Path $Root "test\cases\cgen_extern_function_value.xl"
 $runtimeHost = Join-Path $Root "test\cases\xlir_xcall_i64_host.c"
 $scalarSource = Join-Path $Root "test\cases\xlir_xcall_scalar_effect.xl"
@@ -70,8 +70,8 @@ foreach ( $path in @(
 New-Item -ItemType Directory -Force -Path $outputDir | Out-Null
 $runtimeDll = Join-Path $outputDir 'xl.dll'
 if (!(Test-Path -LiteralPath $runtimeDll) -or
-    (Get-FileHash (Join-Path $Root 'release/xl.dll')).Hash -ne (Get-FileHash $runtimeDll).Hash) {
-    Copy-Item -LiteralPath (Join-Path $Root 'release/xl.dll') -Destination $runtimeDll -Force
+    (Get-FileHash (Join-Path $Root 'release/win_x64/xl.dll')).Hash -ne (Get-FileHash $runtimeDll).Hash) {
+    Copy-Item -LiteralPath (Join-Path $Root 'release/win_x64/xl.dll') -Destination $runtimeDll -Force
 }
 
 Invoke-XlirLowered $source $json

@@ -18,17 +18,17 @@ $work = Join-Path $Root ('build/test/native_globals_' + [Guid]::NewGuid().ToStri
 $utf8 = [Text.UTF8Encoding]::new($false)
 [Console]::OutputEncoding = $utf8
 $xl = Join-Path $RuntimeDirectory 'xl.exe'
-$environment = @{XLANG_PACKAGE_PATH = Join-Path $Root 'release/extlibs'}
+$environment = @{XLANG_PACKAGE_PATH = Join-Path $Root 'release/win_x64/extlibs'}
 $checks = [Collections.Generic.List[object]]::new()
 $hashes = [ordered]@{}
 
 function InputPaths {
     foreach ($name in $Package) {
-        Get-ChildItem (Join-Path $Root "release/extlibs/$name") -Recurse -File | ForEach-Object FullName
+        Get-ChildItem (Join-Path $Root "release/win_x64/extlibs/$name") -Recurse -File | ForEach-Object FullName
     }
     # BZ2 的固定私有算法依赖也是本次编译的输入，不只记录薄绑定。
     if ($Package -contains 'bz2') {
-        Get-ChildItem (Join-Path $Root 'release/extlibs/_bzip2') -Recurse -File | ForEach-Object FullName
+        Get-ChildItem (Join-Path $Root 'release/win_x64/extlibs/_bzip2') -Recurse -File | ForEach-Object FullName
     }
     foreach ($path in @('lib/xrt/xrt.h','lib/xruntime/xruntime.h',
         'tools/check_extlib_native_globals.ps1','tools/check_extlib_native_globals.sh',
@@ -61,7 +61,7 @@ try {
         $fixtures = @('top_level')
         if ($name -in @('progress','roaring','trie')) { $fixtures += 'local_top_level_control' }
         foreach ($fixture in $fixtures) {
-            $source = "release/extlibs/$name/test/$fixture.xl"
+            $source = "release/win_x64/extlibs/$name/test/$fixture.xl"
             $label = if ($fixture -eq 'top_level') { $name } else { "$name-local" }
             $jit = Run "$label-jit" $xl @('run',$source) 90
             if ($jit.status -ne 'pass' -or $jit.stdout.Replace("`r`n","`n").TrimEnd("`n") -cne $expected) {

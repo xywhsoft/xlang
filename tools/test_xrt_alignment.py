@@ -17,7 +17,7 @@ class XrtAlignmentTests(unittest.TestCase):
         self.pin = "a" * 40
         self.impl, self.decl = b"implementation\n", b"declarations\n"
         self.write(self.root / "lib/xrt/xrt.h", self.impl)
-        self.write(self.root / "release/include/xrt_decl.h", self.decl)
+        self.write(self.root / "release/win_x64/include/xrt_decl.h", self.decl)
         self.write(self.xge / "extlibs/xrt/xrt.h", self.impl)
         self.write(self.xge / "extlibs/xrt/xrt_decl.h", self.decl)
         self.upstream = {"revision": self.pin, "dirty": False}

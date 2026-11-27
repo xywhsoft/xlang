@@ -24,8 +24,8 @@ IMPLEMENTATION_MARKERS = (
 # not be counted as missing core symbols or admitted by a name-prefix waiver.
 EXTERNAL_API_PRODUCTS = {
     "xacme": {
-        "declarations": "release/extlibs/xacme/upstream/xacme.h",
-        "provider": "release/extlibs/xacme/native/xacme_impl.c",
+        "declarations": "release/win_x64/extlibs/xacme/upstream/xacme.h",
+        "provider": "release/win_x64/extlibs/xacme/native/xacme_impl.c",
         "consumers": ("src/runtime/xl6_xacme.c", "src/runtime/xl6_xacme_abi.h"),
     },
 }

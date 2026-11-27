@@ -22,7 +22,7 @@ def main():
     if os.name!='nt': assert public['Complete'] and public['InputsUnchanged']
     cc=shutil.which('gcc'); assert cc
     driver=Path(public['Driver']); assert sha(driver).lower()==public['DriverSha256'].lower()
-    product=root/'release/xl.dll' if os.name=='nt' else Path(public['NativeRoot'])/'release/libxl.so'
+    product=root/'release/win_x64/xl.dll' if os.name=='nt' else Path(public['NativeRoot'])/'release/libxl.so'
     cases=(args.test_root.resolve() if args.test_root else root)/'test/cases'
     fixture=cases/'stdlib_list_algebra.xl'; continuation=cases/'stdlib_list_algebra_continuation.xl'
     contract=cases/'xlir_list_algebra_contract.c'

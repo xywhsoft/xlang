@@ -1,7 +1,7 @@
 param([string]$Root = "")
 $ErrorActionPreference = "Stop"
 if ($Root -eq "") { $Root = Split-Path -Parent $PSScriptRoot }
-$xl = Join-Path $Root 'release\xl.exe'
+$xl = Join-Path $Root 'release\win_x64\xl.exe'
 $fixtures = @(
     [pscustomobject]@{
         Name = 'cgen_c_callback_export'

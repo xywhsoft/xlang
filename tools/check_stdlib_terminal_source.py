@@ -15,7 +15,7 @@ def main():
     build,pinned,_=verify_public_build(root,public);windows=os.name=='nt';driver=Path(build['Driver'])
     fixtures=[root/'test/cases'/(name+'.xl') for name in ('stdlib_process_terminal_session','stdlib_process_terminal_event_order')]
     childSource=root/'test/cases/xlir_process_child.c'
-    native=root/'release/xl.dll' if windows else Path(build['NativeRoot'])/'release/libxl.so'
+    native=root/'release/win_x64/xl.dll' if windows else Path(build['NativeRoot'])/'release/libxl.so'
     pinned.update((Path(__file__).resolve(),Path(cc),childSource,native,*fixtures));inputs=[dict(Path=str(p),Sha256=sha(p)) for p in sorted(pinned)]
     out.mkdir();env=dict(os.environ);rows=[];lock=None
     if windows:shutil.copy2(native,out/'xl.dll')

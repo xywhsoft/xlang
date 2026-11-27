@@ -9,7 +9,7 @@ Push-Location $rootPath
 try {
     if (Test-Path -LiteralPath $Directory) { throw 'Use a new module ownership evidence directory' }
     New-Item -ItemType Directory -Path $Directory | Out-Null
-    Copy-Item -LiteralPath release/xl.dll -Destination (Join-Path $Directory 'xl.dll')
+    Copy-Item -LiteralPath release/win_x64/xl.dll -Destination (Join-Path $Directory 'xl.dll')
     $build = Get-Content -LiteralPath (Join-Path $PublicDirectory 'build.json') -Raw | ConvertFrom-Json
     if (!$build.SourceXrt) { throw 'Current source runtime is required' }
     $runtime = @($build.Objects | Where-Object { [IO.Path]::GetFileName($_.Path) -eq 'xrt_single_header_impl.o' })
@@ -65,7 +65,7 @@ try {
         $code=Invoke-XlirGccToLog ($flags+@("-O$level",'-c','test/cases/xlir_module_ownership_tcc_host.c','-o',"$prefix.o")) "$prefix.compile.log"
         if (!$code) {
             $resident=@('src/runtime/xl6_continuation_queue.c','src/runtime/xl6_continuation_executor.c','src/runtime/xl6_continuation_future.c','src/runtime/xl6_code_lease.c','src/runtime/xl6_closure.c','src/runtime/xl6_cell.c','src/runtime/xl6_slot.c','src/runtime/xl6_frame_storage.c','src/runtime/xl6_continuation_frame.c','src/runtime/xl6_future_wait.c','src/runtime/xl6_task.c','src/runtime/xl6_task_frame.c','src/runtime/xl6_task_pool.c','src/runtime/xl6_capture.c','src/runtime/xl6_value_iterator.c','src/runtime/xl6_future_callback.c','src/runtime/xl6_generator.c','src/runtime/xl6_future_payload.c')
-            $code=Invoke-XlirGccToLog ($flags+@("-O$level","$prefix.o")+$resident+$dependencies+@($runtime[0].Path,'release/xl.dll','-Wl,--gc-sections','-lWs2_32','-lIPHLPAPI','-lShell32','-lOle32','-lAdvapi32','-o',"$prefix.exe")) "$prefix.link.log"
+            $code=Invoke-XlirGccToLog ($flags+@("-O$level","$prefix.o")+$resident+$dependencies+@($runtime[0].Path,'release/win_x64/xl.dll','-Wl,--gc-sections','-lWs2_32','-lIPHLPAPI','-lShell32','-lOle32','-lAdvapi32','-o',"$prefix.exe")) "$prefix.link.log"
         }
         if (!$code) {
 $process = Start-Process -FilePath ([IO.Path]::GetFullPath("$prefix.exe")) -WorkingDirectory $rootPath -WindowStyle Hidden -PassThru -RedirectStandardOutput "$prefix.stdout.log" -RedirectStandardError "$prefix.stderr.log"

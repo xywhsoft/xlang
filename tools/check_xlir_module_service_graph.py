@@ -17,7 +17,7 @@ def main():
     root,public,out=(v.resolve() for v in (a.root,a.public_directory,a.out));assert not out.exists()
     build,pinned,compared=verify_public_build(root,public)
     cc=Path(shutil.which(a.compiler) or a.compiler).resolve();windows=os.name=='nt'
-    runtime=root/'release/xl.dll' if windows else Path(build['NativeRoot'])/'release/libxl.so'
+    runtime=root/'release/win_x64/xl.dll' if windows else Path(build['NativeRoot'])/'release/libxl.so'
     objects=[v['Path'] for v in build['Objects'] if Path(v['Path']).stem not in ('xlir_public_source_driver','xlir_public_source_linux_driver')]
     tests=dict(module=root/'test/cases/xlir_task_pool_graph_contract.c',pool=root/'test/cases/xlir_task_pool_graph_runtime.c',
         effects=root/'test/cases/xlir_runtime_operand_catalog.c')

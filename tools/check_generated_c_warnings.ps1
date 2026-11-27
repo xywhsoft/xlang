@@ -20,12 +20,12 @@ if ( $null -eq $compilerCommand ) {
     exit 1
 }
 
-$xl = Join-Path $Root "release\xl.exe"
+$xl = Join-Path $Root "release\win_x64\xl.exe"
 $outputDir = Join-Path $Root "build\test"
 $runtimeDir = Join-Path $outputDir "__xl_runtime"
-$runtimeHeader = Join-Path $Root "release\include\xl_runtime.h"
-$extlibAbiHeader = Join-Path $Root "release\include\xl_extlib_abi.h"
-$runtimeDeclarationHeader = Join-Path $Root "release\include\xruntime_decl.h"
+$runtimeHeader = Join-Path $Root "release\win_x64\include\xl_runtime.h"
+$extlibAbiHeader = Join-Path $Root "release\win_x64\include\xl_extlib_abi.h"
+$runtimeDeclarationHeader = Join-Path $Root "release\win_x64\include\xruntime_decl.h"
 if ( ! (Test-Path -LiteralPath $xl -PathType Leaf) ) {
     Write-Host "xl.exe not found: $xl"
     exit 1

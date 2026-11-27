@@ -15,7 +15,7 @@ def main():
     for item in build['Inputs']+build['Headers']+build['Objects']:assert sha(item['Path'])==item['Sha256'].lower(),item['Path']
     driver=Path(build['Driver']);assert sha(driver)==build['DriverSha256'].lower()
     cc=Path(shutil.which('gcc') or 'E:/software/w64devkit/bin/gcc.exe').resolve()
-    native=root/'release/xl.dll' if os.name=='nt' else Path(build['NativeRoot'])/'release/libxl.so'
+    native=root/'release/win_x64/xl.dll' if os.name=='nt' else Path(build['NativeRoot'])/'release/libxl.so'
     cases=('stdlib_channel_native_codecs','stdlib_channel_native_codec_dynamic','xlir_channel_codec_readonly',
         'stdlib_channel_native_codec_oom','stdlib_channel_native_codec_states','stdlib_channel_native_codec_projection_oom',
         'stdlib_future_union_value','stdlib_channel_native_codec_lifetime')

@@ -33,9 +33,9 @@ def main() -> int:
         cases = ['stdlib_array_algebra_language']
     if args.import_arrays:
         cases = ['stdlib_array_import_language']
-    runtime = root / ('release/xl.dll' if os.name == 'nt' else 'release/libxl.so')
-    compiler = root / ('release/xlc.dll' if os.name == 'nt' else 'release/libxlc.so')
-    cli = root / ('release/xl.exe' if os.name == 'nt' else 'release/xl')
+    runtime = root / ('release/win_x64/xl.dll' if os.name == 'nt' else 'release/libxl.so')
+    compiler = root / ('release/win_x64/xlc.dll' if os.name == 'nt' else 'release/libxlc.so')
+    cli = root / ('release/win_x64/xl.exe' if os.name == 'nt' else 'release/xl')
     files = {Path(__file__), Path(sys.executable), Path(cc), runtime, compiler, cli,
              root / 'lib/xrt/xrt.h', root / 'lib/xruntime/xruntime.h',
              root / 'test/cases/xlir_module_product_oom_host.c',

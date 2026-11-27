@@ -6,11 +6,11 @@ try {
     $source = 'test/cases/xlir_exit_route.xl'
     $prefix = 'build/test/xlir_exit_route'
     New-Item -ItemType Directory -Force -Path build/test | Out-Null
-    Copy-Item -LiteralPath release/xl.dll -Destination build/test/xl.dll -Force
+    Copy-Item -LiteralPath release/win_x64/xl.dll -Destination build/test/xl.dll -Force
     foreach ($stage in @('typed', 'lowered')) {
         $arguments = @('ir', $source, '--format', 'json', '--emit', "$prefix.$stage.json")
         if ($stage -eq 'lowered') { $arguments += '--lowered' }
-        & release/xl.exe @arguments
+        & release/win_x64/xl.exe @arguments
         if ($LASTEXITCODE -ne 0) { throw "Exit route $stage IR failed" }
         $ir = [IO.File]::ReadAllText("$prefix.$stage.json") | ConvertFrom-Json
         $routes = @($ir.exitPlans | Where-Object stepCount -gt 0)
@@ -22,14 +22,14 @@ try {
             }
         }
     }
-    & release/xl.exe ir $source --lowered --format text --emit "$prefix.lowered.txt"
+    & release/win_x64/xl.exe ir $source --lowered --format text --emit "$prefix.lowered.txt"
     if ($LASTEXITCODE -ne 0 -or !([IO.File]::ReadAllText("$prefix.lowered.txt").Contains('exit-step'))) {
         throw 'Text IR dump omitted exit steps'
     }
-    & release/xl.exe cgen $source --backend xlir --emit "$prefix.c" --emit-header "$prefix.h"
+    & release/win_x64/xl.exe cgen $source --backend xlir --emit "$prefix.c" --emit-header "$prefix.h"
     if ($LASTEXITCODE -ne 0) { throw 'Exit route Cgen/header failed' }
     $header = [IO.File]::ReadAllText("$prefix.h")
-    & release/xl.exe cgen $source --backend xlir --emit "$prefix.repeat.c" --emit-header "$prefix.h"
+    & release/win_x64/xl.exe cgen $source --backend xlir --emit "$prefix.repeat.c" --emit-header "$prefix.h"
     if ($LASTEXITCODE -ne 0 -or [IO.File]::ReadAllText("$prefix.c") -cne [IO.File]::ReadAllText("$prefix.repeat.c") -or
         [IO.File]::ReadAllText("$prefix.h") -cne $header) { throw 'Exit route C/header output is not deterministic' }
     $strict = @('-std=c11', '-Wall', '-Wextra', '-Werror', '-O0', '-Wno-unused-function',
@@ -44,7 +44,7 @@ try {
         'src/sem/xl6_sem.c','src/sem/xl6_protocol.c','src/sem/xl6_type_registry.c',
         'src/sem/xl6_sem_docs.c','src/sem/xl6_sem_field_attrs.c',
         'src/stdlib/xl6_stdlib.c','src/stdlib/xl6_stdlib_data.c')
-    & gcc @strict test/cases/xlir_exit_route_contract.c @compilerSources release/xl.dll -o "$prefix.contract.exe"
+    & gcc @strict test/cases/xlir_exit_route_contract.c @compilerSources release/win_x64/xl.dll -o "$prefix.contract.exe"
     if ($LASTEXITCODE -ne 0) { throw 'Exit route verifier unit build failed' }
     & "$prefix.contract.exe"
     if ($LASTEXITCODE -ne 0) { throw 'Exit route topology or verifier mutation failed' }

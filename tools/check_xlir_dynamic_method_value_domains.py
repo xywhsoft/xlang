@@ -22,7 +22,7 @@ def main():
         'cgen_generic_dynamic_method.xl')]
     noDomains=project/'test/cases/cgen_dynamic_method_no_domains.xl'
     fixtures.append(noDomains)
-    native=root/'release/xl.dll' if os.name=='nt' else Path(build['NativeRoot'])/'release/libxl.so'
+    native=root/'release/win_x64/xl.dll' if os.name=='nt' else Path(build['NativeRoot'])/'release/libxl.so'
     host=root/'test/cases/xlir_module_product_oom_host.c';memory=root/'test/support/module_product_memory.c'
     pinned.update((Path(__file__).resolve(),contract,native,host,memory,*fixtures,Path(cc)))
     inputs=[dict(Path=str(path),Sha256=sha(path)) for path in sorted(pinned)]

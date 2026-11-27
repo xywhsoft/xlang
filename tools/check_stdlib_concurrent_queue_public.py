@@ -63,7 +63,7 @@ def main():
                 assert data['SourceXrt'] and not data['RuntimeOnly'] and data['EnableExeCompiler']
                 cli = Path(data['Driver'])
                 assert digest(cli) == data['DriverSha256'].lower()
-        files.add(root / 'release/xl.dll')
+        files.add(root / 'release/win_x64/xl.dll')
         private_include = public / 'include'
     else:
         files.update(root / ('release/' + name) for name in ('libxl.so', 'libxlc.so'))

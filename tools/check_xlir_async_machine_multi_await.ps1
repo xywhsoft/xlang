@@ -9,7 +9,7 @@ if ( $Root -eq "" ) {
     $Root = Split-Path -Parent $PSScriptRoot
 }
 
-$xl = Join-Path $Root "release\xl.exe"
+$xl = Join-Path $Root "release\win_x64\xl.exe"
 $outputDir = if ($OutputDirectory) { [System.IO.Path]::GetFullPath($OutputDirectory) } else { Join-Path $Root "build\tmp" }
 $generatedDir = if ($OutputDirectory) { $outputDir } else { Join-Path $Root "build\test" }
 $cases = @(

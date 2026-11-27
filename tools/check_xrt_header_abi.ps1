@@ -19,7 +19,7 @@ if ( $null -eq $compilerCommand ) {
     exit 1
 }
 
-$include = Join-Path $Root "release\include"
+$include = Join-Path $Root "release\win_x64\include"
 $xrtInclude = Join-Path $Root "lib\xrt"
 $source = @'
 #define XL6_C_API

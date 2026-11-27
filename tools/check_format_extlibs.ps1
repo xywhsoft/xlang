@@ -14,7 +14,7 @@ if (-not (Get-Command gcc -ErrorAction SilentlyContinue)) {
 }
 
 function Get-PackageSourceClosure([string]$packageName) {
-    $packageRoot = Join-Path $root ('release\extlibs\' + $packageName)
+    $packageRoot = Join-Path $root ('release\win_x64\extlibs\' + $packageName)
     $manifestPath = Join-Path $packageRoot 'xlang.package.json'
     $manifest = Get-Content -Raw -LiteralPath $manifestPath | ConvertFrom-Json
     $sourceFiles = @(Get-ChildItem -LiteralPath $packageRoot -Recurse -File |
@@ -82,15 +82,15 @@ $includePaths = @(
     (Join-Path $root 'lib\xruntime')
 )
 foreach ($packageName in $publicPackages) {
-    $packageRoot = Join-Path $root ('release\extlibs\' + $packageName)
+    $packageRoot = Join-Path $root ('release\win_x64\extlibs\' + $packageName)
     $includePaths += $packageRoot
     $includePaths += Join-Path $packageRoot 'include'
 }
-$includePaths += Join-Path $root 'release\extlibs\_zlib\third_party\zlib'
-$includePaths += Join-Path $root 'release\extlibs\_bzip2\third_party\bzip2'
-$includePaths += Join-Path $root 'release\extlibs\_libzip\third_party\libzip\lib'
-$includePaths += Join-Path $root 'release\extlibs\_expat\vendor\expat\lib'
-$includePaths += Join-Path $root 'release\extlibs\_tomlc17\src'
+$includePaths += Join-Path $root 'release\win_x64\extlibs\_zlib\third_party\zlib'
+$includePaths += Join-Path $root 'release\win_x64\extlibs\_bzip2\third_party\bzip2'
+$includePaths += Join-Path $root 'release\win_x64\extlibs\_libzip\third_party\libzip\lib'
+$includePaths += Join-Path $root 'release\win_x64\extlibs\_expat\vendor\expat\lib'
+$includePaths += Join-Path $root 'release\win_x64\extlibs\_tomlc17\src'
 
 $commonArguments = @(
     '-std=c11', '-D_WIN32_WINNT=0x0601', '-Wall', '-Wextra', '-Werror',
@@ -102,7 +102,7 @@ foreach ($includePath in $includePaths) {
 
 $compiledCount = 0
 foreach ($packageName in $publicPackages) {
-    $packageRoot = Join-Path $root ('release\extlibs\' + $packageName)
+    $packageRoot = Join-Path $root ('release\win_x64\extlibs\' + $packageName)
     foreach ($sourceFile in Get-ChildItem -LiteralPath $packageRoot -File -Filter '*.c') {
         & gcc @commonArguments $sourceFile.FullName
         if ($LASTEXITCODE -ne 0) {

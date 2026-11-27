@@ -27,7 +27,7 @@ def main():
     assert all(sha(row['Path']) == row['Sha256'].lower() for row in build['Inputs'] + build['Objects'] + build['Headers'])
     driver = Path(build['Driver']);assert sha(driver) == build['DriverSha256'].lower()
     cc = Path(shutil.which('gcc')).resolve();sdk = driver.parent / 'include'
-    runtime = root / 'release/xl.dll' if os.name == 'nt' else Path(build['NativeRoot']) / 'release/libxl.so'
+    runtime = root / 'release/win_x64/xl.dll' if os.name == 'nt' else Path(build['NativeRoot']) / 'release/libxl.so'
     contract = root / 'test/cases/xlir_net_frame_contract.c';artifact = root / 'test/support/container_projection_artifact.c'
     memory = root / 'test/support/module_product_memory.c';host = root / 'test/cases/xlir_module_product_oom_host.c'
     atomic = root / 'test/cases/xlir_net_frame_atomic_host.c'

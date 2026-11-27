@@ -5,7 +5,7 @@ p=argparse.ArgumentParser();p.add_argument('--compiler-root',required=True);p.ad
 compiler=Path(a.compiler_root).resolve();work=Path(a.work_root).resolve()/('tcc-input-transport-'+str(uuid.uuid4()));work.mkdir(parents=True)
 shutil.copy2(__file__,work/'check_tcc_input_transport.py')
 header=work/'changing.h';header.write_bytes(b'#define VALUE 1\n')
-dll=ctypes.CDLL(str(compiler/'release/xlc.dll'));buffers={};reads=[];errors=[]
+dll=ctypes.CDLL(str(compiler/'release/win_x64/xlc.dll'));buffers={};reads=[];errors=[]
 byte_pointer=ctypes.POINTER(ctypes.c_ubyte)
 Reader=ctypes.CFUNCTYPE(ctypes.c_int,ctypes.c_void_p,ctypes.c_char_p,ctypes.POINTER(byte_pointer),ctypes.POINTER(ctypes.c_size_t))
 @Reader
@@ -41,5 +41,5 @@ else: error=None
 finally:
  if state: dll.tcc_delete(state)
  dll.tcc_vfs_set_disk_reader(Reader(),None);os.chdir(old)
-report={'status':'passed' if error is None else 'failed','scope':'tcc-disk-reader-transport','error':error,'checks':checks,'reads':reads,'callbackErrors':errors,'headerOriginalSha256':hashlib.sha256(b'#define VALUE 1\n').hexdigest(),'headerChangedSha256':hashlib.sha256(header.read_bytes()).hexdigest(),'compilerDllSha256':hashlib.sha256((compiler/'release/xlc.dll').read_bytes()).hexdigest()}
+report={'status':'passed' if error is None else 'failed','scope':'tcc-disk-reader-transport','error':error,'checks':checks,'reads':reads,'callbackErrors':errors,'headerOriginalSha256':hashlib.sha256(b'#define VALUE 1\n').hexdigest(),'headerChangedSha256':hashlib.sha256(header.read_bytes()).hexdigest(),'compilerDllSha256':hashlib.sha256((compiler/'release/win_x64/xlc.dll').read_bytes()).hexdigest()}
 (work/'evidence.json').write_text(json.dumps(report,ensure_ascii=False,indent=2),encoding='utf8');print(work,report['status'],error or '');raise SystemExit(0 if error is None else 1)

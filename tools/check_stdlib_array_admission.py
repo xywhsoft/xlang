@@ -40,7 +40,7 @@ def main() -> int:
     sources.append('src/api/xl_foreign_error.c')
     files += [root / name for name in sources]
     files.append(root / 'src/api/xl_foreign_error.h')
-    product = root / ("release/xl.dll" if os.name == "nt" else "release/libxl.so")
+    product = root / ("release/win_x64/xl.dll" if os.name == "nt" else "release/libxl.so")
     if args.shared:
         files += [product]
         if objdump:

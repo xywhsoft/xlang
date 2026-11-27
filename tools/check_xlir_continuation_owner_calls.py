@@ -33,7 +33,7 @@ def main():
     assert {'src/ir/xl6_ir.c','src/ir/xl6_ir_ownership.c','src/runtime/xl6_continuation_future.c'}<=production
     objects=[r['Path'] for r in b['Objects'] if Path(r['Path']).stem not in driver_names];assert len(objects)>600
     observed=[v for v in objects if Path(v).name!='xl6_continuation_future.o'];assert len(observed)==len(objects)-1
-    runtime=root/'release/xl.dll' if windows else Path(b['NativeRoot'])/'release/libxl.so';pinned.add(runtime)
+    runtime=root/'release/win_x64/xl.dll' if windows else Path(b['NativeRoot'])/'release/libxl.so';pinned.add(runtime)
     if windows:assert sha(runtime)==b['RuntimeSha256'].lower()
     case=root/'test/cases';contract=case/'xlir_continuation_owner_calls_contract.c'
     runtime_sources=[case/name for name in ('xlir_continuation_owner_calls_runtime.c','xlir_continuation_owner_calls_host.c',

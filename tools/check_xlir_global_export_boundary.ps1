@@ -8,7 +8,7 @@ if ( $Root -eq "" ) {
     $Root = Split-Path -Parent $PSScriptRoot
 }
 
-$xl = Join-Path $Root "release\xl.exe"
+$xl = Join-Path $Root "release\win_x64\xl.exe"
 $source = Join-Path $Root "test\cases\export_vars.xl"
 $hostSource = Join-Path $Root "test\cases\xlir_global_export_boundary_host.c"
 $outputDir = Join-Path $Root "build\test"

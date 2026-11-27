@@ -18,7 +18,7 @@ def main():
     for v in b['Inputs']+b['Headers']+b['Objects']: assert sha(v['Path'])==v['Sha256'].lower(),v['Path']
     driver=Path(b['Driver']);assert sha(driver)==b['DriverSha256'].lower()
     cc=Path(shutil.which('gcc') or 'E:/software/w64devkit/bin/gcc.exe').resolve()
-    native=root/'release/xl.dll' if os.name=='nt' else Path(b['NativeRoot'])/'release/libxl.so'
+    native=root/'release/win_x64/xl.dll' if os.name=='nt' else Path(b['NativeRoot'])/'release/libxl.so'
     cases=('xlir_null_value_comparison','xlir_null_value_comparison_async','xlir_null_comparison_cleanup')
     regression=('stdlib_promise','stdlib_promise_values','stdlib_promise_terminal','stdlib_promise_dynamic',
         'stdlib_promise_owned','stdlib_promise_unit','stdlib_promise_dynamic_null','stdlib_promise_generic_field',

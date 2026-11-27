@@ -31,7 +31,7 @@ def main():
         *sorted((root/'src/runtime').glob('*.h')),*sorted((root/'src/common').glob('*.h')),
         *sorted((root/'src/api').glob('*.h')),*sorted((root/'release/win_x64/include').glob('*.h'))]}
     if a.tcc_contexts:
-        inputs.update({str(path):sha(path) for path in (root/'release/xl.exe',root/'release/xlc.dll')})
+        inputs.update({str(path):sha(path) for path in (root/'release/win_x64/xl.exe',root/'release/win_x64/xlc.dll')})
     env=dict(os.environ,TEMP=str(out/'tmp'),TMP=str(out/'tmp'),TMPDIR=str(out/'tmp'))
     env['PATH']=str(runtime.parent)+os.pathsep+env.get('PATH','')
     if a.sanitize:
@@ -62,9 +62,9 @@ def main():
                 run(opt+'-'+case,[exe,*([] if case=='all' else [case])])
     if a.tcc_contexts:
         common=[*sources,'--inc-path',root,'--inc-path',root/'release']
-        run('tcc-jit',[root/'release/xl.exe','run',*common])
+        run('tcc-jit',[root/'release/win_x64/xl.exe','run',*common])
         product=out/'tcc-linked.exe'
-        if run('tcc-aot-build',[root/'release/xl.exe','build',*common,'-o',product,
+        if run('tcc-aot-build',[root/'release/win_x64/xl.exe','build',*common,'-o',product,
             '--lib-path',runtime.parent,'--link',runtime.stem,'--input-report',out/'tcc-input.json']):
             run('tcc-aot-run',[product])
     report['inputsUnchanged']=all(sha(Path(path))==value for path,value in inputs.items())

@@ -90,9 +90,9 @@ def main():
               '-Wall', '-Wextra', '-Werror', '-Wno-unused-function', '-Wno-unused-label',
               '-Wno-unused-variable', '-Wno-unused-parameter', '-Wno-unused-const-variable',
               '-Wno-unused-but-set-variable', '-Wno-missing-field-initializers', '-Wno-pointer-sign', '-Wno-format-truncation']
-    libraries = [root/'release/xl.dll', '-lws2_32', '-liphlpapi', '-lshell32', '-lole32', '-ladvapi32'] if windows else [
+    libraries = [root/'release/win_x64/xl.dll', '-lws2_32', '-liphlpapi', '-lshell32', '-lole32', '-ladvapi32'] if windows else [
         '-L'+str(native/'release'), '-lxl', '-Wl,-rpath,'+str(native/'release'), '-Wl,--export-dynamic', '-pthread', '-ldl', '-lm']
-    if windows: shutil.copyfile(root/'release/xl.dll', work/'xl.dll')
+    if windows: shutil.copyfile(root/'release/win_x64/xl.dll', work/'xl.dll')
     contract = work/('return-projection-contract'+suffix)
     generated, header = work/'return-projection.c', work/'return-projection.h'
     contract_ready = archive_ready and compile_c('contract-build', [*flags, '-O2',
@@ -103,7 +103,7 @@ def main():
             assert generated.read_bytes() == repeat_c.read_bytes() and header.read_bytes() == repeat_h.read_bytes()
         host = work/'return-projection-host.c'
         text = (cases/'xlir_return_projection_owner_host.c').read_text(encoding='utf-8-sig')
-        for original, target in [('../../release/include/xrt_decl.h', root/'release/include/xrt_decl.h'),
+        for original, target in [('../../release/win_x64/include/xrt_decl.h', root/'release/win_x64/include/xrt_decl.h'),
                                  ('../../build/test/xlir_return_projection_owner.h', header)]:
             assert text.count(original) == 1
             text = text.replace(original, target.as_posix())

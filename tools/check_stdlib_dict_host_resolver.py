@@ -27,7 +27,7 @@ def main():
   files.update(p for p in (root/folder).rglob('*') if p.is_file())
  for row in build['Inputs']+build['Headers']+build['Objects']:
   assert sha(row['Path'])==row['Sha256'].lower(),row['Path']; files.add(Path(row['Path']))
- runtime=root/'release/xl.dll' if os.name=='nt' else Path(build['NativeRoot'])/'release/libxl.so'
+ runtime=root/'release/win_x64/xl.dll' if os.name=='nt' else Path(build['NativeRoot'])/'release/libxl.so'
  files.add(runtime); inputs=[dict(Path=str(f),Sha256=sha(f)) for f in sorted(files)]
  out.mkdir(); rows=[]; products=[]; objects=[]; controls=[]; prefixes=[]; env=dict(os.environ)
  if os.name=='nt': shutil.copy2(runtime,out/'xl.dll')

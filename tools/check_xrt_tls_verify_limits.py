@@ -15,7 +15,7 @@ def main():
     tcc=Path(shutil.which('tcc') or 'E:/software/tcc/tcc.exe').resolve()
     paths=[Path(__file__),gcc,tcc,root/'test/support/tls_verify_limits_snapshot.c',root/'tools/x509_path_fixtures.py',root/'tools/check_key_format_wire.py',
         *[root/'test/support'/('crypto_'+name+'_runtime.c') for name in ['rsa','nist','ed25519','xdh']],
-        root/'lib/xrt/xrt.h',root/'lib/xruntime/xruntime.h',root/'release/include/xrt_decl.h',root/'release/include/xruntime_decl.h',
+        root/'lib/xrt/xrt.h',root/'lib/xruntime/xruntime.h',root/'release/win_x64/include/xrt_decl.h',root/'release/win_x64/include/xruntime_decl.h',
         root/'lib/xrt/backports/tls_verifier_limits.json']
     assert fixtures(root,out)==4
     report=dict(Complete=False,Inputs={str(p):sha(p) for p in paths},Rows=[],Failures=[],CryptographyVersion=cryptography.__version__,

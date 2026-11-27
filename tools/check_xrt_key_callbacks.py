@@ -26,12 +26,12 @@ def main():
     for product in ('xrt', 'xruntime'):
         inputs.extend([root / f'lib/{product}/{product}.h',
                        root / f'lib/{product}/{product}.snapshot.json',
-                       root / f'release/include/{product}_decl.h'])
+                       root / f'release/win_x64/include/{product}_decl.h'])
     before = {str(path): sha(path) for path in inputs}
     for product in ('xrt', 'xruntime'):
         metadata = json.loads((root / f'lib/{product}/{product}.snapshot.json').read_text())
         for section, path in [('implementation', root / f'lib/{product}/{product}.h'),
-                              ('declarations', root / f'release/include/{product}_decl.h')]:
+                              ('declarations', root / f'release/win_x64/include/{product}_decl.h')]:
             assert metadata[section]['sha256'].lower() == sha(path)
             assert metadata[section]['bytes'] == path.stat().st_size
     rows = []
@@ -61,7 +61,7 @@ def main():
                 else:
                     command += ['-' + mode]
                 if declaration_first:
-                    command += ['-include', str(root / f'release/include/{product}_decl.h')]
+                    command += ['-include', str(root / f'release/win_x64/include/{product}_decl.h')]
                 command += ['-include', str(root / f'lib/{product}/{product}.h'), str(source)]
                 if os.name != 'nt':
                     command += ['-pthread', '-lm', '-ldl']

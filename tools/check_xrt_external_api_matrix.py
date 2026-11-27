@@ -21,7 +21,7 @@ def main():
         provider.write_text('/* Static fixture, never compiled or executed. */\n')
         consumer=fixture/contract['consumers'][0];consumer.parent.mkdir(parents=True)
         consumer.write_text('void f(void) { xrtAcmeKnown(); }\n')
-        runtime=fixture/'release/include/xl_runtime.h';runtime.parent.mkdir(parents=True);runtime.write_text('')
+        runtime=fixture/'release/win_x64/include/xl_runtime.h';runtime.parent.mkdir(parents=True);runtime.write_text('')
         section='/* public: extlibs/xacme/include/xrt/acme.h */\n'
         prototype='XRT_API bool xrtAcmeKnown(void);\n'
         marker='#if defined(XACME_IMPLEMENTATION) && !defined(XACME_IMPLEMENTATION_ONCE)\n'

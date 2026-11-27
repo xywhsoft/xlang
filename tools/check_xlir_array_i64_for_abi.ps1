@@ -9,7 +9,7 @@ if ( $Root -eq "" ) {
     $Root = Split-Path -Parent $PSScriptRoot
 }
 
-$xl = Join-Path $Root "release\xl.exe"
+$xl = Join-Path $Root "release\win_x64\xl.exe"
 $source = Join-Path $Root "test\cases\xlir_array_i64_for_abi.xl"
 $rejectSource = Join-Path $Root "test\cases\cgen_xlir_array_i64_for_escape_reject.xl"
 $compatSource = Join-Path $Root "test\cases\cgen_export_typed_container_abi.xl"

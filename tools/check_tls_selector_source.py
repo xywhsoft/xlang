@@ -23,7 +23,7 @@ def main():
     else:
         fixtureDir.mkdir();from tls_selector_fixtures import fixtures;cases,empty=fixtures(root,fixtureDir)
     cases.append(empty)
-    runtime=root/'release/xl.dll' if os.name=='nt' else Path(build['NativeRoot'])/'release/libxl.so'
+    runtime=root/'release/win_x64/xl.dll' if os.name=='nt' else Path(build['NativeRoot'])/'release/libxl.so'
     env=dict(os.environ)
     if os.name=='nt':shutil.copy2(runtime,out/'xl.dll')
     else:env['XL6_SOURCE_NATIVE_ROOT']=build['NativeRoot']

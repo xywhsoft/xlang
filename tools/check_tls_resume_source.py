@@ -31,7 +31,7 @@ def main():
     for name,text in negativeBodies.items():
         file=out/('reject_'+name+'.xl');file.write_text(text,encoding='utf8');negatives.append(file)
     cc=Path(shutil.which('gcc') or 'E:/software/w64devkit/bin/gcc.exe').resolve()
-    runtime=root/'release/xl.dll' if os.name=='nt' else Path(build['NativeRoot'])/'release/libxl.so'
+    runtime=root/'release/win_x64/xl.dll' if os.name=='nt' else Path(build['NativeRoot'])/'release/libxl.so'
     if os.name=='nt':shutil.copy2(runtime,out/'xl.dll')
     env=dict(os.environ)
     if os.name!='nt':env['XL6_SOURCE_NATIVE_ROOT']=build['NativeRoot']

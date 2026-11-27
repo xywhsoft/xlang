@@ -16,7 +16,7 @@ try {
     }
     $flags = @('-std=c11','-Wall','-Wextra','-Werror','-Wno-unused-function','-Wno-unused-variable','-Wno-unused-parameter',
         '-Wno-unused-label','-Wno-unused-but-set-variable','-Wno-unused-const-variable','-Wno-missing-field-initializers','-I.','-Ibuild/test')
-    & gcc @flags test/cases/xlir_xcall_expression_host.c test/cases/xlir_xcall_expression_memory.c release/xl.dll -o "$prefix.exe"
+    & gcc @flags test/cases/xlir_xcall_expression_host.c test/cases/xlir_xcall_expression_memory.c release/win_x64/xl.dll -o "$prefix.exe"
     if ($LASTEXITCODE -ne 0) { throw 'XCall expression strict host build failed' }
     & "$prefix.exe"
     if ($LASTEXITCODE -ne 0) { throw 'XCall expression ownership/evaluation failed' }

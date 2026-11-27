@@ -14,7 +14,7 @@ def main():
     build=json.loads((public/'build.json').read_text(encoding='utf-8-sig'))
     assert build.get('Complete',os.name=='nt') and build['SourceXrt'] and not build['RuntimeOnly'] and not out.exists()
     cc=shutil.which('gcc'); assert cc
-    runtime=root/'release/xl.dll' if os.name=='nt' else Path(build['NativeRoot'])/'release/libxl.so'
+    runtime=root/'release/win_x64/xl.dll' if os.name=='nt' else Path(build['NativeRoot'])/'release/libxl.so'
     files={Path(__file__).resolve(),public/'build.json',Path(cc),runtime,
         root/'test/cases/xlir_channel_recipe_contract.c',root/'test/cases/stdlib_channel_recipes.xl'}
     files.update(root/'test/cases'/name for name in

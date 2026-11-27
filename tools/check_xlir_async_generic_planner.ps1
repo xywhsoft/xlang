@@ -8,7 +8,7 @@ if ( $Root -eq "" ) {
     $Root = Split-Path -Parent $PSScriptRoot
 }
 
-$xl = Join-Path $Root "release\xl.exe"
+$xl = Join-Path $Root "release\win_x64\xl.exe"
 $source = Join-Path $Root "test\cases\xlir_async_generic_expression_planner.xl"
 $hostSource = Join-Path $Root "test\cases\xlir_async_generic_expression_planner_host.c"
 $irHeader = Join-Path $Root "src\ir\xl6_ir.h"

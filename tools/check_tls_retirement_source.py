@@ -24,7 +24,7 @@ def main():
     for case in cases:
         destination=inputs/case.name;shutil.copy2(case,destination);selected.append(destination)
     cc=Path(shutil.which('gcc') or 'E:/software/w64devkit/bin/gcc.exe').resolve();driver=Path(build['Driver'])
-    runtime=root/'release/xl.dll' if os.name=='nt' else Path(build['NativeRoot'])/'release/libxl.so'
+    runtime=root/'release/win_x64/xl.dll' if os.name=='nt' else Path(build['NativeRoot'])/'release/libxl.so'
     env=dict(os.environ)
     if os.name=='nt':shutil.copy2(runtime,out/'xl.dll')
     else:env['XL6_SOURCE_NATIVE_ROOT']=build['NativeRoot']
@@ -43,7 +43,7 @@ def main():
     pinned.update((Path(__file__).resolve(),cc,runtime,*tests,ffi,host,*cases,*selected,*negative,
         controls/'test/cases/xlir_direct_bridge_unit.c'))
     forbidden=('xl6_xrt_tls_','XL6_TlsConfig','xl6ExtlibTlsLease','xlir_net_tls_stream_wrap_owned')
-    sdk=controls/'release/include/xl_extlib_abi.h';pinned.add(sdk)
+    sdk=controls/'release/win_x64/include/xl_extlib_abi.h';pinned.add(sdk)
     assert 'XL6_TlsLease' not in sdk.read_text(encoding='utf8')
     for name in ('xl6_cgen_tls.c','xl6_cgen_tls_stream.c','xl6_cgen_tls.h'):
         assert not (root/'src/cgen'/name).exists()

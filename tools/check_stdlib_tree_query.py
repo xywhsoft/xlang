@@ -17,7 +17,7 @@ def main():
     build=json.loads((public/'build.json').read_text(encoding='utf-8-sig'))
     cc=shutil.which('gcc'); nm=shutil.which('nm'); driver=Path(build['Driver'])
     assert cc and nm and not out.exists() and build['SourceXrt'] and not build['RuntimeOnly']
-    runtime=root/'release/xl.dll' if os.name=='nt' else Path(build['NativeRoot'])/'release/libxl.so'
+    runtime=root/'release/win_x64/xl.dll' if os.name=='nt' else Path(build['NativeRoot'])/'release/libxl.so'
     host=root/'test/cases/stdlib_tree_query_native.c'; provider=root/'src/runtime/xl6_tree.c'
     memory=root/'test/support/module_product_memory.c'; artifact=root/'test/cases/xlir_artifact_runtime_contract.c'
     contract=root/'test/cases/xlir_tree_native_contract.c'; oldHost=root/'test/cases/stdlib_tree_native_host.c'

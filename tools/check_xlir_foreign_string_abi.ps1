@@ -2,7 +2,7 @@
 
 $ErrorActionPreference = "Stop"
 if ($Root -eq "") { $Root = Split-Path -Parent $PSScriptRoot }
-$xl = Join-Path $Root "release\xl.exe"
+$xl = Join-Path $Root "release\win_x64\xl.exe"
 $source = "test\cases\xlir_foreign_string_abi.xl"
 $hostSource = "test\cases\xlir_foreign_string_abi_host.c"
 $jsonPath = "build\test\xlir_foreign_string_abi.json"

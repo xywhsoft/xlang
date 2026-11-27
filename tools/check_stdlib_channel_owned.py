@@ -11,7 +11,7 @@ def main():
     build=json.loads((public/'build.json').read_text(encoding='utf-8-sig'))
     assert build.get('Complete',os.name=='nt') and build['SourceXrt'] and not build['RuntimeOnly'] and not out.exists()
     cc=shutil.which('gcc'); assert cc
-    driver=Path(build['Driver']); runtime=root/'release/xl.dll' if os.name=='nt' else Path(build['NativeRoot'])/'release/libxl.so'
+    driver=Path(build['Driver']); runtime=root/'release/win_x64/xl.dll' if os.name=='nt' else Path(build['NativeRoot'])/'release/libxl.so'
     cases=('stdlib_channel_owned','stdlib_channel_owned_wait')
     negative=('retired','extra','timeout_named','timeout_type')
     files={Path(__file__).resolve(),public/'build.json',Path(cc),runtime,driver}

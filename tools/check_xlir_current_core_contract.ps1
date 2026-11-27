@@ -3,7 +3,7 @@ param([string]$Root = "")
 $ErrorActionPreference = "Stop"
 if ( $Root -eq "" ) { $Root = Split-Path -Parent $PSScriptRoot }
 $Root = (Resolve-Path -LiteralPath $Root).Path
-$xl = Join-Path $Root "release\xl.exe"
+$xl = Join-Path $Root "release\win_x64\xl.exe"
 $outputDir = Join-Path $Root "build\tmp"
 [System.IO.Directory]::CreateDirectory($outputDir) | Out-Null
 

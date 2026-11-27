@@ -30,9 +30,9 @@ def main():
     cc = Path(shutil.which('gcc') or '')
     if not cc.is_file():
         parser.error('gcc required')
-    runtime = root / ('release/xl.dll' if os.name == 'nt' else 'release/libxl.so')
-    compiler = root / ('release/xlc.dll' if os.name == 'nt' else 'release/libxlc.so')
-    cli = root / ('release/xl.exe' if os.name == 'nt' else 'release/xl')
+    runtime = root / ('release/win_x64/xl.dll' if os.name == 'nt' else 'release/libxl.so')
+    compiler = root / ('release/win_x64/xlc.dll' if os.name == 'nt' else 'release/libxlc.so')
+    cli = root / ('release/win_x64/xl.exe' if os.name == 'nt' else 'release/xl')
     cases = ['stdlib_error_span', 'stdlib_error_span_continuation', 'stdlib_memory_error', 'stdlib_error_text',
              'cgen_error_model', 'xlir_error_location_abi', 'xlir_async_error_abi',
              'cgen_error_value_lifetime', 'cgen_error_member_lifetime', 'xlir_error_result_string_call']

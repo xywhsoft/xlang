@@ -68,7 +68,7 @@ def main():
              root / 'tools/check_xlir_resident_catalog.py', root / 'tools/xlir_public_build_inputs.py',
              task / 'tools/stage_stdlib_process_observer.py', task / 'test/support/process_product_observer.h',
              root / 'tools/xrt_single_header_impl.c', root / 'lib/xrt/xrt.h', root / 'lib/xruntime/xruntime.h',
-             root / 'release/include/xruntime_decl.h', root / 'src/api/xl_foreign_error.c',
+             root / 'release/win_x64/include/xruntime_decl.h', root / 'src/api/xl_foreign_error.c',
              child_source, *sources.values()}
     files.update(p for p in (root / 'src').rglob('*') if p.suffix in ('.h', '.inc'))
     files.update((root / 'src/runtime').glob('*.c'))
@@ -146,7 +146,7 @@ def main():
             if key not in cache:
                 obj = objects_dir / (opt + '.' + Path(path).stem + '.o')
                 run(opt + '.unit.' + Path(path).stem,
-                    [cc, *flags, '-include', root / 'release/include/xruntime_decl.h', '-' + opt,
+                    [cc, *flags, '-include', root / 'release/win_x64/include/xruntime_decl.h', '-' + opt,
                      '-c', root / path, '-o', obj])
                 cache[key] = obj
             result.append(cache[key])

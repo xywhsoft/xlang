@@ -1,7 +1,7 @@
 $ErrorActionPreference = "Stop"
 
 $root = Split-Path $PSScriptRoot -Parent
-$xl = Join-Path $root "release\xl.exe"
+$xl = Join-Path $root "release\win_x64\xl.exe"
 $source = Join-Path $root "test\cases\stdlib_special_collections_concurrent.xl"
 $typedJson = Join-Path $root "build\tmp\xlir_special_queue_resource_abi.typed.json"
 $loweredJson = Join-Path $root "build\tmp\xlir_special_queue_resource_abi.lowered.json"

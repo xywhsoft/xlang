@@ -21,7 +21,7 @@ def main():
     if os.name!='nt': assert public['Complete'] and public['InputsUnchanged']
     cc=shutil.which('gcc'); assert cc
     driver=Path(public['Driver']); assert sha(driver).lower()==public['DriverSha256'].lower()
-    product=root/'release/xl.dll' if os.name=='nt' else Path(public['NativeRoot'])/'release/libxl.so'
+    product=root/'release/win_x64/xl.dll' if os.name=='nt' else Path(public['NativeRoot'])/'release/libxl.so'
     cases=(a.test_root.resolve() if a.test_root else root)/'test/cases'
     fixture=cases/'stdlib_value_copy.xl'; continuation=cases/'stdlib_value_copy_continuation.xl'
     leaf=cases/'stdlib_value_copy_leaf.xl'; contract=cases/'xlir_value_copy_contract.c'

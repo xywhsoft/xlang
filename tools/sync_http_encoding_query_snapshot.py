@@ -34,7 +34,7 @@ def main():
     for path,data in updates:metadata._write_if_changed(path,data)
     core=set(metadata._api_names(root/'lib/xrt/xrt.h'))
     for product in ['xrt','xruntime']:
-        impl=root/f'lib/{product}/{product}.h';decl=root/f'release/include/{product}_decl.h';names=set(metadata._api_names(impl))
+        impl=root/f'lib/{product}/{product}.h';decl=root/f'release/win_x64/include/{product}_decl.h';names=set(metadata._api_names(impl))
         prefix='xrt/single/' if product=='xrt' else 'xrt/extlibs/xruntime/single/'
         value=metadata._metadata(product,prefix+product+'.h',prefix+product+'_decl.h',impl.read_bytes(),decl.read_bytes(),len(names),len(names-core) if product=='xruntime' else None)
         metadata._write_if_changed(root/f'lib/{product}/{product}.snapshot.json',(json.dumps(value,indent=2)+'\n').encode())

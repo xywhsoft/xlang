@@ -22,7 +22,7 @@ def main():
     sidecar=project/'test/cases/stdlib_generated_declaration_gate_c.c'
     library=project/'test/cases/stdlib_generated_declaration_gate_library.xl'
     fixtures=[p.resolve() for p in args.fixture]
-    files={Path(__file__).resolve(),Path(debugger),manifest,driver,negative,positive,sidecar,library,*fixtures,root/'release/xl.dll'}
+    files={Path(__file__).resolve(),Path(debugger),manifest,driver,negative,positive,sidecar,library,*fixtures,root/'release/win_x64/xl.dll'}
     for row in build['Inputs']+build['Objects']:
         assert sha(row['Path'])==row['Sha256'].lower(); files.add(Path(row['Path']))
     for folder in (compiler/'include',negative.parent/'include'):

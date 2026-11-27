@@ -8,19 +8,19 @@ $gcc = (Get-Command gcc -CommandType Application -ErrorAction Stop).Source
 
 foreach ($name in $Package) {
     if ($name -notin @('gzip', 'bz2', 'brotli')) { throw "Unknown codec package: $name" }
-    $manifest = Get-Content (Join-Path $root "release/extlibs/$name/xlang.package.json") -Raw -Encoding UTF8 | ConvertFrom-Json
+    $manifest = Get-Content (Join-Path $root "release/win_x64/extlibs/$name/xlang.package.json") -Raw -Encoding UTF8 | ConvertFrom-Json
     $sources = @($manifest.artifact.cSources | ForEach-Object {
-        Join-Path $root "release/extlibs/$name/$_"
+        Join-Path $root "release/win_x64/extlibs/$name/$_"
     })
     if ($name -eq 'gzip') {
-        $entry = Join-Path $root 'release/extlibs/gzip/test/file_allocation_dll.c'
+        $entry = Join-Path $root 'release/win_x64/extlibs/gzip/test/file_allocation_dll.c'
     } elseif ($name -eq 'brotli') {
-        $entry = Join-Path $root 'release/extlibs/brotli/test/file_allocation.c'
+        $entry = Join-Path $root 'release/win_x64/extlibs/brotli/test/file_allocation.c'
     } else {
-        $entry = Join-Path $root 'release/extlibs/bz2/test/test_bz2_files.c'
-        $vendor = Get-Content (Join-Path $root 'release/extlibs/_bzip2/xlang.package.json') -Raw -Encoding UTF8 | ConvertFrom-Json
+        $entry = Join-Path $root 'release/win_x64/extlibs/bz2/test/test_bz2_files.c'
+        $vendor = Get-Content (Join-Path $root 'release/win_x64/extlibs/_bzip2/xlang.package.json') -Raw -Encoding UTF8 | ConvertFrom-Json
         $sources += @($vendor.artifact.cSources | ForEach-Object {
-            Join-Path $root "release/extlibs/_bzip2/$_"
+            Join-Path $root "release/win_x64/extlibs/_bzip2/$_"
         })
     }
     foreach ($dll in @('xl', 'xlc')) {

@@ -32,7 +32,7 @@ def main() -> int:
     if args.defaults: fixtures = ['stdlib_array_resident_defaults', 'stdlib_array_resident_defaults_continuation']
     if args.extract: fixtures = ['stdlib_array_extract', 'stdlib_array_extract_continuation',
                                  'stdlib_array_extract_trivial']
-    product = root / ('release/xl.dll' if os.name == 'nt' else 'release/libxl.so')
+    product = root / ('release/win_x64/xl.dll' if os.name == 'nt' else 'release/libxl.so')
     public = None
     files = {Path(__file__), Path(cc), Path(sys.executable), product, root / 'lib/xrt/xrt.h',
              root / 'lib/xruntime/xruntime.h'}

@@ -14,7 +14,7 @@ def main():
     root,public,out=a.root.resolve(),a.public_directory.resolve(),a.out.resolve()
     assert not out.exists() and (not a.sanitize or os.name!='nt');cc=shutil.which('gcc');assert cc
     build,pinned,compared=verify_public_build(root,public)
-    runtime=root/'release/xl.dll' if os.name=='nt' else Path(build['NativeRoot'])/'release/libxl.so'
+    runtime=root/'release/win_x64/xl.dll' if os.name=='nt' else Path(build['NativeRoot'])/'release/libxl.so'
     source=root/'test/cases/stdlib_native_ssa_generator.xl';contract=root/'test/cases/xlir_native_ssa_generator_contract.c'
     host=root/'test/cases/stdlib_native_ssa_generator_host.c';memory=root/'test/support/module_product_memory.c'
     files=pinned|{Path(__file__).resolve(),Path(cc),runtime,source,contract,host,memory,root/'test/support/module_product_memory.h'}

@@ -1,7 +1,7 @@
 $ErrorActionPreference = "Stop"
 
 $root = Split-Path $PSScriptRoot -Parent
-$xl = Join-Path $root "release\xl.exe"
+$xl = Join-Path $root "release\win_x64\xl.exe"
 $source = Join-Path $root "test\cases\xlir_avl_resource_abi.xl"
 $classDefaultSource = Join-Path $root "test\cases\xlir_avl_class_default_abi.xl"
 $hostSource = Join-Path $root "test\cases\xlir_avl_resource_abi_host.c"

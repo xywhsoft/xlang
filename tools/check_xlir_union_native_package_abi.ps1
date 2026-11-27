@@ -4,7 +4,7 @@ $ErrorActionPreference = "Stop"
 if ( $Root -eq "" ) { $Root = Split-Path -Parent $PSScriptRoot }
 $Root = (Resolve-Path -LiteralPath $Root).Path
 
-$xl = Join-Path $Root "release\xl.exe"
+$xl = Join-Path $Root "release\win_x64\xl.exe"
 $source = Join-Path $Root "test\cases\import_package_type_union_use.xl"
 $nativeSource = Join-Path $Root "test\fixtures\union_api\union_api_native.c"
 $outputDir = Join-Path $Root "build\test"
@@ -24,7 +24,7 @@ New-Item -ItemType Directory -Force -Path $outputDir | Out-Null
 $oldPackagePath = $env:XLANG_PACKAGE_PATH
 try {
     $env:XLANG_PACKAGE_PATH =
-        (Join-Path $Root "release\extlibs") + ";" +
+        (Join-Path $Root "release\win_x64\extlibs") + ";" +
         (Join-Path $Root "test\fixtures")
 
     & $xl ir $source --format json --emit $irPath

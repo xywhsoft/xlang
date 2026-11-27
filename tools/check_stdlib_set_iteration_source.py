@@ -17,7 +17,7 @@ def main():
  manifest=public/'build.json'; build=json.loads(manifest.read_text(encoding='utf-8-sig'))
  assert build['SourceXrt'] and not build['RuntimeOnly'] and build['EnableExeCompiler']==1
  driver=Path(build['Driver']); assert sha(driver).lower()==build['DriverSha256'].lower()
- product=root/'release/xl.dll' if os.name=='nt' else Path(build['NativeRoot'])/'release/libxl.so'
+ product=root/'release/win_x64/xl.dll' if os.name=='nt' else Path(build['NativeRoot'])/'release/libxl.so'
  fixture=root/'test/cases/stdlib_set_iteration_native.xl'
  array=root/'test/cases/stdlib_list_iterator_array_prune.xl'
  contract=root/'test/cases/xlir_set_iteration_contract.c'; host=root/'test/cases/stdlib_set_iteration_language_host.c'

@@ -67,7 +67,7 @@ def main():
             flags=['-std=c11','-Wall','-Wextra','-Werror','-Wno-unused-function','-Wno-unused-parameter',
                 '-Wno-missing-field-initializers','-DXL_STATIC_EMBED','-O0',
                 *['-I'+str(root/folder) for folder in ('.','release','release/include','lib/tcc')]]
-            args=[*flags,root/'test/cases'/(fixture+'.c'),*objects,root/'release/xl.dll',
+            args=[*flags,root/'test/cases'/(fixture+'.c'),*objects,root/'release/win_x64/xl.dll',
                 '-lWs2_32','-lIPHLPAPI','-lShell32','-lOle32','-lAdvapi32',*extra,'-o',binary]
             response.write_text(''.join('"'+str(v).replace('\\','/').replace('"','\\"')+'"\n' for v in args),encoding='utf8')
             if run(fixture+'.build',[cc,'@'+str(response)]):

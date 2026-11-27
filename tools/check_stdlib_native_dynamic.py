@@ -19,7 +19,7 @@ def main():
     faultFixture=project/'test/cases/stdlib_native_dynamic_faults.xl'
     contract=project/'test/support/native_dynamic_contract.c';faultHost=project/'test/support/native_dynamic_fault_host.c'
     host=root/'test/cases/xlir_module_product_oom_host.c';memory=root/'test/support/module_product_memory.c'
-    native=root/'release/xl.dll' if os.name=='nt' else Path(build['NativeRoot'])/'release/libxl.so'
+    native=root/'release/win_x64/xl.dll' if os.name=='nt' else Path(build['NativeRoot'])/'release/libxl.so'
     pinned.update((Path(__file__).resolve(),Path(cc),*fixtures,faultFixture,contract,faultHost,host,memory,native))
     inputs=[dict(Path=str(path),Sha256=sha(path)) for path in sorted(pinned)];out.mkdir(parents=True)
     rows=[];prefixes=[];products=[];controls=[];env=dict(os.environ);suffix='.exe' if os.name=='nt' else ''

@@ -23,7 +23,7 @@ try {
             }
             $inputs = @("test/cases/${name}_host.c")
             if ($name -eq 'xlir_module_cleanup_outcome') { $inputs += "test/cases/${name}_runtime.c" }
-            & gcc @flags @inputs release/xl.dll -o "$prefix.binding-regression.exe"
+            & gcc @flags @inputs release/win_x64/xl.dll -o "$prefix.binding-regression.exe"
             if ($LASTEXITCODE -ne 0) { throw 'Strict lifecycle host build failed' }
             & "$prefix.binding-regression.exe"
             if ($LASTEXITCODE -ne 0) { throw 'Strict lifecycle host runtime failed' }

@@ -8,7 +8,7 @@ if ( $Root -eq "" ) {
     $Root = Split-Path -Parent $PSScriptRoot
 }
 
-$xl = Join-Path $Root "release\xl.exe"
+$xl = Join-Path $Root "release\win_x64\xl.exe"
 $source = Join-Path $Root "test\cases\cgen_object_var_field_lifetime.xl"
 $nonPersistentSource = Join-Path $Root "test\cases\cgen_object_protocol.xl"
 $closedFlowSource = Join-Path $Root "test\cases\cgen_class_implicit_upcast.xl"

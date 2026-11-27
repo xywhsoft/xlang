@@ -17,7 +17,7 @@ def main():
     root,public,out=args.root.resolve(),args.public_directory.resolve(),args.out.resolve()
     cc,nm=shutil.which('gcc'),shutil.which('nm');assert cc and nm and not out.exists() and (not args.sanitize or os.name!='nt')
     build,pinned,_=verify_public_build(root,public);driver=Path(build['Driver'])
-    runtime=root/'release/xl.dll' if os.name=='nt' else Path(build['NativeRoot'])/'release/libxl.so'
+    runtime=root/'release/win_x64/xl.dll' if os.name=='nt' else Path(build['NativeRoot'])/'release/libxl.so'
     fixture=root/'test/cases/stdlib_slot_map_nullable_capture.xl';host=root/'test/cases/stdlib_slot_map_nullable_capture_host.c'
     contract=root/'test/cases/xlir_nullable_native_capture_contract.c';unit_host=root/'test/cases/stdlib_nullable_native_capture_host.c'
     planner_source=root/'test/cases/xlir_artifact_runtime_contract.c';memory=root/'test/support/module_product_memory.c'

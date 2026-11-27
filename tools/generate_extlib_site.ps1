@@ -36,7 +36,7 @@ foreach ($pkg in @($audit.packages | Sort-Object name)) {
     if ($Package.Count -ne 0 -and $pkg.name -notin $Package) { continue }
     $fileName = $pkg.name.Replace('.', '_') + ".html"
     # 包内详情页保存当前合同与带日期的证据；旧清单标签不能覆盖它或扩大验收范围。
-    $detailSource = Join-Path $Root "release/extlibs/$($pkg.name)/docs/site.html"
+    $detailSource = Join-Path $Root "release/win_x64/extlibs/$($pkg.name)/docs/site.html"
     if (Test-Path -LiteralPath $detailSource -PathType Leaf) {
         $detailTarget = Join-Path $WebsiteRoot "extlibs/$fileName"
         Copy-Item -LiteralPath $detailSource -Destination $detailTarget -Force

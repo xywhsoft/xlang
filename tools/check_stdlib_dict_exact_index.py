@@ -41,7 +41,7 @@ def main():
         for row in build['Inputs']+build['Headers']+build['Objects']:
             assert sha(row['Path'])==row['Sha256'].lower(),row['Path']; files.add(Path(row['Path']))
         driver=Path(build['Driver']); assert sha(driver)==build['DriverSha256'].lower()
-        product=root/'release/xl.dll' if os.name=='nt' else Path(build['NativeRoot'])/'release/libxl.so'
+        product=root/'release/win_x64/xl.dll' if os.name=='nt' else Path(build['NativeRoot'])/'release/libxl.so'
         files.update((manifest,driver,product))
     inputs=[dict(Path=str(path),Sha256=sha(path)) for path in sorted(files)]
     out.mkdir(parents=True); rows=[]; prefixes=[]; controls=[]; products=[]; objects=[]

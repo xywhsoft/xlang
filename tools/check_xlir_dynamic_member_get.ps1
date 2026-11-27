@@ -8,8 +8,8 @@ try {
     $prefix = 'build/test/xlir_dynamic_member_get'
     New-Item -ItemType Directory -Force -Path build/test | Out-Null
     if (!(Test-Path -LiteralPath build/test/xl.dll) -or
-        (Get-FileHash release/xl.dll).Hash -ne (Get-FileHash build/test/xl.dll).Hash) {
-        Copy-Item -LiteralPath release/xl.dll -Destination build/test/xl.dll -Force
+        (Get-FileHash release/win_x64/xl.dll).Hash -ne (Get-FileHash build/test/xl.dll).Hash) {
+        Copy-Item -LiteralPath release/win_x64/xl.dll -Destination build/test/xl.dll -Force
     }
     $compilerSources = @('src/ast/xl6_ast.c','src/type/xl6_type_model.c',
         'src/ir/xl6_ir.c','src/ir/xl6_ir_lower.c',
@@ -24,7 +24,7 @@ try {
         '-Wno-unused-variable','-Wno-unused-parameter','-Wno-unused-const-variable',
         '-Wno-unused-but-set-variable','-Wno-missing-field-initializers',
         '-Wno-pointer-sign','-Wno-format-truncation','-I.','-Ibuild/test')
-    & gcc @strict test/cases/xlir_dynamic_member_get_contract.c @compilerSources release/xl.dll -o "$prefix.contract.exe"
+    & gcc @strict test/cases/xlir_dynamic_member_get_contract.c @compilerSources release/win_x64/xl.dll -o "$prefix.contract.exe"
     if ($LASTEXITCODE -ne 0) { throw 'Dynamic member source contract build failed' }
     & "$prefix.contract.exe" "$prefix.c" "$prefix.h" "$prefix.bind.h"
     if ($LASTEXITCODE -ne 0) { throw 'Dynamic member module mutation or CFG contract failed' }
@@ -39,18 +39,18 @@ try {
         if ($LASTEXITCODE -ne 0) { throw "Dynamic member compatibility source failed: $case" }
         & gcc @strict -DXLIR_GENERATED_MODULE_PREINCLUDED -include "$prefix.$case.c" -c test/cases/xlir_generated_module_host.c -o "$prefix.$case.o"
         if ($LASTEXITCODE -ne 0) { throw "Dynamic member compatibility C failed: $case" }
-        & gcc @strict "$prefix.$case.o" test/cases/cgen_class_host.c release/xl.dll -o "$prefix.$case.exe"
+        & gcc @strict "$prefix.$case.o" test/cases/cgen_class_host.c release/win_x64/xl.dll -o "$prefix.$case.exe"
         if ($LASTEXITCODE -ne 0) { throw "Dynamic member compatibility link failed: $case" }
         & "$prefix.$case.exe"
         if ($LASTEXITCODE -ne 0) { throw "Dynamic member compatibility runtime failed: $case" }
     }
-    & gcc @strict test/cases/xlir_dynamic_member_get_runtime.c test/cases/xlir_dynamic_member_get_host.c release/xl.dll -o "$prefix.strict.exe"
+    & gcc @strict test/cases/xlir_dynamic_member_get_runtime.c test/cases/xlir_dynamic_member_get_host.c release/win_x64/xl.dll -o "$prefix.strict.exe"
     if ($LASTEXITCODE -ne 0) { throw 'Dynamic member generated C strict build failed' }
     & "$prefix.strict.exe"
     if ($LASTEXITCODE -ne 0) { throw 'Dynamic member accessor transaction/runtime semantics failed' }
-    & release/xl.exe run test/cases/xlir_dynamic_member_get_runtime.c test/cases/xlir_dynamic_member_get_host.c --inc-path . --inc-path build/test -- --smoke
+    & release/win_x64/xl.exe run test/cases/xlir_dynamic_member_get_runtime.c test/cases/xlir_dynamic_member_get_host.c --inc-path . --inc-path build/test -- --smoke
     if ($LASTEXITCODE -ne 0) { throw 'Dynamic member generated C-host JIT failed' }
-    & release/xl.exe build test/cases/xlir_dynamic_member_get_runtime.c test/cases/xlir_dynamic_member_get_host.c src/api/xl_foreign_error.c --inc-path . --inc-path build/test -o "$prefix.aot.exe"
+    & release/win_x64/xl.exe build test/cases/xlir_dynamic_member_get_runtime.c test/cases/xlir_dynamic_member_get_host.c src/api/xl_foreign_error.c --inc-path . --inc-path build/test -o "$prefix.aot.exe"
     if ($LASTEXITCODE -ne 0) { throw 'Dynamic member generated C-host AOT build failed' }
     & "$prefix.aot.exe" --smoke
     if ($LASTEXITCODE -ne 0) { throw 'Dynamic member generated C-host AOT runtime failed' }

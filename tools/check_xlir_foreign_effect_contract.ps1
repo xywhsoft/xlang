@@ -8,7 +8,7 @@ if ( $Root -eq "" ) {
     $Root = Split-Path -Parent $PSScriptRoot
 }
 
-$xl = Join-Path $Root "release\xl.exe"
+$xl = Join-Path $Root "release\win_x64\xl.exe"
 $fixture = Join-Path $Root "test\cases\xlir_foreign_effect_contract.xl"
 $invalidFixture = Join-Path $Root "test\cases\invalid_extern_effect_contract.xl"
 $outputDir = Join-Path $Root "build\test\foreign_effect_contract"
@@ -18,7 +18,7 @@ $invalidOut = Join-Path $outputDir "invalid.out.txt"
 $invalidErr = Join-Path $outputDir "invalid.err.txt"
 
 if ( ! (Test-Path -LiteralPath $xl -PathType Leaf) ) {
-    throw "foreign effect contract check requires release/xl.exe"
+    throw "foreign effect contract check requires release/win_x64/xl.exe"
 }
 [System.IO.Directory]::CreateDirectory($outputDir) | Out-Null
 

@@ -1,7 +1,7 @@
 param([string]$Root = "")
 $ErrorActionPreference = "Stop"
 if ($Root -eq "") { $Root = Split-Path -Parent $PSScriptRoot }
-$xl = Join-Path $Root "release\xl.exe"
+$xl = Join-Path $Root "release\win_x64\xl.exe"
 $cases = @("cgen_function_default", "cgen_function_null_compare",
     "cgen_optional_nullable_function_default", "cgen_assert_dynamic_condition",
     "cgen_var_comparison_expressions", "cgen_range_step_runtime_zero",

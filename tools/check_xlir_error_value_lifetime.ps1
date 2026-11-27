@@ -10,7 +10,7 @@ if ( $Root -eq "" ) {
 }
 
 $Root = (Resolve-Path -LiteralPath $Root).Path
-$xl = Join-Path $Root "release\xl.exe"
+$xl = Join-Path $Root "release\win_x64\xl.exe"
 $source = Join-Path $Root "test\cases\cgen_error_value_lifetime.xl"
 $hostSource = Join-Path $Root "test\cases\xlir_error_value_lifetime_host.c"
 $nativeTextHost = Join-Path $Root "test\cases\stdlib_error_text_native_host.c"
@@ -345,7 +345,7 @@ try {
             'src/sem/xl6_sem_docs.c','src/sem/xl6_sem_field_attrs.c',
             'src/stdlib/xl6_stdlib.c','src/stdlib/xl6_stdlib_data.c')
     }
-    & gcc @flags test/cases/xlir_error_boxing_outcome_contract.c @compilerInputs release/xl.dll `
+    & gcc @flags test/cases/xlir_error_boxing_outcome_contract.c @compilerInputs release/win_x64/xl.dll `
         -lWs2_32 -lIPHLPAPI -lShell32 -lOle32 -lAdvapi32 -o $contractExe
     if ($LASTEXITCODE) { throw 'Error boxing outcome contract compilation failed' }
     foreach ($fixture in @('stdlib_error_text','cgen_error_value_lifetime')) {
@@ -366,7 +366,7 @@ try {
         if ($LASTEXITCODE) { throw "Error text O$level memory support compilation failed" }
         & gcc @flags "-O$level" -Ibuild/test -Irelease -Irelease/include -include $errorTextC `
             test/cases/xlir_module_product_oom_host.c $memoryObject `
-            release/xl.dll -o $errorTextExe
+            release/win_x64/xl.dll -o $errorTextExe
         if ($LASTEXITCODE) { throw "Error text strict O$level module host compilation failed" }
         & $errorTextExe
         if ($LASTEXITCODE) { throw "Error text O$level module baseline failed" }

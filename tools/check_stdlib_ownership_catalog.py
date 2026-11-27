@@ -23,7 +23,7 @@ def main():
         ('queue','stdlib_concurrent_queue_ownership',6,25)]
     fixtures=[root/'test/cases'/(stem+'.xl') for _,stem,_,_ in families]
     hosts=[root/'test/cases'/(stem+'_public.c') for _,stem,_,_ in families]
-    native=root/'release/xl.dll' if windows else Path(build['NativeRoot'])/'release/libxl.so'
+    native=root/'release/win_x64/xl.dll' if windows else Path(build['NativeRoot'])/'release/libxl.so'
     pinned.update((Path(__file__).resolve(),Path(sys.executable).resolve(),Path(cc),contract,declarations,native,*fixtures,*hosts))
     inputs=[dict(Path=str(path),Sha256=sha(path)) for path in sorted(pinned)];out.mkdir(parents=True)
     objects=[row['Path'] for row in build['Objects'] if Path(row['Path']).stem not in

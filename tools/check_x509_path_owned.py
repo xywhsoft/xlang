@@ -19,7 +19,7 @@ def main():
         root/'test/support/x509_path_owned.c',*sources,*root.glob('src/runtime/*.h'),root/'src/api/xl_foreign_error.h',
         *[root/'test/support'/('crypto_'+s+'_runtime.c') for s in ('rsa','nist','ed25519','xdh')],
         root/'lib/xrt/xrt.h',root/'lib/xruntime/xruntime.h',
-        root/'release/include/xrt_decl.h',root/'release/include/xruntime_decl.h',gcc,tcc]
+        root/'release/win_x64/include/xrt_decl.h',root/'release/win_x64/include/xruntime_decl.h',gcc,tcc]
     report=dict(Complete=False,Inputs={str(f):sha(f) for f in files},Rows=[],Failures=[],
         OrdinaryChains=fixtures(root,out),Oracle=cryptography.__version__,EveryFixtureSignatureIndependentlyVerified=True,
         PublicLanguageAcceptance=False,PathBuildAcceptance=False,StoreAcceptance=False,TlsAcceptance=False,

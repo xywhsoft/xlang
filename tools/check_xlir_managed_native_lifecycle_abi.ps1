@@ -5,7 +5,7 @@ param(
 $ErrorActionPreference = "Stop"
 if ( $Root -eq "" ) { $Root = Split-Path -Parent $PSScriptRoot }
 
-$xl = Join-Path $Root "release\xl.exe"
+$xl = Join-Path $Root "release\win_x64\xl.exe"
 $source = Join-Path $Root "test\cases\xlir_managed_native_explicit_destroy.xl"
 $hostSource = Join-Path $Root "test\cases\xlir_managed_native_explicit_destroy_host.c"
 $supportSource = Join-Path $Root "test\cases\xlir_managed_native_explicit_destroy_support.c"

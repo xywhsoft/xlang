@@ -51,7 +51,7 @@ def main() -> int:
         files += sorted(p for p in (root / directory).rglob("*") if p.suffix in (".c", ".h", ".inc"))
     if public:
         files += [args.public_directory / "build.json", args.public_directory / "artifact_sources.json",
-                  args.public_directory / "xl.dll", root / "release/xl.dll"]
+                  args.public_directory / "xl.dll", root / "release/win_x64/xl.dll"]
         files += [Path(row["Path"]) for row in (*public["Objects"], *public["Inputs"], *staged["Files"])]
     else:
         files += [root / "release/libxl.so", root / "release/libxlc.so"]
@@ -63,7 +63,7 @@ def main() -> int:
         for header in directory.glob("*.h"):
             shutil.copy2(header, private / header.name)
     if os.name == "nt":
-        shutil.copy2(root / "release/xl.dll", out / "xl.dll")
+        shutil.copy2(root / "release/win_x64/xl.dll", out / "xl.dll")
     rows = []
     report = {"Scope": __doc__, "Complete": False, "InputsUnchanged": False, "Platform": sys.platform,
               "Sanitized": args.sanitize, "Inputs": inputs, "Rows": rows, "Sweeps": [], "Contracts": []}
@@ -98,7 +98,7 @@ def main() -> int:
     strict = ["-std=c11", "-Wall", "-Wextra", "-Werror", "-Wno-unused-function", "-Wno-unused-label",
               "-Wno-unused-variable", "-Wno-unused-parameter", "-Wno-unused-const-variable", "-Wno-missing-field-initializers",
               "-I.", "-Irelease", "-Irelease/include", "-I" + str(out / "include")]
-    links = ["release/xl.dll"] if os.name == "nt" else ["-Lrelease", "-lxl", "-Wl,-rpath," + str(root / "release"), "-pthread", "-ldl", "-lm"]
+    links = ["release/win_x64/xl.dll"] if os.name == "nt" else ["-Lrelease", "-lxl", "-Wl,-rpath," + str(root / "release"), "-pthread", "-ldl", "-lm"]
     if os.name != "nt":
         strict += ["-D_GNU_SOURCE"]
     if args.sanitize:
@@ -106,7 +106,7 @@ def main() -> int:
     try:
         contract = out / ("contract.exe" if os.name == "nt" else "contract")
         compiler_links = ([row["Path"] for row in public["Objects"] if Path(row["Path"]).name != "xlir_public_source_driver.o"] +
-                          ["release/xl.dll", "-lws2_32", "-liphlpapi", "-lshell32", "-lole32", "-ladvapi32"] if public else ["-lxlc", *links])
+                          ["release/win_x64/xl.dll", "-lws2_32", "-liphlpapi", "-lshell32", "-lole32", "-ladvapi32"] if public else ["-lxlc", *links])
         run("contract.build", [cc, "-std=c11", "-O0", "-Wall", "-Wextra", "-Werror", "-DXL_STATIC_EMBED",
             "-I.", "-Irelease", "-Irelease/include", "-Ilib/tcc", "test/cases/xlir_fixed_stack_contract.c", *compiler_links, "-o", str(contract)])
         for fixture in fixtures:

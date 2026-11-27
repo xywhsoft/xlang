@@ -26,20 +26,20 @@ $objects=@($build.Objects | Where-Object {
 })
 if ($objects.Count -ne $build.Objects.Count - 1) { throw 'Ambiguous public driver object exclusion' }
 $hostSource='test/cases/xlir_aggregate_strict_source_host.c'
-$files=@(Get-Item $PSCommandPath,$hostSource,$generated,$repeat,release/xl.dll)
+$files=@(Get-Item $PSCommandPath,$hostSource,$generated,$repeat,release/win_x64/xl.dll)
 $inputs=@($build.Inputs)+@($build.Headers)+@($objects)+
     @($files | ForEach-Object {[pscustomobject]@{Path=$_.FullName;Sha256=(Get-FileHash -LiteralPath $_.FullName).Hash}})
 if (@($inputs | Where-Object {(Get-FileHash -LiteralPath $_.Path).Hash -ne $_.Sha256}).Count) {
     throw 'Stale strict aggregate source or objects'
 }
 New-Item -ItemType Directory -Path $outputPath | Out-Null
-Copy-Item -LiteralPath release/xl.dll -Destination (Join-Path $outputPath 'xl.dll')
+Copy-Item -LiteralPath release/win_x64/xl.dll -Destination (Join-Path $outputPath 'xl.dll')
 $includePath=[IO.Path]::GetFullPath((Join-Path $PublicDirectory 'include'))
 $flags=@('-std=c11','-Wall','-Wextra','-Werror','-Wno-unused-function','-Wno-unused-variable','-Wno-unused-parameter',
     '-Wno-unused-label','-Wno-unused-but-set-variable','-Wno-unused-const-variable','-Wno-missing-field-initializers',
     '-Wno-pointer-sign','-Wno-format-truncation','-DXL_STATIC_EMBED','-DXLIR_GENERATED_MODULE_PREINCLUDED',
     "-I$includePath",'-I.','-Irelease','-Irelease/include','-Ilib/tcc')
-$links=@($objects | ForEach-Object {$_.Path})+@('release/xl.dll','-lws2_32','-liphlpapi','-lshell32','-lole32','-ladvapi32')
+$links=@($objects | ForEach-Object {$_.Path})+@('release/win_x64/xl.dll','-lws2_32','-liphlpapi','-lshell32','-lole32','-ladvapi32')
 $results=@()
 foreach ($optimization in @('-O0','-O2')) {
     $name="aggregate$optimization"; $binary="$outputPath/$name.exe"

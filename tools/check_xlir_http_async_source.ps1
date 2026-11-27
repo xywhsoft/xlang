@@ -15,14 +15,14 @@ if ((Get-FileHash $build.Driver).Hash -ne $build.DriverSha256 -or
 if (Test-Path -LiteralPath $OutputDirectory) { throw 'Choose fresh HTTP async evidence directory' }
 New-Item -ItemType Directory -Path $OutputDirectory | Out-Null
 $output = (Resolve-Path $OutputDirectory).Path
-$packages = (Resolve-Path release/extlibs).Path
-$httpInputs = @(Get-ChildItem release/extlibs -Directory -Filter 'xhttp*' |
+$packages = (Resolve-Path release/win_x64/extlibs).Path
+$httpInputs = @(Get-ChildItem release/win_x64/extlibs -Directory -Filter 'xhttp*' |
     ForEach-Object { Get-ChildItem -LiteralPath $_.FullName -Recurse -File } |
     ForEach-Object { [pscustomobject]@{Path=$_.FullName;Sha256=(Get-FileHash -LiteralPath $_.FullName).Hash} })
 $cases = @(
-    @{Name='body_async';Source='release/extlibs/xhttp.body_async/test/xhttp_body_async_test.xl';Expected='xhttp.body_async package ok'},
-    @{Name='body_codec';Source='release/extlibs/xhttp.body_codec/test/xhttp_body_codec_test.xl';Expected='xhttp.body_codec package ok'},
-    @{Name='body_stream';Source='release/extlibs/xhttp.body_stream/test/xhttp_body_stream_test.xl';Expected='xhttp.body_stream package ok'},
+    @{Name='body_async';Source='release/win_x64/extlibs/xhttp.body_async/test/xhttp_body_async_test.xl';Expected='xhttp.body_async package ok'},
+    @{Name='body_codec';Source='release/win_x64/extlibs/xhttp.body_codec/test/xhttp_body_codec_test.xl';Expected='xhttp.body_codec package ok'},
+    @{Name='body_stream';Source='release/win_x64/extlibs/xhttp.body_stream/test/xhttp_body_stream_test.xl';Expected='xhttp.body_stream package ok'},
     @{Name='void_suspension';Source='test/cases/xlir_async_void_suspension.xl';Sidecar='test/cases/xlir_async_void_suspension_native.c';Expected='async void suspension: PASS'},
     @{Name='constant_loop';Source='test/cases/xlir_constant_loop_completion.xl';Expected='constant loop completion: PASS'}
 )
@@ -55,7 +55,7 @@ $unchanged = @($results | Where-Object {
 }).Count -eq 0 -and @(@($build.Inputs) + @($build.Headers) + @($staged.Files) + $httpInputs | Where-Object {
     (Get-FileHash -LiteralPath $_.Path).Hash -ne $_.Sha256
 }).Count -eq 0 -and (Get-FileHash $build.Driver).Hash -eq $build.DriverSha256 -and
-    @(Get-ChildItem release/extlibs -Directory -Filter 'xhttp*' |
+    @(Get-ChildItem release/win_x64/extlibs -Directory -Filter 'xhttp*' |
         ForEach-Object { Get-ChildItem -LiteralPath $_.FullName -Recurse -File }).Count -eq $httpInputs.Count
 $report = [pscustomobject]@{RecordedAt=(Get-Date).ToString('o');DriverSha256=$build.DriverSha256;
     RuntimeSha256=$build.RuntimeSha256;SourcesUnchanged=$unchanged;HttpInputs=$httpInputs;Results=$results;

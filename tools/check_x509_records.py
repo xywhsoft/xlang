@@ -118,7 +118,7 @@ def main():
         root/'test/support/x509_records.c',root/'test/support/x509_records_plan.c',root/'src/compile/xl6_compile_unit.c',
         *root.glob('src/runtime/*.h'),*root.glob('src/runtime/*.inc'),*root.glob('src/compile/*.inc'),*root.glob('src/compile/*.h'),
         root/'src/ir/xl6_ir_x509_records_contracts.inc',root/'lib/xrt/xrt.h',root/'lib/xruntime/xruntime.h',
-        root/'release/include/xrt_decl.h',root/'release/include/xruntime_decl.h']
+        root/'release/win_x64/include/xrt_decl.h',root/'release/win_x64/include/xruntime_decl.h']
     report=dict(Complete=False,Rows=[],Failures=[],Inputs={str(f):sha(f) for f in files},Vectors=len(fixtures(root,out)),
         ResidentEntries=68,Oracle=cryptography.__version__,EveryFixtureSignatureIndependentlyVerified=True,
         TrustAcceptance=False,TlsAcceptance=False,ShippingAcceptance=False,NetworkTraffic=False,SecurityTests=False)

@@ -15,7 +15,7 @@ def main():
     root,public,out=a.root.resolve(),a.public_directory.resolve(),a.out.resolve()
     cc=shutil.which('gcc');assert cc and not out.exists() and (not a.sanitize or os.name!='nt')
     build,pinned,_=verify_public_build(root,public);driver=Path(build['Driver'])
-    runtime=root/'release/xl.dll' if os.name=='nt' else Path(build['NativeRoot'])/'release/libxl.so'
+    runtime=root/'release/win_x64/xl.dll' if os.name=='nt' else Path(build['NativeRoot'])/'release/libxl.so'
     cases=('stdlib_dict_namespace_native','stdlib_dict','stdlib_pattern_builder',
            'stdlib_pattern_builder_lifetime','stdlib_pattern_builder_cleanup')
     sources=('test/cases/xlir_pattern_builder_host.c','test/support/pattern_builder_native.c',

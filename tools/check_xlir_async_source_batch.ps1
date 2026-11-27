@@ -16,15 +16,15 @@ try {
     }
     $manifest = Get-Content -LiteralPath $manifestPath -Raw | ConvertFrom-Json
     if (@(@($manifest.Inputs) + @($manifest.Drivers) | Where-Object { (Get-FileHash -LiteralPath $_.Path).Hash -ne $_.Sha256 }).Count -or
-        (Get-FileHash release/xl.dll).Hash -ne $manifest.RuntimeSha256) { throw 'Stale shared compiler inputs or drivers; rebuild the contract batch' }
-    $batchInputs = @(@(Get-ChildItem src,lib,test/cases,tools -Recurse -File) + @(Get-Item release/xl.dll)) | Sort-Object FullName
+        (Get-FileHash release/win_x64/xl.dll).Hash -ne $manifest.RuntimeSha256) { throw 'Stale shared compiler inputs or drivers; rebuild the contract batch' }
+    $batchInputs = @(@(Get-ChildItem src,lib,test/cases,tools -Recurse -File) + @(Get-Item release/win_x64/xl.dll)) | Sort-Object FullName
     $batchRecords = @($batchInputs | ForEach-Object { [pscustomobject]@{Path=$_.FullName;Sha256=(Get-FileHash -LiteralPath $_.FullName).Hash} })
     # A verified shared batch may already be running another driver. Do not
     # overwrite its loaded DLL; identical content is safe to share read-only.
     $contractRuntime = Join-Path $ContractDirectory 'xl.dll'
     if (!(Test-Path -LiteralPath $contractRuntime) -or
         (Get-FileHash -LiteralPath $contractRuntime).Hash -ne $manifest.RuntimeSha256) {
-        Copy-Item -LiteralPath release/xl.dll -Destination $contractRuntime -Force
+        Copy-Item -LiteralPath release/win_x64/xl.dll -Destination $contractRuntime -Force
     }
     if ((Get-FileHash -LiteralPath $contractRuntime).Hash -ne $manifest.RuntimeSha256) {
         throw 'Shared compiler runtime does not match the verified build'
@@ -58,7 +58,7 @@ try {
                 & gcc @flags "test/cases/xlir_async_$($name)_runtime.c" "test/cases/xlir_async_$($name)_host.c" `
                     src/runtime/xl6_code_lease.c src/runtime/xl6_continuation_queue.c src/runtime/xl6_continuation_executor.c `
                     build/test/xlir_async_source_batch.transport.o test/cases/xlir_async_source_sync.c `
-                    src/runtime/xl6_closure.c src/runtime/xl6_cell.c src/runtime/xl6_slot.c src/runtime/xl6_frame_storage.c src/runtime/xl6_continuation_frame.c src/runtime/xl6_future_wait.c src/runtime/xl6_task.c src/runtime/xl6_task_frame.c src/runtime/xl6_task_pool.c src/runtime/xl6_capture.c src/runtime/xl6_value_iterator.c src/runtime/xl6_future_callback.c src/runtime/xl6_generator.c src/runtime/xl6_future_payload.c release/xl.dll -o "$prefix.source.exe" *> $entry.BuildLog
+                    src/runtime/xl6_closure.c src/runtime/xl6_cell.c src/runtime/xl6_slot.c src/runtime/xl6_frame_storage.c src/runtime/xl6_continuation_frame.c src/runtime/xl6_future_wait.c src/runtime/xl6_task.c src/runtime/xl6_task_frame.c src/runtime/xl6_task_pool.c src/runtime/xl6_capture.c src/runtime/xl6_value_iterator.c src/runtime/xl6_future_callback.c src/runtime/xl6_generator.c src/runtime/xl6_future_payload.c release/win_x64/xl.dll -o "$prefix.source.exe" *> $entry.BuildLog
                 $entry.Build = $LASTEXITCODE
                 if ($entry.Build -eq 0) {
                     $process = Start-Process -FilePath (Join-Path (Get-Location) "$prefix.source.exe") -WindowStyle Hidden -PassThru `
@@ -75,7 +75,7 @@ try {
     $unchanged = @($batchRecords | Where-Object { (Get-FileHash -LiteralPath $_.Path).Hash -ne $_.Sha256 }).Count -eq 0
     $report = [pscustomobject]@{RecordedAt=(Get-Date).ToString('o');Results=$results;InputsUnchanged=$unchanged;
         Inputs=$batchRecords;CompilerBuild=(Join-Path $ContractDirectory 'build.json');
-        RuntimeSha256=(Get-FileHash release/xl.dll).Hash;
+        RuntimeSha256=(Get-FileHash release/win_x64/xl.dll).Hash;
         Scope='Current-source contract drivers and dispatcher/runtime support; permanently resident generated test hosts. No release rebuild, C-host JIT/AOT, public frontend or unloaded-object admission claim.'}
     [IO.File]::WriteAllText((Join-Path (Get-Location) 'build/test/xlir_async_source_batch.results.json'), ($report | ConvertTo-Json -Depth 6), [Text.UTF8Encoding]::new($false))
     if (!$unchanged -or @($results | Where-Object { $_.Contract -ne 0 -or !$_.Deterministic -or $_.Build -ne 0 -or $_.Run -ne 0 }).Count) {

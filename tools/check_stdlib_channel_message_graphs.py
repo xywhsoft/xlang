@@ -16,7 +16,7 @@ def main():
     for v in b['Inputs']+b['Headers']+b['Objects']: assert sha(v['Path'])==v['Sha256'].lower(),v['Path']
     driver=Path(b['Driver']);assert sha(driver)==b['DriverSha256'].lower()
     cc=Path(shutil.which('gcc') or 'E:/software/w64devkit/bin/gcc.exe').resolve()
-    native=root/'release/xl.dll' if os.name=='nt' else Path(b['NativeRoot'])/'release/libxl.so'
+    native=root/'release/win_x64/xl.dll' if os.name=='nt' else Path(b['NativeRoot'])/'release/libxl.so'
     cases=('stdlib_channel_message_objects','stdlib_channel_message_containers','stdlib_channel_nested_codecs','stdlib_channel_message_thread')
     regression=('sem_channel_generic_class_element','sem_channel_class_graph_element','sem_channel_class_element',
         'stdlib_channel_native_codecs','stdlib_channel_native_codec_states','stdlib_channel_native_codec_dynamic',

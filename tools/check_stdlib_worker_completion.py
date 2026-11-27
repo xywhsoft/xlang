@@ -14,7 +14,7 @@ def main():
     root,public,out=a.root.resolve(),a.public_directory.resolve(),a.out.resolve()
     assert not out.exists() and (not a.sanitize or os.name!='nt');cc=shutil.which('gcc');assert cc
     build,pinned,compared=verify_public_build(root,public)
-    runtime=root/'release/xl.dll' if os.name=='nt' else Path(build['NativeRoot'])/'release/libxl.so'
+    runtime=root/'release/win_x64/xl.dll' if os.name=='nt' else Path(build['NativeRoot'])/'release/libxl.so'
     name='xlir_async_worker_completion';files=pinned|{Path(__file__).resolve(),Path(cc),runtime,root/'test/cases/xlir_artifact_runtime_contract.c'}
     files.update(root/'test/cases'/f for f in (name+'.xl',name+'_contract.c',name+'_host.c',name+'_runtime.c'))
     files.update((root/'test/cases').glob('xlir_*.h'))

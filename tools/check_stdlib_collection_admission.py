@@ -96,7 +96,7 @@ def main() -> int:
         files += [Path(row["Path"]) for row in public["Inputs"]]
         files += [Path(row["Path"]) for row in staged["Files"]]
         files += [args.public_directory / "xl.dll"]
-        files += [root / "release/xl.dll"]
+        files += [root / "release/win_x64/xl.dll"]
     else:
         files += [root / "release/libxl.so", root / "release/libxlc.so"]
     for directory in ("src/ir", "src/cgen", "src/compile", "src/runtime", "release/include"):
@@ -109,7 +109,7 @@ def main() -> int:
         for header in directory.glob("*.h"):
             shutil.copy2(header, private / header.name)
     if os.name == "nt":
-        shutil.copy2(root / "release/xl.dll", out / "xl.dll")
+        shutil.copy2(root / "release/win_x64/xl.dll", out / "xl.dll")
     rows = []
     report = {"Scope": __doc__, "Complete": False, "InputsUnchanged": False, "Platform": sys.platform,
               "Sanitized": args.sanitize, "Nominal": args.nominal, "Layouts": args.layouts, "Stacks": args.stacks,
@@ -147,7 +147,7 @@ def main() -> int:
     strict = ["-std=c11", "-Wall", "-Wextra", "-Werror", "-Wno-unused-function", "-Wno-unused-label",
               "-Wno-unused-variable", "-Wno-unused-parameter", "-Wno-unused-const-variable", "-Wno-missing-field-initializers",
               "-I.", "-Irelease", "-Irelease/include", "-I" + str(out / "include")]
-    links = ["release/xl.dll"] if os.name == "nt" else ["-Lrelease", "-lxl", "-Wl,-rpath," + str(root / "release"), "-pthread", "-ldl", "-lm"]
+    links = ["release/win_x64/xl.dll"] if os.name == "nt" else ["-Lrelease", "-lxl", "-Wl,-rpath," + str(root / "release"), "-pthread", "-ldl", "-lm"]
     if os.name != "nt":
         strict += ["-D_GNU_SOURCE"]
     if args.sanitize:
@@ -157,7 +157,7 @@ def main() -> int:
         contract = out / ("contract.exe" if os.name == "nt" else "contract")
         compiler_links = ([row["Path"] for row in public["Objects"]
                            if Path(row["Path"]).name != "xlir_public_source_driver.o"] +
-                          ["release/xl.dll", "-lws2_32", "-liphlpapi", "-lshell32", "-lole32", "-ladvapi32"]
+                          ["release/win_x64/xl.dll", "-lws2_32", "-liphlpapi", "-lshell32", "-lole32", "-ladvapi32"]
                           if public else ["-lxlc", *links])
         run("contract.build", [cc, "-std=c11", "-O0", "-Wall", "-Wextra", "-Werror", "-DXL_STATIC_EMBED",
             "-I.", "-Irelease", "-Irelease/include", "-Ilib/tcc", "test/cases/xlir_collection_admission_contract.c",

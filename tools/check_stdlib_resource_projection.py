@@ -25,7 +25,7 @@ def main():
     host=root/'test/cases/xlir_module_product_oom_host.c'; memory=root/'test/support/module_product_memory.c'
     helpers=[root/('src/runtime/xl6_'+name+'.c') for name in ('container_projection','value_domain_projection',
         'value_admission','channel_admission','slot_map_admission','slot_map')]
-    native=root/'release/xl.dll' if os.name=='nt' else Path(build['NativeRoot'])/'release/libxl.so'
+    native=root/'release/win_x64/xl.dll' if os.name=='nt' else Path(build['NativeRoot'])/'release/libxl.so'
     pinned.update((Path(__file__).resolve(),Path(cc),Path(nm),*fixtures,*contracts,*hosts,runtime,artifact,host,memory,native,*helpers))
     inputs=[dict(Path=str(path),Sha256=sha(path)) for path in sorted(pinned)]
     out.mkdir(parents=True); rows=[]; prefixes=[]; products=[]; env=dict(os.environ); suffix='.exe' if os.name=='nt' else ''

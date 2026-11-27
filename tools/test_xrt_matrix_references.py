@@ -30,7 +30,7 @@ class SourceReferences(unittest.TestCase):
             self.assertEqual(_api_headers(header), {"xrtExternal": "include/memory.h"})
             (root / "src").mkdir()
             (root / "release/include").mkdir(parents=True)
-            (root / "release/include/xl_runtime.h").write_text("", encoding="utf-8")
+            (root / "release/win_x64/include/xl_runtime.h").write_text("", encoding="utf-8")
             (root / "src/call.c").write_text(
                 "xrtHeaderHelper(p); xrtExternal(); xrtUnknownFutureApi(x); "
                 "xrtPrivateHelper(); xrtImplementationOnly();", encoding="utf-8")

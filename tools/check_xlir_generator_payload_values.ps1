@@ -18,7 +18,7 @@ try {
         '-Wno-format-truncation','-I.','-Ibuild/test')
     New-Item -ItemType Directory -Force -Path build/test | Out-Null
     $driver = 'build/test/xlir_generator_payload.contract.exe'
-    & gcc @strict test/cases/xlir_generator_payload_contract.c @compilerSources release/xl.dll -o $driver
+    & gcc @strict test/cases/xlir_generator_payload_contract.c @compilerSources release/win_x64/xl.dll -o $driver
     if ($LASTEXITCODE -ne 0) { throw 'Generator payload contract build failed.' }
     $fixtures = @(
         @{Name='xlir_generator_item_object';Entry='generator_item_object';Expected=16},
@@ -78,7 +78,7 @@ try {
             ) -join "`n"
             [IO.File]::WriteAllText((Join-Path (Get-Location).Path $hostSource), $body, [Text.UTF8Encoding]::new($false))
         }
-        & gcc @strict $runtime $hostSource release/xl.dll -o "$prefix.payload.strict.exe"
+        & gcc @strict $runtime $hostSource release/win_x64/xl.dll -o "$prefix.payload.strict.exe"
         if ($LASTEXITCODE -ne 0) { ++$failures; continue }
         & "$prefix.payload.strict.exe"
         if ($LASTEXITCODE -ne 0) { ++$failures }

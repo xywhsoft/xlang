@@ -23,7 +23,7 @@ def main():
     paths=[Path(__file__),gcc,support,contractSource,root/'test/support/container_projection_artifact.c',*[Path(sys.modules[n].__file__) for n in ['tls_role_context_fixtures','tls_identity_fixtures','tls_verifier_fixtures','x509_path_fixtures','x509_identity_fixtures','x509_identity_language_fixtures','check_key_format_wire']],
         *[root/'test/support'/('crypto_'+n+'_runtime.c') for n in ['rsa','nist','ed25519','xdh']],*regressions]
     r=dict(Complete=False,Rows=[],Failures=[],Plans=[],Inputs={str(q):sha(q) for q in paths},SourceBuild=str(a.source_build),NetworkTraffic=False,SecurityTests=False,MalformedCryptoTests=False,ShippingAccepted=False,FullTlsAccepted=False)
-    env=dict(os.environ);runtime=root/'release/xl.dll' if os.name=='nt' else Path(build['NativeRoot'])/'release/libxl.so'
+    env=dict(os.environ);runtime=root/'release/win_x64/xl.dll' if os.name=='nt' else Path(build['NativeRoot'])/'release/libxl.so'
     if os.name=='nt':shutil.copy2(runtime,out/'xl.dll')
     else:env['XL6_SOURCE_NATIVE_ROOT']=build['NativeRoot']
     def save():(out/'results.json').write_text(json.dumps(r,indent=2)+'\n')

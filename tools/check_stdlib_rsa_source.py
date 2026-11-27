@@ -19,7 +19,7 @@ def main():
  driver=Path(build['Driver']);assert sha(driver)==build['DriverSha256'].lower()
  gcc=Path(shutil.which('gcc') or 'E:/software/w64devkit/bin/gcc.exe').resolve()
  tcc=Path(shutil.which('tcc') or 'E:/software/tcc/tcc.exe').resolve();assert tcc.is_file()
- runtime=root/'release/xl.dll' if os.name=='nt' else Path(build['NativeRoot'])/'release/libxl.so'
+ runtime=root/'release/win_x64/xl.dll' if os.name=='nt' else Path(build['NativeRoot'])/'release/libxl.so'
  contract=root/'test/cases/xlir_crypto_rsa_contract.c';native=root/'test/support/crypto_rsa_runtime.c'
  plannerSource=root/'test/support/container_projection_artifact.c'
  files={Path(__file__).resolve(),manifest,driver,gcc,tcc,runtime,contract,native,plannerSource,

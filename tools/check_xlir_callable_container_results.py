@@ -93,9 +93,9 @@ def main():
         '-Wall', '-Wextra', '-Werror', '-Wno-unused-function', '-Wno-unused-label', '-Wno-unused-variable',
         '-Wno-unused-parameter', '-Wno-unused-const-variable', '-Wno-unused-but-set-variable',
         '-Wno-missing-field-initializers', '-Wno-pointer-sign', '-Wno-format-truncation']
-    libraries = [root/'release/xl.dll', '-lws2_32', '-liphlpapi', '-lshell32', '-lole32', '-ladvapi32'] if windows else [
+    libraries = [root/'release/win_x64/xl.dll', '-lws2_32', '-liphlpapi', '-lshell32', '-lole32', '-ladvapi32'] if windows else [
         '-L'+str(native/'release'), '-lxl', '-Wl,-rpath,'+str(native/'release'), '-Wl,--export-dynamic', '-pthread', '-ldl', '-lm']
-    if windows: shutil.copyfile(root/'release/xl.dll', work/'xl.dll')
+    if windows: shutil.copyfile(root/'release/win_x64/xl.dll', work/'xl.dll')
     contract = work/('callable-result-contract'+suffix)
     if archive_ready and compile_c('contract-build', [*flags, '-O2', cases/(names[0]+'_contract.c'), archive, *libraries, '-o', contract]):
         run('contract', [contract, cases/(names[0]+'.xl')], '105 mutations refused before C/public/native output')

@@ -67,7 +67,7 @@ try {
         'test/cases/xlir_constructor_definite_assignment.xl',
         'tools/extlib_smoke_process.ps1','tools/xlir_native_process.ps1','tools/xlir_resident_closure.ps1',
         'tools/stage_xlir_artifact_runtime_sources.ps1',
-        $formalCli,(Join-Path $formal 'xlc.dll'),(Join-Path $formal 'xl.dll'),'release/xl.dll',
+        $formalCli,(Join-Path $formal 'xlc.dll'),(Join-Path $formal 'xl.dll'),'release/win_x64/xl.dll',
         "$public/build.json","$public/artifact_sources.json",$build.Driver,(Get-Command gcc).Source)
     $paths=@($build.Inputs.Path)+@($build.Headers.Path)+@($build.Objects.Path)+@($stage.Files.Path)+@($stage.Files.Source)+$extra
     $paths+=@($nativeClosures.Values|ForEach-Object {$_.Inputs.Path})
@@ -105,27 +105,27 @@ try {
             $nativeClosures.builder.Sources+$libs+@('-o',"$work/pattern-builder-native.exe"))
         if((Check 'pattern-builder-native' "$work/pattern-builder-native.exe" @())-notmatch '[1-9][0-9]* actual failures, 10 first no-hit completions'){throw 'Builder adapter OOM oracle incomplete'}
         $compilerObjects=@($build.Objects|Where-Object {[IO.Path]::GetFileName($_.Path)-ne'xlir_public_source_driver.o'}|ForEach-Object Path)
-        Copy-Item release/xl.dll "$work/xl.dll"
+        Copy-Item release/win_x64/xl.dll "$work/xl.dll"
         if(!$PatternOnly){
-        $null=Check 'callback-native-build' gcc ($flags+@('test/cases/xlir_regex_callback_host.c')+$compilerObjects+@('release/xl.dll')+$libs+@('-o',"$work/callback-native.exe"))
+        $null=Check 'callback-native-build' gcc ($flags+@('test/cases/xlir_regex_callback_host.c')+$compilerObjects+@('release/win_x64/xl.dll')+$libs+@('-o',"$work/callback-native.exe"))
         $callbackOutput=Check 'callback-native' "$work/callback-native.exe" @()
         if ($callbackOutput-notmatch 'regex callback native OOM: 133 actual failures, 3 first no-hit completions, balanced') {throw 'Callback native OOM oracle incomplete'}
         }
         $null=Check 'contract-build' gcc ($flags+@('-DXL_STATIC_EMBED','-Ilib/tcc','test/cases/xlir_text_value_contract.c')+
-            $compilerObjects+@('release/xl.dll')+$libs+@('-o',"$work/contract.exe"))
+            $compilerObjects+@('release/win_x64/xl.dll')+$libs+@('-o',"$work/contract.exe"))
         $null=Check 'artifact-contract-build' gcc ($flags+@('-DXL_STATIC_EMBED','-Ilib/tcc','test/cases/xlir_artifact_runtime_contract.c')+
-            $compilerObjects+@('release/xl.dll')+$libs+@('-o',"$work/artifact.exe"))
+            $compilerObjects+@('release/win_x64/xl.dll')+$libs+@('-o',"$work/artifact.exe"))
         $null=Check 'artifact-registry' "$work/artifact.exe" @('--registry')
         $null=Check 'constructor-flow-solver-build' gcc ($flags+@('test/cases/xlir_constructor_flow_solver.c','-o',"$work/constructor-flow-solver.exe"))
         $null=Check 'constructor-flow-solver' "$work/constructor-flow-solver.exe" @()
         $null=Check 'constructor-assignment-build' gcc ($flags+@('-DXL_STATIC_EMBED','-Ilib/tcc','test/cases/xlir_constructor_definite_assignment_contract.c')+
-            $compilerObjects+@('release/xl.dll')+$libs+@('-o',"$work/constructor-assignment.exe"))
+            $compilerObjects+@('release/win_x64/xl.dll')+$libs+@('-o',"$work/constructor-assignment.exe"))
         $null=Check 'constructor-assignment' "$work/constructor-assignment.exe" @('test/cases/xlir_constructor_definite_assignment.xl')
         $null=Check 'error-projection-contract-build' gcc ($flags+@('-DXL_STATIC_EMBED','-Ilib/tcc','test/cases/xlir_error_projection_contract.c')+
-            $compilerObjects+@('release/xl.dll')+$libs+@('-o',"$work/error-projection-contract.exe"))
+            $compilerObjects+@('release/win_x64/xl.dll')+$libs+@('-o',"$work/error-projection-contract.exe"))
         $null=Check 'error-projection-contract' "$work/error-projection-contract.exe" @('test/cases/stdlib_pattern_tags.xl',"$work/error-projection.closed.c")
         $null=Check 'error-projection-modes-contract' "$work/error-projection-contract.exe" @('test/cases/stdlib_pattern_error_modes.xl',"$work/error-projection-modes.closed.c")
-        Copy-Item release/xl.dll "$work/xl.dll"
+        Copy-Item release/win_x64/xl.dll "$work/xl.dll"
         foreach($case in $cases) {
             $prefix="$work/$case"; $source="test/cases/$case.xl"
             $null=Check "$case-emit" $build.Driver @($source,'emit',$prefix)

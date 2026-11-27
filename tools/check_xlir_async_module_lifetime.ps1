@@ -35,11 +35,11 @@ try {
     $hostFlags=@((New-XlirCStringDefine 'JOINT_DLL_PATH' "$prefix.generated.dll" -RawArgument),(New-XlirCStringDefine 'JOINT_DLL_NAME' 'xlir_async_module_lifetime.generated.dll' -RawArgument))
     $build=Invoke-XlirGccToLog ($flags+@('-O2')+$hostFlags+@('-c','test/cases/xlir_async_module_lifetime_host.c','-o',"$prefix.host.o")) "$work/host.build.log"
     if ($build -ne 0) { throw 'Joint source API host compilation failed' }
-    $build=Invoke-XlirGccToLog ($flags+@('-O2',"$prefix.host.o")+@($cohort.Objects)+@('release/xl.dll')+$libs+@("-Wl,--out-implib,$prefix.host.a",'-Wl,--export-all-symbols','-o',"$prefix.exe")) "$work/host.link.log"
+    $build=Invoke-XlirGccToLog ($flags+@('-O2',"$prefix.host.o")+@($cohort.Objects)+@('release/win_x64/xl.dll')+$libs+@("-Wl,--out-implib,$prefix.host.a",'-Wl,--export-all-symbols','-o',"$prefix.exe")) "$work/host.link.log"
     if ($build -ne 0) { throw 'Joint resident runtime host link failed' }
-    $build=Invoke-XlirGccToLog ($flags+@('-O2','-shared','test/cases/xlir_async_module_lifetime_artifact.c',"$prefix.host.a",'release/xl.dll','-Wl,--export-all-symbols','-o',"$prefix.generated.dll")) "$work/artifact.build.log"
+    $build=Invoke-XlirGccToLog ($flags+@('-O2','-shared','test/cases/xlir_async_module_lifetime_artifact.c',"$prefix.host.a",'release/win_x64/xl.dll','-Wl,--export-all-symbols','-o',"$prefix.generated.dll")) "$work/artifact.build.log"
     if ($build -ne 0) { throw 'Joint generated unloadable DLL link failed' }
-    Copy-Item -LiteralPath release/xl.dll -Destination "$work/xl.dll"
+    Copy-Item -LiteralPath release/win_x64/xl.dll -Destination "$work/xl.dll"
     $failed = @()
     $rows=@()
     foreach ($mode in 0..5) {

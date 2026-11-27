@@ -13,7 +13,7 @@ $driverDirectory=Split-Path (Resolve-Path -LiteralPath $PublicDriver).Path
 $manifest=Get-Content -LiteralPath "$driverDirectory/build.json" -Raw | ConvertFrom-Json
 $objects=@($manifest.Objects | Where-Object {[IO.Path]::GetFileName($_.Path) -ne 'xlir_public_source_driver.o'} | ForEach-Object Path)
 if(!$manifest.SourceXrt -or !$objects.Count){throw 'Global fault validation requires current source runtime objects'}
-Copy-Item -LiteralPath release/xl.dll -Destination "$outputPath/xl.dll"
+Copy-Item -LiteralPath release/win_x64/xl.dll -Destination "$outputPath/xl.dll"
 $generated=Join-Path $outputPath 'globals-fault.c'
 & $Compiler test/cases/xlir_c_owned_globals_fault.xl $generated
 if($LASTEXITCODE){throw 'Global fault program compilation failed'}
@@ -24,7 +24,7 @@ $flags=@('-std=c11','-Wall','-Wextra','-Werror','-O0','-ffunction-sections','-fd
     '-Wno-unused-function','-Wno-unused-label','-Wno-unused-variable','-Wno-unused-parameter',
     '-Wno-unused-const-variable','-Wno-unused-but-set-variable','-Wno-missing-field-initializers',
     '-Wno-pointer-sign','-Wno-format-truncation',"-I$driverDirectory/include")
-$arguments=@($flags)+@($wrapper)+$objects+@('release/xl.dll','-lws2_32','-liphlpapi','-lshell32','-lole32','-ladvapi32','-Wl,--gc-sections','-o',"$outputPath/probe.exe")
+$arguments=@($flags)+@($wrapper)+$objects+@('release/win_x64/xl.dll','-lws2_32','-liphlpapi','-lshell32','-lole32','-ladvapi32','-Wl,--gc-sections','-o',"$outputPath/probe.exe")
 $response=Join-Path $outputPath 'probe.rsp'
 [IO.File]::WriteAllText($response,(@($arguments | ForEach-Object {'"'+$_.Replace('\','/').Replace('"','\"')+'"'}) -join "`n"),[Text.UTF8Encoding]::new($false))
 & gcc ('@'+$response)

@@ -28,7 +28,7 @@ def check(root: Path, xge: Path, expected: str | None = None) -> dict:
     rows = []
     for kind, local, remote, key in (
         ("implementation", "lib/xrt/xrt.h", "extlibs/xrt/xrt.h", "header_sha256"),
-        ("declarations", "release/include/xrt_decl.h", "extlibs/xrt/xrt_decl.h", "declaration_header_sha256"),
+        ("declarations", "release/win_x64/include/xrt_decl.h", "extlibs/xrt/xrt_decl.h", "declaration_header_sha256"),
     ):
         local_path, remote_path = root / local, xge / remote
         identity = digest(local_path)

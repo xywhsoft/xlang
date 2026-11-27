@@ -12,7 +12,7 @@ def main():
     ap.add_argument('--compiler',type=Path,required=True)
     ap.add_argument('--out',type=Path,required=True)
     args=ap.parse_args();root=args.root.resolve();xl=args.xl.resolve();cc=args.compiler.resolve();out=args.out.resolve()
-    out.mkdir(parents=True,exist_ok=False);package=root/'release/extlibs/xmail'
+    out.mkdir(parents=True,exist_ok=False);package=root/'release/win_x64/extlibs/xmail'
     sha=lambda p:hashlib.sha256(p.read_bytes()).hexdigest()
     inputs={str(p):sha(p) for p in package.rglob('*') if p.is_file()}
     for p in [xl,cc,Path(__file__).resolve(),root/'test/cases/extlib_xmail.xl',root/'test/cases/xmail_abi_declarations.xl']:
@@ -20,7 +20,7 @@ def main():
     for name in (['xl.dll','xlc.dll'] if os.name=='nt' else ['libxl.so','libxlc.so']):
         p=xl.parent/name
         if p.exists():inputs[str(p)]=sha(p)
-    env=dict(os.environ,XLANG_PACKAGE_PATH=str(root/'release/extlibs'));rows=[]
+    env=dict(os.environ,XLANG_PACKAGE_PATH=str(root/'release/win_x64/extlibs'));rows=[]
     report=dict(complete=False,inputs=inputs,rows=rows,externalEndpoints=False,tlsHandshakes=False)
     def save():(out/'results.json').write_text(json.dumps(report,indent=2)+'\n',encoding='utf-8')
     def run(name,command):

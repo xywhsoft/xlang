@@ -17,7 +17,7 @@ def main():
     build=json.loads(a.build.read_text(encoding='utf-8-sig'));assert build['Complete'] and build['SourceXrt'] and not build['RuntimeOnly']
     for row in build['Inputs']+build['Objects']+build['Headers']:assert sha(row['Path'])==row['Sha256'].lower(),row['Path']
     objects=[q['Path'] for q in build['Objects'] if Path(q['Source']).name not in ['xlir_public_source_driver.c','xlir_public_source_linux_driver.c']]
-    runtime=root/'release/xl.dll' if os.name=='nt' else Path(build['NativeRoot'])/'release/libxl.so'
+    runtime=root/'release/win_x64/xl.dll' if os.name=='nt' else Path(build['NativeRoot'])/'release/libxl.so'
     env=dict(os.environ)
     if os.name!='nt':env['XL6_SOURCE_NATIVE_ROOT']=build['NativeRoot']
     if os.name=='nt':shutil.copy2(runtime,out/'xl.dll')

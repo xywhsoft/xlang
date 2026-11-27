@@ -25,7 +25,7 @@ $guards = @(
 )
 # Freeze compiler sources and released hosts. Guards may regenerate ignored
 # test artifacts, but must not silently mix two compiler/ABI revisions.
-$files = @('release/xl.exe', 'release/xl.dll', 'release/xlc.dll',
+$files = @('release/win_x64/xl.exe', 'release/win_x64/xl.dll', 'release/win_x64/xlc.dll',
     'lib/xrt/xrt.h', 'lib/xruntime/xruntime.h') | ForEach-Object { Get-Item (Join-Path $Root $_) }
 $files += @(Get-ChildItem (Join-Path $Root 'src') -Recurse -File)
 $files += @(Get-ChildItem (Join-Path $Root 'tools') -File -Filter '*.ps1')

@@ -8,7 +8,7 @@ if ( $Root -eq "" ) {
     $Root = Split-Path -Parent $PSScriptRoot
 }
 
-$xl = Join-Path $Root "release\xl.exe"
+$xl = Join-Path $Root "release\win_x64\xl.exe"
 $source = Join-Path $Root "test\cases\xlir_async_error_abi.xl"
 $raceSource = Join-Path $Root "test\cases\xlir_async_error_race_abi.xl"
 $allSource = Join-Path $Root "test\cases\xlir_task_all_error_abi.xl"

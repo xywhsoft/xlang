@@ -58,7 +58,7 @@ try {
     if (!$?) { throw 'Module product actual artifact acceptance failed' }
     $artifact = Get-Content "$outPath/artifact/results.json" -Raw | ConvertFrom-Json
     if (!$artifact.Complete -or !$artifact.InputsUnchanged) { throw 'Incomplete module product artifact evidence' }
-    Copy-Item -LiteralPath release/xl.dll -Destination "$outPath/xl.dll"
+    Copy-Item -LiteralPath release/win_x64/xl.dll -Destination "$outPath/xl.dll"
     $objects = @($public.Objects | Where-Object { [IO.Path]::GetFileName($_.Path) -ne 'xlir_public_source_driver.o' } | ForEach-Object Path)
     $strict = @('-std=c11','-Wall','-Wextra','-Werror','-Wno-unused-function','-Wno-unused-label',
         '-Wno-unused-variable','-Wno-unused-parameter','-Wno-unused-const-variable','-Wno-unused-but-set-variable',
@@ -73,7 +73,7 @@ try {
         $flags = if ($case -eq 'xlir_module_product_entry') { @('-DXL6_PRODUCT_USER_ENTRY') } else { @() }
         Run "$case.host-build" $gcc ($strict + $flags + @('-include',"$prefix.c",'test/cases/xlir_module_product_oom_host.c',
             "$outPath/debug-host.o") +
-            $objects + @('release/xl.dll','-lWs2_32','-lIPHLPAPI','-lShell32','-lOle32','-lAdvapi32','-o',"$prefix.host.exe"))
+            $objects + @('release/win_x64/xl.dll','-lWs2_32','-lIPHLPAPI','-lShell32','-lOle32','-lAdvapi32','-o',"$prefix.host.exe"))
         Run "$case.host" "$prefix.host.exe" @()
         for ($point=0; $point -le 4096; ++$point) {
             $name = "$case.oom-$point"

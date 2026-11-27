@@ -14,7 +14,7 @@ def main():
     sha=lambda q:hashlib.sha256(Path(q).read_bytes()).hexdigest()
     gcc=Path(shutil.which('gcc') or 'E:/software/w64devkit/bin/gcc.exe').resolve();tcc=Path(shutil.which('tcc') or 'E:/software/tcc/tcc.exe').resolve()
     paths=[Path(__file__),gcc,tcc,*root.glob('src/runtime/*.h'),*root.glob('src/runtime/*.inc'),*root.glob('src/compile/*.h'),*root.glob('src/compile/*.inc'),
-        root/'src/compile/xl6_compile_unit.c',root/'lib/xrt/xrt.h',root/'lib/xruntime/xruntime.h',root/'release/include/xrt_decl.h',root/'release/include/xruntime_decl.h',
+        root/'src/compile/xl6_compile_unit.c',root/'lib/xrt/xrt.h',root/'lib/xruntime/xruntime.h',root/'release/win_x64/include/xrt_decl.h',root/'release/win_x64/include/xruntime_decl.h',
         *[root/'test/support'/('tls_stream_options_'+n+'.c') for n in ['plan','owned','defaults']],root/'test/cases/xlir_tls_stream_options_contract.c']
     cases=[root/'test/cases'/('stdlib_tls_stream_options'+s+'.xl') for s in ['', '_owned']];paths+=cases
     r=dict(Complete=False,Inputs={str(q):sha(q) for q in paths},Rows=[],Failures=[],Plans=[],NetworkTraffic=False,SecurityTests=False,MalformedCryptoTests=False,ShippingAccepted=False,FullTlsAccepted=False)
@@ -60,7 +60,7 @@ def main():
         build=json.loads(a.source_build.read_text(encoding='utf-8-sig'));assert build['Complete'] and build['SourceXrt'] and not build['RuntimeOnly'] and build['Optimization']=='O2'
         for row in build['Inputs']+build['Objects']+build['Headers']:assert sha(row['Path'])==row['Sha256'].lower(),row['Path']
         driver=Path(build['Driver']);assert sha(driver)==build['DriverSha256'].lower();r['SourceBuild']=str(a.source_build);r['SourceBuildSha256']=sha(a.source_build)
-        runtime=root/'release/xl.dll' if os.name=='nt' else Path(build['NativeRoot'])/'release/libxl.so'
+        runtime=root/'release/win_x64/xl.dll' if os.name=='nt' else Path(build['NativeRoot'])/'release/libxl.so'
         if os.name=='nt':shutil.copy2(runtime,out/'xl.dll')
         else:env['XL6_SOURCE_NATIVE_ROOT']=build['NativeRoot']
         flags+=['-I'+str(root/'release/include'),'-I'+str(driver.parent/'include')]

@@ -8,8 +8,8 @@ try {
     # PowerShell's provider location.  Keep every direct file operation rooted.
     $prefix = Join-Path $Root 'build/test/xlir_return_commit'
     New-Item -ItemType Directory -Force -Path build/test | Out-Null
-    Copy-Item -LiteralPath release/xl.dll -Destination build/test/xl.dll -Force
-    & release/xl.exe ir $source --lowered --format json --emit "$prefix.json"
+    Copy-Item -LiteralPath release/win_x64/xl.dll -Destination build/test/xl.dll -Force
+    & release/win_x64/xl.exe ir $source --lowered --format json --emit "$prefix.json"
     if ($LASTEXITCODE -ne 0) { throw 'Return commit lowered IR failed' }
     $ir = [IO.File]::ReadAllText("$prefix.json") | ConvertFrom-Json
     $commits = 0
@@ -48,9 +48,9 @@ try {
     if ($commits -lt 5 -or $cleanupAfterPrepare -lt 5) {
         throw 'Return commit coverage lost single/product/finally paths or cleanup before commit'
     }
-    & release/xl.exe cgen $source --backend xlir --emit "$prefix.c"
+    & release/win_x64/xl.exe cgen $source --backend xlir --emit "$prefix.c"
     if ($LASTEXITCODE -ne 0) { throw 'Return commit Cgen failed' }
-    & release/xl.exe cgen $source --backend xlir --emit "$prefix.repeat.c"
+    & release/win_x64/xl.exe cgen $source --backend xlir --emit "$prefix.repeat.c"
     if ($LASTEXITCODE -ne 0) { throw 'Repeated return commit Cgen failed' }
     if (![System.Linq.Enumerable]::SequenceEqual(
         [byte[]][IO.File]::ReadAllBytes("$prefix.c"),
@@ -61,13 +61,13 @@ try {
         '-Wno-pointer-sign', '-Wno-unused-function', '-Wno-unused-label', '-Wno-unused-variable',
         '-Wno-unused-parameter', '-Wno-unused-const-variable', '-Wno-unused-but-set-variable',
         '-Wno-missing-field-initializers', '-I.', '-Ibuild/test')
-    & gcc @strict test/cases/xlir_return_commit_host.c test/cases/xlir_return_commit_runtime.c release/xl.dll -o "$prefix.exe"
+    & gcc @strict test/cases/xlir_return_commit_host.c test/cases/xlir_return_commit_runtime.c release/win_x64/xl.dll -o "$prefix.exe"
     if ($LASTEXITCODE -ne 0) { throw 'Return commit strict C compilation failed' }
     & "$prefix.exe"
     if ($LASTEXITCODE -ne 0) { throw 'Return commit runtime ownership balance failed' }
-    & release/xl.exe run $source --backend xlir
+    & release/win_x64/xl.exe run $source --backend xlir
     if ($LASTEXITCODE -ne 0) { throw 'Return commit language JIT failed' }
-    & release/xl.exe build $source --backend xlir -o "$prefix.aot.exe"
+    & release/win_x64/xl.exe build $source --backend xlir -o "$prefix.aot.exe"
     if ($LASTEXITCODE -ne 0) { throw 'Return commit language AOT build failed' }
     & "$prefix.aot.exe"
     if ($LASTEXITCODE -ne 0) { throw 'Return commit language AOT runtime failed' }
@@ -75,7 +75,7 @@ try {
         'src/ir/xl6_ir.c', 'src/ir/xl6_ir_lower.c',
         'src/cgen/xl6_ir_cgen.c', 'src/cgen/xl6_cgen_shared_runtime.c',
         'src/diag/xl6_diag.c', 'src/common/xl6_output.c', 'src/common/xl6_console.c')
-    & gcc @strict test/cases/xlir_return_commit_contract.c @compilerSources release/xl.dll -o "$prefix.contract.exe"
+    & gcc @strict test/cases/xlir_return_commit_contract.c @compilerSources release/win_x64/xl.dll -o "$prefix.contract.exe"
     if ($LASTEXITCODE -ne 0) { throw 'Return commit verifier contract compilation failed' }
     & "$prefix.contract.exe"
     if ($LASTEXITCODE -ne 0) { throw 'Return commit verifier/Cgen mutation contract failed' }

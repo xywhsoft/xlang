@@ -15,7 +15,7 @@ $checks=[Collections.Generic.List[object]]::new()
 $utf8=[Text.UTF8Encoding]::new($false)
 Push-Location $root
 try {
-    Copy-Item -LiteralPath release/xl.dll -Destination "$work/xl.dll"
+    Copy-Item -LiteralPath release/win_x64/xl.dll -Destination "$work/xl.dll"
     & $compilerPath test/cases/xlir_c_owned_boundary_fault.xl "$work/program.c"
     if($LASTEXITCODE){throw 'Callable boundary fault source compilation failed'}
     $hostSource=(Resolve-Path test/cases/xlir_c_owned_boundary_fault_host.c).Path.Replace('\','/')
@@ -25,7 +25,7 @@ try {
     foreach($optimization in @('O0','O2')) {
         $flags=@('-std=c11',"-$optimization",'-ffunction-sections','-fdata-sections',
             "-I$publicPath/include",'-Irelease/include',"$work/host.c")+$objects+
-            @('release/xl.dll','-lws2_32','-liphlpapi','-lshell32','-lole32','-ladvapi32',
+            @('release/win_x64/xl.dll','-lws2_32','-liphlpapi','-lshell32','-lole32','-ladvapi32',
                 '-Wl,--gc-sections','-Wl,--no-keep-memory','-o',"$work/$optimization.exe")
         [IO.File]::WriteAllText("$work/$optimization.rsp",(@($flags | ForEach-Object {'"'+$_.Replace('\','/').Replace('"','\"')+'"'}) -join "`n"),$utf8)
         & gcc ("@$work/$optimization.rsp")

@@ -26,7 +26,7 @@ def main():
     report=dict(Complete=False,Inputs={str(p):sha(p) for p in sorted(pinned)},Rows=[],Failures=[],
         NetworkTraffic=False,SecurityTests=False,ShippingAccepted=False,FullTlsAccepted=False)
     env=dict(os.environ)
-    if os.name=='nt':shutil.copy2(root/'release/xl.dll',out/'xl.dll')
+    if os.name=='nt':shutil.copy2(root/'release/win_x64/xl.dll',out/'xl.dll')
     else:env['XL6_SOURCE_NATIVE_ROOT']=build['NativeRoot']
 
     def save():(out/'results.json').write_text(json.dumps(report,indent=2)+'\n',encoding='utf8')

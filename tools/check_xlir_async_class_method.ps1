@@ -8,7 +8,7 @@ if ( $Root -eq "" ) {
     $Root = Split-Path -Parent $PSScriptRoot
 }
 
-$compiler = Join-Path $Root "release\xl.exe"
+$compiler = Join-Path $Root "release\win_x64\xl.exe"
 $fixture = Join-Path $Root "test\cases\xlir_async_class_method.xl"
 $loweredIr = Join-Path $Root "build\tmp\xlir_async_class_method.lowered.ir"
 $generatedC = Join-Path $Root "build\tmp\xlir_async_class_method.c"

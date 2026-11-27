@@ -6,8 +6,8 @@ try {
     $prefix = 'build/test/xlir_generator_frame_loan'
     New-Item -ItemType Directory -Force -Path build/test | Out-Null
     if (!(Test-Path -LiteralPath build/test/xl.dll) -or
-        (Get-FileHash release/xl.dll).Hash -ne (Get-FileHash build/test/xl.dll).Hash) {
-        Copy-Item -LiteralPath release/xl.dll -Destination build/test/xl.dll -Force
+        (Get-FileHash release/win_x64/xl.dll).Hash -ne (Get-FileHash build/test/xl.dll).Hash) {
+        Copy-Item -LiteralPath release/win_x64/xl.dll -Destination build/test/xl.dll -Force
     }
     $compilerSources = @('src/ast/xl6_ast.c','src/type/xl6_type_model.c',
         'src/ir/xl6_ir.c','src/ir/xl6_ir_lower.c',
@@ -22,7 +22,7 @@ try {
         '-Wno-unused-variable','-Wno-unused-parameter','-Wno-unused-const-variable',
         '-Wno-unused-but-set-variable','-Wno-missing-field-initializers',
         '-Wno-pointer-sign','-Wno-format-truncation','-I.','-Ibuild/test')
-    & gcc @strict test/cases/xlir_generator_frame_loan_contract.c @compilerSources release/xl.dll -o "$prefix.contract.exe"
+    & gcc @strict test/cases/xlir_generator_frame_loan_contract.c @compilerSources release/win_x64/xl.dll -o "$prefix.contract.exe"
     if ($LASTEXITCODE -ne 0) { throw 'Generator frame loan source contract build failed' }
     & "$prefix.contract.exe" "$prefix.c" "$prefix.h" "$prefix.json"
     if ($LASTEXITCODE -ne 0) { throw 'Generator frame loan mutation/verification contract failed' }
@@ -47,13 +47,13 @@ try {
     foreach ($variant in @('optimized','baseline')) {
         $hostSource = if ($variant -eq 'baseline') { 'test/cases/xlir_generator_frame_loan_baseline_host.c' } else { 'test/cases/xlir_generator_frame_loan_host.c' }
         # The host translation unit embeds only current-source verified C.
-        & gcc @strict test/cases/xlir_generator_frame_loan_runtime.c $hostSource release/xl.dll -o "$prefix.$variant.strict.exe"
+        & gcc @strict test/cases/xlir_generator_frame_loan_runtime.c $hostSource release/win_x64/xl.dll -o "$prefix.$variant.strict.exe"
         if ($LASTEXITCODE -ne 0) { throw "Generator frame loan $variant strict C build failed" }
         & "$prefix.$variant.strict.exe"
         if ($LASTEXITCODE -ne 0) { throw "Generator frame loan $variant runtime/memory failed" }
-        & release/xl.exe run test/cases/xlir_generator_frame_loan_runtime.c $hostSource --inc-path . --inc-path build/test -- --smoke
+        & release/win_x64/xl.exe run test/cases/xlir_generator_frame_loan_runtime.c $hostSource --inc-path . --inc-path build/test -- --smoke
         if ($LASTEXITCODE -ne 0) { throw "Generator frame loan $variant C-host JIT failed" }
-        & release/xl.exe build test/cases/xlir_generator_frame_loan_runtime.c $hostSource @runtimeSources src/api/xl_foreign_error.c --inc-path . --inc-path build/test --inc-path release -o "$prefix.$variant.aot.exe"
+        & release/win_x64/xl.exe build test/cases/xlir_generator_frame_loan_runtime.c $hostSource @runtimeSources src/api/xl_foreign_error.c --inc-path . --inc-path build/test --inc-path release -o "$prefix.$variant.aot.exe"
         if ($LASTEXITCODE -ne 0) { throw "Generator frame loan $variant C-host AOT build failed" }
         & "$prefix.$variant.aot.exe" --smoke
         if ($LASTEXITCODE -ne 0) { throw "Generator frame loan $variant C-host AOT runtime failed" }

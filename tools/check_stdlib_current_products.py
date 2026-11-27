@@ -147,7 +147,7 @@ def main():
         return row,data
     try:
         binary=isolated/('fixture-host'+('.exe' if windows else ''))
-        libs=[isolated/'release/xlc.dll'] if windows else ['-L'+str(isolated/'release'),'-lxlc','-Wl,-rpath,$ORIGIN/release','-pthread','-ldl','-lm']
+        libs=[isolated/'release/win_x64/xlc.dll'] if windows else ['-L'+str(isolated/'release'),'-lxlc','-Wl,-rpath,$ORIGIN/release','-pthread','-ldl','-lm']
         row,data=run('fixture-host-build',[cc,'-std=c11','-Wall','-Wextra','-Werror','-O2','-DXL_STATIC_EMBED','-I'+str(root/'release/include'),host,*libs,'-o',binary]);assert row['Exit']==0,data[-4000:]
         child=out/('process-child'+('.exe' if windows else ''))
         row,data=run('process-child-build',[cc,'-std=c11','-Wall','-Wextra','-Werror','-O2',*(['-municode'] if windows else ['-D_GNU_SOURCE']),childSource,'-o',child]);assert row['Exit']==0,data[-4000:]

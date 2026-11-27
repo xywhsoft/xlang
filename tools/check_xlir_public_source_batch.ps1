@@ -4,7 +4,7 @@ $manifest = Get-Content (Join-Path $Directory 'build.json') -Raw | ConvertFrom-J
 if (@(@($manifest.Inputs) + @($manifest.Headers) | Where-Object { (Get-FileHash -LiteralPath $_.Path).Hash -ne $_.Sha256 }).Count -or
     (Get-FileHash $manifest.Driver).Hash -ne $manifest.DriverSha256) { throw 'Stale public-source compiler inputs' }
 $files = @(@(Get-ChildItem src,lib,test/cases,tools,res/tcc -Recurse -File) +
-    @(Get-Item release/xl.dll,$manifest.Driver) + @($manifest.Headers | ForEach-Object { Get-Item -LiteralPath $_.Path })) | Sort-Object FullName -Unique
+    @(Get-Item release/win_x64/xl.dll,$manifest.Driver) + @($manifest.Headers | ForEach-Object { Get-Item -LiteralPath $_.Path })) | Sort-Object FullName -Unique
 $inputs = @($files | ForEach-Object { [pscustomobject]@{Path=$_.FullName;Sha256=(Get-FileHash -LiteralPath $_.FullName).Hash} })
 $caseDirectory = 'build/test/xlir_public_source_cases'
 $reportPath = 'build/test/xlir_public_source_batch.results.json'

@@ -29,14 +29,14 @@ def main():
     inputs = {Path(__file__).resolve(), Path(cc), source, root/'src/api/xl_xrt_symbols.inc'}
     for product in ('xrt', 'xruntime'):
         inputs.update(root/name for name in (f'lib/{product}/{product}.h',
-                      f'lib/{product}/{product}.snapshot.json', f'release/include/{product}_decl.h'))
+                      f'lib/{product}/{product}.snapshot.json', f'release/win_x64/include/{product}_decl.h'))
     native = args.xrt_root.resolve() if args.xrt_root else None
     previous = args.previous_root.resolve() if args.previous_root else None
     preserved = None
     if previous:
         for product in ('xrt','xruntime'):
             for declaration in (False,True):
-                name = f'release/include/{product}_decl.h' if declaration else f'lib/{product}/{product}.h'
+                name = f'release/win_x64/include/{product}_decl.h' if declaration else f'lib/{product}/{product}.h'
                 prior = previous/name; inputs.add(prior)
                 def unselected(path):
                     text = path.read_text(encoding='utf-8')
@@ -59,7 +59,7 @@ def main():
     for product in ('xrt', 'xruntime'):
         metadata = json.loads((root/f'lib/{product}/{product}.snapshot.json').read_text(encoding='utf-8'))
         for section, path in (('implementation',root/f'lib/{product}/{product}.h'),
-                              ('declarations',root/f'release/include/{product}_decl.h')):
+                              ('declarations',root/f'release/win_x64/include/{product}_decl.h')):
             assert metadata[section]['sha256'].lower() == sha(path) and metadata[section]['bytes'] == path.stat().st_size
     out.mkdir(parents=True); rows, prefixes, errors = [], [], []
     def run(name, command, cwd=root):
@@ -83,7 +83,7 @@ def main():
                             if product=='xruntime' else ['-DXRT_IMPLEMENTATION'])
                 command += (['-O1','-g','-fsanitize=address,undefined','-fno-omit-frame-pointer','-no-pie']
                             if mode=='sanitized' else ['-'+mode])
-                if declaration_first: command += ['-include',str(root/f'release/include/{product}_decl.h')]
+                if declaration_first: command += ['-include',str(root/f'release/win_x64/include/{product}_decl.h')]
                 command += ['-include',str(root/f'lib/{product}/{product}.h'),str(source)]
                 if os.name!='nt': command += ['-pthread','-lm','-ldl']
                 command += ['-o',str(executable)]

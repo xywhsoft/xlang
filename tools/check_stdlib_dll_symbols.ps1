@@ -12,7 +12,7 @@ $stdlibPaths = @(
     (Join-Path $Root "src\stdlib\xl6_stdlib_data.c")
 )
 $cgenDir = Join-Path $Root "src\cgen"
-$runtimeHeaderPath = Join-Path $Root "release\include\xl_runtime.h"
+$runtimeHeaderPath = Join-Path $Root "release\win_x64\include\xl_runtime.h"
 $commonPath = Join-Path $PSScriptRoot "xrt_snapshot_contract.ps1"
 $minStdlibCsymbols = 161
 

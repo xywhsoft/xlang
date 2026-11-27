@@ -174,7 +174,7 @@ function Invoke-XlCaptureRaw {
         }
     }
 
-    $xl = Join-Path $Root "release\xl.exe"
+    $xl = Join-Path $Root "release\win_x64\xl.exe"
     $process = Start-Process `
         -FilePath $xl `
         -ArgumentList $CommandArgs `
@@ -225,7 +225,7 @@ function Invoke-Xl {
         [string[]]$CommandArgs
     )
 
-    $xl = Join-Path $Root "release\xl.exe"
+    $xl = Join-Path $Root "release\win_x64\xl.exe"
     & $xl @CommandArgs
     if ( $LASTEXITCODE -ne 0 ) {
         throw "$Name failed with code $LASTEXITCODE"

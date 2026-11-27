@@ -17,7 +17,7 @@ def main():
     assert not out.exists() and (not a.sanitize or os.name!='nt')
     cc=shutil.which('gcc');assert cc
     build,pinned,compared=verify_public_build(root,public)
-    runtime=root/'release/xl.dll' if os.name=='nt' else Path(build['NativeRoot'])/'release/libxl.so'
+    runtime=root/'release/win_x64/xl.dll' if os.name=='nt' else Path(build['NativeRoot'])/'release/libxl.so'
     contract=root/'test/cases/xlir_native_ssa_async_contract.c'
     source=root/'test/cases/stdlib_native_ssa_async.xl'
     host=root/'test/cases/stdlib_native_ssa_async_host.c'

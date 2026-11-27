@@ -20,7 +20,7 @@ def main():
     family.add_argument('--multi-only',action='store_true')
     family.add_argument('--strings-only',action='store_true')
     args=parser.parse_args(); root=Path(__file__).resolve().parents[1]; out=args.out.resolve()
-    cc=shutil.which('gcc'); cli=root/('release/xl.exe' if os.name=='nt' else 'release/xl')
+    cc=shutil.which('gcc'); cli=root/('release/win_x64/xl.exe' if os.name=='nt' else 'release/xl')
     if out.exists() or not cc or not cli.is_file() or (args.sanitize and os.name=='nt'):
         parser.error('Require fresh output, gcc/current CLI and Linux for sanitizer')
     # Eleven terminal modes, including managed text with embedded NUL. Every
@@ -55,7 +55,7 @@ def main():
     for directory in ['src/runtime','src/ir','src/cgen','src/compile','src/stdlib','release/include']:
         files.update(p for p in (root/directory).rglob('*') if p.suffix in ['.h','.c','.inc'])
     for name,host,_,_,_ in cases: files.update([root/f'test/cases/{name}.xl',root/host])
-    files.update(root/name for name in (['release/xl.dll','release/xlc.dll'] if os.name=='nt' else ['release/libxl.so','release/libxlc.so']))
+    files.update(root/name for name in (['release/win_x64/xl.dll','release/win_x64/xlc.dll'] if os.name=='nt' else ['release/libxl.so','release/libxlc.so']))
     inputs=[{'Path':str(p.resolve()),'Sha256':digest(p)} for p in sorted(files)]
     rows=[]; report={'Complete':False,'InputsUnchanged':False,'Scope':__doc__,'Inputs':inputs,'Rows':rows,
         'Fixtures':len(cases),'TerminalModes':sum(len(row[3]) for row in cases),
@@ -65,7 +65,7 @@ def main():
     out.mkdir(parents=True); private=out/'include/__xl_runtime'; private.mkdir(parents=True)
     for directory in [root/'src/runtime',root/'release/include']:
         for path in directory.glob('*.h'): shutil.copy2(path,private/path.name)
-    if os.name=='nt': shutil.copy2(root/'release/xl.dll',out/'xl.dll')
+    if os.name=='nt': shutil.copy2(root/'release/win_x64/xl.dll',out/'xl.dll')
     env=dict(os.environ)
     if args.sanitize:
         env.update(ASAN_OPTIONS='detect_leaks=1:detect_stack_use_after_return=1:halt_on_error=1',
@@ -83,7 +83,7 @@ def main():
     flags=['-std=c11','-Wall','-Wextra','-Werror','-Wno-unused-function','-Wno-unused-label',
         '-Wno-unused-variable','-Wno-unused-parameter','-Wno-unused-const-variable','-Wno-missing-field-initializers',
         '-I.','-Irelease/include','-I'+str(out/'include')]
-    links=['release/xl.dll','-lws2_32','-liphlpapi','-lshell32'] if os.name=='nt' else [
+    links=['release/win_x64/xl.dll','-lws2_32','-liphlpapi','-lshell32'] if os.name=='nt' else [
         '-Lrelease','-lxl','-Wl,-rpath,'+str(root/'release'),'-pthread','-ldl','-lm']
     if os.name!='nt': flags+=['-D_GNU_SOURCE']
     if args.sanitize: flags+=['-g','-fsanitize=address,undefined','-fno-omit-frame-pointer','-fno-pie','-no-pie']

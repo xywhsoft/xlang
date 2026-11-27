@@ -210,9 +210,9 @@ def main():
             product(obj)
             binary = out / (label + ('.exe' if os.name == 'nt' else ''))
             if os.name == 'nt':
-                links = [*objects, obj, root / 'release/xl.dll', '-lws2_32', '-liphlpapi',
+                links = [*objects, obj, root / 'release/win_x64/xl.dll', '-lws2_32', '-liphlpapi',
                          '-lshell32', '-lole32', '-ladvapi32', '-o', binary]
-                shutil.copy2(root / 'release/xl.dll', out / 'xl.dll')
+                shutil.copy2(root / 'release/win_x64/xl.dll', out / 'xl.dll')
             else:
                 lib = args.native_root.resolve() / 'release'
                 links = [*objects, obj, '-L' + str(lib), '-lxl', '-Wl,-rpath,' + str(lib),

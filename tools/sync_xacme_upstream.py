@@ -11,7 +11,7 @@ parser.add_argument("--xrt", type=Path, required=True)
 parser.add_argument("--check", action="store_true")
 args = parser.parse_args()
 root = Path(__file__).resolve().parents[1]
-target = root / "release/extlibs/xacme/upstream"
+target = root / "release/win_x64/extlibs/xacme/upstream"
 revision = subprocess.check_output(["git", "rev-parse", "HEAD"], cwd=args.xrt, text=True).strip()
 files = {
     "xacme.h": "single/extlibs/xacme.h",

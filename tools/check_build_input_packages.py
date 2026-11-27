@@ -19,7 +19,7 @@ for name in ['pkg','pkg2']:
 (src/'main.xl').write_text('import pkg\nfunc main(...) as int\n return pkg.value()\nend\n',encoding='utf8')
 env=os.environ.copy();env['XLANG_PACKAGE_PATH']=str(packages)
 try:
- result=subprocess.run([str(c/'release/xl.exe'),'build','main.xl','-o','package.exe','--input-report','package.json'],cwd=src,env=env,stdout=subprocess.PIPE,stderr=subprocess.STDOUT,timeout=90)
+ result=subprocess.run([str(c/'release/win_x64/xl.exe'),'build','main.xl','-o','package.exe','--input-report','package.json'],cwd=src,env=env,stdout=subprocess.PIPE,stderr=subprocess.STDOUT,timeout=90)
  (w/'build.log').write_bytes(result.stdout);check('recursive package build',result.returncode==0)
  receipt=json.loads((src/'package.json').read_text());paths={Path(f['path']).resolve() for f in receipt['files']}
  check('both manifests observed',all(packages/n/'xlang.package.json' in paths for n in ['pkg','pkg2']))
@@ -28,7 +28,7 @@ try:
  check('package environment observed',receipt['packagePathObserved'] and receipt['XLANG_PACKAGE_PATH']==str(packages))
  check('actual package output',subprocess.run([str(src/'package.exe')],cwd=src,timeout=15).returncode==11)
  for row in [*receipt['files'],receipt['artifact']]: check('input digest '+Path(row['path']).name,hashlib.sha256(Path(row['path']).read_bytes()).hexdigest()==row['sha256'])
- dll=ctypes.CDLL(str(c/'release/xlc.dll'))
+ dll=ctypes.CDLL(str(c/'release/win_x64/xlc.dll'))
  for name,types,result in [('xlcCreateContext',[ctypes.c_void_p],ctypes.c_void_p),('xlcBeginInputReport',[ctypes.c_void_p],ctypes.c_int),('xlcAddSourceFile',[ctypes.c_void_p,ctypes.c_char_p],ctypes.c_int),('xlcEmitExe',[ctypes.c_void_p,ctypes.c_char_p],ctypes.c_int),('xlcWriteInputReport',[ctypes.c_void_p,ctypes.c_char_p,ctypes.c_char_p],ctypes.c_int),('xlcDestroyContext',[ctypes.c_void_p],None)]:
   f=getattr(dll,name);f.argtypes=types;f.restype=result
  old=os.environ.get('XLANG_PACKAGE_PATH');os.environ['XLANG_PACKAGE_PATH']=str(packages);ctx=None
@@ -46,4 +46,4 @@ try:
   else: os.environ['XLANG_PACKAGE_PATH']=old
 except Exception as e: error=str(e)
 else: error=None
-(w/'evidence.json').write_text(json.dumps({'status':'passed' if error is None else 'failed','error':error,'checks':checks,'compilerDllSha256':hashlib.sha256((c/'release/xlc.dll').read_bytes()).hexdigest()},ensure_ascii=False,indent=2),encoding='utf8');print(w,'passed' if error is None else 'failed',error or '');raise SystemExit(0 if error is None else 1)
+(w/'evidence.json').write_text(json.dumps({'status':'passed' if error is None else 'failed','error':error,'checks':checks,'compilerDllSha256':hashlib.sha256((c/'release/win_x64/xlc.dll').read_bytes()).hexdigest()},ensure_ascii=False,indent=2),encoding='utf8');print(w,'passed' if error is None else 'failed',error or '');raise SystemExit(0 if error is None else 1)

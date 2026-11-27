@@ -15,7 +15,7 @@ def main():
     root,public,out=a.root.resolve(),a.public_directory.resolve(),a.out.resolve()
     cc,nm=shutil.which('gcc'),shutil.which('nm');assert cc and nm and not out.exists() and (not a.sanitize or os.name!='nt')
     build,pinned,_=verify_public_build(root,public)
-    runtime=root/'release/xl.dll' if os.name=='nt' else Path(build['NativeRoot'])/'release/libxl.so'
+    runtime=root/'release/win_x64/xl.dll' if os.name=='nt' else Path(build['NativeRoot'])/'release/libxl.so'
     planner=root/'test/cases/stdlib_wait_queue_native_plan.c';host=root/'test/cases/stdlib_wait_queue_native.c'
     provider=root/'src/runtime/xl6_wait_queue.c';body=root/'src/runtime/xl6_concurrent_queue_impl.h'
     memory=root/'test/support/module_product_memory.c'
@@ -66,7 +66,7 @@ def main():
             assert {'xl6WaitQueueReceiveV1','xrtTypedMPMCQueueTryPop'}<=names
             probe=out/(opt+'-probe.o')
             probes=['-Dxl6CondSignalV1=xl6WaitProbeSignal','-Dxl6CondWaitUntilNative=xl6WaitProbeUntil']
-            clockProbe='#include "release/include/xl_clock.h"\nXL6_DeadlineV1 xl6WaitProbeDeadlineAfter(uint64_t);\n#define xl6DeadlineAfterMillisecondsV1 xl6WaitProbeDeadlineAfter\n'
+            clockProbe='#include "release/win_x64/include/xl_clock.h"\nXL6_DeadlineV1 xl6WaitProbeDeadlineAfter(uint64_t);\n#define xl6DeadlineAfterMillisecondsV1 xl6WaitProbeDeadlineAfter\n'
             probeSource=out/(opt+'-probe.c');probeSource.write_text(clockProbe+'#include "src/runtime/xl6_wait_queue.c"\n');product(probeSource)
             run(opt+'-probe-build',[cc,*flags,'-'+opt,*probes,'-c',probeSource,'-o',probe]);product(probe)
             replacements=providers[:];replacements[plan['Sources'].index('src/runtime/xl6_wait_queue.c')+1]=probe

@@ -28,7 +28,7 @@ try {
         & gcc @flags -O0 -c tools/xrt_single_header_impl.c -o $runtimeObject
         if ($LASTEXITCODE -ne 0) { throw 'Module deactivation source XRT build failed' }
     }
-    & gcc @flags -O2 build/test/xlir_module_deactivation.o src/runtime/xl6_code_lease.c src/runtime/xl6_continuation_queue.c $runtimeObject release/xl.dll -lWs2_32 -lIPHLPAPI -lShell32 -lOle32 -lAdvapi32 -o build/test/xlir_module_deactivation.exe
+    & gcc @flags -O2 build/test/xlir_module_deactivation.o src/runtime/xl6_code_lease.c src/runtime/xl6_continuation_queue.c $runtimeObject release/win_x64/xl.dll -lWs2_32 -lIPHLPAPI -lShell32 -lOle32 -lAdvapi32 -o build/test/xlir_module_deactivation.exe
     if ($LASTEXITCODE -ne 0) { throw 'Source API deactivation contract build failed' }
     & build/test/xlir_module_deactivation.exe
     if ($LASTEXITCODE -ne 0) { throw 'Source API deactivation transaction failed' }

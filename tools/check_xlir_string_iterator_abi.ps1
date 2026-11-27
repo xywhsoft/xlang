@@ -23,7 +23,7 @@ function Assert-Deterministic([string]$first, [string]$second)
     }
 }
 
-$xl = Join-Path $Root "release\xl.exe"
+$xl = Join-Path $Root "release\win_x64\xl.exe"
 $source = Join-Path $Root "test\cases\xlir_string_iterator_abi.xl"
 $historicalSource = Join-Path $Root "test\cases\stdlib_string.xl"
 $hostSource = Join-Path $Root "test\cases\xlir_default_class_layout_host.c"

@@ -19,7 +19,7 @@ def main():
     manifest=public/'build.json'; build=json.loads(manifest.read_text(encoding='utf-8-sig'))
     assert build['SourceXrt'] and not build['RuntimeOnly'] and build['EnableExeCompiler']==1
     driver=Path(build['Driver']); assert sha(driver)==build['DriverSha256'].lower()
-    runtime=root/'release/xl.dll' if os.name=='nt' else Path(build['NativeRoot'])/'release/libxl.so'
+    runtime=root/'release/win_x64/xl.dll' if os.name=='nt' else Path(build['NativeRoot'])/'release/libxl.so'
     population=root/'tools/check_stdlib_dict_native.py'; tree=ast.parse(population.read_text(encoding='utf-8'))
     sources=ast.literal_eval(next(n.value for n in ast.walk(tree) if isinstance(n,ast.Assign)
         and any(isinstance(t,ast.Name) and t.id=='sources' for t in n.targets)))

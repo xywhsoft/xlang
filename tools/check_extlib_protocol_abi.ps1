@@ -11,7 +11,7 @@ if(Test-Path -LiteralPath $work){throw 'Choose a fresh protocol ABI evidence dir
 [void][IO.Directory]::CreateDirectory($work)
 $utf8=[Text.UTF8Encoding]::new($false)
 $gcc=(Get-Command gcc -CommandType Application | Select-Object -First 1).Source
-$xl=Join-Path $root 'release/xl.exe'
+$xl=Join-Path $root 'release/win_x64/xl.exe'
 $driver=$null; $build=$null; $artifact=$null
 if($PublicSourceDirectory){
     $directory=[IO.Path]::GetFullPath($(if([IO.Path]::IsPathRooted($PublicSourceDirectory)){$PublicSourceDirectory}else{Join-Path $root $PublicSourceDirectory}))
@@ -45,18 +45,18 @@ if(!$plans.Count){throw 'Select at least one ABI package'}
 $packageInputs=@{}
 function IncludePackage([string]$name){
     if($packageInputs.ContainsKey($name)){return}
-    $directory=Join-Path $root "release/extlibs/$name"
+    $directory=Join-Path $root "release/win_x64/extlibs/$name"
     $manifest=Get-Content (Join-Path $directory 'xlang.package.json') -Raw|ConvertFrom-Json
     $packageInputs[$name]=$directory
     foreach($dependency in $manifest.dependencies){IncludePackage $dependency.name}
 }
 foreach($plan in $plans){IncludePackage $plan.name}
 $inputs=[ordered]@{}; $checks=[Collections.Generic.List[object]]::new(); $coverage=[Collections.Generic.List[object]]::new()
-$environment=@{XLANG_PACKAGE_PATH=(Join-Path $root 'release/extlibs')}
+$environment=@{XLANG_PACKAGE_PATH=(Join-Path $root 'release/win_x64/extlibs')}
 function InputPaths {
     $PSCommandPath; $gcc; $xl
     foreach($directory in $packageInputs.Values){Get-ChildItem $directory -Recurse -File|ForEach-Object FullName}
-    foreach($file in @('lib/xrt/xrt.h','lib/xruntime/xruntime.h','release/xl.dll','release/xlc.dll',
+    foreach($file in @('lib/xrt/xrt.h','lib/xruntime/xruntime.h','release/win_x64/xl.dll','release/win_x64/xlc.dll',
         'tools/extlib_smoke_process.ps1','tools/xlir_native_process.ps1','tools/check_extlib_protocol_abi.sh',
         'test/support/extlib_http_object_runtime.c','test/cases/extlib_protocol_native_contract.c')){Join-Path $root $file}
     Get-ChildItem (Join-Path $root 'release/include') -Recurse -File|ForEach-Object FullName
@@ -84,7 +84,7 @@ $outcome='failed'; $failure=''; $changed=@(); $httpObjects=@()
 try {
     $null=Check 'gcc-version' $gcc @('--version')
     foreach($plan in $plans){
-        $name=$plan.name; $pkg="release/extlibs/$name"
+        $name=$plan.name; $pkg="release/win_x64/extlibs/$name"
         $manifest=Get-Content (Join-Path $root "$pkg/xlang.package.json") -Raw|ConvertFrom-Json
         $symbols=@(foreach($file in $manifest.artifact.xlSources){
             # 只清点外部符号名，类型必须从真正生成的 C 中取得，不另写 ABI 推导器。

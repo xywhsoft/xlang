@@ -4,7 +4,7 @@ p=argparse.ArgumentParser();p.add_argument('--root',type=Path,required=True);p.a
 root=a.root.resolve();out=a.out.resolve();assert not out.exists();out.mkdir(parents=True)
 sha=lambda q:hashlib.sha256(Path(q).read_bytes()).hexdigest();b=json.loads(a.build.read_text(encoding='utf-8-sig'));assert b['Complete'] and b['SourceXrt'] and not b['RuntimeOnly']
 for q in b['Inputs']+b['Objects']+b['Headers']:assert sha(q['Path'])==q['Sha256'].lower()
-runtime=root/'release/xl.dll' if os.name=='nt' else Path(b['NativeRoot'])/'release/libxl.so'
+runtime=root/'release/win_x64/xl.dll' if os.name=='nt' else Path(b['NativeRoot'])/'release/libxl.so'
 libraries=root/'res/tcc/win64/x86_64' if os.name=='nt' else Path(b['NativeRoot'])/'build/linux/tcc-dist'
 driver=Path(b['Driver']);assert sha(driver)==b['DriverSha256'].lower()
 if os.name=='nt':shutil.copy2(runtime,out/'xl.dll')

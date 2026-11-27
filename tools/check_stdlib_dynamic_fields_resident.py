@@ -23,7 +23,7 @@ def main():
     for row in build['Inputs']+build['Headers']+build['Objects']:
         assert sha(row['Path'])==row['Sha256'].lower(),row['Path']; files.add(Path(row['Path']))
     cc=shutil.which('gcc'); assert cc
-    native=root/'release/xl.dll' if os.name=='nt' else Path(build['NativeRoot'])/'release/libxl.so'
+    native=root/'release/win_x64/xl.dll' if os.name=='nt' else Path(build['NativeRoot'])/'release/libxl.so'
     files.update((Path(cc),native))
     cases=('stdlib_dynamic_fields_resident','xruntime_dynamic_fields','xlir_native_dynamic_fields_values',
            'xlir_native_dynamic_fields_auto_destroy','xlir_native_dynamic_fields_explicit_destroy',

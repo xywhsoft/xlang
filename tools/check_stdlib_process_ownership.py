@@ -32,7 +32,7 @@ def main():
         fixtures.extend(root/'test/cases'/(name+'.xl') for name in (
             'stdlib_io_streams','stdlib_io_allocation','stdlib_native_process_io_owner_aot'))
     negative=root/'test/cases/sem_future_receiver_expr.xl'
-    runtime=root/'release/xl.dll' if os.name=='nt' else Path(build['NativeRoot'])/'release/libxl.so'
+    runtime=root/'release/win_x64/xl.dll' if os.name=='nt' else Path(build['NativeRoot'])/'release/libxl.so'
     pinned.update((Path(__file__).resolve(),Path(sys.executable),Path(cc),Path(inspector),contract,artifact,lifetime,negative,child_source,runtime,*fixtures))
     inputs=[dict(Path=str(path),Sha256=sha(path)) for path in sorted(pinned)]
     objects=[Path(row['Path']) for row in build['Objects'] if Path(row['Path']).stem not in ('xlir_public_source_driver','xlir_public_source_linux_driver')]

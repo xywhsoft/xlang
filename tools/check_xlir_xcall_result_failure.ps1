@@ -9,8 +9,8 @@ try {
     $prefix = 'build/test/xlir_xcall_result_failure'
     New-Item -ItemType Directory -Force -Path build/test | Out-Null
     if (!(Test-Path -LiteralPath build/test/xl.dll) -or
-        (Get-FileHash release/xl.dll).Hash -ne (Get-FileHash build/test/xl.dll).Hash) {
-        Copy-Item -LiteralPath release/xl.dll -Destination build/test/xl.dll -Force
+        (Get-FileHash release/win_x64/xl.dll).Hash -ne (Get-FileHash build/test/xl.dll).Hash) {
+        Copy-Item -LiteralPath release/win_x64/xl.dll -Destination build/test/xl.dll -Force
     }
     $compilerSources = @('src/ast/xl6_ast.c','src/type/xl6_type_model.c',
         'src/ir/xl6_ir.c','src/ir/xl6_ir_lower.c',
@@ -25,7 +25,7 @@ try {
         '-Wno-unused-variable','-Wno-unused-parameter','-Wno-unused-const-variable',
         '-Wno-unused-but-set-variable','-Wno-missing-field-initializers',
         '-Wno-pointer-sign','-Wno-format-truncation','-I.','-Ibuild/test')
-    & gcc @strict test/cases/xlir_xcall_result_failure_contract.c @compilerSources release/xl.dll -o "$prefix.contract.exe"
+    & gcc @strict test/cases/xlir_xcall_result_failure_contract.c @compilerSources release/win_x64/xl.dll -o "$prefix.contract.exe"
     if ($LASTEXITCODE -ne 0) { throw 'Callable result source contract build failed' }
     & "$prefix.contract.exe" "$prefix.c" "$prefix.h" "$prefix.json"
     if ($LASTEXITCODE -ne 0) { throw 'XCall result transaction lowering failed' }
@@ -74,15 +74,15 @@ try {
         '-Wno-unused-function', '-Wno-unused-label', '-Wno-unused-variable',
         '-Wno-unused-parameter', '-Wno-unused-const-variable', '-Wno-missing-field-initializers',
         '-I.', '-Ibuild/test')
-    & gcc @strictFlags $hostSource $runtimeSource release/xl.dll -o "$prefix.exe"
+    & gcc @strictFlags $hostSource $runtimeSource release/win_x64/xl.dll -o "$prefix.exe"
     if ($LASTEXITCODE -ne 0) { throw 'XCall result transaction strict C compilation failed' }
     & "$prefix.exe"
     if ($LASTEXITCODE -ne 0) { throw 'XCall result transaction strict C runtime failed' }
-    & release/xl.exe run $runtimeSource $hostSource --inc-path . --inc-path build/test -- --smoke
+    & release/win_x64/xl.exe run $runtimeSource $hostSource --inc-path . --inc-path build/test -- --smoke
     if ($LASTEXITCODE -ne 0) { throw 'XCall result transaction generated-C JIT failed' }
     # This is a C-only host entry with the generated module behind #include;
     # declare its shared error-runtime provider explicitly for static linkage.
-    & release/xl.exe build $runtimeSource $hostSource src/api/xl_foreign_error.c --inc-path . --inc-path build/test -o "$prefix.aot.exe"
+    & release/win_x64/xl.exe build $runtimeSource $hostSource src/api/xl_foreign_error.c --inc-path . --inc-path build/test -o "$prefix.aot.exe"
     if ($LASTEXITCODE -ne 0) { throw 'XCall result transaction generated-C AOT build failed' }
     & "$prefix.aot.exe" --smoke
     if ($LASTEXITCODE -ne 0) { throw 'XCall result transaction generated-C AOT runtime failed' }

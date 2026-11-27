@@ -47,7 +47,7 @@ def main():
     assert not out.exists();out.mkdir(parents=True)
     inputs={str(path):sha(path) for path in files}
     report=dict(Complete=False,InputsUnchanged=False,Inputs=inputs,Rows=[],Failures=[],Scope=data['Scope'])
-    env=dict(os.environ,XLANG_PACKAGE_PATH=str(root/'release/extlibs')+os.pathsep+str(root/'test/fixtures'))
+    env=dict(os.environ,XLANG_PACKAGE_PATH=str(root/'release/win_x64/extlibs')+os.pathsep+str(root/'test/fixtures'))
     def save():
         (out/'results.json').write_text(json.dumps(report,indent=2)+'\n',encoding='utf-8')
     try:

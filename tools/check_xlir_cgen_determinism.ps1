@@ -10,7 +10,7 @@ if ( $Root -eq "" ) {
     $Root = Split-Path -Parent $PSScriptRoot
 }
 
-$xl = Join-Path $Root "release\xl.exe"
+$xl = Join-Path $Root "release\win_x64\xl.exe"
 $outputDir = Join-Path $Root "build\test"
 $compileFlags = @(
     "-std=c11", "-Wall", "-Wextra", "-Werror",
@@ -188,10 +188,10 @@ if ( Test-Path -LiteralPath $runtimeIncludeDir ) {
 New-Item -ItemType Directory -Path $runtimeIncludeDir | Out-Null
 
 $runtimeHeaders = @(
-    "release\include\xl_runtime.h",
-    "release\include\xl_extlib_abi.h",
-    "release\include\xrt_decl.h",
-    "release\include\xruntime_decl.h"
+    "release\win_x64\include\xl_runtime.h",
+    "release\win_x64\include\xl_extlib_abi.h",
+    "release\win_x64\include\xrt_decl.h",
+    "release\win_x64\include\xruntime_decl.h"
 )
 $privateRuntimeHeaders = @(
     Get-ChildItem -LiteralPath (Join-Path $Root "src\runtime") -File -Filter "xl6_*.h"

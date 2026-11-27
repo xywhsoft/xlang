@@ -61,7 +61,7 @@ def main():
         names={Path(row['Path']).name for row in objects}
         objects.extend(row for row in prior['Objects'] if Path(row['Path']).name not in names)
         if windows:
-            runtime=root/'release/xl.dll'; shutil.copy2(runtime,out/'xl.dll')
+            runtime=root/'release/win_x64/xl.dll'; shutil.copy2(runtime,out/'xl.dll')
             libraries=[runtime,'-lws2_32','-liphlpapi','-lshell32','-lole32','-ladvapi32']
         else:
             libraries=['-L'+str(root/'release'),'-lxlc','-lxl','-Wl,-rpath,'+str(root/'release'),

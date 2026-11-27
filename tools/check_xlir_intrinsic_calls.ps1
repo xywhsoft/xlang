@@ -13,7 +13,7 @@ function Read-Utf8([string]$path)
     return [System.IO.File]::ReadAllText($path, [System.Text.Encoding]::UTF8)
 }
 
-$xl = Join-Path $Root "release\xl.exe"
+$xl = Join-Path $Root "release\win_x64\xl.exe"
 $outputDir = Join-Path $Root "build\tmp"
 $lowerSource = Join-Path $Root "src\ir\xl6_ir_lower.c"
 $cgenSource = Join-Path $Root "src\cgen\xl6_ir_cgen.c"

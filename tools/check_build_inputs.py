@@ -29,7 +29,7 @@ try:
  call([unit],'snapshot-run')
  (work/'root.c').write_text('#define PICK "nested.h"\n#include PICK\nint main(void) {return VALUE;}\n',encoding='utf8')
  inc=work/'headers';inc.mkdir();(inc/'nested.h').write_text('#include "value.h"\n',encoding='utf8');(inc/'value.h').write_text('#define VALUE 7\n',encoding='utf8')
- xl=compiler/'release/xl.exe'
+ xl=compiler/'release/win_x64/xl.exe'
  call([xl,'build','root.c','--inc-path',inc,'-o','c.exe','--input-report','c.json'],'c-build')
  c=verify_receipt('c.json');paths={Path(f['path']).resolve() for f in c['files']}
  check('macro and transitive headers observed',{work/'root.c',inc/'nested.h',inc/'value.h'}<=paths)
@@ -55,7 +55,7 @@ try:
  call([xl,'build','root.c','--inc-path',inc,'--link',work/'library.o','-o','linked.exe','--input-report','linked.json'],'linked-build')
  linked=verify_receipt('linked.json');check('linked object bytes observed',work/'library.o' in {Path(f['path']).resolve() for f in linked['files']})
  # API completion cannot manufacture a receipt for a changed graph/artifact.
- dll=ctypes.CDLL(str(compiler/'release/xlc.dll'))
+ dll=ctypes.CDLL(str(compiler/'release/win_x64/xlc.dll'))
  for name,argtypes,restype in [('xlcCreateContext',[ctypes.c_void_p],ctypes.c_void_p),('xlcBeginInputReport',[ctypes.c_void_p],ctypes.c_int),('xlcAddSourceFile',[ctypes.c_void_p,ctypes.c_char_p],ctypes.c_int),('xlcAddCSourceFile',[ctypes.c_void_p,ctypes.c_char_p],ctypes.c_int),('xlcEmitExe',[ctypes.c_void_p,ctypes.c_char_p],ctypes.c_int),('xlcWriteInputReport',[ctypes.c_void_p,ctypes.c_char_p,ctypes.c_char_p],ctypes.c_int),('xlcDestroyContext',[ctypes.c_void_p],None)]:
   fn=getattr(dll,name);fn.argtypes=argtypes;fn.restype=restype
  previous=os.getcwd();os.chdir(work)
@@ -83,6 +83,6 @@ try:
 except Exception as e:
  error=str(e);print('FAILED:',error)
 else: error=None
-report={'status':'passed' if error is None else 'failed','error':error,'utc':datetime.datetime.now(datetime.timezone.utc).isoformat(),'source':str(source),'compiler':str(compiler),'directory':str(work),'checks':checks,'calls':calls,'compilerSha256':hashlib.sha256((compiler/'release/xl.exe').read_bytes()).hexdigest(),'testSourceSha256':hashlib.sha256((work/'check_build_inputs.py').read_bytes()).hexdigest(),'snapshotTestSourceSha256':hashlib.sha256((work/'build_input_snapshot_test.c').read_bytes()).hexdigest()}
+report={'status':'passed' if error is None else 'failed','error':error,'utc':datetime.datetime.now(datetime.timezone.utc).isoformat(),'source':str(source),'compiler':str(compiler),'directory':str(work),'checks':checks,'calls':calls,'compilerSha256':hashlib.sha256((compiler/'release/win_x64/xl.exe').read_bytes()).hexdigest(),'testSourceSha256':hashlib.sha256((work/'check_build_inputs.py').read_bytes()).hexdigest(),'snapshotTestSourceSha256':hashlib.sha256((work/'build_input_snapshot_test.c').read_bytes()).hexdigest()}
 (work/'evidence.json').write_text(json.dumps(report,ensure_ascii=False,indent=2),encoding='utf8')
 print(work,'checks',len(checks),'status',report['status']);raise SystemExit(0 if error is None else 1)

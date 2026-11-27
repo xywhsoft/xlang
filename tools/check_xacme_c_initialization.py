@@ -29,7 +29,7 @@ def main():
     aligned.write_text(current[:end]+'#line '+str(next_line)+'\n'+current[end:])
     gcc=Path(shutil.which('gcc')).resolve()
     inputs={Path(__file__).resolve(),gcc,tcc,old/relative,control,aligned,root/relative}
-    for name in ['src','include','release/include','release/extlibs/xacme']:
+    for name in ['src','include','release/include','release/win_x64/extlibs/xacme']:
         inputs.update(q for q in (root/name).rglob('*') if q.is_file() and q.suffix in ['.h','.inc','.c'])
     report=dict(Complete=False,Rows=[],Comparisons=[],Inputs={str(q):sha(q) for q in sorted(inputs)},Scope=__doc__,ShippingAccepted=False)
     def save():(out/'results.json').write_text(json.dumps(report,indent=2)+'\n')

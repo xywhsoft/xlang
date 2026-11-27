@@ -16,7 +16,7 @@ def main():
     paths=[Path(__file__),gcc,tcc,root/'test/support/x509_empty_trust_source.c',
         root/'tools/x509_path_fixtures.py',root/'tools/check_key_format_wire.py',root/'tools/check_x509_owned.py',
         *[root/'test/support'/('crypto_'+name+'_runtime.c') for name in ('rsa','nist','ed25519','xdh')],
-        root/'lib/xrt/xrt.h',root/'lib/xruntime/xruntime.h',root/'release/include/xrt_decl.h',root/'release/include/xruntime_decl.h',
+        root/'lib/xrt/xrt.h',root/'lib/xruntime/xruntime.h',root/'release/win_x64/include/xrt_decl.h',root/'release/win_x64/include/xruntime_decl.h',
         root/'lib/xrt/backports/x509_empty_trust_source.json']
     report=dict(Complete=False,Inputs={str(f):sha(f) for f in paths},Rows=[],Failures=[],
         OrdinaryChains=fixtures(root,out),Oracle=cryptography.__version__,EveryFixtureSignatureIndependentlyVerified=True,

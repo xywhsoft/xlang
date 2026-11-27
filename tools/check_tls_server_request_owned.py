@@ -31,7 +31,7 @@ def main():
     files={Path(__file__).resolve(),gcc,tcc,source,case,plan,
         root/'tools/compiler_dll.rsp.in',root/'tools/runtime_dll.rsp.in'}
     files.update(q for q in (root/'src').rglob('*') if q.is_file() and q.suffix in ['.h','.inc'])
-    files.update(root/q for q in ['lib/xrt/xrt.h','lib/xruntime/xruntime.h','release/include/xruntime_decl.h','release/include/xrt_decl.h'])
+    files.update(root/q for q in ['lib/xrt/xrt.h','lib/xruntime/xruntime.h','release/win_x64/include/xruntime_decl.h','release/win_x64/include/xrt_decl.h'])
     files.add(root/'src/compile/xl6_compile_unit.c')
     report=dict(Complete=False,Inputs={str(q):sha(q) for q in sorted(files)},Rows=[],Products=[],Failures=[],
         NetworkTraffic=False,NetworkSecurityTests=False,MalformedCryptoTests=False,

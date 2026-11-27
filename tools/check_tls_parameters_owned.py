@@ -10,7 +10,7 @@ def main():
     gcc=Path(shutil.which('gcc') or 'E:/software/w64devkit/bin/gcc.exe').resolve();tcc=Path(shutil.which('tcc') or 'E:/software/tcc/tcc.exe').resolve()
     inputs=[Path(__file__),gcc,tcc,support/'test/support/tls_parameters_owned.c',support/'test/support/tls_parameters_plan.c',root/'src/compile/xl6_compile_unit.c',
         *root.glob('src/runtime/*.h'),*root.glob('src/runtime/*.inc'),*root.glob('src/compile/*.h'),*root.glob('src/compile/*.inc'),
-        root/'src/abi/xl6_tls_numeric_enums.inc',root/'lib/xrt/xrt.h',root/'lib/xruntime/xruntime.h',root/'release/include/xrt_decl.h',root/'release/include/xruntime_decl.h']
+        root/'src/abi/xl6_tls_numeric_enums.inc',root/'lib/xrt/xrt.h',root/'lib/xruntime/xruntime.h',root/'release/win_x64/include/xrt_decl.h',root/'release/win_x64/include/xruntime_decl.h']
     r=dict(Complete=False,Root=str(root),Inputs={str(p):sha(p) for p in inputs},Rows=[],Failures=[],NetworkTraffic=False,SecurityTests=False,ShippingAccepted=False,FullTlsAccepted=False)
     def save():(out/'results.json').write_text(json.dumps(r,indent=2)+'\n')
     def run(name,args):

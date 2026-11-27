@@ -5,7 +5,7 @@ param(
 $ErrorActionPreference = "Stop"
 if ( $Root -eq "" ) { $Root = Split-Path -Parent $PSScriptRoot }
 
-$xl = Join-Path $Root "release\xl.exe"
+$xl = Join-Path $Root "release\win_x64\xl.exe"
 $source = Join-Path $Root "test\cases\nullable_expression_semantics.xl"
 $typedPath = Join-Path $Root "build\tmp\nullable_expression_semantics.coalesce.typed.json"
 $loweredPath = Join-Path $Root "build\tmp\nullable_expression_semantics.coalesce.lowered.json"

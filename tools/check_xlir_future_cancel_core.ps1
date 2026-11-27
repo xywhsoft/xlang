@@ -13,7 +13,7 @@ try {
     if(Test-Path -LiteralPath $work){throw 'Preserve prior Future cancellation evidence'}
     $build=Get-Content "$public/build.json" -Raw|ConvertFrom-Json
     if($build.RuntimeOnly-or!$build.SourceXrt){throw 'Full current-source compiler/XRT required'}
-    if((Get-FileHash release/xl.dll).Hash-ne$build.RuntimeSha256){throw 'Formal runtime changed'}
+    if((Get-FileHash release/win_x64/xl.dll).Hash-ne$build.RuntimeSha256){throw 'Formal runtime changed'}
     foreach($row in @($build.Inputs)+@($build.Headers)+@($build.Objects)){
         if((Get-FileHash $row.Path).Hash-ne$row.Sha256){throw "Stale source build: $($row.Path)"}
     }
@@ -26,7 +26,7 @@ try {
         'test/cases/xlir_future_producer_cancel.c','test/cases/xlir_continuation_publication_contract.c',
         'test/cases/xlir_async_cancel_watch_contract.c','test/cases/xlir_async_cancel_watch.xl',
         'test/cases/xlir_continuation_owner_test.h','test/cases/xlir_async_cancel_wait_runtime.c',
-        'test/cases/xlir_async_cancel_wait_host.c','release/xl.dll',(Get-Command gcc).Source,$Tcc,
+        'test/cases/xlir_async_cancel_wait_host.c','release/win_x64/xl.dll',(Get-Command gcc).Source,$Tcc,
         "$public/build.json")+$resident
     $inputs=[ordered]@{}
     foreach($path in @(@($build.Inputs.Path)+@($build.Headers.Path)+@($build.Objects.Path)+$extra|Sort-Object -Unique)){
@@ -55,8 +55,8 @@ try {
             '-Wno-pointer-sign','-Wno-format-truncation','-I.','-Irelease','-Irelease/include',"-I$public/include","-I$work")
         $libs=@('-lws2_32','-liphlpapi','-lshell32','-lole32','-ladvapi32')
         $objects=@($build.Objects|Where-Object {[IO.Path]::GetFileName($_.Path)-ne'xlir_public_source_driver.o'}|ForEach-Object Path)
-        Check 'contract-build' gcc ($flags+@('-DXL_STATIC_EMBED','-Ilib/tcc','test/cases/xlir_async_cancel_watch_contract.c')+$objects+@('release/xl.dll')+$libs+@('-o',"$work/contract.exe"))
-        Copy-Item release/xl.dll "$work/xl.dll"
+        Check 'contract-build' gcc ($flags+@('-DXL_STATIC_EMBED','-Ilib/tcc','test/cases/xlir_async_cancel_watch_contract.c')+$objects+@('release/win_x64/xl.dll')+$libs+@('-o',"$work/contract.exe"))
+        Copy-Item release/win_x64/xl.dll "$work/xl.dll"
         foreach($repeat in @('','.repeat')){
             Check "emit$repeat" "$work/contract.exe" @("$work/xlir_async_cancel_watch$repeat.c","$work/xlir_async_cancel_watch$repeat.h","$work/xlir_async_cancel_watch$repeat.json") '18 C/header-gated mutations'
         }

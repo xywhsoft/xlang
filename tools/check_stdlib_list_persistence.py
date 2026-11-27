@@ -20,7 +20,7 @@ def main():
     if os.name!='nt': assert build['Complete'] and build['InputsUnchanged']
     cc=shutil.which('gcc'); assert cc
     driver=Path(build['Driver']); assert sha(driver).lower()==build['DriverSha256'].lower()
-    product=root/'release/xl.dll' if os.name=='nt' else Path(build['NativeRoot'])/'release/libxl.so'
+    product=root/'release/win_x64/xl.dll' if os.name=='nt' else Path(build['NativeRoot'])/'release/libxl.so'
     fixture=cases/'stdlib_list_persistence_native.xl'; leaf=root/'test/cases/xlir_restore_copy_leaf.xl'
     restore_only=cases/'stdlib_list_persistence_restore_only.xl'
     contract=cases/'xlir_list_persistence_contract.c'; restore=cases/'stdlib_list_persistence_restore_host.c'

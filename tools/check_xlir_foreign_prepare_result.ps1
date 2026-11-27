@@ -15,7 +15,7 @@ try {
         '-Wno-unused-parameter','-Wno-missing-field-initializers','-I.','-Ibuild/test')
     & gcc @flags -Dxl6ForeignCallBegin=prepare_result_begin -include "$prefix.c" -c test/cases/xlir_foreign_prepare_result_host.c -o "$prefix.host.o"
     if ($LASTEXITCODE -ne 0) { throw 'Preparation result optimized C compile failed' }
-    & gcc @flags "$prefix.host.o" test/cases/xlir_foreign_prepare_memory.c release/xl.dll -o "$prefix.exe"
+    & gcc @flags "$prefix.host.o" test/cases/xlir_foreign_prepare_memory.c release/win_x64/xl.dll -o "$prefix.exe"
     if ($LASTEXITCODE -ne 0) { throw 'Preparation result link failed' }
     & "$prefix.exe"
     if ($LASTEXITCODE -ne 0) { throw 'Preparation result repeated-attempt ownership failed' }

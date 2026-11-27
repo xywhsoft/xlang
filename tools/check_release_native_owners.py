@@ -55,7 +55,7 @@ def main():
         raise FileNotFoundError(handler_child)
     env = dict(os.environ)
     env["PATH"] = str(products) + os.pathsep + env.get("PATH", "")
-    env["XLANG_PACKAGE_PATH"] = str(root / "release/extlibs")
+    env["XLANG_PACKAGE_PATH"] = str(root / "release/win_x64/extlibs")
     report = {"complete": False, "ready": False, "compilerSha256": hashlib.sha256(xl.read_bytes()).hexdigest(),
               "missingPolicies": [], "probes": []}
 

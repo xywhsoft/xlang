@@ -62,7 +62,7 @@ def main() -> int:
         ["src/runtime/xl6_char_type.c", "src/runtime/xl6_char_value.c"],
         ["src/runtime/xl6_string_type.c", "src/runtime/xl6_string_value.c"],
         ["src/runtime/xl6_nullable_string.c"]]
-    product = root / ("release/xl.dll" if os.name == "nt" else "release/libxl.so")
+    product = root / ("release/win_x64/xl.dll" if os.name == "nt" else "release/libxl.so")
     files = [Path(__file__), Path(cc), Path(nm), Path(sys.executable), root / host,
              root / "lib/xrt/xrt.h", root / "lib/xruntime/xruntime.h"]
     files.append(root / 'src/api/xl_foreign_error.h')

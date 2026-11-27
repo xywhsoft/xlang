@@ -16,7 +16,7 @@ def main():
     root,public,out=a.root.resolve(),a.public_directory.resolve(),a.out.resolve()
     cc,nm=shutil.which('gcc'),shutil.which('nm');assert cc and nm and not out.exists() and (not a.sanitize or os.name!='nt')
     build,pinned,_=verify_public_build(root,public);driver=Path(build['Driver'])
-    runtime=root/'release/xl.dll' if os.name=='nt' else Path(build['NativeRoot'])/'release/libxl.so'
+    runtime=root/'release/win_x64/xl.dll' if os.name=='nt' else Path(build['NativeRoot'])/'release/libxl.so'
     case=root/'test/cases/stdlib_stack_future_reference.xl';unit=root/'test/cases/stdlib_stack_future_unit.c'
     host=root/'test/cases/stdlib_stack_future_host.c';contract=root/'test/cases/xlir_stack_future_contract.c'
     planner_source=root/'test/cases/xlir_artifact_runtime_contract.c';memory=root/'test/support/module_product_memory.c'

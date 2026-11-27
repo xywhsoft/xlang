@@ -17,7 +17,7 @@ if ( $Root -eq "" ) {
     $Root = Split-Path -Parent $PSScriptRoot
 }
 
-$xl = Join-Path $Root "release\xl.exe"
+$xl = Join-Path $Root "release\win_x64\xl.exe"
 $classSource = Join-Path $Root "test\cases\export_class.xl"
 $overloadSource = Join-Path $Root "test\cases\xlir_export_nominal_overload.xl"
 $hostSource = Join-Path $Root "test\cases\xlir_export_class_boundary_host.c"

@@ -46,7 +46,7 @@ def main():
     build,pinned,compared=verify_public_build(root,public);cc=shutil.which('gcc');assert cc and not (a.sanitize and os.name=='nt')
     task=Path(__file__).resolve().parents[1];ir=task/'test/support/xlang_context_policy_ir.c';native=task/'test/support/xlang_context_policy_native.c'
     fixtures=[root/'test/cases'/name for name in ('stdlib_nested_sdk.xl','stdlib_string_bridge_boundaries.xl','cgen_basic.xl')]
-    runtime=root/'release/xl.dll' if os.name=='nt' else Path(build['NativeRoot'])/'release/libxl.so'
+    runtime=root/'release/win_x64/xl.dll' if os.name=='nt' else Path(build['NativeRoot'])/'release/libxl.so'
     tcc=root/'res/tcc/win64/x86_64' if os.name=='nt' else Path(build['NativeRoot'])/'build/linux/tcc-dist'
     selected=('src/api/xl_api.c','src/runtime/xl6_native_handle.c','src/runtime/xl6_xlang_context_policy.c','src/runtime/xl6_buffer_core.c')
     pinned.update((Path(__file__).resolve(),Path(sys.executable).resolve(),Path(cc).resolve(),ir,native,runtime,*fixtures))
@@ -85,7 +85,7 @@ def main():
     try:
         source=(root/'src/api/xl_api.c').read_text(encoding='utf-8-sig')
         packages=(root/'src/package/xl6_compiled_package.h').read_text(encoding='utf-8-sig')
-        public_package=(root/'release/include/xl_package.h').read_text(encoding='utf-8-sig')
+        public_package=(root/'release/win_x64/include/xl_package.h').read_text(encoding='utf-8-sig')
         assert audited_layout(source,packages,public_package)
         assert not audited_layout(source.replace('struct XL_Context {','struct XL_Context { xvalue* owned;'),packages,public_package)
         assert not audited_layout(source.replace('char** items;','xvalue** items;'),packages,public_package)

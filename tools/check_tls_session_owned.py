@@ -14,7 +14,7 @@ def main():
     support=controls/'test/support/tls_session_owned.c';plan=controls/'test/support/tls_session_plan.c'
     paths=[Path(__file__),gcc,tcc,support,plan,root/'src/compile/xl6_compile_unit.c',
         *[q for q in (root/'src').rglob('*') if q.is_file() and q.suffix in ['.h','.inc']],
-        root/'lib/xrt/xrt.h',root/'lib/xruntime/xruntime.h',root/'release/include/xrt_decl.h',root/'release/include/xruntime_decl.h']
+        root/'lib/xrt/xrt.h',root/'lib/xruntime/xruntime.h',root/'release/win_x64/include/xrt_decl.h',root/'release/win_x64/include/xruntime_decl.h']
     r=dict(Complete=False,Inputs={str(q):sha(q) for q in paths},Rows=[],Failures=[],NetworkTraffic=False,SecurityTests=False,MalformedCryptoTests=False,ShippingAccepted=False,FullTlsAccepted=False,SyntheticStorageFixture=True)
     def save():(out/'results.json').write_text(json.dumps(r,indent=2)+'\n')
     def run(name,args):

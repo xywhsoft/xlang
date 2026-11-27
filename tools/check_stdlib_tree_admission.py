@@ -45,7 +45,7 @@ def main():
             assert sha(row['Path'])==row['Sha256'].lower(); files.add(Path(row['Path']))
         omitted={'xlir_public_source_driver.o','xl6_tree.o','xl6_tree_admission.o','xl6_array_sequence_admission.o'}
         objects=[row['Path'] for row in build['Objects'] if Path(row['Path']).name not in omitted]
-        dll=root/'release/xl.dll'; files.add(dll)
+        dll=root/'release/win_x64/xl.dll'; files.add(dll)
         links=[*objects,str(dll),'-lws2_32','-liphlpapi','-lshell32','-lole32','-ladvapi32']; suffix='.exe'
     else:
         assert sys.platform=='linux'; runtime=args.runtime.resolve(); suffix=''

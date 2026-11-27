@@ -23,7 +23,7 @@ def main():
             assert sha(row['Path'])==row['Sha256'].lower(),row['Path'];inputs.add(Path(row['Path']))
         objects=[row['Path'] for row in build['Objects'] if Path(row['Source']).name not in
             ('xlir_public_source_driver.c','xlir_public_source_linux_driver.c')]
-        products=[root/'release/xl.dll'] if win else [Path(build['NativeRoot'])/'release/libxl.so']
+        products=[root/'release/win_x64/xl.dll'] if win else [Path(build['NativeRoot'])/'release/libxl.so']
     else:products=[root/'release'/name for name in (('xl.dll','xlc.dll') if win else ('libxl.so','libxlc.so'))]
     inputs.update(products)
     for folder in ('src','lib/xrt','lib/xruntime','release/include'):

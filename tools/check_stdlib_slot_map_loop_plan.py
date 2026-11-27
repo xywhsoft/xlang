@@ -14,7 +14,7 @@ def main():
     build=json.loads((public/'build.json').read_text(encoding='utf-8-sig'))
     driver=Path(build['Driver']); cc=shutil.which('gcc')
     assert cc and not out.exists() and build['SourceXrt'] and not build['RuntimeOnly']
-    runtime=root/'release/xl.dll' if os.name=='nt' else Path(build['NativeRoot'])/'release/libxl.so'
+    runtime=root/'release/win_x64/xl.dll' if os.name=='nt' else Path(build['NativeRoot'])/'release/libxl.so'
     fixture=root/'test/cases/stdlib_slot_map_loop_plan.xl'
     contract=root/'test/cases/xlir_slot_map_loop_plan_contract.c'
     files={Path(__file__).resolve(),public/'build.json',driver,Path(cc),runtime,fixture,contract}

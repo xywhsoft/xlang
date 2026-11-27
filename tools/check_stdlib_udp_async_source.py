@@ -14,7 +14,7 @@ def main():
     assert not out.exists() and build.get('Complete',True) and build['SourceXrt'] and not build['RuntimeOnly']
     for row in build['Inputs']+build['Objects']+build['Headers']:assert sha(row['Path'])==row['Sha256'].lower(),row['Path']
     driver=Path(build['Driver']);assert sha(driver)==build['DriverSha256'].lower();cc=Path(shutil.which('gcc') or 'E:/software/w64devkit/bin/gcc.exe').resolve()
-    runtime=root/'release/xl.dll' if os.name=='nt' else Path(build['NativeRoot'])/'release/libxl.so'
+    runtime=root/'release/win_x64/xl.dll' if os.name=='nt' else Path(build['NativeRoot'])/'release/libxl.so'
     contract=root/'test/cases/xlir_udp_async_contract.c';artifact=root/'test/support/container_projection_artifact.c'
     files={Path(__file__).resolve(),manifest,driver,cc,runtime,contract,artifact,*[root/('test/cases/'+case+'.xl') for case in CASES]}
     inputs={str(path):sha(path) for path in files};out.mkdir(parents=True)

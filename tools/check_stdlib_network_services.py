@@ -31,7 +31,7 @@ def main():
     package_inputs.append(root/'test/support/network_services_noop.c')
     probes=[root/'test/cases'/n for n in ('package_probe_error_host.c','package_manifest_strict_host.c')]
     probe_inputs=[root/'test/cases/import_source_math.xl',*sorted((root/'test/fixtures/package_manifest_strict').glob('*.json'))]
-    if os.name=='nt':runtime=root/'release/xl.dll';libraries=root/'res/tcc/win64/x86_64'
+    if os.name=='nt':runtime=root/'release/win_x64/xl.dll';libraries=root/'res/tcc/win64/x86_64'
     else:
         assert a.native_root;native=a.native_root.resolve();runtime=native/'release/libxl.so';libraries=native/'build/linux/tcc-dist'
     inputs={str(f):sha(f) for f in [Path(__file__).resolve(),manifest,driver,cc,source,standalone,host,runtime,*package_inputs,*probes,*probe_inputs]}

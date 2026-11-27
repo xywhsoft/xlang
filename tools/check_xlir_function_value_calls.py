@@ -60,7 +60,7 @@ def main() -> int:
             if digest(Path(row["Source"])) != row["Sha256"].lower():
                 parser.error("Staged source changed: " + row["Source"])
         files += [args.public_directory / "build.json", args.public_directory / "artifact_sources.json",
-                  root / "release/xl.dll", args.public_directory / "xl.dll"]
+                  root / "release/win_x64/xl.dll", args.public_directory / "xl.dll"]
         files += [Path(row["Path"]) for row in public["Objects"] + public["Inputs"] + staged["Files"]]
     else:
         files += [root / "release/libxl.so", root / "release/libxlc.so"]
@@ -72,7 +72,7 @@ def main() -> int:
         for header in directory.glob("*.h"):
             shutil.copy2(header, private / header.name)
     if public:
-        shutil.copy2(root / "release/xl.dll", out / "xl.dll")
+        shutil.copy2(root / "release/win_x64/xl.dll", out / "xl.dll")
     rows: list[dict] = []
     report = {"Scope": __doc__, "Complete": False, "InputsUnchanged": False,
               "Platform": sys.platform, "Sanitized": args.sanitize, "Inputs": inputs,
@@ -108,7 +108,7 @@ def main() -> int:
     strict = ["-std=c11", "-Wall", "-Wextra", "-Werror", "-Wno-unused-function", "-Wno-unused-label",
               "-Wno-unused-variable", "-Wno-unused-parameter", "-Wno-unused-const-variable", "-Wno-missing-field-initializers",
               "-I.", "-Irelease", "-Irelease/include", "-I" + str(out / "include")]
-    links = ["release/xl.dll"] if public else ["-Lrelease", "-lxl", "-Wl,-rpath," + str(root / "release"), "-pthread", "-ldl", "-lm"]
+    links = ["release/win_x64/xl.dll"] if public else ["-Lrelease", "-lxl", "-Wl,-rpath," + str(root / "release"), "-pthread", "-ldl", "-lm"]
     if not public:
         strict += ["-D_GNU_SOURCE"]
     if args.sanitize:

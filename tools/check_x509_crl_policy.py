@@ -17,7 +17,7 @@ def main():
         root/'test/support/x509_crl_policy_plan.c',root/'src/compile/xl6_compile_unit.c',
         *root.glob('src/runtime/*.h'),*root.glob('src/runtime/*.inc'),*root.glob('src/compile/*.h'),
         *root.glob('src/compile/*.inc'),root/'lib/xrt/xrt.h',root/'lib/xruntime/xruntime.h',
-        root/'release/include/xrt_decl.h',root/'release/include/xruntime_decl.h',*extra]
+        root/'release/win_x64/include/xrt_decl.h',root/'release/win_x64/include/xruntime_decl.h',*extra]
     report=dict(Complete=False,Inputs={str(f):sha(f) for f in files},Rows=[],Failures=[],
         Vectors=len(fixtures(root,out))-5,Oracle=cryptography.__version__,EveryFixtureSignatureIndependentlyVerified=True,
         PublicLanguageAcceptance=False,TrustAcceptance=False,TlsAcceptance=False,ShippingAcceptance=False,

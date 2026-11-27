@@ -6,8 +6,8 @@ try {
     $source = 'test/cases/xlir_export_transaction.xl'
     $prefix = 'build/test/xlir_export_transaction'
     New-Item -ItemType Directory -Force -Path build/test | Out-Null
-    Copy-Item -LiteralPath release/xl.dll -Destination build/test/xl.dll -Force
-    & release/xl.exe ir $source --lowered --format json --emit "$prefix.json"
+    Copy-Item -LiteralPath release/win_x64/xl.dll -Destination build/test/xl.dll -Force
+    & release/win_x64/xl.exe ir $source --lowered --format json --emit "$prefix.json"
     if ($LASTEXITCODE -ne 0) { throw 'Export transaction lowering failed' }
     $ir = [IO.File]::ReadAllText("$prefix.json") | ConvertFrom-Json
     if ($ir.exports.Count -ne 13) { throw 'Export transaction fixture lost return/callback coverage' }
@@ -27,9 +27,9 @@ try {
     [IO.File]::WriteAllText((Join-Path (Get-Location) "$prefix`_bind.h"),
         "#define TX_PRODUCT xlir_product_t$($product.returnType)`n#define TX_ACCEPT_PRODUCT xlir_product_t$($accepted.returnType)`n$aliases`n",
         [Text.UTF8Encoding]::new($false))
-    & release/xl.exe cgen $source --backend xlir --emit "$prefix.c" --emit-header "$prefix.h"
+    & release/win_x64/xl.exe cgen $source --backend xlir --emit "$prefix.c" --emit-header "$prefix.h"
     if ($LASTEXITCODE -ne 0) { throw 'Export transaction C/header emission failed' }
-    & release/xl.exe cgen $source --backend xlir --emit "$prefix.repeat.c"
+    & release/win_x64/xl.exe cgen $source --backend xlir --emit "$prefix.repeat.c"
     if ($LASTEXITCODE -ne 0 -or ![System.Linq.Enumerable]::SequenceEqual(
         [byte[]][IO.File]::ReadAllBytes("$prefix.c"), [byte[]][IO.File]::ReadAllBytes("$prefix.repeat.c"))) {
         throw 'Export transaction C is not deterministic'
@@ -43,13 +43,13 @@ try {
     $publicHost = 'test/cases/xlir_export_transaction_header_host.c'
     & gcc -x c++ -std=c++11 -Wall -Wextra -Werror -Ibuild/test -fsyntax-only $publicHost
     if ($LASTEXITCODE -ne 0) { throw 'Public export transaction header is not C++ compatible' }
-    & gcc @strict $runtime $hostSource $publicHost release/xl.dll -o "$prefix.exe"
+    & gcc @strict $runtime $hostSource $publicHost release/win_x64/xl.dll -o "$prefix.exe"
     if ($LASTEXITCODE -ne 0) { throw 'Export transaction strict separate C compilation failed' }
     & "$prefix.exe"
     if ($LASTEXITCODE -ne 0) { throw 'Export transaction ownership/error runtime failed' }
-    & release/xl.exe run $runtime $hostSource $publicHost --inc-path . --inc-path build/test -- --smoke
+    & release/win_x64/xl.exe run $runtime $hostSource $publicHost --inc-path . --inc-path build/test -- --smoke
     if ($LASTEXITCODE -ne 0) { throw 'Export transaction C-host JIT failed' }
-    & release/xl.exe build $runtime $hostSource $publicHost src/api/xl_foreign_error.c --inc-path . --inc-path build/test -o "$prefix.aot.exe"
+    & release/win_x64/xl.exe build $runtime $hostSource $publicHost src/api/xl_foreign_error.c --inc-path . --inc-path build/test -o "$prefix.aot.exe"
     if ($LASTEXITCODE -ne 0) { throw 'Export transaction standalone AOT build failed' }
     & "$prefix.aot.exe" --smoke
     if ($LASTEXITCODE -ne 0) { throw 'Export transaction standalone AOT runtime failed' }
@@ -62,7 +62,7 @@ try {
         'src/sem/xl6_sem.c', 'src/sem/xl6_protocol.c', 'src/sem/xl6_type_registry.c',
         'src/sem/xl6_sem_docs.c', 'src/sem/xl6_sem_field_attrs.c',
         'src/stdlib/xl6_stdlib.c', 'src/stdlib/xl6_stdlib_data.c')
-    & gcc @strict '-Wno-pointer-sign' '-Wno-format-truncation' test/cases/xlir_export_transaction_contract.c @compilerSources release/xl.dll -o "$prefix.contract.exe"
+    & gcc @strict '-Wno-pointer-sign' '-Wno-format-truncation' test/cases/xlir_export_transaction_contract.c @compilerSources release/win_x64/xl.dll -o "$prefix.contract.exe"
     if ($LASTEXITCODE -ne 0) { throw 'Export transaction verifier contract build failed' }
     & "$prefix.contract.exe"
     if ($LASTEXITCODE -ne 0) { throw 'Export transaction verifier/Cgen mutation contract failed' }

@@ -28,8 +28,8 @@ def main() -> int:
         public=json.loads((args.public_directory/'build.json').read_text(encoding='utf-8-sig'))
         for row in [*public['Inputs'],*public['Headers'],*public['Objects']]:
             if digest(Path(row['Path'])).lower()!=row['Sha256'].lower(): parser.error('Stale public build: '+row['Path'])
-    product=root/('release/xl.dll' if os.name=='nt' else 'release/libxl.so')
-    compiler=root/('release/xlc.dll' if os.name=='nt' else 'release/libxlc.so')
+    product=root/('release/win_x64/xl.dll' if os.name=='nt' else 'release/libxl.so')
+    compiler=root/('release/win_x64/xlc.dll' if os.name=='nt' else 'release/libxlc.so')
     files={Path(__file__),Path(cc),Path(sys.executable),product,
         root/'test/cases/xlir_sequence_recipe_emit_contract.c',root/'test/cases/stdlib_sequence_recipe_emit_host.c'}
     if not public: files.add(compiler)

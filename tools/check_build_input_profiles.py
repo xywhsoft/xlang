@@ -40,7 +40,7 @@ def receipt(name):
 
 
 try:
-    xl = root / 'release/xl.exe'
+    xl = root / 'release/win_x64/xl.exe'
     (work / 'value.h').write_text('#define VALUE 13\n', encoding='utf8')
     (work / 'shared.c').write_text('#include "value.h"\n__declspec(dllexport) int receipt_value(void) {return VALUE;}\n', encoding='utf8')
     call('shared-build', [xl, 'build', 'shared.c', '--shared', '-o', 'profile.dll', '--input-report', 'shared.json'])
@@ -64,7 +64,7 @@ except Exception as e:
 else:
     error = None
 report = {'status': 'passed' if error is None else 'failed', 'error': error,
-          'checks': checks, 'calls': calls, 'compilerSha256': hashlib.sha256((root / 'release/xl.exe').read_bytes()).hexdigest()}
+          'checks': checks, 'calls': calls, 'compilerSha256': hashlib.sha256((root / 'release/win_x64/xl.exe').read_bytes()).hexdigest()}
 (work / 'evidence.json').write_text(json.dumps(report, ensure_ascii=False, indent=2), encoding='utf8')
 print(work / 'evidence.json', report['status'], len(checks))
 raise SystemExit(0 if error is None else 1)

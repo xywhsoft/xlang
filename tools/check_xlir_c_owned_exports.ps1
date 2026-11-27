@@ -41,13 +41,13 @@ $flags=@('-std=c11','-Wall','-Wextra','-Werror','-ffunction-sections','-fdata-se
     '-Wno-unused-function','-Wno-unused-label','-Wno-unused-variable','-Wno-unused-parameter',
     '-Wno-unused-const-variable','-Wno-unused-but-set-variable','-Wno-missing-field-initializers',
     '-Wno-pointer-sign','-Wno-format-truncation','-I.','-Irelease',"-I$publicPath/include",'-Irelease/include')
-$links=@('release/xl.dll','-lws2_32','-liphlpapi','-lshell32','-lole32','-ladvapi32','-Wl,--gc-sections','-Wl,--no-keep-memory')
+$links=@('release/win_x64/xl.dll','-lws2_32','-liphlpapi','-lshell32','-lole32','-ladvapi32','-Wl,--gc-sections','-Wl,--no-keep-memory')
 $oldPackagePath=$env:XLANG_PACKAGE_PATH
 $outcome='failed'
 Unchanged
 Push-Location $root
 try {
-    Copy-Item -LiteralPath release/xl.dll -Destination "$work/xl.dll"
+    Copy-Item -LiteralPath release/win_x64/xl.dll -Destination "$work/xl.dll"
     Response 'compiler-build' ($flags+@('-O0','test/cases/xlir_c_owned_export_contract.c')+$objects+$links+@('-o',"$work/compiler.exe"))
     Check 'compiler-recipes' "$work/compiler.exe" @('test/cases/xlir_c_owned_exports.xl',"$work/exports")
     if ([IO.File]::ReadAllText("$work/exports.h") -match 'XL6_COwned|xl6_c_owned') { throw 'Private owner leaked into the public C header' }
@@ -68,7 +68,7 @@ try {
         Response "host-$optimization-build" ($flags+@("-$optimization","$work/host.c")+$objects+$links+@('-o',"$work/host-$optimization.exe"))
         Check "host-$optimization-run" "$work/host-$optimization.exe" @()
     }
-    $env:XLANG_PACKAGE_PATH="$root/test/fixtures;$root/release/extlibs"
+    $env:XLANG_PACKAGE_PATH="$root/test/fixtures;$root/release/win_x64/extlibs"
     foreach ($name in @('xlir_c_owned_exports','xlir_c_owned_import_exports')) {
         $sidecars=if ($name -eq 'xlir_c_owned_exports') { @('test/cases/xlir_c_owned_native.c') } else { @() }
         Check "$name-jit" $public.Driver (@("test/cases/$name.xl",'run',"$work/$name-jit")+$sidecars)

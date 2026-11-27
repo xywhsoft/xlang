@@ -68,7 +68,7 @@ def main():
             expected.append(("mix", tuple(math.floor(x + (y - x) * t + 0.5)
                                           for x, y in zip(rgb_a, rgb_b))))
     # 固定 W3C 数据夹具，不从待测 C 表反向生成期望值，也不在日常测试时联网。
-    fixture = pathlib.Path(__file__).resolve().parents[1] / "release/extlibs/color/test/css_named_colors.json"
+    fixture = pathlib.Path(__file__).resolve().parents[1] / "release/win_x64/extlibs/color/test/css_named_colors.json"
     named = json.loads(fixture.read_text(encoding="utf-8"))["colors"]
     assert len(named) == 148
     canonical = {}

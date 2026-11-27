@@ -14,7 +14,7 @@ def main():
     root,public,out=a.root.resolve(),a.public_directory.resolve(),a.out.resolve()
     cc,nm=shutil.which('gcc'),shutil.which('nm'); assert cc and nm and not out.exists() and (not a.sanitize or os.name!='nt')
     build=json.loads((public/'build.json').read_text(encoding='utf-8-sig')); assert build['SourceXrt'] and not build['RuntimeOnly']
-    runtime=root/'release/xl.dll' if os.name=='nt' else Path(build['NativeRoot'])/'release/libxl.so'
+    runtime=root/'release/win_x64/xl.dll' if os.name=='nt' else Path(build['NativeRoot'])/'release/libxl.so'
     host=root/'test/cases/stdlib_native_capture_host.c'; planner=root/'test/cases/xlir_native_capture_plan.c'
     memory=root/'test/support/module_product_memory.c'
     files={Path(__file__).resolve(),Path(cc),Path(nm),public/'build.json',runtime,host,planner,memory}

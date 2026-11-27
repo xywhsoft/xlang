@@ -18,7 +18,7 @@ $hostPath = Join-Path (Resolve-Path $outDir) 'dll_host.exe'
 & gcc -std=c11 -Wall -Wextra -Werror test/cases/xlir_artifact_dll_host.c -o $hostPath *> "$outDir/host_build.log"
 if ($LASTEXITCODE -ne 0) { throw 'DLL probe host failed to build' }
 $files = @(@(Get-ChildItem src,lib,test/cases,test/fixtures,tools,res/tcc -Recurse -File) +
-    @(Get-Item release/xl.dll,$manifest.Driver,$hostPath) + $packageFiles + @($manifest.Headers | ForEach-Object { Get-Item -LiteralPath $_.Path })) | Sort-Object FullName -Unique
+    @(Get-Item release/win_x64/xl.dll,$manifest.Driver,$hostPath) + $packageFiles + @($manifest.Headers | ForEach-Object { Get-Item -LiteralPath $_.Path })) | Sort-Object FullName -Unique
 $inputs = @($files | ForEach-Object { [pscustomobject]@{Path=$_.FullName;Sha256=(Get-FileHash -LiteralPath $_.FullName).Hash} })
 function Invoke-Process([string]$file, [string[]]$arguments, [string]$log) {
     $options = @{FilePath=$file;WindowStyle='Hidden';PassThru=$true;RedirectStandardOutput="$log.log";RedirectStandardError="$log.err.log"}

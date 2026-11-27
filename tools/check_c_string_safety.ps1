@@ -12,8 +12,8 @@ if ( $Root -eq "" ) {
 # Native extlibs use their dependencies' C APIs and have package-local tests.
 $scanRoots = @(
     "src"
-    "release\include"
-    "release\examples"
+    "release\win_x64\include"
+    "release\win_x64\examples"
     "test\cases"
     "test\fixtures"
 )

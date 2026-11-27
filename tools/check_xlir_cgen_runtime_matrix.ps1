@@ -9,7 +9,7 @@ if ( $Root -eq "" ) {
     $Root = Split-Path -Parent $PSScriptRoot
 }
 
-$xl = Join-Path $Root "release\xl.exe"
+$xl = Join-Path $Root "release\win_x64\xl.exe"
 $generated = Join-Path $Root "build\test\xlir_cgen_runtime_matrix_generated.c"
 $fixtures = @(
     @{ Name = "owned recursive Sequence schema and exact nested values"; Source = "test\cases\stdlib_sequence_nested_schema.xl"; Host = "test\cases\xlir_generated_module_host.c"; IncludeGenerated = $true; GenericHost = $true },

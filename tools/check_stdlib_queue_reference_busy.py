@@ -35,8 +35,8 @@ def main():
     omitted={n+'.o' for n in providers}|{'xl6_xlc_shell.o','xlir_public_source_driver.o'}
     objects=[r['Path'] for r in build['Objects'] if Path(r['Path']).name not in omitted]
     if os.name=='nt':
-        shutil.copy2(root/'release/xl.dll',out/'xl.dll'); suffix='.exe'
-        links=[*objects,str(root/'release/xl.dll'),'-lws2_32','-liphlpapi','-lshell32','-lole32','-ladvapi32']
+        shutil.copy2(root/'release/win_x64/xl.dll',out/'xl.dll'); suffix='.exe'
+        links=[*objects,str(root/'release/win_x64/xl.dll'),'-lws2_32','-liphlpapi','-lshell32','-lole32','-ladvapi32']
     else:
         suffix=''; links=[*objects,'-L'+str(root/'release'),'-lxlc','-lxl',
             '-Wl,-rpath,'+str(root/'release'),'-Wl,--export-dynamic','-pthread','-ldl','-lm']

@@ -10,7 +10,7 @@ $forbidden = @(& nm -g $manifest.Driver | Select-String ' (T|I) (__imp_)?xlc(Cre
 $imports = @(& objdump -p $manifest.Driver | Select-String 'DLL Name:' | ForEach-Object Line)
 if ($symbols.Count -ne 7 -or @($symbols | Where-Object { $_ -notmatch ' T ' }).Count -or $forbidden.Count -or $imports -match 'xlc.dll') { throw 'Runtime-only entrypoint origin mismatch' }
 $files = @(@(Get-ChildItem src,lib,test/cases,test/fixtures,tools,res/tcc -Recurse -File) +
-    @(Get-Item release/xl.dll,$manifest.Driver) + @($manifest.Headers | ForEach-Object { Get-Item -LiteralPath $_.Path })) | Sort-Object FullName -Unique
+    @(Get-Item release/win_x64/xl.dll,$manifest.Driver) + @($manifest.Headers | ForEach-Object { Get-Item -LiteralPath $_.Path })) | Sort-Object FullName -Unique
 $inputs = @($files | ForEach-Object { [pscustomobject]@{Path=$_.FullName;Sha256=(Get-FileHash -LiteralPath $_.FullName).Hash} })
 $outDir = 'build/test/xlir_public_runtime_cases'
 New-Item -ItemType Directory -Force -Path $outDir | Out-Null

@@ -12,7 +12,7 @@ if ( $Root -eq "" ) {
 $stdlibPath = Join-Path $Root "src\stdlib\xl6_stdlib_data.c"
 $docDir = Join-Path $Root "docs"
 $testDir = Join-Path $Root "test\cases"
-$exampleDir = Join-Path $Root "release\examples"
+$exampleDir = Join-Path $Root "release\win_x64\examples"
 $minPublicStdlibFunctions = 180
 
 if ( $DeferredPath -eq "" ) {

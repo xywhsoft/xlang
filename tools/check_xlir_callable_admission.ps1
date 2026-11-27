@@ -10,7 +10,7 @@ try {
         $code = $LASTEXITCODE
         if ($code -eq 0) {
             $stage = 'strict-C'
-            & gcc -std=c11 -Wall -Wextra -Werror -Wno-unused-function -Wno-unused-variable -Wno-unused-parameter -Wno-unused-label -Wno-unused-const-variable -Wno-missing-field-initializers -I. -Ibuild/test -include "$prefix.c" test/cases/xlir_xcall_admission_host.c release/xl.dll -o "$prefix.exe" *>> $log
+            & gcc -std=c11 -Wall -Wextra -Werror -Wno-unused-function -Wno-unused-variable -Wno-unused-parameter -Wno-unused-label -Wno-unused-const-variable -Wno-missing-field-initializers -I. -Ibuild/test -include "$prefix.c" test/cases/xlir_xcall_admission_host.c release/win_x64/xl.dll -o "$prefix.exe" *>> $log
             $code = $LASTEXITCODE
         }
         if ($code -eq 0) { $stage = 'runtime'; & "$prefix.exe" *>> $log; $code = $LASTEXITCODE }

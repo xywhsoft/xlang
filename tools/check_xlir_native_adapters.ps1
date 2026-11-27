@@ -19,12 +19,12 @@ try {
         [pscustomobject]@{Path=$_.FullName;Sha256=(Get-FileHash -LiteralPath $_.FullName).Hash}})
     foreach($r in $inputs){if((Get-FileHash -LiteralPath $r.Path).Hash-ne$r.Sha256){throw "Stale native adapter input: $($r.Path)"}}
     New-Item -ItemType Directory -Path $outputPath|Out-Null
-    Copy-Item -LiteralPath release/xl.dll -Destination "$outputPath/xl.dll"
+    Copy-Item -LiteralPath release/win_x64/xl.dll -Destination "$outputPath/xl.dll"
     $objects=@($public.Objects|Where-Object {[IO.Path]::GetFileName($_.Path)-ne'xlir_public_source_driver.o'}|ForEach-Object Path)
     $flags=@('-std=c11','-O0','-Wall','-Wextra','-Werror','-Wno-unused-function','-Wno-unused-variable','-Wno-unused-parameter',
         '-Wno-unused-label','-Wno-unused-but-set-variable','-Wno-unused-const-variable','-Wno-pointer-sign','-Wno-format-truncation',
         '-Wno-missing-field-initializers','-DXL_STATIC_EMBED','-I.','-Irelease','-Irelease/include','-Ilib/tcc')
-    $libs=@('release/xl.dll','-lws2_32','-liphlpapi','-lshell32','-lole32','-ladvapi32')
+    $libs=@('release/win_x64/xl.dll','-lws2_32','-liphlpapi','-lshell32','-lole32','-ladvapi32')
     $cliBuild=Invoke-XlirGccToLog ($flags+@('src/driver/xl6_xlc_shell.c')+$objects+$libs+@('-o',"$outputPath/xl.exe")) "$outputPath/cli-build.log"
     $contractBuild=Invoke-XlirGccToLog ($flags+@('test/cases/xlir_artifact_runtime_contract.c')+$objects+$libs+@('-o',"$outputPath/contract.exe")) "$outputPath/contract-build.log"
     $boundaryErrors=@()

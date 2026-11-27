@@ -23,7 +23,7 @@ try {
     New-Item -ItemType Directory -Path $outputPath | Out-Null
     $closure=Get-XlirResidentClosure -Root $rootPath -Directory "$outputPath/resident-closure" -Sources @('src/runtime/xl6_continuation_queue.c','src/runtime/xl6_code_lease.c','src/runtime/xl6_closure.c') -NativeProvider 'tools/xrt_single_header_impl.c' -PublicDirectory $PublicDirectory -Fixtures @('test/cases/xlir_continuation_closure.xl')
     $resident=@($closure.Sources);$inputs+=@($closure.Inputs)
-    Copy-Item -LiteralPath release/xl.dll -Destination "$outputPath/xl.dll"
+    Copy-Item -LiteralPath release/win_x64/xl.dll -Destination "$outputPath/xl.dll"
     New-Item -ItemType Directory -Path "$outputPath/__xl_runtime" | Out-Null
     foreach ($header in $build.Headers) {
         if ($header.Path -match '[/\\]__xl_runtime[/\\]') {
@@ -64,7 +64,7 @@ try {
             if ($kind -eq 'native') {
                 $buildExit=Invoke-XlirGccToLog ($strict+@("-O$level",'test/cases/xlir_continuation_scope_contract.c')+$resident+@($runtime[0].Path)+$libs+@('-o',"$lane.exe")) "$lane.build.log"
             } else {
-                $buildExit=Invoke-XlirGccToLog ($strict+$hostFlags+@("-O$level",'test/cases/xlir_continuation_closure_host.c')+$dependencies+@('release/xl.dll','-Wl,--gc-sections')+$libs+@('-o',"$lane.exe")) "$lane.build.log"
+                $buildExit=Invoke-XlirGccToLog ($strict+$hostFlags+@("-O$level",'test/cases/xlir_continuation_closure_host.c')+$dependencies+@('release/win_x64/xl.dll','-Wl,--gc-sections')+$libs+@('-o',"$lane.exe")) "$lane.build.log"
             }
             $runExit=$null; $complete=$false
             if ($buildExit -eq 0) {

@@ -14,7 +14,7 @@ def main():
     a=p.parse_args();root,public,out=a.root.resolve(),a.public_directory.resolve(),a.out.resolve()
     cc=shutil.which('gcc');assert cc and not out.exists()
     build,pinned,_=verify_public_build(root,public);driver=Path(build['Driver'])
-    runtime=root/'release/xl.dll' if os.name=='nt' else Path(build['NativeRoot'])/'release/libxl.so'
+    runtime=root/'release/win_x64/xl.dll' if os.name=='nt' else Path(build['NativeRoot'])/'release/libxl.so'
     cases=('stdlib_wait_queue_owned','stdlib_wait_queue_values','stdlib_special_collections',
         'stdlib_special_collections_concurrent','stdlib_special_collections_async')
     pruned=root/'test/cases/stdlib_wait_queue_pruned.xl';contract=root/'test/cases/xlir_wait_queue_owned_contract.c'

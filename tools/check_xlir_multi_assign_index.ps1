@@ -5,7 +5,7 @@ param(
 $ErrorActionPreference = "Stop"
 if ( $Root -eq "" ) { $Root = Split-Path -Parent $PSScriptRoot }
 
-$xl = Join-Path $Root "release\xl.exe"
+$xl = Join-Path $Root "release\win_x64\xl.exe"
 $source = Join-Path $Root "test\cases\xlir_multi_assign_index_abi.xl"
 $generated = Join-Path $Root "build\test\xlir_multi_assign_index_generated.c"
 $generatedRepeat = Join-Path $Root "build\test\xlir_multi_assign_index_generated_repeat.c"

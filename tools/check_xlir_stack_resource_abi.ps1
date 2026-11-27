@@ -1,7 +1,7 @@
 $ErrorActionPreference = "Stop"
 
 $root = Split-Path $PSScriptRoot -Parent
-$xl = Join-Path $root "release\xl.exe"
+$xl = Join-Path $root "release\win_x64\xl.exe"
 $source = Join-Path $root "test\cases\xlir_stack_resource_abi.xl"
 $classDefaultSource = Join-Path $root "test\cases\xlir_stack_class_default_abi.xl"
 $typedJson = Join-Path $root "build\tmp\xlir_stack_resource_abi.typed.json"

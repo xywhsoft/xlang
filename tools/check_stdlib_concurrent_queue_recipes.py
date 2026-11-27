@@ -32,7 +32,7 @@ def main():
         for row in build['Inputs']+build['Headers']+build['Objects']:
             assert sha(row['Path'])==row['Sha256'].lower(); files.add(Path(row['Path']))
         objects=[row['Path'] for row in build['Objects'] if Path(row['Path']).name!='xlir_public_source_driver.o']
-        dll=root/'release/xl.dll'; files.add(dll)
+        dll=root/'release/win_x64/xl.dll'; files.add(dll)
         links=[str(dll),'-lws2_32','-liphlpapi','-lshell32','-lole32','-ladvapi32']
     else:
         runtime=args.runtime.resolve()

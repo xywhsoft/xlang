@@ -42,7 +42,7 @@ def main() -> int:
         records = [row for key in ("Inputs", "Headers", "Objects") for row in public[key]]
         if (any(digest(Path(row["Path"])).upper() != row["Sha256"].upper() for row in records)
                 or digest(cli).upper() != public["DriverSha256"].upper()
-                or digest(root / "release/xl.dll").upper() != public["RuntimeSha256"].upper()):
+                or digest(root / "release/win_x64/xl.dll").upper() != public["RuntimeSha256"].upper()):
             parser.error("Stale current-source compiler/runtime evidence")
         staged_path = args.public_directory / "artifact_sources.json"
         if not staged_path.is_file():
@@ -63,7 +63,7 @@ def main() -> int:
              root / "lib/xrt/xrt.h", root / "lib/xruntime/xruntime.h"]
     files.append(root / 'src/api/xl_foreign_error.h')
     files += [root / name for name in native_sources] + [root / f"test/cases/{name}.xl" for name in fixtures]
-    files += [root / "release/xl.dll"] if public else [root / "release/libxl.so", root / "release/libxlc.so"]
+    files += [root / "release/win_x64/xl.dll"] if public else [root / "release/libxl.so", root / "release/libxlc.so"]
     if public:
         files += [args.public_directory / "build.json", args.public_directory / "xl.dll"]
         files += [Path(row["Path"]) for key in ("Inputs", "Headers", "Objects") for row in public[key]]
@@ -83,7 +83,7 @@ def main() -> int:
         for header in directory.glob("*.h"):
             shutil.copy2(header, private / header.name)
     if os.name == "nt":
-        shutil.copy2(root / "release/xl.dll", out / "xl.dll")
+        shutil.copy2(root / "release/win_x64/xl.dll", out / "xl.dll")
     rows = []
     report = {"Scope": __doc__, "Complete": False, "InputsUnchanged": False, "Inputs": inputs,
               "Rows": rows, "Fixtures": fixtures, "Sanitized": args.sanitize,
@@ -109,7 +109,7 @@ def main() -> int:
 
     strict = ["-std=c11", "-Wall", "-Wextra", "-Werror", "-I.", "-Irelease", "-Irelease/include"]
     native_links = [] if os.name == "nt" else ["-pthread", "-lm"]
-    links = ["release/xl.dll"] if public else ["-Lrelease", "-lxl", "-Wl,-rpath,"+str(root/"release"), "-pthread", "-ldl", "-lm"]
+    links = ["release/win_x64/xl.dll"] if public else ["-Lrelease", "-lxl", "-Wl,-rpath,"+str(root/"release"), "-pthread", "-ldl", "-lm"]
     if os.name != "nt":
         strict += ["-D_GNU_SOURCE"]
     instrument = ["-g", "-fsanitize=address,undefined", "-fno-omit-frame-pointer", "-fno-pie", "-no-pie"] if args.sanitize else []
@@ -130,7 +130,7 @@ def main() -> int:
             assert "96 error/fault/pending vectors, 3 last-owner cases, balanced" in log
         contract = out / ("contract"+suffix)
         objects = [row["Path"] for row in public["Objects"] if Path(row["Path"]).name != "xlir_public_source_driver.o"] if public else []
-        contract_links = [*objects, "release/xl.dll", "-lWs2_32", "-lIPHLPAPI", "-lShell32", "-lOle32", "-lAdvapi32"] if public else ["-Lrelease", "-lxlc", *links]
+        contract_links = [*objects, "release/win_x64/xl.dll", "-lWs2_32", "-lIPHLPAPI", "-lShell32", "-lOle32", "-lAdvapi32"] if public else ["-Lrelease", "-lxlc", *links]
         run("contract.build", [cc, *language_flags, "-DXL_STATIC_EMBED", "-Ilib/tcc",
             "test/cases/xlir_stack_native_contract.c", *contract_links, "-o", str(contract)])
         for fixture in fixtures:

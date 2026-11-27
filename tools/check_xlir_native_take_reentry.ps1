@@ -6,7 +6,7 @@ try {
     $source = 'test/cases/cgen_native_class_bind_point.xl'
     $prefix = 'build/test/xlir_native_take_reentry'
     New-Item -ItemType Directory -Force -Path build/test | Out-Null
-    Copy-Item -LiteralPath release/xl.dll -Destination build/test/xl.dll -Force
+    Copy-Item -LiteralPath release/win_x64/xl.dll -Destination build/test/xl.dll -Force
     if ($SourceDriver -eq '') {
         $SourceDriver = 'build/test/xlir_native_take_source_driver.exe'
         & tools/build_xlir_validation_driver.ps1 -Output $SourceDriver
@@ -39,13 +39,13 @@ try {
     $runtime = 'test/cases/xlir_native_take_reentry_runtime.c'
     $hostSource = 'test/cases/xlir_native_take_reentry_host.c'
     $smokeSource = 'test/cases/xlir_native_take_reentry_smoke.c'
-    & gcc @strict $runtime $hostSource release/xl.dll -o "$prefix.exe"
+    & gcc @strict $runtime $hostSource release/win_x64/xl.dll -o "$prefix.exe"
     if ($LASTEXITCODE -ne 0) { throw 'Native TAKE strict C compilation failed' }
     & "$prefix.exe"
     if ($LASTEXITCODE -ne 0) { throw 'Native TAKE allocation-failure reentry ownership failed' }
-    & release/xl.exe run $runtime $smokeSource --inc-path . --inc-path build/test -- --smoke
+    & release/win_x64/xl.exe run $runtime $smokeSource --inc-path . --inc-path build/test -- --smoke
     if ($LASTEXITCODE -ne 0) { throw 'Native TAKE C-host JIT reentry failed' }
-    & release/xl.exe build $runtime $smokeSource src/api/xl_foreign_error.c --inc-path . --inc-path build/test -o "$prefix.aot.exe"
+    & release/win_x64/xl.exe build $runtime $smokeSource src/api/xl_foreign_error.c --inc-path . --inc-path build/test -o "$prefix.aot.exe"
     if ($LASTEXITCODE -ne 0) { throw 'Native TAKE standalone AOT build failed' }
     & "$prefix.aot.exe" --smoke
     if ($LASTEXITCODE -ne 0) { throw 'Native TAKE standalone AOT reentry failed' }

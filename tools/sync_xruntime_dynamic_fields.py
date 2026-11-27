@@ -59,7 +59,7 @@ def main():
     for command in ([sys.executable,str(supplier/'tools/check_release_maturity.py'),'--release','--manifest','extlibs/xruntime/config/modules.json'],
                     [sys.executable,str(supplier/'tools/amalgamate.py'),'--check','--manifest','extlibs/xruntime/config/modules.json']):
         subprocess.run(command,cwd=supplier,check=True)
-    header=root/'lib/xruntime/xruntime.h'; declaration=root/'release/include/xruntime_decl.h'
+    header=root/'lib/xruntime/xruntime.h'; declaration=root/'release/win_x64/include/xruntime_decl.h'
     old_header=header.read_bytes(); old_decl=declaration.read_bytes()
     implementation=old_header.decode('utf-8').replace('\r\n','\n')
     declarations=old_decl.decode('utf-8').replace('\r\n','\n')

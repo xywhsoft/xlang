@@ -13,7 +13,7 @@ sha=lambda q:hashlib.sha256(Path(q).read_bytes()).hexdigest()
 compilers=[Path(shutil.which(q) or q).resolve() for q in a.compiler]
 wrappers=[('current',root/'src/runtime/xl6_tls_worker_async.c',0)]
 if a.old_root:wrappers.append(('previous',a.old_root/'src/runtime/xl6_tls_worker_async.c',1))
-files={Path(__file__).resolve(),a.support.resolve(),root/'src/api/xl_foreign_error.c',*compilers,*[q for q in (root/'src').rglob('*') if q.is_file() and q.suffix in ['.h','.inc']],root/'lib/xrt/xrt.h',root/'release/include/xrt_decl.h',root/'release/include/xruntime_decl.h',*[q[1] for q in wrappers]}
+files={Path(__file__).resolve(),a.support.resolve(),root/'src/api/xl_foreign_error.c',*compilers,*[q for q in (root/'src').rglob('*') if q.is_file() and q.suffix in ['.h','.inc']],root/'lib/xrt/xrt.h',root/'release/win_x64/include/xrt_decl.h',root/'release/win_x64/include/xruntime_decl.h',*[q[1] for q in wrappers]}
 r=dict(Complete=False,Inputs={str(q):sha(q) for q in sorted(files)},Rows=[],Products=[],Failures=[],NetworkTraffic=False,SecurityTests=False,MalformedCryptoTests=False,ShippingAccepted=False,FullTlsAccepted=False,PrivateSourceStubForBoundaryOnly=True,FullSourceBuildOverridden=False)
 def save():(out/'results.json').write_text(json.dumps(r,indent=2)+'\n')
 def run(name,args,expected=0):

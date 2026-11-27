@@ -9,8 +9,8 @@ try {
     $prefix = 'build/test/xlir_async_frame_completion'
     New-Item -ItemType Directory -Force -Path build/test | Out-Null
     if (!(Test-Path -LiteralPath build/test/xl.dll) -or
-        (Get-FileHash release/xl.dll).Hash -ne (Get-FileHash build/test/xl.dll).Hash) {
-        Copy-Item -LiteralPath release/xl.dll -Destination build/test/xl.dll -Force
+        (Get-FileHash release/win_x64/xl.dll).Hash -ne (Get-FileHash build/test/xl.dll).Hash) {
+        Copy-Item -LiteralPath release/win_x64/xl.dll -Destination build/test/xl.dll -Force
     }
     $compilerSources = @('src/ast/xl6_ast.c','src/type/xl6_type_model.c',
         'src/ir/xl6_ir.c','src/ir/xl6_ir_lower.c',
@@ -25,7 +25,7 @@ try {
         '-Wno-unused-variable','-Wno-unused-parameter','-Wno-unused-const-variable',
         '-Wno-unused-but-set-variable','-Wno-missing-field-initializers',
         '-Wno-pointer-sign','-Wno-format-truncation','-I.','-Ibuild/test')
-    & gcc @strict test/cases/xlir_async_frame_completion_contract.c @compilerSources release/xl.dll -o "$prefix.contract.exe"
+    & gcc @strict test/cases/xlir_async_frame_completion_contract.c @compilerSources release/win_x64/xl.dll -o "$prefix.contract.exe"
     if ($LASTEXITCODE -ne 0) { throw 'Async frame completion source contract build failed' }
     & "$prefix.contract.exe" "$prefix.c" "$prefix.h" "$prefix.json"
     if ($LASTEXITCODE -ne 0) { throw 'Async frame completion mutation/verification contract failed' }
@@ -39,13 +39,13 @@ try {
     $hostSource = 'test/cases/xlir_async_frame_completion_host.c'
     $runtimeSources = @('test/cases/xlir_async_source_sync.c','test/cases/xlir_async_source_transport.c',
         'src/runtime/xl6_code_lease.c','src/runtime/xl6_code_finalizer.c','src/runtime/xl6_continuation_queue.c','src/runtime/xl6_continuation_executor.c','src/runtime/xl6_closure.c','src/runtime/xl6_cell.c','src/runtime/xl6_slot.c','src/runtime/xl6_frame_storage.c','src/runtime/xl6_continuation_frame.c','src/runtime/xl6_future_wait.c','src/runtime/xl6_task.c','src/runtime/xl6_task_frame.c','src/runtime/xl6_task_pool.c','src/runtime/xl6_capture.c','src/runtime/xl6_value_iterator.c','src/runtime/xl6_future_callback.c','src/runtime/xl6_generator.c','src/runtime/xl6_future_payload.c')
-    & gcc @strict test/cases/xlir_async_frame_completion_runtime.c $hostSource @runtimeSources release/xl.dll -o "$prefix.strict.exe"
+    & gcc @strict test/cases/xlir_async_frame_completion_runtime.c $hostSource @runtimeSources release/win_x64/xl.dll -o "$prefix.strict.exe"
     if ($LASTEXITCODE -ne 0) { throw 'Async frame completion strict C build failed' }
     & "$prefix.strict.exe"
     if ($LASTEXITCODE -ne 0) { throw 'Async frame completion runtime/memory failed' }
-    & release/xl.exe run test/cases/xlir_async_frame_completion_runtime.c $hostSource @runtimeSources --inc-path . --inc-path build/test -- --smoke
+    & release/win_x64/xl.exe run test/cases/xlir_async_frame_completion_runtime.c $hostSource @runtimeSources --inc-path . --inc-path build/test -- --smoke
     if ($LASTEXITCODE -ne 0) { throw 'Async frame completion C-host JIT failed' }
-    & release/xl.exe build test/cases/xlir_async_frame_completion_runtime.c $hostSource @runtimeSources src/api/xl_foreign_error.c --inc-path . --inc-path build/test -o "$prefix.aot.exe"
+    & release/win_x64/xl.exe build test/cases/xlir_async_frame_completion_runtime.c $hostSource @runtimeSources src/api/xl_foreign_error.c --inc-path . --inc-path build/test -o "$prefix.aot.exe"
     if ($LASTEXITCODE -ne 0) { throw 'Async frame completion C-host AOT build failed' }
     & "$prefix.aot.exe" --smoke
     if ($LASTEXITCODE -ne 0) { throw 'Async frame completion C-host AOT runtime failed' }

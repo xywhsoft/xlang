@@ -62,7 +62,7 @@ def main() -> int:
         for row in public["Inputs"] + public["Headers"] + public["Objects"] + staged["Files"]:
             if digest(Path(row["Path"])) != row["Sha256"].lower():
                 raise RuntimeError(f"Stale build/stage input: {row['Path']}")
-        files += [args.public_directory / "build.json", stage, args.public_directory / "xl.dll", root / "release/xl.dll"]
+        files += [args.public_directory / "build.json", stage, args.public_directory / "xl.dll", root / "release/win_x64/xl.dll"]
         files += [Path(row["Path"]) for row in public["Inputs"] + public["Headers"] + public["Objects"] + staged["Files"]]
     else:
         files += [root / "release/libxl.so", root / "release/libxlc.so"]
@@ -76,7 +76,7 @@ def main() -> int:
         for header in directory.glob("*.h"):
             shutil.copy2(header, private / header.name)
     if os.name == "nt":
-        shutil.copy2(root / "release/xl.dll", out / "xl.dll")
+        shutil.copy2(root / "release/win_x64/xl.dll", out / "xl.dll")
     rows: list[dict] = []
     report = {"Complete": False, "InputsUnchanged": False, "Scope": __doc__, "Platform": sys.platform,
               "Inputs": inputs, "Rows": rows, "Sweeps": [], "MetadataSweeps": [], "Fixtures": fixtures}
@@ -115,7 +115,7 @@ def main() -> int:
               "-Wno-unused-parameter", "-Wno-unused-variable", "-Wno-unused-label", "-Wno-unused-const-variable",
               "-Wno-unused-but-set-variable", "-Wno-missing-field-initializers", "-I.", "-Irelease",
               "-Irelease/include", "-I" + str(out / "include")]
-    links = ["release/xl.dll"] if os.name == "nt" else ["-Lrelease", "-lxl", "-Wl,-rpath," + str(root / "release"), "-pthread", "-ldl", "-lm"]
+    links = ["release/win_x64/xl.dll"] if os.name == "nt" else ["-Lrelease", "-lxl", "-Wl,-rpath," + str(root / "release"), "-pthread", "-ldl", "-lm"]
     if os.name != "nt":
         strict += ["-D_GNU_SOURCE"]
     sanitized = ["-g", "-fsanitize=address,undefined", "-fno-omit-frame-pointer", "-fno-pie", "-no-pie"] if args.sanitize else []

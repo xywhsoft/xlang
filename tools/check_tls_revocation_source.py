@@ -38,7 +38,7 @@ def main():
     cases.append(empty)
     env = dict(os.environ)
     if os.name == 'nt':
-        shutil.copy2(root/'release/xl.dll', out/'xl.dll')
+        shutil.copy2(root/'release/win_x64/xl.dll', out/'xl.dll')
     else:
         env['XL6_SOURCE_NATIVE_ROOT'] = build['NativeRoot']
     compiler = Path(shutil.which('gcc') or 'E:/software/w64devkit/bin/gcc.exe').resolve()
@@ -133,7 +133,7 @@ def main():
                 save()
         objects = [row['Path'] for row in build['Objects'] if Path(row['Source']).name not in
                    ['xlir_public_source_driver.c', 'xlir_public_source_linux_driver.c']]
-        runtime = root/'release/xl.dll' if os.name == 'nt' else Path(build['NativeRoot'])/'release/libxl.so'
+        runtime = root/'release/win_x64/xl.dll' if os.name == 'nt' else Path(build['NativeRoot'])/'release/libxl.so'
         libraries = ['-lws2_32', '-liphlpapi', '-lshell32', '-lole32', '-ladvapi32'] if os.name == 'nt' else [
             '-pthread', '-ldl', '-lm', '-Wl,--export-dynamic', '-Wl,-rpath,'+str(runtime.parent)]
         for opt in ['O0', 'O2']:

@@ -5,7 +5,7 @@ param(
 $ErrorActionPreference = "Stop"
 if ( $Root -eq "" ) { $Root = Split-Path -Parent $PSScriptRoot }
 
-$compiler = Join-Path $Root "release\xl.exe"
+$compiler = Join-Path $Root "release\win_x64\xl.exe"
 $fixture = Join-Path $Root "test\cases\xlir_async_cfg_liveness.xl"
 $hostSource = Join-Path $Root "test\cases\xlir_default_class_layout_host.c"
 $outputDir = Join-Path $Root "build\tmp"

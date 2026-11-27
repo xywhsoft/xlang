@@ -9,7 +9,7 @@ def main():
     root=a.root.resolve();out=a.out.resolve();assert not out.exists();out.mkdir(parents=True)
     gcc=Path(shutil.which('gcc') or 'E:/software/w64devkit/bin/gcc.exe').resolve();tcc=Path(shutil.which('tcc') or 'E:/software/tcc/tcc.exe').resolve()
     case=root/'test/cases/xlir_tls_combined_linkage.c'
-    paths=[Path(__file__).resolve(),gcc,tcc,case,*[root/q for q in ['lib/xrt/xrt.h','lib/xruntime/xruntime.h','release/include/xrt_decl.h','release/include/xruntime_decl.h']]]
+    paths=[Path(__file__).resolve(),gcc,tcc,case,*[root/q for q in ['lib/xrt/xrt.h','lib/xruntime/xruntime.h','release/win_x64/include/xrt_decl.h','release/win_x64/include/xruntime_decl.h']]]
     r=dict(Complete=False,Inputs={str(q):sha(q) for q in paths},Rows=[],Failures=[],NetworkTraffic=False,SecurityTests=False,CalledNetworkOperation=False)
     def save():(out/'results.json').write_text(json.dumps(r,indent=2)+'\n',encoding='utf8')
     def run(name,args):

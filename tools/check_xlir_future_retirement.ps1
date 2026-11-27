@@ -17,16 +17,16 @@ try {
         $driver,$Tcc,'C:/Windows/System32/ucrtbase.dll',(Get-Command gcc).Source,
         'test/cases/xlir_future_plan_runtime.c','test/cases/xlir_class_callable_plan_runtime.c',
         'test/cases/xlir_future_retirement.xl','test/cases/xlir_future_retirement_artifact.c','test/cases/xlir_future_retirement_tcc_host.c',
-        'test/cases/xlir_one_shot_tcc_host.c','release/xl.dll')
+        'test/cases/xlir_one_shot_tcc_host.c','release/win_x64/xl.dll')
     $inputs=@($build.Inputs)+@($build.Headers)+@($build.Objects)+@($files | ForEach-Object {
         [pscustomobject]@{Path=$_.FullName;Sha256=(Get-FileHash -LiteralPath $_.FullName).Hash}
     })
     if(@($inputs | Where-Object {(Get-FileHash -LiteralPath $_.Path).Hash -ne $_.Sha256}).Count){throw 'Stale Future inputs'}
     New-Item -ItemType Directory -Path $outputPath | Out-Null
     $headers=New-Item -ItemType Directory -Path "$outputPath/__xl_runtime"
-    Copy-Item -LiteralPath release/include/xruntime_decl.h -Destination "$headers/xruntime_decl.h"
+    Copy-Item -LiteralPath release/win_x64/include/xruntime_decl.h -Destination "$headers/xruntime_decl.h"
     foreach($header in $build.Headers){Copy-Item -LiteralPath $header.Path -Destination (Join-Path $headers ([IO.Path]::GetFileName($header.Path)))}
-    Copy-Item -LiteralPath release/xl.dll -Destination "$outputPath/xl.dll"
+    Copy-Item -LiteralPath release/win_x64/xl.dll -Destination "$outputPath/xl.dll"
     $prefix="$outputPath/xlir_future_retirement"
     foreach($pass in @('generated','repeat')){
         & $driver test/cases/xlir_future_retirement.xl "$prefix.$pass.c" "$prefix.$pass.h" "$prefix.$pass.json" --script *> "$outputPath/emit.$pass.log"
@@ -71,7 +71,7 @@ try {
     foreach($level in @('O0','O2')){
         $binary="$outputPath/tcc-host-$level.exe"
         $arguments=$flags+@("-$level",'test/cases/xlir_future_retirement_tcc_host.c')+$dependencies+
-            @('release/xl.dll')+$libs+@('-o',$binary)
+            @('release/win_x64/xl.dll')+$libs+@('-o',$binary)
         $buildExit=Invoke-XlirGccToLog $arguments "$outputPath/tcc-host-$level.build.log"
         foreach($mode in 0..5){
             $run=$null;$complete=$false;$log="$outputPath/tcc-host-$level-mode$mode.run.log"

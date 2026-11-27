@@ -77,7 +77,7 @@ def main() -> int:
     files = {Path(__file__).resolve(), Path(sys.executable), Path(cc), source, semantic,
              bridge, test_root / 'test/cases/xlir_dynamic_fields_contract.inc',
              *(path for _, path in cases), *refusals}
-    product = root / ('release/xl.dll' if os.name == 'nt' else 'release/libxlc.so')
+    product = root / ('release/win_x64/xl.dll' if os.name == 'nt' else 'release/libxlc.so')
     flags = ['-std=c11', '-Wall', '-Wextra', '-Werror', '-DXL_STATIC_EMBED',
              '-I.', '-Irelease', '-Irelease/include', '-Ilib/tcc']
     manifest = args.public_directory.resolve() / 'build.json'

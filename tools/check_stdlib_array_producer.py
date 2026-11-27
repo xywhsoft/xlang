@@ -20,14 +20,14 @@ def main():
         for r in build['Inputs']+build['Headers']+build['Objects']+staged['Files']:
             assert sha(r['Path'])==r['Sha256'].lower(); files.add(Path(r['Path']))
         objects=[r['Path'] for r in build['Objects'] if Path(r['Path']).name!='xlir_public_source_driver.o']
-        cli=Path(build['Driver']); links=[str(root/'release/xl.dll'),'-lws2_32','-liphlpapi','-lshell32','-lole32','-ladvapi32']; suffix='.exe'
-        files.update([a.public/'build.json',a.public/'artifact_sources.json',root/'release/xl.dll'])
+        cli=Path(build['Driver']); links=[str(root/'release/win_x64/xl.dll'),'-lws2_32','-liphlpapi','-lshell32','-lole32','-ladvapi32']; suffix='.exe'
+        files.update([a.public/'build.json',a.public/'artifact_sources.json',root/'release/win_x64/xl.dll'])
     else:
         objects=[]; cli=root/'release/xl'; suffix=''
         links=['-L'+str(root/'release'),'-lxlc','-lxl','-Wl,-rpath,'+str(root/'release'),'-pthread','-ldl','-lm']
         files.update(root/('release/'+n) for n in ['xl','libxl.so','libxlc.so'])
     files.add(cli); inputs=[{'Path':str(f),'Sha256':sha(f)} for f in sorted(files)]; out.mkdir(parents=True)
-    if a.public: shutil.copy2(root/'release/xl.dll',out/'xl.dll')
+    if a.public: shutil.copy2(root/'release/win_x64/xl.dll',out/'xl.dll')
     rows=[]; sweeps=[]; report={'Complete':False,'Full53Complete':False,'InputsUnchanged':False,'Platform':sys.platform,'Scope':__doc__,'Inputs':inputs,'Rows':rows,'Sweeps':sweeps}
     def run(name,cmd):
         cmd=list(map(str,cmd)); start=time.monotonic(); r=subprocess.run(cmd,cwd=root,capture_output=True,timeout=180)

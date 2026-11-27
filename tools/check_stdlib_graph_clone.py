@@ -20,7 +20,7 @@ def main():
     if os.name!='nt': assert build['Complete'] and build['InputsUnchanged']
     cc=shutil.which('gcc'); assert cc
     driver=Path(build['Driver']); assert sha(driver).lower()==build['DriverSha256'].lower()
-    product=root/'release/xl.dll' if os.name=='nt' else Path(build['NativeRoot'])/'release/libxl.so'
+    product=root/'release/win_x64/xl.dll' if os.name=='nt' else Path(build['NativeRoot'])/'release/libxl.so'
     cases=root/'test/cases'; fixtures=[cases/(name+'.xl') for name in
         ('stdlib_graph_clone','stdlib_graph_clone_dict_leaf','stdlib_graph_clone_continuation','stdlib_graph_clone_restore')]
     contract=cases/'xlir_graph_clone_contract.c'; host=cases/'xlir_module_product_oom_host.c'

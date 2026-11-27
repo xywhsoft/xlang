@@ -41,7 +41,7 @@ def main():
              *[root/'test/support'/('crypto_'+n+'_runtime.c') for n in ('rsa', 'nist', 'ed25519', 'xdh')],
              *[p for p in (root/'src').rglob('*') if p.is_file() and p.suffix in ('.h', '.inc')],
              *[root/p for p in ('lib/xrt/xrt.h', 'lib/xruntime/xruntime.h',
-                 'release/include/xrt_decl.h', 'release/include/xruntime_decl.h')],
+                 'release/win_x64/include/xrt_decl.h', 'release/win_x64/include/xruntime_decl.h')],
              *[p for p in out.iterdir() if p.is_file()]}
     report = dict(Complete=False, Inputs={str(p): sha(p) for p in sorted(paths)}, Rows=[], Failures=[],
                   NetworkTraffic=False, SecurityTests=False, PublicLanguageCallbacksAccepted=False,

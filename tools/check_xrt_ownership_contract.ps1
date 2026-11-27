@@ -8,7 +8,7 @@ if ( $Root -eq "" ) {
     $Root = Split-Path -Parent $PSScriptRoot
 }
 
-$runtimePath = Join-Path $Root "release\include\xl_runtime.h"
+$runtimePath = Join-Path $Root "release\win_x64\include\xl_runtime.h"
 $cgenPath = Join-Path $Root "src\cgen"
 $paths = @($runtimePath) + @(
     Get-ChildItem -LiteralPath $cgenPath -File -Filter "*.c" |

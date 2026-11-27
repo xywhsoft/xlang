@@ -5,7 +5,7 @@ param(
 $ErrorActionPreference = "Stop"
 if ( $Root -eq "" ) { $Root = Split-Path -Parent $PSScriptRoot }
 
-$xl = Join-Path $Root "release\xl.exe"
+$xl = Join-Path $Root "release\win_x64\xl.exe"
 $source = Join-Path $Root "test\cases\xlir_typed_native_handle_iterator_abi.xl"
 $support = Join-Path $Root "test\cases\cgen_class_host.c"
 $genericHost = Join-Path $Root "test\cases\xlir_generated_module_host.c"

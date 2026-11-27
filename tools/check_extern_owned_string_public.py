@@ -47,7 +47,7 @@ def main():
                  if Path(row['Path']).name not in ('xlir_public_source_driver.o', 'xlir_public_source_linux_driver.o')]
         if os.name == 'nt':
             tool_runtime = receipt.parent / 'xl.dll'
-            if not tool_runtime.exists(): tool_runtime = ROOT / 'release/xl.dll'
+            if not tool_runtime.exists(): tool_runtime = ROOT / 'release/win_x64/xl.dll'
             links += [str(tool_runtime), '-lws2_32', '-liphlpapi', '-lshell32', '-lole32', '-ladvapi32']
         else:
             tool_runtime = Path(build['RuntimeLibrary'])
@@ -85,7 +85,7 @@ def main():
                 target.parent.mkdir(parents=True, exist_ok=True)
                 shutil.copy2(path,target)
                 inputs[path] = sha(path)
-        runtime_header = ROOT/'release/include/xruntime_decl.h'
+        runtime_header = ROOT/'release/win_x64/include/xruntime_decl.h'
         shutil.copy2(runtime_header,private/runtime_header.name)
         inputs[runtime_header] = sha(runtime_header)
         includes.append(include_root)

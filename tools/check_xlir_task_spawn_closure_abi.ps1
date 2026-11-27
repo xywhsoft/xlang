@@ -6,7 +6,7 @@ if ( $Root -eq "" ) {
     $Root = Split-Path -Parent $PSScriptRoot
 }
 
-$xl = Join-Path $Root "release\xl.exe"
+$xl = Join-Path $Root "release\win_x64\xl.exe"
 $source = Join-Path $Root "test\cases\xlir_task_spawn_closure_abi.xl"
 $hostSource = Join-Path $Root "test\cases\xlir_generated_module_host.c"
 if(!$Directory){$Directory='build/test/task-spawn-abi-'+[guid]::NewGuid().ToString('N')}
@@ -174,15 +174,15 @@ foreach ( $forbidden in @(
 $headers=Join-Path $outputDir 'include/__xl_runtime'
 [IO.Directory]::CreateDirectory($headers)|Out-Null
 Copy-Item -Path (Join-Path $Root 'src/runtime/*.h') -Destination $headers
-Copy-Item -LiteralPath (Join-Path $Root 'release/include/xruntime_decl.h') -Destination $headers
+Copy-Item -LiteralPath (Join-Path $Root 'release/win_x64/include/xruntime_decl.h') -Destination $headers
 $flags=@('-std=c11','-Wall','-Wextra','-Werror','-Wno-unused-function',
     '-Wno-unused-label','-Wno-unused-variable','-Wno-unused-parameter','-Wno-unused-const-variable',
     '-Wno-missing-field-initializers','-DXLIR_GENERATED_MODULE_PREINCLUDED',
     '-include',$generatedC,$hostSource,"-I$outputDir/include","-I$Root/release/include","-I$Root",
-    (Join-Path $Root 'release/xl.dll'),'-lws2_32','-liphlpapi','-lshell32','-o',$xlirExe)
+    (Join-Path $Root 'release/win_x64/xl.dll'),'-lws2_32','-liphlpapi','-lshell32','-o',$xlirExe)
 & gcc @flags
 if($LASTEXITCODE){throw 'XLIR task.spawn strict C build failed'}
-Copy-Item -LiteralPath (Join-Path $Root 'release/xl.dll') -Destination (Join-Path $testDir 'xl.dll')
+Copy-Item -LiteralPath (Join-Path $Root 'release/win_x64/xl.dll') -Destination (Join-Path $testDir 'xl.dll')
 & $xlirExe
 if($LASTEXITCODE){throw 'XLIR task.spawn strict C runtime failed'}
 

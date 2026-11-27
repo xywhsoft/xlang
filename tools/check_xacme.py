@@ -41,7 +41,7 @@ def main():
     parser.add_argument('--cases',nargs='+',choices=['basic','owned','retirement','flow','provenance','read_account'],default=['basic','owned','retirement','flow','provenance','read_account'])
     args=parser.parse_args();work=args.directory.resolve()
     work.mkdir(parents=True,exist_ok=False);records=[];inputs={}
-    env=os.environ.copy();env['XLANG_PACKAGE_PATH']=str(ROOT/'release/extlibs')
+    env=os.environ.copy();env['XLANG_PACKAGE_PATH']=str(ROOT/'release/win_x64/extlibs')
     env['PATH']=str(ROOT/'release')+os.pathsep+env.get('PATH','')
     def run(name,command,timeout=120):
         result=subprocess.run([str(v) for v in command],cwd=ROOT,env=env,capture_output=True,
@@ -93,7 +93,7 @@ def main():
         if args.driver or args.cli:
             driver=(args.driver or args.cli).resolve()
             for case in args.cases:
-                source=ROOT/f'release/extlibs/xacme/{"examples" if case=="read_account" else "test"}/{case}.xl'
+                source=ROOT/f'release/win_x64/extlibs/xacme/{"examples" if case=="read_account" else "test"}/{case}.xl'
                 sidecars=[ROOT/'test/cases/xlir_xacme_owned_probe.c'] if case=='owned' else [ROOT/'test/cases/xlir_xacme_mock_dns.c'] if case=='flow' else []
                 mode='module' if case=='retirement' else 'run'
                 env['XACME_LANGUAGE_ROOT']=str(work/'mock/language-jit')

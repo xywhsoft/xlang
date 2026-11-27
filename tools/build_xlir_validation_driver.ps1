@@ -54,7 +54,7 @@ $arName = @(& $buildContext.Compiler '-print-prog-name=ar')
 if ($LASTEXITCODE -ne 0 -or $arName.Count -ne 1) { throw 'Cannot resolve compiler archive tool' }
 $ar = (Get-Command -Name $arName[0] -CommandType Application -ErrorAction Stop | Select-Object -First 1).Source
 $inputFiles = @($PSCommandPath,"$PSScriptRoot/xlir_c_object_cache.ps1","$PSScriptRoot/xlir_native_process.ps1",
-    $publicManifest,$ar,'release/xl.dll') + @($drivers)
+    $publicManifest,$ar,'release/win_x64/xl.dll') + @($drivers)
 $inputRecords = @($inputFiles | ForEach-Object {
     $file = Get-Item -LiteralPath $_
     [pscustomobject]@{Path=$file.FullName;Sha256=(Get-FileHash -LiteralPath $file.FullName).Hash}
@@ -68,7 +68,7 @@ $response = Join-Path $batchPath 'archive.rsp'
 & $ar 'rcs' $archive ("@" + $response)
 if ($LASTEXITCODE -ne 0) { throw 'Current source archive failed' }
 $archiveHash = (Get-FileHash -LiteralPath $archive).Hash
-$runtimeHash = (Get-FileHash -LiteralPath release/xl.dll).Hash
+$runtimeHash = (Get-FileHash -LiteralPath release/win_x64/xl.dll).Hash
 $runtimeDirectories = @(@($targets | ForEach-Object { Split-Path -Parent $_ }) + @($batchPath) | Sort-Object -Unique)
 $runtimeDeployments = @()
 foreach ($directory in $runtimeDirectories) {
@@ -78,7 +78,7 @@ foreach ($directory in $runtimeDirectories) {
         if ((Get-FileHash -LiteralPath $destination).Hash -cne $runtimeHash) {
             throw "Existing runtime differs; use a fresh contract output directory: $destination"
         }
-    } else { Copy-Item -LiteralPath release/xl.dll -Destination $destination }
+    } else { Copy-Item -LiteralPath release/win_x64/xl.dll -Destination $destination }
     if ((Get-FileHash -LiteralPath $destination).Hash -cne $runtimeHash) { throw 'Runtime deployment changed bytes' }
     $runtimeDeployments += [pscustomobject]@{Path=$destination;Sha256=$runtimeHash}
 }
@@ -88,7 +88,7 @@ $strict = @('-std=c11','-Wall','-Wextra','-Werror','-O0','-DXL_STATIC_EMBED',
     '-Wno-unused-but-set-variable','-Wno-missing-field-initializers','-Wno-pointer-sign',
     '-Wno-format-truncation',"-I$rootPath","-I$rootPath/release","-I$rootPath/release/include",
     "-I$publicPath/include")
-$links = @('release/xl.dll','-lws2_32','-liphlpapi','-lshell32','-lole32','-ladvapi32','-Wl,--gc-sections')
+$links = @('release/win_x64/xl.dll','-lws2_32','-liphlpapi','-lshell32','-lole32','-ladvapi32','-Wl,--gc-sections')
 $records = @(); $driverRecords = @(); $failed = @()
 for ($index=0; $index -lt $drivers.Count; ++$index) {
     $source = (Resolve-Path -LiteralPath $drivers[$index]).Path
@@ -113,7 +113,7 @@ $manifest = [pscustomobject]@{Complete=$true;InputsUnchanged=$true;SourceXrt=$tr
     RecordedAt=(Get-Date).ToString('o');Inputs=$inputRecords;Drivers=$driverRecords;
     PublicDirectory=$publicPath;PublicManifestSha256=(Get-FileHash -LiteralPath $publicManifest).Hash;
     CompilerObjects=$objects.Count;Archive=$archive;ArchiveSha256=$archiveHash;
-    RuntimeSha256=(Get-FileHash release/xl.dll).Hash;
+    RuntimeSha256=(Get-FileHash release/win_x64/xl.dll).Hash;
     Objects=@($public.Objects | Where-Object { [IO.Path]::GetFileName($_.Path) -ne 'xlir_public_source_driver.o' });
     DriverObjects=$records;RuntimeDeployments=$runtimeDeployments;
     ToolchainSha256=$buildContext.ToolchainSha256;

@@ -35,7 +35,7 @@ def main():
     ap.add_argument('--compiler',type=Path)
     ap.add_argument('--gcc',default='gcc')
     args=ap.parse_args()
-    root=args.root.resolve(); exe=(args.compiler or root/'release/xl.exe').resolve()
+    root=args.root.resolve(); exe=(args.compiler or root/'release/win_x64/xl.exe').resolve()
     gcc=shutil.which(args.gcc)
     if os.name!='nt' or not gcc: raise RuntimeError('Windows and MinGW GCC required')
     work=root/'build/test'/('semantic-index-'+str(uuid.uuid4())); src=work/'源码 Ω';src.mkdir(parents=True)

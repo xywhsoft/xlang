@@ -32,7 +32,7 @@ def main():
     for name,text in negatives.items():
         file=fixtureDir/('reject_'+name+'.xl');file.write_text(text,encoding='utf8');negativeCases.append(file)
     cc=Path(shutil.which('gcc') or 'E:/software/w64devkit/bin/gcc.exe').resolve()
-    runtime=root/'release/xl.dll' if os.name=='nt' else Path(build['NativeRoot'])/'release/libxl.so'
+    runtime=root/'release/win_x64/xl.dll' if os.name=='nt' else Path(build['NativeRoot'])/'release/libxl.so'
     libraries=root/'res/tcc/win64/x86_64' if os.name=='nt' else Path(build['NativeRoot'])/'build/linux/tcc-dist'
     driver=Path(build['Driver']);env=dict(os.environ)
     if os.name=='nt':shutil.copy2(runtime,out/'xl.dll')

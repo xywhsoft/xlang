@@ -14,7 +14,7 @@ def main():
     cc,nm=shutil.which('gcc'),shutil.which('nm'); assert cc and nm and not out.exists()
     build=json.loads((public/'build.json').read_text(encoding='utf-8-sig'))
     assert build['SourceXrt'] and not build['RuntimeOnly']; driver=Path(build['Driver'])
-    runtime=root/'release/xl.dll' if os.name=='nt' else Path(build['NativeRoot'])/'release/libxl.so'
+    runtime=root/'release/win_x64/xl.dll' if os.name=='nt' else Path(build['NativeRoot'])/'release/libxl.so'
     sources=[root/'test/cases/stdlib_slot_map_loop_plan.xl',root/'test/cases/stdlib_slot_map_loop.xl']
     host=root/'test/cases/stdlib_slot_map_loop_host.c'; contract=root/'test/cases/xlir_slot_map_loop_contract.c'
     artifact=root/'test/cases/xlir_artifact_runtime_contract.c'; memory=root/'test/support/module_product_memory.c'

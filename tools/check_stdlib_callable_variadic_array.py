@@ -54,17 +54,17 @@ def main():
         for row in build['Inputs']+build['Headers']+build['Objects']+staged['Files']:
             assert sha(row['Path'])==row['Sha256'].lower(),row['Path']
             files.add(Path(row['Path']))
-        files.update([public/'build.json',public/'artifact_sources.json',root/'release/xl.dll'])
+        files.update([public/'build.json',public/'artifact_sources.json',root/'release/win_x64/xl.dll'])
         objects=[r['Path'] for r in build['Objects'] if Path(r['Path']).name!='xlir_public_source_driver.o']
         cli=Path(build['Driver']); files.add(cli)
-        links=[str(root/'release/xl.dll'),'-lws2_32','-liphlpapi','-lshell32','-lole32','-ladvapi32']
+        links=[str(root/'release/win_x64/xl.dll'),'-lws2_32','-liphlpapi','-lshell32','-lole32','-ladvapi32']
     else:
         cli=root/'release/xl'
         links=['-L'+str(root/'release'),'-lxlc','-lxl','-Wl,-rpath,'+str(root/'release'),'-pthread','-ldl','-lm']
         files.update(root/('release/'+name) for name in ['xl','libxl.so','libxlc.so'])
     inputs=[{'Path':str(p.resolve()),'Sha256':sha(p)} for p in sorted(files)]
     out.mkdir(parents=True)
-    if args.public: shutil.copy2(root/'release/xl.dll',out/'xl.dll')
+    if args.public: shutil.copy2(root/'release/win_x64/xl.dll',out/'xl.dll')
     private=out/'include/__xl_runtime'; private.mkdir(parents=True)
     for folder in [root/'src/runtime',root/'release/include']:
         for header in folder.glob('*.h'): shutil.copy2(header,private/header.name)

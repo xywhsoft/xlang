@@ -28,7 +28,7 @@ def main():
     cases = ['stdlib_class_identity_inherited', 'cgen_derive_string_hash_equals',
              'stdlib_native_sequence_identity', 'stdlib_class_identity_checked']
     public=args.public.resolve(); build,pinned,compared=verify_public_build(root,public)
-    runtime=root/'release/xl.dll' if os.name=='nt' else Path(build['NativeRoot'])/'release/libxl.so'
+    runtime=root/'release/win_x64/xl.dll' if os.name=='nt' else Path(build['NativeRoot'])/'release/libxl.so'
     cli=Path(build['Driver'])
     objects=[row['Path'] for row in build['Objects'] if Path(row['Path']).name not in
         ('xlir_public_source_driver.o','xlir_public_source_linux_driver.o')]

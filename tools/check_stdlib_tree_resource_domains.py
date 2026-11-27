@@ -15,7 +15,7 @@ def main():
     oldManifest=public/'build.json'; newManifest=overlay/'overlay.json'
     old=json.loads(oldManifest.read_text(encoding='utf-8-sig')); new=json.loads(newManifest.read_text(encoding='utf-8-sig'))
     assert old['SourceXrt'] and not old['RuntimeOnly'] and not new['SourceProductAcceptance']
-    files={Path(__file__).resolve(),Path(cc),oldManifest,newManifest,Path(new['Driver']),root/'release/xl.dll'}
+    files={Path(__file__).resolve(),Path(cc),oldManifest,newManifest,Path(new['Driver']),root/'release/win_x64/xl.dll'}
     for row in old['Inputs']+old['Headers']+old['Objects']+new['Inputs']+new['Objects']:
         assert sha(row['Path'])==row['Sha256'].lower(); files.add(Path(row['Path']))
     assert sha(new['Driver'])==new['DriverSha256'].lower()
@@ -27,9 +27,9 @@ def main():
     replacements={Path(row['Path']).name for row in new['Objects']}
     objects=[row['Path'] for row in new['Objects']]+[row['Path'] for row in old['Objects']
         if Path(row['Path']).name not in replacements|{'xlir_public_source_driver.o'}]
-    links=[*objects,str(root/'release/xl.dll'),'-lws2_32','-liphlpapi','-lshell32','-lole32','-ladvapi32']
+    links=[*objects,str(root/'release/win_x64/xl.dll'),'-lws2_32','-liphlpapi','-lshell32','-lole32','-ladvapi32']
     inputs=[{'Path':str(p),'Sha256':sha(p)} for p in sorted(files)]
-    out.mkdir(parents=True); shutil.copy2(root/'release/xl.dll',out/'xl.dll')
+    out.mkdir(parents=True); shutil.copy2(root/'release/win_x64/xl.dll',out/'xl.dll')
     rows,proofs=[],[]; report={'Complete':False,'InputsUnchanged':False,'Scope':__doc__,
         'Full53Acceptance':False,'SourceProductAcceptance':False,'ShippingLibraryAcceptance':False,
         'WholeRuntimeInstrumented':False,'Inputs':inputs,'Rows':rows,'Proofs':proofs}

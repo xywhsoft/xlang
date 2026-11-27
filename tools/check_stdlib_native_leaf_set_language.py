@@ -12,7 +12,7 @@ def main():
     a=p.parse_args(); root=a.root.resolve(); public=a.public_directory.resolve(); out=a.out.resolve()
     cc=shutil.which('gcc'); assert cc and not out.exists()
     manifest=public/'build.json'; build=json.loads(manifest.read_text(encoding='utf-8-sig')); driver=Path(build['Driver'])
-    runtime=root/'release/xl.dll' if os.name=='nt' else Path(build['NativeRoot'])/'release/libxl.so'
+    runtime=root/'release/win_x64/xl.dll' if os.name=='nt' else Path(build['NativeRoot'])/'release/libxl.so'
     source=root/'test/cases/stdlib_native_leaf_set_language.xl'; host=root/'test/cases/stdlib_native_leaf_set_language_host.c'
     memory=root/'test/support/module_product_memory.c'
     files={Path(__file__),manifest,driver,runtime,source,host,memory,Path(cc)}

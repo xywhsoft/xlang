@@ -6,13 +6,13 @@ try {
     $flags = @('-std=c11','-Wall','-Wextra','-Werror','-O2','-I.')
     & gcc @flags -shared test/cases/xlir_code_lease_drop.c -o build/test/xlir_code_lease_drop.dll
     if ($LASTEXITCODE -ne 0) { throw 'Lease unloadable callback DLL build failed' }
-    & gcc @flags test/cases/xlir_code_lease_contract.c src/runtime/xl6_code_lease.c release/xl.dll -o build/test/xlir_code_lease.exe
+    & gcc @flags test/cases/xlir_code_lease_contract.c src/runtime/xl6_code_lease.c release/win_x64/xl.dll -o build/test/xlir_code_lease.exe
     if ($LASTEXITCODE -ne 0) { throw 'Resident code lease build failed' }
     & build/test/xlir_code_lease.exe
     if ($LASTEXITCODE -ne 0) { throw 'Shared code lease lifecycle failed' }
-    & release/xl.exe run test/cases/xlir_code_lease_contract.c src/runtime/xl6_code_lease.c --inc-path . -- --smoke
+    & release/win_x64/xl.exe run test/cases/xlir_code_lease_contract.c src/runtime/xl6_code_lease.c --inc-path . -- --smoke
     if ($LASTEXITCODE -ne 0) { throw 'Code lease C-host JIT smoke failed' }
-    & release/xl.exe build test/cases/xlir_code_lease_contract.c src/runtime/xl6_code_lease.c --inc-path . -o build/test/xlir_code_lease.aot.exe
+    & release/win_x64/xl.exe build test/cases/xlir_code_lease_contract.c src/runtime/xl6_code_lease.c --inc-path . -o build/test/xlir_code_lease.aot.exe
     if ($LASTEXITCODE -ne 0) { throw 'Code lease C-host AOT build failed' }
     & build/test/xlir_code_lease.aot.exe --smoke
     if ($LASTEXITCODE -ne 0) { throw 'Code lease C-host AOT smoke failed' }

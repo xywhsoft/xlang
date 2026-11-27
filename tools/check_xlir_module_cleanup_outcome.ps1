@@ -7,10 +7,10 @@ try {
     $prefix = 'build/test/xlir_module_cleanup_outcome'
     New-Item -ItemType Directory -Force -Path build/test | Out-Null
     if (!(Test-Path -LiteralPath build/test/xl.dll) -or
-        (Get-FileHash release/xl.dll).Hash -ne (Get-FileHash build/test/xl.dll).Hash) {
-        Copy-Item -LiteralPath release/xl.dll -Destination build/test/xl.dll -Force
+        (Get-FileHash release/win_x64/xl.dll).Hash -ne (Get-FileHash build/test/xl.dll).Hash) {
+        Copy-Item -LiteralPath release/win_x64/xl.dll -Destination build/test/xl.dll -Force
     }
-    & release/xl.exe ir $source --lowered --format json --emit "$prefix.json"
+    & release/win_x64/xl.exe ir $source --lowered --format json --emit "$prefix.json"
     if ($LASTEXITCODE -ne 0) { throw 'Module cleanup outcome lowering failed' }
     $ir = [IO.File]::ReadAllText("$prefix.json") | ConvertFrom-Json
     $fini = $ir.functions[$ir.moduleFinalizerFunction - 1]
@@ -32,9 +32,9 @@ try {
             throw 'Module cleanup must accumulate diagnostics after every exact owner'
         }
     }
-    & release/xl.exe cgen $source --backend xlir --emit "$prefix.c"
+    & release/win_x64/xl.exe cgen $source --backend xlir --emit "$prefix.c"
     if ($LASTEXITCODE -ne 0) { throw 'Module cleanup Cgen failed' }
-    & release/xl.exe cgen $source --backend xlir --emit "$prefix.repeat.c"
+    & release/win_x64/xl.exe cgen $source --backend xlir --emit "$prefix.repeat.c"
     if ($LASTEXITCODE -ne 0 -or [IO.File]::ReadAllText("$prefix.c") -cne [IO.File]::ReadAllText("$prefix.repeat.c")) {
         throw 'Module cleanup Cgen is not deterministic'
     }
@@ -43,25 +43,25 @@ try {
         '-Wno-unused-but-set-variable','-Wno-missing-field-initializers','-I.','-Ibuild/test')
     $runtime = 'test/cases/xlir_module_cleanup_outcome_runtime.c'
     $hostSource = 'test/cases/xlir_module_cleanup_outcome_host.c'
-    & gcc @strict $runtime $hostSource release/xl.dll -o "$prefix.strict.exe"
+    & gcc @strict $runtime $hostSource release/win_x64/xl.dll -o "$prefix.strict.exe"
     if ($LASTEXITCODE -ne 0) { throw 'Module cleanup strict C build failed' }
     & "$prefix.strict.exe"
     if ($LASTEXITCODE -ne 0) { throw 'Module cleanup lost an outcome or resource' }
-    & release/xl.exe run $runtime $hostSource --inc-path . --inc-path build/test -- --smoke
+    & release/win_x64/xl.exe run $runtime $hostSource --inc-path . --inc-path build/test -- --smoke
     if ($LASTEXITCODE -ne 0) { throw 'Module cleanup C-host JIT failed' }
     $artifactRuntimeSources = @('src/runtime/xl6_slot.c',
         'src/runtime/xl6_code_lease.c', 'src/runtime/xl6_code_finalizer.c')
-    & release/xl.exe build $runtime $hostSource @artifactRuntimeSources src/api/xl_foreign_error.c --inc-path . --inc-path build/test -o "$prefix.aot.exe"
+    & release/win_x64/xl.exe build $runtime $hostSource @artifactRuntimeSources src/api/xl_foreign_error.c --inc-path . --inc-path build/test -o "$prefix.aot.exe"
     if ($LASTEXITCODE -ne 0) { throw 'Module cleanup AOT build failed' }
     & "$prefix.aot.exe" --smoke
     if ($LASTEXITCODE -ne 0) { throw 'Module cleanup AOT runtime failed' }
     $boundarySource = 'test/cases/xlir_module_cleanup_boundary.c'
-    Copy-Item -LiteralPath release/xlc.dll -Destination build/test/xlc.dll -Force
-    & gcc @strict '-DXLIR_BOUNDARY_FAULTS' test/cases/xlir_module_cleanup_api.c $boundarySource release/xlc.dll release/xl.dll -o "$prefix.api.exe"
+    Copy-Item -LiteralPath release/win_x64/xlc.dll -Destination build/test/xlc.dll -Force
+    & gcc @strict '-DXLIR_BOUNDARY_FAULTS' test/cases/xlir_module_cleanup_api.c $boundarySource release/win_x64/xlc.dll release/win_x64/xl.dll -o "$prefix.api.exe"
     if ($LASTEXITCODE -ne 0) { throw 'Module cleanup checked DLL API compile failed' }
     & "$prefix.api.exe"
     if ($LASTEXITCODE -ne 0) { throw 'Module cleanup checked DLL API lost failure/exit-code separation' }
-    & release/xl.exe build $source $boundarySource --backend xlir --inc-path . -o "$prefix.boundary.exe"
+    & release/win_x64/xl.exe build $source $boundarySource --backend xlir --inc-path . -o "$prefix.boundary.exe"
     if ($LASTEXITCODE -ne 0) { throw 'Module cleanup language-entry AOT build failed' }
     $savedCase = $env:XLIR_MODULE_CLEANUP_CASE
     try {
@@ -79,7 +79,7 @@ try {
                 try {
                     $ErrorActionPreference = 'Continue'
                     if ($engine -eq 'jit') {
-                        & release/xl.exe run $source $boundarySource --inc-path . *> $log
+                        & release/win_x64/xl.exe run $source $boundarySource --inc-path . *> $log
                     } else { & "$prefix.boundary.exe" *> $log }
                     $code = $LASTEXITCODE
                 } finally { $ErrorActionPreference = $savedErrorAction }
@@ -107,7 +107,7 @@ try {
         'src/ir/xl6_ir.c','src/ir/xl6_ir_lower.c',
         'src/cgen/xl6_ir_cgen.c','src/cgen/xl6_cgen_shared_runtime.c','src/diag/xl6_diag.c',
         'src/common/xl6_output.c','src/common/xl6_console.c')
-    & gcc @strict '-Wno-pointer-sign' '-Wno-format-truncation' test/cases/xlir_module_init_cgen.c @compilerSources release/xl.dll -o "$prefix.contract.exe"
+    & gcc @strict '-Wno-pointer-sign' '-Wno-format-truncation' test/cases/xlir_module_init_cgen.c @compilerSources release/win_x64/xl.dll -o "$prefix.contract.exe"
     if ($LASTEXITCODE -ne 0) { throw 'Module cleanup verifier unit build failed' }
     & "$prefix.contract.exe"
     if ($LASTEXITCODE -ne 0) { throw 'Module cleanup verifier mutations failed' }

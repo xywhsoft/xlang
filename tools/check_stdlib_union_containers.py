@@ -14,7 +14,7 @@ def main():
     a=p.parse_args(); root,public,out=a.root.resolve(),a.public_directory.resolve(),a.out.resolve()
     cc,objdump=shutil.which('gcc'),shutil.which('objdump'); assert cc and objdump and not out.exists()
     build,pinned,compared=verify_public_build(root,public)
-    driver=Path(build['Driver']); runtime=root/'release/xl.dll' if os.name=='nt' else Path(build['NativeRoot'])/'release/libxl.so'
+    driver=Path(build['Driver']); runtime=root/'release/win_x64/xl.dll' if os.name=='nt' else Path(build['NativeRoot'])/'release/libxl.so'
     memory=root/'test/support/module_product_memory.c'; host=root/'test/cases/xlir_module_product_oom_host.c'
     contract=root/'test/cases/xlir_union_container_contract.c'; sidecar=root/'test/cases/xlir_default_class_layout_support.c'
     numeric=root/'test/cases/stdlib_dynamic_numeric_prune.xl'; admission=root/'src/runtime/xl6_array_union_admission.c'

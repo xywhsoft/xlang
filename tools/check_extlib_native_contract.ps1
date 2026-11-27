@@ -81,17 +81,17 @@ try {
     $objects = @($public.Objects | Where-Object { [IO.Path]::GetFileName($_.Path) -ne 'xlir_public_source_driver.o' } | ForEach-Object Path)
     $flags = @('-std=c11','-O0','-Wall','-Wextra','-Werror','-DXL_STATIC_EMBED','-DXL_ENABLE_EXE_COMPILER=1',
         '-I.','-Irelease','-Ilib/tcc')
-    $libs = @('release/xl.dll','-lws2_32','-liphlpapi','-lshell32','-lole32','-ladvapi32')
+    $libs = @('release/win_x64/xl.dll','-lws2_32','-liphlpapi','-lshell32','-lole32','-ladvapi32')
     $cli = Join-Path $work 'xl.exe'
     $contract = Join-Path $work 'contract.exe'
     $null = Check 'cli-build' $gcc ($flags + @('src/driver/xl6_xlc_shell.c') + $objects + $libs + @('-o',$cli))
     $null = Check 'contract-build' $gcc ($flags + @('test/cases/xlir_artifact_runtime_contract.c') + $objects + $libs + @('-o',$contract))
-    Copy-Item -LiteralPath release/xl.dll -Destination (Join-Path $work 'xl.dll')
+    Copy-Item -LiteralPath release/win_x64/xl.dll -Destination (Join-Path $work 'xl.dll')
     $identity = [ordered]@{Driver=$cli;DriverSha256=(Get-FileHash -LiteralPath $cli).Hash}
     [IO.File]::WriteAllText((Join-Path $work 'build.json'),($identity | ConvertTo-Json),$utf8)
     $null = Check 'stage-runtime' $shell @('-NoProfile','-File','tools/stage_xlir_artifact_runtime_sources.ps1','-Directory',$work)
     $includes = [IO.Path]::GetFullPath((Join-Path $PublicDirectory 'include'))
-    $env:XL6_TCC_DLL = Join-Path $root 'release/xl.dll'
+    $env:XL6_TCC_DLL = Join-Path $root 'release/win_x64/xl.dll'
     $env:XL6_TCC_ROOT = Join-Path $root 'res/tcc/win64/x86_64'
     $env:XL6_TCC_LIB = Join-Path $root 'res/tcc/win64/x86_64/lib'
     $env:XLANG_PACKAGE_PATH = Join-Path $root 'test/fixtures'

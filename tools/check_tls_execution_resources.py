@@ -16,7 +16,7 @@ def main():
     compilers=[Path(shutil.which(s) or s).resolve() for s in a.compiler];gcc=next(q for q in compilers if q.stem!='tcc')
     sha=lambda q:hashlib.sha256(Path(q).read_bytes()).hexdigest()
     files={Path(__file__).resolve(),*compilers,*[q for q in (root/'src').rglob('*') if q.is_file() and q.suffix in ['.c','.h','.inc']],
-        root/'lib/xrt/xrt.h',root/'lib/xruntime/xruntime.h',root/'release/include/xrt_decl.h',root/'release/include/xruntime_decl.h',
+        root/'lib/xrt/xrt.h',root/'lib/xruntime/xruntime.h',root/'release/win_x64/include/xrt_decl.h',root/'release/win_x64/include/xruntime_decl.h',
         root/'test/support/tls_execution_plan.c',root/'test/support/tls_execution_resource.c'}
     files.update(Path(m.__file__) for m in sys.modules.values() if getattr(m,'__file__',None) and Path(m.__file__).is_relative_to(root/'tools'))
     files.update(q for q in out.iterdir() if q.is_file())

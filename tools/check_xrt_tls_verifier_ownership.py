@@ -19,7 +19,7 @@ def main():
     compilers=[Path(shutil.which(p) or p).resolve() for p in args.compiler]
     fixture=native/'tests/tls/test_tls_verify_ownership.c';vectors=native/'tests/fixtures/x509_path_legacy.h'
     inputs=[Path(__file__).resolve(),*compilers,fixture,vectors,root/'lib/xrt/backports/tls_verifier_ownership.json',
-            *[root/p for p in ['lib/xrt/xrt.h','lib/xruntime/xruntime.h','release/include/xrt_decl.h','release/include/xruntime_decl.h']]]
+            *[root/p for p in ['lib/xrt/xrt.h','lib/xruntime/xruntime.h','release/win_x64/include/xrt_decl.h','release/win_x64/include/xruntime_decl.h']]]
     report=dict(Complete=False,Inputs={str(p):sha(p) for p in inputs},Rows=[],Failures=[],
                 SourceFixtureAdaptations=['declaration/include routing','assert native milliseconds'],
                 NetworkTraffic=False,SecurityTests=False,PublicLanguageCallbacksAccepted=False,FullTlsAccepted=False,FullGoalComplete=False)

@@ -7,7 +7,7 @@ if ( $Root -eq "" ) {
     $Root = Split-Path -Parent $PSScriptRoot
 }
 
-$xl = Join-Path $Root "release\xl.exe"
+$xl = Join-Path $Root "release\win_x64\xl.exe"
 if ( ! (Test-Path -LiteralPath $xl -PathType Leaf) ) {
     Write-Host "xl.exe missing: $xl"
     exit 1

@@ -12,10 +12,10 @@ $srcDir = Join-Path $Root "src"
 $allowedSource = "src/backend/xl6_toolchain.h"
 $allowedBatch = "tools/xl6_toolchain_env.bat"
 $fixtureScanDirs = @(
-    "release\examples",
+    "release\win_x64\examples",
     "test\cases",
     "test\fixtures",
-    "release\extlibs"
+    "release\win_x64\extlibs"
 )
 $minToolchainSourceFiles = 157
 $minToolchainFixtureFiles = 153
@@ -93,7 +93,7 @@ foreach ( $file in @(Get-ChildItem -LiteralPath $Root -File -Filter "*.bat") ) {
 
 $batchScanDirs = @(
     (Join-Path $Root "tools"),
-    (Join-Path $Root "release\examples")
+    (Join-Path $Root "release\win_x64\examples")
 )
 
 foreach ( $dir in $batchScanDirs ) {
@@ -161,7 +161,7 @@ if ( (Test-Path -LiteralPath $apiPath -PathType Leaf) -and
     if ( $apiText -notmatch 'xlAddNativeObject' -or
          $apiText -notmatch '__xl_runtime/xruntime_decl[.]h' -or
          $apiText -notmatch 'src/common/xl6_xrt[.]h' -or
-         $xrtBridgeText -notmatch 'release/include/xruntime_decl[.]h' ) {
+         $xrtBridgeText -notmatch 'release/win_x64/include/xruntime_decl[.]h' ) {
         Add-Failure "DLL compiler API must use complete declarations and relocatable native objects"
     }
 

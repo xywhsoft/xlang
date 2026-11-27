@@ -83,7 +83,7 @@ def main() -> int:
         files.update(root / name for name in [provider(profile), *extras])
     for directory in ('src/runtime', 'release/include'):
         files.update((root / directory).rglob('*.h'))
-    product = root / ('release/xl.dll' if os.name == 'nt' else 'release/libxl.so')
+    product = root / ('release/win_x64/xl.dll' if os.name == 'nt' else 'release/libxl.so')
     if args.shared:
         files.add(product)
     inputs = [{'Path': str(path.resolve()), 'Sha256': digest(path)} for path in sorted(files)]

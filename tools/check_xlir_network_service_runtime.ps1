@@ -19,13 +19,13 @@ try {
         [pscustomobject]@{Path=$_.FullName;Sha256=(Get-FileHash -LiteralPath $_.FullName).Hash}})
     foreach($row in $inputs){if((Get-FileHash -LiteralPath $row.Path).Hash-ne$row.Sha256){throw "Stale service input $($row.Path)"}}
     New-Item -ItemType Directory -Path $outputPath|Out-Null
-    Copy-Item -LiteralPath release/xl.dll -Destination "$outputPath/xl.dll"
+    Copy-Item -LiteralPath release/win_x64/xl.dll -Destination "$outputPath/xl.dll"
     $rows=@();$libs=@('-lws2_32','-liphlpapi','-lshell32','-lole32','-ladvapi32')
     foreach($name in @('gcc-O0','gcc-O2','tcc','ir-contract')){
         $binary="$outputPath/$name.exe";$timer=[Diagnostics.Stopwatch]::StartNew()
         if($name-eq'ir-contract'){
             $objects=@($build.Objects|Where-Object {[IO.Path]::GetFileName($_.Path)-ne'xlir_public_source_driver.o'}|ForEach-Object Path)
-            $buildExit=Invoke-XlirGccToLog (@('-std=c11','-O0','-Wall','-Wextra','-Werror','-Wno-unused-function','-DXL_STATIC_EMBED','-I.','-Irelease','-Irelease/include',$sources[1])+$objects+@('release/xl.dll')+$libs+@('-o',$binary)) "$outputPath/$name.build.log"
+            $buildExit=Invoke-XlirGccToLog (@('-std=c11','-O0','-Wall','-Wextra','-Werror','-Wno-unused-function','-DXL_STATIC_EMBED','-I.','-Irelease','-Irelease/include',$sources[1])+$objects+@('release/win_x64/xl.dll')+$libs+@('-o',$binary)) "$outputPath/$name.build.log"
         } elseif($name-eq'tcc'){
             $buildExit=Invoke-XlirNativeToLog $tcc (@('-std=c11','-Wall','-Werror','-I.','-Irelease','-Irelease/include',$sources[0],'src/runtime/xl6_network_service.c','tools/xrt_single_header_impl.c','C:/Windows/System32/ucrtbase.dll')+$libs+@('-o',$binary)) "$outputPath/$name.build.log"
         } else {

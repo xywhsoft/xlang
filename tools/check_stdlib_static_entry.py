@@ -30,7 +30,7 @@ def main():
     contract=task/'test/support/static_entry_contract.c'
     fixtures={name:(task if name in ('entry-error','entry-return','finalizer-error') else root)/'test/cases'/(stem+'.xl')
         for name,stem,_ in CASES}
-    native=root/'release/xl.dll' if windows else Path(build['NativeRoot'])/'release/libxl.so'
+    native=root/'release/win_x64/xl.dll' if windows else Path(build['NativeRoot'])/'release/libxl.so'
     pinned.update((Path(__file__).resolve(),Path(sys.executable).resolve(),Path(inspector).resolve(),Path(cc).resolve(),probe,contract,native))
     pinned.update(fixtures.values())
     inputs=[dict(Path=str(path),Sha256=sha(path)) for path in sorted(pinned)]

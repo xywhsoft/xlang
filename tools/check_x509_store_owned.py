@@ -16,7 +16,7 @@ def main():
         root/'test/support/x509_store_owned.c',root/'test/support/x509_store_sources.c',root/'test/support/x509_store_plan.c',root/'src/compile/xl6_compile_unit.c',
         *[root/'test/support'/('crypto_'+name+'_runtime.c') for name in ('rsa','nist','ed25519','xdh')],
         *root.glob('src/runtime/*.h'),*root.glob('src/runtime/*.inc'),*root.glob('src/compile/*.h'),*root.glob('src/compile/*.inc'),
-        root/'lib/xrt/xrt.h',root/'lib/xruntime/xruntime.h',root/'release/include/xrt_decl.h',root/'release/include/xruntime_decl.h']
+        root/'lib/xrt/xrt.h',root/'lib/xruntime/xruntime.h',root/'release/win_x64/include/xrt_decl.h',root/'release/win_x64/include/xruntime_decl.h']
     report=dict(Complete=False,Inputs={str(f):sha(f) for f in files},Rows=[],Failures=[],OrdinaryChains=fixtures(root,out),
         Oracle=cryptography.__version__,EveryFixtureSignatureIndependentlyVerified=True,PublicLanguageAcceptance=False,
         PathBuildAcceptance=False,TlsAcceptance=False,ShippingAcceptance=False,NetworkTraffic=False,SecurityTests=False)

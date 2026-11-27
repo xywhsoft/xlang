@@ -33,7 +33,7 @@ if (@($names | Sort-Object -Unique).Count -ne 100) { throw 'scope must contain 1
 $bindings = @()
 foreach ($name in $names) {
     if ($name -notmatch '^[A-Za-z][A-Za-z0-9_.]*$') { throw "invalid package name: $name" }
-    $directory = Join-Path (Join-Path $root 'release/extlibs') "$name/test"
+    $directory = Join-Path (Join-Path $root 'release/win_x64/extlibs') "$name/test"
     if (-not (Test-Path -LiteralPath $directory)) { continue }
     foreach ($file in Get-ChildItem -LiteralPath $directory -Recurse -File -Filter '*.ps1') {
         $tokens = $null

@@ -8,8 +8,8 @@ try {
     $prefix = 'build/test/xlir_evaluation_cleanup'
     New-Item -ItemType Directory -Force -Path build/test | Out-Null
     if (!(Test-Path -LiteralPath build/test/xl.dll) -or
-        (Get-FileHash release/xl.dll).Hash -ne (Get-FileHash build/test/xl.dll).Hash) {
-        Copy-Item -LiteralPath release/xl.dll -Destination build/test/xl.dll -Force
+        (Get-FileHash release/win_x64/xl.dll).Hash -ne (Get-FileHash build/test/xl.dll).Hash) {
+        Copy-Item -LiteralPath release/win_x64/xl.dll -Destination build/test/xl.dll -Force
     }
     $compilerSources = @('src/ast/xl6_ast.c','src/type/xl6_type_model.c',
         'src/ir/xl6_ir.c','src/ir/xl6_ir_lower.c',
@@ -24,7 +24,7 @@ try {
         '-Wno-unused-variable','-Wno-unused-parameter','-Wno-unused-const-variable',
         '-Wno-unused-but-set-variable','-Wno-missing-field-initializers',
         '-Wno-pointer-sign','-Wno-format-truncation','-I.','-Ibuild/test')
-    & gcc @strict test/cases/xlir_evaluation_cleanup_contract.c @compilerSources release/xl.dll -o "$prefix.contract.exe"
+    & gcc @strict test/cases/xlir_evaluation_cleanup_contract.c @compilerSources release/win_x64/xl.dll -o "$prefix.contract.exe"
     if ($LASTEXITCODE -ne 0) { throw 'Evaluation cleanup source contract build failed' }
     & "$prefix.contract.exe" "$prefix.c" "$prefix.h" "$prefix.json"
     if ($LASTEXITCODE -ne 0) { throw 'Evaluation cleanup module mutation or CFG contract failed' }
@@ -34,15 +34,15 @@ try {
         [IO.File]::ReadAllText("$prefix.json") -cne [IO.File]::ReadAllText("$prefix.repeat.json")) {
         throw 'Evaluation cleanup C/header determinism failed'
     }
-    & gcc @strict test/cases/xlir_evaluation_cleanup_runtime.c test/cases/xlir_evaluation_cleanup_host.c release/xl.dll -o "$prefix.strict.exe"
+    & gcc @strict test/cases/xlir_evaluation_cleanup_runtime.c test/cases/xlir_evaluation_cleanup_host.c release/win_x64/xl.dll -o "$prefix.strict.exe"
     if ($LASTEXITCODE -ne 0) { throw 'Evaluation cleanup generated C strict build failed' }
     & "$prefix.strict.exe"
     if ($LASTEXITCODE -ne 0) { throw 'Evaluation cleanup accessor transaction/runtime semantics failed' }
-    & release/xl.exe run test/cases/xlir_evaluation_cleanup_runtime.c test/cases/xlir_evaluation_cleanup_host.c --inc-path . --inc-path build/test -- --smoke
+    & release/win_x64/xl.exe run test/cases/xlir_evaluation_cleanup_runtime.c test/cases/xlir_evaluation_cleanup_host.c --inc-path . --inc-path build/test -- --smoke
     if ($LASTEXITCODE -ne 0) { throw 'Evaluation cleanup generated C-host JIT failed' }
     $artifactRuntimeSources = @('src/runtime/xl6_slot.c',
         'src/runtime/xl6_code_lease.c', 'src/runtime/xl6_code_finalizer.c')
-    & release/xl.exe build test/cases/xlir_evaluation_cleanup_runtime.c test/cases/xlir_evaluation_cleanup_host.c @artifactRuntimeSources src/api/xl_foreign_error.c --inc-path . --inc-path build/test -o "$prefix.aot.exe"
+    & release/win_x64/xl.exe build test/cases/xlir_evaluation_cleanup_runtime.c test/cases/xlir_evaluation_cleanup_host.c @artifactRuntimeSources src/api/xl_foreign_error.c --inc-path . --inc-path build/test -o "$prefix.aot.exe"
     if ($LASTEXITCODE -ne 0) { throw 'Evaluation cleanup generated C-host AOT build failed' }
     & "$prefix.aot.exe" --smoke
     if ($LASTEXITCODE -ne 0) { throw 'Evaluation cleanup generated C-host AOT runtime failed' }
@@ -58,11 +58,11 @@ try {
             throw "Task operand $extension output is nondeterministic"
         }
     }
-    & gcc @strict test/cases/xlir_evaluation_cleanup_tasks_runtime.c test/cases/xlir_evaluation_cleanup_tasks_host.c release/xl.dll -o "$tasks.strict.exe"
+    & gcc @strict test/cases/xlir_evaluation_cleanup_tasks_runtime.c test/cases/xlir_evaluation_cleanup_tasks_host.c release/win_x64/xl.dll -o "$tasks.strict.exe"
     if ($LASTEXITCODE -ne 0) { throw 'Task operand strict C build failed' }
     & "$tasks.strict.exe"
     if ($LASTEXITCODE -ne 0) { throw 'Task operand cleanup or module lifetime failed' }
-    & release/xl.exe run test/cases/xlir_evaluation_cleanup_tasks_runtime.c test/cases/xlir_evaluation_cleanup_tasks_host.c --inc-path . --inc-path build/test -- --smoke
+    & release/win_x64/xl.exe run test/cases/xlir_evaluation_cleanup_tasks_runtime.c test/cases/xlir_evaluation_cleanup_tasks_host.c --inc-path . --inc-path build/test -- --smoke
     if ($LASTEXITCODE -ne 0) { throw 'Task operand C-host JIT failed' }
     $taskArtifactRuntimeSources = $artifactRuntimeSources + @(
         'src/runtime/xl6_cell.c', 'src/runtime/xl6_closure.c',
@@ -72,7 +72,7 @@ try {
         'src/runtime/xl6_continuation_frame.c',
         'src/runtime/xl6_future_wait.c', 'src/runtime/xl6_future_payload.c',
         'src/runtime/xl6_task.c','src/runtime/xl6_task_frame.c','src/runtime/xl6_task_pool.c')
-    & release/xl.exe build test/cases/xlir_evaluation_cleanup_tasks_runtime.c test/cases/xlir_evaluation_cleanup_tasks_host.c @taskArtifactRuntimeSources src/api/xl_foreign_error.c --inc-path . --inc-path build/test -o "$tasks.aot.exe"
+    & release/win_x64/xl.exe build test/cases/xlir_evaluation_cleanup_tasks_runtime.c test/cases/xlir_evaluation_cleanup_tasks_host.c @taskArtifactRuntimeSources src/api/xl_foreign_error.c --inc-path . --inc-path build/test -o "$tasks.aot.exe"
     if ($LASTEXITCODE -ne 0) { throw 'Task operand C-host AOT build failed' }
     & "$tasks.aot.exe" --smoke
     if ($LASTEXITCODE -ne 0) { throw 'Task operand C-host AOT runtime failed' }

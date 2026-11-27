@@ -21,7 +21,7 @@ file|lib.a|%XL6_EMBED_TCC_DIST%/lib/libtcc1.a
 '''
     manifest='tools/tcc_vfs_manifest_fixture.txt'
     names={manifest,'release/native/one.h','release/native/nested/with space.c','release/native/not-selected.json',
-        'test/fixtures/extra/helper.c','release/xl.dll','build/tmp/xrt.o'}
+        'test/fixtures/extra/helper.c','release/win_x64/xl.dll','build/tmp/xrt.o'}
     selected,closure=index_manifest_inputs(names,lambda p:text)
     assert selected=={manifest,'release/native/one.h','release/native/nested/with space.c'}
     assert len(closure)==2
@@ -48,8 +48,8 @@ file|lib.a|%XL6_EMBED_TCC_DIST%/lib/libtcc1.a
         manifest:text,'release/native/one.h':'/* INDEX HEADER */\n',
         'release/native/nested/with space.c':'/* INDEX NATIVE */\n',
         'release/native/not-selected.json':'{}\n','test/fixtures/extra/helper.c':'/* FULL TEST CONTROLS */\n',
-        'test/fixtures/extra/payload.bin':'fixture data\n','release/xl.dll':'NOT AN INPUT\n',
-        'release/xl.exe':'NOT AN INPUT\n','build/tmp/xrt.o':'NOT AN INPUT\n'}
+        'test/fixtures/extra/payload.bin':'fixture data\n','release/win_x64/xl.dll':'NOT AN INPUT\n',
+        'release/win_x64/xl.exe':'NOT AN INPUT\n','build/tmp/xrt.o':'NOT AN INPUT\n'}
     for relative,value in files.items():
         path=project/relative;path.parent.mkdir(parents=True,exist_ok=True);path.write_bytes(value.encode('utf8'))
     for name in ['freeze_stdlib_source.py','stdlib_manifest_inputs.py']:
@@ -80,7 +80,7 @@ file|lib.a|%XL6_EMBED_TCC_DIST%/lib/libtcc1.a
     for name in ['src/main.c','release/native/one.h','release/native/nested/with space.c',
         'test/fixtures/extra/helper.c','test/fixtures/extra/payload.bin']:
         assert (frozen/name).read_bytes()==files[name].encode('utf8')
-    for name in ['release/xl.dll','release/xl.exe','build/tmp/xrt.o','release/native/untracked.h',
+    for name in ['release/win_x64/xl.dll','release/win_x64/xl.exe','build/tmp/xrt.o','release/native/untracked.h',
         'release/native/not-selected.json']:
         assert not (frozen/name).exists(),name
     assert git('write-tree')==tree and git('ls-files','--stage','-z')==index

@@ -25,7 +25,7 @@ def main():
     source=root/'test/support/xrt_scalar_domain_snapshot.c'
     inputs=[Path(__file__).resolve(),source,*compilers,root/'lib/xrt/xrt.h',root/'lib/xruntime/xruntime.h',
             root/'lib/xrt/xrt.snapshot.json',root/'lib/xruntime/xruntime.snapshot.json',
-            root/'release/include/xrt_decl.h',root/'release/include/xruntime_decl.h',root/'src/api/xl_xrt_symbols.inc']
+            root/'release/win_x64/include/xrt_decl.h',root/'release/win_x64/include/xruntime_decl.h',root/'src/api/xl_xrt_symbols.inc']
     inputs={str(path):sha(path) for path in inputs}
     out.mkdir(parents=True);rows=[]
     report=dict(Complete=False,Rows=rows,Inputs=inputs,InputsUnchanged=False,LogsUnchanged=False,

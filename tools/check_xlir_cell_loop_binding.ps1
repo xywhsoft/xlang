@@ -8,8 +8,8 @@ try {
     New-Item -ItemType Directory -Force -Path build/test/__xl_runtime | Out-Null
     Copy-Item -LiteralPath src/runtime/xl6_cell.h -Destination build/test/__xl_runtime/xl6_cell.h -Force
     if (!(Test-Path -LiteralPath build/test/xl.dll) -or
-        (Get-FileHash release/xl.dll).Hash -ne (Get-FileHash build/test/xl.dll).Hash) {
-        Copy-Item -LiteralPath release/xl.dll -Destination build/test/xl.dll -Force
+        (Get-FileHash release/win_x64/xl.dll).Hash -ne (Get-FileHash build/test/xl.dll).Hash) {
+        Copy-Item -LiteralPath release/win_x64/xl.dll -Destination build/test/xl.dll -Force
     }
     $compilerSources = @('src/ast/xl6_ast.c','src/type/xl6_type_model.c',
         'src/ir/xl6_ir.c','src/ir/xl6_ir_lower.c',
@@ -24,7 +24,7 @@ try {
         '-Wno-unused-variable','-Wno-unused-parameter','-Wno-unused-const-variable',
         '-Wno-unused-but-set-variable','-Wno-missing-field-initializers','-Wno-pointer-sign',
         '-Wno-format-truncation','-I.','-Ibuild/test')
-    & gcc @strict test/cases/xlir_cell_loop_binding_contract.c @compilerSources release/xl.dll -o "$prefix.contract.exe"
+    & gcc @strict test/cases/xlir_cell_loop_binding_contract.c @compilerSources release/win_x64/xl.dll -o "$prefix.contract.exe"
     if ($LASTEXITCODE -ne 0) { throw 'Loop binding source contract build failed' }
     & "$prefix.contract.exe" "$prefix.c" "$prefix.h" "$prefix.json"
     if ($LASTEXITCODE -ne 0) { throw 'Loop binding mutation/verification failed' }
@@ -61,24 +61,24 @@ try {
         'src/runtime/xl6_continuation_future.c',
         'src/runtime/xl6_future_payload.c'
     )
-    & gcc @strict $runtimeSource $hostSource release/xl.dll -o "$prefix.strict.exe"
+    & gcc @strict $runtimeSource $hostSource release/win_x64/xl.dll -o "$prefix.strict.exe"
     if ($LASTEXITCODE -ne 0) { throw 'Loop binding strict C build failed' }
     & "$prefix.strict.exe"
     if ($LASTEXITCODE -ne 0) { throw 'Loop binding runtime/allocation fault failed' }
-    & release/xl.exe run $runtimeSource $hostSource --inc-path . --inc-path build/test -- --smoke
+    & release/win_x64/xl.exe run $runtimeSource $hostSource --inc-path . --inc-path build/test -- --smoke
     if ($LASTEXITCODE -ne 0) { throw 'Loop binding C-host JIT failed' }
-    & release/xl.exe build $runtimeSource $hostSource @artifactRuntimeSources src/api/xl_foreign_error.c --inc-path . --inc-path build/test -o "$prefix.aot.exe"
+    & release/win_x64/xl.exe build $runtimeSource $hostSource @artifactRuntimeSources src/api/xl_foreign_error.c --inc-path . --inc-path build/test -o "$prefix.aot.exe"
     if ($LASTEXITCODE -ne 0) { throw 'Loop binding C-host AOT build failed' }
     & "$prefix.aot.exe" --smoke
     if ($LASTEXITCODE -ne 0) { throw 'Loop binding C-host AOT runtime failed' }
     $suspensionHost = 'test/cases/xlir_cell_loop_suspension_host.c'
-    & gcc @strict $suspensionHost release/xl.dll -o "$prefix.suspension.strict.exe"
+    & gcc @strict $suspensionHost release/win_x64/xl.dll -o "$prefix.suspension.strict.exe"
     if ($LASTEXITCODE -ne 0) { throw 'Loop-body suspension strict C build failed' }
     & "$prefix.suspension.strict.exe"
     if ($LASTEXITCODE -ne 0) { throw 'Loop-body suspension strict C runtime failed' }
-    & release/xl.exe run $suspensionHost --inc-path . --inc-path build/test
+    & release/win_x64/xl.exe run $suspensionHost --inc-path . --inc-path build/test
     if ($LASTEXITCODE -ne 0) { throw 'Loop-body suspension C-host JIT failed' }
-    & release/xl.exe build $suspensionHost @artifactRuntimeSources src/api/xl_foreign_error.c --inc-path . --inc-path build/test -o "$prefix.suspension.aot.exe"
+    & release/win_x64/xl.exe build $suspensionHost @artifactRuntimeSources src/api/xl_foreign_error.c --inc-path . --inc-path build/test -o "$prefix.suspension.aot.exe"
     if ($LASTEXITCODE -ne 0) { throw 'Loop-body suspension C-host AOT build failed' }
     & "$prefix.suspension.aot.exe"
     if ($LASTEXITCODE -ne 0) { throw 'Loop-body suspension C-host AOT runtime failed' }

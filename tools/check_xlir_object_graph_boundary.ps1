@@ -4,14 +4,14 @@ if ($Root -eq '') { $Root = Split-Path -Parent $PSScriptRoot }
 Push-Location $Root
 try {
     $prefix = 'build/test/xlir_object_graph_boundary'
-    $inputs = @('test/cases/xlir_object_graph_boundary.c', 'lib/xruntime/xruntime.h', 'release/xl.dll')
+    $inputs = @('test/cases/xlir_object_graph_boundary.c', 'lib/xruntime/xruntime.h', 'release/win_x64/xl.dll')
     $before = @($inputs | ForEach-Object { [pscustomobject]@{Path=$_;Sha256=(Get-FileHash $_).Hash} })
     $results = @()
     foreach ($lane in @('snapshot','resident')) {
         $flags = @('-std=c11','-Wall','-Wextra','-Werror','-O2','-I.')
         if ($lane -eq 'snapshot') { $flags += '-DXLIR_GRAPH_SNAPSHOT' }
         $link = @()
-        if ($lane -eq 'resident') { $link += 'release/xl.dll' }
+        if ($lane -eq 'resident') { $link += 'release/win_x64/xl.dll' }
         $buildLog = "$prefix.$lane.build.log"
         & gcc @flags test/cases/xlir_object_graph_boundary.c @link -o "$prefix.$lane.exe" *> $buildLog
         $buildExit = $LASTEXITCODE

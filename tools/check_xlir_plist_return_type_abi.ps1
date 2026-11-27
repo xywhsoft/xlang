@@ -8,7 +8,7 @@ if ( $Root -eq "" ) {
     $Root = Split-Path -Parent $PSScriptRoot
 }
 
-$xl = Join-Path $Root "release\xl.exe"
+$xl = Join-Path $Root "release\win_x64\xl.exe"
 $source = Join-Path $Root "test\cases\extlib_plist.xl"
 $outputDir = Join-Path $Root "build\test"
 $typedPath = Join-Path $outputDir "xlir_plist_return_type_abi.typed.json"

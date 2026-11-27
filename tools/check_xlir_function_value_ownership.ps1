@@ -8,7 +8,7 @@ if ( $Root -eq "" ) {
     $Root = Split-Path -Parent $PSScriptRoot
 }
 
-$xl = Join-Path $Root "release\xl.exe"
+$xl = Join-Path $Root "release\win_x64\xl.exe"
 $source = Join-Path $Root "test\cases\cgen_function_direct_owned_args.xl"
 $captureSource = Join-Path $Root "test\cases\xlir_closure_closure_capture.xl"
 $runtimeHost = Join-Path $Root "test\cases\xlir_default_class_layout_host.c"

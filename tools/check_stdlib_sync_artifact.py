@@ -36,10 +36,10 @@ def main():
         for folder in ('src','res','release/include'):
             shutil.copytree(root/folder,work/folder)
         for folder in ('lib/xrt','lib/xruntime'): (work/folder).mkdir(parents=True)
-        shutil.copy2(root/'release/include/xrt_decl.h',work/'lib/xrt/xrt.h')
+        shutil.copy2(root/'release/win_x64/include/xrt_decl.h',work/'lib/xrt/xrt.h')
         shutil.copy2(root/'lib/xruntime/xruntime.h',work/'lib/xruntime/xruntime.h')
-        shutil.copy2(root/'release/xl.dll',work/'release/xl.dll')
-        shutil.copy2(root/'release/xl.dll',work/'xl.dll')
+        shutil.copy2(root/'release/win_x64/xl.dll',work/'release/win_x64/xl.dll')
+        shutil.copy2(root/'release/win_x64/xl.dll',work/'xl.dll')
         driver=work/'public_source.exe'; shutil.copy2(build['Driver'],driver)
         shutil.copytree(compiler/'include',work/'include')
     staged=[{'Path':str(path),'Sha256':sha(path)} for path in sorted(work.rglob('*')) if path.is_file()]
@@ -59,12 +59,12 @@ def main():
         assert result.returncode==0,(name,data[-6000:].decode(errors='replace')); return data.decode(errors='replace')
     objects=[row['Path'] for row in build['Objects'] if Path(row['Path']).name not in
         {'xlir_public_source_driver.o','xlir_public_source_linux_driver.o'}]
-    libraries=([*objects,root/'release/xl.dll','-lws2_32','-liphlpapi','-lshell32','-lole32','-ladvapi32']
+    libraries=([*objects,root/'release/win_x64/xl.dll','-lws2_32','-liphlpapi','-lshell32','-lole32','-ladvapi32']
         if windows else [*objects,'-L'+str(native/'release'),'-lxl','-Wl,-rpath,'+str(native/'release'),
             '-Wl,--export-dynamic','-pthread','-ldl','-lm'])
     flags=['-std=c11','-Wall','-Wextra','-Werror','-DXL_STATIC_EMBED',
         '-I'+str(root),'-I'+str(root/'release'),'-I'+str(root/'release/include'),'-I'+str(root/'lib/tcc')]
-    if windows: shutil.copy2(root/'release/xl.dll',out/'xl.dll')
+    if windows: shutil.copy2(root/'release/win_x64/xl.dll',out/'xl.dll')
     else: flags+=['-D_GNU_SOURCE']
     try:
         for level in ('O0','O2'):

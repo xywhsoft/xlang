@@ -7,7 +7,7 @@ $Root = (Resolve-Path -LiteralPath $Root).Path
 $matrixDocName = 'XRT' + ([char]0x4E0E) + 'xlang' + ([char]0x80FD) +
     ([char]0x529B) + ([char]0x77E9) + ([char]0x9635) + '.md'
 $paths = [ordered]@{
-    Runtime = 'release/include/xl_runtime.h'
+    Runtime = 'release/win_x64/include/xl_runtime.h'
     StdlibData = 'src/stdlib/xl6_stdlib_data.c'
     Stdlib = 'src/stdlib/xl6_stdlib.c'
     NativeGroups = 'src/cgen/xl6_ir_cgen_native_groups.inc'
@@ -217,7 +217,7 @@ if ($failures.Count -ne 0) {
 }
 
 if (!$StaticOnly) {
-    if (!$Xl) { $Xl = Join-Path $Root 'release/xl.exe' }
+    if (!$Xl) { $Xl = Join-Path $Root 'release/win_x64/xl.exe' }
     if (!$Out) { throw 'Provide -Out outside the source tree for JIT/AOT bridge acceptance, or explicitly select -StaticOnly.' }
     & python -B (Join-Path $Root 'tools/check_xruntime_bridge_behavior.py') --root $Root --xl $Xl --out $Out
     if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }

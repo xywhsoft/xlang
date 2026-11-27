@@ -10,8 +10,8 @@ try {
     New-Item -ItemType Directory -Force -Path build/test/__xl_runtime | Out-Null
     Copy-Item -LiteralPath src/runtime/xl6_future_payload.h -Destination build/test/__xl_runtime/xl6_future_payload.h -Force
     if (!(Test-Path -LiteralPath build/test/xl.dll) -or
-        (Get-FileHash release/xl.dll).Hash -ne (Get-FileHash build/test/xl.dll).Hash) {
-        Copy-Item -LiteralPath release/xl.dll -Destination build/test/xl.dll -Force
+        (Get-FileHash release/win_x64/xl.dll).Hash -ne (Get-FileHash build/test/xl.dll).Hash) {
+        Copy-Item -LiteralPath release/win_x64/xl.dll -Destination build/test/xl.dll -Force
     }
     $compilerSources = @('src/ast/xl6_ast.c','src/type/xl6_type_model.c',
         'src/ir/xl6_ir.c','src/ir/xl6_ir_lower.c',
@@ -26,7 +26,7 @@ try {
         '-Wno-unused-variable','-Wno-unused-parameter','-Wno-unused-const-variable',
         '-Wno-unused-but-set-variable','-Wno-missing-field-initializers',
         '-Wno-pointer-sign','-Wno-format-truncation','-I.','-Ibuild/test')
-    & gcc @strict test/cases/xlir_module_task_pool_contract.c @compilerSources release/xl.dll -o "$prefix.contract.exe"
+    & gcc @strict test/cases/xlir_module_task_pool_contract.c @compilerSources release/win_x64/xl.dll -o "$prefix.contract.exe"
     if ($LASTEXITCODE -ne 0) { throw 'Module task pool source contract build failed' }
     & "$prefix.contract.exe" "$prefix.c" "$prefix.h" "$prefix.json"
     if ($LASTEXITCODE -ne 0) { throw 'Module task pool module mutation or CFG contract failed' }
@@ -36,13 +36,13 @@ try {
         [IO.File]::ReadAllText("$prefix.json") -cne [IO.File]::ReadAllText("$prefix.repeat.json")) {
         throw 'Module task pool C/header determinism failed'
     }
-    & gcc @strict test/cases/xlir_module_task_pool_runtime.c test/cases/xlir_module_task_pool_host.c src/runtime/xl6_future_payload.c release/xl.dll -o "$prefix.strict.exe"
+    & gcc @strict test/cases/xlir_module_task_pool_runtime.c test/cases/xlir_module_task_pool_host.c src/runtime/xl6_future_payload.c release/win_x64/xl.dll -o "$prefix.strict.exe"
     if ($LASTEXITCODE -ne 0) { throw 'Module task pool generated C strict build failed' }
     & "$prefix.strict.exe"
     if ($LASTEXITCODE -ne 0) { throw 'Module task pool accessor transaction/runtime semantics failed' }
-    & release/xl.exe run test/cases/xlir_module_task_pool_runtime.c test/cases/xlir_module_task_pool_host.c src/runtime/xl6_future_payload.c --inc-path . --inc-path build/test -- --smoke
+    & release/win_x64/xl.exe run test/cases/xlir_module_task_pool_runtime.c test/cases/xlir_module_task_pool_host.c src/runtime/xl6_future_payload.c --inc-path . --inc-path build/test -- --smoke
     if ($LASTEXITCODE -ne 0) { throw 'Module task pool generated C-host JIT failed' }
-    & release/xl.exe build test/cases/xlir_module_task_pool_runtime.c test/cases/xlir_module_task_pool_host.c src/runtime/xl6_future_payload.c src/api/xl_foreign_error.c --inc-path . --inc-path build/test -o "$prefix.aot.exe"
+    & release/win_x64/xl.exe build test/cases/xlir_module_task_pool_runtime.c test/cases/xlir_module_task_pool_host.c src/runtime/xl6_future_payload.c src/api/xl_foreign_error.c --inc-path . --inc-path build/test -o "$prefix.aot.exe"
     if ($LASTEXITCODE -ne 0) { throw 'Module task pool generated C-host AOT build failed' }
     & "$prefix.aot.exe" --smoke
     if ($LASTEXITCODE -ne 0) { throw 'Module task pool generated C-host AOT runtime failed' }

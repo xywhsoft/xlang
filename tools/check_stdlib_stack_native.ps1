@@ -29,7 +29,7 @@ try {
     $python = (Get-Command python -CommandType Application | Select-Object -First 1).Source
     $files = @(($cases + $extraCases) | ForEach-Object { Get-Item "test/cases/$_.xl" }) +
         @($negative | ForEach-Object { Get-Item "test/fixtures/stack_value_contract/$_.xl" }) +
-        @(Get-Item -LiteralPath @($PSCommandPath,$gcc,$python,'release/xl.dll','test/cases/stdlib_stack_native_host.c',
+        @(Get-Item -LiteralPath @($PSCommandPath,$gcc,$python,'release/win_x64/xl.dll','test/cases/stdlib_stack_native_host.c',
             'test/support/stack_native.c','test/support/stack_take_found.h',
             'test/cases/stdlib_sequence_take_status_native_host.c','test/cases/stdlib_stack_retired_try_abi.c',
             'test/cases/xlir_module_product_oom_host.c',
@@ -228,7 +228,7 @@ try {
             throw 'Storage-only Stack pulled string projection'
         }
     }
-    Copy-Item -LiteralPath release/xl.dll -Destination "$outPath/xl.dll"
+    Copy-Item -LiteralPath release/win_x64/xl.dll -Destination "$outPath/xl.dll"
     $objects = @($public.Objects | Where-Object { [IO.Path]::GetFileName($_.Path) -ne 'xlir_public_source_driver.o' } | ForEach-Object Path)
     $strict = @('-std=c11','-Wall','-Wextra','-Werror','-Wno-unused-function','-Wno-unused-label',
         '-Wno-unused-variable','-Wno-unused-parameter','-Wno-unused-const-variable','-Wno-unused-but-set-variable',
@@ -238,7 +238,7 @@ try {
     Run 'native-vectors' "$outPath/native.exe" @()
     Run 'retired-try.compile' $gcc (@('-std=c11','-Wall','-Wextra','-Werror','-I.','-Irelease',
         '-c','test/cases/stdlib_stack_retired_try_abi.c','-o',"$outPath/retired-try.o"))
-    Run 'retired-try.link' $gcc @("$outPath/retired-try.o",'release/xl.dll','-o',"$outPath/retired-try.exe") $true
+    Run 'retired-try.link' $gcc @("$outPath/retired-try.o",'release/win_x64/xl.dll','-o',"$outPath/retired-try.exe") $true
     if ((Get-Content -Encoding UTF8 "$outPath/retired-try.link.log" -Raw) -notmatch 'undefined reference.*xl6StackTryTakeV1') {
         throw 'Retired ABI rejection was not the missing old symbol'
     }
@@ -251,7 +251,7 @@ try {
         Run "take-status.O$level.vectors" "$outPath/take-status.O$level.exe" @()
     }
     Run 'nullable-native-build' $gcc ($strict + @('-DXL_STATIC_EMBED','-Ilib/tcc','test/cases/xlir_nullable_scalar_native.c') +
-        $objects + @('release/xl.dll','-lWs2_32','-lIPHLPAPI','-lShell32','-lOle32','-lAdvapi32','-o',"$outPath/nullable-native.exe"))
+        $objects + @('release/win_x64/xl.dll','-lWs2_32','-lIPHLPAPI','-lShell32','-lOle32','-lAdvapi32','-o',"$outPath/nullable-native.exe"))
     Run 'nullable-native-vectors' "$outPath/nullable-native.exe" @()
     $sweeps = @()
     foreach ($operation in @('create','reserve','push','peek','clone','trim','owned-peek','try-peek')) {
@@ -264,7 +264,7 @@ try {
         $sweeps += [pscustomobject]@{Fixture=$operation;FirstNoHit=$point}
     }
     Run 'contract-build' $gcc ($strict + @('-DXL_STATIC_EMBED','-Ilib/tcc','test/cases/xlir_stack_native_contract.c') +
-        $objects + @('release/xl.dll','-lWs2_32','-lIPHLPAPI','-lShell32','-lOle32','-lAdvapi32','-o',"$outPath/contract.exe"))
+        $objects + @('release/win_x64/xl.dll','-lWs2_32','-lIPHLPAPI','-lShell32','-lOle32','-lAdvapi32','-o',"$outPath/contract.exe"))
     foreach ($case in ($cases + @('xlir_nullable_string_equal','xlir_nullable_scalar_no_resource') + $projections)) {
         $prefix = "$outPath/$case"
         Run "$case.emit" $public.Driver @("test/cases/$case.xl",'emit',$prefix)
@@ -317,7 +317,7 @@ try {
     }
     Run "$case.language-oom-build" $gcc ($strict + @('-DXL6_PRODUCT_USER_ENTRY','-include',"$prefix.c",
         'test/cases/xlir_module_product_oom_host.c',"$outPath/debug-host.o") +
-        $objects + @('release/xl.dll','-lWs2_32','-lIPHLPAPI','-lShell32','-lOle32','-lAdvapi32','-o',"$prefix.host.exe"))
+        $objects + @('release/win_x64/xl.dll','-lWs2_32','-lIPHLPAPI','-lShell32','-lOle32','-lAdvapi32','-o',"$prefix.host.exe"))
     Run "$case.language-oom-normal" "$prefix.host.exe" @()
     for ($point=0; $point -le 4096; ++$point) {
         $name = "$case.language.oom-$point"

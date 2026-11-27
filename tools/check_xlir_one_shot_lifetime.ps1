@@ -41,13 +41,13 @@ try {
         (New-XlirCStringDefine 'JOINT_DLL_NAME' 'xlir_one_shot_lifetime.generated.dll' -RawArgument))
     $code=Invoke-XlirGccToLog ($flags+@('-O2')+$defines+@('-c','test/cases/xlir_one_shot_lifetime_host.c','-o',"$prefix.host.o")) "$work/host.build.log"
     if($code){throw 'One-shot source API host build failed'}
-    $code=Invoke-XlirGccToLog ($flags+@('-O2',"$prefix.host.o")+@($cohort.Objects)+@('release/xl.dll')+$libs+
+    $code=Invoke-XlirGccToLog ($flags+@('-O2',"$prefix.host.o")+@($cohort.Objects)+@('release/win_x64/xl.dll')+$libs+
         @("-Wl,--out-implib,$prefix.host.a",'-Wl,--export-all-symbols','-o',"$prefix.exe")) "$work/host.link.log"
     if($code){throw 'One-shot complete source runtime link failed'}
-    $code=Invoke-XlirGccToLog ($flags+@('-O2','-shared','test/cases/xlir_one_shot_lifetime_artifact.c',"$prefix.host.a",'release/xl.dll',
+    $code=Invoke-XlirGccToLog ($flags+@('-O2','-shared','test/cases/xlir_one_shot_lifetime_artifact.c',"$prefix.host.a",'release/win_x64/xl.dll',
         '-Wl,--export-all-symbols','-o',"$prefix.generated.dll")) "$work/artifact.build.log"
     if($code){throw 'One-shot generated DLL link failed'}
-    Copy-Item -LiteralPath release/xl.dll -Destination "$work/xl.dll"
+    Copy-Item -LiteralPath release/win_x64/xl.dll -Destination "$work/xl.dll"
     $failed = @()
     $rows=@()
     foreach ($mode in 0..6) {

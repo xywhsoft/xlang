@@ -16,7 +16,7 @@ def main():
     root,public,out=a.root.resolve(),a.public_directory.resolve(),a.out.resolve()
     assert not out.exists() and (not a.sanitize or os.name!='nt');cc=shutil.which('gcc');assert cc
     build,pinned,compared=verify_public_build(root,public)
-    runtime=root/'release/xl.dll' if os.name=='nt' else Path(build['NativeRoot'])/'release/libxl.so'
+    runtime=root/'release/win_x64/xl.dll' if os.name=='nt' else Path(build['NativeRoot'])/'release/libxl.so'
     specs=[('first-outcome','xlir_generator_close_first_outcome','xlir_generator_close_first_outcome_adapter.c',
         'xlir_generator_close_first_outcome_contract','generator close first outcome: 900 source executions, 2700 repeated-close sequences, 0 semantic failures; memory checks balanced'),
         ('frame-loan','xlir_generator_frame_loan','xlir_generator_frame_loan_host.c','xlir_generator_frame_loan_contract',

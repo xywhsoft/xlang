@@ -43,7 +43,7 @@ def main():
             files.add(Path(row['Path']))
         files.add(public/'build.json')
         cli=Path(build['Driver']); assert sha(cli)==build['DriverSha256'].lower()
-        runtime=root/'release/xl.dll'
+        runtime=root/'release/win_x64/xl.dll'
         libraries=root/'res/tcc/win64/x86_64'
         objects=[row['Path'] for row in build['Objects'] if Path(row['Path']).name!='xlir_public_source_driver.o']
         links=[*objects,str(runtime),'-lws2_32','-liphlpapi','-lshell32','-lole32','-ladvapi32']

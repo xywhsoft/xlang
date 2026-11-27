@@ -14,28 +14,28 @@ file|include/__xl_runtime/xl_foreign_error.h|%XL6_ROOT%/src/api/xl_foreign_error
 # The tracked TCC include directory owns the Win32/POSIX compatibility shims;
 # the directory entry above embeds them without depending on release outputs.
 
-file|include/xl_value_read.h|%XL6_ROOT%/release/include/xl_value_read.h
-file|include/xrt_decl.h|%XL6_ROOT%/release/include/xrt_decl.h
-file|include/xl_foreign_graph.h|%XL6_ROOT%\release\include\xl_foreign_graph.h
-file|include/xl_foreign_net.h|%XL6_ROOT%\release\include\xl_foreign_net.h
-file|include/xl_version.h|%XL6_ROOT%\release\include\xl_version.h
-file|include/xl.h|%XL6_ROOT%\release\include\xl.h
-file|include/xl_package.h|%XL6_ROOT%\release\include\xl_package.h
-file|include/xl_sync_retirement.h|%XL6_ROOT%\release\include\xl_sync_retirement.h
-file|include/xl_cancellation_retirement.h|%XL6_ROOT%\release\include\xl_cancellation_retirement.h
-file|include/__xl_runtime/xl_runtime.h|%XL6_ROOT%\release\include\xl_runtime.h
-file|include/__xl_runtime/xl_extlib_abi.h|%XL6_ROOT%\release\include\xl_extlib_abi.h
-file|include/__xl_runtime/xruntime_decl.h|%XL6_ROOT%\release\include\xruntime_decl.h
-file|include/__xl_runtime/xrt_decl.h|%XL6_ROOT%\release\include\xrt_decl.h
-file|include/__xl_runtime/xl_clock.h|%XL6_ROOT%\release\include\xl_clock.h
+file|include/xl_value_read.h|%XL6_ROOT%/release/win_x64/include/xl_value_read.h
+file|include/xrt_decl.h|%XL6_ROOT%/release/win_x64/include/xrt_decl.h
+file|include/xl_foreign_graph.h|%XL6_ROOT%\release\win_x64\include\xl_foreign_graph.h
+file|include/xl_foreign_net.h|%XL6_ROOT%\release\win_x64\include\xl_foreign_net.h
+file|include/xl_version.h|%XL6_ROOT%\release\win_x64\include\xl_version.h
+file|include/xl.h|%XL6_ROOT%\release\win_x64\include\xl.h
+file|include/xl_package.h|%XL6_ROOT%\release\win_x64\include\xl_package.h
+file|include/xl_sync_retirement.h|%XL6_ROOT%\release\win_x64\include\xl_sync_retirement.h
+file|include/xl_cancellation_retirement.h|%XL6_ROOT%\release\win_x64\include\xl_cancellation_retirement.h
+file|include/__xl_runtime/xl_runtime.h|%XL6_ROOT%\release\win_x64\include\xl_runtime.h
+file|include/__xl_runtime/xl_extlib_abi.h|%XL6_ROOT%\release\win_x64\include\xl_extlib_abi.h
+file|include/__xl_runtime/xruntime_decl.h|%XL6_ROOT%\release\win_x64\include\xruntime_decl.h
+file|include/__xl_runtime/xrt_decl.h|%XL6_ROOT%\release\win_x64\include\xrt_decl.h
+file|include/__xl_runtime/xl_clock.h|%XL6_ROOT%\release\win_x64\include\xl_clock.h
 file|lib/libtcc1.a|%XL6_EMBED_TCC_DIST_X64%\lib\libtcc1.a
 # Keep native C source compatibility without embedding either implementation
 # product. Generated xlang C already reaches xruntime_decl.h through xl_runtime.h.
-file|lib/xrt/xrt.h|%XL6_ROOT%\release\include\xrt_decl.h
-file|lib/xruntime/xruntime.h|%XL6_ROOT%\release\include\xruntime_decl.h
+file|lib/xrt/xrt.h|%XL6_ROOT%\release\win_x64\include\xrt_decl.h
+file|lib/xruntime/xruntime.h|%XL6_ROOT%\release\win_x64\include\xruntime_decl.h
 
-file|include/xl_clock.h|%XL6_ROOT%/release/include/xl_clock.h
+file|include/xl_clock.h|%XL6_ROOT%/release/win_x64/include/xl_clock.h
 
-file|include/xrt_decl.h|%XL6_ROOT%/release/include/xrt_decl.h
+file|include/xrt_decl.h|%XL6_ROOT%/release/win_x64/include/xrt_decl.h
 
-file|include/xruntime_decl.h|%XL6_ROOT%/release/include/xruntime_decl.h
+file|include/xruntime_decl.h|%XL6_ROOT%/release/win_x64/include/xruntime_decl.h

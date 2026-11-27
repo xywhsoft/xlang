@@ -78,12 +78,12 @@ def main():
     label=contract.stem+'.'+opt
     obj=out/(label+'.o');run(label+'.build',[cc,*flags,'-'+opt,'-c',contract,'-o',obj]);product(obj)
     binary=out/(label+('.exe' if os.name=='nt' else ''))
-    if os.name=='nt':link=[*objects,obj,root/'release/xl.dll','-lws2_32','-liphlpapi','-lshell32','-lole32','-ladvapi32','-o',binary]
+    if os.name=='nt':link=[*objects,obj,root/'release/win_x64/xl.dll','-lws2_32','-liphlpapi','-lshell32','-lole32','-ladvapi32','-o',binary]
     else:
      lib=a.native_root.resolve()/'release';link=[*objects,obj,'-L'+str(lib),'-lxl','-Wl,-rpath,'+str(lib),'-Wl,--export-dynamic','-pthread','-ldl','-lm','-o',binary]
     response=out/(label+'.rsp');response.write_text('\n'.join('"'+str(x).replace('\\','/')+'"' for x in link)+'\n',encoding='utf8');product(response)
     run(label+'.link',[cc,'@'+str(response)]);product(binary)
-    if os.name=='nt' and not (out/'xl.dll').exists():shutil.copy2(root/'release/xl.dll',out/'xl.dll');product(out/'xl.dll')
+    if os.name=='nt' and not (out/'xl.dll').exists():shutil.copy2(root/'release/win_x64/xl.dll',out/'xl.dll');product(out/'xl.dll')
     fixture='stdlib_net_socket_error_queue' if contract.stem=='xlir_net_datagram_error_contract' else \
      'stdlib_net_datagram_io' if contract.stem=='xlir_net_datagram_contract' else 'stdlib_net_socket_tcp'
     proof=run(label+'.run',[binary,root/('test/cases/'+fixture+'.xl')]);assert 'XLIR:' in proof

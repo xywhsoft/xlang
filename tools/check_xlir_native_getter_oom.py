@@ -44,8 +44,8 @@ def main():
             ('xlir_public_source_driver.c','xlir_public_source_linux_driver.c')]
         assert len(objects)==len(build['Objects'])-1
         if os.name=='nt':
-            libs=[root/'release/xl.dll','-lws2_32','-liphlpapi','-lshell32','-lole32','-ladvapi32']
-            shutil.copy2(root/'release/xl.dll',out/'xl.dll');product(out/'xl.dll')
+            libs=[root/'release/win_x64/xl.dll','-lws2_32','-liphlpapi','-lshell32','-lole32','-ladvapi32']
+            shutil.copy2(root/'release/win_x64/xl.dll',out/'xl.dll');product(out/'xl.dll')
         else:
             lib=a.native_root.resolve()/'release';libs=['-L'+str(lib),'-lxl','-Wl,-rpath,'+str(lib),'-Wl,--export-dynamic','-pthread','-ldl','-lm']
         terminal={}

@@ -19,7 +19,7 @@ def main():
     cc = shutil.which('gcc'); assert cc and not out.exists()
     build, pinned, _ = verify_public_build(root, public)
     driver = Path(build['Driver'])
-    runtime = root/'release/xl.dll' if os.name == 'nt' else Path(build['NativeRoot'])/'release/libxl.so'
+    runtime = root/'release/win_x64/xl.dll' if os.name == 'nt' else Path(build['NativeRoot'])/'release/libxl.so'
     manifest, sdk, _ = stage_private_sdk(root)
     cases = [root/'test/cases'/n for n in ('stdlib_nested_sdk.xl', 'stdlib_string_bridge_boundaries.xl')]
     host_source = root/'test/cases/stdlib_nested_sdk_host.c'

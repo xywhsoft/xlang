@@ -48,7 +48,7 @@ def main():
     assert sha(driver) == build['DriverSha256'].lower()
     cc = Path(shutil.which('gcc')).resolve()
     sdk = driver.parent / 'include'
-    runtime = root / 'release/xl.dll' if os.name == 'nt' else Path(build['NativeRoot']) / 'release/libxl.so'
+    runtime = root / 'release/win_x64/xl.dll' if os.name == 'nt' else Path(build['NativeRoot']) / 'release/libxl.so'
     contract = root / 'test/cases/xlir_net_vector_batch_contract.c'
     legacy = root / 'test/cases/xlir_net_socket_contract.c'
     datagram = root / 'test/cases/xlir_net_datagram_contract.c'

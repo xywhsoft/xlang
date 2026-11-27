@@ -25,7 +25,7 @@ $files += @(Get-ChildItem -LiteralPath (Join-Path $root 'test/cases') -File | Wh
     $_.Name -in @('extlib_http_owned_native.c','extlib_http_feature_order.c')
 } | ForEach-Object FullName)
 foreach ($package in $packages) {
-    $files += @(Get-ChildItem -LiteralPath (Join-Path $root "release/extlibs/$package") -Recurse -File |
+    $files += @(Get-ChildItem -LiteralPath (Join-Path $root "release/win_x64/extlibs/$package") -Recurse -File |
         Where-Object { $_.Extension -in @('.c','.h','.xl','.json') } | ForEach-Object FullName)
 }
 $inputs = @($public.Inputs) + @($public.Headers) + @($public.Objects) + @(
@@ -45,7 +45,7 @@ function Check([string]$name, [string]$program, [string[]]$arguments) {
     Write-Host "[extlib-c-owned] ${name}: PASS"
 }
 $flags = @('-std=c11','-O2','-Wall','-Wextra','-Werror','-Ilib/xrt','-Ilib/xruntime',
-    '-Irelease/include','-Irelease/extlibs/terraform_state/include')
+    '-Irelease/include','-Irelease/win_x64/extlibs/terraform_state/include')
 $links = @('-lws2_32','-liphlpapi','-lshell32','-lole32','-ladvapi32')
 $runtimeObject = @($public.Objects | Where-Object { [IO.Path]::GetFileName($_.Path) -eq 'xrt_single_header_impl.o' })
 if ($runtimeObject.Count -ne 1) { throw 'Missing source XRT implementation object' }
@@ -55,7 +55,7 @@ Unchanged
 [IO.Directory]::CreateDirectory($work) | Out-Null
 Push-Location $root
 try {
-    $env:XLANG_PACKAGE_PATH = Join-Path $root 'release/extlibs'
+    $env:XLANG_PACKAGE_PATH = Join-Path $root 'release/win_x64/extlibs'
     foreach ($name in $caseNames) {
         $source = "test/cases/$name.xl"
         $sidecars = @('test/cases/xlir_extlib_c_owned_inputs_c.c')
@@ -69,7 +69,7 @@ try {
         throw 'Static extension reads acquired an implicit C owner materialization'
     }
     Write-Host '[extlib-c-owned] generated static inputs contain no implicit C payload materialization: PASS'
-    Check 'csv-dictionary-and-boundaries' $public.Driver @('release/extlibs/csv/test/boundaries.xl','run',"$work/csv-boundaries")
+    Check 'csv-dictionary-and-boundaries' $public.Driver @('release/win_x64/extlibs/csv/test/boundaries.xl','run',"$work/csv-boundaries")
     foreach ($reverse in @($false,$true)) {
         $defines = if ($reverse) { @('-DXL_TEST_HTTP_REVERSE') } else { @() }
         Check "http-feature-order-$reverse" $gcc ($flags + $defines + @('-fsyntax-only','test/cases/extlib_http_feature_order.c'))
@@ -87,9 +87,9 @@ try {
     )
     foreach ($row in $nativeCases) {
         $package = $row[1]
-        $manifest = Get-Content "release/extlibs/$package/xlang.package.json" -Raw | ConvertFrom-Json
-        $sources = @($manifest.artifact.cSources | ForEach-Object { "release/extlibs/$package/$_" })
-        $test = if ($row[2].StartsWith('@')) { $row[2].Substring(1) } else { "release/extlibs/$package/$($row[2])" }
+        $manifest = Get-Content "release/win_x64/extlibs/$package/xlang.package.json" -Raw | ConvertFrom-Json
+        $sources = @($manifest.artifact.cSources | ForEach-Object { "release/win_x64/extlibs/$package/$_" })
+        $test = if ($row[2].StartsWith('@')) { $row[2].Substring(1) } else { "release/win_x64/extlibs/$package/$($row[2])" }
         $binary = "$work/$($row[0]).exe"
         Check "$($row[0])-native-build" $gcc ($flags + @($test) + $sources + @($runtimeObject[0].Path) + $links + @('-o',$binary))
         $arguments = @()
@@ -100,8 +100,8 @@ try {
         }
         Check "$($row[0])-native-run" $binary $arguments
     }
-    Check 'siphash-core-build' $gcc ($flags + @('release/extlibs/siphash128/test/test_siphash128_core.c',
-        'release/extlibs/siphash128/third_party/siphash.c','-o',"$work/siphash-core.exe"))
+    Check 'siphash-core-build' $gcc ($flags + @('release/win_x64/extlibs/siphash128/test/test_siphash128_core.c',
+        'release/win_x64/extlibs/siphash128/third_party/siphash.c','-o',"$work/siphash-core.exe"))
     Check 'siphash-core-run' "$work/siphash-core.exe" @()
     Unchanged
     $outcome = 'passed'

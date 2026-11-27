@@ -23,7 +23,7 @@ function Assert-Deterministic([string]$first, [string]$second)
     }
 }
 
-$xl = Join-Path $Root "release\xl.exe"
+$xl = Join-Path $Root "release\win_x64\xl.exe"
 $source = Join-Path $Root "test\cases\typed_nullable_container_matrix.xl"
 $hostSource = Join-Path $Root "test\cases\xlir_typed_nullable_container_matrix_host.c"
 $outputDir = Join-Path $Root "build\test"

@@ -29,7 +29,7 @@ def main():
         files.add(manifest)
         for row in build['Inputs']+build['Objects']+build['Headers']:
             assert sha(row['Path']).lower() == row['Sha256'].lower(), row['Path']; files.add(Path(row['Path']))
-        runtime = root/'release/xl.dll' if os.name == 'nt' else Path(build['NativeRoot'])/'release/libxl.so'
+        runtime = root/'release/win_x64/xl.dll' if os.name == 'nt' else Path(build['NativeRoot'])/'release/libxl.so'
         files.update((runtime, root/'test/support/module_product_memory.c', root/'test/support/module_product_memory.h'))
         files.add(root/'test/cases/xlir_foreign_raw_callback_error.xl')
         lanes.append((name, root, public, build, runtime))

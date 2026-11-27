@@ -17,7 +17,7 @@ try {
     if ($BaselineParser -and !$BaselineGeneratedParser) {
         throw 'Source differential requires the baseline generated parser, not just its API adapter'
     }
-    Copy-Item release/xl.dll "$Directory/xl.dll" -Force
+    Copy-Item release/win_x64/xl.dll "$Directory/xl.dll" -Force
     $inputs = @('test/cases/xlir_parser_corpus.c',
         'src/lexer/xl6_lexer_api.c','src/lexer/xl6_lexer_gen.c','src/lexer/xl6_token.c','src/diag/xl6_diag.c',
         'src/ast/xl6_ast.c','src/common/xl6_output.c','src/common/xl6_console.c','src/sem/xl6_completion.c')
@@ -28,7 +28,7 @@ try {
         $parser = if ($pass -eq 'baseline') { $BaselineParser } else { 'src/parser/xl6_parser_api.c' }
         $generatedParser = if ($pass -eq 'baseline') { $BaselineGeneratedParser } else { 'src/parser/xl6_parser.c' }
         $prefix = "$Directory/xlir_parser_corpus.$pass"
-        & gcc -std=c11 -Wall -Wextra -Werror -Wno-unused-parameter -Wno-unused-variable -Wno-unused-function -O2 -I. @inputs $generatedParser $parser release/xl.dll -o "$prefix.exe"
+        & gcc -std=c11 -Wall -Wextra -Werror -Wno-unused-parameter -Wno-unused-variable -Wno-unused-function -O2 -I. @inputs $generatedParser $parser release/win_x64/xl.dll -o "$prefix.exe"
         if ($LASTEXITCODE -ne 0) { throw "$pass parser corpus build failed" }
         $outputs[$pass] = @($paths | & "$prefix.exe")
         if ($LASTEXITCODE -ne 0 -or $outputs[$pass].Count -ne $paths.Count) { throw "$pass parser corpus incomplete" }

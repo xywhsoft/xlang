@@ -26,7 +26,7 @@ def main():
     artifact=root/'test/support/container_projection_artifact.c'
     host=root/'test/cases/xlir_module_product_oom_host.c';memory=root/'test/support/module_product_memory.c'
     errorHost=root/'test/support/runtime_callable_defaults_oom_host.c'
-    native=root/'release/xl.dll' if os.name=='nt' else Path(build['NativeRoot'])/'release/libxl.so'
+    native=root/'release/win_x64/xl.dll' if os.name=='nt' else Path(build['NativeRoot'])/'release/libxl.so'
     pinned.update((Path(__file__).resolve(),Path(cc),Path(nm),*fixtures,contract,methodContract,integerContract,artifact,host,errorHost,memory,native))
     inputs=[dict(Path=str(path),Sha256=sha(path)) for path in sorted(pinned)]
     out.mkdir(parents=True);rows=[];prefixes=[];products=[];env=dict(os.environ);suffix='.exe' if os.name=='nt' else ''

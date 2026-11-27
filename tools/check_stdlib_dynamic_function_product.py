@@ -30,7 +30,7 @@ def main():
     floatContract=project/'test/support/float_conversion_contract.c'; floatHost=project/'test/support/float_conversion_status_host.c'
     floatRuntime=project/'test/support/float_conversion_runtime.c'
     host=root/'test/cases/xlir_module_product_oom_host.c'; memory=root/'test/support/module_product_memory.c'
-    native=root/'release/xl.dll' if os.name=='nt' else Path(build['NativeRoot'])/'release/libxl.so'
+    native=root/'release/win_x64/xl.dll' if os.name=='nt' else Path(build['NativeRoot'])/'release/libxl.so'
     pinned.update((Path(__file__).resolve(),Path(cc),Path(nm),*fixtures,contract,faultHost,host,memory,native))
     if a.methods:pinned.add(methodFaultHost)
     if a.nullable:pinned.add(nullableContract)

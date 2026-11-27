@@ -8,7 +8,7 @@ for row in build['Inputs']+build['Objects']+build['Headers']:assert sha(row['Pat
 driver=Path(build['Driver']);assert sha(driver)==build['DriverSha256'].lower()
 gcc=Path(shutil.which('gcc') or 'E:/software/w64devkit/bin/gcc.exe').resolve();r=dict(Complete=False,Rows=[],Failures=[],Plans=[],Inputs={str(Path(__file__)):sha(__file__)},SourceBuild=str(a.build),
     NetworkTraffic=False,SecurityTests=False,ShippingAccepted=False,FullTlsAccepted=False)
-env=dict(os.environ);runtime=root/'release/xl.dll' if os.name=='nt' else Path(build['NativeRoot'])/'release/libxl.so'
+env=dict(os.environ);runtime=root/'release/win_x64/xl.dll' if os.name=='nt' else Path(build['NativeRoot'])/'release/libxl.so'
 if os.name=='nt':shutil.copy2(runtime,out/'xl.dll')
 else:env['XL6_SOURCE_NATIVE_ROOT']=build['NativeRoot']
 def save():(out/'results.json').write_text(json.dumps(r,indent=2)+'\n')

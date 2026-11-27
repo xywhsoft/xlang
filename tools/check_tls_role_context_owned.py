@@ -12,7 +12,7 @@ def main():
     paths=[Path(__file__),gcc,tcc,support,plan,root/'src/compile/xl6_compile_unit.c',
         *[Path(sys.modules[n].__file__) for n in ['tls_role_context_fixtures','tls_identity_fixtures','tls_verifier_fixtures','x509_path_fixtures','x509_identity_fixtures','x509_identity_language_fixtures','check_key_format_wire']],
         *[root/'test/support'/('crypto_'+n+'_runtime.c') for n in ['rsa','nist','ed25519','xdh']],
-        *[q for q in (root/'src').rglob('*') if q.is_file() and q.suffix in ['.h','.inc']],root/'lib/xrt/xrt.h',root/'lib/xruntime/xruntime.h',root/'release/include/xrt_decl.h',root/'release/include/xruntime_decl.h',
+        *[q for q in (root/'src').rglob('*') if q.is_file() and q.suffix in ['.h','.inc']],root/'lib/xrt/xrt.h',root/'lib/xruntime/xruntime.h',root/'release/win_x64/include/xrt_decl.h',root/'release/win_x64/include/xruntime_decl.h',
         *[q for q in out.iterdir() if q.is_file()]]
     r=dict(Complete=False,Inputs={str(q):sha(q) for q in paths},Rows=[],Failures=[],NetworkTraffic=False,SecurityTests=False,MalformedCryptoTests=False,ShippingAccepted=False,FullTlsAccepted=False)
     def save():(out/'results.json').write_text(json.dumps(r,indent=2)+'\n')

@@ -41,7 +41,7 @@ def main():
         files.add(Path(row['Path']))
     driver = Path(public['Driver'])
     assert sha(driver).lower() == public['DriverSha256'].lower()
-    product = root / 'release/xl.dll' if os.name == 'nt' else Path(public['NativeRoot']) / 'release/libxl.so'
+    product = root / 'release/win_x64/xl.dll' if os.name == 'nt' else Path(public['NativeRoot']) / 'release/libxl.so'
     fixture = root / 'test/cases/stdlib_list_recipes.xl'
     contract = root / 'test/cases/xlir_list_recipe_contract.c'
     host = root / 'test/cases/stdlib_list_recipe_host.c'

@@ -33,19 +33,19 @@ try {
         $processChildConfigured=$true
     }
     $files=Get-Item -LiteralPath (@($PSCommandPath,'src/driver/xl6_xlc_shell.c','test/cases/xlir_artifact_runtime_contract.c',
-        'release/xl.dll',
+        'release/win_x64/xl.dll',
         'tools/stage_xlir_artifact_runtime_sources.ps1','tools/check_xlir_resident_catalog.py','src/compile/xl6_artifact_runtime_symbols.inc',
         'src/runtime/xl6_log_symbols.inc','src/runtime/xl6_text_symbols.inc',(Get-Command gcc).Source,(Get-Command nm).Source)+$fixtures+$processInputs)
     $inputs=@($public.Inputs)+@($public.Headers)+@($public.Objects)+@($files|ForEach-Object {[pscustomobject]@{Path=$_.FullName;Sha256=(Get-FileHash -LiteralPath $_.FullName).Hash}})+
         @([pscustomobject]@{Path=$PSCommandPath;Sha256=(Get-FileHash -LiteralPath $PSCommandPath).Hash})
     foreach($row in $inputs){if((Get-FileHash -LiteralPath $row.Path).Hash-ne$row.Sha256){throw "Stale artifact input: $($row.Path)"}}
     New-Item -ItemType Directory -Path $outputPath|Out-Null
-    Copy-Item -LiteralPath release/xl.dll -Destination "$outputPath/xl.dll"
+    Copy-Item -LiteralPath release/win_x64/xl.dll -Destination "$outputPath/xl.dll"
     $objects=@($public.Objects|Where-Object {[IO.Path]::GetFileName($_.Path)-ne'xlir_public_source_driver.o'}|ForEach-Object Path)
     $flags=@('-std=c11','-O0','-Wall','-Wextra','-Werror','-Wno-unused-function','-Wno-unused-variable','-Wno-unused-parameter',
         '-Wno-unused-label','-Wno-unused-but-set-variable','-Wno-unused-const-variable','-Wno-pointer-sign','-Wno-format-truncation',
         '-Wno-missing-field-initializers','-DXL_STATIC_EMBED','-I.','-Irelease','-Irelease/include','-Ilib/tcc')
-    $libs=@('release/xl.dll','-lws2_32','-liphlpapi','-lshell32','-lole32','-ladvapi32')
+    $libs=@('release/win_x64/xl.dll','-lws2_32','-liphlpapi','-lshell32','-lole32','-ladvapi32')
     $cliBuild=Invoke-XlirGccToLog ($flags+@('src/driver/xl6_xlc_shell.c')+$objects+$libs+@('-o',"$outputPath/xl.exe")) "$outputPath/cli-build.log"
     $contractBuild=Invoke-XlirGccToLog ($flags+@('test/cases/xlir_artifact_runtime_contract.c')+$objects+$libs+@('-o',"$outputPath/contract.exe")) "$outputPath/contract-build.log"
     $rows=@();$catalog=@();$linkage=@();$nativeLinkage=@();$contractRun=$null;$catalogRun=$null
@@ -112,7 +112,7 @@ try {
         & "$rootPath/tools/stage_xlir_artifact_runtime_sources.ps1" -Directory $outputPath *> "$outputPath/stage.log"
         # PowerShell location and the process/.NET current directory can differ.
         # Resolve provider paths against this frozen test root explicitly.
-        $env:XL6_TCC_DLL=Join-Path $rootPath 'release/xl.dll'
+        $env:XL6_TCC_DLL=Join-Path $rootPath 'release/win_x64/xl.dll'
         $env:XL6_TCC_ROOT=Join-Path $rootPath 'res/tcc/win64/x86_64'
         $env:XL6_TCC_LIB=Join-Path $rootPath 'res/tcc/win64/x86_64/lib'
         $includes=[IO.Path]::GetFullPath((Join-Path $PublicDirectory 'include'))

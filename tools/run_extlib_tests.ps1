@@ -10,7 +10,7 @@ if ( $Root -eq "" ) {
     $Root = Split-Path -Parent $PSScriptRoot
 }
 
-$xl = Join-Path $Root "release\xl.exe"
+$xl = Join-Path $Root "release\win_x64\xl.exe"
 $caseDir = Join-Path $Root "test\cases"
 
 if ( ! (Test-Path -LiteralPath $xl -PathType Leaf) ) {
@@ -48,7 +48,7 @@ if ( ! $started ) {
 }
 
 $packageTests = @(
-    Get-ChildItem -LiteralPath (Join-Path $Root "release\extlibs") -File -Recurse -Filter "*.xl" |
+    Get-ChildItem -LiteralPath (Join-Path $Root "release\win_x64\extlibs") -File -Recurse -Filter "*.xl" |
         Where-Object {
             $_.FullName.IndexOf("\test\", [System.StringComparison]::OrdinalIgnoreCase) -ge 0
         } |

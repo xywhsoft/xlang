@@ -19,7 +19,7 @@ def main():
     assert not args.sanitize or os.name!='nt'
     build=json.loads((public/'build.json').read_text(encoding='utf-8-sig'))
     assert build['SourceXrt'] and not build['RuntimeOnly'] and build.get('Complete',os.name=='nt')
-    driver=Path(build['Driver']);runtime=root/'release/xl.dll' if os.name=='nt' else Path(build['NativeRoot'])/'release/libxl.so'
+    driver=Path(build['Driver']);runtime=root/'release/win_x64/xl.dll' if os.name=='nt' else Path(build['NativeRoot'])/'release/libxl.so'
     artifact=root/'test/cases/xlir_artifact_runtime_contract.c';memory=root/'test/support/module_product_memory.c'
     host=root/'test/cases/stdlib_queue_pressure_host.c';actor=root/'test/cases/stdlib_queue_actor_fault_host.c'
     families=(('spsc','SpscQueue','SPSC'),('mpsc','MpscQueue','MPSC'),('mpmc','MpmcQueue','MPMC'))

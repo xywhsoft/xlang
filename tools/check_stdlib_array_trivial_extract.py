@@ -37,7 +37,7 @@ def main() -> int:
     sources.append('src/api/xl_foreign_error.c')
     host = 'test/cases/stdlib_array_extract_trivial_host.c'
     support = 'test/support/array_import_native.c'
-    product = root / ('release/xl.dll' if os.name == 'nt' else 'release/libxl.so')
+    product = root / ('release/win_x64/xl.dll' if os.name == 'nt' else 'release/libxl.so')
     files = {Path(__file__), Path(cc), Path(nm), Path(sys.executable), root / host, root / support,
         root / 'lib/xruntime/xruntime.h', root / 'lib/xrt/xrt.h', *[root / source for source in sources]}
     files.add(root / 'src/api/xl_foreign_error.h')

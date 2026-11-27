@@ -3,13 +3,13 @@ param([string]$Root = "")
 $ErrorActionPreference = "Stop"
 if ( $Root -eq "" ) { $Root = Split-Path -Parent $PSScriptRoot }
 
-$xl = Join-Path $Root "release\xl.exe"
+$xl = Join-Path $Root "release\win_x64\xl.exe"
 $fixture = Join-Path $Root "test\cases\stdlib_crt_math.xl"
 $outDir = Join-Path $Root "build\test\stdlib_crt_math_direct"
 $irPath = Join-Path $outDir "math.lowered.xlir"
 $cPath = Join-Path $outDir "math.c"
 if ( ! (Test-Path -LiteralPath $xl -PathType Leaf) ) {
-    throw "CRT math direct-call check requires release/xl.exe"
+    throw "CRT math direct-call check requires release/win_x64/xl.exe"
 }
 [System.IO.Directory]::CreateDirectory($outDir) | Out-Null
 

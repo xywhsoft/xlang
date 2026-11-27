@@ -25,9 +25,9 @@ foreach ($line in Get-Content -LiteralPath (Join-Path $Root $manifest)) {
 if ($assets.Count -ne $virtualPaths.Count) { throw 'VFS declaration/implementation assets are incomplete' }
 
 $paths = @(
-    'release/xl.exe', 'release/xl.dll', 'release/xlc.dll',
+    'release/win_x64/xl.exe', 'release/win_x64/xl.dll', 'release/win_x64/xlc.dll',
     'lib/xrt/xrt.h', 'lib/xruntime/xruntime.h',
-    'release/include/xrt_decl.h', 'release/include/xruntime_decl.h',
+    'release/win_x64/include/xrt_decl.h', 'release/win_x64/include/xruntime_decl.h',
     'lib/xrt/xrt.snapshot.json', 'lib/xruntime/xruntime.snapshot.json',
     'test/cases/extlib_sdk_features.xl', 'test/cases/extlib_sdk_features_c.c',
     'test/fixtures/sdk_feature_probe/xlang.package.json',
@@ -42,7 +42,7 @@ function Snapshot {
     return $result
 }
 $before = Snapshot
-Copy-Item -LiteralPath (Join-Path $Root 'release/xl.exe') -Destination (Join-Path $hostRoot 'xl.exe') -Force
+Copy-Item -LiteralPath (Join-Path $Root 'release/win_x64/xl.exe') -Destination (Join-Path $hostRoot 'xl.exe') -Force
 foreach ($virtualPath in $virtualPaths) {
     $target = Join-Path $hostRoot $virtualPath
     [IO.Directory]::CreateDirectory((Split-Path -Parent $target)) | Out-Null

@@ -32,7 +32,7 @@ def main() -> int:
     sources += ["src/runtime/xl6_nullable_i64.c","src/runtime/xl6_nullable_i64_value.c",
         "src/runtime/xl6_nullable_u64.c","src/runtime/xl6_nullable_u64_value.c"]
     sources.append('src/api/xl_foreign_error.c')
-    product=root/('release/xl.dll' if os.name=='nt' else 'release/libxl.so')
+    product=root/('release/win_x64/xl.dll' if os.name=='nt' else 'release/libxl.so')
     files={Path(__file__),Path(cc),Path(nm),Path(sys.executable),root/'lib/xrt/xrt.h',root/'lib/xruntime/xruntime.h',root/'test/support/array_native.c',
         root/'test/cases/stdlib_array_numeric_enum_storage_host.c'}
     files.update(root/name for name in sources)

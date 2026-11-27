@@ -32,7 +32,7 @@ def main():
         files.add(Path(row['Path']))
     driver = Path(build['Driver']); assert sha(driver).lower() == build['DriverSha256'].lower()
     cc = shutil.which('gcc'); assert cc
-    runtime = root/'release/xl.dll' if os.name == 'nt' else Path(build['NativeRoot'])/'release/libxl.so'
+    runtime = root/'release/win_x64/xl.dll' if os.name == 'nt' else Path(build['NativeRoot'])/'release/libxl.so'
     files.update((driver, Path(cc), runtime))
     names = ['xlir_export_execution.xl', 'xlir_export_execution_host.c', 'xlir_export_execution_aot_host.c',
              'xlir_export_transaction.xl', 'xlir_export_transaction_contract.c',

@@ -94,7 +94,7 @@ def main():
     build,pinned,compared=verify_public_build(root,public)
     task=Path(__file__).resolve().parents[1];host=task/'test/cases/stdlib_resolved_coverage.c'
     runtime=a.runtime_library.resolve() if a.runtime_library else (public/'xl.dll' if os.name=='nt' else Path(build['NativeRoot'])/'release/libxl.so')
-    if os.name=='nt' and not runtime.exists():runtime=root/'release/xl.dll'
+    if os.name=='nt' and not runtime.exists():runtime=root/'release/win_x64/xl.dll'
     assert runtime.exists();sources=sorted(s for s in (root/'test/cases').glob('stdlib_*.xl') if PREFIX.match(s.name) or s.stem=='stdlib_crt_algorithms')
     control=task/'test/cases/stdlib_resolved_coverage_control.xl'
     class_seed=task/'test/cases/stdlib_class_catalog.xl'

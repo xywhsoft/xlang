@@ -8,7 +8,7 @@ if ( $Root -eq "" ) {
     $Root = Split-Path -Parent $PSScriptRoot
 }
 
-$compiler = Join-Path $Root "release\xl.exe"
+$compiler = Join-Path $Root "release\win_x64\xl.exe"
 $fixture = Join-Path $Root "test\cases\export_primitive_widths.xl"
 $hostSource = Join-Path $Root "test\cases\export_primitive_widths_host.c"
 $outputDir = Join-Path $Root "build\tmp\xlir_export_primitive_widths"

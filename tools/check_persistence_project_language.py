@@ -58,7 +58,7 @@ def main() -> int:
     memory = root / 'test/support/module_product_memory.c'
     public_directory=args.public_directory.resolve()
     public,pinned,compared=verify_public_build(root,public_directory)
-    product = root / 'release/xl.dll' if os.name == 'nt' else Path(public['NativeRoot'])/'release/libxl.so'
+    product = root / 'release/win_x64/xl.dll' if os.name == 'nt' else Path(public['NativeRoot'])/'release/libxl.so'
     files = {Path(__file__).resolve(), Path(sys.executable), Path(cc), Path(objdump), source, oom_source,
              oom_host, memory, root / 'test/support/module_product_memory.h', product}
     error_names = {'configured': 'stdlib_persistence_configured_errors.xl',

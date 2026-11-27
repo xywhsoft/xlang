@@ -124,8 +124,8 @@ def literals(text, filename='<runner>'):
 def main():
     root = Path(sys.argv[1]).resolve()
     paths = set((root / 'tools').glob('*.py'))
-    if (root / 'release/extlibs').is_dir():
-        for package in (root / 'release/extlibs').iterdir():
+    if (root / 'release/win_x64/extlibs').is_dir():
+        for package in (root / 'release/win_x64/extlibs').iterdir():
             if package.is_dir():
                 for folder in ('test', 'tests', 'examples'):
                     paths.update((package / folder).glob('*.py'))

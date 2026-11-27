@@ -17,7 +17,7 @@ def main():
     for row in build['Inputs']+build['Objects']+build['Headers']:assert sha(row['Path'])==row['Sha256'].lower(),row['Path']
     driver=Path(build['Driver']);assert sha(driver)==build['DriverSha256'].lower()
     env=dict(os.environ)
-    if os.name=='nt':shutil.copy2(root/'release/xl.dll',out/'xl.dll')
+    if os.name=='nt':shutil.copy2(root/'release/win_x64/xl.dll',out/'xl.dll')
     else:env['XL6_SOURCE_NATIVE_ROOT']=build['NativeRoot']
     sys.path.insert(0,str(root/'tools'));from async_program_fixtures import fixtures
     generated=fixtures(out)

@@ -83,7 +83,7 @@ def main():
 
     try:
         binary = isolated / ('fixture-host' + ('.exe' if windows else ''))
-        libs = [isolated / 'release/xlc.dll'] if windows else [
+        libs = [isolated / 'release/win_x64/xlc.dll'] if windows else [
             '-L' + str(isolated / 'release'), '-lxlc', '-Wl,-rpath,$ORIGIN/release', '-pthread', '-ldl', '-lm']
         run('fixture-host-build', [compiler, '-std=c11', '-Wall', '-Wextra', '-Werror', '-O2',
             '-DXL_STATIC_EMBED', '-I' + str(root / 'release/include'), host, *libs, '-o', binary])

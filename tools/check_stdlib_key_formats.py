@@ -290,7 +290,7 @@ def main():
         for row in build['Inputs']+build['Objects']+build['Headers']:assert sha(row['Path']) == row['Sha256'].lower(), row['Path']
         driver = Path(build['Driver']);assert sha(driver) == build['DriverSha256'].lower()
         env['XL6_SOURCE_NATIVE_ROOT'] = build.get('NativeRoot', '')
-        runtime = root/'release/xl.dll' if os.name == 'nt' else Path(build['NativeRoot'])/'release/libxl.so'
+        runtime = root/'release/win_x64/xl.dll' if os.name == 'nt' else Path(build['NativeRoot'])/'release/libxl.so'
         if os.name == 'nt':shutil.copy2(runtime, out/'xl.dll')
         compat = ['-Wno-unused-function', '-Wno-unused-variable', '-Wno-unused-parameter', '-Wno-unused-but-set-variable',
                   '-Wno-unused-label', '-Wno-unused-const-variable', '-Wno-missing-field-initializers', '-Wno-pointer-sign']

@@ -24,7 +24,7 @@ def main():
     files=[Path(__file__),args.build,driver,original,client,leaf,source,compiler]
     report=dict(Complete=False,Inputs={str(p):sha(p) for p in files},Rows=[],NetworkTraffic=False,SecurityTests=False,ShippingAccepted=False)
     env=dict(os.environ)
-    if os.name=='nt':shutil.copy2(root/'release/xl.dll',out/'xl.dll')
+    if os.name=='nt':shutil.copy2(root/'release/win_x64/xl.dll',out/'xl.dll')
     else:env['XL6_SOURCE_NATIVE_ROOT']=build['NativeRoot']
     def run(name,command):
         command=list(map(str,command));actual=command

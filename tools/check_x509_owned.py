@@ -106,7 +106,7 @@ def main():
     sources=[root/('src/runtime/'+name+'.c') for name in SOURCES]+[root/'src/runtime/xl6_native_handle.c',root/'src/api/xl_foreign_error.c']
     files=[Path(__file__).resolve(),native,gcc,tcc,*sources,*root.glob('src/runtime/*.h'),*root.glob('src/runtime/*.inc'),
            *root.glob('src/compile/*.h'),*root.glob('src/compile/*.inc'),root/'src/api/xl_foreign_error.h',
-           root/'lib/xrt/xrt.h',root/'lib/xruntime/xruntime.h',root/'release/include/xrt_decl.h',root/'release/include/xruntime_decl.h',
+           root/'lib/xrt/xrt.h',root/'lib/xruntime/xruntime.h',root/'release/win_x64/include/xrt_decl.h',root/'release/win_x64/include/xruntime_decl.h',
            root/'test/support/x509_data_plan.c',root/'src/compile/xl6_compile_unit.c',
            root/'tools/check_key_format_wire.py',*[root/('test/support/crypto_'+s+'_runtime.c') for s in ('rsa','nist','ed25519','xdh')]]
     exported=set(re.findall(r'XL6_TEXT_EXPORT\((\w+),',(root/'src/runtime/xl6_x509_symbols.inc').read_text()))

@@ -26,7 +26,7 @@ def main():
         assert sha(row['Path']).lower() == row['Sha256'].lower(), row['Path']; files.add(Path(row['Path']))
     driver = Path(build['Driver']); assert sha(driver).lower() == build['DriverSha256'].lower()
     cc = shutil.which('gcc'); assert cc
-    runtime = root/'release/xl.dll' if os.name == 'nt' else Path(build['NativeRoot'])/'release/libxl.so'
+    runtime = root/'release/win_x64/xl.dll' if os.name == 'nt' else Path(build['NativeRoot'])/'release/libxl.so'
     files.update((driver, Path(cc), runtime))
     for name in ('xlir_raw_activity.xl', 'xlir_raw_activity_vectors.h', 'xlir_raw_activity_host.c',
                  'xlir_raw_activity_generated_host.c', 'xlir_raw_activity_ir_contract.c',

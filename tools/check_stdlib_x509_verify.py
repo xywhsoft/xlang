@@ -27,7 +27,7 @@ def main():
     report=dict(Complete=False,Rows=[],Failures=[],Products=[],Plans=[],ResidentEntries=15,SourceBuild=str(a.source_build),
         Inputs={str(path):sha(path) for path in [Path(__file__),gcc,root/'tools/check_x509_verify.py',root/'tools/x509_verify_language_fixtures.py',root/'tools/x509_signature_fixtures.py',root/'test/cases/xlir_x509_verify_contract.c',root/'test/support/container_projection_artifact.c']},
         TrustValidationAcceptance=False,TlsAcceptance=False,ShippingAcceptance=False,NetworkTraffic=False,NetworkSecurityTests=False,Scope=__doc__)
-    env=dict(os.environ);runtime=root/'release/xl.dll' if os.name=='nt' else Path(build['NativeRoot'])/'release/libxl.so'
+    env=dict(os.environ);runtime=root/'release/win_x64/xl.dll' if os.name=='nt' else Path(build['NativeRoot'])/'release/libxl.so'
     if os.name=='nt':shutil.copy2(runtime,out/'xl.dll')
     else:env['XL6_SOURCE_NATIVE_ROOT']=build['NativeRoot']
     def save():(out/'results.json').write_text(json.dumps(report,indent=2)+'\n',encoding='utf8')

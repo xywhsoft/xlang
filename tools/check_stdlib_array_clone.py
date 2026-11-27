@@ -51,7 +51,7 @@ def main() -> int:
     host = root / 'test/cases/stdlib_array_create_host.c'
     oom_host = root / 'test/cases/xlir_module_product_oom_host.c'
     memory_source = root / 'test/support/module_product_memory.c'
-    product = root / ('release/xl.dll' if os.name == 'nt' else 'release/libxlc.so')
+    product = root / ('release/win_x64/xl.dll' if os.name == 'nt' else 'release/libxlc.so')
     files.update((cli, source, contract, host, oom_host, memory_source,
                   root / 'test/support/module_product_memory.h', product))
     inputs = [{'Path': str(path), 'Sha256': digest(path)} for path in sorted(files)]

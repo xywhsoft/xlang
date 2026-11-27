@@ -15,8 +15,8 @@ if ($SourceDriver -eq "") {
     try {
         New-Item -ItemType Directory -Force -Path build/test | Out-Null
         if (!(Test-Path -LiteralPath build/test/xl.dll) -or
-            (Get-FileHash release/xl.dll).Hash -ne (Get-FileHash build/test/xl.dll).Hash) {
-            Copy-Item -LiteralPath release/xl.dll -Destination build/test/xl.dll -Force
+            (Get-FileHash release/win_x64/xl.dll).Hash -ne (Get-FileHash build/test/xl.dll).Hash) {
+            Copy-Item -LiteralPath release/win_x64/xl.dll -Destination build/test/xl.dll -Force
         }
         $prefix = 'build/test/xlir_product_result_source'
         $compilerSources = @('src/ast/xl6_ast.c','src/type/xl6_type_model.c',
@@ -32,7 +32,7 @@ if ($SourceDriver -eq "") {
             '-Wno-unused-variable','-Wno-unused-parameter','-Wno-unused-const-variable',
             '-Wno-unused-but-set-variable','-Wno-missing-field-initializers',
             '-Wno-pointer-sign','-Wno-format-truncation','-I.','-Ibuild/test')
-        & gcc @strict test/cases/xlir_owner_consumption_contract.c @compilerSources release/xl.dll -o "$prefix.contract.exe"
+        & gcc @strict test/cases/xlir_owner_consumption_contract.c @compilerSources release/win_x64/xl.dll -o "$prefix.contract.exe"
         if ($LASTEXITCODE -ne 0) { throw 'Product owner source contract build failed' }
         $SourceDriver = Join-Path $Root "$prefix.contract.exe"
     } finally { Pop-Location }
@@ -245,7 +245,7 @@ try {
         @{Host=$hostSource;Exe=$genericExePath;Flags=@('-DXLIR_PRODUCT_GENERIC')},
         @{Host=$managedHostSource;Exe=$managedExePath;Flags=@()}
     )) {
-        & gcc @strict @($entry.Flags) $entry.Host release/xl.dll -o $entry.Exe
+        & gcc @strict @($entry.Flags) $entry.Host release/win_x64/xl.dll -o $entry.Exe
         if ($LASTEXITCODE -ne 0) { throw "Product-result strict C build failed: $($entry.Exe)" }
         & $entry.Exe
         if ($LASTEXITCODE -ne 0) { throw "Product-result strict C runtime failed: $($entry.Exe)" }

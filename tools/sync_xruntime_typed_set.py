@@ -27,7 +27,7 @@ def main():
     for name,options in (('check_release_maturity.py',['--release']),('amalgamate.py',['--check'])):
         subprocess.run([sys.executable,str(supplier/'tools'/name),*options,
             '--manifest','extlibs/xruntime/config/modules.json'],cwd=supplier,check=True)
-    header=root/'lib/xruntime/xruntime.h'; declaration=root/'release/include/xruntime_decl.h'
+    header=root/'lib/xruntime/xruntime.h'; declaration=root/'release/win_x64/include/xruntime_decl.h'
     before=header.read_bytes(); before_decl=declaration.read_bytes()
     implementation=before.decode().replace('\r\n','\n')
     declarations=before_decl.decode().replace('\r\n','\n')

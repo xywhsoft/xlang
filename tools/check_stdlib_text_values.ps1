@@ -62,7 +62,7 @@ try {
             test/cases/stdlib_encoding_host.c,test/support/encoding_native.c,
             test/cases/stdlib_encoding_detect_host.c,test/support/encoding_detect_native.c,
             test/support/text_selected_native.c,test/cases/stdlib_string_support.c,
-            tools/stage_xlir_artifact_runtime_sources.ps1,tools/xlir_native_process.ps1,release/xl.exe,$PSCommandPath,$gcc)
+            tools/stage_xlir_artifact_runtime_sources.ps1,tools/xlir_native_process.ps1,release/win_x64/xl.exe,$PSCommandPath,$gcc)
     $inputs = @($public.Inputs) + @($public.Headers) + @($public.Objects) +
         @($files | ForEach-Object { [pscustomobject]@{Path=$_.FullName;Sha256=(Get-FileHash -LiteralPath $_.FullName).Hash} })
     foreach ($record in $inputs) {
@@ -97,15 +97,15 @@ try {
         '-Wno-unused-variable','-Wno-unused-parameter','-Wno-unused-const-variable','-Wno-unused-but-set-variable',
         '-Wno-missing-field-initializers','-Wno-pointer-sign','-Wno-format-truncation',
         '-I.','-Irelease','-Irelease/include',"-I$PublicDirectory/include")
-    Copy-Item -LiteralPath release/xl.dll -Destination "$outPath/xl.dll"
+    Copy-Item -LiteralPath release/win_x64/xl.dll -Destination "$outPath/xl.dll"
     $objects = @($public.Objects | Where-Object { [IO.Path]::GetFileName($_.Path) -ne 'xlir_public_source_driver.o' } | ForEach-Object Path)
     Run 'contract-build' $gcc ($strict + @('-DXL_STATIC_EMBED','-Ilib/tcc','test/cases/xlir_text_value_contract.c') + $objects +
-        @('release/xl.dll','-lWs2_32','-lIPHLPAPI','-lShell32','-lOle32','-lAdvapi32','-o',"$outPath/contract.exe"))
+        @('release/win_x64/xl.dll','-lWs2_32','-lIPHLPAPI','-lShell32','-lOle32','-lAdvapi32','-o',"$outPath/contract.exe"))
     Run 'signed-contract-build' $gcc ($strict + @('-DXL_STATIC_EMBED','-Ilib/tcc','test/cases/xlir_signed_integer_constants_contract.c') + $objects +
-        @('release/xl.dll','-lWs2_32','-lIPHLPAPI','-lShell32','-lOle32','-lAdvapi32','-o',"$outPath/signed-contract.exe"))
+        @('release/win_x64/xl.dll','-lWs2_32','-lIPHLPAPI','-lShell32','-lOle32','-lAdvapi32','-o',"$outPath/signed-contract.exe"))
     Run 'component-set-build' $gcc @('-std=c11','-O2','-Wall','-Wextra','-Werror','-I.','test/cases/xlir_component_set.c','-o',"$outPath/component-set.exe")
     Run 'component-set-run' "$outPath/component-set.exe" @()
-    Run 'component-set-tcc' ([IO.Path]::GetFullPath('release/xl.exe')) @('run','test/cases/xlir_component_set.c','--inc-path',$rootPath)
+    Run 'component-set-tcc' ([IO.Path]::GetFullPath('release/win_x64/xl.exe')) @('run','test/cases/xlir_component_set.c','--inc-path',$rootPath)
     Run 'native-build' $gcc ($strict + @('test/cases/stdlib_text_values_host.c','test/support/text_selected_native.c',
         'src/runtime/xl6_text_value.c','-o',"$outPath/native.exe"))
     Run 'native-run' "$outPath/native.exe" @()
@@ -204,7 +204,7 @@ try {
     # This is a source-linked regression lane, NOT a pruned artifact witness.
     # Use the frozen source providers instead of a hand-maintained object subset
     # that silently omits Buffer/Array dependencies as facade fixtures evolve.
-    $runtime = $objects + @('release/xl.dll')
+    $runtime = $objects + @('release/win_x64/xl.dll')
     foreach ($name in $cases) {
         $source = "test/cases/$name.xl"
         Run "$name.emit" $driver @($source,'cgen-default',"$outPath/$name.c")

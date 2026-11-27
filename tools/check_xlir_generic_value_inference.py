@@ -15,7 +15,7 @@ def main():
     assert b['SourceXrt'] and not b['RuntimeOnly'] and b['EnableExeCompiler']==1
     for item in b['Inputs']+b['Headers']+b['Objects']: assert sha(item['Path'])==item['Sha256'].lower(),item['Path']
     driver=Path(b['Driver']);assert sha(driver)==b['DriverSha256'].lower()
-    native=root/'release/xl.dll' if os.name=='nt' else Path(b['NativeRoot'])/'release/libxl.so'
+    native=root/'release/win_x64/xl.dll' if os.name=='nt' else Path(b['NativeRoot'])/'release/libxl.so'
     cc=Path(shutil.which('gcc') or 'E:/software/w64devkit/bin/gcc.exe').resolve()
     cases=('xlir_generic_value_inference','xlir_generic_async_value_inference','xlir_generic_owning_value_inference')
     regression=('generic_managed_ownership','generics','xlir_generic_inferred_list','xlir_generic_inferred_array',

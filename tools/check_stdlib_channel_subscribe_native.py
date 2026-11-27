@@ -22,7 +22,7 @@ def main():
     root,out=args.root.resolve(),args.out.resolve()
     assert not out.exists(),"preserve previous evidence"
     products=[root/"release"/name for name in (("xl.dll","xlc.dll") if os.name=="nt" else ("libxl.so","libxlc.so"))]
-    header=root/"release/include/xruntime_decl.h"
+    header=root/"release/win_x64/include/xruntime_decl.h"
     compiler=Path(shutil.which("gcc")).resolve()
     files=[args.host.resolve(),header,*products,compiler,Path(__file__).resolve()]
     inputs={str(path):digest(path) for path in files}

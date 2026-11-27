@@ -5,7 +5,7 @@ from pathlib import Path
 def sha(data):return hashlib.sha256(data).hexdigest()
 def main():
  ap=argparse.ArgumentParser();ap.add_argument('--root',type=Path,default=Path(__file__).resolve().parents[1]);ap.add_argument('--compiler',type=Path);ap.add_argument('--gcc',default='gcc');ap.add_argument('--output-root',type=Path)
- a=ap.parse_args();root=a.root.resolve();exe=(a.compiler or root/'release/xl.exe').resolve();gcc=shutil.which(a.gcc)
+ a=ap.parse_args();root=a.root.resolve();exe=(a.compiler or root/'release/win_x64/xl.exe').resolve();gcc=shutil.which(a.gcc)
  if os.name!='nt' or not gcc:raise RuntimeError('Windows and MinGW GCC required')
  work=(a.output_root or root/'build/test').resolve()/('c-bridge-'+str(uuid.uuid4()));src=work/'源码 Ω';src.mkdir(parents=True)
  protected={str(p):sha(p.read_bytes()) for p in [exe,exe.with_name('xlc.dll'),exe.with_name('xl.dll')]}

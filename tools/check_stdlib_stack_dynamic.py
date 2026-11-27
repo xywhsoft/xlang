@@ -18,7 +18,7 @@ def main():
     contract=project/'test/support/stack_erasure_contract.c'
     tryContract=project/'test/support/stack_try_component_contract.c' if a.try_component else None
     host=root/'test/cases/xlir_module_product_oom_host.c'; memory=root/'test/support/module_product_memory.c'
-    native=root/'release/xl.dll' if os.name=='nt' else Path(build['NativeRoot'])/'release/libxl.so'
+    native=root/'release/win_x64/xl.dll' if os.name=='nt' else Path(build['NativeRoot'])/'release/libxl.so'
     pinned.update((Path(__file__).resolve(),Path(cc),Path(nm),*fixtures,contract,host,memory,native))
     if tryContract: pinned.add(tryContract)
     inputs=[dict(Path=str(path),Sha256=sha(path)) for path in sorted(pinned)]; out.mkdir(parents=True)

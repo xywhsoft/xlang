@@ -18,7 +18,7 @@ def main():
     assert build['SourceXrt'] and not build['RuntimeOnly'] and build['EnableExeCompiler']==1
     if os.name!='nt': assert build['Complete'] and build['InputsUnchanged']
     cc=shutil.which('gcc'); assert cc; driver=Path(build['Driver']); assert sha(driver).lower()==build['DriverSha256'].lower()
-    product=root/'release/xl.dll' if os.name=='nt' else Path(build['NativeRoot'])/'release/libxl.so'
+    product=root/'release/win_x64/xl.dll' if os.name=='nt' else Path(build['NativeRoot'])/'release/libxl.so'
     cases=root/'test/cases'; fixtures=[cases/(s+'.xl') for s in ('stdlib_dict_import_source','stdlib_dict_import_leaf')]
     contract=cases/'xlir_dict_import_source_contract.c'; host=cases/'xlir_module_product_oom_host.c'
     memory=root/'test/support/module_product_memory.c'

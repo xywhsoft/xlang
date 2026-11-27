@@ -22,7 +22,7 @@ try {
     $regressions=@('protocol_property_dispatch','protocol_generic_property_dispatch','cgen_class_self_property_dispatch','xlir_internal_property_error_propagation','nullable_safe_navigation')
     $extra=@($PSCommandPath,'tools/check_xlir_nullable_getter.sh','test/cases/xlir_nullable_getter_contract.c',
         'test/cases/xlir_process_oom_host.c','test/cases/xlir_time_text_closure_host.c','test/cases/xlir_process_child.c',
-        'test/cases/sem_nullable_getter_private.xl',$formalCli,(Join-Path $formal 'xlc.dll'),(Join-Path $formal 'xl.dll'),'release/xl.dll',
+        'test/cases/sem_nullable_getter_private.xl',$formalCli,(Join-Path $formal 'xlc.dll'),(Join-Path $formal 'xl.dll'),'release/win_x64/xl.dll',
         'tools/extlib_smoke_process.ps1','tools/stage_xlir_artifact_runtime_sources.ps1',"$public/build.json",(Get-Command gcc).Source)
     $paths=@($build.Inputs.Path)+@($build.Headers.Path)+@($build.Objects.Path)+$extra
     $paths+=@($cases+$regressions|ForEach-Object {"test/cases/$_.xl"})
@@ -52,8 +52,8 @@ try {
         foreach($record in $resident.Inputs){$inputs[$record.Path]=$record.Sha256}
         $null=Check 'child-build' gcc @('-std=c11','-Wall','-Wextra','-Werror','-municode','test/cases/xlir_process_child.c','-o',$child)
         $inputs[$child]=(Get-FileHash $child).Hash
-        $null=Check 'contract-build' gcc ($flags+@('-DXL_STATIC_EMBED','-Ilib/tcc','test/cases/xlir_nullable_getter_contract.c')+$compilerObjects+@('release/xl.dll')+$libs+@('-o',"$work/contract.exe"))
-        Copy-Item release/xl.dll "$work/xl.dll"
+        $null=Check 'contract-build' gcc ($flags+@('-DXL_STATIC_EMBED','-Ilib/tcc','test/cases/xlir_nullable_getter_contract.c')+$compilerObjects+@('release/win_x64/xl.dll')+$libs+@('-o',"$work/contract.exe"))
+        Copy-Item release/win_x64/xl.dll "$work/xl.dll"
         foreach($case in $cases) {
             $source="test/cases/$case.xl";$prefix="$work/$case"
             $null=Check "$case-emit" $build.Driver @($source,'emit',$prefix)

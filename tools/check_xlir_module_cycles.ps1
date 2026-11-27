@@ -21,7 +21,7 @@ try {
         @($files | ForEach-Object {[pscustomobject]@{Path=$_.FullName;Sha256=(Get-FileHash -LiteralPath $_.FullName).Hash}})
     if(@($inputs | Where-Object {(Get-FileHash -LiteralPath $_.Path).Hash -ne $_.Sha256}).Count){throw 'Stale module-cycle inputs'}
     New-Item -ItemType Directory -Path $outputPath | Out-Null
-    Copy-Item -LiteralPath release/xl.dll -Destination (Join-Path $outputPath 'xl.dll')
+    Copy-Item -LiteralPath release/win_x64/xl.dll -Destination (Join-Path $outputPath 'xl.dll')
     $runtimeInclude=Join-Path $outputPath '__xl_runtime'
     New-Item -ItemType Directory -Path $runtimeInclude | Out-Null
     foreach($header in $build.Headers | Where-Object Path -match '[/\\]__xl_runtime[/\\]'){
@@ -52,7 +52,7 @@ try {
         (New-XlirCStringDefine 'JOINT_TCC_INCLUDE_DIRECTORY' $outputPath.Replace('\','/') -RawArgument))
     foreach($level in @(0,2)){
         $name="module-O$level";$binary="$outputPath/$name.exe"
-        $buildExit=Invoke-XlirGccToLog ($hostFlags+@("-O$level",'test/cases/xlir_module_cycle_transactions.c')+$dependencies+@('release/xl.dll')+$libs+@('-o',$binary)) "$outputPath/$name.build.log"
+        $buildExit=Invoke-XlirGccToLog ($hostFlags+@("-O$level",'test/cases/xlir_module_cycle_transactions.c')+$dependencies+@('release/win_x64/xl.dll')+$libs+@('-o',$binary)) "$outputPath/$name.build.log"
         $run=$null;$complete=$false
         if(!$buildExit){
 $process=Start-Process -FilePath $binary -WindowStyle Hidden -PassThru -WorkingDirectory $rootPath -RedirectStandardOutput "$outputPath/$name.out.log" -RedirectStandardError "$outputPath/$name.err.log"

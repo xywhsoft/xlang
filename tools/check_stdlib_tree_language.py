@@ -27,7 +27,7 @@ def main():
             assert sha(row['Path'])==row['Sha256'].lower(); files.add(Path(row['Path']))
         cli=Path(build['Driver']); assert sha(cli)==build['DriverSha256'].lower()
         links=[*[row['Path'] for row in build['Objects'] if Path(row['Path']).name!='xlir_public_source_driver.o'],
-               str(root/'release/xl.dll'),'-lws2_32','-liphlpapi','-lshell32','-lole32','-ladvapi32']
+               str(root/'release/win_x64/xl.dll'),'-lws2_32','-liphlpapi','-lshell32','-lole32','-ladvapi32']
         include=public/'include'; suffix='.exe'
     else:
         cli=root/'release/xl'; include=out/'include'; suffix=''
@@ -36,7 +36,7 @@ def main():
     files.add(cli)
     inputs=[{'Path':str(path.resolve()),'Sha256':sha(path)} for path in sorted(files)]
     out.mkdir(parents=True)
-    if args.public: shutil.copy2(root/'release/xl.dll',out/'xl.dll')
+    if args.public: shutil.copy2(root/'release/win_x64/xl.dll',out/'xl.dll')
     else:
         private=include/'__xl_runtime'; private.mkdir(parents=True)
         for folder in (root/'src/runtime',root/'release/include'):

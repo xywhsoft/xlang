@@ -5,7 +5,7 @@ param(
 $ErrorActionPreference = "Stop"
 if ( $Root -eq "" ) { $Root = Split-Path -Parent $PSScriptRoot }
 
-$xl = Join-Path $Root "release\xl.exe"
+$xl = Join-Path $Root "release\win_x64\xl.exe"
 $propertySource = Join-Path $Root "test\cases\cgen_class_property_compound_managed.xl"
 $operatorSource = Join-Path $Root "test\cases\cgen_protocol_compound_assign.xl"
 $outputDir = Join-Path $Root "build\test"

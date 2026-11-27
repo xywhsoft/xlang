@@ -8,7 +8,7 @@ if ( $Root -eq "" ) {
     $Root = Split-Path -Parent $PSScriptRoot
 }
 
-$xl = Join-Path $Root "release\xl.exe"
+$xl = Join-Path $Root "release\win_x64\xl.exe"
 $runtimeHost = Join-Path $Root "test\cases\xlir_default_class_layout_host.c"
 $externRuntimeHost = Join-Path $Root "test\cases\xlir_named_function_extern_adapter_host.c"
 $xcallRuntimeHost = Join-Path $Root "test\cases\xlir_xcall_i64_host.c"

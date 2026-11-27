@@ -35,7 +35,7 @@ def main() -> int:
         parser.error("Require gcc/nm, a fresh output and Linux for sanitizers")
     sources = ["test/cases/stdlib_array_default_native_host.c", "test/support/array_default_native.c",
                "src/runtime/xl6_array_default.c", "src/runtime/xl6_sequence.c"]
-    product = root / ("release/xl.dll" if os.name == "nt" else "release/libxl.so")
+    product = root / ("release/win_x64/xl.dll" if os.name == "nt" else "release/libxl.so")
     files = [Path(__file__), Path(cc), Path(nm), Path(sys.executable), root / "lib/xrt/xrt.h"]
     files += [root / name for name in sources]
     files += sorted((root / "src/runtime").rglob("*.h"))

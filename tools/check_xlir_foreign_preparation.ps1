@@ -27,7 +27,7 @@ try {
         "-DXLIR_PREPARE_CASE=xlir_fn_$($entry[0].symbol)" -include "$prefix.c" `
         -c test/cases/xlir_foreign_prepare_ownership_host.c -o "$prefix.host.o"
     if ($LASTEXITCODE -ne 0) { throw 'Preparation strict host build failed' }
-    & gcc -std=c11 -Wall -Wextra -Werror -I. "$prefix.host.o" test/cases/xlir_foreign_prepare_memory.c release/xl.dll -o "$prefix.exe"
+    & gcc -std=c11 -Wall -Wextra -Werror -I. "$prefix.host.o" test/cases/xlir_foreign_prepare_memory.c release/win_x64/xl.dll -o "$prefix.exe"
     if ($LASTEXITCODE -ne 0) { throw 'Preparation strict link failed' }
     & "$prefix.exe"
     if ($LASTEXITCODE -ne 0) { throw 'Preparation ownership/first-outcome runtime failed' }

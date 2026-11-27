@@ -12,11 +12,11 @@ try {
     Write-Fixture 'tools/orphan.py' "run=2`n"
     Write-Fixture 'tools/payload.json' '{"source":"real_fixture.c"}'
     Write-Fixture 'tools/unreferenced.ps1' 'throw "must never be executed or included"'
-    [void][IO.Directory]::CreateDirectory((Join-Path $root 'release/extlibs/package/test'))
+    [void][IO.Directory]::CreateDirectory((Join-Path $root 'release/win_x64/extlibs/package/test'))
     [void][IO.Directory]::CreateDirectory((Join-Path $root 'build'))
-    Write-Fixture 'entry.bat' "@echo off`npowershell -File tools/a.ps1`npowershell -File release/extlibs/package/test/check.ps1`npython build/report.json`n"
-    Write-Fixture 'release/extlibs/package/test/check.ps1' '$data=''package.json'''
-    Write-Fixture 'release/extlibs/package/test/package.json' '{"fixture":"native_probe.c"}'
+    Write-Fixture 'entry.bat' "@echo off`npowershell -File tools/a.ps1`npowershell -File release/win_x64/extlibs/package/test/check.ps1`npython build/report.json`n"
+    Write-Fixture 'release/win_x64/extlibs/package/test/check.ps1' '$data=''package.json'''
+    Write-Fixture 'release/win_x64/extlibs/package/test/package.json' '{"fixture":"native_probe.c"}'
     Write-Fixture 'build/report.json' '{"inputs":["tools/unreferenced.ps1"]}'
     [IO.File]::WriteAllText((Join-Path $temporary 'outside.ps1'),'throw "outside root"',$utf8)
     $paths=@(Get-WiringScriptClosure $root @('tools/a.ps1') | ForEach-Object {
@@ -27,7 +27,7 @@ try {
     $paths=@(Get-WiringScriptClosure $root @('entry.bat') | ForEach-Object {
         $_.Path.Substring($root.Length+1).Replace('\','/')
     } | Sort-Object)
-    $expected+=@('entry.bat','release/extlibs/package/test/check.ps1','release/extlibs/package/test/package.json')
+    $expected+=@('entry.bat','release/win_x64/extlibs/package/test/check.ps1','release/win_x64/extlibs/package/test/package.json')
     if (@(Compare-Object $expected $paths).Count) { throw ('Wrong batch/package closure: '+($paths -join ',')) }
     Write-Output 'Runner reference graph: ASTs, unquoted batch/package references, JSON, comment, generated-report and root-escape controls passed.'
 } finally {

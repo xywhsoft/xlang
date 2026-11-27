@@ -26,7 +26,7 @@ def main():
     products=[root/'release'/name for name in (('xl.exe','xl.dll','xlc.dll') if windows else ('xl','libxl.so','libxlc.so'))]
     recorded={Path(row['Path']).resolve():row['Sha256'] for row in shipping['Products']};assert all(recorded[f]==sha(f) for f in products)
     for row in shipping['Inputs']+shipping['Products']:assert sha(row['Path'])==row['Sha256'];pinned.add(Path(row['Path']))
-    runtime=root/'release/xl.dll' if windows else Path(build['NativeRoot'])/'release/libxl.so'
+    runtime=root/'release/win_x64/xl.dll' if windows else Path(build['NativeRoot'])/'release/libxl.so'
     child_source=root/'test/cases/xlir_process_child.c'
     pinned.update((Path(__file__).resolve(),Path(stdlib_vfs_fixture.__file__).resolve(),Path(sys.executable),Path(cc),a.build_report.resolve(),ir,runtime,child_source,*fixtures,*owners,*originals))
     inputs=[dict(Path=str(path),Sha256=sha(path)) for path in sorted(pinned)];out.mkdir(parents=True)

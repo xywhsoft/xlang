@@ -22,7 +22,7 @@ def main() -> int:
     root=Path(__file__).resolve().parents[1]; out=args.out.resolve(); cc=shutil.which('gcc')
     if not cc or out.exists() or (os.name=='nt' and (not args.public_directory or args.sanitize)):
         parser.error('Require gcc, fresh evidence and current-source Windows compiler; sanitizers are Linux only')
-    product=root/('release/xl.dll' if os.name=='nt' else 'release/libxl.so')
+    product=root/('release/win_x64/xl.dll' if os.name=='nt' else 'release/libxl.so')
     fixtures=['stdlib_array_value_read','stdlib_array_value_read_continuation']
     files={Path(__file__),Path(cc),Path(sys.executable),product}
     for directory in ('src','lib/tcc','release/include'):

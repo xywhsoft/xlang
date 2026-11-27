@@ -38,7 +38,7 @@ def main():
     cc = shutil.which('gcc'); assert cc
     driver = Path(public['Driver'])
     assert sha(driver).lower() == public['DriverSha256'].lower()
-    product = root / 'release/xl.dll' if os.name == 'nt' else Path(public['NativeRoot']) / 'release/libxl.so'
+    product = root / 'release/win_x64/xl.dll' if os.name == 'nt' else Path(public['NativeRoot']) / 'release/libxl.so'
     files.update((Path(cc), driver, product))
     cases = [('wide', test_root / 'test/cases/xlir_persistence_restore_graph.xl'),
              ('construction', test_root / 'test/cases/stdlib_persistence_restore_construction.xl'),

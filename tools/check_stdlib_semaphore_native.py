@@ -67,8 +67,8 @@ def main():
     if args.race: flags += ['-g', '-fsanitize=thread', '-fno-omit-frame-pointer', '-fno-pie', '-no-pie']
     objects = [row['Path'] for row in selected]
     if os.name == 'nt':
-        shutil.copy2(root / 'release/xl.dll', out / 'xl.dll'); suffix = '.exe'
-        links = [*objects, str(root / 'release/xl.dll'), '-lws2_32', '-liphlpapi', '-lshell32', '-lole32', '-ladvapi32']
+        shutil.copy2(root / 'release/win_x64/xl.dll', out / 'xl.dll'); suffix = '.exe'
+        links = [*objects, str(root / 'release/win_x64/xl.dll'), '-lws2_32', '-liphlpapi', '-lshell32', '-lole32', '-ladvapi32']
     else:
         suffix = ''; links = [*objects, '-L' + str(root / 'release'), '-lxl',
             '-Wl,-rpath,' + str(root / 'release'), '-Wl,--export-dynamic', '-pthread', '-ldl', '-lm']

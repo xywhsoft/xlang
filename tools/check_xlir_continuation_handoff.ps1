@@ -8,7 +8,7 @@ try {
         -c src/runtime/xl6_continuation_future.c -o "$prefix.transport.o"
     if ($LASTEXITCODE -ne 0) { throw 'Continuation Watch transport build failed' }
     & gcc -std=c11 -Wall -Wextra -Werror -O2 -I. test/cases/xlir_continuation_handoff_contract.c `
-        src/runtime/xl6_code_lease.c src/runtime/xl6_continuation_queue.c src/runtime/xl6_continuation_executor.c "$prefix.transport.o" release/xl.dll -o "$prefix.exe"
+        src/runtime/xl6_code_lease.c src/runtime/xl6_continuation_queue.c src/runtime/xl6_continuation_executor.c "$prefix.transport.o" release/win_x64/xl.dll -o "$prefix.exe"
     if ($LASTEXITCODE -ne 0) { throw 'Continuation handoff strict build failed' }
     & "$prefix.exe"
     if ($LASTEXITCODE -ne 0) { throw 'Continuation successor capacity/lifetime contract failed' }

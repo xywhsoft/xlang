@@ -20,7 +20,7 @@ def main():
     if a.fixtures:cases=[fixtureDir/name for name in ('tls.listener.selector.xl','tls.listener.selector.namespace.xl','public_tls_metadata.xl','public_tls_metadata_declarations.xl')]
     else:
         fixtureDir.mkdir();from tls_listener_selector_fixtures import fixtures;cases=fixtures(root,fixtureDir)
-    runtime=root/'release/xl.dll' if os.name=='nt' else Path(build['NativeRoot'])/'release/libxl.so';env=dict(os.environ)
+    runtime=root/'release/win_x64/xl.dll' if os.name=='nt' else Path(build['NativeRoot'])/'release/libxl.so';env=dict(os.environ)
     if os.name=='nt':shutil.copy2(runtime,out/'xl.dll')
     else:env['XL6_SOURCE_NATIVE_ROOT']=build['NativeRoot']
     cc=Path(shutil.which('gcc') or 'E:/software/w64devkit/bin/gcc.exe').resolve();contract=controls/'test/cases/xlir_tls_listener_selector_owned.c'

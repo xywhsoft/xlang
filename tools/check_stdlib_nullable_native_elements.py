@@ -15,7 +15,7 @@ def main():
     cc,nm=shutil.which('gcc'),shutil.which('nm');assert cc and nm and not out.exists()
     assert not a.sanitize or os.name!='nt'
     build,pinned,_=verify_public_build(root,public);driver=Path(build['Driver'])
-    runtime=root/'release/xl.dll' if os.name=='nt' else Path(build['NativeRoot'])/'release/libxl.so'
+    runtime=root/'release/win_x64/xl.dll' if os.name=='nt' else Path(build['NativeRoot'])/'release/libxl.so'
     case=root/'test/cases/stdlib_slot_map_nullable_elements.xl';host=root/'test/cases/stdlib_nullable_native_elements_host.c'
     unit=root/'test/cases/stdlib_nullable_native_elements_unit.c';contract=root/'test/cases/xlir_nullable_native_elements_contract.c'
     planner_src=root/'test/cases/xlir_artifact_runtime_contract.c';memory=root/'test/support/module_product_memory.c'

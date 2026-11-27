@@ -30,7 +30,7 @@ def main():
         *[str(path.relative_to(root)).replace('\\','/') for path in sorted((root/'src/runtime').glob('xl6_ownership_domain_resource_*.c'))]]
     selected+=sorted(set(path.relative_to(root).as_posix() for path in (root/'src/runtime').glob('xl6_io_*.c'))-set(selected))
     assert len(selected)==84
-    runtime=root/'release/xl.dll' if os.name=='nt' else Path(build['NativeRoot'])/'release/libxl.so'
+    runtime=root/'release/win_x64/xl.dll' if os.name=='nt' else Path(build['NativeRoot'])/'release/libxl.so'
     child_source=root/'test/cases/xlir_process_child.c'
     pinned.update((Path(__file__).resolve(),Path(stdlib_vfs_fixture.__file__).resolve(),Path(sys.executable),Path(cc),native,child_source,runtime,*[root/name for name in selected]))
     inputs=[dict(Path=str(path),Sha256=sha(path)) for path in sorted(pinned)];out.mkdir(parents=True)

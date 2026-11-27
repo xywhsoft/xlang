@@ -18,7 +18,7 @@ def main():
     cc=shutil.which('gcc'); assert cc and not out.exists()
     manifest=public/'build.json'; build=json.loads(manifest.read_text(encoding='utf-8-sig')); driver=Path(build['Driver'])
     assert build['SourceXrt'] and not build['RuntimeOnly'] and build['EnableExeCompiler']==1
-    runtime=root/'release/xl.dll' if os.name=='nt' else Path(build['NativeRoot'])/'release/libxl.so'
+    runtime=root/'release/win_x64/xl.dll' if os.name=='nt' else Path(build['NativeRoot'])/'release/libxl.so'
     assert Path(a.fixture).name==a.fixture and a.fixture.endswith('.xl')
     foreign=a.fixture=='stdlib_native_value_bridge.xl'
     source=root/'test/cases'/a.fixture; host=root/'test/cases'/('stdlib_native_value_bridge_host.c' if foreign else 'stdlib_native_value_ir_host.c')

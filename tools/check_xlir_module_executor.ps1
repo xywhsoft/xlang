@@ -11,7 +11,7 @@ try {
     $build=Get-Content (Join-Path $PublicDirectory 'build.json') -Raw|ConvertFrom-Json
     $contracts=Get-Content (Join-Path (Split-Path -Parent $ContractDriver) 'build.json') -Raw|ConvertFrom-Json
     if(!$build.SourceXrt -or @($build.Objects|Where-Object Path -match 'xrt_single_header_impl.o$').Count-ne1){throw 'Require current source runtime'}
-    $files=@(Get-Item -LiteralPath $PSCommandPath,(Get-Command gcc).Source,'release/xl.dll',
+    $files=@(Get-Item -LiteralPath $PSCommandPath,(Get-Command gcc).Source,'release/win_x64/xl.dll',
         'test/cases/xlir_module_executor.xl','test/cases/xlir_module_executor_contract.c',
         'test/cases/xlir_module_executor_artifact.c','test/cases/xlir_module_executor_host.c',
         'test/cases/xlir_module_executor_mixed.xl','test/cases/xlir_module_executor_mixed_host.c',
@@ -21,7 +21,7 @@ try {
         @($files|ForEach-Object {[pscustomobject]@{Path=$_.FullName;Sha256=(Get-FileHash -LiteralPath $_.FullName).Hash}})
     if(@($inputs|Where-Object {(Get-FileHash -LiteralPath $_.Path).Hash-ne$_.Sha256}).Count){throw 'Stale module-executor inputs'}
     New-Item -ItemType Directory -Path $outputPath|Out-Null
-    Copy-Item -LiteralPath release/xl.dll -Destination "$outputPath/xl.dll"
+    Copy-Item -LiteralPath release/win_x64/xl.dll -Destination "$outputPath/xl.dll"
     $runtimeInclude=Join-Path $outputPath '__xl_runtime'
     New-Item -ItemType Directory -Path $runtimeInclude|Out-Null
     foreach($header in $build.Headers|Where-Object Path -match '[/\\]__xl_runtime[/\\]'){
@@ -56,7 +56,7 @@ try {
             if($kind-eq'dll'){$extra=@('-DMODULE_EXECUTOR_DLL','-DXL_BUILD_DLL',
                 (New-XlirCStringDefine 'JOINT_DLL_PATH' ($outputPath.Replace('\','/')+"/executor-O$level.dll") -RawArgument),
                 (New-XlirCStringDefine 'JOINT_DLL_NAME' "executor-O$level.dll" -RawArgument),"-Wl,--out-implib,$outputPath/$name.a",'-Wl,--export-all-symbols')}
-            $buildExit=Invoke-XlirGccToLog ($flags+@("-O$level")+$extra+@('test/cases/xlir_module_executor_host.c')+$dependencies+@('release/xl.dll')+$libs+@('-o',$binary)) "$outputPath/$name.build.log"
+            $buildExit=Invoke-XlirGccToLog ($flags+@("-O$level")+$extra+@('test/cases/xlir_module_executor_host.c')+$dependencies+@('release/win_x64/xl.dll')+$libs+@('-o',$binary)) "$outputPath/$name.build.log"
             $run=$null;$complete=$false;$actualOom=0
             if(!$buildExit -and $kind-eq'dll'){
                 $dllExit=Invoke-XlirGccToLog ($flags+@("-O$level",'-shared','-DXL6_BUILD_SHARED','test/cases/xlir_module_executor_artifact.c',"$outputPath/$name.a",'-Wl,--export-all-symbols','-o',"$outputPath/executor-O$level.dll")) "$outputPath/$name.dll.log"
@@ -105,7 +105,7 @@ $process=Start-Process -FilePath $binary -WindowStyle Hidden -PassThru -WorkingD
                 if($kind-eq'dll'){$extra=@('-DMODULE_EXECUTOR_DLL','-DXL_BUILD_DLL',
                     (New-XlirCStringDefine 'JOINT_DLL_PATH' ($mixed.Replace('\','/')+"/mixed-executor-O$level.dll") -RawArgument),
                     (New-XlirCStringDefine 'JOINT_DLL_NAME' "mixed-executor-O$level.dll" -RawArgument),"-Wl,--out-implib,$outputPath/$name.a",'-Wl,--export-all-symbols')}
-                $buildExit=Invoke-XlirGccToLog ($mixedFlags+@("-O$level")+$extra+@('test/cases/xlir_module_executor_mixed_host.c')+$dependencies+@('release/xl.dll')+$libs+@('-o',$binary)) "$outputPath/$name.build.log"
+                $buildExit=Invoke-XlirGccToLog ($mixedFlags+@("-O$level")+$extra+@('test/cases/xlir_module_executor_mixed_host.c')+$dependencies+@('release/win_x64/xl.dll')+$libs+@('-o',$binary)) "$outputPath/$name.build.log"
                 $run=$null;$complete=$false
                 if(!$buildExit -and $kind-eq'dll'){
                     $dllExit=Invoke-XlirGccToLog ($mixedFlags+@("-O$level",'-shared','-DXL6_BUILD_SHARED','test/cases/xlir_module_executor_artifact.c',"$outputPath/$name.a",'-Wl,--export-all-symbols','-o',"$mixed/mixed-executor-O$level.dll")) "$outputPath/$name.dll.log"

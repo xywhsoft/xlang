@@ -18,7 +18,7 @@ def main():
     windows=os.name=='nt';cc=shutil.which('gcc');inspect=shutil.which('objdump' if windows else 'readelf')
     assert cc and inspect
     helper=root/'test/support/static_module_artifact.c';host=root/'test/cases/stdlib_static_module_native_host.c'
-    native=root/'release/xl.dll' if windows else Path(build['NativeRoot'])/'release/libxl.so'
+    native=root/'release/win_x64/xl.dll' if windows else Path(build['NativeRoot'])/'release/libxl.so'
     pinned.update((Path(__file__).resolve(),Path(sys.executable).resolve(),Path(cc),Path(inspect),helper,host,native))
     inputs=[dict(Path=str(path),Sha256=sha(path)) for path in sorted(pinned)]
     out.mkdir(parents=True);relocated=out/'relocated';relocated.mkdir();rows=[];prefixes=[]

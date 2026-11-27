@@ -80,7 +80,7 @@ function Assert-NegativeCase(
     }
 }
 
-$xl = Join-Path $Root "release\xl.exe"
+$xl = Join-Path $Root "release\win_x64\xl.exe"
 $outputDir = Join-Path $Root "build\test"
 $hostSource = Join-Path $Root "test\cases\xlir_default_class_layout_host.c"
 $sources = @(

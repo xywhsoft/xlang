@@ -29,7 +29,7 @@ def main():
     for row in build['Inputs']+build['Objects']+build['Headers']:
         assert sha(row['Path']).lower() == row['Sha256'].lower(), row['Path']; files.add(Path(row['Path']))
     cc = shutil.which('gcc'); assert cc
-    runtime = root/'release/xl.dll' if os.name == 'nt' else Path(build['NativeRoot'])/'release/libxl.so'
+    runtime = root/'release/win_x64/xl.dll' if os.name == 'nt' else Path(build['NativeRoot'])/'release/libxl.so'
     driver = Path(build['Driver']); assert sha(driver).lower() == build['DriverSha256'].lower()
     files.update((Path(cc), runtime, driver))
     host_source = args.host_source.resolve() if args.host_source else root/'test/cases/xlir_bound_activity_host.c'
@@ -46,7 +46,7 @@ def main():
         if os.name != 'nt': assert bb['Complete'] and bb['InputsUnchanged']
         for row in bb['Inputs']+bb['Objects']+bb['Headers']:
             assert sha(row['Path']).lower() == row['Sha256'].lower(), row['Path']; files.add(Path(row['Path']))
-        bt = br/'release/xl.dll' if os.name == 'nt' else Path(bb['NativeRoot'])/'release/libxl.so'
+        bt = br/'release/win_x64/xl.dll' if os.name == 'nt' else Path(bb['NativeRoot'])/'release/libxl.so'
         files.add(bt); before = (br, bp, bb, bt)
     names = ('xlir_bound_activity.xl', 'xlir_bound_activity_host.c', 'xlir_dynamic_bound_method.xl',
         'xlir_dynamic_bound_method_contract.c', 'xlir_dynamic_bound_method_host.c', 'xlir_dynamic_bound_method_runtime.c')

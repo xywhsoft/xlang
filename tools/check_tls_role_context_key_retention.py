@@ -15,7 +15,7 @@ def main():
     source=controls/'test/support/tls_role_context_key_retention.c';gcc=Path(shutil.which('gcc') or 'E:/software/w64devkit/bin/gcc.exe').resolve()
     paths=[Path(__file__),source,gcc,*[q for q in fixtures.iterdir() if q.is_file()]]
     r=dict(Complete=False,Rows=[],Failures=[],NormalSignatureVerifications=[],Inputs={str(q):sha(q) for q in paths},SourceBuild=str(a.source_build),NetworkTraffic=False,SecurityTests=False,MalformedCryptoTests=False,ShippingAccepted=False)
-    runtime=root/'release/xl.dll' if os.name=='nt' else Path(build['NativeRoot'])/'release/libxl.so'
+    runtime=root/'release/win_x64/xl.dll' if os.name=='nt' else Path(build['NativeRoot'])/'release/libxl.so'
     if os.name=='nt':shutil.copy2(runtime,out/'xl.dll')
     objects=[row['Path'] for row in build['Objects'] if Path(row['Source']).name not in ['xlir_public_source_driver.c','xlir_public_source_linux_driver.c']];assert len(objects)==len(build['Objects'])-1
     flags=['-std=c11','-DXL_STATIC_EMBED','-Wall','-Wextra','-Werror','-Wno-unused-const-variable','-I'+str(root),'-I'+str(root/'release'),'-I'+str(fixtures)]+([] if os.name=='nt' else ['-D_GNU_SOURCE'])

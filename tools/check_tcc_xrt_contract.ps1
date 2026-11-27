@@ -6,7 +6,7 @@ $ErrorActionPreference = "Stop"
 
 $cgenDir = Join-Path $Root "src\cgen"
 $commonPath = Join-Path $PSScriptRoot "xrt_snapshot_contract.ps1"
-$runtimePath = Join-Path $Root "release\include\xl_runtime.h"
+$runtimePath = Join-Path $Root "release\win_x64\include\xl_runtime.h"
 
 if ( ! (Test-Path -LiteralPath $cgenDir -PathType Container) ) {
     throw "missing C generator directory: $cgenDir"

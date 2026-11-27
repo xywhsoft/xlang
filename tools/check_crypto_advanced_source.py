@@ -18,7 +18,7 @@ def main():
     negatives=[cases/(name+'.xl') for name in ['bad_stdlib_crypto_advanced_default','bad_stdlib_crypto_poly1305_reset']]
     observers=[cases/(name+'.c') for name in ['xlir_codec_template_contract','stdlib53_pruning_plan']]
     driver=Path(build['Driver']);gcc=Path(shutil.which('gcc')).resolve()
-    runtime=root/'release/xl.dll' if os.name=='nt' else Path(build['NativeRoot'])/'release/libxl.so'
+    runtime=root/'release/win_x64/xl.dll' if os.name=='nt' else Path(build['NativeRoot'])/'release/libxl.so'
     pinned.update([Path(__file__).resolve(),gcc,runtime,*positives,*negatives,*observers])
     report=dict(Complete=False,Inputs={str(p):sha(p) for p in sorted(pinned)},Rows=[],Failures=[],
         NetworkTraffic=False,SecurityTests=False,ShippingAccepted=False,FullGoalComplete=False)

@@ -83,7 +83,7 @@ foreach ($contract in @(
             throw "$($contract.Path) must require an immutable current-source build and evidence directory"
         }
     }
-    if ($contract.Text.Contains('release\xl.exe') -or
+    if ($contract.Text.Contains('release\win_x64\xl.exe') -or
         !$contract.Text.Contains('Open-XlirPublicCgen') -or
         !$contract.Text.Contains('Assert-XlirPublicCgenUnchanged')) {
         throw "$($contract.Path) must consume and freeze the reviewed current-source driver"

@@ -9,7 +9,7 @@ function Get-XlirSourceHostCohort([string]$Root,[string]$SourceDriver,[string]$D
     $proof=Join-Path $Directory 'source-role.json';$verifier=Join-Path $PSScriptRoot 'xlir_public_build_inputs.py'
     $code=Invoke-XlirNativeToLog 'python' @($verifier,'--root',$Root,'--public',$public,'--out',$proof) (Join-Path $Directory 'source-role.log')
     if($code){throw 'Source-host cohort verification failed'}
-    if((Get-FileHash -LiteralPath (Join-Path $Root 'release/xl.dll')).Hash-ne$build.RuntimeSha256){throw 'Source-host runtime mismatch'}
+    if((Get-FileHash -LiteralPath (Join-Path $Root 'release/win_x64/xl.dll')).Hash-ne$build.RuntimeSha256){throw 'Source-host runtime mismatch'}
     # These three TUs are actually included by the API host; provide every
     # other real object, excluding the one source-driver main.
     $excluded=@('xl_api.o','xl_api_path.o','xl6_console.o','xlir_public_source_driver.o')

@@ -11,7 +11,7 @@ try {
         $outputPath = [IO.Path]::GetFullPath($Directory)
         if (Test-Path -LiteralPath $outputPath) { throw 'Choose a fresh object escape directory' }
         New-Item -ItemType Directory -Path $outputPath | Out-Null
-        Copy-Item -LiteralPath release/xl.dll -Destination (Join-Path $outputPath 'xl.dll')
+        Copy-Item -LiteralPath release/win_x64/xl.dll -Destination (Join-Path $outputPath 'xl.dll')
         $prefix = Join-Path $outputPath 'xlir_object_escape'
     }
     if (!$SourceRuntimeBuildManifest) { throw 'A complete source cohort is required; no release-provider fallback for native-catalog retirement' }
@@ -29,7 +29,7 @@ try {
     }
     $runtimeInclude = Join-Path $outputPath '__xl_runtime'
     New-Item -ItemType Directory -Force -Path $runtimeInclude | Out-Null
-    Copy-Item -LiteralPath release/include/xruntime_decl.h -Destination (Join-Path $runtimeInclude 'xruntime_decl.h') -Force
+    Copy-Item -LiteralPath release/win_x64/include/xruntime_decl.h -Destination (Join-Path $runtimeInclude 'xruntime_decl.h') -Force
     if ($SourceRuntimeBuildManifest) {
         foreach ($header in $runtimeBuild.Headers) {
             Copy-Item -LiteralPath $header.Path -Destination (Join-Path $runtimeInclude ([IO.Path]::GetFileName($header.Path))) -Force
@@ -42,7 +42,7 @@ try {
     foreach ($ext in @('c','h','json')) {
         if ((Get-FileHash "$prefix.generated.$ext").Hash -ne (Get-FileHash "$prefix.repeat.$ext").Hash) { throw "Object escape nondeterministic $ext" }
     }
-    $files=@($PSCommandPath,$SourceDriver,$SourceRuntimeBuildManifest,'release/xl.dll',
+    $files=@($PSCommandPath,$SourceDriver,$SourceRuntimeBuildManifest,'release/win_x64/xl.dll',
         'test/cases/xlir_object_escape.xl','test/cases/xlir_object_escape_tcc_host.c',
         'test/cases/xlir_object_escape_artifact.c','test/cases/xlir_class_retirement_outcome_tcc_host.c',
         'test/cases/xlir_one_shot_tcc_host.c','test/cases/xlir_async_module_lifetime_host.c',
@@ -66,7 +66,7 @@ try {
         if($lane.StartsWith('outcome')){$hostSource='test/cases/xlir_class_retirement_outcome_tcc_host.c';$level="-$($lane.Substring(8))"}
         $buildExit=Invoke-XlirGccToLog ($flags+$defines+@($level,'-c',$hostSource,'-o',"$prefix.$lane.host.o")) "$prefix.$lane.build.log"
         if(!$buildExit){
-            $buildExit=Invoke-XlirGccToLog ($flags+@($level,"$prefix.$lane.host.o")+$dependencies+@('release/xl.dll','-lWs2_32','-lIPHLPAPI','-lShell32','-lOle32','-lAdvapi32','-o',"$prefix.$lane.exe")) "$prefix.$lane.link.log"
+            $buildExit=Invoke-XlirGccToLog ($flags+@($level,"$prefix.$lane.host.o")+$dependencies+@('release/win_x64/xl.dll','-lWs2_32','-lIPHLPAPI','-lShell32','-lOle32','-lAdvapi32','-o',"$prefix.$lane.exe")) "$prefix.$lane.link.log"
         }
         $modes=if($lane.StartsWith('outcome')){0..3}else{0..9}
         foreach ($mode in $modes) {
@@ -82,7 +82,7 @@ try {
         }
     }
     $report = [pscustomobject]@{RecordedAt=(Get-Date).ToString('o');Results=$results;Inputs=$runtimeInputs;
-        DriverSha256=(Get-FileHash $SourceDriver).Hash;TccRuntimeSha256=(Get-FileHash release/xl.dll).Hash;
+        DriverSha256=(Get-FileHash $SourceDriver).Hash;TccRuntimeSha256=(Get-FileHash release/win_x64/xl.dll).Hash;
         SourceRuntimeSha256=(Get-FileHash $SourceRuntimeObject).Hash;
         SourceRuntimeBuildManifest=$SourceRuntimeBuildManifest;
         Scope='Current source XRT/compiler/resident host with real released TCC allocation. Original guarded 10x25 retained with exact external-root observation; additive unguarded 10x25 automatic lifetimes; four semantic retirement failure modes x25 on host O0/O2. No default backend switch, Linux, release/VFS rebuild or arbitrary transitive native admission.'}

@@ -8,7 +8,7 @@ if ( $Root -eq "" ) {
     $Root = Split-Path -Parent $PSScriptRoot
 }
 
-$releasePackageDir = Join-Path $Root "release\extlibs"
+$releasePackageDir = Join-Path $Root "release\win_x64\extlibs"
 $packageDir = Join-Path $Root "test\fixtures"
 $readmePath = Join-Path $releasePackageDir "README.md"
 $testBatPath = Join-Path $Root "test.bat"
@@ -196,12 +196,12 @@ if ( ! (Test-Path -LiteralPath $packageDir -PathType Container) ) {
 }
 
 $testText = Get-TestRegressionText
-if ( ! $testText.Contains('set "XLANG_PACKAGE_PATH=release\extlibs;test\fixtures"') ) {
-    Add-Failure "test.bat/test suites must set XLANG_PACKAGE_PATH=release\extlibs;test\fixtures before package/import regression"
+if ( ! $testText.Contains('set "XLANG_PACKAGE_PATH=release\win_x64\extlibs;test\fixtures"') ) {
+    Add-Failure "test.bat/test suites must set XLANG_PACKAGE_PATH=release\win_x64\extlibs;test\fixtures before package/import regression"
 }
 foreach ( $snippet in @(
-    "release\xl.exe run test\cases\import_dependency_versions.xl",
-    "release\xl.exe build test\cases\import_dependency_versions.xl",
+    "release\win_x64\xl.exe run test\cases\import_dependency_versions.xl",
+    "release\win_x64\xl.exe build test\cases\import_dependency_versions.xl",
     "private package dependency is not exported"
 ) ) {
     if ( ! $testText.Contains($snippet) ) {
@@ -227,7 +227,7 @@ foreach ( $name in $fixturePackageNames ) {
     }
     $releasePath = Join-Path $releasePackageDir $name
     if ( Test-Path -LiteralPath $releasePath -PathType Container ) {
-        Add-Failure "test fixture must not be published under release/extlibs: $name"
+        Add-Failure "test fixture must not be published under release/win_x64/extlibs: $name"
     }
 }
 
@@ -236,7 +236,7 @@ if ( $packages.Count -lt $minPackages ) {
 }
 
 if ( ! (Test-Path -LiteralPath $readmePath -PathType Leaf) ) {
-    Add-Failure "packages README missing: release/extlibs/README.md"
+    Add-Failure "packages README missing: release/win_x64/extlibs/README.md"
 } else {
     $readmeText = Read-Utf8Text $readmePath
     $readmePackageNames = New-Object System.Collections.Generic.HashSet[string]
@@ -262,13 +262,13 @@ if ( ! (Test-Path -LiteralPath $readmePath -PathType Leaf) ) {
 
         $path = Join-Path $releasePackageDir $name
         if ( ! (Test-Path -LiteralPath $path -PathType Container) ) {
-            Add-Failure "packages README references missing package directory: release/extlibs/$name"
+            Add-Failure "packages README references missing package directory: release/win_x64/extlibs/$name"
         }
     }
 
     foreach ( $pkg in $releasePackages ) {
         if ( ! $readmePackageNames.Contains($pkg.Name) ) {
-            Add-Failure "packages README does not list package directory: release/extlibs/$($pkg.Name)"
+            Add-Failure "packages README does not list package directory: release/win_x64/extlibs/$($pkg.Name)"
         }
     }
 }

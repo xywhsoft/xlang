@@ -9,8 +9,8 @@ try {
     $prefix = 'build/test/xlir_continuation_owner_views'
     New-Item -ItemType Directory -Force -Path build/test | Out-Null
     if (!(Test-Path -LiteralPath build/test/xl.dll) -or
-        (Get-FileHash release/xl.dll).Hash -ne (Get-FileHash build/test/xl.dll).Hash) {
-        Copy-Item -LiteralPath release/xl.dll -Destination build/test/xl.dll -Force
+        (Get-FileHash release/win_x64/xl.dll).Hash -ne (Get-FileHash build/test/xl.dll).Hash) {
+        Copy-Item -LiteralPath release/win_x64/xl.dll -Destination build/test/xl.dll -Force
     }
     $compilerSources = @('src/ast/xl6_ast.c','src/type/xl6_type_model.c',
         'src/ir/xl6_ir.c','src/ir/xl6_ir_lower.c',
@@ -25,7 +25,7 @@ try {
         '-Wno-unused-variable','-Wno-unused-parameter','-Wno-unused-const-variable',
         '-Wno-unused-but-set-variable','-Wno-missing-field-initializers',
         '-Wno-pointer-sign','-Wno-format-truncation','-I.','-Ibuild/test')
-    & gcc @strict test/cases/xlir_continuation_owner_views_contract.c @compilerSources release/xl.dll -o "$prefix.contract.exe"
+    & gcc @strict test/cases/xlir_continuation_owner_views_contract.c @compilerSources release/win_x64/xl.dll -o "$prefix.contract.exe"
     if ($LASTEXITCODE -ne 0) { throw 'Continuation owner views source contract build failed' }
     & "$prefix.contract.exe" "$prefix.c" "$prefix.h" "$prefix.json"
     if ($LASTEXITCODE -ne 0) { throw 'Continuation owner views mutation/verification contract failed' }
@@ -41,13 +41,13 @@ try {
     foreach ($variant in @('aliased','single')) {
         $hostSource = if ($variant -eq 'single') { 'test/cases/xlir_continuation_owner_views_single_host.c' } else { 'test/cases/xlir_continuation_owner_views_host.c' }
         # The host translation unit embeds only current-source verified C.
-        & gcc @strict test/cases/xlir_continuation_owner_views_runtime.c $hostSource release/xl.dll -o "$prefix.$variant.strict.exe"
+        & gcc @strict test/cases/xlir_continuation_owner_views_runtime.c $hostSource release/win_x64/xl.dll -o "$prefix.$variant.strict.exe"
         if ($LASTEXITCODE -ne 0) { throw "Continuation owner views $variant strict C build failed" }
         & "$prefix.$variant.strict.exe"
         if ($LASTEXITCODE -ne 0) { throw "Continuation owner views $variant runtime/memory failed" }
-        & release/xl.exe run test/cases/xlir_continuation_owner_views_runtime.c $hostSource --inc-path . --inc-path build/test -- --smoke
+        & release/win_x64/xl.exe run test/cases/xlir_continuation_owner_views_runtime.c $hostSource --inc-path . --inc-path build/test -- --smoke
         if ($LASTEXITCODE -ne 0) { throw "Continuation owner views $variant C-host JIT failed" }
-        & release/xl.exe build test/cases/xlir_continuation_owner_views_runtime.c $hostSource src/api/xl_foreign_error.c --inc-path . --inc-path build/test -o "$prefix.$variant.aot.exe"
+        & release/win_x64/xl.exe build test/cases/xlir_continuation_owner_views_runtime.c $hostSource src/api/xl_foreign_error.c --inc-path . --inc-path build/test -o "$prefix.$variant.aot.exe"
         if ($LASTEXITCODE -ne 0) { throw "Continuation owner views $variant C-host AOT build failed" }
         & "$prefix.$variant.aot.exe" --smoke
         if ($LASTEXITCODE -ne 0) { throw "Continuation owner views $variant C-host AOT runtime failed" }

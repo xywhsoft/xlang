@@ -18,7 +18,7 @@ def main():
         for f in sorted((root/folder).rglob('*')) if f.is_file() and f.suffix in ('.c','.h','.json','.py')}
     inputs.update({str(f):digest(f) for f in [Path(__file__).resolve(),*compilers]})
     pinned=a.root.resolve()
-    for n in ['lib/xrt/xrt.h','lib/xruntime/xruntime.h','release/include/xrt_decl.h','release/include/xruntime_decl.h']:
+    for n in ['lib/xrt/xrt.h','lib/xruntime/xruntime.h','release/win_x64/include/xrt_decl.h','release/win_x64/include/xruntime_decl.h']:
         inputs[str(pinned/n)]=digest(pinned/n)
     rows=[];products=[];report=dict(Complete=False,Inputs=inputs,Rows=rows,Products=products,Failures=[],
         ApplicationNetworkTraffic=False,NetworkSecurityTests=False)

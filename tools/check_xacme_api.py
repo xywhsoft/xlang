@@ -2,7 +2,7 @@
 from pathlib import Path
 import argparse,json,re
 p=argparse.ArgumentParser();p.add_argument('--write',action='store_true');args=p.parse_args()
-root=Path(__file__).resolve().parents[1];package=root/'release/extlibs/xacme'
+root=Path(__file__).resolve().parents[1];package=root/'release/win_x64/extlibs/xacme'
 header=(package/'upstream/xacme_decl.h').read_text(encoding='utf-8')
 functions=sorted(set(re.findall(r'XRT_API\s+[\w\s*]+?\b(xrtAcme\w+)\s*\(',header)))
 mapping={

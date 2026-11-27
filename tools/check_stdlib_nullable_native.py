@@ -14,7 +14,7 @@ def main():
     root,public,out=args.root.resolve(),args.public_directory.resolve(),args.out.resolve();cc,nm=shutil.which('gcc'),shutil.which('nm')
     assert cc and nm and not out.exists() and (not args.sanitize or os.name!='nt')
     build,pinned,_=verify_public_build(root,public)
-    runtime=root/'release/xl.dll' if os.name=='nt' else Path(build['NativeRoot'])/'release/libxl.so'
+    runtime=root/'release/win_x64/xl.dll' if os.name=='nt' else Path(build['NativeRoot'])/'release/libxl.so'
     host=root/'test/cases/stdlib_nullable_native_host.c';planner=root/'test/cases/xlir_nullable_native_plan.c'
     memory=root/'test/support/module_product_memory.c';fixture=root/'test/cases/cgen_basic.xl'
     pinned.update((Path(__file__).resolve(),Path(cc),Path(nm),runtime,host,planner,memory,fixture))

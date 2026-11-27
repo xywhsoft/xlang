@@ -7,8 +7,8 @@ $outputPath = [IO.Path]::GetFullPath((Join-Path $rootPath $Directory))
 if (Test-Path -LiteralPath $outputPath) { throw 'Use a fresh C owner validation directory' }
 New-Item -ItemType Directory -Force -Path "$outputPath/include/__xl_runtime" | Out-Null
 Copy-Item -Path src/runtime/*.h -Destination "$outputPath/include/__xl_runtime"
-Copy-Item -LiteralPath release/include/xruntime_decl.h -Destination "$outputPath/include/__xl_runtime/xruntime_decl.h"
-Copy-Item -LiteralPath release/xl.dll -Destination "$outputPath/xl.dll"
+Copy-Item -LiteralPath release/win_x64/include/xruntime_decl.h -Destination "$outputPath/include/__xl_runtime/xruntime_decl.h"
+Copy-Item -LiteralPath release/win_x64/xl.dll -Destination "$outputPath/xl.dll"
 $sources = @('src/ast/xl6_ast.c','src/type/xl6_type_model.c',
     'src/ir/xl6_ir.c','src/ir/xl6_ir_class_identity.c','src/ir/xl6_ir_lower.c',
     'src/cgen/xl6_ir_cgen.c','src/cgen/xl6_cgen_shared_runtime.c',
@@ -33,7 +33,7 @@ foreach ($source in $sources) {
     $objects += $object
 }
 $compiler = Join-Path $outputPath 'contract.exe'
-& $context.Compiler @flags test/cases/xlir_c_owned_contract.c @objects release/xl.dll '-Wl,--gc-sections' -o $compiler
+& $context.Compiler @flags test/cases/xlir_c_owned_contract.c @objects release/win_x64/xl.dll '-Wl,--gc-sections' -o $compiler
 if ($LASTEXITCODE) { throw 'C owner compiler driver link failed' }
 Write-Output "C owner compiler: $compiler"
 if ($BuildOnly) { exit 0 }
@@ -49,16 +49,16 @@ $sourceManifest=Get-Content -LiteralPath (Join-Path (Split-Path $PublicDriver) '
 $sourceRuntimeObjects=@($sourceManifest.Objects | Where-Object { [IO.Path]::GetFileName($_.Path) -ne 'xlir_public_source_driver.o' } | ForEach-Object Path)
 if (!$sourceManifest.SourceXrt -or !$sourceRuntimeObjects.Count) { throw 'Generated C requires a current source runtime manifest' }
 
-& $context.Compiler @flags test/cases/xlir_c_owned_runtime.c release/xl.dll -o "$outputPath/runtime.exe"
+& $context.Compiler @flags test/cases/xlir_c_owned_runtime.c release/win_x64/xl.dll -o "$outputPath/runtime.exe"
 if ($LASTEXITCODE) { throw 'C owner runtime test build failed' }
 & "$outputPath/runtime.exe"
 if ($LASTEXITCODE) { throw 'C owner runtime tests failed' }
 $ownerO2Flags=@($flags | Where-Object { $_ -ne '-O0' }) + '-O2'
-& $context.Compiler @ownerO2Flags test/cases/xlir_c_owned_runtime.c release/xl.dll -o "$outputPath/runtime-O2.exe"
+& $context.Compiler @ownerO2Flags test/cases/xlir_c_owned_runtime.c release/win_x64/xl.dll -o "$outputPath/runtime-O2.exe"
 if ($LASTEXITCODE) { throw 'Optimized C owner runtime test build failed' }
 & "$outputPath/runtime-O2.exe"
 if ($LASTEXITCODE) { throw 'Optimized C owner runtime tests failed' }
-& $context.Compiler @flags test/cases/xlir_c_owned_print_runtime.c release/xl.dll -o "$outputPath/print-runtime.exe"
+& $context.Compiler @flags test/cases/xlir_c_owned_print_runtime.c release/win_x64/xl.dll -o "$outputPath/print-runtime.exe"
 if ($LASTEXITCODE) { throw 'C print runtime test build failed' }
 & "$outputPath/print-runtime.exe"
 if ($LASTEXITCODE) { throw 'C print runtime tests failed' }
@@ -99,7 +99,7 @@ foreach ($source in $generatedSources) {
     }
     if ($LASTEXITCODE) { throw "C owner $name compilation failed" }
     $linkArgs=@($flags)+@("-I$outputPath/include",$generated,'test/cases/xlir_c_owned_native.c')+
-        $sourceRuntimeObjects+@('release/xl.dll','-lws2_32','-liphlpapi','-lshell32','-lole32','-ladvapi32','-Wl,--gc-sections','-Wl,--no-keep-memory','-o',"$outputPath/$name.exe")
+        $sourceRuntimeObjects+@('release/win_x64/xl.dll','-lws2_32','-liphlpapi','-lshell32','-lole32','-ladvapi32','-Wl,--gc-sections','-Wl,--no-keep-memory','-o',"$outputPath/$name.exe")
     $response=Join-Path $outputPath "$name.rsp"
     [IO.File]::WriteAllText($response,(@($linkArgs | ForEach-Object { '"'+$_.Replace('\','/').Replace('"','\"')+'"' }) -join "`n"),[Text.UTF8Encoding]::new($false))
     & $context.Compiler ('@'+$response)
@@ -115,7 +115,7 @@ foreach ($optimization in @('O0','O2')) {
     foreach ($name in @('xlir_runtime_operand_catalog','xlir_capture_ownership_contract',
         'xlir_managed_storage_inputs_contract','xlir_conditional_nullable_join_contract')) {
         $executable=Join-Path $outputPath "$name-$optimization.exe"
-        & $context.Compiler @contractFlags "test/cases/$name.c" @objects release/xl.dll '-Wl,--gc-sections' -o $executable
+        & $context.Compiler @contractFlags "test/cases/$name.c" @objects release/win_x64/xl.dll '-Wl,--gc-sections' -o $executable
         if ($LASTEXITCODE) { throw "Ordinary contract build failed: $name $optimization" }
         & $executable
         if ($LASTEXITCODE) { throw "Ordinary contract failed: $name $optimization" }

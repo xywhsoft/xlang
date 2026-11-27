@@ -20,7 +20,7 @@ if (Test-Path -LiteralPath $outputPath) {
 
 $shell = Join-Path $Root 'src\driver\xl6_xlc_shell.c'
 $api = Join-Path $Root 'src\api\xl_api.c'
-$header = Join-Path $Root 'release\include\xlc.h'
+$header = Join-Path $Root 'release\win_x64\include\xlc.h'
 $source = Join-Path $Root 'test\cases\xlir_checked_integer_arithmetic_abi.xl'
 foreach ($path in @($shell, $api, $header, $source)) {
     if (!(Test-Path -LiteralPath $path -PathType Leaf)) {

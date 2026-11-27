@@ -30,9 +30,9 @@ try {
         (New-XlirCStringDefine 'JOINT_TCC_INCLUDE_DIRECTORY' $cohort.IncludeDirectory.Replace('\','/') -RawArgument))
     $build=Invoke-XlirGccToLog ($flags+@('-O2')+$hostFlags+@('-c','test/cases/xlir_async_module_tcc_host.c','-o',"$prefix.host.o")) "$work/host.build.log"
     if ($build -ne 0) { throw 'TCC async source host build failed' }
-    $build=Invoke-XlirGccToLog ($flags+@('-O2',"$prefix.host.o")+@($cohort.Objects)+@('release/xl.dll')+$libs+@('-o',"$prefix.exe")) "$work/host.link.log"
+    $build=Invoke-XlirGccToLog ($flags+@('-O2',"$prefix.host.o")+@($cohort.Objects)+@('release/win_x64/xl.dll')+$libs+@('-o',"$prefix.exe")) "$work/host.link.log"
     if ($build -ne 0) { throw 'TCC async resident link failed' }
-    Copy-Item -LiteralPath release/xl.dll -Destination "$work/xl.dll"
+    Copy-Item -LiteralPath release/win_x64/xl.dll -Destination "$work/xl.dll"
     $failed = @()
     $rows=@()
     foreach ($mode in 0..5) {

@@ -14,7 +14,7 @@ def main():
     contracted=set(re.findall(r'^\{"(\w+)"',(root/'src/ir/xl6_ir_x509_identity_contracts.inc').read_text(),re.M));assert len(declared)==3 and declared==exported==contracted
     files=[Path(__file__),gcc,tcc,root/'tools/x509_identity_fixtures.py',root/'tools/check_key_format_wire.py',root/'test/support/x509_identity_owned.c',root/'test/support/x509_identity_plan.c',root/'src/compile/xl6_compile_unit.c',
         *[root/'test/support'/('crypto_'+n+'_runtime.c') for n in ('rsa','nist','ed25519','xdh')],*root.glob('src/runtime/*.h'),*root.glob('src/runtime/*.inc'),*root.glob('src/compile/*.h'),*root.glob('src/compile/*.inc'),
-        root/'src/ir/xl6_ir_x509_identity_contracts.inc',root/'lib/xrt/xrt.h',root/'lib/xruntime/xruntime.h',root/'release/include/xrt_decl.h',root/'release/include/xruntime_decl.h',*out.glob('*.der'),out/'x509_identity_vectors.h',out/'fixtures.json']
+        root/'src/ir/xl6_ir_x509_identity_contracts.inc',root/'lib/xrt/xrt.h',root/'lib/xruntime/xruntime.h',root/'release/win_x64/include/xrt_decl.h',root/'release/win_x64/include/xruntime_decl.h',*out.glob('*.der'),out/'x509_identity_vectors.h',out/'fixtures.json']
     r=dict(Complete=False,Inputs={str(f):sha(f) for f in files},Rows=[],Failures=[],NormalFamilies=4,ResidentEntries=3,EverySignatureIndependentlyVerified=True,
         NetworkTraffic=False,SecurityTests=False,MalformedCryptoTests=False,TrustAcceptance=False,TlsAcceptance=False,ShippingAcceptance=False)
     def save():(out/'results.json').write_text(json.dumps(r,indent=2)+'\n')

@@ -29,7 +29,7 @@ def main():
     observer=root/'test/cases/xlir_tls_verified_peer_packet.c'
     inputs=[Path(__file__).resolve(),args.build_report.resolve(),subject,helper,observer,
         root/'src/runtime/xl6_tls_verified_peer_packet.h',root/'test/support/tls_verified_peer_packet_data.h',
-        root/'release/include/xruntime_decl.h',root/'release/include/xrt_decl.h',*original]
+        root/'release/win_x64/include/xruntime_decl.h',root/'release/win_x64/include/xrt_decl.h',*original]
     for name in ('compiler_dll.rsp.in','runtime_dll.rsp.in'):
         template=root/'tools'/name
         entries=[line.strip().replace('\\','/') for line in template.read_text(encoding='utf-8-sig').splitlines()]

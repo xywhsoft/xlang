@@ -23,7 +23,7 @@ def main():
     if os.name != "nt":
         raise RuntimeError("This gate requires Windows for the native DLL/Unicode path contract")
     root = args.root.resolve()
-    compiler = (args.compiler or root / "release/xl.exe").resolve()
+    compiler = (args.compiler or root / "release/win_x64/xl.exe").resolve()
     gcc = shutil.which(args.gcc)
     if not gcc:
         raise RuntimeError("MinGW GCC is required")

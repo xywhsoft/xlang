@@ -32,7 +32,7 @@ function Get-XlirResidentClosure([string]$Root,[string]$Directory,[string[]]$Sym
         $planFlags=@('-std=c11','-Wall','-Wextra','-Werror','-DXL_STATIC_EMBED',
             "-I$selectedRoot","-I$selectedRoot/release","-I$selectedRoot/release/include")
         $objects=@($public.Objects|Where-Object {$_.Path-ne$mains[0].Path}|ForEach-Object Path)
-        $runtime=Join-Path $selectedRoot 'release/xl.dll'
+        $runtime=Join-Path $selectedRoot 'release/win_x64/xl.dll'
         Copy-Item -LiteralPath $runtime -Destination (Join-Path $output 'xl.dll')
         $planBuild=Invoke-XlirGccToLog ($planFlags+@($planSource)+$objects+@($runtime,'-lws2_32','-liphlpapi','-lshell32','-lole32','-ladvapi32','-o',$planBinary)) (Join-Path $output 'fixture-plan-build.log')
         if($planBuild){throw 'Verified fixture plan observer did not link'}

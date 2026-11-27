@@ -37,7 +37,7 @@ def main():
     variadicErrorHost=root/'test/support/runtime_variadic_func_oom_host.c'
     funcErrorHost=root/'test/support/runtime_callable_func_oom_host.c'
     defaultErrorHost=root/'test/support/runtime_callable_defaults_oom_host.c'
-    native=root/'release/xl.dll' if os.name=='nt' else Path(build['NativeRoot'])/'release/libxl.so'
+    native=root/'release/win_x64/xl.dll' if os.name=='nt' else Path(build['NativeRoot'])/'release/libxl.so'
     frameContract=root/'test/support/native_scalar_admission_contract.c'
     arrayOnly=root/'test/cases/stdlib_runtime_callable_variadic_array_only.xl'
     asyncMultiReturn=root/'test/cases/sem_async_multi_return.xl'

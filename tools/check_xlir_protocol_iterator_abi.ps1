@@ -8,7 +8,7 @@ if ( $Root -eq "" ) {
     $Root = Split-Path -Parent $PSScriptRoot
 }
 
-$xl = Join-Path $Root "release\xl.exe"
+$xl = Join-Path $Root "release\win_x64\xl.exe"
 $managedSource = Join-Path $Root "test\cases\xlir_protocol_iterator_managed_item.xl"
 $managedHost = Join-Path $Root "test\cases\xlir_protocol_iterator_managed_item_host.c"
 $nativeSource = Join-Path $Root "test\cases\extlib_native_iter_protocol_min.xl"

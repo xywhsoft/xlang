@@ -65,12 +65,12 @@ def main():
   obj=out/'contract.o';run('contract.build',[cc,*flags,'-O0','-c',contract,'-o',obj]);product(obj)
   objects=[r['Path'] for r in build['Objects'] if Path(r['Source']).name not in ('xlir_public_source_driver.c','xlir_public_source_linux_driver.c')]
   assert len(objects)==len(build['Objects'])-1;binary=out/('contract.exe' if os.name=='nt' else 'contract')
-  if os.name=='nt':link=[cc,*objects,obj,root/'release/xl.dll','-lws2_32','-liphlpapi','-lshell32','-lole32','-ladvapi32','-o',binary]
+  if os.name=='nt':link=[cc,*objects,obj,root/'release/win_x64/xl.dll','-lws2_32','-liphlpapi','-lshell32','-lole32','-ladvapi32','-o',binary]
   else:
    lib=a.native_root.resolve()/'release';link=[cc,*objects,obj,'-L'+str(lib),'-lxl','-Wl,-rpath,'+str(lib),'-Wl,--export-dynamic','-pthread','-ldl','-lm','-o',binary]
   response=out/'contract.rsp';response.write_text('\n'.join('"'+str(v).replace('\\','/')+'"' for v in link[1:])+'\n',encoding='utf8');product(response)
   run('contract.link',[cc,'@'+str(response)]);product(binary)
-  if os.name=='nt':shutil.copy2(root/'release/xl.dll',out/'xl.dll');product(out/'xl.dll')
+  if os.name=='nt':shutil.copy2(root/'release/win_x64/xl.dll',out/'xl.dll');product(out/'xl.dll')
   run('contract.run',[binary,root/'test/cases/stdlib_net_task.xl'],'NetTask XLIR:')
  save()
  for case in cases+regressions:

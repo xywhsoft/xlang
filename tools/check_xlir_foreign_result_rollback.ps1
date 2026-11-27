@@ -6,8 +6,8 @@ try {
     $source = 'test/cases/xlir_foreign_result_rollback.xl'
     $prefix = 'build/test/xlir_foreign_result_rollback'
     New-Item -ItemType Directory -Force -Path build/test | Out-Null
-    Copy-Item -LiteralPath release/xl.dll -Destination build/test/xl.dll -Force
-    & release/xl.exe ir $source --lowered --format json --emit "$prefix.json"
+    Copy-Item -LiteralPath release/win_x64/xl.dll -Destination build/test/xl.dll -Force
+    & release/win_x64/xl.exe ir $source --lowered --format json --emit "$prefix.json"
     if ($LASTEXITCODE -ne 0) { throw 'Foreign result rollback lowering failed' }
     $ir = [IO.File]::ReadAllText("$prefix.json") | ConvertFrom-Json
     $async = @($ir.callTargets | Where-Object kind -eq 4)
@@ -33,9 +33,9 @@ try {
             throw 'Foreign result rollback lost exact factory/destructor dataflow'
         }
     }
-    & release/xl.exe cgen $source --backend xlir --emit "$prefix.c"
+    & release/win_x64/xl.exe cgen $source --backend xlir --emit "$prefix.c"
     if ($LASTEXITCODE -ne 0) { throw 'Foreign result rollback Cgen failed' }
-    & release/xl.exe cgen $source --backend xlir --emit "$prefix.repeat.c"
+    & release/win_x64/xl.exe cgen $source --backend xlir --emit "$prefix.repeat.c"
     if ($LASTEXITCODE -ne 0 -or ![System.Linq.Enumerable]::SequenceEqual(
         [byte[]][IO.File]::ReadAllBytes("$prefix.c"), [byte[]][IO.File]::ReadAllBytes("$prefix.repeat.c"))) {
         throw 'Foreign result rollback C is not deterministic'
@@ -46,15 +46,15 @@ try {
         '-Wno-missing-field-initializers', '-I.', '-Ibuild/test')
     $runtime = 'test/cases/xlir_foreign_result_rollback_runtime.c'
     $hostSource = 'test/cases/xlir_foreign_result_rollback_host.c'
-    & gcc @strict $runtime $hostSource release/xl.dll -o "$prefix.exe"
+    & gcc @strict $runtime $hostSource release/win_x64/xl.dll -o "$prefix.exe"
     if ($LASTEXITCODE -ne 0) { throw 'Foreign result rollback strict C build failed' }
     & "$prefix.exe"
     if ($LASTEXITCODE -ne 0) { throw 'Foreign result rollback runtime ownership/error isolation failed' }
     & "$prefix.exe" --export-probe
     if ($LASTEXITCODE -ne 0) { throw 'Export must preserve the rolled-back NULL-diagnostic failure bit' }
-    & release/xl.exe run $runtime $hostSource --inc-path . --inc-path build/test -- --smoke
+    & release/win_x64/xl.exe run $runtime $hostSource --inc-path . --inc-path build/test -- --smoke
     if ($LASTEXITCODE -ne 0) { throw 'Foreign result rollback C-host JIT failed' }
-    & release/xl.exe build $runtime $hostSource src/api/xl_foreign_error.c --inc-path . --inc-path build/test -o "$prefix.aot.exe"
+    & release/win_x64/xl.exe build $runtime $hostSource src/api/xl_foreign_error.c --inc-path . --inc-path build/test -o "$prefix.aot.exe"
     if ($LASTEXITCODE -ne 0) { throw 'Foreign result rollback standalone AOT build failed' }
     & "$prefix.aot.exe" --smoke
     if ($LASTEXITCODE -ne 0) { throw 'Foreign result rollback standalone AOT runtime failed' }
@@ -69,7 +69,7 @@ try {
         'src/stdlib/xl6_stdlib.c', 'src/stdlib/xl6_stdlib_data.c')
     # The existing semantic diagnostic formatter has truncation warnings;
     # this exception applies only to the compiler harness, never emitted C.
-    & gcc @strict '-Wno-pointer-sign' '-Wno-format-truncation' test/cases/xlir_foreign_result_rollback_contract.c @compilerSources release/xl.dll -o "$prefix.contract.exe"
+    & gcc @strict '-Wno-pointer-sign' '-Wno-format-truncation' test/cases/xlir_foreign_result_rollback_contract.c @compilerSources release/win_x64/xl.dll -o "$prefix.contract.exe"
     if ($LASTEXITCODE -ne 0) { throw 'Foreign result rollback verifier contract build failed' }
     & "$prefix.contract.exe"
     if ($LASTEXITCODE -ne 0) { throw 'Foreign result rollback verifier/Cgen mutations failed' }

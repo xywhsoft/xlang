@@ -29,7 +29,7 @@ def main() -> int:
     else: cli=root/'release/xl'
     source=root/'test/cases/stdlib_array_create_language.xl'
     contract_source=Path(__file__).resolve().parents[1]/'test/cases/xlir_array_create_contract.c'
-    product=root/('release/xl.dll' if os.name=='nt' else 'release/libxlc.so')
+    product=root/('release/win_x64/xl.dll' if os.name=='nt' else 'release/libxlc.so')
     host=Path(__file__).resolve().parents[1]/'test/cases/stdlib_array_create_host.c'
     test_root=Path(__file__).resolve().parents[1]
     oom_source=test_root/'test/cases/stdlib_array_create_oom.xl'

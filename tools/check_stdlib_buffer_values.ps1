@@ -57,14 +57,14 @@ try {
     }
     & "$PSScriptRoot/stage_xlir_artifact_runtime_sources.ps1" -Directory $PublicDirectory *> "$outPath/stage.log"
     if (!$?) { throw 'Buffer private source package staging failed' }
-    Copy-Item -LiteralPath release/xl.dll -Destination "$outPath/xl.dll"
+    Copy-Item -LiteralPath release/win_x64/xl.dll -Destination "$outPath/xl.dll"
     $strict = @('-std=c11','-Wall','-Wextra','-Werror','-Wno-unused-function','-Wno-unused-label',
         '-Wno-unused-variable','-Wno-unused-parameter','-Wno-unused-const-variable','-Wno-unused-but-set-variable',
         '-Wno-missing-field-initializers','-Wno-pointer-sign','-Wno-format-truncation',
         '-I.','-Irelease','-Irelease/include',"-I$PublicDirectory/include")
     $objects = @($public.Objects | Where-Object { [IO.Path]::GetFileName($_.Path) -ne 'xlir_public_source_driver.o' } | ForEach-Object Path)
     Run 'contract-build' $gcc ($strict + @('-DXL_STATIC_EMBED','-Ilib/tcc','test/cases/xlir_text_value_contract.c') + $objects +
-        @('release/xl.dll','-lWs2_32','-lIPHLPAPI','-lShell32','-lOle32','-lAdvapi32','-o',"$outPath/contract.exe"))
+        @('release/win_x64/xl.dll','-lWs2_32','-lIPHLPAPI','-lShell32','-lOle32','-lAdvapi32','-o',"$outPath/contract.exe"))
     Run 'native-build' $gcc ($strict + @('test/cases/stdlib_buffer_value_host.c','test/support/buffer_value_native.c',
         'src/runtime/xl6_buffer_value.c','src/runtime/xl6_buffer_iterator.c','src/runtime/xl6_native_handle.c',
         'src/api/xl_foreign_error.c','-o',"$outPath/native.exe"))
